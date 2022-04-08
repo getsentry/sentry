@@ -1,14 +1,14 @@
 import {cloneElement, Component, isValidElement} from 'react';
-import ReactDOM from 'react-dom';
+import {findDOMNode} from 'react-dom';
 import copy from 'copy-text-to-clipboard';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {t} from 'app/locale';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {t} from 'sentry/locale';
 
 type DefaultProps = {
-  successMessage: string;
   errorMessage: string;
   hideMessages: boolean;
+  successMessage: string;
 };
 
 type Props = {
@@ -16,8 +16,8 @@ type Props = {
   value: string;
   /** Hide children if browser does not support copy */
   hideUnsupported?: boolean;
-  onSuccess?: () => void;
   onError?: () => void;
+  onSuccess?: () => void;
 } & DefaultProps;
 
 /**
@@ -39,7 +39,7 @@ class Clipboard extends Component<Props> {
     this.element?.removeEventListener('click', this.handleClick);
   }
 
-  element?: ReturnType<typeof ReactDOM.findDOMNode>;
+  element?: ReturnType<typeof findDOMNode>;
 
   handleClick = () => {
     const {value, hideMessages, successMessage, errorMessage, onSuccess, onError} =
@@ -66,7 +66,7 @@ class Clipboard extends Component<Props> {
     }
 
     // eslint-disable-next-line react/no-find-dom-node
-    this.element = ReactDOM.findDOMNode(ref);
+    this.element = findDOMNode(ref);
     this.element?.addEventListener('click', this.handleClick);
   };
 

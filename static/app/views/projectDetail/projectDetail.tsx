@@ -1,34 +1,38 @@
 import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import pick from 'lodash/pick';
 
-import {updateProjects} from 'app/actionCreators/globalSelection';
-import {fetchTagValues} from 'app/actionCreators/tags';
-import Feature from 'app/components/acl/feature';
-import Alert from 'app/components/alert';
-import Breadcrumbs from 'app/components/breadcrumbs';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import CreateAlertButton from 'app/components/createAlertButton';
-import GlobalAppStoreConnectUpdateAlert from 'app/components/globalAppStoreConnectUpdateAlert';
-import GlobalSdkUpdateAlert from 'app/components/globalSdkUpdateAlert';
-import IdBadge from 'app/components/idBadge';
-import * as Layout from 'app/components/layouts/thirds';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import MissingProjectMembership from 'app/components/projects/missingProjectMembership';
-import TextOverflow from 'app/components/textOverflow';
-import {IconSettings, IconWarning} from 'app/icons';
-import {t} from 'app/locale';
-import {PageContent} from 'app/styles/organization';
-import space from 'app/styles/space';
-import {GlobalSelection, Organization, Project, SessionApiResponse} from 'app/types';
-import {defined} from 'app/utils';
-import routeTitleGen from 'app/utils/routeTitle';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import withProjects from 'app/utils/withProjects';
-import AsyncView from 'app/views/asyncView';
+import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
+import {updateProjects} from 'sentry/actionCreators/pageFilters';
+import {fetchTagValues} from 'sentry/actionCreators/tags';
+import Feature from 'sentry/components/acl/feature';
+import Breadcrumbs from 'sentry/components/breadcrumbs';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import CreateAlertButton from 'sentry/components/createAlertButton';
+import GlobalAppStoreConnectUpdateAlert from 'sentry/components/globalAppStoreConnectUpdateAlert';
+import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
+import {GlobalSdkUpdateAlert} from 'sentry/components/globalSdkUpdateAlert';
+import IdBadge from 'sentry/components/idBadge';
+import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingError from 'sentry/components/loadingError';
+import NoProjectMessage from 'sentry/components/noProjectMessage';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
+import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
+import {IconSettings} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {PageContent} from 'sentry/styles/organization';
+import space from 'sentry/styles/space';
+import {Organization, PageFilters, Project} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import routeTitleGen from 'sentry/utils/routeTitle';
+import withPageFilters from 'sentry/utils/withPageFilters';
+import withProjects from 'sentry/utils/withProjects';
+import AsyncView from 'sentry/views/asyncView';
 
+import {ERRORS_BASIC_CHART_PERIODS} from './charts/projectErrorsBasicChart';
 import ProjectScoreCards from './projectScoreCards/projectScoreCards';
 import ProjectCharts from './projectCharts';
 import ProjectFilters from './projectFilters';
@@ -44,15 +48,13 @@ type RouteParams = {
 };
 
 type Props = RouteComponentProps<RouteParams, {}> & {
+  loadingProjects: boolean;
   organization: Organization;
   projects: Project[];
-  loadingProjects: boolean;
-  selection: GlobalSelection;
+  selection: PageFilters;
 };
 
-type State = AsyncView['state'] & {
-  hasSessions: boolean | null;
-};
+type State = AsyncView['state'];
 
 class ProjectDetail extends AsyncView<Props, State> {
   getTitle() {
@@ -63,56 +65,16 @@ class ProjectDetail extends AsyncView<Props, State> {
 
   componentDidMount() {
     this.syncProjectWithSlug();
-    if (this.props.location.query.project) {
-      this.fetchSessionsExistence();
-    }
   }
 
-  componentDidUpdate(prevProps: Props) {
+  componentDidUpdate() {
     this.syncProjectWithSlug();
-
-    if (prevProps.location.query.project !== this.props.location.query.project) {
-      this.fetchSessionsExistence();
-    }
   }
 
   get project() {
     const {projects, params} = this.props;
 
     return projects.find(p => p.slug === params.projectId);
-  }
-
-  async fetchSessionsExistence() {
-    const {organization, location} = this.props;
-    const {project: projectId, query} = location.query;
-
-    if (!projectId) {
-      return;
-    }
-
-    this.setState({
-      hasSessions: null,
-    });
-
-    try {
-      const response: SessionApiResponse = await this.api.requestPromise(
-        `/organizations/${organization.slug}/sessions/`,
-        {
-          query: {
-            project: projectId,
-            field: 'sum(session)',
-            statsPeriod: '90d',
-            interval: '1d',
-            query,
-          },
-        }
-      );
-      this.setState({
-        hasSessions: response.groups[0].totals['sum(session)'] > 0,
-      });
-    } catch {
-      // do nothing
-    }
   }
 
   handleProjectChange = (selectedProjects: number[]) => {
@@ -168,6 +130,11 @@ class ProjectDetail extends AsyncView<Props, State> {
     }
   }
 
+  onRetryProjects = () => {
+    const {params} = this.props;
+    fetchOrganizationDetails(this.api, params.orgId, true, false);
+  };
+
   isProjectStabilized() {
     const {selection, location} = this.props;
     const projectId = this.project?.id;
@@ -188,10 +155,7 @@ class ProjectDetail extends AsyncView<Props, State> {
 
     return (
       <PageContent>
-        <MissingProjectMembership
-          organization={organization}
-          projectSlug={project.slug}
-        />
+        <MissingProjectMembership organization={organization} project={project} />
       </PageContent>
     );
   }
@@ -199,9 +163,10 @@ class ProjectDetail extends AsyncView<Props, State> {
   renderProjectNotFound() {
     return (
       <PageContent>
-        <Alert type="error" icon={<IconWarning />}>
-          {t('This project could not be found.')}
-        </Alert>
+        <LoadingError
+          message={t('This project could not be found.')}
+          onRetry={this.onRetryProjects}
+        />
       </PageContent>
     );
   }
@@ -210,12 +175,14 @@ class ProjectDetail extends AsyncView<Props, State> {
     const {organization, params, location, router, loadingProjects, selection} =
       this.props;
     const project = this.project;
-    const {hasSessions} = this.state;
     const {query} = location.query;
     const hasPerformance = organization.features.includes('performance-view');
+    const hasDiscover = organization.features.includes('discover-basic');
     const hasTransactions = hasPerformance && project?.firstTransactionEvent;
     const isProjectStabilized = this.isProjectStabilized();
     const visibleCharts = ['chart1'];
+    const hasSessions = project?.hasSessions ?? null;
+    const hasOnlyBasicChart = !hasPerformance && !hasDiscover && !hasSessions;
 
     if (hasTransactions || hasSessions) {
       visibleCharts.push('chart2');
@@ -230,12 +197,19 @@ class ProjectDetail extends AsyncView<Props, State> {
     }
 
     return (
-      <GlobalSelectionHeader
+      <PageFiltersContainer
         disableMultipleProjectSelection
         skipLoadLastUsed
         onUpdateProjects={this.handleProjectChange}
+        relativeDateOptions={
+          hasOnlyBasicChart
+            ? pick(DEFAULT_RELATIVE_PERIODS, ERRORS_BASIC_CHART_PERIODS)
+            : undefined
+        }
+        showAbsolute={!hasOnlyBasicChart}
+        hideGlobalHeader
       >
-        <LightWeightNoProjectMessage organization={organization}>
+        <NoProjectMessage organization={organization}>
           <StyledPageContent>
             <Layout.Header>
               <Layout.HeaderContent>
@@ -249,16 +223,14 @@ class ProjectDetail extends AsyncView<Props, State> {
                   ]}
                 />
                 <Layout.Title>
-                  <TextOverflow>
-                    {project && (
-                      <IdBadge
-                        project={project}
-                        avatarSize={28}
-                        displayName={params.projectId}
-                        disableLink
-                      />
-                    )}
-                  </TextOverflow>
+                  {project && (
+                    <IdBadge
+                      project={project}
+                      avatarSize={28}
+                      hideOverflow="100%"
+                      disableLink
+                    />
+                  )}
                 </Layout.Title>
               </Layout.HeaderContent>
 
@@ -280,7 +252,7 @@ class ProjectDetail extends AsyncView<Props, State> {
                   />
                   <Button
                     icon={<IconSettings />}
-                    label={t('Settings')}
+                    aria-label={t('Settings')}
                     to={`/settings/${params.orgId}/projects/${params.projectId}/`}
                   />
                 </ButtonBar>
@@ -288,21 +260,22 @@ class ProjectDetail extends AsyncView<Props, State> {
             </Layout.Header>
 
             <Layout.Body>
-              <StyledSdkUpdatesAlert />
+              {project && <StyledGlobalEventProcessingAlert projects={[project]} />}
+              <Layout.Main fullWidth>
+                <StyledSdkUpdatesAlert />
+              </Layout.Main>
               <StyledGlobalAppStoreConnectUpdateAlert
                 project={project}
                 organization={organization}
               />
               <Layout.Main>
-                <Feature features={['semver']} organization={organization}>
-                  <ProjectFiltersWrapper>
-                    <ProjectFilters
-                      query={query}
-                      onSearch={this.handleSearch}
-                      tagValueLoader={this.tagValueLoader}
-                    />
-                  </ProjectFiltersWrapper>
-                </Feature>
+                <ProjectFiltersWrapper>
+                  <ProjectFilters
+                    query={query}
+                    onSearch={this.handleSearch}
+                    tagValueLoader={this.tagValueLoader}
+                  />
+                </ProjectFiltersWrapper>
 
                 <ProjectScoreCards
                   organization={organization}
@@ -364,8 +337,8 @@ class ProjectDetail extends AsyncView<Props, State> {
               </Layout.Side>
             </Layout.Body>
           </StyledPageContent>
-        </LightWeightNoProjectMessage>
-      </GlobalSelectionHeader>
+        </NoProjectMessage>
+      </PageFiltersContainer>
     );
   }
 }
@@ -376,7 +349,6 @@ const StyledPageContent = styled(PageContent)`
 
 const ProjectFiltersWrapper = styled('div')`
   margin-bottom: ${space(2)};
-  display: grid;
 `;
 
 const StyledSdkUpdatesAlert = styled(GlobalSdkUpdateAlert)`
@@ -385,9 +357,11 @@ const StyledSdkUpdatesAlert = styled(GlobalSdkUpdateAlert)`
   }
 `;
 
-StyledSdkUpdatesAlert.defaultProps = {
-  Wrapper: p => <Layout.Main fullWidth {...p} />,
-};
+const StyledGlobalEventProcessingAlert = styled(GlobalEventProcessingAlert)`
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    margin-bottom: 0;
+  }
+`;
 
 const StyledGlobalAppStoreConnectUpdateAlert = styled(GlobalAppStoreConnectUpdateAlert)`
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
@@ -399,4 +373,4 @@ StyledGlobalAppStoreConnectUpdateAlert.defaultProps = {
   Wrapper: p => <Layout.Main fullWidth {...p} />,
 };
 
-export default withProjects(withGlobalSelection(ProjectDetail));
+export default withProjects(withPageFilters(ProjectDetail));

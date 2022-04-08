@@ -1,17 +1,28 @@
+from typing import Any
+
+from sentry.eventstore.models import Event
 from sentry.grouping.component import GroupingComponent
-from sentry.grouping.strategies.base import produces_variants, strategy
+from sentry.grouping.strategies.base import (
+    GroupingContext,
+    ReturnedVariants,
+    produces_variants,
+    strategy,
+)
+from sentry.interfaces.template import Template
 
 
-@strategy(id="template:v1", interfaces=["template"], score=1100)
+@strategy(ids=["template:v1"], interface=Template, score=1100)
 @produces_variants(["default"])
-def template_v1(template, context, **meta):
+def template_v1(
+    interface: Template, event: Event, context: GroupingContext, **meta: Any
+) -> ReturnedVariants:
     filename_component = GroupingComponent(id="filename")
-    if template.filename is not None:
-        filename_component.update(values=[template.filename])
+    if interface.filename is not None:
+        filename_component.update(values=[interface.filename])
 
     context_line_component = GroupingComponent(id="context-line")
-    if template.context_line is not None:
-        context_line_component.update(values=[template.context_line])
+    if interface.context_line is not None:
+        context_line_component.update(values=[interface.context_line])
 
     return {
         context["variant"]: GroupingComponent(

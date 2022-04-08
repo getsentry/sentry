@@ -1,21 +1,21 @@
 import {Component} from 'react';
 import {browserHistory} from 'react-router';
 
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import {t} from 'app/locale';
-import {Choices, ServiceHook} from 'app/types';
-import ApiForm from 'app/views/settings/components/forms/apiForm';
-import BooleanField from 'app/views/settings/components/forms/booleanField';
-import MultipleCheckbox from 'app/views/settings/components/forms/controls/multipleCheckbox';
-import FormField from 'app/views/settings/components/forms/formField';
-import TextField from 'app/views/settings/components/forms/textField';
+import ApiForm from 'sentry/components/forms/apiForm';
+import BooleanField from 'sentry/components/forms/booleanField';
+import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
+import FormField from 'sentry/components/forms/formField';
+import TextField from 'sentry/components/forms/textField';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import {t} from 'sentry/locale';
+import {Choices, ServiceHook} from 'sentry/types';
 
 const EVENT_CHOICES: Choices = ['event.alert', 'event.created'].map(e => [e, e]);
 
 type Props = {
+  initialData: Partial<ServiceHook> & {isActive: boolean};
   orgId: string;
   projectId: string;
-  initialData: Partial<ServiceHook> & {isActive: boolean};
   hookId?: string;
 };
 

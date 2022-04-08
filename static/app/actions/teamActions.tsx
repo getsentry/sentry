@@ -1,6 +1,6 @@
-import Reflux from 'reflux';
+import {createActions} from 'reflux';
 
-const TeamActions = Reflux.createActions([
+const TeamActions = createActions([
   'createTeam',
   'createTeamError',
   'createTeamSuccess',
@@ -11,6 +11,7 @@ const TeamActions = Reflux.createActions([
   'fetchDetailsError',
   'fetchDetailsSuccess',
   'loadTeams',
+  'loadUserTeams',
   'removeTeam',
   'removeTeamError',
   'removeTeamSuccess',

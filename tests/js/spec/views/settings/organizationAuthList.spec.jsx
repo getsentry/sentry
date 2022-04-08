@@ -1,13 +1,10 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import OrganizationAuthList from 'app/views/settings/organizationAuth/organizationAuthList';
+import OrganizationAuthList from 'sentry/views/settings/organizationAuth/organizationAuthList';
 
 describe('OrganizationAuthList', function () {
   it('renders with no providers', function () {
-    const wrapper = mountWithTheme(
-      <OrganizationAuthList providerList={[]} />,
-      TestStubs.routerContext()
-    );
+    const wrapper = mountWithTheme(<OrganizationAuthList providerList={[]} />);
 
     expect(wrapper).toSnapshot();
   });
@@ -18,8 +15,7 @@ describe('OrganizationAuthList', function () {
         orgId="org-slug"
         onSendReminders={() => {}}
         providerList={TestStubs.AuthProviders()}
-      />,
-      TestStubs.routerContext()
+      />
     );
 
     expect(wrapper).toSnapshot();

@@ -1,13 +1,13 @@
 import * as React from 'react';
 import {RouteComponentProps} from 'react-router';
 
-import Access from 'app/components/acl/access';
-import Feature from 'app/components/acl/feature';
-import {Organization} from 'app/types';
+import Access from 'sentry/components/acl/access';
+import Feature from 'sentry/components/acl/feature';
+import {Organization} from 'sentry/types';
 
 type Props = {
-  organization: Organization;
   children: React.ReactNode;
+  organization: Organization;
 } & RouteComponentProps<{organizationId: string; projectId: string}, {}>;
 
 const ProjectAlerts = ({children, organization}: Props) => (

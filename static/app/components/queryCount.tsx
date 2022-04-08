@@ -1,10 +1,10 @@
-import {defined} from 'app/utils';
+import {defined} from 'sentry/utils';
 
 type Props = {
   count?: number | null;
-  max?: number;
   hideIfEmpty?: boolean;
   hideParens?: boolean;
+  max?: number;
 };
 
 /**

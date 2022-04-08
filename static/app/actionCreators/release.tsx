@@ -4,12 +4,12 @@ import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
-} from 'app/actionCreators/indicator';
-import ReleaseActions from 'app/actions/releaseActions';
-import {Client} from 'app/api';
-import {t} from 'app/locale';
-import ReleaseStore, {getReleaseStoreKey} from 'app/stores/releaseStore';
-import {Deploy, Release, ReleaseStatus} from 'app/types';
+} from 'sentry/actionCreators/indicator';
+import ReleaseActions from 'sentry/actions/releaseActions';
+import {Client} from 'sentry/api';
+import {t} from 'sentry/locale';
+import ReleaseStore, {getReleaseStoreKey} from 'sentry/stores/releaseStore';
+import {Deploy, Release, ReleaseStatus} from 'sentry/types';
 
 type ParamsGet = {
   orgSlug: string;

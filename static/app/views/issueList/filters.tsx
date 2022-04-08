@@ -1,130 +1,164 @@
 import * as React from 'react';
-import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import GuideAnchor from 'app/components/assistant/guideAnchor';
-import space from 'app/styles/space';
-import {Organization, SavedSearch} from 'app/types';
+import DatePageFilter from 'sentry/components/datePageFilter';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import ProjectPageFilter from 'sentry/components/projectPageFilter';
+import QueryCount from 'sentry/components/queryCount';
+import {tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, SavedSearch} from 'sentry/types';
 
-import IssueListDisplayOptions from './displayOptions';
 import IssueListSearchBar from './searchBar';
 import IssueListSortOptions from './sortOptions';
 import {TagValueLoader} from './types';
-import {IssueDisplayOptions} from './utils';
 
 type IssueListSearchBarProps = React.ComponentProps<typeof IssueListSearchBar>;
 
 type Props = {
-  organization: Organization;
-  savedSearch: SavedSearch;
-  display: IssueDisplayOptions;
-  sort: string;
-  query: string;
   isSearchDisabled: boolean;
-  hasSessions: boolean;
-  selectedProjects: number[];
-
-  onDisplayChange: (display: string) => void;
-  onSortChange: (sort: string) => void;
   onSearch: (query: string) => void;
   onSidebarToggle: (event: React.MouseEvent) => void;
+  onSortChange: (sort: string) => void;
+  organization: Organization;
+
+  query: string;
+  queryCount: number;
+  savedSearch: SavedSearch;
+  sort: string;
   tagValueLoader: TagValueLoader;
   tags: NonNullable<IssueListSearchBarProps['supportedTags']>;
 };
 
-class IssueListFilters extends React.Component<Props> {
-  render() {
-    const {
-      organization,
-      savedSearch,
-      query,
-      isSearchDisabled,
-      sort,
-      display,
-      hasSessions,
-      selectedProjects,
+function IssueListFilters({
+  organization,
+  savedSearch,
+  query,
+  queryCount,
+  isSearchDisabled,
+  sort,
+  onSidebarToggle,
+  onSearch,
+  onSortChange,
+  tagValueLoader,
+  tags,
+}: Props) {
+  const hasPageFilters = organization.features.includes('selection-filters-v2');
 
-      onSidebarToggle,
-      onSearch,
-      onSortChange,
-      onDisplayChange,
-      tagValueLoader,
-      tags,
-    } = this.props;
-    const isAssignedQuery = /\bassigned:/.test(query);
-    const hasIssuePercentDisplay = organization.features.includes(
-      'issue-percent-display'
-    );
-
-    return (
-      <SearchContainer hasIssuePercentDisplay={hasIssuePercentDisplay}>
-        <ClassNames>
-          {({css}) => (
-            <GuideAnchor
-              target="assigned_or_suggested_query"
-              disabled={!isAssignedQuery}
-              containerClassName={css`
-                width: 100%;
-              `}
-            >
-              <IssueListSearchBar
-                organization={organization}
-                query={query || ''}
-                sort={sort}
-                onSearch={onSearch}
-                disabled={isSearchDisabled}
-                excludeEnvironment
-                supportedTags={tags}
-                tagValueLoader={tagValueLoader}
-                savedSearch={savedSearch}
-                onSidebarToggle={onSidebarToggle}
-              />
-            </GuideAnchor>
-          )}
-        </ClassNames>
-
-        <DropdownsWrapper hasIssuePercentDisplay={hasIssuePercentDisplay}>
-          {hasIssuePercentDisplay && (
-            <IssueListDisplayOptions
-              onDisplayChange={onDisplayChange}
-              display={display}
-              hasSessions={hasSessions}
-              hasMultipleProjectsSelected={
-                selectedProjects.length !== 1 || selectedProjects[0] === -1
-              }
-            />
-          )}
-          <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
-        </DropdownsWrapper>
+  return (
+    <FilterContainer>
+      <SearchContainer hasPageFilters={hasPageFilters}>
+        {hasPageFilters && (
+          <PageFilterBar>
+            <ProjectPageFilter />
+            <EnvironmentPageFilter alignDropdown="left" />
+            <DatePageFilter alignDropdown="left" />
+          </PageFilterBar>
+        )}
+        <IssueListSearchBar
+          organization={organization}
+          query={query || ''}
+          sort={sort}
+          onSearch={onSearch}
+          disabled={isSearchDisabled}
+          excludeEnvironment
+          supportedTags={tags}
+          tagValueLoader={tagValueLoader}
+          savedSearch={savedSearch}
+          onSidebarToggle={onSidebarToggle}
+        />
+        {!hasPageFilters && (
+          <DropdownsWrapper>
+            <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
+          </DropdownsWrapper>
+        )}
       </SearchContainer>
-    );
-  }
+      {hasPageFilters && (
+        <ResultsRow>
+          <QueryCountText>
+            {queryCount > 0 &&
+              tct('[queryCount] results found', {
+                queryCount: <QueryCount hideParens count={queryCount} max={1000} />,
+              })}
+          </QueryCountText>
+          <DisplayOptionsBar>
+            <IssueListSortOptions
+              sort={sort}
+              query={query}
+              onSelect={onSortChange}
+              hasPageFilters
+            />
+          </DisplayOptionsBar>
+        </ResultsRow>
+      )}
+    </FilterContainer>
+  );
 }
 
-const SearchContainer = styled('div')<{hasIssuePercentDisplay?: boolean}>`
-  display: inline-grid;
-  grid-gap: ${space(1)};
-  margin-bottom: ${space(2)};
-  width: 100%;
+const FilterContainer = styled('div')`
+  display: grid;
+  gap: ${space(1)};
+  margin-bottom: ${space(1)};
+`;
 
-  @media (min-width: ${p => p.theme.breakpoints[p.hasIssuePercentDisplay ? 1 : 0]}) {
-    grid-template-columns: 1fr auto;
+const SearchContainer = styled('div')<{
+  hasPageFilters?: boolean;
+}>`
+  display: inline-grid;
+  gap: ${space(1)};
+  width: 100%;
+  margin-bottom: ${space(1)};
+
+  ${p =>
+    p.hasPageFilters
+      ? `grid-template-columns: minmax(0, max-content) minmax(20rem, 1fr);`
+      : `
+    @media (min-width: ${p.theme.breakpoints[0]}) {
+      grid-template-columns: 1fr auto;
+    }
+  }`}
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: minmax(0, 1fr);
   }
+`;
+
+const DropdownsWrapper = styled('div')`
+  display: grid;
+  gap: ${space(1)};
+  grid-template-columns: 1fr;
+  align-items: start;
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-columns: 1fr;
   }
 `;
 
-const DropdownsWrapper = styled('div')<{hasIssuePercentDisplay?: boolean}>`
-  display: grid;
-  grid-gap: ${space(1)};
-  grid-template-columns: 1fr ${p => (p.hasIssuePercentDisplay ? '1fr' : '')};
-  align-items: start;
+const QueryCountText = styled('p')`
+  font-size: ${p => p.theme.fontSizeLarge};
+  font-weight: 600;
+  color: ${p => p.theme.headingColor};
+  margin-bottom: 0;
+`;
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: 1fr;
+const DisplayOptionsBar = styled(PageFilterBar)`
+  height: auto;
+
+  /* make sure the border is on top of the trigger buttons */
+  &::after {
+    z-index: ${p => p.theme.zIndex.issuesList.displayOptions + 1};
   }
+
+  button[aria-haspopup='listbox'] {
+    font-weight: 600;
+  }
+`;
+
+const ResultsRow = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 `;
 
 export default IssueListFilters;

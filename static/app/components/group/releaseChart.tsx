@@ -1,11 +1,12 @@
 import * as React from 'react';
 
-import MiniBarChart from 'app/components/charts/miniBarChart';
-import {t} from 'app/locale';
-import {Group, Release, TimeseriesValue} from 'app/types';
-import {Series} from 'app/types/echarts';
-import {formatVersion} from 'app/utils/formatters';
-import theme from 'app/utils/theme';
+import MiniBarChart from 'sentry/components/charts/miniBarChart';
+import Count from 'sentry/components/count';
+import {t} from 'sentry/locale';
+import {Group, Release, TimeseriesValue} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
+import {formatVersion} from 'sentry/utils/formatters';
+import theme from 'sentry/utils/theme';
 
 import SidebarSection from './sidebarSection';
 
@@ -21,12 +22,12 @@ type Props = {
   statsPeriod: string;
   title: string;
   className?: string;
+  environment?: string;
+  environmentStats?: StatsGroup;
   firstSeen?: string;
   lastSeen?: string;
-  environment?: string;
   release?: Release;
   releaseStats?: StatsGroup;
-  environmentStats?: StatsGroup;
 };
 
 function GroupReleaseChart(props: Props) {
@@ -100,8 +101,15 @@ function GroupReleaseChart(props: Props) {
     }
   }
 
+  const totalSeries =
+    environment && environmentStats ? environmentStats[statsPeriod] : stats;
+  const totalEvents = totalSeries.reduce((acc, current) => acc + current[1], 0);
+
   return (
     <SidebarSection secondary title={title} className={className}>
+      <div>
+        <Count value={totalEvents} />
+      </div>
       <MiniBarChart
         isGroupedByDate
         showTimeInTooltip

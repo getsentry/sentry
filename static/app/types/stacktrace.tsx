@@ -1,4 +1,4 @@
-import {Frame} from 'app/types';
+import type {Frame} from './event';
 
 export enum STACK_VIEW {
   RAW = 'raw',
@@ -12,9 +12,9 @@ export enum STACK_TYPE {
 }
 
 export type StacktraceType = {
+  framesOmitted: any;
   hasSystemFrames: boolean;
   registers: Record<string, any> | null;
-  framesOmitted: any;
   frames?: Array<Frame>;
 };
 
@@ -26,25 +26,25 @@ type MechanismMeta = {
     name?: string;
   };
   mach_exception?: {
-    exception: number;
     code: number;
+    exception: number;
     subcode: number;
     name?: string;
   };
   signal?: {
     number: number;
     code?: number;
-    name?: string;
     code_name?: string;
+    name?: string;
   };
 };
 
-export type Mechanism = {
+export type StackTraceMechanism = {
   handled: boolean;
   synthetic: boolean;
   type: string;
-  meta?: MechanismMeta;
   data?: object;
   description?: string;
   help_link?: string;
+  meta?: MechanismMeta;
 };

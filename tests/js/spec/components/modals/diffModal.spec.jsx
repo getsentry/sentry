@@ -1,12 +1,12 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render} from 'sentry-test/reactTestingLibrary';
 
-import DiffModal from 'app/components/modals/diffModal';
+import DiffModal from 'sentry/components/modals/diffModal';
 
 describe('DiffModal', function () {
   it('renders', function () {
     const project = TestStubs.ProjectDetails();
 
-    mountWithTheme(
+    render(
       <DiffModal
         orgId="123"
         baseIssueId="123"

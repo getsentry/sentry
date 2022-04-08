@@ -20,15 +20,9 @@ class TestUpdateDsyms:
             appconnectIssuer="abc123" * 6,
             appconnectKey="abc123key",
             appconnectPrivateKey="----BEGIN PRIVATE KEY---- blabla",
-            itunesUser="me@example.com",
-            itunesPassword="secret",
-            itunesSession="THE-COOKIE",
-            itunesCreated=datetime.utcnow(),
             appName="My App",
             appId="123",
             bundleId="com.example.app",
-            orgPublicId="71105f98-7743-4844-ab70-2c901e2ea13d",
-            orgName="Example Com",
         )
 
     @pytest.fixture
@@ -39,6 +33,7 @@ class TestUpdateDsyms:
             version="3.1.5",
             build_number="20200220",
             uploaded_date=timezone.now(),
+            dsym_url="http://iosapps.itunes.apple.com/itunes-assets/Purple116/v4/20/ba/a0/20baa026-2410-b32f-1fde-b227bc2ea7ae/appDsyms.zip?accessKey=very-cool-key",
         )
 
     @pytest.mark.django_db
@@ -86,6 +81,7 @@ class TestUpdateDsyms:
             version="3.1.9",
             build_number="20200224",
             uploaded_date=timezone.now(),
+            dsym_url="http://iosapps.itunes.apple.com/itunes-assets/Purple116/v4/20/ba/a0/20baa026-2410-b32f-1fde-b227bc2ea7ae/appDsyms.zip?accessKey=very-cool-key",
         )
 
         pending = process_builds(

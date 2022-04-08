@@ -227,7 +227,7 @@ class ApiInviteHelper:
 
         user = self.request.user
         primary_email_is_verified = (
-            isinstance(user, User) and UserEmail.get_primary_email(user).is_verified
+            isinstance(user, User) and UserEmail.objects.get_primary_email(user).is_verified
         )
         return not primary_email_is_verified
 

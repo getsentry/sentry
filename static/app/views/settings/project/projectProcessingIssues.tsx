@@ -2,36 +2,36 @@ import * as React from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
-import Access from 'app/components/acl/access';
-import AlertLink from 'app/components/alertLink';
-import AutoSelectText from 'app/components/autoSelectText';
-import Button from 'app/components/button';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import ExternalLink from 'app/components/links/externalLink';
-import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
+import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
+import Access from 'sentry/components/acl/access';
+import AlertLink from 'sentry/components/alertLink';
+import AutoSelectText from 'sentry/components/autoSelectText';
+import Button from 'sentry/components/button';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import Form from 'sentry/components/forms/form';
+import JsonForm from 'sentry/components/forms/jsonForm';
+import ExternalLink from 'sentry/components/links/externalLink';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {
   Panel,
   PanelAlert,
   PanelBody,
   PanelHeader,
   PanelTable,
-} from 'app/components/panels';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import TimeSince from 'app/components/timeSince';
-import formGroups from 'app/data/forms/processingIssues';
-import {IconQuestion, IconSettings} from 'app/icons';
-import {t, tn} from 'app/locale';
-import {inputStyles} from 'app/styles/input';
-import {Organization, ProcessingIssue, ProcessingIssueItem} from 'app/types';
-import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
-import Form from 'app/views/settings/components/forms/form';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TextBlock from 'app/views/settings/components/text/textBlock';
+} from 'sentry/components/panels';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import TimeSince from 'sentry/components/timeSince';
+import formGroups from 'sentry/data/forms/processingIssues';
+import {IconQuestion} from 'sentry/icons';
+import {t, tn} from 'sentry/locale';
+import {inputStyles} from 'sentry/styles/input';
+import {Organization, ProcessingIssue, ProcessingIssueItem} from 'sentry/types';
+import withApi from 'sentry/utils/withApi';
+import withOrganization from 'sentry/utils/withOrganization';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 export const projectProcessingIssuesMessages = {
   native_no_crashed_thread: t('No crashed thread found in crash report'),
@@ -64,13 +64,13 @@ type Props = {
 } & RouteComponentProps<{orgId: string; projectId: string}, {}>;
 
 type State = {
+  error: boolean;
+  expected: number;
   formData: object;
   loading: boolean;
-  reprocessing: boolean;
-  expected: number;
-  error: boolean;
-  processingIssues: null | ProcessingIssue;
   pageLinks: null | string;
+  processingIssues: null | ProcessingIssue;
+  reprocessing: boolean;
 };
 
 class ProjectProcessingIssues extends React.Component<Props, State> {
@@ -367,7 +367,7 @@ class ProjectProcessingIssues extends React.Component<Props, State> {
     let processingRow: React.ReactNode = null;
     if (processingIssues && processingIssues.issuesProcessing > 0) {
       processingRow = (
-        <StyledPanelAlert type="info" icon={<IconSettings size="sm" />}>
+        <StyledPanelAlert type="info" showIcon>
           {tn(
             'Reprocessing %s event …',
             'Reprocessing %s events …',

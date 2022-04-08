@@ -1,5 +1,3 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
-
 import {
   aggregateMultiPlotType,
   aggregateOutputType,
@@ -12,7 +10,7 @@ import {
   isMeasurement,
   measurementType,
   parseFunction,
-} from 'app/utils/discover/fields';
+} from 'sentry/utils/discover/fields';
 
 describe('parseFunction', function () {
   it('returns null on non aggregate fields', function () {
@@ -312,19 +310,6 @@ describe('generateAggregateFields', function () {
   it('excludes fields from aggregates', function () {
     expect(generateAggregateFields(organization, [], ['count()'])).not.toContainEqual({
       field: 'count()',
-    });
-  });
-});
-
-describe('parameterOverrides', function () {
-  const {organization} = initializeOrg({
-    organization: {
-      apdexThreshold: 500,
-    },
-  });
-  it('handles parameter overrides', function () {
-    expect(generateAggregateFields(organization, [])).toContainEqual({
-      field: 'apdex(500)',
     });
   });
 });

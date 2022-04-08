@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 
-import {Panel, PanelHeader} from 'app/components/panels';
-import {t} from 'app/locale';
-import AsyncView from 'app/views/asyncView';
+import {Panel, PanelHeader} from 'sentry/components/panels';
+import {t} from 'sentry/locale';
+import AsyncView from 'sentry/views/asyncView';
 
 import MonitorCheckIns from './monitorCheckIns';
 import MonitorHeader from './monitorHeader';
@@ -12,7 +12,7 @@ import MonitorStats from './monitorStats';
 import {Monitor} from './types';
 
 type Props = AsyncView['props'] &
-  RouteComponentProps<{orgId: string; monitorId: string}, {}>;
+  RouteComponentProps<{monitorId: string; orgId: string}, {}>;
 
 type State = AsyncView['state'] & {
   monitor: Monitor | null;

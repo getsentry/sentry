@@ -43,6 +43,7 @@ class IntegrationSerializer(Serializer):  # type: ignore
             "icon": obj.metadata.get("icon"),
             "domainName": obj.metadata.get("domain_name"),
             "accountType": obj.metadata.get("account_type"),
+            "scopes": obj.metadata.get("scopes"),
             "status": obj.get_status_display(),
             "provider": serialize_provider(provider),
         }
@@ -139,6 +140,8 @@ class OrganizationIntegrationSerializer(Serializer):  # type: ignore
                 "configData": config_data,
                 "externalId": obj.integration.external_id,
                 "organizationId": obj.organization.id,
+                "organizationIntegrationStatus": obj.get_status_display(),
+                "gracePeriodEnd": obj.grace_period_end,
             }
         )
 
@@ -205,12 +208,9 @@ class IntegrationIssueSerializer(IntegrationSerializer):
         self, item_list: Sequence[Integration], user: User, **kwargs: Any
     ) -> MutableMapping[Integration, MutableMapping[str, Any]]:
         external_issues = ExternalIssue.objects.filter(
-            id__in=GroupLink.objects.filter(
-                group_id=self.group.id,
-                project_id=self.group.project_id,
-                linked_type=GroupLink.LinkedType.issue,
-                relationship=GroupLink.Relationship.references,
-            ).values_list("linked_id", flat=True),
+            id__in=GroupLink.objects.get_group_issues(self.group).values_list(
+                "linked_id", flat=True
+            ),
             integration_id__in=[i.id for i in item_list],
         )
 

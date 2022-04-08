@@ -1,27 +1,29 @@
 import * as React from 'react';
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
-import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 import * as qs from 'query-string';
 
-import {fetchOrgMembers, indexMembersByProject} from 'app/actionCreators/members';
-import {Client} from 'app/api';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import Pagination from 'app/components/pagination';
-import {Panel, PanelBody} from 'app/components/panels';
+import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
+import {Client} from 'sentry/api';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Pagination from 'sentry/components/pagination';
+import {Panel, PanelBody} from 'sentry/components/panels';
+import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
+import {treeResultLocator} from 'sentry/components/searchSyntax/utils';
 import StreamGroup, {
   DEFAULT_STREAM_GROUP_STATS_PERIOD,
-} from 'app/components/stream/group';
-import {t} from 'app/locale';
-import GroupStore from 'app/stores/groupStore';
-import {Group} from 'app/types';
-import {callIfFunction} from 'app/utils/callIfFunction';
-import StreamManager from 'app/utils/streamManager';
-import withApi from 'app/utils/withApi';
-import {TimePeriodType} from 'app/views/alerts/rules/details/constants';
+} from 'sentry/components/stream/group';
+import {t} from 'sentry/locale';
+import GroupStore from 'sentry/stores/groupStore';
+import {Group} from 'sentry/types';
+import {callIfFunction} from 'sentry/utils/callIfFunction';
+import StreamManager from 'sentry/utils/streamManager';
+import withApi from 'sentry/utils/withApi';
+import {TimePeriodType} from 'sentry/views/alerts/rules/details/constants';
+import {RELATED_ISSUES_BOOLEAN_QUERY_ERROR} from 'sentry/views/alerts/rules/details/relatedIssuesNotAvailable';
 
 import GroupListHeader from './groupListHeader';
 
@@ -36,11 +38,9 @@ const defaultProps = {
 
 type Props = WithRouterProps & {
   api: Client;
-  query: string;
-  orgId: string;
   endpointPath: string;
-  renderEmptyMessage?: () => React.ReactNode;
-  queryParams?: Record<string, number | string | string[] | undefined | null>;
+  orgId: string;
+  query: string;
   customStatsPeriod?: TimePeriodType;
   onFetchSuccess?: (
     groupListState: State,
@@ -52,12 +52,16 @@ type Props = WithRouterProps & {
     ) => void
   ) => void;
   queryFilterDescription?: string;
+  queryParams?: Record<string, number | string | string[] | undefined | null>;
+  renderEmptyMessage?: () => React.ReactNode;
+  renderErrorMessage?: ({detail: string}, retry: () => void) => React.ReactNode;
 } & Partial<typeof defaultProps>;
 
 type State = {
-  loading: boolean;
   error: boolean;
+  errorData: {detail: string} | null;
   groups: Group[];
+  loading: boolean;
   pageLinks: string | null;
   memberList?: ReturnType<typeof indexMembersByProject>;
 };
@@ -68,6 +72,7 @@ class GroupList extends React.Component<Props, State> {
   state: State = {
     loading: true,
     error: false,
+    errorData: null,
     groups: [],
     pageLinks: null,
   };
@@ -109,12 +114,12 @@ class GroupList extends React.Component<Props, State> {
   listener = GroupStore.listen(() => this.onGroupChange(), undefined);
   private _streamManager = new StreamManager(GroupStore);
 
-  fetchData = () => {
+  fetchData = async () => {
     GroupStore.loadInitialData([]);
-    const {api, orgId} = this.props;
+    const {api, orgId, queryParams} = this.props;
     api.clear();
 
-    this.setState({loading: true, error: false});
+    this.setState({loading: true, error: false, errorData: null});
 
     fetchOrgMembers(api, orgId).then(members => {
       this.setState({memberList: indexMembersByProject(members)});
@@ -122,25 +127,49 @@ class GroupList extends React.Component<Props, State> {
 
     const endpoint = this.getGroupListEndpoint();
 
-    api.request(endpoint, {
-      success: (data, _, resp) => {
-        this._streamManager.push(data);
-        this.setState(
-          {
-            error: false,
-            loading: false,
-            pageLinks: resp?.getResponseHeader('Link') ?? null,
+    const parsedQuery = parseSearch((queryParams ?? this.getQueryParams()).query);
+    const hasLogicBoolean = parsedQuery
+      ? treeResultLocator<boolean>({
+          tree: parsedQuery,
+          noResultValue: false,
+          visitorTest: ({token, returnResult}) => {
+            return token.type === Token.LogicBoolean ? returnResult(true) : null;
           },
-          () => {
-            this.props.onFetchSuccess?.(this.state, this.handleCursorChange);
-          }
-        );
-      },
-      error: err => {
-        Sentry.captureException(err);
-        this.setState({error: true, loading: false});
-      },
-    });
+        })
+      : false;
+
+    // Check if the alert rule query has AND or OR
+    // logic queries haven't been implemented for issue search yet
+    if (hasLogicBoolean) {
+      this.setState({
+        error: true,
+        errorData: {detail: RELATED_ISSUES_BOOLEAN_QUERY_ERROR},
+        loading: false,
+      });
+      return;
+    }
+
+    try {
+      const [data, , jqXHR] = await api.requestPromise(endpoint, {
+        includeAllArgs: true,
+      });
+
+      this._streamManager.push(data);
+
+      this.setState(
+        {
+          error: false,
+          errorData: null,
+          loading: false,
+          pageLinks: jqXHR?.getResponseHeader('Link') ?? null,
+        },
+        () => {
+          this.props.onFetchSuccess?.(this.state, this.handleCursorChange);
+        }
+      );
+    } catch (error) {
+      this.setState({error: true, errorData: error.responseJSON, loading: false});
+    }
   };
 
   getGroupListEndpoint() {
@@ -199,6 +228,7 @@ class GroupList extends React.Component<Props, State> {
       canSelectGroups,
       withChart,
       renderEmptyMessage,
+      renderErrorMessage,
       withPagination,
       useFilteredStats,
       useTintRow,
@@ -207,13 +237,17 @@ class GroupList extends React.Component<Props, State> {
       queryFilterDescription,
       narrowGroups,
     } = this.props;
-    const {loading, error, groups, memberList, pageLinks} = this.state;
+    const {loading, error, errorData, groups, memberList, pageLinks} = this.state;
 
     if (loading) {
       return <LoadingIndicator />;
     }
 
     if (error) {
+      if (typeof renderErrorMessage === 'function' && errorData) {
+        return renderErrorMessage(errorData, this.fetchData);
+      }
+
       return <LoadingError onRetry={this.fetchData} />;
     }
 

@@ -1,7 +1,9 @@
 import logging
+from typing import Any, MutableMapping
 
 from sentry import ratelimits, tsdb
 from sentry.api.serializers import serialize
+from sentry.eventstore.models import Event
 from sentry.plugins.base import Plugin
 from sentry.plugins.base.configuration import react_plugin_config
 from sentry.plugins.status import PluginStatus
@@ -22,10 +24,8 @@ class DataForwardingPlugin(Plugin):
         # number of requests, number of seconds (window)
         return (50, 1)
 
-    def forward_event(self, payload):
-        """
-        Forward the event and return a boolean if it was successful.
-        """
+    def forward_event(self, event: Event, payload: MutableMapping[str, Any]) -> bool:
+        """Forward the event and return a boolean if it was successful."""
         raise NotImplementedError
 
     def get_event_payload(self, event):

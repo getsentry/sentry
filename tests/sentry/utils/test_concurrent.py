@@ -1,13 +1,12 @@
 import _thread
-import sys
 from concurrent.futures import CancelledError, Future
 from contextlib import contextmanager
 from queue import Full
 from threading import Event
+from unittest import mock
 
 import pytest
 
-from sentry.utils.compat import mock
 from sentry.utils.concurrent import (
     FutureSet,
     SynchronousExecutor,
@@ -17,7 +16,6 @@ from sentry.utils.concurrent import (
 )
 
 
-@pytest.mark.skipif(sys.version_info[0] == 3, reason="TODO(python3): stalls on python3")
 def test_execute():
     assert execute(_thread.get_ident).result() != _thread.get_ident()
 
@@ -100,34 +98,70 @@ def test_timed_future_success():
     future = TimedFuture()
     assert future.get_timing() == (None, None)
 
+    expected_result = mock.sentinel.RESULT_VALUE
+    start_time, finish_time = expected_timing = (1.0, 2.0)
+
+    callback_results = []
+    callback = lambda future: callback_results.append((future.result(), future.get_timing()))
+
+    future.add_done_callback(callback)
+
+    with timestamp(start_time):
+        future.set_running_or_notify_cancel()
+        assert future.get_timing() == (start_time, None)
+
+    assert len(callback_results) == 0
+
+    with timestamp(finish_time):
+        future.set_result(expected_result)
+        assert future.get_timing() == expected_timing
+
+    assert len(callback_results) == 1
+    assert callback_results[0] == (expected_result, expected_timing)
+
+
+def test_time_is_not_overwritten_if_fail_to_set_result():
+    future = TimedFuture()
+
     with timestamp(1.0):
         future.set_running_or_notify_cancel()
-        assert future.get_timing() == (1.0, None)
+        future.set_result(1)
+        assert future.get_timing() == (1.0, 1.0)
+
+    from concurrent.futures import InvalidStateError
 
     with timestamp(2.0):
-        future.set_result(None)
-        assert future.get_timing() == (1.0, 2.0)
-
-    with timestamp(3.0):
-        future.set_result(None)
-        assert future.get_timing() == (1.0, 3.0)
+        try:
+            future.set_result(1)
+        except InvalidStateError:
+            pass
+        # If set_result fails, the time shouldn't be overwritten.
+        assert future.get_timing() == (1.0, 1.0)
 
 
 def test_timed_future_error():
     future = TimedFuture()
     assert future.get_timing() == (None, None)
 
-    with timestamp(1.0):
+    start_time, finish_time = expected_timing = (1.0, 2.0)
+
+    callback_timings = []
+    callback = lambda future: callback_timings.append(future.get_timing())
+
+    future.add_done_callback(callback)
+
+    with timestamp(start_time):
         future.set_running_or_notify_cancel()
-        assert future.get_timing() == (1.0, None)
+        assert future.get_timing() == (start_time, None)
 
-    with timestamp(2.0):
-        future.set_exception(None)
-        assert future.get_timing() == (1.0, 2.0)
+    assert len(callback_timings) == 0
 
-    with timestamp(3.0):
+    with timestamp(finish_time):
         future.set_exception(None)
-        assert future.get_timing() == (1.0, 3.0)
+        assert future.get_timing() == expected_timing
+
+    assert len(callback_timings) == 1
+    assert callback_timings[0] == expected_timing
 
 
 def test_timed_future_cancel():

@@ -2,14 +2,14 @@ import * as React from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import {ExportQueryType} from 'app/components/dataExport';
-import DateTime from 'app/components/dateTime';
-import {IconDownload} from 'app/icons';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import AsyncView from 'app/views/asyncView';
-import Layout from 'app/views/auth/layout';
+import Button from 'sentry/components/button';
+import {ExportQueryType} from 'sentry/components/dataExport';
+import DateTime from 'sentry/components/dateTime';
+import {IconDownload} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import AsyncView from 'sentry/views/asyncView';
+import Layout from 'sentry/views/auth/layout';
 
 export enum DownloadStatus {
   Early = 'EARLY',
@@ -18,26 +18,26 @@ export enum DownloadStatus {
 }
 
 type RouteParams = {
-  orgId: string;
   dataExportId: string;
+  orgId: string;
 };
 
 type Download = {
-  id: number;
-  user: {
-    id: number;
-    email: string;
-    username: string;
-  };
+  checksum: string;
   dateCreated: string;
-  dateFinished?: string;
-  dateExpired?: string;
+  id: number;
   query: {
-    type: ExportQueryType;
     info: object;
+    type: ExportQueryType;
   };
   status: DownloadStatus;
-  checksum: string;
+  user: {
+    email: string;
+    id: number;
+    username: string;
+  };
+  dateExpired?: string;
+  dateFinished?: string;
 };
 
 type Props = {} & RouteComponentProps<RouteParams, {}>;
@@ -46,16 +46,18 @@ type State = {
   download: Download;
   errors: {
     download: {
-      status: number;
-      statusText: string;
       responseJSON: {
         detail: string;
       };
+      status: number;
+      statusText: string;
     };
   };
 } & AsyncView['state'];
 
 class DataDownload extends AsyncView<Props, State> {
+  disableErrorReport = false;
+
   getTitle(): string {
     return t('Download Center');
   }

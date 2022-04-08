@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import ProjectCspReports from 'app/views/settings/projectSecurityHeaders/csp';
+import ProjectCspReports from 'sentry/views/settings/projectSecurityHeaders/csp';
 
 describe('ProjectCspReports', function () {
   const org = TestStubs.Organization();
@@ -33,8 +33,7 @@ describe('ProjectCspReports', function () {
           params: {orgId: org.slug, projectId: project.slug},
           location: TestStubs.location({pathname: routeUrl}),
         })}
-      />,
-      TestStubs.routerContext()
+      />
     );
     expect(wrapper).toSnapshot();
   });
@@ -48,8 +47,7 @@ describe('ProjectCspReports', function () {
           params: {orgId: org.slug, projectId: project.slug},
           location: TestStubs.location({pathname: routeUrl}),
         })}
-      />,
-      TestStubs.routerContext()
+      />
     );
 
     const mock = MockApiClient.addMockResponse({
@@ -84,8 +82,7 @@ describe('ProjectCspReports', function () {
           params: {orgId: org.slug, projectId: project.slug},
           location: TestStubs.location({pathname: routeUrl}),
         })}
-      />,
-      TestStubs.routerContext()
+      />
     );
 
     const mock = MockApiClient.addMockResponse({

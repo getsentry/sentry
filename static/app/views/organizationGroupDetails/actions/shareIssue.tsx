@@ -1,163 +1,155 @@
-import * as React from 'react';
+import {useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import ActionButton from 'app/components/actions/button';
-import AutoSelectText from 'app/components/autoSelectText';
-import Button from 'app/components/button';
-import Clipboard from 'app/components/clipboard';
-import Confirm from 'app/components/confirm';
-import DropdownLink from 'app/components/dropdownLink';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import Switch from 'app/components/switchButton';
-import {IconChevron, IconCopy, IconRefresh} from 'app/icons';
-import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
+import ActionButton from 'sentry/components/actions/button';
+import AutoSelectText from 'sentry/components/autoSelectText';
+import Button from 'sentry/components/button';
+import Clipboard from 'sentry/components/clipboard';
+import Confirm from 'sentry/components/confirm';
+import DropdownLink from 'sentry/components/dropdownLink';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Switch from 'sentry/components/switchButton';
+import {IconChevron, IconCopy, IconRefresh} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
 
 type ContainerProps = {
-  shareUrl: string;
-  onConfirming: () => void;
-  onConfirm: () => void;
   onCancel: () => void;
+  onConfirm: () => void;
+  onConfirming: () => void;
+  shareUrl: string;
 };
-
-type UrlRef = React.ElementRef<typeof AutoSelectText> | null;
-
-class ShareUrlContainer extends React.Component<ContainerProps> {
-  urlRef?: UrlRef;
-
-  // Select URL when its container is clicked
-  handleCopyClick = () => {
-    this.urlRef?.selectText();
-  };
-
-  render() {
-    const {shareUrl, onConfirming, onCancel, onConfirm} = this.props;
-
-    return (
-      <UrlContainer>
-        <TextContainer>
-          <StyledAutoSelectText ref={ref => (this.urlRef = ref)}>
-            {shareUrl}
-          </StyledAutoSelectText>
-        </TextContainer>
-
-        <Clipboard hideUnsupported value={shareUrl}>
-          <ClipboardButton
-            title={t('Copy to clipboard')}
-            borderless
-            size="xsmall"
-            onClick={this.handleCopyClick}
-            icon={<IconCopy />}
-          />
-        </Clipboard>
-
-        <Confirm
-          message={t(
-            'You are about to regenerate a new shared URL. Your previously shared URL will no longer work. Do you want to continue?'
-          )}
-          onCancel={onCancel}
-          onConfirming={onConfirming}
-          onConfirm={onConfirm}
-        >
-          <ReshareButton
-            title={t('Generate new URL')}
-            borderless
-            size="xsmall"
-            icon={<IconRefresh />}
-          />
-        </Confirm>
-      </UrlContainer>
-    );
-  }
-}
 
 type Props = {
   loading: boolean;
-  onToggle: () => void;
   /**
    * Called when refreshing an existing link
    */
   onReshare: () => void;
+  onToggle: () => void;
+  disabled?: boolean;
   /**
    * Link is public
    */
   isShared?: boolean;
   shareUrl?: string | null;
-  disabled?: boolean;
 };
 
-class ShareIssue extends React.Component<Props> {
-  hasConfirmModal = false;
+function ShareIssue({loading, onReshare, onToggle, disabled, isShared, shareUrl}: Props) {
+  const [hasConfirmModal, setHasConfirmModal] = useState(false);
 
-  handleToggleShare = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    this.props.onToggle();
+  // State of confirm modal so we can keep dropdown menu opn
+  const handleConfirmCancel = () => {
+    setHasConfirmModal(false);
   };
 
-  handleOpen = () => {
-    const {loading, isShared, onToggle} = this.props;
+  const handleConfirmReshare = () => {
+    setHasConfirmModal(true);
+  };
+
+  const handleToggleShare = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    onToggle();
+  };
+
+  const handleOpen = () => {
+    // Starts sharing as soon as dropdown is opened
     if (!loading && !isShared) {
-      // Starts sharing as soon as dropdown is opened
       onToggle();
     }
   };
 
-  // State of confirm modal so we can keep dropdown menu opn
-  handleConfirmCancel = () => {
-    this.hasConfirmModal = false;
-  };
-  handleConfirmReshare = () => {
-    this.hasConfirmModal = true;
-  };
+  return (
+    <DropdownLink
+      shouldIgnoreClickOutside={() => hasConfirmModal}
+      customTitle={
+        <ActionButton disabled={disabled}>
+          <DropdownTitleContent>
+            <IndicatorDot isShared={isShared} />
+            {t('Share')}
+          </DropdownTitleContent>
 
-  render() {
-    const {loading, isShared, shareUrl, onReshare, disabled} = this.props;
+          <IconChevron direction="down" size="xs" />
+        </ActionButton>
+      }
+      onOpen={handleOpen}
+      disabled={disabled}
+      keepMenuOpen
+    >
+      <DropdownContent>
+        <Header>
+          <Title>{t('Enable public share link')}</Title>
+          <Switch isActive={isShared} size="sm" toggle={handleToggleShare} />
+        </Header>
 
-    return (
-      <DropdownLink
-        shouldIgnoreClickOutside={() => this.hasConfirmModal}
-        customTitle={
-          <ActionButton disabled={disabled}>
-            <DropdownTitleContent>
-              <IndicatorDot isShared={isShared} />
-              {t('Share')}
-            </DropdownTitleContent>
+        {loading && (
+          <LoadingContainer>
+            <LoadingIndicator mini />
+          </LoadingContainer>
+        )}
 
-            <IconChevron direction="down" size="xs" />
-          </ActionButton>
-        }
-        onOpen={this.handleOpen}
-        disabled={disabled}
-        keepMenuOpen
-      >
-        <DropdownContent>
-          <Header>
-            <Title>{t('Enable public share link')}</Title>
-            <Switch isActive={isShared} size="sm" toggle={this.handleToggleShare} />
-          </Header>
-
-          {loading && (
-            <LoadingContainer>
-              <LoadingIndicator mini />
-            </LoadingContainer>
-          )}
-
-          {!loading && isShared && shareUrl && (
-            <ShareUrlContainer
-              shareUrl={shareUrl}
-              onCancel={this.handleConfirmCancel}
-              onConfirming={this.handleConfirmReshare}
-              onConfirm={onReshare}
-            />
-          )}
-        </DropdownContent>
-      </DropdownLink>
-    );
-  }
+        {!loading && isShared && shareUrl && (
+          <ShareUrlContainer
+            shareUrl={shareUrl}
+            onCancel={handleConfirmCancel}
+            onConfirming={handleConfirmReshare}
+            onConfirm={onReshare}
+          />
+        )}
+      </DropdownContent>
+    </DropdownLink>
+  );
 }
 
 export default ShareIssue;
+
+type UrlRef = React.ElementRef<typeof AutoSelectText>;
+
+function ShareUrlContainer({
+  shareUrl,
+  onConfirming,
+  onCancel,
+  onConfirm,
+}: ContainerProps) {
+  const urlRef = useRef<UrlRef>(null);
+
+  return (
+    <UrlContainer>
+      <TextContainer>
+        <StyledAutoSelectText ref={urlRef}>{shareUrl}</StyledAutoSelectText>
+      </TextContainer>
+
+      <Clipboard hideUnsupported value={shareUrl}>
+        <ClipboardButton
+          title={t('Copy to clipboard')}
+          borderless
+          size="xsmall"
+          onClick={() => urlRef.current?.selectText()}
+          icon={<IconCopy />}
+          aria-label={t('Copy to clipboard')}
+        />
+      </Clipboard>
+
+      <Confirm
+        message={t(
+          'You are about to regenerate a new shared URL. Your previously shared URL will no longer work. Do you want to continue?'
+        )}
+        onCancel={onCancel}
+        onConfirming={onConfirming}
+        onConfirm={onConfirm}
+      >
+        <ReshareButton
+          title={t('Generate new URL')}
+          aria-label={t('Generate new URL')}
+          borderless
+          size="xsmall"
+          icon={<IconRefresh />}
+        />
+      </Confirm>
+    </UrlContainer>
+  );
+}
 
 const UrlContainer = styled('div')`
   display: flex;
@@ -188,12 +180,14 @@ const DropdownContent = styled('li')`
 const Header = styled('div')`
   display: flex;
   justify-content: space-between;
+  align-items: center;
 `;
 
-const Title = styled('h6')`
-  margin: 0;
+const Title = styled('div')`
   padding-right: ${space(4)};
   white-space: nowrap;
+  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: 600;
 `;
 
 const IndicatorDot = styled('span')<{isShared?: boolean}>`
@@ -205,9 +199,7 @@ const IndicatorDot = styled('span')<{isShared?: boolean}>`
   background: ${p => (p.isShared ? p.theme.active : p.theme.border)};
 `;
 
-const StyledAutoSelectText = styled(AutoSelectText)<
-  React.ComponentPropsWithRef<typeof AutoSelectText>
->`
+const StyledAutoSelectText = styled(AutoSelectText)`
   flex: 1;
   padding: ${space(0.5)} 0 ${space(0.5)} ${space(0.75)};
   ${overflowEllipsis}

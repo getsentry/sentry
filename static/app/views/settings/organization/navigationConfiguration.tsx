@@ -1,5 +1,5 @@
-import {t} from 'app/locale';
-import {NavigationSection} from 'app/views/settings/types';
+import {t} from 'sentry/locale';
+import {NavigationSection} from 'sentry/views/settings/types';
 
 const pathPrefix = '/settings/:orgId';
 
@@ -32,13 +32,6 @@ const organizationNavigation: NavigationSection[] = [
         show: ({access}) => access!.has('member:read'),
         description: t('Manage user membership for an organization'),
         id: 'members',
-      },
-      {
-        path: `${pathPrefix}/performance/`,
-        title: t('Performance'),
-        show: ({features}) => features!.has('performance-view'),
-        description: t('Manage performance settings'),
-        id: 'performance',
       },
       {
         path: `${pathPrefix}/security-and-privacy/`,
@@ -79,7 +72,6 @@ const organizationNavigation: NavigationSection[] = [
       {
         path: `${pathPrefix}/relay/`,
         title: t('Relay'),
-        show: ({features}) => features!.has('relay'),
         description: t('Manage relays connected to the organization'),
         id: 'relay',
       },

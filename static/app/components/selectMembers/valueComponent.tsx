@@ -1,15 +1,15 @@
 import {Component} from 'react';
 
-import ActorAvatar from 'app/components/avatar/actorAvatar';
-import {Actor} from 'app/types';
+import ActorAvatar from 'sentry/components/avatar/actorAvatar';
+import {Actor} from 'sentry/types';
 
 type Value = {
   actor: Actor;
 };
 
 type Props = {
-  value: Value;
   onRemove: (value: Value) => void;
+  value: Value;
 };
 
 export default class ValueComponent extends Component<Props> {

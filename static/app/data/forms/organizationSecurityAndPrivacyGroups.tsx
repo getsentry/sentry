@@ -1,11 +1,11 @@
-import {t} from 'app/locale';
-import {convertMultilineFieldValue, extractMultilineFields} from 'app/utils';
+import {JsonFormObject} from 'sentry/components/forms/type';
+import {t} from 'sentry/locale';
+import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
 import {
   formatStoreCrashReports,
   getStoreCrashReportsValues,
   SettingScope,
-} from 'app/utils/crashReports';
-import {JsonFormObject} from 'app/views/settings/components/forms/type';
+} from 'sentry/utils/crashReports';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/security-and-privacy/';

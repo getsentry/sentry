@@ -1,11 +1,14 @@
 from typing import Iterable, Optional
 
 from sentry.grouping.component import GroupingComponent
+from sentry.grouping.strategies.base import ReturnedVariants
 
 MAX_LAYERS = 5
 
 
-def get_stacktrace_hierarchy(main_variant, components, frames, inverted_hierarchy):
+def get_stacktrace_hierarchy(
+    main_variant, components, frames, inverted_hierarchy
+) -> ReturnedVariants:
     frames_iter = list(zip(frames, components))
     if not inverted_hierarchy:
         # frames are sorted in a way where the crashing frame is at the end of

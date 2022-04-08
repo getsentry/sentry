@@ -1,40 +1,43 @@
-import {css, withTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import ProgressRing from 'app/components/progressRing';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {OnboardingTaskDescriptor, OnboardingTaskStatus} from 'app/types';
-import {Theme} from 'app/utils/theme';
+import ProgressRing from 'sentry/components/progressRing';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {OnboardingTaskDescriptor, OnboardingTaskStatus} from 'sentry/types';
 
 type Props = {
-  theme: Theme;
   allTasks: OnboardingTaskDescriptor[];
   completedTasks: OnboardingTaskStatus[];
 };
-const ProgressHeader = ({theme, allTasks, completedTasks}: Props) => (
-  <Container>
-    <StyledProgressRing
-      size={80}
-      barWidth={8}
-      text={allTasks.length - completedTasks.length}
-      animateText
-      value={(completedTasks.length / allTasks.length) * 100}
-      progressEndcaps="round"
-      backgroundColor={theme.gray100}
-      textCss={() => css`
-        font-size: 26px;
-        color: ${theme.textColor};
-      `}
-    />
-    <HeaderTitle>{t('Quick Start')}</HeaderTitle>
-    <Description>
-      {t("Take full advantage of Sentry's powerful monitoring features.")}
-    </Description>
-  </Container>
-);
 
-export default withTheme(ProgressHeader);
+function ProgressHeader({allTasks, completedTasks}: Props) {
+  const theme = useTheme();
+
+  return (
+    <Container>
+      <StyledProgressRing
+        size={80}
+        barWidth={8}
+        text={allTasks.length - completedTasks.length}
+        animateText
+        value={(completedTasks.length / allTasks.length) * 100}
+        progressEndcaps="round"
+        backgroundColor={theme.gray100}
+        textCss={() => css`
+          font-size: 26px;
+          color: ${theme.textColor};
+        `}
+      />
+      <HeaderTitle>{t('Quick Start')}</HeaderTitle>
+      <Description>
+        {t("Take full advantage of Sentry's powerful monitoring features.")}
+      </Description>
+    </Container>
+  );
+}
+
+export default ProgressHeader;
 
 const Container = styled('div')`
   display: grid;

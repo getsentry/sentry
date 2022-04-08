@@ -2,20 +2,19 @@ import * as React from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
-import TextBlock from 'app/views/settings/components/text/textBlock';
+import space from 'sentry/styles/space';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-type Props = {
-  title?: React.ReactNode;
+interface Props extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
+  action?: React.ReactElement;
   description?: React.ReactNode;
   icon?: React.ReactNode;
-  action?: React.ReactElement;
-  size?: 'large' | 'medium';
   leftAligned?: boolean;
-};
+  size?: 'large' | 'medium';
+  title?: React.ReactNode;
+}
 
-type EmptyMessageProps = Omit<React.HTMLProps<HTMLDivElement>, keyof Props> & Props;
-type WrapperProps = Pick<EmptyMessageProps, 'size'>;
+type WrapperProps = Pick<Props, 'size'>;
 
 const EmptyMessage = styled(
   ({
@@ -26,7 +25,7 @@ const EmptyMessage = styled(
     action,
     leftAligned: _leftAligned,
     ...props
-  }: EmptyMessageProps) => (
+  }: Props) => (
     <div data-test-id="empty-message" {...props}>
       {icon && <IconWrapper>{icon}</IconWrapper>}
       {title && <Title noMargin={!description && !children && !action}>{title}</Title>}

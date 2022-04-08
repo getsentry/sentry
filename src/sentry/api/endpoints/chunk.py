@@ -1,4 +1,5 @@
 import logging
+import re
 from gzip import GzipFile
 from io import BytesIO
 from urllib.parse import urljoin
@@ -6,6 +7,7 @@ from urllib.parse import urljoin
 from django.conf import settings
 from django.urls import reverse
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import options
@@ -18,7 +20,8 @@ MAX_CHUNKS_PER_REQUEST = 64
 MAX_REQUEST_SIZE = 32 * 1024 * 1024
 MAX_CONCURRENCY = settings.DEBUG and 1 or 8
 HASH_ALGORITHM = "sha1"
-
+SENTRYCLI_SEMVER_RE = re.compile(r"^sentry-cli\/(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+).*$")
+API_PREFIX = "/api/0"
 CHUNK_UPLOAD_ACCEPT = (
     "debug_files",  # DIF assemble
     "release_files",  # Release files assemble
@@ -39,23 +42,42 @@ class GzipChunk(BytesIO):
 class ChunkUploadEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationReleasePermission,)
 
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         """
         Return chunk upload parameters
         ``````````````````````````````
         :auth: required
         """
         endpoint = options.get("system.upload-url-prefix")
-        # We fallback to default system url if config is not set
-        if len(endpoint) == 0:
-            endpoint = options.get("system.url-prefix")
+        relative_url = reverse("sentry-api-0-chunk-upload", args=[organization.slug])
 
-        url = reverse("sentry-api-0-chunk-upload", args=[organization.slug])
-        endpoint = urljoin(endpoint.rstrip("/") + "/", url.lstrip("/"))
+        # Starting `sentry-cli@1.70.1` we added a support for relative chunk-uploads urls
+        # User-Agent: sentry-cli/1.70.1
+        user_agent = request.headers.get("User-Agent", "")
+        sentrycli_version = SENTRYCLI_SEMVER_RE.search(user_agent)
+        supports_relative_url = (
+            (sentrycli_version is not None)
+            and (int(sentrycli_version.group("major")) >= 1)
+            and (int(sentrycli_version.group("minor")) >= 70)
+            and (int(sentrycli_version.group("patch")) >= 1)
+        )
+
+        # If user do not overwritten upload url prefix
+        if len(endpoint) == 0:
+            # And we support relative url uploads, return a relative, versionless endpoint (with `/api/0` stripped)
+            if supports_relative_url:
+                url = relative_url.lstrip(API_PREFIX)
+            # Otherwise, if we do not support them, return an absolute, versioned endpoint with a default, system-wide prefix
+            else:
+                endpoint = options.get("system.url-prefix")
+                url = urljoin(endpoint.rstrip("/") + "/", relative_url.lstrip("/"))
+        else:
+            # If user overridden upload url prefix, we want an absolute, versioned endpoint, with user-configured prefix
+            url = urljoin(endpoint.rstrip("/") + "/", relative_url.lstrip("/"))
 
         return Response(
             {
-                "url": endpoint,
+                "url": url,
                 "chunkSize": settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE,
                 "chunksPerRequest": MAX_CHUNKS_PER_REQUEST,
                 "maxFileSize": get_max_file_size(organization),
@@ -67,7 +89,7 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
             }
         )
 
-    def post(self, request, organization):
+    def post(self, request: Request, organization) -> Response:
         """
         Upload chunks and store them as FileBlobs
         `````````````````````````````````````````

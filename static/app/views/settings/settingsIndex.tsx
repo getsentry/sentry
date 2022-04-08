@@ -1,25 +1,24 @@
 import * as React from 'react';
-import DocumentTitle from 'react-document-title';
 import {RouteComponentProps} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
 
-import {fetchOrganizationDetails} from 'app/actionCreators/organizations';
-import DemoModeGate from 'app/components/acl/demoModeGate';
-import OrganizationAvatar from 'app/components/avatar/organizationAvatar';
-import UserAvatar from 'app/components/avatar/userAvatar';
-import ExternalLink from 'app/components/links/externalLink';
-import Link from 'app/components/links/link';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import {IconDocs, IconLock, IconStack, IconSupport} from 'app/icons';
-import {t} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import {Organization} from 'app/types';
-import withLatestContext from 'app/utils/withLatestContext';
-import SettingsLayout from 'app/views/settings/components/settingsLayout';
+import {fetchOrganizationDetails} from 'sentry/actionCreators/organizations';
+import DemoModeGate from 'sentry/components/acl/demoModeGate';
+import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
+import UserAvatar from 'sentry/components/avatar/userAvatar';
+import ExternalLink, {ExternalLinkProps} from 'sentry/components/links/externalLink';
+import Link, {LinkProps} from 'sentry/components/links/link';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {IconDocs, IconLock, IconStack, IconSupport} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import {Organization} from 'sentry/types';
+import withLatestContext from 'sentry/utils/withLatestContext';
+import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
 
 const LINKS = {
   DOCUMENTATION: 'https://docs.sentry.io/',
@@ -42,12 +41,12 @@ const flexCenter = css`
   align-items: center;
 `;
 
-type Props = {
+interface SettingsIndexProps extends RouteComponentProps<{}, {}> {
   organization: Organization;
-} & RouteComponentProps<{}, {}>;
+}
 
-class SettingsIndex extends React.Component<Props> {
-  componentDidUpdate(prevProps: Props) {
+class SettingsIndex extends React.Component<SettingsIndexProps> {
+  componentDidUpdate(prevProps: SettingsIndexProps) {
     const {organization} = this.props;
     if (prevProps.organization === organization) {
       return;
@@ -67,20 +66,28 @@ class SettingsIndex extends React.Component<Props> {
   render() {
     const {organization} = this.props;
     const user = ConfigStore.get('user');
-    const isOnPremise = ConfigStore.get('isOnPremise');
+    const isSelfHosted = ConfigStore.get('isSelfHosted');
 
     const organizationSettingsUrl =
       (organization && `/settings/${organization.slug}/`) || '';
 
-    const supportLinkProps = {
-      isOnPremise,
-      href: LINKS.FORUM,
-      to: `${organizationSettingsUrl}support`,
-    };
-    const supportText = isOnPremise ? t('Community Forums') : t('Contact Support');
+    const supportLinkProps: SupportLinkExternalProps | SupportLinkInternalProps =
+      isSelfHosted
+        ? {
+            isSelfHosted: true,
+            href: LINKS.FORUM,
+          }
+        : {
+            isSelfHosted: false,
+            to: `${organizationSettingsUrl}support`,
+          };
+
+    const supportText = isSelfHosted ? t('Community Forums') : t('Contact Support');
 
     return (
-      <DocumentTitle title={organization ? `${organization.slug} Settings` : 'Settings'}>
+      <SentryDocumentTitle
+        title={organization ? `${organization.slug} Settings` : 'Settings'}
+      >
         <SettingsLayout {...this.props}>
           <GridLayout>
             <DemoModeGate>
@@ -162,7 +169,7 @@ class SettingsIndex extends React.Component<Props> {
             <GridPanel>
               <HomePanelHeader>
                 <ExternalHomeLink isCentered href={LINKS.DOCUMENTATION}>
-                  <HomeIcon color="orange400">
+                  <HomeIcon color="pink300">
                     <IconDocs size="lg" />
                   </HomeIcon>
                 </ExternalHomeLink>
@@ -195,7 +202,7 @@ class SettingsIndex extends React.Component<Props> {
 
             <GridPanel>
               <HomePanelHeader>
-                <SupportLinkComponent isCentered {...supportLinkProps}>
+                <SupportLinkComponent {...supportLinkProps}>
                   <HomeIcon color="purple300">
                     <IconSupport size="lg" />
                   </HomeIcon>
@@ -230,7 +237,7 @@ class SettingsIndex extends React.Component<Props> {
                 <HomePanelHeader>
                   <HomeLinkIcon to={LINKS.API}>
                     <HomeIcon>
-                      <IconLock size="lg" />
+                      <IconLock size="lg" isSolid />
                     </HomeIcon>
                     {t('API Keys')}
                   </HomeLinkIcon>
@@ -258,7 +265,7 @@ class SettingsIndex extends React.Component<Props> {
             </DemoModeGate>
           </GridLayout>
         </SettingsLayout>
-      </DocumentTitle>
+      </SentryDocumentTitle>
     );
   }
 }
@@ -305,7 +312,7 @@ const HomeIcon = styled('div')<{color?: string}>`
   margin-bottom: 20px;
 `;
 
-const HomeLink = styled(Link)`
+const HomeLink = styled(Link)<LinkProps>`
   color: ${p => p.theme.purple300};
 
   &:hover {
@@ -313,21 +320,20 @@ const HomeLink = styled(Link)`
   }
 `;
 
-const HomeLinkIcon = styled(HomeLink)`
+const HomeLinkIcon = styled(HomeLink)<LinkProps>`
   overflow: hidden;
   width: 100%;
   ${flexCenter};
 `;
 
-type CenterableProps = {
+interface ExternalHomeLinkProps extends ExternalLinkProps {
   isCentered?: boolean;
-};
+}
 
-const ExternalHomeLink = styled(
-  (props: CenterableProps & React.ComponentPropsWithRef<typeof ExternalLink>) => (
-    <ExternalLink {...omit(props, 'isCentered')} />
-  )
-)<CenterableProps>`
+const ExternalHomeLink = styled((props: ExternalHomeLinkProps) => {
+  const {isCentered: _isCentered, ...rest} = props;
+  return <ExternalLink {...rest} />;
+})<ExternalHomeLinkProps>`
   color: ${p => p.theme.purple300};
 
   &:hover {
@@ -337,27 +343,26 @@ const ExternalHomeLink = styled(
   ${p => p.isCentered && flexCenter};
 `;
 
-type SupportLinkProps<T extends boolean> = {
-  isOnPremise: T;
+interface SupportLinkExternalProps extends ExternalHomeLinkProps {
   href: string;
-  to: string;
+  isSelfHosted: true;
   isCentered?: boolean;
-} & React.ComponentPropsWithoutRef<
-  T extends true ? typeof ExternalLink : typeof HomeLink
->;
+}
+interface SupportLinkInternalProps extends Omit<LinkProps, 'ref'> {
+  isSelfHosted: false;
+  to: string;
+}
 
-const SupportLinkComponent = <T extends boolean>({
-  isCentered,
-  isOnPremise,
-  href,
-  to,
-  ...props
-}: SupportLinkProps<T>) =>
-  isOnPremise ? (
-    <ExternalHomeLink isCentered={isCentered} href={href} {...props} />
-  ) : (
-    <HomeLink to={to} {...props} />
-  );
+function SupportLinkComponent(
+  props: SupportLinkExternalProps | SupportLinkInternalProps
+) {
+  if (props.isSelfHosted) {
+    const {isSelfHosted: _isSelfHosted, ...rest} = props;
+    return <ExternalHomeLink {...rest} />;
+  }
+
+  return <HomeLink {...props} />;
+}
 
 const AvatarContainer = styled('div')`
   margin-bottom: 20px;
@@ -372,7 +377,7 @@ const OrganizationName = styled('div')`
 const GridLayout = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  grid-gap: 16px;
+  gap: 16px;
 `;
 
 const GridPanel = styled(Panel)`

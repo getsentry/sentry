@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from django.utils import timezone
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.group import GroupEndpoint
@@ -10,11 +11,13 @@ from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
 from sentry.api.serializers.rest_framework.mentions import extract_user_ids_from_mentions
 from sentry.models import Activity, GroupSubscription
 from sentry.notifications.types import GroupSubscriptionReason
+from sentry.signals import comment_created
+from sentry.types.activity import ActivityType
 from sentry.utils.functional import extract_lazy_object
 
 
 class GroupNotesEndpoint(GroupEndpoint):
-    def get(self, request, group):
+    def get(self, request: Request, group) -> Response:
         notes = Activity.objects.filter(group=group, type=Activity.NOTE).select_related("user")
 
         return self.paginate(
@@ -25,10 +28,14 @@ class GroupNotesEndpoint(GroupEndpoint):
             on_results=lambda x: serialize(x, request.user),
         )
 
-    def post(self, request, group):
+    def post(self, request: Request, group) -> Response:
         serializer = NoteSerializer(
             data=request.data,
-            context={"organization_id": group.organization.id, "projects": [group.project]},
+            context={
+                "organization": group.organization,
+                "organization_id": group.organization.id,
+                "projects": [group.project],
+            },
         )
 
         if not serializer.is_valid():
@@ -65,15 +72,24 @@ class GroupNotesEndpoint(GroupEndpoint):
             reason=GroupSubscriptionReason.team_mentioned,
         )
 
-        activity = Activity.objects.create(
-            group=group,
-            project=group.project,
-            type=Activity.NOTE,
-            user=extract_lazy_object(request.user),
-            data=data,
+        activity = Activity.objects.create_group_activity(
+            group, ActivityType.NOTE, user=extract_lazy_object(request.user), data=data
         )
 
-        activity.send_notification()
-
         self.create_external_comment(request, group, activity)
+
+        webhook_data = {
+            "comment_id": activity.id,
+            "timestamp": activity.datetime,
+            "comment": activity.data.get("text"),
+            "project_slug": activity.project.slug,
+        }
+
+        comment_created.send_robust(
+            project=group.project,
+            user=request.user,
+            group=group,
+            data=webhook_data,
+            sender="post",
+        )
         return Response(serialize(activity, request.user), status=201)

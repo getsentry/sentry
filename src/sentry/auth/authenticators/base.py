@@ -3,6 +3,7 @@ from enum import Enum
 from django.core.cache import cache
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
+from rest_framework.request import Request
 
 from sentry.utils.otp import TOTP, generate_secret_key
 
@@ -104,7 +105,7 @@ class AuthenticatorInterface:
         """This method is invoked if a new config is required."""
         return {}
 
-    def activate(self, request):
+    def activate(self, request: Request):
         """If an authenticator overrides this then the method is called
         when the dialog for authentication is brought up.  The returned string
         is then rendered in the UI.
@@ -146,7 +147,7 @@ class AuthenticatorInterface:
         """
         return False
 
-    def validate_response(self, request, challenge, response):
+    def validate_response(self, request: Request, challenge, response):
         """If the activation generates a challenge that needs to be
         responded to this validates the response for that challenge.  This
         is only ever called for challenges emitted by the activation of this

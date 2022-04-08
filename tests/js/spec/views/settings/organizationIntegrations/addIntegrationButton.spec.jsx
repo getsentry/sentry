@@ -1,12 +1,10 @@
 /* global global */
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
+import AddIntegrationButton from 'sentry/views/organizationIntegrations/addIntegrationButton';
 
 describe('AddIntegrationButton', function () {
   const provider = TestStubs.GitHubIntegrationProvider();
-
-  const routerContext = TestStubs.routerContext();
 
   it('Opens the setup dialog on click', function () {
     const onAdd = jest.fn();
@@ -16,8 +14,7 @@ describe('AddIntegrationButton', function () {
     global.open = open;
 
     const wrapper = mountWithTheme(
-      <AddIntegrationButton provider={provider} onAddIntegration={onAdd} />,
-      routerContext
+      <AddIntegrationButton provider={provider} onAddIntegration={onAdd} />
     );
 
     wrapper.find('Button').simulate('click');

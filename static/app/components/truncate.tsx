@@ -1,15 +1,15 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
+import space from 'sentry/styles/space';
 
 type DefaultProps = {
   className: string;
-  minLength: number;
-  maxLength: number;
-  leftTrim: boolean;
-  expandable: boolean;
   expandDirection: 'left' | 'right';
+  expandable: boolean;
+  leftTrim: boolean;
+  maxLength: number;
+  minLength: number;
 };
 
 type Props = DefaultProps & {
@@ -121,8 +121,8 @@ const Wrapper = styled('span')`
 `;
 
 export const FullValue = styled('span')<{
-  expanded: boolean;
   expandDirection: 'left' | 'right';
+  expanded: boolean;
 }>`
   display: none;
   position: absolute;

@@ -2,7 +2,7 @@ import {Component} from 'react';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
-import ProgressRing from 'app/components/progressRing';
+import ProgressRing from 'sentry/components/progressRing';
 
 class Ticker extends Component {
   state = {
@@ -85,5 +85,5 @@ const Grid = styled('div')`
   grid-template-columns: repeat(auto-fit, 50px);
   align-items: center;
   justify-content: center;
-  grid-gap: 8px;
+  gap: 8px;
 `;

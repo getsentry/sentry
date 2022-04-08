@@ -1,11 +1,11 @@
 from datetime import timedelta
+from unittest.mock import patch
 from uuid import uuid4
 
 import pytz
 
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.utils.compat.mock import patch
 from sentry.utils.samples import load_data
 
 FEATURE_NAMES = ["organizations:performance-view"]
@@ -81,7 +81,7 @@ class PerformanceTraceDetailTest(AcceptanceTestCase, SnubaTestCase):
         # a chain of transactions that are orphans
         self.task_transactions = []
         last_transaction_id = make_span_id()
-        for i in range(5):
+        for i in range(3):
             transaction_id = make_span_id()
             timestamp = self.day_ago + timedelta(seconds=i, microseconds=30000)
             self.create_error(
@@ -193,6 +193,6 @@ class PerformanceTraceDetailTest(AcceptanceTestCase, SnubaTestCase):
 
         with self.feature(FEATURE_NAMES):
             self.browser.get(self.path)
-            self.browser.wait_until_not(".loading-indicator")
+            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
             self.browser.elements('[data-test-id="transaction-row-title"]')[1].click()
             self.browser.snapshot("performance trace view - with data")

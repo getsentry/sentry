@@ -1,22 +1,22 @@
 import * as Sentry from '@sentry/react';
 import isNil from 'lodash/isNil';
 
-import GroupActions from 'app/actions/groupActions';
-import {Client, RequestCallbacks, RequestOptions} from 'app/api';
-import GroupStore from 'app/stores/groupStore';
-import {Actor, Group, Member, Note, User} from 'app/types';
-import {buildTeamId, buildUserId} from 'app/utils';
-import {uniqueId} from 'app/utils/guid';
+import GroupActions from 'sentry/actions/groupActions';
+import {Client, RequestCallbacks, RequestOptions} from 'sentry/api';
+import GroupStore from 'sentry/stores/groupStore';
+import {Actor, Group, Member, Note, User} from 'sentry/types';
+import {buildTeamId, buildUserId} from 'sentry/utils';
+import {uniqueId} from 'sentry/utils/guid';
 
 type AssignedBy = 'suggested_assignee' | 'assignee_selector';
 type AssignToUserParams = {
+  assignedBy: AssignedBy;
   /**
    * Issue id
    */
   id: string;
   user: User | Actor;
   member?: Member;
-  assignedBy: AssignedBy;
 };
 
 export function assignToUser(params: AssignToUserParams) {
@@ -84,12 +84,12 @@ export function clearAssignment(groupId: string, assignedBy: AssignedBy) {
 }
 
 type AssignToActorParams = {
+  actor: Pick<Actor, 'id' | 'type'>;
+  assignedBy: AssignedBy;
   /**
    * Issue id
    */
   id: string;
-  actor: Pick<Actor, 'id' | 'type'>;
-  assignedBy: AssignedBy;
 };
 
 export function assignToActor({id, actor, assignedBy}: AssignToActorParams) {
@@ -134,7 +134,8 @@ export function assignToActor({id, actor, assignedBy}: AssignToActorParams) {
 export function deleteNote(api: Client, group: Group, id: string, _oldText: string) {
   const restore = group.activity.find(activity => activity.id === id);
   const index = GroupStore.removeActivity(group.id, id);
-  if (index === -1) {
+
+  if (index === -1 || restore === undefined) {
     // I dunno, the id wasn't found in the GroupStore
     return Promise.reject(new Error('Group was not found in store'));
   }
@@ -166,23 +167,23 @@ export function updateNote(
   id: string,
   oldText: string
 ) {
-  GroupStore.updateActivity(group.id, id, {text: note.text});
+  GroupStore.updateActivity(group.id, id, {data: {text: note.text}});
 
   const promise = api.requestPromise(`/issues/${group.id}/comments/${id}/`, {
     method: 'PUT',
     data: note,
   });
 
-  promise.catch(() => GroupStore.updateActivity(group.id, id, {text: oldText}));
+  promise.catch(() => GroupStore.updateActivity(group.id, id, {data: {text: oldText}}));
 
   return promise;
 }
 
 type ParamsType = {
-  itemIds?: Array<number> | Array<string>;
-  query?: string;
   environment?: string | Array<string> | null;
+  itemIds?: Array<number> | Array<string>;
   project?: Array<number> | null;
+  query?: string;
 };
 
 type UpdateParams = ParamsType & {
@@ -302,8 +303,8 @@ export function bulkDelete(
 }
 
 type BulkUpdateParams = UpdateParams & {
-  failSilently?: boolean;
   data?: any;
+  failSilently?: boolean;
 };
 
 export function bulkUpdate(

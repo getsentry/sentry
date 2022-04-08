@@ -18,6 +18,7 @@ from sentry.eventstream.kafka.state import (
     SynchronizedPartitionStateManager,
 )
 from sentry.utils import kafka_config
+from sentry.utils.batching_kafka_consumer import KafkaConsumerFacade
 from sentry.utils.concurrent import execute
 
 logger = logging.getLogger(__name__)
@@ -126,7 +127,7 @@ def get_latest_offset(consumer, topic, partition):
     return high
 
 
-class SynchronizedConsumer:
+class SynchronizedConsumer(KafkaConsumerFacade):
     """
     This class implements the framework for a consumer that is intended to only
     consume messages that have already been consumed and committed by members
@@ -151,6 +152,9 @@ class SynchronizedConsumer:
     this consumer *may* consume up to the highest watermark point. (The
     implementation here tries to pause consuming from the partition as soon as
     possible, but this makes no explicit guarantees about that behavior.)
+
+    This class implements the KafkaConsumerFacade so that it can be used with
+    BatchingKafkaConsumer.
     """
 
     initial_offset_reset_strategies = {"earliest": get_earliest_offset, "latest": get_latest_offset}

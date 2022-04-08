@@ -1,15 +1,14 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
-import {withTheme} from '@emotion/react';
 import {Location} from 'history';
 
-import {GridColumnOrder} from 'app/components/gridEditable';
-import {CursorHandler} from 'app/components/pagination';
-import {Organization, Project} from 'app/types';
-import EventView, {fromSorts} from 'app/utils/discover/eventView';
-import SegmentExplorerQuery from 'app/utils/performance/segmentExplorer/segmentExplorerQuery';
-import TagKeyHistogramQuery from 'app/utils/performance/segmentExplorer/tagKeyHistogramQuery';
-import {decodeScalar} from 'app/utils/queryString';
+import {GridColumnOrder} from 'sentry/components/gridEditable';
+import {CursorHandler} from 'sentry/components/pagination';
+import {Organization, Project} from 'sentry/types';
+import EventView, {fromSorts} from 'sentry/utils/discover/eventView';
+import SegmentExplorerQuery from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
+import TagKeyHistogramQuery from 'sentry/utils/performance/segmentExplorer/tagKeyHistogramQuery';
+import {decodeScalar} from 'sentry/utils/queryString';
 
 import {SpanOperationBreakdownFilter} from '../filter';
 import {getTransactionField} from '../transactionOverview/tagExplorer';
@@ -29,7 +28,7 @@ type Props = {
 
 const HISTOGRAM_TAG_KEY_LIMIT = 8;
 const HISTOGRAM_BUCKET_LIMIT = 40;
-const TAG_PAGE_TABLE_CURSOR = 'tableCursor';
+export const TAG_PAGE_TABLE_CURSOR = 'tableCursor';
 
 export type TagsTableColumnKeys =
   | 'key'
@@ -135,9 +134,9 @@ const TagsDisplay = (props: Props) => {
   );
 
   return (
-    <React.Fragment>
+    <Fragment>
       {tagKey ? (
-        <React.Fragment>
+        <Fragment>
           <TagKeyHistogramQuery
             eventView={eventView}
             orgSlug={organization.slug}
@@ -187,9 +186,9 @@ const TagsDisplay = (props: Props) => {
               );
             }}
           </SegmentExplorerQuery>
-        </React.Fragment>
+        </Fragment>
       ) : (
-        <React.Fragment>
+        <Fragment>
           <TagsHeatMap
             {...props}
             aggregateColumn={aggregateColumn}
@@ -203,10 +202,10 @@ const TagsDisplay = (props: Props) => {
             tableData={null}
             isLoading={false}
           />
-        </React.Fragment>
+        </Fragment>
       )}
-    </React.Fragment>
+    </Fragment>
   );
 };
 
-export default withTheme(TagsDisplay);
+export default TagsDisplay;

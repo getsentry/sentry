@@ -1,10 +1,10 @@
 import {useContext} from 'react';
 
-import AppStoreConnectContext from 'app/components/projects/appStoreConnectContext';
-import {Organization, Project} from 'app/types';
-import withProject from 'app/utils/withProject';
-import SettingsNavigation from 'app/views/settings/components/settingsNavigation';
-import getConfiguration from 'app/views/settings/project/navigationConfiguration';
+import AppStoreConnectContext from 'sentry/components/projects/appStoreConnectContext';
+import {Organization, Project} from 'sentry/types';
+import withProject from 'sentry/utils/withProject';
+import SettingsNavigation from 'sentry/views/settings/components/settingsNavigation';
+import getConfiguration from 'sentry/views/settings/project/navigationConfiguration';
 
 type Props = {
   organization: Organization;
@@ -14,7 +14,11 @@ type Props = {
 const ProjectSettingsNavigation = ({organization, project}: Props) => {
   const appStoreConnectContext = useContext(AppStoreConnectContext);
 
-  const debugFilesNeedsReview = !!appStoreConnectContext?.updateAlertMessage;
+  const debugFilesNeedsReview = appStoreConnectContext
+    ? Object.keys(appStoreConnectContext).some(
+        key => appStoreConnectContext[key].credentials.status === 'invalid'
+      )
+    : false;
 
   return (
     <SettingsNavigation

@@ -2,34 +2,34 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import Tooltip from 'app/components/tooltip';
-import {PlatformKey} from 'app/data/platformCategories';
-import {tn} from 'app/locale';
-import getPlatformName from 'app/utils/getPlatformName';
-import {Theme} from 'app/utils/theme';
+import Tooltip from 'sentry/components/tooltip';
+import {PlatformKey} from 'sentry/data/platformCategories';
+import {tn} from 'sentry/locale';
+import getPlatformName from 'sentry/utils/getPlatformName';
+import {Theme} from 'sentry/utils/theme';
 
 type Props = {
-  platforms?: PlatformKey[];
-  direction?: 'right' | 'left';
-  /**
-   * Maximum number of platform icons to display
-   */
-  max?: number;
-  /**
-   * Platform icon size in pixels
-   */
-  size?: number;
+  className?: string;
   /**
    * Will set container width to be size of having `this.props.max` icons
    * This is good for lists where the project name is displayed
    */
   consistentWidth?: boolean;
+  direction?: 'right' | 'left';
+  /**
+   * Maximum number of platform icons to display
+   */
+  max?: number;
+  platforms?: PlatformKey[];
   /**
    * If true and if the number of children is greater than the max prop,
    * a counter will be displayed at the end of the stack
    */
   showCounter?: boolean;
-  className?: string;
+  /**
+   * Platform icon size in pixels
+   */
+  size?: number;
 };
 
 type WrapperProps = Required<
@@ -87,6 +87,7 @@ function PlatformList({
       <PlatformIcons>
         {platformIcons.map((visiblePlatform, index) => (
           <StyledPlatformIcon
+            data-test-id={`platform-icon-${visiblePlatform}`}
             key={visiblePlatform + index}
             platform={visiblePlatform}
             size={size}

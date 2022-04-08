@@ -43,7 +43,7 @@ def serialize_detailed_org(context, obj):
 
 
 @register.simple_tag
-def get_user_context(request, escape=False):
+def get_recipient_context(request, escape=False):
     if isinstance(request, HttpRequest):
         user = getattr(request, "user", None)
         result = {"ip_address": request.META["REMOTE_ADDR"]}

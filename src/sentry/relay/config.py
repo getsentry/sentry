@@ -1,11 +1,13 @@
+import logging
 import uuid
 from datetime import datetime
-from typing import List
+from typing import Any, List, Mapping, Optional, TypedDict
 
 from pytz import utc
-from sentry_sdk import Hub
+from sentry_sdk import Hub, capture_exception
 
 from sentry import features, quotas, utils
+from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
 from sentry.constants import ObjectStatus
 from sentry.datascrubbing import get_datascrubbing_settings, get_pii_config
 from sentry.grouping.api import get_grouping_config_dict_for_project
@@ -16,15 +18,20 @@ from sentry.ingest.inbound_filters import (
     get_filter_key,
 )
 from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
-from sentry.models import Project, ProjectKeyStatus
+from sentry.models import Project
+from sentry.models.transaction_threshold import TRANSACTION_METRICS as TRANSACTION_THRESHOLD_KEYS
 from sentry.relay.utils import to_camel_case_name
+from sentry.utils import metrics
 from sentry.utils.http import get_origins
 from sentry.utils.sdk import configure_scope
 
 #: These features will be listed in the project config
 EXPOSABLE_FEATURES = [
     "organizations:metrics-extraction",
+    "organizations:profiling",
 ]
+
+logger = logging.getLogger(__name__)
 
 
 def get_exposed_features(project: Project) -> List[str]:
@@ -32,15 +39,21 @@ def get_exposed_features(project: Project) -> List[str]:
     active_features = []
     for feature in EXPOSABLE_FEATURES:
         if feature.startswith("organizations:"):
-            if features.has(feature, project.organization):
-                active_features.append(feature)
-
+            has_feature = features.has(feature, project.organization)
         elif feature.startswith("projects:"):
-            if features.has(feature, project):
-                active_features.append(feature)
-
+            has_feature = features.has(feature, project)
         else:
             raise RuntimeError("EXPOSABLE_FEATURES must start with 'organizations:' or 'projects:'")
+
+        if has_feature:
+            metrics.incr(
+                "sentry.relay.config.features", tags={"outcome": "enabled", "feature": feature}
+            )
+            active_features.append(feature)
+        else:
+            metrics.incr(
+                "sentry.relay.config.features", tags={"outcome": "disabled", "feature": feature}
+            )
 
     return active_features
 
@@ -57,7 +70,12 @@ def get_public_key_configs(project, full_config, project_keys=None):
         key = {
             "publicKey": project_key.public_key,
             "numericId": project_key.id,
-            "isEnabled": project_key.status == ProjectKeyStatus.ACTIVE,
+            # Disabled keys are omitted from the config, this is just there so
+            # old Relays don't break (we haven't investigated whether there are
+            # actual relays relying on this value)
+            #
+            # Removed that value in https://github.com/getsentry/relay/pull/778/files#diff-e66f275002251930fbfc361b4cca64ab41ff2435029f65c2fd6ffb729129909dL372
+            "isEnabled": True,
         }
 
         if full_config:
@@ -168,6 +186,12 @@ def get_project_config(project, full_config=True, project_keys=None):
 
     if features.has("organizations:performance-ops-breakdown", project.organization):
         cfg["config"]["breakdownsV2"] = project.get_option("sentry:breakdowns")
+    if features.has("organizations:transaction-metrics-extraction", project.organization):
+        cfg["config"]["transactionMetrics"] = get_transaction_metrics_settings(
+            project, cfg["config"].get("breakdownsV2")
+        )
+    if features.has("projects:performance-suspect-spans-ingestion", project=project):
+        cfg["config"]["spanAttributes"] = project.get_option("sentry:span_attributes")
     with Hub.current.start_span(op="get_filter_settings"):
         cfg["config"]["filterSettings"] = get_filter_settings(project)
     with Hub.current.start_span(op="get_grouping_config_dict_for_project"):
@@ -343,3 +367,123 @@ def _filter_option_to_config_setting(flt, setting):
                 # ret_val['options'] = setting.split(' ')
                 ret_val["options"] = list(setting)
     return ret_val
+
+
+#: Top-level metrics for transactions
+TRANSACTION_METRICS = frozenset(
+    [
+        "s:transactions/user@none",
+        "d:transactions/duration@millisecond",
+    ]
+)
+
+
+ALL_MEASUREMENT_METRICS = frozenset(
+    [
+        "d:transactions/measurements.fcp@millisecond",
+        "d:transactions/measurements.lcp@millisecond",
+        "d:transactions/measurements.app_start_cold@millisecond",
+        "d:transactions/measurements.app_start_warm@millisecond",
+        "d:transactions/measurements.cls@millisecond",
+        "d:transactions/measurements.fid@millisecond",
+        "d:transactions/measurements.fp@millisecond",
+        "d:transactions/measurements.frames_frozen@none",
+        "d:transactions/measurements.frames_frozen_rate@ratio",
+        "d:transactions/measurements.frames_slow@none",
+        "d:transactions/measurements.frames_slow_rate@ratio",
+        "d:transactions/measurements.frames_total@none",
+        "d:transactions/measurements.stall_count@none",
+        "d:transactions/measurements.stall_longest_time@millisecond",
+        "d:transactions/measurements.stall_percentage@percent",
+        "d:transactions/measurements.stall_total_time@millisecond",
+        "d:transactions/measurements.ttfb@millisecond",
+        "d:transactions/measurements.ttfb.requesttime@millisecond",
+    ]
+)
+
+
+class _TransactionThreshold(TypedDict):
+    metric: Optional[str]  # Either 'duration' or 'lcp'
+    threshold: float
+
+
+class _TransactionThresholdConfig(TypedDict):
+    #: The project-wide threshold to apply (see `ProjectTransactionThreshold`)
+    projectThreshold: _TransactionThreshold
+    #: Transaction-specific overrides of the project-wide threshold
+    #: (see `ProjectTransactionThresholdOverride`)
+    transactionThresholds: Mapping[str, _TransactionThreshold]
+
+
+def _get_satisfaction_thresholds(project: Project) -> _TransactionThresholdConfig:
+    # Always start with the default threshold, so we do not have to maintain
+    # A separate default in Relay
+    project_threshold: _TransactionThreshold = {
+        "metric": DEFAULT_THRESHOLD["metric"],
+        "threshold": float(DEFAULT_THRESHOLD["threshold"]),
+    }
+
+    # Apply custom project threshold
+    for i, threshold in enumerate(project.projecttransactionthreshold_set.all()):
+        if i > 0:
+            logger.error("More than one transaction threshold exists for project")
+            break
+        project_threshold = {
+            "metric": TRANSACTION_THRESHOLD_KEYS[threshold.metric],
+            "threshold": threshold.threshold,
+        }
+
+    # Apply transaction-specific override
+    return {
+        "projectThreshold": project_threshold,
+        "transactionThresholds": {
+            threshold.transaction: {
+                "metric": TRANSACTION_THRESHOLD_KEYS[threshold.metric],
+                "threshold": threshold.threshold,
+            }
+            for threshold in project.projecttransactionthresholdoverride_set.all()
+        },
+    }
+
+
+def get_transaction_metrics_settings(
+    project: Project, breakdowns_config: Optional[Mapping[str, Any]]
+):
+    metrics = []
+    custom_tags = []
+
+    if features.has("organizations:transaction-metrics-extraction", project.organization):
+        metrics.extend(sorted(TRANSACTION_METRICS))
+        # TODO: for now let's extract all known measurements. we might want to
+        # be more fine-grained in the future once we know which measurements we
+        # really need (or how that can be dynamically determined)
+        metrics.extend(sorted(ALL_MEASUREMENT_METRICS))
+
+        if breakdowns_config is not None:
+            # we already have a breakdown configuration that tells relay which
+            # breakdowns to compute for an event. metrics extraction should
+            # probably be in sync with that, or at least not extract more metrics
+            # than there are breakdowns configured.
+            try:
+                for breakdown_name, breakdown_config in breakdowns_config.items():
+                    assert breakdown_config["type"] == "spanOperations"
+
+                    for op_name in breakdown_config["matches"]:
+                        metrics.append(f"d:transactions/breakdowns.ops.{op_name}")
+            except Exception:
+                capture_exception()
+
+        # Tells relay which user-defined tags to add to each extracted
+        # transaction metric.  This cannot include things such as `os.name`
+        # which are computed on the server, they have to come from the SDK as
+        # event tags.
+        try:
+            custom_tags.extend(project.get_option("sentry:transaction_metrics_custom_tags") or ())
+        except Exception:
+            capture_exception()
+
+    return {
+        "extractMetrics": metrics,
+        "extractCustomTags": custom_tags,
+        "satisfactionThresholds": _get_satisfaction_thresholds(project),
+    }

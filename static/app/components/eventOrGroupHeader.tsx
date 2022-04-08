@@ -1,59 +1,68 @@
-import {Component, Fragment} from 'react';
+import {Fragment} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
-import ErrorBoundary from 'app/components/errorBoundary';
-import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
-import GlobalSelectionLink from 'app/components/globalSelectionLink';
-import Tooltip from 'app/components/tooltip';
-import {IconMute, IconStar} from 'app/icons';
-import {tct} from 'app/locale';
-import {Group, GroupTombstone, Level, Organization} from 'app/types';
-import {Event} from 'app/types/event';
-import {getLocation, getMessage} from 'app/utils/events';
-import withOrganization from 'app/utils/withOrganization';
-import {TagAndMessageWrapper} from 'app/views/organizationGroupDetails/unhandledTag';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
+import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
+import Tooltip from 'sentry/components/tooltip';
+import {IconMute, IconStar} from 'sentry/icons';
+import {tct} from 'sentry/locale';
+import {Group, GroupTombstone, Level, Organization} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import {getLocation, getMessage} from 'sentry/utils/events';
+import withOrganization from 'sentry/utils/withOrganization';
+import {TagAndMessageWrapper} from 'sentry/views/organizationGroupDetails/unhandledTag';
 
 import EventTitleError from './eventTitleError';
 
-type DefaultProps = {
-  includeLink: boolean;
-  size: 'small' | 'normal';
-};
+type Size = 'small' | 'normal';
 
 type Props = WithRouterProps<{orgId: string}> & {
-  organization: Organization;
   data: Event | Group | GroupTombstone;
+  organization: Organization;
+  className?: string;
+  /* is issue breakdown? */
+  grouping?: boolean;
   hideIcons?: boolean;
   hideLevel?: boolean;
-  query?: string;
-  className?: string;
+  includeLink?: boolean;
+  index?: number;
   /** Group link clicked */
   onClick?: () => void;
-  index?: number;
-} & Partial<DefaultProps>;
+  query?: string;
+  size?: Size;
+};
 
 /**
  * Displays an event or group/issue title (i.e. in Stream)
  */
-class EventOrGroupHeader extends Component<Props> {
-  static defaultProps: DefaultProps = {
-    includeLink: true,
-    size: 'normal',
-  };
+function EventOrGroupHeader({
+  data,
+  index,
+  organization,
+  params,
+  query,
+  onClick,
+  className,
+  hideIcons,
+  hideLevel,
+  includeLink = true,
+  size = 'normal',
+  grouping = false,
+  ...props
+}: Props) {
+  const hasGroupingTreeUI = !!organization.features?.includes('grouping-tree-ui');
 
-  getTitleChildren() {
-    const {hideIcons, hideLevel, data, index, organization} = this.props;
+  function getTitleChildren() {
     const {level, status, isBookmarked, hasSeen} = data as Group;
-    const hasGroupingTreeUI = !!organization.features?.includes('grouping-tree-ui');
-
     return (
       <Fragment>
         {!hideLevel && level && (
           <GroupLevel level={level}>
-            <Tooltip title={`Error level: ${capitalize(level)}`}>
+            <Tooltip title={tct('Error level: [level]', {level: capitalize(level)})}>
               <span />
             </Tooltip>
           </GroupLevel>
@@ -68,29 +77,28 @@ class EventOrGroupHeader extends Component<Props> {
             <IconStar isSolid color="yellow300" />
           </IconWrapper>
         )}
-
         <ErrorBoundary customComponent={<EventTitleError />} mini>
           <StyledEventOrGroupTitle
-            {...this.props}
+            data={data}
+            organization={organization}
             hasSeen={hasGroupingTreeUI && hasSeen === undefined ? true : hasSeen}
             withStackTracePreview
             hasGuideAnchor={index === 0}
-            guideAnchorName="issue_stream_title"
+            grouping={grouping}
           />
         </ErrorBoundary>
       </Fragment>
     );
   }
 
-  getTitle() {
-    const {includeLink, data, params, location, onClick} = this.props;
-
+  function getTitle() {
     const orgId = params?.orgId;
 
     const {id, status} = data as Group;
     const {eventID, groupID} = data as Event;
+    const {location} = props;
 
-    const props = {
+    const commonEleProps = {
       'data-test-id': status === 'resolved' ? 'resolved-issue' : null,
       style: status === 'resolved' ? {textDecoration: 'line-through'} : undefined,
     };
@@ -98,44 +106,43 @@ class EventOrGroupHeader extends Component<Props> {
     if (includeLink) {
       return (
         <GlobalSelectionLink
-          {...props}
+          {...commonEleProps}
           to={{
             pathname: `/organizations/${orgId}/issues/${eventID ? groupID : id}/${
               eventID ? `events/${eventID}/` : ''
             }`,
             query: {
-              query: this.props.query,
+              query,
               ...(location.query.sort !== undefined ? {sort: location.query.sort} : {}), // This adds sort to the query if one was selected from the issues list page
               ...(location.query.project !== undefined ? {} : {_allp: 1}), // This appends _allp to the URL parameters if they have no project selected ("all" projects included in results). This is so that when we enter the issue details page and lock them to a project, we can properly take them back to the issue list page with no project selected (and not the locked project selected)
             },
           }}
           onClick={onClick}
         >
-          {this.getTitleChildren()}
+          {getTitleChildren()}
         </GlobalSelectionLink>
       );
-    } else {
-      return <span {...props}>{this.getTitleChildren()}</span>;
     }
+
+    return <span {...commonEleProps}>{getTitleChildren()}</span>;
   }
 
-  render() {
-    const {className, size, data} = this.props;
-    const location = getLocation(data);
-    const message = getMessage(data);
+  const location = getLocation(data);
+  const message = getMessage(data);
 
-    return (
-      <div className={className} data-test-id="event-issue-header">
-        <Title size={size}>{this.getTitle()}</Title>
-        {location && <Location size={size}>{location}</Location>}
-        {message && (
-          <StyledTagAndMessageWrapper size={size}>
-            {message && <Message>{message}</Message>}
-          </StyledTagAndMessageWrapper>
-        )}
-      </div>
-    );
-  }
+  return (
+    <div className={className} data-test-id="event-issue-header">
+      <Title size={size} hasGroupingTreeUI={hasGroupingTreeUI}>
+        {getTitle()}
+      </Title>
+      {location && <Location size={size}>{location}</Location>}
+      {message && (
+        <StyledTagAndMessageWrapper size={size}>
+          {message && <Message>{message}</Message>}
+        </StyledTagAndMessageWrapper>
+      )}
+    </div>
+  );
 }
 
 const truncateStyles = css`
@@ -145,7 +152,7 @@ const truncateStyles = css`
   white-space: nowrap;
 `;
 
-const getMargin = ({size}) => {
+const getMargin = ({size}: {size: Size}) => {
   if (size === 'small') {
     return 'margin: 0;';
   }
@@ -153,8 +160,7 @@ const getMargin = ({size}) => {
   return 'margin: 0 0 5px';
 };
 
-const Title = styled('div')`
-  ${truncateStyles};
+const Title = styled('div')<{hasGroupingTreeUI: boolean; size: Size}>`
   line-height: 1;
   ${getMargin};
   & em {
@@ -163,6 +169,16 @@ const Title = styled('div')`
     font-weight: 300;
     color: ${p => p.theme.subText};
   }
+  ${p =>
+    !p.hasGroupingTreeUI
+      ? css`
+          ${truncateStyles}
+        `
+      : css`
+          > a:first-child {
+            display: flex;
+          }
+        `}
 `;
 
 const LocationWrapper = styled('div')`

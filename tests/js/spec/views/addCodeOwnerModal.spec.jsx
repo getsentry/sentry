@@ -1,8 +1,8 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {selectByValue} from 'sentry-test/select-new';
 
-import {Client} from 'app/api';
-import {AddCodeOwnerModal} from 'app/views/settings/project/projectOwnership/addCodeOwnerModal';
+import {Client} from 'sentry/api';
+import {AddCodeOwnerModal} from 'sentry/views/settings/project/projectOwnership/addCodeOwnerModal';
 
 describe('AddCodeOwnerModal', function () {
   const modalProps = {
@@ -38,8 +38,7 @@ describe('AddCodeOwnerModal', function () {
         project={project}
         codeMappings={[codeMapping]}
         onSave={() => {}}
-      />,
-      TestStubs.routerContext()
+      />
     );
     expect(wrapper.find('Button').prop('disabled')).toBe(true);
   });
@@ -58,8 +57,7 @@ describe('AddCodeOwnerModal', function () {
         project={project}
         codeMappings={[codeMapping]}
         onSave={() => {}}
-      />,
-      TestStubs.routerContext()
+      />
     );
 
     selectByValue(wrapper, codeMapping.id, {name: 'codeMappingId'});
@@ -86,8 +84,7 @@ describe('AddCodeOwnerModal', function () {
         project={project}
         codeMappings={[codeMapping]}
         onSave={() => {}}
-      />,
-      TestStubs.routerContext()
+      />
     );
 
     selectByValue(wrapper, codeMapping.id, {name: 'codeMappingId'});
@@ -118,8 +115,7 @@ describe('AddCodeOwnerModal', function () {
         project={project}
         codeMappings={[codeMapping]}
         onSave={() => {}}
-      />,
-      TestStubs.routerContext()
+      />
     );
 
     selectByValue(wrapper, codeMapping.id, {name: 'codeMappingId'});

@@ -1,10 +1,11 @@
 /* global process */
+
+import {t} from 'sentry/locale';
+import {DataCategory, PermissionResource, Scope} from 'sentry/types';
+
 /**
  * Common constants here
  */
-
-import {t} from 'app/locale';
-import {Scope} from 'app/types';
 
 // This is the element id where we render our React application to
 export const ROOT_ELEMENT = 'blk_router';
@@ -82,16 +83,17 @@ export type PermissionChoice = {
   label: 'No Access' | 'Read' | 'Read & Write' | 'Admin';
   scopes: Scope[];
 };
+
 type PermissionObj = {
-  resource: 'Project' | 'Team' | 'Release' | 'Event' | 'Organization' | 'Member';
-  help: string;
-  label?: string;
   choices: {
+    admin: PermissionChoice;
     'no-access': PermissionChoice;
     read?: PermissionChoice;
     write?: PermissionChoice;
-    admin: PermissionChoice;
   };
+  help: string;
+  resource: PermissionResource;
+  label?: string;
 };
 
 export const RELEASE_ADOPTION_STAGES = ['low_adoption', 'adopted', 'replaced'];
@@ -166,25 +168,15 @@ export const DEFAULT_DEBOUNCE_DURATION = 300;
 
 export const ALL_ENVIRONMENTS_KEY = '__all_environments__';
 
-// See http://fusejs.io/ for more information
-export const DEFAULT_FUSE_OPTIONS = {
-  includeScore: true,
-  includeMatches: true,
-  threshold: 0.4,
-  location: 0,
-  distance: 75,
-  maxPatternLength: 24,
-  minMatchCharLength: 2,
-  // tokenize: true,
-  // findAllMatches: true,
-};
-
 // Maps a `type: string` -> `url-prefix: string`
 export const AVATAR_URL_MAP = {
   team: 'team-avatar',
   organization: 'organization-avatar',
   project: 'project-avatar',
   user: 'avatar',
+  sentryAppColor: 'sentry-app-avatar',
+  sentryAppSimple: 'sentry-app-avatar',
+  docIntegration: 'doc-integration-avatar',
 };
 
 export const MENU_CLOSE_DELAY = 200;
@@ -206,6 +198,20 @@ export const DEFAULT_RELATIVE_PERIODS = {
   '90d': t('Last 90 days'),
 };
 
+export const DEFAULT_RELATIVE_PERIODS_PAGE_FILTER = {
+  '1h': t('1H'),
+  '24h': t('24H'),
+  '7d': t('7D'),
+  '14d': t('14D'),
+  '30d': t('30D'),
+};
+
+export const DATA_CATEGORY_NAMES = {
+  [DataCategory.ERRORS]: t('Errors'),
+  [DataCategory.TRANSACTIONS]: t('Transactions'),
+  [DataCategory.ATTACHMENTS]: t('Attachments'),
+};
+
 // Special Search characters
 export const NEGATION_OPERATOR = '!';
 export const SEARCH_WILDCARD = '*';
@@ -215,7 +221,6 @@ export const MAX_AUTOCOMPLETE_RECENT_SEARCHES = 3;
 export const MAX_AUTOCOMPLETE_RELEASES = 5;
 
 export const DEFAULT_PER_PAGE = 50;
-export const TEAMS_PER_PAGE = 25;
 
 // Limit query length so paginated response headers don't
 // go over HTTP header size limits (4Kb)
@@ -254,6 +259,7 @@ export const IS_ACCEPTANCE_TEST = !!process.env.IS_ACCEPTANCE_TEST;
 export const NODE_ENV = process.env.NODE_ENV;
 export const DISABLE_RR_WEB = !!process.env.DISABLE_RR_WEB;
 export const SPA_DSN = process.env.SPA_DSN;
+export const SENTRY_RELEASE_VERSION = process.env.SENTRY_RELEASE_VERSION;
 
 export const DEFAULT_ERROR_JSON = {
   detail: t('Unknown error. Please try again.'),

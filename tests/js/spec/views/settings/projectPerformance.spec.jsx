@@ -1,9 +1,9 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import ProjectPerformance from 'app/views/settings/projectPerformance/projectPerformance';
+import ProjectPerformance from 'sentry/views/settings/projectPerformance/projectPerformance';
 
 describe('projectPerformance', function () {
-  const org = TestStubs.Organization({features: ['project-transaction-threshold']});
+  const org = TestStubs.Organization({features: ['performance-view']});
   const project = TestStubs.ProjectDetails();
   const configUrl = '/projects/org-slug/project-slug/transaction-threshold/configure/';
   let getMock, postMock, deleteMock;
@@ -43,8 +43,7 @@ describe('projectPerformance', function () {
         params={{orgId: org.slug, projectId: project.slug}}
         organization={org}
         project={project}
-      />,
-      TestStubs.routerContext()
+      />
     );
     await tick();
     expect(wrapper.find('input[name="threshold"]').prop('value')).toBe('300');
@@ -58,8 +57,7 @@ describe('projectPerformance', function () {
         params={{orgId: org.slug, projectId: project.slug}}
         organization={org}
         project={project}
-      />,
-      TestStubs.routerContext()
+      />
     );
     await tick();
     wrapper
@@ -84,8 +82,7 @@ describe('projectPerformance', function () {
         params={{orgId: org.slug, projectId: project.slug}}
         organization={org}
         project={project}
-      />,
-      TestStubs.routerContext()
+      />
     );
     await tick();
 

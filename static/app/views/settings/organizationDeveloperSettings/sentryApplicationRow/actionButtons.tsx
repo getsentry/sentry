@@ -1,23 +1,23 @@
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import ConfirmDelete from 'app/components/confirmDelete';
-import {IconDelete, IconStats, IconUpgrade} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {LightWeightOrganization, SentryApp} from 'app/types';
+import Button from 'sentry/components/button';
+import ConfirmDelete from 'sentry/components/confirmDelete';
+import {IconDelete, IconStats, IconUpgrade} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, SentryApp} from 'sentry/types';
 
 type Props = {
-  org: LightWeightOrganization;
   app: SentryApp;
-
-  showPublish: boolean;
-  showDelete: boolean;
-  onPublish?: () => void;
   onDelete: (app: SentryApp) => void;
+
+  org: Organization;
+  showDelete: boolean;
+  showPublish: boolean;
+  disableDeleteReason?: string;
   // If you want to disable the publish or delete buttons, pass in a reason to display to the user in a tooltip
   disablePublishReason?: string;
-  disableDeleteReason?: string;
+  onPublish?: () => void;
 };
 
 const ActionButtons = ({
@@ -32,7 +32,7 @@ const ActionButtons = ({
 }: Props) => {
   const appDashboardButton = (
     <StyledButton
-      size="small"
+      size="xsmall"
       icon={<IconStats />}
       to={`/settings/${org.slug}/developer-settings/${app.slug}/dashboard/`}
     >
@@ -45,7 +45,7 @@ const ActionButtons = ({
       disabled={!!disablePublishReason}
       title={disablePublishReason}
       icon={<IconUpgrade />}
-      size="small"
+      size="xsmall"
       onClick={onPublish}
     >
       {t('Publish')}
@@ -61,9 +61,9 @@ const ActionButtons = ({
       <StyledButton
         disabled
         title={disableDeleteReason}
-        size="small"
+        size="xsmall"
         icon={<IconDelete />}
-        label="Delete"
+        aria-label="Delete"
       />
     ) : (
       onDelete && (
@@ -73,7 +73,7 @@ const ActionButtons = ({
           priority="danger"
           onConfirm={() => onDelete(app)}
         >
-          <StyledButton size="small" icon={<IconDelete />} label="Delete" />
+          <StyledButton size="xsmall" icon={<IconDelete />} aria-label="Delete" />
         </ConfirmDelete>
       )
     )

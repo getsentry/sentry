@@ -16,18 +16,20 @@
   font-style: normal;
 }
 
-// IBM Plex
+// Roboto Mono
 
 @font-face {
-  font-family: 'IBM Plex';
-  src: url('../fonts/ibm-plex-mono-regular.woff2') format('woff2');
-  font-weight: normal;
+  font-family: 'Roboto Mono';
+  src: url('../fonts/roboto-mono-regular.woff2') format('woff2'),
+    url('../fonts/roboto-mono-regular.woff') format('woff');
+  font-weight: 400;
   font-style: normal;
 }
 
 @font-face {
-  font-family: 'IBM Plex';
-  src: url('../fonts/ibm-plex-mono-medium.woff2') format('woff2');
+  font-family: 'Roboto Mono';
+  src: url('../fonts/roboto-mono-medium.woff2') format('woff2'),
+    url('../fonts/roboto-mono-medium.woff') format('woff');
   font-weight: bold;
   font-style: normal;
 }
@@ -62,10 +64,6 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-.icon-support:before {
-  content: '\e910';
-}
-
 // Font based icons still in uses in Django rendered views.
 .icon-sentry-logo:before {
   content: '\e61a';
@@ -78,9 +76,6 @@
 }
 .icon-arrow-left:before {
   content: '\e60e';
-}
-.icon-arrow-up:before {
-  content: '\e610';
 }
 .icon-arrow-right:before {
   content: '\e611';

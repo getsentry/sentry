@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {Client} from 'app/api';
-import SettingsLayout from 'app/views/settings/components/settingsLayout';
+import {Client} from 'sentry/api';
+import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
 
 describe('SettingsLayout', function () {
   beforeEach(function () {

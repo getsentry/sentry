@@ -19,15 +19,15 @@ class EmailAuthBackendTest(TestCase):
 
     def test_can_authenticate_with_username(self):
         result = self.backend.authenticate(username="foo", password="bar")
-        self.assertEquals(result, self.user)
+        self.assertEqual(result, self.user)
 
     def test_can_authenticate_with_email(self):
         result = self.backend.authenticate(username="baz@example.com", password="bar")
-        self.assertEquals(result, self.user)
+        self.assertEqual(result, self.user)
 
     def test_does_not_authenticate_with_invalid_password(self):
         result = self.backend.authenticate(username="foo", password="pizza")
-        self.assertEquals(result, None)
+        self.assertEqual(result, None)
 
 
 class GetLoginRedirectTest(TestCase):

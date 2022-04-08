@@ -1,10 +1,12 @@
+import unittest
+
 import pytest
 from django.urls import reverse
 
 from sentry.models import AuthProvider, OrganizationMember
 from sentry.models.authidentity import AuthIdentity
 from sentry.scim.endpoints.utils import SCIMFilterError, parse_filter_conditions
-from sentry.testutils import APITestCase, SCIMAzureTestCase, SCIMTestCase, TestCase
+from sentry.testutils import APITestCase, SCIMAzureTestCase, SCIMTestCase
 
 CREATE_USER_POST_DATA = {
     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
@@ -155,14 +157,14 @@ class SCIMMemberDetailsTests(SCIMTestCase):
             url,
             {
                 "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
-                "Operations": [{}] * 101,
+                "Operations": [{"op": "replace", "path": "active", "value": False}] * 101,
             },
         )
 
         assert response.status_code == 400, response.data
         assert response.data == {
-            "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
-            "detail": "Too many patch ops sent, limit is 100.",
+            "schemas": "urn:ietf:params:scim:api:messages:2.0:Error",
+            "detail": '{"Operations":["Ensure this field has no more than 100 elements."]}',
         }
 
     # Disabling below test for now.
@@ -260,7 +262,7 @@ class SCIMMemberDetailsAzureTests(SCIMAzureTestCase):
         }
 
 
-class SCIMUtilsTests(TestCase):
+class SCIMUtilsTests(unittest.TestCase):
     def test_parse_filter_conditions_basic(self):
         fil = parse_filter_conditions('userName eq "user@sentry.io"')
         assert fil == "user@sentry.io"

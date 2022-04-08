@@ -44,7 +44,7 @@ class IssueSyncIntegration(TestCase):
 
         installation = integration.get_installation(group.organization.id)
 
-        with self.feature("organizations:integrations-issue-sync"):
+        with self.feature("organizations:integrations-issue-sync"), self.tasks():
             installation.sync_status_inbound(
                 external_issue.key,
                 {"project_id": "APP", "status": {"id": "12345", "category": "done"}},
@@ -87,7 +87,7 @@ class IssueSyncIntegration(TestCase):
 
         installation = integration.get_installation(group.organization.id)
 
-        with self.feature("organizations:integrations-issue-sync"):
+        with self.feature("organizations:integrations-issue-sync"), self.tasks():
             installation.sync_status_inbound(
                 external_issue.key,
                 {"project_id": "APP", "status": {"id": "12345", "category": "in_progress"}},

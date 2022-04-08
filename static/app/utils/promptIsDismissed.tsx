@@ -1,15 +1,21 @@
-import {PromptData} from 'app/actionCreators/prompts';
+import {PromptData} from 'sentry/actionCreators/prompts';
 
 import {snoozedDays} from './promptsActivity';
 
-export const promptIsDismissed = (prompt: PromptData, daysToSnooze: number = 14) => {
-  const {snoozedTime, dismissedTime} = prompt || {};
-  // check if the prompt has been dismissed
-  if (dismissedTime) {
+export const DEFAULT_SNOOZE_PROMPT_DAYS = 14;
+export const promptIsDismissed = (
+  prompt: PromptData,
+  daysToSnooze: number = DEFAULT_SNOOZE_PROMPT_DAYS
+): boolean => {
+  if (typeof prompt?.dismissedTime === 'number') {
     return true;
   }
-  // check if it has been snoozed
-  return !snoozedTime ? false : snoozedDays(snoozedTime) < daysToSnooze;
+
+  if (typeof prompt?.snoozedTime === 'number') {
+    return snoozedDays(prompt.snoozedTime) < daysToSnooze;
+  }
+
+  return false;
 };
 
 export function promptCanShow(prompt: string, uuid: string): boolean {
@@ -20,9 +26,9 @@ export function promptCanShow(prompt: string, uuid: string): boolean {
   const x = (parseInt(uuid.charAt(0), 16) || 0) % 2;
   if (prompt === 'suspect_commits') {
     return x === 1;
-  } else if (prompt === 'distributed_tracing') {
-    return x === 0;
-  } else {
-    return true;
   }
+  if (prompt === 'distributed_tracing') {
+    return x === 0;
+  }
+  return true;
 }

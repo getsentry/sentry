@@ -23,20 +23,26 @@ jobs:
   main:
     name: check migration
     runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        python-version: [3.8.12]
     needs: [should-check]
-    if: needs.should-check.outputs.changed == 'true'
 
     steps:
       - name: Checkout sentry
         uses: actions/checkout@v2
+        if: needs.should-check.outputs.changed == 'true'
 
-      - name: Setup sentry env
+      - name: Setup sentry env (python ${{ matrix.python-version }})
         uses: ./.github/actions/setup-sentry
+        if: needs.should-check.outputs.changed == 'true'
         id: setup
         with:
+          python-version: ${{ matrix.python-version }}
           pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
 
       - name: Migration & lockfile checks
+        if: needs.should-check.outputs.changed == 'true'
         env:
           SENTRY_LOG_LEVEL: ERROR
           PGPASSWORD: postgres

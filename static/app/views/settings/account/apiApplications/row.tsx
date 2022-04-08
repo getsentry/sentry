@@ -5,16 +5,16 @@ import {
   addErrorMessage,
   addLoadingMessage,
   clearIndicators,
-} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
-import Button from 'app/components/button';
-import Link from 'app/components/links/link';
-import {PanelItem} from 'app/components/panels';
-import {IconDelete} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {ApiApplication} from 'app/types';
-import getDynamicText from 'app/utils/getDynamicText';
+} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
+import Button from 'sentry/components/button';
+import Link from 'sentry/components/links/link';
+import {PanelItem} from 'sentry/components/panels';
+import {IconDelete} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {ApiApplication} from 'sentry/types';
+import getDynamicText from 'sentry/utils/getDynamicText';
 
 const ROUTE_PREFIX = '/settings/account/api/';
 

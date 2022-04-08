@@ -1,7 +1,7 @@
-import InputField from 'app/components/forms/inputField';
+import InputField, {InputFieldProps} from './inputField';
 
-export default class DateTimeField extends InputField {
-  getType() {
-    return 'datetime-local';
-  }
+export type DateTimeFieldProps = Omit<InputFieldProps, 'type'>;
+
+export default function DateTimeField(props: DateTimeFieldProps) {
+  return <InputField {...props} type="datetime-local" />;
 }

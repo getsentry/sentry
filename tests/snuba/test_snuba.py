@@ -6,7 +6,7 @@ from unittest import mock
 
 import pytest
 from django.utils import timezone
-from snuba_sdk.column import InvalidColumn
+from snuba_sdk.column import InvalidColumnError
 
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -68,7 +68,7 @@ class SnubaTest(TestCase, SnubaTestCase):
 
     def test_fail(self) -> None:
         now = datetime.now()
-        with pytest.raises(InvalidColumn):
+        with pytest.raises(InvalidColumnError):
             snuba.query(
                 start=now - timedelta(days=1),
                 end=now + timedelta(days=1),
@@ -112,21 +112,6 @@ class SnubaTest(TestCase, SnubaTestCase):
                 == {}
             )
 
-    def test_should_use_snql(self) -> None:
-        base_time = datetime.utcnow()
-
-        assert (
-            snuba.query(
-                start=base_time - timedelta(days=1),
-                end=base_time,
-                aggregations=[["count", None, "count"]],
-                groupby=["project_id"],
-                filter_keys={"project_id": [self.project.id]},
-                referrer="sessions.stability-sort",
-            )
-            == {}
-        )
-
 
 class BulkRawQueryTest(TestCase, SnubaTestCase):
     def test_simple(self) -> None:
@@ -155,39 +140,6 @@ class BulkRawQueryTest(TestCase, SnubaTestCase):
                     filter_keys={"project_id": [self.project.id], "group_id": [event_2.group.id]},
                 ),
             ],
-        )
-        assert [{(item["group_id"], item["event_id"]) for item in r["data"]} for r in results] == [
-            {(event_1.group.id, event_1.event_id)},
-            {(event_2.group.id, event_2.event_id)},
-        ]
-
-    def test_simple_use_snql(self) -> None:
-        one_min_ago = iso_format(before_now(minutes=1))
-        event_1 = self.store_event(
-            data={"fingerprint": ["group-1"], "message": "hello", "timestamp": one_min_ago},
-            project_id=self.project.id,
-        )
-        event_2 = self.store_event(
-            data={"fingerprint": ["group-2"], "message": "hello", "timestamp": one_min_ago},
-            project_id=self.project.id,
-        )
-
-        results = snuba.bulk_raw_query(
-            [
-                snuba.SnubaQueryParams(
-                    start=timezone.now() - timedelta(days=1),
-                    end=timezone.now(),
-                    selected_columns=["event_id", "group_id", "timestamp"],
-                    filter_keys={"project_id": [self.project.id], "group_id": [event_1.group.id]},
-                ),
-                snuba.SnubaQueryParams(
-                    start=timezone.now() - timedelta(days=1),
-                    end=timezone.now(),
-                    selected_columns=["event_id", "group_id", "timestamp"],
-                    filter_keys={"project_id": [self.project.id], "group_id": [event_2.group.id]},
-                ),
-            ],
-            use_snql=True,
         )
         assert [{(item["group_id"], item["event_id"]) for item in r["data"]} for r in results] == [
             {(event_1.group.id, event_1.event_id)},

@@ -1,7 +1,7 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
-import TagStore from 'app/stores/tagStore';
-import withTags from 'app/utils/withTags';
+import TagStore from 'sentry/stores/tagStore';
+import withTags from 'sentry/utils/withTags';
 
 describe('withTags HoC', function () {
   beforeEach(() => {
@@ -9,23 +9,38 @@ describe('withTags HoC', function () {
   });
 
   it('works', async function () {
-    const MyComponent = () => null;
+    const MyComponent = ({other, tags}) => {
+      return (
+        <div>
+          <span>{other}</span>
+          {tags &&
+            Object.entries(tags).map(([key, tag]) => (
+              <em key={key}>
+                {tag.key} : {tag.name}
+              </em>
+            ))}
+        </div>
+      );
+    };
+
     const Container = withTags(MyComponent);
-    const wrapper = mountWithTheme(<Container other="value" />);
+    render(<Container other="value" />);
 
     // Should forward props.
-    expect(wrapper.find('MyComponent').prop('other')).toEqual('value');
+    expect(screen.getByText('value')).toBeInTheDocument();
 
-    TagStore.onLoadTagsSuccess([{name: 'Mechanism', key: 'mechanism', count: 1}]);
-    await wrapper.update();
+    act(() => {
+      TagStore.loadTagsSuccess([{name: 'Mechanism', key: 'mechanism', count: 1}]);
+    });
 
     // Should forward prop
-    expect(wrapper.find('MyComponent').prop('other')).toEqual('value');
+    expect(screen.getByText('value')).toBeInTheDocument();
 
-    const tagsProp = wrapper.find('MyComponent').prop('tags');
     // includes custom tags
-    expect(tagsProp.mechanism).toBeTruthy();
+    const renderedTag = screen.getByText('mechanism : Mechanism');
+    expect(renderedTag).toBeInTheDocument();
+
     // excludes issue tags by default
-    expect(tagsProp.is).toBeUndefined();
+    expect(screen.queryByText(/is\s/)).not.toBeInTheDocument();
   });
 });

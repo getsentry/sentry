@@ -1,14 +1,15 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {act} from 'sentry-test/reactTestingLibrary';
 
-import StreamGroup from 'app/components/stream/group';
-import TagStore from 'app/stores/tagStore';
-import IssueList from 'app/views/issueList/overview';
+import StreamGroup from 'sentry/components/stream/group';
+import TagStore from 'sentry/stores/tagStore';
+import IssueList from 'sentry/views/issueList/overview';
 
 // Mock <IssueListSidebar> (need <IssueListActions> to toggling real time polling)
-jest.mock('app/views/issueList/sidebar', () => jest.fn(() => null));
-jest.mock('app/views/issueList/filters', () => jest.fn(() => null));
-jest.mock('app/components/stream/group', () => jest.fn(() => null));
+jest.mock('sentry/views/issueList/sidebar', () => jest.fn(() => null));
+jest.mock('sentry/views/issueList/filters', () => jest.fn(() => null));
+jest.mock('sentry/components/stream/group', () => jest.fn(() => null));
 
 jest.mock('js-cookie', () => ({
   get: jest.fn(),
@@ -67,14 +68,22 @@ describe('IssueList -> Polling', function () {
       routerContext
     );
 
-    await Promise.resolve();
-    jest.runAllTimers();
+    await act(async () => {
+      await Promise.resolve();
+      jest.runAllTimers();
+    });
+
     wrapper.update();
 
     return wrapper;
   };
 
   beforeEach(function () {
+    // The tests fail because we have a "component update was not wrapped in act" error.
+    // It should be safe to ignore this error, but we should remove the mock once we move to react testing library
+    // eslint-disable-next-line no-console
+    console.error = jest.fn();
+
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
@@ -152,6 +161,7 @@ describe('IssueList -> Polling', function () {
       wrapper.unmount();
     }
     wrapper = null;
+    TagStore.teardown();
   });
 
   it('toggles polling for new issues', async function () {

@@ -1,10 +1,8 @@
-import {EChartOption} from 'echarts';
+import type {LineSeriesOption} from 'echarts';
 
-import LineSeries from 'app/components/charts/series/lineSeries';
+import LineSeries from 'sentry/components/charts/series/lineSeries';
 
-export default function AreaSeries(
-  props: EChartOption.SeriesLine = {}
-): EChartOption.SeriesLine {
+export default function AreaSeries(props: LineSeriesOption = {}): LineSeriesOption {
   return LineSeries({
     ...props,
   });

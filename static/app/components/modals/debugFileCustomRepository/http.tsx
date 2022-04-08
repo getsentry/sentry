@@ -1,43 +1,43 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps} from 'app/actionCreators/modal';
-import ActionButton from 'app/components/actions/button';
-import Button from 'app/components/button';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import ActionButton from 'sentry/components/actions/button';
+import Button from 'sentry/components/button';
+import Input from 'sentry/components/forms/controls/input';
+import Field from 'sentry/components/forms/field';
+import SelectField from 'sentry/components/forms/selectField';
 import {
   DEBUG_SOURCE_CASINGS,
   DEBUG_SOURCE_LAYOUTS,
   DEBUG_SOURCE_TYPES,
-} from 'app/data/debugFileSources';
-import {IconClose} from 'app/icons/iconClose';
-import {t, tct} from 'app/locale';
-import {INPUT_PADDING} from 'app/styles/input';
-import space from 'app/styles/space';
-import {uniqueId} from 'app/utils/guid';
-import Input from 'app/views/settings/components/forms/controls/input';
-import Field from 'app/views/settings/components/forms/field';
-import SelectField from 'app/views/settings/components/forms/selectField';
+} from 'sentry/data/debugFileSources';
+import {IconClose} from 'sentry/icons/iconClose';
+import {t, tct} from 'sentry/locale';
+import {INPUT_PADDING} from 'sentry/styles/input';
+import space from 'sentry/styles/space';
+import {uniqueId} from 'sentry/utils/guid';
 
 const CLEAR_PASSWORD_BUTTON_SIZE = 22;
 const PASSWORD_INPUT_PADDING_RIGHT = INPUT_PADDING + CLEAR_PASSWORD_BUTTON_SIZE;
 
 type InitialData = {
+  layout: {
+    casing: keyof typeof DEBUG_SOURCE_CASINGS;
+    type: keyof typeof DEBUG_SOURCE_LAYOUTS;
+  };
   name: string;
   url: string;
-  layout: {
-    type: keyof typeof DEBUG_SOURCE_LAYOUTS;
-    casing: keyof typeof DEBUG_SOURCE_CASINGS;
-  };
-  username?: string;
   password?: {
     'hidden-secret': boolean;
   };
+  username?: string;
 };
 
 type Data = Partial<Pick<InitialData, 'name' | 'url'>> &
   Omit<InitialData, 'name' | 'url' | 'password' | 'layout'> & {
-    'layout.type': keyof typeof DEBUG_SOURCE_LAYOUTS;
     'layout.casing': keyof typeof DEBUG_SOURCE_CASINGS;
+    'layout.type': keyof typeof DEBUG_SOURCE_LAYOUTS;
     password?: string;
   };
 
@@ -197,7 +197,7 @@ function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
               icon={<IconClose size="14px" />}
               size="xsmall"
               title={t('Clear password')}
-              label={t('Clear password')}
+              aria-label={t('Clear password')}
               borderless
             />
           )}
@@ -207,10 +207,10 @@ function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
           name="layout.type"
           label={t('Directory Layout')}
           help={t('The layout of the folder structure.')}
-          choices={Object.keys(DEBUG_SOURCE_LAYOUTS).map(key => [
-            key,
-            DEBUG_SOURCE_LAYOUTS[key],
-          ])}
+          options={Object.keys(DEBUG_SOURCE_LAYOUTS).map(key => ({
+            value: key,
+            label: DEBUG_SOURCE_LAYOUTS[key],
+          }))}
           value={data['layout.type']}
           onChange={value =>
             setData({
@@ -226,10 +226,10 @@ function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
           name="layout.casing"
           label={t('Path Casing')}
           help={t('The case of files and folders.')}
-          choices={Object.keys(DEBUG_SOURCE_CASINGS).map(key => [
-            key,
-            DEBUG_SOURCE_CASINGS[key],
-          ])}
+          options={Object.keys(DEBUG_SOURCE_CASINGS).map(key => ({
+            value: key,
+            label: DEBUG_SOURCE_CASINGS[key],
+          }))}
           value={data['layout.casing']}
           onChange={value =>
             setData({

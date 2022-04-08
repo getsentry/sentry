@@ -1,5 +1,7 @@
 from django.db import transaction
 from django.utils.translation import ugettext_lazy as _
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry import options
 from sentry.integrations.base import (
@@ -176,12 +178,9 @@ class PagerDutyInstallationRedirect(PipelineView):
         app_id = options.get("pagerduty.app-id")
         setup_url = absolute_uri("/extensions/pagerduty/setup/")
 
-        return (
-            "https://%s.pagerduty.com/install/integration?app_id=%s&redirect_url=%s&version=2"
-            % (account_name, app_id, setup_url)
-        )
+        return f"https://{account_name}.pagerduty.com/install/integration?app_id={app_id}&redirect_url={setup_url}&version=2"
 
-    def dispatch(self, request, pipeline):
+    def dispatch(self, request: Request, pipeline) -> Response:
         if "config" in request.GET:
             pipeline.bind_state("config", request.GET["config"])
             return pipeline.next_step()

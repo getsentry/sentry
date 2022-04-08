@@ -1,22 +1,40 @@
+from __future__ import annotations
+
 import functools
 import inspect
 import itertools
 import logging
 import threading
-from typing import Any, Callable, Mapping, Optional, Sequence, Tuple, Type, TypeVar
+from concurrent import futures
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    cast,
+)
 
 from django.utils.functional import LazyObject, empty
+from rest_framework.request import Request
 
 from sentry.utils import metrics, warnings
 from sentry.utils.concurrent import Executor, FutureSet, ThreadedExecutor, TimedFuture
 
 from .imports import import_string
+from .types import AnyCallable
 
 logger = logging.getLogger(__name__)
 
+STATUS_SUCCESS = "success"
 
-def raises(exceptions):
-    def decorator(function):
+
+def raises(exceptions: BaseException) -> Callable[[AnyCallable], AnyCallable]:
+    def decorator(function: AnyCallable) -> AnyCallable:
         function.__raises__ = exceptions
         return function
 
@@ -26,7 +44,7 @@ def raises(exceptions):
 class Service:
     __all__: Tuple[str, ...] = ()
 
-    def validate(self):
+    def validate(self) -> None:
         """
         Validates the settings for this backend (i.e. such as proper connection
         info).
@@ -34,13 +52,13 @@ class Service:
         Raise ``InvalidConfiguration`` if there is a configuration error.
         """
 
-    def setup(self):
+    def setup(self) -> None:
         """
         Initialize this service.
         """
 
 
-class LazyServiceWrapper(LazyObject):
+class LazyServiceWrapper(LazyObject):  # type: ignore
     """
     Lazyily instantiates a standard Sentry service class.
 
@@ -53,7 +71,14 @@ class LazyServiceWrapper(LazyObject):
     >>> service.expose(locals())
     """
 
-    def __init__(self, backend_base, backend_path, options, dangerous=(), metrics_path=None):
+    def __init__(
+        self,
+        backend_base: Type[Service],
+        backend_path: str,
+        options: Mapping[str, Any],
+        dangerous: Optional[Sequence[Type[Service]]] = (),
+        metrics_path: Optional[str] = None,
+    ):
         super().__init__()
         self.__dict__.update(
             {
@@ -65,7 +90,7 @@ class LazyServiceWrapper(LazyObject):
             }
         )
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
         if self._wrapped is empty:
             self._setup()
 
@@ -81,7 +106,7 @@ class LazyServiceWrapper(LazyObject):
 
         return attr
 
-    def _setup(self):
+    def _setup(self) -> None:
         backend = import_string(self._backend)
         assert issubclass(backend, Service)
         if backend in self._dangerous:
@@ -94,7 +119,7 @@ class LazyServiceWrapper(LazyObject):
         instance = backend(**self._options)
         self._wrapped = instance
 
-    def expose(self, context):
+    def expose(self, context: MutableMapping[str, Any]) -> None:
         base = self._base
         base_instance = base()
         for key in itertools.chain(base.__all__, ("validate", "setup")):
@@ -104,21 +129,21 @@ class LazyServiceWrapper(LazyObject):
                 context[key] = getattr(base_instance, key)
 
 
-def resolve_callable(value):
+def resolve_callable(value: str | AnyCallable) -> AnyCallable:
     if callable(value):
         return value
     elif isinstance(value, str):
-        return import_string(value)
+        return cast(Callable[..., Any], import_string(value))
     else:
         raise TypeError("Expected callable or string")
 
 
 class Context:
-    def __init__(self, request, backends):
+    def __init__(self, request: Request, backends: Dict[Type[Service | None], Service]):
         self.request = request
         self.backends = backends
 
-    def copy(self):
+    def copy(self) -> Context:
         return Context(self.request, self.backends.copy())
 
 
@@ -131,8 +156,6 @@ Callback = Callable[
     [Context, str, Mapping[str, Any], Sequence[str], Sequence[TimedFuture]],
     None,
 ]
-
-T = TypeVar("T")
 
 
 class Delegator:
@@ -208,8 +231,8 @@ class Delegator:
 
     def __init__(
         self,
-        base: Type[T],
-        backends: Mapping[str, Tuple[T, Executor]],
+        base: Type[Service],
+        backends: Mapping[str, Tuple[Service, Executor]],
         selector: Selector,
         callback: Optional[Callback] = None,
     ) -> None:
@@ -225,12 +248,12 @@ class Delegator:
         """
 
     class State(threading.local):
-        def __init__(self):
-            self.context = None
+        def __init__(self) -> None:
+            self.context: None | Context = None
 
     __state = State()
 
-    def __getattr__(self, attribute_name):
+    def __getattr__(self, attribute_name: str) -> Any:
         # When deciding how to handle attribute accesses, we have three
         # different possible outcomes:
         # 1. If this is defined as a method on the base implementation, we are
@@ -247,7 +270,7 @@ class Delegator:
         if not inspect.isroutine(base_value):
             return base_value
 
-        def execute(*args, **kwargs):
+        def execute(*args: Sequence[Any], **kwargs: Mapping[str, Any]) -> Any:
             context = type(self).__state.context
 
             # If there is no context object already set in the thread local
@@ -286,7 +309,7 @@ class Delegator:
                     f"{selected_backend_names[0]!r} is not a registered backend."
                 )
 
-            def call_backend_method(context, backend, is_primary):
+            def call_backend_method(context: Context, backend: Service, is_primary: bool) -> Any:
                 # Update the thread local state in the executor to the provided
                 # context object. This allows the context to be propagated
                 # across different threads.
@@ -370,12 +393,16 @@ class Delegator:
                     )
                 )
 
-            return results[0].result()
+            result: TimedFuture = results[0]
+            return result.result()
 
         return execute
 
 
-def build_instance_from_options(options, default_constructor=None):
+def build_instance_from_options(
+    options: Mapping[str, Any],
+    default_constructor: None | Callable[..., Service] = None,
+) -> Service:
     try:
         path = options["path"]
     except KeyError:
@@ -421,7 +448,13 @@ class ServiceDelegator(Delegator, Service):
     - A reference to a callable object.
     """
 
-    def __init__(self, backend_base, backends, selector_func, callback_func=None):
+    def __init__(
+        self,
+        backend_base: str,
+        backends: Mapping[str, Mapping[str, Any]],
+        selector_func: str | AnyCallable,
+        callback_func: str | AnyCallable | None = None,
+    ):
         super().__init__(
             import_string(backend_base),
             {
@@ -437,10 +470,150 @@ class ServiceDelegator(Delegator, Service):
             resolve_callable(callback_func) if callback_func is not None else None,
         )
 
-    def validate(self):
+    def validate(self) -> None:
         for backend, executor in self.backends.values():
             backend.validate()
 
-    def setup(self):
+    def setup(self) -> None:
         for backend, executor in self.backends.values():
             backend.setup()
+
+
+def get_invalid_timing_reason(timing: Tuple[Optional[float], Optional[float]]) -> str:
+    start, stop = timing
+    if start is None and stop is None:
+        return "no_data"
+    elif start is None:
+        return "no_start"
+    elif stop is None:
+        return "no_stop"
+    else:
+        raise Exception("unexpected value for timing")
+
+
+def get_future_status(future: TimedFuture) -> str:
+    try:
+        future.result(timeout=0)
+        return STATUS_SUCCESS
+    except futures.CancelledError:
+        return "cancelled"  # neither succeeded nor failed
+    except futures.TimeoutError:
+        raise  # tried to check before ready
+    except Exception:
+        return "failure"
+
+
+def callback_timing(
+    context: Context,
+    method_name: str,
+    callargs: Mapping[str, Any],
+    backend_names: Sequence[str],
+    results: Sequence[TimedFuture],
+    metric_name: str,
+    result_comparator: Optional[Callable[[str, str, str, Any, Any], Mapping[str, str]]] = None,
+    sample_rate: Optional[float] = None,
+) -> None:
+    """
+    Collects timing stats on results returned to the callback method of a `ServiceDelegator`. Either
+    partial this and pass it directly as the `callback_func` or
+    :param metric_name: Prefix to use when writing these timing metrics to Datadog
+    :param method_name: method_name passed to callback
+    :param backend_names: backend_names passed to callback
+    :param results: results passed to callback
+    :param result_comparator: An optional comparator to compare the primary result to each secondary
+    result. Should return a dict represents the result of the comparison. This will be merged into
+    tags to be stored in the metrics backend.
+    :return:
+    """
+    if not len(backend_names) > 1:
+        return
+    primary_backend_name = backend_names[0]
+    primary_future = results[0]
+    primary_status = get_future_status(primary_future)
+    primary_timing = primary_future.get_timing()
+
+    # If either endpoint of the timing data is not set, just ignore this call.
+    # This really shouldn't happen on the primary backend, but playing it safe
+    # here out of an abundance of caution.
+    if not all(primary_timing):
+        logger.warning(
+            "Received timing with unexpected endpoint: %r, primary_backend_name: %r, future_status: %r",
+            primary_timing,
+            primary_backend_name,
+            primary_status,
+        )
+        return
+
+    primary_duration_ms = (primary_timing[1] - primary_timing[0]) * 1000
+
+    metric_kwargs = {}
+    if sample_rate is not None:
+        metric_kwargs["sample_rate"] = sample_rate
+
+    metrics.timing(
+        f"{metric_name}.timing_ms",
+        primary_duration_ms,
+        tags={
+            "method": method_name,
+            "backend": primary_backend_name,
+            "status": primary_status,
+            "primary": "true",
+        },
+        **metric_kwargs,
+    )
+
+    for i, secondary_backend_name in enumerate(backend_names[1:], 1):
+        secondary_future = results[i]
+        secondary_timing = secondary_future.get_timing()
+        secondary_status = get_future_status(secondary_future)
+
+        tags = {
+            "method": method_name,
+            "primary_backend": primary_backend_name,
+            "primary_status": primary_status,
+            "secondary_backend": secondary_backend_name,
+            "secondary_status": secondary_status,
+        }
+
+        if result_comparator:
+            comparator_result = result_comparator(
+                method_name,
+                primary_status,
+                secondary_status,
+                primary_future.result(),
+                secondary_future.result(),
+            )
+            tags.update(comparator_result)
+
+        # If either endpoint of the timing data is not set, this means
+        # something weird happened (more than likely a cancellation.)
+        if not all(secondary_timing):
+            metrics.incr(
+                f"{metric_name}.timing_invalid",
+                tags={**tags, "reason": get_invalid_timing_reason(secondary_timing)},
+            )
+        else:
+            secondary_duration_ms = (secondary_timing[1] - secondary_timing[0]) * 1000
+            metrics.timing(
+                f"{metric_name}.timing_ms",
+                secondary_duration_ms,
+                tags={
+                    "method": method_name,
+                    "backend": secondary_backend_name,
+                    "status": secondary_status,
+                    "primary": "false",
+                },
+                **metric_kwargs,
+            )
+            metrics.timing(
+                f"{metric_name}.timing_delta_ms",
+                secondary_duration_ms - primary_duration_ms,
+                tags=tags,
+                **metric_kwargs,
+            )
+            metrics.timing(
+                f"{metric_name}.timing_relative_delta",
+                secondary_duration_ms / primary_duration_ms,
+                tags=tags,
+                **metric_kwargs,
+            )

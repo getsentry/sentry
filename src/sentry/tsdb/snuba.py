@@ -1,5 +1,6 @@
-import collections
 import itertools
+from collections import namedtuple
+from collections.abc import Mapping, Sequence, Set
 from copy import deepcopy
 
 from sentry.constants import DataCategory
@@ -9,7 +10,7 @@ from sentry.utils import outcomes, snuba
 from sentry.utils.compat import map, zip
 from sentry.utils.dates import to_datetime
 
-SnubaModelQuerySettings = collections.namedtuple(
+SnubaModelQuerySettings = namedtuple(
     # `dataset` - the dataset in Snuba that we want to query
     # `groupby` - the column in Snuba that we want to put in the group by statement
     # `aggregate` - the column in Snuba that we want to run the aggregate function on
@@ -546,12 +547,12 @@ class SnubaTSDB(BaseTSDB):
         top level or a `{level1_key: [level2_key, ...]}` dictionary->list map.
         The output is a 2-tuple of ([level_1_keys], [all_level_2_keys])
         """
-        if isinstance(items, collections.Mapping):
+        if isinstance(items, Mapping):
             return (
                 list(items.keys()),
                 list(set.union(*(set(v) for v in items.values())) if items else []),
             )
-        elif isinstance(items, (collections.Sequence, collections.Set)):
+        elif isinstance(items, (Sequence, Set)):
             return (items, None)
         else:
             raise ValueError("Unsupported type: %s" % (type(items)))

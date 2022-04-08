@@ -1,5 +1,6 @@
 from django.db.models import F
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
@@ -12,7 +13,7 @@ from sentry.models import AuditLogEntryEvent, ProjectKey, ProjectKeyStatus
 
 
 class ProjectKeyDetailsEndpoint(ProjectEndpoint):
-    def get(self, request, project, key_id):
+    def get(self, request: Request, project, key_id) -> Response:
         try:
             key = ProjectKey.objects.get(
                 project=project, public_key=key_id, roles=F("roles").bitor(ProjectKey.roles.store)
@@ -22,7 +23,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
 
         return Response(serialize(key, request.user), status=200)
 
-    def put(self, request, project, key_id):
+    def put(self, request: Request, project, key_id) -> Response:
         """
         Update a Client Key
         ```````````````````
@@ -90,7 +91,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
             return Response(serialize(key, request.user), status=200)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def delete(self, request, project, key_id):
+    def delete(self, request: Request, project, key_id) -> Response:
         """
         Delete a Client Key
         ```````````````````

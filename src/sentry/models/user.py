@@ -22,7 +22,7 @@ from sentry.utils.http import absolute_uri
 audit_logger = logging.getLogger("sentry.audit.user")
 
 if TYPE_CHECKING:
-    from sentry.models import Organization
+    from sentry.models import Group, Organization, Team
 
 
 class UserManager(BaseManager, DjangoUserManager):
@@ -41,14 +41,15 @@ class UserManager(BaseManager, DjangoUserManager):
             is_active=True,
         ).distinct()
 
-    def get_from_group(self, group):
+    def get_from_group(self, group: "Group") -> QuerySet:
         """Get a queryset of all users in all teams in a given Group's project."""
         return self.filter(
+            sentry_orgmember_set__organization=group.organization,
             sentry_orgmember_set__teams__in=group.project.teams.all(),
             is_active=True,
         )
 
-    def get_from_teams(self, organization_id, teams):
+    def get_from_teams(self, organization_id: int, teams: Sequence["Team"]) -> QuerySet:
         return self.filter(
             sentry_orgmember_set__organization_id=organization_id,
             sentry_orgmember_set__organizationmemberteam__team__in=teams,
@@ -97,6 +98,14 @@ class UserManager(BaseManager, DjangoUserManager):
             .annotate(row_count=Count("id"))
             .filter(row_count=1)
         )
+
+    def get_for_email(self, email: str, case_sensitive: bool = True) -> Sequence["User"]:
+        if not case_sensitive:
+            kwargs = dict(emails__email__iexact=email)
+        else:
+            kwargs = dict(emails__email=email)
+
+        return self.filter(emails__is_verified=True, is_active=True, **kwargs)
 
 
 class User(BaseModel, AbstractBaseUser):

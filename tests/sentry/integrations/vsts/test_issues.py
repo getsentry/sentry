@@ -5,6 +5,7 @@ import responses
 from django.test import RequestFactory
 from exam import fixture
 
+from sentry.integrations.mixins import ResolveSyncAction
 from sentry.integrations.vsts.integration import VstsIntegration
 from sentry.models import (
     ExternalIssue,
@@ -152,7 +153,7 @@ class VstsIssueSyncTest(VstsIssueBase):
     def test_get_issue(self):
         responses.add(
             responses.GET,
-            "https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/%s" % self.issue_id,
+            f"https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/{self.issue_id}",
             body=WORK_ITEM_RESPONSE,
             content_type="application/json",
         )
@@ -170,8 +171,7 @@ class VstsIssueSyncTest(VstsIssueBase):
         vsts_work_item_id = 5
         responses.add(
             responses.PATCH,
-            "https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/%d"
-            % vsts_work_item_id,
+            f"https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/{vsts_work_item_id}",
             body=WORK_ITEM_RESPONSE,
             content_type="application/json",
         )
@@ -265,8 +265,7 @@ class VstsIssueSyncTest(VstsIssueBase):
 
         assert (
             responses.calls[2].request.url
-            == "https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/%d"
-            % vsts_work_item_id
+            == f"https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/{vsts_work_item_id}"
         )
         request_body = json.loads(responses.calls[2].request.body)
         assert len(request_body) == 1
@@ -280,8 +279,7 @@ class VstsIssueSyncTest(VstsIssueBase):
         vsts_work_item_id = 5
         responses.add(
             responses.PATCH,
-            "https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/%d"
-            % vsts_work_item_id,
+            f"https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/{vsts_work_item_id}",
             body=WORK_ITEM_RESPONSE,
             content_type="application/json",
         )
@@ -293,8 +291,7 @@ class VstsIssueSyncTest(VstsIssueBase):
         )
         responses.add(
             responses.GET,
-            "https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/%d"
-            % vsts_work_item_id,
+            f"https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/{vsts_work_item_id}",
             body=WORK_ITEM_RESPONSE,
             content_type="application/json",
         )
@@ -324,8 +321,7 @@ class VstsIssueSyncTest(VstsIssueBase):
         req = responses.calls[2].request
         assert (
             req.url
-            == "https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/%d"
-            % vsts_work_item_id
+            == f"https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/{vsts_work_item_id}"
         )
         assert json.loads(req.body) == [
             {"path": "/fields/System.State", "value": "Resolved", "op": "replace"}
@@ -339,27 +335,42 @@ class VstsIssueSyncTest(VstsIssueBase):
 
     @responses.activate
     def test_should_resolve_active_to_resolved(self):
-        should_resolve = self.integration.should_resolve(
-            {"project": self.project_id_with_states, "old_state": "Active", "new_state": "Resolved"}
+        assert (
+            self.integration.get_resolve_sync_action(
+                {
+                    "project": self.project_id_with_states,
+                    "old_state": "Active",
+                    "new_state": "Resolved",
+                }
+            )
+            == ResolveSyncAction.RESOLVE
         )
-        assert should_resolve is True
 
     @responses.activate
     def test_should_resolve_resolved_to_active(self):
-        should_resolve = self.integration.should_resolve(
-            {"project": self.project_id_with_states, "old_state": "Resolved", "new_state": "Active"}
+        assert (
+            self.integration.get_resolve_sync_action(
+                {
+                    "project": self.project_id_with_states,
+                    "old_state": "Resolved",
+                    "new_state": "Active",
+                }
+            )
+            == ResolveSyncAction.UNRESOLVE
         )
-        assert should_resolve is False
 
     @responses.activate
     def test_should_resolve_new(self):
-        should_resolve = self.integration.should_resolve(
-            {"project": self.project_id_with_states, "old_state": None, "new_state": "New"}
+        assert (
+            self.integration.get_resolve_sync_action(
+                {"project": self.project_id_with_states, "old_state": None, "new_state": "New"}
+            )
+            == ResolveSyncAction.UNRESOLVE
         )
-        assert should_resolve is False
 
     @responses.activate
     def test_should_resolve_done_status_failure(self):
+        """TODO(mgaeta): Should this be NOOP instead of UNRESOLVE when we lose connection?"""
         responses.reset()
         responses.add(
             responses.GET,
@@ -369,38 +380,30 @@ class VstsIssueSyncTest(VstsIssueBase):
                 "error": "The requested operation is not allowed. Your account is pending deletion."
             },
         )
-        should_resolve = self.integration.should_resolve(
-            {"project": self.project_id_with_states, "old_state": "Active", "new_state": "Resolved"}
-        )
-        assert should_resolve is False
 
-    @responses.activate
-    def test_should_unresolve_active_to_resolved(self):
-        should_unresolve = self.integration.should_unresolve(
-            {"project": self.project_id_with_states, "old_state": "Active", "new_state": "Resolved"}
+        assert (
+            self.integration.get_resolve_sync_action(
+                {
+                    "project": self.project_id_with_states,
+                    "old_state": "Active",
+                    "new_state": "Resolved",
+                }
+            )
+            == ResolveSyncAction.UNRESOLVE
         )
-        assert should_unresolve is False
-
-    @responses.activate
-    def test_should_unresolve_resolved_to_active(self):
-        should_unresolve = self.integration.should_unresolve(
-            {"project": self.project_id_with_states, "old_state": "Resolved", "new_state": "Active"}
-        )
-        assert should_unresolve is True
 
     @responses.activate
     def test_should_not_unresolve_resolved_to_closed(self):
-        should_unresolve = self.integration.should_unresolve(
-            {"project": self.project_id_with_states, "old_state": "Resolved", "new_state": "Closed"}
+        assert (
+            self.integration.get_resolve_sync_action(
+                {
+                    "project": self.project_id_with_states,
+                    "old_state": "Resolved",
+                    "new_state": "Closed",
+                }
+            )
+            == ResolveSyncAction.NOOP
         )
-        assert should_unresolve is False
-
-    @responses.activate
-    def test_should_unresolve_new(self):
-        should_unresolve = self.integration.should_unresolve(
-            {"project": self.project_id_with_states, "old_state": None, "new_state": "New"}
-        )
-        assert should_unresolve is True
 
 
 class VstsIssueFormTest(VstsIssueBase):

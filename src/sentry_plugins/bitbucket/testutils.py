@@ -269,3 +269,16 @@ index 89821ce..9e09a8a 100644
 \\ No newline at end of file
 +A twitter bot to when words are said by the NYT for the first time.sdfsdf
 \\ No newline at end of file"""
+
+
+REFS_CHANGED_EXAMPLE = b"""{
+    "changes": [],
+    "repository": {
+        "id": "{b128e0f6-196a-4dde-b72d-f42abc6dc239}",
+        "project": {
+            "key": "my-project"
+        },
+        "slug": "marcos"
+    }
+}
+"""

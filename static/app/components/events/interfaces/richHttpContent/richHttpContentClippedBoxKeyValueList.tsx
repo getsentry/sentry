@@ -1,16 +1,16 @@
-import ClippedBox from 'app/components/clippedBox';
-import ErrorBoundary from 'app/components/errorBoundary';
-import KeyValueList from 'app/components/events/interfaces/keyValueList';
-import {Meta} from 'app/types';
-import {EntryRequest} from 'app/types/event';
+import ClippedBox from 'sentry/components/clippedBox';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import {Meta} from 'sentry/types';
+import {EntryRequest} from 'sentry/types/event';
 
 import getTransformedData from './getTransformedData';
 
 type Data = EntryRequest['data']['data'];
 
 type Props = {
-  title: string;
   data: Data;
+  title: string;
   defaultCollapsed?: boolean;
   isContextData?: boolean;
   meta?: Meta;

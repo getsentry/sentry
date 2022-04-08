@@ -7,6 +7,8 @@ from django import forms
 from django.core.validators import URLValidator
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.integrations import (
     FeatureDescription,
@@ -15,10 +17,10 @@ from sentry.integrations import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.repositories import RepositoryMixin
-from sentry.models.repository import Repository
+from sentry.integrations.mixins import RepositoryMixin
+from sentry.models import Identity, Repository
 from sentry.pipeline import PipelineView
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations import migrate_repo
 from sentry.utils.compat import filter
 from sentry.web.helpers import render_to_response
@@ -128,7 +130,7 @@ class InstallationConfigView(PipelineView):
     Collect the OAuth client credentials from the user.
     """
 
-    def dispatch(self, request, pipeline):
+    def dispatch(self, request: Request, pipeline) -> Response:
         if request.method == "POST":
             form = InstallationForm(request.POST)
             if form.is_valid():
@@ -153,7 +155,7 @@ class OAuthLoginView(PipelineView):
     """
 
     @csrf_exempt
-    def dispatch(self, request, pipeline):
+    def dispatch(self, request: Request, pipeline) -> Response:
         if "oauth_token" in request.GET:
             return pipeline.next_step()
 
@@ -167,16 +169,24 @@ class OAuthLoginView(PipelineView):
 
         try:
             request_token = client.get_request_token()
-            pipeline.bind_state("request_token", request_token)
-            authorize_url = client.get_authorize_url(request_token)
-
-            return self.redirect(authorize_url)
         except ApiError as error:
             logger.info(
                 "identity.bitbucket-server.request-token",
                 extra={"url": config.get("url"), "error": error},
             )
-            return pipeline.error("Could not fetch a request token from Bitbucket. %s" % error)
+            return pipeline.error(f"Could not fetch a request token from Bitbucket. {error}")
+
+        pipeline.bind_state("request_token", request_token)
+        if not request_token.get("oauth_token"):
+            logger.info(
+                "identity.bitbucket-server.oauth-token",
+                extra={"url": config.get("url")},
+            )
+            return pipeline.error("Missing oauth_token")
+
+        authorize_url = client.get_authorize_url(request_token)
+
+        return self.redirect(authorize_url)
 
 
 class OAuthCallbackView(PipelineView):
@@ -186,7 +196,7 @@ class OAuthCallbackView(PipelineView):
     """
 
     @csrf_exempt
-    def dispatch(self, request, pipeline):
+    def dispatch(self, request: Request, pipeline) -> Response:
         config = pipeline.fetch_state("installation_data")
         client = BitbucketServerSetupClient(
             config.get("url"),
@@ -205,7 +215,7 @@ class OAuthCallbackView(PipelineView):
             return pipeline.next_step()
         except ApiError as error:
             logger.info("identity.bitbucket-server.access-token", extra={"error": error})
-            return pipeline.error("Could not fetch an access token from Bitbucket. %s" % str(error))
+            return pipeline.error(f"Could not fetch an access token from Bitbucket. {str(error)}")
 
 
 class BitbucketServerIntegration(IntegrationInstallation, RepositoryMixin):
@@ -219,7 +229,10 @@ class BitbucketServerIntegration(IntegrationInstallation, RepositoryMixin):
 
     def get_client(self):
         if self.default_identity is None:
-            self.default_identity = self.get_default_identity()
+            try:
+                self.default_identity = self.get_default_identity()
+            except Identity.DoesNotExist:
+                raise IntegrationError("Identity not found.")
 
         return BitbucketServer(
             self.model.metadata["base_url"],
@@ -347,5 +360,5 @@ class BitbucketServerIntegrationProvider(IntegrationProvider):
         bindings.add(
             "integration-repository.provider",
             BitbucketServerRepositoryProvider,
-            id="integrations:%s" % self.key,
+            id=f"integrations:{self.key}",
         )

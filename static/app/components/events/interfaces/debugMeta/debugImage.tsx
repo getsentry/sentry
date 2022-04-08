@@ -2,16 +2,16 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import isNil from 'lodash/isNil';
 
-import Access from 'app/components/acl/access';
-import Button from 'app/components/button';
-import DebugFileFeature from 'app/components/debugFileFeature';
-import {formatAddress, getImageRange} from 'app/components/events/interfaces/utils';
-import {PanelItem} from 'app/components/panels';
-import Tooltip from 'app/components/tooltip';
-import {IconCheckmark, IconCircle, IconFlag, IconSearch} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
+import Access from 'sentry/components/acl/access';
+import Button from 'sentry/components/button';
+import DebugFileFeature from 'sentry/components/debugFileFeature';
+import {formatAddress, getImageRange} from 'sentry/components/events/interfaces/utils';
+import {PanelItem} from 'sentry/components/panels';
+import Tooltip from 'sentry/components/tooltip';
+import {IconCheckmark, IconCircle, IconFlag, IconSearch} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
 
 import {DebugImage as DebugImageType, DebugStatus} from './types';
 import {combineStatus, getFileName} from './utils';
@@ -60,9 +60,9 @@ function getImageStatusDetails(status: Status) {
 
 type Props = {
   image: DebugImageType;
-  showDetails: boolean;
   organization: Organization;
   projectId: Project['id'];
+  showDetails: boolean;
   style?: React.CSSProperties;
 };
 
@@ -128,7 +128,7 @@ const DebugImage = React.memo(
     const debugFile = image.debug_file && getFileName(image.debug_file);
 
     // The debug file is only realistically set on Windows. All other platforms
-    // either leave it empty or set it to a filename thats equal to the code
+    // either leave it empty or set it to a filename that's equal to the code
     // file name. In this case, do not show it.
     const showDebugFile = debugFile && codeFile !== debugFile;
 
@@ -200,19 +200,19 @@ const DebugImage = React.memo(
                   <ImageProp>{t('Availability')}</ImageProp>:
                   <DebugFileFeature
                     feature="symtab"
-                    available={image.features.has_symbols}
+                    available={image.features?.has_symbols}
                   />
                   <DebugFileFeature
                     feature="debug"
-                    available={image.features.has_debug_info}
+                    available={image.features?.has_debug_info}
                   />
                   <DebugFileFeature
                     feature="unwind"
-                    available={image.features.has_unwind_info}
+                    available={image.features?.has_unwind_info}
                   />
                   <DebugFileFeature
                     feature="sources"
-                    available={image.features.has_sources}
+                    available={image.features?.has_sources}
                   />
                 </ImageSubtext>
               )}
@@ -247,13 +247,13 @@ const DebugImage = React.memo(
 
             return (
               <ImageActions>
-                <Tooltip title={t('Search for debug files in settings')}>
-                  <Button
-                    size="xsmall"
-                    icon={<IconSearch size="xs" />}
-                    to={settingsUrl}
-                  />
-                </Tooltip>
+                <Button
+                  size="xsmall"
+                  icon={<IconSearch size="xs" />}
+                  to={settingsUrl}
+                  title={t('Search for debug files in settings')}
+                  aria-label={t('Search for debug files in settings')}
+                />
               </ImageActions>
             );
           }}
@@ -269,7 +269,7 @@ const DebugImageItem = styled(PanelItem)`
   font-size: ${p => p.theme.fontSizeSmall};
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     display: grid;
-    grid-gap: ${space(1)};
+    gap: ${space(1)};
     position: relative;
   }
 `;

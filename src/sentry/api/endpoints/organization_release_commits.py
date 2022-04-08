@@ -1,3 +1,6 @@
+from rest_framework.request import Request
+from rest_framework.response import Response
+
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -5,7 +8,7 @@ from sentry.models import Release, ReleaseCommit
 
 
 class OrganizationReleaseCommitsEndpoint(OrganizationReleasesBaseEndpoint):
-    def get(self, request, organization, version):
+    def get(self, request: Request, organization, version) -> Response:
         """
         List an Organization Release's Commits
         ``````````````````````````````````````

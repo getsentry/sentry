@@ -1,10 +1,14 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {act} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'app/api';
-import ConfigStore from 'app/stores/configStore';
-import App from 'app/views/app';
+import {Client} from 'sentry/api';
+import ConfigStore from 'sentry/stores/configStore';
+import App from 'sentry/views/app';
 
 describe('Sudo Modal', function () {
+  const setHasPasswordAuth = hasPasswordAuth =>
+    act(() => ConfigStore.set('user', {...ConfigStore.get('user'), hasPasswordAuth}));
+
   beforeEach(function () {
     Client.clearMockResponses();
     Client.addMockResponse({
@@ -14,7 +18,7 @@ describe('Sudo Modal', function () {
       },
     });
     Client.addMockResponse({
-      url: '/assistant/?v2',
+      url: '/assistant/',
       body: [],
     });
     Client.addMockResponse({
@@ -39,14 +43,9 @@ describe('Sudo Modal', function () {
   });
 
   it('can delete an org with sudo flow', async function () {
-    ConfigStore.set('user', {
-      ...ConfigStore.get('user'),
-      hasPasswordAuth: true,
-    });
-    const wrapper = mountWithTheme(
-      <App>{<div>placeholder content</div>}</App>,
-      TestStubs.routerContext()
-    );
+    setHasPasswordAuth(true);
+
+    const wrapper = mountWithTheme(<App>{<div>placeholder content</div>}</App>);
 
     const api = new Client();
     const successCb = jest.fn();
@@ -103,9 +102,7 @@ describe('Sudo Modal', function () {
       '/auth/',
       expect.objectContaining({
         method: 'PUT',
-        data: {
-          password: 'password',
-        },
+        data: {isSuperuserModal: false, password: 'password'},
       })
     );
 
@@ -126,14 +123,9 @@ describe('Sudo Modal', function () {
   });
 
   it('shows button to redirect if user does not have password auth', async function () {
-    ConfigStore.set('user', {
-      ...ConfigStore.get('user'),
-      hasPasswordAuth: false,
-    });
-    const wrapper = mountWithTheme(
-      <App>{<div>placeholder content</div>}</App>,
-      TestStubs.routerContext()
-    );
+    setHasPasswordAuth(false);
+
+    const wrapper = mountWithTheme(<App>{<div>placeholder content</div>}</App>);
 
     const api = new Client();
     const successCb = jest.fn();

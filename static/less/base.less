@@ -1,5 +1,5 @@
 @font-family-base: 'Rubik', 'Avenir Next', 'Helvetica Neue', sans-serif;
-@font-family-code: 'IBM Plex', Consolas, 'Courier New', monospace;
+@font-family-code: 'Roboto Mono', Consolas, 'Courier New', monospace;
 
 * {
   box-sizing: border-box;
@@ -12,7 +12,7 @@
 
 html {
   font-family: sans-serif;
-  font-size: 10px;
+  font-size: 100%;
   -ms-text-size-adjust: 100%;
   -webkit-text-size-adjust: 100%;
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
@@ -22,11 +22,12 @@ html {
 body {
   font-family: @font-family-base;
   margin: 0;
-  font-size: 16px;
+  font-size: 100%;
   line-height: 24px;
   color: @gray-darker;
   background: @white-dark;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
   min-height: 100vh;
 }
@@ -43,27 +44,27 @@ h6 {
 }
 
 h1 {
-  font-size: 3.2rem;
+  font-size: 2.25rem;
 }
 
 h2 {
-  font-size: 2.8rem;
+  font-size: 1.875rem;
 }
 
 h3 {
-  font-size: 2.4rem;
+  font-size: 1.625rem;
 }
 
 h4 {
-  font-size: 2rem;
+  font-size: 1.375rem;
 }
 
 h5 {
-  font-size: 1.8rem;
+  font-size: 1.25rem;
 }
 
 h6 {
-  font-size: 1.4rem;
+  font-size: 1.125rem;
 }
 
 dl {
@@ -399,11 +400,9 @@ pre {
   padding: ((@line-height-computed - 1) / 2);
   font-size: (@font-size-base - 1); // 14px to 13px
   line-height: @line-height-base;
-  color: @pre-color;
   word-break: break-all;
   white-space: pre-wrap;
   word-wrap: break-word;
-  background-color: @pre-bg;
   border-radius: @border-radius-base;
   overflow: auto;
 
@@ -411,9 +410,7 @@ pre {
   code {
     padding: 0;
     font-size: inherit;
-    color: inherit;
     white-space: pre-wrap;
-    background-color: transparent;
     border-radius: 0;
   }
 }

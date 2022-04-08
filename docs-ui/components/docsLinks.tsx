@@ -1,17 +1,12 @@
-import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+/* eslint-disable-next-line import/default */
 import LinkTo from '@storybook/addon-links/react';
 
-import {IconArrow} from 'app/icons';
-import space from 'app/styles/space';
-import {Theme} from 'app/utils/theme';
+import {IconArrow} from 'sentry/icons';
+import space from 'sentry/styles/space';
+import {Theme} from 'sentry/utils/theme';
 
 type Link = {
-  img?: {
-    src: string;
-    alt: string;
-  };
-  title: string;
   /**
    * props to pass to LinkTo:
    *
@@ -25,11 +20,15 @@ type Link = {
    */
   kind: string;
   story: string;
+  title: string;
+  desc?: string;
+  img?: {
+    alt: string;
+    src: string;
+  };
 };
 
-type LinkProps = Link & {
-  theme: Theme;
-};
+type LinkProps = Link;
 
 type Props = {
   links: Link[];
@@ -40,7 +39,7 @@ type Props = {
  * kind defaults to 'Core/Overview', so an empty link will just
  * lead back to the home page
  */
-const DocsLink = ({img, title, kind, story, theme}: LinkProps) => (
+const DocsLink = ({img, title, desc, kind, story}: LinkProps) => (
   <LinkWrap kind={kind} story={story}>
     {img && (
       <ImgWrap>
@@ -50,21 +49,22 @@ const DocsLink = ({img, title, kind, story, theme}: LinkProps) => (
     <TitleWrap>
       <Title>{title}</Title>
       <IconWrap>
-        <IconArrow theme={theme} color="gray500" direction="right" />
+        <IconArrow color="textColor" direction="right" size="sm" />
       </IconWrap>
     </TitleWrap>
+    {desc && <Desc>{desc}</Desc>}
   </LinkWrap>
 );
 
-const DocsLinks = ({links, theme}: Props) => (
+const DocsLinks = ({links}: Props) => (
   <Wrapper>
     {links.map((link, i) => (
-      <DocsLink key={i} {...link} theme={theme} />
+      <DocsLink key={i} {...link} />
     ))}
   </Wrapper>
 );
 
-export default withTheme(DocsLinks);
+export default DocsLinks;
 
 const Wrapper = styled('div')`
   display: flex;
@@ -89,13 +89,13 @@ const ImgWrap = styled('div')`
   position: relative;
   width: 100%;
   padding-top: 50%;
-  border: solid 1px ${p => p.theme.gray100};
+  border: solid 1px ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
   transition: 0.2s ease-out;
 
   ${/* sc-selector */ LinkWrap}:hover & {
-    border: solid 1px ${p => p.theme.gray200};
+    border: solid 1px ${p => p.theme.border};
   }
 `;
 
@@ -111,10 +111,11 @@ const Img = styled('img')`
 const TitleWrap = styled('div')`
   display: flex;
   align-items: center;
-  margin-top: ${space(1)};
+  margin-top: ${space(2)};
 `;
 
-const Title = styled('h5')`
+const Title = styled('p')`
+  font-weight: 600;
   line-height: 1;
   margin-bottom: 0;
   margin-right: ${space(1)};
@@ -128,4 +129,10 @@ const IconWrap = styled('div')`
   ${/* sc-selector */ LinkWrap}:hover & {
     transform: translateX(${space(0.5)});
   }
+`;
+
+const Desc = styled('p')`
+  margin-top: ${space(0.5)};
+  font-size: 0.875rem;
+  color: ${p => p.theme.subText};
 `;

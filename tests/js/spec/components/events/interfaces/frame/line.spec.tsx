@@ -1,10 +1,9 @@
-import {mountWithTheme, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
-import Line from 'app/components/events/interfaces/frame/line';
-import {Frame} from 'app/types';
+import Line from 'sentry/components/events/interfaces/frame/line';
+import {Frame} from 'sentry/types';
 
 describe('Frame - Line', function () {
-  // @ts-expect-error
   const event = TestStubs.Event();
 
   const data: Frame = {
@@ -29,7 +28,7 @@ describe('Frame - Line', function () {
 
   describe('renderOriginalSourceInfo()', function () {
     it('should render the source map information as a HTML string', function () {
-      const {container} = mountWithTheme(
+      const {container} = render(
         <Line
           data={{
             origAbsPath: 'https://beta.getsentry.com/_static/sentry/dist/vendor.js',
@@ -48,7 +47,7 @@ describe('Frame - Line', function () {
 
   describe('renderContext()', () => {
     it('should render context lines', () => {
-      const {queryByRole} = mountWithTheme(
+      render(
         <Line
           data={{
             ...data,
@@ -67,11 +66,11 @@ describe('Frame - Line', function () {
           isExpanded
         />
       );
-      expect(queryByRole('list')).toSnapshot();
+      expect(screen.getByRole('list')).toSnapshot();
     });
 
     it('should render register values', () => {
-      const {getByText} = mountWithTheme(
+      render(
         <Line
           data={data}
           registers={{
@@ -98,15 +97,15 @@ describe('Frame - Line', function () {
           isExpanded
         />
       );
-      expect(getByText('registers')).toBeInTheDocument();
+      expect(screen.getByText('registers')).toBeInTheDocument();
     });
 
     it('should not render empty registers', () => {
-      const {queryByText} = mountWithTheme(
+      render(
         <Line data={data} registers={{}} components={[]} event={event} isExpanded />
       );
 
-      expect(queryByText('registers')).toBeFalsy();
+      expect(screen.queryByText('registers')).not.toBeInTheDocument();
     });
 
     it('should render context vars', () => {
@@ -121,7 +120,7 @@ describe('Frame - Line', function () {
         project_id: "u'3'",
       };
 
-      const {getByText} = mountWithTheme(
+      render(
         <Line
           data={{...data, vars}}
           registers={{}}
@@ -132,7 +131,7 @@ describe('Frame - Line', function () {
       );
 
       for (const [key, value] of Object.entries(vars)) {
-        const row = getByText(key).closest('tr');
+        const row = screen.getByText(key).closest('tr');
         expect(row).toBeTruthy();
 
         if (!row) {

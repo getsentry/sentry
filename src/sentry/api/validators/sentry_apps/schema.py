@@ -134,6 +134,7 @@ SCHEMA = {
             "type": "object",
             "properties": {
                 "type": {"type": "string", "enum": ["alert-rule-settings"]},
+                "description": {"type": "string", "maxLength": 140, "minLength": 1},
                 "uri": {"$ref": "#/definitions/uri"},
                 "required_fields": {"$ref": "#/definitions/fieldset"},
                 "optional_fields": {"$ref": "#/definitions/fieldset"},
@@ -195,7 +196,9 @@ SCHEMA = {
     "required": ["elements"],
 }
 
-element_types = ["issue-link", "alert-rule-action", "issue-media", "stacktrace-link"]
+ELEMENT_TYPES = ["issue-link", "alert-rule-action", "issue-media", "stacktrace-link"]
+DEFAULT_TEXT_TYPES = ["issue.title", "issue.description"]
+TEXT_COMPONENTS = ["text", "textarea"]
 
 
 def validate_component(schema):
@@ -223,11 +226,11 @@ def check_each_element_for_error(instance):
         if "type" not in element:
             raise SchemaValidationError("Each element needs a 'type' field")
         found_type = element["type"]
-        if found_type not in element_types:
+        if found_type not in ELEMENT_TYPES:
             raise SchemaValidationError(
-                "Element has type '%s'. Type must be one of the following: %s"
-                % (found_type, element_types)
+                f"Element has type '{found_type}'. Type must be one of the following: {ELEMENT_TYPES}"
             )
+        validate_text_component_defaults(element, found_type)
         try:
             validate_component(element)
         except SchemaValidationError as e:
@@ -237,11 +240,38 @@ def check_each_element_for_error(instance):
             )
 
 
+def validate_text_component_defaults(element, found_type):
+    data = element["settings"] if found_type == "alert-rule-action" else element
+    optional_fields = data.get("optional_fields", [])
+    required_fields = data.get("required_fields", [])
+
+    for field in optional_fields + required_fields:
+        if field.get("type") in TEXT_COMPONENTS:
+            default = field.get("default")
+            if default and default not in DEFAULT_TEXT_TYPES:
+                raise SchemaValidationError(
+                    f"Elements of type {TEXT_COMPONENTS} may only have a default value of the following: {DEFAULT_TEXT_TYPES}, but {default} was found."
+                )
+
+
+def check_only_one_of_each_element(instance):
+    if "elements" not in instance:
+        return
+    found = {}
+    for element in instance["elements"]:
+        if element["type"]:
+            if element["type"] not in found:
+                found[element["type"]] = 1
+            else:
+                raise SchemaValidationError(f"Multiple elements of type: {element['type']}")
+
+
 def validate_ui_element_schema(instance):
     try:
         # schema validator will catch elements missing
         check_elements_is_array(instance)
         check_each_element_for_error(instance)
+        check_only_one_of_each_element(instance)
     except SchemaValidationError as e:
         raise e
     except Exception as e:

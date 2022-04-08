@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {descopeFeatureName} from 'app/utils';
-import ProviderItem from 'app/views/settings/organizationAuth/providerItem';
+import {descopeFeatureName} from 'sentry/utils';
+import ProviderItem from 'sentry/views/settings/organizationAuth/providerItem';
 
 describe('ProviderItem', function () {
   const provider = TestStubs.AuthProviders()[0];

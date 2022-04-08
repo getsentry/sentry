@@ -1,3 +1,5 @@
+from unittest.mock import Mock
+
 import responses
 from exam import fixture
 from requests.exceptions import SSLError
@@ -7,13 +9,10 @@ from sentry.identity.oauth2 import OAuth2CallbackView
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.identity.providers.dummy import DummyProvider
 from sentry.testutils import TestCase
-from sentry.utils.compat.mock import Mock
 
 
 class OAuth2CallbackViewTest(TestCase):
     def setUp(self):
-        self.org = self.create_organization(owner=self.user)
-        self.user = self.create_user("foo@example.com")
         sentry.identity.register(DummyProvider)
         super().setUp()
 

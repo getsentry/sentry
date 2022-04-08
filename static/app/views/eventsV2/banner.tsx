@@ -3,18 +3,18 @@ import tourExplore from 'sentry-images/spot/discover-tour-explore.svg';
 import tourFilter from 'sentry-images/spot/discover-tour-filter.svg';
 import tourGroup from 'sentry-images/spot/discover-tour-group.svg';
 
-import Banner from 'app/components/banner';
-import Button from 'app/components/button';
+import Banner from 'sentry/components/banner';
+import Button from 'sentry/components/button';
 import FeatureTourModal, {
   TourImage,
   TourStep,
   TourText,
-} from 'app/components/modals/featureTourModal';
-import {t} from 'app/locale';
-import {Organization} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import theme from 'app/utils/theme';
-import useMedia from 'app/utils/useMedia';
+} from 'sentry/components/modals/featureTourModal';
+import {t} from 'sentry/locale';
+import {Organization} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import theme from 'sentry/utils/theme';
+import useMedia from 'sentry/utils/useMedia';
 
 import BackgroundSpace from './backgroundSpace';
 
@@ -112,6 +112,7 @@ function DiscoverBanner({organization, resultsUrl}: Props) {
     >
       <Button
         size={isSmallBanner ? 'xsmall' : undefined}
+        translucentBorder
         to={resultsUrl}
         onClick={() => {
           trackAnalyticsEvent({
@@ -133,6 +134,7 @@ function DiscoverBanner({organization, resultsUrl}: Props) {
         {({showModal}) => (
           <Button
             size={isSmallBanner ? 'xsmall' : undefined}
+            translucentBorder
             onClick={() => {
               trackAnalyticsEvent({
                 eventKey: 'discover_v2.tour.start',

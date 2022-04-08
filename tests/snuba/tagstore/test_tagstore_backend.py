@@ -776,9 +776,10 @@ class GetTagValuePaginatorForProjectsSemverTest(BaseSemverTest, TestCase, SnubaT
         env_2 = self.create_environment()
         project_2 = self.create_project()
         self.create_release(version="test@1.0.0.0+123", additional_projects=[project_2])
-        self.create_release(version="test@1.2.0.0-alpha", environments=[self.environment])
-        self.create_release(version="test@1.2.3.0-beta+789", environments=[env_2])
-        self.create_release(version="test@1.2.3.4", environments=[env_2])
+        self.create_release(version="test@1.2.3.4", environments=[self.environment, env_2])
+        self.create_release(version="test@1.20.0.0-alpha", environments=[self.environment])
+        self.create_release(version="test@1.20.3.0-beta+789", environments=[env_2])
+        self.create_release(version="test@1.20.3.4", environments=[env_2])
         self.create_release(version="test2@2.0.0.0+456", environments=[self.environment, env_2])
         self.create_release(version="z_test@1.0.0.0")
         self.create_release(version="z_test@2.0.0.0+456", additional_projects=[project_2])
@@ -789,9 +790,10 @@ class GetTagValuePaginatorForProjectsSemverTest(BaseSemverTest, TestCase, SnubaT
             None,
             [
                 "2.0.0.0",
+                "1.20.3.4",
+                "1.20.3.0-beta",
+                "1.20.0.0-alpha",
                 "1.2.3.4",
-                "1.2.3.0-beta",
-                "1.2.0.0-alpha",
                 "1.0.0.0",
             ],
         )
@@ -799,26 +801,27 @@ class GetTagValuePaginatorForProjectsSemverTest(BaseSemverTest, TestCase, SnubaT
             "",
             [
                 "2.0.0.0",
+                "1.20.3.4",
+                "1.20.3.0-beta",
+                "1.20.0.0-alpha",
                 "1.2.3.4",
-                "1.2.3.0-beta",
-                "1.2.0.0-alpha",
                 "1.0.0.0",
             ],
         )
 
         # These should all be equivalent
-        self.run_test("1", ["1.2.3.4", "1.2.3.0-beta", "1.2.0.0-alpha", "1.0.0.0"])
-        self.run_test("1.", ["1.2.3.4", "1.2.3.0-beta", "1.2.0.0-alpha", "1.0.0.0"])
-        self.run_test("1.*", ["1.2.3.4", "1.2.3.0-beta", "1.2.0.0-alpha", "1.0.0.0"])
+        self.run_test("1", ["1.20.3.4", "1.20.3.0-beta", "1.20.0.0-alpha", "1.2.3.4", "1.0.0.0"])
+        self.run_test("1.", ["1.20.3.4", "1.20.3.0-beta", "1.20.0.0-alpha", "1.2.3.4", "1.0.0.0"])
+        self.run_test("1.*", ["1.20.3.4", "1.20.3.0-beta", "1.20.0.0-alpha", "1.2.3.4", "1.0.0.0"])
 
         self.run_test("1.*", ["1.0.0.0"], project=project_2)
 
-        self.run_test("1.2", ["1.2.3.4", "1.2.3.0-beta", "1.2.0.0-alpha"])
+        self.run_test("1.2", ["1.20.3.4", "1.20.3.0-beta", "1.20.0.0-alpha", "1.2.3.4"])
 
-        self.run_test("", ["2.0.0.0", "1.2.0.0-alpha"], self.environment)
-        self.run_test("", ["2.0.0.0", "1.2.3.4", "1.2.3.0-beta"], env_2)
-        self.run_test("1", ["1.2.0.0-alpha"], self.environment)
-        self.run_test("1", ["1.2.3.4", "1.2.3.0-beta"], env_2)
+        self.run_test("", ["2.0.0.0", "1.20.0.0-alpha", "1.2.3.4"], self.environment)
+        self.run_test("", ["2.0.0.0", "1.20.3.4", "1.20.3.0-beta", "1.2.3.4"], env_2)
+        self.run_test("1", ["1.20.0.0-alpha", "1.2.3.4"], self.environment)
+        self.run_test("1", ["1.20.3.4", "1.20.3.0-beta", "1.2.3.4"], env_2)
 
         # Test packages handling
 
@@ -826,9 +829,10 @@ class GetTagValuePaginatorForProjectsSemverTest(BaseSemverTest, TestCase, SnubaT
             "test",
             [
                 "test2@2.0.0.0",
+                "test@1.20.3.4",
+                "test@1.20.3.0-beta",
+                "test@1.20.0.0-alpha",
                 "test@1.2.3.4",
-                "test@1.2.3.0-beta",
-                "test@1.2.0.0-alpha",
                 "test@1.0.0.0",
             ],
         )
@@ -838,12 +842,29 @@ class GetTagValuePaginatorForProjectsSemverTest(BaseSemverTest, TestCase, SnubaT
         self.run_test("z", ["z_test@2.0.0.0"], project=project_2)
 
         self.run_test(
-            "test@", ["test@1.2.3.4", "test@1.2.3.0-beta", "test@1.2.0.0-alpha", "test@1.0.0.0"]
+            "test@",
+            [
+                "test@1.20.3.4",
+                "test@1.20.3.0-beta",
+                "test@1.20.0.0-alpha",
+                "test@1.2.3.4",
+                "test@1.0.0.0",
+            ],
         )
         self.run_test(
-            "test@*", ["test@1.2.3.4", "test@1.2.3.0-beta", "test@1.2.0.0-alpha", "test@1.0.0.0"]
+            "test@*",
+            [
+                "test@1.20.3.4",
+                "test@1.20.3.0-beta",
+                "test@1.20.0.0-alpha",
+                "test@1.2.3.4",
+                "test@1.0.0.0",
+            ],
         )
-        self.run_test("test@1.2", ["test@1.2.3.4", "test@1.2.3.0-beta", "test@1.2.0.0-alpha"])
+        self.run_test(
+            "test@1.2",
+            ["test@1.20.3.4", "test@1.20.3.0-beta", "test@1.20.0.0-alpha", "test@1.2.3.4"],
+        )
 
 
 class GetTagValuePaginatorForProjectsSemverPackageTest(BaseSemverTest, TestCase, SnubaTestCase):
@@ -901,31 +922,16 @@ class GetTagValuePaginatorForProjectsReleaseStageTest(TestCase, SnubaTestCase):
 
     def test_release_stage(self):
         replaced_release = self.create_release(
-            version="replaced_release", environments=[self.environment]
-        )
-        adopted_release = self.create_release(
-            version="adopted_release", environments=[self.environment]
-        )
-        not_adopted_release = self.create_release(
-            version="not_adopted_release", environments=[self.environment]
-        )
-        ReleaseProjectEnvironment.objects.create(
-            project_id=self.project.id,
-            release_id=adopted_release.id,
-            environment_id=self.environment.id,
-            adopted=timezone.now(),
-        )
-        ReleaseProjectEnvironment.objects.create(
-            project_id=self.project.id,
-            release_id=replaced_release.id,
-            environment_id=self.environment.id,
+            version="replaced_release",
+            environments=[self.environment],
             adopted=timezone.now(),
             unadopted=timezone.now(),
         )
-        ReleaseProjectEnvironment.objects.create(
-            project_id=self.project.id,
-            release_id=not_adopted_release.id,
-            environment_id=self.environment.id,
+        adopted_release = self.create_release(
+            version="adopted_release", environments=[self.environment], adopted=timezone.now()
+        )
+        not_adopted_release = self.create_release(
+            version="not_adopted_release", environments=[self.environment]
         )
 
         env_2 = self.create_environment()

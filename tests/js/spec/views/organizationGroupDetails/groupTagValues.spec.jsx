@@ -1,7 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {fireEvent, mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import GroupTagValues from 'app/views/organizationGroupDetails/groupTagValues';
+import GroupTagValues from 'sentry/views/organizationGroupDetails/groupTagValues';
 
 describe('GroupTagValues', () => {
   const {routerContext, router, project} = initializeOrg({});
@@ -24,7 +24,7 @@ describe('GroupTagValues', () => {
       url: '/issues/1/tags/user/values/',
       body: TestStubs.TagValues(),
     });
-    const {getByLabelText, getByText} = mountWithTheme(
+    render(
       <GroupTagValues
         group={group}
         project={project}
@@ -35,8 +35,8 @@ describe('GroupTagValues', () => {
       {context: routerContext}
     );
 
-    fireEvent.click(getByLabelText('Show more'));
-    fireEvent.click(getByText('Search All Issues with Tag Value'));
+    userEvent.click(screen.getByLabelText('Show more'));
+    userEvent.click(screen.getByText('Search All Issues with Tag Value'));
 
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/issues/',
@@ -49,7 +49,7 @@ describe('GroupTagValues', () => {
       url: '/issues/1/tags/user/values/',
       body: [],
     });
-    const {container} = mountWithTheme(
+    const {container} = render(
       <GroupTagValues
         group={group}
         project={project}

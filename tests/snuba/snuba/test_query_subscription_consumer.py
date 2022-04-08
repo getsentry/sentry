@@ -1,5 +1,8 @@
+import time
 from copy import deepcopy
 from datetime import timedelta
+from unittest import mock
+from unittest.mock import Mock, call
 from uuid import uuid4
 
 import pytz
@@ -18,7 +21,6 @@ from sentry.snuba.query_subscription_consumer import (
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.utils import json
-from sentry.utils.compat.mock import Mock, call
 
 
 class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
@@ -28,26 +30,33 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
 
     @fixture
     def old_valid_wrapper(self):
-        return {"version": 1, "payload": self.old_payload}
+        return {"version": 2, "payload": self.old_payload}
 
     @fixture
     def old_payload(self):
         return {
             "subscription_id": self.subscription_id,
-            "values": {"data": [{"hello": 50}]},
+            "result": {"data": [{"hello": 50}]},
+            "request": {"some": "data"},
             "timestamp": "2020-01-01T01:23:45.1234",
         }
 
     @fixture
     def valid_wrapper(self):
-        return {"version": 2, "payload": self.valid_payload}
+        return {"version": 3, "payload": self.valid_payload}
 
     @fixture
     def valid_payload(self):
         return {
-            "subscription_id": self.subscription_id,
+            "subscription_id": "1234",
             "result": {"data": [{"hello": 50}]},
-            "request": {"some": "data"},
+            "request": {
+                "some": "data",
+                "query": """MATCH (metrics_counters) SELECT sum(value) AS value BY
+                        tags[3] WHERE org_id = 1 AND project_id IN tuple(1) AND metric_id = 16
+                        AND tags[3] IN tuple(13, 4)""",
+            },
+            "entity": "metrics_counters",
             "timestamp": "2020-01-01T01:23:45.1234",
         }
 
@@ -121,6 +130,7 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
         consumer.run()
 
         payload = self.old_payload
+        payload["values"] = payload["result"]
         payload["timestamp"] = parse_date(payload["timestamp"]).replace(tzinfo=pytz.utc)
         mock_callback.assert_called_once_with(payload, sub)
 
@@ -194,3 +204,25 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
         consumer.run()
 
         mock.assert_has_calls(expected_calls)
+
+    @mock.patch("sentry.snuba.query_subscription_consumer.QuerySubscriptionConsumer.commit_offsets")
+    def test_batch_timeout(self, commit_offset_mock):
+        self.producer.produce(self.topic, json.dumps(self.valid_wrapper))
+        self.producer.flush()
+
+        consumer = QuerySubscriptionConsumer(
+            "hi", topic=self.topic, commit_batch_size=100, commit_batch_timeout_ms=1
+        )
+
+        def mock_callback(*args, **kwargs):
+            time.sleep(0.1)
+            consumer.shutdown()
+
+        mock = Mock(side_effect=mock_callback)
+
+        register_subscriber(self.registration_key)(mock)
+        self.create_subscription()
+
+        consumer.run()
+        # Once on revoke, once on shutdown, and once due to batch timeout
+        assert len(commit_offset_mock.call_args_list) == 3

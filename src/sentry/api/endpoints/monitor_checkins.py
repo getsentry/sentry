@@ -1,5 +1,7 @@
 from django.db import transaction
 from rest_framework import serializers
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.api.authentication import DSNAuthentication
 from sentry.api.bases.monitor import MonitorEndpoint
@@ -23,7 +25,7 @@ class CheckInSerializer(serializers.Serializer):
 class MonitorCheckInsEndpoint(MonitorEndpoint):
     authentication_classes = MonitorEndpoint.authentication_classes + (DSNAuthentication,)
 
-    def get(self, request, project, monitor):
+    def get(self, request: Request, project, monitor) -> Response:
         """
         Retrieve check-ins for an monitor
         `````````````````````````````````
@@ -45,7 +47,7 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
             paginator_cls=OffsetPaginator,
         )
 
-    def post(self, request, project, monitor):
+    def post(self, request: Request, project, monitor) -> Response:
         """
         Create a new check-in for a monitor
         ```````````````````````````````````

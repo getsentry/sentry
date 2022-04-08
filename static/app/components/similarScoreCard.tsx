@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import space from 'app/styles/space';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 
 const scoreComponents = {
   'exception:message:character-shingles': t('Exception Message'),
@@ -17,13 +17,13 @@ const scoreComponents = {
   'similarity:*:message:character-5-shingle': t('Log Message'),
 };
 
-type Score = number | null;
+type ScoreValue = number | null;
 
 type Props = {
   // we treat the score list keys as opaque as we wish to be able to extend the
   // backend without having to fix UI. Keys not in scoreComponents are grouped
   // into Other anyway
-  scoreList?: [string, Score][];
+  scoreList?: [string, ScoreValue][];
 };
 
 const SimilarScoreCard = ({scoreList = []}: Props) => {
@@ -72,7 +72,7 @@ const Wrapper = styled('div')`
   margin: ${space(0.25)} 0;
 `;
 
-const Score = styled('div')<{score: Score}>`
+const Score = styled('div')<{score: ScoreValue}>`
   height: 16px;
   width: 48px;
   border-radius: 2px;

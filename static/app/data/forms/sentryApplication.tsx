@@ -1,7 +1,7 @@
-import ExternalLink from 'app/components/links/externalLink';
-import {tct} from 'app/locale';
-import {extractMultilineFields} from 'app/utils';
-import {Field} from 'app/views/settings/components/forms/type';
+import {Field} from 'sentry/components/forms/type';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {tct} from 'sentry/locale';
+import {extractMultilineFields} from 'sentry/utils';
 
 const getPublicFormFields = (): Field[] => [
   {

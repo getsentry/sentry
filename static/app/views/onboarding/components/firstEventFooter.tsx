@@ -1,28 +1,28 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import CreateSampleEventButton from 'app/views/onboarding/createSampleEventButton';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
 
 import FirstEventIndicator from './firstEventIndicator';
 
-type Props = {
+interface FirstEventFooterProps {
   organization: Organization;
   project: Project;
   docsLink?: string;
   docsOnClick?: () => void;
-};
+}
 
 export default function FirstEventFooter({
   organization,
   project,
   docsLink,
   docsOnClick,
-}: Props) {
+}: FirstEventFooterProps) {
   return (
     <Fragment>
       <FirstEventIndicator
@@ -44,14 +44,18 @@ export default function FirstEventFooter({
       </FirstEventIndicator>
       <CTASecondary>
         {tct(
-          'Just want to poke around before getting too cozy with the SDK? [sample:View a sample event for this SDK] and finish setup later.',
+          'Just want to poke around before getting too cozy with the SDK? [sample:View a sample event for this SDK] or [skip:finish setup later].',
           {
             sample: (
               <CreateSampleEventButton
+                aria-label="View a sample event"
                 project={project}
                 source="onboarding"
                 priority="link"
               />
+            ),
+            skip: (
+              <Button priority="link" href="/" aria-label={t('Finish setup later')} />
             ),
           }
         )}

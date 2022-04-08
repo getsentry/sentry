@@ -28,42 +28,52 @@ inputs:
     required: false
     default: ${{ hashFiles('requirements-*.txt', '!requirements-pre-commit.txt') }}
   python-version:
-    description: "python version to install"
+    description: 'python version to install'
     required: false
   pip-cache-version:
     description: 'pip cache version in order to bust cache'
     required: false
     default: '1630355466247'
+  pg-version:
+    description: 'PostgreSQL version to use'
+    default: '9.6'
+    required: false
 
 outputs:
   yarn-cache-dir:
-    description: "Path to yarn cache"
+    description: 'Path to yarn cache'
     value: ${{ steps.config.outputs.yarn-cache-dir }}
   pip-cache-dir:
-    description: "Path to pip cache"
+    description: 'Path to pip cache'
     value: ${{ steps.setup-python.outputs.pip-cache-dir }}
   pip-version:
-    description: "pip version"
+    description: 'pip version'
     value: ${{ steps.setup-python.outputs.pip-version }}
   python-version:
-    description: "python version"
+    description: 'python version'
     value: ${{ steps.setup-python.outputs.python-version }}
   acceptance-dir:
-    description: "Path to acceptance visual snapshot artifacts"
+    description: 'Path to acceptance visual snapshot artifacts'
     value: ${{ steps.config.outputs.acceptance-dir }}
   matrix-instance-number:
-    description: "The matrix instance number (starting at 1)"
+    description: 'The matrix instance number (starting at 1)'
     value: ${{ steps.config.outputs.matrix-instance-number }}
+  matrix-instance-total:
+    description: 'Reexport of MATRIX_INSTANCE_TOTAL.'
+    value: ${{ steps.config.outputs.matrix-instance-total }}
 
 runs:
-  using: "composite"
+  using: 'composite'
   steps:
     - name: Setup default environment variables
       shell: bash
       env:
         NEED_KAFKA: ${{ inputs.kafka }}
         MATRIX_INSTANCE: ${{ matrix.instance }}
-        MATRIX_INSTANCE_TOTAL: ${{ strategy.job-total }}
+        # XXX: We should be using something like len(strategy.matrix.instance) (not possible atm)
+        # If you have other things like python-version: [foo, bar, baz] then the sharding logic
+        # isn't right because job-total will be 3x larger and you'd never run 2/3 of the tests.
+        # MATRIX_INSTANCE_TOTAL: ${{ strategy.job-total }}
       run: |
         # Only set `MIGRATIONS_TEST_MIGRATE` if it is not already set (or if it's an empty string)
         if [ -z $MIGRATIONS_TEST_MIGRATE ]; then
@@ -81,11 +91,17 @@ runs:
         ### pytest-sentry configuration ###
         echo "PYTEST_SENTRY_DSN=https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079" >> $GITHUB_ENV
         echo "PYTEST_ADDOPTS=--reruns 5" >> $GITHUB_ENV
+
         # this handles pytest test sharding
         if [ "$MATRIX_INSTANCE" ]; then
+          if ! [ "$MATRIX_INSTANCE_TOTAL" ]; then
+            echo "MATRIX_INSTANCE_TOTAL is required."
+            exit 1
+          fi
           echo "TEST_GROUP=$MATRIX_INSTANCE" >> $GITHUB_ENV
           echo "TOTAL_TEST_GROUPS=$MATRIX_INSTANCE_TOTAL" >> $GITHUB_ENV
         fi
+
         # This records failures on master to sentry in order to detect flakey tests, as it's
         # expected that people have failing tests on their PRs
         [ "$GITHUB_REF" = "refs/heads/master" ] && echo "PYTEST_SENTRY_ALWAYS_REPORT=1" >> $GITHUB_ENV || true
@@ -124,6 +140,7 @@ runs:
       run: |
         echo "::set-output name=yarn-cache-dir::$(yarn cache dir)"
         echo "::set-output name=matrix-instance-number::$(($MATRIX_INSTANCE+1))"
+        echo "::set-output name=matrix-instance-total::$(($MATRIX_INSTANCE_TOTAL))"
         echo "::set-output name=acceptance-dir::.artifacts/visual-snapshots/acceptance"
 
     - name: Install python dependencies
@@ -146,6 +163,8 @@ runs:
         NEED_SNUBA: ${{ inputs.snuba }}
         NEED_CLICKHOUSE: ${{ inputs.clickhouse }}
         NEED_CHARTCUTERIE: ${{ inputs.chartcuterie }}
+        WORKDIR: ${{ inputs.workdir }}
+        PG_VERSION: ${{ inputs.pg-version }}
       run: |
         sentry init
 
@@ -158,12 +177,16 @@ runs:
 
         # TODO: Use devservices kafka. See https://github.com/getsentry/sentry/pull/20986#issuecomment-704510570
         if [ "$NEED_KAFKA" = "true" ]; then
+          # This is *not* the production version. Unclear reason as to why this was chosen
+          # https://github.com/getsentry/ops/blob/c823e62f930ecc6c97bb08898c71e49edc7232f6/cookbooks/getsentry/attributes/default.rb#L631
           docker run \
             --name sentry_zookeeper \
             -d --network host \
             -e ZOOKEEPER_CLIENT_PORT=2181 \
             confluentinc/cp-zookeeper:4.1.0
 
+          # This is the production version; do not change w/o changing it there as well
+          # https://github.com/getsentry/ops/blob/c823e62f930ecc6c97bb08898c71e49edc7232f6/cookbooks/getsentry/attributes/default.rb#L643
           docker run \
             --name sentry_kafka \
             -d --network host \
@@ -189,3 +212,5 @@ runs:
         fi
 
         docker ps -a
+
+        ./$WORKDIR/scripts/devservices-healthcheck.sh

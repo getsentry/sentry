@@ -1,3 +1,5 @@
+from unittest.mock import Mock
+
 import pytest
 import responses
 
@@ -8,7 +10,6 @@ from sentry.shared_integrations.exceptions import (
     UnsupportedResponseType,
 )
 from sentry.testutils import TestCase
-from sentry.utils.compat.mock import Mock
 from sentry_plugins.client import ApiClient, AuthApiClient
 
 

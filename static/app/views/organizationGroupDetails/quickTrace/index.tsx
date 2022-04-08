@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import {Location} from 'history';
 
-import {Group, Organization} from 'app/types';
-import {Event} from 'app/types/event';
+import {Group, Organization} from 'sentry/types';
+import {Event} from 'sentry/types/event';
 
 import DistributedTracingPrompt from './configureDistributedTracing';
 import IssueQuickTrace from './issueQuickTrace';
@@ -10,11 +10,11 @@ import IssueQuickTrace from './issueQuickTrace';
 type Props = {
   event: Event;
   group: Group;
-  organization: Organization;
   location: Location;
+  organization: Organization;
 };
 
-export default function QuickTrace({event, group, organization, location}: Props) {
+function QuickTrace({event, group, organization, location}: Props) {
   const hasPerformanceView = organization.features.includes('performance-view');
   const hasTraceContext = Boolean(event.contexts?.trace?.trace_id);
 
@@ -33,3 +33,5 @@ export default function QuickTrace({event, group, organization, location}: Props
     </Fragment>
   );
 }
+
+export default QuickTrace;

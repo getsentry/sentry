@@ -1,13 +1,15 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {act} from 'sentry-test/reactTestingLibrary';
 
-import {openCreateTeamModal} from 'app/actionCreators/modal';
-import recreateRoute from 'app/utils/recreateRoute';
-import OrganizationTeams from 'app/views/settings/organizationTeams/organizationTeams';
+import {openCreateTeamModal} from 'sentry/actionCreators/modal';
+import TeamStore from 'sentry/stores/teamStore';
+import recreateRoute from 'sentry/utils/recreateRoute';
+import OrganizationTeams from 'sentry/views/settings/organizationTeams/organizationTeams';
 
 recreateRoute.mockReturnValue('');
 
-jest.mock('app/actionCreators/modal', () => ({
+jest.mock('sentry/actionCreators/modal', () => ({
   openCreateTeamModal: jest.fn(),
 }));
 
@@ -25,7 +27,6 @@ describe('OrganizationTeams', function () {
         openMembership: true,
       },
     });
-    const teams = [TestStubs.Team()];
 
     const createWrapper = props =>
       mountWithTheme(
@@ -34,8 +35,6 @@ describe('OrganizationTeams', function () {
           routes={[]}
           features={new Set(['open-membership'])}
           access={new Set(['project:admin'])}
-          allTeams={teams}
-          activeTeams={[]}
           organization={organization}
           {...props}
         />,
@@ -59,8 +58,9 @@ describe('OrganizationTeams', function () {
     });
 
     it('can join team and have link to details', function () {
+      const mockTeams = [TestStubs.Team({hasAccess: true, isMember: false})];
+      act(() => void TeamStore.loadInitialData(mockTeams, false, null));
       const wrapper = createWrapper({
-        allTeams: [TestStubs.Team({hasAccess: true, isMember: false})],
         access: new Set([]),
       });
       expect(wrapper.find('button[aria-label="Join Team"]')).toHaveLength(1);
@@ -92,8 +92,9 @@ describe('OrganizationTeams', function () {
       );
 
     it('can request access to team and does not have link to details', function () {
+      const mockTeams = [TestStubs.Team({hasAccess: false, isMember: false})];
+      act(() => void TeamStore.loadInitialData(mockTeams, false, null));
       const wrapper = createWrapper({
-        allTeams: [TestStubs.Team({hasAccess: false, isMember: false})],
         access: new Set([]),
       });
       expect(wrapper.find('button[aria-label="Request Access"]')).toHaveLength(1);
@@ -103,8 +104,9 @@ describe('OrganizationTeams', function () {
     });
 
     it('can leave team when you are a member', function () {
+      const mockTeams = [TestStubs.Team({hasAccess: true, isMember: true})];
+      act(() => void TeamStore.loadInitialData(mockTeams, false, null));
       const wrapper = createWrapper({
-        allTeams: [TestStubs.Team({hasAccess: true, isMember: true})],
         access: new Set([]),
       });
       expect(wrapper.find('button[aria-label="Leave Team"]')).toHaveLength(1);

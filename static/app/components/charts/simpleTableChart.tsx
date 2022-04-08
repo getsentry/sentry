@@ -1,70 +1,156 @@
-import {Component, Fragment} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import PanelTable, {PanelTableHeader} from 'app/components/panels/panelTable';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
-import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
-import {fieldAlignment} from 'app/utils/discover/fields';
-import withOrganization from 'app/utils/withOrganization';
-import {decodeColumnOrder} from 'app/views/eventsV2/utils';
+import Link from 'sentry/components/links/link';
+import PanelTable, {PanelTableHeader} from 'sentry/components/panels/panelTable';
+import Tooltip from 'sentry/components/tooltip';
+import Truncate from 'sentry/components/truncate';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import EventView, {MetaType} from 'sentry/utils/discover/eventView';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {fieldAlignment} from 'sentry/utils/discover/fields';
+import {
+  eventDetailsRouteWithEventView,
+  generateEventSlug,
+} from 'sentry/utils/discover/urls';
+import withOrganization from 'sentry/utils/withOrganization';
+import TopResultsIndicator from 'sentry/views/eventsV2/table/topResultsIndicator';
+import {decodeColumnOrder} from 'sentry/views/eventsV2/utils';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 type Props = {
-  organization: Organization;
-  location: Location;
-  loading: boolean;
-  fields: string[];
-  title: string;
-  metadata: TableData['meta'] | undefined;
   data: TableData['data'] | undefined;
+  eventView: EventView;
+  fieldAliases: string[];
+  fields: string[];
+  loading: boolean;
+  location: Location;
+  metadata: TableData['meta'] | undefined;
+  organization: Organization;
+  title: string;
   className?: string;
+  fieldHeaderMap?: Record<string, string>;
+  getCustomFieldRenderer?: (
+    field: string,
+    meta: MetaType
+  ) => ReturnType<typeof getFieldRenderer> | null;
+  stickyHeaders?: boolean;
+  topResultsIndicators?: number;
 };
 
-class SimpleTableChart extends Component<Props> {
-  renderRow(
+function SimpleTableChart({
+  className,
+  loading,
+  eventView,
+  fields,
+  metadata,
+  data,
+  title,
+  fieldHeaderMap,
+  stickyHeaders,
+  getCustomFieldRenderer,
+  organization,
+  topResultsIndicators,
+  location,
+  fieldAliases,
+}: Props) {
+  function renderRow(
     index: number,
     row: TableDataRow,
     tableMeta: NonNullable<TableData['meta']>,
     columns: ReturnType<typeof decodeColumnOrder>
   ) {
-    const {location, organization} = this.props;
+    return columns.map((column, columnIndex) => {
+      const fieldRenderer =
+        getCustomFieldRenderer?.(column.key, tableMeta) ??
+        getFieldRenderer(column.key, tableMeta);
+      let rendered = fieldRenderer(row, {organization, location});
+      if (column.key === 'id') {
+        const eventSlug = generateEventSlug(row);
 
-    return columns.map(column => {
-      const fieldRenderer = getFieldRenderer(column.name, tableMeta);
-      const rendered = fieldRenderer(row, {organization, location});
-      return <TableCell key={`${index}:${column.name}`}>{rendered}</TableCell>;
+        const target = eventDetailsRouteWithEventView({
+          orgSlug: organization.slug,
+          eventSlug,
+          eventView,
+        });
+
+        rendered = (
+          <Tooltip title={t('View Event')}>
+            <Link data-test-id="view-event" to={target}>
+              {rendered}
+            </Link>
+          </Tooltip>
+        );
+      } else if (column.key === 'trace') {
+        const dateSelection = eventView.normalizeDateSelection(location);
+        if (row.trace) {
+          const target = getTraceDetailsUrl(
+            organization,
+            String(row.trace),
+            dateSelection,
+            {}
+          );
+
+          rendered = (
+            <Tooltip title={t('View Trace')}>
+              <Link data-test-id="view-trace" to={target}>
+                {rendered}
+              </Link>
+            </Tooltip>
+          );
+        }
+      }
+      return (
+        <TableCell key={`${index}-${columnIndex}:${column.name}`}>
+          {topResultsIndicators && columnIndex === 0 && (
+            <TopResultsIndicator count={topResultsIndicators} index={index} />
+          )}
+          {rendered}
+        </TableCell>
+      );
     });
   }
 
-  render() {
-    const {className, loading, fields, metadata, data, title} = this.props;
-    const meta = metadata ?? {};
-    const columns = decodeColumnOrder(fields.map(field => ({field})));
-    return (
-      <Fragment>
-        {title && <h4>{title}</h4>}
-        <StyledPanelTable
-          className={className}
-          isLoading={loading}
-          headers={columns.map((column, index) => {
-            const align = fieldAlignment(column.name, column.type, meta);
-            return (
-              <HeadCell key={index} align={align}>
-                {column.name}
-              </HeadCell>
-            );
-          })}
-          isEmpty={!data?.length}
-          disablePadding
-        >
-          {data?.map((row, index) => this.renderRow(index, row, meta, columns))}
-        </StyledPanelTable>
-      </Fragment>
-    );
-  }
+  const meta = metadata ?? {};
+  const columns = decodeColumnOrder(
+    fields.map((field, index) => ({field, alias: fieldAliases[index]}))
+  );
+
+  return (
+    <Fragment>
+      {title && <h4>{title}</h4>}
+      <StyledPanelTable
+        className={className}
+        isLoading={loading}
+        headers={columns.map((column, index) => {
+          const align = fieldAlignment(column.name, column.type, meta);
+          const header =
+            column.column.alias || (fieldHeaderMap?.[column.key] ?? column.name);
+          return (
+            <HeadCell key={index} align={align}>
+              <Tooltip title={header}>
+                <StyledTruncate value={header} maxLength={30} expandable={false} />
+              </Tooltip>
+            </HeadCell>
+          );
+        })}
+        isEmpty={!data?.length}
+        stickyHeaders={stickyHeaders}
+        disablePadding
+      >
+        {data?.map((row, index) => renderRow(index, row, meta, columns))}
+      </StyledPanelTable>
+    </Fragment>
+  );
 }
+
+const StyledTruncate = styled(Truncate)`
+  white-space: nowrap;
+`;
 
 const StyledPanelTable = styled(PanelTable)`
   border-radius: 0;

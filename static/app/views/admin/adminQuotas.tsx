@@ -1,6 +1,6 @@
-import {TextField} from 'app/components/forms';
-import InternalStatChart from 'app/components/internalStatChart';
-import AsyncView from 'app/views/asyncView';
+import {TextField} from 'sentry/components/deprecatedforms';
+import InternalStatChart from 'sentry/components/internalStatChart';
+import AsyncView from 'sentry/views/asyncView';
 
 type Config = {
   backend: string;
@@ -8,9 +8,9 @@ type Config = {
 };
 
 type State = AsyncView['state'] & {
-  since: number;
-  resolution: string;
   config: Config;
+  resolution: string;
+  since: number;
 };
 
 export default class AdminQuotas extends AsyncView<{}, State> {

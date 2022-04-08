@@ -5,23 +5,23 @@ import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
-import Checkbox from 'app/components/checkbox';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import TimePicker from 'app/components/organizations/timeRangeSelector/timePicker';
-import Placeholder from 'app/components/placeholder';
-import {MAX_PICKABLE_DAYS} from 'app/constants';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {LightWeightOrganization} from 'app/types';
-import {analytics} from 'app/utils/analytics';
+import Checkbox from 'sentry/components/checkbox';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import TimePicker from 'sentry/components/organizations/timeRangeSelector/timePicker';
+import Placeholder from 'sentry/components/placeholder';
+import {MAX_PICKABLE_DAYS} from 'sentry/constants';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {analytics} from 'sentry/utils/analytics';
 import {
   getEndOfDay,
   getStartOfPeriodAgo,
   isValidTime,
   setDateToTime,
-} from 'app/utils/dates';
-import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
-import {Theme} from 'app/utils/theme';
+} from 'sentry/utils/dates';
+import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import {Theme} from 'sentry/utils/theme';
 
 const DateRangePicker = React.lazy(() => import('./dateRangeWrapper'));
 
@@ -34,7 +34,7 @@ function isRangeSelection(maybe: OnChangeProps): maybe is RangeSelection {
   return (maybe as RangeSelection).selection !== undefined;
 }
 
-type ChangeData = {start?: Date; end?: Date; hasDateRangeErrors?: boolean};
+type ChangeData = {end?: Date; hasDateRangeErrors?: boolean; start?: Date};
 
 const defaultProps = {
   showAbsolute: true,
@@ -46,21 +46,14 @@ const defaultProps = {
 };
 
 type Props = WithRouterProps & {
-  theme: Theme;
-  /**
-   * Just used for metrics
-   */
-  organization: LightWeightOrganization;
-
-  /**
-   * Start date value for absolute date selector
-   */
-  start: Date | null;
-
   /**
    * End date value for absolute date selector
    */
   end: Date | null;
+  /**
+   * Callback when value changes
+   */
+  onChange: (data: ChangeData) => void;
 
   /**
    * handle UTC checkbox change
@@ -68,9 +61,16 @@ type Props = WithRouterProps & {
   onChangeUtc: () => void;
 
   /**
-   * Callback when value changes
+   * Just used for metrics
    */
-  onChange: (data: ChangeData) => void;
+  organization: Organization;
+
+  /**
+   * Start date value for absolute date selector
+   */
+  start: Date | null;
+
+  theme: Theme;
 
   className?: string;
   /**
@@ -85,8 +85,8 @@ type Props = WithRouterProps & {
 } & Partial<typeof defaultProps>;
 
 type State = {
-  hasStartErrors: boolean;
   hasEndErrors: boolean;
+  hasStartErrors: boolean;
 };
 
 class BaseDateRange extends React.Component<Props, State> {
@@ -255,7 +255,7 @@ const DateRange = styled(withTheme(withRouter(BaseDateRange)))`
 const TimeAndUtcPicker = styled('div')`
   display: flex;
   align-items: center;
-  padding: ${space(2)};
+  padding: ${space(0.25)} ${space(2)};
   border-top: 1px solid ${p => p.theme.innerBorder};
 `;
 

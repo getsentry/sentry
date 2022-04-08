@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {RouteSource} from 'app/components/search/sources/routeSource';
+import {RouteSource} from 'sentry/components/search/sources/routeSource';
 
 describe('RouteSource', function () {
   let wrapper;
@@ -29,7 +29,7 @@ describe('RouteSource', function () {
     });
   });
 
-  it('does not find any form field ', async function () {
+  it('does not find any form field', async function () {
     const mock = jest.fn().mockReturnValue(null);
     const {organization, project} = initializeOrg();
     wrapper = mountWithTheme(

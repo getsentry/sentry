@@ -1,25 +1,24 @@
-import Reflux from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
-import OrganizationsActions from 'app/actions/organizationsActions';
-import {Organization} from 'app/types';
+import OrganizationsActions from 'sentry/actions/organizationsActions';
+import {Organization} from 'sentry/types';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
-type OrganizationsStoreInterface = {
-  state: Organization[];
+interface OrganizationsStoreDefinition extends StoreDefinition {
+  add(item: Organization): void;
+  get(slug: string): Organization | undefined;
+
+  getAll(): Organization[];
+  load(items: Organization[]): void;
   loaded: boolean;
+  onChangeSlug(prev: Organization, next: Organization): void;
+  onRemoveSuccess(slug: string): void;
+  onUpdate(org: Organization): void;
+  remove(slug: string): void;
+  state: Organization[];
+}
 
-  onUpdate: (org: Organization) => void;
-  onChangeSlug: (prev: Organization, next: Organization) => void;
-  onRemoveSuccess: (slug: string) => void;
-  get: (slug: string) => Organization | undefined;
-  getAll: () => Organization[];
-  remove: (slug: string) => void;
-  add: (item: Organization) => void;
-  load: (items: Organization[]) => void;
-};
-
-type OrganizationsStore = Reflux.Store & OrganizationsStoreInterface;
-
-const organizationsStoreConfig: Reflux.StoreDefinition & OrganizationsStoreInterface = {
+const storeConfig: OrganizationsStoreDefinition = {
   listenables: [OrganizationsActions],
 
   state: [],
@@ -87,8 +86,6 @@ const organizationsStoreConfig: Reflux.StoreDefinition & OrganizationsStoreInter
   },
 };
 
-const OrganizationsStore = Reflux.createStore(
-  organizationsStoreConfig
-) as OrganizationsStore;
+const OrganizationsStore = createStore(makeSafeRefluxStore(storeConfig));
 
 export default OrganizationsStore;

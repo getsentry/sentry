@@ -1,10 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Alert from 'app/components/alert';
-import Button from 'app/components/button';
-import {IconInfo} from 'app/icons';
-import {t} from 'app/locale';
+import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
+import {t} from 'sentry/locale';
 
 type Props = {
   multi?: boolean;
@@ -13,7 +12,7 @@ type Props = {
 
 function ReleaseArchivedNotice({onRestore, multi}: Props) {
   return (
-    <Alert icon={<IconInfo size="md" />} type="warning">
+    <Alert type="warning">
       {multi
         ? t('These releases have been archived.')
         : t('This release has been archived.')}

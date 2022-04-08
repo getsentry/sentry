@@ -1,26 +1,19 @@
-import Reflux from 'reflux';
+import {createStore} from 'reflux';
 
-import {Indicator} from 'app/actionCreators/indicator';
-import IndicatorActions from 'app/actions/indicatorActions';
-import {t} from 'app/locale';
+import {Indicator} from 'sentry/actionCreators/indicator';
+import IndicatorActions from 'sentry/actions/indicatorActions';
+import {t} from 'sentry/locale';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
-type IndicatorStoreInterface = {
-  init: () => void;
-  get: () => Indicator[];
-  addSuccess: (message: string) => Indicator;
-  addError: (message?: string) => Indicator;
-  /**
-   * Appends a message to be displayed in list of indicators
-   *
-   * @param message Toast message to be displayed
-   * @param type One of ['error', 'success', '']
-   * @param options Options object
-   */
-  append: (
-    message: string,
-    type: Indicator['type'],
-    options?: Indicator['options']
-  ) => Indicator;
+import {CommonStoreDefinition} from './types';
+
+interface InternalDefinition {
+  items: any[];
+  lastId: number;
+}
+interface IndicatorStoreDefinition
+  extends CommonStoreDefinition<Indicator[]>,
+    InternalDefinition {
   /**
    * When this method is called directly via older parts of the application,
    * we want to maintain the old behavior in that it is replaced (and not queued up)
@@ -29,48 +22,57 @@ type IndicatorStoreInterface = {
    * @param type One of ['error', 'success', '']
    * @param options Options object
    */
-  add: (
+  add(
     message: string,
     type?: Indicator['type'],
     options?: Indicator['options']
-  ) => Indicator;
+  ): Indicator;
+  addError(message?: string): Indicator;
   /**
    * Alias for add()
    */
-  addMessage: (
+  addMessage(
     message: string,
     type: Indicator['type'],
     options?: Indicator['options']
-  ) => Indicator;
+  ): Indicator;
+  addSuccess(message: string): Indicator;
+  /**
+   * Appends a message to be displayed in list of indicators
+   *
+   * @param message Toast message to be displayed
+   * @param type One of ['error', 'success', '']
+   * @param options Options object
+   */
+  append(
+    message: string,
+    type: Indicator['type'],
+    options?: Indicator['options']
+  ): Indicator;
   /**
    * Remove all current indicators.
    */
-  clear: () => void;
+  clear(): void;
+  init(): void;
   /**
    * Remove an indicator
    */
-  remove: (indicator: Indicator) => void;
-};
+  remove(indicator: Indicator): void;
+}
 
-type Internals = {
-  items: any[];
-  lastId: number;
-};
-
-const storeConfig: Reflux.StoreDefinition & IndicatorStoreInterface & Internals = {
+const storeConfig: IndicatorStoreDefinition = {
   items: [],
   lastId: 0,
+  unsubscribeListeners: [],
+
   init() {
     this.items = [];
     this.lastId = 0;
-    this.listenTo(IndicatorActions.append, this.append);
-    this.listenTo(IndicatorActions.replace, this.add);
-    this.listenTo(IndicatorActions.remove, this.remove);
-    this.listenTo(IndicatorActions.clear, this.clear);
-  },
 
-  get() {
-    return this.items;
+    this.unsubscribeListeners.push(this.listenTo(IndicatorActions.append, this.append));
+    this.unsubscribeListeners.push(this.listenTo(IndicatorActions.replace, this.add));
+    this.unsubscribeListeners.push(this.listenTo(IndicatorActions.remove, this.remove));
+    this.unsubscribeListeners.push(this.listenTo(IndicatorActions.clear, this.clear));
   },
 
   addSuccess(message) {
@@ -136,10 +138,11 @@ const storeConfig: Reflux.StoreDefinition & IndicatorStoreInterface & Internals 
 
     this.trigger(this.items);
   },
+
+  getState() {
+    return this.items;
+  },
 };
 
-type IndicatorStore = Reflux.Store & IndicatorStoreInterface;
-
-const IndicatorStore = Reflux.createStore(storeConfig) as IndicatorStore;
-
+const IndicatorStore = createStore(makeSafeRefluxStore(storeConfig));
 export default IndicatorStore;

@@ -1,24 +1,30 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import SelectControl from 'app/components/forms/selectControl';
-import NumberDragControl from 'app/components/numberDragControl';
-import Tooltip from 'app/components/tooltip';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
+import Feature from 'sentry/components/acl/feature';
+import Input from 'sentry/components/forms/controls/input';
+import SelectControl from 'sentry/components/forms/selectControl';
+import NumberDragControl from 'sentry/components/numberDragControl';
+import Tooltip from 'sentry/components/tooltip';
+import {t, tct, tn} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {
+  AlertRuleComparisonType,
   AlertRuleThresholdType,
   ThresholdControlValue,
-} from 'app/views/alerts/incidentRules/types';
-import Input from 'app/views/settings/components/forms/controls/input';
+} from 'sentry/views/alerts/incidentRules/types';
 
 type Props = ThresholdControlValue & {
-  type: string;
-  disabled: boolean;
+  comparisonType: AlertRuleComparisonType;
   disableThresholdType: boolean;
-  placeholder: string;
+  disabled: boolean;
   onChange: (value: ThresholdControlValue, e: React.FormEvent) => void;
+  onThresholdPeriodChange: (value: number) => void;
   onThresholdTypeChange: (thresholdType: AlertRuleThresholdType) => void;
+  placeholder: string;
+  thresholdPeriod: number | null;
+  type: string;
+  hideControl?: boolean;
 };
 
 type State = {
@@ -73,7 +79,7 @@ class ThresholdControl extends React.Component<Props, State> {
     this.setState({currentValue: null});
   };
 
-  handleTypeChange = ({value}, _) => {
+  handleTypeChange = ({value}) => {
     const {onThresholdTypeChange} = this.props;
     onThresholdTypeChange(value);
   };
@@ -84,10 +90,17 @@ class ThresholdControl extends React.Component<Props, State> {
     onChange({thresholdType, threshold: currentValue + delta}, e);
   };
 
+  handleThresholdPeriodChange = ({value}) => {
+    this.props.onThresholdPeriodChange(value);
+  };
+
   render() {
     const {currentValue} = this.state;
     const {
+      thresholdPeriod,
       thresholdType,
+      comparisonType,
+      hideControl,
       threshold,
       placeholder,
       type,
@@ -95,60 +108,153 @@ class ThresholdControl extends React.Component<Props, State> {
       onThresholdTypeChange: __,
       disabled,
       disableThresholdType,
-      ...props
     } = this.props;
 
     return (
-      <div {...props}>
-        <SelectControl
-          isDisabled={disabled || disableThresholdType}
-          name={`${type}ThresholdType`}
-          value={thresholdType}
-          options={[
-            {value: AlertRuleThresholdType.BELOW, label: t('Below')},
-            {value: AlertRuleThresholdType.ABOVE, label: t('Above')},
-          ]}
-          components={disableThresholdType ? {DropdownIndicator: null} : null}
-          styles={
-            disableThresholdType
-              ? {
-                  control: provided => ({
-                    ...provided,
-                    cursor: 'not-allowed',
-                    pointerEvents: 'auto',
-                  }),
-                }
-              : null
-          }
-          onChange={this.handleTypeChange}
-        />
-        <StyledInput
-          disabled={disabled}
-          name={`${type}Threshold`}
-          placeholder={placeholder}
-          value={currentValue ?? threshold ?? ''}
-          onChange={this.handleThresholdChange}
-          onBlur={this.handleThresholdBlur}
-          // Disable lastpass autocomplete
-          data-lpignore="true"
-        />
-        <DragContainer>
-          <Tooltip
-            title={tct('Drag to adjust threshold[break]You can hold shift to fine tune', {
-              break: <br />,
-            })}
-          >
-            <NumberDragControl step={5} axis="y" onChange={this.handleDragChange} />
-          </Tooltip>
-        </DragContainer>
-      </div>
+      <Wrapper>
+        <Container comparisonType={comparisonType}>
+          <SelectContainer>
+            <SelectControl
+              isDisabled={disabled || disableThresholdType}
+              name={`${type}ThresholdType`}
+              value={thresholdType}
+              options={[
+                {
+                  value: AlertRuleThresholdType.BELOW,
+                  label:
+                    comparisonType === AlertRuleComparisonType.COUNT
+                      ? hideControl
+                        ? t('When below Critical or Warning')
+                        : t('Below')
+                      : hideControl
+                      ? t('When lower than Critical or Warning')
+                      : t('Lower than'),
+                },
+                {
+                  value: AlertRuleThresholdType.ABOVE,
+                  label:
+                    comparisonType === AlertRuleComparisonType.COUNT
+                      ? hideControl
+                        ? t('When above Critical or Warning')
+                        : t('Above')
+                      : hideControl
+                      ? t('When higher than Critical or Warning')
+                      : t('Higher than'),
+                },
+              ]}
+              components={disableThresholdType ? {DropdownIndicator: null} : undefined}
+              styles={
+                disableThresholdType
+                  ? {
+                      control: provided => ({
+                        ...provided,
+                        cursor: 'not-allowed',
+                        pointerEvents: 'auto',
+                      }),
+                    }
+                  : undefined
+              }
+              onChange={this.handleTypeChange}
+            />
+          </SelectContainer>
+          {!hideControl && (
+            <ThresholdContainer comparisonType={comparisonType}>
+              <ThresholdInput>
+                <StyledInput
+                  disabled={disabled}
+                  name={`${type}Threshold`}
+                  data-test-id={`${type}-threshold`}
+                  placeholder={placeholder}
+                  value={currentValue ?? threshold ?? ''}
+                  onChange={this.handleThresholdChange}
+                  onBlur={this.handleThresholdBlur}
+                  // Disable lastpass autocomplete
+                  data-lpignore="true"
+                />
+                <DragContainer>
+                  <Tooltip
+                    title={tct(
+                      'Drag to adjust threshold[break]You can hold shift to fine tune',
+                      {
+                        break: <br />,
+                      }
+                    )}
+                  >
+                    <NumberDragControl
+                      step={5}
+                      axis="y"
+                      onChange={this.handleDragChange}
+                    />
+                  </Tooltip>
+                </DragContainer>
+              </ThresholdInput>
+              {comparisonType === AlertRuleComparisonType.CHANGE && (
+                <PercentWrapper>%</PercentWrapper>
+              )}
+            </ThresholdContainer>
+          )}
+        </Container>
+        {!hideControl && (
+          <Feature features={['metric-alert-threshold-period']}>
+            <SelectContainer>
+              <SelectControl
+                isDisabled={disabled}
+                name="thresholdPeriod"
+                value={thresholdPeriod}
+                options={[1, 2, 5, 10, 20].map(value => ({
+                  value,
+                  label: tn('For %s minute', 'For %s minutes', value),
+                }))}
+                onChange={this.handleThresholdPeriodChange}
+              />
+            </SelectContainer>
+          </Feature>
+        )}
+      </Wrapper>
     );
   }
 }
 
+const Wrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+`;
+
+const Container = styled('div')<{comparisonType: AlertRuleComparisonType}>`
+  flex: 2;
+  display: flex;
+  align-items: center;
+  flex-direction: ${p =>
+    p.comparisonType === AlertRuleComparisonType.COUNT ? 'row' : 'row-reverse'};
+  gap: ${space(1)};
+`;
+
+const SelectContainer = styled('div')`
+  flex: 1;
+`;
+
+const ThresholdContainer = styled('div')<{comparisonType: AlertRuleComparisonType}>`
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+`;
+
 const StyledInput = styled(Input)`
   /* Match the height of the select controls */
   height: 40px;
+`;
+
+const ThresholdInput = styled('div')`
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+`;
+
+const PercentWrapper = styled('div')`
+  margin-left: ${space(1)};
 `;
 
 const DragContainer = styled('div')`
@@ -157,10 +263,4 @@ const DragContainer = styled('div')`
   right: 12px;
 `;
 
-export default styled(ThresholdControl)`
-  position: relative;
-  display: grid;
-  align-items: center;
-  grid-template-columns: 1fr 3fr;
-  grid-gap: ${space(1)};
-`;
+export default ThresholdControl;

@@ -85,10 +85,10 @@ rel_date_filter
 
 // filter for durations
 duration_filter
-  = key:search_key sep op:operator? value:duration_format &{
+  = negation:negation? key:search_key sep op:operator? value:duration_format &{
       return tc.predicateFilter(FilterType.Duration, key)
     } {
-      return tc.tokenFilter(FilterType.Duration, key, value, op, false);
+      return tc.tokenFilter(FilterType.Duration, key, value, op, !!negation);
     }
 
 // boolean comparison filter
@@ -101,18 +101,18 @@ boolean_filter
 
 // numeric in filter
 numeric_in_filter
-  = key:search_key sep value:numeric_in_list &{
+  = negation:negation? key:search_key sep value:numeric_in_list &{
       return tc.predicateFilter(FilterType.NumericIn, key)
     } {
-      return tc.tokenFilter(FilterType.NumericIn, key, value, opDefault, false);
+      return tc.tokenFilter(FilterType.NumericIn, key, value, opDefault, !!negation);
     }
 
 // numeric comparison filter
 numeric_filter
-  = key:search_key sep op:operator? value:numeric_value &{
+  = negation:negation? key:search_key sep op:operator? value:numeric_value &{
       return tc.predicateFilter(FilterType.Numeric, key)
     } {
-      return tc.tokenFilter(FilterType.Numeric, key, value, op, false);
+      return tc.tokenFilter(FilterType.Numeric, key, value, op, !!negation);
     }
 
 // aggregate duration filter

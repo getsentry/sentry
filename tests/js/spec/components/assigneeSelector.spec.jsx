@@ -1,17 +1,17 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {openInviteMembersModal} from 'app/actionCreators/modal';
-import {Client} from 'app/api';
+import {openInviteMembersModal} from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
 import AssigneeSelectorComponent, {
   putSessionUserFirst,
-} from 'app/components/assigneeSelector';
-import ConfigStore from 'app/stores/configStore';
-import GroupStore from 'app/stores/groupStore';
-import MemberListStore from 'app/stores/memberListStore';
-import ProjectsStore from 'app/stores/projectsStore';
-import TeamStore from 'app/stores/teamStore';
+} from 'sentry/components/assigneeSelector';
+import ConfigStore from 'sentry/stores/configStore';
+import GroupStore from 'sentry/stores/groupStore';
+import MemberListStore from 'sentry/stores/memberListStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import TeamStore from 'sentry/stores/teamStore';
 
-jest.mock('app/actionCreators/modal', () => ({
+jest.mock('sentry/actionCreators/modal', () => ({
   openInviteMembersModal: jest.fn(),
 }));
 
@@ -102,10 +102,7 @@ describe('AssigneeSelector', function () {
     MemberListStore.state = [];
     MemberListStore.loaded = false;
 
-    assigneeSelector = mountWithTheme(
-      <AssigneeSelectorComponent id={GROUP_1.id} />,
-      TestStubs.routerContext()
-    );
+    assigneeSelector = mountWithTheme(<AssigneeSelectorComponent id={GROUP_1.id} />);
 
     openMenu = () => assigneeSelector.find('DropdownButton').simulate('click');
   });
@@ -117,8 +114,7 @@ describe('AssigneeSelector', function () {
   describe('render with props', function () {
     it('renders members from the prop when present', async function () {
       assigneeSelector = mountWithTheme(
-        <AssigneeSelectorComponent id={GROUP_1.id} memberList={[USER_2, USER_3]} />,
-        TestStubs.routerContext()
+        <AssigneeSelectorComponent id={GROUP_1.id} memberList={[USER_2, USER_3]} />
       );
       MemberListStore.loadInitialData([USER_1]);
       openMenu();
@@ -266,7 +262,7 @@ describe('AssigneeSelector', function () {
 
     openMenu();
     assigneeSelector
-      .find('MenuItemWrapper[data-test-id="clear-assignee"]')
+      .find('MenuItemFooterWrapper[data-test-id="clear-assignee"]')
       .simulate('click');
 
     // api was called with empty string, clearing assignment
@@ -326,8 +322,7 @@ describe('AssigneeSelector', function () {
     jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_2);
     const onAssign = jest.fn();
     assigneeSelector = mountWithTheme(
-      <AssigneeSelectorComponent id={GROUP_2.id} onAssign={onAssign} />,
-      TestStubs.routerContext()
+      <AssigneeSelectorComponent id={GROUP_2.id} onAssign={onAssign} />
     );
     MemberListStore.loadInitialData([USER_1, USER_2, USER_3]);
 
@@ -367,10 +362,7 @@ describe('AssigneeSelector', function () {
 
   it('renders unassigned', async function () {
     jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_2);
-    assigneeSelector = mountWithTheme(
-      <AssigneeSelectorComponent id={GROUP_2.id} />,
-      TestStubs.routerContext()
-    );
+    assigneeSelector = mountWithTheme(<AssigneeSelectorComponent id={GROUP_2.id} />);
     const avatarTooltip = mountWithTheme(assigneeSelector.find('Tooltip').prop('title'));
     expect(avatarTooltip.text()).toContain('Unassigned');
   });

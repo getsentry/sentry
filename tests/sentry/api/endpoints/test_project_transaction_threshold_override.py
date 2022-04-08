@@ -1,3 +1,5 @@
+from unittest import mock
+
 from django.urls import reverse
 
 from sentry.models.transaction_threshold import (
@@ -6,12 +8,11 @@ from sentry.models.transaction_threshold import (
 )
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.utils.compat import mock
 from sentry.utils.samples import load_data
 
 
 class ProjectTransactionThresholdOverrideTest(APITestCase):
-    feature_name = "organizations:project-transaction-threshold-override"
+    feature_name = "organizations:performance-view"
 
     def setUp(self) -> None:
         super().setUp()
@@ -72,23 +73,24 @@ class ProjectTransactionThresholdOverrideTest(APITestCase):
         assert response.status_code == 404
 
     def test_get_returns_error_without_feature_enabled(self):
-        ProjectTransactionThresholdOverride.objects.create(
-            project=self.project,
-            organization=self.project.organization,
-            threshold=300,
-            metric=TransactionMetric.DURATION.value,
-            transaction=self.data["transaction"],
-        )
+        with self.feature({self.feature_name: False, "organizations:discover-basic": False}):
+            ProjectTransactionThresholdOverride.objects.create(
+                project=self.project,
+                organization=self.project.organization,
+                threshold=300,
+                metric=TransactionMetric.DURATION.value,
+                transaction=self.data["transaction"],
+            )
 
-        response = self.client.get(
-            self.url,
-            data={
-                "project": [self.project.id],
-                "transaction": self.data["transaction"],
-            },
-            format="json",
-        )
-        assert response.status_code == 404
+            response = self.client.get(
+                self.url,
+                data={
+                    "project": [self.project.id],
+                    "transaction": self.data["transaction"],
+                },
+                format="json",
+            )
+            assert response.status_code == 404
 
     def test_create_project_threshold(self):
         assert not ProjectTransactionThresholdOverride.objects.filter(

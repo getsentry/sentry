@@ -1,33 +1,33 @@
 import * as React from 'react';
-import ReactDOM from 'react-dom';
+import {findDOMNode} from 'react-dom';
 import {MultiValueProps} from 'react-select';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 
-import {addTeamToProject} from 'app/actionCreators/projects';
-import {Client} from 'app/api';
-import ActorAvatar from 'app/components/avatar/actorAvatar';
-import Button from 'app/components/button';
-import MultiSelectControl from 'app/components/forms/multiSelectControl';
-import IdBadge from 'app/components/idBadge';
-import Tooltip from 'app/components/tooltip';
-import {IconAdd} from 'app/icons';
-import {t} from 'app/locale';
-import MemberListStore from 'app/stores/memberListStore';
-import ProjectsStore from 'app/stores/projectsStore';
-import TeamStore from 'app/stores/teamStore';
-import space from 'app/styles/space';
-import {Actor, Member, Organization, Project, Team, User} from 'app/types';
-import {buildTeamId, buildUserId} from 'app/utils';
-import withApi from 'app/utils/withApi';
-import withProjects from 'app/utils/withProjects';
+import {addTeamToProject} from 'sentry/actionCreators/projects';
+import {Client} from 'sentry/api';
+import ActorAvatar from 'sentry/components/avatar/actorAvatar';
+import Button from 'sentry/components/button';
+import MultiSelectControl from 'sentry/components/deprecatedforms/multiSelectControl';
+import IdBadge from 'sentry/components/idBadge';
+import Tooltip from 'sentry/components/tooltip';
+import {IconAdd} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import MemberListStore from 'sentry/stores/memberListStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import TeamStore from 'sentry/stores/teamStore';
+import space from 'sentry/styles/space';
+import {Actor, Member, Organization, Project, Team, User} from 'sentry/types';
+import {buildTeamId, buildUserId} from 'sentry/utils';
+import withApi from 'sentry/utils/withApi';
+import withProjects from 'sentry/utils/withProjects';
 
 export type Owner = {
-  value: string;
+  actor: Actor;
   label: React.ReactNode;
   searchKey: string;
-  actor: Actor;
+  value: string;
   disabled?: boolean;
 };
 
@@ -44,18 +44,18 @@ const getSearchKeyForUser = (user: User) =>
 
 type Props = {
   api: Client;
+  disabled: boolean;
+  onChange: (owners: Owner[]) => void;
   organization: Organization;
   project: Project;
   projects: Project[];
   value: any;
-  onChange: (owners: Owner[]) => void;
-  disabled: boolean;
   onInputChange?: (text: string) => void;
 };
 
 type State = {
-  loading: boolean;
   inputValue: string;
+  loading: boolean;
 };
 
 class SelectOwners extends React.Component<Props, State> {
@@ -144,6 +144,7 @@ class SelectOwners extends React.Component<Props, State> {
               disabled={!canAddTeam}
               onClick={this.handleAddTeamToProject.bind(this, team)}
               icon={<IconAdd isCircled />}
+              aria-label={t('Add %s to project', `#${team.slug}`)}
             />
           </Tooltip>
         </Container>
@@ -186,7 +187,7 @@ class SelectOwners extends React.Component<Props, State> {
     // Close select menu
     if (this.selectRef.current) {
       // eslint-disable-next-line react/no-find-dom-node
-      const node = ReactDOM.findDOMNode(this.selectRef.current);
+      const node = findDOMNode(this.selectRef.current);
       const input: HTMLInputElement | null = (node as Element)?.querySelector(
         '.Select-input input'
       );

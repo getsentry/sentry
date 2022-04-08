@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases import ProjectEndpoint
@@ -6,7 +7,7 @@ from sentry.models import GroupHash, GroupTombstone
 
 
 class GroupTombstoneDetailsEndpoint(ProjectEndpoint):
-    def delete(self, request, project, tombstone_id):
+    def delete(self, request: Request, project, tombstone_id) -> Response:
         """
         Remove a GroupTombstone
         ```````````````````````

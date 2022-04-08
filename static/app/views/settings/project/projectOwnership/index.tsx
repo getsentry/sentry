@@ -1,33 +1,40 @@
 import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
-import {openEditOwnershipRules, openModal} from 'app/actionCreators/modal';
-import Access from 'app/components/acl/access';
-import Feature from 'app/components/acl/feature';
-import Alert from 'app/components/alert';
-import Button from 'app/components/button';
-import ExternalLink from 'app/components/links/externalLink';
-import {IconWarning} from 'app/icons';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
+import {openEditOwnershipRules, openModal} from 'sentry/actionCreators/modal';
+import Access from 'sentry/components/acl/access';
+import Feature from 'sentry/components/acl/feature';
+import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
+import FeatureBadge from 'sentry/components/featureBadge';
+import Form from 'sentry/components/forms/form';
+import JsonForm from 'sentry/components/forms/jsonForm';
+import HookOrDefault from 'sentry/components/hookOrDefault';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {
   CodeOwner,
   Integration,
   Organization,
   Project,
   RepositoryProjectPathConfig,
-} from 'app/types';
-import routeTitleGen from 'app/utils/routeTitle';
-import AsyncView from 'app/views/asyncView';
-import FeedbackAlert from 'app/views/settings/account/notifications/feedbackAlert';
-import Form from 'app/views/settings/components/forms/form';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import PermissionAlert from 'app/views/settings/project/permissionAlert';
-import AddCodeOwnerModal from 'app/views/settings/project/projectOwnership/addCodeOwnerModal';
-import CodeOwnersPanel from 'app/views/settings/project/projectOwnership/codeowners';
-import RulesPanel from 'app/views/settings/project/projectOwnership/rulesPanel';
+} from 'sentry/types';
+import routeTitleGen from 'sentry/utils/routeTitle';
+import AsyncView from 'sentry/views/asyncView';
+import FeedbackAlert from 'sentry/views/settings/account/notifications/feedbackAlert';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
+import AddCodeOwnerModal from 'sentry/views/settings/project/projectOwnership/addCodeOwnerModal';
+import CodeOwnersPanel from 'sentry/views/settings/project/projectOwnership/codeowners';
+import RulesPanel from 'sentry/views/settings/project/projectOwnership/rulesPanel';
 
 type Props = {
   organization: Organization;
@@ -35,11 +42,16 @@ type Props = {
 } & RouteComponentProps<{orgId: string; projectId: string}, {}>;
 
 type State = {
-  ownership: null | any;
   codeMappings: RepositoryProjectPathConfig[];
-  codeowners?: CodeOwner[];
   integrations: Integration[];
+  ownership: null | any;
+  codeowners?: CodeOwner[];
 } & AsyncView['state'];
+
+const CodeOwnersHeader = HookOrDefault({
+  hookName: 'component:codeowners-header',
+  defaultComponent: () => <Fragment />,
+});
 
 class ProjectOwnership extends AsyncView<Props, State> {
   getTitle() {
@@ -54,7 +66,7 @@ class ProjectOwnership extends AsyncView<Props, State> {
       [
         'codeMappings',
         `/organizations/${organization.slug}/code-mappings/`,
-        {query: {projectId: project.id}},
+        {query: {project: project.id}},
       ],
       [
         'integrations',
@@ -133,6 +145,25 @@ tags.sku_class:enterprise #enterprise`;
     this.setState({
       codeowners: [...codeowners.slice(0, index), data, ...codeowners.slice(index + 1)],
     });
+  };
+
+  handleAddCodeOwnerRequest = async () => {
+    const {organization, project} = this.props;
+    try {
+      addLoadingMessage(t('Requesting\u2026'));
+      await this.api.requestPromise(
+        `/projects/${organization.slug}/${project.slug}/codeowners-request/`,
+        {
+          method: 'POST',
+          data: {},
+        }
+      );
+
+      addSuccessMessage(t('Request Sent'));
+    } catch (err) {
+      addErrorMessage(t('Unable to send request'));
+      Sentry.captureException(err);
+    }
   };
 
   renderCodeOwnerErrors = () => {
@@ -231,7 +262,7 @@ tags.sku_class:enterprise #enterprise`;
           <Alert
             key={id}
             type="error"
-            icon={<IconWarning size="md" />}
+            showIcon
             expand={[
               <AlertContentContainer key="container">
                 {Object.entries(errors)
@@ -273,9 +304,9 @@ tags.sku_class:enterprise #enterprise`;
                 {t('View Issues')}
               </Button>
               <Feature features={['integrations-codeowners']}>
-                <Access access={['project:write']}>
+                <Access access={['org:integrations']}>
                   {({hasAccess}) =>
-                    hasAccess && (
+                    hasAccess ? (
                       <CodeOwnerButton
                         onClick={this.handleAddCodeOwner}
                         size="small"
@@ -283,6 +314,15 @@ tags.sku_class:enterprise #enterprise`;
                         data-test-id="add-codeowner-button"
                       >
                         {t('Add CODEOWNERS File')}
+                      </CodeOwnerButton>
+                    ) : (
+                      <CodeOwnerButton
+                        onClick={this.handleAddCodeOwnerRequest}
+                        size="small"
+                        priority="primary"
+                        data-test-id="add-codeowner-request-button"
+                      >
+                        {t('Request to Add CODEOWNERS File')}
                       </CodeOwnerButton>
                     )
                   }
@@ -292,6 +332,11 @@ tags.sku_class:enterprise #enterprise`;
           }
         />
         <IssueOwnerDetails>{this.getDetail()}</IssueOwnerDetails>
+        <CodeOwnersHeader
+          addCodeOwner={this.handleAddCodeOwner}
+          handleRequest={this.handleAddCodeOwnerRequest}
+        />
+
         <PermissionAlert />
         <FeedbackAlert />
         {this.renderCodeOwnerErrors()}
@@ -335,6 +380,7 @@ tags.sku_class:enterprise #enterprise`;
           initialData={{
             fallthrough: ownership.fallthrough,
             autoAssignment: ownership.autoAssignment,
+            codeownersAutoSync: ownership.codeownersAutoSync,
           }}
           hideFooter
         >
@@ -360,6 +406,29 @@ tags.sku_class:enterprise #enterprise`;
                       'Alerts will be sent to all users who have access to this project.'
                     ),
                     disabled,
+                  },
+                  {
+                    name: 'codeownersAutoSync',
+                    type: 'boolean',
+                    label: tct(
+                      `Automatically sync changes from CODEOWNERS file to Code Owners [badge]`,
+                      {
+                        badge: (
+                          <FeatureBadge
+                            type="new"
+                            title={
+                              !(this.state.codeowners || []).length
+                                ? 'Setup Code Owners to use this feature.'
+                                : undefined
+                            }
+                          />
+                        ),
+                      }
+                    ),
+                    help: t(
+                      'Sentry will watch for CODEOWNERS file changes during a Release and then update Code Owners.'
+                    ),
+                    disabled: disabled || !(this.state.codeowners || []).length,
                   },
                 ],
               },

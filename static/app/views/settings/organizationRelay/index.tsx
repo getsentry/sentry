@@ -1,25 +1,22 @@
-import Feature from 'app/components/acl/feature';
-import FeatureDisabled from 'app/components/acl/featureDisabled';
-import {PanelAlert} from 'app/components/panels';
-import {t} from 'app/locale';
-import withOrganization from 'app/utils/withOrganization';
+import Feature from 'sentry/components/acl/feature';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import RelayWrapper from './relayWrapper';
 
-const OrganizationRelay = ({organization, ...props}: RelayWrapper['props']) => (
-  <Feature
-    features={['relay']}
-    organization={organization}
-    renderDisabled={() => (
-      <FeatureDisabled
-        alert={PanelAlert}
-        features={organization.features}
-        featureName={t('Relay')}
+function OrganizationRelay(props: Omit<RelayWrapper['props'], 'organization'>) {
+  const organization = useOrganization();
+  return (
+    <Feature
+      organization={organization}
+      features={['relay']}
+      hookName="feature-disabled:relay"
+    >
+      <RelayWrapper
+        organization={organization as RelayWrapper['props']['organization']}
+        {...props}
       />
-    )}
-  >
-    <RelayWrapper organization={organization} {...props} />
-  </Feature>
-);
+    </Feature>
+  );
+}
 
-export default withOrganization(OrganizationRelay);
+export default OrganizationRelay;

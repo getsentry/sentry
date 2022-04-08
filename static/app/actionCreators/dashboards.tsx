@@ -1,7 +1,10 @@
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
-import {t} from 'app/locale';
-import {DashboardDetails, Widget} from 'app/views/dashboardsV2/types';
+import omit from 'lodash/omit';
+
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
+import {t} from 'sentry/locale';
+import {DashboardDetails, Widget} from 'sentry/views/dashboardsV2/types';
+import {flattenErrors} from 'sentry/views/dashboardsV2/utils';
 
 export function createDashboard(
   api: Client,
@@ -15,7 +18,7 @@ export function createDashboard(
     `/organizations/${orgId}/dashboards/`,
     {
       method: 'POST',
-      data: {title, widgets, duplicate},
+      data: {title, widgets: widgets.map(widget => omit(widget, ['tempId'])), duplicate},
     }
   );
 
@@ -23,7 +26,8 @@ export function createDashboard(
     const errorResponse = response?.responseJSON ?? null;
 
     if (errorResponse) {
-      addErrorMessage(errorResponse);
+      const errors = flattenErrors(errorResponse, {});
+      addErrorMessage(errors[Object.keys(errors)[0]]);
     } else {
       addErrorMessage(t('Unable to create dashboard'));
     }
@@ -63,7 +67,8 @@ export function fetchDashboard(
     const errorResponse = response?.responseJSON ?? null;
 
     if (errorResponse) {
-      addErrorMessage(errorResponse);
+      const errors = flattenErrors(errorResponse, {});
+      addErrorMessage(errors[Object.keys(errors)[0]]);
     } else {
       addErrorMessage(t('Unable to load dashboard'));
     }
@@ -78,7 +83,7 @@ export function updateDashboard(
 ): Promise<DashboardDetails> {
   const data = {
     title: dashboard.title,
-    widgets: dashboard.widgets,
+    widgets: dashboard.widgets.map(widget => omit(widget, ['tempId'])),
   };
 
   const promise: Promise<DashboardDetails> = api.requestPromise(
@@ -93,7 +98,8 @@ export function updateDashboard(
     const errorResponse = response?.responseJSON ?? null;
 
     if (errorResponse) {
-      addErrorMessage(errorResponse);
+      const errors = flattenErrors(errorResponse, {});
+      addErrorMessage(errors[Object.keys(errors)[0]]);
     } else {
       addErrorMessage(t('Unable to update dashboard'));
     }
@@ -118,7 +124,8 @@ export function deleteDashboard(
     const errorResponse = response?.responseJSON ?? null;
 
     if (errorResponse) {
-      addErrorMessage(errorResponse);
+      const errors = flattenErrors(errorResponse, {});
+      addErrorMessage(errors[Object.keys(errors)[0]]);
     } else {
       addErrorMessage(t('Unable to delete dashboard'));
     }

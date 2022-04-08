@@ -1,6 +1,6 @@
-import Reflux from 'reflux';
+import {createActions} from 'reflux';
 
-export default Reflux.createActions([
+const ProjectActions = createActions([
   'addTeam',
   'addTeamError',
   'addTeamSuccess',
@@ -23,3 +23,5 @@ export default Reflux.createActions([
   'updateError',
   'updateSuccess',
 ]);
+
+export default ProjectActions;

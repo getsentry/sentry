@@ -1,8 +1,9 @@
 import isUndefined from 'lodash/isUndefined';
 
-import {ApiForm} from 'app/components/forms';
-import {t} from 'app/locale';
-import AsyncView from 'app/views/asyncView';
+import {Form} from 'sentry/components/forms';
+import {Panel, PanelHeader} from 'sentry/components/panels';
+import {t} from 'sentry/locale';
+import AsyncView from 'sentry/views/asyncView';
 
 import {getOption, getOptionField} from './options';
 
@@ -61,29 +62,34 @@ export default class AdminSettings extends AsyncView<{}, State> {
       <div>
         <h3>{t('Settings')}</h3>
 
-        <ApiForm
+        <Form
           apiMethod="PUT"
           apiEndpoint={this.endpoint}
           initialData={initialData}
-          omitDisabled
-          requireChanges
+          saveOnBlur
         >
-          <h4>General</h4>
-          {fields['system.url-prefix']}
-          {fields['system.admin-email']}
-          {fields['system.support-email']}
-          {fields['system.security-email']}
-          {fields['system.rate-limit']}
+          <Panel>
+            <PanelHeader>General</PanelHeader>
+            {fields['system.url-prefix']}
+            {fields['system.admin-email']}
+            {fields['system.support-email']}
+            {fields['system.security-email']}
+            {fields['system.rate-limit']}
+          </Panel>
 
-          <h4>Security & Abuse</h4>
-          {fields['auth.allow-registration']}
-          {fields['auth.ip-rate-limit']}
-          {fields['auth.user-rate-limit']}
-          {fields['api.rate-limit.org-create']}
+          <Panel>
+            <PanelHeader>Security & Abuse</PanelHeader>
+            {fields['auth.allow-registration']}
+            {fields['auth.ip-rate-limit']}
+            {fields['auth.user-rate-limit']}
+            {fields['api.rate-limit.org-create']}
+          </Panel>
 
-          <h4>Beacon</h4>
-          {fields['beacon.anonymous']}
-        </ApiForm>
+          <Panel>
+            <PanelHeader>Beacon</PanelHeader>
+            {fields['beacon.anonymous']}
+          </Panel>
+        </Form>
       </div>
     );
   }

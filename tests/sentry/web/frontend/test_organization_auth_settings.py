@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 from django.db import models
 from django.urls import reverse
@@ -14,7 +16,6 @@ from sentry.models import (
     SentryAppInstallationForProvider,
 )
 from sentry.testutils import AuthProviderTestCase, PermissionTestCase
-from sentry.utils.compat.mock import patch
 
 
 class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
@@ -79,18 +80,11 @@ class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
             resp = self.client.get(self.path)
             assert resp.status_code == 200
 
-    def test_superuser_can_load(self):
+    def test_load_if_already_set_up(self):
         owner = self.create_owner_and_attach_identity()
 
-        # owner can't load without feature
+        # can load without feature since already set up
         self.login_as(owner, organization_id=self.organization.id)
-        with self.feature({"organizations:sso-basic": False}):
-            resp = self.client.get(self.path)
-            assert resp.status_code == 302
-
-        # superuser can load without feature
-        superuser = self.create_user(is_superuser=True)
-        self.login_as(superuser, superuser=True)
         with self.feature({"organizations:sso-basic": False}):
             resp = self.client.get(self.path)
             assert resp.status_code == 200
@@ -171,6 +165,18 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
         assert resp.status_code == 200
         assert resp.content.decode("utf-8") == self.provider.TEMPLATE
+
+    def test_cannot_start_auth_flow_feature_missing(self):
+        organization = self.create_organization(name="foo", owner=self.user)
+
+        path = reverse("sentry-organization-auth-provider-settings", args=[organization.slug])
+
+        self.login_as(self.user)
+
+        with self.feature({"organizations:sso-basic": False}):
+            resp = self.client.post(path, {"provider": "dummy", "init": True})
+
+        assert resp.status_code == 401
 
     @patch("sentry.auth.helper.logger")
     def test_basic_flow(self, logger):
@@ -388,7 +394,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         assert organization.default_role == "member"
         self.login_as(self.user, organization_id=organization.id)
 
-        with self.feature({"organizations:sso-basic": True, "organizations:sso-scim": True}):
+        with self.feature({"organizations:sso-basic": True}):
             resp = self.client.post(
                 path,
                 {
@@ -406,7 +412,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         assert auth_provider.get_scim_token() is not None
         assert auth_provider.get_scim_url() is not None
 
-        with self.feature({"organizations:sso-basic": True, "organizations:sso-scim": True}):
+        with self.feature({"organizations:sso-basic": True}):
             resp = self.client.post(
                 path,
                 {

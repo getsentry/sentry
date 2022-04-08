@@ -2,9 +2,9 @@ import * as React from 'react';
 import * as Sentry from '@sentry/react';
 import classNames from 'classnames';
 
-import Button from 'app/components/button';
-import {IconFlag} from 'app/icons';
-import {t} from 'app/locale';
+import Button from 'sentry/components/button';
+import {IconFlag} from 'sentry/icons';
+import {t} from 'sentry/locale';
 
 type DefaultProps = {
   /**
@@ -14,11 +14,11 @@ type DefaultProps = {
 };
 
 type Props = DefaultProps & {
-  className?: string;
   /**
    * Error heading
    */
   heading: React.ReactNode;
+  className?: string;
   /**
    * Detailed error explanation
    */
@@ -41,8 +41,14 @@ class DetailedError extends React.Component<Props> {
 
   componentDidMount() {
     // XXX(epurkhiser): Why is this here?
-    setTimeout(() => this.forceUpdate(), 100);
+    this.forceUpdateTimeout = window.setTimeout(() => this.forceUpdate(), 100);
   }
+
+  componentWillUnmount() {
+    window.clearTimeout(this.forceUpdateTimeout);
+  }
+
+  forceUpdateTimeout: number | undefined = undefined;
 
   render() {
     const {className, heading, message, onRetry, hideSupportLinks} = this.props;

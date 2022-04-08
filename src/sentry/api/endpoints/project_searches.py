@@ -1,6 +1,7 @@
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from rest_framework import serializers
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint, RelaxedSearchPermission
@@ -19,7 +20,7 @@ class SavedSearchSerializer(serializers.Serializer):
 class ProjectSearchesEndpoint(ProjectEndpoint):
     permission_classes = (RelaxedSearchPermission,)
 
-    def get(self, request, project):
+    def get(self, request: Request, project) -> Response:
         """
         List a project's saved searches
 
@@ -36,7 +37,7 @@ class ProjectSearchesEndpoint(ProjectEndpoint):
 
         return Response(serialize(results, request.user))
 
-    def post(self, request, project):
+    def post(self, request: Request, project) -> Response:
         """
         Create a new saved search
 

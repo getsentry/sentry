@@ -5,7 +5,7 @@ from sentry.utils.compat import zip
 
 @register(UserReport)
 class UserReportSerializer(Serializer):
-    def get_attrs(self, item_list, user):
+    def get_attrs(self, item_list, user, **kwargs):
         event_user_ids = {i.event_user_id for i in item_list if i.event_user_id}
 
         # Avoid querying if there aren't any to actually query, it's possible
@@ -22,7 +22,7 @@ class UserReportSerializer(Serializer):
 
         return attrs
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         # TODO(dcramer): add in various context from the event
         # context == user / http / extra interfaces
         name = obj.name or obj.email
@@ -48,7 +48,7 @@ class UserReportWithGroupSerializer(UserReportSerializer):
     def __init__(self, environment_func=None):
         self.environment_func = environment_func
 
-    def get_attrs(self, item_list, user):
+    def get_attrs(self, item_list, user, **kwargs):
         from sentry.api.serializers import GroupSerializer
 
         groups = list(Group.objects.filter(id__in={i.group_id for i in item_list if i.group_id}))

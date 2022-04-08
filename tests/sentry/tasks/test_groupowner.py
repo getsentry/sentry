@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.utils import timezone
 
 from sentry.models import GroupRelease, Repository
@@ -6,7 +8,6 @@ from sentry.tasks.groupowner import PREFERRED_GROUP_OWNER_AGE, process_suspect_c
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.committers import get_frame_paths, get_serialized_event_file_committers
-from sentry.utils.compat.mock import patch
 
 
 class TestGroupOwners(TestCase):

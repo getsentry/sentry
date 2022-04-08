@@ -1,7 +1,6 @@
 import logging
-from collections import OrderedDict, defaultdict, deque
+from collections import defaultdict, deque
 from typing import (
-    TYPE_CHECKING,
     Any,
     Callable,
     Deque,
@@ -13,7 +12,9 @@ from typing import (
     Sequence,
     Set,
     Tuple,
+    TypedDict,
     TypeVar,
+    Union,
     cast,
 )
 
@@ -28,21 +29,14 @@ from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.serializers.models.event import get_tags_with_meta
 from sentry.eventstore.models import Event
 from sentry.models import Organization
+from sentry.search.events.builder import QueryBuilder
 from sentry.snuba import discover
 from sentry.utils.numbers import format_grouped_length
-from sentry.utils.snuba import Dataset, SnubaQueryParams, bulk_raw_query
-from sentry.utils.validators import INVALID_EVENT_DETAILS, is_event_id
+from sentry.utils.snuba import Dataset, SnubaQueryParams, bulk_raw_query, bulk_snql_query
+from sentry.utils.validators import INVALID_ID_DETAILS, is_event_id
 
 logger: logging.Logger = logging.getLogger(__name__)
 MAX_TRACE_SIZE: int = 100
-
-# TODO(3.8): This is a hack so we can get TypedDicts before 3.8
-if TYPE_CHECKING:
-    from mypy_extensions import TypedDict
-else:
-
-    def TypedDict(*args, **kwargs):
-        pass
 
 
 _T = TypeVar("_T")
@@ -77,18 +71,18 @@ SnubaError = TypedDict(
         "project": str,
     },
 )
-TraceError = TypedDict(
-    "TraceError",
-    {
-        "event_id": str,
-        "issue_id": int,
-        "span": str,
-        "project_id": int,
-        "project_slug": str,
-        "title": str,
-        "level": str,
-    },
-)
+
+
+class TraceError(TypedDict):
+    event_id: str
+    issue_id: int
+    span: str
+    project_id: int
+    project_slug: str
+    title: str
+    level: str
+
+
 LightResponse = TypedDict(
     "LightResponse",
     {
@@ -212,8 +206,66 @@ def child_sort_key(item: TraceEvent) -> List[int]:
 
 
 def query_trace_data(
-    trace_id: str, params: Mapping[str, str]
+    trace_id: str, params: Mapping[str, str], use_snql: bool = False
 ) -> Tuple[Sequence[SnubaTransaction], Sequence[SnubaError]]:
+    sentry_sdk.set_tag("discover.use_snql", use_snql)
+    transaction_query: Union[QueryBuilder, discover.PreparedQuery]
+    error_query: Union[QueryBuilder, discover.PreparedQuery]
+    if use_snql:
+        transaction_query = QueryBuilder(
+            Dataset.Transactions,
+            params,
+            query=f"trace:{trace_id}",
+            selected_columns=[
+                "id",
+                "transaction.status",
+                "transaction.op",
+                "transaction.duration",
+                "transaction",
+                "timestamp",
+                "project",
+                "project.id",
+                "trace.span",
+                "trace.parent_span",
+                'to_other(trace.parent_span, "", 0, 1) AS root',
+            ],
+            # We want to guarantee at least getting the root, and hopefully events near it with timestamp
+            # id is just for consistent results
+            orderby=["-root", "timestamp", "id"],
+            limit=MAX_TRACE_SIZE,
+        )
+        error_query = QueryBuilder(
+            Dataset.Events,
+            params,
+            query=f"trace:{trace_id}",
+            selected_columns=[
+                "id",
+                "project",
+                "project.id",
+                "timestamp",
+                "trace.span",
+                "transaction",
+                "issue",
+                "title",
+                "tags[level]",
+            ],
+            # Don't add timestamp to this orderby as snuba will have to split the time range up and make multiple queries
+            orderby=["id"],
+            auto_fields=False,
+            limit=MAX_TRACE_SIZE,
+        )
+        results = bulk_snql_query(
+            [transaction_query.get_snql_query(), error_query.get_snql_query()],
+            referrer="api.trace-view.get-events.wip-snql",
+        )
+        transformed_results = [
+            discover.transform_results(result, query.function_alias_map, {}, None)["data"]
+            for result, query in zip(results, [transaction_query, error_query])
+        ]
+        return cast(Sequence[SnubaTransaction], transformed_results[0]), cast(
+            Sequence[SnubaError], transformed_results[1]
+        )
+
     transaction_query = discover.prepare_discover_query(
         selected_columns=[
             "id",
@@ -286,6 +338,11 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):  # 
     def has_feature(self, organization: Organization, request: HttpRequest) -> bool:
         return bool(
             features.has("organizations:performance-view", organization, actor=request.user)
+        )
+
+    def has_snql_feature(self, organization: Organization, request: HttpRequest) -> bool:
+        return bool(
+            features.has("organizations:performance-use-snql", organization, actor=request.user)
         )
 
     @staticmethod
@@ -361,10 +418,12 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):  # 
 
         # Only need to validate event_id as trace_id is validated in the URL
         if event_id and not is_event_id(event_id):
-            return Response({"detail": INVALID_EVENT_DETAILS.format("Event")}, status=400)
+            return Response({"detail": INVALID_ID_DETAILS.format("Event ID")}, status=400)
 
         with self.handle_query_errors():
-            transactions, errors = query_trace_data(trace_id, params)
+            transactions, errors = query_trace_data(
+                trace_id, params, self.has_snql_feature(organization, request)
+            )
             if len(transactions) == 0:
                 return Response(status=404)
             self.record_analytics(transactions, trace_id, self.request.user.id, organization.id)
@@ -528,7 +587,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
 class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
     @staticmethod
     def update_children(event: TraceEvent) -> None:
-        """Updates the childrens of subtraces
+        """Updates the children of subtraces
 
         - Generation could be incorrect from orphans where we've had to reconnect back to an orphan event that's
           already been encountered
@@ -561,10 +620,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         parent_map = self.construct_parent_map(transactions)
         error_map = self.construct_error_map(errors)
         parent_events: Dict[str, TraceEvent] = {}
-        # TODO(3.7): Dictionary ordering in py3.6 is an implementation detail, using an OrderedDict because this way
-        # we try to guarantee in py3.6 that the first item is the root. We can switch back to a normal dict when we're
-        # on python 3.7.
-        results_map: Dict[Optional[str], List[TraceEvent]] = OrderedDict()
+        results_map: Dict[Optional[str], List[TraceEvent]] = defaultdict(list)
         to_check: Deque[SnubaTransaction] = deque()
         # The root of the orphan tree we're currently navigating through
         orphan_root: Optional[SnubaTransaction] = None
@@ -596,11 +652,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
 
                     # Used to avoid removing the orphan from results entirely if we loop
                     orphan_root = current_event
-                    # not using a defaultdict here as a DefaultOrderedDict isn't worth the effort
-                    if parent_span_id in results_map:
-                        results_map[parent_span_id].append(previous_event)
-                    else:
-                        results_map[parent_span_id] = [previous_event]
+                    results_map[parent_span_id].append(previous_event)
                 else:
                     current_event = to_check.popleft()
                     previous_event = parent_events[current_event["id"]]
@@ -722,6 +774,7 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsTraceEndpointBase):
                 query=f"trace:{trace_id}",
                 limit=1,
                 referrer="api.trace-view.get-meta",
+                use_snql=self.has_snql_feature(organization, request),
             )
             if len(result["data"]) == 0:
                 return Response(status=404)

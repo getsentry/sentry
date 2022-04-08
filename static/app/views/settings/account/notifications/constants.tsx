@@ -1,11 +1,14 @@
-import {t} from 'app/locale';
+import {t} from 'sentry/locale';
 
 export const ALL_PROVIDERS = {
   email: 'default',
   slack: 'never',
 };
+export const ALL_PROVIDER_NAMES = Object.keys(ALL_PROVIDERS);
 
-/** These values are stolen from the DB. */
+/**
+ * These values are stolen from the DB.
+ */
 export const VALUE_MAPPING = {
   default: 0,
   never: 10,
@@ -27,6 +30,8 @@ export const NOTIFICATION_SETTINGS_TYPES = [
   'alerts',
   'workflow',
   'deploy',
+  'approval',
+  'quota',
   'reports',
   'email',
 ];

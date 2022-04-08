@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {SectionContents} from 'app/components/events/eventDataSection';
-import {t} from 'app/locale';
-import {Organization, Project} from 'app/types';
-import {Event} from 'app/types/event';
+import {SectionContents} from 'sentry/components/events/eventDataSection';
+import {t} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
+import {Event} from 'sentry/types/event';
 
 import EventTags from '../eventTags/eventTags';
 
@@ -13,10 +13,10 @@ import TagsHighlight from './tagsHighlight';
 
 type Props = {
   event: Event;
+  hasContext: boolean;
+  location: Location;
   organization: Organization;
   projectSlug: Project['slug'];
-  location: Location;
-  hasContext: boolean;
 };
 
 function Tags({event, organization, projectSlug, location, hasContext}: Props) {
@@ -26,6 +26,7 @@ function Tags({event, organization, projectSlug, location, hasContext}: Props) {
       description={t(
         'Tags help you quickly both access related events and view the tag distribution for a set of events'
       )}
+      data-test-id="event-tags"
     >
       {hasContext && <TagsHighlight event={event} />}
       <EventTags

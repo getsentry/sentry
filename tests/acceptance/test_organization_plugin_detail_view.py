@@ -24,7 +24,7 @@ class OrganizationPluginDetailedView(AcceptanceTestCase):
         if configuration_tab:
             url += "?tab=configurations"
         self.browser.get(url)
-        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
     def test_opsgenie_add_to_project(self):
         self.load_page("opsgenie")
@@ -33,9 +33,9 @@ class OrganizationPluginDetailedView(AcceptanceTestCase):
         detail_view_page = OrganizationAbstractDetailViewPage(browser=self.browser)
         detail_view_page.click_install_button()
 
-        self.browser.click('[id="react-select-2-option-0-0"]')
+        self.browser.click('[role="dialog"] [id$="option-0-0"]')
         # check if we got to the configuration page with the form
-        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.wait_until_test_id("plugin-config")
         self.browser.snapshot("integrations - plugin config form")
 
@@ -49,6 +49,7 @@ class OrganizationPluginDetailedView(AcceptanceTestCase):
         detail_view_page = OrganizationAbstractDetailViewPage(browser=self.browser)
 
         assert self.browser.element_exists('[aria-label="Configure"]')
+
         detail_view_page.uninstall()
         self.browser.wait_until('[data-test-id="toast-success"]')
         assert not self.browser.element_exists('[aria-label="Configure"]')

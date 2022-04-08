@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import ProjectLatestAlerts from 'app/views/projectDetail/projectLatestAlerts';
+import ProjectLatestAlerts from 'sentry/views/projectDetail/projectLatestAlerts';
 
 describe('ProjectDetail > ProjectLatestAlerts', function () {
   let endpointMock, rulesEndpointMock;
@@ -63,8 +63,12 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
     );
 
     expect(wrapper.find('AlertRowLink').at(0).find('IconFire').exists()).toBeTruthy();
-    expect(wrapper.find('AlertRowLink').at(0).find('IconWarning').exists()).toBeFalsy();
-    expect(wrapper.find('AlertRowLink').at(1).find('IconWarning').exists()).toBeTruthy();
+    expect(
+      wrapper.find('AlertRowLink').at(0).find('IconExclamation').exists()
+    ).toBeFalsy();
+    expect(
+      wrapper.find('AlertRowLink').at(1).find('IconExclamation').exists()
+    ).toBeTruthy();
     expect(
       wrapper.find('AlertRowLink').at(2).find('IconCheckmark').exists()
     ).toBeTruthy();

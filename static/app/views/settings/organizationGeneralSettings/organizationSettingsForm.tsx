@@ -1,22 +1,22 @@
 import {RouteComponentProps} from 'react-router';
 import {Location} from 'history';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {updateOrganization} from 'app/actionCreators/organizations';
-import AsyncComponent from 'app/components/asyncComponent';
-import AvatarChooser from 'app/components/avatarChooser';
-import organizationSettingsFields from 'app/data/forms/organizationGeneralSettings';
-import {Organization, Scope} from 'app/types';
-import withOrganization from 'app/utils/withOrganization';
-import Form from 'app/views/settings/components/forms/form';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {updateOrganization} from 'sentry/actionCreators/organizations';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import AvatarChooser from 'sentry/components/avatarChooser';
+import Form from 'sentry/components/forms/form';
+import JsonForm from 'sentry/components/forms/jsonForm';
+import organizationSettingsFields from 'sentry/data/forms/organizationGeneralSettings';
+import {Organization, Scope} from 'sentry/types';
+import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
-  location: Location;
-  organization: Organization;
   access: Set<Scope>;
   initialData: Organization;
+  location: Location;
   onSave: (previous: Organization, updated: Record<string, any>) => void;
+  organization: Organization;
 } & RouteComponentProps<{orgId: string}, {}>;
 
 type State = AsyncComponent['state'] & {

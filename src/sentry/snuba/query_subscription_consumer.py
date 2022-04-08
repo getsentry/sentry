@@ -1,4 +1,6 @@
 import logging
+import re
+import time
 from random import random
 from typing import Any, Callable, Dict, Iterable, List, Optional, cast
 
@@ -6,23 +8,22 @@ import jsonschema
 import pytz
 import sentry_sdk
 from confluent_kafka import OFFSET_INVALID, Consumer, KafkaException, Message, TopicPartition
-from confluent_kafka.admin import AdminClient
 from dateutil.parser import parse as parse_date
 from django.conf import settings
 
+from sentry import options
+from sentry.snuba.dataset import EntityKey
 from sentry.snuba.json_schemas import SUBSCRIPTION_PAYLOAD_VERSIONS, SUBSCRIPTION_WRAPPER_SCHEMA
 from sentry.snuba.models import QueryDatasets, QuerySubscription
 from sentry.snuba.tasks import _delete_from_snuba
 from sentry.utils import json, kafka_config, metrics
-from sentry.utils.batching_kafka_consumer import wait_for_topics
+from sentry.utils.batching_kafka_consumer import create_topics
 
 logger = logging.getLogger(__name__)
 
 TQuerySubscriptionCallable = Callable[[Dict[str, Any], QuerySubscription], None]
 
 subscriber_registry: Dict[str, TQuerySubscriptionCallable] = {}
-
-CONSUMER_TRANSACTION_SAMPLE_RATE = 0.01
 
 
 def register_subscriber(
@@ -55,6 +56,8 @@ class QuerySubscriptionConsumer:
     topic_to_dataset: Dict[str, QueryDatasets] = {
         settings.KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS: QueryDatasets.EVENTS,
         settings.KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS: QueryDatasets.TRANSACTIONS,
+        settings.KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS: QueryDatasets.SESSIONS,
+        settings.KAFKA_METRICS_SUBSCRIPTIONS_RESULTS: QueryDatasets.METRICS,
     }
 
     def __init__(
@@ -62,6 +65,7 @@ class QuerySubscriptionConsumer:
         group_id: str,
         topic: Optional[str] = None,
         commit_batch_size: int = 100,
+        commit_batch_timeout_ms: int = 5000,
         initial_offset_reset: str = "earliest",
         force_offset_reset: Optional[str] = None,
     ):
@@ -73,6 +77,11 @@ class QuerySubscriptionConsumer:
         self.topic = topic
         cluster_name: str = settings.KAFKA_TOPICS[topic]["cluster"]
         self.commit_batch_size = commit_batch_size
+
+        # Adding time based commit behaviour
+        self.commit_batch_timeout_ms: int = commit_batch_timeout_ms
+        self.__batch_deadline: Optional[float] = None
+
         self.initial_offset_reset = initial_offset_reset
         self.offsets: Dict[int, Optional[int]] = {}
         self.consumer: Consumer = None
@@ -87,9 +96,6 @@ class QuerySubscriptionConsumer:
                 "enable.partition.eof": "false",
                 "default.topic.config": {"auto.offset.reset": self.initial_offset_reset},
             },
-        )
-        self.admin_cluster_options = kafka_config.get_kafka_admin_cluster_options(
-            cluster_name, {"allow.auto.create.topics": "true"}
         )
         self.resolve_partition_force_offset = self.offset_reset_name_to_func(force_offset_reset)
         self.__shutdown_requested = False
@@ -153,11 +159,7 @@ class QuerySubscriptionConsumer:
         self.consumer = Consumer(self.cluster_options)
         self.__shutdown_requested = False
 
-        if settings.KAFKA_CONSUMER_AUTO_CREATE_TOPICS:
-            # This is required for confluent-kafka>=1.5.0, otherwise the topics will
-            # not be automatically created.
-            admin_client = AdminClient(self.admin_cluster_options)
-            wait_for_topics(admin_client, [self.topic])
+        create_topics([self.topic])
 
         self.consumer.subscribe([self.topic], on_assign=on_assign, on_revoke=on_revoke)
 
@@ -176,20 +178,41 @@ class QuerySubscriptionConsumer:
             with sentry_sdk.start_transaction(
                 op="handle_message",
                 name="query_subscription_consumer_process_message",
-                sampled=random() <= CONSUMER_TRANSACTION_SAMPLE_RATE,
+                sampled=random() <= options.get("subscriptions-query.sample-rate"),
             ), metrics.timer("snuba_query_subscriber.handle_message"):
-                self.handle_message(message)
+                try:
+                    self.handle_message(message)
+                except Exception:
+                    # This is a failsafe to make sure that no individual message will block this
+                    # consumer. If we see errors occurring here they need to be investigated to
+                    # make sure that we're not dropping legitimate messages.
+                    logger.exception(
+                        "Unexpected error while handling message in QuerySubscriptionConsumer. Skipping message.",
+                        extra={
+                            "offset": message.offset(),
+                            "partition": message.partition(),
+                            "value": message.value(),
+                        },
+                    )
 
             # Track latest completed message here, for use in `shutdown` handler.
             self.offsets[message.partition()] = message.offset() + 1
 
-            if i % self.commit_batch_size == 0:
+            batch_by_size: bool = i % self.commit_batch_size == 0
+            batch_by_time: bool = (
+                self.__batch_deadline is not None and time.time() > self.__batch_deadline
+            )
+
+            if batch_by_time or batch_by_size:
                 logger.debug("Committing offsets")
                 self.commit_offsets()
 
         logger.debug("Committing offsets and closing consumer")
         self.commit_offsets()
         self.consumer.close()
+
+    def _reset_batch(self) -> None:
+        self.__batch_deadline = None
 
     def commit_offsets(self, partitions: Optional[Iterable[int]] = None) -> None:
         logger.info(
@@ -210,6 +233,8 @@ class QuerySubscriptionConsumer:
 
             self.consumer.commit(offsets=to_commit)
 
+        self._reset_batch()
+
     def shutdown(self) -> None:
         self.__shutdown_requested = True
 
@@ -221,6 +246,10 @@ class QuerySubscriptionConsumer:
         :param message:
         :return:
         """
+        # set a commit time deadline only after the first message for this batch is seen
+        if not self.__batch_deadline:
+            self.__batch_deadline = self.commit_batch_timeout_ms / 1000.0 + time.time()
+
         with sentry_sdk.push_scope() as scope:
             try:
                 with metrics.timer("snuba_query_subscriber.parse_message_value"):
@@ -258,9 +287,26 @@ class QuerySubscriptionConsumer:
                     },
                 )
                 try:
+                    if "entity" in contents:
+                        entity_key = contents["entity"]
+                    else:
+                        # XXX(ahmed): Remove this logic. This was kept here as backwards compat
+                        # for subscription updates with schema version `2`. However schema version 3
+                        # sends the "entity" in the payload
+                        entity_regex = r"^(MATCH|match)[ ]*\(([^)]+)\)"
+                        entity_match = re.match(entity_regex, contents["request"]["query"])
+                        if not entity_match:
+                            raise InvalidMessageError(
+                                "Unable to fetch entity from query in message"
+                            )
+                        entity_key = entity_match.group(2)
                     _delete_from_snuba(
-                        self.topic_to_dataset[message.topic()], contents["subscription_id"]
+                        self.topic_to_dataset[message.topic()],
+                        contents["subscription_id"],
+                        EntityKey(entity_key),
                     )
+                except InvalidMessageError as e:
+                    logger.exception(e)
                 except Exception:
                     logger.exception("Failed to delete unused subscription from snuba.")
                 return

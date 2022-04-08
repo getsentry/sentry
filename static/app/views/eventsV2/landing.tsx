@@ -4,25 +4,25 @@ import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 import {stringify} from 'query-string';
 
-import Feature from 'app/components/acl/feature';
-import Alert from 'app/components/alert';
-import GuideAnchor from 'app/components/assistant/guideAnchor';
-import AsyncComponent from 'app/components/asyncComponent';
-import Button from 'app/components/button';
-import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
-import SearchBar from 'app/components/searchBar';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import Switch from 'app/components/switchButton';
-import {t} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
-import {PageContent} from 'app/styles/organization';
-import space from 'app/styles/space';
-import {Organization, SavedQuery, SelectValue} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import EventView from 'app/utils/discover/eventView';
-import {decodeScalar} from 'app/utils/queryString';
-import withOrganization from 'app/utils/withOrganization';
+import Feature from 'sentry/components/acl/feature';
+import Alert from 'sentry/components/alert';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import Button from 'sentry/components/button';
+import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
+import {Title} from 'sentry/components/layouts/thirds';
+import NoProjectMessage from 'sentry/components/noProjectMessage';
+import SearchBar from 'sentry/components/searchBar';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import Switch from 'sentry/components/switchButton';
+import {t} from 'sentry/locale';
+import {PageContent} from 'sentry/styles/organization';
+import space from 'sentry/styles/space';
+import {Organization, SavedQuery, SelectValue} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import EventView from 'sentry/utils/discover/eventView';
+import {decodeScalar} from 'sentry/utils/queryString';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import Banner from './banner';
 import {DEFAULT_EVENT_VIEW} from './data';
@@ -36,6 +36,8 @@ const SORT_OPTIONS: SelectValue<string>[] = [
   {label: t('Date Created (Newest)'), value: '-dateCreated'},
   {label: t('Date Created (Oldest)'), value: 'dateCreated'},
   {label: t('Most Outdated'), value: 'dateUpdated'},
+  {label: t('Most Popular'), value: 'mostPopular'},
+  {label: t('Recently Viewed'), value: 'recentlyViewed'},
 ];
 
 type Props = {
@@ -239,17 +241,6 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     });
   };
 
-  onGoLegacyDiscover = () => {
-    localStorage.setItem('discover:version', '1');
-    const user = ConfigStore.get('user');
-    trackAnalyticsEvent({
-      eventKey: 'discover_v2.opt_out',
-      eventName: 'Discoverv2: Go to discover',
-      organization_id: parseInt(this.props.organization.id, 10),
-      user_id: parseInt(user.id, 10),
-    });
-  };
-
   renderNoAccess() {
     return (
       <PageContent>
@@ -259,7 +250,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {location, organization} = this.props;
+    const {location, organization, router} = this.props;
     const {savedQueries, savedQueriesPageLinks, renderPrebuilt} = this.state;
 
     return (
@@ -271,6 +262,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
         location={location}
         organization={organization}
         onQueryChange={this.handleQueryChange}
+        router={router}
       />
     );
   }
@@ -288,12 +280,14 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
       >
         <SentryDocumentTitle title={t('Discover')} orgSlug={organization.slug}>
           <StyledPageContent>
-            <LightWeightNoProjectMessage organization={organization}>
+            <NoProjectMessage organization={organization}>
               <PageContent>
                 <StyledPageHeader>
-                  <GuideAnchor target="discover_landing_header">
-                    {t('Discover')}
-                  </GuideAnchor>
+                  <Title>
+                    <GuideAnchor target="discover_landing_header">
+                      {t('Discover')}
+                    </GuideAnchor>
+                  </Title>
                   <StyledButton
                     data-test-id="build-new-query"
                     to={to}
@@ -313,7 +307,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
                 {this.renderActions()}
                 {this.renderComponent()}
               </PageContent>
-            </LightWeightNoProjectMessage>
+            </NoProjectMessage>
           </StyledPageContent>
         </SentryDocumentTitle>
       </Feature>
@@ -348,7 +342,7 @@ const StyledSearchBar = styled(SearchBar)`
 
 const StyledActions = styled('div')`
   display: grid;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   grid-template-columns: auto max-content min-content;
   align-items: center;
   margin-bottom: ${space(2)};

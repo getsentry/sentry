@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tagstore
@@ -6,7 +7,7 @@ from sentry.api.serializers import serialize
 
 
 class OrganizationTagsEndpoint(OrganizationEventsEndpointBase):
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         try:
             filter_params = self.get_filter_params(request, organization)
         except NoProjects:

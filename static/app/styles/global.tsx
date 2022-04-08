@@ -1,7 +1,7 @@
 import {css, Global} from '@emotion/react';
 
-import {IS_ACCEPTANCE_TEST} from 'app/constants';
-import {Theme} from 'app/utils/theme';
+import {IS_ACCEPTANCE_TEST} from 'sentry/constants';
+import {Theme} from 'sentry/utils/theme';
 
 const styles = (theme: Theme, isDark: boolean) => css`
   body {
@@ -30,6 +30,19 @@ const styles = (theme: Theme, isDark: boolean) => css`
 
   .form-actions {
     border-top-color: ${theme.border};
+  }
+
+  pre,
+  code {
+    color: ${theme.textColor};
+  }
+
+  pre {
+    background-color: ${theme.backgroundSecondary};
+  }
+
+  code {
+    background-color: transparent;
   }
 
   /**
@@ -63,9 +76,31 @@ const styles = (theme: Theme, isDark: boolean) => css`
     ? css`
         .box {
           background: ${theme.background};
+
+          .box-content,
+          .box-header {
+            background: ${theme.background};
+
+            h1,
+            h2,
+            h3,
+            h4,
+            h5,
+            h6 {
+              color: ${theme.headingColor};
+            }
+
+            a {
+              color: ${theme.textColor};
+            }
+          }
+
+          .box-header {
+            border-bottom-color: ${theme.border};
+          }
         }
         .loading .loading-indicator {
-          border-color: ${theme.background};
+          border-color: ${theme.backgroundSecondary};
           border-left-color: ${theme.purple300};
         }
 
@@ -163,11 +198,6 @@ const styles = (theme: Theme, isDark: boolean) => css`
         .nav-header span.help-link a {
           color: ${theme.subText};
         }
-        pre,
-        code {
-          background-color: ${theme.backgroundSecondary};
-          color: ${theme.textColor};
-        }
         .search .search-input {
           background: ${theme.background};
           color: ${theme.formText};
@@ -188,10 +218,18 @@ const styles = (theme: Theme, isDark: boolean) => css`
         .dropdown-menu {
           color: ${theme.textColor};
           background-color: ${theme.background} !important;
-          border: 1px solid ${theme.gray400};
-          &:after,
+          border: 1px solid ${theme.border};
           &:before {
-            border-top-color: ${theme.gray400} !important;
+            border-bottom-color: ${theme.border};
+          }
+          &:after {
+            border-bottom-color: ${theme.background};
+          }
+          &.inverted:before {
+            border-top-color: ${theme.border};
+          }
+          &.inverted:after {
+            border-top-color: ${theme.background};
           }
         }
         .context-summary .context-item.darwin .context-item-icon,
@@ -212,7 +250,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
 /**
  * Renders an emotion global styles injection component
  */
-const GlobalStyles = ({theme, isDark}: {theme: Theme; isDark: boolean}) => (
+const GlobalStyles = ({theme, isDark}: {isDark: boolean; theme: Theme}) => (
   <Global styles={styles(theme, isDark)} />
 );
 

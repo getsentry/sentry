@@ -1,30 +1,30 @@
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import PluginComponentBase from 'app/components/bases/pluginComponentBase';
-import {Form, FormState} from 'app/components/forms';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {t, tct} from 'app/locale';
-import {Organization, Plugin, Project} from 'app/types';
-import {parseRepo} from 'app/utils';
-import {IntegrationAnalyticsKey} from 'app/utils/analytics/integrationAnalyticsEvents';
-import {trackIntegrationAnalytics} from 'app/utils/integrationUtil';
+import PluginComponentBase from 'sentry/components/bases/pluginComponentBase';
+import {Form, FormState} from 'sentry/components/deprecatedforms';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {t, tct} from 'sentry/locale';
+import {Organization, Plugin, Project} from 'sentry/types';
+import {parseRepo} from 'sentry/utils';
+import {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrationAnalyticsEvents';
+import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 
 type Props = {
   organization: Organization;
-  project: Project;
   plugin: Plugin;
+  project: Project;
 } & PluginComponentBase['props'];
 
 type Field = Parameters<typeof PluginComponentBase.prototype.renderField>[0]['config'];
 
-type BackendField = Field & {value?: any; defaultValue?: any};
+type BackendField = Field & {defaultValue?: any; value?: any};
 
 type State = {
-  fieldList: Field[] | null;
-  initialData: Record<string, any> | null;
-  formData: Record<string, any>;
   errors: Record<string, any>;
+  fieldList: Field[] | null;
+  formData: Record<string, any>;
+  initialData: Record<string, any> | null;
   rawData: Record<string, any>;
   wasConfiguredOnPageLoad: boolean;
 } & PluginComponentBase['state'];

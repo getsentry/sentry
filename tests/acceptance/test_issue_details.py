@@ -1,10 +1,10 @@
 from datetime import datetime, timedelta
+from unittest.mock import patch
 
 import pytz
 from django.utils import timezone
 
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
-from sentry.utils.compat.mock import patch
 from sentry.utils.samples import load_data
 from tests.acceptance.page_objects.issue_details import IssueDetailsPage
 
@@ -146,7 +146,7 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         event = self.create_sample_event(platform="invalid-interfaces")
         self.page.visit_issue(self.org.slug, event.group.id)
 
-        self.browser.click('[data-test-id="event-error-toggle"]')
+        self.browser.click('[data-test-id="event-error-alert"]')
         self.browser.wait_until_test_id("event-error-details")
         self.browser.snapshot("issue details invalid interfaces")
 

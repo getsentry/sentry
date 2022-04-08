@@ -2,30 +2,29 @@ import * as React from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import DateTime from 'app/components/dateTime';
-import {Body, Header, Hovercard} from 'app/components/hovercard';
-import TimeSince from 'app/components/timeSince';
-import Version from 'app/components/version';
-import VersionHoverCard from 'app/components/versionHoverCard';
-import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {Organization, Release} from 'app/types';
-import {defined, toTitleCase} from 'app/utils';
-import theme from 'app/utils/theme';
+import DateTime from 'sentry/components/dateTime';
+import {Body, Header, Hovercard} from 'sentry/components/hovercard';
+import TimeSince from 'sentry/components/timeSince';
+import Version from 'sentry/components/version';
+import VersionHoverCard from 'sentry/components/versionHoverCard';
+import {t} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {Organization, Release} from 'sentry/types';
+import {defined, toTitleCase} from 'sentry/utils';
 
 type RelaxedDateType = React.ComponentProps<typeof TimeSince>['date'];
 
 type Props = {
-  organization: Organization;
-  projectSlug: string;
-  projectId: string;
-  hasRelease: boolean;
-  title: string;
   date: RelaxedDateType;
   dateGlobal: RelaxedDateType;
-  release?: Release;
+  hasRelease: boolean;
+  organization: Organization;
+  projectId: string;
+  projectSlug: string;
+  title: string;
   environment?: string;
+  release?: Release;
 };
 
 class SeenInfo extends React.Component<Props> {
@@ -75,7 +74,6 @@ class SeenInfo extends React.Component<Props> {
             )
           }
           position="top"
-          tipColor={theme.gray500}
         >
           <DateWrapper>
             {date ? (
@@ -125,7 +123,7 @@ const HovercardWrapper = styled('div')`
 `;
 
 const DateWrapper = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: 0;
   ${overflowEllipsis};
 `;
 
@@ -151,7 +149,6 @@ const TooltipWrapper = styled('span')`
 `;
 
 const TimeSinceWrapper = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
   margin-bottom: ${space(0.5)};
   display: flex;
   justify-content: space-between;
@@ -163,14 +160,9 @@ const StyledTimeSince = styled(TimeSince)`
 
 const StyledHovercard = styled(Hovercard)`
   width: 250px;
-  font-weight: normal;
-  border: 1px solid ${p => p.theme.gray500};
-  background: ${p => p.theme.gray500};
   ${Header} {
     font-weight: normal;
-    color: ${p => p.theme.white};
-    background: ${p => p.theme.gray500};
-    border-bottom: 1px solid ${p => p.theme.gray400};
+    border-bottom: 1px solid ${p => p.theme.innerBorder};
   }
   ${Body} {
     padding: ${space(1.5)};

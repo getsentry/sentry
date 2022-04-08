@@ -1,35 +1,37 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
+from unittest.mock import Mock, call, patch
 
+import pytz
 from django.urls import reverse
 from django.utils import timezone
 from exam import fixture, patcher
 from freezegun import freeze_time
 
 from sentry.incidents.logic import (
+    CRITICAL_TRIGGER_LABEL,
     create_alert_rule_trigger,
     create_alert_rule_trigger_action,
     create_incident_activity,
-    create_incident_snapshot,
     subscribe_to_incident,
 )
 from sentry.incidents.models import (
     INCIDENT_STATUS,
     AlertRuleTriggerAction,
     IncidentActivityType,
-    IncidentSnapshot,
     IncidentStatus,
     IncidentSubscription,
-    PendingIncidentSnapshot,
 )
 from sentry.incidents.tasks import (
+    SUBSCRIPTION_METRICS_LOGGER,
     build_activity_context,
     generate_incident_activity_email,
+    handle_subscription_metrics_logger,
     handle_trigger_action,
-    process_pending_incident_snapshots,
     send_subscriber_notifications,
 )
+from sentry.snuba.models import QueryDatasets
+from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils import TestCase
-from sentry.utils.compat.mock import Mock, patch
 from sentry.utils.http import absolute_uri
 
 
@@ -149,7 +151,7 @@ class HandleTriggerActionTest(TestCase):
 
     @fixture
     def trigger(self):
-        return create_alert_rule_trigger(self.alert_rule, "", 100)
+        return create_alert_rule_trigger(self.alert_rule, CRITICAL_TRIGGER_LABEL, 100)
 
     @fixture
     def action(self):
@@ -192,179 +194,50 @@ class HandleTriggerActionTest(TestCase):
                     self.action.id, incident.id, self.project.id, "fire", metric_value=metric_value
                 )
             mock_handler.assert_called_once_with(self.action, incident, self.project)
-            mock_handler.return_value.fire.assert_called_once_with(metric_value)
+            mock_handler.return_value.fire.assert_called_once_with(
+                metric_value, IncidentStatus.CRITICAL
+            )
 
 
-class ProcessPendingIncidentSnapshots(TestCase):
-    def test_simple(self):
-        incident = self.create_incident(title="incident", status=IncidentStatus.CLOSED.value)
-        pending = PendingIncidentSnapshot.objects.create(
-            incident=incident, target_run_date=timezone.now()
+class TestHandleSubscriptionMetricsLogger(TestCase):
+    @fixture
+    def subscription(self):
+        snuba_query = create_snuba_query(
+            QueryDatasets.METRICS,
+            "hello",
+            "count()",
+            timedelta(minutes=1),
+            timedelta(minutes=1),
+            None,
         )
+        return create_snuba_subscription(self.project, SUBSCRIPTION_METRICS_LOGGER, snuba_query)
 
-        assert IncidentSnapshot.objects.all().count() == 0
+    def build_subscription_update(self):
+        timestamp = timezone.now().replace(tzinfo=pytz.utc, microsecond=0)
+        data = {"count": 100}
+        values = {"data": [data]}
+        return {
+            "subscription_id": self.subscription.subscription_id,
+            "values": values,
+            "timestamp": timestamp,
+            "interval": 1,
+            "partition": 1,
+            "offset": 1,
+        }
 
-        with self.tasks():
-            process_pending_incident_snapshots()
-
-        assert not PendingIncidentSnapshot.objects.filter(id=pending.id).exists()
-        assert IncidentSnapshot.objects.filter(incident=incident).exists()
-
-    def test_skip_open_incident(self):
-        incident = self.create_incident(title="incident", status=IncidentStatus.OPEN.value)
-        pending = PendingIncidentSnapshot.objects.create(
-            incident=incident, target_run_date=timezone.now()
-        )
-        assert IncidentSnapshot.objects.all().count() == 0
-
-        with self.tasks():
-            process_pending_incident_snapshots()
-
-        # The PendingSnapshot should be deleted, and a Snapshot should not be created because the incident is open.
-        assert not PendingIncidentSnapshot.objects.filter(id=pending.id).exists()
-        assert not IncidentSnapshot.objects.filter(incident=incident).exists()
-
-    def test_skip_future_run_date(self):
-        incident_1 = self.create_incident(title="incident1", status=IncidentStatus.CLOSED.value)
-        incident_2 = self.create_incident(title="incident2", status=IncidentStatus.CLOSED.value)
-        pending_1 = PendingIncidentSnapshot.objects.create(
-            incident=incident_1, target_run_date=timezone.now()
-        )
-        pending_2 = PendingIncidentSnapshot.objects.create(
-            incident=incident_2, target_run_date=timezone.now() + timedelta(minutes=5)
-        )
-
-        assert IncidentSnapshot.objects.all().count() == 0
-
-        with self.tasks():
-            process_pending_incident_snapshots()
-
-        # Should only process the one with target_run_date <= timezone.now()
-        assert not PendingIncidentSnapshot.objects.filter(id=pending_1.id).exists()
-        assert PendingIncidentSnapshot.objects.filter(id=pending_2.id).exists()
-
-        assert IncidentSnapshot.objects.filter(incident=incident_1).exists()
-        assert not IncidentSnapshot.objects.filter(incident=incident_2).exists()
-
-    def test_skip_because_existing_snapshot(self):
-        incident = self.create_incident(title="incident1", status=IncidentStatus.CLOSED.value)
-        pending_1 = PendingIncidentSnapshot.objects.create(
-            incident=incident, target_run_date=timezone.now()
-        )
-
-        assert IncidentSnapshot.objects.all().count() == 0
-
-        with self.tasks():
-            process_pending_incident_snapshots()
-
-        assert not PendingIncidentSnapshot.objects.filter(id=pending_1.id).exists()
-        assert IncidentSnapshot.objects.filter(incident=incident).exists()
-        assert IncidentSnapshot.objects.all().count() == 1
-
-        # Have to create it here otherwise the unique constraint will cause this to fail:
-        pending_2 = PendingIncidentSnapshot.objects.create(
-            incident=incident, target_run_date=timezone.now()
-        )
-        with self.tasks():
-            process_pending_incident_snapshots()
-
-        assert not PendingIncidentSnapshot.objects.filter(id=pending_2.id).exists()
-        assert IncidentSnapshot.objects.filter(incident=incident).exists()
-        assert IncidentSnapshot.objects.filter(incident=incident).count() == 1
-        assert IncidentSnapshot.objects.all().count() == 1
-
-    def test_dont_error_on_old_incident(self):
-        # We had a bug where incidents were able to get into a certain state and cause errors.
-        # Incident that started before retention and had a time window less than their total length
-        # were causing issues with the additional start bucket query.
-        alert_rule = self.create_alert_rule(time_window=1440)
-        incident = self.create_incident(
-            title="incident1",
-            status=IncidentStatus.CLOSED.value,
-            alert_rule=alert_rule,
-            date_started=datetime(2020, 6, 11, 11, 10, 20, 589692, tzinfo=timezone.utc),
-            date_closed=datetime(2020, 6, 11, 11, 11, 20, 589692, tzinfo=timezone.utc),
-        )
-        pending_1 = PendingIncidentSnapshot.objects.create(
-            incident=incident, target_run_date=timezone.now()
-        )
-        assert IncidentSnapshot.objects.all().count() == 0
-        with self.tasks():
-            process_pending_incident_snapshots()
-        assert not PendingIncidentSnapshot.objects.filter(id=pending_1.id).exists()
-        assert IncidentSnapshot.objects.filter(incident=incident).exists()
-        assert IncidentSnapshot.objects.all().count() == 1
-
-    def test_abort_because_missing_project(self):
-        project_to_burn = self.create_project(name="Burn", slug="burn", teams=[self.team])
-        incident = self.create_incident(
-            title="incident1", projects=[project_to_burn], status=IncidentStatus.CLOSED.value
-        )
-        pending_1 = PendingIncidentSnapshot.objects.create(
-            incident=incident, target_run_date=timezone.now()
-        )
-        assert IncidentSnapshot.objects.all().count() == 0
-        project_to_burn.delete()
-        with self.tasks():
-            process_pending_incident_snapshots()
-        assert not PendingIncidentSnapshot.objects.filter(id=pending_1.id).exists()
-        assert not IncidentSnapshot.objects.filter(incident=incident).exists()
-        assert IncidentSnapshot.objects.filter(incident=incident).count() == 0
-        assert IncidentSnapshot.objects.all().count() == 0
-
-    def test_empty_snapshot(self):
-        incident = self.create_incident(
-            title="incident",
-            status=IncidentStatus.CLOSED.value,
-            date_started=datetime(2020, 5, 1),
-            date_closed=datetime(2020, 5, 5),
-        )
-        pending = PendingIncidentSnapshot.objects.create(
-            incident=incident, target_run_date=timezone.now()
-        )
-
-        assert IncidentSnapshot.objects.all().count() == 0
-
-        with self.tasks():
-            process_pending_incident_snapshots()
-
-        assert not PendingIncidentSnapshot.objects.filter(id=pending.id).exists()
-        snapshot = IncidentSnapshot.objects.get(incident=incident)
-        assert snapshot.event_stats_snapshot.values == []
-        assert snapshot.event_stats_snapshot.period == incident.alert_rule.snuba_query.time_window
-        assert snapshot.unique_users == 0
-        assert snapshot.total_events == 0
-
-    def test_iterates_pages(self):
-        snapshot_calls = [0]
-
-        def exploding_create_snapshot(*args, **kwargs):
-            if snapshot_calls[0] < 1:
-                snapshot_calls[0] += 1
-                raise Exception("bad snapshot")
-            return create_incident_snapshot(*args, **kwargs)
-
-        incident = self.create_incident(
-            title="incident",
-            status=IncidentStatus.CLOSED.value,
-            date_started=datetime(2020, 5, 1),
-            date_closed=datetime(2020, 5, 5),
-        )
-        PendingIncidentSnapshot.objects.create(incident=incident, target_run_date=timezone.now())
-        other_incident = self.create_incident(
-            title="incident",
-            status=IncidentStatus.CLOSED.value,
-            date_started=datetime(2020, 5, 1),
-            date_closed=datetime(2020, 5, 5),
-        )
-        failing = PendingIncidentSnapshot.objects.create(
-            incident=other_incident, target_run_date=timezone.now()
-        )
-
-        with patch("sentry.incidents.tasks.INCIDENT_SNAPSHOT_BATCH_SIZE", new=1), patch(
-            "sentry.incidents.logic.create_incident_snapshot",
-        ) as mock_create_snapshot:
-            mock_create_snapshot.side_effect = exploding_create_snapshot
-            with self.tasks():
-                process_pending_incident_snapshots()
-            assert list(PendingIncidentSnapshot.objects.all()) == [failing]
+    def test(self):
+        with patch("sentry.incidents.tasks.logger") as logger:
+            subscription_update = self.build_subscription_update()
+            handle_subscription_metrics_logger(subscription_update, self.subscription)
+            assert logger.info.call_args_list == [
+                call(
+                    "handle_subscription_metrics_logger.message",
+                    extra={
+                        "subscription_id": self.subscription.id,
+                        "dataset": self.subscription.snuba_query.dataset,
+                        "snuba_subscription_id": self.subscription.subscription_id,
+                        "result": subscription_update,
+                        "aggregation_value": None,
+                    },
+                )
+            ]

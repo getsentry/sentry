@@ -2,31 +2,32 @@ import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 import isEqual from 'lodash/isEqual';
 
-import EventUserFeedback from 'app/components/events/userFeedback';
-import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import Pagination from 'app/components/pagination';
-import {Group, Organization, Project, UserReport} from 'app/types';
-import withOrganization from 'app/utils/withOrganization';
-import UserFeedbackEmpty from 'app/views/userFeedback/userFeedbackEmpty';
+import EventUserFeedback from 'sentry/components/events/userFeedback';
+import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Pagination from 'sentry/components/pagination';
+import {Group, Organization, Project, UserReport} from 'sentry/types';
+import withOrganization from 'sentry/utils/withOrganization';
+import UserFeedbackEmpty from 'sentry/views/userFeedback/userFeedbackEmpty';
 
 import {fetchGroupUserReports} from './utils';
 
 type RouteParams = {
-  orgId: string;
   groupId: string;
+  orgId: string;
 };
 
 type Props = RouteComponentProps<RouteParams, {}> & {
+  environments: string[];
   group: Group;
   organization: Organization;
   project: Project;
-  environments: string[];
 };
 
 type State = {
-  loading: boolean;
   error: boolean;
+  loading: boolean;
   reportList: UserReport[];
   pageLinks?: string | null;
 };
@@ -93,8 +94,8 @@ class GroupUserFeedback extends Component<Props, State> {
 
     if (reportList.length) {
       return (
-        <div className="row">
-          <div className="col-md-9">
+        <Layout.Body>
+          <Layout.Main>
             {reportList.map((item, idx) => (
               <EventUserFeedback
                 key={idx}
@@ -104,12 +105,18 @@ class GroupUserFeedback extends Component<Props, State> {
               />
             ))}
             <Pagination pageLinks={this.state.pageLinks} {...this.props} />
-          </div>
-        </div>
+          </Layout.Main>
+        </Layout.Body>
       );
     }
 
-    return <UserFeedbackEmpty projectIds={[group.project.id]} />;
+    return (
+      <Layout.Body>
+        <Layout.Main fullWidth>
+          <UserFeedbackEmpty projectIds={[group.project.id]} />
+        </Layout.Main>
+      </Layout.Body>
+    );
   }
 }
 

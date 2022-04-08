@@ -56,7 +56,6 @@ class TestIssueLinkRequester(TestCase):
         }
 
         request = responses.calls[0].request
-        assert request.headers["Sentry-App-Signature"]
         data = {
             "fields": {"title": "An Issue", "description": "a bug was found", "assignee": "user-1"},
             "issueId": self.group.id,
@@ -67,7 +66,9 @@ class TestIssueLinkRequester(TestCase):
         }
         payload = json.loads(request.body)
         assert payload == data
-
+        assert request.headers["Sentry-App-Signature"] == self.sentry_app.build_signature(
+            json.dumps(payload)
+        )
         buffer = SentryAppWebhookRequestsBuffer(self.sentry_app)
         requests = buffer.get_requests()
 

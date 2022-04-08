@@ -5,13 +5,13 @@ import sys
 
 python_version = sys.version_info[:2]
 
-if python_version < (3, 6):
-    sys.exit(f"Error: Sentry requires at least Python 3.6 ({python_version})")
-if python_version > (3, 6):
+if python_version < (3, 8):
+    sys.exit(f"Error: Sentry requires at least Python 3.8 ({python_version})")
+if python_version != (3, 8):
     import logging
 
     logger = logging.getLogger()
-    logger.warning(f"A Python version different than 3.6 is being used ({python_version})")
+    logger.warning(f"A Python version different than 3.8 is being used ({python_version})")
 
 
 from distutils.command.build import build as BuildCommand
@@ -32,7 +32,7 @@ from sentry.utils.distutils import (
     BuildJsSdkRegistryCommand,
 )
 
-VERSION = "21.9.0.dev0"
+VERSION = "22.4.0.dev0"
 IS_LIGHT_BUILD = os.environ.get("SENTRY_LIGHT_BUILD") == "1"
 
 
@@ -121,14 +121,13 @@ setup(
             "auth_okta = sentry.auth.providers.saml2.okta",
             "auth_onelogin = sentry.auth.providers.saml2.onelogin",
             "auth_rippling = sentry.auth.providers.saml2.rippling",
+            "auth_jumpcloud = sentry.auth.providers.saml2.jumpcloud",
             "auth_saml2 = sentry.auth.providers.saml2.generic",
-            "jira_ac = sentry_plugins.jira_ac",
             "jira = sentry_plugins.jira",
             "freight = sentry_plugins.freight",
             "opsgenie = sentry_plugins.opsgenie",
             "redmine = sentry_plugins.redmine",
             "sessionstack = sentry_plugins.sessionstack",
-            "teamwork = sentry_plugins.teamwork",
             "trello = sentry_plugins.trello",
             "twilio = sentry_plugins.twilio",
         ],
@@ -136,13 +135,11 @@ setup(
             "amazon_sqs = sentry_plugins.amazon_sqs.plugin:AmazonSQSPlugin",
             "asana = sentry_plugins.asana.plugin:AsanaPlugin",
             "bitbucket = sentry_plugins.bitbucket.plugin:BitbucketPlugin",
-            "clubhouse = sentry_plugins.clubhouse.plugin:ClubhousePlugin",
             "freight = sentry_plugins.freight.plugin:FreightPlugin",
             "github = sentry_plugins.github.plugin:GitHubPlugin",
             "gitlab = sentry_plugins.gitlab.plugin:GitLabPlugin",
             "heroku = sentry_plugins.heroku.plugin:HerokuPlugin",
             "jira = sentry_plugins.jira.plugin:JiraPlugin",
-            "jira_ac = sentry_plugins.jira_ac.plugin:JiraACPlugin",
             "opsgenie = sentry_plugins.opsgenie.plugin:OpsGeniePlugin",
             "pagerduty = sentry_plugins.pagerduty.plugin:PagerDutyPlugin",
             "phabricator = sentry_plugins.phabricator.plugin:PhabricatorPlugin",
@@ -153,11 +150,9 @@ setup(
             "sessionstack = sentry_plugins.sessionstack.plugin:SessionStackPlugin",
             "slack = sentry_plugins.slack.plugin:SlackPlugin",
             "splunk = sentry_plugins.splunk.plugin:SplunkPlugin",
-            "teamwork = sentry_plugins.teamwork.plugin:TeamworkPlugin",
             "trello = sentry_plugins.trello.plugin:TrelloPlugin",
             "twilio = sentry_plugins.twilio.plugin:TwilioPlugin",
             "victorops = sentry_plugins.victorops.plugin:VictorOpsPlugin",
-            "vsts = sentry_plugins.vsts.plugin:VstsPlugin",
         ],
     },
     classifiers=[

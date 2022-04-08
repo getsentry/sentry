@@ -1,29 +1,57 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import {SectionHeading} from 'app/components/charts/styles';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import GroupList from 'app/components/issues/groupList';
-import {Panel, PanelBody} from 'app/components/panels';
-import Tooltip from 'app/components/tooltip';
-import {IconInfo} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {OrganizationSummary, Project} from 'app/types';
-import {DATASET_EVENT_TYPE_FILTERS} from 'app/views/alerts/incidentRules/constants';
-import {IncidentRule} from 'app/views/alerts/incidentRules/types';
+import Button from 'sentry/components/button';
+import {SectionHeading} from 'sentry/components/charts/styles';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import GroupList from 'sentry/components/issues/groupList';
+import LoadingError from 'sentry/components/loadingError';
+import {Panel, PanelBody} from 'sentry/components/panels';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {OrganizationSummary, Project} from 'sentry/types';
+import {makeDefaultCta} from 'sentry/views/alerts/incidentRules/incidentRulePresets';
+import {IncidentRule} from 'sentry/views/alerts/incidentRules/types';
+import {
+  RELATED_ISSUES_BOOLEAN_QUERY_ERROR,
+  RelatedIssuesNotAvailable,
+} from 'sentry/views/alerts/rules/details/relatedIssuesNotAvailable';
+import {isSessionAggregate} from 'sentry/views/alerts/utils';
 
 import {TimePeriodType} from './constants';
 
 type Props = {
   organization: OrganizationSummary;
-  rule: IncidentRule;
   projects: Project[];
+  rule: IncidentRule;
   timePeriod: TimePeriodType;
+  query?: string;
 };
 
 class RelatedIssues extends Component<Props> {
+  renderErrorMessage = ({detail}: {detail: string}, retry: () => void) => {
+    const {rule, organization, projects, query, timePeriod} = this.props;
+
+    if (
+      detail === RELATED_ISSUES_BOOLEAN_QUERY_ERROR &&
+      !isSessionAggregate(rule.aggregate)
+    ) {
+      const ctaOpts = {
+        orgSlug: organization.slug,
+        projects,
+        rule,
+        eventType: query,
+        start: timePeriod.start,
+        end: timePeriod.end,
+      };
+
+      const {buttonText, to} = makeDefaultCta(ctaOpts);
+      return <RelatedIssuesNotAvailable buttonTo={to} buttonText={buttonText} />;
+    }
+
+    return <LoadingError onRetry={retry} />;
+  };
+
   renderEmptyMessage = () => {
     return (
       <Panel>
@@ -37,7 +65,7 @@ class RelatedIssues extends Component<Props> {
   };
 
   render() {
-    const {rule, projects, organization, timePeriod} = this.props;
+    const {rule, projects, organization, timePeriod, query} = this.props;
     const {start, end} = timePeriod;
 
     const path = `/organizations/${organization.slug}/issues/`;
@@ -48,12 +76,7 @@ class RelatedIssues extends Component<Props> {
       limit: 5,
       ...(rule.environment ? {environment: rule.environment} : {}),
       sort: rule.aggregate === 'count_unique(user)' ? 'user' : 'freq',
-      query: [
-        rule.query,
-        rule.eventTypes?.length
-          ? `event.type:[${rule.eventTypes.join(`, `)}]`
-          : DATASET_EVENT_TYPE_FILTERS[rule.dataset],
-      ].join(' '),
+      query,
       project: projects.map(project => project.id),
     };
     const issueSearch = {
@@ -64,13 +87,8 @@ class RelatedIssues extends Component<Props> {
     return (
       <Fragment>
         <ControlsWrapper>
-          <StyledSectionHeading>
-            {t('Related Issues')}
-            <Tooltip title={t('Top issues containing events matching the metric.')}>
-              <IconInfo size="xs" color="gray200" />
-            </Tooltip>
-          </StyledSectionHeading>
-          <Button data-test-id="issues-open" size="small" to={issueSearch}>
+          <StyledSectionHeading>{t('Related Issues')}</StyledSectionHeading>
+          <Button data-test-id="issues-open" size="xsmall" to={issueSearch}>
             {t('Open in Issues')}
           </Button>
         </ControlsWrapper>
@@ -83,6 +101,7 @@ class RelatedIssues extends Component<Props> {
             query={`start=${start}&end=${end}&groupStatsPeriod=auto`}
             canSelectGroups={false}
             renderEmptyMessage={this.renderEmptyMessage}
+            renderErrorMessage={this.renderErrorMessage}
             withChart
             withPagination={false}
             useFilteredStats

@@ -1,3 +1,4 @@
+from unittest.mock import patch
 from urllib.parse import urlencode
 
 import pytz
@@ -6,7 +7,6 @@ from django.db.models import F
 from sentry.models import Project
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.utils.compat.mock import patch
 from sentry.utils.samples import load_data
 
 from .page_objects.base import BasePage

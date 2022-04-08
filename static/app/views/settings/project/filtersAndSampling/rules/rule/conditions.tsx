@@ -2,15 +2,15 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {t} from 'app/locale';
-import space from 'app/styles/space';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {
   DynamicSamplingCondition,
   DynamicSamplingConditionLogicalInner,
   DynamicSamplingConditionOperator,
-} from 'app/types/dynamicSampling';
+} from 'sentry/types/dynamicSampling';
 
-import {getInnerNameLabel} from './utils';
+import {getInnerNameLabel, LEGACY_BROWSER_LIST} from '../../utils';
 
 type Props = {
   condition: DynamicSamplingCondition;
@@ -23,7 +23,7 @@ function Conditions({condition}: Props) {
         <Fragment>
           {[...value].map((v, index) => (
             <Fragment key={v}>
-              <Value>{v}</Value>
+              <Value>{LEGACY_BROWSER_LIST[v]?.title ?? v}</Value>
               {index !== value.length - 1 && <Separator>{'\u002C'}</Separator>}
             </Fragment>
           ))}
@@ -31,7 +31,7 @@ function Conditions({condition}: Props) {
       );
     }
 
-    return <Value>{String(value)}</Value>;
+    return <Value>{LEGACY_BROWSER_LIST[String(value)]?.title ?? String(value)}</Value>;
   }
 
   switch (condition.op) {
@@ -63,7 +63,7 @@ export default Conditions;
 
 const Wrapper = styled('div')`
   display: grid;
-  grid-gap: ${space(1.5)};
+  gap: ${space(1.5)};
 `;
 
 const Label = styled('span')`

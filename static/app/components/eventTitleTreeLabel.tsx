@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {TreeLabelPart} from 'app/types';
-import {getTreeLabelPartDetails} from 'app/utils/events';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {TreeLabelPart} from 'sentry/types';
+import {getTreeLabelPartDetails} from 'sentry/utils/events';
 
 type Props = {
   treeLabel: TreeLabelPart[];
@@ -18,30 +18,26 @@ function EventTitleTreeLabel({treeLabel}: Props) {
     <Wrapper>
       <FirstFourParts>
         {firstFourParts.map((part, index) => {
-          const {label, highlight} = getTreeLabelPartDetails(part);
+          const label = getTreeLabelPartDetails(part);
           if (index !== firstFourParts.length - 1) {
             return (
               <Fragment key={index}>
-                <PriorityLabel highlight={highlight}>{label}</PriorityLabel>
+                <PriorityLabel>{label}</PriorityLabel>
                 <Divider>{'|'}</Divider>
               </Fragment>
             );
           }
-          return (
-            <PriorityLabel key={index} highlight={highlight}>
-              {label}
-            </PriorityLabel>
-          );
+          return <PriorityLabel key={index}>{label}</PriorityLabel>;
         })}
       </FirstFourParts>
       {!!remainingParts.length && (
         <RemainingLabels>
           {remainingParts.map((part, index) => {
-            const {label, highlight} = getTreeLabelPartDetails(part);
+            const label = getTreeLabelPartDetails(part);
             return (
               <Fragment key={index}>
                 <Divider>{'|'}</Divider>
-                <Label highlight={highlight}>{label}</Label>
+                <Label>{label}</Label>
               </Fragment>
             );
           })}
@@ -65,14 +61,7 @@ const FirstFourParts = styled('div')`
   align-items: center;
 `;
 
-const Label = styled('div')<{highlight: boolean}>`
-  ${p =>
-    p.highlight &&
-    `
-      background: ${p.theme.alert.info.backgroundLight};
-      border-radius: ${p.theme.borderRadius};
-      padding: 0 ${space(0.5)};
-    `}
+const Label = styled('div')`
   display: inline-block;
 `;
 

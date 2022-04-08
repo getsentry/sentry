@@ -1,4 +1,6 @@
 from django.views.generic import View
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.models import Organization, Project
 from sentry.utils.http import absolute_uri
@@ -8,7 +10,7 @@ from .mail import MailPreview
 
 
 class DebugNewUserFeedbackEmailView(View):
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         org = Organization(id=1, slug="organization", name="My Company")
         project = Project(id=1, organization=org, slug="project", name="My Project")
 

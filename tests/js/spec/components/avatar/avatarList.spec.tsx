@@ -1,13 +1,12 @@
-import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import AvatarList from 'app/components/avatar/avatarList';
+import AvatarList from 'sentry/components/avatar/avatarList';
 
 function renderComponent(avatarUsersSixUsers: AvatarList['props']['users']) {
-  return mountWithTheme(<AvatarList users={avatarUsersSixUsers} />);
+  return render(<AvatarList users={avatarUsersSixUsers} />);
 }
 
 describe('AvatarList', () => {
-  // @ts-expect-error
   const user = TestStubs.User();
 
   it('renders with user letter avatars', () => {
@@ -16,10 +15,10 @@ describe('AvatarList', () => {
       {...user, id: '2', name: 'BC'},
     ];
 
-    const {container, queryByTestId, getByText} = renderComponent(users);
-    expect(getByText('A')).toBeTruthy();
-    expect(getByText('B')).toBeTruthy();
-    expect(queryByTestId('avatarList-collapsedusers')).toBeNull();
+    const {container} = renderComponent(users);
+    expect(screen.getByText('A')).toBeInTheDocument();
+    expect(screen.getByText('B')).toBeInTheDocument();
+    expect(screen.queryByTestId('avatarList-collapsedusers')).not.toBeInTheDocument();
 
     expect(container).toSnapshot();
   });
@@ -34,14 +33,14 @@ describe('AvatarList', () => {
       {...user, id: '6', name: 'FG'},
     ];
 
-    const {container, getByTestId, queryByText, queryAllByText} = renderComponent(users);
-    expect(queryAllByText(users[0].name.charAt(0))).toBeTruthy();
-    expect(queryAllByText(users[1].name.charAt(0))).toBeTruthy();
-    expect(queryAllByText(users[2].name.charAt(0))).toBeTruthy();
-    expect(queryAllByText(users[3].name.charAt(0))).toBeTruthy();
-    expect(queryAllByText(users[4].name.charAt(0))).toBeTruthy();
-    expect(queryByText(users[5].name.charAt(0))).toBeNull();
-    expect(getByTestId('avatarList-collapsedusers')).toBeTruthy();
+    const {container} = renderComponent(users);
+    expect(screen.getByText(users[0].name.charAt(0))).toBeInTheDocument();
+    expect(screen.getByText(users[1].name.charAt(0))).toBeInTheDocument();
+    expect(screen.getByText(users[2].name.charAt(0))).toBeInTheDocument();
+    expect(screen.getByText(users[3].name.charAt(0))).toBeInTheDocument();
+    expect(screen.getByText(users[4].name.charAt(0))).toBeInTheDocument();
+    expect(screen.queryByText(users[5].name.charAt(0))).not.toBeInTheDocument();
+    expect(screen.getByTestId('avatarList-collapsedusers')).toBeInTheDocument();
     expect(container).toSnapshot();
   });
 });

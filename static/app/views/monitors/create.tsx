@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 
-import AsyncView from 'app/views/asyncView';
+import AsyncView from 'sentry/views/asyncView';
 
 import MonitorForm from './monitorForm';
 import {Monitor} from './types';

@@ -1,11 +1,15 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import SentryAppComponentsStore from 'app/stores/sentryAppComponentsStore';
-import withSentryAppComponents from 'app/utils/withSentryAppComponents';
+import SentryAppComponentsStore from 'sentry/stores/sentryAppComponentsStore';
+import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 
 describe('withSentryAppComponents HoC', function () {
   beforeEach(() => {
     SentryAppComponentsStore.init();
+  });
+
+  afterEach(() => {
+    SentryAppComponentsStore.teardown();
   });
 
   it('handles components without a type', function () {
@@ -15,7 +19,7 @@ describe('withSentryAppComponents HoC', function () {
 
     expect(wrapper.find('MyComponent').prop('components')).toEqual([]);
 
-    SentryAppComponentsStore.onLoadComponents([
+    SentryAppComponentsStore.loadComponents([
       {type: 'some-type'},
       {type: 'another-type'},
     ]);
@@ -34,7 +38,7 @@ describe('withSentryAppComponents HoC', function () {
 
     expect(wrapper.find('MyComponent').prop('components')).toEqual([]);
 
-    SentryAppComponentsStore.onLoadComponents([
+    SentryAppComponentsStore.loadComponents([
       {type: 'some-type'},
       {type: 'another-type'},
     ]);

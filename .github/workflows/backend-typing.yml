@@ -10,7 +10,9 @@ jobs:
     name: backend typing
     runs-on: ubuntu-20.04
     timeout-minutes: 12
-
+    strategy:
+      matrix:
+        python-version: [3.8.12]
     steps:
       - uses: actions/checkout@v2
 
@@ -29,9 +31,11 @@ jobs:
           token: ${{ github.token }}
           filters: .github/file-filters.yml
 
-      - name: Setup pip
+      - name: Setup Python ${{ matrix.python-version }}
         uses: ./.github/actions/setup-python
         if: steps.changes.outputs.backend == 'true'
+        with:
+          python-version: ${{ matrix.python-version }}
 
       # Since we don't call the setup-sentry action we need to install libxmlsec1-dev
       - name: Setup backend typing

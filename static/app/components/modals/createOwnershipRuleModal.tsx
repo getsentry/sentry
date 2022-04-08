@@ -1,10 +1,10 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback, useEffect, useRef} from 'react';
 import {css} from '@emotion/react';
 
-import {ModalRenderProps} from 'app/actionCreators/modal';
-import {t} from 'app/locale';
-import theme from 'app/utils/theme';
-import ProjectOwnershipModal from 'app/views/settings/project/projectOwnership/modal';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {t} from 'sentry/locale';
+import theme from 'sentry/utils/theme';
+import ProjectOwnershipModal from 'sentry/views/settings/project/projectOwnership/modal';
 
 type Props = ModalRenderProps &
   Pick<ProjectOwnershipModal['props'], 'organization' | 'project' | 'issueId'> & {
@@ -12,10 +12,19 @@ type Props = ModalRenderProps &
   };
 
 const CreateOwnershipRuleModal = ({Body, Header, closeModal, ...props}: Props) => {
-  const handleSuccess = () => {
+  const closeModalTimeoutRef = useRef<number | undefined>(undefined);
+
+  useEffect(() => {
+    return () => {
+      window.clearInterval(closeModalTimeoutRef.current);
+    };
+  }, []);
+
+  const handleSuccess = useCallback(() => {
     props.onClose?.();
-    window.setTimeout(closeModal, 2000);
-  };
+    window.clearTimeout(closeModalTimeoutRef.current);
+    closeModalTimeoutRef.current = window.setTimeout(closeModal, 2000);
+  }, [props.onClose]);
 
   return (
     <Fragment>

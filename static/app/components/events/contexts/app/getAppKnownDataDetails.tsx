@@ -1,7 +1,7 @@
 import * as React from 'react';
 
-import {t} from 'app/locale';
-import {Event} from 'app/types/event';
+import {t} from 'sentry/locale';
+import {Event} from 'sentry/types/event';
 
 import {getRelativeTimeFromEventDateCreated} from '../utils';
 
@@ -27,7 +27,7 @@ function getAppKnownDataDetails(
       return {
         subject: t('Start Time'),
         value: getRelativeTimeFromEventDateCreated(
-          event.dateCreated,
+          event.dateCreated ? event.dateCreated : event.dateReceived,
           data.app_start_time
         ),
       };

@@ -1,93 +1,97 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {openMenu, selectByLabel} from 'sentry-test/select-new';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import MetricField from 'app/views/alerts/incidentRules/metricField';
-import {Dataset} from 'app/views/alerts/incidentRules/types';
-import Form from 'app/views/settings/components/forms/form';
+import Form from 'sentry/components/forms/form';
+import FormModel from 'sentry/components/forms/model';
+import MetricField from 'sentry/views/alerts/incidentRules/metricField';
+import {Dataset} from 'sentry/views/alerts/incidentRules/types';
+
+function openSelectMenu(text) {
+  const placeholder = screen.getByText(text);
+  userEvent.type(placeholder, '{keyDown}');
+}
 
 describe('MetricField', function () {
+  let model;
   const {organization} = initializeOrg({
     organization: {features: ['performance-view']},
   });
 
+  beforeEach(function () {
+    model = new FormModel();
+  });
+
   it('renders', function () {
-    mountWithTheme(
-      <Form initialData={{dataset: Dataset.ERRORS}}>
+    render(
+      <Form initialData={{dataset: Dataset.ERRORS}} model={model}>
         <MetricField name="metric" organization={organization} />
       </Form>
     );
   });
 
   it('has a select subset of error fields', function () {
-    const wrapper = mountWithTheme(
-      <Form initialData={{dataset: Dataset.ERRORS}}>
+    render(
+      <Form initialData={{dataset: Dataset.ERRORS}} model={model}>
         <MetricField name="metric" organization={organization} />
       </Form>
     );
-    openMenu(wrapper, {selector: 'QueryField'});
+    openSelectMenu('(Required)');
 
-    // two error aggregation configs
-    expect(wrapper.find('Option Option')).toHaveLength(2);
+    expect(screen.getByText('count()')).toBeInTheDocument();
+    expect(screen.getByText('count_unique(…)')).toBeInTheDocument();
 
     // Select count_unique and verify the tags
-    selectByLabel(wrapper, 'count_unique(…)', {selector: 'QueryField'});
-    openMenu(wrapper, {selector: 'QueryField', at: 1});
+    userEvent.click(screen.getByText('count_unique(…)'));
 
-    expect(wrapper.find('SelectControl').at(1).find('Option Option')).toHaveLength(1);
-    expect(wrapper.find('SelectControl').at(1).find('input').at(1).props().value).toEqual(
-      {
-        kind: 'field',
-        meta: {dataType: 'string', name: 'tags[sentry:user]'},
-      }
-    );
+    expect(model.fields.get('metric')).toBe('count_unique(tags[sentry:user])');
+    expect(screen.getByText('tags[sentry:user]')).toBeInTheDocument();
   });
 
   it('has a select subset of transaction fields', function () {
-    const wrapper = mountWithTheme(
-      <Form initialData={{dataset: Dataset.TRANSACTIONS}}>
+    render(
+      <Form initialData={{dataset: Dataset.TRANSACTIONS}} model={model}>
         <MetricField name="metric" organization={organization} />
       </Form>
     );
-    openMenu(wrapper, {selector: 'QueryField'});
+    openSelectMenu('(Required)');
 
     // 10 error aggregate configs
-    expect(wrapper.find('Option Option')).toHaveLength(10);
+    expect(screen.getAllByTestId('label')).toHaveLength(10);
+    userEvent.click(screen.getByText('avg(…)'));
+    expect(model.fields.get('metric')).toBe('avg(transaction.duration)');
 
-    selectByLabel(wrapper, 'avg(…)', {selector: 'QueryField'});
-    openMenu(wrapper, {selector: 'QueryField', at: 1});
-
-    expect(wrapper.find('SelectControl').at(1).find('Option Option')).toHaveLength(8);
+    openSelectMenu('transaction.duration');
+    expect(screen.getByText('measurements.lcp')).toBeInTheDocument();
+    expect(screen.getByText('measurements.fcp')).toBeInTheDocument();
+    expect(screen.getByText('measurements.ttfb.requesttime')).toBeInTheDocument();
   });
 
   it('maps field value to selected presets', function () {
-    const wrapper = mountWithTheme(
-      <Form initialData={{dataset: Dataset.TRANSACTIONS}}>
+    render(
+      <Form initialData={{dataset: Dataset.TRANSACTIONS}} model={model}>
         <MetricField name="metric" organization={organization} />
       </Form>
     );
-    selectByLabel(wrapper, 'failure_rate()', {selector: 'QueryField'});
+    openSelectMenu('(Required)');
+    userEvent.click(screen.getByText('failure_rate()'));
 
-    expect(wrapper.find('FieldHelp Button[disabled=true]').text()).toEqual(
-      'Failure rate'
-    );
+    expect(screen.getByLabelText('Failure rate')).toBeDisabled();
 
-    selectByLabel(wrapper, 'p95(…)', {selector: 'QueryField'});
+    openSelectMenu('failure_rate()');
+    userEvent.click(screen.getByText('p95(…)'));
 
-    expect(wrapper.find('FieldHelp Button[disabled=true]').text()).toEqual('Latency');
+    expect(screen.getByLabelText('Latency')).toBeDisabled();
   });
 
   it('changes field values when selecting presets', function () {
-    const wrapper = mountWithTheme(
-      <Form initialData={{dataset: Dataset.TRANSACTIONS}}>
+    render(
+      <Form initialData={{dataset: Dataset.TRANSACTIONS}} model={model}>
         <MetricField name="metric" organization={organization} />
       </Form>
     );
 
-    wrapper.find('FieldHelp button[aria-label="Failure rate"]').simulate('click');
+    userEvent.click(screen.getByText('Failure rate'));
 
-    expect(wrapper.find('QueryField SingleValue SingleValue').text()).toEqual(
-      'failure_rate()'
-    );
+    expect(screen.getByText('failure_rate()')).toBeInTheDocument();
   });
 });

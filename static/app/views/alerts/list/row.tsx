@@ -1,30 +1,28 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
-import memoize from 'lodash/memoize';
 import moment from 'moment';
 
-import ActorAvatar from 'app/components/avatar/actorAvatar';
-import Duration from 'app/components/duration';
-import ErrorBoundary from 'app/components/errorBoundary';
-import IdBadge from 'app/components/idBadge';
-import Link from 'app/components/links/link';
-import Tag from 'app/components/tag';
-import TimeSince from 'app/components/timeSince';
-import {t} from 'app/locale';
-import TeamStore from 'app/stores/teamStore';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {Actor, Organization, Project} from 'app/types';
-import {getUtcDateString} from 'app/utils/dates';
-import getDynamicText from 'app/utils/getDynamicText';
-import {alertDetailsLink} from 'app/views/alerts/details';
+import ActorAvatar from 'sentry/components/avatar/actorAvatar';
+import Duration from 'sentry/components/duration';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import IdBadge from 'sentry/components/idBadge';
+import Link from 'sentry/components/links/link';
+import Tag from 'sentry/components/tag';
+import TimeSince from 'sentry/components/timeSince';
+import {t} from 'sentry/locale';
+import TeamStore from 'sentry/stores/teamStore';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {Actor, Organization, Project} from 'sentry/types';
+import {getUtcDateString} from 'sentry/utils/dates';
+import getDynamicText from 'sentry/utils/getDynamicText';
 
 import {
   API_INTERVAL_POINTS_LIMIT,
   API_INTERVAL_POINTS_MIN,
 } from '../rules/details/constants';
 import {Incident, IncidentStatus} from '../types';
-import {getIncidentMetricPreset, isIssueAlert} from '../utils';
+import {alertDetailsLink} from '../utils';
 
 /**
  * Retrieve the start/end for showing the graph of the metric
@@ -32,7 +30,7 @@ import {getIncidentMetricPreset, isIssueAlert} from '../utils';
  */
 export const makeRuleDetailsQuery = (
   incident: Incident
-): {start: string; end: string} => {
+): {end: string; start: string} => {
   const {timeWindow} = incident.alertRule;
   const timeWindowMillis = timeWindow * 60 * 1000;
   const minRange = timeWindowMillis * API_INTERVAL_POINTS_MIN;
@@ -53,93 +51,69 @@ export const makeRuleDetailsQuery = (
 
 type Props = {
   incident: Incident;
-  projects: Project[];
-  projectsLoaded: boolean;
   orgId: string;
   organization: Organization;
+  projects: Project[];
+  projectsLoaded: boolean;
 };
 
-class AlertListRow extends Component<Props> {
-  get metricPreset() {
-    const {incident} = this.props;
-    return incident ? getIncidentMetricPreset(incident) : undefined;
-  }
+function AlertListRow({incident, projectsLoaded, projects, organization}: Props) {
+  const slug = incident.projects[0];
+  const started = moment(incident.dateStarted);
+  const duration = moment
+    .duration(moment(incident.dateClosed || new Date()).diff(started))
+    .as('seconds');
 
-  /**
-   * Memoized function to find a project from a list of projects
-   */
-  getProject = memoize((slug: string, projects: Project[]) =>
-    projects.find(project => project.slug === slug)
+  const project = useMemo(() => projects.find(p => p.slug === slug), [slug, projects]);
+
+  const alertLink = {
+    pathname: alertDetailsLink(organization, incident),
+    query: {alert: incident.identifier},
+  };
+  const ownerId = incident.alertRule.owner?.split(':')[1];
+  let teamName = '';
+  if (ownerId) {
+    teamName = TeamStore.getById(ownerId)?.name ?? '';
+  }
+  const teamActor = ownerId
+    ? {type: 'team' as Actor['type'], id: ownerId, name: teamName}
+    : null;
+
+  return (
+    <ErrorBoundary>
+      <Title data-test-id="alert-title">
+        <Link to={alertLink}>{incident.title}</Link>
+      </Title>
+
+      <NoWrapNumeric>
+        {getDynamicText({
+          value: <TimeSince date={incident.dateStarted} extraShort />,
+          fixed: '1w ago',
+        })}
+      </NoWrapNumeric>
+      <NoWrapNumeric>
+        {incident.status === IncidentStatus.CLOSED ? (
+          <Duration seconds={getDynamicText({value: duration, fixed: 1200})} />
+        ) : (
+          <Tag type="warning">{t('Still Active')}</Tag>
+        )}
+      </NoWrapNumeric>
+
+      <ProjectBadge avatarSize={18} project={!projectsLoaded ? {slug} : project} />
+      <NoWrapNumeric>#{incident.id}</NoWrapNumeric>
+
+      <FlexCenter>
+        {teamActor ? (
+          <Fragment>
+            <StyledActorAvatar actor={teamActor} size={24} hasTooltip={false} />{' '}
+            <TeamWrapper>{teamActor.name}</TeamWrapper>
+          </Fragment>
+        ) : (
+          '-'
+        )}
+      </FlexCenter>
+    </ErrorBoundary>
   );
-
-  render() {
-    const {incident, orgId, projectsLoaded, projects, organization} = this.props;
-    const slug = incident.projects[0];
-    const started = moment(incident.dateStarted);
-    const duration = moment
-      .duration(moment(incident.dateClosed || new Date()).diff(started))
-      .as('seconds');
-
-    const hasRedesign =
-      !isIssueAlert(incident.alertRule) &&
-      organization.features.includes('alert-details-redesign');
-
-    const alertLink = hasRedesign
-      ? {
-          pathname: alertDetailsLink(organization, incident),
-          query: {alert: incident.identifier},
-        }
-      : {
-          pathname: `/organizations/${orgId}/alerts/${incident.identifier}/`,
-        };
-    const ownerId = incident.alertRule.owner?.split(':')[1];
-    let teamName = '';
-    if (ownerId) {
-      teamName = TeamStore.getById(ownerId)?.name ?? '';
-    }
-    const teamActor = ownerId
-      ? {type: 'team' as Actor['type'], id: ownerId, name: teamName}
-      : null;
-
-    return (
-      <ErrorBoundary>
-        <Title>
-          <Link to={alertLink}>{incident.title}</Link>
-        </Title>
-
-        <NoWrap>
-          {getDynamicText({
-            value: <TimeSince date={incident.dateStarted} extraShort />,
-            fixed: '1w ago',
-          })}
-        </NoWrap>
-        <NoWrap>
-          {incident.status === IncidentStatus.CLOSED ? (
-            <Duration seconds={getDynamicText({value: duration, fixed: 1200})} />
-          ) : (
-            <Tag type="warning">{t('Still Active')}</Tag>
-          )}
-        </NoWrap>
-
-        <ProjectBadge
-          avatarSize={18}
-          project={!projectsLoaded ? {slug} : this.getProject(slug, projects)}
-        />
-        <div>#{incident.id}</div>
-
-        <FlexCenter>
-          {teamActor ? (
-            <Fragment>
-              <StyledActorAvatar actor={teamActor} size={24} hasTooltip={false} />{' '}
-              <TeamWrapper>{teamActor.name}</TeamWrapper>
-            </Fragment>
-          ) : (
-            '-'
-          )}
-        </FlexCenter>
-      </ErrorBoundary>
-    );
-  }
 }
 
 const Title = styled('div')`
@@ -147,8 +121,9 @@ const Title = styled('div')`
   min-width: 130px;
 `;
 
-const NoWrap = styled('div')`
+const NoWrapNumeric = styled('div')`
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 `;
 
 const ProjectBadge = styled(IdBadge)`

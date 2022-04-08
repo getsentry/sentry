@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import ProcessingIssueList from 'app/components/stream/processingIssueList';
+import ProcessingIssueList from 'sentry/components/stream/processingIssueList';
 
 describe('ProcessingIssueList', function () {
   let wrapper, projects, organization, fetchIssueRequest;
@@ -54,7 +54,7 @@ describe('ProcessingIssueList', function () {
         />
       );
       await wrapper.instance().componentDidMount();
-      await wrapper.update();
+      wrapper.update();
     });
 
     it('renders multiple issues', function () {

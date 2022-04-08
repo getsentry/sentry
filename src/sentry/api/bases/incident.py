@@ -1,4 +1,5 @@
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.request import Request
 
 from sentry import features
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
@@ -23,7 +24,7 @@ class IncidentPermission(OrganizationPermission):
 
 
 class IncidentEndpoint(OrganizationEndpoint):
-    def convert_args(self, request, incident_identifier, *args, **kwargs):
+    def convert_args(self, request: Request, incident_identifier, *args, **kwargs):
         args, kwargs = super().convert_args(request, *args, **kwargs)
         organization = kwargs["organization"]
 

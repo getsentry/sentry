@@ -13,6 +13,32 @@ from sentry.utils.strings import truncatechars
 MAX_ACTOR_LABEL_LENGTH = 64
 
 
+def format_ondemand_budget(ondemand_data):
+    if type(ondemand_data) is dict:
+        budget_mode = ondemand_data.get("budgetMode", None)
+        if budget_mode == "per_category":
+            errors_budget = format_ondemand_max_spend(ondemand_data.get("errorsBudget", 0))
+            transactions_budget = format_ondemand_max_spend(
+                ondemand_data.get("transactionsBudget", 0)
+            )
+            attachments_budget = format_ondemand_max_spend(
+                ondemand_data.get("attachmentsBudget", 0)
+            )
+            return f"per-category on-demand (errors at {errors_budget}, transactions at {transactions_budget}, and attachments at {attachments_budget})"
+        else:
+            shared_budget = ondemand_data.get("sharedMaxBudget", 0)
+            return f"shared on-demand of {format_ondemand_max_spend(shared_budget)}"
+    return format_ondemand_max_spend(ondemand_data)
+
+
+def format_ondemand_max_spend(max_spend_in_cents):
+    ondemand_max_spend = max_spend_in_cents / 100
+    has_cents = (ondemand_max_spend % 1) != 0
+    if has_cents:
+        return f"${ondemand_max_spend:.2f}"
+    return f"${int(ondemand_max_spend)}"
+
+
 class AuditLogEntryEvent:
     MEMBER_INVITE = 1
     MEMBER_ADD = 2
@@ -97,6 +123,14 @@ class AuditLogEntryEvent:
     INVITE_REQUEST_ADD = 140
     INVITE_REQUEST_REMOVE = 141
 
+    PROJECT_QUOTA_ADD = 150
+    PROJECT_QUOTA_EDIT = 151
+    PROJECT_QUOTA_REMOVE = 152
+
+    ALERT_RULE_ADD = 160
+    ALERT_RULE_EDIT = 161
+    ALERT_RULE_REMOVE = 162
+
 
 class AuditLogEntry(Model):
     __include_in_export__ = False
@@ -158,6 +192,9 @@ class AuditLogEntry(Model):
             (AuditLogEntryEvent.APIKEY_ADD, "api-key.create"),
             (AuditLogEntryEvent.APIKEY_EDIT, "api-key.edit"),
             (AuditLogEntryEvent.APIKEY_REMOVE, "api-key.remove"),
+            (AuditLogEntryEvent.ALERT_RULE_ADD, "alertrule.create"),
+            (AuditLogEntryEvent.ALERT_RULE_EDIT, "alertrule.edit"),
+            (AuditLogEntryEvent.ALERT_RULE_REMOVE, "alertrule.remove"),
             (AuditLogEntryEvent.RULE_ADD, "rule.create"),
             (AuditLogEntryEvent.RULE_EDIT, "rule.edit"),
             (AuditLogEntryEvent.RULE_REMOVE, "rule.remove"),
@@ -186,6 +223,9 @@ class AuditLogEntry(Model):
             (AuditLogEntryEvent.PLAN_CANCELLED, "plan.cancelled"),
             (AuditLogEntryEvent.INVITE_REQUEST_ADD, "invite-request.create"),
             (AuditLogEntryEvent.INVITE_REQUEST_REMOVE, "invite-request.remove"),
+            (AuditLogEntryEvent.PROJECT_QUOTA_ADD, "project-quota.add"),
+            (AuditLogEntryEvent.PROJECT_QUOTA_EDIT, "project-quota.edit"),
+            (AuditLogEntryEvent.PROJECT_QUOTA_REMOVE, "project-quota.remove"),
         )
     )
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
@@ -344,6 +384,13 @@ class AuditLogEntry(Model):
         elif self.event == AuditLogEntryEvent.APIKEY_REMOVE:
             return "removed api key {}".format(self.data["label"])
 
+        elif self.event == AuditLogEntryEvent.ALERT_RULE_ADD:
+            return 'added metric alert rule "{}"'.format(self.data["label"])
+        elif self.event == AuditLogEntryEvent.ALERT_RULE_EDIT:
+            return 'edited metric alert rule "{}"'.format(self.data["label"])
+        elif self.event == AuditLogEntryEvent.ALERT_RULE_REMOVE:
+            return 'removed metric alert rule "{}"'.format(self.data["label"])
+
         elif self.event == AuditLogEntryEvent.RULE_ADD:
             return 'added rule "{}"'.format(self.data["label"])
         elif self.event == AuditLogEntryEvent.RULE_EDIT:
@@ -354,11 +401,21 @@ class AuditLogEntry(Model):
         elif self.event == AuditLogEntryEvent.SET_ONDEMAND:
             if self.data["ondemand"] == -1:
                 return "changed on-demand spend to unlimited"
-            return "changed on-demand max spend to $%d" % (self.data["ondemand"] / 100,)
+            next_ondemand_budget = format_ondemand_budget(self.data["ondemand"])
+            if "prev_ondemand" in self.data:
+                prev_ondemand_budget = format_ondemand_budget(self.data["prev_ondemand"])
+                return f"changed on-demand budget from {prev_ondemand_budget} to {next_ondemand_budget}"
+            return f"changed on-demand budget to {next_ondemand_budget}"
         elif self.event == AuditLogEntryEvent.TRIAL_STARTED:
             return "started trial"
+
         elif self.event == AuditLogEntryEvent.PLAN_CHANGED:
-            return "changed plan to {}".format(self.data["plan_name"])
+            plan_name = self.data["plan_name"]
+            if "quotas" in self.data:
+                quotas = self.data["quotas"]
+                return f"changed plan to {plan_name} with {quotas}"
+            return f"changed plan to {plan_name}"
+
         elif self.event == AuditLogEntryEvent.PLAN_CANCELLED:
             return "cancelled plan"
 
@@ -429,5 +486,18 @@ class AuditLogEntry(Model):
             return "request added to invite {}".format(self.data["email"])
         elif self.event == AuditLogEntryEvent.INVITE_REQUEST_REMOVE:
             return "removed the invite request for {}".format(self.data["email"])
-
+        elif self.event == AuditLogEntryEvent.PROJECT_QUOTA_ADD:
+            return (
+                "created project quota for {} with {} as the event type and a limit of {} ".format(
+                    self.data["slug"], self.data["billing_metric"], self.data["limit"]
+                )
+            )
+        elif self.event == AuditLogEntryEvent.PROJECT_QUOTA_EDIT:
+            return "changed project quota for {} with {} as the event type to have a limit of {} ".format(
+                self.data["slug"], self.data["billing_metric"], self.data["limit"]
+            )
+        elif self.event == AuditLogEntryEvent.PROJECT_QUOTA_REMOVE:
+            return "removed project quota for {} with {} as the event type".format(
+                self.data["slug"], self.data["billing_metric"]
+            )
         return ""

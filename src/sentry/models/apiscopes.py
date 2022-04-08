@@ -1,4 +1,4 @@
-from collections import Sequence
+from collections.abc import Sequence
 
 from django.db import models
 

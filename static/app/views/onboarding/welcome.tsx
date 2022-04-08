@@ -1,19 +1,17 @@
-import {Component} from 'react';
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import {motion, MotionProps} from 'framer-motion';
 import {preloadIcons} from 'platformicons';
 
-import Button from 'app/components/button';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import testableTransition from 'app/utils/testableTransition';
+import Button from 'sentry/components/button';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import testableTransition from 'sentry/utils/testableTransition';
 
 import FallingError from './components/fallingError';
 import WelcomeBackground from './components/welcomeBackground';
 import {StepProps} from './types';
-
-type Props = StepProps;
 
 const easterEggText = [
   t('Be careful. She’s barely hanging on as it is.'),
@@ -34,55 +32,61 @@ const fadeAway: MotionProps = {
   transition: testableTransition({duration: 0.8}),
 };
 
-class OnboardingWelcome extends Component<Props> {
-  componentDidMount() {
+function OnboardingWelcome(props: StepProps) {
+  useEffect(() => {
     // Next step will render the platform picker (using both large and small
     // icons). Keep things smooth by prefetching them. Preload a bit late to
     // avoid jank on welcome animations.
-    setTimeout(preloadIcons, 1500);
+    let preloadIconsTimeout: number | null = window.setTimeout(() => {
+      preloadIcons();
+      preloadIconsTimeout = null;
+    }, 1500);
+
     trackAdvancedAnalyticsEvent('growth.onboarding_start_onboarding', {
-      organization: this.props.organization ?? null,
+      organization: props.organization ?? null,
     });
-  }
 
-  render() {
-    const {onComplete, active} = this.props;
+    return () => {
+      if (preloadIconsTimeout) {
+        window.clearTimeout(preloadIconsTimeout);
+      }
+    };
+  }, []);
 
-    return (
-      <FallingError
-        onFall={fallCount => fallCount >= easterEggText.length && onComplete({})}
-      >
-        {({fallingError, fallCount, triggerFall}) => (
-          <Wrapper>
-            <WelcomeBackground />
-            <motion.h1 {...fadeAway}>{t('Welcome to Sentry')}</motion.h1>
-            <motion.p {...fadeAway}>
-              {t(
-                'Find the errors and performance slowdowns that keep you up at night. In two steps.'
-              )}
-            </motion.p>
-            <CTAContainer {...fadeAway}>
-              <Button
-                data-test-id="welcome-next"
-                disabled={!active}
-                priority="primary"
-                onClick={() => {
-                  triggerFall();
-                  onComplete({});
-                }}
-              >
-                {t("I'm Ready")}
-              </Button>
-              <PositionedFallingError>{fallingError}</PositionedFallingError>
-            </CTAContainer>
-            <SecondaryAction {...fadeAway}>
-              {fallCount > 0 ? easterEggText[fallCount - 1] : <br />}
-            </SecondaryAction>
-          </Wrapper>
-        )}
-      </FallingError>
-    );
-  }
+  return (
+    <FallingError
+      onFall={fallCount => fallCount >= easterEggText.length && props.onComplete({})}
+    >
+      {({fallingError, fallCount, triggerFall}) => (
+        <Wrapper>
+          <WelcomeBackground />
+          <motion.h1 {...fadeAway}>{t('Welcome to Sentry')}</motion.h1>
+          <motion.p {...fadeAway}>
+            {t(
+              'Find the errors and performance slowdowns that keep you up at night. In two steps.'
+            )}
+          </motion.p>
+          <CTAContainer {...fadeAway}>
+            <Button
+              data-test-id="welcome-next"
+              disabled={!props.active}
+              priority="primary"
+              onClick={() => {
+                triggerFall();
+                props.onComplete({});
+              }}
+            >
+              {t("I'm Ready")}
+            </Button>
+            <PositionedFallingError>{fallingError}</PositionedFallingError>
+          </CTAContainer>
+          <SecondaryAction {...fadeAway}>
+            {fallCount > 0 ? easterEggText[fallCount - 1] : <br />}
+          </SecondaryAction>
+        </Wrapper>
+      )}
+    </FallingError>
+  );
 }
 
 const CTAContainer = styled(motion.div)`

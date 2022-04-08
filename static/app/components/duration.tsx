@@ -1,13 +1,13 @@
 import * as React from 'react';
 
-import {getDuration, getExactDuration} from 'app/utils/formatters';
+import {getDuration, getExactDuration} from 'sentry/utils/formatters';
 
-type Props = React.HTMLProps<HTMLSpanElement> & {
+interface Props extends React.HTMLAttributes<HTMLSpanElement> {
   seconds: number;
-  fixedDigits?: number;
   abbreviation?: boolean;
   exact?: boolean;
-};
+  fixedDigits?: number;
+}
 
 const Duration = ({seconds, fixedDigits, abbreviation, exact, ...props}: Props) => (
   <span {...props}>

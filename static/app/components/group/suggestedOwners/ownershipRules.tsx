@@ -2,29 +2,29 @@ import {Fragment} from 'react';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {openCreateOwnershipRule} from 'app/actionCreators/modal';
-import Access from 'app/components/acl/access';
-import GuideAnchor from 'app/components/assistant/guideAnchor';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import FeatureBadge from 'app/components/featureBadge';
-import Hovercard from 'app/components/hovercard';
-import {Panel} from 'app/components/panels';
-import {IconClose, IconQuestion} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {CodeOwner, Organization, Project} from 'app/types';
-import {trackIntegrationAnalytics} from 'app/utils/integrationUtil';
+import {openCreateOwnershipRule} from 'sentry/actionCreators/modal';
+import Access from 'sentry/components/acl/access';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import FeatureBadge from 'sentry/components/featureBadge';
+import {Hovercard} from 'sentry/components/hovercard';
+import {Panel} from 'sentry/components/panels';
+import {IconClose, IconQuestion} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {CodeOwner, Organization, Project} from 'sentry/types';
+import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 
 import SidebarSection from '../sidebarSection';
 
 type Props = {
-  project: Project;
-  organization: Organization;
-  issueId: string;
   codeowners: CodeOwner[];
   handleCTAClose: () => void;
   isDismissed: boolean;
+  issueId: string;
+  organization: Organization;
+  project: Project;
 };
 
 const OwnershipRules = ({
@@ -38,18 +38,23 @@ const OwnershipRules = ({
   const handleOpenCreateOwnershipRule = () => {
     openCreateOwnershipRule({project, organization, issueId});
   };
-  const showCTA =
-    organization.features.includes('integrations-codeowners') &&
-    !codeowners.length &&
-    !isDismissed;
+  const showCTA = !codeowners.length && !isDismissed;
 
   const createRuleButton = (
     <Access access={['project:write']}>
-      <GuideAnchor target="owners" position="bottom" offset={space(3)}>
-        <Button onClick={handleOpenCreateOwnershipRule} size="small">
-          {t('Create Ownership Rule')}
-        </Button>
-      </GuideAnchor>
+      {({hasAccess}) => (
+        <GuideAnchor target="owners" position="bottom" offset={space(3)}>
+          <Button
+            onClick={handleOpenCreateOwnershipRule}
+            size="small"
+            disabled={!hasAccess}
+            title={t("You don't have permission to create ownership rules.")}
+            tooltipProps={{disabled: hasAccess}}
+          >
+            {t('Create Ownership Rule')}
+          </Button>
+        </GuideAnchor>
+      )}
     </Access>
   );
 
@@ -57,11 +62,12 @@ const OwnershipRules = ({
     <Container dashedBorder>
       <HeaderContainer>
         <Header>{t('Codeowners sync')}</Header>{' '}
-        <FeatureBadge style={{top: -3}} type="beta" noTooltip />
+        <FeatureBadge style={{top: -3}} type="new" noTooltip />
         <DismissButton
           icon={<IconClose size="xs" />}
           priority="link"
           onClick={() => handleCTAClose()}
+          aria-label={t('Close')}
         />
       </HeaderContainer>
       <Content>
@@ -71,9 +77,9 @@ const OwnershipRules = ({
       </Content>
       <ButtonBar gap={1}>
         <SetupButton
-          size="small"
+          size="xsmall"
           priority="primary"
-          href={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
+          to={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
           onClick={() =>
             trackIntegrationAnalytics('integrations.code_owners_cta_setup_clicked', {
               view: 'stacktrace_issue_details',
@@ -82,10 +88,10 @@ const OwnershipRules = ({
             })
           }
         >
-          {t('Set It Up')}
+          {t('Setup')}
         </SetupButton>
         <Button
-          size="small"
+          size="xsmall"
           external
           href="https://docs.sentry.io/product/issues/issue-owners/#code-owners"
           onClick={() =>
@@ -118,6 +124,7 @@ const OwnershipRules = ({
                       )}
                     </p>
                     <Button
+                      external
                       href="https://docs.sentry.io/workflow/issue-owners/"
                       priority="primary"
                     >
@@ -130,7 +137,7 @@ const OwnershipRules = ({
                   align-items: center;
                 `}
               >
-                <StyledIconQuestion size="xs" />
+                <StyledIconQuestion size="xs" color="gray200" />
               </Hovercard>
             )}
           </ClassNames>
@@ -175,7 +182,7 @@ const Header = styled('h6')`
 `;
 
 const Content = styled('span')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
   margin-bottom: ${space(2)};
 `;
 
@@ -186,6 +193,8 @@ const SetupButton = styled(Button)`
 `;
 
 const DismissButton = styled(Button)`
-  justify-self: flex-end;
+  position: absolute;
+  top: 0;
+  right: ${space(1)};
   color: ${p => p.theme.gray400};
 `;

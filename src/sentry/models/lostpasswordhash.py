@@ -7,8 +7,7 @@ from django.utils import timezone
 
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.utils.http import absolute_uri
-
-CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+from sentry.utils.security import get_secure_token
 
 
 class LostPasswordHash(Model):
@@ -29,10 +28,8 @@ class LostPasswordHash(Model):
             self.set_hash()
         super().save(*args, **kwargs)
 
-    def set_hash(self):
-        from django.utils.crypto import get_random_string
-
-        self.hash = get_random_string(32, CHARACTERS)
+    def set_hash(self) -> None:
+        self.hash = get_secure_token()
 
     def is_valid(self):
         return self.date_added > timezone.now() - timedelta(hours=48)

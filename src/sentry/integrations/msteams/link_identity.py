@@ -1,10 +1,12 @@
 from django.core.signing import BadSignature, SignatureExpired
-from django.db import IntegrityError
 from django.urls import reverse
-from django.utils import timezone
 from django.views.decorators.cache import never_cache
+from rest_framework.request import Request
+from rest_framework.response import Response
 
-from sentry.models import Identity, IdentityStatus
+from sentry.integrations.utils import get_identity_or_404
+from sentry.models import Identity
+from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign, unsign
 from sentry.web.decorators import transaction_start
@@ -13,7 +15,6 @@ from sentry.web.helpers import render_to_response
 
 from .card_builder import build_linked_card
 from .client import MsTeamsClient
-from .utils import get_identity
 
 
 def build_linking_url(integration, organization, teams_user_id, team_id, tenant_id):
@@ -33,17 +34,20 @@ def build_linking_url(integration, organization, teams_user_id, team_id, tenant_
 class MsTeamsLinkIdentityView(BaseView):
     @transaction_start("MsTeamsLinkIdentityView")
     @never_cache
-    def handle(self, request, signed_params):
+    def handle(self, request: Request, signed_params) -> Response:
         try:
             params = unsign(signed_params)
         except (SignatureExpired, BadSignature):
             return render_to_response(
-                "sentry/integrations/msteams-expired-link.html",
+                "sentry/integrations/msteams/expired-link.html",
                 request=request,
             )
 
-        organization, integration, idp = get_identity(
-            request.user, params["organization_id"], params["integration_id"]
+        organization, integration, idp = get_identity_or_404(
+            ExternalProviders.MSTEAMS,
+            request.user,
+            integration_id=params["integration_id"],
+            organization_id=params["organization_id"],
         )
 
         if request.method != "POST":
@@ -53,18 +57,9 @@ class MsTeamsLinkIdentityView(BaseView):
                 context={"organization": organization, "provider": integration.get_provider()},
             )
 
-        defaults = {"status": IdentityStatus.VALID, "date_verified": timezone.now()}
-        try:
-            identity, created = Identity.objects.get_or_create(
-                idp=idp,
-                user=request.user,
-                external_id=params["teams_user_id"],
-                defaults=defaults,
-            )
-            if not created:
-                identity.update(**defaults)
-        except IntegrityError:
-            Identity.reattach(idp, params["teams_user_id"], request.user, defaults)
+        Identity.objects.link_identity(
+            user=request.user, idp=idp, external_id=params["teams_user_id"]
+        )
 
         card = build_linked_card()
         client = MsTeamsClient(integration)
@@ -74,7 +69,7 @@ class MsTeamsLinkIdentityView(BaseView):
         client.send_card(user_conversation_id, card)
 
         return render_to_response(
-            "sentry/integrations/msteams-linked.html",
+            "sentry/integrations/msteams/linked.html",
             request=request,
             context={"team_id": params["team_id"]},
         )

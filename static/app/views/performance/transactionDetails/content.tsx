@@ -1,41 +1,46 @@
 import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 
-import AsyncComponent from 'app/components/asyncComponent';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import NotFound from 'app/components/errors/notFound';
-import {BorderlessEventEntries} from 'app/components/events/eventEntries';
-import EventMetadata from 'app/components/events/eventMetadata';
-import EventVitals from 'app/components/events/eventVitals';
-import * as SpanEntryContext from 'app/components/events/interfaces/spans/context';
-import RootSpanStatus from 'app/components/events/rootSpanStatus';
-import FileSize from 'app/components/fileSize';
-import * as Layout from 'app/components/layouts/thirds';
-import LoadingError from 'app/components/loadingError';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import TagsTable from 'app/components/tagsTable';
-import {IconOpen} from 'app/icons';
-import {t} from 'app/locale';
-import {Organization, Project} from 'app/types';
-import {Event, EventTag} from 'app/types/event';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import * as QuickTraceContext from 'app/utils/performance/quickTrace/quickTraceContext';
-import QuickTraceQuery from 'app/utils/performance/quickTrace/quickTraceQuery';
-import TraceMetaQuery from 'app/utils/performance/quickTrace/traceMetaQuery';
-import {getTraceTimeRangeFromEvent} from 'app/utils/performance/quickTrace/utils';
-import Projects from 'app/utils/projects';
-import {appendTagCondition, decodeScalar} from 'app/utils/queryString';
-import Breadcrumb from 'app/views/performance/breadcrumb';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import NotFound from 'sentry/components/errors/notFound';
+import {BorderlessEventEntries} from 'sentry/components/events/eventEntries';
+import EventMetadata from 'sentry/components/events/eventMetadata';
+import EventVitals from 'sentry/components/events/eventVitals';
+import * as SpanEntryContext from 'sentry/components/events/interfaces/spans/context';
+import RootSpanStatus from 'sentry/components/events/rootSpanStatus';
+import FileSize from 'sentry/components/fileSize';
+import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingError from 'sentry/components/loadingError';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import TagsTable from 'sentry/components/tagsTable';
+import {IconOpen} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
+import {Event, EventTag} from 'sentry/types/event';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {formatTagKey} from 'sentry/utils/discover/fields';
+import * as QuickTraceContext from 'sentry/utils/performance/quickTrace/quickTraceContext';
+import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
+import TraceMetaQuery from 'sentry/utils/performance/quickTrace/traceMetaQuery';
+import {getTraceTimeRangeFromEvent} from 'sentry/utils/performance/quickTrace/utils';
+import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
+import Projects from 'sentry/utils/projects';
+import {appendTagCondition, decodeScalar} from 'sentry/utils/queryString';
+import Breadcrumb from 'sentry/views/performance/breadcrumb';
 
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
-import {getTransactionDetailsUrl} from '../utils';
 
 import EventMetas from './eventMetas';
+import FinishSetupAlert from './finishSetupAlert';
 
-type Props = Pick<RouteComponentProps<{eventSlug: string}, {}>, 'params' | 'location'> & {
-  organization: Organization;
+type Props = Pick<
+  RouteComponentProps<{eventSlug: string}, {}>,
+  'params' | 'location' | 'router' | 'route'
+> & {
   eventSlug: string;
+  organization: Organization;
 };
 
 type State = {
@@ -82,28 +87,39 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     const query = decodeScalar(location.query.query, '');
     const newQuery = {
       ...location.query,
-      query: appendTagCondition(query, tag.key, tag.value),
+      query: appendTagCondition(query, formatTagKey(tag.key), tag.value),
     };
     return transactionSummaryRouteWithQuery({
       orgSlug: organization.slug,
       transaction: event.title,
-      projectID: decodeScalar(location.query.project),
+      projectID: event.projectID,
       query: newQuery,
     });
   };
 
   renderBody() {
     const {event} = this.state;
+    const {organization} = this.props;
 
     if (!event) {
       return <NotFound />;
     }
+    const isSampleTransaction = event.tags.some(
+      tag => tag.key === 'sample_event' && tag.value === 'yes'
+    );
 
-    return this.renderContent(event);
+    return (
+      <Fragment>
+        {isSampleTransaction && (
+          <FinishSetupAlert organization={organization} projectId={this.projectId} />
+        )}
+        {this.renderContent(event)}
+      </Fragment>
+    );
   }
 
   renderContent(event: Event) {
-    const {organization, location, eventSlug} = this.props;
+    const {organization, location, eventSlug, route, router} = this.props;
 
     // metrics
     trackAnalyticsEvent({
@@ -138,7 +154,10 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                     <Breadcrumb
                       organization={organization}
                       location={location}
-                      transactionName={transactionName}
+                      transaction={{
+                        project: event.projectID,
+                        name: transactionName,
+                      }}
                       eventSlug={eventSlug}
                     />
                     <Layout.Title data-test-id="event-header">{event.title}</Layout.Title>
@@ -178,7 +197,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                           value={{
                             getViewChildTransactionTarget: childTransactionProps => {
                               return getTransactionDetailsUrl(
-                                organization,
+                                organization.slug,
                                 childTransactionProps.eventSlug,
                                 childTransactionProps.transaction,
                                 location.query
@@ -195,6 +214,8 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                               showTagSummary={false}
                               location={location}
                               api={this.api}
+                              router={router}
+                              route={route}
                               isBorderless
                             />
                           </QuickTraceContext.Provider>
@@ -248,7 +269,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
       );
     }
 
-    return super.renderError(error, true, true);
+    return super.renderError(error, true);
   }
 
   renderComponent() {
@@ -259,7 +280,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
         title={t('Performance - Event Details')}
         orgSlug={organization.slug}
       >
-        {super.renderComponent()}
+        {super.renderComponent() as React.ReactChild}
       </SentryDocumentTitle>
     );
   }

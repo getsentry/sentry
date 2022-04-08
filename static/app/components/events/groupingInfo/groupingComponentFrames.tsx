@@ -1,10 +1,10 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import {IconAdd, IconSubtract} from 'app/icons';
-import {tct} from 'app/locale';
-import space from 'app/styles/space';
+import Button from 'sentry/components/button';
+import {IconAdd, IconSubtract} from 'sentry/icons';
+import {tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
 
 import {GroupingComponentListItem} from './groupingComponent';
 
@@ -32,14 +32,14 @@ class GroupingComponentFrames extends React.Component<Props, State> {
   render() {
     const {items, maxVisibleItems} = this.props;
     const {collapsed} = this.state;
-    const isCollapsable = items.length > maxVisibleItems;
+    const isCollapsible = items.length > maxVisibleItems;
 
     return (
       <React.Fragment>
         {items.map((item, index) => {
           if (!collapsed || index < maxVisibleItems) {
             return (
-              <GroupingComponentListItem isCollapsable={isCollapsable} key={index}>
+              <GroupingComponentListItem isCollapsible={isCollapsible} key={index}>
                 {item}
               </GroupingComponentListItem>
             );

@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import {IconAdd, IconFire, IconSubtract} from 'app/icons';
-import space from 'app/styles/space';
-import {Aliases, Color} from 'app/utils/theme';
+import {IconAdd, IconFire, IconSubtract} from 'sentry/icons';
+import space from 'sentry/styles/space';
+import {Aliases, Color} from 'sentry/utils/theme';
 
 export const DividerContainer = styled('div')`
   position: relative;

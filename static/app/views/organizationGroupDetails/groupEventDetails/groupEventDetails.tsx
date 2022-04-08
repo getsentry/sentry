@@ -4,18 +4,18 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
-import {fetchSentryAppComponents} from 'app/actionCreators/sentryAppComponents';
-import {Client} from 'app/api';
-import ErrorBoundary from 'app/components/errorBoundary';
-import GroupEventDetailsLoadingError from 'app/components/errors/groupEventDetailsLoadingError';
-import EventEntries from 'app/components/events/eventEntries';
-import {withMeta} from 'app/components/events/meta/metaProxy';
-import GroupSidebar from 'app/components/group/sidebar';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import MutedBox from 'app/components/mutedBox';
-import ReprocessedBox from 'app/components/reprocessedBox';
-import ResolutionBox from 'app/components/resolutionBox';
-import SuggestProjectCTA from 'app/components/suggestProjectCTA';
+import {fetchSentryAppComponents} from 'sentry/actionCreators/sentryAppComponents';
+import {Client} from 'sentry/api';
+import GroupEventDetailsLoadingError from 'sentry/components/errors/groupEventDetailsLoadingError';
+import EventEntries from 'sentry/components/events/eventEntries';
+import {withMeta} from 'sentry/components/events/meta/metaProxy';
+import GroupSidebar from 'sentry/components/group/sidebar';
+import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import MutedBox from 'sentry/components/mutedBox';
+import ReprocessedBox from 'sentry/components/reprocessedBox';
+import ResolutionBox from 'sentry/components/resolutionBox';
+import space from 'sentry/styles/space';
 import {
   BaseGroupStatusReprocessing,
   Environment,
@@ -23,10 +23,9 @@ import {
   GroupActivityReprocess,
   Organization,
   Project,
-} from 'app/types';
-import {Event} from 'app/types/event';
-import {metric} from 'app/utils/analytics';
-import fetchSentryAppInstallations from 'app/utils/fetchSentryAppInstallations';
+} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import fetchSentryAppInstallations from 'sentry/utils/fetchSentryAppInstallations';
 
 import GroupEventToolbar from '../eventToolbar';
 import ReprocessingProgress from '../reprocessingProgress';
@@ -36,29 +35,27 @@ import {
   ReprocessingStatus,
 } from '../utils';
 
-type Props = RouteComponentProps<
-  {orgId: string; groupId: string; eventId?: string},
-  {}
-> & {
+export interface GroupEventDetailsProps
+  extends RouteComponentProps<{groupId: string; orgId: string; eventId?: string}, {}> {
   api: Client;
-  group: Group;
-  project: Project;
-  organization: Organization;
   environments: Environment[];
+  eventError: boolean;
+  group: Group;
   groupReprocessingStatus: ReprocessingStatus;
   loadingEvent: boolean;
-  eventError: boolean;
   onRetry: () => void;
-  event?: Event;
+  organization: Organization;
+  project: Project;
   className?: string;
-};
+  event?: Event;
+}
 
 type State = {
   eventNavLinks: string;
   releasesCompletion: any;
 };
 
-class GroupEventDetails extends Component<Props, State> {
+class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
   state: State = {
     eventNavLinks: '',
     releasesCompletion: null,
@@ -66,29 +63,9 @@ class GroupEventDetails extends Component<Props, State> {
 
   componentDidMount() {
     this.fetchData();
-
-    // First Meaningful Paint for /organizations/:orgId/issues/:groupId/
-    metric.measure({
-      name: 'app.page.perf.issue-details',
-      start: 'page-issue-details-start',
-      data: {
-        // start_type is set on 'page-issue-details-start'
-        org_id: parseInt(this.props.organization.id, 10),
-        group: this.props.organization.features.includes('enterprise-perf')
-          ? 'enterprise-perf'
-          : 'control',
-        milestone: 'first-meaningful-paint',
-        is_enterprise: this.props.organization.features
-          .includes('enterprise-orgs')
-          .toString(),
-        is_outlier: this.props.organization.features
-          .includes('enterprise-orgs-outliers')
-          .toString(),
-      },
-    });
   }
 
-  componentDidUpdate(prevProps: Props) {
+  componentDidUpdate(prevProps: GroupEventDetailsProps) {
     const {environments, params, location, organization, project} = this.props;
 
     const environmentsHaveChanged = !isEqual(prevProps.environments, environments);
@@ -125,8 +102,7 @@ class GroupEventDetails extends Component<Props, State> {
   }
 
   componentWillUnmount() {
-    const {api} = this.props;
-    api.clear();
+    this.props.api.clear();
   }
 
   fetchData = async () => {
@@ -143,7 +119,7 @@ class GroupEventDetails extends Component<Props, State> {
     );
     fetchSentryAppInstallations(api, orgSlug);
 
-    // TODO(marcos): Sometimes GlobalSelectionStore cannot pick a project.
+    // TODO(marcos): Sometimes PageFiltersStore cannot pick a project.
     if (projectId) {
       fetchSentryAppComponents(api, orgSlug, projectId);
     } else {
@@ -159,12 +135,12 @@ class GroupEventDetails extends Component<Props, State> {
   };
 
   get showExampleCommit() {
-    const {project} = this.props;
-    const {releasesCompletion} = this.state;
     return (
-      project?.isMember &&
-      project?.firstEvent &&
-      releasesCompletion?.some(({step, complete}) => step === 'commit' && !complete)
+      this.props.project?.isMember &&
+      this.props.project?.firstEvent &&
+      this.state.releasesCompletion?.some(
+        ({step, complete}) => step === 'commit' && !complete
+      )
     );
   }
 
@@ -178,6 +154,8 @@ class GroupEventDetails extends Component<Props, State> {
       loadingEvent,
       onRetry,
       eventError,
+      router,
+      route,
     } = this.props;
 
     if (loadingEvent) {
@@ -198,6 +176,8 @@ class GroupEventDetails extends Component<Props, State> {
         project={project}
         location={location}
         showExampleCommit={this.showExampleCommit}
+        router={router}
+        route={route}
       />
     );
   }
@@ -247,13 +227,8 @@ class GroupEventDetails extends Component<Props, State> {
     const mostRecentActivity = getGroupMostRecentActivity(activities);
 
     return (
-      <div className={className}>
-        {event && (
-          <ErrorBoundary customComponent={null}>
-            <SuggestProjectCTA event={event} organization={organization} />
-          </ErrorBoundary>
-        )}
-        <div className="event-details-container">
+      <div className={className} data-test-id="group-event-details">
+        <StyledLayoutBody>
           {hasReprocessingV2Feature &&
           groupReprocessingStatus === ReprocessingStatus.REPROCESSING ? (
             <ReprocessingProgress
@@ -265,7 +240,7 @@ class GroupEventDetails extends Component<Props, State> {
             />
           ) : (
             <Fragment>
-              <div className="primary">
+              <StyledLayoutMain>
                 {eventWithMeta && (
                   <GroupEventToolbar
                     group={group}
@@ -275,23 +250,25 @@ class GroupEventDetails extends Component<Props, State> {
                     project={project}
                   />
                 )}
-                {group.status === 'ignored' && (
-                  <MutedBox statusDetails={group.statusDetails} />
-                )}
-                {group.status === 'resolved' && (
-                  <ResolutionBox
-                    statusDetails={group.statusDetails}
-                    activities={activities}
-                    projectId={project.id}
-                  />
-                )}
-                {this.renderReprocessedBox(
-                  groupReprocessingStatus,
-                  mostRecentActivity as GroupActivityReprocess
-                )}
+                <Wrapper>
+                  {group.status === 'ignored' && (
+                    <MutedBox statusDetails={group.statusDetails} />
+                  )}
+                  {group.status === 'resolved' && (
+                    <ResolutionBox
+                      statusDetails={group.statusDetails}
+                      activities={activities}
+                      projectId={project.id}
+                    />
+                  )}
+                  {this.renderReprocessedBox(
+                    groupReprocessingStatus,
+                    mostRecentActivity as GroupActivityReprocess
+                  )}
+                </Wrapper>
                 {this.renderContent(eventWithMeta)}
-              </div>
-              <div className="secondary">
+              </StyledLayoutMain>
+              <StyledLayoutSide>
                 <GroupSidebar
                   organization={organization}
                   project={project}
@@ -299,14 +276,39 @@ class GroupEventDetails extends Component<Props, State> {
                   event={eventWithMeta}
                   environments={environments}
                 />
-              </div>
+              </StyledLayoutSide>
             </Fragment>
           )}
-        </div>
+        </StyledLayoutBody>
       </div>
     );
   }
 }
+
+const StyledLayoutBody = styled(Layout.Body)`
+  /* Makes the borders align correctly */
+  padding: 0 !important;
+`;
+
+const Wrapper = styled('div')`
+  margin-bottom: -1px;
+`;
+
+const StyledLayoutMain = styled(Layout.Main)`
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+    border-right: 1px solid ${p => p.theme.border};
+    padding-right: 0;
+  }
+`;
+
+const StyledLayoutSide = styled(Layout.Side)`
+  padding: ${space(3)} ${space(2)} ${space(3)};
+
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+    padding-right: ${space(4)};
+    padding-left: 0;
+  }
+`;
 
 export default styled(GroupEventDetails)`
   display: flex;

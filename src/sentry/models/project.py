@@ -1,14 +1,17 @@
+from __future__ import annotations
+
 import logging
 import warnings
 from collections import defaultdict
-from typing import TYPE_CHECKING, Sequence
+from itertools import chain
+from typing import TYPE_CHECKING, Iterable, Mapping, Sequence
 from uuid import uuid1
 
 import sentry_sdk
 from django.conf import settings
 from django.db import IntegrityError, models, transaction
 from django.db.models import QuerySet
-from django.db.models.signals import post_delete, post_save, pre_delete
+from django.db.models.signals import pre_delete
 from django.utils import timezone
 from django.utils.http import urlencode
 from django.utils.translation import ugettext_lazy as _
@@ -26,7 +29,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
-from sentry.tasks.code_owners import update_code_owners_schema
+from sentry.snuba.models import SnubaQuery
 from sentry.utils import metrics
 from sentry.utils.colors import get_hashed_color
 from sentry.utils.http import absolute_uri
@@ -34,48 +37,25 @@ from sentry.utils.integrationdocs import integration_doc_exists
 from sentry.utils.retries import TimedRetryPolicy
 
 if TYPE_CHECKING:
-    from sentry.models import Team
+    from sentry.models import User
 
 # TODO(dcramer): pull in enum library
 ProjectStatus = ObjectStatus
 
 
-class ProjectTeamManager(BaseManager):
-    def get_for_teams_with_org_cache(self, teams: Sequence["Team"]) -> Sequence["ProjectTeam"]:
-        project_teams = (
-            self.filter(team__in=teams, project__status=ProjectStatus.VISIBLE)
-            .order_by("project__name", "project__slug")
-            .select_related("project")
-        )
-
-        # TODO(dcramer): we should query in bulk for ones we're missing here
-        orgs = {i.organization_id: i.organization for i in teams}
-
-        for project_team in project_teams:
-            project_team.project.set_cached_field_value(
-                "organization", orgs[project_team.project.organization_id]
-            )
-
-        return project_teams
-
-
-class ProjectTeam(Model):
-    __include_in_export__ = True
-
-    project = FlexibleForeignKey("sentry.Project")
-    team = FlexibleForeignKey("sentry.Team")
-
-    objects = ProjectTeamManager()
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_projectteam"
-        unique_together = (("project", "team"),)
-
-    __repr__ = sane_repr("project_id", "team_id")
-
-
 class ProjectManager(BaseManager):
+    def get_by_users(self, users: Iterable[User]) -> Mapping[int, Iterable[int]]:
+        """Given a list of users, return a mapping of each user to the projects they are a member of."""
+        project_rows = self.filter(
+            projectteam__team__organizationmemberteam__is_active=True,
+            projectteam__team__organizationmemberteam__organizationmember__user__in=users,
+        ).values_list("id", "projectteam__team__organizationmemberteam__organizationmember__user")
+
+        projects_by_user_id = defaultdict(set)
+        for project_id, user_id in project_rows:
+            projects_by_user_id[user_id].add(project_id)
+        return projects_by_user_id
+
     def get_for_user_ids(self, user_ids: Sequence[int]) -> QuerySet:
         """Returns the QuerySet of all projects that a set of Users have access to."""
         from sentry.models import ProjectStatus
@@ -86,7 +66,7 @@ class ProjectManager(BaseManager):
         )
 
     def get_for_team_ids(self, team_ids: Sequence[int]) -> QuerySet:
-        """Returns the QuerySet of all organizations that a set of Teams have access to."""
+        """Returns the QuerySet of all projects that a set of Teams have access to."""
         from sentry.models import ProjectStatus
 
         return self.filter(status=ProjectStatus.VISIBLE, teams__in=team_ids)
@@ -106,7 +86,7 @@ class ProjectManager(BaseManager):
             try:
                 team = team_list[team_list.index(team)]
             except ValueError:
-                logging.info("User does not have access to team: %s", team.id)
+                logging.info(f"User does not have access to team: {team.id}")
                 return []
 
         base_qs = self.filter(teams=team, status=ProjectStatus.VISIBLE)
@@ -119,6 +99,8 @@ class ProjectManager(BaseManager):
 
 
 class Project(Model, PendingDeletionMixin):
+    from sentry.models.projectteam import ProjectTeam
+
     """
     Projects are permission based namespaces which generally
     are the top level entry point for all data.
@@ -280,11 +262,8 @@ class Project(Model, PendingDeletionMixin):
     def get_full_name(self):
         return self.slug
 
-    def transfer_to(self, team=None, organization=None):
-        # NOTE: this will only work properly if the new team is in a different
-        # org than the existing one, which is currently the only use case in
-        # production
-        # TODO(jess): refactor this to make it an org transfer only
+    def transfer_to(self, organization):
+        from sentry.incidents.models import AlertRule
         from sentry.models import (
             Environment,
             EnvironmentProject,
@@ -293,9 +272,7 @@ class Project(Model, PendingDeletionMixin):
             ReleaseProjectEnvironment,
             Rule,
         )
-
-        if organization is None:
-            organization = team.organization
+        from sentry.models.actor import ACTOR_TYPES
 
         old_org_id = self.organization_id
         org_changed = old_org_id != organization.id
@@ -342,11 +319,48 @@ class Project(Model, PendingDeletionMixin):
                 environment_id=Environment.get_or_create(self, environment_names[environment_id]).id
             )
 
-        # ensure this actually exists in case from team was null
-        if team is not None:
-            self.add_team(team)
+        # Remove alert owners not in new org
+        alert_rules = AlertRule.objects.fetch_for_project(self).filter(owner_id__isnull=False)
+        rules = Rule.objects.filter(owner_id__isnull=False, project=self)
+        for rule in list(chain(alert_rules, rules)):
+            actor = rule.owner
+            if actor.type == ACTOR_TYPES["user"]:
+                is_member = organization.member_set.filter(user=actor.resolve()).exists()
+            if actor.type == ACTOR_TYPES["team"]:
+                is_member = actor.resolve().organization_id == organization.id
+            if not is_member:
+                rule.update(owner=None)
+
+        # [Rule, AlertRule(SnubaQuery->Environment)]
+        # id -> name
+        environment_names_with_alerts = {
+            **environment_names,
+            **{
+                env_id: env_name
+                for env_id, env_name in AlertRule.objects.fetch_for_project(self).values_list(
+                    "snuba_query__environment__id", "snuba_query__environment__name"
+                )
+            },
+        }
+
+        # conditionally create a new environment associated to the new Org -> Project -> AlertRule -> SnubaQuery
+        # this should take care of any potentially dead references from SnubaQuery -> Environment when deleting
+        # the old org
+        # alertrule ->  snuba_query -> environment_id
+        for snuba_id, environment_id in AlertRule.objects.fetch_for_project(self).values_list(
+            "snuba_query_id", "snuba_query__environment__id"
+        ):
+            SnubaQuery.objects.filter(id=snuba_id).update(
+                environment_id=Environment.get_or_create(
+                    self, name=environment_names_with_alerts.get(environment_id, None)
+                ).id
+            )
+
+        AlertRule.objects.fetch_for_project(self).update(organization=organization)
 
     def add_team(self, team):
+        from sentry.models.projectteam import ProjectTeam
+
         try:
             with transaction.atomic():
                 ProjectTeam.objects.create(project=self, team=team)
@@ -358,6 +372,7 @@ class Project(Model, PendingDeletionMixin):
     def remove_team(self, team):
         from sentry.incidents.models import AlertRule
         from sentry.models import Rule
+        from sentry.models.projectteam import ProjectTeam
 
         ProjectTeam.objects.filter(project=self, team=team).delete()
         AlertRule.objects.fetch_for_project(self).filter(owner_id=team.actor_id).update(owner=None)
@@ -373,7 +388,7 @@ class Project(Model, PendingDeletionMixin):
             return security_token
 
     def get_lock_key(self):
-        return "project_token:%s" % self.id
+        return f"project_token:{self.id}"
 
     def copy_settings_from(self, project_id):
         """
@@ -388,7 +403,13 @@ class Project(Model, PendingDeletionMixin):
         Returns True if the settings have successfully been copied over
         Returns False otherwise
         """
-        from sentry.models import EnvironmentProject, ProjectOption, ProjectOwnership, Rule
+        from sentry.models import (
+            EnvironmentProject,
+            ProjectOption,
+            ProjectOwnership,
+            ProjectTeam,
+            Rule,
+        )
 
         model_list = [EnvironmentProject, ProjectOwnership, ProjectTeam, Rule]
 
@@ -437,23 +458,3 @@ class Project(Model, PendingDeletionMixin):
 
 
 pre_delete.connect(delete_pending_deletion_option, sender=Project, weak=False)
-post_save.connect(
-    lambda instance, **kwargs: update_code_owners_schema.apply_async(
-        kwargs={
-            "organization": instance.project.organization,
-            "projects": [instance.project],
-        }
-    ),
-    sender=ProjectTeam,
-    weak=False,
-)
-post_delete.connect(
-    lambda instance, **kwargs: update_code_owners_schema.apply_async(
-        kwargs={
-            "organization": instance.project.organization,
-            "projects": [instance.project],
-        }
-    ),
-    sender=ProjectTeam,
-    weak=False,
-)

@@ -2,10 +2,10 @@ import * as React from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Theme} from 'app/utils/theme';
+import {Theme} from 'sentry/utils/theme';
 
 import SidebarMenuItemLink from './sidebarMenuItemLink';
-import {OrgSummary} from './sidebarOrgSummary';
+import SidebarOrgSummary from './sidebarOrgSummary';
 
 type Props = {
   children: React.ReactNode;
@@ -41,7 +41,7 @@ const menuItemStyles = (
     outline: none;
   }
 
-  ${OrgSummary} {
+  ${SidebarOrgSummary} {
     padding-left: 0;
     padding-right: 0;
   }
@@ -52,8 +52,8 @@ const MenuItemLabel = styled('span')<{hasMenu?: boolean}>`
   ${p =>
     p.hasMenu
       ? css`
-          margin: 0 -15px;
-          padding: 0 15px;
+          margin: 0 -${p.theme.sidebar.menuSpacing};
+          padding: 0 ${p.theme.sidebar.menuSpacing};
         `
       : css`
           overflow: hidden;

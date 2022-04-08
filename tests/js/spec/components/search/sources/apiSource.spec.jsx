@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {ApiSource} from 'app/components/search/sources/apiSource';
+import {ApiSource} from 'sentry/components/search/sources/apiSource';
 
 describe('ApiSource', function () {
   let wrapper;
@@ -69,6 +69,10 @@ describe('ApiSource', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
+      url: '/doc-integrations/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/shortids/foo-t/',
       body: [],
     });
@@ -80,8 +84,7 @@ describe('ApiSource', function () {
     wrapper = mountWithTheme(
       <ApiSource params={{orgId: org.slug}} query="foo">
         {mock}
-      </ApiSource>,
-      TestStubs.routerContext()
+      </ApiSource>
     );
 
     expect(orgsMock).toHaveBeenCalled();
@@ -97,8 +100,7 @@ describe('ApiSource', function () {
     wrapper = mountWithTheme(
       <ApiSource params={{orgId: org.slug}} query="test-">
         {mock}
-      </ApiSource>,
-      TestStubs.routerContext()
+      </ApiSource>
     );
 
     await tick();
@@ -131,6 +133,7 @@ describe('ApiSource', function () {
               to: '/org-slug/project-slug/issues/1/',
             }),
             score: 1,
+            refIndex: 0,
           },
         ],
       })
@@ -142,8 +145,7 @@ describe('ApiSource', function () {
     wrapper = mountWithTheme(
       <ApiSource params={{orgId: org.slug}} query="1234567890123456789012345678901">
         {mock}
-      </ApiSource>,
-      TestStubs.routerContext()
+      </ApiSource>
     );
 
     await tick();
@@ -177,6 +179,7 @@ describe('ApiSource', function () {
               to: '/org-slug/project-slug/issues/1/events/12345678901234567890123456789012/',
             }),
             score: 1,
+            refIndex: 0,
           },
         ],
       })
@@ -188,8 +191,7 @@ describe('ApiSource', function () {
     wrapper = mountWithTheme(
       <ApiSource params={{}} query="foo">
         {mock}
-      </ApiSource>,
-      TestStubs.routerContext()
+      </ApiSource>
     );
 
     expect(orgsMock).toHaveBeenCalled();
@@ -203,8 +205,7 @@ describe('ApiSource', function () {
     wrapper = mountWithTheme(
       <ApiSource params={{orgId: org.slug}} organization={org} query="foo">
         {mock}
-      </ApiSource>,
-      TestStubs.routerContext()
+      </ApiSource>
     );
 
     await tick();
@@ -254,6 +255,18 @@ describe('ApiSource', function () {
               slug: 'foo-project',
             }),
             sourceType: 'project',
+            resultType: 'route',
+            to: '/organizations/org-slug/alerts/rules/?project=2',
+          }),
+          matches: expect.anything(),
+          score: expect.anything(),
+        }),
+        expect.objectContaining({
+          item: expect.objectContaining({
+            model: expect.objectContaining({
+              slug: 'foo-project',
+            }),
+            sourceType: 'project',
             resultType: 'settings',
             to: '/settings/org-slug/projects/foo-project/',
           }),
@@ -291,8 +304,7 @@ describe('ApiSource', function () {
     wrapper = mountWithTheme(
       <ApiSource params={{orgId: org.slug}} query="foo">
         {mock}
-      </ApiSource>,
-      TestStubs.routerContext()
+      </ApiSource>
     );
 
     await tick();
@@ -326,7 +338,7 @@ describe('ApiSource', function () {
 
     // The return values here are because of fuzzy search matching.
     // There are no members that match
-    expect(mock.mock.calls[1][0].results).toHaveLength(4);
+    expect(mock.mock.calls[1][0].results).toHaveLength(3);
   });
 
   it('render function is updated as query changes', async function () {
@@ -334,8 +346,7 @@ describe('ApiSource', function () {
     wrapper = mountWithTheme(
       <ApiSource params={{orgId: org.slug}} query="foo">
         {mock}
-      </ApiSource>,
-      TestStubs.routerContext()
+      </ApiSource>
     );
 
     await tick();
@@ -352,7 +363,7 @@ describe('ApiSource', function () {
     wrapper.update();
 
     // Still have 4 results, but is re-ordered
-    expect(mock.mock.calls[0][0].results).toHaveLength(5);
+    expect(mock.mock.calls[0][0].results).toHaveLength(6);
     expect(mock.mock.calls[0][0].results[0].item.model.slug).toBe('foo-team');
   });
 
@@ -363,8 +374,7 @@ describe('ApiSource', function () {
       wrapper = mountWithTheme(
         <ApiSource params={{orgId: org.slug}} query="">
           {mock}
-        </ApiSource>,
-        TestStubs.routerContext()
+        </ApiSource>
       );
     });
 

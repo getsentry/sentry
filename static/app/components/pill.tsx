@@ -1,21 +1,21 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
-import {Theme} from 'app/utils/theme';
+import space from 'sentry/styles/space';
+import {Theme} from 'sentry/utils/theme';
 
 type PillType = 'positive' | 'negative' | 'error';
 
 type Props = {
-  type?: PillType;
-  name?: React.ReactNode;
-  value?: number | string | boolean | null;
   children?: React.ReactNode;
   className?: string;
+  name?: React.ReactNode;
+  type?: PillType;
+  value?: number | string | boolean | null;
 };
 
 const Pill = React.memo(({name, value, children, type, className}: Props) => {
-  const getTypeAndValue = (): Partial<{valueType: PillType; renderValue: string}> => {
+  const getTypeAndValue = (): Partial<{renderValue: string; valueType: PillType}> => {
     if (value === undefined) {
       return {};
     }
@@ -57,12 +57,10 @@ const Pill = React.memo(({name, value, children, type, className}: Props) => {
   );
 });
 
-const getPillStyle = ({type, theme}: {type?: PillType; theme: Theme}) => {
+const getPillStyle = ({type, theme}: {theme: Theme; type?: PillType}) => {
   switch (type) {
     case 'error':
       return `
-        color: ${theme.black};
-        background: ${theme.red100};
         background: ${theme.red100};
         border: 1px solid ${theme.red300};
       `;
@@ -73,11 +71,10 @@ const getPillStyle = ({type, theme}: {type?: PillType; theme: Theme}) => {
   }
 };
 
-const getPillValueStyle = ({type, theme}: {type?: PillType; theme: Theme}) => {
+const getPillValueStyle = ({type, theme}: {theme: Theme; type?: PillType}) => {
   switch (type) {
     case 'positive':
       return `
-        color: ${theme.black};
         background: ${theme.green100};
         border: 1px solid ${theme.green300};
         border-left-color: ${theme.green300};
@@ -86,7 +83,6 @@ const getPillValueStyle = ({type, theme}: {type?: PillType; theme: Theme}) => {
       `;
     case 'error':
       return `
-        color: ${theme.black};
         border-left-color: ${theme.red300};
         background: ${theme.red100};
         border: 1px solid ${theme.red300};
@@ -94,7 +90,6 @@ const getPillValueStyle = ({type, theme}: {type?: PillType; theme: Theme}) => {
       `;
     case 'negative':
       return `
-        color: ${theme.black};
         border-left-color: ${theme.red300};
         background: ${theme.red100};
         border: 1px solid ${theme.red300};

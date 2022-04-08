@@ -1,7 +1,7 @@
 import isEmpty from 'lodash/isEmpty';
 import isNull from 'lodash/isNull';
 
-import {Meta} from 'app/types';
+import {Meta} from 'sentry/types';
 
 const GET_META = Symbol('GET_META');
 const IS_PROXY = Symbol('IS_PROXY');

@@ -1,15 +1,21 @@
 import logging
 
+import sentry_sdk
 from rest_framework.exceptions import ParseError
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.search.events.fields import is_function
-from sentry.snuba import discover
+from sentry.snuba import discover, metrics_enhanced_performance
 
 logger = logging.getLogger(__name__)
+
+METRICS_ENHANCED_REFERRERS = {
+    "api.performance.landing-table",
+}
 
 ALLOWED_EVENTS_V2_REFERRERS = {
     "api.organization-events-v2",
@@ -20,6 +26,7 @@ ALLOWED_EVENTS_V2_REFERRERS = {
     "api.performance.vitals-cards",
     "api.performance.landing-table",
     "api.performance.transaction-summary",
+    "api.performance.transaction-spans",
     "api.performance.status-breakdown",
     "api.performance.vital-detail",
     "api.performance.durationpercentilechart",
@@ -36,22 +43,7 @@ ALLOWED_EVENTS_GEO_REFERRERS = {
 
 
 class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
-    def has_feature_for_fields(self, feature, organization, request, feature_fields):
-        has_feature = features.has(feature, organization, actor=request.user)
-
-        columns = self.get_field_list(organization, request)
-
-        if has_feature:
-            return True
-
-        if any(field in columns for field in feature_fields):
-            return False
-
-        # TODO: Check feature for search terms in the query
-
-        return True
-
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
 
@@ -61,37 +53,42 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
             return Response([])
 
         referrer = request.GET.get("referrer")
+        performance_use_metrics = features.has(
+            "organizations:performance-use-metrics", organization=organization, actor=request.user
+        )
+        performance_dry_run_mep = features.has(
+            "organizations:performance-dry-run-mep", organization=organization, actor=request.user
+        )
+        metrics_enhanced = request.GET.get("metricsEnhanced") == "1" and performance_use_metrics
+        sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
+        allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
         referrer = (
             referrer if referrer in ALLOWED_EVENTS_V2_REFERRERS else "api.organization-events-v2"
         )
 
-        if not self.has_feature_for_fields(
-            "organizations:project-transaction-threshold",
-            organization,
-            request,
-            feature_fields=[
-                "project_threshold_config",
-                "count_miserable(user)",
-                "user_misery()",
-                "apdex()",
-            ],
-        ):
-            return Response(status=404)
-
         def data_fn(offset, limit):
-            return discover.query(
-                selected_columns=self.get_field_list(organization, request),
-                query=request.GET.get("query"),
-                params=params,
-                equations=self.get_equation_list(organization, request),
-                orderby=self.get_orderby(request),
-                offset=offset,
-                limit=limit,
-                referrer=referrer,
-                auto_fields=True,
-                auto_aggregations=True,
-                use_aggregate_conditions=True,
-            )
+            dataset = discover if not metrics_enhanced else metrics_enhanced_performance
+            query_details = {
+                "selected_columns": self.get_field_list(organization, request),
+                "query": request.GET.get("query"),
+                "params": params,
+                "equations": self.get_equation_list(organization, request),
+                "orderby": self.get_orderby(request),
+                "offset": offset,
+                "limit": limit,
+                "referrer": referrer,
+                "auto_fields": True,
+                "auto_aggregations": True,
+                "use_aggregate_conditions": True,
+                "allow_metric_aggregates": allow_metric_aggregates,
+                "use_snql": features.has(
+                    "organizations:discover-use-snql", organization, actor=request.user
+                ),
+            }
+            if not metrics_enhanced and performance_dry_run_mep:
+                sentry_sdk.set_tag("query.mep_compatible", False)
+                metrics_enhanced_performance.query(dry_run=True, **query_details)
+            return dataset.query(**query_details)
 
         with self.handle_query_errors():
             # Don't include cursor headers if the client won't be using them
@@ -115,10 +112,10 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
 
 
 class OrganizationEventsGeoEndpoint(OrganizationEventsV2EndpointBase):
-    def has_feature(self, request, organization):
+    def has_feature(self, request: Request, organization):
         return features.has("organizations:dashboards-basic", organization, actor=request.user)
 
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         if not self.has_feature(request, organization):
             return Response(status=404)
 
@@ -149,6 +146,10 @@ class OrganizationEventsGeoEndpoint(OrganizationEventsV2EndpointBase):
                 limit=limit,
                 referrer=referrer,
                 use_aggregate_conditions=True,
+                orderby=self.get_orderby(request) or maybe_aggregate,
+                use_snql=features.has(
+                    "organizations:discover-use-snql", organization, actor=request.user
+                ),
             )
 
         with self.handle_query_errors():

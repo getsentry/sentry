@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
-import AccountClose from 'app/views/settings/account/accountClose';
+import AccountClose from 'sentry/views/settings/account/accountClose';
 
 describe('AccountClose', function () {
   let deleteMock;
@@ -32,7 +32,7 @@ describe('AccountClose', function () {
   });
 
   it('lists all orgs user is an owner of', async function () {
-    const wrapper = mountWithTheme(<AccountClose />, TestStubs.routerContext());
+    const wrapper = mountWithTheme(<AccountClose />);
 
     // Input for single owner org
     expect(wrapper.find('input').first().prop('checked')).toBe(true);

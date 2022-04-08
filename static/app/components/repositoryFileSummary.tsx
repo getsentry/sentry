@@ -1,15 +1,15 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import FileChange from 'app/components/fileChange';
-import {ListGroup, ListGroupItem} from 'app/components/listGroup';
-import {t, tn} from 'app/locale';
-import space from 'app/styles/space';
-import {FilesByRepository} from 'app/types';
+import FileChange from 'sentry/components/fileChange';
+import {ListGroup, ListGroupItem} from 'sentry/components/listGroup';
+import {t, tn} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {FilesByRepository} from 'sentry/types';
 
 type CollapsedProps = {
-  onClick: React.MouseEventHandler<HTMLAnchorElement>;
   count: number;
+  onClick: React.MouseEventHandler<HTMLAnchorElement>;
 };
 
 function Collapsed(props: CollapsedProps) {
@@ -23,20 +23,20 @@ function Collapsed(props: CollapsedProps) {
 }
 
 type Props = {
+  collapsible: boolean;
   fileChangeSummary: FilesByRepository[string];
-  repository: string;
-  collapsable: boolean;
   maxWhenCollapsed: number;
+  repository: string;
 };
 
 type State = {
-  loading: boolean;
   collapsed: boolean;
+  loading: boolean;
 };
 
 class RepositoryFileSummary extends React.Component<Props, State> {
   static defaultProps = {
-    collapsable: true,
+    collapsible: true,
     maxWhenCollapsed: 5,
   };
 
@@ -52,15 +52,15 @@ class RepositoryFileSummary extends React.Component<Props, State> {
   };
 
   render() {
-    const {repository, fileChangeSummary, collapsable, maxWhenCollapsed} = this.props;
+    const {repository, fileChangeSummary, collapsible, maxWhenCollapsed} = this.props;
     let files = Object.keys(fileChangeSummary);
     const fileCount = files.length;
     files.sort();
-    if (this.state.collapsed && collapsable && fileCount > maxWhenCollapsed) {
+    if (this.state.collapsed && collapsible && fileCount > maxWhenCollapsed) {
       files = files.slice(0, maxWhenCollapsed);
     }
     const numCollapsed = fileCount - files.length;
-    const canCollapse = collapsable && fileCount > maxWhenCollapsed;
+    const canCollapse = collapsible && fileCount > maxWhenCollapsed;
     return (
       <Container>
         <h5>

@@ -1,23 +1,23 @@
 import {Component, Fragment} from 'react';
 
-import {ModalRenderProps} from 'app/actionCreators/modal';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import {t} from 'app/locale';
-import {Choices, ResolutionStatusDetails} from 'app/types';
-import InputField from 'app/views/settings/components/forms/inputField';
-import SelectField from 'app/views/settings/components/forms/selectField';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import InputField from 'sentry/components/forms/inputField';
+import SelectField from 'sentry/components/forms/selectField';
+import {t} from 'sentry/locale';
+import {ResolutionStatusDetails, SelectValue} from 'sentry/types';
 
 type CountNames = 'ignoreCount' | 'ignoreUserCount';
 type WindowNames = 'ignoreWindow' | 'ignoreUserWindow';
 
 type Props = ModalRenderProps & {
-  onSelected: (statusDetails: ResolutionStatusDetails) => void;
-  label: string;
   countLabel: string;
   countName: CountNames;
+  label: string;
+  onSelected: (statusDetails: ResolutionStatusDetails) => void;
   windowName: WindowNames;
-  windowChoices: Choices;
+  windowOptions: SelectValue<number>[];
 };
 
 type State = {
@@ -48,7 +48,7 @@ class CustomIgnoreCountModal extends Component<Props, State> {
   };
 
   render() {
-    const {Header, Footer, Body, countLabel, label, closeModal, windowChoices} =
+    const {Header, Footer, Body, countLabel, label, closeModal, windowOptions} =
       this.props;
     const {count, window} = this.state;
     return (
@@ -77,7 +77,7 @@ class CustomIgnoreCountModal extends Component<Props, State> {
             value={window}
             name="window"
             onChange={val => this.handleChange('window' as const, val)}
-            choices={windowChoices}
+            options={windowOptions}
             placeholder={t('e.g. per hour')}
             allowClear
             help={t('(Optional) If supplied, this rule will apply as a rate of change.')}

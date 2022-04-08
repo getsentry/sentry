@@ -3,23 +3,22 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import Alert from 'app/components/alert';
-import Breadcrumbs from 'app/components/breadcrumbs';
-import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
-import SearchBar from 'app/components/events/searchBar';
-import * as Layout from 'app/components/layouts/thirds';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import {MAX_QUERY_LENGTH} from 'app/constants';
-import {IconFlag} from 'app/icons/iconFlag';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {GlobalSelection, Organization} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import EventView from 'app/utils/discover/eventView';
-import {generateAggregateFields} from 'app/utils/discover/fields';
-import {decodeScalar} from 'app/utils/queryString';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
+import Alert from 'sentry/components/alert';
+import Breadcrumbs from 'sentry/components/breadcrumbs';
+import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
+import SearchBar from 'sentry/components/events/searchBar';
+import * as Layout from 'sentry/components/layouts/thirds';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import {MAX_QUERY_LENGTH} from 'sentry/constants';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, PageFilters, Project} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import EventView from 'sentry/utils/discover/eventView';
+import {generateAggregateFields} from 'sentry/utils/discover/fields';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {getPerformanceLandingUrl, getTransactionSearchQuery} from '../utils';
 
@@ -31,22 +30,30 @@ import {
   getCurrentTrendFunction,
   getCurrentTrendParameter,
   getSelectedQueryKey,
-  getTrendsParameters,
   modifyTrendsViewDefaultPeriod,
   resetCursors,
   TRENDS_FUNCTIONS,
+  TRENDS_PARAMETERS,
 } from './utils';
 
 type Props = {
-  organization: Organization;
-  location: Location;
   eventView: EventView;
-  selection: GlobalSelection;
+  location: Location;
+  organization: Organization;
+  projects: Project[];
+  selection: PageFilters;
 };
 
 type State = {
   error?: string;
   previousTrendFunction?: TrendFunctionField;
+};
+
+export const defaultTrendsSelectionDate = {
+  start: null,
+  end: null,
+  utc: false,
+  period: DEFAULT_TRENDS_STATS_PERIOD,
 };
 
 class TrendsContent extends React.Component<Props, State> {
@@ -113,7 +120,7 @@ class TrendsContent extends React.Component<Props, State> {
     }
 
     return (
-      <Alert type="error" icon={<IconFlag size="md" />}>
+      <Alert type="error" showIcon>
         {error}
       </Alert>
     );
@@ -161,7 +168,7 @@ class TrendsContent extends React.Component<Props, State> {
   }
 
   render() {
-    const {organization, eventView, location} = this.props;
+    const {organization, eventView, location, projects} = this.props;
     const {previousTrendFunction} = this.state;
 
     const trendView = eventView.clone() as TrendView;
@@ -192,22 +199,17 @@ class TrendsContent extends React.Component<Props, State> {
       ['epm()', 'eps()']
     );
     const currentTrendFunction = getCurrentTrendFunction(location);
-    const currentTrendParameter = getCurrentTrendParameter(location);
+    const currentTrendParameter = getCurrentTrendParameter(
+      location,
+      projects,
+      eventView.project
+    );
     const query = getTransactionSearchQuery(location);
 
-    const TRENDS_PARAMETERS = getTrendsParameters({
-      canSeeSpanOpTrends: organization.features.includes('performance-ops-breakdown'),
-    });
-
     return (
-      <GlobalSelectionHeader
+      <PageFiltersContainer
         defaultSelection={{
-          datetime: {
-            start: null,
-            end: null,
-            utc: false,
-            period: DEFAULT_TRENDS_STATS_PERIOD,
-          },
+          datetime: defaultTrendsSelectionDate,
         }}
       >
         <Layout.Header>
@@ -228,7 +230,7 @@ class TrendsContent extends React.Component<Props, State> {
         </Layout.Header>
         <Layout.Body>
           <Layout.Main fullWidth>
-            <DefaultTrends location={location} eventView={eventView}>
+            <DefaultTrends location={location} eventView={eventView} projects={projects}>
               <StyledSearchContainer>
                 <StyledSearchBar
                   searchSource="trends"
@@ -239,7 +241,7 @@ class TrendsContent extends React.Component<Props, State> {
                   onSearch={this.handleSearch}
                   maxQueryLength={MAX_QUERY_LENGTH}
                 />
-                <TrendsDropdown>
+                <TrendsDropdown data-test-id="trends-dropdown">
                   <DropdownControl
                     buttonProps={{prefix: t('Percentile')}}
                     label={currentTrendFunction.label}
@@ -295,38 +297,39 @@ class TrendsContent extends React.Component<Props, State> {
             </DefaultTrends>
           </Layout.Main>
         </Layout.Body>
-      </GlobalSelectionHeader>
+      </PageFiltersContainer>
     );
   }
 }
 
 type DefaultTrendsProps = {
   children: React.ReactNode[];
-  location: Location;
   eventView: EventView;
+  location: Location;
+  projects: Project[];
 };
 
 class DefaultTrends extends React.Component<DefaultTrendsProps> {
   hasPushedDefaults = false;
 
   render() {
-    const {children, location, eventView} = this.props;
+    const {children, location, eventView, projects} = this.props;
 
     const queryString = decodeScalar(location.query.query);
-    const trendParameter = getCurrentTrendParameter(location);
+    const trendParameter = getCurrentTrendParameter(
+      location,
+      projects,
+      eventView.project
+    );
     const conditions = new MutableSearch(queryString || '');
 
     if (queryString || this.hasPushedDefaults) {
       this.hasPushedDefaults = true;
       return <React.Fragment>{children}</React.Fragment>;
-    } else {
-      this.hasPushedDefaults = true;
-      conditions.setFilterValues('tpm()', ['>0.01']);
-      conditions.setFilterValues(trendParameter.column, [
-        '>0',
-        `<${DEFAULT_MAX_DURATION}`,
-      ]);
     }
+    this.hasPushedDefaults = true;
+    conditions.setFilterValues('tpm()', ['>0.01']);
+    conditions.setFilterValues(trendParameter.column, ['>0', `<${DEFAULT_MAX_DURATION}`]);
 
     const query = conditions.formatString();
     eventView.query = query;
@@ -359,7 +362,7 @@ const StyledSearchContainer = styled('div')`
 
 const TrendsLayoutContainer = styled('div')`
   display: grid;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -367,4 +370,4 @@ const TrendsLayoutContainer = styled('div')`
   }
 `;
 
-export default withGlobalSelection(TrendsContent);
+export default withPageFilters(TrendsContent);

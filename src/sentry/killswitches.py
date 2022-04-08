@@ -77,6 +77,49 @@ ALL_KILLSWITCH_OPTIONS = {
             "platform": "The event platform as defined in the event payload's platform field, or 'none'",
         },
     ),
+    "store.symbolicate-event-lpq-never": KillswitchInfo(
+        description="""
+        Never allow a project's symbolication events to be demoted to symbolicator's low priority queue.
+
+        If a project is in both store.symbolicate-event-lpq-never and store.symbolicate-event-lpq-always,
+        store.symbolicate-event-lpq-never will always take precedence.
+        """,
+        fields={
+            "project_id": "A project ID to filter events by.",
+        },
+    ),
+    "store.symbolicate-event-lpq-always": KillswitchInfo(
+        description="""
+        Always push a project's symbolication events to symbolicator's low priority queue.
+
+        If a project is in both store.symbolicate-event-lpq-never and store.symbolicate-event-lpq-always,
+        store.symbolicate-event-lpq-never will always take precedence.
+        """,
+        fields={
+            "project_id": "A project ID to filter events by.",
+        },
+    ),
+    "post_process.get-autoassign-owners": KillswitchInfo(
+        description="""
+        Prevent project from running ProjectOwnership._matching_ownership_rules.
+
+        In case project has too many ownership rules, spike of events from that
+        project can cause post_process tasks backlog.
+        """,
+        fields={
+            "project_id": "A project ID to filter events by.",
+        },
+    ),
+    "reprocessing2.drop-delete-old-primary-hash": KillswitchInfo(
+        description="""
+        Drop per-event messages emitted from delete_old_primary_hash. This message is currently lacking batching, and for the time being we should be able to drop it on a whim.
+
+        Side-effect is that events appear in Discover that are
+        supposed to be deleted. They have no valid group_id so
+        they're hidden in issuestream.
+        """,
+        fields={"project_id": "A project ID to filter those messages by."},
+    ),
 }
 
 

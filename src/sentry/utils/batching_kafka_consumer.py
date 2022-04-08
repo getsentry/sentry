@@ -57,6 +57,61 @@ def wait_for_topics(admin_client: AdminClient, topics: List[str], timeout: int =
                 )
 
 
+def create_topics(topics: List[str]):
+    """If configured to do so, create topics and make sure that they exist
+
+    topics must be from the same cluster.
+    """
+    if settings.KAFKA_CONSUMER_AUTO_CREATE_TOPICS:
+        cluster_names = {settings.KAFKA_TOPICS[topic]["cluster"] for topic in topics}
+        assert len(cluster_names) == 1
+        # This is required for confluent-kafka>=1.5.0, otherwise the topics will
+        # not be automatically created.
+        conf = kafka_config.get_kafka_admin_cluster_options(
+            cluster_names.pop(), override_params={"allow.auto.create.topics": "true"}
+        )
+        admin_client = AdminClient(conf)
+        wait_for_topics(admin_client, topics)
+
+
+class KafkaConsumerFacade(abc.ABC):
+    """
+    Kafka consumer facade which defines the minimal set of methods to be implemented in order to be used as a consumer
+    with BatchingKafkaConsumer. Additional documentation of the API's defined in this class can be found at
+    https://docs.confluent.io/platform/current/clients/confluent-kafka-python/html/index.html#pythonclient-consumer
+    """
+
+    @abc.abstractmethod
+    def subscribe(self, topics, on_assign=None, on_revoke=None):
+        """
+        Set subscription to supplied list of topics. on_assign and on_revoke are callbacks which would be called when
+        topics are assigned or revoked.
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def poll(self, timeout):
+        """
+        Consume a single message from the topic. timeout provides the about of time to wait for a message before
+        returning.
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def commit(self, *args, **kwargs):
+        """
+        Commit list of offsets.
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def close(self):
+        """
+        Close down and terminate the Kafka Consumer.
+        """
+        raise NotImplementedError
+
+
 class AbstractBatchWorker(metaclass=abc.ABCMeta):
     """The `BatchingKafkaConsumer` requires an instance of this class to
     handle user provided work such as processing raw messages and flushing
@@ -65,7 +120,7 @@ class AbstractBatchWorker(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def process_message(self, message):
         """Called with each (raw) Kafka message, allowing the worker to do
-        incremental (preferablly local!) work on events. The object returned
+        incremental (preferably local!) work on events. The object returned
         is put into the batch maintained by the `BatchingKafkaConsumer`.
 
         If this method returns `None` it is not added to the batch.
@@ -112,6 +167,21 @@ class BatchingKafkaConsumer:
     * Supports an optional "dead letter topic" where messages that raise an exception during
       `process_message` are sent so as not to block the pipeline.
 
+    A note on commit_on_shutdown parameter
+    If the process_message method of the worker provided to BatchingKafkaConsumer just works
+    with in memory stuff and does not influence/modify any external systems, then its ok to
+    keep the flag to False. But if the process_message method of the worker influences/modifies
+    any external systems then its necessary to set it to True to avoid duplicate work on the
+    external systems.
+    Example:
+        1. Worker process which deserializes the message and extracts a few needed parameters
+        can leave the commit_on_shutdown flag to False. This is ok since the next consumer which
+        picks up the work will rebuild its state from the messages which have not been committed.
+        2. Worker process which sends tasks to celery based on the message needs to set
+        commit_on_shutdown to True to avoid duplicate work.
+    This is different than the note below since crash scenarios are harder to handle and its ok for
+    duplicates to occur in crash cases.
+
     NOTE: This does not eliminate the possibility of duplicates if the consumer process
     crashes between writing to its backend and commiting Kafka offsets. This should eliminate
     the possibility of *losing* data though. An "exactly once" consumer would need to store
@@ -134,8 +204,9 @@ class BatchingKafkaConsumer:
         worker,
         max_batch_size,
         max_batch_time,
-        cluster_name,
-        group_id,
+        consumer=None,
+        cluster_name=None,
+        group_id=None,
         metrics=None,
         producer=None,
         dead_letter_topic=None,
@@ -145,6 +216,7 @@ class BatchingKafkaConsumer:
         queued_min_messages=DEFAULT_QUEUED_MIN_MESSAGES,
         metrics_sample_rates=None,
         metrics_default_tags=None,
+        commit_on_shutdown: bool = False,
     ):
         assert isinstance(worker, AbstractBatchWorker)
         self.worker = worker
@@ -157,6 +229,7 @@ class BatchingKafkaConsumer:
         )
         self.__metrics_default_tags = metrics_default_tags or {}
         self.group_id = group_id
+        self.commit_on_shutdown = commit_on_shutdown
 
         self.shutdown = False
 
@@ -177,18 +250,33 @@ class BatchingKafkaConsumer:
         if queued_max_messages_kbytes is None:
             queued_max_messages_kbytes = DEFAULT_QUEUED_MAX_MESSAGE_KBYTES
 
-        self.consumer = self.create_consumer(
-            topics,
-            cluster_name,
-            group_id,
-            auto_offset_reset,
-            queued_max_messages_kbytes,
-            queued_min_messages,
-        )
-
         self.producer = producer
         self.commit_log_topic = commit_log_topic
         self.dead_letter_topic = dead_letter_topic
+        if not consumer:
+            self.consumer = self.create_consumer(
+                topics,
+                cluster_name,
+                group_id,
+                auto_offset_reset,
+                queued_max_messages_kbytes,
+                queued_min_messages,
+            )
+        else:
+            assert isinstance(consumer, KafkaConsumerFacade)
+            self.consumer = consumer
+
+        def on_partitions_assigned(consumer, partitions):
+            logger.info("New partitions assigned: %r", partitions)
+
+        def on_partitions_revoked(consumer, partitions):
+            "Reset the current in-memory batch, letting the next consumer take over where we left off."
+            logger.info("Partitions revoked: %r", partitions)
+            self._flush(force=True)
+
+        self.consumer.subscribe(
+            topics, on_assign=on_partitions_assigned, on_revoke=on_partitions_revoked
+        )
 
     def __record_timing(self, metric, value, tags=None):
         if self.__metrics is None:
@@ -221,28 +309,9 @@ class BatchingKafkaConsumer:
             },
         )
 
-        if settings.KAFKA_CONSUMER_AUTO_CREATE_TOPICS:
-            # This is required for confluent-kafka>=1.5.0, otherwise the topics will
-            # not be automatically created.
-            conf = kafka_config.get_kafka_admin_cluster_options(
-                cluster_name, override_params={"allow.auto.create.topics": "true"}
-            )
-            admin_client = AdminClient(conf)
-            wait_for_topics(admin_client, topics)
+        create_topics(topics)
 
         consumer = Consumer(consumer_config)
-
-        def on_partitions_assigned(consumer, partitions):
-            logger.info("New partitions assigned: %r", partitions)
-
-        def on_partitions_revoked(consumer, partitions):
-            "Reset the current in-memory batch, letting the next consumer take over where we left off."
-            logger.info("Partitions revoked: %r", partitions)
-            self._flush(force=True)
-
-        consumer.subscribe(
-            topics, on_assign=on_partitions_assigned, on_revoke=on_partitions_revoked
-        )
 
         return consumer
 
@@ -325,14 +394,20 @@ class BatchingKafkaConsumer:
     def _shutdown(self):
         logger.debug("Stopping")
 
-        # drop in-memory events, letting the next consumer take over where we left off
-        self._reset_batch()
+        if self.commit_on_shutdown:
+            self._flush(force=True)
+        else:
+            # drop in-memory events, letting the next consumer take over where we left off
+            self._reset_batch()
 
         # tell the consumer to shutdown, and close the consumer
         logger.debug("Stopping worker")
         self.worker.shutdown()
         logger.debug("Stopping consumer")
         self.consumer.close()
+        if self.dead_letter_topic:
+            logger.debug("Stopping producer")
+            self.producer.close()
         logger.debug("Stopped")
 
     def _reset_batch(self):

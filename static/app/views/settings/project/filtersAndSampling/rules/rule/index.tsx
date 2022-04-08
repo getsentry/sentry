@@ -2,11 +2,11 @@ import {Component} from 'react';
 import {DraggableSyntheticListeners, UseDraggableArguments} from '@dnd-kit/core';
 import styled from '@emotion/styled';
 
-import Tooltip from 'app/components/tooltip';
-import {IconGrabbable} from 'app/icons/iconGrabbable';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {DynamicSamplingRule} from 'app/types/dynamicSampling';
+import Tooltip from 'sentry/components/tooltip';
+import {IconGrabbable} from 'sentry/icons/iconGrabbable';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {DynamicSamplingRule} from 'sentry/types/dynamicSampling';
 
 import {layout} from '../utils';
 
@@ -16,13 +16,13 @@ import SampleRate from './sampleRate';
 import Type from './type';
 
 type Props = {
-  rule: DynamicSamplingRule;
   disabled: boolean;
   dragging: boolean;
-  sorting: boolean;
   listeners: DraggableSyntheticListeners;
-  onEditRule: () => void;
   onDeleteRule: () => void;
+  onEditRule: () => void;
+  rule: DynamicSamplingRule;
+  sorting: boolean;
   grabAttributes?: UseDraggableArguments['attributes'];
 };
 
@@ -121,6 +121,8 @@ const Column = styled('div')`
   align-items: center;
   padding: ${space(2)};
   cursor: default;
+  white-space: pre-wrap;
+  word-break: break-all;
 `;
 
 const GrabColumn = styled(Column)`

@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
-import OrganizationApiKeys from 'app/views/settings/organizationApiKeys';
+import OrganizationApiKeys from 'sentry/views/settings/organizationApiKeys';
 
 const routes = [
   {path: '/'},
@@ -11,7 +11,6 @@ const routes = [
 ];
 
 describe('OrganizationApiKeys', function () {
-  const routerContext = TestStubs.routerContext();
   let getMock, deleteMock;
 
   beforeEach(function () {
@@ -38,8 +37,7 @@ describe('OrganizationApiKeys', function () {
         location={TestStubs.location()}
         params={{orgId: 'org-slug'}}
         routes={routes}
-      />,
-      routerContext
+      />
     );
 
     expect(wrapper.find('AutoSelectTextInput')).toHaveLength(1);
@@ -52,8 +50,7 @@ describe('OrganizationApiKeys', function () {
         location={TestStubs.location()}
         params={{orgId: 'org-slug'}}
         routes={routes}
-      />,
-      routerContext
+      />
     );
 
     expect(deleteMock).toHaveBeenCalledTimes(0);

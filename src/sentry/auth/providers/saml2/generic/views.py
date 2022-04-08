@@ -1,4 +1,6 @@
 from django.urls import reverse
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.auth.providers.saml2.forms import (
     AttributeMappingForm,
@@ -12,7 +14,7 @@ from sentry.utils.http import absolute_uri
 
 
 class SAML2ConfigureView(ConfigureView):
-    def dispatch(self, request, organization, provider):
+    def dispatch(self, request: Request, organization, provider):
         sp_metadata_url = absolute_uri(
             reverse("sentry-auth-organization-saml-metadata", args=[organization.slug])
         )
@@ -26,7 +28,7 @@ class SAML2ConfigureView(ConfigureView):
 
             if saml_form.is_valid() and attr_mapping_form.is_valid():
                 provider.config["idp"] = saml_form.cleaned_data
-                provider.config["attr_mapping_form"] = attr_mapping_form.cleaned_data
+                provider.config["attribute_mapping"] = attr_mapping_form.cleaned_data
                 provider.save()
 
         return self.render(
@@ -39,7 +41,7 @@ class SAML2ConfigureView(ConfigureView):
 
 
 class SelectIdP(AuthView):
-    def handle(self, request, helper):
+    def handle(self, request: Request, helper) -> Response:
         op = "url"
 
         forms = {"url": URLMetadataForm(), "xml": XMLMetadataForm(), "idp": SAMLForm()}
@@ -58,7 +60,7 @@ class SelectIdP(AuthView):
 
 
 class MapAttributes(AuthView):
-    def handle(self, request, helper):
+    def handle(self, request: Request, helper) -> Response:
         if "save_mappings" not in request.POST:
             form = AttributeMappingForm()
         else:

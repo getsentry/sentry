@@ -1,18 +1,18 @@
 import * as React from 'react';
 
-import {getCommitters} from 'app/actionCreators/committers';
-import {Client} from 'app/api';
-import CommitterStore from 'app/stores/committerStore';
-import {AvatarProject, Committer, Group, Organization, Project} from 'app/types';
-import {Event} from 'app/types/event';
-import getDisplayName from 'app/utils/getDisplayName';
+import {getCommitters} from 'sentry/actionCreators/committers';
+import {Client} from 'sentry/api';
+import CommitterStore from 'sentry/stores/committerStore';
+import {AvatarProject, Committer, Group, Organization, Project} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import getDisplayName from 'sentry/utils/getDisplayName';
 
 type DependentProps = {
   api: Client;
 
+  event: Event;
   organization: Organization;
   project: Project | AvatarProject;
-  event: Event;
   group?: Group;
 };
 
@@ -57,6 +57,7 @@ function withCommitters<P extends DependentProps>(
     componentWillUnmount() {
       this.unsubscribe();
     }
+
     unsubscribe = CommitterStore.listen(() => this.onStoreUpdate(), undefined);
 
     fetchCommitters() {
@@ -83,7 +84,6 @@ function withCommitters<P extends DependentProps>(
 
     render() {
       const {committers = []} = this.state;
-
       // XXX: We do not pass loading/error states because the components using
       // this HOC (suggestedOwners, eventCause) do not have loading/error states
       return (

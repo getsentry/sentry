@@ -1,8 +1,8 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import * as ActionCreators from 'app/actionCreators/formSearch';
-import FormSearchActions from 'app/actions/formSearchActions';
-import FormSource from 'app/components/search/sources/formSource';
+import * as ActionCreators from 'sentry/actionCreators/formSearch';
+import FormSource from 'sentry/components/search/sources/formSource';
+import FormSearchStore from 'sentry/stores/formSearchStore';
 
 describe('FormSource', function () {
   let wrapper;
@@ -32,7 +32,7 @@ describe('FormSource', function () {
   beforeEach(function () {
     jest.spyOn(ActionCreators, 'loadSearchMap').mockImplementation(() => {});
 
-    FormSearchActions.loadSearchMap(searchMap);
+    FormSearchStore.loadSearchMap(searchMap);
   });
 
   afterEach(function () {
@@ -69,7 +69,7 @@ describe('FormSource', function () {
     );
   });
 
-  it('does not find any form field ', async function () {
+  it('does not find any form field', async function () {
     const mock = jest.fn().mockReturnValue(null);
     wrapper = mountWithTheme(<FormSource query="invalid">{mock}</FormSource>);
 

@@ -1,6 +1,8 @@
 import logging
 
 from django.utils.translation import ugettext_lazy as _
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry import options
 from sentry.integrations import (
@@ -106,5 +108,5 @@ class MsTeamsIntegrationProvider(IntegrationProvider):
 
 
 class MsTeamsPipelineView(PipelineView):
-    def dispatch(self, request, pipeline):
+    def dispatch(self, request: Request, pipeline) -> Response:
         return pipeline.next_step()

@@ -8,16 +8,20 @@ from freezegun import freeze_time
 
 # from sentry.testutils import TestCase
 from sentry.snuba.sessions_v2 import (
+    AllowedResolution,
     InvalidParams,
     QueryDefinition,
-    _get_timestamps,
     get_constrained_date_range,
+    get_timestamps,
     massage_sessions_result,
 )
 
 
 def _make_query(qs, allow_minute_resolution=True):
-    return QueryDefinition(QueryDict(qs), {}, allow_minute_resolution)
+    allowed_resolution = (
+        AllowedResolution.one_minute if allow_minute_resolution else AllowedResolution.one_hour
+    )
+    return QueryDefinition(QueryDict(qs), {}, allowed_resolution)
 
 
 def result_sorted(result):
@@ -114,7 +118,7 @@ def test_timestamps():
     query = _make_query("statsPeriod=1d&interval=12h&field=sum(session)")
 
     expected_timestamps = ["2020-12-17T12:00:00Z", "2020-12-18T00:00:00Z"]
-    actual_timestamps = _get_timestamps(query)
+    actual_timestamps = get_timestamps(query)
     assert actual_timestamps == expected_timestamps
 
 
@@ -122,7 +126,7 @@ def test_timestamps():
 def test_hourly_rounded_start():
     query = _make_query("statsPeriod=30m&interval=1m&field=sum(session)")
 
-    actual_timestamps = _get_timestamps(query)
+    actual_timestamps = get_timestamps(query)
 
     assert actual_timestamps[0] == "2021-03-08T09:00:00Z"
     assert actual_timestamps[-1] == "2021-03-08T09:34:00Z"
@@ -132,7 +136,7 @@ def test_hourly_rounded_start():
     # to hours, we extend the start time to 08:00:00.
     query = _make_query("statsPeriod=45m&interval=1m&field=sum(session)")
 
-    actual_timestamps = _get_timestamps(query)
+    actual_timestamps = get_timestamps(query)
 
     assert actual_timestamps[0] == "2021-03-08T08:00:00Z"
     assert actual_timestamps[-1] == "2021-03-08T09:34:00Z"
@@ -171,7 +175,7 @@ def test_rounded_end():
         "2021-02-24T23:00:00Z",
         "2021-02-25T00:00:00Z",
     ]
-    actual_timestamps = _get_timestamps(query)
+    actual_timestamps = get_timestamps(query)
 
     assert len(actual_timestamps) == 25
     assert actual_timestamps == expected_timestamps
@@ -297,8 +301,8 @@ def test_massage_simple_timeseries():
     result_totals = [{"sessions": 4}]
     # snuba returns the datetimes as strings for now
     result_timeseries = [
-        {"sessions": 2, "bucketed_started": "2020-12-17T12:00:00+00:00"},
         {"sessions": 2, "bucketed_started": "2020-12-18T06:00:00+00:00"},
+        {"sessions": 2, "bucketed_started": "2020-12-17T12:00:00+00:00"},
     ]
 
     expected_result = {
@@ -313,6 +317,38 @@ def test_massage_simple_timeseries():
         ],
         "groups": [
             {"by": {}, "series": {"sum(session)": [2, 0, 0, 2]}, "totals": {"sum(session)": 4}}
+        ],
+    }
+
+    actual_result = result_sorted(massage_sessions_result(query, result_totals, result_timeseries))
+
+    assert actual_result == expected_result
+
+
+@freeze_time("2020-12-18T11:14:17.105Z")
+def test_massage_unordered_timeseries():
+    query = _make_query("statsPeriod=1d&interval=6h&field=sum(session)")
+    result_totals = [{"sessions": 10}]
+    # snuba returns the datetimes as strings for now
+    result_timeseries = [
+        {"sessions": 3, "bucketed_started": "2020-12-18T00:00:00+00:00"},
+        {"sessions": 2, "bucketed_started": "2020-12-17T18:00:00+00:00"},
+        {"sessions": 4, "bucketed_started": "2020-12-18T06:00:00+00:00"},
+        {"sessions": 1, "bucketed_started": "2020-12-17T12:00:00+00:00"},
+    ]
+
+    expected_result = {
+        "start": "2020-12-17T12:00:00Z",
+        "end": "2020-12-18T11:15:00Z",
+        "query": "",
+        "intervals": [
+            "2020-12-17T12:00:00Z",
+            "2020-12-17T18:00:00Z",
+            "2020-12-18T00:00:00Z",
+            "2020-12-18T06:00:00Z",
+        ],
+        "groups": [
+            {"by": {}, "series": {"sum(session)": [1, 2, 3, 4]}, "totals": {"sum(session)": 10}}
         ],
     }
 
@@ -353,8 +389,8 @@ def test_massage_exact_timeseries():
     )
     result_totals = [{"sessions": 4}]
     result_timeseries = [
-        {"sessions": 2, "bucketed_started": "2020-12-17T12:00:00+00:00"},
         {"sessions": 2, "bucketed_started": "2020-12-18T06:00:00+00:00"},
+        {"sessions": 2, "bucketed_started": "2020-12-17T12:00:00+00:00"},
     ]
 
     expected_result = {
@@ -390,17 +426,17 @@ def test_massage_groupby_timeseries():
         {
             "release": "test-example-release",
             "sessions": 2,
-            "bucketed_started": "2020-12-17T12:00:00+00:00",
-        },
-        {
-            "release": "test-example-release",
-            "sessions": 2,
             "bucketed_started": "2020-12-18T06:00:00+00:00",
         },
         {
             "release": "test-example-release-2",
             "sessions": 1,
             "bucketed_started": "2020-12-18T06:00:00+00:00",
+        },
+        {
+            "release": "test-example-release",
+            "sessions": 2,
+            "bucketed_started": "2020-12-17T12:00:00+00:00",
         },
     ]
 
@@ -453,28 +489,6 @@ def test_massage_virtual_groupby_timeseries():
     # snuba returns the datetimes as strings for now
     result_timeseries = [
         {
-            "sessions_errored": 4,
-            "users": 1,
-            "users_crashed": 0,
-            "sessions_abnormal": 4,
-            "sessions": 10,
-            "users_errored": 0,
-            "users_abnormal": 0,
-            "sessions_crashed": 3,
-            "bucketed_started": "2020-12-17T18:00:00+00:00",
-        },
-        {
-            "sessions_errored": 10,
-            "users": 1,
-            "users_crashed": 0,
-            "sessions_abnormal": 2,
-            "sessions": 15,
-            "users_errored": 0,
-            "users_abnormal": 0,
-            "sessions_crashed": 4,
-            "bucketed_started": "2020-12-18T00:00:00+00:00",
-        },
-        {
             "sessions_errored": 1,
             "users": 1,
             "users_crashed": 1,
@@ -495,6 +509,28 @@ def test_massage_virtual_groupby_timeseries():
             "users_abnormal": 0,
             "sessions_crashed": 0,
             "bucketed_started": "2020-12-18T06:00:00+00:00",
+        },
+        {
+            "sessions_errored": 10,
+            "users": 1,
+            "users_crashed": 0,
+            "sessions_abnormal": 2,
+            "sessions": 15,
+            "users_errored": 0,
+            "users_abnormal": 0,
+            "sessions_crashed": 4,
+            "bucketed_started": "2020-12-18T00:00:00+00:00",
+        },
+        {
+            "sessions_errored": 4,
+            "users": 1,
+            "users_crashed": 0,
+            "sessions_abnormal": 4,
+            "sessions": 10,
+            "users_errored": 0,
+            "users_abnormal": 0,
+            "sessions_crashed": 3,
+            "bucketed_started": "2020-12-17T18:00:00+00:00",
         },
     ]
 
@@ -530,7 +566,7 @@ def test_massage_virtual_groupby_timeseries():
                 # while in one of the time slots, we have a healthy user, it is
                 # the *same* user as the one experiencing a crash later on,
                 # so in the *whole* time window, that one user is not counted as healthy,
-                # so the `0` here is expected, as thats an example of the `count_unique` behavior.
+                # so the `0` here is expected, as that's an example of the `count_unique` behavior.
                 "totals": {"count_unique(user)": 0, "sum(session)": 16},
             },
         ],
@@ -549,17 +585,6 @@ def test_clamping_in_massage_sessions_results_with_groupby_timeseries():
     # snuba returns the datetimes as strings for now
     result_timeseries = [
         {
-            "sessions": 5,
-            "sessions_errored": 10,
-            "sessions_crashed": 0,
-            "sessions_abnormal": 0,
-            "users": 5,
-            "users_errored": 10,
-            "users_crashed": 0,
-            "users_abnormal": 0,
-            "bucketed_started": "2020-12-18T06:00:00+00:00",
-        },
-        {
             "sessions": 7,
             "sessions_errored": 3,
             "sessions_crashed": 2,
@@ -569,6 +594,17 @@ def test_clamping_in_massage_sessions_results_with_groupby_timeseries():
             "users_crashed": 2,
             "users_abnormal": 2,
             "bucketed_started": "2020-12-18T12:00:00+00:00",
+        },
+        {
+            "sessions": 5,
+            "sessions_errored": 10,
+            "sessions_crashed": 0,
+            "sessions_abnormal": 0,
+            "users": 5,
+            "users_errored": 10,
+            "users_crashed": 0,
+            "users_abnormal": 0,
+            "bucketed_started": "2020-12-18T06:00:00+00:00",
         },
     ]
     expected_result = {
@@ -622,14 +658,14 @@ def test_nan_duration():
     ]
     result_timeseries = [
         {
-            "duration_avg": math.nan,
-            "duration_quantiles": [math.nan, math.nan, math.nan, math.nan, math.nan, math.nan],
-            "bucketed_started": "2020-12-17T12:00:00+00:00",
-        },
-        {
             "duration_avg": math.inf,
             "duration_quantiles": [math.inf, math.inf, math.inf, math.inf, math.inf, math.inf],
             "bucketed_started": "2020-12-18T06:00:00+00:00",
+        },
+        {
+            "duration_avg": math.nan,
+            "duration_quantiles": [math.nan, math.nan, math.nan, math.nan, math.nan, math.nan],
+            "bucketed_started": "2020-12-17T12:00:00+00:00",
         },
     ]
 

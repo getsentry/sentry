@@ -2,11 +2,11 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {t} from 'app/locale';
-import {isWebpackChunkLoadingError} from 'app/utils';
-import retryableImport from 'app/utils/retryableImport';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {t} from 'sentry/locale';
+import {isWebpackChunkLoadingError} from 'sentry/utils';
+import retryableImport from 'sentry/utils/retryableImport';
 
 type PromisedImport<C> = Promise<{default: C}>;
 
@@ -16,12 +16,12 @@ type Props<C extends Component> = Omit<
   React.ComponentProps<C>,
   'hideBusy' | 'hideError' | 'component' | 'route'
 > & {
-  hideBusy?: boolean;
-  hideError?: boolean;
   /**
    * Function that returns a promise of a React.Component
    */
   component?: () => PromisedImport<C>;
+  hideBusy?: boolean;
+  hideError?: boolean;
   /**
    * Also accepts a route object from react-router that has a `componentPromise` property
    */

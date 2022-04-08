@@ -1,9 +1,10 @@
+from unittest import mock
+
 import pytest
 
 from sentry import eventstore
 from sentry.event_manager import EventManager
 from sentry.interfaces.stacktrace import get_context, is_url
-from sentry.utils.compat import mock
 
 
 def test_is_url():

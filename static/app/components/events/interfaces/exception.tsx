@@ -1,22 +1,23 @@
 import {useState} from 'react';
 
-import EventDataSection from 'app/components/events/eventDataSection';
-import CrashContent from 'app/components/events/interfaces/crashContent';
-import CrashActions from 'app/components/events/interfaces/crashHeader/crashActions';
-import CrashTitle from 'app/components/events/interfaces/crashHeader/crashTitle';
-import {isStacktraceNewestFirst} from 'app/components/events/interfaces/stacktrace';
-import {t} from 'app/locale';
-import {ExceptionType, Group} from 'app/types';
-import {Event} from 'app/types/event';
-import {STACK_TYPE, STACK_VIEW} from 'app/types/stacktrace';
-import {defined} from 'app/utils';
+import EventDataSection from 'sentry/components/events/eventDataSection';
+import CrashContent from 'sentry/components/events/interfaces/crashContent';
+import CrashActions from 'sentry/components/events/interfaces/crashHeader/crashActions';
+import CrashTitle from 'sentry/components/events/interfaces/crashHeader/crashTitle';
+import {t} from 'sentry/locale';
+import {ExceptionType, Group} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import {STACK_TYPE, STACK_VIEW} from 'sentry/types/stacktrace';
+import {defined} from 'sentry/utils';
+
+import {isStacktraceNewestFirst} from './utils';
 
 type Props = {
-  event: Event;
-  type: string;
   data: ExceptionType;
-  projectId: string;
+  event: Event;
   hasHierarchicalGrouping: boolean;
+  projectId: string;
+  type: string;
   groupingCurrentLevel?: Group['metadata']['current_level'];
   hideGuide?: boolean;
 };
@@ -50,9 +51,9 @@ function Exception({
     stackType: newStackType,
     newestFirst: newNewestFirst,
   }: {
-    stackView?: STACK_VIEW;
-    stackType?: STACK_TYPE;
     newestFirst?: boolean;
+    stackType?: STACK_TYPE;
+    stackView?: STACK_VIEW;
   }) {
     if (newStackView) {
       setStackView(newStackView);

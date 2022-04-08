@@ -6,35 +6,35 @@ import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
-} from 'app/actionCreators/indicator';
-import {navigateTo} from 'app/actionCreators/navigation';
-import {Client} from 'app/api';
-import Access from 'app/components/acl/access';
-import Alert from 'app/components/alert';
-import GuideAnchor from 'app/components/assistant/guideAnchor';
-import Button from 'app/components/button';
-import Link from 'app/components/links/link';
-import {IconClose, IconInfo, IconSiren} from 'app/icons';
-import {t, tct} from 'app/locale';
-import {Organization, Project} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
-import {Aggregation, AGGREGATIONS, explodeFieldString} from 'app/utils/discover/fields';
-import withApi from 'app/utils/withApi';
+} from 'sentry/actionCreators/indicator';
+import {navigateTo} from 'sentry/actionCreators/navigation';
+import Access from 'sentry/components/acl/access';
+import Alert from 'sentry/components/alert';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import Button, {ButtonProps} from 'sentry/components/button';
+import Link from 'sentry/components/links/link';
+import {IconClose, IconSiren} from 'sentry/icons';
+import {SVGIconProps} from 'sentry/icons/svgIcon';
+import {t, tct} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
+import {
+  Aggregation,
+  AGGREGATIONS,
+  explodeFieldString,
+} from 'sentry/utils/discover/fields';
+import useApi from 'sentry/utils/useApi';
 import {
   errorFieldConfig,
   transactionFieldConfig,
-} from 'app/views/alerts/incidentRules/constants';
-import {getQueryDatasource} from 'app/views/alerts/utils';
+} from 'sentry/views/alerts/incidentRules/constants';
+import {getQueryDatasource} from 'sentry/views/alerts/utils';
 
 /**
  * Discover query supports more features than alert rules
  * To create an alert rule from a discover query, some parameters need to be adjusted
  */
 type IncompatibleQueryProperties = {
-  /**
-   * Must have exactly one project selected and not -1 (all projects)
-   */
-  hasProjectError: boolean;
   /**
    * Must have zero or one environments
    */
@@ -43,17 +43,21 @@ type IncompatibleQueryProperties = {
    * event.type must be error or transaction
    */
   hasEventTypeError: boolean;
+  /**
+   * Must have exactly one project selected and not -1 (all projects)
+   */
+  hasProjectError: boolean;
   hasYAxisError: boolean;
 };
 
 type AlertProps = {
-  incompatibleQuery: IncompatibleQueryProperties;
   eventView: EventView;
-  orgId: string;
+  incompatibleQuery: IncompatibleQueryProperties;
   /**
    * Dismiss alert
    */
   onClose: () => void;
+  orgId: string;
 };
 
 /**
@@ -116,7 +120,19 @@ function IncompatibleQueryAlert({
   };
 
   return (
-    <StyledAlert type="warning" icon={<IconInfo color="yellow300" size="sm" />}>
+    <StyledAlert
+      type="warning"
+      showIcon
+      trailingItems={
+        <Button
+          icon={<IconClose size="sm" />}
+          aria-label={t('Close')}
+          size="zero"
+          onClick={onClose}
+          borderless
+        />
+      }
+    >
       {totalErrors === 1 && (
         <React.Fragment>
           {hasProjectError &&
@@ -168,26 +184,15 @@ function IncompatibleQueryAlert({
           </StyledUnorderedList>
         </React.Fragment>
       )}
-      <StyledCloseButton
-        icon={<IconClose color="yellow300" size="sm" isCircled />}
-        aria-label={t('Close')}
-        size="zero"
-        onClick={onClose}
-        borderless
-      />
     </StyledAlert>
   );
 }
 
-type CreateAlertFromViewButtonProps = React.ComponentProps<typeof Button> & {
-  className?: string;
-  projects: Project[];
+type CreateAlertFromViewButtonProps = ButtonProps & {
   /**
    * Discover query used to create the alert
    */
   eventView: EventView;
-  organization: Organization;
-  referrer?: string;
   /**
    * Called when the current eventView does not meet the requirements of alert rules
    * @returns a function that takes an alert close function argument
@@ -200,11 +205,19 @@ type CreateAlertFromViewButtonProps = React.ComponentProps<typeof Button> & {
    * Called when the user is redirected to the alert builder
    */
   onSuccess: () => void;
+  organization: Organization;
+  projects: Project[];
+  className?: string;
+  referrer?: string;
 };
 
 function incompatibleYAxis(eventView: EventView): boolean {
   const column = explodeFieldString(eventView.getYAxis());
-  if (column.kind === 'field' || column.kind === 'equation') {
+  if (
+    column.kind === 'field' ||
+    column.kind === 'equation' ||
+    column.kind === 'calculatedField'
+  ) {
     return true;
   }
 
@@ -267,13 +280,21 @@ function CreateAlertFromViewButton({
     hasYAxisError,
   };
   const project = projects.find(p => p.id === `${eventView.project[0]}`);
+  const queryParams = eventView.generateQueryStringObject();
+  if (queryParams.query?.includes(`project:${project?.slug}`)) {
+    queryParams.query = (queryParams.query as string).replace(
+      `project:${project?.slug}`,
+      ''
+    );
+  }
+
   const hasErrors = Object.values(errors).some(x => x);
   const to = hasErrors
     ? undefined
     : {
         pathname: `/organizations/${organization.slug}/alerts/${project?.slug}/new/`,
         query: {
-          ...eventView.generateQueryStringObject(),
+          ...queryParams,
           createFromDiscover: true,
           referrer,
         },
@@ -304,6 +325,7 @@ function CreateAlertFromViewButton({
       organization={organization}
       onClick={handleClick}
       to={to}
+      aria-label={t('Create Alert')}
       {...buttonProps}
     />
   );
@@ -311,104 +333,102 @@ function CreateAlertFromViewButton({
 
 type Props = {
   organization: Organization;
-  projectSlug?: string;
-  iconProps?: React.ComponentProps<typeof IconSiren>;
-  referrer?: string;
   hideIcon?: boolean;
-  api: Client;
+  iconProps?: SVGIconProps;
+  projectSlug?: string;
+  referrer?: string;
   showPermissionGuide?: boolean;
 } & WithRouterProps &
-  React.ComponentProps<typeof Button>;
+  ButtonProps;
 
-const CreateAlertButton = withApi(
-  withRouter(
-    ({
-      organization,
-      projectSlug,
-      iconProps,
-      referrer,
-      router,
-      hideIcon,
-      api,
-      showPermissionGuide,
-      ...buttonProps
-    }: Props) => {
-      const createAlertUrl = (providedProj: string) => {
-        const alertsBaseUrl = `/organizations/${organization.slug}/alerts/${providedProj}`;
-        return `${alertsBaseUrl}/wizard/${referrer ? `?referrer=${referrer}` : ''}`;
-      };
+const CreateAlertButton = withRouter(
+  ({
+    organization,
+    projectSlug,
+    iconProps,
+    referrer,
+    router,
+    hideIcon,
+    showPermissionGuide,
+    ...buttonProps
+  }: Props) => {
+    const api = useApi();
 
-      function handleClickWithoutProject(event: React.MouseEvent) {
-        event.preventDefault();
+    const createAlertUrl = (providedProj: string) => {
+      const alertsBaseUrl = `/organizations/${organization.slug}/alerts/${providedProj}`;
+      return `${alertsBaseUrl}/wizard/${referrer ? `?referrer=${referrer}` : ''}`;
+    };
 
-        navigateTo(createAlertUrl(':projectId'), router);
-      }
+    function handleClickWithoutProject(event: React.MouseEvent) {
+      event.preventDefault();
 
-      async function enableAlertsMemberWrite() {
-        const settingsEndpoint = `/organizations/${organization.slug}/`;
-        addLoadingMessage();
-        try {
-          await api.requestPromise(settingsEndpoint, {
-            method: 'PUT',
-            data: {
-              alertsMemberWrite: true,
-            },
-          });
-          addSuccessMessage(t('Successfully updated organization settings'));
-        } catch (err) {
-          addErrorMessage(t('Unable to update organization settings'));
-        }
-      }
-
-      const permissionTooltipText = tct(
-        'Ask your organization owner or manager to [settingsLink:enable alerts access] for you.',
-        {settingsLink: <Link to={`/settings/${organization.slug}`} />}
-      );
-
-      const renderButton = (hasAccess: boolean) => (
-        <Button
-          disabled={!hasAccess}
-          title={!hasAccess ? permissionTooltipText : undefined}
-          icon={!hideIcon && <IconSiren {...iconProps} />}
-          to={projectSlug ? createAlertUrl(projectSlug) : undefined}
-          tooltipProps={{
-            isHoverable: true,
-            position: 'top',
-            popperStyle: {
-              maxWidth: '270px',
-            },
-          }}
-          onClick={projectSlug ? undefined : handleClickWithoutProject}
-          {...buttonProps}
-        >
-          {buttonProps.children ?? t('Create Alert')}
-        </Button>
-      );
-
-      const showGuide = !organization.alertsMemberWrite && !!showPermissionGuide;
-
-      return (
-        <Access organization={organization} access={['alerts:write']}>
-          {({hasAccess}) =>
-            showGuide ? (
-              <Access organization={organization} access={['org:write']}>
-                {({hasAccess: isOrgAdmin}) => (
-                  <GuideAnchor
-                    target={isOrgAdmin ? 'alerts_write_owner' : 'alerts_write_member'}
-                    onFinish={isOrgAdmin ? enableAlertsMemberWrite : undefined}
-                  >
-                    {renderButton(hasAccess)}
-                  </GuideAnchor>
-                )}
-              </Access>
-            ) : (
-              renderButton(hasAccess)
-            )
-          }
-        </Access>
-      );
+      navigateTo(createAlertUrl(':projectId'), router);
     }
-  )
+
+    async function enableAlertsMemberWrite() {
+      const settingsEndpoint = `/organizations/${organization.slug}/`;
+      addLoadingMessage();
+      try {
+        await api.requestPromise(settingsEndpoint, {
+          method: 'PUT',
+          data: {
+            alertsMemberWrite: true,
+          },
+        });
+        addSuccessMessage(t('Successfully updated organization settings'));
+      } catch (err) {
+        addErrorMessage(t('Unable to update organization settings'));
+      }
+    }
+
+    const permissionTooltipText = tct(
+      'Ask your organization owner or manager to [settingsLink:enable alerts access] for you.',
+      {settingsLink: <Link to={`/settings/${organization.slug}`} />}
+    );
+
+    const renderButton = (hasAccess: boolean) => (
+      <Button
+        disabled={!hasAccess}
+        title={!hasAccess ? permissionTooltipText : undefined}
+        icon={!hideIcon && <IconSiren {...iconProps} />}
+        to={projectSlug ? createAlertUrl(projectSlug) : undefined}
+        tooltipProps={{
+          isHoverable: true,
+          position: 'top',
+          popperStyle: {
+            maxWidth: '270px',
+          },
+        }}
+        onClick={projectSlug ? undefined : handleClickWithoutProject}
+        {...buttonProps}
+      >
+        {buttonProps.children ?? t('Create Alert')}
+      </Button>
+    );
+
+    const showGuide = !organization.alertsMemberWrite && !!showPermissionGuide;
+
+    return (
+      <Access organization={organization} access={['alerts:write']}>
+        {({hasAccess}) =>
+          showGuide ? (
+            <Access organization={organization} access={['org:write']}>
+              {({hasAccess: isOrgAdmin}) => (
+                <GuideAnchor
+                  target={isOrgAdmin ? 'alerts_write_owner' : 'alerts_write_member'}
+                  onFinish={isOrgAdmin ? enableAlertsMemberWrite : undefined}
+                >
+                  {renderButton(hasAccess)}
+                </GuideAnchor>
+              )}
+            </Access>
+          ) : (
+            renderButton(hasAccess)
+          )
+        }
+      </Access>
+    );
+  }
 );
 
 export {CreateAlertFromViewButton};
@@ -426,17 +446,4 @@ const StyledUnorderedList = styled('ul')`
 const StyledCode = styled('code')`
   background-color: transparent;
   padding: 0;
-`;
-
-const StyledCloseButton = styled(Button)`
-  transition: opacity 0.1s linear;
-  position: absolute;
-  top: 3px;
-  right: 0;
-
-  &:hover,
-  &:focus {
-    background-color: transparent;
-    opacity: 1;
-  }
 `;

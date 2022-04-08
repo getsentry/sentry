@@ -1,11 +1,11 @@
-import {IconFile} from 'app/icons';
-import {fileExtensionToPlatform, getFileExtension} from 'app/utils/fileExtension';
-import theme from 'app/utils/theme';
+import {IconFile} from 'sentry/icons';
+import {fileExtensionToPlatform, getFileExtension} from 'sentry/utils/fileExtension';
+import theme from 'sentry/utils/theme';
 
 type Props = {
   fileName: string;
-  size?: string;
   className?: string;
+  size?: string;
 };
 
 const FileIcon = ({fileName, size: providedSize = 'sm', className}: Props) => {

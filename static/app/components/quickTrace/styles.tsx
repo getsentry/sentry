@@ -2,15 +2,15 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
 
-import MenuHeader from 'app/components/actions/menuHeader';
-import ExternalLink from 'app/components/links/externalLink';
-import MenuItem from 'app/components/menuItem';
-import Tag, {Background} from 'app/components/tag';
-import Truncate from 'app/components/truncate';
-import space from 'app/styles/space';
-import {getDuration} from 'app/utils/formatters';
-import {QuickTraceEvent} from 'app/utils/performance/quickTrace/types';
-import {Theme} from 'app/utils/theme';
+import MenuHeader from 'sentry/components/actions/menuHeader';
+import ExternalLink from 'sentry/components/links/externalLink';
+import MenuItem from 'sentry/components/menuItem';
+import Tag, {Background} from 'sentry/components/tag';
+import Truncate from 'sentry/components/truncate';
+import space from 'sentry/styles/space';
+import {getDuration} from 'sentry/utils/formatters';
+import {QuickTraceEvent} from 'sentry/utils/performance/quickTrace/types';
+import {Theme} from 'sentry/utils/theme';
 
 export const SectionSubtext = styled('div')`
   color: ${p => p.theme.subText};
@@ -46,7 +46,7 @@ const nodeColors = (theme: Theme) => ({
   },
 });
 
-export const EventNode = styled(Tag)`
+export const EventNode = styled(Tag)<{shouldOffset?: boolean}>`
   span {
     display: flex;
     color: ${p => nodeColors(p.theme)[p.type || 'white'].color};
@@ -55,6 +55,12 @@ export const EventNode = styled(Tag)`
     background-color: ${p => nodeColors(p.theme)[p.type || 'white'].background};
     border: 1px solid ${p => nodeColors(p.theme)[p.type || 'white'].border};
   }
+
+  /*
+   * When the EventNode is contains an icon, we need to offset the
+   * component a little for all the EventNodes to be aligned.
+   */
+  ${p => p.shouldOffset && `margin-top: ${space(0.5)}`}
 `;
 
 export const TraceConnector = styled('div')`
@@ -96,9 +102,9 @@ const MenuItemContent = styled('div')`
 
 type DropdownItemProps = {
   children: React.ReactNode;
-  to?: string | LocationDescriptor;
   allowDefaultEvent?: boolean;
   onSelect?: (eventKey: any) => void;
+  to?: string | LocationDescriptor;
   width?: 'small' | 'large';
 };
 
@@ -131,14 +137,14 @@ export const DropdownItemSubContainer = styled('div')`
 `;
 
 export const QuickTraceValue = styled(Truncate)`
-  padding-left: ${space(1)};
+  margin-left: ${space(1)};
   white-space: nowrap;
 `;
 
 export const ErrorNodeContent = styled('div')`
   display: grid;
   grid-template-columns: repeat(2, auto);
-  grid-gap: ${space(0.25)};
+  gap: ${space(0.25)};
   align-items: center;
 `;
 

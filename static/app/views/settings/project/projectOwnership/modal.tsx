@@ -1,31 +1,31 @@
 import {Fragment} from 'react';
 import uniq from 'lodash/uniq';
 
-import AsyncComponent from 'app/components/asyncComponent';
-import {t} from 'app/locale';
-import {Frame, Organization, Project, TagWithTopValues} from 'app/types';
-import {Entry, EventError} from 'app/types/event';
-import OwnerInput from 'app/views/settings/project/projectOwnership/ownerInput';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import {t} from 'sentry/locale';
+import {Frame, Organization, Project, TagWithTopValues} from 'sentry/types';
+import {Entry, EventError} from 'sentry/types/event';
+import OwnerInput from 'sentry/views/settings/project/projectOwnership/ownerInput';
 
 type IssueOwnershipResponse = {
-  raw: string;
-  fallthrough: boolean;
-  dateCreated: string;
-  lastUpdated: string;
-  isActive: boolean;
   autoAssignment: boolean;
+  dateCreated: string;
+  fallthrough: boolean;
+  isActive: boolean;
+  lastUpdated: string;
+  raw: string;
 };
 
 type Props = AsyncComponent['props'] & {
-  organization: Organization;
-  project: Project;
   issueId: string;
   onSave: () => void;
+  organization: Organization;
+  project: Project;
 };
 
 type State = {
-  ownership: null | IssueOwnershipResponse;
   eventData: null | EventError;
+  ownership: null | IssueOwnershipResponse;
   urlTagData: null | TagWithTopValues;
 } & AsyncComponent['state'];
 

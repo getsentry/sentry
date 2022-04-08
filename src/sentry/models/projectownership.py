@@ -1,10 +1,13 @@
+from typing import Any, Mapping, Optional, Sequence, Tuple, Union
+
 from django.db import models
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 
 from sentry.db.models import Model, sane_repr
 from sentry.db.models.fields import FlexibleForeignKey, JSONField
-from sentry.ownership.grammar import load_schema, resolve_actors
+from sentry.models import ActorTuple
+from sentry.ownership.grammar import Rule, load_schema, resolve_actors
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 
@@ -22,6 +25,7 @@ class ProjectOwnership(Model):
     date_created = models.DateTimeField(default=timezone.now)
     last_updated = models.DateTimeField(default=timezone.now)
     is_active = models.BooleanField(default=True)
+    codeowners_auto_sync = models.BooleanField(default=True, null=True)
 
     # An object to indicate ownership is implicitly everyone
     Everyone = object()
@@ -45,6 +49,8 @@ class ProjectOwnership(Model):
                 else {
                     **ownership.schema,
                     "rules": [
+                        # Since we use the last matching rule owner as the auto-assignee,
+                        # we implicitly prioritize Ownership Rules over CODEOWNERS rules
                         *codeowners.schema["rules"],
                         *ownership.schema["rules"],
                     ],
@@ -75,16 +81,22 @@ class ProjectOwnership(Model):
         return ownership or None
 
     @classmethod
-    def get_owners(cls, project_id, data):
+    def get_owners(
+        cls, project_id: int, data: Mapping[str, Any]
+    ) -> Tuple[Union["Everyone", Sequence["ActorTuple"]], Optional[Sequence[Rule]]]:
         """
         For a given project_id, and event data blob.
         We combine the schemas from IssueOwners and CodeOwners.
 
-        If Everyone is returned, this means we implicitly are
-        falling through our rules and everyone is responsible.
+        If there are no matching rules, check ProjectOwnership.fallthrough:
+            If ProjectOwnership.fallthrough is enabled, return Everyone (all project members)
+             - we implicitly are falling through our rules and everyone is responsible.
+            If ProjectOwnership.fallthrough is disabled, return an empty list
+             - there are explicitly no owners
 
-        If an empty list is returned, this means there are explicitly
-        no owners.
+        If there are matching rules, return the ordered actors.
+            The order is determined by iterating through rules sequentially, evaluating
+            CODEOWNERS (if present), followed by Ownership Rules
         """
         from sentry.models import ProjectCodeOwners
 
@@ -180,7 +192,9 @@ class ProjectOwnership(Model):
             )
 
     @classmethod
-    def _matching_ownership_rules(cls, ownership, project_id, data):
+    def _matching_ownership_rules(
+        cls, ownership: "ProjectOwnership", project_id: int, data: Mapping[str, Any]
+    ) -> Sequence["Rule"]:
         rules = []
         if ownership.schema is not None:
             for rule in load_schema(ownership.schema):

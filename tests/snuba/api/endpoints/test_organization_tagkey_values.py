@@ -3,7 +3,7 @@ from datetime import timedelta
 from django.urls import reverse
 from exam import fixture
 
-from sentry.search.events.constants import SEMVER_ALIAS
+from sentry.search.events.constants import RELEASE_ALIAS, SEMVER_ALIAS
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.samples import load_data
@@ -64,6 +64,53 @@ class OrganizationTagKeyValuesTest(OrganizationTagKeyTestCase):
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
         self.run_test("fruit", expected=[("orange", 2), ("apple", 1)])
+
+    def test_env(self):
+        env2 = self.create_environment()
+        self.store_event(
+            data={"timestamp": iso_format(self.day_ago), "tags": {"fruit": "apple"}},
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "timestamp": iso_format(self.day_ago),
+                "tags": {"fruit": "apple"},
+                "environment": self.environment.name,
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "timestamp": iso_format(self.day_ago),
+                "tags": {"fruit": "apple"},
+                "environment": env2.name,
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={"timestamp": iso_format(self.min_ago), "tags": {"fruit": "orange"}},
+            project_id=self.project.id,
+        )
+        self.run_test(
+            "fruit",
+            environment=self.environment.name,
+            expected=[("apple", 1)],
+        )
+
+    def test_semver_with_env(self):
+        env = self.create_environment(name="dev", project=self.project)
+        env1 = self.create_environment(name="prod", project=self.project)
+
+        self.create_release(version="test@1.0.0.0", environments=[env])
+        self.create_release(version="test@2.0.0.0")
+        self.run_test(
+            SEMVER_ALIAS,
+            qs_params={"query": "1.", "environment": [env.name]},
+            expected=[("1.0.0.0", None)],
+        )
+        self.run_test(
+            SEMVER_ALIAS, qs_params={"query": "1.", "environment": [env1.name]}, expected=[]
+        )
 
     def test_bad_key(self):
         response = self.get_response("fr uit")
@@ -281,11 +328,100 @@ class OrganizationTagKeyValuesTest(OrganizationTagKeyTestCase):
             SEMVER_ALIAS, query="test", expected=[("test@2.0.0.0", None), ("test@1.0.0.0", None)]
         )
 
+    def test_release_filter_for_all_releases(self):
+        self.create_release(version="aaa@1.0")
+        self.create_release(version="aab@1.0")
+        self.create_release(version="aba@1.0")
+        self.create_release(version="abc@1.0")
+        self.create_release(version="bac@1.0")
+
+        self.run_test(
+            RELEASE_ALIAS,
+            qs_params={"includeSessions": "1"},
+            expected=[
+                ("aaa@1.0", None),
+                ("aab@1.0", None),
+                ("aba@1.0", None),
+                ("abc@1.0", None),
+                ("bac@1.0", None),
+            ],
+        )
+        self.run_test(
+            RELEASE_ALIAS,
+            qs_params={"includeSessions": "1", "query": "a"},
+            expected=[("aaa@1.0", None), ("aab@1.0", None), ("aba@1.0", None), ("abc@1.0", None)],
+        )
+        self.run_test(
+            RELEASE_ALIAS,
+            qs_params={"includeSessions": "1", "query": "b"},
+            expected=[("bac@1.0", None)],
+        )
+        self.run_test(
+            RELEASE_ALIAS,
+            qs_params={"includeSessions": "1", "query": "aa"},
+            expected=[("aaa@1.0", None), ("aab@1.0", None)],
+        )
+        self.run_test(
+            RELEASE_ALIAS,
+            qs_params={"includeSessions": "1", "query": "aba"},
+            expected=[("aba@1.0", None)],
+        )
+
+    def test_release_filter_for_all_releases_with_env_and_project_filters(self):
+        proj2 = self.create_project()
+
+        env1 = self.create_environment(name="dev", project=self.project)
+        env2 = self.create_environment(name="prod", project=self.project)
+        env3 = self.create_environment(name="test", project=proj2)
+
+        self.create_release(version="aaa@1.0", environments=[env1, env2])
+        self.create_release(version="aab@1.0", environments=[env1])
+        self.create_release(version="aba@1.0", project=proj2, environments=[env3])
+
+        self.run_test(
+            RELEASE_ALIAS,
+            qs_params={"includeSessions": "1", "project": [self.project.id]},
+            expected=[("aaa@1.0", None), ("aab@1.0", None)],
+        )
+        self.run_test(
+            RELEASE_ALIAS,
+            qs_params={
+                "includeSessions": "1",
+                "project": [self.project.id],
+                "environment": [env1.name],
+            },
+            expected=[("aaa@1.0", None), ("aab@1.0", None)],
+        )
+        self.run_test(
+            RELEASE_ALIAS,
+            qs_params={
+                "includeSessions": "1",
+                "project": [self.project.id],
+                "environment": [env2.name],
+            },
+            expected=[("aaa@1.0", None)],
+        )
+        self.run_test(
+            RELEASE_ALIAS,
+            qs_params={
+                "includeSessions": "1",
+                "project": [self.project.id, proj2.id],
+                "environment": [env2.name, env3.name],
+            },
+            expected=[("aaa@1.0", None), ("aba@1.0", None)],
+        )
+
 
 class TransactionTagKeyValues(OrganizationTagKeyTestCase):
     def setUp(self):
         super().setUp()
         data = load_data("transaction", timestamp=before_now(minutes=1))
+        data.update(
+            {
+                "measurements": {"lcp": {"value": 2500}},
+                "breakdowns": {"span_ops": {"ops.http": {"value": 1500}}},
+            }
+        )
         self.store_event(data, project_id=self.project.id)
         self.transaction = data.copy()
         self.transaction.update(
@@ -339,6 +475,18 @@ class TransactionTagKeyValues(OrganizationTagKeyTestCase):
         self.run_test("transaction.duration", expected=[("5000", 1), ("3000", 1)])
         self.run_test("transaction.duration", qs_params={"query": "5001"}, expected=[("5000", 1)])
         self.run_test("transaction.duration", qs_params={"query": "50"}, expected=[])
+
+    def test_measurements(self):
+        self.run_test("measurements.lcp", expected=[("2500.0", 2)])
+        self.run_test("measurements.lcp", qs_params={"query": "2501"}, expected=[("2500.0", 2)])
+        self.run_test("measurements.lcp", qs_params={"query": "25"}, expected=[])
+        self.run_test("measurements.foo", expected=[])
+
+    def test_span_ops_breakdowns(self):
+        self.run_test("spans.http", expected=[("1500.0", 2)])
+        self.run_test("spans.http", qs_params={"query": "1501"}, expected=[("1500.0", 2)])
+        self.run_test("spans.http", qs_params={"query": "15"}, expected=[])
+        self.run_test("spans.bar", expected=[])
 
     def test_transaction_title(self):
         self.run_test("transaction", expected=[("/city_by_code/", 1), ("/country_by_code/", 1)])

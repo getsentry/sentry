@@ -1,20 +1,22 @@
 import * as React from 'react';
 import flatten from 'lodash/flatten';
 
+import type {Fuse} from 'sentry/utils/fuzzySearch';
+
 import {Result} from './types';
 
 type ChildProps = {
-  results: Result[];
-  isLoading: boolean;
   hasAnyResults: boolean;
+  isLoading: boolean;
+  results: Result[];
 };
 
 type Props = {
-  sources: React.ComponentType[];
-  query: string;
   children: (props: ChildProps) => React.ReactElement;
   params: {orgId: string};
-  searchOptions?: Fuse.FuseOptions<any>;
+  query: string;
+  sources: React.ComponentType[];
+  searchOptions?: Fuse.IFuseOptions<any>;
 };
 
 type SourceResult = {
@@ -33,7 +35,7 @@ class SearchSources extends React.Component<Props> {
     const foundResults = isLoading
       ? []
       : flatten(allSources.map(({results}) => results || [])).sort(
-          (a, b) => a.score - b.score
+          (a, b) => (a.score ?? 0) - (b.score ?? 0)
         );
     const hasAnyResults = !!foundResults.length;
 
@@ -63,8 +65,11 @@ class SearchSources extends React.Component<Props> {
   }
 
   render() {
-    const {sources} = this.props;
-    return this.renderSources(sources, new Array(sources.length), 0);
+    return this.renderSources(
+      this.props.sources,
+      new Array(this.props.sources.length),
+      0
+    );
   }
 }
 

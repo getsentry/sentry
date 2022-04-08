@@ -1,14 +1,13 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
-import {fireEvent, mountWithTheme, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {
   addErrorMessage,
   addMessage,
   addSuccessMessage,
   clearIndicators,
-} from 'app/actionCreators/indicator';
-import Indicators from 'app/components/indicators';
-import IndicatorStore from 'app/stores/indicatorStore';
+} from 'sentry/actionCreators/indicator';
+import Indicators from 'sentry/components/indicators';
+import IndicatorStore from 'sentry/stores/indicatorStore';
 
 // Make sure we use `duration: null` to test add/remove
 jest.useFakeTimers();
@@ -18,152 +17,171 @@ jest.mock('framer-motion', () => ({
   AnimatePresence: jest.fn(({children}) => children),
 }));
 
-function createWrapper(props = {}) {
-  const {routerContext} = initializeOrg(props);
-  return mountWithTheme(<Indicators />, {context: routerContext});
-}
-
 describe('Indicators', function () {
-  let wrapper;
   beforeEach(function () {
-    wrapper = createWrapper();
-
     clearIndicators();
-    jest.runAllTimers();
+    act(jest.runAllTimers);
   });
 
   it('renders nothing by default', function () {
-    expect(wrapper.container).toHaveTextContent('');
+    const {container} = render(<Indicators />);
+    expect(container).toHaveTextContent('');
   });
 
   it('has a loading indicator by default', function () {
+    const {container} = render(<Indicators />);
     // when "type" is empty, we should treat it as loading state
-    IndicatorStore.add('Loading');
-    expect(wrapper.getByTestId('loading-indicator')).toBeInTheDocument();
-    expect(wrapper.container).toHaveTextContent('Loading');
+
+    act(() => void IndicatorStore.add('Loading'));
+    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+    expect(container).toHaveTextContent('Loading');
   });
 
   it('adds and removes a toast by calling IndicatorStore directly', function () {
+    const {container} = render(<Indicators />);
+
     // when "type" is empty, we should treat it as loading state
-    const indicator = IndicatorStore.add('Loading');
-    expect(wrapper.container).toHaveTextContent('Loading');
+    let indicator;
+    act(() => {
+      indicator = IndicatorStore.add('Loading');
+    });
+
+    expect(container).toHaveTextContent('Loading');
 
     // Old indicator gets replaced when a new one is added
-    IndicatorStore.remove(indicator);
-    expect(wrapper.container).toHaveTextContent('');
+    act(() => IndicatorStore.remove(indicator));
+    expect(container).toHaveTextContent('');
   });
 
   // This is a common pattern used throughout the code for API calls
   it('adds and replaces toast by calling IndicatorStore directly', function () {
-    IndicatorStore.add('Loading');
-    expect(wrapper.container).toHaveTextContent('Loading');
+    const {container} = render(<Indicators />);
+
+    act(() => void IndicatorStore.add('Loading'));
+    expect(container).toHaveTextContent('Loading');
 
     // Old indicator gets replaced when a new one is added
-    IndicatorStore.add('success', 'success');
-    expect(wrapper.container).toHaveTextContent('success');
+    act(() => void IndicatorStore.add('success', 'success'));
+    expect(container).toHaveTextContent('success');
   });
 
   it('does not have loading indicator when "type" is empty (default)', function () {
+    const {container} = render(<Indicators />);
+
     addMessage('Loading', '', {duration: null});
-    jest.runAllTimers();
-    expect(wrapper.container).toHaveTextContent('Loading');
-    expect(wrapper.queryByTestId('loading-indicator')).toBeNull();
+    act(jest.runAllTimers);
+    expect(container).toHaveTextContent('Loading');
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
   });
 
   it('has a loading indicator when type is "loading"', function () {
+    const {container} = render(<Indicators />);
+
     addMessage('Loading', 'loading', {duration: null});
-    jest.runAllTimers();
-    expect(wrapper.container).toHaveTextContent('Loading');
-    expect(wrapper.getByTestId('loading-indicator')).toBeInTheDocument();
+    act(jest.runAllTimers);
+    expect(container).toHaveTextContent('Loading');
+    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
   });
 
   it('adds and removes toast by calling action creators', function () {
+    const {container} = render(<Indicators />);
+
     // action creators don't return anything
     addMessage('Loading', '', {duration: null});
-    jest.runAllTimers();
-    expect(wrapper.container).toHaveTextContent('Loading');
+    act(jest.runAllTimers);
+    expect(container).toHaveTextContent('Loading');
 
     // If no indicator is specified, will remove all indicators
     clearIndicators();
-    jest.runAllTimers();
-    expect(wrapper.container).toHaveTextContent('');
-    expect(wrapper.queryByTestId('loading-indicator')).toBeNull();
+    act(jest.runAllTimers);
+    expect(container).toHaveTextContent('');
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
   });
 
   it('adds and replaces toast by calling action creators', function () {
+    const {container} = render(<Indicators />);
+
     addMessage('Loading', '', {duration: null});
-    jest.runAllTimers();
-    expect(wrapper.container).toHaveTextContent('Loading');
+    act(jest.runAllTimers);
+    expect(container).toHaveTextContent('Loading');
 
     // Old indicator gets replaced when a new one is added
     addMessage('success', 'success', {duration: null});
-    jest.runAllTimers();
-    expect(wrapper.container).toHaveTextContent('success');
-    expect(wrapper.queryByTestId('loading-indicator')).toBeNull();
+    act(jest.runAllTimers);
+    expect(container).toHaveTextContent('success');
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
   });
 
   it('adds and replaces toasts by calling action creators helpers', async function () {
+    const {container} = render(<Indicators />);
+
     // Old indicator gets replaced when a new one is added
     addSuccessMessage('success');
 
     await waitFor(() => {
-      expect(wrapper.container).toHaveTextContent('success');
+      expect(container).toHaveTextContent('success');
     });
 
     clearIndicators();
     addErrorMessage('error');
     await waitFor(() => {
-      expect(wrapper.container).toHaveTextContent('error');
+      expect(container).toHaveTextContent('error');
     });
   });
 
   it('appends toasts', function () {
+    const {container} = render(<Indicators />);
+
     addMessage('Loading', '', {append: true, duration: null});
-    jest.runAllTimers();
-    expect(wrapper.getByTestId('toast')).toHaveTextContent('Loading');
+    act(jest.runAllTimers);
+    expect(screen.getByTestId('toast')).toHaveTextContent('Loading');
 
     addMessage('Success', 'success', {append: true, duration: null});
-    jest.runAllTimers();
+    act(jest.runAllTimers);
     // Toasts get appended to the end
-    expect(wrapper.getByTestId('toast')).toHaveTextContent('Loading');
-    expect(wrapper.getByTestId('toast-success')).toHaveTextContent('Success');
+    expect(screen.getByTestId('toast')).toHaveTextContent('Loading');
+    expect(screen.getByTestId('toast-success')).toHaveTextContent('Success');
 
     addMessage('Error', 'error', {append: true, duration: null});
-    jest.runAllTimers();
+    act(jest.runAllTimers);
     // Toasts get appended to the end
-    expect(wrapper.getByTestId('toast')).toHaveTextContent('Loading');
-    expect(wrapper.getByTestId('toast-success')).toHaveTextContent('Success');
-    expect(wrapper.getByTestId('toast-error')).toHaveTextContent('Error');
+    expect(screen.getByTestId('toast')).toHaveTextContent('Loading');
+    expect(screen.getByTestId('toast-success')).toHaveTextContent('Success');
+    expect(screen.getByTestId('toast-error')).toHaveTextContent('Error');
 
     // clears all toasts
     clearIndicators();
-    jest.runAllTimers();
-    expect(wrapper.container).toHaveTextContent('');
-    expect(wrapper.queryByTestId('loading-indicator')).toBeNull();
+    act(jest.runAllTimers);
+    expect(container).toHaveTextContent('');
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
   });
 
   it('dismisses on click', function () {
-    addMessage('Loading', '', {append: true, duration: null});
-    jest.runAllTimers();
-    expect(wrapper.getByTestId('toast')).toHaveTextContent('Loading');
+    const {container} = render(<Indicators />);
 
-    fireEvent.click(wrapper.getByTestId('toast'));
-    jest.runAllTimers();
-    expect(wrapper.container).toHaveTextContent('');
-    expect(wrapper.queryByTestId('toast')).toBeNull();
+    addMessage('Loading', '', {append: true, duration: null});
+    act(jest.runAllTimers);
+    expect(screen.getByTestId('toast')).toHaveTextContent('Loading');
+
+    userEvent.click(screen.getByTestId('toast'));
+    act(jest.runAllTimers);
+    expect(container).toHaveTextContent('');
+    expect(screen.queryByTestId('toast')).not.toBeInTheDocument();
   });
 
   it('hides after 10s', function () {
+    const {container} = render(<Indicators />);
+
     addMessage('Duration', '', {append: true, duration: 10000});
-    jest.advanceTimersByTime(9000);
-    expect(wrapper.getByTestId('toast')).toHaveTextContent('Duration');
+    act(() => jest.advanceTimersByTime(9000));
+    expect(screen.getByTestId('toast')).toHaveTextContent('Duration');
 
     // Still visible
-    jest.advanceTimersByTime(999);
-    expect(wrapper.getByTestId('toast')).toHaveTextContent('Duration');
+    act(() => jest.advanceTimersByTime(999));
+    expect(screen.getByTestId('toast')).toHaveTextContent('Duration');
 
-    jest.advanceTimersByTime(2);
-    expect(wrapper.container).toHaveTextContent('');
-    expect(wrapper.queryByTestId('toast')).toBeNull();
+    act(() => jest.advanceTimersByTime(2));
+    expect(container).toHaveTextContent('');
+    expect(screen.queryByTestId('toast')).not.toBeInTheDocument();
   });
 });

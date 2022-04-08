@@ -1,9 +1,11 @@
-import collections
 import logging
+from collections.abc import Mapping
 
+import sentry_sdk
 from django.conf import settings
 from django.db import transaction
 from django.utils.encoding import force_text
+from django.utils.http import urlencode
 
 from sentry.utils import json
 from sentry.utils.compat import filter
@@ -17,8 +19,9 @@ def safe_execute(func, *args, **kwargs):
     expected_errors = kwargs.pop("expected_errors", None)
     try:
         if _with_transaction:
-            with transaction.atomic():
-                result = func(*args, **kwargs)
+            with sentry_sdk.start_span(op="db.safe_execute", description="transaction.atomic"):
+                with transaction.atomic():
+                    result = func(*args, **kwargs)
         else:
             result = func(*args, **kwargs)
     except Exception as e:
@@ -136,7 +139,7 @@ def get_path(data, *path, **kwargs):
         raise TypeError("get_path() got an undefined keyword argument '%s'" % k)
 
     for p in path:
-        if isinstance(data, collections.Mapping) and p in data:
+        if isinstance(data, Mapping) and p in data:
             data = data[p]
         elif isinstance(data, (list, tuple)) and isinstance(p, int) and -len(data) <= p < len(data):
             data = data[p]
@@ -172,13 +175,13 @@ def set_path(data, *path, **kwargs):
         raise TypeError("set_path() got an undefined keyword argument '%s'" % k)
 
     for p in path[:-1]:
-        if not isinstance(data, collections.Mapping):
+        if not isinstance(data, Mapping):
             return False
         if data.get(p) is None:
             data[p] = {}
         data = data[p]
 
-    if not isinstance(data, collections.Mapping):
+    if not isinstance(data, Mapping):
         return False
 
     p = path[-1]
@@ -200,3 +203,21 @@ def setdefault_path(data, *path, **kwargs):
     """
     kwargs["overwrite"] = False
     return set_path(data, *path, **kwargs)
+
+
+def safe_urlencode(query, **kwargs):
+    """
+    django.utils.http.urlencode wrapper that replaces query parameter values
+    of None with empty string so that urlencode doesn't raise TypeError
+    "Cannot encode None in a query string".
+    """
+    # sequence of 2-element tuples
+    if isinstance(query, (list, tuple)):
+        safe_query = ((pair[0], "" if pair[1] is None else pair[1]) for pair in query)
+        return urlencode(safe_query, **kwargs)
+
+    if isinstance(query, dict):
+        safe_query = {k: "" if v is None else v for k, v in query.items()}
+        return urlencode(safe_query, **kwargs)
+
+    return urlencode(query, **kwargs)

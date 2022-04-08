@@ -1,7 +1,9 @@
 import logging
-from typing import Any, Optional, Sequence
+from collections import namedtuple
+from typing import Any, Mapping, Optional, Sequence
 
 from sentry import digests
+from sentry.digests import Digest
 from sentry.digests import get_option_key as get_digest_option_key
 from sentry.digests.notifications import event_to_record, unsplit_key
 from sentry.models import NotificationSetting, Project, ProjectOption
@@ -12,10 +14,13 @@ from sentry.notifications.notifications.user_report import UserReportNotificatio
 from sentry.notifications.types import ActionTargetType
 from sentry.plugins.base.structs import Notification
 from sentry.tasks.digests import deliver_digest
-from sentry.types.integrations import ExternalProviders
+from sentry.types.rules import RuleFuture
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
+
+# TODO(mgaeta): This CANNOT be moved because of the way we inject mail adapters in plugins.
+RuleFuture = namedtuple("RuleFuture", ["rule", "kwargs"])
 
 
 class MailAdapter:
@@ -29,7 +34,7 @@ class MailAdapter:
     def rule_notify(
         self,
         event: Any,
-        futures: Sequence[Any],
+        futures: Sequence[RuleFuture],
         target_type: ActionTargetType,
         target_identifier: Optional[int] = None,
     ) -> None:
@@ -85,9 +90,8 @@ class MailAdapter:
         Return a collection of USERS that are eligible to receive
         notifications for the provided project.
         """
-        return NotificationSetting.objects.get_notification_recipients(project)[
-            ExternalProviders.EMAIL
-        ]
+        recipients_by_provider = NotificationSetting.objects.get_notification_recipients(project)
+        return {user for users in recipients_by_provider.values() for user in users}
 
     def get_sendable_user_ids(self, project):
         users = self.get_sendable_user_objects(project)
@@ -98,19 +102,6 @@ class MailAdapter:
         users = self.get_sendable_user_objects(project)
         return [user.id for user in users]
 
-    def should_notify(self, target_type, group):
-        metrics.incr("mail_adapter.should_notify")
-        # only notify if we have users to notify. We always want to notify if targeting
-        # a member directly.
-        return (
-            target_type
-            in [
-                ActionTargetType.MEMBER,
-                ActionTargetType.TEAM,
-            ]
-            or self.get_sendable_user_objects(group.project)
-        )
-
     @staticmethod
     def notify(notification, target_type, target_identifier=None, **kwargs):
         AlertRuleNotification(notification, target_type, target_identifier).send()
@@ -118,7 +109,7 @@ class MailAdapter:
     @staticmethod
     def notify_digest(
         project: Project,
-        digest: Any,
+        digest: Digest,
         target_type: ActionTargetType,
         target_identifier: Optional[int] = None,
     ) -> None:
@@ -136,11 +127,6 @@ class MailAdapter:
         email_cls(activity).send()
 
     @staticmethod
-    def handle_user_report(payload, project: Project, **kwargs):
+    def handle_user_report(report: Mapping[str, Any], project: Project):
         metrics.incr("mail_adapter.handle_user_report")
-        return UserReportNotification(project, payload["report"]).send()
-
-    def handle_signal(self, name, payload, **kwargs):
-        metrics.incr("mail_adapter.handle_signal")
-        if name == "user-reports.created":
-            self.handle_user_report(payload, **kwargs)
+        return UserReportNotification(project, report).send()

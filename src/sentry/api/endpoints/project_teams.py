@@ -1,3 +1,6 @@
+from rest_framework.request import Request
+from rest_framework.response import Response
+
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -5,7 +8,7 @@ from sentry.models import Team
 
 
 class ProjectTeamsEndpoint(ProjectEndpoint):
-    def get(self, request, project):
+    def get(self, request: Request, project) -> Response:
         """
         List a Project's Teams
         ``````````````````````

@@ -1,10 +1,27 @@
-from collections import defaultdict
-from datetime import datetime, timedelta
+from __future__ import annotations
 
-from django.db import DataError
+from collections import defaultdict
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+from enum import Enum
+from typing import TYPE_CHECKING, FrozenSet, Optional, Sequence
+
+from django.db import DataError, connections, router
 from django.utils import timezone
 
-from sentry.models import KEYWORD_MAP, EventUser, Release, Team, User
+if TYPE_CHECKING:
+    from sentry.api.event_search import SearchFilter
+
+from sentry.models import (
+    KEYWORD_MAP,
+    Environment,
+    EventUser,
+    Project,
+    Release,
+    Team,
+    User,
+    follows_semver_versioning_scheme,
+)
 from sentry.models.group import STATUS_QUERY_CHOICES
 from sentry.search.base import ANY
 from sentry.utils.auth import find_users
@@ -252,40 +269,113 @@ def parse_user_value(value, user):
         return User(id=0)
 
 
-def get_latest_release(projects, environments, organization_id=None):
+class LatestReleaseOrders(Enum):
+    DATE = 0
+    SEMVER = 1
+
+
+def get_latest_release(
+    projects: Sequence[Project | int],
+    environments: Optional[Sequence[Environment]],
+    organization_id: Optional[int] = None,
+) -> Sequence[str]:
     if organization_id is None:
         project = projects[0]
         if hasattr(project, "organization_id"):
             organization_id = project.organization_id
         else:
-            return ""
+            return []
 
-    release_qs = Release.objects.filter(organization_id=organization_id, projects__in=projects)
+    # Convert projects to ids so that we can work with them more easily
+    project_ids = [getattr(project, "id", project) for project in projects]
 
-    if environments:
-        release_qs = release_qs.filter(
-            releaseprojectenvironment__environment__id__in=[
-                environment.id for environment in environments
-            ]
+    semver_project_ids = []
+    date_project_ids = []
+    for project_id in project_ids:
+        if follows_semver_versioning_scheme(organization_id, project_id):
+            semver_project_ids.append(project_id)
+        else:
+            date_project_ids.append(project_id)
+
+    versions = set()
+    versions.update(
+        _run_latest_release_query(
+            LatestReleaseOrders.SEMVER, semver_project_ids, environments, organization_id
         )
-
-    return (
-        release_qs.extra(select={"sort": "COALESCE(date_released, date_added)"})
-        .order_by("-sort")
-        .values_list("version", flat=True)[:1]
-        .get()
+    )
+    versions.update(
+        _run_latest_release_query(
+            LatestReleaseOrders.DATE, date_project_ids, environments, organization_id
+        )
     )
 
+    if not versions:
+        raise Release.DoesNotExist()
 
-def parse_release(value, projects, environments, organization_id=None):
+    return list(sorted(versions))
+
+
+def _run_latest_release_query(
+    query_type: LatestReleaseOrders,
+    project_ids: Sequence[int],
+    environments: Optional[Sequence[Environment]],
+    organization_id: int,
+) -> Sequence[str]:
+    if not project_ids:
+        return []
+
+    env_join = ""
+    env_where = ""
+    if environments:
+        env_join = "INNER JOIN sentry_releaseprojectenvironment srpe on srpe.release_id = sr.id"
+        env_where = "AND srpe.environment_id in %s"
+
+    extra_conditions = ""
+    if query_type == LatestReleaseOrders.SEMVER:
+        rank_order_by = "major DESC, minor DESC, patch DESC, revision DESC, CASE WHEN (prerelease = '') THEN 1 ELSE 0 END DESC, prerelease DESC, sr.id desc"
+        extra_conditions = "AND sr.major IS NOT NULL"
+    else:
+        rank_order_by = "COALESCE(date_released, date_added) DESC"
+
+    query = f"""
+        SELECT DISTINCT version
+        FROM (
+            SELECT sr.version, rank() OVER (
+                PARTITION BY srp.project_id
+                ORDER BY {rank_order_by}
+            ) AS rank
+            FROM "sentry_release" sr
+            INNER JOIN "sentry_release_project" srp ON sr.id = srp.release_id
+            {env_join}
+            WHERE sr.organization_id = %s
+            AND srp.project_id IN %s
+            {extra_conditions}
+            {env_where}
+        ) sr
+        WHERE rank = 1
+    """
+    cursor = connections[router.db_for_read(Release, replica=True)].cursor()
+    query_args = [organization_id, tuple(project_ids)]
+    if environments:
+        query_args.append(tuple(e.id for e in environments))
+    cursor.execute(query, query_args)
+    return [row[0] for row in cursor.fetchall()]
+
+
+def parse_release(
+    value: str,
+    projects: Sequence[Project | int],
+    environments: Sequence[Environment],
+    organization_id: Optional[int] = None,
+) -> Sequence[str]:
     if value == "latest":
         try:
             return get_latest_release(projects, environments, organization_id)
         except Release.DoesNotExist:
             # Should just get no results here, so return an empty release name.
-            return ""
+            return [""]
     else:
-        return value
+        return [value]
 
 
 numeric_modifiers = [
@@ -551,3 +641,33 @@ def convert_user_tag_to_query(key, value):
         sub_key, value = value.split(":", 1)
         if KEYWORD_MAP.get_key(sub_key, None):
             return 'user.{}:"{}"'.format(sub_key, value.replace('"', '\\"'))
+
+
+@dataclass
+class SupportedConditions:
+    field_name: str
+    operators: Optional[FrozenSet[str]] = None
+
+
+supported_cdc_conditions = [
+    SupportedConditions("status", frozenset(["IN"])),
+]
+supported_cdc_conditions_lookup = {
+    condition.field_name: condition for condition in supported_cdc_conditions
+}
+
+
+def validate_cdc_search_filters(search_filters: Sequence[SearchFilter]) -> bool:
+    """
+    Validates whether a set of search filters can be handled by the cdc search backend.
+    """
+    for search_filter in search_filters:
+        supported_condition = supported_cdc_conditions_lookup.get(search_filter.key.name)
+        if not supported_condition:
+            return False
+        if (
+            supported_condition.operators
+            and search_filter.operator not in supported_condition.operators
+        ):
+            return False
+    return True

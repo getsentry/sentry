@@ -10,12 +10,19 @@ jobs:
   test:
     name: backend test
     runs-on: ubuntu-20.04
-    timeout-minutes: 30
+    timeout-minutes: 20
     strategy:
+      # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
+      # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
+      fail-fast: false
       matrix:
-        instance: [0, 1]
+        python-version: [3.8.12]
+        # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
+        instance: [0, 1, 2]
 
     env:
+      # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
+      MATRIX_INSTANCE_TOTAL: 3
       MIGRATIONS_TEST_MIGRATE: 1
 
     steps:
@@ -41,15 +48,16 @@ jobs:
           token: ${{ github.token }}
           filters: .github/file-filters.yml
 
-      - name: Setup sentry env
+      - name: Setup sentry env (python ${{ matrix.python-version }})
         uses: ./.github/actions/setup-sentry
         if: steps.changes.outputs.backend == 'true'
         id: setup
         with:
+          python-version: ${{ matrix.python-version }}
           pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           snuba: true
 
-      - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
+      - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         if: steps.changes.outputs.backend == 'true'
         run: |
           # Note: `USE_SNUBA` is not used for backend tests because there are a few failing tests with Snuba enabled.

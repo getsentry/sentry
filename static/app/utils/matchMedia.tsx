@@ -1,5 +1,5 @@
-import {NODE_ENV} from 'app/constants';
-import ConfigStore from 'app/stores/configStore';
+import {NODE_ENV} from 'sentry/constants';
+import ConfigStore from 'sentry/stores/configStore';
 
 function changeFavicon(theme: 'dark' | 'light'): void {
   // only on prod because we have a development favicon

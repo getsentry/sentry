@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {Client} from 'app/api';
-import PasswordForm from 'app/views/settings/account/passwordForm';
+import {Client} from 'sentry/api';
+import PasswordForm from 'sentry/views/settings/account/passwordForm';
 
 const ENDPOINT = '/users/me/password/';
 
@@ -60,7 +60,7 @@ describe('PasswordForm', function () {
     expect(putMock).not.toHaveBeenCalled();
   });
 
-  it('calls API when all fields are validated and clears form on success', function (done) {
+  it('calls API when all fields are validated and clears form on success', async function () {
     wrapper.find('input[name="password"]').simulate('change', {target: {value: 'test'}});
     wrapper
       .find('input[name="passwordNew"]')
@@ -81,11 +81,9 @@ describe('PasswordForm', function () {
       })
     );
 
-    setTimeout(() => {
-      wrapper.update();
-      expect(wrapper.find('input[name="password"]').prop('value')).toBe('');
-      done();
-    }, 1);
+    await tick();
+    wrapper.update();
+    expect(wrapper.find('input[name="password"]').prop('value')).toBe('');
   });
 
   it('validates mismatched passwords and remvoes validation on match', function () {

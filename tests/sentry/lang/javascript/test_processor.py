@@ -4,6 +4,7 @@ import unittest
 import zipfile
 from copy import deepcopy
 from io import BytesIO
+from unittest.mock import ANY, MagicMock, call, patch
 
 import pytest
 import responses
@@ -33,8 +34,8 @@ from sentry.lang.javascript.processor import (
 from sentry.models import EventError, File, Release, ReleaseFile
 from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, update_artifact_index
 from sentry.testutils import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
-from sentry.utils.compat.mock import ANY, MagicMock, call, patch
 from sentry.utils.strings import truncatechars
 
 base64_sourcemap = "data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiZ2VuZXJhdGVkLmpzIiwic291cmNlcyI6WyIvdGVzdC5qcyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiO0FBQUEiLCJzb3VyY2VzQ29udGVudCI6WyJjb25zb2xlLmxvZyhcImhlbGxvLCBXb3JsZCFcIikiXX0="
@@ -64,6 +65,34 @@ class JavaScriptStacktraceProcessorTest(TestCase):
         project.organization.update_option("sentry:scrape_javascript", False)
         r = JavaScriptStacktraceProcessor({}, None, project)
         assert not r.allow_scraping
+
+    @patch(
+        "sentry.lang.javascript.processor.JavaScriptStacktraceProcessor.get_valid_frames",
+        return_value=[1],
+    )
+    @patch(
+        "sentry.lang.javascript.processor.JavaScriptStacktraceProcessor.populate_source_cache",
+    )
+    def test_missing_dist(self, _1, _2):
+        """preprocess will create a dist object on-demand"""
+        project = self.create_project()
+        release = self.create_release(project=project, version="12.31.12")
+
+        processor = JavaScriptStacktraceProcessor(
+            data={"release": release.version, "dist": "foo", "timestamp": 123.4},
+            stacktrace_infos=[],
+            project=project,
+        )
+
+        assert processor.release is None
+        assert processor.dist is None
+
+        processor.preprocess_step(None)
+
+        assert processor.release == release
+        assert processor.dist is not None
+        assert processor.dist.name == "foo"
+        assert processor.dist.date_added.timestamp() == processor.data["timestamp"]
 
 
 def test_build_fetch_retry_condition() -> None:
@@ -550,6 +579,27 @@ class FetchFileTest(TestCase):
         result2 = fetch_file("/example.js", release=release)
         assert result2 == result
 
+    def _create_archive(self, release, url):
+        pseudo_archive = File.objects.create(name="", type="release.bundle")
+        pseudo_archive.putfile(BytesIO(b"0123456789"))
+        releasefile = ReleaseFile.objects.create(
+            name=pseudo_archive.name,
+            release_id=release.id,
+            organization_id=self.organization.id,
+            dist_id=None,
+            file=pseudo_archive,
+        )
+        file = File.objects.create(name=ARTIFACT_INDEX_FILENAME, type="release.artifact-index")
+        file.putfile(
+            BytesIO(json.dumps({"files": {url: {"archive_ident": releasefile.ident}}}).encode())
+        )
+        ReleaseFile.objects.create(
+            name=ARTIFACT_INDEX_FILENAME,
+            release_id=release.id,
+            organization_id=self.project.organization_id,
+            file=file,
+        )
+
     @patch("sentry.lang.javascript.processor.cache.set", side_effect=cache.set)
     @patch("sentry.lang.javascript.processor.cache.get", side_effect=cache.get)
     def test_archive_caching(self, cache_get, cache_set):
@@ -585,27 +635,8 @@ class FetchFileTest(TestCase):
         cache_set.reset_mock()
 
         # With existing release file:
-
         release2 = Release.objects.create(version="2", organization_id=self.project.organization_id)
-        pseudo_archive = File.objects.create(name="", type="release.bundle")
-        pseudo_archive.putfile(BytesIO(b"i_am_an_archive"))
-        releasefile = ReleaseFile.objects.create(
-            name=pseudo_archive.name,
-            release_id=release2.id,
-            organization_id=self.organization.id,
-            dist_id=None,
-            file=pseudo_archive,
-        )
-        file = File.objects.create(name=ARTIFACT_INDEX_FILENAME, type="release.artifact-index")
-        file.putfile(
-            BytesIO(json.dumps({"files": {"foo": {"archive_ident": releasefile.ident}}}).encode())
-        )
-        ReleaseFile.objects.create(
-            name=ARTIFACT_INDEX_FILENAME,
-            release_id=release2.id,
-            organization_id=self.project.organization_id,
-            file=file,
-        )
+        self._create_archive(release2, "foo")
 
         # No we have one, call set again
         result = fetch_release_archive_for_url(release2, dist=None, url="foo")
@@ -636,6 +667,58 @@ class FetchFileTest(TestCase):
         assert len(relevant_calls(cache_set, "releasefile")) == 0
         cache_get.reset_mock()
         cache_set.reset_mock()
+
+    @patch("sentry.lang.javascript.processor.CACHE_MAX_VALUE_SIZE", 9)
+    @patch("sentry.lang.javascript.processor.cache.set", side_effect=cache.set)
+    def test_archive_too_large_for_mem_cache(self, cache_set):
+        """cache.set is never called if the archive is too large"""
+
+        def relevant_calls(mock, prefix):
+            return [
+                call
+                for call in mock.mock_calls
+                if (
+                    call.args and call.args[0] or call.kwargs and call.kwargs["key"] or ""
+                ).startswith(prefix)
+            ]
+
+        release = Release.objects.create(version="1", organization_id=self.project.organization_id)
+        self._create_archive(release, "foo")
+
+        result = fetch_release_archive_for_url(release, dist=None, url="foo")
+        assert result is not None
+        assert len(relevant_calls(cache_set, "releasefile")) == 0
+
+    @patch(
+        "sentry.lang.javascript.processor.ReleaseFile.cache.getfile",
+        side_effect=ReleaseFile.cache.getfile,
+    )
+    def test_archive_too_large_for_disk_cache(self, cache_getfile):
+        """ReleaseFile.cache is not used if the archive is too large"""
+
+        release = Release.objects.create(version="1", organization_id=self.project.organization_id)
+        self._create_archive(release, "foo")
+
+        # cache.getfile is only called for index, not for the archive
+        with override_options({"releasefile.cache-max-archive-size": 9}):
+            result = fetch_release_archive_for_url(release, dist=None, url="foo")
+        assert result is not None
+        assert len(cache_getfile.mock_calls) == 1
+
+    @patch(
+        "sentry.lang.javascript.processor.ReleaseFile.cache.getfile",
+        side_effect=ReleaseFile.cache.getfile,
+    )
+    def test_archive_small_enough_for_disk_cache(self, cache_getfile):
+        """ReleaseFile.cache is not used if the archive is too large"""
+
+        release = Release.objects.create(version="1", organization_id=self.project.organization_id)
+        self._create_archive(release, "foo")
+
+        # cache.getfile is called once for the index, and once for the archive:
+        result = fetch_release_archive_for_url(release, dist=None, url="foo")
+        assert result is not None
+        assert len(cache_getfile.mock_calls) == 2
 
     @responses.activate
     def test_unicode_body(self):

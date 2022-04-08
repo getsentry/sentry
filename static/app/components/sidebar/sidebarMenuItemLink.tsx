@@ -1,15 +1,11 @@
 import * as React from 'react';
 
-import ExternalLink from 'app/components/links/externalLink';
-import Link from 'app/components/links/link';
+import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
 
 type Props = {
   // SidebarMenuItemLink content (accepted via string or components / DOM nodes)
   children: React.ReactNode;
-  /**
-   * Use this prop if button is a react-router link
-   */
-  to?: string;
   /**
    * Use this prop if button is an external link
    */
@@ -19,13 +15,17 @@ type Props = {
    */
   onClick?: () => void;
   /**
+   * specifies whether to open the linked document in a new tab
+   */
+  openInNewTab?: boolean;
+  /**
    * Inline styles
    */
   style?: React.CSSProperties;
   /**
-   * specifies whether to open the linked document in a new tab
+   * Use this prop if button is a react-router link
    */
-  openInNewTab?: boolean;
+  to?: string;
 };
 
 const SidebarMenuItemLink = ({to, href, ...props}: Props) => {

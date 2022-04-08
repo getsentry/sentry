@@ -1,3 +1,5 @@
-import Reflux from 'reflux';
+import {createActions} from 'reflux';
 
-export default Reflux.createActions(['fetchOrg', 'fetchOrgError', 'update']);
+const OrganizationActions = createActions(['reset', 'fetchOrgError', 'update']);
+
+export default OrganizationActions;

@@ -1,4 +1,4 @@
-import {defined} from 'app/utils';
+import {defined} from 'sentry/utils';
 
 /**
  * A threshold has a value if it is not one of the following:

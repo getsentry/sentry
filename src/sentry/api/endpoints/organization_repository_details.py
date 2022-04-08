@@ -1,8 +1,6 @@
-import logging
-from uuid import uuid4
-
 from django.db import transaction
 from rest_framework import serializers
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
@@ -11,14 +9,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
-from sentry.models import Commit, Integration, Repository
-from sentry.tasks.deletion import delete_repository
-
-delete_logger = logging.getLogger("sentry.deletions.api")
-
-
-def get_transaction_id():
-    return uuid4().hex
+from sentry.models import Commit, Integration, Repository, ScheduledDeletion
 
 
 class RepositorySerializer(serializers.Serializer):
@@ -37,7 +28,7 @@ class RepositorySerializer(serializers.Serializer):
 class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationIntegrationsPermission,)
 
-    def put(self, request, organization, repo_id):
+    def put(self, request: Request, organization, repo_id) -> Response:
         if not request.user.is_authenticated:
             return Response(status=401)
 
@@ -94,7 +85,7 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
 
         return Response(serialize(repo, request.user))
 
-    def delete(self, request, organization, repo_id):
+    def delete(self, request: Request, organization, repo_id) -> Response:
         if not request.user.is_authenticated:
             return Response(status=401)
 
@@ -103,37 +94,22 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
         except Repository.DoesNotExist:
             raise ResourceDoesNotExist
 
-        updated = Repository.objects.filter(
-            id=repo.id, status__in=[ObjectStatus.VISIBLE, ObjectStatus.DISABLED]
-        ).update(status=ObjectStatus.PENDING_DELETION)
-        if updated:
-            repo.status = ObjectStatus.PENDING_DELETION
+        with transaction.atomic():
+            updated = Repository.objects.filter(
+                id=repo.id, status__in=[ObjectStatus.VISIBLE, ObjectStatus.DISABLED]
+            ).update(status=ObjectStatus.PENDING_DELETION)
+            if updated:
+                repo.status = ObjectStatus.PENDING_DELETION
 
-            transaction_id = get_transaction_id()
-            # if repo doesn't have commits, delete immediately
-            has_commits = Commit.objects.filter(
-                repository_id=repo.id, organization_id=organization.id
-            ).exists()
+                # if repo doesn't have commits, delete immediately
+                has_commits = Commit.objects.filter(
+                    repository_id=repo.id, organization_id=organization.id
+                ).exists()
+                repo.rename_on_pending_deletion()
 
-            countdown = 3600 if has_commits else 0
+                if has_commits:
+                    ScheduledDeletion.schedule(repo, days=0, hours=1, actor=request.user)
+                else:
+                    ScheduledDeletion.schedule(repo, days=0, actor=request.user)
 
-            repo.rename_on_pending_deletion()
-
-            delete_repository.apply_async(
-                kwargs={
-                    "object_id": repo.id,
-                    "transaction_id": transaction_id,
-                    "actor_id": request.user.id,
-                },
-                countdown=countdown,
-            )
-
-            delete_logger.info(
-                "object.delete.queued",
-                extra={
-                    "object_id": repo.id,
-                    "transaction_id": transaction_id,
-                    "model": Repository.__name__,
-                },
-            )
         return Response(serialize(repo, request.user), status=202)

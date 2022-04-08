@@ -1,7 +1,11 @@
+from __future__ import annotations
+
 from uuid import uuid4
 
 from django import forms
 from django.utils.translation import ugettext_lazy as _
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.constants import ObjectStatus
 from sentry.integrations import (
@@ -11,7 +15,7 @@ from sentry.integrations import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.repositories import RepositoryMixin
+from sentry.integrations.mixins import RepositoryMixin
 from sentry.models.repository import Repository
 from sentry.pipeline import PipelineView
 from sentry.web.helpers import render_to_response
@@ -52,7 +56,9 @@ class CustomSCMIntegration(IntegrationInstallation, RepositoryMixin):
     def get_client(self):
         pass
 
-    def get_stacktrace_link(self, repo, filepath, default, version):
+    def get_stacktrace_link(
+        self, repo: Repository, filepath: str, default: str, version: str
+    ) -> str | None:
         """
         We don't have access to verify that the file does exists
         (using `check_file`) so instead we just return the
@@ -60,7 +66,7 @@ class CustomSCMIntegration(IntegrationInstallation, RepositoryMixin):
         """
         return self.format_source_url(repo, filepath, default)
 
-    def format_source_url(self, repo, filepath, branch):
+    def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:
         # This format works for GitHub/GitLab, not sure if it would
         # need to change for a different provider
         return f"{repo.url}/blob/{branch}/{filepath}"
@@ -100,7 +106,7 @@ class InstallationForm(forms.Form):
 
 
 class InstallationConfigView(PipelineView):
-    def dispatch(self, request, pipeline):
+    def dispatch(self, request: Request, pipeline) -> Response:
         if request.method == "POST":
             form = InstallationForm(request.POST)
             if form.is_valid():

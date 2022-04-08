@@ -1,23 +1,24 @@
 import * as React from 'react';
 
-import Button from 'app/components/button';
-import Tooltip from 'app/components/tooltip';
-import {t} from 'app/locale';
-import {IntegrationWithConfig} from 'app/types';
+import Button, {ButtonPropsWithoutAriaLabel} from 'sentry/components/button';
+import Tooltip from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
+import {IntegrationWithConfig} from 'sentry/types';
 
 import AddIntegration from './addIntegration';
 
-type Props = {
+interface AddIntegrationButtonProps
+  extends Omit<ButtonPropsWithoutAriaLabel, 'children'>,
+    Pick<
+      React.ComponentProps<typeof AddIntegration>,
+      'provider' | 'organization' | 'analyticsParams' | 'modalParams'
+    > {
   onAddIntegration: (data: IntegrationWithConfig) => void;
   buttonText?: string;
   reinstall?: boolean;
-} & React.ComponentProps<typeof Button> &
-  Pick<
-    React.ComponentProps<typeof AddIntegration>,
-    'provider' | 'organization' | 'analyticsParams' | 'modalParams'
-  >;
+}
 
-export default class AddIntegrationButton extends React.Component<Props> {
+export default class AddIntegrationButton extends React.Component<AddIntegrationButtonProps> {
   render() {
     const {
       provider,
@@ -50,6 +51,7 @@ export default class AddIntegrationButton extends React.Component<Props> {
               disabled={!provider.canAdd}
               {...buttonProps}
               onClick={() => onClick()}
+              aria-label={t('Add integration')}
             >
               {label}
             </Button>

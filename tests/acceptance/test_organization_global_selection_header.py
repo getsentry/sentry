@@ -1,4 +1,5 @@
 from datetime import datetime
+from unittest.mock import patch
 
 import pytest
 import pytz
@@ -6,7 +7,6 @@ from django.utils import timezone
 
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.utils.compat.mock import patch
 from tests.acceptance.page_objects.issue_details import IssueDetailsPage
 from tests.acceptance.page_objects.issue_list import IssueListPage
 

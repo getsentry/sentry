@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import ProjectPluginRow from 'app/views/settings/projectPlugins/projectPluginRow';
+import ProjectPluginRow from 'sentry/views/settings/projectPlugins/projectPluginRow';
 
 describe('ProjectPluginRow', function () {
   let wrapper;

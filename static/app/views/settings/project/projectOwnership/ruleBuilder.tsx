@@ -1,19 +1,20 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import Button from 'app/components/button';
-import SelectField from 'app/components/forms/selectField';
-import TextOverflow from 'app/components/textOverflow';
-import {IconAdd, IconChevron} from 'app/icons';
-import {t} from 'app/locale';
-import MemberListStore from 'app/stores/memberListStore';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import Input from 'app/views/settings/components/forms/controls/input';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import Button from 'sentry/components/button';
+import SelectField from 'sentry/components/deprecatedforms/selectField';
+import Input from 'sentry/components/forms/controls/input';
+import Tag from 'sentry/components/tag';
+import TextOverflow from 'sentry/components/textOverflow';
+import {IconAdd, IconChevron} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import MemberListStore from 'sentry/stores/memberListStore';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
 import SelectOwners, {
   Owner,
-} from 'app/views/settings/project/projectOwnership/selectOwners';
+} from 'sentry/views/settings/project/projectOwnership/selectOwners';
 
 const initialState = {
   text: '',
@@ -37,20 +38,20 @@ function getMatchPlaceholder(type: string): string {
 }
 
 type Props = {
-  organization: Organization;
-  project: Project;
-  onAddRule: (rule: string) => void;
-  urls: string[];
-  paths: string[];
   disabled: boolean;
+  onAddRule: (rule: string) => void;
+  organization: Organization;
+  paths: string[];
+  project: Project;
+  urls: string[];
 };
 
 type State = {
-  text: string;
-  tagName: string;
-  type: string;
-  owners: Owner[];
   isValid: boolean;
+  owners: Owner[];
+  tagName: string;
+  text: string;
+  type: string;
 };
 
 class RuleBuilder extends React.Component<Props, State> {
@@ -127,7 +128,7 @@ class RuleBuilder extends React.Component<Props, State> {
                 >
                   <StyledIconAdd isCircled />
                   <StyledTextOverflow>{v}</StyledTextOverflow>
-                  <TypeHint>[PATH]</TypeHint>
+                  <Tag>{t('Path')}</Tag>
                 </RuleCandidate>
               ))}
             {urls &&
@@ -138,7 +139,7 @@ class RuleBuilder extends React.Component<Props, State> {
                 >
                   <StyledIconAdd isCircled />
                   <StyledTextOverflow>{v}</StyledTextOverflow>
-                  <TypeHint>[URL]</TypeHint>
+                  <Tag>{t('URL')}</Tag>
                 </RuleCandidate>
               ))}
           </Candidates>
@@ -188,6 +189,7 @@ class RuleBuilder extends React.Component<Props, State> {
             onClick={this.handleAddRule}
             icon={<IconAdd isCircled />}
             size="small"
+            aria-label={t('Add rule')}
           />
         </BuilderBar>
       </React.Fragment>
@@ -198,10 +200,6 @@ const Candidates = styled('div')`
   margin-bottom: 10px;
 `;
 
-const TypeHint = styled('div')`
-  color: ${p => p.theme.border};
-`;
-
 const StyledTextOverflow = styled(TextOverflow)`
   flex: 1;
 `;
@@ -209,9 +207,10 @@ const StyledTextOverflow = styled(TextOverflow)`
 const RuleCandidate = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
   border: 1px solid ${p => p.theme.border};
-  background-color: #f8fafd;
-  padding-left: 5px;
-  margin-bottom: 3px;
+  border-radius: ${p => p.theme.borderRadius};
+  background-color: ${p => p.theme.background};
+  padding: ${space(0.25)} ${space(0.5)};
+  margin-bottom: ${space(0.5)};
   cursor: pointer;
   overflow: hidden;
   display: flex;

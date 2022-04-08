@@ -1,34 +1,37 @@
-import Reflux from 'reflux';
+import {createStore} from 'reflux';
 
-import AlertActions from 'app/actions/alertActions';
-import {defined} from 'app/utils';
-import localStorage from 'app/utils/localStorage';
+import {defined} from 'sentry/utils';
+import localStorage from 'sentry/utils/localStorage';
+import {Theme} from 'sentry/utils/theme';
+
+import {CommonStoreDefinition} from './types';
 
 type Alert = {
-  message: string;
-  type: 'warning' | 'warn' | 'error';
+  message: React.ReactNode;
+  type: keyof Theme['alert'];
   expireAfter?: number;
-  key?: number;
   id?: string;
-  url?: string;
+  key?: number;
   neverExpire?: boolean;
   noDuplicates?: boolean;
+  onClose?: () => void;
+  opaque?: boolean;
+  url?: string;
 };
 
-type AlertStoreInterface = Reflux.StoreDefinition & {
-  init: () => void;
-  getInitialState: () => Alert[];
-  onAddAlert: (alert: Alert) => void;
-  onCloseAlert: (alert: Alert, duration?: number) => void;
-};
-
-type Internals = {
+interface InternalAlertStoreDefinition {
   alerts: Alert[];
   count: number;
-};
+}
+interface AlertStoreDefinition
+  extends CommonStoreDefinition<Alert[]>,
+    InternalAlertStoreDefinition {
+  addAlert(alert: Alert): void;
+  closeAlert(alert: Alert, duration?: number): void;
+  init(): void;
+}
 
-const storeConfig: AlertStoreInterface & Internals = {
-  listenables: AlertActions,
+const storeConfig: AlertStoreDefinition = {
   alerts: [],
   count: 0,
 
@@ -37,11 +40,7 @@ const storeConfig: AlertStoreInterface & Internals = {
     this.count = 0;
   },
 
-  getInitialState() {
-    return this.alerts;
-  },
-
-  onAddAlert(alert) {
+  addAlert(alert) {
     const alertAlreadyExists = this.alerts.some(a => a.id === alert.id);
     if (alertAlreadyExists && alert.noDuplicates) {
       return;
@@ -73,7 +72,7 @@ const storeConfig: AlertStoreInterface & Internals = {
 
     if (alert.expireAfter && !alert.neverExpire) {
       window.setTimeout(() => {
-        this.onCloseAlert(alert);
+        this.closeAlert(alert);
       }, alert.expireAfter);
     }
 
@@ -86,7 +85,7 @@ const storeConfig: AlertStoreInterface & Internals = {
     this.trigger(this.alerts);
   },
 
-  onCloseAlert(alert, duration = 60 * 60 * 7 * 24) {
+  closeAlert(alert, duration = 60 * 60 * 7 * 24) {
     if (defined(alert.id) && defined(duration)) {
       const expiry = Math.floor(new Date().valueOf() / 1000) + duration;
       const mutedData = localStorage.getItem('alerts:muted');
@@ -103,10 +102,11 @@ const storeConfig: AlertStoreInterface & Internals = {
     this.alerts = this.alerts.filter(item => alert !== item);
     this.trigger(this.alerts);
   },
+
+  getState() {
+    return this.alerts;
+  },
 };
 
-type AlertStore = Reflux.Store & AlertStoreInterface;
-
-const AlertStore = Reflux.createStore(storeConfig) as AlertStore;
-
+const AlertStore = createStore(storeConfig);
 export default AlertStore;

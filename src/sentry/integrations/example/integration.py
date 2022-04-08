@@ -1,4 +1,10 @@
+from __future__ import annotations
+
+from typing import Any, Mapping, Sequence
+
 from django.http import HttpResponse
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.integrations import (
     FeatureDescription,
@@ -7,9 +13,9 @@ from sentry.integrations import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.issues import IssueSyncMixin
+from sentry.integrations.mixins import IssueSyncMixin, ResolveSyncAction
 from sentry.mediators.plugins import Migrator
-from sentry.models import User
+from sentry.models import ExternalIssue, Repository, User
 from sentry.pipeline import PipelineView
 from sentry.shared_integrations.exceptions import IntegrationError
 
@@ -24,7 +30,7 @@ class ExampleSetupView(PipelineView):
         </form>
     """
 
-    def dispatch(self, request, pipeline):
+    def dispatch(self, request: Request, pipeline) -> Response:
         if "name" in request.POST:
             pipeline.bind_state("name", request.POST["name"])
             return pipeline.next_step()
@@ -65,14 +71,14 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin):
 
     def create_comment(self, issue_id, user_id, group_note):
         user = User.objects.get(id=user_id)
-        attribution = "%s wrote:\n\n" % user.name
+        attribution = f"{user.name} wrote:\n\n"
         comment = {
             "id": "123456789",
             "text": "{}<blockquote>{}</blockquote>".format(attribution, group_note.data["text"]),
         }
         return comment
 
-    def get_persisted_default_config_fields(self):
+    def get_persisted_default_config_fields(self) -> Sequence[str]:
         return ["project", "issueType"]
 
     def get_persisted_user_default_config_fields(self):
@@ -127,25 +133,34 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin):
     def get_unmigratable_repositories(self):
         return []
 
-    def sync_assignee_outbound(self, external_issue, user, assign=True, **kwargs):
+    def sync_assignee_outbound(
+        self,
+        external_issue: ExternalIssue,
+        user: User | None,
+        assign: bool = True,
+        **kwargs: Any,
+    ) -> None:
         pass
 
     def sync_status_outbound(self, external_issue, is_resolved, project_id):
         pass
 
-    def should_unresolve(self, data):
-        return data["status"]["category"] != "done"
-
-    def should_resolve(self, data):
-        return data["status"]["category"] == "done"
+    def get_resolve_sync_action(self, data: Mapping[str, Any]) -> ResolveSyncAction:
+        category = data["status"]["category"]
+        return ResolveSyncAction.from_resolve_unresolve(
+            should_resolve=category == "done",
+            should_unresolve=category != "done",
+        )
 
     def get_issue_display_name(self, external_issue):
-        return "display name: %s" % external_issue.key
+        return f"display name: {external_issue.key}"
 
-    def get_stacktrace_link(self, repo, path, default, version):
+    def get_stacktrace_link(
+        self, repo: Repository, filepath: str, default: str, version: str
+    ) -> str | None:
         pass
 
-    def format_source_url(self, repo, filepath, branch):
+    def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:
         return f"https://example.com/{repo.name}/blob/{branch}/{filepath}"
 
 

@@ -1,11 +1,10 @@
-import {MouseEventHandler} from 'react';
 import styled from '@emotion/styled';
 
-import {IconRefresh} from 'app/icons/iconRefresh';
-import {tn} from 'app/locale';
-import space from 'app/styles/space';
-import {Frame} from 'app/types';
-import {defined} from 'app/utils';
+import {IconRefresh} from 'sentry/icons/iconRefresh';
+import {tn} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Frame} from 'sentry/types';
+import {defined} from 'sentry/utils';
 
 import DefaultTitle from '../defaultTitle';
 
@@ -17,8 +16,8 @@ type Props = React.ComponentProps<typeof Expander> &
   React.ComponentProps<typeof LeadHint> & {
     frame: Frame;
     isUsedForGrouping: boolean;
-    onMouseDown?: MouseEventHandler<HTMLDivElement>;
     onClick?: () => void;
+    onMouseDown?: React.MouseEventHandler<HTMLDivElement>;
     timesRepeated?: number;
   };
 
@@ -105,8 +104,8 @@ const RepeatedFrames = styled('div')`
   margin-left: ${space(1)};
   border-width: thin;
   border-style: solid;
-  border-color: ${p => p.theme.orange500};
-  color: ${p => p.theme.orange500};
+  border-color: ${p => p.theme.pink200};
+  color: ${p => p.theme.pink300};
   background-color: ${p => p.theme.backgroundSecondary};
   white-space: nowrap;
 `;

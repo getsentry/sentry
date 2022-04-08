@@ -1,10 +1,11 @@
+from unittest import mock
+
 import responses
 
 from sentry.integrations.jira.client import JiraCloud
 from sentry.models import Integration
 from sentry.testutils import TestCase
 from sentry.utils import json
-from sentry.utils.compat import mock
 
 
 class StubJiraCloud(JiraCloud):

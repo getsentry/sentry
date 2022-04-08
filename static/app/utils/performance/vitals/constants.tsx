@@ -1,6 +1,6 @@
-import {t} from 'app/locale';
-import {measurementType, MobileVital, WebVital} from 'app/utils/discover/fields';
-import {Vital} from 'app/utils/performance/vitals/types';
+import {t} from 'sentry/locale';
+import {measurementType, MobileVital, WebVital} from 'sentry/utils/discover/fields';
+import {Vital} from 'sentry/utils/performance/vitals/types';
 
 export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
   [WebVital.FP]: {
@@ -165,3 +165,12 @@ export const MOBILE_VITAL_DETAILS: Record<MobileVital, Vital> = {
     type: measurementType(MobileVital.StallPercentage),
   },
 };
+
+export enum Browser {
+  CHROME = 'Chrome',
+  EDGE = 'Edge',
+  OPERA = 'Opera',
+  FIREFOX = 'Firefox',
+  SAFARI = 'Safari',
+  IE = 'IE',
+}

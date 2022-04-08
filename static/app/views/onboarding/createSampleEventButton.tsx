@@ -6,22 +6,22 @@ import {
   addErrorMessage,
   addLoadingMessage,
   clearIndicators,
-} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
-import Button from 'app/components/button';
-import {t} from 'app/locale';
-import {Organization, Project} from 'app/types';
-import {trackAdhocEvent, trackAnalyticsEvent} from 'app/utils/analytics';
-import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
+} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
+import Button, {ButtonProps} from 'sentry/components/button';
+import {t} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
+import {trackAdhocEvent, trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import withApi from 'sentry/utils/withApi';
+import withOrganization from 'sentry/utils/withOrganization';
 
-type Props = React.ComponentProps<typeof Button> & {
+type CreateSampleEventButtonProps = {
   api: Client;
   organization: Organization;
-  project?: Project;
   source: string;
-};
+  project?: Project;
+} & ButtonProps;
 
 type State = {
   creating: boolean;
@@ -41,7 +41,9 @@ async function latestEventAvailable(
     if (retries > EVENT_POLL_RETRIES) {
       return {eventCreated: false, retries: retries - 1};
     }
-    await new Promise(resolve => setTimeout(resolve, EVENT_POLL_INTERVAL));
+
+    await new Promise(resolve => window.setTimeout(resolve, EVENT_POLL_INTERVAL));
+
     try {
       await api.requestPromise(`/issues/${groupID}/events/latest/`);
       return {eventCreated: true, retries};
@@ -51,7 +53,10 @@ async function latestEventAvailable(
   }
 }
 
-class CreateSampleEventButton extends React.Component<Props, State> {
+class CreateSampleEventButton extends React.Component<
+  CreateSampleEventButtonProps,
+  State
+> {
   state: State = {
     creating: false,
   };
@@ -156,7 +161,7 @@ class CreateSampleEventButton extends React.Component<Props, State> {
     }
 
     browserHistory.push(
-      `/organizations/${organization.slug}/issues/${eventData.groupID}/`
+      `/organizations/${organization.slug}/issues/${eventData.groupID}/?project=${project.id}`
     );
   };
 

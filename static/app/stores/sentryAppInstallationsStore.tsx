@@ -1,8 +1,14 @@
-import Reflux from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
-import {SentryAppInstallation} from 'app/types';
+import {SentryAppInstallation} from 'sentry/types';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
-const SentryAppInstallationStore = Reflux.createStore({
+interface SentryAppInstallationStoreDefinition extends StoreDefinition {
+  getInitialState(): SentryAppInstallation[];
+  load(items: SentryAppInstallation[]): void;
+}
+
+const storeConfig: SentryAppInstallationStoreDefinition = {
   init() {
     this.items = [];
   },
@@ -24,11 +30,7 @@ const SentryAppInstallationStore = Reflux.createStore({
   getAll(): SentryAppInstallation[] {
     return this.items;
   },
-});
-
-type SentryAppInstallationStoreType = Reflux.Store & {
-  load: (items: SentryAppInstallation[]) => void;
-  getInitialState: () => SentryAppInstallation[];
 };
 
-export default SentryAppInstallationStore as SentryAppInstallationStoreType;
+const SentryAppInstallationStore = createStore(makeSafeRefluxStore(storeConfig));
+export default SentryAppInstallationStore;

@@ -9,12 +9,22 @@ from io import BytesIO
 import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
-from django.db import IntegrityError, OperationalError, connection, router, transaction
+from django.db import IntegrityError, OperationalError, connection, transaction
 from django.db.models import Func
 from django.utils.encoding import force_text
 from pytz import UTC
 
-from sentry import buffer, eventstore, eventstream, eventtypes, features, options, quotas, tsdb
+from sentry import (
+    buffer,
+    eventstore,
+    eventstream,
+    eventtypes,
+    features,
+    options,
+    quotas,
+    reprocessing2,
+    tsdb,
+)
 from sentry.attachments import MissingAttachmentChunks, attachment_cache
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
@@ -65,14 +75,12 @@ from sentry.models import (
     UserReport,
     get_crashreport_key,
 )
+from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.plugins.base import plugins
-from sentry.reprocessing2 import (
-    delete_old_primary_hash,
-    is_reprocessed_event,
-    save_unprocessed_event,
-)
+from sentry.reprocessing2 import is_reprocessed_event, save_unprocessed_event
 from sentry.signals import first_event_received, first_transaction_received, issue_unresolved
 from sentry.tasks.integrations import kick_off_status_syncs
+from sentry.types.activity import ActivityType
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
@@ -381,9 +389,18 @@ class EventManager:
         with metrics.timer("event_manager.load_grouping_config"):
             # At this point we want to normalize the in_app values in case the
             # clients did not set this appropriately so far.
-            grouping_config = get_grouping_config_dict_for_event_data(
-                job["event"].data.data, project
-            )
+            if is_reprocessed:
+                # The customer might have changed grouping enhancements since
+                # the event was ingested -> make sure we get the fresh one for reprocessing.
+                grouping_config = get_grouping_config_dict_for_project(project)
+                # Write back grouping config because it might have changed since the
+                # event was ingested.
+                # NOTE: We could do this unconditionally (regardless of `is_processed`).
+                job["data"]["grouping_config"] = grouping_config
+            else:
+                grouping_config = get_grouping_config_dict_for_event_data(
+                    job["event"].data.data, project
+                )
 
         with sentry_sdk.start_span(op="event_manager.save.calculate_event_grouping"), metrics.timer(
             "event_manager.calculate_event_grouping"
@@ -513,7 +530,16 @@ class EventManager:
                 )
 
         if is_reprocessed:
-            safe_execute(delete_old_primary_hash, job["event"], _with_transaction=False)
+            safe_execute(
+                reprocessing2.buffered_delete_old_primary_hash,
+                project_id=job["event"].project_id,
+                group_id=reprocessing2.get_original_group_id(job["event"]),
+                event_id=job["event"].event_id,
+                datetime=job["event"].datetime,
+                old_primary_hash=reprocessing2.get_original_primary_hash(job["event"]),
+                current_primary_hash=job["event"].get_primary_hash(),
+                _with_transaction=False,
+            )
 
         _eventstream_insert_many(jobs)
 
@@ -828,12 +854,12 @@ def _nodestore_save_many(jobs):
 
         if job["group"]:
             event = job["event"]
-            data = event_processing_store.get(
+            unprocessed = event_processing_store.get(
                 cache_key_for_event({"project": event.project_id, "event_id": event.event_id}),
                 unprocessed=True,
             )
-            if data is not None:
-                subkeys["unprocessed"] = data
+            if unprocessed is not None:
+                subkeys["unprocessed"] = unprocessed
 
         job["event"].data["nodestore_insert"] = inserted_time
         job["event"].data.save(subkeys=subkeys)
@@ -931,23 +957,30 @@ def _get_event_user_impl(project, data, metrics_tags):
     euser_id = cache.get(cache_key)
     if euser_id is None:
         metrics_tags["cache_hit"] = "false"
+
         try:
-            with transaction.atomic(using=router.db_for_write(EventUser)):
-                euser.save()
-            metrics_tags["created"] = "true"
+            euser, created = EventUser.objects.get_or_create(
+                project_id=euser.project_id,
+                hash=euser.hash,
+                defaults={
+                    "ident": euser.ident,
+                    "email": euser.email,
+                    "username": euser.username,
+                    "ip_address": euser.ip_address,
+                    "name": euser.name,
+                },
+            )
         except IntegrityError:
-            metrics_tags["created"] = "false"
-            try:
-                euser = EventUser.objects.get(project_id=project.id, hash=euser.hash)
-            except EventUser.DoesNotExist:
-                metrics_tags["created"] = "lol"
-                # why???
-                e_userid = -1
-            else:
-                if euser.name != (user_data.get("name") or euser.name):
-                    euser.update(name=user_data["name"])
-                e_userid = euser.id
-            cache.set(cache_key, e_userid, 3600)
+            # TODO(michal): This is result of project_id, ident duplicate and
+            # should not be possible since we prioritize ident for hash
+            created = False
+            cache.set(cache_key, -1, 3600)
+        else:
+            if not created and user_data.get("name") and euser.name != user_data.get("name"):
+                euser.update(name=user_data["name"])
+            cache.set(cache_key, euser.id, 3600)
+
+        metrics_tags["created"] = str(created).lower()
     else:
         metrics_tags["cache_hit"] = "true"
 
@@ -1122,10 +1155,16 @@ def _save_aggregate(event, hashes, release, metadata, received_timestamp, **kwar
 
     is_new = False
 
-    if root_hierarchical_hash is not None:
-        new_hashes = []
-    else:
+    if root_hierarchical_grouphash is None:
+        # No hierarchical grouping was run, only consider flat hashes
         new_hashes = [h for h in flat_grouphashes if h.group_id is None]
+    elif root_hierarchical_grouphash.group_id is None:
+        # The root hash is not assigned to a group.
+        # We ran multiple grouping algorithms
+        # (see secondary grouping), and the hierarchical hash is new
+        new_hashes = [root_hierarchical_grouphash]
+    else:
+        new_hashes = []
 
     if new_hashes:
         # There may still be secondary hashes that we did not use to find an
@@ -1179,6 +1218,11 @@ def _find_existing_grouphash(
             for h in GroupHash.objects.filter(project=project, hash__in=hierarchical_hashes)
         }
 
+        # Look for splits:
+        # 1. If we find a hash with SPLIT state at `n`, we want to use
+        #    `n + 1` as the root hash.
+        # 2. If we find a hash associated to a group that is more specific
+        #    than the primary hash, we want to use that hash as root hash.
         for hash in reversed(hierarchical_hashes):
             group_hash = hierarchical_grouphashes.get(hash)
 
@@ -1190,6 +1234,13 @@ def _find_existing_grouphash(
 
             if group_hash is not None:
                 all_grouphashes.append(group_hash)
+
+                if group_hash.group_id is not None:
+                    # Even if we did not find a hash with SPLIT state, we want to use
+                    # the most specific hierarchical hash as root hash if it was already
+                    # associated to a group.
+                    # See `move_all_events` test case
+                    break
 
         if root_hierarchical_hash is None:
             # All hashes were split, so we group by most specific hash. This is
@@ -1277,6 +1328,8 @@ def _handle_regression(group, event, release):
     group.status = GroupStatus.UNRESOLVED
 
     if is_regression and release:
+        resolution = None
+
         # resolutions are only valid if the state of the group is still
         # resolved -- if it were to change the resolution should get removed
         try:
@@ -1289,13 +1342,15 @@ def _handle_regression(group, event, release):
             cursor.execute("DELETE FROM sentry_groupresolution WHERE id = %s", [resolution.id])
             affected = cursor.rowcount > 0
 
-        if affected:
+        if affected and resolution:
             # if we had to remove the GroupResolution (i.e. we beat the
             # the queue to handling this) then we need to also record
             # the corresponding event
             try:
                 activity = Activity.objects.filter(
-                    group=group, type=Activity.SET_RESOLVED_IN_RELEASE, ident=resolution.id
+                    group=group,
+                    type=Activity.SET_RESOLVED_IN_RELEASE,
+                    ident=resolution.id,
                 ).order_by("-datetime")[0]
             except IndexError:
                 # XXX: handle missing data, as its not overly important
@@ -1314,13 +1369,10 @@ def _handle_regression(group, event, release):
                     activity.update(data={"version": release.version})
 
     if is_regression:
-        activity = Activity.objects.create(
-            project_id=group.project_id,
-            group=group,
-            type=Activity.SET_REGRESSION,
-            data={"version": release.version if release else ""},
+        Activity.objects.create_group_activity(
+            group, ActivityType.SET_REGRESSION, data={"version": release.version if release else ""}
         )
-        activity.send_notification()
+        record_group_history(group, GroupHistoryStatus.REGRESSED, actor=None, release=release)
 
         kick_off_status_syncs.apply_async(
             kwargs={"project_id": group.project_id, "group_id": group.id}
@@ -1697,6 +1749,29 @@ def _calculate_event_grouping(project, event, grouping_config) -> CalculatedHash
     return hashes
 
 
+@metrics.wraps("save_event.calculate_span_grouping")
+def _calculate_span_grouping(jobs, projects):
+    for job in jobs:
+        # Make sure this snippet doesn't crash ingestion
+        # as the feature is under development.
+        try:
+            event = job["event"]
+            project = projects[job["project_id"]]
+
+            if not features.has(
+                "projects:performance-suspect-spans-ingestion",
+                project=project,
+            ):
+                continue
+
+            groupings = event.get_span_groupings()
+            groupings.write_to_event(event.data)
+
+            metrics.timing("save_event.transaction.span_count", len(groupings.results))
+        except Exception:
+            sentry_sdk.capture_exception()
+
+
 @metrics.wraps("event_manager.save_transaction_events")
 def save_transaction_events(jobs, projects):
     with metrics.timer("event_manager.save_transactions.collect_organization_ids"):
@@ -1730,6 +1805,7 @@ def save_transaction_events(jobs, projects):
     _get_event_user_many(jobs, projects)
     _derive_plugin_tags_many(jobs, projects)
     _derive_interface_tags_many(jobs)
+    _calculate_span_grouping(jobs, projects)
     _materialize_metadata_many(jobs)
     _get_or_create_environment_many(jobs, projects)
     _get_or_create_release_associated_models(jobs, projects)

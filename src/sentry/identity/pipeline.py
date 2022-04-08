@@ -3,10 +3,9 @@ import logging
 from django.contrib import messages
 from django.http import HttpResponseRedirect
 from django.urls import reverse
-from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.models import Identity, IdentityProvider, IdentityStatus
+from sentry.models import Identity, IdentityProvider
 from sentry.pipeline import Pipeline
 
 from . import default_manager
@@ -38,22 +37,16 @@ class IdentityProviderPipeline(Pipeline):
     def finish_pipeline(self):
         identity = self.provider.build_identity(self.state.data)
 
-        defaults = {
-            "status": IdentityStatus.VALID,
-            "scopes": identity.get("scopes", []),
-            "data": identity.get("data", {}),
-            "date_verified": timezone.now(),
-        }
-
-        identity, created = Identity.objects.get_or_create(
-            idp=self.provider_model,
+        Identity.objects.link_identity(
             user=self.request.user,
+            idp=self.provider_model,
             external_id=identity["id"],
-            defaults=defaults,
+            should_reattach=False,
+            defaults={
+                "scopes": identity.get("scopes", []),
+                "data": identity.get("data", {}),
+            },
         )
-
-        if not created:
-            identity.update(**defaults)
 
         messages.add_message(
             self.request,

@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import EventVitals from 'app/components/events/eventVitals';
+import EventVitals from 'sentry/components/events/eventVitals';
 
 function makeEvent(measurements = {}, sdk = {version: '5.27.3'}) {
   const formattedMeasurements = {};

@@ -1,21 +1,21 @@
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import AsyncComponent from 'app/components/asyncComponent';
-import AutoSelectText from 'app/components/autoSelectText';
-import Button from 'app/components/button';
-import ExternalLink from 'app/components/links/externalLink';
-import PlatformPicker from 'app/components/platformPicker';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import {PlatformKey} from 'app/data/platformCategories';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import recreateRoute from 'app/utils/recreateRoute';
-import withOrganization from 'app/utils/withOrganization';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TextBlock from 'app/views/settings/components/text/textBlock';
-import {ProjectKey} from 'app/views/settings/project/projectKeys/types';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import AutoSelectText from 'sentry/components/autoSelectText';
+import Button from 'sentry/components/button';
+import ExternalLink from 'sentry/components/links/externalLink';
+import PlatformPicker from 'sentry/components/platformPicker';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {PlatformKey} from 'sentry/data/platformCategories';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import recreateRoute from 'sentry/utils/recreateRoute';
+import withOrganization from 'sentry/utils/withOrganization';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
 type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
   organization: Organization;
@@ -40,9 +40,9 @@ class ProjectInstallOverview extends AsyncComponent<Props, State> {
 
     const installUrl = this.isGettingStarted
       ? `/organizations/${orgId}/projects/${projectId}/getting-started/${platform}/`
-      : recreateRoute(`install/${platform}/`, {
+      : recreateRoute(`${platform}/`, {
           ...this.props,
-          stepBack: -3,
+          stepBack: -1,
         });
 
     browserHistory.push(installUrl);
@@ -83,7 +83,13 @@ class ProjectInstallOverview extends AsyncComponent<Props, State> {
           <p>
             <small>
               {tct('Already have things setup? [link:Get your DSN]', {
-                link: <Button priority="link" onClick={this.toggleDsn} />,
+                link: (
+                  <Button
+                    priority="link"
+                    onClick={this.toggleDsn}
+                    aria-label={t('Get your DSN')}
+                  />
+                ),
               })}
               .
             </small>
@@ -121,7 +127,7 @@ const DsnInfo = styled('div')`
 const DsnContainer = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  grid-gap: ${space(1.5)} ${space(2)};
+  gap: ${space(1.5)} ${space(2)};
   align-items: center;
   margin-bottom: ${space(2)};
 `;

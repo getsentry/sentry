@@ -1,18 +1,18 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {openModal} from 'app/actionCreators/modal';
-import Role from 'app/components/acl/role';
-import MenuItemActionLink from 'app/components/actions/menuItemActionLink';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import DropdownLink from 'app/components/dropdownLink';
-import {Panel, PanelBody, PanelFooter} from 'app/components/panels';
-import {IconEllipsis} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {EventAttachment, Organization, Project} from 'app/types';
-import {Event} from 'app/types/event';
+import {openModal} from 'sentry/actionCreators/modal';
+import {Role} from 'sentry/components/acl/role';
+import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import DropdownLink from 'sentry/components/dropdownLink';
+import {Panel, PanelBody, PanelFooter} from 'sentry/components/panels';
+import {IconEllipsis} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {EventAttachment, Organization, Project} from 'sentry/types';
+import {Event} from 'sentry/types/event';
 
 import DataSection from '../dataSection';
 
@@ -21,19 +21,14 @@ import Modal, {modalCss} from './modal';
 
 type Props = {
   event: Event;
+  onDelete: (attachmentId: EventAttachment['id']) => void;
   organization: Organization;
   projectSlug: Project['slug'];
-  attachments: EventAttachment[];
-  onDelete: (attachmentId: EventAttachment['id']) => void;
+  screenshot: EventAttachment;
 };
 
-function Screenshot({event, attachments, organization, projectSlug, onDelete}: Props) {
+function Screenshot({event, organization, screenshot, projectSlug, onDelete}: Props) {
   const orgSlug = organization.slug;
-
-  function hasScreenshot(attachment: EventAttachment) {
-    const {mimetype} = attachment;
-    return mimetype === 'image/jpeg' || mimetype === 'image/png';
-  }
 
   function handleOpenVisualizationModal(
     eventAttachment: EventAttachment,
@@ -85,7 +80,7 @@ function Screenshot({event, attachments, organization, projectSlug, onDelete}: P
               caret={false}
               customTitle={
                 <Button
-                  label={t('Actions')}
+                  aria-label={t('Actions')}
                   size="xsmall"
                   icon={<IconEllipsis size="xs" />}
                 />
@@ -118,22 +113,20 @@ function Screenshot({event, attachments, organization, projectSlug, onDelete}: P
   }
 
   return (
-    <Role role={organization.attachmentsRole}>
+    <Role organization={organization} role={organization.attachmentsRole}>
       {({hasRole}) => {
-        const screenshotAttachment = attachments.find(hasScreenshot);
-
-        if (!hasRole || !screenshotAttachment) {
+        if (!hasRole) {
           return null;
         }
 
         return (
           <DataSection
-            title={t('Screenshots')}
+            title={t('Screenshot')}
             description={t(
-              'Screenshots help identify what the user saw when the event happened'
+              'Screenshot help identify what the user saw when the event happened'
             )}
           >
-            <StyledPanel>{renderContent(screenshotAttachment)}</StyledPanel>
+            <StyledPanel>{renderContent(screenshot)}</StyledPanel>
           </DataSection>
         );
       }}

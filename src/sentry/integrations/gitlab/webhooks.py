@@ -1,6 +1,6 @@
 import logging
 
-import dateutil.parser
+from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, transaction
 from django.http import Http404, HttpResponse
 from django.utils import timezone
@@ -8,6 +8,8 @@ from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.models import Commit, CommitAuthor, Integration, PullRequest, Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
@@ -47,12 +49,6 @@ class Webhook:
 
     def update_repo_data(self, repo, event):
         """
-        # TODO(kmclb): the name w namespace bit is currently causing false positives
-        # for people with three or more levels in their repo names. Need to research
-        # exactly how gitlab handles these cases (what's the name, what's the namespace,
-        # does the url reliably have the info we need?) and then fix this for those
-        # cases.
-
         Given a webhook payload, update stored repo data if needed.
 
         Assumes a 'project' key in event payload, with certain subkeys. Rework
@@ -61,17 +57,11 @@ class Webhook:
 
         project = event["project"]
 
-        name_from_event = "{} / {}".format(project["namespace"], project["name"])
         url_from_event = project["web_url"]
         path_from_event = project["path_with_namespace"]
 
-        if (
-            repo.name != name_from_event
-            or repo.url != url_from_event
-            or repo.config.get("path") != path_from_event
-        ):
+        if repo.url != url_from_event or repo.config.get("path") != path_from_event:
             repo.update(
-                name=name_from_event,
                 url=url_from_event,
                 config=dict(repo.config, path=path_from_event),
             )
@@ -89,9 +79,8 @@ class MergeEventWebhook(Webhook):
         if repo is None:
             return
 
-        # TODO(kmclb): turn this back on once tri-level repo problem has been solved
         # while we're here, make sure repo data is up to date
-        # self.update_repo_data(repo, event)
+        self.update_repo_data(repo, event)
 
         try:
             number = event["object_attributes"]["iid"]
@@ -111,6 +100,8 @@ class MergeEventWebhook(Webhook):
                 "gitlab.webhook.invalid-merge-data",
                 extra={"integration_id": integration.id, "error": str(e)},
             )
+            # TODO(mgaeta): This try/catch is full of reportUnboundVariable errors.
+            return
 
         if not author_email:
             raise Http404()
@@ -120,16 +111,16 @@ class MergeEventWebhook(Webhook):
         )[0]
 
         try:
-            PullRequest.create_or_save(
+            PullRequest.objects.update_or_create(
                 organization_id=organization.id,
                 repository_id=repo.id,
                 key=number,
-                values={
+                defaults={
                     "title": title,
                     "author": author,
                     "message": body,
                     "merge_commit_sha": merge_commit_sha,
-                    "date_added": dateutil.parser.parse(created_at).astimezone(timezone.utc),
+                    "date_added": parse_date(created_at).astimezone(timezone.utc),
                 },
             )
         except IntegrityError:
@@ -148,9 +139,8 @@ class PushEventWebhook(Webhook):
         if repo is None:
             return
 
-        # TODO(kmclb): turn this back on once tri-level repo problem has been solved
         # while we're here, make sure repo data is up to date
-        # self.update_repo_data(repo, event)
+        self.update_repo_data(repo, event)
 
         authors = {}
 
@@ -183,9 +173,7 @@ class PushEventWebhook(Webhook):
                         key=commit["id"],
                         message=commit["message"],
                         author=author,
-                        date_added=dateutil.parser.parse(commit["timestamp"]).astimezone(
-                            timezone.utc
-                        ),
+                        date_added=parse_date(commit["timestamp"]).astimezone(timezone.utc),
                     )
             except IntegrityError:
                 pass
@@ -197,13 +185,13 @@ class GitlabWebhookEndpoint(View):
     _handlers = {"Push Hook": PushEventWebhook, "Merge Request Hook": MergeEventWebhook}
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request, *args, **kwargs):
+    def dispatch(self, request: Request, *args, **kwargs) -> Response:
         if request.method != "POST":
             return HttpResponse(status=405)
 
         return super().dispatch(request, *args, **kwargs)
 
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         token = "<unknown>"
         try:
             # Munge the token to extract the integration external_id.

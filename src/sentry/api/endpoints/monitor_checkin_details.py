@@ -1,6 +1,8 @@
 from django.db import transaction
 from django.utils import timezone
 from rest_framework import serializers
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.authentication import DSNAuthentication
@@ -38,7 +40,7 @@ class MonitorCheckInDetailsEndpoint(Endpoint):
 
     # TODO(dcramer): this code needs shared with other endpoints as its security focused
     # TODO(dcramer): this doesnt handle is_global roles
-    def convert_args(self, request, monitor_id, checkin_id, *args, **kwargs):
+    def convert_args(self, request: Request, monitor_id, checkin_id, *args, **kwargs):
         try:
             monitor = Monitor.objects.get(guid=monitor_id)
         except Monitor.DoesNotExist:
@@ -71,7 +73,7 @@ class MonitorCheckInDetailsEndpoint(Endpoint):
         kwargs.update({"checkin": checkin, "monitor": monitor, "project": project})
         return (args, kwargs)
 
-    def get(self, request, project, monitor, checkin):
+    def get(self, request: Request, project, monitor, checkin) -> Response:
         """
         Retrieve a check-in
         ```````````````````
@@ -86,7 +88,7 @@ class MonitorCheckInDetailsEndpoint(Endpoint):
 
         return self.respond(serialize(checkin, request.user))
 
-    def put(self, request, project, monitor, checkin):
+    def put(self, request: Request, project, monitor, checkin) -> Response:
         """
         Update a check-in
         `````````````````

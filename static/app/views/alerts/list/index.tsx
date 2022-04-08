@@ -3,30 +3,28 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import flatten from 'lodash/flatten';
 
-import {promptsCheck, promptsUpdate} from 'app/actionCreators/prompts';
-import Feature from 'app/components/acl/feature';
-import Alert from 'app/components/alert';
-import AsyncComponent from 'app/components/asyncComponent';
-import Button from 'app/components/button';
-import CreateAlertButton from 'app/components/createAlertButton';
-import * as Layout from 'app/components/layouts/thirds';
-import ExternalLink from 'app/components/links/externalLink';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import Pagination from 'app/components/pagination';
-import {PanelTable} from 'app/components/panels';
-import SearchBar from 'app/components/searchBar';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import {IconInfo} from 'app/icons';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project, Team} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import Projects from 'app/utils/projects';
-import withOrganization from 'app/utils/withOrganization';
-import withTeams from 'app/utils/withTeams';
+import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
+import Feature from 'sentry/components/acl/feature';
+import Alert from 'sentry/components/alert';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import Button from 'sentry/components/button';
+import CreateAlertButton from 'sentry/components/createAlertButton';
+import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import Pagination from 'sentry/components/pagination';
+import {PanelTable} from 'sentry/components/panels';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import Projects from 'sentry/utils/projects';
+import withOrganization from 'sentry/utils/withOrganization';
 
-import TeamFilter, {getTeamParams} from '../rules/teamFilter';
+import FilterBar from '../filterBar';
 import {Incident} from '../types';
+import {getQueryStatus, getTeamParams} from '../utils';
 
 import AlertHeader from './header';
 import Onboarding from './onboarding';
@@ -37,53 +35,37 @@ const DOCS_URL =
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
   organization: Organization;
-  teams: Team[];
 };
 
 type State = {
   incidentList: Incident[];
   /**
-   * Is there at least one alert rule configured for the currently selected
-   * projects?
-   */
-  hasAlertRule?: boolean;
-  /**
    * User has not yet seen the 'alert_stream' welcome prompt for this
    * organization.
    */
   firstVisitShown?: boolean;
+  /**
+   * Is there at least one alert rule configured for the currently selected
+   * projects?
+   */
+  hasAlertRule?: boolean;
 };
 
 class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state']> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {params, location, organization} = this.props;
+    const {params, location} = this.props;
     const {query} = location;
 
-    const status = this.getQueryStatus(query.status);
+    const status = getQueryStatus(query.status);
     // Filtering by one status, both does nothing
     if (status.length === 1) {
       query.status = status;
     }
 
     query.team = getTeamParams(query.team);
-
-    if (organization.features.includes('alert-details-redesign')) {
-      query.expand = ['original_alert_rule'];
-    }
+    query.expand = ['original_alert_rule'];
 
     return [['incidentList', `/organizations/${params?.orgId}/incidents/`, {query}]];
-  }
-
-  getQueryStatus(status: string | string[]): string[] {
-    if (Array.isArray(status)) {
-      return status;
-    }
-
-    if (status === '') {
-      return [];
-    }
-
-    return ['open', 'closed'].includes(status) ? [status] : [];
   }
 
   /**
@@ -178,29 +160,6 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     });
   };
 
-  renderFilterBar() {
-    const {teams, location} = this.props;
-    const selectedTeams = new Set(getTeamParams(location.query.team));
-    const selectedStatus = new Set(this.getQueryStatus(location.query.status));
-
-    return (
-      <FilterWrapper>
-        <TeamFilter
-          showStatus
-          teams={teams}
-          selectedStatus={selectedStatus}
-          selectedTeams={selectedTeams}
-          handleChangeFilter={this.handleChangeFilter}
-        />
-        <StyledSearchBar
-          placeholder={t('Search by name')}
-          query={location.query?.name}
-          onSearch={this.handleChangeSearch}
-        />
-      </FilterWrapper>
-    );
-  }
-
   tryRenderOnboarding() {
     const {firstVisitShown} = this.state;
     const {organization} = this.props;
@@ -221,7 +180,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
           priority="primary"
           referrer="alert_stream"
         >
-          {t('Create Alert Rule')}
+          {t('Create Alert')}
         </CreateAlertButton>
       </Fragment>
     );
@@ -294,32 +253,36 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
   }
 
   renderBody() {
-    const {params, organization, router} = this.props;
+    const {params, organization, router, location} = this.props;
     const {orgId} = params;
 
     return (
       <SentryDocumentTitle title={t('Alerts')} orgSlug={orgId}>
-        <GlobalSelectionHeader organization={organization} showDateSelector={false}>
+        <PageFiltersContainer
+          organization={organization}
+          showDateSelector={false}
+          hideGlobalHeader
+        >
           <AlertHeader organization={organization} router={router} activeTab="stream" />
-          <StyledLayoutBody>
+          <Layout.Body>
             <Layout.Main fullWidth>
               {!this.tryRenderOnboarding() && (
                 <Fragment>
-                  <Feature
-                    features={['alert-details-redesign']}
-                    organization={organization}
-                  >
-                    <StyledAlert icon={<IconInfo />}>
-                      {t('This page only shows metric alerts.')}
-                    </StyledAlert>
-                  </Feature>
-                  {this.renderFilterBar()}
+                  <StyledAlert showIcon>
+                    {t('This page only shows metric alerts.')}
+                  </StyledAlert>
+                  <FilterBar
+                    location={location}
+                    onChangeFilter={this.handleChangeFilter}
+                    onChangeSearch={this.handleChangeSearch}
+                    hasStatusFilters
+                  />
                 </Fragment>
               )}
               {this.renderList()}
             </Layout.Main>
-          </StyledLayoutBody>
-        </GlobalSelectionHeader>
+          </Layout.Body>
+        </PageFiltersContainer>
       </SentryDocumentTitle>
     );
   }
@@ -339,10 +302,8 @@ class IncidentsListContainer extends Component<Props> {
   trackView() {
     const {organization} = this.props;
 
-    trackAnalyticsEvent({
-      eventKey: 'alert_stream.viewed',
-      eventName: 'Alert Stream: Viewed',
-      organization_id: organization.id,
+    trackAdvancedAnalyticsEvent('alert_stream.viewed', {
+      organization,
     });
   }
 
@@ -376,22 +337,8 @@ const StyledAlert = styled(Alert)`
   margin-bottom: ${space(1.5)};
 `;
 
-const FilterWrapper = styled('div')`
-  display: flex;
-  margin-bottom: ${space(1.5)};
-`;
-
-const StyledSearchBar = styled(SearchBar)`
-  flex-grow: 1;
-  margin-left: ${space(1.5)};
-`;
-
-const StyledLayoutBody = styled(Layout.Body)`
-  margin-bottom: -20px;
-`;
-
 const EmptyStateAction = styled('p')`
   font-size: ${p => p.theme.fontSizeLarge};
 `;
 
-export default withOrganization(withTeams(IncidentsListContainer));
+export default withOrganization(IncidentsListContainer);

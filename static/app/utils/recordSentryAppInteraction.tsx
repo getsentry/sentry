@@ -1,4 +1,4 @@
-import {Client} from 'app/api';
+import {Client} from 'sentry/api';
 
 type TSDBField = 'sentry_app_viewed' | 'sentry_app_component_interacted';
 

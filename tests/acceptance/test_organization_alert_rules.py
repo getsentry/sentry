@@ -16,7 +16,7 @@ class OrganizationAlertRulesListTest(AcceptanceTestCase, SnubaTestCase):
     def test_empty_alert_rules(self):
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)
-            self.browser.wait_until_not(".loading-indicator")
+            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
             self.browser.snapshot("alert rules - empty state")
 
     def test_alert_rules_list(self):
@@ -29,7 +29,7 @@ class OrganizationAlertRulesListTest(AcceptanceTestCase, SnubaTestCase):
 
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)
-            self.browser.wait_until_not(".loading-indicator")
+            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
             self.browser.snapshot("alert rules - list")
 
     def test_alert_rules_alert_list(self):
@@ -58,12 +58,7 @@ class OrganizationAlertRulesListTest(AcceptanceTestCase, SnubaTestCase):
             incident=crit_incident, alert_rule_trigger=trigger, status=TriggerStatus.ACTIVE.value
         )
 
-        with self.feature(
-            [
-                "organizations:incidents",
-                "organizations:alert-details-redesign",
-            ]
-        ):
+        with self.feature(["organizations:incidents"]):
             self.browser.get(self.path)
-            self.browser.wait_until_not(".loading-indicator")
+            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
             self.browser.snapshot("alert rules - alert list")

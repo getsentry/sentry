@@ -1,55 +1,50 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import Button from 'app/components/button';
-import Collapsible from 'app/components/collapsible';
+import Button from 'sentry/components/button';
+import Collapsible from 'sentry/components/collapsible';
 
 const items = [1, 2, 3, 4, 5, 6, 7].map(i => <div key={i}>Item {i}</div>);
 
 describe('Collapsible', function () {
   it('collapses items', function () {
-    const wrapper = mountWithTheme(<Collapsible>{items}</Collapsible>);
+    render(<Collapsible>{items}</Collapsible>);
 
-    expect(wrapper.find('div').length).toBe(5);
-    expect(wrapper.find('div').at(2).text()).toBe('Item 3');
+    expect(screen.getAllByText(/Item/)).toHaveLength(5);
+    expect(screen.getAllByText(/Item/)[2].innerHTML).toBe('Item 3');
 
-    expect(wrapper.find('button[aria-label="Show 2 hidden items"]').exists()).toBe(true);
-    expect(wrapper.find('button[aria-label="Collapse"]').exists()).toBeFalsy();
+    expect(screen.getByLabelText('Show 2 hidden items')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Collapse')).not.toBeInTheDocument();
   });
 
   it('expands items', function () {
-    const wrapper = mountWithTheme(<Collapsible>{items}</Collapsible>);
+    render(<Collapsible>{items}</Collapsible>);
 
     // expand
-    wrapper.find('button[aria-label="Show 2 hidden items"]').simulate('click');
+    userEvent.click(screen.getByLabelText('Show 2 hidden items'));
 
-    expect(wrapper.find('div').length).toBe(7);
+    expect(screen.getAllByText(/Item/)).toHaveLength(7);
 
     // collapse back
-    wrapper.find('button[aria-label="Collapse"]').simulate('click');
+    userEvent.click(screen.getByLabelText('Collapse'));
 
-    expect(wrapper.find('div').length).toBe(5);
+    expect(screen.getAllByText(/Item/)).toHaveLength(5);
   });
 
   it('respects maxVisibleItems prop', function () {
-    const wrapper = mountWithTheme(
-      <Collapsible maxVisibleItems={2}>{items}</Collapsible>
-    );
+    render(<Collapsible maxVisibleItems={2}>{items}</Collapsible>);
 
-    expect(wrapper.find('div').length).toBe(2);
+    expect(screen.getAllByText(/Item/)).toHaveLength(2);
   });
 
   it('does not collapse items below threshold', function () {
-    const wrapper = mountWithTheme(
-      <Collapsible maxVisibleItems={100}>{items}</Collapsible>
-    );
+    render(<Collapsible maxVisibleItems={100}>{items}</Collapsible>);
 
-    expect(wrapper.find('div').length).toBe(7);
-
-    expect(wrapper.find('button').exists()).toBeFalsy();
+    expect(screen.getAllByText(/Item/)).toHaveLength(7);
+    expect(screen.queryByLabelText(/hidden item/)).not.toBeInTheDocument();
   });
 
   it('takes custom buttons', function () {
-    const wrapper = mountWithTheme(
+    render(
       <Collapsible
         collapseButton={({onCollapse}) => (
           <Button onClick={onCollapse}>Custom Collapse</Button>
@@ -64,16 +59,16 @@ describe('Collapsible', function () {
       </Collapsible>
     );
 
-    expect(wrapper.find('button').length).toBe(1);
+    expect(screen.getByText(/Custom/)).toBeInTheDocument();
 
     // custom expand
-    wrapper.find('button[aria-label="Expand"]').simulate('click');
+    userEvent.click(screen.getByLabelText('Expand'));
 
-    expect(wrapper.find('div').length).toBe(7);
+    expect(screen.getAllByText(/Item/)).toHaveLength(7);
 
     // custom collapse back
-    wrapper.find('button[aria-label="Custom Collapse"]').simulate('click');
+    userEvent.click(screen.getByText('Custom Collapse'));
 
-    expect(wrapper.find('div').length).toBe(5);
+    expect(screen.getAllByText(/Item/)).toHaveLength(5);
   });
 });

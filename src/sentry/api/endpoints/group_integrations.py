@@ -1,14 +1,17 @@
+from rest_framework.request import Request
+from rest_framework.response import Response
+
 from sentry import features, integrations
 from sentry.api.bases import GroupEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.integration import IntegrationIssueSerializer
-from sentry.integrations.base import IntegrationFeatures
+from sentry.integrations import IntegrationFeatures
 from sentry.models import Integration
 
 
 class GroupIntegrationsEndpoint(GroupEndpoint):
-    def get(self, request, group):
+    def get(self, request: Request, group) -> Response:
         has_issue_basic = features.has(
             "organizations:integrations-issue-basic", group.organization, actor=request.user
         )

@@ -1,21 +1,22 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import sortBy from 'lodash/sortBy';
 
-import DropdownMenu from 'app/components/dropdownMenu';
-import SidebarDropdownMenu from 'app/components/sidebar/sidebarDropdownMenu.styled';
-import SidebarMenuItem from 'app/components/sidebar/sidebarMenuItem';
-import SidebarOrgSummary from 'app/components/sidebar/sidebarOrgSummary';
-import {IconAdd, IconChevron} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {OrganizationSummary} from 'app/types';
-import withOrganizations from 'app/utils/withOrganizations';
+import DropdownMenu from 'sentry/components/dropdownMenu';
+import SidebarDropdownMenu from 'sentry/components/sidebar/sidebarDropdownMenu.styled';
+import SidebarMenuItem from 'sentry/components/sidebar/sidebarMenuItem';
+import SidebarOrgSummary from 'sentry/components/sidebar/sidebarOrgSummary';
+import {IconAdd, IconChevron} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {OrganizationSummary} from 'sentry/types';
+import withOrganizations from 'sentry/utils/withOrganizations';
 
 import Divider from './divider.styled';
 
 type Props = {
-  organizations: OrganizationSummary[];
   canCreateOrganization: boolean;
+  organizations: OrganizationSummary[];
 };
 /**
  * Switch Organization Menu Label + Sub Menu
@@ -49,8 +50,8 @@ const SwitchOrganization = ({organizations, canCreateOrganization}: Props) => (
             data-test-id="sidebar-switch-org-menu"
             {...getMenuProps({})}
           >
-            <OrganizationList>
-              {organizations.map(organization => {
+            <OrganizationList role="list">
+              {sortBy(organizations, ['status.id']).map(organization => {
                 const url = `/organizations/${organization.slug}/`;
 
                 return (

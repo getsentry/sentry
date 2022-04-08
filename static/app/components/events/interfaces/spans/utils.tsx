@@ -1,4 +1,3 @@
-import {MouseEvent} from 'react';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
 import isNumber from 'lodash/isNumber';
@@ -6,11 +5,13 @@ import isString from 'lodash/isString';
 import set from 'lodash/set';
 import moment from 'moment';
 
-import {EntryType, EventTransaction} from 'app/types/event';
-import {assert} from 'app/types/utils';
-import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
+import {EntryType, EventTransaction} from 'sentry/types/event';
+import {assert} from 'sentry/types/utils';
+import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
+import {getPerformanceTransaction} from 'sentry/utils/performanceForSentry';
 
 import {
+  EnhancedSpan,
   GapSpanType,
   OrphanSpanType,
   OrphanTreeDepth,
@@ -26,34 +27,48 @@ import {
 export const isValidSpanID = (maybeSpanID: any) =>
   isString(maybeSpanID) && maybeSpanID.length > 0;
 
-export type SpanBoundsType = {startTimestamp: number; endTimestamp: number};
+export const setSpansOnTransaction = (spanCount: number) => {
+  const transaction = getPerformanceTransaction();
+
+  if (!transaction || spanCount === 0) {
+    return;
+  }
+
+  const spanCountGroups = [10, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1001];
+  const spanGroup = spanCountGroups.find(g => spanCount <= g) || -1;
+
+  transaction.setTag('ui.spanCount', spanCount);
+  transaction.setTag('ui.spanCount.grouped', `<=${spanGroup}`);
+};
+
+export type SpanBoundsType = {endTimestamp: number; startTimestamp: number};
 export type SpanGeneratedBoundsType =
-  | {type: 'TRACE_TIMESTAMPS_EQUAL'; isSpanVisibleInView: boolean}
-  | {type: 'INVALID_VIEW_WINDOW'; isSpanVisibleInView: boolean}
+  | {isSpanVisibleInView: boolean; type: 'TRACE_TIMESTAMPS_EQUAL'}
+  | {isSpanVisibleInView: boolean; type: 'INVALID_VIEW_WINDOW'}
   | {
+      isSpanVisibleInView: boolean;
+      start: number;
       type: 'TIMESTAMPS_EQUAL';
-      start: number;
       width: number;
-      isSpanVisibleInView: boolean;
     }
   | {
+      end: number;
+      isSpanVisibleInView: boolean;
+      start: number;
       type: 'TIMESTAMPS_REVERSED';
-      start: number;
-      end: number;
-      isSpanVisibleInView: boolean;
     }
   | {
-      type: 'TIMESTAMPS_STABLE';
-      start: number;
       end: number;
       isSpanVisibleInView: boolean;
+      start: number;
+      type: 'TIMESTAMPS_STABLE';
     };
 
 export type SpanViewBoundsType = {
-  warning: undefined | string;
-  left: undefined | number;
-  width: undefined | number;
   isSpanVisibleInView: boolean;
+  left: undefined | number;
+  warning: undefined | string;
+  width: undefined | number;
 };
 
 const normalizeTimestamps = (spanBounds: SpanBoundsType): SpanBoundsType => {
@@ -93,10 +108,13 @@ export const parseSpanTimestamps = (spanBounds: SpanBoundsType): TimestampStatus
 // The view window (viewStart and viewEnd) are percentage values (between 0% and 100%), they correspond to the window placement
 // between the start and end trace timestamps.
 export const boundsGenerator = (bounds: {
-  traceStartTimestamp: number; // unix timestamp
-  traceEndTimestamp: number; // unix timestamp
+  // unix timestamp
+  traceEndTimestamp: number;
+  traceStartTimestamp: number;
+  // in [0, 1]
+  viewEnd: number;
+  // unix timestamp
   viewStart: number; // in [0, 1]
-  viewEnd: number; // in [0, 1]
 }) => {
   const {viewStart, viewEnd} = bounds;
 
@@ -191,15 +209,17 @@ export function generateRootSpan(trace: ParsedTraceType): RawSpanType {
     description: trace.description,
     data: {},
     status: trace.rootSpanStatus,
+    hash: trace.hash,
+    exclusive_time: trace.exclusiveTime,
   };
 
   return rootSpan;
 }
 
 // start and end are assumed to be unix timestamps with fractional seconds
-export function getTraceDateTimeRange(input: {start: number; end: number}): {
-  start: string;
+export function getTraceDateTimeRange(input: {end: number; start: number}): {
   end: string;
+  start: string;
 } {
   const start = moment
     .unix(input.start)
@@ -293,6 +313,8 @@ export function parseTrace(event: Readonly<EventTransaction>): ParsedTraceType {
   const description = traceContext && traceContext.description;
   const parentSpanID = traceContext && traceContext.parent_span_id;
   const rootSpanStatus = traceContext && traceContext.status;
+  const hash = traceContext && traceContext.hash;
+  const exclusiveTime = traceContext && traceContext.exclusive_time;
 
   if (!spanEntry || spans.length <= 0) {
     return {
@@ -306,6 +328,8 @@ export function parseTrace(event: Readonly<EventTransaction>): ParsedTraceType {
       parentSpanID,
       spans: [],
       description,
+      hash,
+      exclusiveTime,
     };
   }
 
@@ -332,6 +356,8 @@ export function parseTrace(event: Readonly<EventTransaction>): ParsedTraceType {
     parentSpanID,
     spans,
     description,
+    hash,
+    exclusiveTime,
   };
 
   const reduced: ParsedTraceType = spans.reduce((acc, inputSpan) => {
@@ -463,6 +489,7 @@ export function isEventFromBrowserJavaScriptSDK(event: EventTransaction): boolea
     'sentry.javascript.vue',
     'sentry.javascript.angular',
     'sentry.javascript.nextjs',
+    'sentry.javascript.electron',
   ].includes(sdkName.toLowerCase());
 }
 
@@ -476,8 +503,8 @@ type Measurements = {
 };
 
 type VerticalMark = {
-  marks: Measurements;
   failedThreshold: boolean;
+  marks: Measurements;
 };
 
 function hasFailedThreshold(marks: Measurements): boolean {
@@ -602,12 +629,12 @@ export function scrollToSpan(
   scrollToHash: (hash: string) => void,
   location: Location
 ) {
-  return (e: MouseEvent<Element>) => {
+  return (e: React.MouseEvent<Element>) => {
     // do not use the default anchor behaviour
     // because it will be hidden behind the minimap
     e.preventDefault();
 
-    const hash = `#span-${spanId}`;
+    const hash = spanTargetHash(spanId);
 
     scrollToHash(hash);
 
@@ -620,4 +647,89 @@ export function scrollToSpan(
       hash,
     });
   };
+}
+
+export function spanTargetHash(spanId: string): string {
+  return `#span-${spanId}`;
+}
+
+export function getSiblingGroupKey(span: SpanType, occurrence?: number): string {
+  if (occurrence !== undefined) {
+    return `${span.op}.${span.description}.${occurrence}`;
+  }
+
+  return `${span.op}.${span.description}`;
+}
+
+export function getSpanGroupTimestamps(spanGroup: EnhancedSpan[]) {
+  return spanGroup.reduce(
+    (acc, spanGroupItem) => {
+      const {start_timestamp, timestamp} = spanGroupItem.span;
+
+      let newStartTimestamp = acc.startTimestamp;
+      let newEndTimestamp = acc.endTimestamp;
+
+      if (start_timestamp < newStartTimestamp) {
+        newStartTimestamp = start_timestamp;
+      }
+
+      if (newEndTimestamp < timestamp) {
+        newEndTimestamp = timestamp;
+      }
+
+      return {
+        startTimestamp: newStartTimestamp,
+        endTimestamp: newEndTimestamp,
+      };
+    },
+    {
+      startTimestamp: spanGroup[0].span.start_timestamp,
+      endTimestamp: spanGroup[0].span.timestamp,
+    }
+  );
+}
+
+export function getSpanGroupBounds(
+  spanGroup: EnhancedSpan[],
+  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType
+): SpanViewBoundsType {
+  const {startTimestamp, endTimestamp} = getSpanGroupTimestamps(spanGroup);
+
+  const bounds = generateBounds({
+    startTimestamp,
+    endTimestamp,
+  });
+
+  switch (bounds.type) {
+    case 'TRACE_TIMESTAMPS_EQUAL':
+    case 'INVALID_VIEW_WINDOW': {
+      return {
+        warning: void 0,
+        left: void 0,
+        width: void 0,
+        isSpanVisibleInView: bounds.isSpanVisibleInView,
+      };
+    }
+    case 'TIMESTAMPS_EQUAL': {
+      return {
+        warning: void 0,
+        left: bounds.start,
+        width: 0.00001,
+        isSpanVisibleInView: bounds.isSpanVisibleInView,
+      };
+    }
+    case 'TIMESTAMPS_REVERSED':
+    case 'TIMESTAMPS_STABLE': {
+      return {
+        warning: void 0,
+        left: bounds.start,
+        width: bounds.end - bounds.start,
+        isSpanVisibleInView: bounds.isSpanVisibleInView,
+      };
+    }
+    default: {
+      const _exhaustiveCheck: never = bounds;
+      return _exhaustiveCheck;
+    }
+  }
 }

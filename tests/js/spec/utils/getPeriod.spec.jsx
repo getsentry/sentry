@@ -1,4 +1,4 @@
-import {getPeriod} from 'app/utils/getPeriod';
+import {getPeriod} from 'sentry/utils/getPeriod';
 
 describe('getPeriod()', function () {
   const start = new Date('2017-10-03T02:41:20.000Z');

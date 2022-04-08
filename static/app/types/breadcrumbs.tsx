@@ -1,5 +1,5 @@
-import SvgIcon from 'app/icons/svgIcon';
-import {Color} from 'app/utils/theme';
+import type SvgIcon from 'sentry/icons/svgIcon';
+import type {Color} from 'sentry/utils/theme';
 
 export type IconProps = React.ComponentProps<typeof SvgIcon>;
 
@@ -32,36 +32,36 @@ export enum BreadcrumbType {
 
 type BreadcrumbTypeBase = {
   level: BreadcrumbLevelType;
-  timestamp?: string; // it's recommended
+  // it's recommended
   category?: string | null;
-  message?: string;
   event_id?: string;
+  message?: string;
+  timestamp?: string;
 };
 
 export type BreadcrumbTypeSystem = {
-  type: BreadcrumbType.SYSTEM;
   action: string;
   extras: Record<string, any>;
+  type: BreadcrumbType.SYSTEM;
 } & BreadcrumbTypeBase;
 
 export type BreadcrumbTypeSession = {
-  type: BreadcrumbType.SESSION;
   action: string;
   extras: Record<string, any>;
+  type: BreadcrumbType.SESSION;
 } & BreadcrumbTypeBase;
 
 export type BreadcrumbTypeNavigation = {
   type: BreadcrumbType.NAVIGATION;
   data?: {
-    to?: string;
     from?: string;
+    to?: string;
   };
 } & BreadcrumbTypeBase;
 
 export type BreadcrumbTypeHTTP = {
   type: BreadcrumbType.HTTP;
   data?: {
-    url?: string;
     method?:
       | 'POST'
       | 'PUT'
@@ -72,8 +72,9 @@ export type BreadcrumbTypeHTTP = {
       | 'OPTIONS'
       | 'TRACE'
       | 'PATCH';
-    status_code?: number;
     reason?: string;
+    status_code?: number;
+    url?: string;
   };
 } & BreadcrumbTypeBase;
 
@@ -92,18 +93,16 @@ export type BreadcrumbTypeDefault = {
     | BreadcrumbType.SYSTEM
     | BreadcrumbType.SESSION
     | BreadcrumbType.TRANSACTION;
-  data?: {[key: string]: any};
+  data?: Record<string, any>;
 } & BreadcrumbTypeBase;
 
-export type Breadcrumb =
+export type RawCrumb =
   | BreadcrumbTypeNavigation
   | BreadcrumbTypeHTTP
   | BreadcrumbTypeDefault;
 
-type BreadcrumbDetails = {
-  color?: Color | React.CSSProperties['color'];
-  icon?: React.ComponentType<IconProps>;
+export type Crumb = RawCrumb & {
+  color: Color;
   description: string;
+  id: number;
 };
-
-export type BreadcrumbsWithDetails = Array<Breadcrumb & BreadcrumbDetails & {id: number}>;

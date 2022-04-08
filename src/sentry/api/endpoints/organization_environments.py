@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases import OrganizationEndpoint
@@ -7,7 +8,7 @@ from sentry.models import Environment, EnvironmentProject
 
 
 class OrganizationEnvironmentsEndpoint(OrganizationEndpoint):
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         visibility = request.GET.get("visibility", "visible")
         if visibility not in environment_visibility_filter_options:
             return Response(

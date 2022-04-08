@@ -1,52 +1,26 @@
-import {Component} from 'react';
-import DocumentTitle from 'react-document-title';
-
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import {Organization} from 'app/types';
-import {metric} from 'app/utils/analytics';
-import withOrganization, {isLightweightOrganization} from 'app/utils/withOrganization';
+import NoProjectMessage from 'sentry/components/noProjectMessage';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {t} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
+import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
+  children: React.ReactChildren;
   organization: Organization;
+  projects: Project[];
 };
 
-class IssueListContainer extends Component<Props> {
-  componentDidMount() {
-    // Setup here as render() may be expensive
-    this.startMetricCollection();
-  }
-
-  /**
-   * The user can (1) land on IssueList as the first page as they enter Sentry,
-   * or (2) navigate into IssueList with the stores preloaded with data.
-   *
-   * Case (1) will be slower and we can easily identify it as it uses the
-   * lightweight organization
-   */
-  startMetricCollection() {
-    const isLightWeight: boolean = isLightweightOrganization(this.props.organization);
-    const startType: string = isLightWeight ? 'cold-start' : 'warm-start';
-    metric.mark({name: 'page-issue-list-start', data: {start_type: startType}});
-  }
-
-  getTitle() {
-    return `Issues - ${this.props.organization.slug} - Sentry`;
-  }
-
-  render() {
-    const {organization, children} = this.props;
-
-    return (
-      <DocumentTitle title={this.getTitle()}>
-        <GlobalSelectionHeader>
-          <LightWeightNoProjectMessage organization={organization}>
-            {children}
-          </LightWeightNoProjectMessage>
-        </GlobalSelectionHeader>
-      </DocumentTitle>
-    );
-  }
+function IssueListContainer({organization, children}: Props) {
+  return (
+    <SentryDocumentTitle title={t('Issues')} orgSlug={organization.slug}>
+      <PageFiltersContainer
+        hideGlobalHeader={organization.features.includes('selection-filters-v2')}
+      >
+        <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
+      </PageFiltersContainer>
+    </SentryDocumentTitle>
+  );
 }
+
 export default withOrganization(IssueListContainer);
-export {IssueListContainer};

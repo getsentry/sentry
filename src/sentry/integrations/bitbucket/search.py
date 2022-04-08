@@ -1,5 +1,6 @@
 import logging
 
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.integration import IntegrationEndpoint
@@ -10,7 +11,7 @@ logger = logging.getLogger("sentry.integrations.bitbucket")
 
 
 class BitbucketSearchEndpoint(IntegrationEndpoint):
-    def get(self, request, organization, integration_id):
+    def get(self, request: Request, organization, integration_id) -> Response:
         try:
             integration = Integration.objects.get(
                 organizations=organization, id=integration_id, provider="bitbucket"
@@ -32,7 +33,7 @@ class BitbucketSearchEndpoint(IntegrationEndpoint):
             if not repo:
                 return Response({"detail": "repo is a required parameter"}, status=400)
 
-            full_query = ('title~"%s"' % (query)).encode("utf-8")
+            full_query = f'title~"{query}"'.encode()
             try:
                 resp = installation.get_client().search_issues(repo, full_query)
             except ApiError as e:

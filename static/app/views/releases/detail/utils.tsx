@@ -2,27 +2,24 @@ import {Location} from 'history';
 import pick from 'lodash/pick';
 import moment from 'moment';
 
-import MarkLine from 'app/components/charts/components/markLine';
-import {URL_PARAM} from 'app/constants/globalSelectionHeader';
-import {t} from 'app/locale';
+import MarkLine from 'sentry/components/charts/components/markLine';
+import {parseStatsPeriod} from 'sentry/components/organizations/timeRangeSelector/utils';
+import {URL_PARAM} from 'sentry/constants/pageFilters';
+import {t} from 'sentry/locale';
 import {
   Commit,
   CommitFile,
   FilesByRepository,
-  GlobalSelection,
-  LightWeightOrganization,
   ReleaseComparisonChartType,
   ReleaseProject,
   ReleaseWithHealth,
   Repository,
-} from 'app/types';
-import {getUtcDateString} from 'app/utils/dates';
-import EventView from 'app/utils/discover/eventView';
-import {decodeList} from 'app/utils/queryString';
-import {Theme} from 'app/utils/theme';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
-import {isProjectMobileForReleases} from 'app/views/releases/list';
+} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
+import {decodeList} from 'sentry/utils/queryString';
+import {Theme} from 'sentry/utils/theme';
 
+import {getReleaseBounds, getReleaseParams, isMobileRelease} from '../utils';
 import {commonTermsDescription, SessionTerm} from '../utils/sessionTerm';
 
 export type CommitsByRepository = {
@@ -80,8 +77,8 @@ export function getCommitsByRepository(commitList: Commit[]): CommitsByRepositor
 
 type GetQueryProps = {
   location: Location;
-  perPage?: number;
   activeRepository?: Repository;
+  perPage?: number;
 };
 
 export function getQuery({location, perPage = 40, activeRepository}: GetQueryProps) {
@@ -105,41 +102,6 @@ export function getReposToRender(repos: Array<string>, activeRepository?: Reposi
     return repos;
   }
   return [activeRepository.name];
-}
-
-/**
- * Get high level transaction information for this release
- */
-export function getReleaseEventView(
-  selection: GlobalSelection,
-  version: string,
-  organization: LightWeightOrganization
-): EventView {
-  const {projects, environments, datetime} = selection;
-  const {start, end, period} = datetime;
-
-  const apdexField = organization.features.includes('project-transaction-threshold')
-    ? 'apdex()'
-    : `apdex(${organization.apdexThreshold})`;
-
-  const discoverQuery = {
-    id: undefined,
-    version: 2,
-    name: `${t('Release Apdex')}`,
-    fields: [apdexField],
-    query: new MutableSearch([
-      `release:${version}`,
-      'event.type:transaction',
-      'count():>0',
-    ]).formatString(),
-    range: period,
-    environment: environments,
-    projects,
-    start: start ? getUtcDateString(start) : undefined,
-    end: end ? getUtcDateString(end) : undefined,
-  } as const;
-
-  return EventView.fromSavedQuery(discoverQuery);
 }
 
 export const releaseComparisonChartLabels = {
@@ -192,8 +154,8 @@ export const releaseComparisonChartHelp = {
 };
 
 type GenerateReleaseMarklineOptions = {
-  hideLabel?: boolean;
   axisIndex?: number;
+  hideLabel?: boolean;
 };
 
 function generateReleaseMarkLine(
@@ -217,14 +179,15 @@ function generateReleaseMarkLine(
       label: {
         position: 'insideEndBottom',
         formatter: hideLabel ? '' : title,
+        // @ts-expect-error weird echart types
         font: 'Rubik',
         fontSize: 11,
-      } as any, // TODO(ts): weird echart types,
+      },
       data: [
         {
           xAxis: position,
         },
-      ] as any, // TODO(ts): weird echart types
+      ],
     }),
   };
 }
@@ -232,7 +195,7 @@ function generateReleaseMarkLine(
 export const releaseMarkLinesLabels = {
   created: t('Release Created'),
   adopted: t('Adopted'),
-  unadopted: t('Unadopted'),
+  unadopted: t('Replaced'),
 };
 
 export function generateReleaseMarkLines(
@@ -242,49 +205,65 @@ export function generateReleaseMarkLines(
   location: Location,
   options?: GenerateReleaseMarklineOptions
 ) {
+  const markLines: Series[] = [];
   const adoptionStages = release.adoptionStages?.[project.slug];
+  const isSingleEnv = decodeList(location.query.environment).length === 1;
+  const releaseBounds = getReleaseBounds(release);
+  const {statsPeriod, ...releaseParamsRest} = getReleaseParams({
+    location,
+    releaseBounds,
+  });
+  let {start, end} = releaseParamsRest;
   const isDefaultPeriod = !(
     location.query.pageStart ||
     location.query.pageEnd ||
     location.query.pageStatsPeriod
   );
-  const isSingleEnv = decodeList(location.query.environment).length === 1;
 
-  if (!isDefaultPeriod) {
-    // do not show marklines on non-default period
-    return [];
+  if (statsPeriod) {
+    const parsedStatsPeriod = parseStatsPeriod(statsPeriod, null);
+    start = parsedStatsPeriod.start;
+    end = parsedStatsPeriod.end;
   }
 
-  const markLines = [
-    generateReleaseMarkLine(
-      releaseMarkLinesLabels.created,
-      moment(release.dateCreated).startOf('minute').valueOf(),
-      theme,
-      options
-    ),
-  ];
-
-  if (!isSingleEnv || !isProjectMobileForReleases(project.platform)) {
-    // for now want to show marklines only on mobile platforms with single environment selected
-    return markLines;
-  }
-
-  if (adoptionStages?.adopted) {
+  const releaseCreated = moment(release.dateCreated).startOf('minute');
+  if (
+    releaseCreated.isBetween(start, end) ||
+    (isDefaultPeriod && releaseBounds.type === 'normal')
+  ) {
     markLines.push(
       generateReleaseMarkLine(
-        releaseMarkLinesLabels.adopted,
-        moment(adoptionStages.adopted).valueOf(),
+        releaseMarkLinesLabels.created,
+        releaseCreated.valueOf(),
         theme,
         options
       )
     );
   }
 
-  if (adoptionStages?.unadopted) {
+  if (!isSingleEnv || !isMobileRelease(project.platform)) {
+    // for now want to show marklines only on mobile platforms with single environment selected
+    return markLines;
+  }
+
+  const releaseAdopted = adoptionStages?.adopted && moment(adoptionStages.adopted);
+  if (releaseAdopted && releaseAdopted.isBetween(start, end)) {
+    markLines.push(
+      generateReleaseMarkLine(
+        releaseMarkLinesLabels.adopted,
+        releaseAdopted.valueOf(),
+        theme,
+        options
+      )
+    );
+  }
+
+  const releaseReplaced = adoptionStages?.unadopted && moment(adoptionStages.unadopted);
+  if (releaseReplaced && releaseReplaced.isBetween(start, end)) {
     markLines.push(
       generateReleaseMarkLine(
         releaseMarkLinesLabels.unadopted,
-        moment(adoptionStages.unadopted).valueOf(),
+        releaseReplaced.valueOf(),
         theme,
         options
       )

@@ -1,31 +1,45 @@
 import * as React from 'react';
 import * as Sentry from '@sentry/react';
-import u2f from 'u2f-api';
+import * as cbor from 'cbor-web';
 
-import {t, tct} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
-import {ChallengeData} from 'app/types';
+import {base64urlToBuffer, bufferToBase64url} from 'sentry/components/u2f/webAuthnHelper';
+import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {ChallengeData, Organization} from 'sentry/types';
+import withOrganization from 'sentry/utils/withOrganization';
 
 type TapParams = {
-  response: string;
   challenge: string;
+  response: string;
+  isSuperuserModal?: boolean;
+  superuserAccessCategory?: string;
+  superuserReason?: string;
 };
 
 type Props = {
   challengeData: ChallengeData;
   flowMode: string;
+  onTap: ({
+    response,
+    challenge,
+    isSuperuserModal,
+    superuserAccessCategory,
+    superuserReason,
+  }: TapParams) => Promise<void>;
+  organization: Organization;
   silentIfUnsupported: boolean;
-  onTap: ({response, challenge}: TapParams) => Promise<void>;
   style?: React.CSSProperties;
 };
 
 type State = {
-  responseElement: HTMLInputElement | null;
-  formElement: HTMLFormElement | null;
   challengeElement: HTMLInputElement | null;
-  isSupported: boolean | null;
-  hasBeenTapped: boolean;
   deviceFailure: string | null;
+  failCount: number;
+  formElement: HTMLFormElement | null;
+  hasBeenTapped: boolean;
+  isSafari: boolean;
+  isSupported: boolean | null;
+  responseElement: HTMLInputElement | null;
 };
 
 class U2fInterface extends React.Component<Props, State> {
@@ -36,31 +50,64 @@ class U2fInterface extends React.Component<Props, State> {
     hasBeenTapped: false,
     deviceFailure: null,
     responseElement: null,
+    isSafari: false,
+    failCount: 0,
   };
 
   async componentDidMount() {
-    const supported = await u2f.isSupported();
+    const supported = !!window.PublicKeyCredential;
 
     // eslint-disable-next-line react/no-did-mount-set-state
     this.setState({isSupported: supported});
 
-    if (supported) {
+    const isSafari =
+      navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome');
+
+    if (isSafari) {
+      // eslint-disable-next-line react/no-did-mount-set-state
+      this.setState({
+        deviceFailure: 'safari: requires interaction',
+        isSafari,
+        hasBeenTapped: false,
+      });
+    }
+
+    if (supported && !isSafari) {
       this.invokeU2fFlow();
     }
   }
 
-  invokeU2fFlow() {
-    let promise: Promise<u2f.SignResponse | u2f.RegisterResponse>;
-
-    if (this.props.flowMode === 'sign') {
-      promise = u2f.sign(this.props.challengeData.authenticateRequests);
-    } else if (this.props.flowMode === 'enroll') {
-      const {registerRequests, authenticateRequests} = this.props.challengeData;
-      promise = u2f.register(registerRequests, authenticateRequests);
-    } else {
-      throw new Error(`Unsupported flow mode '${this.props.flowMode}'`);
+  getU2FResponse(data) {
+    if (!data.response) {
+      return JSON.stringify(data);
     }
 
+    if (this.props.flowMode === 'sign') {
+      const authenticatorData = {
+        keyHandle: data.id,
+        clientData: bufferToBase64url(data.response.clientDataJSON),
+        signatureData: bufferToBase64url(data.response.signature),
+        authenticatorData: bufferToBase64url(data.response.authenticatorData),
+      };
+      return JSON.stringify(authenticatorData);
+    }
+    if (this.props.flowMode === 'enroll') {
+      const authenticatorData = {
+        id: data.id,
+        rawId: bufferToBase64url(data.rawId),
+        response: {
+          attestationObject: bufferToBase64url(data.response.attestationObject),
+          clientDataJSON: bufferToBase64url(data.response.clientDataJSON),
+        },
+        type: bufferToBase64url(data.type),
+      };
+      return JSON.stringify(authenticatorData);
+    }
+
+    throw new Error(`Unsupported flow mode '${this.props.flowMode}'`);
+  }
+
+  submitU2fResponse(promise) {
     promise
       .then(data => {
         this.setState(
@@ -68,7 +115,7 @@ class U2fInterface extends React.Component<Props, State> {
             hasBeenTapped: true,
           },
           () => {
-            const u2fResponse = JSON.stringify(data);
+            const u2fResponse = this.getU2FResponse(data);
             const challenge = JSON.stringify(this.props.challengeData);
 
             if (this.state.responseElement) {
@@ -118,8 +165,64 @@ class U2fInterface extends React.Component<Props, State> {
         this.setState({
           deviceFailure: failure,
           hasBeenTapped: false,
+          failCount: this.state.failCount + 1,
         });
       });
+  }
+
+  webAuthnSignIn(publicKeyCredentialRequestOptions) {
+    const promise = navigator.credentials.get({
+      publicKey: publicKeyCredentialRequestOptions,
+    });
+    this.submitU2fResponse(promise);
+  }
+
+  webAuthnRegister(publicKey) {
+    const promise = navigator.credentials.create({
+      publicKey,
+    });
+    this.submitU2fResponse(promise);
+  }
+
+  invokeU2fFlow() {
+    if (this.props.flowMode === 'sign') {
+      const challengeArray = base64urlToBuffer(
+        this.props.challengeData.webAuthnAuthenticationData
+      );
+      const challenge = cbor.decodeFirst(challengeArray);
+      challenge
+        .then(data => {
+          this.webAuthnSignIn(data);
+        })
+        .catch(err => {
+          const failure = 'DEVICE_ERROR';
+          Sentry.captureException(err);
+          this.setState({
+            deviceFailure: failure,
+            hasBeenTapped: false,
+          });
+        });
+    } else if (this.props.flowMode === 'enroll') {
+      const challengeArray = base64urlToBuffer(
+        this.props.challengeData.webAuthnRegisterData
+      );
+      const challenge = cbor.decodeFirst(challengeArray);
+      // challenge contains a PublicKeyCredentialRequestOptions object for webauthn registration
+      challenge
+        .then(data => {
+          this.webAuthnRegister(data.publicKey);
+        })
+        .catch(err => {
+          const failure = 'DEVICE_ERROR';
+          Sentry.captureException(err);
+          this.setState({
+            deviceFailure: failure,
+            hasBeenTapped: false,
+          });
+        });
+    } else {
+      throw new Error(`Unsupported flow mode '${this.props.flowMode}'`);
+    }
   }
 
   onTryAgain = () => {
@@ -164,6 +267,16 @@ class U2fInterface extends React.Component<Props, State> {
     return this.state.deviceFailure !== 'BAD_APPID';
   }
 
+  renderSafariWebAuthn = () => {
+    return (
+      <a onClick={this.onTryAgain} className="btn btn-primary">
+        {this.props.flowMode === 'enroll'
+          ? t('Enroll with WebAuthn')
+          : t('Sign in with WebAuthn')}
+      </a>
+    );
+  };
+
   renderFailure = () => {
     const {deviceFailure} = this.state;
     const supportMail = ConfigStore.get('supportEmail');
@@ -172,6 +285,9 @@ class U2fInterface extends React.Component<Props, State> {
     ) : (
       <span>{t('Support')}</span>
     );
+    if (this.state.isSafari && this.state.failCount === 0) {
+      return this.renderSafariWebAuthn();
+    }
     return (
       <div className="failure-message">
         <div>
@@ -180,7 +296,7 @@ class U2fInterface extends React.Component<Props, State> {
             {
               UNKNOWN_ERROR: t('There was an unknown problem, please try again'),
               DEVICE_ERROR: t('Your U2F device reported an error.'),
-              DUPLICATE_DEVICE: t('This device is already in use.'),
+              DUPLICATE_DEVICE: t('This device is already registered with Sentry.'),
               UNKNOWN_DEVICE: t('The device you used for sign-in is unknown.'),
               BAD_APPID: tct(
                 '[p1:The Sentry server administrator modified the ' +
@@ -221,7 +337,11 @@ class U2fInterface extends React.Component<Props, State> {
         className={
           'u2f-box' +
           (this.state.hasBeenTapped ? ' tapped' : '') +
-          (this.state.deviceFailure ? ' device-failure' : '')
+          (this.state.deviceFailure
+            ? this.state.failCount === 0 && this.state.isSafari
+              ? ' loading-dots'
+              : ' device-failure'
+            : '')
         }
       >
         <div className="device-animation-frame">
@@ -256,4 +376,4 @@ class U2fInterface extends React.Component<Props, State> {
   }
 }
 
-export default U2fInterface;
+export default withOrganization(U2fInterface);

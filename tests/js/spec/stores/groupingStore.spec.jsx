@@ -1,6 +1,6 @@
-import * as GroupActionCreators from 'app/actionCreators/group';
-import {Client} from 'app/api';
-import GroupingStore from 'app/stores/groupingStore';
+import * as GroupActionCreators from 'sentry/actionCreators/group';
+import {Client} from 'sentry/api';
+import GroupingStore from 'sentry/stores/groupingStore';
 
 describe('Grouping Store', function () {
   let trigger;
@@ -14,6 +14,7 @@ describe('Grouping Store', function () {
   });
 
   beforeEach(function () {
+    GroupingStore.init();
     trigger = jest.spyOn(GroupingStore, 'trigger');
     Client.clearMockResponses();
     Client.addMockResponse({
@@ -100,10 +101,14 @@ describe('Grouping Store', function () {
   });
 
   afterEach(function () {
+    GroupingStore.teardown();
     trigger.mockReset();
   });
 
   describe('onFetch()', function () {
+    beforeEach(() => GroupingStore.init());
+    afterEach(() => GroupingStore.teardown());
+
     it('initially gets called with correct state values', function () {
       GroupingStore.onFetch([]);
 
@@ -270,6 +275,7 @@ describe('Grouping Store', function () {
     let mergeState;
 
     beforeEach(function () {
+      GroupingStore.init();
       mergeList = [];
       mergeState = new Map();
       return GroupingStore.onFetch([
@@ -277,7 +283,12 @@ describe('Grouping Store', function () {
       ]);
     });
 
+    afterEach(() => GroupingStore.teardown());
+
     describe('onToggleMerge (checkbox state)', function () {
+      beforeEach(() => GroupingStore.init());
+      afterEach(() => GroupingStore.teardown());
+
       // Attempt to check first item but its "locked" so should not be able to do anything
       it('can check and uncheck item', function () {
         GroupingStore.onToggleMerge('1');
@@ -320,8 +331,10 @@ describe('Grouping Store', function () {
           method: 'PUT',
           url: '/projects/orgId/projectId/issues/',
         });
+        GroupingStore.init();
       });
-      afterEach(function () {});
+
+      afterEach(() => GroupingStore.teardown());
 
       it('disables rows to be merged', async function () {
         const mergeMock = jest.spyOn(GroupActionCreators, 'mergeGroups');
@@ -473,6 +486,7 @@ describe('Grouping Store', function () {
     let unmergeState;
 
     beforeEach(async function () {
+      GroupingStore.init();
       unmergeList = new Map();
       unmergeState = new Map();
       await GroupingStore.onFetch([
@@ -483,6 +497,11 @@ describe('Grouping Store', function () {
       unmergeState = new Map([...GroupingStore.unmergeState]);
     });
 
+    afterEach(() => GroupingStore.teardown());
+
+    // WARNING: all the tests in this describe block are not running in isolated state.
+    // There is a good chance that moving them around will break them. To simulate an isolated state,
+    // add a beforeEach(() => GroupingStore.init()) and afterEach(() => GroupingStore.teardown()).
     describe('onToggleUnmerge (checkbox state for hashes)', function () {
       // Attempt to check first item but its "locked" so should not be able to do anything
       it('can not check locked item', function () {
@@ -572,11 +591,10 @@ describe('Grouping Store', function () {
       });
     });
 
+    // WARNING: all the tests in this describe block are not running in isolated state.
+    // There is a good chance that moving them around will break them. To simulate an isolated state,
+    // add a beforeEach(() => GroupingStore.init()) and afterEach(() => GroupingStore.teardown()).
     describe('onUnmerge', function () {
-      beforeAll(function () {
-        GroupingStore.init();
-      });
-
       beforeEach(function () {
         Client.clearMockResponses();
         Client.addMockResponse({
@@ -584,7 +602,6 @@ describe('Grouping Store', function () {
           url: '/issues/groupId/hashes/',
         });
       });
-      afterEach(function () {});
 
       it('can not toggle unmerge for a locked item', function () {
         // Event 1 is locked

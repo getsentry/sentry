@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import UserBadge from 'app/components/idBadge/userBadge';
+import UserBadge from 'sentry/components/idBadge/userBadge';
 
 describe('UserBadge', function () {
   const user = TestStubs.User();

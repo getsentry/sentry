@@ -1,11 +1,11 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import StreamGroup from 'app/components/stream/group';
-import GroupStore from 'app/stores/groupStore';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
+import StreamGroup from 'sentry/components/stream/group';
+import GroupStore from 'sentry/stores/groupStore';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
-jest.mock('app/utils/analytics');
+jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
 
 describe('StreamGroup', function () {
   let GROUP_1;
@@ -33,7 +33,7 @@ describe('StreamGroup', function () {
   });
 
   afterEach(function () {
-    trackAnalyticsEvent.mockClear();
+    trackAdvancedAnalyticsEvent.mockClear();
   });
 
   it('renders with anchors', async function () {
@@ -98,6 +98,6 @@ describe('StreamGroup', function () {
     );
 
     wrapper.find('GlobalSelectionLink').simulate('click');
-    expect(trackAnalyticsEvent).toHaveBeenCalledTimes(2);
+    expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledTimes(2);
   });
 });

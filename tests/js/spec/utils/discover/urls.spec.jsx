@@ -1,4 +1,4 @@
-import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
+import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 
 describe('getDiscoverLandingUrl', function () {
   it('is correct for with discover-query and discover-basic features', function () {

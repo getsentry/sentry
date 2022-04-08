@@ -1,17 +1,17 @@
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import Button from 'app/components/button';
-import {t} from 'app/locale';
-import AsyncView from 'app/views/asyncView';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import Button from 'sentry/components/button';
+import {t} from 'sentry/locale';
+import AsyncView from 'sentry/views/asyncView';
 
 type Data = {
-  mailHost: string;
-  mailPassword: string;
-  mailUsername: string;
-  mailPort: string;
-  mailUseTls: string;
-  mailUseSsl: string;
   mailFrom: string;
+  mailHost: string;
   mailListNamespace: string;
+  mailPassword: string;
+  mailPort: string;
+  mailUseSsl: string;
+  mailUseTls: string;
+  mailUsername: string;
   testMailEmail: string;
 };
 

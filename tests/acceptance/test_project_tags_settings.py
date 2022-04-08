@@ -1,10 +1,10 @@
 from datetime import datetime
+from unittest.mock import patch
 
 import pytz
 
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.utils.compat.mock import patch
 
 event_time = before_now(days=3).replace(tzinfo=pytz.utc)
 current_time = datetime.utcnow().replace(tzinfo=pytz.utc)
@@ -36,7 +36,7 @@ class ProjectTagsSettingsTest(AcceptanceTestCase, SnubaTestCase):
         )
 
         self.browser.get(self.path)
-        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.snapshot("project settings - tags")
 
         self.browser.wait_until_test_id("tag-row")

@@ -1,8 +1,10 @@
 import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {act} from 'sentry-test/reactTestingLibrary';
 
-import ManageDashboards from 'app/views/dashboardsV2/manage';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import ManageDashboards from 'sentry/views/dashboardsV2/manage';
 
 const FEATURES = [
   'global-views',
@@ -20,6 +22,8 @@ describe('Dashboards > Detail', function () {
     features: FEATURES,
   });
   beforeEach(function () {
+    act(() => ProjectsStore.loadInitialData([TestStubs.Project()]));
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -51,6 +55,8 @@ describe('Dashboards > Detail', function () {
   });
 
   it('denies access on no projects', function () {
+    act(() => ProjectsStore.loadInitialData([]));
+
     const wrapper = mountWithTheme(
       <ManageDashboards
         organization={mockAuthorizedOrg}
@@ -64,10 +70,8 @@ describe('Dashboards > Detail', function () {
   });
 
   it('creates new dashboard', async function () {
-    const org = TestStubs.Organization({
-      features: FEATURES,
-      projects: [TestStubs.Project()],
-    });
+    const org = TestStubs.Organization({features: FEATURES});
+
     const wrapper = mountWithTheme(
       <ManageDashboards organization={org} location={{query: {}}} router={{}} />
     );
@@ -83,19 +87,30 @@ describe('Dashboards > Detail', function () {
   });
 
   it('can sort', async function () {
-    const org = TestStubs.Organization({
-      features: FEATURES,
-      projects: [TestStubs.Project()],
-    });
+    const org = TestStubs.Organization({features: FEATURES});
+
     const wrapper = mountWithTheme(
-      <ManageDashboards organization={org} location={{query: {}}} router={{}} />,
-      TestStubs.routerContext()
+      <ManageDashboards organization={org} location={{query: {}}} router={{}} />
     );
     await tick();
 
     const dropdownItems = wrapper.find('DropdownItem span');
 
-    expect(dropdownItems).toHaveLength(4);
+    expect(dropdownItems).toHaveLength(6);
+
+    const expectedSorts = [
+      'My Dashboards',
+      'Dashboard Name (A-Z)',
+      'Date Created (Newest)',
+      'Date Created (Oldest)',
+      'Most Popular',
+      'Recently Viewed',
+    ];
+
+    expect(dropdownItems.children().map(element => element.text())).toEqual(
+      expectedSorts
+    );
+
     dropdownItems.at(1).simulate('click');
 
     await tick();

@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {Client} from 'app/api';
-import OrganizationAuditLog from 'app/views/settings/organizationAuditLog';
+import {Client} from 'sentry/api';
+import OrganizationAuditLog from 'sentry/views/settings/organizationAuditLog';
 
 describe('OrganizationAuditLog', function () {
   const org = TestStubs.Organization();
@@ -15,24 +15,21 @@ describe('OrganizationAuditLog', function () {
     });
   });
 
-  it('renders', function (done) {
+  it('renders', async function () {
     const wrapper = mountWithTheme(
-      <OrganizationAuditLog location={{query: ''}} params={{orgId: org.slug}} />,
-      TestStubs.routerContext()
+      <OrganizationAuditLog location={{query: ''}} params={{orgId: org.slug}} />
     );
     wrapper.setState({loading: false});
     wrapper.update();
-    setTimeout(() => {
-      wrapper.update();
-      expect(wrapper).toSnapshot();
-      done();
-    });
+    await tick();
+
+    wrapper.update();
+    expect(wrapper).toSnapshot();
   });
 
   it('displays whether an action was done by a superuser', function () {
     const wrapper = mountWithTheme(
-      <OrganizationAuditLog location={{query: ''}} params={{orgId: org.slug}} />,
-      TestStubs.routerContext()
+      <OrganizationAuditLog location={{query: ''}} params={{orgId: org.slug}} />
     );
     expect(wrapper.find('div[data-test-id="actor-name"]').at(0).text()).toEqual(
       expect.stringContaining('(Sentry Staff)')

@@ -155,7 +155,7 @@ def yarn_check(file_list):
             "\033[33m"
             + """Warning: package.json modified without accompanying yarn.lock modifications.
 
-If you updated a dependency/devDependency in package.json, you must run `yarn install` to update the lockfile.
+If you updated a dependency/devDependencies in package.json, you must run `yarn install` to update the lockfile.
 
 To skip this check, run `SKIP_YARN_CHECK=1 git commit [options]`"""
             + "\033[0m"
@@ -177,11 +177,15 @@ def is_prettier_valid(project_root, prettier_path):
     package_version = None
     package_json_path = os.path.join(project_root, "package.json")
     with open(package_json_path) as package_json:
-        try:
-            package_version = json.load(package_json)["devDependencies"]["prettier"]
-        except KeyError:
-            sys.stderr.write("!! Prettier missing from package.json\n")
-            return False
+        # Check devDependency and dependencies for prettier, we've moved it
+        # around before, but it will run either way
+        package_json_dict = json.load(package_json)
+        package_version = package_json_dict["devDependencies"].get("prettier")
+        package_version = package_version or package_json_dict["dependencies"].get("prettier")
+
+    if package_version is None:
+        sys.stderr.write("!! Prettier missing from package.json\n")
+        return False
 
     prettier_version = subprocess.check_output([prettier_path, "--version"]).decode("utf8").rstrip()
     if prettier_version != package_version:
@@ -226,28 +230,6 @@ def js_lint_format(file_list=None):
     has_errors = run_formatter(cmd, js_file_list)
 
     return has_errors or has_package_json_errors
-
-
-def js_test(file_list=None):
-    """
-    Run JavaScript unit tests on relevant files ONLY as part of pre-commit hook
-    """
-    jest_path = get_node_modules_bin("jest")
-
-    if not os.path.exists(jest_path):
-        sys.stdout.write(
-            "[sentry.test] Skipping JavaScript testing because jest is not installed.\n"
-        )
-        return False
-
-    js_file_list = get_js_files(file_list)
-
-    has_errors = False
-    if js_file_list:
-        status = Popen(["yarn", "test-precommit"] + js_file_list).wait()
-        has_errors = status != 0
-
-    return has_errors
 
 
 def less_format(file_list=None):
@@ -300,10 +282,8 @@ def run(
     format=True,
     lint=True,
     js=True,
-    py=True,
     less=True,
     yarn=True,
-    test=False,
     parseable=False,
 ):
     old_sysargv = sys.argv
@@ -321,9 +301,6 @@ def run(
             return 1
 
         if format:
-            if py:
-                # python autoformatting is now done via pre-commit (black)
-                pass
             if js:
                 # run eslint with --fix and skip these linters down below
                 results.append(js_lint_format(file_list))
@@ -335,8 +312,6 @@ def run(
             return 1
 
         if lint:
-            if py:
-                pass  # flake8 linting was moved to pre-commit
             if js:
                 # stylelint `--fix` doesn't work well
                 results.append(js_stylelint(file_list, parseable=parseable, format=format))
@@ -344,10 +319,6 @@ def run(
                 if not format:
                     # these tasks are called when we need to format, so skip it here
                     results.append(js_lint(file_list, parseable=parseable, format=format))
-
-        if test:
-            if js:
-                results.append(js_test(file_list))
 
         if any(results):
             return 1

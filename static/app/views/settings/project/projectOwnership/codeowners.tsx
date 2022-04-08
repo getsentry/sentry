@@ -1,23 +1,23 @@
 import {Component, Fragment} from 'react';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
-import Button from 'app/components/button';
-import Confirm from 'app/components/confirm';
-import {IconDelete, IconSync} from 'app/icons';
-import {t} from 'app/locale';
-import {CodeOwner, CodeownersFile, Organization, Project} from 'app/types';
-import withApi from 'app/utils/withApi';
-import RulesPanel from 'app/views/settings/project/projectOwnership/rulesPanel';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
+import Button from 'sentry/components/button';
+import Confirm from 'sentry/components/confirm';
+import {IconDelete, IconSync} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {CodeOwner, CodeownersFile, Organization, Project} from 'sentry/types';
+import withApi from 'sentry/utils/withApi';
+import RulesPanel from 'sentry/views/settings/project/projectOwnership/rulesPanel';
 
 type Props = {
   api: Client;
-  organization: Organization;
-  project: Project;
   codeowners: CodeOwner[];
   disabled: boolean;
   onDelete: (data: CodeOwner) => void;
   onUpdate: (data: CodeOwner) => void;
+  organization: Organization;
+  project: Project;
 };
 
 class CodeOwnersPanel extends Component<Props> {
@@ -72,7 +72,6 @@ class CodeOwnersPanel extends Component<Props> {
             dateUpdated={dateUpdated}
             provider={provider}
             repoName={codeMapping?.repoName}
-            beta
             controls={[
               <Button
                 key="sync"
@@ -80,6 +79,7 @@ class CodeOwnersPanel extends Component<Props> {
                 size="xsmall"
                 onClick={() => this.handleSync(codeowner)}
                 disabled={disabled}
+                aria-label={t('Sync')}
               />,
               <Confirm
                 onConfirm={() => this.handleDelete(codeowner)}
@@ -87,7 +87,12 @@ class CodeOwnersPanel extends Component<Props> {
                 key="confirm-delete"
                 disabled={disabled}
               >
-                <Button key="delete" icon={<IconDelete size="xs" />} size="xsmall" />
+                <Button
+                  key="delete"
+                  icon={<IconDelete size="xs" />}
+                  aria-label={t('Delete')}
+                  size="xsmall"
+                />
               </Confirm>,
             ]}
           />

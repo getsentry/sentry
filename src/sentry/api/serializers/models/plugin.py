@@ -1,9 +1,35 @@
+from datetime import datetime
+
 from django.utils.text import slugify
 
+from sentry import features
 from sentry.api.serializers import Serializer
 from sentry.models import ProjectOption
+from sentry.models.project import Project
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
+
+# Dict with the plugin_name as the key, and enabling_feature_name as the value
+SHADOW_DEPRECATED_PLUGINS = {
+    # "exampleslug": "organizations:integrations-ignore-exampleslug-deprecation"
+}
+
+
+def is_plugin_deprecated(plugin, project: Project) -> bool:
+    """
+    Determines whether or not a plugin has been deprecated.
+    If it is past the `deprecation_date` this will always be True.
+    If not, it checks the `SHADOW_DEPRECATED_PLUGINS` map and will return True only if
+    the plugin slug is present and the organization doesn't have the override feature.
+    """
+    deprecation_date = getattr(plugin, "deprecation_date", None)
+    is_past_deprecation_date = datetime.today() > deprecation_date if deprecation_date else False
+    return is_past_deprecation_date or (
+        plugin.slug in SHADOW_DEPRECATED_PLUGINS
+        and not features.has(
+            SHADOW_DEPRECATED_PLUGINS.get(plugin.slug), getattr(project, "organization", None)
+        )
+    )
 
 
 class PluginSerializer(Serializer):
@@ -64,7 +90,9 @@ class PluginSerializer(Serializer):
         if obj.author:
             d["author"] = {"name": str(obj.author), "url": str(obj.author_url)}
 
-        d["isHidden"] = d.get("enabled", False) is False and obj.is_hidden()
+        d["isDeprecated"] = is_plugin_deprecated(obj, self.project)
+
+        d["isHidden"] = d["isDeprecated"] or (not d.get("enabled", False) and obj.is_hidden())
 
         if obj.description:
             d["description"] = str(obj.description)
@@ -112,7 +140,10 @@ def serialize_field(project, plugin, field):
         "readonly": field.get("readonly", False),
         "defaultValue": field.get("default"),
         "value": None,
+        "isDeprecated": is_plugin_deprecated(plugin, project),
     }
+
+    data["isHidden"] = data["isDeprecated"] or plugin.is_hidden()
     if field.get("type") != "secret":
         data["value"] = plugin.get_option(field["name"], project)
     else:

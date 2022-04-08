@@ -380,12 +380,13 @@ def call_snuba(settings):
 
 @pytest.fixture
 def reset_snuba(call_snuba):
-    init_endpoints = (
+    init_endpoints = [
         "/tests/events/drop",
         "/tests/groupedmessage/drop",
         "/tests/transactions/drop",
         "/tests/sessions/drop",
-    )
+        "/tests/metrics/drop",
+    ]
 
     assert all(
         response.status_code == 200

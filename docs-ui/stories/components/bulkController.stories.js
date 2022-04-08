@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import BulkController from 'app/components/bulkController';
-import Checkbox from 'app/components/checkbox';
-import {PanelTable} from 'app/components/panels';
+import BulkController from 'sentry/components/bulkController';
+import Checkbox from 'sentry/components/checkbox';
+import {PanelTable} from 'sentry/components/panels';
 
 const dummy = [
   {

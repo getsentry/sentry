@@ -1,4 +1,4 @@
-import {t} from 'app/locale';
+import {t} from 'sentry/locale';
 
 export enum ErrorType {
   Unknown = 'unknown',
@@ -7,8 +7,8 @@ export enum ErrorType {
 }
 
 type Error = {
-  type: ErrorType;
   message: string;
+  type: ErrorType;
 };
 
 type ResponseError = {

@@ -1,13 +1,13 @@
-import {Client} from 'app/api';
-import SpanTreeModel from 'app/components/events/interfaces/spans/spanTreeModel';
-import {EnhancedProcessedSpanType} from 'app/components/events/interfaces/spans/types';
+import {Client} from 'sentry/api';
+import SpanTreeModel from 'sentry/components/events/interfaces/spans/spanTreeModel';
+import {EnhancedProcessedSpanType} from 'sentry/components/events/interfaces/spans/types';
 import {
   boundsGenerator,
   generateRootSpan,
   parseTrace,
-} from 'app/components/events/interfaces/spans/utils';
-import {EntryType, EventTransaction} from 'app/types/event';
-import {assert} from 'app/types/utils';
+} from 'sentry/components/events/interfaces/spans/utils';
+import {EntryType, EventTransaction} from 'sentry/types/event';
+import {assert} from 'sentry/types/utils';
 
 describe('SpanTreeModel', () => {
   const api: Client = new Client();
@@ -87,7 +87,6 @@ describe('SpanTreeModel', () => {
     ],
   } as EventTransaction;
 
-  // @ts-expect-error
   MockApiClient.addMockResponse({
     url: '/organizations/sentry/events/project:19c403a10af34db2b7d93ad669bb51ed/',
     body: {
@@ -123,7 +122,6 @@ describe('SpanTreeModel', () => {
     },
   });
 
-  // @ts-expect-error
   MockApiClient.addMockResponse({
     url: '/organizations/sentry/events/project:broken/',
     body: {
@@ -220,7 +218,8 @@ describe('SpanTreeModel', () => {
         showEmbeddedChildren: false,
         toggleEmbeddedChildren: expect.any(Function),
         fetchEmbeddedChildrenState: 'idle',
-        toggleSpanGroup: undefined,
+        toggleNestedSpanGroup: undefined,
+        toggleSiblingSpanGroup: undefined,
       },
       {
         type: 'span',
@@ -249,7 +248,8 @@ describe('SpanTreeModel', () => {
         showEmbeddedChildren: false,
         toggleEmbeddedChildren: expect.any(Function),
         fetchEmbeddedChildrenState: 'idle',
-        toggleSpanGroup: undefined,
+        toggleNestedSpanGroup: undefined,
+        toggleSiblingSpanGroup: undefined,
       },
       {
         type: 'span',
@@ -278,7 +278,8 @@ describe('SpanTreeModel', () => {
         showEmbeddedChildren: false,
         toggleEmbeddedChildren: expect.any(Function),
         fetchEmbeddedChildrenState: 'idle',
-        toggleSpanGroup: undefined,
+        toggleNestedSpanGroup: undefined,
+        toggleSiblingSpanGroup: undefined,
       },
       {
         type: 'span',
@@ -303,7 +304,8 @@ describe('SpanTreeModel', () => {
         showEmbeddedChildren: false,
         toggleEmbeddedChildren: expect.any(Function),
         fetchEmbeddedChildrenState: 'idle',
-        toggleSpanGroup: undefined,
+        toggleNestedSpanGroup: undefined,
+        toggleSiblingSpanGroup: undefined,
       },
     ];
 
@@ -322,17 +324,18 @@ describe('SpanTreeModel', () => {
       treeDepth: 0,
       isLastSibling: true,
       continuingTreeDepths: [],
-      hiddenSpanGroups: new Set(),
-      spanGroups: new Set(),
+      hiddenSpanSubTrees: new Set(),
+      spanAncestors: new Set(),
       filterSpans: undefined,
       previousSiblingEndTimestamp: undefined,
       event,
       isOnlySibling: true,
-      spanGrouping: undefined,
-      toggleSpanGroup: undefined,
-      showSpanGroup: false,
+      spanNestedGrouping: undefined,
+      toggleNestedSpanGroup: undefined,
+      isNestedSpanGroupExpanded: false,
       addTraceBounds: () => {},
       removeTraceBounds: () => {},
+      isAutogroupSiblingFeatureEnabled: false,
     });
 
     expect(spans).toEqual(fullWaterfall);
@@ -366,17 +369,18 @@ describe('SpanTreeModel', () => {
       treeDepth: 0,
       isLastSibling: true,
       continuingTreeDepths: [],
-      hiddenSpanGroups: new Set(),
-      spanGroups: new Set(),
+      hiddenSpanSubTrees: new Set(),
+      spanAncestors: new Set(),
       filterSpans: undefined,
       previousSiblingEndTimestamp: undefined,
       event,
       isOnlySibling: true,
-      spanGrouping: undefined,
-      toggleSpanGroup: undefined,
-      showSpanGroup: false,
+      spanNestedGrouping: undefined,
+      toggleNestedSpanGroup: undefined,
+      isNestedSpanGroupExpanded: false,
       addTraceBounds: () => {},
       removeTraceBounds: () => {},
+      isAutogroupSiblingFeatureEnabled: false,
     });
 
     const fullWaterfallExpected: EnhancedProcessedSpanType[] = [...fullWaterfall];
@@ -405,7 +409,8 @@ describe('SpanTreeModel', () => {
         showEmbeddedChildren: false,
         toggleEmbeddedChildren: expect.any(Function),
         fetchEmbeddedChildrenState: 'idle',
-        toggleSpanGroup: undefined,
+        toggleNestedSpanGroup: undefined,
+        toggleSiblingSpanGroup: undefined,
       },
       {
         type: 'span',
@@ -427,7 +432,8 @@ describe('SpanTreeModel', () => {
         showEmbeddedChildren: false,
         toggleEmbeddedChildren: expect.any(Function),
         fetchEmbeddedChildrenState: 'idle',
-        toggleSpanGroup: undefined,
+        toggleNestedSpanGroup: undefined,
+        toggleSiblingSpanGroup: undefined,
       }
     );
 
@@ -467,17 +473,18 @@ describe('SpanTreeModel', () => {
       treeDepth: 0,
       isLastSibling: true,
       continuingTreeDepths: [],
-      hiddenSpanGroups: new Set(),
-      spanGroups: new Set(),
+      hiddenSpanSubTrees: new Set(),
+      spanAncestors: new Set(),
       filterSpans: undefined,
       previousSiblingEndTimestamp: undefined,
       event,
       isOnlySibling: true,
-      spanGrouping: undefined,
-      toggleSpanGroup: undefined,
-      showSpanGroup: false,
+      spanNestedGrouping: undefined,
+      toggleNestedSpanGroup: undefined,
+      isNestedSpanGroupExpanded: false,
       addTraceBounds: () => {},
       removeTraceBounds: () => {},
+      isAutogroupSiblingFeatureEnabled: false,
     });
 
     expect(spans).toEqual(fullWaterfall);
@@ -505,5 +512,254 @@ describe('SpanTreeModel', () => {
     expect(spanTreeModel.fetchEmbeddedChildrenState).toBe(
       'error_fetching_embedded_transactions'
     );
+  });
+
+  it('automatically groups siblings with the same operation and description', () => {
+    const event2 = {
+      ...event,
+      entries: [
+        {
+          data: [],
+          type: EntryType.SPANS,
+        },
+      ],
+    } as EventTransaction;
+
+    const spanTemplate = {
+      timestamp: 1622079937.20331,
+      start_timestamp: 1622079936.907515,
+      description: 'test_description',
+      op: 'test',
+      span_id: 'a453cc713e5baf9c',
+      parent_span_id: 'a934857184bdf5a6',
+      trace_id: '8cbbc19c0f54447ab702f00263262726',
+      status: 'ok',
+      tags: {
+        'http.status_code': '200',
+      },
+      data: {
+        method: 'GET',
+        type: 'fetch',
+        url: '/api/0/internal/health/',
+      },
+    };
+
+    for (let i = 0; i < 5; i++) {
+      event2.entries[0].data.push(spanTemplate);
+    }
+
+    const parsedTrace = parseTrace(event2);
+    const rootSpan = generateRootSpan(parsedTrace);
+
+    const spanTreeModel = new SpanTreeModel(rootSpan, parsedTrace.childSpans, api);
+
+    const generateBounds = boundsGenerator({
+      traceStartTimestamp: parsedTrace.traceStartTimestamp,
+      traceEndTimestamp: parsedTrace.traceEndTimestamp,
+      viewStart: 0,
+      viewEnd: 1,
+    });
+
+    const spans = spanTreeModel.getSpansList({
+      operationNameFilters: {
+        type: 'no_filter',
+      },
+      generateBounds,
+      treeDepth: 0,
+      isLastSibling: true,
+      continuingTreeDepths: [],
+      hiddenSpanSubTrees: new Set(),
+      spanAncestors: new Set(),
+      filterSpans: undefined,
+      previousSiblingEndTimestamp: undefined,
+      event,
+      isOnlySibling: true,
+      spanNestedGrouping: undefined,
+      toggleNestedSpanGroup: undefined,
+      isNestedSpanGroupExpanded: false,
+      addTraceBounds: () => {},
+      removeTraceBounds: () => {},
+      isAutogroupSiblingFeatureEnabled: true,
+    });
+
+    expect(spans.length).toEqual(2);
+    expect(spans[1].type).toEqual('span_group_siblings');
+
+    // If statement here is required to avoid TS linting issues
+    if (spans[1].type === 'span_group_siblings') {
+      expect(spans[1].spanSiblingGrouping!.length).toEqual(5);
+    }
+  });
+
+  it('does not autogroup similar siblings if there are less than 5 in a row', () => {
+    const event2 = {
+      ...event,
+      entries: [
+        {
+          data: [],
+          type: EntryType.SPANS,
+        },
+      ],
+    } as EventTransaction;
+
+    const spanTemplate = {
+      timestamp: 1622079937.20331,
+      start_timestamp: 1622079936.907515,
+      description: 'test_description',
+      op: 'test',
+      span_id: 'a453cc713e5baf9c',
+      parent_span_id: 'a934857184bdf5a6',
+      trace_id: '8cbbc19c0f54447ab702f00263262726',
+      status: 'ok',
+      tags: {
+        'http.status_code': '200',
+      },
+      data: {
+        method: 'GET',
+        type: 'fetch',
+        url: '/api/0/internal/health/',
+      },
+    };
+
+    for (let i = 0; i < 4; i++) {
+      event2.entries[0].data.push(spanTemplate);
+    }
+
+    const parsedTrace = parseTrace(event2);
+    const rootSpan = generateRootSpan(parsedTrace);
+
+    const spanTreeModel = new SpanTreeModel(rootSpan, parsedTrace.childSpans, api);
+
+    const generateBounds = boundsGenerator({
+      traceStartTimestamp: parsedTrace.traceStartTimestamp,
+      traceEndTimestamp: parsedTrace.traceEndTimestamp,
+      viewStart: 0,
+      viewEnd: 1,
+    });
+
+    const spans = spanTreeModel.getSpansList({
+      operationNameFilters: {
+        type: 'no_filter',
+      },
+      generateBounds,
+      treeDepth: 0,
+      isLastSibling: true,
+      continuingTreeDepths: [],
+      hiddenSpanSubTrees: new Set(),
+      spanAncestors: new Set(),
+      filterSpans: undefined,
+      previousSiblingEndTimestamp: undefined,
+      event,
+      isOnlySibling: true,
+      spanNestedGrouping: undefined,
+      toggleNestedSpanGroup: undefined,
+      isNestedSpanGroupExpanded: false,
+      addTraceBounds: () => {},
+      removeTraceBounds: () => {},
+      isAutogroupSiblingFeatureEnabled: true,
+    });
+
+    expect(spans.length).toEqual(5);
+    spans.forEach(span => expect(span.type).toEqual('span'));
+  });
+
+  it('properly autogroups similar siblings and leaves other siblings ungrouped', () => {
+    const event2 = {
+      ...event,
+      entries: [
+        {
+          data: [],
+          type: EntryType.SPANS,
+        },
+      ],
+    } as EventTransaction;
+
+    const groupableSpanTemplate = {
+      timestamp: 1622079937.20331,
+      start_timestamp: 1622079936.907515,
+      description: 'test_description',
+      op: 'test',
+      span_id: 'a453cc713e5baf9c',
+      parent_span_id: 'a934857184bdf5a6',
+      trace_id: '8cbbc19c0f54447ab702f00263262726',
+      status: 'ok',
+      tags: {
+        'http.status_code': '200',
+      },
+      data: {
+        method: 'GET',
+        type: 'fetch',
+        url: '/api/0/internal/health/',
+      },
+    };
+
+    const normalSpanTemplate = {
+      timestamp: 1622079937.20331,
+      start_timestamp: 1622079936.907515,
+      description: 'dont_group_me',
+      op: 'http',
+      span_id: 'a453cc713e5baf9c',
+      parent_span_id: 'a934857184bdf5a6',
+      trace_id: '8cbbc19c0f54447ab702f00263262726',
+      status: 'ok',
+      tags: {
+        'http.status_code': '200',
+      },
+      data: {
+        method: 'GET',
+        type: 'fetch',
+        url: '/api/0/internal/health/',
+      },
+    };
+
+    for (let i = 0; i < 7; i++) {
+      event2.entries[0].data.push(groupableSpanTemplate);
+    }
+
+    // This span should not get grouped with the others
+    event2.entries[0].data.push(normalSpanTemplate);
+
+    for (let i = 0; i < 5; i++) {
+      event2.entries[0].data.push(groupableSpanTemplate);
+    }
+
+    const parsedTrace = parseTrace(event2);
+    const rootSpan = generateRootSpan(parsedTrace);
+
+    const spanTreeModel = new SpanTreeModel(rootSpan, parsedTrace.childSpans, api);
+
+    const generateBounds = boundsGenerator({
+      traceStartTimestamp: parsedTrace.traceStartTimestamp,
+      traceEndTimestamp: parsedTrace.traceEndTimestamp,
+      viewStart: 0,
+      viewEnd: 1,
+    });
+
+    const spans = spanTreeModel.getSpansList({
+      operationNameFilters: {
+        type: 'no_filter',
+      },
+      generateBounds,
+      treeDepth: 0,
+      isLastSibling: true,
+      continuingTreeDepths: [],
+      hiddenSpanSubTrees: new Set(),
+      spanAncestors: new Set(),
+      filterSpans: undefined,
+      previousSiblingEndTimestamp: undefined,
+      event,
+      isOnlySibling: true,
+      spanNestedGrouping: undefined,
+      toggleNestedSpanGroup: undefined,
+      isNestedSpanGroupExpanded: false,
+      addTraceBounds: () => {},
+      removeTraceBounds: () => {},
+      isAutogroupSiblingFeatureEnabled: true,
+    });
+
+    expect(spans.length).toEqual(4);
+    expect(spans[1].type).toEqual('span_group_siblings');
+    expect(spans[2].type).toEqual('span');
+    expect(spans[3].type).toEqual('span_group_siblings');
   });
 });

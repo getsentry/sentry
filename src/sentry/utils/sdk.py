@@ -4,6 +4,10 @@ import inspect
 import sentry_sdk
 from django.conf import settings
 from django.urls import resolve
+
+# Reexport sentry_sdk just in case we ever have to write another shim like we
+# did for raven
+from sentry_sdk import capture_exception, capture_message, configure_scope, push_scope  # NOQA
 from sentry_sdk.client import get_options
 from sentry_sdk.transport import make_transport
 from sentry_sdk.utils import logger as sdk_logger
@@ -53,14 +57,28 @@ SAMPLED_URL_NAMES = {
     # stats
     "sentry-api-0-organization-stats": settings.SAMPLED_DEFAULT_RATE,
     "sentry-api-0-organization-stats-v2": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-api-0-project-stats": 0.1,  # lower rate because of high TPM
+    "sentry-api-0-project-stats": 0.05,  # lower rate because of high TPM
     # debug files
     "sentry-api-0-assemble-dif-files": 0.1,
     # scim
-    "sentry-api-0-organization-scim-member-index": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-api-0-organization-scim-member-details": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-api-0-organization-scim-team-index": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-api-0-organization-scim-team-details": settings.SAMPLED_DEFAULT_RATE,
+    "sentry-api-0-organization-scim-member-index": 0.1,
+    "sentry-api-0-organization-scim-member-details": 0.1,
+    "sentry-api-0-organization-scim-team-index": 0.1,
+    "sentry-api-0-organization-scim-team-details": 0.1,
+    # members
+    "sentry-api-0-organization-invite-request-index": settings.SAMPLED_DEFAULT_RATE,
+    "sentry-api-0-organization-invite-request-detail": settings.SAMPLED_DEFAULT_RATE,
+    "sentry-api-0-organization-join-request": settings.SAMPLED_DEFAULT_RATE,
+    # login
+    "sentry-login": 0.1,
+    "sentry-auth-organization": 0.2,
+    "sentry-auth-link-identity": settings.SAMPLED_DEFAULT_RATE,
+    "sentry-auth-sso": settings.SAMPLED_DEFAULT_RATE,
+    "sentry-logout": 0.1,
+    "sentry-register": settings.SAMPLED_DEFAULT_RATE,
+    "sentry-2fa-dialog": settings.SAMPLED_DEFAULT_RATE,
+    # reprocessing
+    "sentry-api-0-issues-reprocessing": settings.SENTRY_REPROCESSING_APM_SAMPLING,
 }
 if settings.ADDITIONAL_SAMPLED_URLS:
     SAMPLED_URL_NAMES.update(settings.ADDITIONAL_SAMPLED_URLS)
@@ -76,14 +94,16 @@ SAMPLED_TASKS = {
     "sentry.tasks.app_store_connect.refresh_all_builds": settings.SENTRY_APPCONNECT_APM_SAMPLING,
     "sentry.tasks.process_suspect_commits": settings.SENTRY_SUSPECT_COMMITS_APM_SAMPLING,
     "sentry.tasks.post_process.post_process_group": settings.SENTRY_POST_PROCESS_GROUP_APM_SAMPLING,
+    "sentry.tasks.reprocessing2.handle_remaining_events": settings.SENTRY_REPROCESSING_APM_SAMPLING,
+    "sentry.tasks.reprocessing2.reprocess_group": settings.SENTRY_REPROCESSING_APM_SAMPLING,
+    "sentry.tasks.reprocessing2.finish_reprocessing": settings.SENTRY_REPROCESSING_APM_SAMPLING,
+    "sentry.tasks.relay.update_config_cache": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
+    "sentry.tasks.reports.prepare_organization_report": 0.1,
+    "sentry.tasks.reports.deliver_organization_user_report": 0.01,
 }
 
 
 UNSAFE_TAG = "_unsafe"
-
-# Reexport sentry_sdk just in case we ever have to write another shim like we
-# did for raven
-from sentry_sdk import capture_exception, capture_message, configure_scope, push_scope  # NOQA
 
 
 def is_current_event_safe():
@@ -171,16 +191,6 @@ def get_project_key():
     return key
 
 
-def _override_on_full_queue(transport, metric_name):
-    if transport is None:
-        return
-
-    def on_full_queue(*args, **kwargs):
-        metrics.incr(metric_name, tags={"reason": "queue_full"})
-
-    transport._worker.on_full_queue = on_full_queue
-
-
 def traces_sampler(sampling_context):
     # If there's already a sampling decision, just use that
     if sampling_context["parent_sampled"] is not None:
@@ -225,6 +235,7 @@ def configure_sdk():
     from sentry_sdk.integrations.django import DjangoIntegration
     from sentry_sdk.integrations.logging import LoggingIntegration
     from sentry_sdk.integrations.redis import RedisIntegration
+    from sentry_sdk.integrations.threading import ThreadingIntegration
 
     assert sentry_sdk.Hub.main.client is None
 
@@ -234,6 +245,10 @@ def configure_sdk():
     internal_project_key = get_project_key()
     upstream_dsn = sdk_options.pop("dsn", None)
     sdk_options["traces_sampler"] = traces_sampler
+    sdk_options["release"] = (
+        f"backend@{sdk_options['release']}" if "release" in sdk_options else None
+    )
+    sdk_options["send_client_reports"] = True
 
     if upstream_dsn:
         transport = make_transport(get_options(dsn=upstream_dsn, **sdk_options))
@@ -244,14 +259,13 @@ def configure_sdk():
     if relay_dsn:
         transport = make_transport(get_options(dsn=relay_dsn, **sdk_options))
         relay_transport = patch_transport_for_instrumentation(transport, "relay")
+    elif settings.IS_DEV and not settings.SENTRY_USE_RELAY:
+        relay_transport = None
     elif internal_project_key and internal_project_key.dsn_private:
         transport = make_transport(get_options(dsn=internal_project_key.dsn_private, **sdk_options))
         relay_transport = patch_transport_for_instrumentation(transport, "relay")
     else:
         relay_transport = None
-
-    _override_on_full_queue(relay_transport, "internal.uncaptured.events.relay")
-    _override_on_full_queue(upstream_transport, "internal.uncaptured.events.upstream")
 
     class MultiplexingTransport(sentry_sdk.transport.Transport):
         def capture_envelope(self, envelope):
@@ -318,6 +332,7 @@ def configure_sdk():
             LoggingIntegration(event_level=None),
             RustInfoIntegration(),
             RedisIntegration(),
+            ThreadingIntegration(propagate_hub=True),
         ],
         **sdk_options,
     )

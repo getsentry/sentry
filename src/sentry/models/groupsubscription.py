@@ -13,7 +13,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.notifications.helpers import (
-    transform_to_notification_settings_by_user,
+    transform_to_notification_settings_by_recipient,
     where_should_be_participating,
 )
 from sentry.notifications.types import GroupSubscriptionReason, NotificationSettingTypes
@@ -121,7 +121,7 @@ class GroupSubscriptionManager(BaseManager):  # type: ignore
         subscriptions_by_user_id = {
             subscription.user_id: subscription for subscription in active_and_disabled_subscriptions
         }
-        notification_settings_by_user = transform_to_notification_settings_by_user(
+        notification_settings_by_recipient = transform_to_notification_settings_by_recipient(
             notification_settings, all_possible_users
         )
 
@@ -131,7 +131,7 @@ class GroupSubscriptionManager(BaseManager):  # type: ignore
             providers = where_should_be_participating(
                 user,
                 subscription_option,
-                notification_settings_by_user,
+                notification_settings_by_recipient,
             )
             for provider in providers:
                 result[provider][user] = (

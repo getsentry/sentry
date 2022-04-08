@@ -1,56 +1,63 @@
 import styled from '@emotion/styled';
 
-import {DataSection} from 'app/components/events/styles';
-import space from 'app/styles/space';
+import {DataSection} from 'sentry/components/events/styles';
+import space from 'sentry/styles/space';
 
 import Screenshot from './screenshot';
 import Tags from './tags';
 
 type ScreenshotProps = React.ComponentProps<typeof Screenshot>;
 
-type Props = Omit<React.ComponentProps<typeof Tags>, 'projectSlug'> &
-  Pick<ScreenshotProps, 'attachments'> & {
-    projectId: string;
-    isShare: boolean;
-    isBorderless: boolean;
-    onDeleteScreenshot: ScreenshotProps['onDelete'];
-  };
+type Props = Omit<React.ComponentProps<typeof Tags>, 'projectSlug' | 'hasContext'> & {
+  attachments: ScreenshotProps['screenshot'][];
+  onDeleteScreenshot: ScreenshotProps['onDelete'];
+  projectId: string;
+  hasContext?: boolean;
+  isBorderless?: boolean;
+  isShare?: boolean;
+};
 
 function EventTagsAndScreenshots({
   projectId: projectSlug,
-  isShare,
-  hasContext,
   location,
-  isBorderless,
   event,
   attachments,
   onDeleteScreenshot,
-  ...props
+  organization,
+  isShare = false,
+  isBorderless = false,
+  hasContext = false,
 }: Props) {
   const {tags = []} = event;
 
-  if (!tags.length && !hasContext && isShare) {
+  const screenshot = attachments.find(
+    ({name}) => name === 'screenshot.jpg' || name === 'screenshot.png'
+  );
+
+  if (!tags.length && !hasContext && (isShare || !screenshot)) {
     return null;
   }
 
   return (
     <Wrapper isBorderless={isBorderless}>
-      {!isShare && !!attachments.length && (
+      {!isShare && !!screenshot && (
         <Screenshot
-          {...props}
+          organization={organization}
           event={event}
           projectSlug={projectSlug}
-          attachments={attachments}
+          screenshot={screenshot}
           onDelete={onDeleteScreenshot}
         />
       )}
-      <Tags
-        {...props}
-        event={event}
-        projectSlug={projectSlug}
-        hasContext={hasContext}
-        location={location}
-      />
+      {(!!tags.length || hasContext) && (
+        <Tags
+          organization={organization}
+          event={event}
+          projectSlug={projectSlug}
+          hasContext={hasContext}
+          location={location}
+        />
+      )}
     </Wrapper>
   );
 }
@@ -59,7 +66,7 @@ export default EventTagsAndScreenshots;
 
 const Wrapper = styled(DataSection)<{isBorderless: boolean}>`
   display: grid;
-  grid-gap: ${space(3)};
+  gap: ${space(3)};
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     && {
@@ -71,7 +78,7 @@ const Wrapper = styled(DataSection)<{isBorderless: boolean}>`
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     padding-bottom: ${space(2)};
     grid-template-columns: 1fr auto;
-    grid-gap: ${space(4)};
+    gap: ${space(4)};
 
     > *:first-child {
       border-bottom: 0;

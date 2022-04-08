@@ -1,83 +1,65 @@
-import {Component} from 'react';
+import {useEffect} from 'react';
 import {RouteComponentProps} from 'react-router';
 
-import {fetchOrganizationEnvironments} from 'app/actionCreators/environments';
-import {Client} from 'app/api';
-import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {t} from 'app/locale';
-import OrganizationEnvironmentsStore from 'app/stores/organizationEnvironmentsStore';
-import {Environment, GlobalSelection, Group, Organization, Project} from 'app/types';
-import {Event} from 'app/types/event';
-import withApi from 'app/utils/withApi';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import withOrganization from 'app/utils/withOrganization';
+import {fetchOrganizationEnvironments} from 'sentry/actionCreators/environments';
+import {Client} from 'sentry/api';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {t} from 'sentry/locale';
+import OrganizationEnvironmentsStore from 'sentry/stores/organizationEnvironmentsStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {Environment, Group, Organization, PageFilters, Project} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import withApi from 'sentry/utils/withApi';
+import withOrganization from 'sentry/utils/withOrganization';
+import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {ReprocessingStatus} from '../utils';
 
 import GroupEventDetails from './groupEventDetails';
 
-type Props = RouteComponentProps<
-  {orgId: string; groupId: string; eventId?: string},
-  {}
-> & {
+export interface GroupEventDetailsProps
+  extends RouteComponentProps<{groupId: string; orgId: string; eventId?: string}, {}> {
   api: Client;
-  organization: Organization;
-  selection: GlobalSelection;
-  project: Project;
-  group: Group;
   event: Event;
-  loadingEvent: boolean;
-  groupReprocessingStatus: ReprocessingStatus;
   eventError: boolean;
+  group: Group;
+  groupReprocessingStatus: ReprocessingStatus;
+  loadingEvent: boolean;
   onRetry: () => void;
-};
-
-type State = typeof OrganizationEnvironmentsStore['state'];
-
-export class GroupEventDetailsContainer extends Component<Props, State> {
-  state = OrganizationEnvironmentsStore.get();
-
-  componentDidMount() {
-    this.environmentUnsubscribe = OrganizationEnvironmentsStore.listen(
-      data => this.setState(data),
-      undefined
-    );
-    const {environments, error} = OrganizationEnvironmentsStore.get();
-    if (!environments && !error) {
-      fetchOrganizationEnvironments(this.props.api, this.props.organization.slug);
-    }
-  }
-
-  componentWillUnmount() {
-    if (this.environmentUnsubscribe) {
-      this.environmentUnsubscribe();
-    }
-  }
-
-  // TODO(ts): reflux :(
-  environmentUnsubscribe: any;
-
-  render() {
-    if (this.state.error) {
-      return (
-        <LoadingError
-          message={t("There was an error loading your organization's environments")}
-        />
-      );
-    }
-    // null implies loading state
-    if (!this.state.environments) {
-      return <LoadingIndicator />;
-    }
-
-    const {selection, ...otherProps} = this.props;
-    const environments: Environment[] = this.state.environments.filter(env =>
-      selection.environments.includes(env.name)
-    );
-
-    return <GroupEventDetails {...otherProps} environments={environments} />;
-  }
+  organization: Organization;
+  project: Project;
+  selection: PageFilters;
 }
 
-export default withApi(withOrganization(withGlobalSelection(GroupEventDetailsContainer)));
+export function GroupEventDetailsContainer(props: GroupEventDetailsProps) {
+  const state = useLegacyStore(OrganizationEnvironmentsStore);
+
+  useEffect(() => {
+    if (!state.environments && !state.error) {
+      fetchOrganizationEnvironments(props.api, props.organization.slug);
+    }
+    // XXX: Missing dependencies, but it reflects the old of componentDidMount
+  }, []);
+
+  if (state.error) {
+    return (
+      <LoadingError
+        message={t("There was an error loading your organization's environments")}
+      />
+    );
+  }
+  // null implies loading state
+  if (!state.environments) {
+    return <LoadingIndicator />;
+  }
+
+  const {selection, ...otherProps} = props;
+  const environments: Environment[] = state.environments.filter(env =>
+    selection.environments.includes(env.name)
+  );
+
+  return <GroupEventDetails {...otherProps} environments={environments} />;
+}
+
+export default withApi(withOrganization(withPageFilters(GroupEventDetailsContainer)));

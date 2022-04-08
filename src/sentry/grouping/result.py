@@ -1,41 +1,25 @@
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Sequence, Union
+from typing import Any, Dict, List, Optional, Sequence, TypedDict, Union
 
 from sentry.utils.safe import get_path, safe_execute, set_path
-
-# TODO(3.8): This is a hack so we can get TypedDicts before 3.8
-if TYPE_CHECKING:
-    from mypy_extensions import TypedDict
-else:
-
-    def TypedDict(*args, **kwargs):
-        pass
-
 
 EventData = Dict[str, Any]
 EventMetadata = Dict[str, Any]
 
 
-TreeLabelPart = TypedDict(
-    "TreeLabelPart",
-    {
-        "function": str,
-        "package": str,
-        "is_sentinel": bool,
-        "is_prefix": bool,
-        "datapath": Sequence[Union[str, int]],
-    },
-)
+class TreeLabelPart(TypedDict):
+    function: str
+    package: str
+    is_sentinel: bool
+    is_prefix: bool
+    datapath: Sequence[Union[str, int]]
 
-StrippedTreeLabelPart = TypedDict(
-    "StrippedTreeLabelPart",
-    {
-        "function": str,
-        "package": str,
-        "is_sentinel": bool,
-        "is_prefix": bool,
-    },
-)
+
+class StrippedTreeLabelPart(TypedDict):
+    function: str
+    package: str
+    is_sentinel: bool
+    is_prefix: bool
 
 
 TreeLabel = Sequence[TreeLabelPart]

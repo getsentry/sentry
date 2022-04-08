@@ -1,4 +1,4 @@
-export function Event(params) {
+export function Event(params = {}) {
   return {
     id: '1',
     message: 'ApiException',

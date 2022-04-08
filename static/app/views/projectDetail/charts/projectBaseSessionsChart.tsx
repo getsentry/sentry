@@ -1,50 +1,53 @@
 import {Component, Fragment} from 'react';
 import {InjectedRouter} from 'react-router';
-import {withTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
+import type {LegendComponentOption} from 'echarts';
 import isEqual from 'lodash/isEqual';
 
-import {Client} from 'app/api';
-import ChartZoom, {ZoomRenderProps} from 'app/components/charts/chartZoom';
-import ErrorPanel from 'app/components/charts/errorPanel';
-import LineChart from 'app/components/charts/lineChart';
-import ReleaseSeries from 'app/components/charts/releaseSeries';
-import StackedAreaChart from 'app/components/charts/stackedAreaChart';
-import {HeaderTitleLegend} from 'app/components/charts/styles';
-import TransitionChart from 'app/components/charts/transitionChart';
-import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
-import {RELEASE_LINES_THRESHOLD} from 'app/components/charts/utils';
-import QuestionTooltip from 'app/components/questionTooltip';
-import {IconWarning} from 'app/icons';
-import {t} from 'app/locale';
-import {GlobalSelection, Organization} from 'app/types';
-import {EChartEventHandler, Series} from 'app/types/echarts';
-import getDynamicText from 'app/utils/getDynamicText';
-import {Theme} from 'app/utils/theme';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import {displayCrashFreePercent} from 'app/views/releases/utils';
-import {sessionTerm} from 'app/views/releases/utils/sessionTerm';
+import {Client} from 'sentry/api';
+import ChartZoom, {ZoomRenderProps} from 'sentry/components/charts/chartZoom';
+import ErrorPanel from 'sentry/components/charts/errorPanel';
+import {LineChart, LineChartProps} from 'sentry/components/charts/lineChart';
+import ReleaseSeries from 'sentry/components/charts/releaseSeries';
+import StackedAreaChart from 'sentry/components/charts/stackedAreaChart';
+import {HeaderTitleLegend} from 'sentry/components/charts/styles';
+import TransitionChart from 'sentry/components/charts/transitionChart';
+import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import {RELEASE_LINES_THRESHOLD} from 'sentry/components/charts/utils';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import {IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {Organization, PageFilters} from 'sentry/types';
+import {EChartEventHandler, Series} from 'sentry/types/echarts';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import {MINUTES_THRESHOLD_TO_DISPLAY_SECONDS} from 'sentry/utils/sessions';
+import {Theme} from 'sentry/utils/theme';
+import withPageFilters from 'sentry/utils/withPageFilters';
+import {displayCrashFreePercent} from 'sentry/views/releases/utils';
+import {sessionTerm} from 'sentry/views/releases/utils/sessionTerm';
 
 import {DisplayModes} from '../projectCharts';
 
-import SessionsRequest from './sessionsRequest';
+import ProjectSessionsChartRequest from './projectSessionsChartRequest';
 
 type Props = {
-  title: string;
-  router: InjectedRouter;
-  selection: GlobalSelection;
   api: Client;
-  organization: Organization;
-  theme: Theme;
+  displayMode:
+    | DisplayModes.SESSIONS
+    | DisplayModes.STABILITY_USERS
+    | DisplayModes.STABILITY;
   onTotalValuesChange: (value: number | null) => void;
-  displayMode: DisplayModes.SESSIONS | DisplayModes.STABILITY;
-  help?: string;
+  organization: Organization;
+  router: InjectedRouter;
+  selection: PageFilters;
+  title: string;
   disablePrevious?: boolean;
+  help?: string;
   query?: string;
 };
 
 function ProjectBaseSessionsChart({
   title,
-  theme,
   organization,
   router,
   selection,
@@ -55,6 +58,8 @@ function ProjectBaseSessionsChart({
   disablePrevious,
   query,
 }: Props) {
+  const theme = useTheme();
+
   const {projects, environments, datetime} = selection;
   const {start, end, period, utc} = datetime;
 
@@ -64,7 +69,7 @@ function ProjectBaseSessionsChart({
         value: (
           <ChartZoom router={router} period={period} start={start} end={end} utc={utc}>
             {zoomRenderProps => (
-              <SessionsRequest
+              <ProjectSessionsChartRequest
                 api={api}
                 selection={selection}
                 organization={organization}
@@ -127,7 +132,7 @@ function ProjectBaseSessionsChart({
                     }}
                   </ReleaseSeries>
                 )}
-              </SessionsRequest>
+              </ProjectSessionsChartRequest>
             )}
           </ChartZoom>
         ),
@@ -138,18 +143,21 @@ function ProjectBaseSessionsChart({
 }
 
 type ChartProps = {
-  theme: Theme;
-  zoomRenderProps: ZoomRenderProps;
-  reloading: boolean;
-  timeSeries: Series[];
+  displayMode:
+    | DisplayModes.SESSIONS
+    | DisplayModes.STABILITY
+    | DisplayModes.STABILITY_USERS;
   releaseSeries: Series[];
+  reloading: boolean;
+  theme: Theme;
+  timeSeries: Series[];
+  zoomRenderProps: ZoomRenderProps;
   previousTimeSeries?: Series[];
-  displayMode: DisplayModes.SESSIONS | DisplayModes.STABILITY;
 };
 
 type ChartState = {
-  seriesSelection: Record<string, boolean>;
   forceUpdate: boolean;
+  seriesSelection: Record<string, boolean>;
 };
 
 class Chart extends Component<ChartProps, ChartState> {
@@ -204,7 +212,13 @@ class Chart extends Component<ChartProps, ChartState> {
     );
   };
 
-  get legend() {
+  get isCrashFree() {
+    const {displayMode} = this.props;
+
+    return [DisplayModes.STABILITY, DisplayModes.STABILITY_USERS].includes(displayMode);
+  }
+
+  get legend(): LegendComponentOption {
     const {theme, timeSeries, previousTimeSeries, releaseSeries} = this.props;
     const {seriesSelection} = this.state;
 
@@ -247,49 +261,43 @@ class Chart extends Component<ChartProps, ChartState> {
     };
   }
 
-  get chartOptions() {
-    const {theme, displayMode} = this.props;
-
+  get chartOptions(): Omit<LineChartProps, 'series'> {
     return {
       grid: {left: '10px', right: '10px', top: '40px', bottom: '0px'},
       seriesOptions: {
         showSymbol: false,
       },
       tooltip: {
-        trigger: 'axis' as const,
+        trigger: 'axis',
         truncate: 80,
         valueFormatter: (value: number | null) => {
           if (value === null) {
             return '\u2014';
           }
 
-          if (displayMode === DisplayModes.STABILITY) {
+          if (this.isCrashFree) {
             return displayCrashFreePercent(value, 0, 3);
           }
 
           return typeof value === 'number' ? value.toLocaleString() : value;
         },
       },
-      yAxis:
-        displayMode === DisplayModes.STABILITY
-          ? {
-              axisLabel: {
-                color: theme.gray200,
-                formatter: (value: number) => displayCrashFreePercent(value),
-              },
-              scale: true,
-              max: 100,
-            }
-          : {min: 0},
+      yAxis: this.isCrashFree
+        ? {
+            axisLabel: {
+              formatter: (value: number) => displayCrashFreePercent(value),
+            },
+            scale: true,
+            max: 100,
+          }
+        : {min: 0},
     };
   }
 
   render() {
-    const {zoomRenderProps, timeSeries, previousTimeSeries, releaseSeries, displayMode} =
-      this.props;
+    const {zoomRenderProps, timeSeries, previousTimeSeries, releaseSeries} = this.props;
 
-    const ChartComponent =
-      displayMode === DisplayModes.STABILITY ? LineChart : StackedAreaChart;
+    const ChartComponent = this.isCrashFree ? LineChart : StackedAreaChart;
 
     return (
       <ChartComponent
@@ -301,10 +309,11 @@ class Chart extends Component<ChartProps, ChartState> {
         }
         previousPeriod={previousTimeSeries}
         onLegendSelectChanged={this.handleLegendSelectChanged}
+        minutesThresholdToDisplaySeconds={MINUTES_THRESHOLD_TO_DISPLAY_SECONDS}
         transformSinglePointToBar
       />
     );
   }
 }
 
-export default withGlobalSelection(withTheme(ProjectBaseSessionsChart));
+export default withPageFilters(ProjectBaseSessionsChart);

@@ -1,16 +1,16 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import GuideAnchor from 'app/components/assistant/guideAnchor';
-import Tooltip from 'app/components/tooltip';
-import {t} from 'app/locale';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import Tooltip from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
 
 type Props = {
-  title: string;
   newestFirst: boolean;
-  onChange?: ({newestFirst}: {newestFirst: boolean}) => void;
+  title: string;
   beforeTitle?: React.ReactNode;
   hideGuide?: boolean;
+  onChange?: ({newestFirst}: {newestFirst: boolean}) => void;
 };
 
 const CrashTitle = ({

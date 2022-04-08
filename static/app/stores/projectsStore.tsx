@@ -1,12 +1,15 @@
-import Reflux from 'reflux';
+import {createStore} from 'reflux';
 
-import ProjectActions from 'app/actions/projectActions';
-import TeamActions from 'app/actions/teamActions';
-import {Project, Team} from 'app/types';
+import ProjectActions from 'sentry/actions/projectActions';
+import TeamActions from 'sentry/actions/teamActions';
+import {Project, Team} from 'sentry/types';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
+
+import {CommonStoreDefinition} from './types';
 
 type State = {
-  projects: Project[];
   loading: boolean;
+  projects: Project[];
 };
 
 type StatsData = Record<string, Project['stats']>;
@@ -14,48 +17,65 @@ type StatsData = Record<string, Project['stats']>;
 /**
  * Attributes that need typing but aren't part of the external interface,
  */
-type Internals = {
+type InternalDefinition = {
   itemsById: Record<string, Project>;
   loading: boolean;
+  removeTeamFromProject(teamSlug: string, project: Project): void;
 };
 
-type ProjectsStoreInterface = {
-  init: () => void;
-  reset: () => void;
-  loadInitialData: (projects: Project[]) => void;
-  onStatsLoadSuccess: (data: StatsData) => void;
-  onChangeSlug: (prevSlug: string, newSlug: string) => void;
-  onCreateSuccess: (project: Project) => void;
-  onUpdateSuccess: (data: Partial<Project>) => void;
-  onDeleteTeam: (slug: string) => void;
-  onRemoveTeam: (teamSlug: string, projectSlug: string) => void;
-  onAddTeam: (team: Team, projectSlug: string) => void;
-  removeTeamFromProject: (teamSlug: string, project: Project) => void;
-  getWithTeam: (teamSlug: string) => Project[];
-  getAll: () => Project[];
-  getBySlugs: (slug: string[]) => Project[];
-  getState: (slugs?: string[]) => State;
-  getById: (id?: string) => Project | undefined;
-  getBySlug: (slug?: string) => Project | undefined;
-};
+interface ProjectsStoreDefinition
+  extends InternalDefinition,
+    CommonStoreDefinition<State> {
+  getAll(): Project[];
+  getById(id?: string): Project | undefined;
+  getBySlug(slug?: string): Project | undefined;
+  init(): void;
+  isLoading(): boolean;
+  loadInitialData(projects: Project[]): void;
+  onAddTeam(team: Team, projectSlug: string): void;
+  onChangeSlug(prevSlug: string, newSlug: string): void;
+  onCreateSuccess(project: Project): void;
+  onDeleteTeam(slug: string): void;
+  onRemoveTeam(teamSlug: string, projectSlug: string): void;
+  onStatsLoadSuccess(data: StatsData): void;
+  onUpdateSuccess(data: Partial<Project>): void;
+  reset(): void;
+}
 
-const storeConfig: Reflux.StoreDefinition & Internals & ProjectsStoreInterface = {
+const storeConfig: ProjectsStoreDefinition = {
   itemsById: {},
   loading: true,
+  unsubscribeListeners: [],
 
   init() {
     this.reset();
 
-    this.listenTo(ProjectActions.addTeamSuccess, this.onAddTeam);
-    this.listenTo(ProjectActions.changeSlug, this.onChangeSlug);
-    this.listenTo(ProjectActions.createSuccess, this.onCreateSuccess);
-    this.listenTo(ProjectActions.loadProjects, this.loadInitialData);
-    this.listenTo(ProjectActions.loadStatsSuccess, this.onStatsLoadSuccess);
-    this.listenTo(ProjectActions.removeTeamSuccess, this.onRemoveTeam);
-    this.listenTo(ProjectActions.reset, this.reset);
-    this.listenTo(ProjectActions.updateSuccess, this.onUpdateSuccess);
+    this.unsubscribeListeners.push(
+      this.listenTo(ProjectActions.addTeamSuccess, this.onAddTeam)
+    );
+    this.unsubscribeListeners.push(
+      this.listenTo(ProjectActions.changeSlug, this.onChangeSlug)
+    );
+    this.unsubscribeListeners.push(
+      this.listenTo(ProjectActions.createSuccess, this.onCreateSuccess)
+    );
+    this.unsubscribeListeners.push(
+      this.listenTo(ProjectActions.loadProjects, this.loadInitialData)
+    );
+    this.unsubscribeListeners.push(
+      this.listenTo(ProjectActions.loadStatsSuccess, this.onStatsLoadSuccess)
+    );
+    this.unsubscribeListeners.push(
+      this.listenTo(ProjectActions.removeTeamSuccess, this.onRemoveTeam)
+    );
+    this.unsubscribeListeners.push(this.listenTo(ProjectActions.reset, this.reset));
+    this.unsubscribeListeners.push(
+      this.listenTo(ProjectActions.updateSuccess, this.onUpdateSuccess)
+    );
 
-    this.listenTo(TeamActions.removeTeamSuccess, this.onDeleteTeam);
+    this.unsubscribeListeners.push(
+      this.listenTo(TeamActions.removeTeamSuccess, this.onDeleteTeam)
+    );
   },
 
   reset() {
@@ -64,66 +84,56 @@ const storeConfig: Reflux.StoreDefinition & Internals & ProjectsStoreInterface =
   },
 
   loadInitialData(items: Project[]) {
-    this.itemsById = items.reduce((map, project) => {
-      map[project.id] = project;
-      return map;
-    }, {});
+    const mapping = items.map(project => [project.id, project] as const);
+
+    this.itemsById = Object.fromEntries(mapping);
     this.loading = false;
+
     this.trigger(new Set(Object.keys(this.itemsById)));
   },
 
   onChangeSlug(prevSlug: string, newSlug: string) {
     const prevProject = this.getBySlug(prevSlug);
 
-    // This shouldn't happen
     if (!prevProject) {
       return;
     }
 
-    const newProject = {
-      ...prevProject,
-      slug: newSlug,
-    };
+    const newProject = {...prevProject, slug: newSlug};
 
-    this.itemsById = {
-      ...this.itemsById,
-      [newProject.id]: newProject,
-    };
-
-    // Ideally we'd always trigger this.itemsById, but following existing patterns
-    // so we don't break things
+    this.itemsById = {...this.itemsById, [newProject.id]: newProject};
     this.trigger(new Set([prevProject.id]));
   },
 
   onCreateSuccess(project: Project) {
-    this.itemsById = {
-      ...this.itemsById,
-      [project.id]: project,
-    };
+    this.itemsById = {...this.itemsById, [project.id]: project};
     this.trigger(new Set([project.id]));
   },
 
   onUpdateSuccess(data: Partial<Project>) {
     const project = this.getById(data.id);
+
     if (!project) {
       return;
     }
-    const newProject = Object.assign({}, project, data);
-    this.itemsById = {
-      ...this.itemsById,
-      [project.id]: newProject,
-    };
+
+    const newProject = {...project, ...data};
+
+    this.itemsById = {...this.itemsById, [project.id]: newProject};
     this.trigger(new Set([data.id]));
   },
 
   onStatsLoadSuccess(data) {
-    const touchedIds: string[] = [];
-    Object.entries(data || {}).forEach(([projectId, stats]) => {
-      if (projectId in this.itemsById) {
-        this.itemsById[projectId].stats = stats;
-        touchedIds.push(projectId);
-      }
+    const entries = Object.entries(data || {}).filter(
+      ([projectId]) => projectId in this.itemsById
+    );
+
+    // Assign stats into projects
+    entries.forEach(([projectId, stats]) => {
+      this.itemsById[projectId].stats = stats;
     });
+
+    const touchedIds = entries.map(([projectId]) => projectId);
     this.trigger(new Set(touchedIds));
   },
 
@@ -134,16 +144,19 @@ const storeConfig: Reflux.StoreDefinition & Internals & ProjectsStoreInterface =
    */
   onDeleteTeam(teamSlug: string) {
     // Look for team in all projects
-    const projectIds = this.getWithTeam(teamSlug).map(projectWithTeam => {
-      this.removeTeamFromProject(teamSlug, projectWithTeam);
-      return projectWithTeam.id;
-    });
+    const projects = this.getAll().filter(({teams}) =>
+      teams.find(({slug}) => slug === teamSlug)
+    );
 
-    this.trigger(new Set([projectIds]));
+    projects.forEach(project => this.removeTeamFromProject(teamSlug, project));
+
+    const affectedProjectIds = projects.map(project => project.id);
+    this.trigger(new Set(affectedProjectIds));
   },
 
   onRemoveTeam(teamSlug: string, projectSlug: string) {
     const project = this.getBySlug(projectSlug);
+
     if (!project) {
       return;
     }
@@ -160,49 +173,26 @@ const storeConfig: Reflux.StoreDefinition & Internals & ProjectsStoreInterface =
       return;
     }
 
-    this.itemsById = {
-      ...this.itemsById,
-      [project.id]: {
-        ...project,
-        teams: [...project.teams, team],
-      },
-    };
+    const newProject = {...project, teams: [...project.teams, team]};
 
+    this.itemsById = {...this.itemsById, [project.id]: newProject};
     this.trigger(new Set([project.id]));
   },
 
   // Internal method, does not trigger
   removeTeamFromProject(teamSlug: string, project: Project) {
     const newTeams = project.teams.filter(({slug}) => slug !== teamSlug);
+    const newProject = {...project, teams: newTeams};
 
-    this.itemsById = {
-      ...this.itemsById,
-      [project.id]: {
-        ...project,
-        teams: newTeams,
-      },
-    };
+    this.itemsById = {...this.itemsById, [project.id]: newProject};
   },
 
-  /**
-   * Returns a list of projects that has the specified team
-   *
-   * @param {String} teamSlug Slug of team to find in projects
-   */
-  getWithTeam(teamSlug: string) {
-    return this.getAll().filter(({teams}) => teams.find(({slug}) => slug === teamSlug));
+  isLoading() {
+    return this.loading;
   },
 
   getAll() {
-    return Object.values(this.itemsById).sort((a: Project, b: Project) => {
-      if (a.slug > b.slug) {
-        return 1;
-      }
-      if (a.slug < b.slug) {
-        return -1;
-      }
-      return 0;
-    });
+    return Object.values(this.itemsById).sort((a, b) => a.slug.localeCompare(b.slug));
   },
 
   getById(id) {
@@ -213,20 +203,13 @@ const storeConfig: Reflux.StoreDefinition & Internals & ProjectsStoreInterface =
     return this.getAll().find(project => project.slug === slug);
   },
 
-  getBySlugs(slugs: string[]) {
-    return this.getAll().filter(project => slugs.includes(project.slug));
-  },
-
-  getState(slugs?: string[]): State {
+  getState() {
     return {
-      projects: slugs ? this.getBySlugs(slugs) : this.getAll(),
+      projects: this.getAll(),
       loading: this.loading,
     };
   },
 };
 
-type ProjectsStore = Reflux.Store & ProjectsStoreInterface;
-
-const ProjectsStore = Reflux.createStore(storeConfig) as ProjectsStore;
-
+const ProjectsStore = createStore(makeSafeRefluxStore(storeConfig));
 export default ProjectsStore;

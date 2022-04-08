@@ -1,6 +1,7 @@
 from django import forms
 from django.conf import settings
 from django.utils.html import format_html
+from rest_framework.request import Request
 
 from sentry.models import Activity, GroupMeta
 from sentry.plugins.base.v1 import Plugin
@@ -31,7 +32,7 @@ class IssueTrackingPlugin(Plugin):
     def get_plugin_type(self):
         return "issue-tracking"
 
-    def _get_group_body(self, request, group, event, **kwargs):
+    def _get_group_body(self, request: Request, group, event, **kwargs):
         result = []
         for interface in event.interfaces.values():
             output = safe_execute(interface.to_string, event, _with_transaction=False)
@@ -39,7 +40,7 @@ class IssueTrackingPlugin(Plugin):
                 result.append(output)
         return "\n\n".join(result)
 
-    def _get_group_description(self, request, group, event):
+    def _get_group_description(self, request: Request, group, event):
         referrer = self.get_conf_key() + "_plugin"
         output = [absolute_uri(group.get_absolute_url(params={"referrer": referrer}))]
         body = self._get_group_body(request, group, event)
@@ -47,10 +48,10 @@ class IssueTrackingPlugin(Plugin):
             output.extend(["", "```", body, "```"])
         return "\n".join(output)
 
-    def _get_group_title(self, request, group, event):
+    def _get_group_title(self, request: Request, group, event):
         return event.title
 
-    def is_configured(self, request, project, **kwargs):
+    def is_configured(self, request: Request, project, **kwargs):
         raise NotImplementedError
 
     def get_auth_for_user(self, user, **kwargs):
@@ -67,7 +68,7 @@ class IssueTrackingPlugin(Plugin):
         except IndexError:
             return None
 
-    def needs_auth(self, request, project, **kwargs):
+    def needs_auth(self, request: Request, project, **kwargs):
         """
         Return ``True`` if the authenticated user needs to associate an auth service before
         performing actions with this plugin.
@@ -96,7 +97,7 @@ class IssueTrackingPlugin(Plugin):
         """
         return "Unlink %s Issue" % self.get_title()
 
-    def get_new_issue_form(self, request, group, event, **kwargs):
+    def get_new_issue_form(self, request: Request, group, event, **kwargs):
         """
         Return a Form for the "Create new issue" page.
         """
@@ -111,7 +112,7 @@ class IssueTrackingPlugin(Plugin):
         """
         return []
 
-    def get_link_existing_issue_form(self, request, group, event, **kwargs):
+    def get_link_existing_issue_form(self, request: Request, group, event, **kwargs):
         if not self.link_issue_form:
             return None
         return self.link_issue_form(
@@ -125,7 +126,7 @@ class IssueTrackingPlugin(Plugin):
         """
         raise NotImplementedError
 
-    def get_issue_title_by_id(self, request, group, issue_id):
+    def get_issue_title_by_id(self, request: Request, group, issue_id):
         """
         Given an issue_id return the issue's title.
         """
@@ -139,25 +140,25 @@ class IssueTrackingPlugin(Plugin):
         """
         return "#%s" % issue_id
 
-    def create_issue(self, request, group, form_data, **kwargs):
+    def create_issue(self, request: Request, group, form_data, **kwargs):
         """
         Creates the issue on the remote service and returns an issue ID.
         """
         raise NotImplementedError
 
-    def link_issue(self, request, group, form_data, **kwargs):
+    def link_issue(self, request: Request, group, form_data, **kwargs):
         """
         Can be overridden for any actions needed when linking issues
         (like adding a comment to an existing issue).
         """
 
-    def get_initial_form_data(self, request, group, event, **kwargs):
+    def get_initial_form_data(self, request: Request, group, event, **kwargs):
         return {
             "description": self._get_group_description(request, group, event),
             "title": self._get_group_title(request, group, event),
         }
 
-    def get_initial_link_form_data(self, request, group, event, **kwargs):
+    def get_initial_link_form_data(self, request: Request, group, event, **kwargs):
         return {}
 
     def has_auth_configured(self, **kwargs):
@@ -166,11 +167,11 @@ class IssueTrackingPlugin(Plugin):
 
         return self.auth_provider in get_auth_providers()
 
-    def handle_unlink_issue(self, request, group, **kwargs):
+    def handle_unlink_issue(self, request: Request, group, **kwargs):
         GroupMeta.objects.unset_value(group, "%s:tid" % self.get_conf_key())
         return self.redirect(group.get_absolute_url())
 
-    def view(self, request, group, **kwargs):
+    def view(self, request: Request, group, **kwargs):
         has_auth_configured = self.has_auth_configured()
         if not (has_auth_configured and self.is_configured(project=group.project, request=request)):
             if self.auth_provider:
@@ -212,6 +213,7 @@ class IssueTrackingPlugin(Plugin):
             link_form = self.get_link_existing_issue_form(request, group, event)
 
         if op == "create":
+            issue_id = None
             if create_form.is_valid():
                 try:
                     issue_id = self.create_issue(
@@ -284,7 +286,7 @@ class IssueTrackingPlugin(Plugin):
 
         return self.render(self.create_issue_template, context)
 
-    def actions(self, request, group, action_list, **kwargs):
+    def actions(self, request: Request, group, action_list, **kwargs):
         if not self.is_configured(request=request, project=group.project):
             return action_list
         prefix = self.get_conf_key()
@@ -296,7 +298,7 @@ class IssueTrackingPlugin(Plugin):
             )
         return action_list
 
-    def tags(self, request, group, tag_list, **kwargs):
+    def tags(self, request: Request, group, tag_list, **kwargs):
         if not self.is_configured(request=request, project=group.project):
             return tag_list
 

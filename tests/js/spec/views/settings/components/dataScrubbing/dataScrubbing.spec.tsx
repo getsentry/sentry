@@ -1,23 +1,21 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {addSuccessMessage} from 'app/actionCreators/indicator';
-import {openModal} from 'app/actionCreators/modal';
-import DataScrubbing from 'app/views/settings/components/dataScrubbing';
-import {ProjectId} from 'app/views/settings/components/dataScrubbing/types';
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {openModal} from 'sentry/actionCreators/modal';
+import DataScrubbing from 'sentry/views/settings/components/dataScrubbing';
+import {ProjectId} from 'sentry/views/settings/components/dataScrubbing/types';
 
-jest.mock('app/actionCreators/modal');
+jest.mock('sentry/actionCreators/modal');
 
-// @ts-expect-error
 const relayPiiConfig = TestStubs.DataScrubbingRelayPiiConfig();
 const stringRelayPiiConfig = JSON.stringify(relayPiiConfig);
 const organizationSlug = 'sentry';
 const handleUpdateOrganization = jest.fn();
 const additionalContext = 'These rules can be configured for each project.';
 
-jest.mock('app/actionCreators/indicator');
+jest.mock('sentry/actionCreators/indicator');
 
 function getOrganization(piiConfig?: string) {
-  // @ts-expect-error
   return TestStubs.Organization(
     piiConfig ? {id: '123', relayPiiConfig: piiConfig} : {id: '123'}
   );
@@ -105,7 +103,7 @@ describe('Data Scrubbing', () => {
       expect(panelBody.find('List').prop('isDisabled')).toEqual(true);
 
       // PanelAction
-      const actionButtons = wrapper.find('PanelAction').find('BaseButton');
+      const actionButtons = wrapper.find('PanelAction').find('StyledButton');
       expect(actionButtons).toHaveLength(2);
       expect(actionButtons.at(0).prop('disabled')).toEqual(false);
       expect(actionButtons.at(1).prop('disabled')).toEqual(true);
@@ -167,7 +165,7 @@ describe('Data Scrubbing', () => {
       expect(panelBody.find('List').prop('isDisabled')).toEqual(true);
 
       // PanelAction
-      const actionButtons = wrapper.find('PanelAction').find('BaseButton');
+      const actionButtons = wrapper.find('PanelAction').find('StyledButton');
       expect(actionButtons).toHaveLength(2);
       expect(actionButtons.at(0).prop('disabled')).toEqual(false);
       expect(actionButtons.at(1).prop('disabled')).toEqual(true);
@@ -191,7 +189,6 @@ describe('Data Scrubbing', () => {
     });
 
     it('Delete rule successfully', async () => {
-      // @ts-expect-error
       const mockDelete = MockApiClient.addMockResponse({
         url: endpoint,
         method: 'PUT',
@@ -212,7 +209,6 @@ describe('Data Scrubbing', () => {
       deleteButton.simulate('click');
       expect(mockDelete).toHaveBeenCalled();
 
-      // @ts-expect-error
       await tick();
       wrapper.update();
 

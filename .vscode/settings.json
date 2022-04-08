@@ -16,28 +16,28 @@
   "files.trimFinalNewlines": true,
   "files.insertFinalNewline": true,
 
-  "eslint.options": {
-    "configFile": ".eslintrc.js"
-  },
-
   "files.associations": {
     "*.jsx": "javascriptreact"
   },
 
   "[javascript]": {
-    "editor.formatOnSave": true
+    "editor.formatOnSave": true,
+    "editor.tabSize": 2
   },
 
   "[typescript]": {
-    "editor.formatOnSave": true
+    "editor.formatOnSave": true,
+    "editor.tabSize": 2
   },
 
   "[typescriptreact]": {
-    "editor.formatOnSave": true
+    "editor.formatOnSave": true,
+    "editor.tabSize": 2
   },
 
   "[javascriptreact]": {
-    "editor.formatOnSave": true
+    "editor.formatOnSave": true,
+    "editor.tabSize": 2
   },
 
   "[less]": {
@@ -68,5 +68,6 @@
   "python.linting.flake8Path": "${workspaceFolder}/.venv/bin/flake8",
   "python.linting.pycodestylePath": "${workspaceFolder}/.venv/bin/pep8",
   "python.testing.pytestPath": "${workspaceFolder}/.venv/bin/pytest",
+  "python.formatting.blackPath": "${workspaceFolder}/.venv/bin/black",
   "python.formatting.provider": "black"
 }

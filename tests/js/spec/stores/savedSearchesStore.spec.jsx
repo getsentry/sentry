@@ -3,9 +3,9 @@ import {
   fetchSavedSearches,
   pinSearch,
   unpinSearch,
-} from 'app/actionCreators/savedSearches';
-import {Client} from 'app/api';
-import SavedSearchesStore from 'app/stores/savedSearchesStore';
+} from 'sentry/actionCreators/savedSearches';
+import {Client} from 'sentry/api';
+import SavedSearchesStore from 'sentry/stores/savedSearchesStore';
 
 describe('SavedSearchesStore', function () {
   let api;

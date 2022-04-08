@@ -1,12 +1,12 @@
 import styled from '@emotion/styled';
 
-import AsyncComponent from 'app/components/asyncComponent';
-import ContextData from 'app/components/contextData';
-import PreviewPanelItem from 'app/components/events/attachmentViewers/previewPanelItem';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import ContextData from 'sentry/components/contextData';
+import PreviewPanelItem from 'sentry/components/events/attachmentViewers/previewPanelItem';
 import {
   getAttachmentUrl,
   ViewerProps,
-} from 'app/components/events/attachmentViewers/utils';
+} from 'sentry/components/events/attachmentViewers/utils';
 
 type Props = ViewerProps & AsyncComponent['props'];
 

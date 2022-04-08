@@ -1,37 +1,42 @@
-import GuideActions from 'app/actions/guideActions';
-import {Client} from 'app/api';
-import ConfigStore from 'app/stores/configStore';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {Client} from 'sentry/api';
+import ConfigStore from 'sentry/stores/configStore';
+import GuideStore from 'sentry/stores/guideStore';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {run} from 'sentry/utils/apiSentryClient';
 
 const api = new Client();
 
-export function fetchGuides() {
-  api.request('/assistant/?v2', {
-    method: 'GET',
-    success: data => {
-      GuideActions.fetchSucceeded(data);
-    },
-  });
+export async function fetchGuides() {
+  try {
+    const data = await api.requestPromise('/assistant/');
+    GuideStore.fetchSucceeded(data);
+  } catch (error) {
+    run(Sentry => Sentry.captureException(error));
+  }
 }
 
 export function registerAnchor(target: string) {
-  GuideActions.registerAnchor(target);
+  GuideStore.registerAnchor(target);
 }
 
 export function unregisterAnchor(target: string) {
-  GuideActions.unregisterAnchor(target);
+  GuideStore.unregisterAnchor(target);
 }
 
 export function nextStep() {
-  GuideActions.nextStep();
+  GuideStore.nextStep();
+}
+
+export function setForceHide(forceHide: boolean) {
+  GuideStore.setForceHide(forceHide);
 }
 
 export function toStep(step: number) {
-  GuideActions.toStep(step);
+  GuideStore.toStep(step);
 }
 
 export function closeGuide(dismissed?: boolean) {
-  GuideActions.closeGuide(dismissed);
+  GuideStore.closeGuide(dismissed);
 }
 
 export function dismissGuide(guide: string, step: number, orgId: string | null) {

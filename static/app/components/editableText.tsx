@@ -2,22 +2,25 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import TextOverflow from 'app/components/textOverflow';
-import {IconEdit} from 'app/icons/iconEdit';
-import space from 'app/styles/space';
-import {defined} from 'app/utils';
-import useKeypress from 'app/utils/useKeyPress';
-import useOnClickOutside from 'app/utils/useOnClickOutside';
-import Input from 'app/views/settings/components/forms/controls/input';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import Input from 'sentry/components/forms/controls/input';
+import TextOverflow from 'sentry/components/textOverflow';
+import {IconEdit} from 'sentry/icons/iconEdit';
+import space from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
+import useKeypress from 'sentry/utils/useKeyPress';
+import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 
 type Props = {
-  value: string;
   onChange: (value: string) => void;
-  name?: string;
+  value: string;
+  'aria-label'?: string;
+  autoSelect?: boolean;
   errorMessage?: React.ReactNode;
-  successMessage?: React.ReactNode;
   isDisabled?: boolean;
+  maxLength?: number;
+  name?: string;
+  successMessage?: React.ReactNode;
 };
 
 function EditableText({
@@ -26,7 +29,10 @@ function EditableText({
   name,
   errorMessage,
   successMessage,
+  maxLength,
   isDisabled = false,
+  autoSelect = false,
+  'aria-label': ariaLabel,
 }: Props) {
   const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState(value);
@@ -52,17 +58,21 @@ function EditableText({
 
   // check to see if the user clicked outside of this component
   useOnClickOutside(innerWrapperRef, () => {
-    if (isEditing) {
-      if (isEmpty) {
-        displayStatusMessage('error');
-        return;
-      }
-      if (inputValue !== value) {
-        onChange(inputValue);
-        displayStatusMessage('success');
-      }
-      setIsEditing(false);
+    if (!isEditing) {
+      return;
     }
+
+    if (isEmpty) {
+      displayStatusMessage('error');
+      return;
+    }
+
+    if (inputValue !== value) {
+      onChange(inputValue);
+      displayStatusMessage('success');
+    }
+
+    setIsEditing(false);
   });
 
   const onEnter = useCallback(() => {
@@ -140,10 +150,13 @@ function EditableText({
           data-test-id="editable-text-input"
         >
           <StyledInput
+            aria-label={ariaLabel}
             name={name}
             ref={inputRef}
             value={inputValue}
             onChange={handleInputChange}
+            onFocus={event => autoSelect && event.target.select()}
+            maxLength={maxLength}
           />
           <InputLabel>{inputValue}</InputLabel>
         </InputWrapper>
@@ -151,6 +164,7 @@ function EditableText({
         <Label
           onClick={isDisabled ? undefined : handleEditClick}
           ref={labelRef}
+          isDisabled={isDisabled}
           data-test-id="editable-text-label"
         >
           <InnerLabel>{inputValue}</InnerLabel>
@@ -163,12 +177,12 @@ function EditableText({
 
 export default EditableText;
 
-const Label = styled('div')`
+const Label = styled('div')<{isDisabled: boolean}>`
   display: grid;
   grid-auto-flow: column;
   align-items: center;
   gap: ${space(1)};
-  cursor: pointer;
+  cursor: ${p => (p.isDisabled ? 'default' : 'pointer')};
 `;
 
 const InnerLabel = styled(TextOverflow)`

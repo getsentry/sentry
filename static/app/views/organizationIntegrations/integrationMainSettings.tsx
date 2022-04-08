@@ -1,23 +1,23 @@
-import React from 'react';
+import {Component} from 'react';
 
-import {addSuccessMessage} from 'app/actionCreators/indicator';
-import {t} from 'app/locale';
-import {Integration, Organization} from 'app/types';
-import Form from 'app/views/settings/components/forms/form';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import {Field} from 'app/views/settings/components/forms/type';
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import Form from 'sentry/components/forms/form';
+import JsonForm from 'sentry/components/forms/jsonForm';
+import {Field} from 'sentry/components/forms/type';
+import {t} from 'sentry/locale';
+import {Integration, Organization} from 'sentry/types';
 
 type Props = {
   integration: Integration;
-  organization: Organization;
   onUpdate: () => void;
+  organization: Organization;
 };
 
 type State = {
   integration: Integration;
 };
 
-class IntegrationMainSettings extends React.Component<Props, State> {
+class IntegrationMainSettings extends Component<Props, State> {
   state: State = {
     integration: this.props.integration,
   };

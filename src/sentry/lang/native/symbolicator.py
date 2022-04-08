@@ -1,6 +1,5 @@
 import base64
 import logging
-import random
 import sys
 import time
 import uuid
@@ -18,8 +17,8 @@ from sentry.auth.system import get_system_token
 from sentry.cache import default_cache
 from sentry.models import Organization
 from sentry.net.http import Session
-from sentry.tasks.store import RetrySymbolication
-from sentry.utils import json, metrics
+from sentry.tasks.symbolication import RetrySymbolication
+from sentry.utils import json, metrics, safe
 
 MAX_ATTEMPTS = 3
 REQUEST_CACHE_TIMEOUT = 3600
@@ -59,15 +58,9 @@ APP_STORE_CONNECT_SCHEMA = {
         "appconnectIssuer": {"type": "string", "minLength": 36, "maxLength": 36},
         "appconnectKey": {"type": "string", "minLength": 2, "maxLength": 20},
         "appconnectPrivateKey": {"type": "string"},
-        "itunesUser": {"type": "string", "minLength": 1, "maxLength": 100},
-        "itunesCreated": {"type": "string", "format": "date-time"},
-        "itunesPassword": {"type": "string"},
-        "itunesSession": {"type": "string"},
         "appName": {"type": "string", "minLength": 1, "maxLength": 512},
         "appId": {"type": "string", "minLength": 1},
         "bundleId": {"type": "string", "minLength": 1},
-        "orgPublicId": {"type": "string", "minLength": 36, "maxLength": 36},
-        "orgName": {"type": "string", "minLength": 1, "maxLength": 512},
     },
     "required": [
         "type",
@@ -76,15 +69,9 @@ APP_STORE_CONNECT_SCHEMA = {
         "appconnectIssuer",
         "appconnectKey",
         "appconnectPrivateKey",
-        "itunesUser",
-        "itunesCreated",
-        "itunesPassword",
-        "itunesSession",
         "appName",
         "appId",
         "bundleId",
-        "orgPublicId",
-        "orgName",
     ],
     "additionalProperties": False,
 }
@@ -307,7 +294,7 @@ def secret_fields(source_type):
     Returns a string list of all of the fields that contain a secret in a given source.
     """
     if source_type == "appStoreConnect":
-        yield from ["appconnectPrivateKey", "itunesPassword"]
+        yield from ["appconnectPrivateKey"]
     elif source_type == "http":
         yield "password"
     elif source_type == "s3":
@@ -362,7 +349,7 @@ def parse_backfill_sources(sources_json, original_sources):
     try:
         sources = json.loads(sources_json)
     except Exception as e:
-        raise InvalidSourcesError(f"{e}")
+        raise InvalidSourcesError("Sources are not valid serialised JSON") from e
 
     orig_by_id = {src["id"]: src for src in original_sources}
 
@@ -377,15 +364,22 @@ def parse_backfill_sources(sources_json, original_sources):
 
         for secret in secret_fields(source["type"]):
             if secret in source and source[secret] == {"hidden-secret": True}:
-                orig_source = orig_by_id.get(source["id"])
-                # Should just omit the source entirely if it's referencing a previously stored
-                # secret that we can't find
-                source[secret] = orig_source.get(secret, "")
+                secret_value = safe.get_path(orig_by_id, source["id"], secret)
+                if secret_value is None:
+                    with sentry_sdk.push_scope():
+                        sentry_sdk.set_tag("missing_secret", secret)
+                        sentry_sdk.set_tag("source_id", source["id"])
+                        sentry_sdk.capture_message(
+                            "Obfuscated symbol source secret does not have a corresponding saved value in project options"
+                        )
+                    raise InvalidSourcesError("Hidden symbol source secret is missing a value")
+                else:
+                    source[secret] = secret_value
 
     try:
         jsonschema.validate(sources, SOURCES_SCHEMA)
     except jsonschema.ValidationError as e:
-        raise InvalidSourcesError(f"{e}")
+        raise InvalidSourcesError("Sources did not validate JSON-schema") from e
 
     return sources
 
@@ -408,11 +402,9 @@ def redact_source_secrets(config_sources: json.JSONData) -> json.JSONData:
 
 
 def get_options_for_project(project):
-    compare_rate = options.get("symbolicator.compare_stackwalking_methods_rate")
     return {
         # Symbolicators who do not support options will ignore this field entirely.
         "dif_candidates": features.has("organizations:images-loaded-v2", project.organization),
-        "compare_stackwalking_methods": random.random() < compare_rate,
     }
 
 
@@ -537,7 +529,7 @@ class SymbolicatorSession:
             raise RuntimeError("Session not opened")
 
     def _process_response(self, json):
-        """Post-processes the JSON repsonse.
+        """Post-processes the JSON response.
 
         This modifies the candidates list from Symbolicator responses to undo aliased
         sources, hide information about unknown sources and add names to sources rather then
@@ -630,7 +622,7 @@ class SymbolicatorSession:
         params = {"timeout": self.timeout, "scope": self.project_id}
         with metrics.timer(
             "events.symbolicator.create_task",
-            tags={"path": path, "worker_id": self.get_worker_id()},
+            tags={"path": path},
         ):
             return self._request(method="post", path=path, params=params, **kwargs)
 
@@ -669,9 +661,7 @@ class SymbolicatorSession:
             "scope": self.project_id,
         }
 
-        with metrics.timer(
-            "events.symbolicator.query_task", tags={"worker_id": self.get_worker_id()}
-        ):
+        with metrics.timer("events.symbolicator.query_task"):
             return self._request("get", task_url, params=params)
 
     def healthcheck(self):

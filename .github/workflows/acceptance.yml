@@ -19,8 +19,12 @@ jobs:
     runs-on: ubuntu-20.04
     timeout-minutes: 20
     strategy:
+      # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
+      # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
+      fail-fast: false
       matrix:
-        instance: [0, 1]
+        # XXX: When updating this, make sure you also update CI_NODE_TOTAL.
+        instance: [0, 1, 2, 3]
 
     env:
       VISUAL_HTML_ENABLE: 1
@@ -55,7 +59,10 @@ jobs:
         env:
           GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           GITHUB_PR_REF: ${{ github.event.pull_request.head.ref || github.ref }}
-          CI_NODE_TOTAL: ${{ strategy.job-total }}
+          # XXX: CI_NODE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
+          #      Otherwise, if there are other things in the matrix, using strategy.job-total
+          #      wouldn't be correct.
+          CI_NODE_TOTAL: 4
           CI_NODE_INDEX: ${{ matrix.instance }}
         run: |
           JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit
@@ -74,7 +81,6 @@ jobs:
           css-path: src/sentry/static/sentry/dist/entrypoints/sentry.css
 
       - name: Save snapshots
-        if: always()
         uses: getsentry/action-visual-snapshot@v2
         with:
           save-only: true
@@ -82,6 +88,9 @@ jobs:
 
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
+        with:
+          files: .artifacts/coverage/*
+          type: frontend
 
   webpack:
     name: create frontend bundle
@@ -145,10 +154,16 @@ jobs:
     runs-on: ubuntu-20.04
     timeout-minutes: 20
     strategy:
+      # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
+      # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
+      fail-fast: false
       matrix:
+        python-version: [3.8.12]
+        # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
         instance: [0, 1, 2, 3]
-
     env:
+      # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
+      MATRIX_INSTANCE_TOTAL: 4
       VISUAL_SNAPSHOT_ENABLE: 1
       TEST_GROUP_STRATEGY: roundrobin
 
@@ -156,10 +171,11 @@ jobs:
       - name: Checkout sentry
         uses: actions/checkout@v2
 
-      - name: Setup sentry python env
+      - name: Setup sentry env (python ${{ matrix.python-version }})
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
+          python-version: ${{ matrix.python-version }}
           pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           snuba: true
 
@@ -180,8 +196,7 @@ jobs:
         run: |
           tar xf dist.tar.gz
 
-      - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
-        if: always()
+      - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: |
           mkdir -p ${{ steps.setup.outputs.acceptance-dir }}
           mkdir -p ${{ steps.setup.outputs.acceptance-dir }}-mobile
@@ -192,23 +207,39 @@ jobs:
           USE_SNUBA: 1
 
       - name: Save snapshots
-        if: always()
         uses: getsentry/action-visual-snapshot@v2
         with:
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
 
+      # We use the below to determine the flag to use in codecov
+      - name: Check for python file changes
+        uses: getsentry/paths-filter@v2
+        id: changes
+        with:
+          token: ${{ github.token }}
+          filters: .github/file-filters.yml
+
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
+        if: ${{ steps.changes.outputs.backend == 'true' }}
 
   chartcuterie:
     name: chartcuterie integration
     runs-on: ubuntu-20.04
     timeout-minutes: 30
     strategy:
+      # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
+      # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
+      fail-fast: false
       matrix:
+        python-version: [3.8.12]
+        # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
         instance: [0]
     env:
+      # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
+      MATRIX_INSTANCE_TOTAL: 1
+      TEST_GROUP_STRATEGY: roundrobin
       VISUAL_SNAPSHOT_ENABLE: 1
 
     steps:
@@ -218,10 +249,11 @@ jobs:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
           fetch-depth: '2'
 
-      - name: Setup sentry env
+      - name: Setup sentry env (python ${{ matrix.python-version }})
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
+          python-version: ${{ matrix.python-version }}
           pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           chartcuterie: true
 
@@ -239,7 +271,7 @@ jobs:
         run: |
           make build-chartcuterie-config
 
-      - name: Run chartcuterie tests (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
+      - name: Run chartcuterie tests (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: |
           mkdir -p ${{ steps.setup.outputs.acceptance-dir }}
           make test-chartcuterie
@@ -247,11 +279,38 @@ jobs:
           PYTEST_SNAPSHOTS_DIR: ${{ steps.setup.outputs.acceptance-dir }}
 
       - name: Save snapshots
-        if: always()
         uses: getsentry/action-visual-snapshot@v2
         with:
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
 
+      # We use the below to determine the flag to use in codecov (only upload on backend changes)
+      - name: Check for python file changes
+        uses: getsentry/paths-filter@v2
+        id: changes
+        with:
+          token: ${{ github.token }}
+          filters: .github/file-filters.yml
+
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
+        if: ${{ steps.changes.outputs.backend == 'true' }}
+
+  visual-diff:
+    # This guarantees that we will only schedule Visual Snapshots if all
+    # workflows that generate artifacts succeed
+    needs: [acceptance, frontend, chartcuterie]
+    name: triggers visual snapshot
+    # Do not execute on forks or on master
+    if: github.repository == 'getsentry/sentry' && github.ref != 'refs/heads/master'
+    runs-on: ubuntu-20.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Diff snapshots
+        id: visual-snapshots-diff
+        uses: getsentry/action-visual-snapshot@v2
+        with:
+          api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
+          gcs-bucket: 'sentry-visual-snapshots'
+          gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}

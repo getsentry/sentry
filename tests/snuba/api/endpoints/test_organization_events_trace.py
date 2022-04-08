@@ -1233,3 +1233,15 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["projects"] == 4
         assert data["transactions"] == 8
         assert data["errors"] == 1
+
+
+class OrganizationEventsTraceLightEndpointTestWithSnql(OrganizationEventsTraceLightEndpointTest):
+    FEATURES = ["organizations:performance-view", "organizations:performance-use-snql"]
+
+
+class OrganizationEventsTraceEndpointTestWithSnql(OrganizationEventsTraceEndpointTest):
+    FEATURES = ["organizations:performance-view", "organizations:performance-use-snql"]
+
+
+class OrganizationEventsTraceMetaEndpointTestWithSnql(OrganizationEventsTraceMetaEndpointTest):
+    FEATURES = ["organizations:performance-view", "organizations:performance-use-snql"]

@@ -1,14 +1,12 @@
 import {RouteComponentProps} from 'react-router';
 
-import {loadStats} from 'app/actionCreators/projects';
-import TeamActions from 'app/actions/teamActions';
-import {Client} from 'app/api';
-import {AccessRequest, Organization, Team} from 'app/types';
-import {sortArray} from 'app/utils';
-import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
-import withTeams from 'app/utils/withTeams';
-import AsyncView from 'app/views/asyncView';
+import {loadStats} from 'sentry/actionCreators/projects';
+import TeamActions from 'sentry/actions/teamActions';
+import {Client} from 'sentry/api';
+import {AccessRequest, Organization, Team} from 'sentry/types';
+import withApi from 'sentry/utils/withApi';
+import withOrganization from 'sentry/utils/withOrganization';
+import AsyncView from 'sentry/views/asyncView';
 
 import OrganizationTeams from './organizationTeams';
 
@@ -59,13 +57,11 @@ class OrganizationTeamsContainer extends AsyncView<Props, State> {
   };
 
   renderBody() {
-    const {organization, teams} = this.props;
+    const {organization} = this.props;
 
     if (!organization) {
       return null;
     }
-    const allTeams = sortArray(teams, team => team.name);
-    const activeTeams = allTeams.filter(team => team.isMember);
 
     return (
       <OrganizationTeams
@@ -73,8 +69,6 @@ class OrganizationTeamsContainer extends AsyncView<Props, State> {
         access={new Set(organization.access)}
         features={new Set(organization.features)}
         organization={organization}
-        allTeams={allTeams}
-        activeTeams={activeTeams}
         requestList={this.state.requestList}
         onRemoveAccessRequest={this.removeAccessRequest}
       />
@@ -84,4 +78,4 @@ class OrganizationTeamsContainer extends AsyncView<Props, State> {
 
 export {OrganizationTeamsContainer};
 
-export default withApi(withOrganization(withTeams(OrganizationTeamsContainer)));
+export default withApi(withOrganization(OrganizationTeamsContainer));

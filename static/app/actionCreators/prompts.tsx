@@ -1,19 +1,19 @@
-import {Client} from 'app/api';
+import {Client} from 'sentry/api';
 
 type PromptsUpdateParams = {
-  /**
-   * The numeric organization ID as a string
-   */
-  organizationId: string;
-  /**
-   * The numeric project ID as a string
-   */
-  projectId?: string;
   /**
    * The prompt feature name
    */
   feature: string;
+  /**
+   * The numeric organization ID as a string
+   */
+  organizationId: string;
   status: 'snoozed' | 'dismissed';
+  /**
+   * The numeric project ID as a string
+   */
+  projectId?: string;
 };
 
 /**
@@ -33,6 +33,10 @@ export function promptsUpdate(api: Client, params: PromptsUpdateParams) {
 
 type PromptCheckParams = {
   /**
+   * The prompt feature name
+   */
+  feature: string;
+  /**
    * The numeric organization ID as a string
    */
   organizationId: string;
@@ -40,15 +44,11 @@ type PromptCheckParams = {
    * The numeric project ID as a string
    */
   projectId?: string;
-  /**
-   * The prompt feature name
-   */
-  feature: string;
 };
 
 export type PromptResponseItem = {
-  snoozed_ts?: number;
   dismissed_ts?: number;
+  snoozed_ts?: number;
 };
 export type PromptResponse = {
   data?: PromptResponseItem;
@@ -76,16 +76,15 @@ export async function promptsCheck(
   const response: PromptResponse = await api.requestPromise('/prompts-activity/', {
     query,
   });
-  const data = response?.data;
 
-  if (!data) {
-    return null;
+  if (response?.data) {
+    return {
+      dismissedTime: response.data.dismissed_ts,
+      snoozedTime: response.data.snoozed_ts,
+    };
   }
 
-  return {
-    dismissedTime: data.dismissed_ts,
-    snoozedTime: data.snoozed_ts,
-  };
+  return null;
 }
 
 /**

@@ -57,15 +57,14 @@ class SlackLinkTeamTest(AcceptanceTestCase):
 
     def test_link_team(self):
         self.login_as(self.user)
-        with self.feature("organizations:notification-platform"):
-            self.browser.get(self.path)
-            self.browser.wait_until_not(".loading")
-            self.browser.click('[name="team"]')
-            self.browser.click(f'[value="{self.team.id}"]')
-            self.browser.snapshot(name="slack link team select team")
-            self.browser.click('[type="submit"]')
-            self.browser.wait_until_not(".loading")
-            self.browser.snapshot(name="slack post linked team")
+        self.browser.get(self.path)
+        self.browser.wait_until_not(".loading")
+        self.browser.click('[name="team"]')
+        self.browser.click(f'[value="{self.team.id}"]')
+        self.browser.snapshot(name="slack link team select team")
+        self.browser.click('[type="submit"]')
+        self.browser.wait_until_not(".loading")
+        self.browser.snapshot(name="slack post linked team")
 
         assert ExternalActor.objects.filter(
             actor_id=self.team.actor_id,

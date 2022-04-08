@@ -1,15 +1,15 @@
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import space from 'app/styles/space';
-import testableTransition from 'app/utils/testableTransition';
+import space from 'sentry/styles/space';
+import testableTransition from 'sentry/utils/testableTransition';
 
 const StepHeading = styled(motion.h2)<{step: number}>`
   margin-left: calc(-${space(2)} - 30px);
   position: relative;
   display: inline-grid;
   grid-template-columns: max-content max-content;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   align-items: center;
 
   &:before {
@@ -22,7 +22,7 @@ const StepHeading = styled(motion.h2)<{step: number}>`
     background-color: ${p => p.theme.yellow300};
     border-radius: 50%;
     color: ${p => p.theme.textColor};
-    font-size: 1.5rem;
+    font-size: 1rem;
   }
 `;
 

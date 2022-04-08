@@ -1,34 +1,29 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {openModal} from 'app/actionCreators/modal';
+import {openModal} from 'sentry/actionCreators/modal';
 import DebugImageDetails, {
   modalCss,
-} from 'app/components/events/interfaces/debugMeta-v2/debugImageDetails';
-import {getFileName} from 'app/components/events/interfaces/debugMeta-v2/utils';
-import GlobalModal from 'app/components/globalModal';
+} from 'sentry/components/events/interfaces/debugMeta-v2/debugImageDetails';
+import {getFileName} from 'sentry/components/events/interfaces/debugMeta-v2/utils';
+import GlobalModal from 'sentry/components/globalModal';
 
 describe('Debug Meta - Image Details Candidates', function () {
   let wrapper: ReturnType<typeof mountWithTheme>;
-  const projectId = 'foo';
-  // @ts-expect-error
+  const projSlug = 'foo';
   const organization = TestStubs.Organization();
-  // @ts-expect-error
   const event = TestStubs.Event();
-  // @ts-expect-error
   const eventEntryDebugMeta = TestStubs.EventEntryDebugMeta();
   const {data} = eventEntryDebugMeta;
   const {images} = data;
   const debugImage = images[0];
 
   beforeAll(async function () {
-    // @ts-expect-error
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${projectId}/files/dsyms/?debug_id=${debugImage.debug_id}`,
+      url: `/projects/${organization.slug}/${projSlug}/files/dsyms/?debug_id=${debugImage.debug_id}`,
       method: 'GET',
       body: [],
     });
 
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: `/builtin-symbol-sources/`,
       method: 'GET',
@@ -43,7 +38,7 @@ describe('Debug Meta - Image Details Candidates', function () {
           {...modalProps}
           image={debugImage}
           organization={organization}
-          projectId={projectId}
+          projSlug={projSlug}
           event={event}
         />
       ),
@@ -53,7 +48,6 @@ describe('Debug Meta - Image Details Candidates', function () {
       }
     );
 
-    // @ts-expect-error
     await tick();
     wrapper.update();
   });

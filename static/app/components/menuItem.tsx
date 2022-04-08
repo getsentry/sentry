@@ -2,44 +2,42 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import Link from 'app/components/links/link';
-import space from 'app/styles/space';
-import {callIfFunction} from 'app/utils/callIfFunction';
-import {Theme} from 'app/utils/theme';
+import Link from 'sentry/components/links/link';
+import space from 'sentry/styles/space';
+import {callIfFunction} from 'sentry/utils/callIfFunction';
+import {Theme} from 'sentry/utils/theme';
 
 type MenuItemProps = {
   /**
-   * Should this item act as a header
+   * Enable to allow default event on click
    */
-  header?: boolean;
-  /**
-   * Renders a bottom border (excludes the last item)
-   */
-  withBorder?: boolean;
-  /**
-   * Renders an icon next to the item
-   */
-  icon?: React.ReactNode;
-  /**
-   * Should this item act as a divider
-   */
-  divider?: boolean;
-  /**
-   * The title/tooltipe of the item
-   */
-  title?: string;
+  allowDefaultEvent?: boolean;
+  'aria-label'?: string;
+  className?: string;
   /**
    * Is the item disabled?
    */
   disabled?: boolean;
   /**
-   * Triggered when the item is clicked
+   * Should this item act as a divider
    */
-  onSelect?: (eventKey: any) => void;
+  divider?: boolean;
   /**
    * Provided to the onSelect callback when this item is selected
    */
   eventKey?: any;
+  /**
+   * Should this item act as a header
+   */
+  header?: boolean;
+  /**
+   * A server rendered URL.
+   */
+  href?: string;
+  /**
+   * Renders an icon next to the item
+   */
+  icon?: React.ReactNode;
   /**
    * Is the item actively seleted?
    */
@@ -49,26 +47,32 @@ type MenuItemProps = {
    */
   noAnchor?: boolean;
   /**
-   * A router target destination
+   * Triggered when the item is clicked
    */
-  to?: React.ComponentProps<typeof Link>['to'];
-  /**
-   * A server rendered URL.
-   */
-  href?: string;
-  /**
-   * Enable to allow default event on click
-   */
-  allowDefaultEvent?: boolean;
+  onSelect?: (eventKey: any) => void;
   /**
    * Enable to stop event propagation on click
    */
   stopPropagation?: boolean;
+  /**
+   * The title/tooltipe of the item
+   */
+  title?: string;
 
-  className?: string;
+  /**
+   * A router target destination
+   */
+  to?: React.ComponentProps<typeof Link>['to'];
+
+  /**
+   * Renders a bottom border (excludes the last item)
+   */
+  withBorder?: boolean;
 };
 
-type Props = MenuItemProps & Omit<React.HTMLProps<HTMLLIElement>, keyof MenuItemProps>;
+interface Props
+  extends MenuItemProps,
+    Omit<React.HTMLAttributes<HTMLLIElement>, 'onSelect'> {}
 
 const MenuItem = ({
   header,
@@ -118,7 +122,7 @@ const MenuItem = ({
 
     if (to) {
       return (
-        <MenuLink to={to} {...linkProps} title={title}>
+        <MenuLink to={to} {...linkProps} title={title} data-test-id="menu-item">
           {icon && <MenuIcon>{icon}</MenuIcon>}
           {children}
         </MenuLink>
@@ -127,7 +131,7 @@ const MenuItem = ({
 
     if (href) {
       return (
-        <MenuAnchor {...linkProps} href={href}>
+        <MenuAnchor {...linkProps} href={href} data-test-id="menu-item">
           {icon && <MenuIcon>{icon}</MenuIcon>}
           {children}
         </MenuAnchor>
@@ -135,7 +139,7 @@ const MenuItem = ({
     }
 
     return (
-      <MenuTarget role="button" {...linkProps} title={title}>
+      <MenuTarget role="button" {...linkProps} title={title} data-test-id="menu-item">
         {icon && <MenuIcon>{icon}</MenuIcon>}
         {children}
       </MenuTarget>
@@ -166,14 +170,14 @@ const MenuItem = ({
   );
 };
 
-type MenuListItemProps = {
-  header?: boolean;
-  withBorder?: boolean;
-  noAnchor?: boolean;
-  isActive?: boolean;
+interface MenuListItemProps extends React.HTMLAttributes<HTMLLIElement> {
   disabled?: boolean;
   divider?: boolean;
-} & React.HTMLProps<HTMLLIElement>;
+  header?: boolean;
+  isActive?: boolean;
+  noAnchor?: boolean;
+  withBorder?: boolean;
+}
 
 function getListItemStyles(props: MenuListItemProps & {theme: Theme}) {
   const common = `
@@ -200,7 +204,7 @@ function getListItemStyles(props: MenuListItemProps & {theme: Theme}) {
       background: ${props.theme.active};
 
       &:hover {
-        color: ${props.theme.black};
+        background: ${props.theme.activeHover};
       }
     `;
   }
@@ -209,7 +213,7 @@ function getListItemStyles(props: MenuListItemProps & {theme: Theme}) {
     ${common}
 
     &:hover {
-      background: ${props.theme.focus};
+      background: ${props.theme.hover};
     }
   `;
 }

@@ -16,11 +16,13 @@ from sentry.web.frontend.auth_logout import AuthLogoutView
 from sentry.web.frontend.auth_organization_login import AuthOrganizationLoginView
 from sentry.web.frontend.auth_provider_login import AuthProviderLoginView
 from sentry.web.frontend.disabled_member_view import DisabledMemberView
+from sentry.web.frontend.doc_integration_avatar import DocIntegrationAvatarPhotoView
 from sentry.web.frontend.error_page_embed import ErrorPageEmbedView
 from sentry.web.frontend.group_event_json import GroupEventJsonView
 from sentry.web.frontend.group_plugin_action import GroupPluginActionView
 from sentry.web.frontend.group_tag_export import GroupTagExportView
 from sentry.web.frontend.home import HomeView
+from sentry.web.frontend.idp_email_verification import AccountConfirmationView
 from sentry.web.frontend.js_sdk_loader import JavaScriptSdkLoader
 from sentry.web.frontend.mailgun_inbound_webhook import MailgunInboundWebhookView
 from sentry.web.frontend.oauth_authorize import OAuthAuthorizeView
@@ -36,6 +38,7 @@ from sentry.web.frontend.react_page import GenericReactPageView, ReactPageView
 from sentry.web.frontend.reactivate_account import ReactivateAccountView
 from sentry.web.frontend.release_webhook import ReleaseWebhookView
 from sentry.web.frontend.restore_organization import RestoreOrganizationView
+from sentry.web.frontend.sentryapp_avatar import SentryAppAvatarPhotoView
 from sentry.web.frontend.setup_wizard import SetupWizardView
 from sentry.web.frontend.sudo import SudoView
 from sentry.web.frontend.team_avatar import TeamAvatarPhotoView
@@ -96,8 +99,8 @@ urlpatterns += [
     # a filecontent-based hash in its filenames so that it can be cached long term
     url(
         r"^_static/dist/(?P<module>[^/]+)/(?P<path>.*)$",
-        generic.unversioned_static_media,
-        name="sentry-unversioned-media",
+        generic.frontend_app_static_media,
+        name="sentry-frontend-app-media",
     ),
     # The static version is either a 10 digit timestamp, a sha1, or md5 hash
     url(
@@ -210,6 +213,11 @@ urlpatterns += [
                     r"^confirm-email/(?P<user_id>[\d]+)/(?P<hash>[0-9a-zA-Z]+)/$",
                     accounts.confirm_email,
                     name="sentry-account-confirm-email",
+                ),
+                url(
+                    r"^user-confirm/(?P<key>[^\/]+)/$",
+                    AccountConfirmationView.as_view(),
+                    name="sentry-idp-email-verification",
                 ),
                 url(r"^recover/$", accounts.recover, name="sentry-account-recover"),
                 url(
@@ -576,6 +584,16 @@ urlpatterns += [
         r"^team-avatar/(?P<avatar_id>[^\/]+)/$",
         TeamAvatarPhotoView.as_view(),
         name="sentry-team-avatar-url",
+    ),
+    url(
+        r"^sentry-app-avatar/(?P<avatar_id>[^\/]+)/$",
+        SentryAppAvatarPhotoView.as_view(),
+        name="sentry-app-avatar-url",
+    ),
+    url(
+        r"^doc-integration-avatar/(?P<avatar_id>[^\/]+)/$",
+        DocIntegrationAvatarPhotoView.as_view(),
+        name="sentry-doc-integration-avatar-url",
     ),
     # Serve chartcuterie configuration module
     url(

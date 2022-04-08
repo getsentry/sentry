@@ -4,6 +4,7 @@ from django.db.models import DateTimeField, IntegerField, OuterRef, Q, Subquery,
 from django.db.models.functions import Coalesce
 from django.utils.timezone import make_aware
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
@@ -17,8 +18,8 @@ from sentry.api.paginator import (
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import CombinedRuleSerializer
 from sentry.api.utils import InvalidParams
-from sentry.incidents.endpoints.serializers import AlertRuleSerializer
 from sentry.incidents.models import AlertRule, Incident
+from sentry.incidents.serializers import AlertRuleSerializer
 from sentry.models import OrganizationMemberTeam, Project, Rule, RuleStatus, Team
 from sentry.snuba.dataset import Dataset
 from sentry.utils.cursors import Cursor, StringCursor
@@ -27,11 +28,11 @@ from .utils import parse_team_params
 
 
 class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         """
         Fetches alert rules and legacy rules for an organization
         """
-        project_ids = self.get_requested_project_ids(request) or None
+        project_ids = self.get_requested_project_ids_unchecked(request) or None
         if project_ids == {-1}:  # All projects for org:
             project_ids = Project.objects.filter(organization=organization).values_list(
                 "id", flat=True
@@ -49,8 +50,8 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
 
         # Materialize the project ids here. This helps us to not overwhelm the query planner with
         # overcomplicated subqueries. Previously, this was causing Postgres to use a suboptimal
-        # index to filter on.
-        project_ids = list(project_ids)
+        # index to filter on. Also enforces permission checks.
+        projects = self.get_projects(request, organization, project_ids=set(project_ids))
 
         teams = request.GET.getlist("team", [])
         team_filter_query = None
@@ -64,12 +65,12 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             if unassigned:
                 team_filter_query = team_filter_query | Q(owner_id=None)
 
-        alert_rules = AlertRule.objects.fetch_for_organization(organization, project_ids)
+        alert_rules = AlertRule.objects.fetch_for_organization(organization, projects)
         if not features.has("organizations:performance-view", organization):
             # Filter to only error alert rules
             alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
         issue_rules = Rule.objects.filter(
-            status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE], project__in=project_ids
+            status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE], project__in=projects
         )
         name = request.GET.get("name", None)
         if name:
@@ -145,15 +146,15 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
 class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationAlertRulePermission,)
 
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         """
         Fetches alert rules for an organization
         """
         if not features.has("organizations:incidents", organization, actor=request.user):
             raise ResourceDoesNotExist
 
-        project_ids = self.get_requested_project_ids(request) or None
-        alert_rules = AlertRule.objects.fetch_for_organization(organization, project_ids)
+        projects = self.get_projects(request, organization)
+        alert_rules = AlertRule.objects.fetch_for_organization(organization, projects)
         if not features.has("organizations:performance-view", organization):
             # Filter to only error alert rules
             alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
@@ -167,7 +168,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint):
             default_per_page=25,
         )
 
-    def post(self, request, organization):
+    def post(self, request: Request, organization) -> Response:
         """
         Create an alert rule
         """
@@ -176,7 +177,8 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint):
             raise ResourceDoesNotExist
 
         serializer = AlertRuleSerializer(
-            context={"organization": organization, "access": request.access}, data=request.data
+            context={"organization": organization, "access": request.access, "user": request.user},
+            data=request.data,
         )
 
         if serializer.is_valid():

@@ -1,10 +1,11 @@
+from unittest import mock
+
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.models import Environment, GroupInboxReason, Release
 from sentry.models.groupinbox import add_group_to_inbox, remove_group_from_inbox
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.utils.compat import mock
 
 
 class GroupDetailsTest(APITestCase, SnubaTestCase):
@@ -53,6 +54,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             data={"release": "1.1", "timestamp": iso_format(before_now(minutes=2))},
             project_id=self.project.id,
         )
+        event = None
         for timestamp in last_release.values():
             event = self.store_event(
                 data={"release": "1.0a", "timestamp": iso_format(timestamp)},
@@ -168,5 +170,10 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         )
         assert response.status_code == 400
         assert response.data == {
-            "assignedTo": [ErrorDetail(string="Unknown actor input", code="invalid")]
+            "assignedTo": [
+                ErrorDetail(
+                    string="Could not parse actor. Format should be `type:id` where type is `team` or `user`.",
+                    code="invalid",
+                )
+            ]
         }

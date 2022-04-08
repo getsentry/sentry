@@ -1,9 +1,10 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountGlobalModal} from 'sentry-test/modal';
 
-import {Client} from 'app/api';
-import AccountIdentities from 'app/views/settings/account/accountIdentities';
+import {Client} from 'sentry/api';
+import AccountIdentities from 'sentry/views/settings/account/accountIdentities';
 
-const ENDPOINT = '/users/me/social-identities/';
+const ENDPOINT = '/users/me/user-identities/';
 
 describe('AccountIdentities', function () {
   beforeEach(function () {
@@ -17,7 +18,7 @@ describe('AccountIdentities', function () {
       body: [],
     });
 
-    const wrapper = mountWithTheme(<AccountIdentities />, TestStubs.routerContext());
+    const wrapper = mountWithTheme(<AccountIdentities />);
 
     expect(wrapper).toSnapshot();
   });
@@ -28,34 +29,44 @@ describe('AccountIdentities', function () {
       method: 'GET',
       body: [
         {
+          category: 'social-identity',
           id: '1',
-          provider: 'github',
-          providerLabel: 'GitHub',
+          provider: {
+            key: 'github',
+            name: 'GitHub',
+          },
+          status: 'can_disconnect',
+          organization: null,
         },
       ],
     });
 
-    const wrapper = mountWithTheme(<AccountIdentities />, TestStubs.routerContext());
+    const wrapper = mountWithTheme(<AccountIdentities />);
     expect(wrapper).toSnapshot();
   });
 
-  it('disconnects identity', function () {
+  it('disconnects identity', async function () {
     Client.addMockResponse({
       url: ENDPOINT,
       method: 'GET',
       body: [
         {
+          category: 'social-identity',
           id: '1',
-          provider: 'github',
-          providerLabel: 'GitHub',
+          provider: {
+            key: 'github',
+            name: 'GitHub',
+          },
+          status: 'can_disconnect',
+          organization: null,
         },
       ],
     });
 
-    const wrapper = mountWithTheme(<AccountIdentities />, TestStubs.routerContext());
+    const wrapper = mountWithTheme(<AccountIdentities />);
 
     const disconnectRequest = {
-      url: `${ENDPOINT}1/`,
+      url: `${ENDPOINT}social-identity/1/`,
       method: 'DELETE',
     };
 
@@ -64,10 +75,12 @@ describe('AccountIdentities', function () {
     expect(mock).not.toHaveBeenCalled();
 
     wrapper.find('Button').first().simulate('click');
+    const modal = await mountGlobalModal();
+    modal.find('Button[priority="danger"]').simulate('click');
 
     expect(mock).toHaveBeenCalledTimes(1);
     expect(mock).toHaveBeenCalledWith(
-      `${ENDPOINT}1/`,
+      `${ENDPOINT}social-identity/1/`,
       expect.objectContaining({
         method: 'DELETE',
       })

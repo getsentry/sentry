@@ -3,37 +3,30 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import pick from 'lodash/pick';
 
-import Button from 'app/components/button';
-import {SectionHeading} from 'app/components/charts/styles';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import GroupList from 'app/components/issues/groupList';
-import {Panel, PanelBody} from 'app/components/panels';
-import {DEFAULT_RELATIVE_PERIODS} from 'app/constants';
-import {URL_PARAM} from 'app/constants/globalSelectionHeader';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {OrganizationSummary} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {TRACING_FIELDS} from 'app/utils/discover/fields';
-import {decodeScalar} from 'app/utils/queryString';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
+import Button from 'sentry/components/button';
+import {SectionHeading} from 'sentry/components/charts/styles';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import GroupList from 'sentry/components/issues/groupList';
+import {Panel, PanelBody} from 'sentry/components/panels';
+import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
+import {URL_PARAM} from 'sentry/constants/pageFilters';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {OrganizationSummary} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+
+import {removeTracingKeysFromSearch} from '../../utils';
 
 type Props = {
-  organization: OrganizationSummary;
   location: Location;
+  organization: OrganizationSummary;
   transaction: string;
-  statsPeriod?: string;
-  start?: string;
   end?: string;
+  start?: string;
+  statsPeriod?: string | null;
 };
-
-const EXCLUDE_TAG_KEYS = new Set([
-  // event type can be "transaction" but we're searching for issues
-  'event.type',
-  // the project is already determined by the transaction,
-  // and issue search does not support the project filter
-  'project',
-]);
 
 class RelatedIssues extends Component<Props> {
   getIssuesEndpoint() {
@@ -48,20 +41,7 @@ class RelatedIssues extends Component<Props> {
       ...pick(location.query, [...Object.values(URL_PARAM), 'cursor']),
     };
     const currentFilter = new MutableSearch(decodeScalar(location.query.query, ''));
-    currentFilter.getFilterKeys().forEach(tagKey => {
-      const searchKey = tagKey.startsWith('!') ? tagKey.substr(1) : tagKey;
-      // Remove aggregates and transaction event fields
-      if (
-        // aggregates
-        searchKey.match(/\w+\(.*\)/) ||
-        // transaction event fields
-        TRACING_FIELDS.includes(searchKey) ||
-        // tags that we don't want to pass to pass to issue search
-        EXCLUDE_TAG_KEYS.has(searchKey)
-      ) {
-        currentFilter.removeFilter(tagKey);
-      }
-    });
+    removeTracingKeysFromSearch(currentFilter);
     currentFilter
       .addFreeText('is:unresolved')
       .setFilterValues('transaction', [transaction]);
@@ -121,7 +101,7 @@ class RelatedIssues extends Component<Props> {
           <SectionHeading>{t('Related Issues')}</SectionHeading>
           <Button
             data-test-id="issues-open"
-            size="small"
+            size="xsmall"
             to={issueSearch}
             onClick={this.handleOpenClick}
           >

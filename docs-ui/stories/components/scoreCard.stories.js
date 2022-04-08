@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import ScoreCard from 'app/components/scoreCard';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
+import ScoreCard from 'sentry/components/scoreCard';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 
 export default {
   title: 'Components/Data Visualization/Score Card',
@@ -38,6 +38,6 @@ Default.storyName = 'Default';
 
 const Wrapper = styled('div')`
   display: grid;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   grid-template-columns: repeat(4, minmax(0, 1fr));
 `;

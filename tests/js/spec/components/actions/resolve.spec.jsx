@@ -1,10 +1,11 @@
 import {Fragment} from 'react';
 
+import {selectDropdownMenuItem} from 'sentry-test/dropdownMenu';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {selectByValue} from 'sentry-test/select-new';
 
-import ResolveActions from 'app/components/actions/resolve';
-import GlobalModal from 'app/components/globalModal';
+import ResolveActions from 'sentry/components/actions/resolve';
+import GlobalModal from 'sentry/components/globalModal';
 
 describe('ResolveActions', function () {
   describe('disabled', function () {
@@ -19,14 +20,13 @@ describe('ResolveActions', function () {
           hasRelease={false}
           orgSlug="org-1"
           projectSlug="proj-1"
-        />,
-        TestStubs.routerContext()
+        />
       );
-      button = component.find('button[aria-label="Resolve"]').first();
+      button = component.find('ResolveButton button').first();
     });
 
     it('has disabled prop', function () {
-      expect(button.props()['aria-disabled']).toBe(true);
+      expect(button.props().disabled).toBe(true);
     });
 
     it('does not call onUpdate when clicked', function () {
@@ -47,25 +47,24 @@ describe('ResolveActions', function () {
           hasRelease={false}
           orgSlug="org-1"
           projectSlug="proj-1"
-        />,
-        TestStubs.routerContext()
+        />
       );
     });
 
     it('main button is enabled', function () {
-      button = component.find('button[aria-label="Resolve"]');
+      button = component.find('ResolveButton button');
       expect(button.prop('disabled')).toBeFalsy();
     });
 
     it('main button calls onUpdate when clicked', function () {
-      button = component.find('button[aria-label="Resolve"]');
+      button = component.find('ResolveButton button');
       button.simulate('click');
       expect(spy).toHaveBeenCalled();
     });
 
     it('dropdown menu is disabled', function () {
-      button = component.find('button[aria-label="More resolve options"]');
-      expect(button.props()['aria-disabled']).toBe(true);
+      button = component.find('DropdownTrigger');
+      expect(button.props().disabled).toBe(true);
     });
   });
 
@@ -81,8 +80,7 @@ describe('ResolveActions', function () {
           orgSlug="org-1"
           projectSlug="proj-1"
           isResolved
-        />,
-        TestStubs.routerContext()
+        />
       );
     });
 
@@ -110,8 +108,7 @@ describe('ResolveActions', function () {
           projectSlug="proj-1"
           isResolved
           isAutoResolved
-        />,
-        TestStubs.routerContext()
+        />
       );
 
       component.find('button[aria-label="Unresolve"]').simulate('click');
@@ -129,8 +126,7 @@ describe('ResolveActions', function () {
           hasRelease={false}
           orgSlug="org-1"
           projectSlug="proj-1"
-        />,
-        TestStubs.routerContext()
+        />
       );
     });
 
@@ -139,7 +135,7 @@ describe('ResolveActions', function () {
     });
 
     it('calls spy with resolved status when clicked', function () {
-      const button = component.find('button[aria-label="Resolve"]');
+      const button = component.find('ResolveButton button');
       button.simulate('click');
       expect(spy).toHaveBeenCalledTimes(1);
       expect(spy).toHaveBeenCalledWith({status: 'resolved'});
@@ -162,8 +158,7 @@ describe('ResolveActions', function () {
             shouldConfirm
             confirmMessage="Are you sure???"
           />
-        </Fragment>,
-        TestStubs.routerContext()
+        </Fragment>
       );
     });
 
@@ -172,7 +167,7 @@ describe('ResolveActions', function () {
     });
 
     it('displays confirmation modal with message provided', async function () {
-      button = component.find('button[aria-label="Resolve"]').first();
+      button = component.find('ResolveButton button').first();
       button.simulate('click');
 
       await tick();
@@ -202,13 +197,14 @@ describe('ResolveActions', function () {
           projectSlug="project-slug"
           onUpdate={onUpdate}
         />
-      </Fragment>,
-      TestStubs.routerContext()
+      </Fragment>
     );
 
-    wrapper.find('ActionLink').last().simulate('click');
-    await tick();
-    wrapper.update();
+    await selectDropdownMenuItem({
+      wrapper,
+      itemKey: 'another-release',
+      triggerSelector: 'DropdownTrigger',
+    });
 
     expect(wrapper.find('CustomResolutionModal Select').prop('options')).toEqual([
       expect.objectContaining({

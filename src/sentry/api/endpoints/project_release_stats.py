@@ -1,14 +1,11 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import release_health
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventsError, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models import Release, ReleaseProject
-from sentry.snuba.sessions import (
-    get_crash_free_breakdown,
-    get_oldest_health_data_for_releases,
-    get_project_release_stats,
-)
 from sentry.utils.dates import get_rollup_from_request
 
 
@@ -17,7 +14,7 @@ def upsert_missing_release(project, version):
     try:
         return ReleaseProject.objects.get(project=project, release__version=version).release
     except ReleaseProject.DoesNotExist:
-        rows = get_oldest_health_data_for_releases([(project.id, version)])
+        rows = release_health.get_oldest_health_data_for_releases([(project.id, version)])
         if rows:
             oldest = next(rows.values())
             release = Release.get_or_create(project=project, version=version, date_added=oldest)
@@ -28,7 +25,7 @@ def upsert_missing_release(project, version):
 class ProjectReleaseStatsEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission,)
 
-    def get(self, request, project, version):
+    def get(self, request: Request, project, version) -> Response:
         """
         Get a Project Release's Stats
         `````````````````````````````
@@ -66,7 +63,7 @@ class ProjectReleaseStatsEndpoint(ProjectEndpoint):
         if release is None:
             raise ResourceDoesNotExist
 
-        stats, totals = get_project_release_stats(
+        stats, totals = release_health.get_project_release_stats(
             project_id=params["project_id"][0],
             release=version,
             stat=stats_type,
@@ -77,7 +74,7 @@ class ProjectReleaseStatsEndpoint(ProjectEndpoint):
         )
 
         users_breakdown = []
-        for data in get_crash_free_breakdown(
+        for data in release_health.get_crash_free_breakdown(
             project_id=params["project_id"][0],
             release=version,
             environments=params.get("environment"),

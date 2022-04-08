@@ -1,13 +1,13 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Hook from 'app/components/hook';
-import ExternalLink from 'app/components/links/externalLink';
-import {IconSentry} from 'app/icons';
-import {t} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
-import space from 'app/styles/space';
-import getDynamicText from 'app/utils/getDynamicText';
+import Hook from 'sentry/components/hook';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {IconSentry} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import space from 'sentry/styles/space';
+import getDynamicText from 'sentry/utils/getDynamicText';
 
 type Props = {
   className?: string;
@@ -18,7 +18,7 @@ function BaseFooter({className}: Props) {
   return (
     <footer className={className}>
       <LeftLinks>
-        {config.isOnPremise && (
+        {config.isSelfHosted && (
           <Fragment>
             {'Sentry '}
             {getDynamicText({
@@ -47,7 +47,7 @@ function BaseFooter({className}: Props) {
         <FooterLink href="https://github.com/getsentry/sentry">
           {t('Contribute')}
         </FooterLink>
-        {config.isOnPremise && !config.demoMode && (
+        {config.isSelfHosted && !config.demoMode && (
           <FooterLink href="/out/">{t('Migrate to SaaS')}</FooterLink>
         )}
       </RightLinks>
@@ -107,7 +107,7 @@ const Footer = styled(BaseFooter)`
   color: ${p => p.theme.subText};
   border-top: 1px solid ${p => p.theme.border};
   padding: ${space(4)};
-  margin-top: 20px;
+  margin-top: auto; /* pushes footer to the bottom of the page when loading */
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     display: none;

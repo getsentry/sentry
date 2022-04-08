@@ -1,52 +1,20 @@
 from datetime import datetime, timedelta
-from typing import List, Optional, Set
+from typing import List, Optional, Sequence, Set, Tuple
 
 import pytz
 from snuba_sdk.column import Column
-from snuba_sdk.conditions import And, Condition, Op, Or
+from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.entity import Entity
 from snuba_sdk.function import Function
-from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Query
 
+from sentry import release_health
 from sentry.snuba.dataset import Dataset
 from sentry.utils import snuba
 from sentry.utils.dates import to_datetime, to_timestamp
-from sentry.utils.snuba import (
-    QueryOutsideRetentionError,
-    parse_snuba_datetime,
-    raw_query,
-    raw_snql_query,
-)
+from sentry.utils.snuba import QueryOutsideRetentionError, parse_snuba_datetime, raw_query
 
 DATASET_BUCKET = 3600
-
-_next_op_and_direction_dict = {
-    "sessions": {
-        "scope_operation": Op.LT,
-        "scope_direction": Direction.DESC,
-        "release_direction": Direction.ASC,
-        "release_operation": Op.GT,
-    },
-    "crash_free_sessions": {
-        "scope_operation": Op.GT,
-        "scope_direction": Direction.ASC,
-        "release_direction": Direction.ASC,
-        "release_operation": Op.GT,
-    },
-    "users": {
-        "scope_operation": Op.LT,
-        "scope_direction": Direction.DESC,
-        "release_direction": Direction.ASC,
-        "release_operation": Op.GT,
-    },
-    "crash_free_users": {
-        "scope_operation": Op.GT,
-        "scope_direction": Direction.ASC,
-        "release_direction": Direction.ASC,
-        "release_operation": Op.GT,
-    },
-}
 
 
 def _convert_duration(val):
@@ -63,36 +31,43 @@ def _get_conditions_and_filter_keys(project_releases, environments):
     return conditions, filter_keys
 
 
-def get_changed_project_release_model_adoptions(project_ids):
+def _get_changed_project_release_model_adoptions(project_ids, now=None):
     """Returns the last 72 hours worth of releases."""
-    start = datetime.now(pytz.utc) - timedelta(days=3)
+    if now is None:
+        now = datetime.now(pytz.utc)
+
+    start = now - timedelta(days=3)
     rv = []
 
     # Find all releases with adoption in the last 48 hours
     for x in raw_query(
         dataset=Dataset.Sessions,
-        selected_columns=["project_id", "release", "users"],
+        selected_columns=["project_id", "release"],
         groupby=["release", "project_id"],
         start=start,
         referrer="sessions.get-adoption",
         filter_keys={"project_id": list(project_ids)},
+        orderby=["-project_id", "-release"],
     )["data"]:
         rv.append((x["project_id"], x["release"]))
 
     return rv
 
 
-def get_oldest_health_data_for_releases(project_releases):
+def _get_oldest_health_data_for_releases(project_releases, now=None):
     """Returns the oldest health data we have observed in a release
     in 90 days.  This is used for backfilling.
     """
+    if now is None:
+        now = datetime.now(pytz.utc)
+
     conditions = [["release", "IN", [x[1] for x in project_releases]]]
     filter_keys = {"project_id": [x[0] for x in project_releases]}
     rows = raw_query(
         dataset=Dataset.Sessions,
         selected_columns=[["min", ["started"], "oldest"], "project_id", "release"],
         groupby=["release", "project_id"],
-        start=datetime.utcnow() - timedelta(days=90),
+        start=now - timedelta(days=90),
         conditions=conditions,
         referrer="sessions.oldest-data-backfill",
         filter_keys=filter_keys,
@@ -103,7 +78,7 @@ def get_oldest_health_data_for_releases(project_releases):
     return rv
 
 
-def check_has_health_data(projects_list):
+def _check_has_health_data(projects_list, now=None):
     """
     Function that returns a set of all project_ids or (project, release) if they have health data
     within the last 90 days based on a list of projects or a list of project, release combinations
@@ -112,6 +87,10 @@ def check_has_health_data(projects_list):
         * projects_list: Contains either a list of project ids or a list of tuple (project_id,
         release)
     """
+
+    if now is None:
+        now = datetime.now(pytz.utc)
+
     if len(projects_list) == 0:
         return set()
 
@@ -139,7 +118,7 @@ def check_has_health_data(projects_list):
         "dataset": Dataset.Sessions,
         "selected_columns": query_cols,
         "groupby": query_cols,
-        "start": datetime.utcnow() - timedelta(days=90),
+        "start": now - timedelta(days=90),
         "referrer": "sessions.health-data-check",
         "filter_keys": filter_keys,
     }
@@ -149,7 +128,7 @@ def check_has_health_data(projects_list):
     return {data_tuple(x) for x in raw_query(**raw_query_args)["data"]}
 
 
-def check_releases_have_health_data(
+def _check_releases_have_health_data(
     organization_id: int,
     project_ids: List[int],
     release_versions: List[str],
@@ -181,8 +160,14 @@ def check_releases_have_health_data(
     return {row["release"] for row in data}
 
 
-def get_project_releases_by_stability(
-    project_ids, offset, limit, scope, stats_period=None, environments=None
+def _get_project_releases_by_stability(
+    project_ids,
+    offset,
+    limit,
+    scope,
+    stats_period=None,
+    environments=None,
+    now=None,
 ):
     """Given some project IDs returns adoption rates that should be updated
     on the postgres tables.
@@ -195,7 +180,7 @@ def get_project_releases_by_stability(
         scope = scope[:-4]
         stats_period = "24h"
 
-    _, stats_start, _ = get_rollup_starts_and_buckets(stats_period)
+    _, stats_start, _ = get_rollup_starts_and_buckets(stats_period, now=now)
 
     orderby = {
         "crash_free_sessions": [["-divide", ["sessions_crashed", "sessions"]]],
@@ -203,6 +188,12 @@ def get_project_releases_by_stability(
         "sessions": ["-sessions"],
         "users": ["-users"],
     }[scope]
+
+    # Partial tiebreaker to make comparisons in the release-health duplex
+    # backend more likely to succeed. A perfectly stable sorting would need to
+    # additionally sort by `release`, however in the metrics backend we can't
+    # sort by that the same way as in the sessions backend.
+    orderby.extend(["-project_id"])
 
     conditions = []
     if environments is not None:
@@ -233,12 +224,12 @@ def get_project_releases_by_stability(
     return rv
 
 
-def get_project_releases_count(
+def _get_project_releases_count(
     organization_id: int,
-    project_ids: List[int],
+    project_ids: Sequence[int],
     scope: str,
     stats_period: Optional[str] = None,
-    environments: Optional[str] = None,
+    environments: Optional[Sequence[str]] = None,
 ) -> int:
     """
     Fetches the total count of releases/project combinations
@@ -273,9 +264,8 @@ def get_project_releases_count(
         where=where,
         having=having,
     )
-    return snuba.raw_snql_query(query, referrer="snuba.sessions.check_releases_have_health_data")[
-        "data"
-    ][0]["count"]
+    data = snuba.raw_snql_query(query, referrer="snuba.sessions.get_project_releases_count")["data"]
+    return data[0]["count"] if data else 0
 
 
 def _make_stats(start, rollup, buckets, default=0):
@@ -300,17 +290,19 @@ STATS_PERIODS = {
 }
 
 
-def get_rollup_starts_and_buckets(period):
+def get_rollup_starts_and_buckets(period, now=None):
     if period is None:
         return None, None, None
     if period not in STATS_PERIODS:
         raise TypeError("Invalid stats period")
     seconds, buckets = STATS_PERIODS[period]
-    start = datetime.now(pytz.utc) - timedelta(seconds=seconds * buckets)
+    if now is None:
+        now = datetime.now(pytz.utc)
+    start = now - timedelta(seconds=seconds * buckets)
     return seconds, start, buckets
 
 
-def get_release_adoption(project_releases, environments=None, now=None):
+def _get_release_adoption(project_releases, environments=None, now=None):
     """Get the adoption of the last 24 hours (or a difference reference timestamp)."""
     conditions, filter_keys = _get_conditions_and_filter_keys(project_releases, environments)
     if now is None:
@@ -388,12 +380,13 @@ def extract_duration_quantiles(raw_stats):
         }
 
 
-def get_release_health_data_overview(
+def _get_release_health_data_overview(
     project_releases,
     environments=None,
     summary_stats_period=None,
     health_stats_period=None,
     stat=None,
+    now=None,
 ):
     """Checks quickly for which of the given project releases we have
     health data available.  The argument is a tuple of `(project_id, release_name)`
@@ -404,10 +397,12 @@ def get_release_health_data_overview(
         stat = "sessions"
     assert stat in ("sessions", "users")
 
-    _, summary_start, _ = get_rollup_starts_and_buckets(summary_stats_period or "24h")
+    _, summary_start, _ = get_rollup_starts_and_buckets(summary_stats_period or "24h", now=now)
     conditions, filter_keys = _get_conditions_and_filter_keys(project_releases, environments)
 
-    stats_rollup, stats_start, stats_buckets = get_rollup_starts_and_buckets(health_stats_period)
+    stats_rollup, stats_start, stats_buckets = get_rollup_starts_and_buckets(
+        health_stats_period, now=now
+    )
 
     missing_releases = set(project_releases)
     rv = {}
@@ -455,10 +450,10 @@ def get_release_health_data_overview(
 
     # Add releases without data points
     if missing_releases:
-        # If we're already looking at a 90 day horizont we don't need to
+        # If we're already looking at a 90 day horizon we don't need to
         # fire another query, we can already assume there is no data.
         if summary_stats_period != "90d":
-            has_health_data = check_has_health_data(missing_releases)
+            has_health_data = release_health.check_has_health_data(missing_releases)
         else:
             has_health_data = ()
         for key in missing_releases:
@@ -478,8 +473,7 @@ def get_release_health_data_overview(
                     health_stats_period: _make_stats(stats_start, stats_rollup, stats_buckets)
                 }
 
-    # Fill in release adoption
-    release_adoption = get_release_adoption(project_releases, environments)
+    release_adoption = release_health.get_release_adoption(project_releases, environments)
     for key in rv:
         adoption_info = release_adoption.get(key) or {}
         rv[key]["adoption"] = adoption_info.get("adoption")
@@ -514,13 +508,14 @@ def get_release_health_data_overview(
     return rv
 
 
-def get_crash_free_breakdown(project_id, release, start, environments=None):
+def _get_crash_free_breakdown(project_id, release, start, environments=None, now=None):
     filter_keys = {"project_id": [project_id]}
     conditions = [["release", "=", release]]
     if environments is not None:
         conditions.append(["environment", "IN", environments])
 
-    now = datetime.now(pytz.utc)
+    if now is None:
+        now = datetime.now(pytz.utc)
 
     def _query_stats(end):
         row = raw_query(
@@ -568,7 +563,7 @@ def get_crash_free_breakdown(project_id, release, start, environments=None):
     return rv
 
 
-def get_project_release_stats(project_id, release, stat, rollup, start, end, environments=None):
+def _get_project_release_stats(project_id, release, stat, rollup, start, end, environments=None):
     assert stat in ("users", "sessions")
 
     # since snuba end queries are exclusive of the time and we're bucketing to
@@ -672,7 +667,7 @@ def get_project_release_stats(project_id, release, stat, rollup, start, end, env
     return stats, totals
 
 
-def get_release_sessions_time_bounds(project_id, release, org_id, environments=None):
+def _get_release_sessions_time_bounds(project_id, release, org_id, environments=None):
     """
     Get the sessions time bounds in terms of when the first session started and
     when the last session started according to a specific (project_id, org_id, release, environments)
@@ -724,317 +719,11 @@ def get_release_sessions_time_bounds(project_id, release, org_id, environments=N
         # P.S. To avoid confusion the `0` timestamp which is '1970-01-01 00:00:00'
         # is rendered as '0000-00-00 00:00:00' in clickhouse shell
         if set(rv.values()) != {formatted_unix_start_time}:
-
             release_sessions_time_bounds = {
                 "sessions_lower_bound": iso_format_snuba_datetime(rv["first_session_started"]),
                 "sessions_upper_bound": iso_format_snuba_datetime(rv["last_session_started"]),
             }
     return release_sessions_time_bounds
-
-
-def get_adjacent_releases_based_on_adoption(
-    project_id,
-    org_id,
-    release,
-    scope,
-    limit=20,
-    stats_period=None,
-    environments=None,
-):
-    """
-    Function that returns the releases adjacent (previous and next) to a specific release
-    according to a sort criteria
-    Inputs:
-        * project_id
-        * release
-        * org_id: Organisation Id
-        * scope: Sort order criteria -> sessions, users, crash_free_sessions, crash_free_users
-        * stats_period: duration
-        * environments
-    Return:
-        Dictionary with two keys "previous_release_version" and "next_release_version" that
-    correspond to when the previous release oand the next release respectively
-    """
-    if stats_period is None:
-        stats_period = "24h"
-
-    # Special rule that we support sorting by the last 24h only.
-    if scope.endswith("_24h"):
-        scope = scope[:-4]
-        stats_period = "24h"
-
-    _, stats_start, _ = get_rollup_starts_and_buckets(stats_period)
-
-    try:
-        # Fetch the value of the scope we are trying to sort by for the current release
-        scope_value = __get_scope_value_for_release(
-            org_id=org_id,
-            project_id=project_id,
-            release=release,
-            stats_start=stats_start,
-            scope=scope,
-            environments=environments,
-        )
-    except IndexError:
-        # Theoretically, we should never get to this branch. This only occurs when
-        # no release was found in Snuba, which should never happen given that the
-        # Release Detail Endpoint is what calls this function
-        return {
-            "next_releases_list": [],
-            "prev_releases_list": [],
-        }
-
-    # Figure out if any crash free function need to be applied i.e. in case of
-    # Crash free sessions and Crash free users
-    crash_free_function = None
-    crash_free_function_dict = {
-        "crash_free_sessions": Function(
-            "divide", [Column("sessions_crashed"), Column("sessions")], "crash_free_sessions"
-        ),
-        "crash_free_users": Function(
-            "divide", [Column("users_crashed"), Column("users")], "crash_free_users"
-        ),
-    }
-    if scope in crash_free_function_dict:
-        crash_free_function = crash_free_function_dict[scope]
-
-    prev_versions = __get_release_from_filters(
-        stats_start=stats_start,
-        project_id=project_id,
-        org_id=org_id,
-        environments=environments,
-        scope_value=scope_value,
-        release=release,
-        scope=scope,
-        limit=limit,
-        crash_free_function=crash_free_function,
-        **__get_prev_operation_and_direction(scope),
-    )
-    prev_releases_list = [row["release"] for row in prev_versions]
-
-    # Get next release version
-    next_versions = __get_release_from_filters(
-        stats_start=stats_start,
-        project_id=project_id,
-        org_id=org_id,
-        environments=environments,
-        scope_value=scope_value,
-        release=release,
-        scope=scope,
-        limit=limit,
-        crash_free_function=crash_free_function,
-        **__get_next_operation_and_direction(scope),
-    )
-    next_releases_list = [row["release"] for row in next_versions]
-
-    return {
-        "next_releases_list": next_releases_list,
-        "prev_releases_list": prev_releases_list,
-    }
-
-
-def __get_release_from_filters(
-    org_id,
-    project_id,
-    release,
-    scope,
-    scope_value,
-    stats_start,
-    scope_operation,
-    scope_direction,
-    release_operation,
-    release_direction,
-    limit,
-    crash_free_function=None,
-    environments=None,
-):
-    """
-    Helper function that based on the passed args, constructs a snuba query and runs
-    it to fetch a release
-    Inputs:
-        * org_id: Organisation Id
-        * project_id
-        * release: release version
-        * scope: Sort order criteria -> sessions, users, crash_free_sessions, crash_free_users
-        * scope_value: The value/count of the scope argument
-        * stats_period: duration
-        * scope_operation: Indicates which operation should be used to compare the releases'
-            scope value with current release scope value. either Op.GT or Op.LT
-        * scope_direction: Indicates which ordering should be used to order releases'
-            scope value by either ASC or DESC
-        * release_operation: Indicates which operation should be used to compare the
-            releases' version with current release version. either Op.GT or Op.LT
-        * release_direction: Indicates which ordering should be used to
-            order releases' version by either ASC or DESC
-        * crash_free_function: optional arg that is passed when a function needs to be applied in query like in the
-            case of crash_free_sessions and crash_free_users
-        * environments
-    Return:
-        List of releases that either contains one release or none at all
-    """
-    release_conditions = [
-        Condition(Column("started"), Op.GTE, stats_start),
-        Condition(
-            Column("started"),
-            Op.LT,
-            datetime.utcnow(),
-        ),
-        Condition(Column("project_id"), Op.EQ, project_id),
-        Condition(Column("org_id"), Op.EQ, org_id),
-    ]
-    if environments is not None:
-        release_conditions.append(Condition(Column("environment"), Op.IN, environments))
-
-    # Get select statements and append to the select statement list a function if
-    # crash_free_option whether it is crash_free_users or crash_free_sessions is picked
-    select = [
-        Column("project_id"),
-        Column("release"),
-    ]
-    if crash_free_function is not None:
-        select.append(crash_free_function)
-
-    having = [
-        Or(
-            conditions=[
-                Condition(Column(scope), scope_operation, scope_value),
-                And(
-                    conditions=[
-                        Condition(Column(scope), Op.EQ, scope_value),
-                        Condition(Column("release"), release_operation, release),
-                    ]
-                ),
-            ]
-        )
-    ]
-    orderby = [
-        OrderBy(direction=scope_direction, exp=Column(scope)),
-        OrderBy(direction=release_direction, exp=Column("release")),
-    ]
-
-    query = (
-        Query(
-            dataset=Dataset.Sessions.value,
-            match=Entity("sessions"),
-            select=select,
-            where=release_conditions,
-            having=having,
-            groupby=[Column("release"), Column("project_id")],
-            orderby=orderby,
-        )
-        .set_limit(limit)
-        .set_offset(0)
-    )
-    return raw_snql_query(query, referrer="sessions.get_prev_or_next_release")["data"]
-
-
-def __get_prev_operation_and_direction(scope):
-    """
-    Helper function that based on the scope returns the appropriate operation and direction
-    required for getting the previous element or release according to that scope
-    Inputs:
-        * scope: Sort order criteria -> sessions, users, crash_free_sessions, crash_free_users
-    Returns:
-        A dictionary of keys scope_operation, scope_direction, release_operation and release_direction
-        that correspond to which operations and directions should be carried out in this particular scope's query and
-        the direction they should be ordered in
-    """
-    return __reverse_op_and_direction_dict(_next_op_and_direction_dict[scope])
-
-
-def __get_next_operation_and_direction(scope):
-    """
-    Helper function that based on the scope returns the appropriate operation and direction
-    required for getting the next element or release according to that scope
-    Inputs:
-        * scope: Sort order criteria -> sessions, users, crash_free_sessions, crash_free_users
-    Returns:
-        A dictionary of keys scope_operation, scope_direction, release_operation and release_direction
-        that correspond to which operations and directions should be carried out in this particular scope's query and
-        the direction they should be ordered in
-    """
-    return _next_op_and_direction_dict[scope]
-
-
-def __reverse_op_and_direction_dict(op_and_direction_dict):
-    """
-    Helper function that creates a new dictionary that reverses the values of `scope_direction`,
-    `scope_operation`, `release_direction` and `release_operation` in terms of Direction and Op
-    Inputs:-
-        * op_and_direction_dict: Dictonary with the following keys `scope_direction`,
-    `scope_operation`, `release_direction` and `release_operation`
-        For example:
-        ```
-        {
-            "scope_operation": Op.LT,
-            "scope_direction": Direction.DESC,
-            "release_direction": Direction.ASC,
-            "release_operation": Op.GT,
-        }
-        ```
-    Returns a dictionary that has the opposite operation for each of the keys
-    """
-    reverse_op_and_direction_dict = {}
-    for key in op_and_direction_dict:
-        passed_dict_value = op_and_direction_dict[key]
-
-        if passed_dict_value == Direction.ASC:
-            reverse_op_and_direction_dict[key] = Direction.DESC
-        elif passed_dict_value == Direction.DESC:
-            reverse_op_and_direction_dict[key] = Direction.ASC
-        elif passed_dict_value == Op.LT:
-            reverse_op_and_direction_dict[key] = Op.GT
-        else:
-            reverse_op_and_direction_dict[key] = Op.LT
-    return reverse_op_and_direction_dict
-
-
-def __get_scope_value_for_release(
-    org_id, project_id, release, stats_start, scope, environments=None
-):
-    """
-    Helper function that based on args provided fetched the scope value or count for a specific scope
-    which is required to be able to later on get the prev and next releases according that scope criteria
-    """
-    conditions = [["release", "IN", [release]]]
-    if environments is not None:
-        conditions.append(["environment", "IN", environments])
-
-    filter_keys = {"project_id": [project_id], "org_id": [org_id]}
-
-    selected_columns = ["release", "project_id"]
-
-    scope_columns_dict = {
-        "sessions": ["sessions"],
-        "crash_free_sessions": ["sessions", "sessions_crashed"],
-        "users": ["users"],
-        "crash_free_users": ["users", "users_crashed"],
-    }
-    selected_columns += scope_columns_dict[scope]
-
-    # Query to fetch the scope value
-    rq = raw_query(
-        dataset=Dataset.Sessions,
-        selected_columns=selected_columns,
-        groupby=["release", "project_id"],
-        start=stats_start,
-        conditions=conditions,
-        filter_keys=filter_keys,
-        referrer="sessions.get-release-scope-value",
-    )["data"]
-    # This will raise an index error if there are no elements in the list but
-    # that is fine because we are catching that index error in the main function
-    # and returning a correct response based on handling that error
-    rq_row = rq[0]
-
-    scope_value = None
-    if scope in ["sessions", "users"]:
-        scope_value = rq_row[scope]
-    elif scope == "crash_free_sessions":
-        scope_value = rq_row["sessions_crashed"] / rq_row["sessions"]
-    elif scope == "crash_free_users":
-        scope_value = rq_row["users_crashed"] / rq_row["users"]
-    return scope_value
 
 
 def __get_crash_free_rate_data(project_ids, start, end, rollup):
@@ -1142,3 +831,57 @@ def get_current_and_previous_crash_free_rates(
             {"previousCrashFreeRate": calculate_crash_free_percentage(row)}
         )
     return projects_crash_free_rate_dict
+
+
+def _get_project_sessions_count(
+    project_id: int,
+    rollup: int,  # rollup in seconds
+    start: datetime,
+    end: datetime,
+    environment_id: Optional[int] = None,
+) -> int:
+    filters = {"project_id": [project_id]}
+    if environment_id:
+        filters["environment"] = [environment_id]
+
+    result_totals = raw_query(
+        selected_columns=["sessions"],
+        rollup=rollup,
+        dataset=Dataset.Sessions,
+        start=start,
+        end=end,
+        filter_keys=filters,
+        referrer="sessions.get_project_sessions_count",
+    )["data"]
+
+    return result_totals[0]["sessions"] if result_totals else 0
+
+
+def _get_num_sessions_per_project(
+    project_ids: Sequence[int],
+    start: datetime,
+    end: datetime,
+    environment_ids: Optional[Sequence[int]] = None,
+    rollup: Optional[int] = None,  # rollup in seconds
+) -> Sequence[Tuple[int, int]]:
+
+    filters = {"project_id": list(project_ids)}
+
+    if environment_ids:
+        filters["environment"] = environment_ids
+
+    result_totals = raw_query(
+        selected_columns=["sessions"],
+        dataset=Dataset.Sessions,
+        start=start,
+        end=end,
+        filter_keys=filters,
+        groupby=["project_id"],
+        referrer="sessions.get_num_sessions_per_project",
+        rollup=rollup,
+    )
+
+    ret_val = []
+    for data in result_totals["data"]:
+        ret_val.append((data["project_id"], data["sessions"]))
+    return ret_val

@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {Client} from 'app/api';
-import OrganizationRepositories from 'app/views/settings/organizationRepositories/organizationRepositories';
+import {Client} from 'sentry/api';
+import OrganizationRepositories from 'sentry/views/settings/organizationRepositories/organizationRepositories';
 
 describe('OrganizationRepositories', function () {
   it('renders without providers', function () {

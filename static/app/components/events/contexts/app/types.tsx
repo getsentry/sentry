@@ -11,12 +11,12 @@ export enum AppKnownDataType {
 
 export type AppData = {
   type: string;
-  app_name?: string;
-  app_version?: string;
-  app_id?: string;
-  app_start_time?: string;
-  device_app_hash?: string;
-  build_type?: string;
-  app_identifier?: string;
   app_build?: string;
+  app_id?: string;
+  app_identifier?: string;
+  app_name?: string;
+  app_start_time?: string;
+  app_version?: string;
+  build_type?: string;
+  device_app_hash?: string;
 };

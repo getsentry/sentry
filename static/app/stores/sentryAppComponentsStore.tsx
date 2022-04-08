@@ -1,19 +1,29 @@
-import Reflux from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
-import SentryAppComponentsActions from 'app/actions/sentryAppComponentActions';
-import {SentryAppComponent} from 'app/types';
+import {SentryAppComponent} from 'sentry/types';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
-const SentryAppComponentsStore = Reflux.createStore({
+export interface SentryAppComponentsStoreDefinition extends StoreDefinition {
+  get: (uuid: string) => SentryAppComponent | undefined;
+  getAll: () => SentryAppComponent[];
+  getComponentByType: (type: string | undefined) => SentryAppComponent[];
+  getInitialState: () => SentryAppComponent[];
+  loadComponents: (items: SentryAppComponent[]) => void;
+}
+
+const storeConfig: SentryAppComponentsStoreDefinition = {
+  unsubscribeListeners: [],
+  items: [],
+
   init() {
     this.items = [];
-    this.listenTo(SentryAppComponentsActions.loadComponents, this.onLoadComponents);
   },
 
   getInitialState() {
     return this.items;
   },
 
-  onLoadComponents(items: SentryAppComponent[]) {
+  loadComponents(items: SentryAppComponent[]) {
     this.items = items;
     this.trigger(items);
   },
@@ -34,14 +44,7 @@ const SentryAppComponentsStore = Reflux.createStore({
     const items: SentryAppComponent[] = this.items;
     return items.filter(item => item.type === type);
   },
-});
-
-type SentryAppComponentsStoreType = Reflux.Store & {
-  onLoadComponents: (items: SentryAppComponent[]) => void;
-  getComponentByType: (type: string | undefined) => SentryAppComponent[];
-  getAll: () => SentryAppComponent[];
-  getInitialState: () => SentryAppComponent[];
-  get: () => SentryAppComponent | undefined;
 };
 
-export default SentryAppComponentsStore as SentryAppComponentsStoreType;
+const SentryAppComponentsStore = createStore(makeSafeRefluxStore(storeConfig));
+export default SentryAppComponentsStore;

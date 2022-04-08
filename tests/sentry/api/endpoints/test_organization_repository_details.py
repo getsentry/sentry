@@ -1,10 +1,12 @@
+from unittest.mock import patch
+
 from django.urls import reverse
+from django.utils import timezone
 
 from sentry.constants import ObjectStatus
-from sentry.models import Commit, Integration, OrganizationOption, Repository
+from sentry.models import Commit, Integration, OrganizationOption, Repository, ScheduledDeletion
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
-from sentry.utils.compat.mock import patch
 
 
 class OrganizationRepositoryDeleteTest(APITestCase):
@@ -27,11 +29,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
             "external_id": external_id,
         }
 
-    @patch("sentry.api.endpoints.organization_repository_details.get_transaction_id")
-    @patch("sentry.api.endpoints.organization_repository_details.delete_repository")
-    def test_delete_no_commits(self, mock_delete_repository, mock_get_transaction_id):
-        mock_get_transaction_id.return_value = "1"
-
+    def test_delete_no_commits(self):
         self.login_as(user=self.user)
 
         org = self.create_organization(owner=self.user, name="baz")
@@ -45,16 +43,12 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         repo = Repository.objects.get(id=repo.id)
         assert repo.status == ObjectStatus.PENDING_DELETION
 
-        mock_delete_repository.apply_async.assert_called_with(
-            kwargs={"object_id": repo.id, "transaction_id": "1", "actor_id": self.user.id},
-            countdown=0,
-        )
+        assert ScheduledDeletion.objects.filter(
+            object_id=repo.id, model_name="Repository", date_scheduled__lte=timezone.now()
+        ).exists()
         self.assert_rename_pending_delete(response, repo)
 
-    @patch("sentry.api.endpoints.organization_repository_details.get_transaction_id")
-    @patch("sentry.api.endpoints.organization_repository_details.delete_repository")
-    def test_delete_with_commits(self, mock_delete_repository, mock_get_transaction_id):
-        mock_get_transaction_id.return_value = "1"
+    def test_delete_with_commits(self):
         self.login_as(user=self.user)
 
         org = self.create_organization(owner=self.user, name="baz")
@@ -72,17 +66,12 @@ class OrganizationRepositoryDeleteTest(APITestCase):
 
         repo = Repository.objects.get(id=repo.id)
         assert repo.status == ObjectStatus.PENDING_DELETION
-        mock_delete_repository.apply_async.assert_called_with(
-            kwargs={"object_id": repo.id, "transaction_id": "1", "actor_id": self.user.id},
-            countdown=3600,
-        )
+        assert ScheduledDeletion.objects.filter(
+            object_id=repo.id, model_name="Repository", date_scheduled__gt=timezone.now()
+        ).exists()
         self.assert_rename_pending_delete(response, repo, "abc123")
 
-    @patch("sentry.api.endpoints.organization_repository_details.get_transaction_id")
-    @patch("sentry.api.endpoints.organization_repository_details.delete_repository")
-    def test_delete_disabled_no_commits(self, mock_delete_repository, mock_get_transaction_id):
-        mock_get_transaction_id.return_value = "1"
-
+    def test_delete_disabled_no_commits(self):
         self.login_as(user=self.user)
 
         org = self.create_organization(owner=self.user, name="baz")
@@ -102,17 +91,10 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         repo = Repository.objects.get(id=repo.id)
         assert repo.status == ObjectStatus.PENDING_DELETION
 
-        mock_delete_repository.apply_async.assert_called_with(
-            kwargs={"object_id": repo.id, "transaction_id": "1", "actor_id": self.user.id},
-            countdown=0,
-        )
-
+        assert ScheduledDeletion.objects.filter(object_id=repo.id, model_name="Repository").exists()
         self.assert_rename_pending_delete(response, repo, "abc12345")
 
-    @patch("sentry.api.endpoints.organization_repository_details.get_transaction_id")
-    @patch("sentry.api.endpoints.organization_repository_details.delete_repository")
-    def test_delete_disabled_with_commits(self, mock_delete_repository, mock_get_transaction_id):
-        mock_get_transaction_id.return_value = "1"
+    def test_delete_disabled_with_commits(self):
         self.login_as(user=self.user)
 
         org = self.create_organization(owner=self.user, name="baz")
@@ -131,10 +113,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         repo = Repository.objects.get(id=repo.id)
         assert repo.status == ObjectStatus.PENDING_DELETION
 
-        mock_delete_repository.apply_async.assert_called_with(
-            kwargs={"object_id": repo.id, "transaction_id": "1", "actor_id": self.user.id},
-            countdown=3600,
-        )
+        assert ScheduledDeletion.objects.filter(object_id=repo.id, model_name="Repository").exists()
         self.assert_rename_pending_delete(response, repo)
 
     def test_put(self):

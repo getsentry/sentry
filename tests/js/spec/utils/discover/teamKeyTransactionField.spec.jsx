@@ -1,9 +1,10 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {act} from 'sentry-test/reactTestingLibrary';
 
-import * as TeamKeyTransactionManager from 'app/components/performance/teamKeyTransactionsManager';
-import ProjectsStore from 'app/stores/projectsStore';
-import TeamStore from 'app/stores/teamStore';
-import TeamKeyTransactionField from 'app/utils/discover/teamKeyTransactionField';
+import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import TeamStore from 'sentry/stores/teamStore';
+import TeamKeyTransactionField from 'sentry/utils/discover/teamKeyTransactionField';
 
 async function clickTeamKeyTransactionDropdown(wrapper) {
   wrapper.find('IconStar').simulate('click');
@@ -21,8 +22,8 @@ describe('TeamKeyTransactionField', function () {
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
-    ProjectsStore.loadInitialData([project]);
-    TeamStore.loadInitialData(teams);
+    act(() => ProjectsStore.loadInitialData([project]));
+    act(() => TeamStore.loadInitialData(teams));
   });
 
   it('renders with all teams checked', async function () {
@@ -187,22 +188,15 @@ describe('TeamKeyTransactionField', function () {
       })),
     });
 
-    const postTeamKeyTransactionsMock = MockApiClient.addMockResponse(
-      {
-        method: 'POST',
-        url: '/organizations/org-slug/key-transactions/',
-        body: [],
-      },
-      {
-        predicate: (_, options) =>
-          options.method === 'POST' &&
-          options.query.project.length === 1 &&
-          options.query.project[0] === project.id &&
-          options.data.team.length === 1 &&
-          options.data.team[0] === teams[0].id &&
-          options.data.transaction === 'transaction',
-      }
-    );
+    const postTeamKeyTransactionsMock = MockApiClient.addMockResponse({
+      method: 'POST',
+      url: '/organizations/org-slug/key-transactions/',
+      body: [],
+      match: [
+        MockApiClient.matchQuery({project: [project.id]}),
+        MockApiClient.matchData({team: [teams[0].id], transaction: 'transaction'}),
+      ],
+    });
 
     const wrapper = mountWithTheme(
       <TeamKeyTransactionManager.Provider
@@ -248,22 +242,15 @@ describe('TeamKeyTransactionField', function () {
       })),
     });
 
-    const deleteTeamKeyTransactionsMock = MockApiClient.addMockResponse(
-      {
-        method: 'DELETE',
-        url: '/organizations/org-slug/key-transactions/',
-        body: [],
-      },
-      {
-        predicate: (_, options) =>
-          options.method === 'DELETE' &&
-          options.query.project.length === 1 &&
-          options.query.project[0] === project.id &&
-          options.data.team.length === 1 &&
-          options.data.team[0] === teams[0].id &&
-          options.data.transaction === 'transaction',
-      }
-    );
+    const deleteTeamKeyTransactionsMock = MockApiClient.addMockResponse({
+      method: 'DELETE',
+      url: '/organizations/org-slug/key-transactions/',
+      body: [],
+      match: [
+        MockApiClient.matchQuery({project: [project.id]}),
+        MockApiClient.matchData({team: [teams[0].id], transaction: 'transaction'}),
+      ],
+    });
 
     const wrapper = mountWithTheme(
       <TeamKeyTransactionManager.Provider
@@ -309,23 +296,18 @@ describe('TeamKeyTransactionField', function () {
       })),
     });
 
-    const postTeamKeyTransactionsMock = MockApiClient.addMockResponse(
-      {
-        method: 'POST',
-        url: '/organizations/org-slug/key-transactions/',
-        body: [],
-      },
-      {
-        predicate: (_, options) =>
-          options.method === 'POST' &&
-          options.query.project.length === 1 &&
-          options.query.project[0] === project.id &&
-          options.data.team.length === 2 &&
-          options.data.team[0] === teams[0].id &&
-          options.data.team[1] === teams[1].id &&
-          options.data.transaction === 'transaction',
-      }
-    );
+    const postTeamKeyTransactionsMock = MockApiClient.addMockResponse({
+      method: 'POST',
+      url: '/organizations/org-slug/key-transactions/',
+      body: [],
+      match: [
+        MockApiClient.matchQuery({project: [project.id]}),
+        MockApiClient.matchData({
+          team: [teams[0].id, teams[1].id],
+          transaction: 'transaction',
+        }),
+      ],
+    });
 
     const wrapper = mountWithTheme(
       <TeamKeyTransactionManager.Provider
@@ -368,23 +350,18 @@ describe('TeamKeyTransactionField', function () {
       })),
     });
 
-    const deleteTeamKeyTransactionsMock = MockApiClient.addMockResponse(
-      {
-        method: 'DELETE',
-        url: '/organizations/org-slug/key-transactions/',
-        body: [],
-      },
-      {
-        predicate: (_, options) =>
-          options.method === 'DELETE' &&
-          options.query.project.length === 1 &&
-          options.query.project[0] === project.id &&
-          options.data.team.length === 2 &&
-          options.data.team[0] === teams[0].id &&
-          options.data.team[1] === teams[1].id &&
-          options.data.transaction === 'transaction',
-      }
-    );
+    const deleteTeamKeyTransactionsMock = MockApiClient.addMockResponse({
+      method: 'DELETE',
+      url: '/organizations/org-slug/key-transactions/',
+      body: [],
+      match: [
+        MockApiClient.matchQuery({project: [project.id]}),
+        MockApiClient.matchData({
+          team: [teams[0].id, teams[1].id],
+          transaction: 'transaction',
+        }),
+      ],
+    });
 
     const wrapper = mountWithTheme(
       <TeamKeyTransactionManager.Provider
@@ -418,7 +395,9 @@ describe('TeamKeyTransactionField', function () {
 
   it('should render teams without access separately', async function () {
     const myTeams = [...teams, TestStubs.Team({id: '3', slug: 'team3', name: 'Team 3'})];
-    TeamStore.loadInitialData(myTeams);
+    act(() => {
+      TeamStore.loadInitialData(myTeams);
+    });
 
     MockApiClient.addMockResponse({
       method: 'GET',

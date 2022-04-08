@@ -1,7 +1,7 @@
-import {NewQuery, Project} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
-import {getAggregateAlias} from 'app/utils/discover/fields';
-import {Dataset, IncidentRule} from 'app/views/alerts/incidentRules/types';
+import {NewQuery, Project} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
+import {getAggregateAlias} from 'sentry/utils/discover/fields';
+import {Dataset, IncidentRule} from 'sentry/views/alerts/incidentRules/types';
 /**
  * Gets the URL for a discover view of the rule with the following default
  * parameters:
@@ -16,13 +16,25 @@ import {Dataset, IncidentRule} from 'app/views/alerts/incidentRules/types';
 export function getIncidentRuleDiscoverUrl(opts: {
   orgSlug: string;
   projects: Project[];
-  rule?: IncidentRule;
-  eventType?: string;
-  start?: string;
   end?: string;
+  environment?: string | null;
+  eventType?: string;
   extraQueryParams?: Partial<NewQuery>;
+  fields?: string[];
+  rule?: IncidentRule;
+  start?: string;
 }) {
-  const {orgSlug, projects, rule, eventType, start, end, extraQueryParams} = opts;
+  const {
+    orgSlug,
+    projects,
+    rule,
+    eventType,
+    start,
+    end,
+    extraQueryParams,
+    fields,
+    environment,
+  } = opts;
   const eventTypeTagFilter = eventType && rule?.query ? eventType : '';
 
   if (!projects || !projects.length || !rule || (!start && !end)) {
@@ -35,16 +47,18 @@ export function getIncidentRuleDiscoverUrl(opts: {
     id: undefined,
     name: (rule && rule.name) || '',
     orderby: `-${getAggregateAlias(rule.aggregate)}`,
-    yAxis: rule.aggregate,
+    yAxis: rule.aggregate ? [rule.aggregate] : undefined,
     query: (eventTypeTagFilter || rule?.query || eventType) ?? '',
     projects: projects
       .filter(({slug}) => rule.projects.includes(slug))
       .map(({id}) => Number(id)),
+    environment: environment ? [environment] : undefined,
     version: 2,
-    fields:
-      rule.dataset === Dataset.ERRORS
-        ? ['issue', 'count()', 'count_unique(user)']
-        : ['transaction', rule.aggregate],
+    fields: fields
+      ? fields
+      : rule.dataset === Dataset.ERRORS
+      ? ['issue', 'count()', 'count_unique(user)']
+      : ['transaction', rule.aggregate],
     start,
     end,
     ...extraQueryParams,

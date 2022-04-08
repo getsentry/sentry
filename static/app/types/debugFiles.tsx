@@ -11,6 +11,8 @@ export enum DebugFileFeature {
   SOURCES = 'sources',
 }
 
+type Secret = {'hidden-secret': boolean};
+
 export type BuiltinSymbolSource = {
   hidden: boolean;
   id: string;
@@ -30,10 +32,10 @@ export type DebugFile = {
   size: number;
   symbolType: string;
   uuid: string;
-  data?: {type: DebugFileType; features: DebugFileFeature[]};
+  data?: {features: DebugFileFeature[]; type: DebugFileType};
 };
 
-// Custom Repositories
+// Custom Repository
 export enum CustomRepoType {
   HTTP = 'http',
   S3 = 's3',
@@ -41,81 +43,83 @@ export enum CustomRepoType {
   APP_STORE_CONNECT = 'appStoreConnect',
 }
 
-export type AppStoreConnectValidationData = {
-  id: string;
-  appstoreCredentialsValid: boolean;
-  itunesSessionValid: boolean;
-  /** Indicates if the itunesSession is actually *needed* to complete any downloads that are pending. */
-  pendingDownloads: number;
+export type AppStoreConnectValidationError = {
+  code:
+    | 'app-connect-authentication-error'
+    | 'app-connect-forbidden-error'
+    | 'app-connect-multiple-sources-error';
+};
+
+export type AppStoreConnectCredentialsStatus =
+  | {status: 'valid'}
+  | ({status: 'invalid'} & AppStoreConnectValidationError);
+
+export type AppStoreConnectStatusData = {
+  credentials: AppStoreConnectCredentialsStatus;
+  lastCheckedBuilds: string | null;
   /**
-   * The build number of the latest build recognized by sentry. This does not imply the dSYMs for
-   * this build have been fetched. The contents of this string is just a number. This will be null
-   * if no builds can be found.
+   * The build number of the latest build recognized by sentry. This does not
+   * imply the dSYMs for this build have been fetched. The contents of this
+   * string is just a number. This will be null if no builds can be found.
    */
   latestBuildNumber: string | null;
   /**
-   * A human-readable string representing the latest build recognized by sentry. i.e. 3.4.0. This
-   * does not imply the dSYMs for this build have been fetched. This will be null if no builds can
-   * be found.
+   * A human-readable string representing the latest build recognized by
+   * sentry. i.e. 3.4.0. This does not imply the dSYMs for this build have been
+   * fetched. This will be null if no builds can be found.
    */
   latestBuildVersion: string | null;
   /**
-   * Whether the UI should show an alert indicating we need the user to refresh their iTunes
-   * session.
+   * Indicates the number of downloads waiting to be processed and completed,
+   * or the number of downloads waiting for valid credentials to be completed if applicable.
    */
-  promptItunesSession: boolean;
-  lastCheckedBuilds: string | null;
+  pendingDownloads: number;
   updateAlertMessage?: string;
 };
 
-type CustomRepoAppStoreConnect = {
-  type: CustomRepoType.APP_STORE_CONNECT;
+export type CustomRepoAppStoreConnect = {
   appId: string;
   appName: string;
   appconnectIssuer: string;
   appconnectKey: string;
-  appconnectPrivateKey: string;
+  appconnectPrivateKey: Secret;
   bundleId: string;
   id: string;
-  itunesCreated: string;
-  itunesPassword: string;
-  itunesPersonId: string;
-  itunesSession: string;
-  itunesUser: string;
   name: string;
-  orgPublicId: number;
-  orgName: string;
-  details?: AppStoreConnectValidationData;
+  type: CustomRepoType.APP_STORE_CONNECT;
+  details?: AppStoreConnectStatusData;
 };
 
-type CustomRepoHttp = {
-  type: CustomRepoType.HTTP;
+export type CustomRepoHttp = {
   id: string;
   layout: {casing: string; type: string};
   name: string;
+  password: Secret;
+  type: CustomRepoType.HTTP;
   url: string;
+  username: string;
 };
 
 type CustomRepoS3 = {
-  type: CustomRepoType.S3;
   access_key: string;
   bucket: string;
   id: string;
-  layout: {type: string; casing: string};
+  layout: {casing: string; type: string};
   name: string;
   region: string;
-  secret_key: string;
+  secret_key: Secret;
+  type: CustomRepoType.S3;
 };
 
 type CustomRepoGCS = {
-  type: CustomRepoType.GCS;
   bucket: string;
   client_email: string;
   id: string;
-  layout: {type: string; casing: string};
+  layout: {casing: string; type: string};
   name: string;
   prefix: string;
-  private_key: string;
+  private_key: Secret;
+  type: CustomRepoType.GCS;
 };
 
 export type CustomRepo =

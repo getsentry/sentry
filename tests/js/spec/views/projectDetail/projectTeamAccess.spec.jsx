@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import ProjectTeamAccess from 'app/views/projectDetail/projectTeamAccess';
+import ProjectTeamAccess from 'sentry/views/projectDetail/projectTeamAccess';
 
 describe('ProjectDetail > ProjectTeamAccess', function () {
   const {organization, routerContext} = initializeOrg();

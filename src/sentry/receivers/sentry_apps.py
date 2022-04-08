@@ -1,6 +1,17 @@
-from sentry.models import GroupAssignee, SentryAppInstallation
-from sentry.signals import issue_assigned, issue_ignored, issue_resolved
-from sentry.tasks.sentry_apps import workflow_notification
+from __future__ import annotations
+
+from typing import Any, Mapping
+
+from sentry.models import Group, GroupAssignee, Organization, SentryAppInstallation, User
+from sentry.signals import (
+    comment_created,
+    comment_deleted,
+    comment_updated,
+    issue_assigned,
+    issue_ignored,
+    issue_resolved,
+)
+from sentry.tasks.sentry_apps import build_comment_webhook, workflow_notification
 
 
 @issue_assigned.connect(weak=False)
@@ -38,7 +49,41 @@ def send_issue_ignored_webhook(project, user, group_list, **kwargs):
         send_workflow_webhooks(project.organization, issue, user, "issue.ignored")
 
 
-def send_workflow_webhooks(organization, issue, user, event, data=None):
+@comment_created.connect(weak=False)
+def send_comment_created_webhook(project, user, group, data, **kwargs):
+    send_comment_webhooks(project.organization, group, user, "comment.created", data=data)
+
+
+@comment_updated.connect(weak=False)
+def send_comment_updated_webhook(project, user, group, data, **kwargs):
+    send_comment_webhooks(project.organization, group, user, "comment.updated", data=data)
+
+
+@comment_deleted.connect(weak=False)
+def send_comment_deleted_webhook(project, user, group, data, **kwargs):
+    send_comment_webhooks(project.organization, group, user, "comment.deleted", data=data)
+
+
+def send_comment_webhooks(organization, issue, user, event, data=None):
+    data = data or {}
+
+    for install in installations_to_notify(organization, event):
+        build_comment_webhook.delay(
+            installation_id=install.id,
+            issue_id=issue.id,
+            type=event,
+            user_id=(user.id if user else None),
+            data=data,
+        )
+
+
+def send_workflow_webhooks(
+    organization: Organization,
+    issue: Group,
+    user: User,
+    event: str,
+    data: Mapping[str, Any] | None = None,
+) -> None:
     data = data or {}
 
     for install in installations_to_notify(organization, event):
@@ -52,8 +97,8 @@ def send_workflow_webhooks(organization, issue, user, event, data=None):
 
 
 def installations_to_notify(organization, event):
-    installations = SentryAppInstallation.get_installed_for_org(organization.id).select_related(
-        "sentry_app"
-    )
+    installations = SentryAppInstallation.objects.get_installed_for_organization(
+        organization.id
+    ).select_related("sentry_app")
 
     return [i for i in installations if event in i.sentry_app.events]

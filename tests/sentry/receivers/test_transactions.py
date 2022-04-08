@@ -1,10 +1,11 @@
+from unittest.mock import patch
+
 from exam import fixture
 
 from sentry.models import OrganizationMember, Project
 from sentry.signals import event_processed, transaction_processed
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.utils.compat.mock import patch
 
 
 class RecordFirstTransactionTest(TestCase):

@@ -1,4 +1,4 @@
-import {Dataset} from 'app/views/alerts/incidentRules/types';
+import {Dataset, SessionsAggregate} from 'sentry/views/alerts/incidentRules/types';
 
 import {AlertType, WizardRuleTemplate} from './options';
 
@@ -6,7 +6,7 @@ import {AlertType, WizardRuleTemplate} from './options';
 const alertTypeIdentifiers: Record<Dataset, Partial<Record<AlertType, string>>> = {
   [Dataset.ERRORS]: {
     num_errors: 'count()',
-    users_experiencing_errors: 'count_unique(tags[sentry:user])',
+    users_experiencing_errors: 'count_unique(user)',
   },
   [Dataset.TRANSACTIONS]: {
     throughput: 'count()',
@@ -16,6 +16,14 @@ const alertTypeIdentifiers: Record<Dataset, Partial<Record<AlertType, string>>> 
     lcp: 'measurements.lcp',
     fid: 'measurements.fid',
     cls: 'measurements.cls',
+  },
+  [Dataset.SESSIONS]: {
+    crash_free_sessions: SessionsAggregate.CRASH_FREE_SESSIONS,
+    crash_free_users: SessionsAggregate.CRASH_FREE_USERS,
+  },
+  [Dataset.METRICS]: {
+    crash_free_sessions: SessionsAggregate.CRASH_FREE_SESSIONS,
+    crash_free_users: SessionsAggregate.CRASH_FREE_USERS,
   },
 };
 

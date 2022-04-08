@@ -1,29 +1,30 @@
-import Reflux from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
-import RepoActions from 'app/actions/repositoryActions';
-import {Repository} from 'app/types';
+import RepoActions from 'sentry/actions/repositoryActions';
+import {Repository} from 'sentry/types';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
-type RepositoryStoreInterface = {
+interface RepositoryStoreDefinition extends StoreDefinition {
   get(): {
     orgSlug?: string;
     repositories?: Repository[];
-    repositoriesLoading?: boolean;
     repositoriesError?: Error;
-  };
-
-  state: {
-    orgSlug?: string;
-    repositories?: Repository[];
     repositoriesLoading?: boolean;
-    repositoriesError?: Error;
   };
 
   loadRepositories(orgSlug: string): void;
-  loadRepositoriesSuccess(data: Repository[]): void;
-  loadRepositoriesError(error: Error): void;
-};
 
-export const RepositoryStoreConfig: Reflux.StoreDefinition & RepositoryStoreInterface = {
+  loadRepositoriesError(error: Error): void;
+  loadRepositoriesSuccess(data: Repository[]): void;
+  state: {
+    orgSlug?: string;
+    repositories?: Repository[];
+    repositoriesError?: Error;
+    repositoriesLoading?: boolean;
+  };
+}
+
+const storeConfig: RepositoryStoreDefinition = {
   listenables: RepoActions,
   state: {
     orgSlug: undefined,
@@ -81,8 +82,5 @@ export const RepositoryStoreConfig: Reflux.StoreDefinition & RepositoryStoreInte
   },
 };
 
-type RepositoryStore = Reflux.Store & RepositoryStoreInterface;
-
-const RepositoryStore = Reflux.createStore(RepositoryStoreConfig) as RepositoryStore;
-
+const RepositoryStore = createStore(makeSafeRefluxStore(storeConfig));
 export default RepositoryStore;

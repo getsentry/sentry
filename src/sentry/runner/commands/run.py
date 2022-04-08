@@ -4,10 +4,13 @@ from concurrent.futures import ThreadPoolExecutor
 from multiprocessing import cpu_count
 
 import click
+from arroyo import configure_metrics
 
 from sentry.bgtasks.api import managed_bgtasks
 from sentry.ingest.types import ConsumerType
 from sentry.runner.decorators import configuration, log_options
+
+DEFAULT_BLOCK_SIZE = int(32 * 1e6)
 
 
 class AddressParamType(click.ParamType):
@@ -245,8 +248,7 @@ def worker(ignore_unknown_queues, **options):
     if options["autoreload"]:
         from django.utils import autoreload
 
-        # Note this becomes autoreload.run_with_reloader in django 2.2
-        autoreload.main(run_worker, kwargs=options)
+        autoreload.run_with_reloader(run_worker, **options)
     else:
         run_worker(**options)
 
@@ -314,10 +316,22 @@ def cron(**options):
     help="How many messages to process (may or may not result in an enqueued task) before committing offsets.",
 )
 @click.option(
+    "--commit-batch-timeout-ms",
+    default=5000,
+    type=int,
+    help="Time (in milliseconds) to wait before closing current batch and committing offsets.",
+)
+@click.option(
     "--initial-offset-reset",
     default="latest",
     type=click.Choice(["earliest", "latest"]),
     help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
+)
+@click.option(
+    "--entity",
+    default="all",
+    type=click.Choice(["all", "errors", "transactions"]),
+    help="The type of entity to process (all, errors, transactions).",
 )
 @log_options()
 @configuration
@@ -327,10 +341,12 @@ def post_process_forwarder(**options):
 
     try:
         eventstream.run_post_process_forwarder(
+            entity=options["entity"],
             consumer_group=options["consumer_group"],
             commit_log_topic=options["commit_log_topic"],
             synchronize_commit_group=options["synchronize_commit_group"],
             commit_batch_size=options["commit_batch_size"],
+            commit_batch_timeout_ms=options["commit_batch_timeout_ms"],
             initial_offset_reset=options["initial_offset_reset"],
         )
     except ForwarderNotRequired:
@@ -355,6 +371,12 @@ def post_process_forwarder(**options):
     help="How many messages to process before committing offsets.",
 )
 @click.option(
+    "--commit-batch-timeout-ms",
+    default=5000,
+    type=int,
+    help="Time (in milliseconds) to wait before closing current batch and committing offsets.",
+)
+@click.option(
     "--initial-offset-reset",
     default="latest",
     type=click.Choice(["earliest", "latest"]),
@@ -375,6 +397,7 @@ def query_subscription_consumer(**options):
         group_id=options["group"],
         topic=options["topic"],
         commit_batch_size=options["commit_batch_size"],
+        commit_batch_timeout_ms=options["commit_batch_timeout_ms"],
         initial_offset_reset=options["initial_offset_reset"],
         force_offset_reset=options["force_offset_reset"],
     )
@@ -441,7 +464,7 @@ def batching_kafka_options(group):
             "force_cluster",
             default=None,
             type=str,
-            help="Kafka cluster ID of the overriden topic. Configure clusters via KAFKA_CLUSTERS in server settings.",
+            help="Kafka cluster ID of the overridden topic. Configure clusters via KAFKA_CLUSTERS in server settings.",
         )(f)
 
         return f
@@ -504,3 +527,48 @@ def ingest_consumer(consumer_types, all_consumer_types, **options):
         ingest_consumer_types=",".join(sorted(consumer_types)), _all_threads=True
     ):
         get_ingest_consumer(consumer_types=consumer_types, executor=executor, **options).run()
+
+
+@run.command("ingest-metrics-consumer-2")
+@log_options()
+@click.option("--topic", default="ingest-metrics", help="Topic to get metrics data from.")
+@batching_kafka_options("ingest-metrics-consumer")
+@configuration
+@click.option(
+    "--processes",
+    default=1,
+    type=int,
+)
+@click.option("--input-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
+@click.option("--output-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
+@click.option("--factory-name", default="default")
+@click.option("commit_max_batch_size", "--commit-max-batch-size", type=int, default=25000)
+@click.option("commit_max_batch_time", "--commit-max-batch-time-ms", type=int, default=10000)
+def metrics_streaming_consumer(**options):
+    from sentry.sentry_metrics.metrics_wrapper import MetricsWrapper
+    from sentry.sentry_metrics.multiprocess import get_streaming_metrics_consumer
+    from sentry.utils.metrics import backend
+
+    metrics = MetricsWrapper(backend, "sentry_metrics.indexer")
+    configure_metrics(metrics)
+
+    streamer = get_streaming_metrics_consumer(**options)
+
+    def handler(signum, frame):
+        streamer.signal_shutdown()
+
+    signal.signal(signal.SIGINT, handler)
+    signal.signal(signal.SIGTERM, handler)
+
+    streamer.run()
+
+
+@run.command("ingest-profiles")
+@log_options()
+@click.option("--topic", default="profiles", help="Topic to get profiles data from.")
+@batching_kafka_options("ingest-profiles")
+@configuration
+def profiles_consumer(**options):
+    from sentry.profiles.consumer import get_profiles_consumer
+
+    get_profiles_consumer(**options).run()

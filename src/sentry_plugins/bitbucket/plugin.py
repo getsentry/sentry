@@ -1,4 +1,5 @@
 from django.conf.urls import url
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.integrations import FeatureDescription, IntegrationFeatures
@@ -71,41 +72,37 @@ class BitbucketPlugin(BitbucketMixin, IssuePlugin2):
     def get_url_module(self):
         return "sentry_plugins.bitbucket.urls"
 
-    def is_configured(self, request, project, **kwargs):
+    def is_configured(self, request: Request, project, **kwargs):
         return bool(self.get_option("repo", project))
 
-    def get_new_issue_fields(self, request, group, event, **kwargs):
+    def get_new_issue_fields(self, request: Request, group, event, **kwargs):
         fields = super().get_new_issue_fields(request, group, event, **kwargs)
-        return (
-            [
-                {
-                    "name": "repo",
-                    "label": "Bitbucket Repository",
-                    "default": self.get_option("repo", group.project),
-                    "type": "text",
-                    "readonly": True,
-                }
-            ]
-            + fields
-            + [
-                {
-                    "name": "issue_type",
-                    "label": "Issue type",
-                    "default": ISSUE_TYPES[0][0],
-                    "type": "select",
-                    "choices": ISSUE_TYPES,
-                },
-                {
-                    "name": "priority",
-                    "label": "Priority",
-                    "default": PRIORITIES[0][0],
-                    "type": "select",
-                    "choices": PRIORITIES,
-                },
-            ]
-        )
+        return [
+            {
+                "name": "repo",
+                "label": "Bitbucket Repository",
+                "default": self.get_option("repo", group.project),
+                "type": "text",
+                "readonly": True,
+            },
+            *fields,
+            {
+                "name": "issue_type",
+                "label": "Issue type",
+                "default": ISSUE_TYPES[0][0],
+                "type": "select",
+                "choices": ISSUE_TYPES,
+            },
+            {
+                "name": "priority",
+                "label": "Priority",
+                "default": PRIORITIES[0][0],
+                "type": "select",
+                "choices": PRIORITIES,
+            },
+        ]
 
-    def get_link_existing_issue_fields(self, request, group, event, **kwargs):
+    def get_link_existing_issue_fields(self, request: Request, group, event, **kwargs):
         return [
             {
                 "name": "issue_id",
@@ -133,7 +130,7 @@ class BitbucketPlugin(BitbucketMixin, IssuePlugin2):
             return ERR_404
         return super().message_from_error(exc)
 
-    def create_issue(self, request, group, form_data, **kwargs):
+    def create_issue(self, request: Request, group, form_data, **kwargs):
         client = self.get_client(request.user)
 
         try:
@@ -141,24 +138,24 @@ class BitbucketPlugin(BitbucketMixin, IssuePlugin2):
                 repo=self.get_option("repo", group.project), data=form_data
             )
         except Exception as e:
-            self.raise_error(e, identity=client.auth)
+            raise self.raise_error(e, identity=client.auth)
 
         return response["local_id"]
 
-    def link_issue(self, request, group, form_data, **kwargs):
+    def link_issue(self, request: Request, group, form_data, **kwargs):
         client = self.get_client(request.user)
         repo = self.get_option("repo", group.project)
         try:
             issue = client.get_issue(repo=repo, issue_id=form_data["issue_id"])
         except Exception as e:
-            self.raise_error(e, identity=client.auth)
+            raise self.raise_error(e, identity=client.auth)
 
         comment = form_data.get("comment")
         if comment:
             try:
                 client.create_comment(repo, issue["local_id"], {"content": comment})
             except Exception as e:
-                self.raise_error(e, identity=client.auth)
+                raise self.raise_error(e, identity=client.auth)
 
         return {"title": issue["title"]}
 
@@ -169,7 +166,7 @@ class BitbucketPlugin(BitbucketMixin, IssuePlugin2):
         repo = self.get_option("repo", group.project)
         return f"https://bitbucket.org/{repo}/issue/{issue_id}/"
 
-    def view_autocomplete(self, request, group, **kwargs):
+    def view_autocomplete(self, request: Request, group, **kwargs):
         field = request.GET.get("autocomplete_field")
         query = request.GET.get("autocomplete_query")
         if field != "issue_id" or not query:
@@ -193,7 +190,7 @@ class BitbucketPlugin(BitbucketMixin, IssuePlugin2):
 
         return Response({field: issues})
 
-    def get_configure_plugin_fields(self, request, project, **kwargs):
+    def get_configure_plugin_fields(self, request: Request, project, **kwargs):
         return [
             {
                 "name": "repo",

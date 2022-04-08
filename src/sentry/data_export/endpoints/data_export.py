@@ -1,6 +1,7 @@
 import sentry_sdk
 from django.core.exceptions import ValidationError
 from rest_framework import serializers
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
@@ -8,14 +9,13 @@ from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.organization import OrganizationDataExportPermission, OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.utils import InvalidParams, get_date_range_from_params
-from sentry.discover.arithmetic import is_equation, resolve_equation_list, strip_equation
+from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Environment
-from sentry.search.events.fields import resolve_field_list
-from sentry.search.events.filter import get_filter
+from sentry.search.events.builder import QueryBuilder
 from sentry.utils import metrics
 from sentry.utils.compat import map
-from sentry.utils.snuba import MAX_FIELDS
+from sentry.utils.snuba import MAX_FIELDS, Dataset
 
 from ..base import ExportQueryType
 from ..models import ExportedData
@@ -50,13 +50,7 @@ class DataExportQuerySerializer(serializers.Serializer):
             if not isinstance(base_fields, list):
                 base_fields = [base_fields]
 
-            equations = []
-            fields = []
-            for field in base_fields:
-                if is_equation(field):
-                    equations.append(strip_equation(field))
-                else:
-                    fields.append(field)
+            equations, fields = categorize_columns(base_fields)
 
             if len(base_fields) > MAX_FIELDS:
                 detail = f"You can export up to {MAX_FIELDS} fields at a time. Please delete some and try again."
@@ -90,6 +84,7 @@ class DataExportQuerySerializer(serializers.Serializer):
                 del query_info["statsPeriodEnd"]
             query_info["start"] = start.isoformat()
             query_info["end"] = end.isoformat()
+            query_info["use_snql"] = features.has("organizations:discover-use-snql", organization)
 
             # validate the query string by trying to parse it
             processor = DiscoverProcessor(
@@ -97,18 +92,16 @@ class DataExportQuerySerializer(serializers.Serializer):
                 organization_id=organization.id,
             )
             try:
-                snuba_filter = get_filter(query_info["query"], processor.params)
-                if len(equations) > 0:
-                    resolved_equations, _ = resolve_equation_list(equations, fields)
-                else:
-                    resolved_equations = []
-                resolve_field_list(
-                    fields.copy(),
-                    snuba_filter,
+                builder = QueryBuilder(
+                    Dataset.Discover,
+                    processor.params,
+                    query=query_info["query"],
+                    selected_columns=fields.copy(),
+                    equations=equations,
                     auto_fields=True,
                     auto_aggregations=True,
-                    resolved_equations=resolved_equations,
                 )
+                builder.get_snql_query()
             except InvalidSearchQuery as err:
                 raise serializers.ValidationError(str(err))
 
@@ -118,7 +111,7 @@ class DataExportQuerySerializer(serializers.Serializer):
 class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
     permission_classes = (OrganizationDataExportPermission,)
 
-    def post(self, request, organization):
+    def post(self, request: Request, organization) -> Response:
         """
         Create a new asynchronous file export task, and
         email user upon completion,

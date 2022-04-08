@@ -1,14 +1,14 @@
 import * as React from 'react';
 
-import AnnotatedText from 'app/components/events/meta/annotatedText';
-import MetaData from 'app/components/events/meta/metaData';
-import {isFunction} from 'app/utils';
+import AnnotatedText from 'sentry/components/events/meta/annotatedText';
+import MetaData from 'sentry/components/events/meta/metaData';
+import {isFunction} from 'sentry/utils';
 
 type Props<Values> = {
+  children: (value: string | null | React.ReactNode) => React.ReactNode | string;
   object: Values;
   objectKey: Extract<keyof Values, string>;
   required?: boolean;
-  children: (value: string | null | React.ReactNode) => React.ReactNode | string;
 };
 
 /**

@@ -1,14 +1,15 @@
 import * as React from 'react';
-import {MultiValueProps} from 'react-select';
+import {MultiValueProps, StylesConfig} from 'react-select';
 import {withTheme} from '@emotion/react';
 
-import Button from 'app/components/button';
-import SelectControl from 'app/components/forms/selectControl';
-import RoleSelectControl from 'app/components/roleSelectControl';
-import {IconClose} from 'app/icons/iconClose';
-import {t} from 'app/locale';
-import {MemberRole, SelectValue, Team} from 'app/types';
-import {Theme} from 'app/utils/theme';
+import Button from 'sentry/components/button';
+import SelectControl from 'sentry/components/forms/selectControl';
+import TeamSelector from 'sentry/components/forms/teamSelector';
+import RoleSelectControl from 'sentry/components/roleSelectControl';
+import {IconClose} from 'sentry/icons/iconClose';
+import {t} from 'sentry/locale';
+import {MemberRole, SelectValue} from 'sentry/types';
+import {Theme} from 'sentry/utils/theme';
 
 import renderEmailValue from './renderEmailValue';
 import {InviteStatus} from './types';
@@ -16,22 +17,21 @@ import {InviteStatus} from './types';
 type SelectOption = SelectValue<string>;
 
 type Props = {
-  className?: string;
-  disabled: boolean;
   disableRemove: boolean;
+  disabled: boolean;
   emails: string[];
-  role: string;
-  teams: string[];
-  roleOptions: MemberRole[];
-  roleDisabledUnallowed: boolean;
-  teamOptions: Team[];
   inviteStatus: InviteStatus;
-  onRemove: () => void;
-  theme: Theme;
-
   onChangeEmails: (emails: null | SelectOption[]) => void;
   onChangeRole: (role: SelectOption) => void;
   onChangeTeams: (teams?: SelectOption[] | null) => void;
+  onRemove: () => void;
+  role: string;
+  roleDisabledUnallowed: boolean;
+  roleOptions: MemberRole[];
+
+  teams: string[];
+  theme: Theme;
+  className?: string;
 };
 
 type State = {
@@ -81,7 +81,6 @@ class InviteRowControl extends React.Component<Props, State> {
       teams,
       roleOptions,
       roleDisabledUnallowed,
-      teamOptions,
       inviteStatus,
       onRemove,
       onChangeEmails,
@@ -100,8 +99,7 @@ class InviteRowControl extends React.Component<Props, State> {
           inputValue={this.state.inputValue}
           value={emails}
           components={{
-            MultiValue: (props: MultiValueProps<SelectOption>) =>
-              ValueComponent(props, inviteStatus),
+            MultiValue: props => ValueComponent(props, inviteStatus),
             DropdownIndicator: () => null,
           }}
           options={mapToOptions(emails)}
@@ -115,8 +113,6 @@ class InviteRowControl extends React.Component<Props, State> {
           styles={getStyles(theme, inviteStatus)}
           onInputChange={this.handleInputChange}
           onKeyDown={this.handleKeyDown}
-          onBlurResetsInput={false}
-          onCloseResetsInput={false}
           onChange={onChangeEmails}
           multiple
           creatable
@@ -131,15 +127,11 @@ class InviteRowControl extends React.Component<Props, State> {
           disableUnallowed={roleDisabledUnallowed}
           onChange={onChangeRole}
         />
-        <SelectControl
+        <TeamSelector
           data-test-id="select-teams"
           disabled={disabled}
           placeholder={t('Add to teams\u2026')}
           value={teams}
-          options={teamOptions.map(({slug}) => ({
-            value: slug,
-            label: `#${slug}`,
-          }))}
           onChange={onChangeTeams}
           multiple
           clearable
@@ -150,6 +142,7 @@ class InviteRowControl extends React.Component<Props, State> {
           size="zero"
           onClick={onRemove}
           disabled={disableRemove}
+          aria-label={t('Remove')}
         />
       </div>
     );
@@ -160,7 +153,7 @@ class InviteRowControl extends React.Component<Props, State> {
  * The email select control has custom selected item states as items
  * show their delivery status after the form is submitted.
  */
-function getStyles(theme: Theme, inviteStatus: Props['inviteStatus']) {
+function getStyles(theme: Theme, inviteStatus: Props['inviteStatus']): StylesConfig {
   return {
     multiValue: (
       provided: React.CSSProperties,

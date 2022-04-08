@@ -1,6 +1,6 @@
 import {action} from '@storybook/addon-actions';
 
-import DetailedError from 'app/components/errors/detailedError';
+import DetailedError from 'sentry/components/errors/detailedError';
 
 export default {
   title: 'Views/Detailed Error',

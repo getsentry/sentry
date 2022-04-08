@@ -3,27 +3,27 @@ import styled from '@emotion/styled';
 import flatMap from 'lodash/flatMap';
 import uniqBy from 'lodash/uniqBy';
 
-import {Client} from 'app/api';
-import CommitRow from 'app/components/commitRow';
-import {CauseHeader, DataSection} from 'app/components/events/styles';
-import {Panel} from 'app/components/panels';
-import {IconAdd, IconSubtract} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {AvatarProject, Committer, Group, Organization} from 'app/types';
-import {Event} from 'app/types/event';
-import withApi from 'app/utils/withApi';
-import withCommitters from 'app/utils/withCommitters';
+import {Client} from 'sentry/api';
+import {CommitRow} from 'sentry/components/commitRow';
+import {CauseHeader, DataSection} from 'sentry/components/events/styles';
+import {Panel} from 'sentry/components/panels';
+import {IconAdd, IconSubtract} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {AvatarProject, Committer, Group, Organization} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import withApi from 'sentry/utils/withApi';
+import withCommitters from 'sentry/utils/withCommitters';
 
 type Props = {
   // injected by HoC
   api: Client;
-  committers?: Committer[];
+  event: Event;
 
   // needed by HoC
   organization: Organization;
   project: AvatarProject;
-  event: Event;
+  committers?: Committer[];
   group?: Group;
 };
 
@@ -37,10 +37,8 @@ class EventCause extends Component<Props, State> {
   };
 
   getUniqueCommitsWithAuthors() {
-    const {committers} = this.props;
-
     // Get a list of commits with author information attached
-    const commitsWithAuthors = flatMap(committers, ({commits, author}) =>
+    const commitsWithAuthors = flatMap(this.props.committers, ({commits, author}) =>
       commits.map(commit => ({
         ...commit,
         author,
@@ -48,16 +46,11 @@ class EventCause extends Component<Props, State> {
     );
 
     // Remove duplicate commits
-    const uniqueCommitsWithAuthors = uniqBy(commitsWithAuthors, commit => commit.id);
-
-    return uniqueCommitsWithAuthors;
+    return uniqBy(commitsWithAuthors, commit => commit.id);
   }
 
   render() {
-    const {committers} = this.props;
-    const {expanded} = this.state;
-
-    if (!committers?.length) {
+    if (!this.props.committers?.length) {
       return null;
     }
 
@@ -66,12 +59,12 @@ class EventCause extends Component<Props, State> {
     return (
       <DataSection>
         <CauseHeader>
-          <h3>
+          <h3 data-test-id="event-cause">
             {t('Suspect Commits')} ({commits.length})
           </h3>
           {commits.length > 1 && (
-            <ExpandButton onClick={() => this.setState({expanded: !expanded})}>
-              {expanded ? (
+            <ExpandButton onClick={() => this.setState({expanded: !this.state.expanded})}>
+              {this.state.expanded ? (
                 <Fragment>
                   {t('Show less')} <IconSubtract isCircled size="md" />
                 </Fragment>
@@ -84,7 +77,7 @@ class EventCause extends Component<Props, State> {
           )}
         </CauseHeader>
         <Panel>
-          {commits.slice(0, expanded ? 100 : 1).map(commit => (
+          {commits.slice(0, this.state.expanded ? 100 : 1).map(commit => (
             <CommitRow key={commit.id} commit={commit} />
           ))}
         </Panel>

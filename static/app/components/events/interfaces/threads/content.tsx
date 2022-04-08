@@ -1,14 +1,11 @@
 import * as React from 'react';
 import isNil from 'lodash/isNil';
 
-import CrashContent from 'app/components/events/interfaces/crashContent';
-import Pill from 'app/components/pill';
-import Pills from 'app/components/pills';
-import {t} from 'app/locale';
-import {Project} from 'app/types';
-import {Event} from 'app/types/event';
-import {Thread} from 'app/types/events';
-import {STACK_TYPE, STACK_VIEW} from 'app/types/stacktrace';
+import CrashContent from 'sentry/components/events/interfaces/crashContent';
+import Pill from 'sentry/components/pill';
+import Pills from 'sentry/components/pills';
+import {t} from 'sentry/locale';
+import {Event, Project, STACK_TYPE, STACK_VIEW, Thread} from 'sentry/types';
 
 import NoStackTraceMessage from '../noStackTraceMessage';
 
@@ -16,12 +13,12 @@ type CrashContentProps = React.ComponentProps<typeof CrashContent>;
 
 type Props = {
   event: Event;
-  projectId: Project['id'];
-  stackType: STACK_TYPE;
   newestFirst: boolean;
+  projectId: Project['id'];
   stackTraceNotFound: boolean;
-  stackView?: STACK_VIEW;
+  stackType: STACK_TYPE;
   data?: Thread;
+  stackView?: STACK_VIEW;
 } & Pick<
   CrashContentProps,
   'exception' | 'stacktrace' | 'hasHierarchicalGrouping' | 'groupingCurrentLevel'

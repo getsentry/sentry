@@ -4,17 +4,18 @@ import {AnimatePresence, motion} from 'framer-motion';
 
 import HighlightTopRight from 'sentry-images/pattern/highlight-top-right.svg';
 
-import {updateOnboardingTask} from 'app/actionCreators/onboardingTasks';
-import {Client} from 'app/api';
-import SidebarPanel from 'app/components/sidebar/sidebarPanel';
-import {CommonSidebarProps} from 'app/components/sidebar/types';
-import Tooltip from 'app/components/tooltip';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {OnboardingTask, OnboardingTaskKey, Organization} from 'app/types';
-import testableTransition from 'app/utils/testableTransition';
-import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
+import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
+import {Client} from 'sentry/api';
+import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
+import {CommonSidebarProps} from 'sentry/components/sidebar/types';
+import Tooltip from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {OnboardingTask, OnboardingTaskKey, Organization, Project} from 'sentry/types';
+import testableTransition from 'sentry/utils/testableTransition';
+import withApi from 'sentry/utils/withApi';
+import withOrganization from 'sentry/utils/withOrganization';
+import withProjects from 'sentry/utils/withProjects';
 
 import ProgressHeader from './progressHeader';
 import Task from './task';
@@ -23,8 +24,9 @@ import {findActiveTasks, findCompleteTasks, findUpcomingTasks, taskIsDone} from 
 
 type Props = Pick<CommonSidebarProps, 'orientation' | 'collapsed'> & {
   api: Client;
-  organization: Organization;
   onClose: () => void;
+  organization: Organization;
+  projects: Project[];
 };
 
 /**
@@ -36,9 +38,6 @@ const INITIAL_MARK_COMPLETE_TIMEOUT = 600;
  * How long (in ms) to delay between marking each unseen task as complete.
  */
 const COMPLETION_SEEN_TIMEOUT = 800;
-
-const doTimeout = (timeout: number) =>
-  new Promise(resolve => setTimeout(resolve, timeout));
 
 const Heading = styled(motion.div)`
   display: flex;
@@ -72,8 +71,29 @@ class OnboardingWizardSidebar extends Component<Props> {
   async componentDidMount() {
     // Add a minor delay to marking tasks complete to account for the animation
     // opening of the sidebar panel
-    await doTimeout(INITIAL_MARK_COMPLETE_TIMEOUT);
+    await this.markCompletion(INITIAL_MARK_COMPLETE_TIMEOUT);
     this.markTasksAsSeen();
+  }
+
+  componentWillUnmount() {
+    window.clearTimeout(this.markCompletionTimeout);
+    window.clearTimeout(this.markCompletionSeenTimeout);
+  }
+
+  markCompletionTimeout: number | undefined = undefined;
+  markCompletionSeenTimeout: number | undefined = undefined;
+
+  markCompletion(time: number): Promise<void> {
+    window.clearTimeout(this.markCompletionTimeout);
+    return new Promise(resolve => {
+      this.markCompletionTimeout = window.setTimeout(resolve, time);
+    });
+  }
+  markCompletionSeen(time: number): Promise<void> {
+    window.clearTimeout(this.markCompletionSeenTimeout);
+    return new Promise(resolve => {
+      this.markCompletionSeenTimeout = window.setTimeout(resolve, time);
+    });
   }
 
   async markTasksAsSeen() {
@@ -84,7 +104,7 @@ class OnboardingWizardSidebar extends Component<Props> {
     // Incrementally mark tasks as seen. This gives the card completion
     // animations time before we move each task into the completed section.
     for (const task of unseenTasks) {
-      await doTimeout(COMPLETION_SEEN_TIMEOUT);
+      await this.markCompletionSeen(COMPLETION_SEEN_TIMEOUT);
 
       const {api, organization} = this.props;
       updateOnboardingTask(api, organization, {
@@ -95,8 +115,8 @@ class OnboardingWizardSidebar extends Component<Props> {
   }
 
   get segmentedTasks() {
-    const {organization} = this.props;
-    const all = getMergedTasks(organization).filter(task => task.display);
+    const {organization, projects} = this.props;
+    const all = getMergedTasks({organization, projects}).filter(task => task.display);
 
     const active = all.filter(findActiveTasks);
     const upcoming = all.filter(findUpcomingTasks);
@@ -190,7 +210,7 @@ AnimatedTaskItem.defaultProps = {
 const TaskList = styled('div')`
   display: grid;
   grid-auto-flow: row;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   margin: ${space(1)} ${space(4)} ${space(4)} ${space(4)};
 `;
 
@@ -221,4 +241,4 @@ const TopRight = styled('img')`
   width: 60%;
 `;
 
-export default withApi(withOrganization(OnboardingWizardSidebar));
+export default withApi(withOrganization(withProjects(OnboardingWizardSidebar)));

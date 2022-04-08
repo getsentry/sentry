@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import responses
 
 from sentry.constants import SentryAppInstallationStatus
@@ -10,7 +12,6 @@ from sentry.models import (
     ServiceHookProject,
 )
 from sentry.testutils import TestCase
-from sentry.utils.compat.mock import patch
 
 
 class TestCreator(TestCase):

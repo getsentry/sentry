@@ -1,13 +1,13 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {navigateTo} from 'app/actionCreators/navigation';
-import FormSearchStore from 'app/stores/formSearchStore';
-import SettingsSearch from 'app/views/settings/components/settingsSearch';
+import {navigateTo} from 'sentry/actionCreators/navigation';
+import FormSearchStore from 'sentry/stores/formSearchStore';
+import SettingsSearch from 'sentry/views/settings/components/settingsSearch';
 
-jest.mock('app/actionCreators/formSearch');
-jest.mock('app/actionCreators/navigation');
+jest.mock('sentry/actionCreators/formSearch');
+jest.mock('sentry/actionCreators/navigation');
 
-const SETTINGS_SEARCH_PLACEHOLDER = 'Search';
 describe('SettingsSearch', function () {
   let orgsMock;
   const routerContext = TestStubs.routerContext([
@@ -19,7 +19,7 @@ describe('SettingsSearch', function () {
   ]);
 
   beforeEach(function () {
-    FormSearchStore.onLoadSearchMap([]);
+    FormSearchStore.loadSearchMap([]);
     MockApiClient.clearMockResponses();
     orgsMock = MockApiClient.addMockResponse({
       url: '/organizations/',
@@ -58,82 +58,52 @@ describe('SettingsSearch', function () {
       url: '/sentry-apps/?status=published',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/doc-integrations/',
+      body: [],
+    });
   });
 
   it('renders', async function () {
-    const wrapper = mountWithTheme(
-      <SettingsSearch params={{orgId: 'org-slug'}} />,
-      routerContext
-    );
+    render(<SettingsSearch params={{orgId: 'org-slug'}} />);
 
     // renders input
-    expect(wrapper.find('SearchInput')).toHaveLength(1);
-    expect(wrapper.find('input').prop('placeholder')).toBe(SETTINGS_SEARCH_PLACEHOLDER);
+    expect(screen.getByPlaceholderText('Search')).toBeInTheDocument();
   });
 
-  it('can focus when `handleFocusSearch` is called and target is not search input', function () {
-    const wrapper = mountWithTheme(
-      <SettingsSearch params={{orgId: 'org-slug'}} />,
-      routerContext
-    );
-    const searchInput = wrapper.find('SearchInput input').instance();
-    const focusSpy = jest.spyOn(searchInput, 'focus');
-
-    wrapper.instance().handleFocusSearch({
-      preventDefault: () => {},
-      target: null,
-    });
-
-    expect(focusSpy).toHaveBeenCalled();
-  });
-
-  it('does not focus search input if it is current target and `handleFocusSearch` is called', function () {
-    const wrapper = mountWithTheme(
-      <SettingsSearch params={{orgId: 'org-slug'}} />,
-      routerContext
-    );
-    const searchInput = wrapper.find('SearchInput input').instance();
-    const focusSpy = jest.spyOn(searchInput, 'focus');
-
-    wrapper.instance().handleFocusSearch({
-      preventDefault: () => {},
-      target: searchInput,
-    });
-
-    expect(focusSpy).not.toHaveBeenCalled();
+  it('can focus when hotkey is pressed', function () {
+    render(<SettingsSearch />);
+    userEvent.keyboard('/', {keyboardMap: [{code: 'Slash', key: '/', keyCode: 191}]});
+    expect(screen.getByPlaceholderText('Search')).toHaveFocus();
   });
 
   it('can search', async function () {
-    const wrapper = mountWithTheme(
-      <SettingsSearch params={{orgId: 'org-slug'}} />,
-      routerContext
+    render(<SettingsSearch />, {
+      context: routerContext,
+    });
+
+    userEvent.type(screen.getByPlaceholderText('Search'), 'bil{enter}');
+
+    expect(orgsMock.mock.calls).toEqual([
+      [
+        '/organizations/',
+        expect.objectContaining({
+          // This nested 'query' is correct
+          query: {query: 'b'},
+        }),
+      ],
+      [
+        '/organizations/',
+        expect.objectContaining({
+          // This nested 'query' is correct
+          query: {query: 'bi'},
+        }),
+      ],
+    ]);
+
+    userEvent.click(
+      await screen.findByText(textWithMarkupMatcher('billy-org Dashboard'))
     );
-
-    wrapper.find('input').simulate('change', {target: {value: 'bil'}});
-
-    await tick();
-    wrapper.update();
-
-    expect(orgsMock).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        // This nested 'query' is correct
-        query: {query: 'bil'},
-      })
-    );
-
-    expect(
-      wrapper.find('SearchResult [data-test-id="badge-display-name"]').first().text()
-    ).toBe('billy-org Dashboard');
-
-    expect(wrapper.find('SearchResultWrapper').first().prop('highlighted')).toBe(true);
-
-    expect(wrapper.find('SearchResultWrapper').at(1).prop('highlighted')).toBe(false);
-
-    wrapper
-      .find('SearchResult [data-test-id="badge-display-name"]')
-      .first()
-      .simulate('click');
 
     expect(navigateTo).toHaveBeenCalledWith('/billy-org/', expect.anything(), undefined);
   });

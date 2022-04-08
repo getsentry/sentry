@@ -1,12 +1,12 @@
-import Reflux from 'reflux';
+import {createStore} from 'reflux';
 
-import StreamManager from 'app/utils/streamManager';
+import StreamManager from 'sentry/utils/streamManager';
 
 describe('StreamManager', function () {
   let store;
 
   beforeEach(function () {
-    store = Reflux.createStore({
+    store = createStore({
       add() {},
       getAllItems() {},
       remove() {},

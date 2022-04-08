@@ -39,6 +39,9 @@ jobs:
     name: Generate SQL
     runs-on: ubuntu-20.04
     timeout-minutes: 8
+    strategy:
+      matrix:
+        python-version: [3.8.12]
     needs: did-migration-change
     if: ${{ needs.did-migration-change.outputs.added == 'true' }}
 
@@ -48,10 +51,11 @@ jobs:
         with:
           ref: master
 
-      - name: Setup sentry env
+      - name: Setup sentry env (python ${{ matrix.python-version }})
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
+          python-version: ${{ matrix.python-version }}
           pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
 
       - name: Apply migrations

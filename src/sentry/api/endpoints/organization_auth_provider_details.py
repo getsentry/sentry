@@ -1,4 +1,5 @@
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationAuthProviderPermission, OrganizationEndpoint
@@ -9,7 +10,7 @@ from sentry.models import AuthProvider
 class OrganizationAuthProviderDetailsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationAuthProviderPermission,)
 
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         """
         Retrieve details about Organization's SSO settings and
         currently installed auth_provider

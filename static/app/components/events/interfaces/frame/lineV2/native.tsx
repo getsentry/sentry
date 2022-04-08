@@ -1,19 +1,18 @@
-import {MouseEvent, MouseEventHandler} from 'react';
 import styled from '@emotion/styled';
 import scrollToElement from 'scroll-to-element';
 
-import DebugImage from 'app/components/events/interfaces/debugMeta/debugImage';
-import {combineStatus} from 'app/components/events/interfaces/debugMeta/utils';
-import PackageLink from 'app/components/events/interfaces/packageLink';
-import PackageStatus from 'app/components/events/interfaces/packageStatus';
-import TogglableAddress from 'app/components/events/interfaces/togglableAddress';
-import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
-import {t} from 'app/locale';
-import {DebugMetaActions} from 'app/stores/debugMetaStore';
-import space from 'app/styles/space';
-import {Frame} from 'app/types';
+import {t} from 'sentry/locale';
+import {DebugMetaActions} from 'sentry/stores/debugMetaStore';
+import space from 'sentry/styles/space';
+import {Frame} from 'sentry/types';
 
+import DebugImage from '../../debugMeta/debugImage';
+import {combineStatus} from '../../debugMeta/utils';
+import {SymbolicatorStatus} from '../../types';
+import PackageLink from '../packageLink';
+import PackageStatus from '../packageStatus';
 import Symbol from '../symbol';
+import TogglableAddress from '../togglableAddress';
 import {getPlatform} from '../utils';
 
 import Expander from './expander';
@@ -24,17 +23,17 @@ type Props = React.ComponentProps<typeof Expander> &
   React.ComponentProps<typeof LeadHint> & {
     frame: Frame;
     isUsedForGrouping: boolean;
-    onMouseDown?: MouseEventHandler<HTMLDivElement>;
-    onClick?: () => void;
-    isFrameAfterLastNonApp?: boolean;
-    includeSystemFrames?: boolean;
-    showingAbsoluteAddress?: boolean;
-    showCompleteFunctionName?: boolean;
-    prevFrame?: Frame;
     image?: React.ComponentProps<typeof DebugImage>['image'];
+    includeSystemFrames?: boolean;
+    isFrameAfterLastNonApp?: boolean;
     maxLengthOfRelativeAddress?: number;
     onAddressToggle?: (event: React.MouseEvent<SVGElement>) => void;
+    onClick?: () => void;
     onFunctionNameToggle?: (event: React.MouseEvent<SVGElement>) => void;
+    onMouseDown?: React.MouseEventHandler<HTMLDivElement>;
+    prevFrame?: Frame;
+    showCompleteFunctionName?: boolean;
+    showingAbsoluteAddress?: boolean;
   };
 
 function Native({
@@ -86,8 +85,8 @@ function Native({
     return addr;
   }
 
-  function scrollToImage(event: MouseEvent<HTMLAnchorElement>) {
-    event.stopPropagation(); // to prevent collapsing if collapsable
+  function scrollToImage(event: React.MouseEvent<HTMLAnchorElement>) {
+    event.stopPropagation(); // to prevent collapsing if collapsible
 
     if (instructionAddr) {
       DebugMetaActions.updateFilter(makeFilter(instructionAddr));
@@ -178,7 +177,7 @@ const PackageInfo = styled('span')`
 const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
   display: grid;
   flex: 1;
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
   grid-template-columns: auto 1fr;
   align-items: center;
   justify-content: flex-start;

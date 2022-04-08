@@ -439,7 +439,7 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         >>> from sentry.plugins.interfaces.releasehook import ReleaseHook
         >>>
         >>> class MyReleaseHook(ReleaseHook):
-        >>>     def handle(self, request):
+        >>>     def handle(self, request: Request) -> Response:
         >>>         self.finish_release(version=request.POST['version'])
 
         >>> def get_release_hook(self, **kwargs):
@@ -465,9 +465,6 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
 
     def get_url_module(self):
         """Allows a plugin to return the import path to a URL module."""
-
-    def handle_signal(self, name, payload, **kwargs):
-        pass
 
 
 class Plugin2(IPlugin2, metaclass=PluginMount):

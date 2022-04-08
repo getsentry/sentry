@@ -1,4 +1,4 @@
-export function IncidentStats(params) {
+export function IncidentStats(params = {}) {
   return {
     totalEvents: 100,
     uniqueUsers: 20,

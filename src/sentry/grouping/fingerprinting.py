@@ -57,6 +57,19 @@ class InvalidFingerprintingConfig(Exception):
     pass
 
 
+def get_crashing_thread(threads):
+    if threads is None:
+        return None
+    if len(threads) == 1:
+        return threads[0]
+    filtered = [x for x in threads if x and x.get("crashed")]
+    if len(filtered) == 1:
+        return filtered[0]
+    filtered = [x for x in threads if x and x.get("current")]
+    if len(filtered) == 1:
+        return filtered[0]
+
+
 class EventAccess:
     def __init__(self, event):
         self.event = event
@@ -139,8 +152,9 @@ class EventAccess:
                 frames = get_path(self.event, "stacktrace", "frames", filter=True)
                 if not frames:
                     threads = get_path(self.event, "threads", "values", filter=True)
-                    if threads and len(threads) == 1:
-                        frames = get_path(threads, 0, "stacktrace", "frames")
+                    thread = get_crashing_thread(threads)
+                    if thread is not None:
+                        frames = get_path(thread, "stacktrace", "frames")
                 for frame in frames or ():
                     _push_frame(frame)
 

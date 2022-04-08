@@ -1,6 +1,6 @@
 import {Component} from 'react';
 
-import withOrganization from 'app/utils/withOrganization';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import ProjectProguard from './projectProguard';
 

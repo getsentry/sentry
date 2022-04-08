@@ -1,63 +1,64 @@
-import * as React from 'react';
+import {cloneElement, isValidElement, useEffect} from 'react';
 import {RouteComponentProps} from 'react-router';
 
-import {fetchOrgMembers} from 'app/actionCreators/members';
-import {Client} from 'app/api';
-import Alert from 'app/components/alert';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {t} from 'app/locale';
-import {Organization, Project} from 'app/types';
-import Projects from 'app/utils/projects';
-import withApi from 'app/utils/withApi';
-import ScrollToTop from 'app/views/settings/components/scrollToTop';
+import {fetchOrgMembers} from 'sentry/actionCreators/members';
+import Alert from 'sentry/components/alert';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {t} from 'sentry/locale';
+import {Organization} from 'sentry/types';
+import useApi from 'sentry/utils/useApi';
+import useProjects from 'sentry/utils/useProjects';
+import useScrollToTop from 'sentry/utils/useScrollToTop';
 
 type Props = RouteComponentProps<RouteParams, {}> & {
-  organization: Organization;
-  api: Client;
-  children?: React.ReactNode;
   hasMetricAlerts: boolean;
+  organization: Organization;
+  children?: React.ReactNode;
 };
 
 type RouteParams = {
-  projectId: string;
+  projectId?: string;
 };
 
 function AlertBuilderProjectProvider(props: Props) {
-  const {children, params, organization, api, ...other} = props;
-  const {projectId} = params;
-  return (
-    <Projects orgId={organization.slug} allProjects>
-      {({projects, initiallyLoaded, isIncomplete}) => {
-        if (!initiallyLoaded) {
-          return <LoadingIndicator />;
-        }
-        const project = (projects as Project[]).find(({slug}) => slug === projectId);
-        // if loaded, but project fetching states incomplete or project can't be found, project doesn't exist
-        if (isIncomplete || !project) {
-          return (
-            <Alert type="warning">
-              {t('The project you were looking for was not found.')}
-            </Alert>
-          );
-        }
-        // fetch members list for mail action fields
-        fetchOrgMembers(api, organization.slug, [project.id]);
+  const api = useApi();
+  useScrollToTop({location: props.location});
 
-        return (
-          <ScrollToTop location={props.location} disable={() => false}>
-            {children && React.isValidElement(children)
-              ? React.cloneElement(children, {
-                  ...other,
-                  ...children.props,
-                  project,
-                  organization,
-                })
-              : children}
-          </ScrollToTop>
-        );
-      }}
-    </Projects>
-  );
+  const {children, params, organization, ...other} = props;
+  const projectId = params.projectId || props.location.query.project;
+  const {projects, initiallyLoaded, fetching, fetchError} = useProjects({
+    slugs: [projectId],
+  });
+  const project = projects.find(({slug}) => slug === projectId);
+
+  useEffect(() => {
+    if (!project) {
+      return;
+    }
+
+    // fetch members list for mail action fields
+    fetchOrgMembers(api, organization.slug, [project.id]);
+  }, [project]);
+
+  if (!initiallyLoaded || fetching) {
+    return <LoadingIndicator />;
+  }
+
+  // if loaded, but project fetching states incomplete or project can't be found, project doesn't exist
+  if (!project || fetchError) {
+    return (
+      <Alert type="warning">{t('The project you were looking for was not found.')}</Alert>
+    );
+  }
+
+  return children && isValidElement(children)
+    ? cloneElement(children, {
+        ...other,
+        ...children.props,
+        project,
+        organization,
+      })
+    : children;
 }
 
-export default withApi(AlertBuilderProjectProvider);
+export default AlertBuilderProjectProvider;

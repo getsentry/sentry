@@ -3,17 +3,17 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import moment from 'moment';
 
-import AsyncComponent from 'app/components/asyncComponent';
-import OptionSelector from 'app/components/charts/optionSelector';
-import {InlineContainer, SectionHeading} from 'app/components/charts/styles';
-import {DateTimeObject, getSeriesApiInterval} from 'app/components/charts/utils';
-import NotAvailable from 'app/components/notAvailable';
-import ScoreCard from 'app/components/scoreCard';
-import {DEFAULT_STATS_PERIOD} from 'app/constants';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {DataCategory, IntervalPeriod, Organization, RelativePeriod} from 'app/types';
-import {parsePeriodToHours} from 'app/utils/dates';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import OptionSelector from 'sentry/components/charts/optionSelector';
+import {InlineContainer, SectionHeading} from 'sentry/components/charts/styles';
+import {DateTimeObject, getSeriesApiInterval} from 'sentry/components/charts/utils';
+import NotAvailable from 'sentry/components/notAvailable';
+import ScoreCard from 'sentry/components/scoreCard';
+import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {DataCategory, IntervalPeriod, Organization} from 'sentry/types';
+import {parsePeriodToHours} from 'sentry/utils/dates';
 
 import {
   FORMAT_DATETIME_DAILY,
@@ -30,16 +30,16 @@ import UsageStatsPerMin from './usageStatsPerMin';
 import {formatUsageWithUnits, getFormatUsageOptions, isDisplayUtc} from './utils';
 
 type Props = {
-  organization: Organization;
   dataCategory: DataCategory;
   dataCategoryName: string;
   dataDatetime: DateTimeObject;
-  chartTransform?: string;
   handleChangeState: (state: {
     dataCategory?: DataCategory;
-    pagePeriod?: RelativePeriod;
+    pagePeriod?: string | null;
     transform?: ChartDataTransform;
   }) => void;
+  organization: Organization;
+  chartTransform?: string;
 } & AsyncComponent['props'];
 
 type State = {
@@ -93,22 +93,22 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
   }
 
   get chartData(): {
-    chartStats: ChartStats;
     cardStats: {
-      total?: string;
       accepted?: string;
       dropped?: string;
       filtered?: string;
+      total?: string;
     };
-    dataError?: Error;
+    chartDateEnd: string;
+    chartDateEndDisplay: string;
     chartDateInterval: IntervalPeriod;
     chartDateStart: string;
-    chartDateEnd: string;
-    chartDateUtc: boolean;
     chartDateStartDisplay: string;
-    chartDateEndDisplay: string;
     chartDateTimezoneDisplay: string;
+    chartDateUtc: boolean;
+    chartStats: ChartStats;
     chartTransform: ChartDataTransform;
+    dataError?: Error;
   } {
     const {orgStats} = this.state;
 
@@ -132,13 +132,13 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
   }
 
   get chartDateRange(): {
+    chartDateEnd: string;
+    chartDateEndDisplay: string;
     chartDateInterval: IntervalPeriod;
     chartDateStart: string;
-    chartDateEnd: string;
-    chartDateUtc: boolean;
     chartDateStartDisplay: string;
-    chartDateEndDisplay: string;
     chartDateTimezoneDisplay: string;
+    chartDateUtc: boolean;
   } {
     const {orgStats} = this.state;
     const {dataDatetime} = this.props;
@@ -195,13 +195,13 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
   }
 
   mapSeriesToChart(orgStats?: UsageSeries): {
-    chartStats: ChartStats;
     cardStats: {
-      total?: string;
       accepted?: string;
       dropped?: string;
       filtered?: string;
+      total?: string;
     };
+    chartStats: ChartStats;
     dataError?: Error;
   } {
     const cardStats = {
@@ -245,6 +245,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
         [Outcome.DROPPED]: 0,
         [Outcome.INVALID]: 0, // Combined with dropped later
         [Outcome.RATE_LIMITED]: 0, // Combined with dropped later
+        [Outcome.CLIENT_DISCARD]: 0, // Not exposed yet
       };
 
       orgStats.groups.forEach(group => {
@@ -254,17 +255,27 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
           return;
         }
 
-        count.total += group.totals['sum(quantity)'];
+        if (outcome !== Outcome.CLIENT_DISCARD) {
+          count.total += group.totals['sum(quantity)'];
+        }
+
         count[outcome] += group.totals['sum(quantity)'];
 
         group.series['sum(quantity)'].forEach((stat, i) => {
-          if (outcome === Outcome.ACCEPTED || outcome === Outcome.FILTERED) {
-            usageStats[i][outcome] += stat;
-            return;
+          switch (outcome) {
+            case Outcome.ACCEPTED:
+            case Outcome.FILTERED:
+              usageStats[i][outcome] += stat;
+              return;
+            case Outcome.DROPPED:
+            case Outcome.RATE_LIMITED:
+            case Outcome.INVALID:
+              usageStats[i].dropped.total += stat;
+              // TODO: add client discards to dropped?
+              return;
+            default:
+              return;
           }
-
-          // Breaking down into reasons for dropped is not needed
-          usageStats[i].dropped.total += stat;
         });
       });
 
@@ -276,9 +287,11 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
         stat.total = stat.accepted + stat.filtered + stat.dropped.total;
 
         // Chart Data
-        chartStats.accepted.push({value: [stat.date, stat.accepted]} as any);
-        chartStats.dropped.push({value: [stat.date, stat.dropped.total]} as any);
-        chartStats.filtered?.push({value: [stat.date, stat.filtered]} as any);
+        (chartStats.accepted as any[]).push({value: [stat.date, stat.accepted]});
+        (chartStats.dropped as any[]).push({
+          value: [stat.date, stat.dropped.total],
+        } as any);
+        (chartStats.filtered as any[])?.push({value: [stat.date, stat.filtered]});
       });
 
       return {

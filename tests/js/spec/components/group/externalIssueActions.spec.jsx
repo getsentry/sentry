@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import ExternalIssueActions from 'app/components/group/externalIssueActions';
+import ExternalIssueActions from 'sentry/components/group/externalIssueActions';
 
 describe('ExternalIssueActions', function () {
   const group = TestStubs.Group();
@@ -14,9 +14,7 @@ describe('ExternalIssueActions', function () {
         group={group}
         configurations={configurations}
         onChange={() => {}}
-      />,
-
-      TestStubs.routerContext()
+      />
     );
 
     // console.log(configurations);
@@ -64,8 +62,7 @@ describe('ExternalIssueActions', function () {
         group={group}
         configurations={configurations}
         onChange={() => {}}
-      />,
-      TestStubs.routerContext()
+      />
     );
     it('renders', function () {
       expect(wrapper.find('IssueSyncElement')).toHaveLength(0);

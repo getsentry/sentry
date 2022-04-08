@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api import client
@@ -6,7 +7,7 @@ from sentry.api.helpers.environments import get_environments
 
 
 class GroupEventsOldestEndpoint(GroupEndpoint):
-    def get(self, request, group):
+    def get(self, request: Request, group) -> Response:
         """
         Retrieve the Oldest Event for an Issue
         ``````````````````````````````````````

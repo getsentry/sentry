@@ -1,13 +1,14 @@
 import datetime
 import os
-import unittest
 from datetime import timedelta
 
 import pytest
+from django.test import SimpleTestCase
 from django.utils import timezone
 from freezegun import freeze_time
 
 from sentry.api.event_search import (
+    AggregateFilter,
     AggregateKey,
     SearchConfig,
     SearchFilter,
@@ -143,7 +144,7 @@ def result_transformer(result):
     return [token for token in map(node_visitor, result) if token is not None]
 
 
-class ParseSearchQueryTest(unittest.TestCase):
+class ParseSearchQueryTest(SimpleTestCase):
     """
     All test cases in this class are dynamically defined via the test fixtures
     which are shared with the frontend.
@@ -197,7 +198,7 @@ shared_tests_skipped = [
 register_fixture_tests(ParseSearchQueryTest, shared_tests_skipped)
 
 
-class ParseSearchQueryBackendTest(unittest.TestCase):
+class ParseSearchQueryBackendTest(SimpleTestCase):
     """
     These test cases cannot be represented by the test data used to drive the
     ParseSearchQueryTest.
@@ -223,16 +224,16 @@ class ParseSearchQueryBackendTest(unittest.TestCase):
     def test_rel_time_filter(self):
         now = timezone.now()
         with freeze_time(now):
-            assert parse_search_query("first_seen:+7d") == [
+            assert parse_search_query("time:+7d") == [
                 SearchFilter(
-                    key=SearchKey(name="first_seen"),
+                    key=SearchKey(name="time"),
                     operator="<=",
                     value=SearchValue(raw_value=now - timedelta(days=7)),
                 )
             ]
-            assert parse_search_query("first_seen:-2w") == [
+            assert parse_search_query("time:-2w") == [
                 SearchFilter(
-                    key=SearchKey(name="first_seen"),
+                    key=SearchKey(name="time"),
                     operator=">=",
                     value=SearchValue(raw_value=now - timedelta(days=14)),
                 )
@@ -245,15 +246,15 @@ class ParseSearchQueryBackendTest(unittest.TestCase):
         now = timezone.now()
         with freeze_time(now):
             assert parse_search_query("last_seen():+7d") == [
-                SearchFilter(
-                    key=SearchKey(name="last_seen()"),
+                AggregateFilter(
+                    key=AggregateKey(name="last_seen()"),
                     operator="<=",
                     value=SearchValue(raw_value=now - timedelta(days=7)),
                 )
             ]
             assert parse_search_query("last_seen():-2w") == [
-                SearchFilter(
-                    key=SearchKey(name="last_seen()"),
+                AggregateFilter(
+                    key=AggregateKey(name="last_seen()"),
                     operator=">=",
                     value=SearchValue(raw_value=now - timedelta(days=14)),
                 )
@@ -263,29 +264,29 @@ class ParseSearchQueryBackendTest(unittest.TestCase):
             ]
 
     def test_specific_time_filter(self):
-        assert parse_search_query("first_seen:2018-01-01") == [
+        assert parse_search_query("time:2018-01-01") == [
             SearchFilter(
-                key=SearchKey(name="first_seen"),
+                key=SearchKey(name="time"),
                 operator=">=",
                 value=SearchValue(raw_value=datetime.datetime(2018, 1, 1, tzinfo=timezone.utc)),
             ),
             SearchFilter(
-                key=SearchKey(name="first_seen"),
+                key=SearchKey(name="time"),
                 operator="<",
                 value=SearchValue(raw_value=datetime.datetime(2018, 1, 2, tzinfo=timezone.utc)),
             ),
         ]
 
-        assert parse_search_query("first_seen:2018-01-01T05:06:07Z") == [
+        assert parse_search_query("time:2018-01-01T05:06:07Z") == [
             SearchFilter(
-                key=SearchKey(name="first_seen"),
+                key=SearchKey(name="time"),
                 operator=">=",
                 value=SearchValue(
                     raw_value=datetime.datetime(2018, 1, 1, 5, 1, 7, tzinfo=timezone.utc)
                 ),
             ),
             SearchFilter(
-                key=SearchKey(name="first_seen"),
+                key=SearchKey(name="time"),
                 operator="<",
                 value=SearchValue(
                     raw_value=datetime.datetime(2018, 1, 1, 5, 12, 7, tzinfo=timezone.utc)
@@ -293,16 +294,16 @@ class ParseSearchQueryBackendTest(unittest.TestCase):
             ),
         ]
 
-        assert parse_search_query("first_seen:2018-01-01T05:06:07+00:00") == [
+        assert parse_search_query("time:2018-01-01T05:06:07+00:00") == [
             SearchFilter(
-                key=SearchKey(name="first_seen"),
+                key=SearchKey(name="time"),
                 operator=">=",
                 value=SearchValue(
                     raw_value=datetime.datetime(2018, 1, 1, 5, 1, 7, tzinfo=timezone.utc)
                 ),
             ),
             SearchFilter(
-                key=SearchKey(name="first_seen"),
+                key=SearchKey(name="time"),
                 operator="<",
                 value=SearchValue(
                     raw_value=datetime.datetime(2018, 1, 1, 5, 12, 7, tzinfo=timezone.utc)
@@ -384,17 +385,25 @@ class ParseSearchQueryBackendTest(unittest.TestCase):
         ]
 
     def test_invalid_aggregate_column_with_duration_filter(self):
-        with self.assertRaises(InvalidSearchQuery, regex="not a duration column"):
+        with self.assertRaisesMessage(
+            InvalidSearchQuery,
+            expected_message="avg: column argument invalid: stack.colno is not a numeric column",
+        ):
             parse_search_query("avg(stack.colno):>500s")
 
     def test_invalid_numeric_aggregate_filter(self):
-        with self.assertRaisesRegexp(
-            InvalidSearchQuery, expected_regex="is not a valid number suffix, must be k, m or b"
+        with self.assertRaisesMessage(
+            InvalidSearchQuery, "is not a valid number suffix, must be k, m or b"
         ):
             parse_search_query("min(measurements.size):3s")
 
+        with self.assertRaisesMessage(
+            InvalidSearchQuery, "is not a valid number suffix, must be k, m or b"
+        ):
+            parse_search_query("count_if(measurements.fcp, greater, 5s):3s")
+
     def test_is_query_unsupported(self):
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             InvalidSearchQuery, ".*queries are not supported in this search.*"
         ):
             parse_search_query("is:unassigned")

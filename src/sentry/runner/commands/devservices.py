@@ -1,10 +1,9 @@
 import os
 import signal
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import click
-
-from sentry.utils.compat import map
 
 # Work around a stupid docker issue: https://github.com/docker/for-mac/issues/5025
 RAW_SOCKET_HACK_PATH = os.path.expanduser(
@@ -25,17 +24,6 @@ def get_docker_client():
         raise click.ClickException("Make sure Docker is running.")
 
 
-def get_docker_low_level_client():
-    import docker
-
-    client = docker.APIClient()
-    try:
-        client.ping()
-        return client
-    except Exception:
-        raise click.ClickException("Make sure Docker is running.")
-
-
 def get_or_create(client, thing, name):
     from docker.errors import NotFound
 
@@ -46,35 +34,24 @@ def get_or_create(client, thing, name):
         return getattr(client, thing + "s").create(name)
 
 
-def wait_for_healthcheck(low_level_client, container_name, healthcheck_options):
-    # healthcheck_options should be the dictionary for docker-py.
+def retryable_pull(client, image, max_attempts=5):
+    from docker.errors import ImageNotFound
 
-    # Convert ns -> s, float in both py2 + 3.
-    healthcheck_timeout = healthcheck_options["timeout"] / 1000.0 ** 3
-    healthcheck_interval = healthcheck_options["interval"] / 1000.0 ** 3
-    healthcheck_retries = healthcheck_options["retries"]
+    current_attempt = 0
 
-    # This is the maximum elapsed timeout.
-    timeout = healthcheck_retries * (healthcheck_interval + healthcheck_timeout)
-
-    # And as for delay, polling is sort of cheap so we can do it quite often.
-    # Important to note that the interval also defines the initial delay,
-    # so the first polls will likely fail.
-    delay = 0.25
-
-    health_status = None
-    start_time = time.time()
-
-    while time.time() - start_time < timeout:
-        resp = low_level_client.inspect_container(container_name)
-        health_status = resp["State"]["Health"]["Status"]
-        if health_status == "healthy":
-            return
-        time.sleep(delay)
-
-    raise click.ClickException(
-        f"Timed out waiting for {container_name}: healthcheck status {health_status}"
-    )
+    # `client.images.pull` intermittently fails in CI, and the docker API/docker-py does not give us the relevant error message (i.e. it's not the same error as running `docker pull` from shell)
+    # As a workaround, let's retry when we hit the ImageNotFound exception.
+    #
+    # See https://github.com/docker/docker-py/issues/2101 for more information
+    while True:
+        try:
+            client.images.pull(image)
+        except ImageNotFound as e:
+            if current_attempt + 1 >= max_attempts:
+                raise e
+            current_attempt = current_attempt + 1
+            continue
+        break
 
 
 def ensure_interface(ports):
@@ -97,7 +74,6 @@ def devservices(ctx):
     Do not use in production!
     """
     ctx.obj["client"] = get_docker_client()
-    ctx.obj["low_level_client"] = get_docker_low_level_client()
 
     # Disable backend validation so no devservices commands depend on like,
     # redis to be already running.
@@ -130,7 +106,6 @@ def attach(ctx, project, fast, service):
 
     container = _start_service(
         ctx.obj["client"],
-        ctx.obj["low_level_client"],
         service,
         containers,
         project,
@@ -213,10 +188,32 @@ def up(ctx, services, project, exclude, fast, skip_only_if):
 
     get_or_create(ctx.obj["client"], "network", project)
 
-    for name in selected_services:
-        _start_service(
-            ctx.obj["client"], ctx.obj["low_level_client"], name, containers, project, fast=fast
-        )
+    with ThreadPoolExecutor(max_workers=len(selected_services)) as executor:
+        futures = []
+        for name in selected_services:
+            futures.append(
+                executor.submit(
+                    _start_service,
+                    ctx.obj["client"],
+                    name,
+                    containers,
+                    project,
+                    fast=fast,
+                )
+            )
+        for future in as_completed(futures):
+            # If there was an exception, reraising it here to the main thread
+            # will not terminate the whole python process. We'd like to report
+            # on this exception and stop as fast as possible, so terminate
+            # ourselves. I believe (without verification) that the OS is now
+            # free to cleanup these threads, but not sure if they'll remain running
+            # in the background. What matters most is that we regain control
+            # of the terminal.
+            e = future.exception()
+            if e:
+                click.echo(e)
+                me = os.getpid()
+                os.kill(me, signal.SIGTERM)
 
 
 def _prepare_containers(project, skip_only_if=False, silent=False):
@@ -252,9 +249,7 @@ def _prepare_containers(project, skip_only_if=False, silent=False):
     return containers
 
 
-def _start_service(
-    client, low_level_client, name, containers, project, fast=False, always_start=False
-):
+def _start_service(client, name, containers, project, fast=False, always_start=False):
     from django.conf import settings
 
     from docker.errors import NotFound
@@ -275,16 +270,16 @@ def _start_service(
     pull = options.pop("pull", False)
     if not fast:
         if pull:
-            click.secho("> Pulling image '%s'" % options["image"], err=True, fg="green")
-            client.images.pull(options["image"])
+            click.secho(f"> Pulling image '{options['image']}'", fg="green")
+            retryable_pull(client, options["image"])
         else:
             # We want make sure to pull everything on the first time,
             # (the image doesn't exist), regardless of pull=True.
             try:
                 client.images.get(options["image"])
             except NotFound:
-                click.secho("> Pulling image '%s'" % options["image"], err=True, fg="green")
-                client.images.pull(options["image"])
+                click.secho(f"> Pulling image '{options['image']}'", fg="green")
+                retryable_pull(client, options["image"])
 
     for mount in list(options.get("volumes", {}).keys()):
         if "/" not in mount:
@@ -309,8 +304,7 @@ def _start_service(
     # should ONLY be started via the latter, which sets `always_start`.
     if with_devserver and not always_start:
         click.secho(
-            "> Not starting container '%s' because it should be started on-demand with devserver."
-            % options["name"],
+            f"> Not starting container '{options['name']}' because it should be started on-demand with devserver.",
             fg="yellow",
         )
         # XXX: if always_start=False, do not expect to have a container returned 100% of the time.
@@ -335,29 +329,22 @@ def _start_service(
         if should_reuse_container:
             click.secho(
                 f"> Starting EXISTING container '{container.name}' {listening}",
-                err=True,
                 fg="yellow",
             )
             # Note that if the container is already running, this will noop.
             # This makes repeated `devservices up` quite fast.
             container.start()
-            healthcheck_options = options.get("healthcheck")
-            if healthcheck_options:
-                wait_for_healthcheck(low_level_client, container.name, healthcheck_options)
             return container
 
-        click.secho("> Stopping container '%s'" % container.name, err=True, fg="yellow")
+        click.secho(f"> Stopping container '{container.name}'", fg="yellow")
         container.stop()
-        click.secho("> Removing container '%s'" % container.name, err=True, fg="yellow")
+        click.secho(f"> Removing container '{container.name}'", fg="yellow")
         container.remove()
 
-    click.secho("> Creating container '%s'" % options["name"], err=True, fg="yellow")
+    click.secho(f"> Creating container '{options['name']}'", fg="yellow")
     container = client.containers.create(**options)
-    click.secho(f"> Starting container '{container.name}' {listening}", err=True, fg="yellow")
+    click.secho(f"> Starting container '{container.name}' {listening}", fg="yellow")
     container.start()
-    healthcheck_options = options.get("healthcheck")
-    if healthcheck_options:
-        wait_for_healthcheck(low_level_client, container.name, healthcheck_options)
     return container
 
 
@@ -373,15 +360,40 @@ def down(ctx, project, service):
     The default is everything, however you may pass positional arguments to specify
     an explicit list of services to bring down.
     """
-    prefix = project + "_"
-
     # TODO: make more like devservices rm
 
+    def _down(container):
+        click.secho(f"> Stopping '{container.name}' container", fg="red")
+        container.stop()
+        click.secho(f"> Stopped '{container.name}' container", fg="red")
+
+    containers = []
+    prefix = f"{project}_"
+
     for container in ctx.obj["client"].containers.list(all=True):
-        if container.name.startswith(prefix):
-            if not service or container.name[len(prefix) :] in service:
-                click.secho("> Stopping '%s' container" % container.name, err=True, fg="red")
-                container.stop()
+        if not container.name.startswith(prefix):
+            continue
+        if service and not container.name[len(prefix) :] in service:
+            continue
+        containers.append(container)
+
+    with ThreadPoolExecutor(max_workers=len(containers)) as executor:
+        futures = []
+        for container in containers:
+            futures.append(executor.submit(_down, container))
+        for future in as_completed(futures):
+            # If there was an exception, reraising it here to the main thread
+            # will not terminate the whole python process. We'd like to report
+            # on this exception and stop as fast as possible, so terminate
+            # ourselves. I believe (without verification) that the OS is now
+            # free to cleanup these threads, but not sure if they'll remain running
+            # in the background. What matters most is that we regain control
+            # of the terminal.
+            e = future.exception()
+            if e:
+                click.echo(e)
+                me = os.getpid()
+                os.kill(me, signal.SIGTERM)
 
 
 @devservices.command()
@@ -431,6 +443,7 @@ Are you sure you want to continue?"""
         abort=True,
     )
 
+    volume_to_service = {}
     for service_name, container_options in containers.items():
         try:
             container = ctx.obj["client"].containers.get(container_options["name"])
@@ -446,12 +459,15 @@ Are you sure you want to continue?"""
         container.stop()
         click.secho("> Removing '%s' container" % container_options["name"], err=True, fg="red")
         container.remove()
+        for volume in container_options.get("volumes") or ():
+            volume_to_service[volume] = service_name
 
     prefix = project + "_"
 
     for volume in ctx.obj["client"].volumes.list():
         if volume.name.startswith(prefix):
-            if not services or volume.name[len(prefix) :] in services:
+            local_name = volume.name[len(prefix) :]
+            if not services or volume_to_service.get(local_name) in services:
                 click.secho("> Removing '%s' volume" % volume.name, err=True, fg="red")
                 volume.remove()
 

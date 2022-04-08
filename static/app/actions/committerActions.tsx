@@ -1,3 +1,5 @@
-import Reflux from 'reflux';
+import {createActions} from 'reflux';
 
-export default Reflux.createActions(['reset', 'load', 'loadError', 'loadSuccess']);
+const ComitterActions = createActions(['reset', 'load', 'loadError', 'loadSuccess']);
+
+export default ComitterActions;

@@ -1,11 +1,11 @@
 import * as React from 'react';
 
-import EventDataSection from 'app/components/events/eventDataSection';
-import {t} from 'app/locale';
-import plugins from 'app/plugins';
-import {Group} from 'app/types';
-import {Event} from 'app/types/event';
-import {defined, toTitleCase} from 'app/utils';
+import EventDataSection from 'sentry/components/events/eventDataSection';
+import {t} from 'sentry/locale';
+import plugins from 'sentry/plugins';
+import {Group} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import {defined, toTitleCase} from 'sentry/utils';
 
 import {getContextComponent, getSourcePlugin} from './utils';
 
@@ -13,8 +13,8 @@ type Props = {
   alias: string;
   event: Event;
   type: string;
-  value?: Record<string, any>;
   group?: Group;
+  value?: Record<string, any>;
 };
 
 type State = {
@@ -99,7 +99,9 @@ class Chunk extends React.Component<Props, State> {
       case 'trace':
         return t('Trace Details');
       case 'default':
-        if (alias === 'state') return t('Application State');
+        if (alias === 'state') {
+          return t('Application State');
+        }
         return toTitleCase(alias);
       default:
         return toTitleCase(type);

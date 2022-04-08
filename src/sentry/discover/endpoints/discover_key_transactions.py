@@ -2,6 +2,7 @@ from collections import defaultdict
 
 from django.db import IntegrityError, transaction
 from rest_framework.exceptions import ParseError
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases import KeyTransactionBase
@@ -11,7 +12,7 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.utils import InvalidParams
 from sentry.discover.endpoints import serializers
-from sentry.discover.models import KeyTransaction, TeamKeyTransaction
+from sentry.discover.models import TeamKeyTransaction
 from sentry.models import ProjectTeam, Team
 
 
@@ -24,61 +25,11 @@ class KeyTransactionPermission(OrganizationPermission):
     }
 
 
-class LegacyKeyTransactionCountEndpoint(KeyTransactionBase):
-    permission_classes = (KeyTransactionPermission,)
-
-    def get(self, request, organization):
-        """
-        Check how many legacy Key Transactions a user has
-
-        This is used to show the guide to users who previously had key
-        transactions to update their team key transactions
-        """
-        if not self.has_feature(request, organization):
-            return Response(status=404)
-
-        projects = self.get_projects(request, organization)
-
-        try:
-            count = KeyTransaction.objects.filter(
-                organization=organization,
-                owner=request.user,
-                project__in=projects,
-            ).count()
-            return Response({"keyed": count}, status=200)
-        except KeyTransaction.DoesNotExist:
-            return Response({"keyed": 0}, status=200)
-
-
-class IsKeyTransactionEndpoint(KeyTransactionBase):
-    permission_classes = (KeyTransactionPermission,)
-
-    def get(self, request, organization):
-        """Get the Key Transactions for a user"""
-        if not self.has_feature(request, organization):
-            return Response(status=404)
-
-        project = self.get_project(request, organization)
-
-        transaction = request.GET.get("transaction")
-
-        try:
-            KeyTransaction.objects.get(
-                organization=organization,
-                owner=request.user,
-                project=project,
-                transaction=transaction,
-            )
-            return Response({"isKey": True}, status=200)
-        except KeyTransaction.DoesNotExist:
-            return Response({"isKey": False}, status=200)
-
-
 class KeyTransactionEndpoint(KeyTransactionBase):
     permission_classes = (KeyTransactionPermission,)
 
-    def get(self, request, organization):
-        if not self.has_feature(request, organization):
+    def get(self, request: Request, organization) -> Response:
+        if not self.has_feature(organization, request):
             return Response(status=404)
 
         transaction_name = request.GET.get("transaction")
@@ -96,9 +47,9 @@ class KeyTransactionEndpoint(KeyTransactionBase):
 
         return Response(serialize(list(key_teams)), status=200)
 
-    def post(self, request, organization):
+    def post(self, request: Request, organization) -> Response:
         """Create a Key Transaction"""
-        if not self.has_feature(request, organization):
+        if not self.has_feature(organization, request):
             return Response(status=404)
 
         project = self.get_project(request, organization)
@@ -151,9 +102,9 @@ class KeyTransactionEndpoint(KeyTransactionBase):
 
         return Response(serializer.errors, status=400)
 
-    def delete(self, request, organization):
+    def delete(self, request: Request, organization) -> Response:
         """Remove a Key transaction for a user"""
-        if not self.has_feature(request, organization):
+        if not self.has_feature(organization, request):
             return Response(status=404)
 
         project = self.get_project(request, organization)
@@ -183,8 +134,8 @@ class KeyTransactionEndpoint(KeyTransactionBase):
 class KeyTransactionListEndpoint(KeyTransactionBase):
     permission_classes = (KeyTransactionPermission,)
 
-    def get(self, request, organization):
-        if not self.has_feature(request, organization):
+    def get(self, request: Request, organization) -> Response:
+        if not self.has_feature(organization, request):
             return Response(status=404)
 
         try:

@@ -1,29 +1,29 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import Pagination from 'app/components/pagination';
-import {Panel, PanelBody} from 'app/components/panels';
-import SimilarSpectrum from 'app/components/similarSpectrum';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Group, Organization, Project} from 'app/types';
+import Button from 'sentry/components/button';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import Pagination from 'sentry/components/pagination';
+import {Panel, PanelBody} from 'sentry/components/panels';
+import SimilarSpectrum from 'sentry/components/similarSpectrum';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Group, Organization, Project} from 'sentry/types';
 
 import Item from './item';
 import Toolbar from './toolbar';
 
 type SimilarItem = {
-  issue: Group;
   isBelowThreshold: boolean;
+  issue: Group;
+  aggregate?: {
+    exception: number;
+    message: number;
+  };
   score?: Record<string, number | null>;
   scoresByInterface?: {
     exception: Array<[string, number | null]>;
     message: Array<[string, any | null]>;
-  };
-  aggregate?: {
-    exception: number;
-    message: number;
   };
 };
 
@@ -32,13 +32,13 @@ type DefaultProps = {
 };
 
 type Props = {
-  orgId: Organization['id'];
-  project: Project;
-  onMerge: () => void;
-  v2: boolean;
   groupId: string;
-  pageLinks: string | null;
   items: Array<SimilarItem>;
+  onMerge: () => void;
+  orgId: Organization['id'];
+  pageLinks: string | null;
+  project: Project;
+  v2: boolean;
 } & DefaultProps;
 
 type State = {

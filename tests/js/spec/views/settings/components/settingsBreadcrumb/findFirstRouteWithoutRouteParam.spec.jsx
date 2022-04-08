@@ -1,4 +1,4 @@
-import findFirstRouteWithoutRouteParam from 'app/views/settings/components/settingsBreadcrumb/findFirstRouteWithoutRouteParam';
+import findFirstRouteWithoutRouteParam from 'sentry/views/settings/components/settingsBreadcrumb/findFirstRouteWithoutRouteParam';
 
 describe('findFirstRouteWithoutRouteParam', function () {
   const routes = [

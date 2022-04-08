@@ -1,11 +1,11 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import {Panel, PanelFooter} from 'app/components/panels';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import {Panel, PanelFooter} from 'sentry/components/panels';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 
 import Rules from './rules';
 import {DYNAMIC_SAMPLING_DOC_LINK} from './utils';
@@ -20,9 +20,9 @@ function RulesPanel({
   onAddRule,
   onEditRule,
   onDeleteRule,
-  disabled,
   onUpdateRules,
   isErrorPanel,
+  disabled,
 }: Props) {
   const panelType = isErrorPanel ? t('error') : t('transaction');
   return (
@@ -36,11 +36,11 @@ function RulesPanel({
         emptyMessage={t('There are no %s rules to display', panelType)}
       />
       <StyledPanelFooter>
-        <ButtonBar gap={1}>
+        <StyledButtonBar gap={1}>
           <Button href={DYNAMIC_SAMPLING_DOC_LINK} external>
             {t('Read the docs')}
           </Button>
-          <Button
+          <AddRuleButton
             priority="primary"
             onClick={onAddRule}
             disabled={disabled}
@@ -51,8 +51,8 @@ function RulesPanel({
             }
           >
             {t('Add %s rule', panelType)}
-          </Button>
-        </ButtonBar>
+          </AddRuleButton>
+        </StyledButtonBar>
       </StyledPanelFooter>
     </Panel>
   );
@@ -62,7 +62,22 @@ export default RulesPanel;
 
 const StyledPanelFooter = styled(PanelFooter)`
   padding: ${space(1)} ${space(2)};
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+  }
+`;
+
+const StyledButtonBar = styled(ButtonBar)`
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    grid-auto-flow: row;
+    grid-row-gap: ${space(1)};
+  }
+`;
+
+const AddRuleButton = styled(Button)`
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    width: 100%;
+  }
 `;

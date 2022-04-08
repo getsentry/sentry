@@ -1,11 +1,11 @@
 import * as React from 'react';
 
-import Button from 'app/components/button';
-import ExternalLink from 'app/components/links/externalLink';
-import {IconBitbucket, IconGithub, IconGitlab, IconVsts} from 'app/icons';
-import {t} from 'app/locale';
-import {Repository} from 'app/types';
-import {getShortCommitHash} from 'app/utils';
+import Button from 'sentry/components/button';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {IconBitbucket, IconGithub, IconGitlab, IconVsts} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {Repository} from 'sentry/types';
+import {getShortCommitHash} from 'sentry/utils';
 
 type CommitFormatterParameters = {
   baseUrl: string;
@@ -13,9 +13,9 @@ type CommitFormatterParameters = {
 };
 
 type CommitProvider = {
+  commitUrl: (opts: CommitFormatterParameters) => string;
   icon: React.ReactNode;
   providerIds: string[];
-  commitUrl: (CommitFormatterParameters) => string;
 };
 
 // TODO(epurkhiser, jess): This should be moved into plugins.
@@ -44,8 +44,8 @@ const SUPPORTED_PROVIDERS: Readonly<CommitProvider[]> = [
 
 type Props = {
   commitId: string;
-  repository?: Repository;
   inline?: boolean;
+  repository?: Repository;
 };
 
 function CommitLink({inline, commitId, repository}: Props) {

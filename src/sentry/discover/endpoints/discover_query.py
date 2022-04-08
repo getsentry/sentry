@@ -2,6 +2,7 @@ import logging
 from copy import deepcopy
 from functools import partial
 
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
@@ -10,6 +11,7 @@ from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.discover.utils import transform_aliases_and_query
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import snuba
 from sentry.utils.compat import map
 
@@ -24,8 +26,17 @@ class DiscoverQueryPermission(OrganizationPermission):
 
 class DiscoverQueryEndpoint(OrganizationEndpoint):
     permission_classes = (DiscoverQueryPermission,)
+    enforce_rate_limit = True
 
-    def has_feature(self, request, organization):
+    rate_limits = {
+        "POST": {
+            RateLimitCategory.IP: RateLimit(4, 1),
+            RateLimitCategory.USER: RateLimit(4, 1),
+            RateLimitCategory.ORGANIZATION: RateLimit(4, 1),
+        }
+    }
+
+    def has_feature(self, request: Request, organization):
         return features.has(
             "organizations:discover", organization, actor=request.user
         ) or features.has("organizations:discover-basic", organization, actor=request.user)
@@ -104,7 +115,7 @@ class DiscoverQueryEndpoint(OrganizationEndpoint):
                 self.handle_results(snuba_results, requested_query, projects), status=200
             )
 
-    def post(self, request, organization):
+    def post(self, request: Request, organization) -> Response:
         if not self.has_feature(request, organization):
             return Response(status=404)
         logger.info("discover1.request", extra={"organization_id": organization.id})

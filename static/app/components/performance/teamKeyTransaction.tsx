@@ -1,37 +1,37 @@
-import {Component, ComponentClass, Fragment, ReactPortal} from 'react';
-import ReactDOM from 'react-dom';
+import {Component, Fragment} from 'react';
+import {createPortal} from 'react-dom';
 import {Manager, Popper, Reference} from 'react-popper';
 import styled from '@emotion/styled';
 import * as PopperJS from 'popper.js';
 
-import MenuHeader from 'app/components/actions/menuHeader';
-import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
-import {GetActorPropsFn} from 'app/components/dropdownMenu';
-import MenuItem from 'app/components/menuItem';
-import {TeamSelection} from 'app/components/performance/teamKeyTransactionsManager';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Project, Team} from 'app/types';
-import {defined} from 'app/utils';
-import {MAX_TEAM_KEY_TRANSACTIONS} from 'app/utils/performance/constants';
+import MenuHeader from 'sentry/components/actions/menuHeader';
+import CheckboxFancy from 'sentry/components/checkboxFancy/checkboxFancy';
+import {GetActorPropsFn} from 'sentry/components/dropdownMenu';
+import MenuItem from 'sentry/components/menuItem';
+import {TeamSelection} from 'sentry/components/performance/teamKeyTransactionsManager';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Project, Team} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import {MAX_TEAM_KEY_TRANSACTIONS} from 'sentry/utils/performance/constants';
 
 export type TitleProps = Partial<ReturnType<GetActorPropsFn>> & {
   isOpen: boolean;
   keyedTeams: Team[] | null;
-  initialValue?: number;
   disabled?: boolean;
+  initialValue?: number;
 };
 
 type Props = {
-  isLoading: boolean;
-  error: string | null;
-  title: ComponentClass<TitleProps>;
-  handleToggleKeyTransaction: (selection: TeamSelection) => void;
-  teams: Team[];
-  project: Project;
-  transactionName: string;
-  keyedTeams: Set<string> | null;
   counts: Map<string, number> | null;
+  error: string | null;
+  handleToggleKeyTransaction: (selection: TeamSelection) => void;
+  isLoading: boolean;
+  keyedTeams: Set<string> | null;
+  project: Project;
+  teams: Team[];
+  title: React.ComponentClass<TitleProps>;
+  transactionName: string;
   initialValue?: number;
 };
 
@@ -201,7 +201,7 @@ class TeamKeyTransaction extends Component<Props, State> {
     );
   }
 
-  renderMenu(): ReactPortal | null {
+  renderMenu(): React.ReactPortal | null {
     const {isLoading, counts, keyedTeams} = this.props;
 
     if (isLoading || !defined(counts) || !defined(keyedTeams)) {
@@ -219,7 +219,7 @@ class TeamKeyTransaction extends Component<Props, State> {
       },
     };
 
-    return ReactDOM.createPortal(
+    return createPortal(
       <Popper placement="top" modifiers={modifiers}>
         {({ref: popperRef, style, placement}) => (
           <DropdownWrapper
@@ -242,13 +242,13 @@ class TeamKeyTransaction extends Component<Props, State> {
     const {isLoading, error, title: Title, keyedTeams, initialValue, teams} = this.props;
     const {isOpen} = this.state;
 
-    const menu: ReactPortal | null = isOpen ? this.renderMenu() : null;
+    const menu: React.ReactPortal | null = isOpen ? this.renderMenu() : null;
 
     return (
       <Manager>
         <Reference>
           {({ref}) => (
-            <div ref={ref}>
+            <StarWrapper ref={ref}>
               <Title
                 isOpen={isOpen}
                 disabled={isLoading || Boolean(error)}
@@ -258,7 +258,7 @@ class TeamKeyTransaction extends Component<Props, State> {
                 initialValue={initialValue}
                 onClick={this.toggleOpen}
               />
-            </div>
+            </StarWrapper>
           )}
         </Reference>
         {menu}
@@ -268,8 +268,8 @@ class TeamKeyTransaction extends Component<Props, State> {
 }
 
 type ItemProps = {
-  team: Team;
   disabled: boolean;
+  team: Team;
   isKeyed?: boolean;
   onSelect?: () => void;
 };
@@ -295,6 +295,15 @@ function TeamKeyTransactionItem({team, isKeyed, disabled, onSelect}: ItemProps) 
     </DropdownMenuItem>
   );
 }
+
+const StarWrapper = styled('div')`
+  display: flex;
+
+  /* Fixes Star when it’s filled and is wrapped around Tooltip */
+  & > span {
+    display: flex;
+  }
+`;
 
 const DropdownWrapper = styled('div')`
   /* Adapted from the dropdown-menu class */
@@ -362,6 +371,7 @@ const DropdownWrapper = styled('div')`
 
 const DropdownContent = styled('div')`
   max-height: 250px;
+  pointer-events: auto;
   overflow-y: auto;
 `;
 

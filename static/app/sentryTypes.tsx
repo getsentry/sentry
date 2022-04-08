@@ -1,22 +1,10 @@
-import PropTypes from 'prop-types';
-
-const Metadata = PropTypes.shape({
-  value: PropTypes.string,
-  message: PropTypes.string,
-  directive: PropTypes.string,
-  type: PropTypes.string,
-  title: PropTypes.string,
-  uri: PropTypes.string,
-});
+import * as PropTypes from 'prop-types';
 
 const Avatar = PropTypes.shape({
   avatarType: PropTypes.oneOf(['letter_avatar', 'upload', 'gravatar']),
   avatarUuid: PropTypes.string,
 });
 
-/**
- * A User is someone that has registered on Sentry
- */
 const User = PropTypes.shape({
   avatar: Avatar,
   avatarUrl: PropTypes.string,
@@ -40,16 +28,9 @@ const User = PropTypes.shape({
   username: PropTypes.string,
 });
 
-const EventOrGroupType = PropTypes.oneOf([
-  'error',
-  'csp',
-  'hpkp',
-  'expectct',
-  'expectstaple',
-  'default',
-  'transaction',
-]);
-
+/**
+ * @deprecated
+ */
 const Group = PropTypes.shape({
   id: PropTypes.string.isRequired,
   annotations: PropTypes.array,
@@ -64,7 +45,14 @@ const Group = PropTypes.shape({
   lastSeen: PropTypes.string,
   level: PropTypes.string,
   logger: PropTypes.string,
-  metadata: Metadata,
+  metadata: PropTypes.shape({
+    value: PropTypes.string,
+    message: PropTypes.string,
+    directive: PropTypes.string,
+    type: PropTypes.string,
+    title: PropTypes.string,
+    uri: PropTypes.string,
+  }),
   numComments: PropTypes.number,
   permalink: PropTypes.string,
   project: PropTypes.shape({
@@ -76,7 +64,15 @@ const Group = PropTypes.shape({
   status: PropTypes.string,
   statusDetails: PropTypes.object,
   title: PropTypes.string,
-  type: EventOrGroupType,
+  type: PropTypes.oneOf([
+    'error',
+    'csp',
+    'hpkp',
+    'expectct',
+    'expectstaple',
+    'default',
+    'transaction',
+  ]),
   userCount: PropTypes.number,
 });
 
@@ -85,6 +81,9 @@ const Team = PropTypes.shape({
   slug: PropTypes.string.isRequired,
 });
 
+/**
+ * @deprecated
+ */
 const Project = PropTypes.shape({
   // snuba returns id as number
   id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
@@ -97,13 +96,13 @@ const Project = PropTypes.shape({
   status: PropTypes.string,
 });
 
+/**
+ * @deprecated
+ */
 const Organization = PropTypes.shape({
   id: PropTypes.string.isRequired,
 });
 
-export default {
-  Group,
-  Organization,
-  Project,
-  User,
-};
+const SentryTypes = {Group, Organization, Project};
+
+export default SentryTypes;

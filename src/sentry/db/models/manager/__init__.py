@@ -5,7 +5,7 @@ from django.utils.encoding import smart_text
 
 from sentry.utils.hashlib import md5_text
 
-__all__ = ("BaseManager", "BaseQuerySet", "OptionManager", "Value", "ValidateFunction")
+__all__ = ("BaseManager", "BaseQuerySet", "OptionManager", "M", "Value", "ValidateFunction")
 
 M = TypeVar("M", bound=Model)
 Value = Any

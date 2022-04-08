@@ -2,28 +2,28 @@ import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {Client} from 'app/api';
-import Button from 'app/components/button';
-import ClippedBox from 'app/components/clippedBox';
-import Confirm from 'app/components/confirm';
-import Link from 'app/components/links/link';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import {IconDelete} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Scope} from 'app/types';
-import recreateRoute from 'app/utils/recreateRoute';
-import ProjectKeyCredentials from 'app/views/settings/project/projectKeys/projectKeyCredentials';
-import {ProjectKey} from 'app/views/settings/project/projectKeys/types';
+import {Client} from 'sentry/api';
+import Button from 'sentry/components/button';
+import ClippedBox from 'sentry/components/clippedBox';
+import Confirm from 'sentry/components/confirm';
+import Link from 'sentry/components/links/link';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import {IconDelete} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Scope} from 'sentry/types';
+import recreateRoute from 'sentry/utils/recreateRoute';
+import ProjectKeyCredentials from 'sentry/views/settings/project/projectKeys/projectKeyCredentials';
+import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
 type Props = {
+  access: Set<Scope>;
   api: Client;
+  data: ProjectKey;
+  onRemove: (data: ProjectKey) => void;
+  onToggle: (isActive: boolean, data: ProjectKey) => void;
   orgId: string;
   projectId: string;
-  data: ProjectKey;
-  access: Set<Scope>;
-  onToggle: (isActive: boolean, data: ProjectKey) => void;
-  onRemove: (data: ProjectKey) => void;
 } & Pick<RouteComponentProps<{}, {}>, 'routes' | 'location' | 'params'>;
 
 class KeyRow extends Component<Props> {
@@ -69,7 +69,12 @@ class KeyRow extends Component<Props> {
           'Are you sure you want to remove this key? This action is irreversible.'
         )}
       >
-        <Button size="small" disabled={!controlActive} icon={<IconDelete />} />
+        <Button
+          size="small"
+          disabled={!controlActive}
+          icon={<IconDelete />}
+          aria-label={t('Delete')}
+        />
       </Confirm>,
     ];
 
@@ -125,7 +130,7 @@ const Title = styled('div')<{disabled: boolean}>`
 const Controls = styled('div')`
   display: grid;
   align-items: center;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   grid-auto-flow: column;
 `;
 

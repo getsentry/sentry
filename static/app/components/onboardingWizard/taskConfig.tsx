@@ -1,12 +1,12 @@
 import styled from '@emotion/styled';
 
-import {openInviteMembersModal} from 'app/actionCreators/modal';
-import {Client} from 'app/api';
-import {taskIsDone} from 'app/components/onboardingWizard/utils';
-import {sourceMaps} from 'app/data/platformCategories';
-import {t} from 'app/locale';
-import pulsingIndicatorStyles from 'app/styles/pulsingIndicator';
-import space from 'app/styles/space';
+import {openInviteMembersModal} from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
+import {taskIsDone} from 'sentry/components/onboardingWizard/utils';
+import {sourceMaps} from 'sentry/data/platformCategories';
+import {t} from 'sentry/locale';
+import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
+import space from 'sentry/styles/space';
 import {
   OnboardingSupplementComponentProps,
   OnboardingTask,
@@ -14,28 +14,36 @@ import {
   OnboardingTaskKey,
   Organization,
   Project,
-} from 'app/types';
-import EventWaiter from 'app/utils/eventWaiter';
-import withApi from 'app/utils/withApi';
-import withProjects from 'app/utils/withProjects';
+} from 'sentry/types';
+import EventWaiter from 'sentry/utils/eventWaiter';
+import withApi from 'sentry/utils/withApi';
 
-function hasPlatformWithSourceMaps(organization: Organization): boolean {
-  const projects = organization?.projects;
-  if (!projects) {
-    return false;
-  }
-
-  return projects.some(({platform}) => platform && sourceMaps.includes(platform));
+function hasPlatformWithSourceMaps(projects: Project[] | undefined) {
+  return projects !== undefined
+    ? projects.some(({platform}) => platform && sourceMaps.includes(platform))
+    : false;
 }
 
 type FirstEventWaiterProps = OnboardingSupplementComponentProps & {
   api: Client;
-  projects: Project[];
 };
 
-export function getOnboardingTasks(
-  organization: Organization
-): OnboardingTaskDescriptor[] {
+type Options = {
+  /**
+   * The organization to show onboarding tasks for
+   */
+  organization: Organization;
+  /**
+   * A list of the organizations projects. This is used for some onboarding
+   * tasks to show additional task details (such as for suggesting sourcemaps)
+   */
+  projects?: Project[];
+};
+
+export function getOnboardingTasks({
+  organization,
+  projects,
+}: Options): OnboardingTaskDescriptor[] {
   return [
     {
       task: OnboardingTaskKey.FIRST_PROJECT,
@@ -60,22 +68,18 @@ export function getOnboardingTasks(
       actionType: 'app',
       location: `/settings/${organization.slug}/projects/:projectId/install/`,
       display: true,
-      SupplementComponent: withProjects(
-        withApi(({api, task, projects, onCompleteTask}: FirstEventWaiterProps) =>
-          projects.length > 0 &&
-          task.requisiteTasks.length === 0 &&
-          !task.completionSeen ? (
-            <EventWaiter
-              api={api}
-              organization={organization}
-              project={projects[0]}
-              eventType="error"
-              onIssueReceived={() => !taskIsDone(task) && onCompleteTask()}
-            >
-              {() => <EventWaitingIndicator />}
-            </EventWaiter>
-          ) : null
-        )
+      SupplementComponent: withApi(({api, task, onCompleteTask}: FirstEventWaiterProps) =>
+        !!projects?.length && task.requisiteTasks.length === 0 && !task.completionSeen ? (
+          <EventWaiter
+            api={api}
+            organization={organization}
+            project={projects[0]}
+            eventType="error"
+            onIssueReceived={() => !taskIsDone(task) && onCompleteTask()}
+          >
+            {() => <EventWaitingIndicator />}
+          </EventWaiter>
+        ) : null
       ),
     },
     {
@@ -94,7 +98,7 @@ export function getOnboardingTasks(
       task: OnboardingTaskKey.SECOND_PLATFORM,
       title: t('Create another project'),
       description: t(
-        'Easy, right? Don’t stop at one. Set up another project to keep things running smoothly in both the frontend and backend.'
+        'Easy, right? Don’t stop at one. Set up another project and send it events to keep things running smoothly in both the frontend and backend.'
       ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
@@ -113,22 +117,18 @@ export function getOnboardingTasks(
       actionType: 'external',
       location: 'https://docs.sentry.io/product/performance/getting-started/',
       display: true,
-      SupplementComponent: withProjects(
-        withApi(({api, task, projects, onCompleteTask}: FirstEventWaiterProps) =>
-          projects.length > 0 &&
-          task.requisiteTasks.length === 0 &&
-          !task.completionSeen ? (
-            <EventWaiter
-              api={api}
-              organization={organization}
-              project={projects[0]}
-              eventType="transaction"
-              onIssueReceived={() => !taskIsDone(task) && onCompleteTask()}
-            >
-              {() => <EventWaitingIndicator />}
-            </EventWaiter>
-          ) : null
-        )
+      SupplementComponent: withApi(({api, task, onCompleteTask}: FirstEventWaiterProps) =>
+        !!projects?.length && task.requisiteTasks.length === 0 && !task.completionSeen ? (
+          <EventWaiter
+            api={api}
+            organization={organization}
+            project={projects[0]}
+            eventType="transaction"
+            onIssueReceived={() => !taskIsDone(task) && onCompleteTask()}
+          >
+            {() => <EventWaitingIndicator />}
+          </EventWaiter>
+        ) : null
       ),
     },
     {
@@ -166,7 +166,7 @@ export function getOnboardingTasks(
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
       actionType: 'external',
       location: 'https://docs.sentry.io/platforms/javascript/sourcemaps/',
-      display: hasPlatformWithSourceMaps(organization),
+      display: hasPlatformWithSourceMaps(projects),
     },
     {
       task: OnboardingTaskKey.USER_REPORTS,
@@ -207,8 +207,8 @@ export function getOnboardingTasks(
   ];
 }
 
-export function getMergedTasks(organization: Organization) {
-  const taskDescriptors = getOnboardingTasks(organization);
+export function getMergedTasks({organization, projects}: Options) {
+  const taskDescriptors = getOnboardingTasks({organization, projects});
   const serverTasks = organization.onboardingTasks;
 
   // Map server task state (i.e. completed status) with tasks objects
@@ -235,7 +235,7 @@ const PulsingIndicator = styled('div')`
   margin-right: ${space(1)};
 `;
 
-const EventWaitingIndicator = styled(p => (
+const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) => (
   <div {...p}>
     <PulsingIndicator />
     {t('Waiting for event')}
@@ -245,5 +245,5 @@ const EventWaitingIndicator = styled(p => (
   align-items: center;
   flex-grow: 1;
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.orange400};
+  color: ${p => p.theme.pink300};
 `;

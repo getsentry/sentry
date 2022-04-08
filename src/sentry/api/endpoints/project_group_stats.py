@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import EnvironmentMixin, StatsMixin
@@ -5,10 +6,20 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.app import tsdb
 from sentry.models import Environment, Group
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 class ProjectGroupStatsEndpoint(ProjectEndpoint, EnvironmentMixin, StatsMixin):
-    def get(self, request, project):
+    enforce_rate_limit = True
+    rate_limits = {
+        "GET": {
+            RateLimitCategory.IP: RateLimit(20, 1),
+            RateLimitCategory.USER: RateLimit(20, 1),
+            RateLimitCategory.ORGANIZATION: RateLimit(20, 1),
+        }
+    }
+
+    def get(self, request: Request, project) -> Response:
         try:
             environment_id = self._get_environment_id_from_request(request, project.organization_id)
         except Environment.DoesNotExist:

@@ -1,72 +1,77 @@
-import * as React from 'react';
 import styled from '@emotion/styled';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {update} from 'app/actionCreators/projects';
-import {Client} from 'app/api';
-import {IconStar} from 'app/icons';
-import {t} from 'app/locale';
-import {Organization, Project} from 'app/types';
-import {defined} from 'app/utils';
-import withApi from 'app/utils/withApi';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {update} from 'sentry/actionCreators/projects';
+import Button from 'sentry/components/button';
+import {IconStar} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import useApi from 'sentry/utils/useApi';
 
 type Props = {
-  api: Client;
   organization: Organization;
   project: Project;
-  /* used to override when under local state */
-  isBookmarked?: boolean;
   className?: string;
+  /**
+   * Allows the bookmarked state of the project to be overriden. Useful for
+   * optimistic updates.
+   */
+  isBookmarked?: boolean;
   onToggle?: (isBookmarked: boolean) => void;
 };
 
-const BookmarkStar = ({
-  api,
-  isBookmarked: isBookmarkedProp,
-  className,
-  organization,
-  project,
-  onToggle,
-}: Props) => {
-  const isBookmarked = defined(isBookmarkedProp)
-    ? isBookmarkedProp
-    : project.isBookmarked;
+const BookmarkStar = styled(
+  ({
+    isBookmarked: isBookmarkedProp,
+    className,
+    organization,
+    project,
+    onToggle,
+  }: Props) => {
+    const api = useApi();
 
-  const toggleProjectBookmark = (event: React.MouseEvent) => {
-    update(api, {
-      orgId: organization.slug,
-      projectId: project.slug,
-      data: {isBookmarked: !isBookmarked},
-    }).catch(() => {
-      addErrorMessage(t('Unable to toggle bookmark for %s', project.slug));
-    });
+    const isBookmarked = defined(isBookmarkedProp)
+      ? isBookmarkedProp
+      : project.isBookmarked;
 
-    // needed to dismiss tooltip
-    (document.activeElement as HTMLElement).blur();
+    const toggleProjectBookmark = (event: React.MouseEvent) => {
+      update(api, {
+        orgId: organization.slug,
+        projectId: project.slug,
+        data: {isBookmarked: !isBookmarked},
+      }).catch(() =>
+        addErrorMessage(t('Unable to toggle bookmark for %s', project.slug))
+      );
 
-    // prevent dropdowns from closing
-    event.stopPropagation();
+      // prevent dropdowns from closing
+      event.stopPropagation();
 
-    if (onToggle) {
-      onToggle(!isBookmarked);
-    }
-  };
+      onToggle?.(!isBookmarked);
+    };
 
-  return (
-    <Star
-      isBookmarked={isBookmarked}
-      isSolid={isBookmarked}
-      onClick={toggleProjectBookmark}
-      className={className}
-    />
-  );
-};
-
-const Star = styled(IconStar, {shouldForwardProp: p => p !== 'isBookmarked'})<{
-  isBookmarked: boolean;
-}>`
-  color: ${p => (p.isBookmarked ? p.theme.yellow300 : p.theme.gray200)};
-  cursor: pointer;
+    return (
+      <Button
+        aria-label="Bookmark Project"
+        aria-pressed={isBookmarked}
+        onClick={toggleProjectBookmark}
+        size="zero"
+        priority="link"
+        className={className}
+        icon={
+          <IconStar
+            color={isBookmarked ? 'yellow300' : 'subText'}
+            isSolid={isBookmarked}
+          />
+        }
+      />
+    );
+  }
+)`
+  &:hover svg {
+    fill: ${p =>
+      p.project.isBookmarked || p.isBookmarked ? p.theme.yellow400 : p.theme.textColor};
+  }
 `;
 
-export default withApi(BookmarkStar);
+export default BookmarkStar;

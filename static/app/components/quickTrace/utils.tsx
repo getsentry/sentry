@@ -1,21 +1,24 @@
 import {Location, LocationDescriptor} from 'history';
 
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
-import {OrganizationSummary} from 'app/types';
-import {Event} from 'app/types/event';
-import {defined} from 'app/utils';
-import EventView from 'app/utils/discover/eventView';
-import {eventDetailsRouteWithEventView, generateEventSlug} from 'app/utils/discover/urls';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import {OrganizationSummary} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import {defined} from 'sentry/utils';
+import EventView from 'sentry/utils/discover/eventView';
+import {
+  eventDetailsRouteWithEventView,
+  generateEventSlug,
+} from 'sentry/utils/discover/urls';
 import {
   EventLite,
   QuickTraceEvent,
   TraceError,
-} from 'app/utils/performance/quickTrace/types';
-import {getTraceTimeRangeFromEvent} from 'app/utils/performance/quickTrace/utils';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
-import {getTraceDetailsUrl} from 'app/views/performance/traceDetails/utils';
-import {getTransactionDetailsUrl} from 'app/views/performance/utils';
+} from 'sentry/utils/performance/quickTrace/types';
+import {getTraceTimeRangeFromEvent} from 'sentry/utils/performance/quickTrace/utils';
+import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 export function isQuickTraceEvent(
   event: QuickTraceEvent | TraceError
@@ -47,7 +50,7 @@ function generatePerformanceEventTarget(
     ...location.query,
     project: String(event.project_id),
   };
-  return getTransactionDetailsUrl(organization, eventSlug, event.transaction, query);
+  return getTransactionDetailsUrl(organization.slug, eventSlug, event.transaction, query);
 }
 
 function generateDiscoverEventTarget(
@@ -140,7 +143,7 @@ export function generateTraceTarget(
 ): LocationDescriptor {
   const traceId = event.contexts?.trace?.trace_id ?? '';
 
-  const dateSelection = getParams(getTraceTimeRangeFromEvent(event));
+  const dateSelection = normalizeDateTimeParams(getTraceTimeRangeFromEvent(event));
 
   if (organization.features.includes('performance-view')) {
     // TODO(txiao): Should this persist the current query when going to trace view?

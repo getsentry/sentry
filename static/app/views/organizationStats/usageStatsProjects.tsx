@@ -3,39 +3,40 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {LocationDescriptorObject} from 'history';
 
-import AsyncComponent from 'app/components/asyncComponent';
-import {DateTimeObject, getSeriesApiInterval} from 'app/components/charts/utils';
-import SortLink, {Alignments, Directions} from 'app/components/gridEditable/sortLink';
-import Pagination from 'app/components/pagination';
-import SearchBar from 'app/components/searchBar';
-import {DEFAULT_STATS_PERIOD} from 'app/constants';
-import {t} from 'app/locale';
-import {DataCategory, Organization, Project} from 'app/types';
-import withProjects from 'app/utils/withProjects';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import {DateTimeObject, getSeriesApiInterval} from 'sentry/components/charts/utils';
+import SortLink, {Alignments, Directions} from 'sentry/components/gridEditable/sortLink';
+import Pagination from 'sentry/components/pagination';
+import SearchBar from 'sentry/components/searchBar';
+import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {DataCategory, Organization, Project} from 'sentry/types';
+import withProjects from 'sentry/utils/withProjects';
 
-import {UsageSeries} from './types';
+import {Outcome, UsageSeries} from './types';
 import UsageTable, {CellProject, CellStat, TableStat} from './usageTable';
 
 type Props = {
-  organization: Organization;
-  projects: Project[];
-  loadingProjects: boolean;
-
   dataCategory: DataCategory;
   dataCategoryName: string;
   dataDatetime: DateTimeObject;
-  tableSort?: string;
-  tableQuery?: string;
-  tableCursor?: string;
+
+  getNextLocations: (project: Project) => Record<string, LocationDescriptorObject>;
   handleChangeState: (
     nextState: {
-      sort?: string;
-      query?: string;
       cursor?: string;
+      query?: string;
+      sort?: string;
     },
     options?: {willUpdateRouter?: boolean}
   ) => LocationDescriptorObject;
-  getNextLocations: (project: Project) => Record<string, LocationDescriptorObject>;
+  loadingProjects: boolean;
+  organization: Organization;
+  projects: Project[];
+  tableCursor?: string;
+  tableQuery?: string;
+  tableSort?: string;
 } & AsyncComponent['props'];
 
 type State = {
@@ -114,8 +115,8 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
   }
 
   get tableSort(): {
-    key: SortBy;
     direction: number;
+    key: SortBy;
   } {
     const {tableSort} = this.props;
 
@@ -334,15 +335,17 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
           stats[projectId] = {...baseStat};
         }
 
-        stats[projectId].total += group.totals['sum(quantity)'];
+        if (outcome !== Outcome.CLIENT_DISCARD) {
+          stats[projectId].total += group.totals['sum(quantity)'];
+        }
 
-        if (
-          outcome === SortBy.ACCEPTED ||
-          outcome === SortBy.FILTERED ||
-          outcome === SortBy.DROPPED
-        ) {
+        if (outcome === Outcome.ACCEPTED || outcome === Outcome.FILTERED) {
           stats[projectId][outcome] += group.totals['sum(quantity)'];
-        } else {
+        } else if (
+          outcome === Outcome.RATE_LIMITED ||
+          outcome === Outcome.INVALID ||
+          outcome === Outcome.DROPPED
+        ) {
           stats[projectId][SortBy.DROPPED] += group.totals['sum(quantity)'];
         }
       });
@@ -397,16 +400,16 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
 
     return (
       <Fragment>
-        <GridRow>
+        <Container>
           <SearchBar
             defaultQuery=""
             query={tableQuery}
             placeholder={t('Filter your projects')}
             onSearch={this.handleSearch}
           />
-        </GridRow>
+        </Container>
 
-        <GridRow>
+        <Container>
           <UsageTable
             isLoading={loading || loadingProjects}
             isError={error}
@@ -417,7 +420,7 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
             usageStats={tableStats}
           />
           <Pagination pageLinks={this.pageLink} />
-        </GridRow>
+        </Container>
       </Fragment>
     );
   }
@@ -425,6 +428,6 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
 
 export default withProjects(UsageStatsProjects);
 
-const GridRow = styled('div')`
-  grid-column: 1 / -1;
+const Container = styled('div')`
+  margin-bottom: ${space(2)};
 `;

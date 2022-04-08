@@ -1,3 +1,6 @@
+from rest_framework.request import Request
+from rest_framework.response import Response
+
 import sentry
 from sentry.plugins.bases import ReleaseTrackingPlugin
 from sentry.plugins.interfaces.releasehook import ReleaseHook
@@ -13,7 +16,7 @@ DOC_HTML = """
 
 
 class FreightReleaseHook(ReleaseHook):
-    def handle(self, request):
+    def handle(self, request: Request) -> Response:
         data = json.loads(request.body)
         if data["event"] == "started":
             self.start_release(version=data["sha"], ref=data["ref"], url=data["link"])

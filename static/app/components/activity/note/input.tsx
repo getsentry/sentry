@@ -3,16 +3,16 @@ import {Mention, MentionsInput, MentionsInputProps} from 'react-mentions';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import NavTabs from 'app/components/navTabs';
-import {IconMarkdown} from 'app/icons';
-import {t} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
-import space from 'app/styles/space';
-import textStyles from 'app/styles/text';
-import {NoteType} from 'app/types/alerts';
-import marked from 'app/utils/marked';
-import {Theme} from 'app/utils/theme';
+import Button, {ButtonPropsWithoutAriaLabel} from 'sentry/components/button';
+import NavTabs from 'sentry/components/navTabs';
+import {IconMarkdown} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import space from 'sentry/styles/space';
+import textStyles from 'sentry/styles/text';
+import {NoteType} from 'sentry/types/alerts';
+import marked from 'sentry/utils/marked';
+import {Theme} from 'sentry/utils/theme';
 
 import Mentionables from './mentionables';
 import mentionStyle from './mentionStyle';
@@ -25,31 +25,31 @@ const defaultProps = {
 };
 
 type Props = {
-  teams: Mentionable[];
   memberList: Mentionable[];
+  teams: Mentionable[];
+  theme: Theme;
+  error?: boolean;
+  errorJSON?: CreateError | null;
   /**
    * This is the id of the note object from the server
    * This is to indicate you are editing an existing item
    */
   modelId?: string;
+  onChange?: (e: MentionChangeEvent, extra: {updating?: boolean}) => void;
+  onCreate?: (data: NoteType) => void;
+  onEditFinish?: () => void;
+  onUpdate?: (data: NoteType) => void;
   /**
    * The note text itself
    */
   text?: string;
-  error?: boolean;
-  errorJSON?: CreateError | null;
-  onEditFinish?: () => void;
-  onUpdate?: (data: NoteType) => void;
-  onCreate?: (data: NoteType) => void;
-  onChange?: (e: MentionChangeEvent, extra: {updating?: boolean}) => void;
-  theme: Theme;
 } & typeof defaultProps;
 
 type State = {
-  preview: boolean;
-  value: string;
   memberMentions: Mentioned[];
+  preview: boolean;
   teamMentions: Mentioned[];
+  value: string;
 };
 
 class NoteInputComponent extends React.Component<Props, State> {
@@ -59,6 +59,10 @@ class NoteInputComponent extends React.Component<Props, State> {
     memberMentions: [],
     teamMentions: [],
   };
+
+  get canSubmit() {
+    return this.state.value.trim() !== '';
+  }
 
   cleanMarkdown(text: string) {
     return text
@@ -131,8 +135,8 @@ class NoteInputComponent extends React.Component<Props, State> {
   };
 
   handleKeyDown: MentionsInputProps['onKeyDown'] = e => {
-    // Auto submit the form on [meta] + Enter
-    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+    // Auto submit the form on [meta,ctrl] + Enter
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && this.canSubmit) {
       this.submitForm();
     }
   };
@@ -236,7 +240,11 @@ class NoteInputComponent extends React.Component<Props, State> {
                 {t('Cancel')}
               </FooterButton>
             )}
-            <FooterButton error={errorMessage} type="submit" disabled={busy}>
+            <FooterButton
+              error={errorMessage}
+              type="submit"
+              disabled={busy || !this.canSubmit}
+            >
               {btnText}
             </FooterButton>
           </div>
@@ -296,7 +304,7 @@ const getNotePreviewCss = (p: NotePreviewProps) => {
 `;
 };
 
-const getNoteInputErrorStyles = (p: {error?: string; theme: Theme}) => {
+const getNoteInputErrorStyles = (p: {theme: Theme; error?: string}) => {
   if (!p.error) {
     return '';
   }
@@ -355,9 +363,9 @@ const Footer = styled('div')`
   padding-left: ${space(1.5)};
 `;
 
-type FooterButtonProps = {
+interface FooterButtonProps extends ButtonPropsWithoutAriaLabel {
   error?: string | null;
-} & React.ComponentProps<typeof Button>;
+}
 
 const FooterButton = styled(Button)<FooterButtonProps>`
   font-size: 13px;

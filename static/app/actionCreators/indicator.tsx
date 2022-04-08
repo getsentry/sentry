@@ -2,31 +2,31 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import IndicatorActions from 'app/actions/indicatorActions';
-import {DEFAULT_TOAST_DURATION} from 'app/constants';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import FormModel, {FieldValue} from 'app/views/settings/components/forms/model';
+import IndicatorActions from 'sentry/actions/indicatorActions';
+import FormModel, {FieldValue} from 'sentry/components/forms/model';
+import {DEFAULT_TOAST_DURATION} from 'sentry/constants';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
 
 type IndicatorType = 'loading' | 'error' | 'success' | 'undo' | '';
 
 type Options = {
-  duration?: number;
   append?: boolean;
+  disableDismiss?: boolean;
+  duration?: number;
   modelArg?: {
-    model: FormModel;
     id: string;
+    model: FormModel;
     undo: () => void;
   };
-  disableDismiss?: boolean;
   undo?: () => void;
 };
 
 export type Indicator = {
-  type: IndicatorType;
   id: string | number;
   message: React.ReactNode;
   options: Options;
+  type: IndicatorType;
   clearId?: null | number;
 };
 
@@ -83,7 +83,15 @@ export function addLoadingMessage(
 }
 
 export function addErrorMessage(msg: React.ReactNode, options?: Options) {
-  return addMessageWithType('error')(msg, options);
+  if (typeof msg === 'string' || React.isValidElement(msg)) {
+    return addMessageWithType('error')(msg, options);
+  }
+  return addMessageWithType('error')(
+    t(
+      "You've hit an issue, fortunately we use Sentry to monitor Sentry. So it's likely we're already looking into this!"
+    ),
+    options
+  );
 }
 
 export function addSuccessMessage(msg: React.ReactNode, options?: Options) {
@@ -106,7 +114,7 @@ const prettyFormString = (val: ChangeValue, model: FormModel, fieldName: string)
 
   if (descriptor && typeof descriptor.formatMessageValue === 'function') {
     const initialData = model.initialData;
-    // XXX(epurkhsier): We pass the "props" as the descriptor and initialData.
+    // XXX(epurkhiser): We pass the "props" as the descriptor and initialData.
     // This isn't necessarily all of the props of the form field, but should
     // make up a good portion needed for formatting.
     return descriptor.formatMessageValue(val, {...descriptor, initialData});
@@ -124,8 +132,8 @@ const prettyFormString = (val: ChangeValue, model: FormModel, fieldName: string)
 type ChangeValue = FieldValue | Record<string, any>;
 
 type Change = {
-  old: ChangeValue;
   new: ChangeValue;
+  old: ChangeValue;
 };
 
 /**

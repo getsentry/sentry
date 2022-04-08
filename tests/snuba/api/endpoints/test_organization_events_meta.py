@@ -1,10 +1,11 @@
+from unittest import mock
+
 from django.urls import reverse
 from pytz import utc
 from rest_framework.exceptions import ParseError
 
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.utils.compat import mock
 
 
 class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase):
@@ -17,12 +18,14 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase):
             "sentry-api-0-organization-events-meta",
             kwargs={"organization_slug": self.project.organization.slug},
         )
+        self.features = {"organizations:discover-basic": True}
 
     def test_simple(self):
 
         self.store_event(data={"timestamp": iso_format(self.min_ago)}, project_id=self.project.id)
 
-        response = self.client.get(self.url, format="json")
+        with self.feature(self.features):
+            response = self.client.get(self.url, format="json")
 
         assert response.status_code == 200, response.content
         assert response.data["count"] == 1
@@ -37,7 +40,8 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase):
 
         assert response.status_code == 400, response.content
 
-        with self.feature("organizations:global-views"):
+        self.features["organizations:global-views"] = True
+        with self.feature(self.features):
             response = self.client.get(self.url, format="json")
 
         assert response.status_code == 200, response.content
@@ -53,13 +57,15 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase):
             project_id=self.project.id,
         )
 
-        response = self.client.get(self.url, {"query": "delete"}, format="json")
+        with self.feature(self.features):
+            response = self.client.get(self.url, {"query": "delete"}, format="json")
 
         assert response.status_code == 200, response.content
         assert response.data["count"] == 1
 
     def test_invalid_query(self):
-        response = self.client.get(self.url, {"query": "is:unresolved"}, format="json")
+        with self.feature(self.features):
+            response = self.client.get(self.url, {"query": "is:unresolved"}, format="json")
 
         assert response.status_code == 400, response.content
 
@@ -70,7 +76,8 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase):
             "sentry-api-0-organization-events-meta",
             kwargs={"organization_slug": no_project_org.slug},
         )
-        response = self.client.get(url, format="json")
+        with self.feature(self.features):
+            response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
         assert response.data["count"] == 0
@@ -91,7 +98,8 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase):
             "sentry-api-0-organization-events-meta",
             kwargs={"organization_slug": self.project.organization.slug},
         )
-        response = self.client.get(url, {"query": "transaction.duration:>1"}, format="json")
+        with self.feature(self.features):
+            response = self.client.get(url, {"query": "transaction.duration:>1"}, format="json")
 
         assert response.status_code == 200, response.content
         assert response.data["count"] == 1
@@ -108,29 +116,33 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase):
             "start_timestamp": iso_format(before_now(minutes=1, seconds=3)),
         }
         self.store_event(data=data, project_id=self.project.id)
-        response = self.client.get(
-            self.url, {"query": "event.type:transaction last_seen():>2012-12-31"}, format="json"
-        )
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url, {"query": "event.type:transaction last_seen():>2012-12-31"}, format="json"
+            )
 
         assert response.status_code == 200, response.content
         assert response.data["count"] == 1
 
     def test_out_of_retention(self):
-        with self.options({"system.event-retention-days": 10}):
-            response = self.client.get(
-                self.url,
-                format="json",
-                data={
-                    "start": iso_format(before_now(days=20)),
-                    "end": iso_format(before_now(days=15)),
-                },
-            )
+        with self.feature(self.features):
+            with self.options({"system.event-retention-days": 10}):
+                response = self.client.get(
+                    self.url,
+                    format="json",
+                    data={
+                        "start": iso_format(before_now(days=20)),
+                        "end": iso_format(before_now(days=15)),
+                    },
+                )
         assert response.status_code == 400
 
     @mock.patch("sentry.snuba.discover.raw_query")
-    def test_handling_snuba_errors(self, mock_query):
+    @mock.patch("sentry.search.events.builder.raw_snql_query")
+    def test_handling_snuba_errors(self, mock_query, mock_snql_query):
         mock_query.side_effect = ParseError("test")
-        with self.feature("organizations:discover-basic"):
+        mock_snql_query.side_effect = ParseError("test")
+        with self.feature(self.features):
             response = self.client.get(self.url, format="json")
 
         assert response.status_code == 400, response.content
@@ -138,7 +150,7 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase):
     @mock.patch("sentry.utils.snuba.quantize_time")
     def test_quantize_dates(self, mock_quantize):
         mock_quantize.return_value = before_now(days=1).replace(tzinfo=utc)
-        with self.feature("organizations:discover-basic"):
+        with self.feature(self.features):
             # Don't quantize short time periods
             self.client.get(
                 self.url,
@@ -169,147 +181,10 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase):
             assert len(mock_quantize.mock_calls) == 2
 
 
-class OrganizationEventBaselineEndpoint(APITestCase, SnubaTestCase):
+class OrganizationEventsMetaEndpointWithSnql(OrganizationEventsMetaEndpoint):
     def setUp(self):
         super().setUp()
-        self.login_as(user=self.user)
-        self.project = self.create_project()
-        self.prototype = {
-            "type": "transaction",
-            "transaction": "api.issue.delete",
-            "spans": [],
-            "contexts": {"trace": {"op": "foobar", "trace_id": "a" * 32, "span_id": "a" * 16}},
-            "tags": {"important": "yes"},
-        }
-        self.url = reverse(
-            "sentry-api-0-organization-event-baseline",
-            kwargs={"organization_slug": self.project.organization.slug},
-        )
-
-    def test_get_baseline_simple(self):
-        for index, event_id in enumerate(["a" * 32, "b" * 32, "c" * 32]):
-            data = self.prototype.copy()
-            data["start_timestamp"] = iso_format(before_now(minutes=2 + index))
-            data["timestamp"] = iso_format(before_now(minutes=1))
-            data["event_id"] = event_id
-            self.store_event(data=data, project_id=self.project.id)
-
-        response = self.client.get(
-            self.url,
-            {"query": "event.type:transaction transaction:{}".format(data["transaction"])},
-            format="json",
-        )
-
-        assert response.status_code == 200, response.content
-        data = response.data
-
-        assert data["id"] == "b" * 32
-        assert data["transaction.duration"] == 120000
-        assert data["p50"] == 120000.0
-        assert data["project"] == self.project.slug
-
-    def test_get_baseline_duration_tie(self):
-        for index, event_id in enumerate(
-            ["b" * 32, "a" * 32]
-        ):  # b then a so we know its not id breaking the tie
-            data = self.prototype.copy()
-            data["start_timestamp"] = iso_format(before_now(minutes=2 + index))
-            data["timestamp"] = iso_format(before_now(minutes=1 + index))
-            data["event_id"] = event_id
-            self.store_event(data=data, project_id=self.project.id)
-
-        response = self.client.get(
-            self.url,
-            {"query": "event.type:transaction transaction:{}".format(data["transaction"])},
-            format="json",
-        )
-
-        assert response.status_code == 200, response.content
-        data = response.data
-
-        assert data["id"] == "b" * 32
-        assert data["transaction.duration"] == 60000
-        assert data["p50"] == 60000
-
-    def test_get_baseline_duration_and_timestamp_tie(self):
-        for event_id in ["b" * 32, "a" * 32]:  # b then a so we know its not id breaking the tie
-            data = self.prototype.copy()
-            data["start_timestamp"] = iso_format(before_now(minutes=2))
-            data["timestamp"] = iso_format(before_now(minutes=1))
-            data["event_id"] = event_id
-            self.store_event(data=data, project_id=self.project.id)
-
-        response = self.client.get(
-            self.url,
-            {"query": "event.type:transaction transaction:{}".format(data["transaction"])},
-            format="json",
-        )
-
-        assert response.status_code == 200, response.content
-        data = response.data
-
-        assert data["id"] == "a" * 32
-        assert data["transaction.duration"] == 60000
-        assert data["p50"] == 60000
-
-    def test_get_baseline_with_computed_value(self):
-        data = self.prototype.copy()
-        data["start_timestamp"] = iso_format(before_now(minutes=2))
-        data["timestamp"] = iso_format(before_now(minutes=1))
-        data["event_id"] = "a" * 32
-        self.store_event(data=data, project_id=self.project.id)
-
-        response = self.client.get(
-            self.url,
-            {
-                "query": "event.type:transaction transaction:{}".format(data["transaction"]),
-                "baselineValue": 80000,
-            },
-            format="json",
-        )
-
-        assert response.status_code == 200, response.content
-        data = response.data
-
-        assert data["id"] == "a" * 32
-        assert data["transaction.duration"] == 60000
-        assert data["p50"] == "80000"
-
-    def test_get_baseline_with_different_function(self):
-        for index, event_id in enumerate(["a" * 32, "b" * 32]):
-            data = self.prototype.copy()
-            data["start_timestamp"] = iso_format(before_now(minutes=2 + index))
-            data["timestamp"] = iso_format(before_now(minutes=1))
-            data["event_id"] = event_id
-            self.store_event(data=data, project_id=self.project.id)
-
-        response = self.client.get(
-            self.url,
-            {
-                "query": "event.type:transaction transaction:{}".format(data["transaction"]),
-                "baselineFunction": "max(transaction.duration)",
-            },
-            format="json",
-        )
-
-        assert response.status_code == 200, response.content
-        data = response.data
-
-        assert data["id"] == "b" * 32
-        assert data["transaction.duration"] == 120000
-        assert data["max_transaction_duration"] == 120000
-
-    def test_get_baseline_with_no_baseline(self):
-        response = self.client.get(
-            self.url,
-            {
-                "query": "event.type:transaction transaction:very_real_transaction",
-                "baselineFunction": "max(transaction.duration)",
-            },
-            format="json",
-        )
-
-        assert response.status_code == 404, response.content
+        self.features["organizations:discover-use-snql"] = True
 
 
 class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):

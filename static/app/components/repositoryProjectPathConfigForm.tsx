@@ -1,26 +1,26 @@
 import {Component} from 'react';
 import pick from 'lodash/pick';
 
-import {t} from 'app/locale';
+import {FieldFromConfig} from 'sentry/components/forms';
+import Form from 'sentry/components/forms/form';
+import {Field} from 'sentry/components/forms/type';
+import {t} from 'sentry/locale';
 import {
   Integration,
   Organization,
   Project,
   Repository,
   RepositoryProjectPathConfig,
-} from 'app/types';
-import {trackIntegrationAnalytics} from 'app/utils/integrationUtil';
-import {FieldFromConfig} from 'app/views/settings/components/forms';
-import Form from 'app/views/settings/components/forms/form';
-import {Field} from 'app/views/settings/components/forms/type';
+} from 'sentry/types';
+import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 
 type Props = {
-  organization: Organization;
   integration: Integration;
+  onCancel: Form['props']['onCancel'];
+  onSubmitSuccess: Form['props']['onSubmitSuccess'];
+  organization: Organization;
   projects: Project[];
   repos: Repository[];
-  onSubmitSuccess: Form['props']['onSubmitSuccess'];
-  onCancel: Form['props']['onCancel'];
   existingConfig?: RepositoryProjectPathConfig;
 };
 

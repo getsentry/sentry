@@ -4,20 +4,21 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import partial from 'lodash/partial';
 
-import Count from 'app/components/count';
-import Duration from 'app/components/duration';
-import ProjectBadge from 'app/components/idBadge/projectBadge';
-import UserBadge from 'app/components/idBadge/userBadge';
-import {RowRectangle} from 'app/components/performance/waterfall/rowBar';
-import {pickBarColor, toPercent} from 'app/components/performance/waterfall/utils';
-import Tooltip from 'app/components/tooltip';
-import UserMisery from 'app/components/userMisery';
-import Version from 'app/components/version';
-import {t} from 'app/locale';
-import {Organization} from 'app/types';
-import {defined} from 'app/utils';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import EventView, {EventData, MetaType} from 'app/utils/discover/eventView';
+import Count from 'sentry/components/count';
+import Duration from 'sentry/components/duration';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import UserBadge from 'sentry/components/idBadge/userBadge';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
+import {pickBarColor, toPercent} from 'sentry/components/performance/waterfall/utils';
+import Tooltip from 'sentry/components/tooltip';
+import UserMisery from 'sentry/components/userMisery';
+import Version from 'sentry/components/version';
+import {t} from 'sentry/locale';
+import {Organization} from 'sentry/types';
+import {defined, isUrl} from 'sentry/utils';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import EventView, {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import {
   AGGREGATIONS,
   getAggregateAlias,
@@ -26,19 +27,18 @@ import {
   isRelativeSpanOperationBreakdownField,
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
-} from 'app/utils/discover/fields';
-import {getShortEventId} from 'app/utils/events';
-import {formatFloat, formatPercentage} from 'app/utils/formatters';
-import getDynamicText from 'app/utils/getDynamicText';
-import Projects from 'app/utils/projects';
+} from 'sentry/utils/discover/fields';
+import {getShortEventId} from 'sentry/utils/events';
+import {formatFloat, formatPercentage} from 'sentry/utils/formatters';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import Projects from 'sentry/utils/projects';
 import {
   filterToLocationQuery,
   SpanOperationBreakdownFilter,
   stringToFilter,
-} from 'app/views/performance/transactionSummary/filter';
+} from 'sentry/views/performance/transactionSummary/filter';
 
 import ArrayValue from './arrayValue';
-import KeyTransactionField from './keyTransactionField';
 import {
   BarContainer,
   Container,
@@ -56,8 +56,8 @@ import TeamKeyTransactionField from './teamKeyTransactionField';
  * Types, functions and definitions for rendering fields in discover results.
  */
 type RenderFunctionBaggage = {
-  organization: Organization;
   location: Location;
+  organization: Organization;
   eventView?: EventView;
 };
 
@@ -74,6 +74,7 @@ type FieldFormatter = {
 };
 
 type FieldFormatters = {
+  array: FieldFormatter;
   boolean: FieldFormatter;
   date: FieldFormatter;
   duration: FieldFormatter;
@@ -81,7 +82,6 @@ type FieldFormatters = {
   number: FieldFormatter;
   percentage: FieldFormatter;
   string: FieldFormatter;
-  array: FieldFormatter;
 };
 
 export type FieldTypes = keyof FieldFormatters;
@@ -89,7 +89,19 @@ export type FieldTypes = keyof FieldFormatters;
 const EmptyValueContainer = styled('span')`
   color: ${p => p.theme.gray300};
 `;
-const emptyValue = <EmptyValueContainer>{t('n/a')}</EmptyValueContainer>;
+const emptyValue = <EmptyValueContainer>{t('(no value)')}</EmptyValueContainer>;
+const emptyStringValue = <EmptyValueContainer>{t('(empty string)')}</EmptyValueContainer>;
+
+export function nullableValue(value: string | null): string | React.ReactElement {
+  switch (value) {
+    case null:
+      return emptyValue;
+    case '':
+      return emptyStringValue;
+    default:
+      return value;
+  }
+}
 
 /**
  * A mapping of field types to their rendering function.
@@ -98,7 +110,7 @@ const emptyValue = <EmptyValueContainer>{t('n/a')}</EmptyValueContainer>;
  *
  * This mapping should match the output sentry.utils.snuba:get_json_type
  */
-const FIELD_FORMATTERS: FieldFormatters = {
+export const FIELD_FORMATTERS: FieldFormatters = {
   boolean: {
     isSortable: true,
     renderFunc: (field, data) => {
@@ -164,7 +176,16 @@ const FIELD_FORMATTERS: FieldFormatters = {
         : defined(data[field])
         ? data[field]
         : emptyValue;
-      return <Container>{value}</Container>;
+      if (isUrl(value)) {
+        return (
+          <Container>
+            <ExternalLink href={value} data-test-id="group-tag-url">
+              {value}
+            </ExternalLink>
+          </Container>
+        );
+      }
+      return <Container>{nullableValue(value)}</Container>;
     },
   },
   array: {
@@ -182,26 +203,25 @@ type SpecialFieldRenderFunc = (
 ) => React.ReactNode;
 
 type SpecialField = {
-  sortField: string | null;
   renderFunc: SpecialFieldRenderFunc;
+  sortField: string | null;
 };
 
 type SpecialFields = {
+  'count_unique(user)': SpecialField;
+  'error.handled': SpecialField;
   id: SpecialField;
-  trace: SpecialField;
+  issue: SpecialField;
+  'issue.id': SpecialField;
   project: SpecialField;
+  release: SpecialField;
+  team_key_transaction: SpecialField;
+  'timestamp.to_day': SpecialField;
+  'timestamp.to_hour': SpecialField;
+  trace: SpecialField;
+  'trend_percentage()': SpecialField;
   user: SpecialField;
   'user.display': SpecialField;
-  'count_unique(user)': SpecialField;
-  'issue.id': SpecialField;
-  'error.handled': SpecialField;
-  issue: SpecialField;
-  release: SpecialField;
-  key_transaction: SpecialField;
-  team_key_transaction: SpecialField;
-  'trend_percentage()': SpecialField;
-  'timestamp.to_hour': SpecialField;
-  'timestamp.to_day': SpecialField;
 };
 
 /**
@@ -370,22 +390,13 @@ const SPECIAL_FIELDS: SpecialFields = {
       if (values === null || values?.length === 0) {
         return <Container>{emptyValue}</Container>;
       }
-      const value = Array.isArray(values) ? values.slice(-1)[0] : values;
-      return <Container>{[1, null].includes(value) ? 'true' : 'false'}</Container>;
+      const value = Array.isArray(values) ? values : [values];
+      return (
+        <Container>
+          {value.every(v => [1, null].includes(v)) ? 'true' : 'false'}
+        </Container>
+      );
     },
-  },
-  key_transaction: {
-    sortField: null,
-    renderFunc: (data, {organization}) => (
-      <Container>
-        <KeyTransactionField
-          isKeyTransaction={(data.key_transaction ?? 0) !== 0}
-          organization={organization}
-          projectSlug={data.project}
-          transactionName={data.transaction}
-        />
-      </Container>
-    ),
   },
   team_key_transaction: {
     sortField: null,
@@ -666,11 +677,13 @@ const OtherRelativeOpsBreakdown = styled(RectangleRelativeOpsBreakdown)`
  *
  * @param {String} field name
  * @param {object} metadata mapping.
+ * @param {boolean} isAlias convert the name with getAggregateAlias
  * @returns {Function}
  */
 export function getFieldRenderer(
   field: string,
-  meta: MetaType
+  meta: MetaType,
+  isAlias: boolean = true
 ): FieldFormatterRenderFunctionPartial {
   if (SPECIAL_FIELDS.hasOwnProperty(field)) {
     return SPECIAL_FIELDS[field].renderFunc;
@@ -680,7 +693,7 @@ export function getFieldRenderer(
     return spanOperationRelativeBreakdownRenderer;
   }
 
-  const fieldName = getAggregateAlias(field);
+  const fieldName = isAlias ? getAggregateAlias(field) : field;
   const fieldType = meta[fieldName];
 
   for (const alias in SPECIAL_FUNCTIONS) {
@@ -703,13 +716,15 @@ type FieldTypeFormatterRenderFunctionPartial = (data: EventData) => React.ReactN
  *
  * @param {String} field name
  * @param {object} metadata mapping.
+ * @param {boolean} isAlias convert the name with getAggregateAlias
  * @returns {Function}
  */
 export function getFieldFormatter(
   field: string,
-  meta: MetaType
+  meta: MetaType,
+  isAlias: boolean = true
 ): FieldTypeFormatterRenderFunctionPartial {
-  const fieldName = getAggregateAlias(field);
+  const fieldName = isAlias ? getAggregateAlias(field) : field;
   const fieldType = meta[fieldName];
 
   if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {

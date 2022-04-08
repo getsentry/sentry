@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import SuggestedAvatarStack from 'app/components/avatar/suggestedAvatarStack';
-import TeamStore from 'app/stores/teamStore';
+import SuggestedAvatarStack from 'sentry/components/avatar/suggestedAvatarStack';
+import TeamStore from 'sentry/stores/teamStore';
 
 const exampleUserActor = {
   type: 'user',

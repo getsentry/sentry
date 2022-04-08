@@ -1,6 +1,7 @@
 import re
 import zipfile
 from io import BytesIO
+from unittest.mock import patch
 
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -10,7 +11,6 @@ from sentry import eventstore
 from sentry.models import File, ProjectDebugFile
 from sentry.testutils import RelayStoreHelper, TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.utils.compat.mock import patch
 from tests.symbolicator import get_fixture_path, insta_snapshot_stacktrace_data
 
 # IMPORTANT:

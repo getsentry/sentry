@@ -1,34 +1,28 @@
 import {Component, Fragment} from 'react';
-import ReactDOM from 'react-dom';
+import {findDOMNode} from 'react-dom';
 import {components, StylesConfig} from 'react-select';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps} from 'app/actionCreators/modal';
-import AsyncComponent from 'app/components/asyncComponent';
-import SelectControl from 'app/components/forms/selectControl';
-import IdBadge from 'app/components/idBadge';
-import Link from 'app/components/links/link';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {t, tct} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
-import OrganizationsStore from 'app/stores/organizationsStore';
-import OrganizationStore from 'app/stores/organizationStore';
-import space from 'app/styles/space';
-import {Integration, Organization, Project} from 'app/types';
-import Projects from 'app/utils/projects';
-import replaceRouterParams from 'app/utils/replaceRouterParams';
-import IntegrationIcon from 'app/views/organizationIntegrations/integrationIcon';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import SelectControl from 'sentry/components/forms/selectControl';
+import IdBadge from 'sentry/components/idBadge';
+import Link from 'sentry/components/links/link';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import OrganizationsStore from 'sentry/stores/organizationsStore';
+import OrganizationStore from 'sentry/stores/organizationStore';
+import space from 'sentry/styles/space';
+import {Integration, Organization, Project} from 'sentry/types';
+import Projects from 'sentry/utils/projects';
+import replaceRouterParams from 'sentry/utils/replaceRouterParams';
+import IntegrationIcon from 'sentry/views/organizationIntegrations/integrationIcon';
 
 type Props = ModalRenderProps & {
-  /**
-   * The destination route
-   */
-  nextPath: string;
+  integrationConfigs: Integration[];
 
-  /**
-   * List of available organizations
-   */
-  organizations: Organization[];
+  loading: boolean;
 
   /**
    * Does modal need to prompt for organization.
@@ -42,39 +36,45 @@ type Props = ModalRenderProps & {
   needProject: boolean;
 
   /**
-   * Organization slug
+   * The destination route
    */
-  organization: string;
-
-  projects: Project[];
-  loading: boolean;
+  nextPath: string;
 
   /**
    * Finish callback
    */
-  onFinish: (path: string) => void;
-
+  onFinish: (path: string) => number | void;
   /**
    * Callback for when organization is selected
    */
   onSelectOrganization: (orgSlug: string) => void;
 
   /**
+   * Organization slug
+   */
+  organization: string;
+
+  /**
+   * List of available organizations
+   */
+  organizations: Organization[];
+
+  projects: Project[];
+  /**
    * Id of the project (most likely from the URL)
    * on which the modal was opened
    */
   comingFromProjectId?: string;
-  integrationConfigs: Integration[];
 };
 
-const selectStyles = {
-  menu: (provided: StylesConfig) => ({
+const selectStyles: StylesConfig = {
+  menu: provided => ({
     ...provided,
-    position: 'auto',
+    position: 'initial',
     boxShadow: 'none',
     marginBottom: 0,
   }),
-  option: (provided: StylesConfig, state: any) => ({
+  option: (provided, state: any) => ({
     ...provided,
     opacity: state.isDisabled ? 0.6 : 1,
     cursor: state.isDisabled ? 'not-allowed' : 'pointer',
@@ -108,6 +108,12 @@ class ContextPickerModal extends Component<Props> {
     }
   }
 
+  componentWillUnmount() {
+    window.clearTimeout(this.onFinishTimeout);
+  }
+
+  onFinishTimeout: number | undefined = undefined;
+
   // TODO(ts) The various generics in react-select types make getting this
   // right hard.
   orgSelect: any | null = null;
@@ -136,13 +142,16 @@ class ContextPickerModal extends Component<Props> {
       return;
     }
 
+    window.clearTimeout(this.onFinishTimeout);
+
     // If there is only one org and we don't need a project slug, then call finish callback
     if (!needProject) {
-      onFinish(
-        replaceRouterParams(nextPath, {
-          orgId: organizations[0].slug,
-        })
-      );
+      this.onFinishTimeout =
+        onFinish(
+          replaceRouterParams(nextPath, {
+            orgId: organizations[0].slug,
+          })
+        ) ?? undefined;
       return;
     }
 
@@ -152,13 +161,14 @@ class ContextPickerModal extends Component<Props> {
       org = organizations[0].slug;
     }
 
-    onFinish(
-      replaceRouterParams(nextPath, {
-        orgId: org,
-        projectId: projects[0].slug,
-        project: this.props.projects.find(p => p.slug === projects[0].slug)?.id,
-      })
-    );
+    this.onFinishTimeout =
+      onFinish(
+        replaceRouterParams(nextPath, {
+          orgId: org,
+          projectId: projects[0].slug,
+          project: this.props.projects.find(p => p.slug === projects[0].slug)?.id,
+        })
+      ) ?? undefined;
   };
 
   doFocus = (ref: any | null) => {
@@ -167,7 +177,7 @@ class ContextPickerModal extends Component<Props> {
     }
 
     // eslint-disable-next-line react/no-find-dom-node
-    const el = ReactDOM.findDOMNode(ref) as HTMLElement;
+    const el = findDOMNode(ref) as HTMLElement;
 
     if (el !== null) {
       const input = el.querySelector('input');
@@ -254,7 +264,7 @@ class ContextPickerModal extends Component<Props> {
     }
     return (
       <components.Option label={label} {...props}>
-        <IdBadge
+        <ProjectBadgeOption
           project={project}
           avatarSize={20}
           displayName={label}
@@ -446,17 +456,17 @@ type ContainerProps = Omit<
   | 'onSelectOrganization'
   | 'integrationConfigs'
 > & {
+  configUrl?: string;
   /**
    * List of slugs we want to be able to choose from
    */
   projectSlugs?: string[];
-  configUrl?: string;
 } & AsyncComponent['props'];
 
 type ContainerState = {
-  selectedOrganization?: string;
   organizations: Organization[];
   integrationConfigs?: Integration[];
+  selectedOrganization?: string;
 } & AsyncComponent['state'];
 
 class ContextPickerModalContainer extends AsyncComponent<ContainerProps, ContainerState> {
@@ -495,9 +505,9 @@ class ContextPickerModalContainer extends AsyncComponent<ContainerProps, Contain
     initiallyLoaded,
     integrationConfigs,
   }: {
-    projects?: Project[];
     initiallyLoaded?: boolean;
     integrationConfigs?: Integration[];
+    projects?: Project[];
   }) {
     return (
       <ContextPickerModal
@@ -546,6 +556,10 @@ export default ContextPickerModalContainer;
 
 const StyledSelectControl = styled(SelectControl)`
   margin-top: ${space(1)};
+`;
+
+const ProjectBadgeOption = styled(IdBadge)`
+  margin: ${space(1)};
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`

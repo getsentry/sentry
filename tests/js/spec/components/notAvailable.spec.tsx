@@ -1,16 +1,20 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import NotAvailable from 'app/components/notAvailable';
+import NotAvailable from 'sentry/components/notAvailable';
 
 describe('NotAvailable', function () {
   it('renders', function () {
-    const wrapper = mountWithTheme(<NotAvailable />);
-    expect(wrapper.text()).toEqual('\u2014');
+    render(<NotAvailable />);
+    expect(screen.getByText('\u2014')).toBeInTheDocument();
   });
 
-  it('renders with tooltip', function () {
-    const wrapper = mountWithTheme(<NotAvailable tooltip="Tooltip text" />);
-    expect(wrapper.text()).toEqual('\u2014');
-    expect(wrapper.find('Tooltip').prop('title')).toBe('Tooltip text');
+  it('renders with tooltip', async function () {
+    render(<NotAvailable tooltip="Tooltip text" />);
+    expect(screen.getByText('\u2014')).toBeInTheDocument();
+    expect(screen.queryByText('Tooltip text')).not.toBeInTheDocument();
+
+    userEvent.hover(screen.getByText('\u2014'));
+
+    expect(await screen.findByText('Tooltip text')).toBeInTheDocument();
   });
 });

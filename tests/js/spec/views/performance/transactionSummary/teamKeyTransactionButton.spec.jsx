@@ -1,10 +1,11 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {act} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'app/stores/projectsStore';
-import TeamStore from 'app/stores/teamStore';
-import EventView from 'app/utils/discover/eventView';
-import {MAX_TEAM_KEY_TRANSACTIONS} from 'app/utils/performance/constants';
-import TeamKeyTransactionButton from 'app/views/performance/transactionSummary/teamKeyTransactionButton';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import TeamStore from 'sentry/stores/teamStore';
+import EventView from 'sentry/utils/discover/eventView';
+import {MAX_TEAM_KEY_TRANSACTIONS} from 'sentry/utils/performance/constants';
+import TeamKeyTransactionButton from 'sentry/views/performance/transactionSummary/teamKeyTransactionButton';
 
 async function clickTeamKeyTransactionDropdown(wrapper) {
   wrapper.find('Button').simulate('click');
@@ -34,33 +35,21 @@ describe('TeamKeyTransactionButton', function () {
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
-    ProjectsStore.loadInitialData([project]);
-    TeamStore.loadInitialData(teams);
+    act(() => ProjectsStore.loadInitialData([project]));
+    act(() => void TeamStore.loadInitialData(teams, false, null));
   });
 
   it('fetches key transactions with project param', async function () {
-    const getTeamKeyTransactionsMock = MockApiClient.addMockResponse(
-      {
-        method: 'GET',
-        url: '/organizations/org-slug/key-transactions-list/',
-        body: teams.map(({id}) => ({
-          team: id,
-          count: 1,
-          keyed: [{project_id: String(project.id), transaction: 'transaction'}],
-        })),
-      },
-      {
-        predicate: (_, options) => {
-          return (
-            options.method === 'GET' &&
-            options.query.project.length === 1 &&
-            options.query.project[0] === project.id &&
-            options.query.team.length === 1 &&
-            options.query.team[0] === 'myteams'
-          );
-        },
-      }
-    );
+    const getTeamKeyTransactionsMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/organizations/org-slug/key-transactions-list/',
+      body: teams.map(({id}) => ({
+        team: id,
+        count: 1,
+        keyed: [{project_id: String(project.id), transaction: 'transaction'}],
+      })),
+      match: [MockApiClient.matchQuery({project: [project.id], team: ['myteams']})],
+    });
 
     const wrapper = mountWithTheme(
       <TeamKeyTransactionButton
@@ -206,22 +195,15 @@ describe('TeamKeyTransactionButton', function () {
       })),
     });
 
-    const postTeamKeyTransactionsMock = MockApiClient.addMockResponse(
-      {
-        method: 'POST',
-        url: '/organizations/org-slug/key-transactions/',
-        body: [],
-      },
-      {
-        predicate: (_, options) =>
-          options.method === 'POST' &&
-          options.query.project.length === 1 &&
-          options.query.project[0] === project.id &&
-          options.data.team.length === 1 &&
-          options.data.team[0] === teams[0].id &&
-          options.data.transaction === 'transaction',
-      }
-    );
+    const postTeamKeyTransactionsMock = MockApiClient.addMockResponse({
+      method: 'POST',
+      url: '/organizations/org-slug/key-transactions/',
+      body: [],
+      match: [
+        MockApiClient.matchQuery({project: [project.id]}),
+        MockApiClient.matchData({team: [teams[0].id], transaction: 'transaction'}),
+      ],
+    });
 
     const wrapper = mountWithTheme(
       <TeamKeyTransactionButton
@@ -255,22 +237,15 @@ describe('TeamKeyTransactionButton', function () {
       })),
     });
 
-    const deleteTeamKeyTransactionsMock = MockApiClient.addMockResponse(
-      {
-        method: 'DELETE',
-        url: '/organizations/org-slug/key-transactions/',
-        body: [],
-      },
-      {
-        predicate: (_, options) =>
-          options.method === 'DELETE' &&
-          options.query.project.length === 1 &&
-          options.query.project[0] === project.id &&
-          options.data.team.length === 1 &&
-          options.data.team[0] === teams[0].id &&
-          options.data.transaction === 'transaction',
-      }
-    );
+    const deleteTeamKeyTransactionsMock = MockApiClient.addMockResponse({
+      method: 'DELETE',
+      url: '/organizations/org-slug/key-transactions/',
+      body: [],
+      match: [
+        MockApiClient.matchQuery({project: [project.id]}),
+        MockApiClient.matchData({team: [teams[0].id], transaction: 'transaction'}),
+      ],
+    });
 
     const wrapper = mountWithTheme(
       <TeamKeyTransactionButton
@@ -304,23 +279,18 @@ describe('TeamKeyTransactionButton', function () {
       })),
     });
 
-    const postTeamKeyTransactionsMock = MockApiClient.addMockResponse(
-      {
-        method: 'POST',
-        url: '/organizations/org-slug/key-transactions/',
-        body: [],
-      },
-      {
-        predicate: (_, options) =>
-          options.method === 'POST' &&
-          options.query.project.length === 1 &&
-          options.query.project[0] === project.id &&
-          options.data.team.length === 2 &&
-          options.data.team[0] === teams[0].id &&
-          options.data.team[1] === teams[1].id &&
-          options.data.transaction === 'transaction',
-      }
-    );
+    const postTeamKeyTransactionsMock = MockApiClient.addMockResponse({
+      method: 'POST',
+      url: '/organizations/org-slug/key-transactions/',
+      body: [],
+      match: [
+        MockApiClient.matchQuery({project: [project.id]}),
+        MockApiClient.matchData({
+          team: [teams[0].id, teams[1].id],
+          transaction: 'transaction',
+        }),
+      ],
+    });
 
     const wrapper = mountWithTheme(
       <TeamKeyTransactionButton
@@ -362,23 +332,18 @@ describe('TeamKeyTransactionButton', function () {
       })),
     });
 
-    const deleteTeamKeyTransactionsMock = MockApiClient.addMockResponse(
-      {
-        method: 'DELETE',
-        url: '/organizations/org-slug/key-transactions/',
-        body: [],
-      },
-      {
-        predicate: (_, options) =>
-          options.method === 'DELETE' &&
-          options.query.project.length === 1 &&
-          options.query.project[0] === project.id &&
-          options.data.team.length === 2 &&
-          options.data.team[0] === teams[0].id &&
-          options.data.team[1] === teams[1].id &&
-          options.data.transaction === 'transaction',
-      }
-    );
+    const deleteTeamKeyTransactionsMock = MockApiClient.addMockResponse({
+      method: 'DELETE',
+      url: '/organizations/org-slug/key-transactions/',
+      body: [],
+      match: [
+        MockApiClient.matchQuery({project: [project.id]}),
+        MockApiClient.matchData({
+          team: [teams[0].id, teams[1].id],
+          transaction: 'transaction',
+        }),
+      ],
+    });
 
     const wrapper = mountWithTheme(
       <TeamKeyTransactionButton

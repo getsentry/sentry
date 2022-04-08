@@ -1,12 +1,12 @@
 import moment from 'moment';
 import {LocationRange} from 'pegjs';
 
-import {t} from 'app/locale';
+import {t} from 'sentry/locale';
 import {
   isMeasurement,
   isSpanOperationBreakdownField,
   measurementType,
-} from 'app/utils/discover/fields';
+} from 'sentry/utils/discover/fields';
 
 import grammar from './grammar.pegjs';
 import {getKeyName} from './utils';
@@ -169,19 +169,19 @@ export const filterTypeConfig = {
     validKeys: [Token.KeySimple],
     validOps: allOperators,
     validValues: [Token.ValueDuration],
-    canNegate: false,
+    canNegate: true,
   },
   [FilterType.Numeric]: {
     validKeys: [Token.KeySimple],
     validOps: allOperators,
     validValues: [Token.ValueNumber],
-    canNegate: false,
+    canNegate: true,
   },
   [FilterType.NumericIn]: {
     validKeys: [Token.KeySimple],
     validOps: [],
     validValues: [Token.ValueNumberList],
-    canNegate: false,
+    canNegate: true,
   },
   [FilterType.Boolean]: {
     validKeys: [Token.KeySimple],
@@ -255,32 +255,32 @@ type InvalidFilter = {
 
 type FilterMap = {
   [F in keyof FilterTypeConfig]: {
-    type: Token.Filter;
     /**
      * The filter type being represented
      */
     filter: F;
     /**
+     * When a filter is marked as 'invalid' a reason is given. If the filter is
+     * not invalid this will always be null
+     */
+    invalid: InvalidFilter | null;
+    /**
      * The key of the filter
      */
     key: KVConverter<FilterTypeConfig[F]['validKeys'][number]>;
-    /**
-     * The value of the filter
-     */
-    value: KVConverter<FilterTypeConfig[F]['validValues'][number]>;
-    /**
-     * The operator applied to the filter
-     */
-    operator: FilterTypeConfig[F]['validOps'][number];
     /**
      * Indicates if the filter has been negated
      */
     negated: FilterTypeConfig[F]['canNegate'] extends true ? boolean : false;
     /**
-     * When a filter is marked as 'invalid' a reason is given. If the filter is
-     * not invalid this will always be null
+     * The operator applied to the filter
      */
-    invalid: InvalidFilter | null;
+    operator: FilterTypeConfig[F]['validOps'][number];
+    type: Token.Filter;
+    /**
+     * The value of the filter
+     */
+    value: KVConverter<FilterTypeConfig[F]['validValues'][number]>;
   };
 };
 
@@ -297,9 +297,9 @@ type InFilter = FilterMap[FilterType.TextIn] | FilterMap[FilterType.NumericIn];
 type FilterResult = FilterMap[FilterType];
 
 type TokenConverterOpts = {
-  text: TextFn;
-  location: LocationFn;
   config: SearchConfig;
+  location: LocationFn;
+  text: TextFn;
 };
 
 /**
@@ -320,7 +320,10 @@ export class TokenConverter {
    * Validates various types of keys
    */
   keyValidation = {
-    isNumeric: (key: string) => this.config.numericKeys.has(key) || isMeasurement(key),
+    isNumeric: (key: string) =>
+      this.config.numericKeys.has(key) ||
+      isMeasurement(key) ||
+      isSpanOperationBreakdownField(key),
     isBoolean: (key: string) => this.config.booleanKeys.has(key),
     isPercentage: (key: string) => this.config.percentageKeys.has(key),
     isDate: (key: string) => this.config.dateKeys.has(key),
@@ -527,6 +530,7 @@ export class TokenConverter {
    * [0]:https://pegjs.org/documentation
    */
   predicateFilter = <T extends FilterType>(type: T, key: FilterMap[T]['key']) => {
+    // @ts-expect-error Unclear why this isn’t resolving correctly
     const keyName = getKeyName(key);
     const aggregateKey = key as ReturnType<TokenConverter['tokenKeyAggregate']>;
 
@@ -586,6 +590,10 @@ export class TokenConverter {
         key as TextFilter['key'],
         value as TextFilter['value']
       );
+    }
+
+    if (filter === FilterType.Is || filter === FilterType.Has) {
+      return this.checkInvalidTextValue(value as TextFilter['value']);
     }
 
     if ([FilterType.TextIn, FilterType.NumericIn].includes(filter)) {
@@ -719,34 +727,34 @@ export type ParseResult = Array<
  */
 export type SearchConfig = {
   /**
+   * Enables boolean filtering (AND / OR)
+   */
+  allowBoolean: boolean;
+  /**
+   * Keys considered valid for boolean filter types
+   */
+  booleanKeys: Set<string>;
+  /**
+   * Keys considered valid for date filter types
+   */
+  dateKeys: Set<string>;
+  /**
    * Keys which are considered valid for duration filters
    */
   durationKeys: Set<string>;
   /**
-   * Text filter keys we allow to have operators
+   * Keys considered valid for numeric filter types
    */
-  textOperatorKeys: Set<string>;
+  numericKeys: Set<string>;
   /**
    * Keys considered valid for the percentage aggregate and may have percentage
    * search values
    */
   percentageKeys: Set<string>;
   /**
-   * Keys considered valid for numeric filter types
+   * Text filter keys we allow to have operators
    */
-  numericKeys: Set<string>;
-  /**
-   * Keys considered valid for date filter types
-   */
-  dateKeys: Set<string>;
-  /**
-   * Keys considered valid for boolean filter types
-   */
-  booleanKeys: Set<string>;
-  /**
-   * Enables boolean filtering (AND / OR)
-   */
-  allowBoolean: boolean;
+  textOperatorKeys: Set<string>;
 };
 
 const defaultConfig: SearchConfig = {
@@ -758,6 +766,7 @@ const defaultConfig: SearchConfig = {
   ]),
   durationKeys: new Set(['transaction.duration']),
   percentageKeys: new Set(['percentage']),
+  // do not put functions in this Set
   numericKeys: new Set([
     'project_id',
     'project.id',
@@ -766,15 +775,6 @@ const defaultConfig: SearchConfig = {
     'stack.lineno',
     'stack.stack_level',
     'transaction.duration',
-    'apdex',
-    'p75',
-    'p95',
-    'p99',
-    'failure_rate',
-    'count_miserable',
-    'user_misery',
-    'count_miserable_new',
-    'user_miser_new',
   ]),
   dateKeys: new Set([
     'start',
@@ -793,7 +793,6 @@ const defaultConfig: SearchConfig = {
     'error.handled',
     'error.unhandled',
     'stack.in_app',
-    'key_transaction',
     'team_key_transaction',
   ]),
   allowBoolean: true,

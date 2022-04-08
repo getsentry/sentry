@@ -1,27 +1,27 @@
 import * as React from 'react';
 import round from 'lodash/round';
 
-import AsyncComponent from 'app/components/asyncComponent';
-import Count from 'app/components/count';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {parseStatsPeriod} from 'app/components/organizations/timeRangeSelector/utils';
-import ScoreCard from 'app/components/scoreCard';
-import {IconArrow} from 'app/icons';
-import {t} from 'app/locale';
-import {GlobalSelection, Organization} from 'app/types';
-import {defined} from 'app/utils';
-import {TableData} from 'app/utils/discover/discoverQuery';
-import {getAggregateAlias} from 'app/utils/discover/fields';
-import {getPeriod} from 'app/utils/getPeriod';
-import {getTermHelp, PERFORMANCE_TERM} from 'app/views/performance/data';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
+import Count from 'sentry/components/count';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {parseStatsPeriod} from 'sentry/components/organizations/timeRangeSelector/utils';
+import ScoreCard from 'sentry/components/scoreCard';
+import {IconArrow} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {Organization, PageFilters} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import {TableData} from 'sentry/utils/discover/discoverQuery';
+import {getAggregateAlias} from 'sentry/utils/discover/fields';
+import {getPeriod} from 'sentry/utils/getPeriod';
+import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
 
 import MissingPerformanceButtons from '../missingFeatureButtons/missingPerformanceButtons';
-import {shouldFetchPreviousPeriod} from '../utils';
 
 type Props = AsyncComponent['props'] & {
-  organization: Organization;
-  selection: GlobalSelection;
   isProjectStabilized: boolean;
+  organization: Organization;
+  selection: PageFilters;
   hasTransactions?: boolean;
   query?: string;
 };
@@ -50,27 +50,29 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
       return [];
     }
 
-    const apdexField = organization.features.includes('project-transaction-threshold')
-      ? 'apdex()'
-      : `apdex(${organization.apdexThreshold})`;
-
     const {projects, environments, datetime} = selection;
     const {period} = datetime;
     const commonQuery = {
       environment: environments,
       project: projects.map(proj => String(proj)),
-      field: [apdexField],
+      field: ['apdex()'],
       query: ['event.type:transaction count():>0', query].join(' ').trim(),
     };
     const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [
       [
         'currentApdex',
         `/organizations/${organization.slug}/eventsv2/`,
-        {query: {...commonQuery, ...getParams(datetime)}},
+        {query: {...commonQuery, ...normalizeDateTimeParams(datetime)}},
       ],
     ];
 
-    if (shouldFetchPreviousPeriod(datetime)) {
+    if (
+      shouldFetchPreviousPeriod({
+        start: datetime.start,
+        end: datetime.end,
+        period: datetime.period,
+      })
+    ) {
       const {start: previousStart} = parseStatsPeriod(
         getPeriod({period, start: undefined, end: undefined}, {shouldDoublePeriod: true})
           .statsPeriod!
@@ -114,12 +116,7 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
 
   get cardHelp() {
     const {organization} = this.props;
-    const performanceTerm = organization.features.includes(
-      'project-transaction-threshold'
-    )
-      ? PERFORMANCE_TERM.APDEX_NEW
-      : PERFORMANCE_TERM.APDEX;
-    const baseHelp = getTermHelp(this.props.organization, performanceTerm);
+    const baseHelp = getTermHelp(organization, PERFORMANCE_TERM.APDEX);
 
     if (this.trend) {
       return baseHelp + t(' This shows how it has changed since the last period.');
@@ -129,27 +126,17 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
   }
 
   get currentApdex() {
-    const {organization} = this.props;
     const {currentApdex} = this.state;
 
-    const apdexField = organization.features.includes('project-transaction-threshold')
-      ? 'apdex()'
-      : `apdex(${organization.apdexThreshold})`;
-
-    const apdex = currentApdex?.data[0]?.[getAggregateAlias(apdexField)];
+    const apdex = currentApdex?.data[0]?.[getAggregateAlias('apdex()')];
 
     return typeof apdex === 'undefined' ? undefined : Number(apdex);
   }
 
   get previousApdex() {
-    const {organization} = this.props;
     const {previousApdex} = this.state;
 
-    const apdexField = organization.features.includes('project-transaction-threshold')
-      ? 'apdex()'
-      : `apdex(${organization.apdexThreshold})`;
-
-    const apdex = previousApdex?.data[0]?.[getAggregateAlias(apdexField)];
+    const apdex = previousApdex?.data[0]?.[getAggregateAlias('apdex()')];
 
     return typeof apdex === 'undefined' ? undefined : Number(apdex);
   }

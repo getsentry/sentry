@@ -1,16 +1,19 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {openCreateTeamModal} from 'app/actionCreators/modal';
-import {CreateProject} from 'app/views/projectInstall/createProject';
+import {openCreateTeamModal} from 'sentry/actionCreators/modal';
+import {CreateProject} from 'sentry/views/projectInstall/createProject';
 
-jest.mock('app/actionCreators/modal');
+jest.mock('sentry/actionCreators/modal');
 
 describe('CreateProject', function () {
+  const teamNoAccess = {slug: 'test', id: '1', name: 'test', hasAccess: false};
+  const teamWithAccess = {...teamNoAccess, hasAccess: true};
+
   const baseProps = {
     api: new MockApiClient(),
     location: {query: {}},
     organization: TestStubs.Organization(),
-    teams: [],
+    teams: [teamNoAccess],
     params: {
       projectId: '',
       orgId: 'testOrg',
@@ -24,15 +27,7 @@ describe('CreateProject', function () {
 
     const wrapper = mountWithTheme(
       <CreateProject {...props} />,
-      TestStubs.routerContext([
-        {
-          organization: {
-            id: '1',
-            slug: 'testOrg',
-            teams: [{slug: 'test', id: '1', name: 'test', hasAccess: false}],
-          },
-        },
-      ])
+      TestStubs.routerContext([{organization: {id: '1', slug: 'testOrg'}}])
     );
 
     expect(wrapper).toSnapshot();
@@ -45,18 +40,10 @@ describe('CreateProject', function () {
 
     const wrapper = mountWithTheme(
       <CreateProject {...props} />,
-      TestStubs.routerContext([
-        {
-          organization: {
-            id: '1',
-            slug: 'testOrg',
-            teams: [{slug: 'test', id: '1', name: 'test', hasAccess: false}],
-          },
-        },
-      ])
+      TestStubs.routerContext([{organization: {id: '1', slug: 'testOrg'}}])
     );
 
-    wrapper.find('TeamSelectInput Button').simulate('click');
+    wrapper.find('TeamSelectInput Button button').simulate('click');
     expect(openCreateTeamModal).toHaveBeenCalled();
   });
 
@@ -66,16 +53,9 @@ describe('CreateProject', function () {
     };
 
     const wrapper = mountWithTheme(
-      <CreateProject {...props} />,
+      <CreateProject {...props} teams={[teamWithAccess]} />,
       TestStubs.routerContext([
-        {
-          organization: {
-            id: '1',
-            slug: 'testOrg',
-            teams: [{slug: 'test', id: '1', name: 'test', hasAccess: true}],
-          },
-          location: {query: {}},
-        },
+        {organization: {id: '1', slug: 'testOrg'}, location: {query: {}}},
       ])
     );
 
@@ -104,16 +84,8 @@ describe('CreateProject', function () {
     };
 
     const wrapper = mountWithTheme(
-      <CreateProject {...props} />,
-      TestStubs.routerContext([
-        {
-          organization: {
-            id: '1',
-            slug: 'testOrg',
-            teams: [{slug: 'test', id: '1', name: 'test', hasAccess: true}],
-          },
-        },
-      ])
+      <CreateProject {...props} teams={[teamWithAccess]} />,
+      TestStubs.routerContext([{organization: {id: '1', slug: 'testOrg'}}])
     );
 
     expect(wrapper.find('ProjectNameInput input').props().value).toBe('Rails');
@@ -128,16 +100,8 @@ describe('CreateProject', function () {
     };
 
     const wrapper = mountWithTheme(
-      <CreateProject {...props} />,
-      TestStubs.routerContext([
-        {
-          organization: {
-            id: '1',
-            slug: 'testOrg',
-            teams: [{slug: 'test', id: '1', name: 'test', hasAccess: true}],
-          },
-        },
-      ])
+      <CreateProject {...props} teams={[teamWithAccess]} />,
+      TestStubs.routerContext([{organization: {id: '1', slug: 'testOrg'}}])
     );
 
     expect(wrapper.find('PlatformPicker').state('category')).toBe('mobile');
@@ -149,14 +113,10 @@ describe('CreateProject', function () {
     };
 
     const wrapper = mountWithTheme(
-      <CreateProject {...props} />,
+      <CreateProject {...props} teams={[teamWithAccess]} />,
       TestStubs.routerContext([
         {
-          organization: {
-            id: '1',
-            slug: 'testOrg',
-            teams: [{slug: 'test', id: '1', name: 'test', hasAccess: true}],
-          },
+          organization: {id: '1', slug: 'testOrg'},
           location: {query: {platform: 'XrubyROOLs'}},
         },
       ])
@@ -173,7 +133,7 @@ describe('CreateProject', function () {
       props = {
         ...baseProps,
       };
-      props.organization.teams = [{slug: 'test', id: '1', name: 'test', hasAccess: true}];
+      props.teams = [teamWithAccess];
       MockApiClient.addMockResponse({
         url: `/projects/${props.organization.slug}/rule-conditions/`,
         body: TestStubs.MOCK_RESP_VERBOSE,
@@ -203,7 +163,7 @@ describe('CreateProject', function () {
       wrapper
         .find('SelectControl[data-test-id="metric-select-control"]')
         .closest('RadioLineItem')
-        .find('Radio')
+        .find('Radio input')
         .simulate('change');
       expectSubmitButtonToBeDisabled(true);
 
@@ -234,7 +194,7 @@ describe('CreateProject', function () {
         .simulate('change', {target: {value: ''}});
       expectSubmitButtonToBeDisabled(true);
 
-      wrapper.find('Radio').first().simulate('change');
+      wrapper.find('Radio input').first().simulate('change');
       expectSubmitButtonToBeDisabled(false);
     });
   });

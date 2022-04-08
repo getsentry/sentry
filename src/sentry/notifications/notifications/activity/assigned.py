@@ -1,4 +1,6 @@
-from typing import Any, Mapping, Tuple
+from __future__ import annotations
+
+from typing import Any, Mapping
 
 from sentry.models import Team, User
 
@@ -6,10 +8,12 @@ from .base import GroupActivityNotification
 
 
 class AssignedActivityNotification(GroupActivityNotification):
+    referrer_base = "assigned-activity"
+
     def get_activity_name(self) -> str:
         return "Assigned"
 
-    def get_description(self) -> Tuple[str, Mapping[str, Any], Mapping[str, Any]]:
+    def get_description(self) -> tuple[str, Mapping[str, Any], Mapping[str, Any]]:
         activity = self.activity
         data = activity.data
 
@@ -57,7 +61,7 @@ class AssignedActivityNotification(GroupActivityNotification):
     def get_category(self) -> str:
         return "assigned_activity_email"
 
-    def build_notification_title(self) -> Tuple[str, str]:
+    def build_notification_title(self) -> tuple[str, str]:
         activity = self.activity
         data = activity.data
         user = self.activity.user
@@ -65,6 +69,8 @@ class AssignedActivityNotification(GroupActivityNotification):
             author = user.name or user.email
         else:
             author = "Sentry"
+
+        # TODO: refactor so assignee type doesn't change
 
         # legacy Activity objects from before assignable teams
         if "assigneeType" not in data or data["assigneeType"] == "user":
@@ -87,6 +93,9 @@ class AssignedActivityNotification(GroupActivityNotification):
                 assignee = "an unknown team"
             else:
                 assignee = f"#{assignee_team.slug}"
+        else:
+            # need this case to ensure assignee is bound
+            assignee = "unknown"
         return author, assignee
 
     def get_notification_title(self) -> str:

@@ -3,8 +3,8 @@ import {browserHistory} from 'react-router';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
-import TeamStore from 'app/stores/teamStore';
-import TeamSettings from 'app/views/settings/organizationTeams/teamSettings';
+import TeamStore from 'sentry/stores/teamStore';
+import TeamSettings from 'sentry/views/settings/organizationTeams/teamSettings';
 
 describe('TeamSettings', function () {
   beforeEach(function () {
@@ -22,15 +22,13 @@ describe('TeamSettings', function () {
       url: `/teams/org/${team.slug}/`,
       method: 'PUT',
     });
-    const mountOptions = TestStubs.routerContext();
 
     const wrapper = mountWithTheme(
       <TeamSettings
         team={team}
         onTeamChange={() => {}}
         params={{orgId: 'org', teamId: team.slug}}
-      />,
-      mountOptions
+      />
     );
 
     wrapper
@@ -92,8 +90,7 @@ describe('TeamSettings', function () {
         params={{orgId: 'org', teamId: team.slug}}
         team={team}
         onTeamChange={() => {}}
-      />,
-      TestStubs.routerContext()
+      />
     );
 
     // Click "Remove Team button

@@ -1,11 +1,14 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {mountGlobalModal} from 'sentry-test/modal';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
-import IssueListSavedSearchMenu from 'app/views/issueList/savedSearchMenu';
+import IssueListSavedSearchMenu from 'sentry/views/issueList/savedSearchMenu';
 
 describe('IssueListSavedSearchMenu', () => {
-  let wrapper;
-  let organization;
   const savedSearchList = [
     {
       id: '789',
@@ -17,6 +20,14 @@ describe('IssueListSavedSearchMenu', () => {
     },
     {
       id: '122',
+      query: 'global search query',
+      sort: 'date',
+      name: 'Global Search',
+      isPinned: false,
+      isGlobal: true,
+    },
+    {
+      id: '444',
       query: 'is:unresolved assigned:me',
       sort: 'date',
       name: 'Assigned to me',
@@ -26,58 +37,64 @@ describe('IssueListSavedSearchMenu', () => {
   ];
   const onSelect = jest.fn();
   const onDelete = jest.fn();
-  beforeEach(() => {
-    organization = TestStubs.Organization({access: ['org:write']});
-    wrapper = mountWithTheme(
+
+  function renderSavedSearch({organization} = {}) {
+    return render(
       <IssueListSavedSearchMenu
-        organization={organization}
+        organization={organization ?? TestStubs.Organization({access: ['org:write']})}
         savedSearchList={savedSearchList}
         onSavedSearchSelect={onSelect}
         onSavedSearchDelete={onDelete}
         query="is:unresolved assigned:lyn@sentry.io"
       />,
-      TestStubs.routerContext()
+      {context: TestStubs.routerContext()}
     );
-  });
+  }
 
   afterEach(() => {
-    MockApiClient.clearMockResponses();
     jest.resetAllMocks();
   });
 
-  describe('removing a saved search', () => {
-    it('shows a delete button with access', () => {
-      const button = wrapper.find('MenuItem').first().find('button[aria-label="delete"]');
-      expect(button).toHaveLength(1);
-    });
+  it('shows a delete button with access', () => {
+    renderSavedSearch();
+    const assignedToMe = screen.getByTestId('saved-search-444');
+    expect(
+      within(assignedToMe).getByRole('button', {name: 'delete'})
+    ).toBeInTheDocument();
+  });
 
-    it('does not show a delete button without access', () => {
-      organization.access = [];
-      wrapper.setProps({organization});
+  it('does not show a delete button without access', () => {
+    renderSavedSearch({organization: TestStubs.Organization({access: []})});
+    const assignedToMe = screen.getByTestId('saved-search-444');
+    expect(
+      within(assignedToMe).queryByRole('button', {name: 'delete'})
+    ).not.toBeInTheDocument();
+  });
 
-      const button = wrapper.find('MenuItem').first().find('button[aria-label="delete"]');
-      expect(button.exists()).toBe(false);
-    });
+  it('does not show a delete button for global search', () => {
+    renderSavedSearch();
+    // Should not have a delete button as it is a global search
+    const globalSearch = screen.getByTestId('saved-search-122');
+    expect(
+      within(globalSearch).queryByRole('button', {name: 'delete'})
+    ).not.toBeInTheDocument();
+  });
 
-    it('does not show a delete button for global search', () => {
-      // First item should not have a delete button as it is a global search
-      const button = wrapper.find('MenuItem').at(1).find('button[aria-label="delete"]');
-      expect(button).toHaveLength(0);
-    });
+  it('sends a request when delete button is clicked', async () => {
+    renderSavedSearch();
+    // Second item should have a delete button as it is not a global search
+    userEvent.click(screen.getByRole('button', {name: 'delete'}));
 
-    it('sends a request when delete button is clicked', async () => {
-      // Second item should have a delete button as it is not a global search
-      const button = wrapper.find('MenuItem').at(0).find('button[aria-label="delete"]');
-      button.simulate('click');
-      await wrapper.update();
+    renderGlobalModal();
+    expect(
+      await screen.findByText('Are you sure you want to delete this saved search?')
+    ).toBeInTheDocument();
+    userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+    expect(onDelete).toHaveBeenCalledWith(savedSearchList[2]);
+  });
 
-      const modal = await mountGlobalModal();
-      modal.find('Modal Button[priority="primary"] button').simulate('click');
-      expect(onDelete).toHaveBeenCalledWith(savedSearchList[1]);
-    });
-
-    it('hides is:unresolved global search', () => {
-      expect(wrapper.find('MenuItem')).toHaveLength(1);
-    });
+  it('hides is:unresolved global search', () => {
+    renderSavedSearch();
+    expect(screen.queryByText('Unresolved')).not.toBeInTheDocument();
   });
 });

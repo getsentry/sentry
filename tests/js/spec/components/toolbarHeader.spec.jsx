@@ -1,6 +1,6 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import ToolbarHeader from 'app/components/toolbarHeader';
+import ToolbarHeader from 'sentry/components/toolbarHeader';
 
 describe('ToolbarHeader', function () {
   beforeEach(function () {});
@@ -8,11 +8,12 @@ describe('ToolbarHeader', function () {
   afterEach(function () {});
 
   it('renders', function () {
-    const wrapper = mountWithTheme(
+    const {container} = render(
       <ToolbarHeader>
         <div>Toolbar Header</div>
       </ToolbarHeader>
     );
-    expect(wrapper).toSnapshot();
+    expect(screen.getByText('Toolbar Header')).toBeInTheDocument();
+    expect(container).toSnapshot();
   });
 });

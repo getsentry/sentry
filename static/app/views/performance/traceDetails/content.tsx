@@ -1,40 +1,50 @@
 import * as React from 'react';
 import {RouteComponentProps} from 'react-router';
+import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import Alert from 'app/components/alert';
-import GuideAnchor from 'app/components/assistant/guideAnchor';
-import ButtonBar from 'app/components/buttonBar';
-import DiscoverFeature from 'app/components/discover/discoverFeature';
-import DiscoverButton from 'app/components/discoverButton';
-import * as AnchorLinkManager from 'app/components/events/interfaces/spans/anchorLinkManager';
-import * as DividerHandlerManager from 'app/components/events/interfaces/spans/dividerHandlerManager';
-import * as ScrollbarManager from 'app/components/events/interfaces/spans/scrollbarManager';
-import * as Layout from 'app/components/layouts/thirds';
-import ExternalLink from 'app/components/links/externalLink';
-import Link from 'app/components/links/link';
-import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {MessageRow} from 'app/components/performance/waterfall/messageRow';
+import Alert from 'sentry/components/alert';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import ButtonBar from 'sentry/components/buttonBar';
+import DiscoverFeature from 'sentry/components/discover/discoverFeature';
+import DiscoverButton from 'sentry/components/discoverButton';
+import * as AnchorLinkManager from 'sentry/components/events/interfaces/spans/anchorLinkManager';
+import * as DividerHandlerManager from 'sentry/components/events/interfaces/spans/dividerHandlerManager';
+import * as ScrollbarManager from 'sentry/components/events/interfaces/spans/scrollbarManager';
+import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
 import {
   DividerSpacer,
   ScrollbarContainer,
   VirtualScrollbar,
   VirtualScrollbarGrip,
-} from 'app/components/performance/waterfall/miniHeader';
-import {pickBarColor, toPercent} from 'app/components/performance/waterfall/utils';
-import TimeSince from 'app/components/timeSince';
-import {IconInfo} from 'app/icons';
-import {t, tct, tn} from 'app/locale';
-import {Organization} from 'app/types';
-import {createFuzzySearch} from 'app/utils/createFuzzySearch';
-import EventView from 'app/utils/discover/eventView';
-import {getDuration} from 'app/utils/formatters';
-import getDynamicText from 'app/utils/getDynamicText';
-import {TraceFullDetailed, TraceMeta} from 'app/utils/performance/quickTrace/types';
-import {filterTrace, reduceTrace} from 'app/utils/performance/quickTrace/utils';
-import Breadcrumb from 'app/views/performance/breadcrumb';
-import {MetaData} from 'app/views/performance/transactionDetails/styles';
+} from 'sentry/components/performance/waterfall/miniHeader';
+import {
+  ErrorDot,
+  ErrorLevel,
+  ErrorMessageContent,
+  ErrorTitle,
+} from 'sentry/components/performance/waterfall/rowDetails';
+import {pickBarColor, toPercent} from 'sentry/components/performance/waterfall/utils';
+import TimeSince from 'sentry/components/timeSince';
+import {t, tct, tn} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
+import EventView from 'sentry/utils/discover/eventView';
+import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
+import {getDuration} from 'sentry/utils/formatters';
+import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import {TraceFullDetailed, TraceMeta} from 'sentry/utils/performance/quickTrace/types';
+import {filterTrace, reduceTrace} from 'sentry/utils/performance/quickTrace/utils';
+import Breadcrumb from 'sentry/views/performance/breadcrumb';
+import {MetaData} from 'sentry/views/performance/transactionDetails/styles';
 
 import {
   TraceDetailBody,
@@ -50,30 +60,30 @@ import {TraceInfo, TreeDepth} from './types';
 import {getTraceInfo, isRootTransaction} from './utils';
 
 type IndexedFusedTransaction = {
-  transaction: TraceFullDetailed;
   indexed: string[];
+  transaction: TraceFullDetailed;
 };
 
 type AccType = {
-  renderedChildren: React.ReactNode[];
   lastIndex: number;
   numberOfHiddenTransactionsAbove: number;
+  renderedChildren: React.ReactNode[];
 };
 
 type Props = Pick<RouteComponentProps<{traceSlug: string}, {}>, 'params' | 'location'> & {
-  organization: Organization;
-  traceSlug: string;
-  traceEventView: EventView;
   dateSelected: boolean;
+  error: QueryError | null;
   isLoading: boolean;
-  error: string | null;
-  traces: TraceFullDetailed[] | null;
   meta: TraceMeta | null;
+  organization: Organization;
+  traceEventView: EventView;
+  traceSlug: string;
+  traces: TraceFullDetailed[] | null;
 };
 
 type State = {
-  searchQuery: string | undefined;
   filteredTransactionIds: Set<string> | undefined;
+  searchQuery: string | undefined;
 };
 
 class TraceDetailsContent extends React.Component<Props, State> {
@@ -82,8 +92,53 @@ class TraceDetailsContent extends React.Component<Props, State> {
     filteredTransactionIds: undefined,
   };
 
+  componentDidMount() {
+    this.initFuse();
+  }
+
+  componentDidUpdate(prevProps: Props) {
+    if (this.props.traces !== prevProps.traces) {
+      this.initFuse();
+    }
+  }
+
+  fuse: Fuse<IndexedFusedTransaction> | null = null;
   traceViewRef = React.createRef<HTMLDivElement>();
   virtualScrollbarContainerRef = React.createRef<HTMLDivElement>();
+
+  async initFuse() {
+    if (defined(this.props.traces) && this.props.traces.length > 0) {
+      const transformed: IndexedFusedTransaction[] = this.props.traces.flatMap(trace =>
+        reduceTrace<IndexedFusedTransaction[]>(
+          trace,
+          (acc, transaction) => {
+            const indexed: string[] = [
+              transaction['transaction.op'],
+              transaction.transaction,
+              transaction.project_slug,
+            ];
+
+            acc.push({
+              transaction,
+              indexed,
+            });
+
+            return acc;
+          },
+          []
+        )
+      );
+
+      this.fuse = await createFuzzySearch(transformed, {
+        keys: ['indexed'],
+        includeMatches: true,
+        threshold: 0.6,
+        location: 0,
+        distance: 100,
+        maxPatternLength: 32,
+      });
+    }
+  }
 
   renderTraceLoading() {
     return <LoadingIndicator />;
@@ -94,14 +149,70 @@ class TraceDetailsContent extends React.Component<Props, State> {
   }
 
   renderTraceNotFound() {
-    const {meta} = this.props;
+    const {meta, traceEventView, traceSlug, organization, location} = this.props;
 
     const transactions = meta?.transactions ?? 0;
     const errors = meta?.errors ?? 0;
 
     if (transactions === 0 && errors > 0) {
+      const errorsEventView = traceEventView.withColumns([
+        {kind: 'field', field: 'project'},
+        {kind: 'field', field: 'title'},
+        {kind: 'field', field: 'issue.id'},
+        {kind: 'field', field: 'level'},
+      ]);
+      errorsEventView.query = `trace:${traceSlug} !event.type:transaction `;
+
       return (
-        <LoadingError message={t('The trace you are looking contains only errors.')} />
+        <DiscoverQuery
+          eventView={errorsEventView}
+          orgSlug={organization.slug}
+          location={location}
+          referrer="api.trace-view.errors-view"
+        >
+          {({isLoading, tableData, error}) => {
+            if (isLoading) {
+              return <LoadingIndicator />;
+            }
+
+            if (error) {
+              return (
+                <Alert type="error" showIcon>
+                  <ErrorLabel>
+                    {tct(
+                      'The trace cannot be shown when all events are errors. An error occurred when attempting to fetch these error events: [error]',
+                      {error: error.message}
+                    )}
+                  </ErrorLabel>
+                </Alert>
+              );
+            }
+
+            return (
+              <Alert type="error" showIcon>
+                <ErrorLabel>
+                  {t('The trace cannot be shown when all events are errors.')}
+                </ErrorLabel>
+
+                <ErrorMessageContent data-test-id="trace-view-errors">
+                  {tableData?.data.map(data => (
+                    <React.Fragment key={data.id}>
+                      <ErrorDot level={data.level as any} />
+                      <ErrorLevel>{data.level}</ErrorLevel>
+                      <ErrorTitle>
+                        <Link
+                          to={`/organizations/${organization.slug}/issues/${data['issue.id']}/events/${data.id}`}
+                        >
+                          {data.title}
+                        </Link>
+                      </ErrorTitle>
+                    </React.Fragment>
+                  ))}
+                </ErrorMessageContent>
+              </Alert>
+            );
+          }}
+        </DiscoverQuery>
       );
     }
 
@@ -112,11 +223,11 @@ class TraceDetailsContent extends React.Component<Props, State> {
     this.setState({searchQuery: searchQuery || undefined}, this.filterTransactions);
   };
 
-  filterTransactions = async () => {
+  filterTransactions = () => {
     const {traces} = this.props;
     const {filteredTransactionIds, searchQuery} = this.state;
 
-    if (!searchQuery || traces === null || traces.length <= 0) {
+    if (!searchQuery || traces === null || traces.length <= 0 || !defined(this.fuse)) {
       if (filteredTransactionIds !== undefined) {
         this.setState({
           filteredTransactionIds: undefined,
@@ -125,43 +236,13 @@ class TraceDetailsContent extends React.Component<Props, State> {
       return;
     }
 
-    const transformed = traces.flatMap(trace =>
-      reduceTrace<IndexedFusedTransaction[]>(
-        trace,
-        (acc, transaction) => {
-          const indexed: string[] = [
-            transaction['transaction.op'],
-            transaction.transaction,
-            transaction.project_slug,
-          ];
-
-          acc.push({
-            transaction,
-            indexed,
-          });
-
-          return acc;
-        },
-        []
-      )
-    );
-
-    const fuse = await createFuzzySearch(transformed, {
-      keys: ['indexed'],
-      includeMatches: true,
-      threshold: 0.6,
-      location: 0,
-      distance: 100,
-      maxPatternLength: 32,
-    });
-
-    const fuseMatches = fuse
+    const fuseMatches = this.fuse
       .search<IndexedFusedTransaction>(searchQuery)
       /**
        * Sometimes, there can be matches that don't include any
        * indices. These matches are often noise, so exclude them.
        */
-      .filter(({matches}) => matches.length)
+      .filter(({matches}) => matches?.length)
       .map(({item}) => item.transaction.event_id);
 
     /**
@@ -264,7 +345,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
 
     if (roots === 0 && orphans > 0) {
       warning = (
-        <Alert type="info" icon={<IconInfo size="sm" />}>
+        <Alert type="info" showIcon>
           <ExternalLink href="https://docs.sentry.io/product/performance/trace-view/#orphan-traces-and-broken-subtraces">
             {t(
               'A root transaction is missing. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
@@ -274,7 +355,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
       );
     } else if (roots === 1 && orphans > 0) {
       warning = (
-        <Alert type="info" icon={<IconInfo size="sm" />}>
+        <Alert type="info" showIcon>
           <ExternalLink href="https://docs.sentry.io/product/performance/trace-view/#orphan-traces-and-broken-subtraces">
             {t(
               'This trace has broken subtraces. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
@@ -284,7 +365,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
       );
     } else if (roots > 1) {
       warning = (
-        <Alert type="info" icon={<IconInfo size="sm" />}>
+        <Alert type="info" showIcon>
           <ExternalLink href="https://docs.sentry.io/product/performance/trace-view/#multiple-roots">
             {t('Multiple root transactions have been found with this trace ID.')}
           </ExternalLink>
@@ -375,12 +456,12 @@ class TraceDetailsContent extends React.Component<Props, State> {
       hasGuideAnchor,
     }: {
       continuingDepths: TreeDepth[];
-      isOrphan: boolean;
-      isLast: boolean;
+      hasGuideAnchor: boolean;
       index: number;
+      isLast: boolean;
+      isOrphan: boolean;
       numberOfHiddenTransactionsAbove: number;
       traceInfo: TraceInfo;
-      hasGuideAnchor: boolean;
     }
   ) {
     const {location, organization} = this.props;
@@ -602,21 +683,22 @@ class TraceDetailsContent extends React.Component<Props, State> {
 
     if (!dateSelected) {
       return this.renderTraceRequiresDateRangeSelection();
-    } else if (isLoading) {
-      return this.renderTraceLoading();
-    } else if (error !== null || traces === null || traces.length <= 0) {
-      return this.renderTraceNotFound();
-    } else {
-      const traceInfo = getTraceInfo(traces);
-      return (
-        <React.Fragment>
-          {this.renderTraceWarnings()}
-          {this.renderTraceHeader(traceInfo)}
-          {this.renderSearchBar()}
-          {this.renderTraceView(traceInfo)}
-        </React.Fragment>
-      );
     }
+    if (isLoading) {
+      return this.renderTraceLoading();
+    }
+    if (error !== null || traces === null || traces.length <= 0) {
+      return this.renderTraceNotFound();
+    }
+    const traceInfo = getTraceInfo(traces);
+    return (
+      <React.Fragment>
+        {this.renderTraceWarnings()}
+        {this.renderTraceHeader(traceInfo)}
+        {this.renderSearchBar()}
+        {this.renderTraceView(traceInfo)}
+      </React.Fragment>
+    );
   }
 
   render() {
@@ -652,5 +734,9 @@ class TraceDetailsContent extends React.Component<Props, State> {
     );
   }
 }
+
+const ErrorLabel = styled('div')`
+  margin-bottom: ${space(1)};
+`;
 
 export default TraceDetailsContent;

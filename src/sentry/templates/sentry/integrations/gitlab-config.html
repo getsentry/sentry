@@ -52,7 +52,7 @@
   <p>{% trans "You'll also need to be a maintainer or owner in GitLab. Projects owned by users are not supported." %}</p>
   <ol>
     <li>{% trans "Navigate to the User Settings section of your GitLab instance." %} </li>
-    <li>{% trans "In the sidebar, select 'Applications'.<br /> Or go to the <code>/profile/applications</code> path in your GitLab instance." %}</li>
+    <li>{% trans "In the sidebar, select 'Applications'.<br /> Or go to the <code>/-/profile/applications</code> path in your GitLab instance." %}</li>
     <li>{% trans "In the resulting form, enter the following information:" %}
       <ul class="list-unstyled code-list">
         {% for val in setup_values %}
@@ -60,6 +60,7 @@
         {% endfor %}
       </ul>
     </li>
+    <li>{% trans "Select 'Confidential' and 'Expire access tokens'." %}</li>
     <li>{% trans "Click Save Application." %}</li>
     <li>{% trans "In the resulting page, you'll see the Application ID and Secret. You'll need those for the next phase of setup." %}</li>
   </ol>

@@ -3,63 +3,54 @@ import {act} from 'react-dom/test-utils';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {Error} from 'app/components/events/errors';
-import EventEntries from 'app/components/events/eventEntries';
-import {EntryType, Event} from 'app/types/event';
+import {Error} from 'sentry/components/events/errors';
+import EventEntries from 'sentry/components/events/eventEntries';
+import {EntryType, Event} from 'sentry/types/event';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 const {organization, project} = initializeOrg();
 
-// @ts-expect-error
 const api = new MockApiClient();
 
 async function renderComponent(event: Event, errors?: Array<Error>) {
   const wrapper = mountWithTheme(
-    <EventEntries
-      organization={organization}
-      event={{...event, errors: errors ?? event.errors}}
-      project={project}
-      location={location}
-      api={api}
-    />
+    <OrganizationContext.Provider value={organization}>
+      <EventEntries
+        organization={organization}
+        event={{...event, errors: errors ?? event.errors}}
+        project={project}
+        location={location}
+        api={api}
+      />
+    </OrganizationContext.Provider>
   );
 
-  // @ts-expect-error
   await tick();
   wrapper.update();
 
   const eventErrors = wrapper.find('Errors');
 
-  const bannerSummary = eventErrors.find('BannerSummary');
-  const bannerSummaryInfo = bannerSummary.find(
-    'span[data-test-id="errors-banner-summary-info"]'
-  );
+  const alert = eventErrors.find('StyledAlert');
+  const alertSummaryInfo = alert.find('span[data-test-id="alert-summary-info"]');
 
-  const toggleButton = bannerSummary
-    .find('[data-test-id="event-error-toggle"]')
-    .hostNodes();
+  alert.simulate('click');
 
-  toggleButton.simulate('click');
-
-  // @ts-expect-error
   await tick();
   wrapper.update();
 
   const errorItem = wrapper.find('ErrorItem');
 
-  return {bannerSummaryInfoText: bannerSummaryInfo.text(), errorItem};
+  return {alertSummaryInfoText: alertSummaryInfo.text(), errorItem};
 }
 
 describe('GroupEventEntries', function () {
-  // @ts-expect-error
   const event = TestStubs.Event();
 
   beforeEach(() => {
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/grouping-info/`,
       body: {},
     });
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/files/dsyms/`,
       body: [],
@@ -85,9 +76,9 @@ describe('GroupEventEntries', function () {
         },
       ];
 
-      const {bannerSummaryInfoText, errorItem} = await renderComponent(event, errors);
+      const {alertSummaryInfoText, errorItem} = await renderComponent(event, errors);
 
-      expect(bannerSummaryInfoText).toEqual(
+      expect(alertSummaryInfoText).toEqual(
         `There were ${errors.length} problems processing this event`
       );
       expect(errorItem.length).toBe(2);
@@ -113,9 +104,9 @@ describe('GroupEventEntries', function () {
         };
 
         await act(async () => {
-          const {errorItem, bannerSummaryInfoText} = await renderComponent(newEvent);
+          const {errorItem, alertSummaryInfoText} = await renderComponent(newEvent);
 
-          expect(bannerSummaryInfoText).toEqual(
+          expect(alertSummaryInfoText).toEqual(
             'There was 1 problem processing this event'
           );
 
@@ -149,11 +140,9 @@ describe('GroupEventEntries', function () {
           ],
         };
 
-        const {bannerSummaryInfoText, errorItem} = await renderComponent(newEvent);
+        const {alertSummaryInfoText, errorItem} = await renderComponent(newEvent);
 
-        expect(bannerSummaryInfoText).toEqual(
-          'There was 1 problem processing this event'
-        );
+        expect(alertSummaryInfoText).toEqual('There was 1 problem processing this event');
 
         expect(errorItem.length).toBe(1);
         expect(errorItem.at(0).props().error).toEqual({
@@ -203,9 +192,9 @@ describe('GroupEventEntries', function () {
             ],
           };
 
-          const {bannerSummaryInfoText, errorItem} = await renderComponent(newEvent);
+          const {alertSummaryInfoText, errorItem} = await renderComponent(newEvent);
 
-          expect(bannerSummaryInfoText).toEqual(
+          expect(alertSummaryInfoText).toEqual(
             'There was 1 problem processing this event'
           );
 
@@ -277,9 +266,9 @@ describe('GroupEventEntries', function () {
             ],
           };
 
-          const {bannerSummaryInfoText, errorItem} = await renderComponent(newEvent);
+          const {alertSummaryInfoText, errorItem} = await renderComponent(newEvent);
 
-          expect(bannerSummaryInfoText).toEqual(
+          expect(alertSummaryInfoText).toEqual(
             'There was 1 problem processing this event'
           );
 

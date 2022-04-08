@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import EventsTable from 'app/components/eventsTable/eventsTable';
+import EventsTable from 'sentry/components/eventsTable/eventsTable';
 
 describe('EventsTable', function () {
   beforeEach(function () {});
@@ -15,8 +15,7 @@ describe('EventsTable', function () {
         projectId="projectId"
         groupId="groupId"
         events={TestStubs.DetailedEvents()}
-      />,
-      TestStubs.routerContext()
+      />
     );
     expect(wrapper).toSnapshot();
   });

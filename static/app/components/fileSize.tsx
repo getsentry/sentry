@@ -1,19 +1,25 @@
-import {formatBytesBase2} from 'app/utils';
-import getDynamicText from 'app/utils/getDynamicText';
+import styled from '@emotion/styled';
+
+import {formatBytesBase2} from 'sentry/utils';
+import getDynamicText from 'sentry/utils/getDynamicText';
 
 type Props = {
-  className?: string;
   bytes: number;
+  className?: string;
 };
 
 function FileSize(props: Props) {
   const {className, bytes} = props;
 
   return (
-    <span className={className}>
+    <Span className={className}>
       {getDynamicText({value: formatBytesBase2(bytes), fixed: 'xx KB'})}
-    </span>
+    </Span>
   );
 }
+
+const Span = styled('span')`
+  font-variant-numeric: tabular-nums;
+`;
 
 export default FileSize;

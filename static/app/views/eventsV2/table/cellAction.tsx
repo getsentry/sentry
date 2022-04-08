@@ -1,22 +1,22 @@
 import * as React from 'react';
-import ReactDOM from 'react-dom';
+import {createPortal} from 'react-dom';
 import {Manager, Popper, Reference} from 'react-popper';
 import styled from '@emotion/styled';
 import color from 'color';
 import * as PopperJS from 'popper.js';
 
-import {IconEllipsis} from 'app/icons';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {defined} from 'app/utils';
-import {TableDataRow} from 'app/utils/discover/discoverQuery';
+import {IconEllipsis} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
+import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {
   getAggregateAlias,
   isEquationAlias,
   isRelativeSpanOperationBreakdownField,
-} from 'app/utils/discover/fields';
-import {getDuration} from 'app/utils/formatters';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
+} from 'sentry/utils/discover/fields';
+import {getDuration} from 'sentry/utils/formatters';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 import {TableColumn} from './types';
 
@@ -113,15 +113,175 @@ export function updateQuery(
   }
 }
 
-type Props = {
+type CellActionsOpts = {
   column: TableColumn<keyof TableDataRow>;
   dataRow: TableDataRow;
-  children: React.ReactNode;
   handleCellAction: (action: Actions, value: React.ReactText) => void;
-
-  // allow list of actions to display on the context menu
+  /**
+   * allow list of actions to display on the context menu
+   */
   allowActions?: Actions[];
 };
+
+function makeCellActions({
+  dataRow,
+  column,
+  handleCellAction,
+  allowActions,
+}: CellActionsOpts) {
+  // Do not render context menu buttons for the span op breakdown field.
+  if (isRelativeSpanOperationBreakdownField(column.name)) {
+    return null;
+  }
+
+  // Do not render context menu buttons for the equation fields until we can query on them
+  if (isEquationAlias(column.name)) {
+    return null;
+  }
+
+  const fieldAlias = getAggregateAlias(column.name);
+
+  let value = dataRow[fieldAlias];
+
+  // error.handled is a strange field where null = true.
+  if (
+    Array.isArray(value) &&
+    value[0] === null &&
+    column.column.kind === 'field' &&
+    column.column.field === 'error.handled'
+  ) {
+    value = 1;
+  }
+  const actions: React.ReactNode[] = [];
+
+  function addMenuItem(action: Actions, menuItem: React.ReactNode) {
+    if ((Array.isArray(allowActions) && allowActions.includes(action)) || !allowActions) {
+      actions.push(menuItem);
+    }
+  }
+
+  if (
+    !['duration', 'number', 'percentage'].includes(column.type) ||
+    (value === null && column.column.kind === 'field')
+  ) {
+    addMenuItem(
+      Actions.ADD,
+      <ActionItem
+        key="add-to-filter"
+        data-test-id="add-to-filter"
+        onClick={() => handleCellAction(Actions.ADD, value)}
+      >
+        {t('Add to filter')}
+      </ActionItem>
+    );
+
+    if (column.type !== 'date') {
+      addMenuItem(
+        Actions.EXCLUDE,
+        <ActionItem
+          key="exclude-from-filter"
+          data-test-id="exclude-from-filter"
+          onClick={() => handleCellAction(Actions.EXCLUDE, value)}
+        >
+          {t('Exclude from filter')}
+        </ActionItem>
+      );
+    }
+  }
+
+  if (
+    ['date', 'duration', 'integer', 'number', 'percentage'].includes(column.type) &&
+    value !== null
+  ) {
+    addMenuItem(
+      Actions.SHOW_GREATER_THAN,
+      <ActionItem
+        key="show-values-greater-than"
+        data-test-id="show-values-greater-than"
+        onClick={() => handleCellAction(Actions.SHOW_GREATER_THAN, value)}
+      >
+        {t('Show values greater than')}
+      </ActionItem>
+    );
+
+    addMenuItem(
+      Actions.SHOW_LESS_THAN,
+      <ActionItem
+        key="show-values-less-than"
+        data-test-id="show-values-less-than"
+        onClick={() => handleCellAction(Actions.SHOW_LESS_THAN, value)}
+      >
+        {t('Show values less than')}
+      </ActionItem>
+    );
+  }
+
+  if (column.column.kind === 'field' && column.column.field === 'transaction') {
+    addMenuItem(
+      Actions.TRANSACTION,
+      <ActionItem
+        key="transaction-summary"
+        data-test-id="transaction-summary"
+        onClick={() => handleCellAction(Actions.TRANSACTION, value)}
+      >
+        {t('Go to summary')}
+      </ActionItem>
+    );
+  }
+
+  if (column.column.kind === 'field' && column.column.field === 'release' && value) {
+    addMenuItem(
+      Actions.RELEASE,
+      <ActionItem
+        key="release"
+        data-test-id="release"
+        onClick={() => handleCellAction(Actions.RELEASE, value)}
+      >
+        {t('Go to release')}
+      </ActionItem>
+    );
+  }
+
+  if (column.column.kind === 'function' && column.column.function[0] === 'count_unique') {
+    addMenuItem(
+      Actions.DRILLDOWN,
+      <ActionItem
+        key="drilldown"
+        data-test-id="per-cell-drilldown"
+        onClick={() => handleCellAction(Actions.DRILLDOWN, value)}
+      >
+        {t('View Stacks')}
+      </ActionItem>
+    );
+  }
+
+  if (
+    column.column.kind === 'function' &&
+    column.column.function[0] === 'user_misery' &&
+    defined(dataRow.project_threshold_config)
+  ) {
+    addMenuItem(
+      Actions.EDIT_THRESHOLD,
+      <ActionItem
+        key="edit_threshold"
+        data-test-id="edit-threshold"
+        onClick={() => handleCellAction(Actions.EDIT_THRESHOLD, value)}
+      >
+        {tct('Edit threshold ([threshold]ms)', {
+          threshold: dataRow.project_threshold_config[1],
+        })}
+      </ActionItem>
+    );
+  }
+
+  if (actions.length === 0) {
+    return null;
+  }
+
+  return actions;
+}
+
+type Props = React.PropsWithoutRef<CellActionsOpts>;
 
 type State = {
   isHovering: boolean;
@@ -194,182 +354,12 @@ class CellAction extends React.Component<Props, State> {
     this.setState({isOpen: !this.state.isOpen});
   };
 
-  renderMenuButtons() {
-    const {dataRow, column, handleCellAction, allowActions} = this.props;
-
-    // Do not render context menu buttons for the span op breakdown field.
-    if (isRelativeSpanOperationBreakdownField(column.name)) {
-      return null;
-    }
-
-    // Do not render context menu buttons for the equation fields until we can query on them
-    if (isEquationAlias(column.name)) {
-      return null;
-    }
-
-    const fieldAlias = getAggregateAlias(column.name);
-
-    let value = dataRow[fieldAlias];
-
-    // error.handled is a strange field where null = true.
-    if (
-      Array.isArray(value) &&
-      value[0] === null &&
-      column.column.kind === 'field' &&
-      column.column.field === 'error.handled'
-    ) {
-      value = 1;
-    }
-    const actions: React.ReactNode[] = [];
-
-    function addMenuItem(action: Actions, menuItem: React.ReactNode) {
-      if (
-        (Array.isArray(allowActions) && allowActions.includes(action)) ||
-        !allowActions
-      ) {
-        actions.push(menuItem);
-      }
-    }
-
-    if (
-      !['duration', 'number', 'percentage'].includes(column.type) ||
-      (value === null && column.column.kind === 'field')
-    ) {
-      addMenuItem(
-        Actions.ADD,
-        <ActionItem
-          key="add-to-filter"
-          data-test-id="add-to-filter"
-          onClick={() => handleCellAction(Actions.ADD, value)}
-        >
-          {t('Add to filter')}
-        </ActionItem>
-      );
-
-      if (column.type !== 'date') {
-        addMenuItem(
-          Actions.EXCLUDE,
-          <ActionItem
-            key="exclude-from-filter"
-            data-test-id="exclude-from-filter"
-            onClick={() => handleCellAction(Actions.EXCLUDE, value)}
-          >
-            {t('Exclude from filter')}
-          </ActionItem>
-        );
-      }
-    }
-
-    if (
-      ['date', 'duration', 'integer', 'number', 'percentage'].includes(column.type) &&
-      value !== null
-    ) {
-      addMenuItem(
-        Actions.SHOW_GREATER_THAN,
-        <ActionItem
-          key="show-values-greater-than"
-          data-test-id="show-values-greater-than"
-          onClick={() => handleCellAction(Actions.SHOW_GREATER_THAN, value)}
-        >
-          {t('Show values greater than')}
-        </ActionItem>
-      );
-
-      addMenuItem(
-        Actions.SHOW_LESS_THAN,
-        <ActionItem
-          key="show-values-less-than"
-          data-test-id="show-values-less-than"
-          onClick={() => handleCellAction(Actions.SHOW_LESS_THAN, value)}
-        >
-          {t('Show values less than')}
-        </ActionItem>
-      );
-    }
-
-    if (column.column.kind === 'field' && column.column.field === 'transaction') {
-      addMenuItem(
-        Actions.TRANSACTION,
-        <ActionItem
-          key="transaction-summary"
-          data-test-id="transaction-summary"
-          onClick={() => handleCellAction(Actions.TRANSACTION, value)}
-        >
-          {t('Go to summary')}
-        </ActionItem>
-      );
-    }
-
-    if (column.column.kind === 'field' && column.column.field === 'release' && value) {
-      addMenuItem(
-        Actions.RELEASE,
-        <ActionItem
-          key="release"
-          data-test-id="release"
-          onClick={() => handleCellAction(Actions.RELEASE, value)}
-        >
-          {t('Go to release')}
-        </ActionItem>
-      );
-    }
-
-    if (
-      column.column.kind === 'function' &&
-      column.column.function[0] === 'count_unique'
-    ) {
-      addMenuItem(
-        Actions.DRILLDOWN,
-        <ActionItem
-          key="drilldown"
-          data-test-id="per-cell-drilldown"
-          onClick={() => handleCellAction(Actions.DRILLDOWN, value)}
-        >
-          {t('View Stacks')}
-        </ActionItem>
-      );
-    }
-
-    if (
-      column.column.kind === 'function' &&
-      column.column.function[0] === 'user_misery' &&
-      defined(dataRow.project_threshold_config)
-    ) {
-      addMenuItem(
-        Actions.EDIT_THRESHOLD,
-        <ActionItem
-          key="edit_threshold"
-          data-test-id="edit-threshold"
-          onClick={() => handleCellAction(Actions.EDIT_THRESHOLD, value)}
-        >
-          {tct('Edit threshold ([threshold]ms)', {
-            threshold: dataRow.project_threshold_config[1],
-          })}
-        </ActionItem>
-      );
-    }
-
-    if (actions.length === 0) {
-      return null;
-    }
-
-    return (
-      <MenuButtons
-        onClick={event => {
-          // prevent clicks from propagating further
-          event.stopPropagation();
-        }}
-      >
-        {actions}
-      </MenuButtons>
-    );
-  }
-
   renderMenu() {
     const {isOpen} = this.state;
 
-    const menuButtons = this.renderMenuButtons();
+    const actions = makeCellActions(this.props);
 
-    if (menuButtons === null) {
+    if (actions === null) {
       // do not render the menu if there are no per cell actions
       return null;
     }
@@ -387,7 +377,7 @@ class CellAction extends React.Component<Props, State> {
     let menu: React.ReactPortal | null = null;
 
     if (isOpen) {
-      menu = ReactDOM.createPortal(
+      menu = createPortal(
         <Popper placement="top" modifiers={modifiers}>
           {({ref: popperRef, style, placement, arrowProps}) => (
             <Menu
@@ -402,7 +392,9 @@ class CellAction extends React.Component<Props, State> {
                 data-placement={placement}
                 style={arrowProps.style}
               />
-              {menuButtons}
+              <MenuButtons onClick={event => event.stopPropagation()}>
+                {actions}
+              </MenuButtons>
             </Menu>
           )}
         </Popper>,
@@ -448,6 +440,9 @@ const Container = styled('div')`
   position: relative;
   width: 100%;
   height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 `;
 
 const MenuRoot = styled('div')`

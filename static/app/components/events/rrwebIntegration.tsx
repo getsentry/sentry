@@ -1,21 +1,17 @@
-import styled from '@emotion/styled';
-
-import AsyncComponent from 'app/components/asyncComponent';
-import EventDataSection from 'app/components/events/eventDataSection';
-import LazyLoad from 'app/components/lazyLoad';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {EventAttachment, Organization, Project} from 'app/types';
-import {Event} from 'app/types/event';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import LazyLoad from 'sentry/components/lazyLoad';
+import {IssueAttachment, Organization, Project} from 'sentry/types';
+import {Event} from 'sentry/types/event';
 
 type Props = {
   event: Event;
   orgId: Organization['id'];
   projectId: Project['id'];
+  renderer?: Function;
 } & AsyncComponent['props'];
 
 type State = {
-  attachmentList: Array<EventAttachment> | null;
+  attachmentList: Array<IssueAttachment> | null;
 } & AsyncComponent['state'];
 
 class RRWebIntegration extends AsyncComponent<Props, State> {
@@ -25,7 +21,18 @@ class RRWebIntegration extends AsyncComponent<Props, State> {
       [
         'attachmentList',
         `/projects/${orgId}/${projectId}/events/${event.id}/attachments/`,
-        {query: {query: 'rrweb.json'}},
+
+        // This was changed from `rrweb.json`, so that we can instead
+        // support incremental rrweb events as attachments. This is to avoid
+        // having clients uploading a single, large sized replay.
+        //
+        // Note: This will include all attachments that contain `rrweb`
+        // anywhere its name. We need to maintain compatibility with existing
+        // rrweb plugin users (single replay), but also support incremental
+        // replays as well. I can't think of a reason why someone would have
+        // a non-rrweb replay containing the string `rrweb`, but people have
+        // surprised me before.
+        {query: {query: 'rrweb'}},
       ],
     ];
   }
@@ -37,28 +44,25 @@ class RRWebIntegration extends AsyncComponent<Props, State> {
 
   renderBody() {
     const {attachmentList} = this.state;
+    const renderer = this.props.renderer || (children => children);
 
     if (!attachmentList?.length) {
       return null;
     }
 
-    const attachment = attachmentList[0];
     const {orgId, projectId, event} = this.props;
 
-    return (
-      <StyledEventDataSection type="context-replay" title={t('Replay')}>
-        <LazyLoad
-          component={() => import('./rrwebReplayer')}
-          url={`/api/0/projects/${orgId}/${projectId}/events/${event.id}/attachments/${attachment.id}/?download`}
-        />
-      </StyledEventDataSection>
+    function createAttachmentUrl(attachment: IssueAttachment) {
+      return `/api/0/projects/${orgId}/${projectId}/events/${event.id}/attachments/${attachment.id}/?download`;
+    }
+
+    return renderer(
+      <LazyLoad
+        component={() => import('./rrwebReplayer')}
+        urls={attachmentList.map(createAttachmentUrl)}
+      />
     );
   }
 }
-
-const StyledEventDataSection = styled(EventDataSection)`
-  overflow: hidden;
-  margin-bottom: ${space(3)};
-`;
 
 export default RRWebIntegration;

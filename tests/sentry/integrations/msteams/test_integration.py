@@ -1,3 +1,4 @@
+from unittest.mock import patch
 from urllib.parse import urlencode
 
 import responses
@@ -5,7 +6,6 @@ import responses
 from sentry.integrations.msteams import MsTeamsIntegrationProvider
 from sentry.models import Integration, OrganizationIntegration
 from sentry.testutils import IntegrationTestCase
-from sentry.utils.compat.mock import patch
 from sentry.utils.signing import sign
 
 team_id = "19:8d46058cda57449380517cc374727f2a@thread.tacv2"
@@ -73,7 +73,7 @@ class MsTeamsIntegrationTest(IntegrationTestCase):
                 integration=integration, organization=self.organization
             )
 
-            integration_url = f"organizations/{self.organization.slug}/rules/"
+            integration_url = f"organizations/{self.organization.slug}/alerts/rules/"
             assert integration_url in responses.calls[1].request.body.decode("utf-8")
             assert self.organization.name in responses.calls[1].request.body.decode("utf-8")
 

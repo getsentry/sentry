@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 import {action} from '@storybook/addon-actions';
 
-import EditableText from 'app/components/editableText';
-import space from 'app/styles/space';
+import EditableText from 'sentry/components/editableText';
+import space from 'sentry/styles/space';
 
 export default {
   title: 'Components/Forms/Misc/Editable Text',

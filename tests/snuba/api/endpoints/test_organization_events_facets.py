@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest import mock
 from uuid import uuid4
 
 from django.urls import reverse
@@ -8,12 +9,9 @@ from rest_framework.exceptions import ParseError
 
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.utils.compat import mock
 
 
 class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
-    feature_list = ("organizations:discover-basic", "organizations:global-views")
-
     def setUp(self):
         super().setUp()
         self.min_ago = before_now(minutes=1).replace(microsecond=0)
@@ -26,6 +24,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
             kwargs={"organization_slug": self.project.organization.slug},
         )
         self.min_ago_iso = iso_format(self.min_ago)
+        self.features = {"organizations:discover-basic": True, "organizations:global-views": True}
 
     def assert_facet(self, response, key, expected):
         actual = None
@@ -39,9 +38,13 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         assert sorted(expected, key=key) == sorted(actual["topValues"], key=key)
 
     def test_performance_view_feature(self):
-        with self.feature(
-            {"organizations:discover-basic": False, "organizations:performance-view": True}
-        ):
+        self.features.update(
+            {
+                "organizations:discover-basic": False,
+                "organizations:performance-view": True,
+            }
+        )
+        with self.feature(self.features):
             response = self.client.get(self.url, data={"project": self.project.id}, format="json")
 
         assert response.status_code == 200, response.content
@@ -72,7 +75,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
             project_id=self.project.id,
         )
 
-        with self.feature(self.feature_list):
+        with self.feature(self.features):
             response = self.client.get(self.url, format="json")
 
         assert response.status_code == 200, response.content
@@ -111,7 +114,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
             project_id=self.project2.id,
         )
 
-        with self.feature(self.feature_list):
+        with self.feature(self.features):
             response = self.client.get(self.url, {"query": "delet"}, format="json")
 
         assert response.status_code == 200, response.content
@@ -150,7 +153,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
             project_id=self.project2.id,
         )
 
-        with self.feature(self.feature_list):
+        with self.feature(self.features):
             response = self.client.get(self.url, {"query": "color:yellow"}, format="json")
 
         assert response.status_code == 200, response.content
@@ -186,7 +189,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
             project_id=self.project2.id,
         )
 
-        with self.feature(self.feature_list):
+        with self.feature(self.features):
             response = self.client.get(
                 self.url, {"query": "color:yellow OR color:red"}, format="json"
             )
@@ -236,7 +239,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
             project_id=self.project2.id,
         )
 
-        with self.feature(self.feature_list):
+        with self.feature(self.features):
             response = self.client.get(
                 self.url,
                 {"start": iso_format(self.day_ago), "end": iso_format(self.min_ago)},
@@ -278,7 +281,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
             project_id=self.project.id,
         )
 
-        with self.feature(self.feature_list):
+        with self.feature(self.features):
             response = self.client.get(self.url, format="json", data={"project": [self.project.id]})
 
         assert response.status_code == 200, response.content
@@ -325,7 +328,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
             project_id=self.project2.id,
         )
 
-        with self.feature(self.feature_list):
+        with self.feature(self.features):
             response = self.client.get(self.url, {"project": [self.project.id]}, format="json")
 
         assert response.status_code == 200, response.content
@@ -350,7 +353,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
             project_id=self.project2.id,
         )
 
-        with self.feature(self.feature_list):
+        with self.feature(self.features):
             response = self.client.get(
                 self.url, {"query": f"project:{self.project.slug}"}, format="json"
             )
@@ -389,7 +392,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
             project_id=self.project.id,
         )
 
-        with self.feature(self.feature_list):
+        with self.feature(self.features):
             response = self.client.get(self.url, format="json")
 
         assert response.status_code == 200, response.content
@@ -442,7 +445,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
             project_id=private_project2.id,
         )
 
-        with self.feature(self.feature_list):
+        with self.feature(self.features):
             response = self.client.get(self.url, format="json")
 
         assert response.status_code == 200, response.content
@@ -457,17 +460,17 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         self.store_event(data={"event_id": uuid4().hex}, project_id=self.project.id)
         self.store_event(data={"event_id": uuid4().hex}, project_id=self.project2.id)
 
-        with self.feature(self.feature_list):
+        with self.feature(self.features):
             response = self.client.get(self.url, format="json", data={"query": "\n\n\n\n"})
         assert response.status_code == 400, response.content
-        assert response.data == {
-            "detail": "Parse error at '\n\n\n\n' (column 1). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
-        }
+        assert response.data["detail"].endswith(
+            "(column 1). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
+        )
 
     @mock.patch("sentry.snuba.discover.raw_query")
     def test_handling_snuba_errors(self, mock_query):
         mock_query.side_effect = ParseError("test")
-        with self.feature(self.feature_list):
+        with self.feature(self.features):
             response = self.client.get(self.url, format="json")
 
         assert response.status_code == 400, response.content
@@ -500,7 +503,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
             project_id=self.project.id,
         )
 
-        with self.feature(self.feature_list):
+        with self.feature(self.features):
             response = self.client.get(self.url, format="json")
 
             assert response.status_code == 200, response.content
@@ -511,7 +514,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
             ]
             self.assert_facet(response, "environment", expected)
 
-        with self.feature(self.feature_list):
+        with self.feature(self.features):
             # query by an environment
             response = self.client.get(self.url, {"environment": "staging"}, format="json")
 
@@ -519,7 +522,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
             expected = [{"count": 1, "name": "staging", "value": "staging"}]
             self.assert_facet(response, "environment", expected)
 
-        with self.feature(self.feature_list):
+        with self.feature(self.features):
             # query by multiple environments
             response = self.client.get(
                 self.url, {"environment": ["staging", "production"]}, format="json"
@@ -533,7 +536,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
             ]
             self.assert_facet(response, "environment", expected)
 
-        with self.feature(self.feature_list):
+        with self.feature(self.features):
             # query by multiple environments, including the "no environment" environment
             response = self.client.get(
                 self.url, {"environment": ["staging", "production", ""]}, format="json"
@@ -548,7 +551,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
 
     def test_out_of_retention(self):
         with self.options({"system.event-retention-days": 10}):
-            with self.feature(self.feature_list):
+            with self.feature(self.features):
                 response = self.client.get(
                     self.url,
                     format="json",
@@ -591,3 +594,18 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
             )
 
             assert len(mock_quantize.mock_calls) == 2
+
+
+class OrganizationEventsFacetsEndpointTestWithSnql(OrganizationEventsFacetsEndpointTest):
+    def setUp(self):
+        super().setUp()
+        self.features["organizations:discover-use-snql"] = True
+
+    # Separate test for now to keep the patching simpler
+    @mock.patch("sentry.search.events.builder.raw_snql_query")
+    def test_handling_snuba_errors(self, mock_query):
+        mock_query.side_effect = ParseError("test")
+        with self.feature(self.features):
+            response = self.client.get(self.url, format="json")
+
+        assert response.status_code == 400, response.content

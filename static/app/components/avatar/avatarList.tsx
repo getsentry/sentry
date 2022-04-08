@@ -2,9 +2,9 @@ import {Component} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import UserAvatar from 'app/components/avatar/userAvatar';
-import Tooltip from 'app/components/tooltip';
-import {AvatarUser} from 'app/types';
+import UserAvatar from 'sentry/components/avatar/userAvatar';
+import Tooltip from 'sentry/components/tooltip';
+import {AvatarUser} from 'sentry/types';
 
 const defaultProps = {
   avatarSize: 28,
@@ -17,10 +17,10 @@ type DefaultProps = Readonly<typeof defaultProps>;
 type Mutable<T> = {-readonly [P in keyof T]: T[P]};
 
 type Props = {
-  className?: string;
-  users: AvatarUser[];
-  renderTooltip?: UserAvatar['props']['renderTooltip'];
   tooltipOptions: Mutable<UserAvatar['props']['tooltipOptions']>;
+  users: AvatarUser[];
+  className?: string;
+  renderTooltip?: UserAvatar['props']['renderTooltip'];
 } & DefaultProps;
 
 export default class AvatarList extends Component<Props> {

@@ -1,6 +1,7 @@
 import pytest
 
 from sentry.models import ProjectKey
+from sentry.models.transaction_threshold import TransactionMetric
 from sentry.relay.config import get_project_config
 from sentry.testutils.helpers import Feature
 from sentry.utils.safe import get_path
@@ -82,7 +83,7 @@ def test_project_config_uses_filters_and_sampling_feature(
 ):
     """
     Tests that dynamic sampling information is retrieved for both "full config" and "restricted config"
-    but only when the organization has "organizations:filter-and-sampling" feature enabled.
+    but only when the organization has "organizations:filters-and-sampling" feature enabled.
     """
     default_project.update_option("sentry:dynamic_sampling", dyn_sampling_data())
 
@@ -99,9 +100,73 @@ def test_project_config_uses_filters_and_sampling_feature(
 
 
 @pytest.mark.django_db
-def test_project_config_with_breakdown(default_project, insta_snapshot):
-    with Feature("organizations:performance-ops-breakdown"):
+@pytest.mark.parametrize("transaction_metrics", ("with_metrics", "without_metrics"))
+def test_project_config_with_breakdown(default_project, insta_snapshot, transaction_metrics):
+    with Feature(
+        {
+            "organizations:performance-ops-breakdown": True,
+            "organizations:transaction-metrics-extraction": transaction_metrics == "with_metrics",
+        }
+    ):
         cfg = get_project_config(default_project, full_config=True)
 
     cfg = cfg.to_dict()
-    insta_snapshot(cfg["config"]["breakdownsV2"])
+    insta_snapshot(
+        {
+            "breakdownsV2": cfg["config"]["breakdownsV2"],
+            "transactionMetrics": cfg["config"].get("transactionMetrics"),
+        }
+    )
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("has_project_transaction_threshold", (False, True))
+@pytest.mark.parametrize("has_project_transaction_threshold_overrides", (False, True))
+def test_project_config_satisfaction_thresholds(
+    default_project,
+    insta_snapshot,
+    has_project_transaction_threshold_overrides,
+    has_project_transaction_threshold,
+):
+    if has_project_transaction_threshold:
+        default_project.projecttransactionthreshold_set.create(
+            organization=default_project.organization,
+            threshold=500,
+            metric=TransactionMetric.LCP.value,
+        )
+    if has_project_transaction_threshold_overrides:
+        default_project.projecttransactionthresholdoverride_set.create(
+            organization=default_project.organization,
+            transaction="foo",
+            threshold=400,
+            metric=TransactionMetric.DURATION.value,
+        )
+        default_project.projecttransactionthresholdoverride_set.create(
+            organization=default_project.organization,
+            transaction="bar",
+            threshold=600,
+            metric=TransactionMetric.LCP.value,
+        )
+    with Feature(
+        {
+            "organizations:transaction-metrics-extraction": True,
+        }
+    ):
+        cfg = get_project_config(default_project, full_config=True)
+
+    cfg = cfg.to_dict()
+    insta_snapshot(cfg["config"]["transactionMetrics"]["satisfactionThresholds"])
+
+
+@pytest.mark.django_db
+def test_project_config_with_span_attributes(default_project, insta_snapshot):
+    # The span attributes config is not set with the flag turnd off
+    cfg = get_project_config(default_project, full_config=True)
+    cfg = cfg.to_dict()
+    assert "spanAttributes" not in cfg["config"]
+
+    with Feature("projects:performance-suspect-spans-ingestion"):
+        cfg = get_project_config(default_project, full_config=True)
+
+    cfg = cfg.to_dict()
+    insta_snapshot(cfg["config"]["spanAttributes"])

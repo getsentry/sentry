@@ -3,10 +3,10 @@ import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
 import moment from 'moment-timezone';
 
-import {t} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
-import {getDuration} from 'app/utils/formatters';
-import getDynamicText from 'app/utils/getDynamicText';
+import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {getDuration} from 'sentry/utils/formatters';
+import getDynamicText from 'sentry/utils/getDynamicText';
 
 import Tooltip from './tooltip';
 
@@ -14,41 +14,39 @@ const ONE_MINUTE_IN_MS = 60000;
 
 type RelaxedDateType = string | number | Date;
 
-type DefaultProps = {
+interface DefaultProps {
   /**
    * Suffix after elapsed time
    * e.g. "ago" in "5 minutes ago"
    */
   suffix: string;
-};
+}
 
-type TimeProps = React.HTMLProps<HTMLTimeElement>;
-
-type Props = DefaultProps & {
+interface Props extends DefaultProps, React.TimeHTMLAttributes<HTMLTimeElement> {
   /**
    * The date value, can be string, number (e.g. timestamp), or instance of Date
    */
   date: RelaxedDateType;
 
+  className?: string;
+
   /**
    * By default we show tooltip with absolute date on hover, this prop disables that
    */
   disabledAbsoluteTooltip?: boolean;
-
-  /**
-   * For relative time shortens minutes to min, hour to hr etc.
-   */
-  shorten?: boolean;
   /**
    * Shortens the shortened relative time
    * min to m, hr to h
    */
   extraShort?: boolean;
 
-  tooltipTitle?: React.ReactNode;
+  /**
+   * For relative time shortens minutes to min, hour to hr etc.
+   */
+  shorten?: boolean;
 
-  className?: string;
-} & TimeProps;
+  tooltipTitle?: React.ReactNode;
+}
 
 type State = {
   relative: string;
@@ -81,16 +79,14 @@ class TimeSince extends React.PureComponent<Props, State> {
   }
 
   componentWillUnmount() {
-    if (this.ticker) {
-      window.clearTimeout(this.ticker);
-      this.ticker = null;
-    }
+    window.clearTimeout(this.tickerTimeout);
   }
 
-  ticker: number | null = null;
+  tickerTimeout: number | undefined = undefined;
 
   setRelativeDateTicker = () => {
-    this.ticker = window.setTimeout(() => {
+    window.clearTimeout(this.tickerTimeout);
+    this.tickerTimeout = window.setTimeout(() => {
       this.setState({
         relative: getRelativeDate(
           this.props.date,
@@ -165,15 +161,16 @@ export function getRelativeDate(
       time: getDuration(moment().diff(moment(date), 'seconds'), 0, shorten, extraShort),
       suffix,
     });
-  } else if ((shorten || extraShort) && !suffix) {
-    return getDuration(moment().diff(moment(date), 'seconds'), 0, shorten, extraShort);
-  } else if (!suffix) {
-    return moment(date).fromNow(true);
-  } else if (suffix === 'ago') {
-    return moment(date).fromNow();
-  } else if (suffix === 'old') {
-    return t('%(time)s old', {time: moment(date).fromNow(true)});
-  } else {
-    throw new Error('Unsupported time format suffix');
   }
+  if ((shorten || extraShort) && !suffix) {
+    return getDuration(moment().diff(moment(date), 'seconds'), 0, shorten, extraShort);
+  }
+  if (!suffix) {
+    return moment(date).fromNow(true);
+  }
+  if (suffix === 'ago') {
+    return moment(date).fromNow();
+  }
+
+  return t('%(time)s %(suffix)s', {time: moment(date).fromNow(true), suffix});
 }

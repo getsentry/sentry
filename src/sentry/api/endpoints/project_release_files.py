@@ -5,6 +5,7 @@ from typing import List, Optional, Tuple
 from django.db import IntegrityError, router
 from django.db.models import Q
 from django.utils.functional import cached_property
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
@@ -44,7 +45,7 @@ def load_dist(results):
 
 
 class ReleaseFilesMixin:
-    def get_releasefiles(self, request, release, organization_id):
+    def get_releasefiles(self, request: Request, release, organization_id):
         query = request.GET.getlist("query")
 
         data_sources = []
@@ -208,7 +209,7 @@ def pseudo_releasefile(url, info, dist):
 class ProjectReleaseFilesEndpoint(ProjectEndpoint, ReleaseFilesMixin):
     permission_classes = (ProjectReleasePermission,)
 
-    def get(self, request, project, version):
+    def get(self, request: Request, project, version) -> Response:
         """
         List a Project Release's Files
         ``````````````````````````````
@@ -232,7 +233,7 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint, ReleaseFilesMixin):
 
         return self.get_releasefiles(request, release, project.organization_id)
 
-    def post(self, request, project, version):
+    def post(self, request: Request, project, version) -> Response:
         """
         Upload a New Project Release File
         `````````````````````````````````

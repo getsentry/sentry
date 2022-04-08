@@ -5,26 +5,26 @@ import {
   addErrorMessage,
   addLoadingMessage,
   clearIndicators,
-} from 'app/actionCreators/indicator';
-import Button from 'app/components/button';
-import Link from 'app/components/links/link';
-import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
-import Switch from 'app/components/switchButton';
-import Truncate from 'app/components/truncate';
-import {IconAdd, IconFlag} from 'app/icons';
-import {t} from 'app/locale';
-import {LightWeightOrganization, ServiceHook} from 'app/types';
-import withOrganization from 'app/utils/withOrganization';
-import AsyncView from 'app/views/asyncView';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import Field from 'app/views/settings/components/forms/field';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+} from 'sentry/actionCreators/indicator';
+import Button from 'sentry/components/button';
+import Field from 'sentry/components/forms/field';
+import Link from 'sentry/components/links/link';
+import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Switch from 'sentry/components/switchButton';
+import Truncate from 'sentry/components/truncate';
+import {IconAdd} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {Organization, ServiceHook} from 'sentry/types';
+import withOrganization from 'sentry/utils/withOrganization';
+import AsyncView from 'sentry/views/asyncView';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 type RowProps = {
-  orgId: string;
-  projectId: string;
   hook: ServiceHook;
   onToggleActive: () => void;
+  orgId: string;
+  projectId: string;
 };
 
 function ServiceHookRow({orgId, projectId, hook, onToggleActive}: RowProps) {
@@ -54,7 +54,7 @@ function ServiceHookRow({orgId, projectId, hook, onToggleActive}: RowProps) {
 }
 
 type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
-  organization: LightWeightOrganization;
+  organization: Organization;
 };
 
 type State = {
@@ -116,7 +116,7 @@ class ProjectServiceHooks extends AsyncView<Props, State> {
       <Fragment>
         <PanelHeader key="header">{t('Service Hook')}</PanelHeader>
         <PanelBody key="body">
-          <PanelAlert type="info" icon={<IconFlag size="md" />}>
+          <PanelAlert type="info" showIcon>
             {t(
               'Service Hooks are an early adopter preview feature and will change in the future.'
             )}

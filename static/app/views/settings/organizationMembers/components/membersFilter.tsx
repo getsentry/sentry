@@ -1,31 +1,31 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Checkbox from 'app/components/checkbox';
-import Switch from 'app/components/switchButton';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {MemberRole} from 'app/types';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
+import Checkbox from 'sentry/components/checkbox';
+import Switch from 'sentry/components/switchButton';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {MemberRole} from 'sentry/types';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 type Props = {
-  className?: string;
-  roles: MemberRole[];
-  query: string;
   onChange: (query: string) => void;
+  query: string;
+  roles: MemberRole[];
+  className?: string;
 };
 
 type BooleanFilterProps = {
+  children: React.ReactNode;
   onChange: (value: boolean | null) => void;
   value: boolean | null;
-  children: React.ReactNode;
 };
 
 type Filters = {
-  roles: string[];
-  isInvited: boolean | null;
-  ssoLinked: boolean | null;
   has2fa: boolean | null;
+  isInvited: boolean | null;
+  roles: string[];
+  ssoLinked: boolean | null;
 };
 
 const getBoolean = (list: string[]) =>
@@ -74,7 +74,7 @@ const MembersFilter = ({className, roles, query, onChange}: Props) => {
       <FilterHeader>{t('Filter By')}</FilterHeader>
 
       <FilterLists>
-        <Filters>
+        <FilterList>
           <h3>{t('User Role')}</h3>
           {roles.map(({id, name}) => (
             <label key={id}>
@@ -86,9 +86,9 @@ const MembersFilter = ({className, roles, query, onChange}: Props) => {
               {name}
             </label>
           ))}
-        </Filters>
+        </FilterList>
 
-        <Filters>
+        <FilterList>
           <h3>{t('Status')}</h3>
           <BooleanFilter
             data-test-id="filter-isInvited"
@@ -111,7 +111,7 @@ const MembersFilter = ({className, roles, query, onChange}: Props) => {
           >
             {t('SSO Linked')}
           </BooleanFilter>
-        </Filters>
+        </FilterList>
       </FilterLists>
     </FilterContainer>
   );
@@ -154,15 +154,15 @@ const FilterHeader = styled('h2')`
 const FilterLists = styled('div')`
   display: grid;
   grid-template-columns: 100px max-content;
-  grid-gap: ${space(3)};
+  gap: ${space(3)};
   margin: ${space(1.5)};
   margin-top: ${space(0.75)};
 `;
 
-const Filters = styled('div')`
+const FilterList = styled('div')`
   display: grid;
   grid-template-rows: repeat(auto-fit, minmax(0, max-content));
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   font-size: ${p => p.theme.fontSizeMedium};
 
   h3 {
@@ -175,7 +175,7 @@ const Filters = styled('div')`
   label {
     display: grid;
     grid-template-columns: max-content 1fr max-content;
-    grid-gap: ${space(0.75)};
+    gap: ${space(0.75)};
     align-items: center;
     font-weight: normal;
     white-space: nowrap;

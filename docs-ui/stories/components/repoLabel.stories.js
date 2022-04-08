@@ -1,4 +1,4 @@
-import RepoLabel from 'app/components/repoLabel';
+import RepoLabel from 'sentry/components/repoLabel';
 
 export default {
   title: 'Components/Tags/Repo Label',

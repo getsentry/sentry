@@ -1,15 +1,16 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
+import space from 'sentry/styles/space';
 
 import {getListSymbolStyle, listSymbol} from './utils';
 
 type Props = {
   children: React.ReactNode;
-  symbol?: keyof typeof listSymbol | React.ReactElement;
   className?: string;
+  'data-test-id'?: string;
   initialCounterValue?: number;
+  symbol?: keyof typeof listSymbol | React.ReactElement;
 };
 
 const List = styled(
@@ -52,7 +53,7 @@ const List = styled(
   padding: 0;
   list-style: none;
   display: grid;
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
   ${p =>
     typeof p.symbol === 'string' &&
     listSymbol[p.symbol] &&

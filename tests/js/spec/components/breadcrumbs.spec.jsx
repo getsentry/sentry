@@ -1,91 +1,93 @@
-import {shallow} from 'sentry-test/enzyme';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import Breadcrumbs from 'app/components/breadcrumbs';
+import Breadcrumbs from 'sentry/components/breadcrumbs';
 
 describe('Breadcrumbs', () => {
-  const wrapper = shallow(
-    <Breadcrumbs
-      crumbs={[
-        {
-          label: 'Test 1',
-          to: '/test1',
-        },
-        {
-          label: 'Test 2',
-          to: '/test2',
-        },
-        {
-          label: 'Test 3',
-          to: null,
-        },
-      ]}
-    />
-  );
+  const routerContext = TestStubs.routerContext();
 
-  const wrapperWithDropdown = shallow(
-    <Breadcrumbs
-      crumbs={[
-        {
-          label: 'dropdown crumb',
-          onSelect: () => {},
-          items: ['item1', 'item2', 'item3'],
-        },
-        {
-          label: 'Test 2',
-          to: '/test2',
-        },
-        {
-          label: 'Test 3',
-          to: null,
-        },
-      ]}
-    />
-  );
+  afterEach(() => {
+    jest.resetAllMocks();
+  });
+
+  function createWrapper() {
+    return render(
+      <Breadcrumbs
+        crumbs={[
+          {
+            label: 'Test 1',
+            to: '/test1',
+          },
+          {
+            label: 'Test 2',
+            to: '/test2',
+          },
+          {
+            label: 'Test 3',
+            to: null,
+          },
+        ]}
+      />,
+      {context: routerContext}
+    );
+  }
 
   it('returns null when 0 crumbs', () => {
-    const empty = shallow(<Breadcrumbs crumbs={[]} />);
+    const empty = render(<Breadcrumbs crumbs={[]} />);
 
-    expect(empty.html()).toBeNull();
+    expect(empty.container).toBeEmptyDOMElement();
+  });
+
+  it('renders crumbs with icon', () => {
+    const wrapper = createWrapper();
+    expect(wrapper.container).toSnapshot();
   });
 
   it('generates correct links', () => {
-    const allElements = wrapper.find('BreadcrumbList').children();
-    const links = wrapper.find('BreadcrumbLink');
-
-    expect(links.length).toBe(2);
-    expect(allElements.at(0).props().to).toBe('/test1');
-    expect(allElements.at(0).props().children).toBe('Test 1');
-    expect(allElements.at(2).props().to).toBe('/test2');
-    expect(allElements.at(2).props().children).toBe('Test 2');
+    createWrapper();
+    userEvent.click(screen.getByText('Test 1'));
+    expect(routerContext.context.router.push).toHaveBeenCalledWith('/test1');
+    userEvent.click(screen.getByText('Test 2'));
+    expect(routerContext.context.router.push).toHaveBeenCalledWith('/test2');
   });
 
   it('does not make links where no `to` is provided', () => {
-    const allElements = wrapper.find('BreadcrumbList').children();
-    const notLink = wrapper.find('BreadcrumbItem');
-
-    expect(notLink.length).toBe(1);
-
-    expect(allElements.at(4).props().to).toBeUndefined();
-    expect(allElements.at(4).props().children).toBe('Test 3');
+    createWrapper();
+    userEvent.click(screen.getByText('Test 3'));
+    expect(routerContext.context.router.push).not.toHaveBeenCalled();
   });
 
-  it('separates crumbs with icon', () => {
-    const allElements = wrapper.find('BreadcrumbList').children();
-    const dividers = wrapper.find('BreadcrumbDividerIcon');
+  it('renders a crumb dropdown', async () => {
+    const onSelect = jest.fn();
+    render(
+      <Breadcrumbs
+        crumbs={[
+          {
+            label: 'dropdown crumb',
+            onSelect,
+            items: [{label: 'item1'}, {label: 'item2'}, {label: 'item3'}],
+          },
+          {
+            label: 'Test 2',
+            to: '/test2',
+          },
+          {
+            label: 'Test 3',
+            to: null,
+          },
+        ]}
+      />,
+      {context: routerContext}
+    );
+    userEvent.hover(screen.getByText('dropdown crumb'));
 
-    expect(dividers.length).toBe(2);
+    const item3 = await screen.findByText('item3');
+    expect(item3).toBeInTheDocument();
 
-    expect(allElements.at(1).is('BreadcrumbDividerIcon')).toBeTruthy();
-    expect(allElements.at(3).is('BreadcrumbDividerIcon')).toBeTruthy();
-    expect(allElements.at(5).exists()).toBeFalsy();
-  });
-
-  it('renders a crumb dropdown', () => {
-    const allElements = wrapperWithDropdown.find('BreadcrumbList').children();
-    const dropdown = wrapperWithDropdown.find('BreadcrumbDropdown');
-    expect(allElements.at(0).is('BreadcrumbDropdown')).toBeTruthy();
-    expect(allElements.at(1).is('BreadcrumbLink')).toBeTruthy();
-    expect(allElements.at(3).is('BreadcrumbItem')).toBeTruthy();
-    expect(dropdown.exists()).toBeTruthy();
+    userEvent.click(item3);
+    expect(onSelect).toHaveBeenCalledWith(
+      expect.objectContaining({label: 'item3'}),
+      expect.anything(),
+      expect.anything()
+    );
   });
 });

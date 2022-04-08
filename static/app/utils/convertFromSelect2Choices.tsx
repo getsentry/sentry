@@ -1,4 +1,4 @@
-import {Choices, SelectValue} from 'app/types';
+import {Choices, SelectValue} from 'sentry/types';
 
 type Input = undefined | string[] | Choices;
 

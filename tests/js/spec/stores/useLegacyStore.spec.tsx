@@ -1,27 +1,20 @@
-import {act, mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
-import TeamStore from 'app/stores/teamStore';
-import {useLegacyStore} from 'app/stores/useLegacyStore';
+import TeamStore from 'sentry/stores/teamStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
 describe('useLegacyStore', () => {
-  // @ts-expect-error
   const team = TestStubs.Team();
 
-  function TestComponent() {
-    const teams = useLegacyStore(TeamStore);
-    return <div>Teams: {teams.length}</div>;
-  }
-
-  afterEach(() => {
-    TeamStore.reset();
-  });
+  beforeEach(() => void TeamStore.reset());
 
   it('should update on change to store', () => {
-    const wrapper = mountWithTheme(<TestComponent />);
-    expect(wrapper.getByText('Teams: 0')).toBeTruthy();
+    const {result} = reactHooks.renderHook(() => useLegacyStore(TeamStore));
 
-    act(() => TeamStore.loadInitialData([team]));
+    expect(result.current.teams).toEqual([]);
 
-    expect(wrapper.getByText('Teams: 1')).toBeTruthy();
+    reactHooks.act(() => TeamStore.loadInitialData([team]));
+
+    expect(result.current.teams).toEqual([team]);
   });
 });

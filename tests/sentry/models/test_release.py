@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 from django.utils import timezone
 from freezegun import freeze_time
@@ -25,24 +27,24 @@ from sentry.models import (
     ReleaseHeadCommit,
     ReleaseProject,
     ReleaseProjectEnvironment,
+    ReleaseStatus,
     Repository,
     add_group_to_inbox,
     follows_semver_versioning_scheme,
 )
 from sentry.search.events.filter import parse_semver
 from sentry.testutils import SetRefsTestCase, TestCase
-from sentry.utils.compat.mock import patch
 from sentry.utils.strings import truncatechars
 
 
 @pytest.mark.parametrize(
     "release_version",
     [
-        "1.0.0",
-        "1.0.0-alpha",
-        "1.0.0-alpha.1",
-        "1.0.0-alpha.beta",
-        "1.0.0-rc.1+43",
+        "fake_package@1.0.0",
+        "fake_package@1.0.0-alpha",
+        "fake_package@1.0.0-alpha.1",
+        "fake_package@1.0.0-alpha.beta",
+        "fake_package@1.0.0-rc.1+43",
         "org.example.FooApp@1.0+whatever",
     ],
 )
@@ -829,6 +831,60 @@ class SemverReleaseParseTestCase(TestCase):
         assert release.build_number is None
         assert release.package is None
 
+    def test_parse_release_into_semver_cols_with_get_or_create(self):
+        """
+        Test that ensures get_or_create populates semver fields
+        """
+        version = "org.example.FooApp@1.0rc1+-2020"
+        release, _ = Release.objects.get_or_create(
+            organization=self.org, version=version, defaults={"status": ReleaseStatus.OPEN}
+        )
+        assert release.major == 1
+        assert release.minor == 0
+        assert release.patch == 0
+        assert release.revision == 0
+        assert release.prerelease == "rc1"
+        assert release.build_code == "-2020"
+        assert release.build_number is None
+        assert release.package == "org.example.FooApp"
+
+    def test_parse_release_into_semver_cols_on_pre_save(self):
+        """
+        Test that ensures that calling save on a new Release instance parses version into semver
+        columns
+        """
+        version = "org.example.FooApp@1.0rc1+-2020"
+        release = Release(organization=self.org, version=version)
+        release.save()
+        assert release.major == 1
+        assert release.minor == 0
+        assert release.patch == 0
+        assert release.revision == 0
+        assert release.prerelease == "rc1"
+        assert release.build_code == "-2020"
+        assert release.build_number is None
+        assert release.package == "org.example.FooApp"
+
+    def test_does_not_parse_release_into_semver_cols_on_pre_save_for_existing_release(self):
+        """
+        Test that ensures that calling save on an existing Release instance does not re-parse
+        version into semver columns
+        """
+        version = "org.example.FooApp@1.0rc1+-2020"
+        release = Release(organization=self.org, version=version)
+        release.save()
+        assert release.major == 1
+        assert release.minor == 0
+        assert release.patch == 0
+        assert release.revision == 0
+        assert release.prerelease == "rc1"
+        assert release.build_code == "-2020"
+        assert release.build_number is None
+        assert release.package == "org.example.FooApp"
+        release.version = "org.example.FooApp@1.0rc1+-1999"
+        release.save()
+        assert release.build_code == "-2020"
+
 
 class ReleaseFilterBySemverTest(TestCase):
     def test_invalid_query(self):
@@ -854,6 +910,7 @@ class ReleaseFilterBySemverTest(TestCase):
         self.run_test(">=", "1.2.4", [release_2])
         self.run_test("<", "1.2.4", [release])
         self.run_test("<=", "1.2.3", [release])
+        self.run_test("!=", "1.2.3", [release_2])
 
     def test_prerelease(self):
         # Prerelease has weird sorting rules, where an empty string is higher priority
@@ -994,6 +1051,19 @@ class FollowsSemverVersioningSchemeTestCase(TestCase):
             is True
         )
 
+    def test_follows_semver_all_releases_semver_and_missing_package_semver_release_version(self):
+        """
+        Test that ensures that even if a project is following semver, then if the release_version
+        supplied lacks a package, then for that specific release we opt the project out of being
+        considered a semver project
+        """
+        assert (
+            follows_semver_versioning_scheme(
+                org_id=self.org.id, project_id=self.proj_1.id, release_version="2.0.0"
+            )
+            is False
+        )
+
     def test_follows_semver_with_all_releases_semver_and_no_release_version(self):
         """
         Test that ensures that when the last 10 releases follow semver versioning and no release
@@ -1019,8 +1089,8 @@ class FollowsSemverVersioningSchemeTestCase(TestCase):
     def test_follows_semver_user_accidentally_stopped_using_semver_a_few_times(self):
         """
         Test that ensures that when a user accidentally stops using semver versioning for a few
-        times but there exists atleast one semver compliant release in the last 3 releases and
-        atleast 3 releases that are semver compliant in the last 10 then we still consider
+        times but there exists at least one semver compliant release in the last 3 releases and
+        at least 3 releases that are semver compliant in the last 10 then we still consider
         project to be following semantic versioning
         """
         proj = self.create_project(organization=self.org)
@@ -1043,7 +1113,7 @@ class FollowsSemverVersioningSchemeTestCase(TestCase):
         """
         Test that ensures that if a user stops using semver and so the last 3 releases in the last
         10 releases are all non-semver releases, then the project does not follow semver anymore
-        since 1st condition of atleast one semver release in the last 3 has to be a semver
+        since 1st condition of at least one semver release in the last 3 has to be a semver
         release is not satisfied
         """
         proj = self.create_project(organization=self.org)
@@ -1083,7 +1153,7 @@ class FollowsSemverVersioningSchemeTestCase(TestCase):
 
     def test_follows_semver_user_starts_using_semver(self):
         """
-        Test that ensures if a user starts using semver by having atleast the last 3 releases
+        Test that ensures if a user starts using semver by having at least the last 3 releases
         using semver then we consider the project to be using semver
         """
         proj = self.create_project(organization=self.org)
@@ -1103,7 +1173,7 @@ class FollowsSemverVersioningSchemeTestCase(TestCase):
 
     def test_follows_semver_user_starts_using_semver_with_less_than_10_recent_releases(self):
         """
-        Test that ensures that a project with only 5 (<10) releases and atleast one semver
+        Test that ensures that a project with only 5 (<10) releases and at least one semver
         release in the most recent releases is considered to be following semver
         """
         proj = self.create_project(organization=self.org)
@@ -1148,3 +1218,77 @@ class FollowsSemverVersioningSchemeTestCase(TestCase):
             )
             is False
         )
+
+
+class ClearCommitsTestCase(TestCase):
+    def test_simple(self):
+        org = self.create_organization()
+        project = self.create_project(organization=org, name="foo")
+        group = self.create_group(project=project)
+
+        repo = Repository.objects.create(organization_id=org.id, name="test/repo")
+
+        author = CommitAuthor.objects.create(
+            name="foo bar baz", email="foo@example.com", organization_id=org.id
+        )
+
+        author2 = CommitAuthor.objects.create(
+            name="foo bar boo", email="baroo@example.com", organization_id=org.id
+        )
+
+        commit = Commit.objects.create(
+            organization_id=org.id,
+            repository_id=repo.id,
+            author=author,
+            date_added="2019-03-01 12:00:00",
+            message="fixes %s" % (group.qualified_short_id),
+            key="alksdflskdfjsldkfajsflkslk",
+        )
+        commit2 = Commit.objects.create(
+            organization_id=org.id,
+            repository_id=repo.id,
+            author=author2,
+            date_added="2019-03-01 12:02:00",
+            message="i fixed something",
+            key="lskfslknsdkcsnlkdflksfdkls",
+        )
+
+        release = Release.objects.create(version="abcdabc", organization=org)
+        release.add_project(project)
+        release.set_commits(
+            [
+                {"id": commit.key, "repository": repo.name},
+                {"id": commit2.key, "repository": repo.name},
+            ]
+        )
+        # Confirm setup works
+        assert ReleaseCommit.objects.filter(commit=commit, release=release).exists()
+        assert ReleaseCommit.objects.filter(commit=commit2, release=release).exists()
+
+        assert release.commit_count == 2
+        assert release.authors == [str(author.id), str(author2.id)]
+        assert release.last_commit_id == commit.id
+
+        assert ReleaseHeadCommit.objects.filter(
+            release_id=release.id, commit_id=commit.id, repository_id=repo.id
+        ).exists()
+
+        # Now clear the release;
+        release.clear_commits()
+        assert not ReleaseCommit.objects.filter(commit=commit, release=release).exists()
+        assert not ReleaseCommit.objects.filter(commit=commit2, release=release).exists()
+        assert not ReleaseHeadCommit.objects.filter(
+            release_id=release.id, commit_id=commit.id, repository_id=repo.id
+        ).exists()
+
+        assert release.commit_count == 0
+        assert release.authors == []
+        assert not release.last_commit_id
+
+        # Commits should still exist
+        assert Commit.objects.filter(
+            id=commit.id, organization_id=org.id, repository_id=repo.id
+        ).exists()
+        assert Commit.objects.filter(
+            id=commit2.id, organization_id=org.id, repository_id=repo.id
+        ).exists()

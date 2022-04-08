@@ -1,3 +1,4 @@
+from unittest import mock
 from uuid import uuid4
 
 from sentry import nodestore
@@ -16,7 +17,6 @@ from sentry.models import (
 from sentry.tasks.deletion import delete_groups
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.utils.compat import mock
 
 
 class DeleteGroupTest(TestCase, SnubaTestCase):

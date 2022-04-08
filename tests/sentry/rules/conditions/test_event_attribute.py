@@ -36,6 +36,7 @@ class EventAttributeConditionTest(RuleTestCase):
             "tags": [("environment", "production")],
             "extra": {"foo": {"bar": "baz"}, "biz": ["baz"], "bar": "foo"},
             "platform": "php",
+            "sdk": {"name": "sentry.javascript.react", "version": "6.16.1"},
         }
         data.update(kwargs)
         event = self.store_event(data, project_id=self.project.id)
@@ -126,6 +127,32 @@ class EventAttributeConditionTest(RuleTestCase):
 
         rule = self.get_rule(
             data={"match": MatchType.CONTAINS, "attribute": "platform", "value": "z"}
+        )
+        self.assertDoesNotPass(rule, event)
+
+    def test_contains_message(self):
+        event = self.get_event()
+        rule = self.get_rule(
+            data={"match": MatchType.CONTAINS, "attribute": "message", "value": "hello"}
+        )
+        self.assertPasses(rule, event)
+
+        # Validate that this searches message in the same way that snuba does
+        event = self.get_event(message="")
+        # This should still pass, even though the message is now empty
+        rule = self.get_rule(
+            data={"match": MatchType.CONTAINS, "attribute": "message", "value": "hello"}
+        )
+        self.assertPasses(rule, event)
+
+        # The search should also include info from the exception if present
+        rule = self.get_rule(
+            data={"match": MatchType.CONTAINS, "attribute": "message", "value": "SyntaxError"}
+        )
+        self.assertPasses(rule, event)
+
+        rule = self.get_rule(
+            data={"match": MatchType.CONTAINS, "attribute": "message", "value": "not present"}
         )
         self.assertDoesNotPass(rule, event)
 
@@ -269,6 +296,22 @@ class EventAttributeConditionTest(RuleTestCase):
 
         rule = self.get_rule(
             data={"match": MatchType.EQUAL, "attribute": "exception.value", "value": "foo bar"}
+        )
+        self.assertDoesNotPass(rule, event)
+
+    def test_sdk_name(self):
+        event = self.get_event()
+        rule = self.get_rule(
+            data={
+                "match": MatchType.EQUAL,
+                "attribute": "sdk.name",
+                "value": "sentry.javascript.react",
+            }
+        )
+        self.assertPasses(rule, event)
+
+        rule = self.get_rule(
+            data={"match": MatchType.EQUAL, "attribute": "sdk.name", "value": "sentry.python"}
         )
         self.assertDoesNotPass(rule, event)
 

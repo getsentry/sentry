@@ -1,30 +1,34 @@
-import React, {Component} from 'react';
+import {Component} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject} from 'history';
 
-import GridEditable, {COL_WIDTH_UNDEFINED, GridColumn} from 'app/components/gridEditable';
-import SortLink from 'app/components/gridEditable/sortLink';
-import Link from 'app/components/links/link';
-import Pagination, {CursorHandler} from 'app/components/pagination';
-import {IconAdd} from 'app/icons/iconAdd';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
-import {fieldAlignment} from 'app/utils/discover/fields';
-import {formatPercentage} from 'app/utils/formatters';
+import GridEditable, {
+  COL_WIDTH_UNDEFINED,
+  GridColumn,
+} from 'sentry/components/gridEditable';
+import SortLink from 'sentry/components/gridEditable/sortLink';
+import Link from 'sentry/components/links/link';
+import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import PerformanceDuration from 'sentry/components/performanceDuration';
+import {IconAdd} from 'sentry/icons/iconAdd';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
+import {fieldAlignment} from 'sentry/utils/discover/fields';
+import {formatPercentage} from 'sentry/utils/formatters';
 import {
   TableData,
   TableDataRow,
-} from 'app/utils/performance/segmentExplorer/segmentExplorerQuery';
-import {decodeScalar} from 'app/utils/queryString';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
-import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
-import {TableColumn} from 'app/views/eventsV2/table/types';
+} from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import CellAction, {Actions, updateQuery} from 'sentry/views/eventsV2/table/cellAction';
+import {TableColumn} from 'sentry/views/eventsV2/table/types';
 
-import {PerformanceDuration} from '../../utils';
 import {TagValue} from '../transactionOverview/tagExplorer';
+import {normalizeSearchConditions} from '../utils';
 
 import {
   TAGS_TABLE_COLUMN_ORDER,
@@ -36,17 +40,17 @@ import {trackTagPageInteraction} from './utils';
 const TAGS_CURSOR_NAME = 'tags_cursor';
 
 type Props = {
+  aggregateColumn: string;
+  eventView: EventView;
+  isLoading: boolean;
   location: Location;
   organization: Organization;
-  aggregateColumn: string;
-  projects: Project[];
-  transactionName: string;
-  tagKey?: string;
-  eventView: EventView;
-  tableData: TableData | null;
   pageLinks: string | null;
-  isLoading: boolean;
+  projects: Project[];
+  tableData: TableData | null;
+  transactionName: string;
   onCursor?: CursorHandler;
+  tagKey?: string;
 };
 
 type State = {
@@ -129,9 +133,7 @@ export class TagValueTable extends Component<Props, State> {
       const {eventView, location, organization} = this.props;
       trackTagPageInteraction(organization);
 
-      const searchConditions = new MutableSearch(eventView.query);
-
-      searchConditions.removeFilter('event.type');
+      const searchConditions = normalizeSearchConditions(eventView.query);
 
       updateQuery(searchConditions, action, {...column, name: actionRow.id}, tagValue);
 
@@ -143,6 +145,18 @@ export class TagValueTable extends Component<Props, State> {
           query: searchConditions.formatString(),
         },
       });
+    };
+  };
+
+  generateReleaseLocation = (release: string) => {
+    const {organization, location} = this.props;
+    const {project} = location.query;
+
+    return {
+      pathname: `/organizations/${organization.slug}/releases/${encodeURIComponent(
+        release
+      )}`,
+      query: {project},
     };
   };
 
@@ -162,6 +176,7 @@ export class TagValueTable extends Component<Props, State> {
 
     if (column.key === 'tagValue') {
       const actionRow = {...dataRow, id: dataRow.tags_key};
+
       return (
         <CellAction
           column={column}
@@ -169,7 +184,13 @@ export class TagValueTable extends Component<Props, State> {
           handleCellAction={this.handleCellAction(column, dataRow.tags_value, actionRow)}
           allowActions={allowActions}
         >
-          <TagValue row={dataRow} />
+          {column.name === 'release' ? (
+            <Link to={this.generateReleaseLocation(dataRow.tags_value)}>
+              <TagValue row={dataRow} />
+            </Link>
+          ) : (
+            <TagValue row={dataRow} />
+          )}
         </CellAction>
       );
     }
@@ -182,19 +203,21 @@ export class TagValueTable extends Component<Props, State> {
       const searchConditions = new MutableSearch(eventView.query);
       const disabled = searchConditions.hasFilter(dataRow.tags_key);
       return (
-        <Link
-          disabled={disabled}
-          to=""
-          onClick={() => {
-            trackTagPageInteraction(organization);
-            this.handleTagValueClick(location, dataRow.tags_key, dataRow.tags_value);
-          }}
-        >
-          <LinkContainer>
-            <IconAdd isCircled />
-            {t('Add to filter')}
-          </LinkContainer>
-        </Link>
+        <AlignRight>
+          <Link
+            disabled={disabled}
+            to=""
+            onClick={() => {
+              trackTagPageInteraction(organization);
+              this.handleTagValueClick(location, dataRow.tags_key, dataRow.tags_value);
+            }}
+          >
+            <LinkContainer>
+              <IconAdd isCircled />
+              {t('Add to filter')}
+            </LinkContainer>
+          </Link>
+        </AlignRight>
       );
     }
 
@@ -281,7 +304,7 @@ export class TagValueTable extends Component<Props, State> {
               newColumns
             ) as any,
             renderBodyCell: this.renderBodyCellWithData(this.props) as any,
-            onResizeColumn: this.handleResizeColumn as any,
+            onResizeColumn: this.handleResizeColumn,
           }}
           location={location}
         />
@@ -301,12 +324,13 @@ const StyledPanelTable = styled('div')`
 
 const AlignRight = styled('div')`
   text-align: right;
+  flex: 1;
 `;
 
 const LinkContainer = styled('div')`
   display: grid;
   grid-auto-flow: column;
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
   justify-content: flex-end;
   align-items: center;
 `;

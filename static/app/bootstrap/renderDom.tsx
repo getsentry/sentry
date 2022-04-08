@@ -1,5 +1,4 @@
-import React from 'react';
-import ReactDOM from 'react-dom';
+import {render} from 'react-dom';
 
 export function renderDom(
   Component: React.ComponentType,
@@ -14,5 +13,5 @@ export function renderDom(
     return;
   }
 
-  ReactDOM.render(<Component {...props} />, rootEl);
+  render(<Component {...props} />, rootEl);
 }

@@ -4,9 +4,9 @@ import isObject from 'lodash/isObject';
 import isString from 'lodash/isString';
 import isUndefined from 'lodash/isUndefined';
 
-import {Project} from 'app/types';
-import {EventTag} from 'app/types/event';
-import {appendTagCondition} from 'app/utils/queryString';
+import {Project} from 'sentry/types';
+import {EventTag} from 'sentry/types/event';
+import {appendTagCondition} from 'sentry/utils/queryString';
 
 function arrayIsEqual(arr?: any[], other?: any[], deep?: boolean): boolean {
   // if the other array is a falsy value, return
@@ -29,7 +29,8 @@ function arrayIsEqual(arr?: any[], other?: any[], deep?: boolean): boolean {
 export function valueIsEqual(value?: any, other?: any, deep?: boolean): boolean {
   if (value === other) {
     return true;
-  } else if (isArray(value) || isArray(other)) {
+  }
+  if (isArray(value) || isArray(other)) {
     if (arrayIsEqual(value, other, deep)) {
       return true;
     }
@@ -71,6 +72,12 @@ function objectMatchesSubset(obj?: object, other?: object, deep?: boolean): bool
 
 export function intcomma(x: number): string {
   return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+export function lastOfArray<T extends Array<unknown> | ReadonlyArray<unknown>>(
+  t: T
+): T[number] {
+  return t[t.length - 1];
 }
 
 export function sortArray<T>(arr: Array<T>, score_fn: (entry: T) => string): Array<T> {
@@ -262,8 +269,8 @@ export function sortProjects(projects: Array<Project>): Array<Project> {
 }
 
 // build actorIds
-export const buildUserId = id => `user:${id}`;
-export const buildTeamId = id => `team:${id}`;
+export const buildUserId = (id: string) => `user:${id}`;
+export const buildTeamId = (id: string) => `team:${id}`;
 
 /**
  * Removes the organization / project scope prefix on feature names.
@@ -303,12 +310,6 @@ export function deepFreeze<T>(object: T) {
   return Object.freeze(object);
 }
 
-export type OmitHtmlDivProps<P extends object> = Omit<
-  React.HTMLProps<HTMLDivElement>,
-  keyof P
-> &
-  P;
-
 export function generateQueryWithTag(prevQuery: Query, tag: EventTag): Query {
   const query = {...prevQuery};
 
@@ -331,6 +332,6 @@ export function generateQueryWithTag(prevQuery: Query, tag: EventTag): Query {
 export const isFunction = (value: any): value is Function => typeof value === 'function';
 
 // NOTE: only escapes a " if it's not already escaped
-export function escapeDoubleQuotes(str) {
+export function escapeDoubleQuotes(str: string) {
   return str.replace(/\\([\s\S])|(")/g, '\\$1$2');
 }

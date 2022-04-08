@@ -1,19 +1,17 @@
 import * as React from 'react';
-import {withTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 
-import {Aliases, Color, IconSize, Theme} from 'app/utils/theme';
+import {Aliases, Color, IconSize} from 'sentry/utils/theme';
 
-type Props = React.SVGAttributes<SVGSVGElement> & {
-  theme: Theme;
+export interface SVGIconProps extends React.SVGAttributes<SVGSVGElement> {
+  className?: string;
   color?: Color | keyof Aliases;
   // TODO (Priscila): make size prop theme icon size only
   size?: IconSize | string;
-  className?: string;
-};
+}
 
-const SvgIcon = React.forwardRef<SVGSVGElement, Props>(function SvgIcon(
+const SvgIcon = React.forwardRef<SVGSVGElement, SVGIconProps>(function SvgIcon(
   {
-    theme,
     color: providedColor = 'currentColor',
     size: providedSize = 'sm',
     viewBox = '0 0 16 16',
@@ -21,6 +19,7 @@ const SvgIcon = React.forwardRef<SVGSVGElement, Props>(function SvgIcon(
   },
   ref
 ) {
+  const theme = useTheme();
   const color = theme[providedColor] ?? providedColor;
   const size = theme.iconSizes[providedSize] ?? providedSize;
 
@@ -29,4 +28,4 @@ const SvgIcon = React.forwardRef<SVGSVGElement, Props>(function SvgIcon(
   );
 });
 
-export default withTheme(SvgIcon);
+export default SvgIcon;

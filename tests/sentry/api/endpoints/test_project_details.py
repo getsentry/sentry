@@ -1,4 +1,5 @@
 from time import time
+from unittest import mock
 
 import pytest
 
@@ -12,6 +13,7 @@ from sentry.models import (
     AuditLogEntryEvent,
     DeletedProject,
     EnvironmentProject,
+    Integration,
     NotificationSetting,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
@@ -30,7 +32,6 @@ from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature, faux
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
-from sentry.utils.compat import mock, zip
 
 
 def _dyn_sampling_data():
@@ -103,6 +104,34 @@ class ProjectDetailsTest(APITestCase):
             project.organization.slug, project.slug, qs_params={"include": "stats"}
         )
         assert response.data["stats"]["unresolved"] == 1
+
+    def test_has_alert_integration(self):
+        integration = Integration.objects.create(provider="msteams")
+        integration.add_organization(self.organization)
+
+        project = self.create_project()
+        self.create_group(project=project)
+        self.login_as(user=self.user)
+
+        response = self.get_valid_response(
+            project.organization.slug,
+            project.slug,
+            qs_params={"expand": "hasAlertIntegration"},
+        )
+        assert response.data["hasAlertIntegrationInstalled"]
+
+    def test_no_alert_integration(self):
+        integration = Integration.objects.create(provider="jira")
+        integration.add_organization(self.organization)
+
+        project = self.create_project()
+        self.create_group(project=project)
+        self.login_as(user=self.user)
+
+        response = self.get_valid_response(
+            project.organization.slug, project.slug, qs_params={"expand": "hasAlertIntegration"}
+        )
+        assert not response.data["hasAlertIntegrationInstalled"]
 
     def test_with_dynamic_sampling_rules(self):
         project = self.project  # force creation
@@ -178,19 +207,6 @@ class ProjectUpdateTest(APITestCase):
         options["mail:subject_prefix"] = ""
         self.get_valid_response(self.org_slug, self.proj_slug, options=options)
         assert project.get_option("mail:subject_prefix") == ""
-
-    def test_team_changes_deprecated(self):
-        project = self.create_project()
-        team = self.create_team(members=[self.user])
-        self.login_as(user=self.user)
-
-        resp = self.get_valid_response(
-            self.org_slug, self.proj_slug, team=team.slug, status_code=400
-        )
-        assert resp.data["detail"][0] == "Editing a team via this endpoint has been deprecated."
-
-        project = Project.objects.get(id=project.id)
-        assert project.teams.first() != team
 
     def test_simple_member_restriction(self):
         project = self.create_project()
@@ -505,6 +521,14 @@ class ProjectUpdateTest(APITestCase):
         assert self.project.get_option("sentry:store_crash_reports") == 10
         assert resp.data["storeCrashReports"] == 10
 
+    def test_store_crash_reports_exceeded(self):
+        # NB: Align with test_organization_details.py
+        data = {"storeCrashReports": 101}
+
+        resp = self.get_error_response(self.org_slug, self.proj_slug, status_code=400, **data)
+        assert self.project.get_option("sentry:store_crash_reports") is None
+        assert b"storeCrashReports" in resp.content
+
     def test_relay_pii_config(self):
         value = '{"applications": {"freeform": []}}'
         resp = self.get_valid_response(self.org_slug, self.proj_slug, relayPiiConfig=value)
@@ -787,8 +811,94 @@ class ProjectUpdateTest(APITestCase):
                 self.org_slug, self.proj_slug, symbolSources=json.dumps([redacted_source])
             )
             # on save the magic object should be replaced with the previously set password
-            redacted_source["password"] = "beepbeep"
-            assert self.project.get_option("sentry:symbol_sources") == json.dumps([redacted_source])
+            assert self.project.get_option("sentry:symbol_sources") == json.dumps([config])
+
+    @mock.patch("sentry.api.base.create_audit_entry")
+    def test_redacted_symbol_source_secrets_unknown_secret(self, create_audit_entry):
+        with Feature(
+            {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": True}
+        ):
+            config = {
+                "id": "honk",
+                "name": "honk source",
+                "layout": {
+                    "type": "native",
+                },
+                "filetypes": ["pe"],
+                "type": "http",
+                "url": "http://honk.beep",
+                "username": "honkhonk",
+                "password": "beepbeep",
+            }
+            self.get_valid_response(
+                self.org_slug, self.proj_slug, symbolSources=json.dumps([config])
+            )
+            assert self.project.get_option("sentry:symbol_sources") == json.dumps([config])
+
+            # prepare new call, this secret is not known
+            new_source = config.copy()
+            new_source["password"] = {"hidden-secret": True}
+            new_source["id"] = "oops"
+            response = self.get_response(
+                self.org_slug, self.proj_slug, symbolSources=json.dumps([new_source])
+            )
+            assert response.status_code == 400
+            assert json.loads(response.content) == {
+                "symbolSources": ["Hidden symbol source secret is missing a value"]
+            }
+
+    def symbol_sources(self):
+        project = Project.objects.get(id=self.project.id)
+        source1 = {
+            "id": "honk",
+            "name": "honk source",
+            "layout": {
+                "type": "native",
+            },
+            "filetypes": ["pe"],
+            "type": "http",
+            "url": "http://honk.beep",
+            "username": "honkhonk",
+            "password": "beepbeep",
+        }
+
+        source2 = {
+            "id": "bloop",
+            "name": "bloop source",
+            "layout": {
+                "type": "native",
+            },
+            "filetypes": ["pe"],
+            "type": "http",
+            "url": "http://honk.beep",
+            "username": "honkhonk",
+            "password": "beepbeep",
+        }
+
+        project.update_option("sentry:symbol_sources", json.dumps([source1, source2]))
+        return [source1, source2]
+
+    def test_symbol_sources_no_modification(self):
+        source1, source2 = self.symbol_sources()
+        project = Project.objects.get(id=self.project.id)
+        with Feature({"organizations:custom-symbol-sources": False}):
+            resp = self.get_response(
+                self.org_slug, self.proj_slug, symbolSources=json.dumps([source1, source2])
+            )
+
+            assert resp.status_code == 200
+            assert project.get_option("sentry:symbol_sources", json.dumps([source1, source2]))
+
+    def test_symbol_sources_deletion(self):
+        source1, source2 = self.symbol_sources()
+        project = Project.objects.get(id=self.project.id)
+        with Feature({"organizations:custom-symbol-sources": False}):
+            resp = self.get_response(
+                self.org_slug, self.proj_slug, symbolSources=json.dumps([source1])
+            )
+
+            assert resp.status_code == 200
+            assert project.get_option("sentry:symbol_sources", json.dumps([source1]))
 
 
 class CopyProjectSettingsTest(APITestCase):

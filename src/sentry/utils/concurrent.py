@@ -2,8 +2,9 @@ import collections
 import functools
 import logging
 import threading
-from concurrent.futures import Future
+from concurrent.futures import Future, InvalidStateError
 from concurrent.futures._base import FINISHED, RUNNING
+from contextlib import contextmanager
 from queue import Full, PriorityQueue
 from time import time
 
@@ -90,16 +91,22 @@ class TimedFuture(Future):
                 self.__timing[1] = time()
             return super().cancel(*args, **kwargs)
 
+    @contextmanager
+    def __set_finished_time_on_success(self):
+        prev_value = self.__timing[1]
+        self.__timing[1] = time()
+        try:
+            yield
+        except InvalidStateError:
+            self.__timing[1] = prev_value
+            raise
+
     def set_result(self, *args, **kwargs):
-        with self._condition:
-            # This method always overwrites the result, so we always overwrite
-            # the timing, even if another timing was already recorded.
-            self.__timing[1] = time()
+        with self._condition, self.__set_finished_time_on_success():
             return super().set_result(*args, **kwargs)
 
     def set_exception(self, *args, **kwargs):
-        with self._condition:
-            self.__timing[1] = time()
+        with self._condition, self.__set_finished_time_on_success():
             return super().set_exception(*args, **kwargs)
 
 
@@ -117,7 +124,7 @@ class Executor:
 
     Future = TimedFuture
 
-    def submit(self, callable, priority=0, block=True, timeout=None):
+    def submit(self, callable, priority=0, block=True, timeout=None) -> TimedFuture:
         """
         Enqueue a task to be executed, returning a ``TimedFuture``.
 

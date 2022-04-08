@@ -2,43 +2,45 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import uniq from 'lodash/uniq';
 
-import {bulkDelete, bulkUpdate, mergeGroups} from 'app/actionCreators/group';
-import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
-import Checkbox from 'app/components/checkbox';
-import {t, tct, tn} from 'app/locale';
-import GroupStore from 'app/stores/groupStore';
-import SelectedGroupStore from 'app/stores/selectedGroupStore';
-import space from 'app/styles/space';
-import {GlobalSelection, Group, Organization} from 'app/types';
-import {callIfFunction} from 'app/utils/callIfFunction';
-import withApi from 'app/utils/withApi';
+import {bulkDelete, bulkUpdate, mergeGroups} from 'sentry/actionCreators/group';
+import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
+import {alertStyles} from 'sentry/components/alert';
+import Checkbox from 'sentry/components/checkbox';
+import {t, tct, tn} from 'sentry/locale';
+import GroupStore from 'sentry/stores/groupStore';
+import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
+import space from 'sentry/styles/space';
+import {Group, Organization, PageFilters} from 'sentry/types';
+import {callIfFunction} from 'sentry/utils/callIfFunction';
+import withApi from 'sentry/utils/withApi';
 
 import ActionSet from './actionSet';
 import Headers from './headers';
 import {BULK_LIMIT, BULK_LIMIT_STR, ConfirmAction} from './utils';
 
 type Props = {
-  api: Client;
   allResultsVisible: boolean;
-  organization: Organization;
-  selection: GlobalSelection;
+  api: Client;
+  displayCount: React.ReactNode;
+  displayReprocessingActions: boolean;
   groupIds: string[];
   onDelete: () => void;
   onSelectStatsPeriod: (period: string) => void;
-  statsPeriod: string;
+  organization: Organization;
   query: string;
   queryCount: number;
-  displayCount: React.ReactElement;
-  displayReprocessingActions: boolean;
+  selection: PageFilters;
+  statsPeriod: string;
+  onActionTaken?: (itemIds: string[]) => void;
   onMarkReviewed?: (itemIds: string[]) => void;
 };
 
 type State = {
+  allInQuerySelected: boolean;
   anySelected: boolean;
   multiSelected: boolean;
   pageSelected: boolean;
-  allInQuerySelected: boolean;
   selectedIds: Set<string>;
   selectedProjectSlug?: string;
 };
@@ -116,15 +118,24 @@ class IssueListActions extends React.Component<Props, State> {
   };
 
   handleUpdate = (data?: any) => {
-    const {selection, api, organization, query, onMarkReviewed} = this.props;
+    const {selection, api, organization, query, onMarkReviewed, onActionTaken} =
+      this.props;
     const orgId = organization.slug;
+    const hasIssueListRemovalAction = organization.features.includes(
+      'issue-list-removal-action'
+    );
 
     this.actionSelectedGroups(itemIds => {
-      addLoadingMessage(t('Saving changes\u2026'));
+      // TODO(Kelly): remove once issue-list-removal-action feature is stable
+      if (!hasIssueListRemovalAction) {
+        addLoadingMessage(t('Saving changes\u2026'));
+      }
 
       if (data?.inbox === false) {
         onMarkReviewed?.(itemIds ?? []);
       }
+
+      onActionTaken?.(itemIds ?? []);
 
       // If `itemIds` is undefined then it means we expect to bulk update all items
       // that match the query.
@@ -147,7 +158,9 @@ class IssueListActions extends React.Component<Props, State> {
         },
         {
           complete: () => {
-            clearIndicators();
+            if (!hasIssueListRemovalAction) {
+              clearIndicators();
+            }
           },
         }
       );
@@ -157,8 +170,6 @@ class IssueListActions extends React.Component<Props, State> {
   handleDelete = () => {
     const {selection, api, organization, query, onDelete} = this.props;
     const orgId = organization.slug;
-
-    addLoadingMessage(t('Removing events\u2026'));
 
     this.actionSelectedGroups(itemIds => {
       bulkDelete(
@@ -173,7 +184,6 @@ class IssueListActions extends React.Component<Props, State> {
         },
         {
           complete: () => {
-            clearIndicators();
             onDelete();
           },
         }
@@ -184,8 +194,6 @@ class IssueListActions extends React.Component<Props, State> {
   handleMerge = () => {
     const {selection, api, organization, query} = this.props;
     const orgId = organization.slug;
-
-    addLoadingMessage(t('Merging events\u2026'));
 
     this.actionSelectedGroups(itemIds => {
       mergeGroups(
@@ -198,11 +206,7 @@ class IssueListActions extends React.Component<Props, State> {
           environment: selection.environments,
           ...selection.datetime,
         },
-        {
-          complete: () => {
-            clearIndicators();
-          },
-        }
+        {}
       );
     });
   };
@@ -255,7 +259,7 @@ class IssueListActions extends React.Component<Props, State> {
     return (
       <Sticky>
         <StyledFlex>
-          <ActionsCheckbox>
+          <ActionsCheckbox isReprocessingQuery={displayReprocessingActions}>
             <Checkbox
               onChange={this.handleSelectAll}
               checked={pageSelected}
@@ -349,23 +353,31 @@ const StyledFlex = styled('div')`
   margin: 0 -1px -1px;
 `;
 
-const ActionsCheckbox = styled('div')`
+const ActionsCheckbox = styled('div')<{isReprocessingQuery: boolean}>`
   padding-left: ${space(2)};
   margin-bottom: 1px;
   & input[type='checkbox'] {
     margin: 0;
     display: block;
   }
+  ${p => p.isReprocessingQuery && 'flex: 1'};
 `;
 
 const SelectAllNotice = styled('div')`
-  background-color: ${p => p.theme.yellow100};
-  border-top: 1px solid ${p => p.theme.yellow300};
-  border-bottom: 1px solid ${p => p.theme.yellow300};
-  color: ${p => p.theme.black};
-  font-size: ${p => p.theme.fontSizeMedium};
-  text-align: center;
+  ${p => alertStyles({theme: p.theme, type: 'warning', system: true, opaque: true})}
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
   padding: ${space(0.5)} ${space(1.5)};
+  border-top-width: 1px;
+
+  text-align: center;
+  font-size: ${p => p.theme.fontSizeMedium};
+
+  a:not([role='button']) {
+    color: ${p => p.theme.linkColor};
+    border-bottom: none;
+  }
 `;
 
 const SelectAllLink = styled('a')`

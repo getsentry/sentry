@@ -1,13 +1,15 @@
+import re
+from dataclasses import dataclass
 from typing import Any, List, Optional, Tuple, Union
 
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar, NodeVisitor
 
 from sentry.exceptions import InvalidSearchQuery
-from sentry.search.events.fields import get_function_alias
 
 # prefix on fields so we know they're equations
 EQUATION_PREFIX = "equation|"
+EQUATION_ALIAS_REGEX = re.compile(r"^equation\[\d*\]$")
 SUPPORTED_OPERATORS = {"plus", "minus", "multiply", "divide"}
 
 
@@ -33,7 +35,7 @@ class ArithmeticValidationError(ArithmeticError):
     pass
 
 
-OperationSideType = Union["Operation", float, str]
+OperandType = Union["Operation", float, str]
 JsonQueryType = List[Union[str, float, List[Any]]]
 
 
@@ -43,12 +45,12 @@ class Operation:
     def __init__(
         self,
         operator: str,
-        lhs: Optional[OperationSideType] = None,
-        rhs: Optional[OperationSideType] = None,
+        lhs: Optional[OperandType] = None,
+        rhs: Optional[OperandType] = None,
     ) -> None:
         self.operator = operator
-        self.lhs: Optional[OperationSideType] = lhs
-        self.rhs: Optional[OperationSideType] = rhs
+        self.lhs: Optional[OperandType] = lhs
+        self.rhs: Optional[OperandType] = rhs
         self.validate()
 
     def validate(self) -> None:
@@ -73,6 +75,12 @@ class Operation:
 
     def __repr__(self) -> str:
         return repr([self.operator, self.lhs, self.rhs])
+
+
+@dataclass(frozen=True)
+class ParsedEquation:
+    equation: Operation
+    contains_functions: bool
 
 
 def flatten(remaining):
@@ -174,13 +182,14 @@ class ArithmeticVisitor(NodeVisitor):
         "count_miserable",
     }
 
-    def __init__(self, max_operators):
+    def __init__(self, max_operators: int, use_snql: bool):
         super().__init__()
         self.operators: int = 0
         self.terms: int = 0
         self.max_operators = max_operators if max_operators else self.DEFAULT_MAX_OPERATORS
         self.fields: set[str] = set()
         self.functions: set[str] = set()
+        self.use_snql = use_snql
 
     def visit_term(self, _, children):
         maybe_factor, remaining_adds = children
@@ -264,15 +273,21 @@ class ArithmeticVisitor(NodeVisitor):
         if function_name not in self.function_allowlist:
             raise ArithmeticValidationError(f"{function_name} not allowed in arithmetic")
         self.functions.add(field)
-        # use the alias to reference the function in arithmetic
-        return get_function_alias(field)
+        if self.use_snql:
+            return field
+        else:
+            # use the alias to reference the function in arithmetic
+            # TODO(snql): once fully on snql no longer need the alias
+            from sentry.search.events.fields import get_function_alias
+
+            return get_function_alias(field)
 
     def generic_visit(self, node, children):
         return children or node
 
 
 def parse_arithmetic(
-    equation: str, max_operators: Optional[int] = None
+    equation: str, max_operators: Optional[int] = None, use_snql: Optional[bool] = False
 ) -> Tuple[Operation, List[str], List[str]]:
     """Given a string equation try to parse it into a set of Operations"""
     try:
@@ -281,12 +296,14 @@ def parse_arithmetic(
         raise ArithmeticParseError(
             "Unable to parse your equation, make sure it is well formed arithmetic"
         )
-    visitor = ArithmeticVisitor(max_operators)
+    visitor = ArithmeticVisitor(max_operators, use_snql)
     result = visitor.visit(tree)
     if len(visitor.fields) > 0 and len(visitor.functions) > 0:
         raise ArithmeticValidationError("Cannot mix functions and fields in arithmetic")
     if visitor.terms <= 1:
         raise ArithmeticValidationError("Arithmetic expression must contain at least 2 terms")
+    if visitor.operators == 0:
+        raise ArithmeticValidationError("Arithmetic expression must contain at least 1 operator")
     return result, list(visitor.fields), list(visitor.functions)
 
 
@@ -296,7 +313,8 @@ def resolve_equation_list(
     aggregates_only: Optional[bool] = False,
     auto_add: Optional[bool] = False,
     plain_math: Optional[bool] = False,
-) -> Tuple[List[JsonQueryType], List[str]]:
+    use_snql: Optional[bool] = False,
+) -> Tuple[List[JsonQueryType], List[str], List[Operation], List[bool]]:
     """Given a list of equation strings, resolve them to their equivalent snuba json query formats
     :param equations: list of equations strings that haven't been parsed yet
     :param selected_columns: list of public aliases from the endpoint, can be a mix of fields and aggregates
@@ -305,11 +323,13 @@ def resolve_equation_list(
     :param: auto_add: Optional parameter that will take any fields in the equation that's missing in the
         selected_columns and return a new list with them added
     :param plain_math: Allow equations that don't include any fields or functions, disabled by default
+    :param use_snql: Whether we're resolving for snql or not
     """
-    resolved_equations = []
-    resolved_columns = selected_columns[:]
+    resolved_equations: List[JsonQueryType] = []
+    parsed_equations: List[ParsedEquation] = []
+    resolved_columns: List[str] = selected_columns[:]
     for index, equation in enumerate(equations):
-        parsed_equation, fields, functions = parse_arithmetic(equation)
+        parsed_equation, fields, functions = parse_arithmetic(equation, use_snql=use_snql)
 
         if (len(fields) == 0 and len(functions) == 0) and not plain_math:
             raise InvalidSearchQuery("Equations need to include a field or function")
@@ -335,9 +355,11 @@ def resolve_equation_list(
 
         # We just jam everything into resolved_equations because the json format can't take arithmetic in the aggregates
         # field, but can do the aliases in the selected_columns field
-        # TODO(snql): we can do better
         resolved_equations.append(parsed_equation.to_snuba_json(f"equation[{index}]"))
-    return resolved_equations, resolved_columns
+        # TODO: currently returning "resolved_equations" for the json syntax
+        # once we're converted to SnQL this should only return parsed_equations
+        parsed_equations.append(ParsedEquation(parsed_equation, len(functions) > 0))
+    return resolved_equations, resolved_columns, parsed_equations
 
 
 def is_equation(field: str) -> bool:
@@ -351,3 +373,19 @@ def strip_equation(field: str) -> str:
     """remove the equation prefix from a public field alias"""
     assert is_equation(field), f"{field} does not start with {EQUATION_PREFIX}"
     return field[len(EQUATION_PREFIX) :]
+
+
+def categorize_columns(columns) -> Tuple[List[str], List[str]]:
+    """equations have a prefix so that they can be easily included alongside our existing fields"""
+    equations = []
+    fields = []
+    for column in columns:
+        if is_equation(column):
+            equations.append(strip_equation(column))
+        else:
+            fields.append(column)
+    return equations, fields
+
+
+def is_equation_alias(alias: str) -> bool:
+    return EQUATION_ALIAS_REGEX.match(alias) is not None

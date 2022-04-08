@@ -1,8 +1,18 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {Dataset, Datasource} from 'app/views/alerts/incidentRules/types';
-import {getQueryDatasource} from 'app/views/alerts/utils';
-import {getIncidentDiscoverUrl} from 'app/views/alerts/utils/getIncidentDiscoverUrl';
+import {
+  Dataset,
+  Datasource,
+  SessionsAggregate,
+} from 'sentry/views/alerts/incidentRules/types';
+import {
+  alertAxisFormatter,
+  alertTooltipValueFormatter,
+  getQueryDatasource,
+  getTeamParams,
+  isSessionAggregate,
+} from 'sentry/views/alerts/utils';
+import {getIncidentDiscoverUrl} from 'sentry/views/alerts/utils/getIncidentDiscoverUrl';
 
 describe('Alert utils', function () {
   const {org, projects} = initializeOrg();
@@ -145,6 +155,62 @@ describe('Alert utils', function () {
         source: Datasource.ERROR,
         query: 'explode OR (event.type:default event.level:fatal)',
       });
+    });
+  });
+
+  describe('isSessionAggregate', () => {
+    it('accepts session aggregate', () => {
+      Object.values(SessionsAggregate).forEach(aggregate => {
+        expect(isSessionAggregate(aggregate)).toBeTruthy();
+      });
+    });
+
+    it('rejects other aggregates', () => {
+      expect(isSessionAggregate('p95(transaction.duration)')).toBeFalsy();
+    });
+  });
+
+  describe('alertAxisFormatter', () => {
+    it('formatts', () => {
+      expect(
+        alertAxisFormatter(
+          98.312,
+          'Crash Free Rate',
+          SessionsAggregate.CRASH_FREE_SESSIONS
+        )
+      ).toBe('98.31%');
+      expect(alertAxisFormatter(0.1234, 'failure_rate()', 'failure_rate()')).toBe('12%');
+    });
+  });
+
+  describe('alertTooltipValueFormatter', () => {
+    it('formatts', () => {
+      expect(
+        alertTooltipValueFormatter(
+          98.312,
+          'Crash Free Rate',
+          SessionsAggregate.CRASH_FREE_SESSIONS
+        )
+      ).toBe('98.312%');
+      expect(alertTooltipValueFormatter(0.1234, 'failure_rate()', 'failure_rate()')).toBe(
+        '12.34%'
+      );
+    });
+  });
+
+  describe('getTeamParams', () => {
+    it('should use default teams', () => {
+      expect(getTeamParams()).toEqual(['myteams', 'unassigned']);
+    });
+    it('should allow no teams with an empty string param', () => {
+      expect(getTeamParams('')).toEqual([]);
+    });
+    it('should allow one or more teams', () => {
+      expect(getTeamParams('team-sentry')).toEqual(['team-sentry']);
+      expect(getTeamParams(['team-sentry', 'team-two'])).toEqual([
+        'team-sentry',
+        'team-two',
+      ]);
     });
   });
 });

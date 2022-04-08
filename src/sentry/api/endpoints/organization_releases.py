@@ -4,9 +4,10 @@ from datetime import datetime, timedelta
 from django.db import IntegrityError
 from django.db.models import F, Q
 from rest_framework.exceptions import ParseError
+from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, features
+from sentry import analytics, release_health
 from sentry.api.base import EnvironmentMixin, ReleaseAnalyticsMixin
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
@@ -38,16 +39,9 @@ from sentry.search.events.constants import (
     SEMVER_BUILD_ALIAS,
     SEMVER_PACKAGE_ALIAS,
 )
-from sentry.search.events.filter import parse_semver
+from sentry.search.events.filter import handle_operator_negation, parse_semver
 from sentry.signals import release_created
-from sentry.snuba.sessions import (
-    STATS_PERIODS,
-    check_releases_have_health_data,
-    get_changed_project_release_model_adoptions,
-    get_oldest_health_data_for_releases,
-    get_project_releases_by_stability,
-    get_project_releases_count,
-)
+from sentry.snuba.sessions import STATS_PERIODS
 from sentry.utils.cache import cache
 from sentry.utils.compat import zip as izip
 from sentry.utils.sdk import bind_organization_context, configure_scope
@@ -90,6 +84,7 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
             queryset = queryset.filter(query_q)
 
         if search_filter.key.name == RELEASE_ALIAS:
+            query_q = Q()
             if search_filter.value.is_wildcard():
                 raw_value = search_filter.value.raw_value
                 if raw_value.endswith("*") and raw_value.startswith("*"):
@@ -98,6 +93,8 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
                     query_q = Q(version__startswith=raw_value[:-1])
                 elif raw_value.startswith("*"):
                     query_q = Q(version__endswith=raw_value[1:])
+            elif search_filter.operator == "!=":
+                query_q = ~Q(version=search_filter.value.value)
             else:
                 query_q = Q(version=search_filter.value.value)
 
@@ -105,14 +102,14 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
 
         if search_filter.key.name == SEMVER_ALIAS:
             queryset = queryset.filter_by_semver(
-                organization.id,
-                parse_semver(search_filter.value.raw_value, search_filter.operator),
+                organization.id, parse_semver(search_filter.value.raw_value, search_filter.operator)
             )
 
         if search_filter.key.name == SEMVER_PACKAGE_ALIAS:
+            negated = True if search_filter.operator == "!=" else False
             queryset = queryset.filter_by_semver(
                 organization.id,
-                SemverFilter("exact", [], search_filter.value.raw_value),
+                SemverFilter("exact", [], search_filter.value.raw_value, negated),
             )
 
         if search_filter.key.name == RELEASE_STAGE_ALIAS:
@@ -125,10 +122,12 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
             )
 
         if search_filter.key.name == SEMVER_BUILD_ALIAS:
+            (operator, negated) = handle_operator_negation(search_filter.operator)
             queryset = queryset.filter_by_semver_build(
                 organization.id,
-                OPERATOR_TO_DJANGO[search_filter.operator],
+                OPERATOR_TO_DJANGO[operator],
                 search_filter.value.raw_value,
+                negated=negated,
             )
 
     return queryset
@@ -163,7 +162,9 @@ def debounce_update_release_health_data(organization, project_ids):
     # health data over the last days. It will miss releases where the last
     # date is longer than what `get_changed_project_release_model_adoptions`
     # considers recent.
-    project_releases = get_changed_project_release_model_adoptions(should_update.keys())
+    project_releases = release_health.get_changed_project_release_model_adoptions(
+        should_update.keys()
+    )
 
     # Check which we already have rows for.
     existing = set(
@@ -178,7 +179,7 @@ def debounce_update_release_health_data(organization, project_ids):
             to_upsert.append(key)
 
     if to_upsert:
-        dates = get_oldest_health_data_for_releases(to_upsert)
+        dates = release_health.get_oldest_health_data_for_releases(to_upsert)
 
         for project_id, version in to_upsert:
             project = projects.get(project_id)
@@ -186,17 +187,17 @@ def debounce_update_release_health_data(organization, project_ids):
                 # should not happen
                 continue
 
-        # We might have never observed the release.  This for instance can
-        # happen if the release only had health data so far.  For these cases
-        # we want to create the release the first time we observed it on the
-        # health side.
-        release = Release.get_or_create(
-            project=project, version=version, date_added=dates.get((project_id, version))
-        )
+            # We might have never observed the release.  This for instance can
+            # happen if the release only had health data so far.  For these cases
+            # we want to create the release the first time we observed it on the
+            # health side.
+            release = Release.get_or_create(
+                project=project, version=version, date_added=dates.get((project_id, version))
+            )
 
-        # Make sure that the release knows about this project.  Like we had before
-        # the project might not have been associated with this release yet.
-        release.add_project(project)
+            # Make sure that the release knows about this project.  Like we had before
+            # the project might not have been associated with this release yet.
+            release.add_project(project)
 
     # Debounce updates for a minute
     cache.set_many(dict(izip(should_update.values(), [True] * len(should_update))), 60)
@@ -216,7 +217,7 @@ class OrganizationReleasesEndpoint(
         ]
     )
 
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         """
         List an Organization's Releases
         ```````````````````````````````
@@ -322,7 +323,7 @@ class OrganizationReleasesEndpoint(
                         : total_offset + limit
                     ]
                 )
-                releases_with_session_data = check_releases_have_health_data(
+                releases_with_session_data = release_health.check_releases_have_health_data(
                     organization.id,
                     filter_params["project_id"],
                     release_versions,
@@ -345,7 +346,7 @@ class OrganizationReleasesEndpoint(
 
             paginator_cls = MergingOffsetPaginator
             paginator_kwargs.update(
-                data_load_func=lambda offset, limit: get_project_releases_by_stability(
+                data_load_func=lambda offset, limit: release_health.get_project_releases_by_stability(
                     project_ids=filter_params["project_id"],
                     environments=filter_params.get("environment"),
                     scope=sort,
@@ -353,7 +354,7 @@ class OrganizationReleasesEndpoint(
                     stats_period=summary_stats_period,
                     limit=limit,
                 ),
-                data_count_func=lambda: get_project_releases_count(
+                data_count_func=lambda: release_health.get_project_releases_count(
                     organization_id=organization.id,
                     project_ids=filter_params["project_id"],
                     environments=filter_params.get("environment"),
@@ -372,10 +373,6 @@ class OrganizationReleasesEndpoint(
         queryset = queryset.extra(select=select_extra)
         queryset = add_date_filter_to_queryset(queryset, filter_params)
 
-        with_adoption_stages = with_adoption_stages and features.has(
-            "organizations:release-adoption-stage", organization, actor=request.user
-        )
-
         return self.paginate(
             request=request,
             queryset=queryset,
@@ -393,7 +390,7 @@ class OrganizationReleasesEndpoint(
             **paginator_kwargs,
         )
 
-    def post(self, request, organization):
+    def post(self, request: Request, organization) -> Response:
         """
         Create a New Release for an Organization
         ````````````````````````````````````````
@@ -434,7 +431,9 @@ class OrganizationReleasesEndpoint(
         :auth: required
         """
         bind_organization_context(organization)
-        serializer = ReleaseSerializerWithProjects(data=request.data)
+        serializer = ReleaseSerializerWithProjects(
+            data=request.data, context={"organization": organization}
+        )
 
         with configure_scope() as scope:
             if serializer.is_valid():
@@ -554,7 +553,7 @@ class OrganizationReleasesEndpoint(
 
 
 class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint, EnvironmentMixin):
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         """
         List an Organization's Releases specifically for building timeseries
         ```````````````````````````````

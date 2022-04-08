@@ -1,29 +1,26 @@
-import Reflux from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
-import SdkUpdatesActions from 'app/actions/sdkUpdatesActions';
-import {ProjectSdkUpdates} from 'app/types';
+import {ProjectSdkUpdates} from 'sentry/types';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
-type SdkUpdatesStoreInterface = {
-  onLoadSuccess(orgSlug: string, data: ProjectSdkUpdates[]): void;
-  getUpdates(orgSlug: string): ProjectSdkUpdates[] | undefined;
-  isSdkUpdatesLoaded(orgSlug: string): boolean;
-};
-
-type Internal = {
+type InternalDefinition = {
   /**
    * Org slug mapping to SDK updates
    */
   orgSdkUpdates: Map<string, ProjectSdkUpdates[]>;
 };
 
-const storeConfig: Reflux.StoreDefinition & SdkUpdatesStoreInterface & Internal = {
+interface SdkUpdatesStoreDefinition extends StoreDefinition, InternalDefinition {
+  getUpdates(orgSlug: string): ProjectSdkUpdates[] | undefined;
+  isSdkUpdatesLoaded(orgSlug: string): boolean;
+  loadSuccess(orgSlug: string, data: ProjectSdkUpdates[]): void;
+}
+
+const storeConfig: SdkUpdatesStoreDefinition = {
   orgSdkUpdates: new Map(),
+  unsubscribeListeners: [],
 
-  init() {
-    this.listenTo(SdkUpdatesActions.load, this.onLoadSuccess);
-  },
-
-  onLoadSuccess(orgSlug, data) {
+  loadSuccess(orgSlug, data) {
     this.orgSdkUpdates.set(orgSlug, data);
     this.trigger(this.orgSdkUpdates);
   },
@@ -37,8 +34,5 @@ const storeConfig: Reflux.StoreDefinition & SdkUpdatesStoreInterface & Internal 
   },
 };
 
-type SdkUpdatesStore = Reflux.Store & SdkUpdatesStoreInterface;
-
-const SdkUpdatesStore = Reflux.createStore(storeConfig) as SdkUpdatesStore;
-
+const SdkUpdatesStore = createStore(makeSafeRefluxStore(storeConfig));
 export default SdkUpdatesStore;

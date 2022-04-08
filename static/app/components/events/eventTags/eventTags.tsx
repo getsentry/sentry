@@ -1,17 +1,17 @@
 import {Location} from 'history';
 
-import Pills from 'app/components/pills';
-import {Organization} from 'app/types';
-import {Event} from 'app/types/event';
-import {defined, generateQueryWithTag} from 'app/utils';
+import Pills from 'sentry/components/pills';
+import {Organization} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import {defined, generateQueryWithTag} from 'sentry/utils';
 
 import EventTagsPill from './eventTagsPill';
 
 type Props = {
   event: Event;
+  location: Location;
   organization: Organization;
   projectId: string;
-  location: Location;
 };
 
 const EventTags = ({event: {tags = []}, organization, projectId, location}: Props) => {

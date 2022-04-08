@@ -1,25 +1,26 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import ActivityAvatar from 'app/components/activity/item/avatar';
-import Card from 'app/components/card';
-import Link from 'app/components/links/link';
-import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {User} from 'app/types';
-import {callIfFunction} from 'app/utils/callIfFunction';
+import ActivityAvatar from 'sentry/components/activity/item/avatar';
+import Card from 'sentry/components/card';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import Link from 'sentry/components/links/link';
+import {t} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {User} from 'sentry/types';
+import {callIfFunction} from 'sentry/utils/callIfFunction';
 
 type Props = {
-  title?: string;
-  subtitle?: string;
-  queryDetail?: string;
+  renderGraph: () => React.ReactNode;
   to: object;
   createdBy?: User | undefined;
   dateStatus?: React.ReactNode;
   onEventClick?: () => void;
-  renderGraph: () => React.ReactNode;
+  queryDetail?: string;
   renderContextMenu?: () => React.ReactNode;
+  subtitle?: string;
+  title?: string;
 };
 
 class QueryCard extends React.PureComponent<Props> {
@@ -55,7 +56,9 @@ class QueryCard extends React.PureComponent<Props> {
               )}
             </AvatarWrapper>
           </QueryCardHeader>
-          <QueryCardBody>{renderGraph()}</QueryCardBody>
+          <QueryCardBody>
+            <StyledErrorBoundary mini>{renderGraph()}</StyledErrorBoundary>
+          </QueryCardBody>
           <QueryCardFooter>
             <DateSelected>
               {subtitle}
@@ -100,8 +103,10 @@ const QueryCardHeader = styled('div')`
 `;
 
 const QueryTitle = styled('div')`
-  color: ${p => p.theme.textColor};
+  ${p => p.theme.text.cardTitle};
+  color: ${p => p.theme.headingColor};
   ${overflowEllipsis};
+  font-weight: initial;
 `;
 
 const QueryDetail = styled('div')`
@@ -114,7 +119,7 @@ const QueryDetail = styled('div')`
 
 const QueryCardBody = styled('div')`
   background: ${p => p.theme.backgroundSecondary};
-  max-height: 100px;
+  max-height: 150px;
   height: 100%;
   overflow: hidden;
 `;
@@ -137,6 +142,10 @@ const DateSelected = styled('div')`
 const DateStatus = styled('span')`
   color: ${p => p.theme.purple300};
   padding-left: ${space(1)};
+`;
+
+const StyledErrorBoundary = styled(ErrorBoundary)`
+  margin-bottom: 100px;
 `;
 
 export default QueryCard;

@@ -1,6 +1,6 @@
-import {getRepositories} from 'app/actionCreators/repositories';
-import RepositoryActions from 'app/actions/repositoryActions';
-import RepositoryStore from 'app/stores/repositoryStore';
+import {getRepositories} from 'sentry/actionCreators/repositories';
+import RepositoryActions from 'sentry/actions/repositoryActions';
+import RepositoryStore from 'sentry/stores/repositoryStore';
 
 describe('RepositoryActionCreator', function () {
   const orgSlug = 'myOrg';

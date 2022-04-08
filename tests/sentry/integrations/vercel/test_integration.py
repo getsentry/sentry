@@ -3,6 +3,7 @@ from urllib.parse import parse_qs
 import responses
 from rest_framework.serializers import ValidationError
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.vercel import VercelIntegrationProvider
 from sentry.models import (
     Integration,
@@ -10,8 +11,10 @@ from sentry.models import (
     Project,
     ProjectKey,
     ProjectKeyStatus,
+    ScheduledDeletion,
     SentryAppInstallation,
     SentryAppInstallationForProvider,
+    SentryAppInstallationToken,
 )
 from sentry.testutils import IntegrationTestCase
 from sentry.utils import json
@@ -134,7 +137,7 @@ class VercelIntegrationTest(IntegrationTestCase):
         enabled_dsn = ProjectKey.get_default(project=Project.objects.get(id=project_id)).get_dsn(
             public=True
         )
-        sentry_auth_token = SentryAppInstallationForProvider.get_token(org.id, "vercel")
+        sentry_auth_token = SentryAppInstallationToken.objects.get_token(org.id, "vercel")
 
         env_var_map = {
             "SENTRY_ORG": {"type": "encrypted", "value": org.slug},
@@ -226,7 +229,7 @@ class VercelIntegrationTest(IntegrationTestCase):
         enabled_dsn = ProjectKey.get_default(project=Project.objects.get(id=project_id)).get_dsn(
             public=True
         )
-        sentry_auth_token = SentryAppInstallationForProvider.get_token(org.id, "vercel")
+        sentry_auth_token = SentryAppInstallationToken.objects.get_token(org.id, "vercel")
 
         env_var_map = {
             "SENTRY_ORG": {"type": "encrypted", "value": org.slug},
@@ -395,4 +398,10 @@ class VercelIntegrationTest(IntegrationTestCase):
 
         # deleting the integration only happens when we get the Vercel webhook
         integration = Integration.objects.get(provider=self.provider.key)
-        assert not OrganizationIntegration.objects.filter(integration_id=integration.id).exists()
+        org_integration = OrganizationIntegration.objects.get(
+            integration_id=integration.id, organization_id=self.organization.id
+        )
+        assert org_integration.status == ObjectStatus.PENDING_DELETION
+        assert ScheduledDeletion.objects.filter(
+            model_name="OrganizationIntegration", object_id=org_integration.id
+        ).exists()

@@ -1,34 +1,38 @@
-import Reflux from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
-import GroupStore from 'app/stores/groupStore';
+import GroupStore from 'sentry/stores/groupStore';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
-type SelectedGroupStoreInterface = {
-  init: () => void;
-  onGroupChange: (itemIds: string[]) => void;
-  add: (ids: string[]) => void;
-  prune: () => void;
-  allSelected: () => boolean;
-  anySelected: () => boolean;
-  numSelected: () => number;
-  multiSelected: () => boolean;
-  getSelectedIds: () => Set<string>;
-  isSelected: (itemId: string) => boolean;
-  deselectAll: () => void;
-  toggleSelect: (itemId: string) => void;
-  toggleSelectAll: () => void;
-};
-
-type Internals = {
+interface InternalDefinition {
   records: Record<string, boolean>;
-};
+}
 
-const storeConfig: Reflux.StoreDefinition & SelectedGroupStoreInterface & Internals = {
+interface SelectedGroupStoreDefinition extends StoreDefinition, InternalDefinition {
+  add(ids: string[]): void;
+  allSelected(): boolean;
+  anySelected(): boolean;
+  deselectAll(): void;
+  getSelectedIds(): Set<string>;
+  init(): void;
+  isSelected(itemId: string): boolean;
+  multiSelected(): boolean;
+  numSelected(): number;
+  onGroupChange(itemIds: string[]): void;
+  prune(): void;
+  toggleSelect(itemId: string): void;
+  toggleSelectAll(): void;
+}
+
+const storeConfig: SelectedGroupStoreDefinition = {
   records: {},
+  unsubscribeListeners: [],
 
   init() {
     this.records = {};
 
-    this.listenTo(GroupStore, this.onGroupChange, this.onGroupChange);
+    this.unsubscribeListeners.push(
+      this.listenTo(GroupStore, this.onGroupChange, this.onGroupChange)
+    );
   },
 
   onGroupChange(itemIds) {
@@ -118,8 +122,5 @@ const storeConfig: Reflux.StoreDefinition & SelectedGroupStoreInterface & Intern
   },
 };
 
-type SelectedGroupStore = Reflux.Store & SelectedGroupStoreInterface;
-
-const SelectedGroupStore = Reflux.createStore(storeConfig) as SelectedGroupStore;
-
+const SelectedGroupStore = createStore(makeSafeRefluxStore(storeConfig));
 export default SelectedGroupStore;

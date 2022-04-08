@@ -1,46 +1,31 @@
 import * as React from 'react';
 
-import TeamStore from 'app/stores/teamStore';
-import {Team} from 'app/types';
-import getDisplayName from 'app/utils/getDisplayName';
+import {Team} from 'sentry/types';
+import getDisplayName from 'sentry/utils/getDisplayName';
+import useTeams from 'sentry/utils/useTeams';
 
 type InjectedTeamsProps = {
-  teams: Team[];
-};
-
-type State = {
-  teams: Team[];
+  teams?: Team[];
 };
 
 /**
- * Higher order component that uses TeamStore and provides a list of teams
+ * Higher order component that provides a list of teams
+ *
+ * @deprecated Prefer `useTeams` or `<Teams />`.
  */
-function withTeams<P extends InjectedTeamsProps>(
+const withTeams = <P extends InjectedTeamsProps>(
   WrappedComponent: React.ComponentType<P>
-) {
-  class WithTeams extends React.Component<Omit<P, keyof InjectedTeamsProps>, State> {
-    static displayName = `withTeams(${getDisplayName(WrappedComponent)})`;
+) => {
+  const WithTeams: React.FC<
+    Omit<P, keyof InjectedTeamsProps> & InjectedTeamsProps
+  > = props => {
+    const {teams} = useTeams();
+    return <WrappedComponent teams={teams} {...(props as P)} />;
+  };
 
-    state = {
-      teams: TeamStore.getAll(),
-    };
+  WithTeams.displayName = `withTeams(${getDisplayName(WrappedComponent)})`;
 
-    componentWillUnmount() {
-      this.unsubscribe();
-    }
-
-    unsubscribe = TeamStore.listen(
-      () => this.setState({teams: TeamStore.getAll()}),
-      undefined
-    );
-
-    render() {
-      return (
-        <WrappedComponent {...(this.props as P)} teams={this.state.teams as Team[]} />
-      );
-    }
-  }
   return WithTeams;
-}
+};
 
 export default withTeams;

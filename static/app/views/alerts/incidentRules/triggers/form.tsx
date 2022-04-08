@@ -1,19 +1,23 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import {fetchOrgMembers} from 'app/actionCreators/members';
-import {Client} from 'app/api';
-import CircleIndicator from 'app/components/circleIndicator';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {Config, Organization, Project} from 'app/types';
-import withApi from 'app/utils/withApi';
-import withConfig from 'app/utils/withConfig';
-import ThresholdControl from 'app/views/alerts/incidentRules/triggers/thresholdControl';
-import Field from 'app/views/settings/components/forms/field';
+import {fetchOrgMembers} from 'sentry/actionCreators/members';
+import {Client} from 'sentry/api';
+import CircleIndicator from 'sentry/components/circleIndicator';
+import Field from 'sentry/components/forms/field';
+import {IconDiamond} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Config, Organization, Project} from 'sentry/types';
+import withApi from 'sentry/utils/withApi';
+import withConfig from 'sentry/utils/withConfig';
+import ThresholdControl from 'sentry/views/alerts/incidentRules/triggers/thresholdControl';
 
+import {isSessionAggregate} from '../../utils';
 import {
+  AlertRuleComparisonType,
   AlertRuleThresholdType,
+  AlertRuleTriggerType,
   ThresholdControlValue,
   Trigger,
   UnsavedIncidentRule,
@@ -21,31 +25,37 @@ import {
 } from '../types';
 
 type Props = {
+  aggregate: UnsavedIncidentRule['aggregate'];
   api: Client;
+  comparisonType: AlertRuleComparisonType;
   config: Config;
-  disabled: boolean;
-  organization: Organization;
 
+  disabled: boolean;
+  fieldHelp: React.ReactNode;
+  hasAlertWizardV3: boolean;
+  isCritical: boolean;
+  onChange: (trigger: Trigger, changeObj: Partial<Trigger>) => void;
+  onThresholdPeriodChange: (value: number) => void;
+  onThresholdTypeChange: (thresholdType: AlertRuleThresholdType) => void;
+  organization: Organization;
+  placeholder: string;
+  projects: Project[];
+  resolveThreshold: UnsavedIncidentRule['resolveThreshold'];
+  thresholdPeriod: UnsavedIncidentRule['thresholdPeriod'];
+  thresholdType: UnsavedIncidentRule['thresholdType'];
+  trigger: Trigger;
+
+  triggerIndex: number;
+  triggerLabel: React.ReactNode;
   /**
    * Map of fieldName -> errorMessage
    */
   error?: {[fieldName: string]: string};
-  projects: Project[];
-  resolveThreshold: UnsavedIncidentRule['resolveThreshold'];
-  thresholdType: UnsavedIncidentRule['thresholdType'];
-  aggregate: UnsavedIncidentRule['aggregate'];
-  trigger: Trigger;
-  triggerIndex: number;
-  isCritical: boolean;
-  fieldHelp: React.ReactNode;
-  triggerLabel: React.ReactNode;
-  placeholder: string;
 
-  onChange: (trigger: Trigger, changeObj: Partial<Trigger>) => void;
-  onThresholdTypeChange: (thresholdType: AlertRuleThresholdType) => void;
+  hideControl?: boolean;
 };
 
-class TriggerForm extends React.PureComponent<Props> {
+class TriggerFormItem extends React.PureComponent<Props> {
   /**
    * Handler for threshold changes coming from slider or chart.
    * Needs to sync state with the form.
@@ -69,36 +79,46 @@ class TriggerForm extends React.PureComponent<Props> {
       trigger,
       isCritical,
       thresholdType,
+      thresholdPeriod,
+      hasAlertWizardV3,
+      hideControl,
+      comparisonType,
       fieldHelp,
       triggerLabel,
       placeholder,
       onThresholdTypeChange,
+      onThresholdPeriodChange,
     } = this.props;
 
     return (
-      <Field
+      <StyledField
         label={triggerLabel}
         help={fieldHelp}
         required={isCritical}
         error={error && error.alertThreshold}
+        hasAlertWizardV3={hasAlertWizardV3}
       >
         <ThresholdControl
           disabled={disabled}
           disableThresholdType={!isCritical}
           type={trigger.label}
           thresholdType={thresholdType}
+          thresholdPeriod={thresholdPeriod}
+          hideControl={hideControl}
           threshold={trigger.alertThreshold}
+          comparisonType={comparisonType}
           placeholder={placeholder}
           onChange={this.handleChangeThreshold}
           onThresholdTypeChange={onThresholdTypeChange}
+          onThresholdPeriodChange={onThresholdPeriodChange}
         />
-      </Field>
+      </StyledField>
     );
   }
 }
 
 type TriggerFormContainerProps = Omit<
-  React.ComponentProps<typeof TriggerForm>,
+  React.ComponentProps<typeof TriggerFormItem>,
   | 'onChange'
   | 'isCritical'
   | 'error'
@@ -109,12 +129,13 @@ type TriggerFormContainerProps = Omit<
   | 'triggerLabel'
   | 'placeholder'
 > & {
-  triggers: Trigger[];
-  errors?: Map<number, {[fieldName: string]: string}>;
+  hasAlertWizardV3: boolean;
   onChange: (triggerIndex: number, trigger: Trigger, changeObj: Partial<Trigger>) => void;
   onResolveThresholdChange: (
     resolveThreshold: UnsavedIncidentRule['resolveThreshold']
   ) => void;
+  triggers: Trigger[];
+  errors?: Map<number, {[fieldName: string]: string}>;
 };
 
 class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
@@ -135,6 +156,66 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
     onResolveThresholdChange(trigger.alertThreshold);
   };
 
+  getThresholdUnits(aggregate: string, comparisonType: AlertRuleComparisonType) {
+    if (aggregate.includes('duration') || aggregate.includes('measurements')) {
+      return 'ms';
+    }
+
+    if (
+      isSessionAggregate(aggregate) ||
+      comparisonType === AlertRuleComparisonType.CHANGE
+    ) {
+      return '%';
+    }
+
+    return '';
+  }
+
+  getCriticalThresholdPlaceholder(
+    aggregate: string,
+    comparisonType: AlertRuleComparisonType
+  ) {
+    if (aggregate.includes('failure_rate')) {
+      return '0.05';
+    }
+
+    if (isSessionAggregate(aggregate)) {
+      return '97';
+    }
+
+    if (comparisonType === AlertRuleComparisonType.CHANGE) {
+      return '100';
+    }
+
+    return '300';
+  }
+
+  getIndicator(type: AlertRuleTriggerType) {
+    const {hasAlertWizardV3} = this.props;
+
+    if (type === AlertRuleTriggerType.CRITICAL) {
+      return hasAlertWizardV3 ? (
+        <StyledIconDiamond color="red300" size="sm" />
+      ) : (
+        <CriticalIndicator size={12} />
+      );
+    }
+
+    if (type === AlertRuleTriggerType.WARNING) {
+      return hasAlertWizardV3 ? (
+        <StyledIconDiamond color="yellow300" size="sm" />
+      ) : (
+        <WarningIndicator size={12} />
+      );
+    }
+
+    return hasAlertWizardV3 ? (
+      <StyledIconDiamond color="green300" size="sm" />
+    ) : (
+      <ResolvedIndicator size={12} />
+    );
+  }
+
   render() {
     const {
       api,
@@ -144,91 +225,117 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
       organization,
       triggers,
       thresholdType,
+      thresholdPeriod,
+      comparisonType,
       aggregate,
       resolveThreshold,
       projects,
+      hasAlertWizardV3,
       onThresholdTypeChange,
+      onThresholdPeriodChange,
     } = this.props;
 
     const resolveTrigger: UnsavedTrigger = {
-      label: 'resolve',
+      label: AlertRuleTriggerType.RESOLVE,
       alertThreshold: resolveThreshold,
       actions: [],
     };
 
-    const thresholdUnits =
-      aggregate.includes('duration') || aggregate.includes('measurements')
-        ? 'ms'
-        : aggregate.includes('failure_rate')
-        ? '%'
-        : '';
+    const thresholdUnits = this.getThresholdUnits(aggregate, comparisonType);
 
     return (
       <React.Fragment>
         {triggers.map((trigger, index) => {
           const isCritical = index === 0;
           // eslint-disable-next-line no-use-before-define
-          const TriggerIndicator = isCritical ? CriticalIndicator : WarningIndicator;
           return (
-            <TriggerForm
+            <TriggerFormItem
               key={index}
               api={api}
               config={config}
               disabled={disabled}
               error={errors && errors.get(index)}
               trigger={trigger}
+              thresholdPeriod={thresholdPeriod}
               thresholdType={thresholdType}
+              comparisonType={comparisonType}
               aggregate={aggregate}
               resolveThreshold={resolveThreshold}
               organization={organization}
               projects={projects}
               triggerIndex={index}
               isCritical={isCritical}
-              fieldHelp={tct(
-                'The threshold[units] that will activate the [severity] status.',
-                {
-                  severity: isCritical ? t('critical') : t('warning'),
-                  units: thresholdUnits ? ` (${thresholdUnits})` : '',
-                }
-              )}
-              triggerLabel={
-                <React.Fragment>
-                  <TriggerIndicator size={12} />
-                  {isCritical ? t('Critical') : t('Warning')}
-                </React.Fragment>
+              hasAlertWizardV3={hasAlertWizardV3}
+              fieldHelp={
+                hasAlertWizardV3
+                  ? null
+                  : tct(
+                      'The threshold[units] that will activate the [severity] status.',
+                      {
+                        severity: isCritical ? t('critical') : t('warning'),
+                        units: thresholdUnits ? ` (${thresholdUnits})` : '',
+                      }
+                    )
               }
-              placeholder={isCritical ? `300${thresholdUnits}` : t('None')}
+              triggerLabel={
+                <TriggerLabel>
+                  {this.getIndicator(
+                    isCritical
+                      ? AlertRuleTriggerType.CRITICAL
+                      : AlertRuleTriggerType.WARNING
+                  )}
+                  {isCritical ? t('Critical') : t('Warning')}
+                </TriggerLabel>
+              }
+              placeholder={
+                isCritical
+                  ? `${this.getCriticalThresholdPlaceholder(aggregate, comparisonType)}${
+                      comparisonType === AlertRuleComparisonType.COUNT
+                        ? thresholdUnits
+                        : ''
+                    }`
+                  : t('None')
+              }
               onChange={this.handleChangeTrigger(index)}
               onThresholdTypeChange={onThresholdTypeChange}
+              onThresholdPeriodChange={onThresholdPeriodChange}
             />
           );
         })}
-        <TriggerForm
+        <TriggerFormItem
           api={api}
           config={config}
           disabled={disabled}
           error={errors && errors.get(2)}
           trigger={resolveTrigger}
           // Flip rule thresholdType to opposite
+          thresholdPeriod={thresholdPeriod}
           thresholdType={+!thresholdType}
+          comparisonType={comparisonType}
           aggregate={aggregate}
           resolveThreshold={resolveThreshold}
           organization={organization}
           projects={projects}
           triggerIndex={2}
           isCritical={false}
-          fieldHelp={tct('The threshold[units] that will activate the resolved status.', {
-            units: thresholdUnits ? ` (${thresholdUnits})` : '',
-          })}
+          hasAlertWizardV3={hasAlertWizardV3}
+          fieldHelp={
+            hasAlertWizardV3
+              ? null
+              : tct('The threshold[units] that will activate the resolved status.', {
+                  units: thresholdUnits ? ` (${thresholdUnits})` : '',
+                })
+          }
           triggerLabel={
-            <React.Fragment>
-              <ResolvedIndicator size={12} />
+            <TriggerLabel>
+              {this.getIndicator(AlertRuleTriggerType.RESOLVE)}
               {t('Resolved')}
-            </React.Fragment>
+            </TriggerLabel>
           }
           placeholder={t('Automatic')}
           onChange={this.handleChangeResolveTrigger}
           onThresholdTypeChange={onThresholdTypeChange}
+          onThresholdPeriodChange={onThresholdPeriodChange}
         />
       </React.Fragment>
     );
@@ -248,6 +355,23 @@ const WarningIndicator = styled(CircleIndicator)`
 const ResolvedIndicator = styled(CircleIndicator)`
   background: ${p => p.theme.green300};
   margin-right: ${space(1)};
+`;
+
+const TriggerLabel = styled('div')`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+`;
+
+const StyledIconDiamond = styled(IconDiamond)`
+  margin-right: ${space(0.75)};
+`;
+
+const StyledField = styled(Field)<{hasAlertWizardV3: boolean}>`
+  & > label > div:first-child > span {
+    display: flex;
+    flex-direction: row;
+  }
 `;
 
 export default withConfig(withApi(TriggerFormContainer));

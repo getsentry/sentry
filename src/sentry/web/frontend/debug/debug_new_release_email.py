@@ -2,6 +2,9 @@ import datetime
 
 import pytz
 from django.views.generic import View
+from rest_framework.request import Request
+from rest_framework.response import Response
+from sentry_relay import parse_release
 
 from sentry.models import Commit, CommitAuthor, Deploy, Organization, Project, Release, User
 from sentry.notifications.types import GroupSubscriptionReason
@@ -12,16 +15,18 @@ from .mail import MailPreview
 
 
 class DebugNewReleaseEmailView(View):
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         org = Organization(id=1, slug="organization", name="My Company")
         projects = [
             Project(id=1, organization=org, slug="project", name="My Project"),
             Project(id=2, organization=org, slug="another-project", name="Another Project"),
             Project(id=3, organization=org, slug="yet-another-project", name="Yet Another Project"),
         ]
+        version = "6c998f755f304593a4713abd123eaf8833a2de5e"
+        version_parsed = parse_release(version)["description"]
         release = Release(
             organization_id=org.id,
-            version="6c998f755f304593a4713abd123eaf8833a2de5e",
+            version=version,
             date_added=datetime.datetime(2016, 10, 12, 15, 39, tzinfo=pytz.utc),
         )
 
@@ -95,16 +100,17 @@ class DebugNewReleaseEmailView(View):
             html_template="sentry/emails/activity/release.html",
             text_template="sentry/emails/activity/release.txt",
             context={
-                "release": release,
-                "projects": zip(projects, release_links, [6, 1, 0]),
-                "repos": repos,
-                "reason": GroupSubscriptionReason.descriptions[GroupSubscriptionReason.committed],
-                "project_count": len(projects),
-                "commit_count": 4,
                 "author_count": 1,
-                "file_count": 5,
-                "environment": "production",
+                "commit_count": 4,
                 "deploy": deploy,
+                "environment": "production",
+                "file_count": 5,
+                "project_count": len(projects),
+                "projects": zip(projects, release_links, [6, 1, 0]),
+                "reason": GroupSubscriptionReason.descriptions[GroupSubscriptionReason.committed],
+                "release": release,
+                "repos": repos,
                 "setup_repo_link": absolute_uri(f"/organizations/{org.slug}/repos/"),
+                "version_parsed": version_parsed,
             },
         ).render(request)

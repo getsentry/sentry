@@ -2,8 +2,8 @@ import * as Sentry from '@sentry/react';
 import * as moment from 'moment';
 import * as qs from 'query-string';
 
-import {DEFAULT_LOCALE_DATA, setLocale} from 'app/locale';
-import {Config} from 'app/types';
+import {DEFAULT_LOCALE_DATA, setLocale} from 'sentry/locale';
+import {Config} from 'sentry/types';
 
 // zh-cn => zh_CN
 function convertToDjangoLocaleFormat(language: string) {

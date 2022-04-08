@@ -1,45 +1,47 @@
 import {Component, Fragment} from 'react';
 import {Observer} from 'mobx-react';
 
-import Access from 'app/components/acl/access';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import {t, tct} from 'app/locale';
-import {Choices, GlobalSelection, Organization} from 'app/types';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import withOrganization from 'app/utils/withOrganization';
-import Field from 'app/views/settings/components/forms/field';
-import Form from 'app/views/settings/components/forms/form';
-import NumberField from 'app/views/settings/components/forms/numberField';
-import SelectField from 'app/views/settings/components/forms/selectField';
-import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
-import TextField from 'app/views/settings/components/forms/textField';
+import Access from 'sentry/components/acl/access';
+import Field from 'sentry/components/forms/field';
+import Form from 'sentry/components/forms/form';
+import NumberField from 'sentry/components/forms/numberField';
+import SelectField from 'sentry/components/forms/selectField';
+import TextCopyInput from 'sentry/components/forms/textCopyInput';
+import TextField from 'sentry/components/forms/textField';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import {t, tct} from 'sentry/locale';
+import {PageFilters, Project, SelectValue} from 'sentry/types';
+import withPageFilters from 'sentry/utils/withPageFilters';
+import withProjects from 'sentry/utils/withProjects';
 
 import MonitorModel from './monitorModel';
 import {Monitor, MonitorConfig, MonitorTypes, ScheduleType} from './types';
 
-const SCHEDULE_TYPES: [ScheduleType, string][] = [
-  ['crontab', 'Crontab'],
-  ['interval', 'Interval'],
+const SCHEDULE_TYPES: SelectValue<ScheduleType>[] = [
+  {value: 'crontab', label: 'Crontab'},
+  {value: 'interval', label: 'Interval'},
 ];
 
-const MONITOR_TYPES: Choices = [['cron_job', 'Cron Job']];
+const MONITOR_TYPES: SelectValue<MonitorTypes>[] = [
+  {value: 'cron_job', label: 'Cron Job'},
+];
 
-const INTERVALS = [
-  ['minute', 'minute(s)'],
-  ['hour', 'hour(s)'],
-  ['day', 'day(s)'],
-  ['week', 'week(s)'],
-  ['month', 'month(s)'],
-  ['year', 'year(s)'],
+const INTERVALS: SelectValue<string>[] = [
+  {value: 'minute', label: 'minute(s)'},
+  {value: 'hour', label: 'hour(s)'},
+  {value: 'day', label: 'day(s)'},
+  {value: 'week', label: 'week(s)'},
+  {value: 'month', label: 'month(s)'},
+  {value: 'year', label: 'year(s)'},
 ];
 
 type Props = {
-  monitor?: Monitor;
-  organization: Organization;
-  selection: GlobalSelection;
   apiEndpoint: string;
   apiMethod: Form['props']['apiMethod'];
   onSubmitSuccess: Form['props']['onSubmitSuccess'];
+  projects: Project[];
+  selection: PageFilters;
+  monitor?: Monitor;
 };
 
 class MonitorForm extends Component<Props> {
@@ -72,7 +74,7 @@ class MonitorForm extends Component<Props> {
     const {monitor} = this.props;
     const selectedProjectId = this.props.selection.projects[0];
     const selectedProject = selectedProjectId
-      ? this.props.organization.projects.find(p => p.id === selectedProjectId + '')
+      ? this.props.projects.find(p => p.id === selectedProjectId + '')
       : null;
     return (
       <Access access={['project:write']}>
@@ -112,9 +114,9 @@ class MonitorForm extends Component<Props> {
                   name="project"
                   label={t('Project')}
                   disabled={!hasAccess}
-                  choices={this.props.organization.projects
+                  options={this.props.projects
                     .filter(p => p.isMember)
-                    .map(p => [p.slug, p.slug])}
+                    .map(p => ({value: p.slug, label: p.slug}))}
                   required
                 />
                 <TextField
@@ -134,7 +136,7 @@ class MonitorForm extends Component<Props> {
                   name="type"
                   label={t('Type')}
                   disabled={!hasAccess}
-                  choices={MONITOR_TYPES}
+                  options={MONITOR_TYPES}
                   required
                 />
                 <Observer>
@@ -156,7 +158,7 @@ class MonitorForm extends Component<Props> {
                               name="config.schedule_type"
                               label={t('Schedule Type')}
                               disabled={!hasAccess}
-                              choices={SCHEDULE_TYPES}
+                              options={SCHEDULE_TYPES}
                               required
                             />
                           </Fragment>
@@ -210,7 +212,7 @@ class MonitorForm extends Component<Props> {
                               name="config.schedule.interval"
                               label={t('Interval')}
                               disabled={!hasAccess}
-                              choices={INTERVALS}
+                              options={INTERVALS}
                               required
                             />
                             <NumberField
@@ -238,4 +240,4 @@ class MonitorForm extends Component<Props> {
   }
 }
 
-export default withGlobalSelection(withOrganization(MonitorForm));
+export default withPageFilters(withProjects(MonitorForm));

@@ -1,36 +1,36 @@
 import {Component} from 'react';
 
-import {Client} from 'app/api';
-import MiniBarChart from 'app/components/charts/miniBarChart';
-import LoadingError from 'app/components/loadingError';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import Placeholder from 'app/components/placeholder';
-import {t} from 'app/locale';
-import {Project} from 'app/types';
-import {Series} from 'app/types/echarts';
-import theme from 'app/utils/theme';
-import withApi from 'app/utils/withApi';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import {Client} from 'sentry/api';
+import MiniBarChart from 'sentry/components/charts/miniBarChart';
+import LoadingError from 'sentry/components/loadingError';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Placeholder from 'sentry/components/placeholder';
+import {t} from 'sentry/locale';
+import {Project} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
+import theme from 'sentry/utils/theme';
+import withApi from 'sentry/utils/withApi';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 type Props = {
   api: Client;
-  project: Project;
   params: {orgId: string; projectId: string};
+  project: Project;
 };
 
 type State = {
-  loading: boolean;
-  error: boolean;
-  statsError: boolean;
-  formattedData: Series[];
   blankStats: boolean;
+  error: boolean;
+  formattedData: Series[];
+  loading: boolean;
+  statsError: boolean;
 };
 
 type RawStats = Record<string, [timestamp: number, value: number][]>;
 
 const STAT_OPS = {
   'browser-extensions': {title: t('Browser Extension'), color: theme.gray200},
-  cors: {title: 'CORS', color: theme.orange400},
+  cors: {title: 'CORS', color: theme.yellow300},
   'error-message': {title: t('Error Message'), color: theme.purple300},
   'discarded-hash': {title: t('Discarded Issue'), color: theme.gray200},
   'invalid-csp': {title: t('Invalid CSP'), color: theme.blue300},

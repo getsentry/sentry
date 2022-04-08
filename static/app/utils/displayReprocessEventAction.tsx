@@ -1,12 +1,17 @@
-import {ExceptionValue, PlatformType} from 'app/types';
-import {EntryException, EntryType, Event} from 'app/types/event';
-import {Thread} from 'app/types/events';
-import {StacktraceType} from 'app/types/stacktrace';
+import {
+  EntryException,
+  EntryType,
+  Event,
+  ExceptionValue,
+  PlatformType,
+  StacktraceType,
+  Thread,
+} from 'sentry/types';
 
 const NATIVE_PLATFORMS = ['cocoa', 'native'] as Array<PlatformType>;
 
 // Finds all frames in a given data blob and returns it's platforms
-function getPlatforms(exceptionValue: ExceptionValue | StacktraceType) {
+function getPlatforms(exceptionValue: ExceptionValue | StacktraceType | null) {
   const frames = exceptionValue?.frames ?? [];
   const stacktraceFrames = (exceptionValue as ExceptionValue)?.stacktrace?.frames ?? [];
 

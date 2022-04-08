@@ -1,8 +1,9 @@
-import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
-import {IconQuestion, IconWarning} from 'app/icons';
-import {t} from 'app/locale';
-import {Frame, PlatformType} from 'app/types';
-import {defined, objectIsEmpty} from 'app/utils';
+import {IconQuestion, IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {Frame, PlatformType} from 'sentry/types';
+import {defined, objectIsEmpty} from 'sentry/utils';
+
+import {SymbolicatorStatus} from '../types';
 
 export function trimPackage(pkg: string) {
   const pieces = pkg.split(/^([a-z]:\\|\\\\)/i.test(pkg) ? '\\' : '/');
@@ -95,8 +96,8 @@ export function isExpandable({
   frame: Frame;
   registers: Record<string, string>;
   emptySourceNotation?: boolean;
-  platform?: string;
   isOnlyFrame?: boolean;
+  platform?: string;
 }) {
   return (
     (!isOnlyFrame && emptySourceNotation) ||

@@ -77,8 +77,9 @@ PREBUILT_DASHBOARDS = {
     item["id"]: item
     for item in [
         {
+            # This should match the general template in static/app/views/dashboardsV2/data.tsx
             "id": "default-overview",
-            "title": "Dashboard",
+            "title": "General",
             "dateCreated": "",
             "createdBy": "",
             "widgets": [
@@ -91,6 +92,8 @@ PREBUILT_DASHBOARDS = {
                             "name": "",
                             "conditions": "!event.type:transaction",
                             "fields": ["count()"],
+                            "aggregates": ["count()"],
+                            "columns": [],
                         }
                     ],
                 },
@@ -103,6 +106,8 @@ PREBUILT_DASHBOARDS = {
                             "name": "",
                             "conditions": "!event.type:transaction",
                             "fields": ["count_unique(issue)"],
+                            "aggregates": ["count_unique(issue)"],
+                            "columns": [],
                         }
                     ],
                 },
@@ -115,6 +120,8 @@ PREBUILT_DASHBOARDS = {
                             "name": "Events",
                             "conditions": "!event.type:transaction",
                             "fields": ["count()"],
+                            "aggregates": ["count()"],
+                            "columns": [],
                         }
                     ],
                 },
@@ -127,11 +134,15 @@ PREBUILT_DASHBOARDS = {
                             "name": "Known Users",
                             "conditions": "has:user.email !event.type:transaction",
                             "fields": ["count_unique(user)"],
+                            "aggregates": ["count_unique(user)"],
+                            "columns": [],
                         },
                         {
                             "name": "Anonymous Users",
                             "conditions": "!has:user.email !event.type:transaction",
                             "fields": ["count_unique(user)"],
+                            "aggregates": ["count_unique(user)"],
+                            "columns": [],
                         },
                     ],
                 },
@@ -144,11 +155,15 @@ PREBUILT_DASHBOARDS = {
                             "name": "Handled",
                             "conditions": "error.handled:true",
                             "fields": ["count()"],
+                            "aggregates": ["count()"],
+                            "columns": [],
                         },
                         {
                             "name": "Unhandled",
                             "conditions": "error.handled:false",
                             "fields": ["count()"],
+                            "aggregates": ["count()"],
+                            "columns": [],
                         },
                     ],
                 },
@@ -161,6 +176,8 @@ PREBUILT_DASHBOARDS = {
                             "name": "Error counts",
                             "conditions": "!event.type:transaction has:geo.country_code",
                             "fields": ["count()"],
+                            "aggregates": ["count()"],
+                            "columns": [],
                         }
                     ],
                 },
@@ -173,8 +190,86 @@ PREBUILT_DASHBOARDS = {
                             "name": "",
                             "conditions": "!event.type:transaction has:browser.name",
                             "fields": ["browser.name", "count()"],
+                            "aggregates": ["count()"],
+                            "columns": ["browser.name"],
                             "orderby": "-count",
                         }
+                    ],
+                },
+                {
+                    "title": "High Throughput Transactions",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()", "transaction"],
+                            "aggregates": ["count()"],
+                            "columns": ["transaction"],
+                            "conditions": "!event.type:error",
+                            "orderby": "-count",
+                        },
+                    ],
+                },
+                {
+                    "title": "Overall User Misery",
+                    "displayType": "big_number",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["user_misery(300)"],
+                            "aggregates": ["user_misery(300)"],
+                            "columns": [],
+                            "conditions": "",
+                            "orderby": "",
+                        },
+                    ],
+                },
+                {
+                    "title": "High Throughput Transactions",
+                    "displayType": "top_n",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["transaction", "count()"],
+                            "aggregates": ["count()"],
+                            "columns": ["transaction"],
+                            "conditions": "!event.type:error",
+                            "orderby": "-count",
+                        },
+                    ],
+                },
+                {
+                    "title": "Issues Assigned to Me or My Teams",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["assignee", "issue", "title"],
+                            "aggregates": [],
+                            "columns": ["assignee", "issue", "title"],
+                            "conditions": "assigned_or_suggested:me is:unresolved",
+                            "orderby": "priority",
+                        },
+                    ],
+                    "widgetType": "issue",
+                },
+                {
+                    "title": "Transactions Ordered by Misery",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["transaction", "user_misery(300)"],
+                            "aggregates": ["user_misery(300)"],
+                            "columns": ["transaction"],
+                            "conditions": "",
+                            "orderby": "-user_misery_300",
+                        },
                     ],
                 },
             ],

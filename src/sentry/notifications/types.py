@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from enum import Enum
 from typing import Optional
 
@@ -10,7 +12,7 @@ integers to their string values.
 """
 
 
-def get_notification_setting_type_name(value: int) -> Optional[str]:
+def get_notification_setting_type_name(value: int | NotificationSettingTypes) -> Optional[str]:
     return NOTIFICATION_SETTING_TYPES.get(NotificationSettingTypes(value))
 
 
@@ -41,12 +43,32 @@ class NotificationSettingTypes(Enum):
     # Notifications for changes in assignment, resolution, comments, etc.
     WORKFLOW = 30
 
+    # Notifications that require approval like a request to invite a member
+    APPROVAL = 40
+
+    # Notifications about quotas
+    QUOTA = 50
+
+    # Sub category of quotas for each event category
+    QUOTA_ERRORS = 51
+    QUOTA_TRANSACTIONS = 52
+    QUOTA_ATTACHMENTS = 53
+
+    # Sub category of quotas for warnings before hitting the actual limit
+    QUOTA_WARNINGS = 54
+
 
 NOTIFICATION_SETTING_TYPES = {
     NotificationSettingTypes.DEFAULT: "default",
     NotificationSettingTypes.DEPLOY: "deploy",
     NotificationSettingTypes.ISSUE_ALERTS: "alerts",
     NotificationSettingTypes.WORKFLOW: "workflow",
+    NotificationSettingTypes.APPROVAL: "approval",
+    NotificationSettingTypes.QUOTA: "quota",
+    NotificationSettingTypes.QUOTA_ERRORS: "quotaErrors",
+    NotificationSettingTypes.QUOTA_TRANSACTIONS: "quotaTransactions",
+    NotificationSettingTypes.QUOTA_ATTACHMENTS: "quotaAttachments",
+    NotificationSettingTypes.QUOTA_WARNINGS: "quotaWarnings",
 }
 
 
@@ -100,8 +122,10 @@ NOTIFICATION_SCOPE_TYPE = {
 
 class FineTuningAPIKey(Enum):
     ALERTS = "alerts"
+    APPROVAL = "approval"
     DEPLOY = "deploy"
     EMAIL = "email"
+    QUOTA = "quota"
     REPORTS = "reports"
     WORKFLOW = "workflow"
 
@@ -112,15 +136,41 @@ class UserOptionsSettingsKey(Enum):
     SELF_ASSIGN = "selfAssignOnResolve"
     SUBSCRIBE_BY_DEFAULT = "subscribeByDefault"
     WORKFLOW = "workflowNotifications"
+    APPROVAL = "approvalNotifications"
+    QUOTA = "quotaNotifications"
 
 
 VALID_VALUES_FOR_KEY = {
+    NotificationSettingTypes.APPROVAL: {
+        NotificationSettingOptionValues.ALWAYS,
+        NotificationSettingOptionValues.NEVER,
+    },
     NotificationSettingTypes.DEPLOY: {
         NotificationSettingOptionValues.ALWAYS,
         NotificationSettingOptionValues.COMMITTED_ONLY,
         NotificationSettingOptionValues.NEVER,
     },
     NotificationSettingTypes.ISSUE_ALERTS: {
+        NotificationSettingOptionValues.ALWAYS,
+        NotificationSettingOptionValues.NEVER,
+    },
+    NotificationSettingTypes.QUOTA: {
+        NotificationSettingOptionValues.ALWAYS,
+        NotificationSettingOptionValues.NEVER,
+    },
+    NotificationSettingTypes.QUOTA_ERRORS: {
+        NotificationSettingOptionValues.ALWAYS,
+        NotificationSettingOptionValues.NEVER,
+    },
+    NotificationSettingTypes.QUOTA_TRANSACTIONS: {
+        NotificationSettingOptionValues.ALWAYS,
+        NotificationSettingOptionValues.NEVER,
+    },
+    NotificationSettingTypes.QUOTA_ATTACHMENTS: {
+        NotificationSettingOptionValues.ALWAYS,
+        NotificationSettingOptionValues.NEVER,
+    },
+    NotificationSettingTypes.QUOTA_WARNINGS: {
         NotificationSettingOptionValues.ALWAYS,
         NotificationSettingOptionValues.NEVER,
     },

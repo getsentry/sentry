@@ -1,14 +1,14 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Context} from 'app/components/forms/form';
-import {Permissions, WebhookEvent} from 'app/types';
-import FormContext from 'app/views/settings/components/forms/formContext';
+import {Context} from 'sentry/components/deprecatedforms/form';
+import FormContext from 'sentry/components/forms/formContext';
+import {Permissions, WebhookEvent} from 'sentry/types';
 import {
   EVENT_CHOICES,
   PERMISSIONS_MAP,
-} from 'app/views/settings/organizationDeveloperSettings/constants';
-import SubscriptionBox from 'app/views/settings/organizationDeveloperSettings/subscriptionBox';
+} from 'sentry/views/settings/organizationDeveloperSettings/constants';
+import SubscriptionBox from 'sentry/views/settings/organizationDeveloperSettings/subscriptionBox';
 
 type Resource = typeof EVENT_CHOICES[number];
 
@@ -17,9 +17,9 @@ type DefaultProps = {
 };
 
 type Props = DefaultProps & {
-  permissions: Permissions;
   events: WebhookEvent[];
   onChange: (events: WebhookEvent[]) => void;
+  permissions: Permissions;
 };
 
 export default class Subscriptions extends Component<Props> {
@@ -81,6 +81,7 @@ export default class Subscriptions extends Component<Props> {
                 checked={events.includes(choice) && !disabledFromPermissions}
                 resource={choice}
                 onChange={this.onChange}
+                isNew={choice === 'comment'}
               />
             </Fragment>
           );
@@ -91,6 +92,9 @@ export default class Subscriptions extends Component<Props> {
 }
 
 const SubscriptionGrid = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template: auto / 1fr 1fr 1fr;
+  @media (max-width: ${props => props.theme.breakpoints[2]}) {
+    grid-template: 1fr 1fr 1fr / auto;
+  }
 `;

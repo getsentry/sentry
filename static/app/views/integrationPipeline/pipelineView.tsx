@@ -1,16 +1,12 @@
-import * as React from 'react';
+import {useEffect} from 'react';
 
-import Indicators from 'app/components/indicators';
-import ThemeAndStyleProvider from 'app/themeAndStyleProvider';
+import Indicators from 'sentry/components/indicators';
+import ThemeAndStyleProvider from 'sentry/components/themeAndStyleProvider';
 
 import AwsLambdaCloudformation from './awsLambdaCloudformation';
 import AwsLambdaFailureDetails from './awsLambdaFailureDetails';
 import AwsLambdaFunctionSelect from './awsLambdaFunctionSelect';
 import AwsLambdaProjectSelect from './awsLambdaProjectSelect';
-
-/**
- * This component is a wrapper for specific pipeline views for integrations
- */
 
 const pipelineMapper: Record<string, [React.ElementType, string]> = {
   awsLambdaProjectSelect: [AwsLambdaProjectSelect, 'AWS Lambda Select Project'],
@@ -20,31 +16,31 @@ const pipelineMapper: Record<string, [React.ElementType, string]> = {
 };
 
 type Props = {
-  pipelineName: string;
   [key: string]: any;
+  pipelineName: string;
 };
 
-export default class PipelineView extends React.Component<Props> {
-  componentDidMount() {
-    // update the title based on our mappings
-    const title = this.mapping[1];
-    document.title = title;
+/**
+ * This component is a wrapper for specific pipeline views for integrations
+ */
+function PipelineView({pipelineName, ...props}: Props) {
+  const mapping = pipelineMapper[pipelineName];
+
+  if (!mapping) {
+    throw new Error(`Invalid pipeline name ${pipelineName}`);
   }
-  get mapping() {
-    const {pipelineName} = this.props;
-    const mapping = pipelineMapper[pipelineName];
-    if (!mapping) {
-      throw new Error(`Invalid pipeline name ${pipelineName}`);
-    }
-    return mapping;
-  }
-  render() {
-    const Component = this.mapping[0];
-    return (
-      <ThemeAndStyleProvider>
-        <Indicators className="indicators-container" />
-        <Component {...this.props} />
-      </ThemeAndStyleProvider>
-    );
-  }
+
+  const [Component, title] = mapping;
+
+  // Set the page title
+  useEffect(() => void (document.title = title), [title]);
+
+  return (
+    <ThemeAndStyleProvider>
+      <Indicators className="indicators-container" />
+      <Component {...props} />
+    </ThemeAndStyleProvider>
+  );
 }
+
+export default PipelineView;

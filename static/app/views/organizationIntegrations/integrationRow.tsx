@@ -1,46 +1,56 @@
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
-import Alert from 'app/components/alert';
-import Button from 'app/components/button';
-import Link from 'app/components/links/link';
-import {PanelItem} from 'app/components/panels';
-import {IconWarning} from 'app/icons';
-import {t} from 'app/locale';
-import PluginIcon from 'app/plugins/components/pluginIcon';
-import space from 'app/styles/space';
+import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
+import Link from 'sentry/components/links/link';
+import {PanelItem} from 'sentry/components/panels';
+import {t} from 'sentry/locale';
+import PluginIcon from 'sentry/plugins/components/pluginIcon';
+import space from 'sentry/styles/space';
 import {
   IntegrationInstallationStatus,
   Organization,
   PluginWithProjectList,
   SentryApp,
-} from 'app/types';
+} from 'sentry/types';
 import {
   convertIntegrationTypeToSnakeCase,
   trackIntegrationAnalytics,
-} from 'app/utils/integrationUtil';
+} from 'sentry/utils/integrationUtil';
 
+import AlertContainer from './integrationAlertContainer';
 import IntegrationStatus from './integrationStatus';
 import PluginDeprecationAlert from './pluginDeprecationAlert';
 
 type Props = {
-  organization: Organization;
-  type: 'plugin' | 'firstParty' | 'sentryApp' | 'documentIntegration';
-  slug: string;
-  displayName: string;
-  status?: IntegrationInstallationStatus;
-  publishStatus: 'unpublished' | 'published' | 'internal';
-  configurations: number;
   categories: string[];
+  configurations: number;
+  displayName: string;
+  organization: Organization;
+  publishStatus: 'unpublished' | 'published' | 'internal';
+  slug: string;
+  type: 'plugin' | 'firstParty' | 'sentryApp' | 'docIntegration';
+  /**
+   * If provided, render an alert message with this text.
+   */
   alertText?: string;
+  customAlert?: React.ReactNode;
+  customIcon?: React.ReactNode;
   plugin?: PluginWithProjectList;
+  /**
+   * If `alertText` was provided, this text overrides the "Resolve now" message
+   * in the alert.
+   */
+  resolveText?: string;
+  status?: IntegrationInstallationStatus;
 };
 
 const urlMap = {
   plugin: 'plugins',
   firstParty: 'integrations',
   sentryApp: 'sentry-apps',
-  documentIntegration: 'document-integrations',
+  docIntegration: 'document-integrations',
 };
 
 const IntegrationRow = (props: Props) => {
@@ -54,7 +64,10 @@ const IntegrationRow = (props: Props) => {
     configurations,
     categories,
     alertText,
+    resolveText,
     plugin,
+    customAlert,
+    customIcon,
   } = props;
 
   const baseUrl =
@@ -85,7 +98,7 @@ const IntegrationRow = (props: Props) => {
   return (
     <PanelRow noPadding data-test-id={slug}>
       <FlexContainer>
-        <PluginIcon size={36} pluginId={slug} />
+        {customIcon ?? <PluginIcon size={36} pluginId={slug} />}
         <Container>
           <IntegrationName to={baseUrl}>{displayName}</IntegrationName>
           <IntegrationDetails>
@@ -105,24 +118,30 @@ const IntegrationRow = (props: Props) => {
       </FlexContainer>
       {alertText && (
         <AlertContainer>
-          <Alert type="warning" icon={<IconWarning size="sm" />}>
-            <span>{alertText}</span>
-            <ResolveNowButton
-              href={`${baseUrl}?tab=configurations&referrer=directory_resolve_now`}
-              size="xsmall"
-              onClick={() =>
-                trackIntegrationAnalytics('integrations.resolve_now_clicked', {
-                  integration_type: convertIntegrationTypeToSnakeCase(type),
-                  integration: slug,
-                  organization,
-                })
-              }
-            >
-              {t('Resolve Now')}
-            </ResolveNowButton>
+          <Alert
+            type="warning"
+            showIcon
+            trailingItems={
+              <ResolveNowButton
+                href={`${baseUrl}?tab=configurations&referrer=directory_resolve_now`}
+                size="xsmall"
+                onClick={() =>
+                  trackIntegrationAnalytics('integrations.resolve_now_clicked', {
+                    integration_type: convertIntegrationTypeToSnakeCase(type),
+                    integration: slug,
+                    organization,
+                  })
+                }
+              >
+                {resolveText || t('Resolve Now')}
+              </ResolveNowButton>
+            }
+          >
+            {alertText}
           </Alert>
         </AlertContainer>
       )}
+      {customAlert}
       {plugin?.deprecationDate && (
         <PluginDeprecationAlertWrapper>
           <PluginDeprecationAlert organization={organization} plugin={plugin} />
@@ -225,10 +244,6 @@ const CategoryTag = styled(
 const ResolveNowButton = styled(Button)`
   color: ${p => p.theme.subText};
   float: right;
-`;
-
-const AlertContainer = styled('div')`
-  padding: 0px ${space(3)} 0px 68px;
 `;
 
 export default IntegrationRow;

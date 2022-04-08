@@ -1,12 +1,12 @@
 import * as React from 'react';
 
-import HookStore from 'app/stores/hookStore';
-import {Organization} from 'app/types';
-import {HookName, Hooks} from 'app/types/hooks';
-import withOrganization from 'app/utils/withOrganization';
-import SettingsNavigation from 'app/views/settings/components/settingsNavigation';
-import navigationConfiguration from 'app/views/settings/organization/navigationConfiguration';
-import {NavigationSection} from 'app/views/settings/types';
+import HookStore from 'sentry/stores/hookStore';
+import {Organization} from 'sentry/types';
+import {HookName, Hooks} from 'sentry/types/hooks';
+import withOrganization from 'sentry/utils/withOrganization';
+import SettingsNavigation from 'sentry/views/settings/components/settingsNavigation';
+import navigationConfiguration from 'sentry/views/settings/organization/navigationConfiguration';
+import {NavigationSection} from 'sentry/views/settings/types';
 
 type Props = {
   organization: Organization;

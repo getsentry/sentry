@@ -2,6 +2,7 @@ import re
 from itertools import islice
 from typing import Any, Match
 
+from sentry.eventstore.models import Event
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.base import (
     GroupingContext,
@@ -111,13 +112,13 @@ def trim_message_for_grouping(string: str) -> str:
     return _irrelevant_re.sub(_handle_match, s)
 
 
-@strategy(id="message:v1", interfaces=["message"], score=0)
+@strategy(ids=["message:v1"], interface=Message, score=0)
 @produces_variants(["default"])
 def message_v1(
-    message_interface: Message, context: GroupingContext, **meta: Any
+    interface: Message, event: Event, context: GroupingContext, **meta: Any
 ) -> ReturnedVariants:
     if context["trim_message"]:
-        message_in = message_interface.message or message_interface.formatted or ""
+        message_in = interface.message or interface.formatted or ""
         message_trimmed = trim_message_for_grouping(message_in)
         hint = "stripped common values" if message_in != message_trimmed else None
         return {
@@ -132,7 +133,7 @@ def message_v1(
         return {
             context["variant"]: GroupingComponent(
                 id="message",
-                values=[message_interface.message or message_interface.formatted or ""],
+                values=[interface.message or interface.formatted or ""],
                 similarity_encoder=text_shingle_encoder(5),
             )
         }

@@ -1,4 +1,4 @@
-import EmptyStateWarning from 'app/components/emptyStateWarning';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 
 export default {
   title: 'Views/Empty States/Empty State Warning',

@@ -2,13 +2,13 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
-import List from 'app/components/list';
-import ListItem from 'app/components/list/listItem';
-import Tooltip from 'app/components/tooltip';
-import {IconWarning} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Meta, MetaError} from 'app/types';
+import List from 'sentry/components/list';
+import ListItem from 'sentry/components/list/listItem';
+import Tooltip from 'sentry/components/tooltip';
+import {IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Meta, MetaError} from 'sentry/types';
 
 import Chunks from './chunks';
 import {getTooltipText} from './utils';
@@ -16,10 +16,11 @@ import ValueElement from './valueElement';
 
 type Props = {
   value: React.ReactNode;
+  className?: string;
   meta?: Meta;
 };
 
-const AnnotatedText = ({value, meta, ...props}: Props) => {
+const AnnotatedText = ({value, meta, className, ...props}: Props) => {
   const renderValue = () => {
     if (meta?.chunks?.length && meta.chunks.length > 1) {
       return <Chunks chunks={meta.chunks} />;
@@ -86,7 +87,7 @@ const AnnotatedText = ({value, meta, ...props}: Props) => {
   };
 
   return (
-    <span {...props}>
+    <span className={className} {...props}>
       {renderValue()}
       {meta?.err && renderErrors(meta.err)}
     </span>

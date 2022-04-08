@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 
-import {DebugImage} from 'app/components/events/interfaces/debugMeta/types';
-import {formatAddress, getImageRange} from 'app/components/events/interfaces/utils';
-import {Image, ImageStatus} from 'app/types/debugImage';
-import {defined} from 'app/utils';
+import {DebugImage} from 'sentry/components/events/interfaces/debugMeta/types';
+import {formatAddress, getImageRange} from 'sentry/components/events/interfaces/utils';
+import {Image, ImageStatus} from 'sentry/types/debugImage';
+import {defined} from 'sentry/utils';
 
 const IMAGE_ADDR_LEN = 12;
 export const IMAGE_AND_CANDIDATE_LIST_MAX_HEIGHT = 400;
@@ -44,7 +44,7 @@ export function normalizeId(id?: string) {
   return id?.trim().toLowerCase().replace(/[- ]/g, '') ?? '';
 }
 
-// TODO(ts): When replacing debugMeta with debugMetaV2, also replace {type: string} with the Image type defined in 'app/types/debugImage'
+// TODO(ts): When replacing debugMeta with debugMetaV2, also replace {type: string} with the Image type defined in 'sentry/types/debugImage'
 export function shouldSkipSection(
   filteredImages: Array<{type: string}>,
   images: Array<{type: string} | null>

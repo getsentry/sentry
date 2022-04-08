@@ -1,7 +1,9 @@
-import Reflux from 'reflux';
+import {createActions} from 'reflux';
 
-export default Reflux.createActions([
+const EnvironmentActions = createActions([
   'fetchEnvironments',
   'fetchEnvironmentsError',
   'fetchEnvironmentsSuccess',
 ]);
+
+export default EnvironmentActions;

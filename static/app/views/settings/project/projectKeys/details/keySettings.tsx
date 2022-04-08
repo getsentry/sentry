@@ -5,26 +5,25 @@ import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
-} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
-import Access from 'app/components/acl/access';
-import Button from 'app/components/button';
-import Confirm from 'app/components/confirm';
-import DateTime from 'app/components/dateTime';
-import ExternalLink from 'app/components/links/externalLink';
-import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
-import {IconFlag} from 'app/icons';
-import {t, tct} from 'app/locale';
-import getDynamicText from 'app/utils/getDynamicText';
-import BooleanField from 'app/views/settings/components/forms/booleanField';
-import Field from 'app/views/settings/components/forms/field';
-import Form from 'app/views/settings/components/forms/form';
-import SelectField from 'app/views/settings/components/forms/selectField';
-import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
-import TextField from 'app/views/settings/components/forms/textField';
-import KeyRateLimitsForm from 'app/views/settings/project/projectKeys/details/keyRateLimitsForm';
-import ProjectKeyCredentials from 'app/views/settings/project/projectKeys/projectKeyCredentials';
-import {ProjectKey} from 'app/views/settings/project/projectKeys/types';
+} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
+import Access from 'sentry/components/acl/access';
+import Button from 'sentry/components/button';
+import Confirm from 'sentry/components/confirm';
+import DateTime from 'sentry/components/dateTime';
+import BooleanField from 'sentry/components/forms/booleanField';
+import Field from 'sentry/components/forms/field';
+import Form from 'sentry/components/forms/form';
+import SelectField from 'sentry/components/forms/selectField';
+import TextCopyInput from 'sentry/components/forms/textCopyInput';
+import TextField from 'sentry/components/forms/textField';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
+import {t, tct} from 'sentry/locale';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import KeyRateLimitsForm from 'sentry/views/settings/project/projectKeys/details/keyRateLimitsForm';
+import ProjectKeyCredentials from 'sentry/views/settings/project/projectKeys/projectKeyCredentials';
+import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
 type Props = {
   api: Client;
@@ -43,8 +42,8 @@ type Props = {
 >;
 
 type State = {
-  loading: boolean;
   error: boolean;
+  loading: boolean;
 };
 
 class KeySettings extends Component<Props, State> {
@@ -155,10 +154,17 @@ class KeySettings extends Component<Props, State> {
                   </Field>
                   <SelectField
                     name="browserSdkVersion"
-                    choices={data.browserSdk ? data.browserSdk.choices : []}
+                    options={
+                      data.browserSdk
+                        ? data.browserSdk.choices.map(([value, label]) => ({
+                            value,
+                            label,
+                          }))
+                        : []
+                    }
                     placeholder={t('4.x')}
                     allowClear={false}
-                    enabled={!hasAccess}
+                    disabled={!hasAccess}
                     help={t(
                       'Select the version of the SDK that should be loaded. Note that it can take a few minutes until this change is live.'
                     )}
@@ -170,7 +176,7 @@ class KeySettings extends Component<Props, State> {
             <Panel>
               <PanelHeader>{t('Credentials')}</PanelHeader>
               <PanelBody>
-                <PanelAlert type="info" icon={<IconFlag size="md" />}>
+                <PanelAlert type="info" showIcon>
                   {t(
                     'Your credentials are coupled to a public and secret key. Different clients will require different credentials, so make sure you check the documentation before plugging things in.'
                   )}

@@ -1,18 +1,22 @@
 import isEqual from 'lodash/isEqual';
 
-import {RELEASE_ADOPTION_STAGES} from 'app/constants';
-import {LightWeightOrganization, SelectValue} from 'app/types';
-import {assert} from 'app/types/utils';
+import {RELEASE_ADOPTION_STAGES} from 'sentry/constants';
+import {MetricsType, Organization, SelectValue} from 'sentry/types';
+import {assert} from 'sentry/types/utils';
+
+import {METRIC_TO_COLUMN_TYPE} from '../metrics/fields';
 
 export type Sort = {
-  kind: 'asc' | 'desc';
   field: string;
+  kind: 'asc' | 'desc';
 };
 
 // Contains the URL field value & the related table column width.
 // Can be parsed into a Column using explodeField()
 export type Field = {
   field: string;
+  // When an alias is defined for a field, it will be shown as a column name in the table visualization.
+  alias?: string;
   width?: number;
 };
 
@@ -28,34 +32,37 @@ export type ColumnType =
 export type ColumnValueType = ColumnType | 'never'; // Matches to nothing
 
 export type ParsedFunction = {
-  name: string;
   arguments: string[];
+  name: string;
 };
 
 type ValidateColumnValueFunction = ({name: string, dataType: ColumnType}) => boolean;
 
-export type ValidateColumnTypes = ColumnType[] | ValidateColumnValueFunction;
+export type ValidateColumnTypes =
+  | ColumnType[]
+  | MetricsType[]
+  | ValidateColumnValueFunction;
 
 export type AggregateParameter =
   | {
-      kind: 'column';
       columnTypes: Readonly<ValidateColumnTypes>;
-      defaultValue?: string;
+      kind: 'column';
       required: boolean;
+      defaultValue?: string;
     }
   | {
-      kind: 'value';
       dataType: ColumnType;
-      defaultValue?: string;
+      kind: 'value';
       required: boolean;
+      defaultValue?: string;
       placeholder?: string;
     }
   | {
+      dataType: string;
       kind: 'dropdown';
       options: SelectValue<string>[];
-      dataType: string;
-      defaultValue?: string;
       required: boolean;
+      defaultValue?: string;
       placeholder?: string;
     };
 
@@ -65,18 +72,27 @@ export type AggregationRefinement = string | undefined;
 // Functions and Fields are handled as subtypes to enable other
 // code to work more simply.
 // This type can be converted into a Field.field using generateFieldAsString()
+// When an alias is defined for a field, it will be shown as a column name in the table visualization.
 export type QueryFieldValue =
   | {
+      field: string;
       kind: 'field';
-      field: string;
+      alias?: string;
     }
   | {
+      field: string;
+      kind: 'calculatedField';
+      alias?: string;
+    }
+  | {
+      field: string;
       kind: 'equation';
-      field: string;
+      alias?: string;
     }
   | {
-      kind: 'function';
       function: [AggregationKey, string, AggregationRefinement, AggregationRefinement];
+      kind: 'function';
+      alias?: string;
     };
 
 // Column is just an alias of a Query value
@@ -112,6 +128,7 @@ const CONDITIONS_ARGUMENTS: SelectValue<string>[] = [
 ];
 
 // Refer to src/sentry/search/events/fields.py
+// Try to keep functions logically sorted, ie. all the count functions are grouped together
 export const AGGREGATIONS = {
   count: {
     parameters: [],
@@ -124,12 +141,81 @@ export const AGGREGATIONS = {
       {
         kind: 'column',
         columnTypes: ['string', 'integer', 'number', 'duration', 'date', 'boolean'],
+        defaultValue: 'user',
         required: true,
       },
     ],
     outputType: 'number',
     isSortable: true,
     multiPlotType: 'line',
+  },
+  count_miserable: {
+    getFieldOverrides({parameter}: DefaultValueInputs) {
+      if (parameter.kind === 'column') {
+        return {defaultValue: 'user'};
+      }
+      return {
+        defaultValue: parameter.defaultValue,
+      };
+    },
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: validateAllowedColumns(['user']),
+        defaultValue: 'user',
+        required: true,
+      },
+      {
+        kind: 'value',
+        dataType: 'number',
+        defaultValue: '300',
+        required: true,
+      },
+    ],
+    outputType: 'number',
+    isSortable: true,
+    multiPlotType: 'area',
+  },
+  count_if: {
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: validateDenyListColumns(
+          ['string', 'duration'],
+          ['id', 'issue', 'user.display']
+        ),
+        defaultValue: 'transaction.duration',
+        required: true,
+      },
+      {
+        kind: 'dropdown',
+        options: CONDITIONS_ARGUMENTS,
+        dataType: 'string',
+        defaultValue: CONDITIONS_ARGUMENTS[0].value,
+        required: true,
+      },
+      {
+        kind: 'value',
+        dataType: 'string',
+        defaultValue: '300',
+        required: true,
+      },
+    ],
+    outputType: 'number',
+    isSortable: true,
+    multiPlotType: 'area',
+  },
+  eps: {
+    parameters: [],
+    outputType: 'number',
+    isSortable: true,
+    multiPlotType: 'area',
+  },
+  epm: {
+    parameters: [],
+    outputType: 'number',
+    isSortable: true,
+    multiPlotType: 'area',
   },
   failure_count: {
     parameters: [],
@@ -148,6 +234,7 @@ export const AGGREGATIONS = {
           'date',
           'percentage',
         ]),
+        defaultValue: 'transaction.duration',
         required: true,
       },
     ],
@@ -166,18 +253,6 @@ export const AGGREGATIONS = {
           'date',
           'percentage',
         ]),
-        required: true,
-      },
-    ],
-    outputType: null,
-    isSortable: true,
-    multiPlotType: 'line',
-  },
-  avg: {
-    parameters: [
-      {
-        kind: 'column',
-        columnTypes: validateForNumericAggregate(['duration', 'number', 'percentage']),
         defaultValue: 'transaction.duration',
         required: true,
       },
@@ -192,6 +267,7 @@ export const AGGREGATIONS = {
         kind: 'column',
         columnTypes: validateForNumericAggregate(['duration', 'number', 'percentage']),
         required: true,
+        defaultValue: 'transaction.duration',
       },
     ],
     outputType: null,
@@ -204,18 +280,12 @@ export const AGGREGATIONS = {
         kind: 'column',
         columnTypes: ['string', 'integer', 'number', 'duration', 'date', 'boolean'],
         required: true,
+        defaultValue: 'transaction.duration',
       },
     ],
     outputType: null,
     isSortable: true,
   },
-  last_seen: {
-    parameters: [],
-    outputType: 'date',
-    isSortable: true,
-  },
-
-  // Tracing functions.
   p50: {
     parameters: [
       {
@@ -301,18 +371,20 @@ export const AGGREGATIONS = {
     isSortable: true,
     multiPlotType: 'line',
   },
-  failure_rate: {
-    parameters: [],
-    outputType: 'percentage',
+  avg: {
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: validateForNumericAggregate(['duration', 'number', 'percentage']),
+        defaultValue: 'transaction.duration',
+        required: true,
+      },
+    ],
+    outputType: null,
     isSortable: true,
     multiPlotType: 'line',
   },
   apdex: {
-    getFieldOverrides({parameter, organization}: DefaultValueInputs) {
-      return {
-        defaultValue: organization.apdexThreshold?.toString() ?? parameter.defaultValue,
-      };
-    },
     parameters: [
       {
         kind: 'value',
@@ -326,11 +398,6 @@ export const AGGREGATIONS = {
     multiPlotType: 'line',
   },
   user_misery: {
-    getFieldOverrides({parameter, organization}: DefaultValueInputs) {
-      return {
-        defaultValue: organization.apdexThreshold?.toString() ?? parameter.defaultValue,
-      };
-    },
     parameters: [
       {
         kind: 'value',
@@ -341,75 +408,18 @@ export const AGGREGATIONS = {
     ],
     outputType: 'number',
     isSortable: true,
-    multiPlotType: 'area',
+    multiPlotType: 'line',
   },
-  eps: {
+  failure_rate: {
     parameters: [],
-    outputType: 'number',
+    outputType: 'percentage',
     isSortable: true,
-    multiPlotType: 'area',
+    multiPlotType: 'line',
   },
-  epm: {
+  last_seen: {
     parameters: [],
-    outputType: 'number',
+    outputType: 'date',
     isSortable: true,
-    multiPlotType: 'area',
-  },
-  count_miserable: {
-    getFieldOverrides({parameter, organization}: DefaultValueInputs) {
-      if (parameter.kind === 'column') {
-        return {defaultValue: 'user'};
-      }
-      return {
-        defaultValue: organization.apdexThreshold?.toString() ?? parameter.defaultValue,
-      };
-    },
-    parameters: [
-      {
-        kind: 'column',
-        columnTypes: validateAllowedColumns(['user']),
-        defaultValue: 'user',
-        required: true,
-      },
-      {
-        kind: 'value',
-        dataType: 'number',
-        defaultValue: '300',
-        required: true,
-      },
-    ],
-    outputType: 'number',
-    isSortable: true,
-    multiPlotType: 'area',
-  },
-  count_if: {
-    parameters: [
-      {
-        kind: 'column',
-        columnTypes: validateDenyListColumns(
-          ['string', 'duration'],
-          ['id', 'issue', 'user.display']
-        ),
-        defaultValue: 'transaction.duration',
-        required: true,
-      },
-      {
-        kind: 'dropdown',
-        options: CONDITIONS_ARGUMENTS,
-        dataType: 'string',
-        defaultValue: CONDITIONS_ARGUMENTS[0].value,
-        required: true,
-      },
-      {
-        kind: 'value',
-        dataType: 'string',
-        defaultValue: '300',
-        required: true,
-      },
-    ],
-    outputType: 'number',
-    isSortable: true,
-    multiPlotType: 'area',
   },
 } as const;
 
@@ -432,30 +442,29 @@ export type PlotType = 'bar' | 'line' | 'area';
 
 type DefaultValueInputs = {
   parameter: AggregateParameter;
-  organization: LightWeightOrganization;
 };
 
 export type Aggregation = {
-  /**
-   * List of parameters for the function.
-   */
-  parameters: Readonly<AggregateParameter[]>;
-  /**
-   * The output type. Null means to inherit from the field.
-   */
-  outputType: AggregationOutputType | null;
   /**
    * Can this function be used in a sort result
    */
   isSortable: boolean;
   /**
+   * The output type. Null means to inherit from the field.
+   */
+  outputType: AggregationOutputType | null;
+  /**
+   * List of parameters for the function.
+   */
+  parameters: Readonly<AggregateParameter[]>;
+  getFieldOverrides?: (
+    data: DefaultValueInputs
+  ) => Partial<Omit<AggregateParameter, 'kind'>>;
+  /**
    * How this function should be plotted when shown in a multiseries result (top5)
    * Optional because some functions cannot be plotted (strings/dates)
    */
   multiPlotType?: PlotType;
-  getFieldOverrides?: (
-    data: DefaultValueInputs
-  ) => Partial<Omit<AggregateParameter, 'kind'>>;
 };
 
 enum FieldKey {
@@ -602,6 +611,8 @@ export const FIELDS: Readonly<Record<FieldKey, ColumnType>> = {
   [FieldKey.USER_DISPLAY]: 'string',
 };
 
+export const DEPRECATED_FIELDS: string[] = [FieldKey.CULPRIT];
+
 export type FieldTag = {
   key: FieldKey;
   name: FieldKey;
@@ -631,6 +642,22 @@ export const SEMVER_TAGS = {
     values: RELEASE_ADOPTION_STAGES,
   },
 };
+
+/**
+ * Some tag keys should never be formatted as `tag[...]`
+ * when used as a filter because they are predefined.
+ */
+const EXCLUDED_TAG_KEYS = new Set(['release']);
+
+export function formatTagKey(key: string): string {
+  // Some tags may be normalized from context, but not all of them are.
+  // This supports a user making a custom tag with the same name as one
+  // that comes from context as all of these are also tags.
+  if (key in FIELD_TAGS && !EXCLUDED_TAG_KEYS.has(key)) {
+    return `tags[${key}]`;
+  }
+  return key;
+}
 
 // Allows for a less strict field key definition in cases we are returning custom strings as fields
 export type LooseFieldKey = FieldKey | string | '';
@@ -680,6 +707,23 @@ const MEASUREMENTS: Readonly<Record<WebVital | MobileVital, ColumnType>> = {
   [MobileVital.StallPercentage]: 'percentage',
 };
 
+export function isSpanOperationBreakdownField(field: string) {
+  return field.startsWith('spans.');
+}
+
+export const SPAN_OP_RELATIVE_BREAKDOWN_FIELD = 'span_ops_breakdown.relative';
+
+export function isRelativeSpanOperationBreakdownField(field: string) {
+  return field === SPAN_OP_RELATIVE_BREAKDOWN_FIELD;
+}
+
+export const SPAN_OP_BREAKDOWN_FIELDS = [
+  'spans.http',
+  'spans.db',
+  'spans.browser',
+  'spans.resource',
+];
+
 // This list contains fields/functions that are available with performance-view feature.
 export const TRACING_FIELDS = [
   'avg',
@@ -699,9 +743,10 @@ export const TRACING_FIELDS = [
   'user_misery',
   'eps',
   'epm',
-  'key_transaction',
   'team_key_transaction',
   ...Object.keys(MEASUREMENTS),
+  ...SPAN_OP_BREAKDOWN_FIELDS,
+  SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 ];
 
 export const MEASUREMENT_PATTERN = /^measurements\.([a-zA-Z0-9-_.]+)$/;
@@ -759,7 +804,9 @@ export function parseArguments(functionText: string, columnText: string): string
   // This function attempts to be identical with the similarly named parse_arguments
   // found in src/sentry/search/events/fields.py
   if (
-    (functionText !== 'to_other' && functionText !== 'count_if') ||
+    (functionText !== 'to_other' &&
+      functionText !== 'count_if' &&
+      functionText !== 'spans_histogram') ||
     columnText.length === 0
   ) {
     return columnText ? columnText.split(',').map(result => result.trim()) : [];
@@ -817,6 +864,7 @@ export function parseArguments(functionText: string, columnText: string): string
 // `|` is an invalid field character, so it is used to determine whether a field is an equation or not
 const EQUATION_PREFIX = 'equation|';
 const EQUATION_ALIAS_PATTERN = /^equation\[(\d+)\]$/;
+export const CALCULATED_FIELD_PREFIX = 'calculated|';
 
 export function isEquation(field: string): boolean {
   return field.startsWith(EQUATION_PREFIX);
@@ -824,6 +872,14 @@ export function isEquation(field: string): boolean {
 
 export function isEquationAlias(field: string): boolean {
   return EQUATION_ALIAS_PATTERN.test(field);
+}
+
+export function maybeEquationAlias(field: string): boolean {
+  return field.includes(EQUATION_PREFIX);
+}
+
+export function stripEquationPrefix(field: string): string {
+  return field.replace(EQUATION_PREFIX, '');
 }
 
 export function getEquationAliasIndex(field: string): number {
@@ -855,7 +911,7 @@ export function isLegalEquationColumn(column: Column): boolean {
 }
 
 export function generateAggregateFields(
-  organization: LightWeightOrganization,
+  organization: Organization,
   eventFields: readonly Field[] | Field[],
   excludeFields: readonly string[] = []
 ): Field[] {
@@ -885,9 +941,21 @@ export function generateAggregateFields(
   return fields.map(field => ({field})) as Field[];
 }
 
-export function explodeFieldString(field: string): Column {
+export function isDerivedMetric(field: string): boolean {
+  return field.startsWith(CALCULATED_FIELD_PREFIX);
+}
+
+export function stripDerivedMetricsPrefix(field: string): string {
+  return field.replace(CALCULATED_FIELD_PREFIX, '');
+}
+
+export function explodeFieldString(field: string, alias?: string): Column {
   if (isEquation(field)) {
-    return {kind: 'equation', field: getEquation(field)};
+    return {kind: 'equation', field: getEquation(field), alias};
+  }
+
+  if (isDerivedMetric(field)) {
+    return {kind: 'calculatedField', field: stripDerivedMetricsPrefix(field)};
   }
 
   const results = parseFunction(field);
@@ -901,16 +969,23 @@ export function explodeFieldString(field: string): Column {
         results.arguments[1] as AggregationRefinement,
         results.arguments[2] as AggregationRefinement,
       ],
+      alias,
     };
   }
 
-  return {kind: 'field', field};
+  return {kind: 'field', field, alias};
 }
 
 export function generateFieldAsString(value: QueryFieldValue): string {
   if (value.kind === 'field') {
     return value.field;
-  } else if (value.kind === 'equation') {
+  }
+
+  if (value.kind === 'calculatedField') {
+    return `${CALCULATED_FIELD_PREFIX}${value.field}`;
+  }
+
+  if (value.kind === 'equation') {
     return `${EQUATION_PREFIX}${value.field}`;
   }
 
@@ -920,9 +995,7 @@ export function generateFieldAsString(value: QueryFieldValue): string {
 }
 
 export function explodeField(field: Field): Column {
-  const results = explodeFieldString(field.field);
-
-  return results;
+  return explodeFieldString(field.field, field.alias);
 }
 
 /**
@@ -930,9 +1003,11 @@ export function explodeField(field: Field): Column {
  */
 export function getAggregateAlias(field: string): string {
   const result = parseFunction(field);
+
   if (!result) {
     return field;
   }
+
   let alias = result.name;
 
   if (result.arguments.length > 0) {
@@ -947,6 +1022,70 @@ export function getAggregateAlias(field: string): string {
  */
 export function isAggregateField(field: string): boolean {
   return parseFunction(field) !== null;
+}
+
+export function isAggregateFieldOrEquation(field: string): boolean {
+  return isAggregateField(field) || isAggregateEquation(field) || isNumericMetrics(field);
+}
+
+/**
+ * Temporary hardcoded hack to enable testing derived metrics.
+ * Can be removed after we get rid of getAggregateFields
+ */
+export function isNumericMetrics(field: string): boolean {
+  return [
+    'session.crash_free_rate',
+    'session.crashed',
+    'session.errored_preaggregated',
+    'session.errored_set',
+    'session.init',
+  ].includes(field);
+}
+
+export function getAggregateFields(fields: string[]): string[] {
+  return fields.filter(
+    field =>
+      isAggregateField(field) || isAggregateEquation(field) || isNumericMetrics(field)
+  );
+}
+
+export function getColumnsAndAggregates(fields: string[]): {
+  aggregates: string[];
+  columns: string[];
+} {
+  const aggregates = getAggregateFields(fields);
+  const columns = fields.filter(field => !!!aggregates.includes(field));
+  return {columns, aggregates};
+}
+
+export function getColumnsAndAggregatesAsStrings(fields: QueryFieldValue[]): {
+  aggregates: string[];
+  columns: string[];
+  fieldAliases: string[];
+} {
+  // TODO(dam): distinguish between metrics, derived metrics and tags
+  const aggregateFields: string[] = [];
+  const nonAggregateFields: string[] = [];
+  const fieldAliases: string[] = [];
+
+  for (const field of fields) {
+    const fieldString = generateFieldAsString(field);
+    if (field.kind === 'function' || field.kind === 'calculatedField') {
+      aggregateFields.push(fieldString);
+    } else if (field.kind === 'equation') {
+      if (isAggregateEquation(fieldString)) {
+        aggregateFields.push(fieldString);
+      } else {
+        nonAggregateFields.push(fieldString);
+      }
+    } else {
+      nonAggregateFields.push(fieldString);
+    }
+
+    fieldAliases.push(field.alias ?? '');
+  }
+
+  return {aggregates: aggregateFields, columns: nonAggregateFields, fieldAliases};
 }
 
 /**
@@ -994,13 +1133,21 @@ export function aggregateFunctionOutputType(
     }
   }
 
+  if (firstArg && METRIC_TO_COLUMN_TYPE.hasOwnProperty(firstArg)) {
+    return METRIC_TO_COLUMN_TYPE[firstArg];
+  }
+
   // If the function is an inherit type it will have a field as
   // the first parameter and we can use that to get the type.
   if (firstArg && FIELDS.hasOwnProperty(firstArg)) {
     return FIELDS[firstArg];
-  } else if (firstArg && isMeasurement(firstArg)) {
+  }
+
+  if (firstArg && isMeasurement(firstArg)) {
     return measurementType(firstArg);
-  } else if (firstArg && isSpanOperationBreakdownField(firstArg)) {
+  }
+
+  if (firstArg && isSpanOperationBreakdownField(firstArg)) {
     return 'duration';
   }
 
@@ -1028,7 +1175,7 @@ export function aggregateMultiPlotType(field: string): PlotType {
 function validateForNumericAggregate(
   validColumnTypes: ColumnType[]
 ): ValidateColumnValueFunction {
-  return function ({name, dataType}: {name: string; dataType: ColumnType}): boolean {
+  return function ({name, dataType}: {dataType: ColumnType; name: string}): boolean {
     // these built-in columns cannot be applied to numeric aggregates such as percentile(...)
     if (
       [
@@ -1049,7 +1196,7 @@ function validateDenyListColumns(
   validColumnTypes: ColumnType[],
   deniedColumns: string[]
 ): ValidateColumnValueFunction {
-  return function ({name, dataType}: {name: string; dataType: ColumnType}): boolean {
+  return function ({name, dataType}: {dataType: ColumnType; name: string}): boolean {
     return validColumnTypes.includes(dataType) && !deniedColumns.includes(name);
   };
 }
@@ -1085,26 +1232,9 @@ export function fieldAlignment(
 /**
  * Match on types that are legal to show on a timeseries chart.
  */
-export function isLegalYAxisType(match: ColumnType) {
+export function isLegalYAxisType(match: ColumnType | MetricsType) {
   return ['number', 'integer', 'duration', 'percentage'].includes(match);
 }
-
-export function isSpanOperationBreakdownField(field: string) {
-  return field.startsWith('spans.');
-}
-
-export const SPAN_OP_RELATIVE_BREAKDOWN_FIELD = 'span_ops_breakdown.relative';
-
-export function isRelativeSpanOperationBreakdownField(field: string) {
-  return field === SPAN_OP_RELATIVE_BREAKDOWN_FIELD;
-}
-
-export const SPAN_OP_BREAKDOWN_FIELDS = [
-  'spans.http',
-  'spans.db',
-  'spans.browser',
-  'spans.resource',
-];
 
 export function getSpanOperationName(field: string): string | null {
   const results = field.match(SPAN_OP_BREAKDOWN_PATTERN);
@@ -1126,9 +1256,11 @@ export function getColumnType(column: Column): ColumnType {
   } else if (column.kind === 'field') {
     if (FIELDS.hasOwnProperty(column.field)) {
       return FIELDS[column.field];
-    } else if (isMeasurement(column.field)) {
+    }
+    if (isMeasurement(column.field)) {
       return measurementType(column.field);
-    } else if (isSpanOperationBreakdownField(column.field)) {
+    }
+    if (isSpanOperationBreakdownField(column.field)) {
       return 'duration';
     }
   }

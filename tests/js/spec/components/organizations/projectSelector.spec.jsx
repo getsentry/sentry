@@ -1,33 +1,23 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import ProjectSelector from 'app/components/organizations/projectSelector';
+import ProjectSelector from 'sentry/components/organizations/projectSelector';
 
 describe('ProjectSelector', function () {
-  const testTeam = TestStubs.Team({
-    id: 'test-team',
-    slug: 'test-team',
-    isMember: true,
-  });
-
   const testProject = TestStubs.Project({
     id: 'test-project',
     slug: 'test-project',
     isBookmarked: true,
     isMember: true,
-    teams: [testTeam],
   });
   const anotherProject = TestStubs.Project({
     id: 'another-project',
     slug: 'another-project',
     isMember: true,
-    teams: [testTeam],
   });
 
   const mockOrg = TestStubs.Organization({
     id: 'org',
     slug: 'org',
-    teams: [testTeam],
-    projects: [testProject, anotherProject],
     features: ['new-teams'],
     access: [],
   });
@@ -43,7 +33,7 @@ describe('ProjectSelector', function () {
     organization: mockOrg,
     projectId: '',
     children: actorRenderer,
-    multiProjects: mockOrg.projects,
+    multiProjects: [testProject, anotherProject],
     selectedProjects: [],
     onSelect: () => {},
     menuFooter: () => {},
@@ -57,9 +47,8 @@ describe('ProjectSelector', function () {
         organization={{
           id: 'org',
           slug: 'org-slug',
-          teams: [],
-          projects: [],
           access: [],
+          features: [],
         }}
       />,
       routerContext
@@ -79,9 +68,8 @@ describe('ProjectSelector', function () {
         organization={{
           id: 'org',
           slug: 'org-slug',
-          teams: [],
-          projects: [],
           access: ['project:write'],
+          features: [],
         }}
       />,
       routerContext
@@ -171,7 +159,7 @@ describe('ProjectSelector', function () {
     openMenu(wrapper);
 
     // Select first project
-    wrapper.find('CheckboxHitbox').first().simulate('click');
+    wrapper.find('MultiselectCheckbox').first().simulate('click');
 
     // onSelect callback should NOT be called
     expect(mock).not.toHaveBeenCalled();

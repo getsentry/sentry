@@ -1,8 +1,8 @@
 import moment from 'moment';
 
-import {parseStatsPeriod} from 'app/components/organizations/globalSelectionHeader/getParams';
-import ConfigStore from 'app/stores/configStore';
-import {DateString} from 'app/types';
+import {parseStatsPeriod} from 'sentry/components/organizations/pageFilters/parse';
+import ConfigStore from 'sentry/stores/configStore';
+import {DateString} from 'sentry/types';
 
 // TODO(billy): Move to TimeRangeSelector specific utils
 export const DEFAULT_DAY_START_TIME = '00:00:00';
@@ -46,8 +46,7 @@ export function getFormattedDate(
  * Returns user timezone from their account preferences
  */
 export function getUserTimezone(): string {
-  const user = ConfigStore.get('user');
-  return user && user.options && user.options.timezone;
+  return ConfigStore.get('user')?.options?.timezone;
 }
 
 /**
@@ -209,20 +208,53 @@ export function parsePeriodToHours(str: string): number {
 }
 
 export function statsPeriodToDays(
-  statsPeriod: string | undefined,
-  start: DateString | undefined,
-  end: DateString | undefined
+  statsPeriod?: string | null,
+  start?: DateString,
+  end?: DateString
 ) {
   if (statsPeriod && statsPeriod.endsWith('d')) {
     return parseInt(statsPeriod.slice(0, -1), 10);
-  } else if (statsPeriod && statsPeriod.endsWith('h')) {
+  }
+  if (statsPeriod && statsPeriod.endsWith('h')) {
     return parseInt(statsPeriod.slice(0, -1), 10) / 24;
-  } else if (start && end) {
+  }
+  if (start && end) {
     return (new Date(end).getTime() - new Date(start).getTime()) / (24 * 60 * 60 * 1000);
   }
   return 0;
 }
 
-export const use24Hours = () => ConfigStore.get('user')?.options?.clock24Hours;
+export function use24Hours() {
+  return ConfigStore.get('user')?.options?.clock24Hours;
+}
 
-export const getTimeFormat = () => (use24Hours() ? 'HH:mm' : 'LT');
+export function getTimeFormat({displaySeconds = false}: {displaySeconds?: boolean} = {}) {
+  if (use24Hours()) {
+    return displaySeconds ? 'HH:mm:ss' : 'HH:mm';
+  }
+
+  return displaySeconds ? 'LTS' : 'LT';
+}
+
+export function getInternalDate(date: string | Date, utc?: boolean | null) {
+  if (utc) {
+    return getUtcToSystem(date);
+  }
+  return new Date(
+    moment.tz(moment.utc(date), getUserTimezone()).format('YYYY/MM/DD HH:mm:ss')
+  );
+}
+
+/**
+ * Strips timezone from local date, creates a new moment date object with timezone
+ * returns the moment as a Date object
+ */
+export function getDateWithTimezoneInUtc(date?: Date, utc?: boolean | null) {
+  return moment
+    .tz(
+      moment(date).local().format('YYYY-MM-DD HH:mm:ss'),
+      utc ? 'UTC' : getUserTimezone()
+    )
+    .utc()
+    .toDate();
+}

@@ -7,6 +7,8 @@ export {};
 
 declare global {
   namespace jest {
+    // eslint complains that R is unused, but we need to match interface,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     interface Matchers<R> {
       toSnapshot(): CustomMatcherResult;
     }

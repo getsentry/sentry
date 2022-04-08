@@ -2,33 +2,28 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import Button from 'app/components/button';
-import {IconSearch} from 'app/icons';
-import {IconClose} from 'app/icons/iconClose';
-import {t} from 'app/locale';
-import {callIfFunction} from 'app/utils/callIfFunction';
-import Input from 'app/views/settings/components/forms/controls/input';
+import Button from 'sentry/components/button';
+import Input, {InputProps} from 'sentry/components/forms/controls/input';
+import {IconSearch} from 'sentry/icons';
+import {IconClose} from 'sentry/icons/iconClose';
+import {t} from 'sentry/locale';
+import {callIfFunction} from 'sentry/utils/callIfFunction';
 
-type DefaultProps = {
-  query: string;
+interface SearchBarProps extends Omit<InputProps, 'onChange'> {
   defaultQuery: string;
   onSearch: (query: string) => void;
-};
-
-type Props = DefaultProps & {
-  placeholder?: string;
-  className?: string;
+  query: string;
   onChange?: (query: string) => void;
   width?: string;
-};
+}
 
 type State = {
-  query: string;
   dropdownVisible: boolean;
+  query: string;
 };
 
-class SearchBar extends React.PureComponent<Props, State> {
-  static defaultProps: DefaultProps = {
+class SearchBar extends React.PureComponent<SearchBarProps, State> {
+  static defaultProps: Pick<SearchBarProps, 'query' | 'defaultQuery' | 'onSearch'> = {
     query: '',
     defaultQuery: '',
     onSearch: function () {},
@@ -39,7 +34,7 @@ class SearchBar extends React.PureComponent<Props, State> {
     dropdownVisible: false,
   };
 
-  UNSAFE_componentWillReceiveProps(nextProps: Props) {
+  UNSAFE_componentWillReceiveProps(nextProps: SearchBarProps) {
     if (nextProps.query !== this.props.query) {
       this.setState({
         query: nextProps.query,
@@ -86,16 +81,25 @@ class SearchBar extends React.PureComponent<Props, State> {
   };
 
   render() {
-    const {className, width} = this.props;
+    // Remove keys that should not be passed into Input
+    const {
+      className,
+      width,
+      query: _q,
+      defaultQuery,
+      onChange: _oC,
+      onSearch: _oS,
+      ...inputProps
+    } = this.props;
 
     return (
       <div className={classNames('search', className)}>
         <form className="form-horizontal" onSubmit={this.onSubmit}>
           <div>
             <StyledInput
+              {...inputProps}
               type="text"
               className="search-input"
-              placeholder={this.props.placeholder}
               name="query"
               ref={this.searchInputRef}
               autoComplete="off"
@@ -105,7 +109,7 @@ class SearchBar extends React.PureComponent<Props, State> {
               width={width}
             />
             <StyledIconSearch className="search-input-icon" size="sm" color="gray300" />
-            {this.state.query !== this.props.defaultQuery && (
+            {this.state.query !== defaultQuery && (
               <SearchClearButton
                 type="button"
                 className="search-clear-form"
@@ -113,7 +117,7 @@ class SearchBar extends React.PureComponent<Props, State> {
                 onClick={this.clearSearch}
                 size="xsmall"
                 icon={<IconClose />}
-                label={t('Clear')}
+                aria-label={t('Clear')}
               />
             )}
           </div>
@@ -125,9 +129,10 @@ class SearchBar extends React.PureComponent<Props, State> {
 
 const StyledInput = styled(Input)`
   width: ${p => (p.width ? p.width : undefined)};
+
   &.focus-visible {
-    box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.04), 0 0 6px rgba(177, 171, 225, 0.3);
-    border-color: #a598b2;
+    box-shadow: 0 0 0 1px ${p => p.theme.focusBorder};
+    border-color: ${p => p.theme.focusBorder};
     outline: none;
   }
 `;

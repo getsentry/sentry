@@ -1,0 +1,34 @@
+---
+created: '2021-09-20T12:35:57.165841Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (stacktrace of system takes precedence)
+      stacktrace (ignored because hash matches system variant)
+        frame*
+          module*
+            "opt/hostedtoolcache/flutter/2.5.0-stable/x64/packages/flutter/lib/src/gestures/binding"
+          filename (module takes precedence)
+            "/opt/hostedtoolcache/flutter/2.5.0-stable/x64/packages/flutter/lib/src/gestures/binding.dart"
+          function*
+            "GestureBinding._flushPointerEventQueue"
+          lineno (function takes precedence)
+            338
+--------------------------------------------------------------------------
+system:
+  hash: "6d2345b21f168d7c55e70eac56589e3b"
+  component:
+    system*
+      stacktrace*
+        frame*
+          module*
+            "opt/hostedtoolcache/flutter/2.5.0-stable/x64/packages/flutter/lib/src/gestures/binding"
+          filename (module takes precedence)
+            "/opt/hostedtoolcache/flutter/2.5.0-stable/x64/packages/flutter/lib/src/gestures/binding.dart"
+          function*
+            "GestureBinding._flushPointerEventQueue"
+          lineno (function takes precedence)
+            338

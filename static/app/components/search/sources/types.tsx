@@ -1,15 +1,26 @@
-import parseHtmlMarks from 'app/utils/parseHtmlMarks';
-
-type MarkedText = ReturnType<typeof parseHtmlMarks>;
+import type {Fuse} from 'sentry/utils/fuzzySearch';
 
 /**
  * A result item that sources create.
  */
 export type ResultItem = {
   /**
-   * The title to display in result options.
+   * The type of result eg. settings, help-docs
    */
-  title: React.ReactNode;
+  resultType:
+    | 'settings'
+    | 'command'
+    | 'route'
+    | 'field'
+    | 'issue'
+    | 'event'
+    | 'integration'
+    | 'sentryApp'
+    | 'docIntegration'
+    | 'help-docs'
+    | 'help-develop'
+    | 'help-help-center'
+    | 'help-blog';
   /**
    * The source that created the result.
    */
@@ -29,51 +40,37 @@ export type ResultItem = {
     | 'docIntegration'
     | 'help';
   /**
-   * The type of result eg. settings, help-docs
+   * The title to display in result options.
    */
-  resultType:
-    | 'settings'
-    | 'command'
-    | 'route'
-    | 'field'
-    | 'issue'
-    | 'event'
-    | 'integration'
-    | 'help-docs'
-    | 'help-develop'
-    | 'help-help-center'
-    | 'help-blog';
-  /**
-   * The description text to display
-   */
-  description?: React.ReactNode;
-  /**
-   * The path to visit when the result is clicked.
-   */
-  to?: string;
+  title: React.ReactNode;
   /**
    * A handler to call when the result is clicked,
    * and the result doesn't have a URL.
    */
   action?: (item: ResultItem, autocompleteState: any) => void;
+  configUrl?: string;
+  /**
+   * The description text to display
+   */
+  description?: React.ReactNode;
 
-  sectionHeading?: string;
-  sectionCount?: number;
-  extra?: any;
+  disabled?: boolean;
   empty?: boolean;
+  extra?: any;
   // Used to store groups and events
   model?: any;
-  configUrl?: string;
+  sectionCount?: number;
+  sectionHeading?: string;
+  /**
+   * The path to visit when the result is clicked.
+   */
+  to?: string;
 };
 
 /**
  * Result with the source item and any highlighted text fragments that matched.
  */
-export type Result = {
-  item: ResultItem;
-  matches?: MarkedText[];
-  score: number;
-};
+export type Result = Fuse.FuseResult<ResultItem>;
 
 /**
  * Common type send to child function

@@ -23,7 +23,7 @@ repos:
     - id: pyupgrade
       name: pyupgrade
       entry: pyupgrade
-      args: ['--py36-plus']
+      args: ['--py38-plus', '--keep-runtime-typing']
       language: system
       types: [python]
       # We can't change this mock to unittest.mock until Python 3.8,
@@ -57,6 +57,14 @@ repos:
       language: system
       files: requirements-base.txt
       pass_filenames: false
+    - id: pyright
+      name: pyright
+      entry: pyright
+      language: node
+      types: [ python ]
+      pass_filenames: true
+      additional_dependencies: [ "pyright@1.1.186" ]
+      args: [ '--project', 'pyrightconfig-commithook.json' ]
 
 -   repo: https://github.com/sirosen/check-jsonschema
     rev: 0.3.0

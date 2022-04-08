@@ -1,9 +1,9 @@
-import {Event} from 'app/types/event';
-import {TraceFull} from 'app/utils/performance/quickTrace/types';
+import {Event} from 'sentry/types/event';
+import {TraceFull} from 'sentry/utils/performance/quickTrace/types';
 import {
   flattenRelevantPaths,
   parseQuickTrace,
-} from 'app/utils/performance/quickTrace/utils';
+} from 'sentry/utils/performance/quickTrace/utils';
 
 type Position = {
   generation: number;
@@ -74,7 +74,7 @@ function generateTransactionLite({
   };
 }
 
-function generateTransaction(opts: {index: number; depth: number}): TraceFull {
+function generateTransaction(opts: {depth: number; index: number}): TraceFull {
   const {index, depth = -1} = opts;
   const {generation, offset} = computePosition(index);
 
@@ -170,7 +170,6 @@ describe('Quick Trace Utils', function () {
   });
 
   describe('parseQuickTrace', function () {
-    // @ts-expect-error
     const organization = TestStubs.Organization();
     it('parses empty trace', function () {
       const current = generateEventSelector({generation: 0, offset: 0}, 'transaction');

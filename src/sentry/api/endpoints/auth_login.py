@@ -1,8 +1,9 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.api.serializers.base import serialize
-from sentry.api.serializers.models.user import DetailedUserSerializer
+from sentry.api.serializers.models.user import DetailedSelfUserSerializer
 from sentry.app import ratelimiter
 from sentry.utils import auth, metrics
 from sentry.utils.hashlib import md5_text
@@ -14,7 +15,7 @@ class AuthLoginEndpoint(Endpoint, OrganizationMixin):
     # Disable authentication and permission requirements.
     permission_classes = []
 
-    def post(self, request, organization=None, *args, **kwargs):
+    def post(self, request: Request, organization=None, *args, **kwargs) -> Response:
         """
         Process a login request via username/password. SSO login is handled
         elsewhere.
@@ -51,7 +52,7 @@ class AuthLoginEndpoint(Endpoint, OrganizationMixin):
             return Response(
                 {
                     "nextUri": "/auth/reactivate/",
-                    "user": serialize(user, user, DetailedUserSerializer()),
+                    "user": serialize(user, user, DetailedSelfUserSerializer()),
                 }
             )
 
@@ -61,7 +62,7 @@ class AuthLoginEndpoint(Endpoint, OrganizationMixin):
         return Response(
             {
                 "nextUri": auth.get_login_redirect(request, redirect_url),
-                "user": serialize(user, user, DetailedUserSerializer()),
+                "user": serialize(user, user, DetailedSelfUserSerializer()),
             }
         )
 

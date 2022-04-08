@@ -1,9 +1,10 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {act} from 'sentry-test/reactTestingLibrary';
 import {selectByLabel} from 'sentry-test/select-new';
 
-import ProjectsStore from 'app/stores/projectsStore';
-import EventView from 'app/utils/discover/eventView';
-import TransactionThresholdModal from 'app/views/performance/transactionSummary/transactionThresholdModal';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import EventView from 'sentry/utils/discover/eventView';
+import TransactionThresholdModal from 'sentry/views/performance/transactionSummary/transactionThresholdModal';
 
 const stubEl = props => <div>{props.children}</div>;
 
@@ -59,7 +60,7 @@ describe('TransactionThresholdModal', function () {
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
-    ProjectsStore.loadInitialData([project]);
+    act(() => ProjectsStore.loadInitialData([project]));
     postTransactionThresholdMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/project-transaction-threshold-override/',
       method: 'POST',

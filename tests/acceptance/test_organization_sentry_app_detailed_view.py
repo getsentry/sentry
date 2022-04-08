@@ -20,7 +20,7 @@ class OrganizationSentryAppDetailedView(AcceptanceTestCase):
     def load_page(self, slug):
         url = f"/settings/{self.organization.slug}/sentry-apps/{slug}/"
         self.browser.get(url)
-        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
     def test_add_sentry_app(self):
         self.load_page(self.sentry_app.slug)

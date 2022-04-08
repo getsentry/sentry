@@ -5,28 +5,30 @@ import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import throttle from 'lodash/throttle';
 
-import Button from 'app/components/button';
-import BarChart from 'app/components/charts/barChart';
-import BarChartZoom from 'app/components/charts/barChartZoom';
-import MarkLine from 'app/components/charts/components/markLine';
-import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
-import DiscoverButton from 'app/components/discoverButton';
-import Placeholder from 'app/components/placeholder';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import EventView from 'app/utils/discover/eventView';
-import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
-import {formatAbbreviatedNumber, formatFloat, getDuration} from 'app/utils/formatters';
-import getDynamicText from 'app/utils/getDynamicText';
-import {DataFilter, HistogramData} from 'app/utils/performance/histogram/types';
-import {computeBuckets, formatHistogramData} from 'app/utils/performance/histogram/utils';
-import {Vital} from 'app/utils/performance/vitals/types';
-import {VitalData} from 'app/utils/performance/vitals/vitalsCardsDiscoverQuery';
-import {Theme} from 'app/utils/theme';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
-import {EventsDisplayFilterName} from 'app/views/performance/transactionSummary/transactionEvents/utils';
+import Button from 'sentry/components/button';
+import {BarChart, BarChartSeries} from 'sentry/components/charts/barChart';
+import BarChartZoom from 'sentry/components/charts/barChartZoom';
+import MarkLine from 'sentry/components/charts/components/markLine';
+import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import Placeholder from 'sentry/components/placeholder';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import EventView from 'sentry/utils/discover/eventView';
+import {getAggregateAlias, WebVital} from 'sentry/utils/discover/fields';
+import {formatAbbreviatedNumber, formatFloat, getDuration} from 'sentry/utils/formatters';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import {DataFilter, HistogramData} from 'sentry/utils/performance/histogram/types';
+import {
+  computeBuckets,
+  formatHistogramData,
+} from 'sentry/utils/performance/histogram/utils';
+import {Vital} from 'sentry/utils/performance/vitals/types';
+import {VitalData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
+import {Theme} from 'sentry/utils/theme';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 
 import {VitalBar} from '../../landing/vitalsCards';
 import {
@@ -42,21 +44,21 @@ import {Rectangle} from './types';
 import {asPixelRect, findNearestBucketIndex, getRefRect, mapPoint} from './utils';
 
 type Props = {
-  theme: Theme;
-  location: Location;
-  organization: Organization;
-  isLoading: boolean;
-  error: boolean;
-  vital: WebVital;
-  vitalDetails: Vital;
-  summaryData: VitalData | null;
   chartData: HistogramData;
   colors: [string];
+  error: boolean;
   eventView: EventView;
-  min?: number;
-  max?: number;
-  precision?: number;
+  isLoading: boolean;
+  location: Location;
+  organization: Organization;
+  summaryData: VitalData | null;
+  theme: Theme;
+  vital: WebVital;
+  vitalDetails: Vital;
   dataFilter?: DataFilter;
+  max?: number;
+  min?: number;
+  precision?: number;
 };
 
 type State = {
@@ -171,9 +173,6 @@ class VitalCard extends Component<Props, State> {
       dataFilter,
     } = this.props;
     const {slug, name, description} = vital;
-    const hasPerformanceEventsPage = organization.features.includes(
-      'performance-events-page'
-    );
 
     const column = `measurements.${slug}`;
 
@@ -219,32 +218,22 @@ class VitalCard extends Component<Props, State> {
         </StatNumber>
         <Description>{description}</Description>
         <div>
-          {hasPerformanceEventsPage ? (
-            <Button
-              size="small"
-              to={newEventView
-                .withColumns([{kind: 'field', field: column}])
-                .withSorts([{kind: 'desc', field: column}])
-                .getPerformanceTransactionEventsViewUrlTarget(organization.slug, {
-                  showTransactions:
-                    dataFilter === 'all'
-                      ? EventsDisplayFilterName.p100
-                      : EventsDisplayFilterName.p75,
-                  webVital: column as WebVital,
-                })}
-              onClick={this.trackOpenAllEventsClicked}
-            >
-              {t('View All Events')}
-            </Button>
-          ) : (
-            <DiscoverButton
-              size="small"
-              to={newEventView.getResultsViewUrlTarget(organization.slug)}
-              onClick={this.trackOpenInDiscoverClicked}
-            >
-              {t('Open in Discover')}
-            </DiscoverButton>
-          )}
+          <Button
+            size="xsmall"
+            to={newEventView
+              .withColumns([{kind: 'field', field: column}])
+              .withSorts([{kind: 'desc', field: column}])
+              .getPerformanceTransactionEventsViewUrlTarget(organization.slug, {
+                showTransactions:
+                  dataFilter === 'all'
+                    ? EventsDisplayFilterName.p100
+                    : EventsDisplayFilterName.p75,
+                webVital: column as WebVital,
+              })}
+            onClick={this.trackOpenAllEventsClicked}
+          >
+            {t('View All Events')}
+          </Button>
         </div>
       </CardSummary>
     );
@@ -411,14 +400,14 @@ class VitalCard extends Component<Props, State> {
 
     if (value >= poorThreshold) {
       return vitalStateColors[VitalState.POOR];
-    } else if (value >= mehThreshold) {
-      return vitalStateColors[VitalState.MEH];
-    } else {
-      return vitalStateColors[VitalState.GOOD];
     }
+    if (value >= mehThreshold) {
+      return vitalStateColors[VitalState.MEH];
+    }
+    return vitalStateColors[VitalState.GOOD];
   }
 
-  getBaselineSeries() {
+  getBaselineSeries(): BarChartSeries | null {
     const {theme, chartData} = this.props;
     const summary = this.summary;
     if (summary === null || this.state.refPixelRect === null) {
@@ -466,23 +455,19 @@ class VitalCard extends Component<Props, State> {
         color: theme.textColor,
         type: 'solid',
       },
-    });
-
-    // TODO(tonyx): This conflicts with the types declaration of `MarkLine`
-    // if we add it in the constructor. So we opt to add it here so typescript
-    // doesn't complain.
-    (markLine as any).tooltip = {
-      formatter: () => {
-        return [
-          '<div class="tooltip-series tooltip-series-solo">',
-          '<span class="tooltip-label">',
-          `<strong>${t('p75')}</strong>`,
-          '</span>',
-          '</div>',
-          '<div class="tooltip-arrow"></div>',
-        ].join('');
+      tooltip: {
+        formatter: () => {
+          return [
+            '<div class="tooltip-series tooltip-series-solo">',
+            '<span class="tooltip-label">',
+            `<strong>${t('p75')}</strong>`,
+            '</span>',
+            '</div>',
+            '<div class="tooltip-arrow"></div>',
+          ].join('');
+        },
       },
-    };
+    });
 
     return {
       seriesName: t('p75'),

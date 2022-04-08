@@ -1,8 +1,12 @@
+from typing import Any, Mapping, MutableMapping
+
 from django.contrib import messages
 from django.http import HttpResponseRedirect
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.integrations.vsts.integration import AccountConfigView, VstsIntegrationProvider
-from sentry.pipeline import PipelineView
+from sentry.pipeline import Pipeline, PipelineView
 from sentry.utils.http import absolute_uri
 
 
@@ -20,7 +24,7 @@ class VstsExtensionIntegrationProvider(VstsIntegrationProvider):
         views.append(VstsExtensionFinishedView())
         return views
 
-    def build_integration(self, state):
+    def build_integration(self, state: MutableMapping[str, Any]) -> Mapping[str, Any]:
         state["account"] = {
             "accountId": state["vsts"]["accountId"],
             "accountName": state["vsts"]["accountName"],
@@ -30,13 +34,17 @@ class VstsExtensionIntegrationProvider(VstsIntegrationProvider):
 
 
 class VstsExtensionFinishedView(PipelineView):
-    def dispatch(self, request, pipeline):
-        pipeline.finish_pipeline()
+    def dispatch(self, request: Request, pipeline: Pipeline) -> Response:
+        response = pipeline.finish_pipeline()
+
+        integration = getattr(pipeline, "integration", None)
+        if not integration:
+            return response
 
         messages.add_message(request, messages.SUCCESS, "VSTS Extension installed.")
 
         return HttpResponseRedirect(
             absolute_uri(
-                f"/settings/{pipeline.organization.slug}/integrations/vsts-extension/{pipeline.integration.id}/"
+                f"/settings/{pipeline.organization.slug}/integrations/vsts-extension/{integration.id}/"
             )
         )

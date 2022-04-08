@@ -2,8 +2,8 @@ import {Component} from 'react';
 import {browserHistory, Route, Router} from 'react-router';
 import PropTypes from 'prop-types';
 
-import StreamGroup from 'app/components/stream/group';
-import GroupStore from 'app/stores/groupStore';
+import StreamGroup from 'sentry/components/stream/group';
+import GroupStore from 'sentry/stores/groupStore';
 
 export default {
   title: 'Features/Issues/Stream Group',
@@ -15,7 +15,7 @@ const selection = {
   datetime: {
     start: '2019-10-09T11:18:59',
     end: '2019-09-09T11:18:59',
-    period: '',
+    period: null,
     utc: true,
   },
 };

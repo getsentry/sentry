@@ -1,8 +1,8 @@
 import {Release} from '@sentry/release-parser';
 import round from 'lodash/round';
 
-import {t, tn} from 'app/locale';
-import {CommitAuthor, User} from 'app/types';
+import {t, tn} from 'sentry/locale';
+import {CommitAuthor, User} from 'sentry/types';
 
 export function userDisplayName(user: User | CommitAuthor, includeEmail = true): string {
   let displayName = String(user?.name ?? t('Unknown author')).trim();
@@ -66,10 +66,9 @@ export function getDuration(
 
   if (value >= MONTH && !extraShort) {
     const {label, result} = roundWithFixed(msValue / MONTH, fixedDigits);
-    return `${label}${
-      abbreviation ? tn('mo', 'mos', result) : ` ${tn('month', 'months', result)}`
-    }`;
+    return `${label}${abbreviation ? t('mo') : ` ${tn('month', 'months', result)}`}`;
   }
+
   if (value >= WEEK) {
     const {label, result} = roundWithFixed(msValue / WEEK, fixedDigits);
     if (extraShort) {
@@ -80,13 +79,15 @@ export function getDuration(
     }
     return `${label} ${tn('week', 'weeks', result)}`;
   }
-  if (value >= 172800000) {
+
+  if (value >= DAY) {
     const {label, result} = roundWithFixed(msValue / DAY, fixedDigits);
     return `${label}${
       abbreviation || extraShort ? t('d') : ` ${tn('day', 'days', result)}`
     }`;
   }
-  if (value >= 7200000) {
+
+  if (value >= HOUR) {
     const {label, result} = roundWithFixed(msValue / HOUR, fixedDigits);
     if (extraShort) {
       return `${label}${t('h')}`;
@@ -96,7 +97,8 @@ export function getDuration(
     }
     return `${label} ${tn('hour', 'hours', result)}`;
   }
-  if (value >= 120000) {
+
+  if (value >= MINUTE) {
     const {label, result} = roundWithFixed(msValue / MINUTE, fixedDigits);
     if (extraShort) {
       return `${label}${t('m')}`;
@@ -106,6 +108,7 @@ export function getDuration(
     }
     return `${label} ${tn('minute', 'minutes', result)}`;
   }
+
   if (value >= SECOND) {
     const {label, result} = roundWithFixed(msValue / SECOND, fixedDigits);
     if (extraShort || abbreviation) {

@@ -1,16 +1,16 @@
 import * as React from 'react';
 
-import GroupActions from 'app/actions/groupActions';
-import PluginComponentBase from 'app/components/bases/pluginComponentBase';
-import {Form, FormState} from 'app/components/forms';
-import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {t} from 'app/locale';
-import {Group, Organization, Plugin, Project} from 'app/types';
+import GroupActions from 'sentry/actions/groupActions';
+import PluginComponentBase from 'sentry/components/bases/pluginComponentBase';
+import {Form, FormState} from 'sentry/components/deprecatedforms';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {t} from 'sentry/locale';
+import {Group, Organization, Plugin, Project} from 'sentry/types';
 
 type Field = {
-  has_autocomplete?: boolean;
   depends?: string[];
+  has_autocomplete?: boolean;
 } & Parameters<typeof PluginComponentBase.prototype.renderField>[0]['config'];
 
 type ActionType = 'link' | 'create' | 'unlink';
@@ -19,7 +19,6 @@ type FieldStateValue = typeof FormState[keyof typeof FormState];
 type Props = {
   actionType: ActionType;
   group: Group;
-  project: Project;
   organization: Organization;
   plugin: Plugin & {
     issue?: {
@@ -28,27 +27,28 @@ type Props = {
       url: string;
     };
   };
-  onSuccess?: (data: any) => void;
+  project: Project;
   onError?: (data: any) => void;
+  onSuccess?: (data: any) => void;
 };
 
 type State = {
   createFormData: Record<string, any>;
+  dependentFieldState: Record<string, FieldStateValue>;
   linkFormData: Record<string, any>;
   unlinkFormData: Record<string, any>;
   createFieldList?: Field[];
-  linkFieldList?: Field[];
-  unlinkFieldList?: Field[];
-  dependentFieldState: Record<string, FieldStateValue>;
   error?: {
     message: string;
-    error_type?: string;
     auth_url?: string;
+    error_type?: string;
+    errors?: Record<string, string>;
     has_auth_configured?: boolean;
     required_auth_settings?: string[];
-    errors?: Record<string, string>;
   };
+  linkFieldList?: Field[];
   loading?: boolean;
+  unlinkFieldList?: Field[];
 } & PluginComponentBase['state'];
 
 class IssueActions extends PluginComponentBase<Props, State> {
@@ -487,7 +487,8 @@ class IssueActions extends PluginComponentBase<Props, State> {
           </a>
         </div>
       );
-    } else if (error.error_type === 'config') {
+    }
+    if (error.error_type === 'config') {
       return (
         <div className="alert alert-block">
           {!error.has_auth_configured ? (
@@ -515,13 +516,15 @@ class IssueActions extends PluginComponentBase<Props, State> {
           )}
         </div>
       );
-    } else if (error.error_type === 'validation') {
+    }
+    if (error.error_type === 'validation') {
       const errors: React.ReactElement[] = [];
       for (const name in error.errors) {
         errors.push(<p key={name}>{error.errors[name]}</p>);
       }
       return <div className="alert alert-error alert-block">{errors}</div>;
-    } else if (error.message) {
+    }
+    if (error.message) {
       return (
         <div className="alert alert-error alert-block">
           <p>{error.message}</p>

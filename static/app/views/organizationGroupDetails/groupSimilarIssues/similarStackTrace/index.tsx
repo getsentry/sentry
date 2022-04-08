@@ -2,19 +2,20 @@ import * as React from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import * as queryString from 'query-string';
+import * as qs from 'query-string';
 
-import GroupingActions from 'app/actions/groupingActions';
-import Alert from 'app/components/alert';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {t} from 'app/locale';
-import GroupingStore from 'app/stores/groupingStore';
-import space from 'app/styles/space';
-import {Project} from 'app/types';
-import {callIfFunction} from 'app/utils/callIfFunction';
+import GroupingActions from 'sentry/actions/groupingActions';
+import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {t} from 'sentry/locale';
+import GroupingStore from 'sentry/stores/groupingStore';
+import space from 'sentry/styles/space';
+import {Project} from 'sentry/types';
+import {callIfFunction} from 'sentry/utils/callIfFunction';
 
 import List from './list';
 
@@ -22,21 +23,21 @@ type ListProps = React.ComponentProps<typeof List>;
 
 type SimilarItems = ListProps['items'];
 type RouteParams = {
-  orgId: string;
   groupId: string;
+  orgId: string;
 };
 
 type Props = RouteComponentProps<RouteParams, {}> & {
-  project: Project;
   location: Location;
+  project: Project;
 };
 
 type State = {
-  similarItems: SimilarItems;
-  filteredSimilarItems: SimilarItems;
-  similarLinks: string | null;
-  loading: boolean;
   error: boolean;
+  filteredSimilarItems: SimilarItems;
+  loading: boolean;
+  similarItems: SimilarItems;
+  similarLinks: string | null;
   v2: boolean;
 };
 
@@ -116,7 +117,7 @@ class SimilarStackTrace extends React.Component<Props, State> {
       const version = this.state.v2 ? '2' : '1';
 
       reqs.push({
-        endpoint: `/issues/${params.groupId}/similar/?${queryString.stringify({
+        endpoint: `/issues/${params.groupId}/similar/?${qs.stringify({
           ...location.query,
           limit: 50,
           version,
@@ -181,45 +182,47 @@ class SimilarStackTrace extends React.Component<Props, State> {
       isLoadedSuccessfully;
 
     return (
-      <React.Fragment>
-        <Alert type="warning">
-          {t(
-            'This is an experimental feature. Data may not be immediately available while we process merges.'
+      <Layout.Body>
+        <Layout.Main fullWidth>
+          <Alert type="warning">
+            {t(
+              'This is an experimental feature. Data may not be immediately available while we process merges.'
+            )}
+          </Alert>
+          <HeaderWrapper>
+            <Title>{t('Issues with a similar stack trace')}</Title>
+            {hasV2 && (
+              <ButtonBar merged active={v2 ? 'new' : 'old'}>
+                <Button barId="old" size="small" onClick={this.toggleSimilarityVersion}>
+                  {t('Old Algorithm')}
+                </Button>
+                <Button barId="new" size="small" onClick={this.toggleSimilarityVersion}>
+                  {t('New Algorithm')}
+                </Button>
+              </ButtonBar>
+            )}
+          </HeaderWrapper>
+          {isLoading && <LoadingIndicator />}
+          {isError && (
+            <LoadingError
+              message={t('Unable to load similar issues, please try again later')}
+              onRetry={this.fetchData}
+            />
           )}
-        </Alert>
-        <HeaderWrapper>
-          <Title>{t('Issues with a similar stack trace')}</Title>
-          {hasV2 && (
-            <ButtonBar merged active={v2 ? 'new' : 'old'}>
-              <Button barId="old" size="small" onClick={this.toggleSimilarityVersion}>
-                {t('Old Algorithm')}
-              </Button>
-              <Button barId="new" size="small" onClick={this.toggleSimilarityVersion}>
-                {t('New Algorithm')}
-              </Button>
-            </ButtonBar>
+          {hasSimilarItems && (
+            <List
+              items={similarItems}
+              filteredItems={filteredSimilarItems}
+              onMerge={this.handleMerge}
+              orgId={orgId}
+              project={project}
+              groupId={groupId}
+              pageLinks={similarLinks}
+              v2={v2}
+            />
           )}
-        </HeaderWrapper>
-        {isLoading && <LoadingIndicator />}
-        {isError && (
-          <LoadingError
-            message={t('Unable to load similar issues, please try again later')}
-            onRetry={this.fetchData}
-          />
-        )}
-        {hasSimilarItems && (
-          <List
-            items={similarItems}
-            filteredItems={filteredSimilarItems}
-            onMerge={this.handleMerge}
-            orgId={orgId}
-            project={project}
-            groupId={groupId}
-            pageLinks={similarLinks}
-            v2={v2}
-          />
-        )}
-      </React.Fragment>
+        </Layout.Main>
+      </Layout.Body>
     );
   }
 }

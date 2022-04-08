@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import overflowEllipsis from 'app/styles/overflowEllipsis';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 
 const RepoLabel = styled('span')`
   /* label mixin from bootstrap */

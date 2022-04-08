@@ -4,28 +4,28 @@ import {Fragment} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import AsyncComponent from 'app/components/asyncComponent';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import platforms from 'app/data/platforms';
-import {t} from 'app/locale';
-import {PageHeader} from 'app/styles/organization';
-import space from 'app/styles/space';
-import {IntegrationProvider, Organization, Project} from 'app/types';
-import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import {trackIntegrationAnalytics} from 'app/utils/integrationUtil';
-import withOrganization from 'app/utils/withOrganization';
-import FirstEventFooter from 'app/views/onboarding/components/firstEventFooter';
-import AddInstallationInstructions from 'app/views/onboarding/components/integrations/addInstallationInstructions';
-import PostInstallCodeSnippet from 'app/views/onboarding/components/integrations/postInstallCodeSnippet';
-import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import platforms from 'sentry/data/platforms';
+import {t} from 'sentry/locale';
+import {PageHeader} from 'sentry/styles/organization';
+import space from 'sentry/styles/space';
+import {IntegrationProvider, Organization, Project} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
+import withOrganization from 'sentry/utils/withOrganization';
+import FirstEventFooter from 'sentry/views/onboarding/components/firstEventFooter';
+import AddInstallationInstructions from 'sentry/views/onboarding/components/integrations/addInstallationInstructions';
+import PostInstallCodeSnippet from 'sentry/views/onboarding/components/integrations/postInstallCodeSnippet';
+import AddIntegrationButton from 'sentry/views/organizationIntegrations/addIntegrationButton';
 
 import PlatformHeaderButtonBar from './components/platformHeaderButtonBar';
 
 type Props = {
-  organization: Organization;
   integrationSlug: string;
-} & RouteComponentProps<{orgId: string; projectId: string; platform: string}, {}> &
+  organization: Organization;
+} & RouteComponentProps<{orgId: string; platform: string; projectId: string}, {}> &
   AsyncComponent['props'];
 
 type State = {
@@ -143,6 +143,7 @@ class PlatformIntegrationSetup extends AsyncComponent<Props, State> {
                   size="small"
                   analyticsParams={{view: 'project_creation', already_installed: false}}
                   modalParams={{projectId: project.id}}
+                  aria-label={t('Add integration')}
                 />
                 <Button
                   size="small"

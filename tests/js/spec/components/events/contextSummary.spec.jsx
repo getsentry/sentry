@@ -1,10 +1,10 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import ContextSummary from 'app/components/events/contextSummary/contextSummary';
-import ContextSummaryGPU from 'app/components/events/contextSummary/contextSummaryGPU';
-import ContextSummaryOS from 'app/components/events/contextSummary/contextSummaryOS';
-import ContextSummaryUser from 'app/components/events/contextSummary/contextSummaryUser';
-import {FILTER_MASK} from 'app/constants';
+import ContextSummary from 'sentry/components/events/contextSummary';
+import ContextSummaryGPU from 'sentry/components/events/contextSummary/contextSummaryGPU';
+import ContextSummaryOS from 'sentry/components/events/contextSummary/contextSummaryOS';
+import ContextSummaryUser from 'sentry/components/events/contextSummary/contextSummaryUser';
+import {FILTER_MASK} from 'sentry/constants';
 
 const CONTEXT_USER = {
   email: 'mail@example.org',

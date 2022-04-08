@@ -2,9 +2,10 @@ import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {act} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'app/stores/projectsStore';
-import Onboarding from 'app/views/onboarding/onboarding';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import Onboarding from 'sentry/views/onboarding/onboarding';
 
 const MockStep = ({name, data, active, project, onComplete, onUpadte}) => (
   <div>
@@ -45,10 +46,7 @@ describe('Onboarding', function () {
       orgId: 'org-bar',
     };
 
-    mountWithTheme(
-      <Onboarding steps={MOCKED_STEPS} params={params} />,
-      TestStubs.routerContext()
-    );
+    mountWithTheme(<Onboarding steps={MOCKED_STEPS} params={params} />);
 
     expect(browserHistory.replace).toHaveBeenCalledWith('/onboarding/org-bar/step1/');
   });
@@ -59,10 +57,7 @@ describe('Onboarding', function () {
       orgId: 'org-bar',
     };
 
-    const wrapper = mountWithTheme(
-      <Onboarding steps={MOCKED_STEPS} params={params} />,
-      TestStubs.routerContext()
-    );
+    const wrapper = mountWithTheme(<Onboarding steps={MOCKED_STEPS} params={params} />);
 
     // Validate that the first step is shown
     expect(wrapper.find('#step_name').text()).toEqual('step_1');
@@ -79,10 +74,7 @@ describe('Onboarding', function () {
       orgId: 'org-bar',
     };
 
-    const wrapper = mountWithTheme(
-      <Onboarding steps={MOCKED_STEPS} params={params} />,
-      TestStubs.routerContext()
-    );
+    const wrapper = mountWithTheme(<Onboarding steps={MOCKED_STEPS} params={params} />);
 
     wrapper.find('#complete').simulate('click');
     expect(browserHistory.push).toHaveBeenCalledWith('/onboarding/org-bar/step2/');
@@ -94,10 +86,7 @@ describe('Onboarding', function () {
       orgId: 'org-bar',
     };
 
-    const wrapper = mountWithTheme(
-      <Onboarding steps={MOCKED_STEPS} params={params} />,
-      TestStubs.routerContext()
-    );
+    const wrapper = mountWithTheme(<Onboarding steps={MOCKED_STEPS} params={params} />);
 
     // Validate that second step is visible
     expect(wrapper.find('#step_name').text()).toEqual('step_2');
@@ -112,10 +101,7 @@ describe('Onboarding', function () {
       orgId: 'org-bar',
     };
 
-    const wrapper = mountWithTheme(
-      <Onboarding steps={MOCKED_STEPS} params={params} />,
-      TestStubs.routerContext()
-    );
+    const wrapper = mountWithTheme(<Onboarding steps={MOCKED_STEPS} params={params} />);
 
     wrapper.find('Back Button').simulate('click');
     expect(browserHistory.replace).toHaveBeenCalledWith('/onboarding/org-bar/step1/');
@@ -131,7 +117,7 @@ describe('Onboarding', function () {
       ],
     });
 
-    ProjectsStore.loadInitialData(projects);
+    act(() => ProjectsStore.loadInitialData(projects));
 
     const params = {
       step: 'step1',

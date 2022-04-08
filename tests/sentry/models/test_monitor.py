@@ -1,10 +1,10 @@
 from datetime import datetime
+from unittest.mock import patch
 
 from django.utils import timezone
 
 from sentry.models import Monitor, MonitorFailure, MonitorType, ScheduleType
 from sentry.testutils import TestCase
-from sentry.utils.compat.mock import patch
 
 
 class MonitorTestCase(TestCase):

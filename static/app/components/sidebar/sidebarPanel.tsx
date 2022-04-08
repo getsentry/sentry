@@ -1,11 +1,11 @@
-import * as React from 'react';
-import ReactDOM from 'react-dom';
+import {useEffect, useRef} from 'react';
+import {createPortal} from 'react-dom';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {IconClose} from 'app/icons';
-import {slideInLeft} from 'app/styles/animations';
-import space from 'app/styles/space';
+import {IconClose} from 'sentry/icons';
+import {slideInLeft} from 'sentry/styles/animations';
+import space from 'sentry/styles/space';
 
 import {CommonSidebarProps} from './types';
 
@@ -16,13 +16,13 @@ const PanelContainer = styled('div')<PositionProps>`
   bottom: 0;
   display: flex;
   flex-direction: column;
-  z-index: ${p => p.theme.zIndex.sidebarPanel};
   background: ${p => p.theme.background};
   color: ${p => p.theme.textColor};
   border-right: 1px solid ${p => p.theme.border};
   box-shadow: 1px 0 2px rgba(0, 0, 0, 0.06);
   text-align: left;
   animation: 200ms ${slideInLeft};
+  z-index: ${p => p.theme.zIndex.sidebar - 1};
 
   ${p =>
     p.orientation === 'top'
@@ -40,72 +40,74 @@ const PanelContainer = styled('div')<PositionProps>`
         `};
 `;
 
-type Props = React.ComponentProps<typeof PanelContainer> &
-  Pick<CommonSidebarProps, 'collapsed' | 'orientation' | 'hidePanel'> & {
-    title?: string;
-  };
+interface Props extends React.HTMLAttributes<HTMLDivElement> {
+  collapsed: CommonSidebarProps['collapsed'];
+  hidePanel: CommonSidebarProps['hidePanel'];
+  orientation: CommonSidebarProps['orientation'];
+  title?: string;
+}
 
-/**
- * Get the container element of the sidebar that react portals into.
- */
-export const getSidebarPanelContainer = () =>
-  document.getElementById('sidebar-flyout-portal');
+const getSidebarPortal = () => {
+  let portal = document.getElementById('sidebar-flyout-portal');
 
-const makePortal = () => {
-  const portal = document.createElement('div');
-  portal.setAttribute('id', 'sidebar-flyout-portal');
-  document.body.appendChild(portal);
+  if (!portal) {
+    portal = document.createElement('div');
+    portal.setAttribute('id', 'sidebar-flyout-portal');
+    document.body.appendChild(portal);
+  }
 
-  return portal;
+  return portal as HTMLDivElement;
 };
 
-class SidebarPanel extends React.Component<Props> {
-  constructor(props: Props) {
-    super(props);
-    this.portalEl = getSidebarPanelContainer() || makePortal();
-  }
+function SidebarPanel({
+  orientation,
+  collapsed,
+  hidePanel,
+  title,
+  children,
+  ...props
+}: Props): React.ReactElement {
+  const portalEl = useRef<HTMLDivElement>(getSidebarPortal());
 
-  componentDidMount() {
-    document.addEventListener('click', this.panelCloseHandler);
-  }
-
-  componentWillUnmount() {
-    document.removeEventListener('click', this.panelCloseHandler);
-  }
-
-  portalEl: Element;
-
-  panelCloseHandler = (evt: MouseEvent) => {
+  function panelCloseHandler(evt: MouseEvent) {
     if (!(evt.target instanceof Element)) {
       return;
     }
 
-    const panel = getSidebarPanelContainer();
-
-    if (panel?.contains(evt.target)) {
+    if (portalEl.current.contains(evt.target)) {
       return;
     }
 
-    this.props.hidePanel();
-  };
-
-  render() {
-    const {orientation, collapsed, hidePanel, title, children, ...props} = this.props;
-
-    const sidebar = (
-      <PanelContainer collapsed={collapsed} orientation={orientation} {...props}>
-        {title && (
-          <SidebarPanelHeader>
-            <Title>{title}</Title>
-            <PanelClose onClick={hidePanel} />
-          </SidebarPanelHeader>
-        )}
-        <SidebarPanelBody hasHeader={!!title}>{children}</SidebarPanelBody>
-      </PanelContainer>
-    );
-
-    return ReactDOM.createPortal(sidebar, this.portalEl);
+    hidePanel();
   }
+
+  useEffect(() => {
+    // Wait one tick to setup the click handler so we don't detect the click
+    // that is bubbling up from opening the panel itself
+    window.setTimeout(() => document.addEventListener('click', panelCloseHandler));
+
+    return function cleanup() {
+      document.removeEventListener('click', panelCloseHandler);
+    };
+  }, []);
+
+  return createPortal(
+    <PanelContainer
+      role="dialog"
+      collapsed={collapsed}
+      orientation={orientation}
+      {...props}
+    >
+      {title ? (
+        <SidebarPanelHeader>
+          <Title>{title}</Title>
+          <PanelClose onClick={hidePanel} />
+        </SidebarPanelHeader>
+      ) : null}
+      <SidebarPanelBody hasHeader={!!title}>{children}</SidebarPanelBody>
+    </PanelContainer>,
+    portalEl.current
+  );
 }
 
 export default SidebarPanel;

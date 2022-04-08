@@ -1,14 +1,14 @@
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import SelectField from 'app/views/settings/components/forms/selectField';
+import SelectField from 'sentry/components/forms/selectField';
+import {t} from 'sentry/locale';
 
 import {AppStoreApp, StepTwoData} from './types';
 
 type Props = {
   appStoreApps: AppStoreApp[];
-  stepTwoData: StepTwoData;
   onSetStepTwoData: (stepTwoData: StepTwoData) => void;
+  stepTwoData: StepTwoData;
 };
 
 function StepTwo({stepTwoData, onSetStepTwoData, appStoreApps}: Props) {
@@ -16,7 +16,10 @@ function StepTwo({stepTwoData, onSetStepTwoData, appStoreApps}: Props) {
     <StyledSelectField
       name="application"
       label={t('App Store Connect application')}
-      choices={appStoreApps.map(appStoreApp => [appStoreApp.appId, appStoreApp.name])}
+      options={appStoreApps.map(appStoreApp => ({
+        value: appStoreApp.appId,
+        label: appStoreApp.name,
+      }))}
       placeholder={t('Select application')}
       onChange={appId => {
         const selectedAppStoreApp = appStoreApps.find(

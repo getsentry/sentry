@@ -1,13 +1,17 @@
-from typing import Any, Mapping, Tuple
+from __future__ import annotations
+
+from typing import Any, Mapping
 
 from .base import GroupActivityNotification
 
 
 class UnassignedActivityNotification(GroupActivityNotification):
+    referrer_base = "unassigned-activity"
+
     def get_activity_name(self) -> str:
         return "Unassigned"
 
-    def get_description(self) -> Tuple[str, Mapping[str, Any], Mapping[str, Any]]:
+    def get_description(self) -> tuple[str, Mapping[str, Any], Mapping[str, Any]]:
         return "{author} unassigned {an issue}", {}, {}
 
     def get_category(self) -> str:

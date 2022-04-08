@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import EventWaiter from 'app/utils/eventWaiter';
+import EventWaiter from 'sentry/utils/eventWaiter';
 
 jest.useFakeTimers();
 
@@ -29,8 +29,7 @@ describe('EventWaiter', function () {
         pollInterval={10}
       >
         {child}
-      </EventWaiter>,
-      TestStubs.routerContext()
+      </EventWaiter>
     );
 
     expect(child).toHaveBeenCalledWith({firstIssue: null});
@@ -104,8 +103,7 @@ describe('EventWaiter', function () {
         pollInterval={10}
       >
         {child}
-      </EventWaiter>,
-      TestStubs.routerContext()
+      </EventWaiter>
     );
 
     // We have to await *two* API calls. We could normally do this using tick(),
@@ -145,8 +143,7 @@ describe('EventWaiter', function () {
         disabled
       >
         {child}
-      </EventWaiter>,
-      TestStubs.routerContext()
+      </EventWaiter>
     );
 
     expect(child).toHaveBeenCalledWith({firstIssue: null});

@@ -1,0 +1,6 @@
+---
+created: '2021-09-20T17:24:10.186106Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+similarity:2020-07-23:stacktrace:frames-ident: [["function","_flushPointerEventQueue"],["module","opt/hostedtoolcache/flutter/2.5.0-stable/x64/packages/flutter/lib/src/gestures/binding"]]

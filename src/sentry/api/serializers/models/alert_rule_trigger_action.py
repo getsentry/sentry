@@ -28,25 +28,39 @@ class AlertRuleTriggerActionSerializer(Serializer):
         ]:
             return int(action.target_identifier)
 
+        # if an input_channel_id is provided, we flip these to display properly
         return (
             action.target_display if action.target_display is not None else action.target_identifier
         )
 
-    def serialize(self, obj, attrs, user):
-        from sentry.incidents.endpoints.serializers import action_target_type_to_string
+    def get_input_channel_id(self, action):
+        """
+        Don't pass an inputChannelId value unless the action is for Slack
+        """
+        return action.target_identifier if action.type == action.Type.SLACK.value else None
 
-        return {
+    def serialize(self, obj, attrs, user, **kwargs):
+        from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING
+
+        result = {
             "id": str(obj.id),
             "alertRuleTriggerId": str(obj.alert_rule_trigger_id),
             "type": AlertRuleTriggerAction.get_registered_type(
                 AlertRuleTriggerAction.Type(obj.type)
             ).slug,
-            "targetType": action_target_type_to_string[
+            "targetType": ACTION_TARGET_TYPE_TO_STRING[
                 AlertRuleTriggerAction.TargetType(obj.target_type)
             ],
             "targetIdentifier": self.get_identifier_from_action(obj),
+            "inputChannelId": self.get_input_channel_id(obj),
             "integrationId": obj.integration_id,
             "sentryAppId": obj.sentry_app_id,
             "dateCreated": obj.date_added,
             "desc": self.human_desc(obj),
         }
+
+        # Check if action is a Sentry App that has Alert Rule UI Component settings
+        if obj.sentry_app_id and obj.sentry_app_config:
+            result["settings"] = obj.sentry_app_config
+
+        return result

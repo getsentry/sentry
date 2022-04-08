@@ -2,23 +2,23 @@ import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import Access from 'app/components/acl/access';
-import Button from 'app/components/button';
-import Confirm from 'app/components/confirm';
-import ExternalLink from 'app/components/links/externalLink';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-import {IconDelete} from 'app/icons';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {TagWithTopValues} from 'app/types';
-import routeTitleGen from 'app/utils/routeTitle';
-import AsyncView from 'app/views/asyncView';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TextBlock from 'app/views/settings/components/text/textBlock';
-import PermissionAlert from 'app/views/settings/project/permissionAlert';
+import Access from 'sentry/components/acl/access';
+import Button from 'sentry/components/button';
+import Confirm from 'sentry/components/confirm';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
+import {IconDelete} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {TagWithTopValues} from 'sentry/types';
+import routeTitleGen from 'sentry/utils/routeTitle';
+import AsyncView from 'sentry/views/asyncView';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
-type Props = RouteComponentProps<{projectId: string; orgId: string}, {}> &
+type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> &
   AsyncView['props'];
 
 type State = {
@@ -88,7 +88,7 @@ class ProjectTags extends AsyncView<Props, State> {
               <EmptyMessage>
                 {tct('There are no tags, [link:learn how to add tags]', {
                   link: (
-                    <ExternalLink href="https://docs.sentry.io/product/sentry-basics/guides/enrich-data/" />
+                    <ExternalLink href="https://docs.sentry.io/product/sentry-basics/enrich-data/" />
                   ),
                 })}
               </EmptyMessage>
@@ -115,6 +115,7 @@ class ProjectTags extends AsyncView<Props, State> {
                                   ? t('This tag cannot be deleted.')
                                   : t('You do not have permission to remove tags.')
                               }
+                              aria-label={t('Remove tag')}
                               icon={<IconDelete size="xs" />}
                               data-test-id="delete"
                             />

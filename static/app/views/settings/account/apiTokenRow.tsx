@@ -1,18 +1,18 @@
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import DateTime from 'app/components/dateTime';
-import {PanelItem} from 'app/components/panels';
-import {IconSubtract} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {InternalAppApiToken} from 'app/types';
-import getDynamicText from 'app/utils/getDynamicText';
-import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
+import Button from 'sentry/components/button';
+import DateTime from 'sentry/components/dateTime';
+import TextCopyInput from 'sentry/components/forms/textCopyInput';
+import {PanelItem} from 'sentry/components/panels';
+import {IconSubtract} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {InternalAppApiToken} from 'sentry/types';
+import getDynamicText from 'sentry/utils/getDynamicText';
 
 type Props = {
-  token: InternalAppApiToken;
   onRemove: (token: InternalAppApiToken) => void;
+  token: InternalAppApiToken;
 };
 
 function ApiTokenRow({token, onRemove}: Props) {

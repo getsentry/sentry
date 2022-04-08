@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import AutoComplete from 'app/components/autoComplete';
-import space from 'app/styles/space';
+import AutoComplete from 'sentry/components/autoComplete';
+import space from 'sentry/styles/space';
 
 import {Item} from './types';
 
@@ -29,7 +29,7 @@ function Row<T extends Item>({
 }: Props<T>) {
   const {index} = item;
 
-  if (item?.groupLabel) {
+  if (item.groupLabel) {
     return (
       <LabelWithBorder style={style}>
         {item.label && <GroupLabel>{item.label}</GroupLabel>}
@@ -40,6 +40,7 @@ function Row<T extends Item>({
   return (
     <AutoCompleteItem
       itemSize={itemSize}
+      disabled={item.disabled}
       isHighlighted={index === highlightedIndex}
       {...getItemProps({item, index, style})}
     >
@@ -83,19 +84,21 @@ const GroupLabel = styled('div')`
 
 const AutoCompleteItem = styled('div')<{
   isHighlighted: boolean;
+  disabled?: boolean;
   itemSize?: ItemSize;
 }>`
+  position: relative;
   /* needed for virtualized lists that do not fill parent height */
   /* e.g. breadcrumbs (org height > project, but want same fixed height for both) */
   display: flex;
   flex-direction: column;
   justify-content: center;
 
-  font-size: 0.9em;
-  background-color: ${p => (p.isHighlighted ? p.theme.focus : 'transparent')};
+  font-size: ${p => p.theme.fontSizeMedium};
+  background-color: ${p => (p.isHighlighted ? p.theme.hover : 'transparent')};
   color: ${p => (p.isHighlighted ? p.theme.textColor : 'inherit')};
   padding: ${p => getItemPaddingForSize(p.itemSize)};
-  cursor: pointer;
+  cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
   border-bottom: 1px solid ${p => p.theme.innerBorder};
 
   :last-child {
@@ -104,6 +107,6 @@ const AutoCompleteItem = styled('div')<{
 
   :hover {
     color: ${p => p.theme.textColor};
-    background-color: ${p => p.theme.focus};
+    background-color: ${p => p.theme.hover};
   }
 `;

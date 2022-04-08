@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {Client} from 'app/api';
-import IntegrationDetailedView from 'app/views/organizationIntegrations/integrationDetailedView';
+import {Client} from 'sentry/api';
+import IntegrationDetailedView from 'sentry/views/organizationIntegrations/integrationDetailedView';
 
 const mockResponse = mocks => {
   mocks.forEach(([url, body]) =>
@@ -14,7 +14,6 @@ const mockResponse = mocks => {
 
 describe('IntegrationDetailedView', function () {
   const org = TestStubs.Organization();
-  const routerContext = TestStubs.routerContext();
   let wrapper;
 
   beforeEach(() => {
@@ -86,8 +85,7 @@ describe('IntegrationDetailedView', function () {
       <IntegrationDetailedView
         params={{integrationSlug: 'bitbucket', orgId: org.slug}}
         location={{query: {}}}
-      />,
-      routerContext
+      />
     );
   });
   it('shows the Integration name and install status', async function () {
@@ -102,8 +100,7 @@ describe('IntegrationDetailedView', function () {
       <IntegrationDetailedView
         params={{integrationSlug: 'bitbucket', orgId: org.slug}}
         location={{query: {tab: 'configurations'}}}
-      />,
-      routerContext
+      />
     );
     expect(wrapper.find('InstallWrapper')).toHaveLength(1);
   });

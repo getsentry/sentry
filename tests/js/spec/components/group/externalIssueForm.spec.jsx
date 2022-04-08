@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import ExternalIssueForm from 'app/components/group/externalIssueForm';
+import ExternalIssueForm from 'sentry/components/group/externalIssueForm';
 
 jest.mock('lodash/debounce', () => {
   const debounceMap = new Map();
@@ -35,15 +35,11 @@ describe('ExternalIssueForm', () => {
   });
 
   const generateWrapper = (action = 'create') => {
-    MockApiClient.addMockResponse(
-      {
-        url: `/groups/${group.id}/integrations/${integration.id}/`,
-        body: formConfig,
-      },
-      {
-        predicate: (_, options) => options?.query?.action === 'create',
-      }
-    );
+    MockApiClient.addMockResponse({
+      url: `/groups/${group.id}/integrations/${integration.id}/`,
+      body: formConfig,
+      match: [MockApiClient.matchQuery({action: 'create'})],
+    });
     const component = mountWithTheme(
       <ExternalIssueForm
         Body={p => p.children}
@@ -51,8 +47,7 @@ describe('ExternalIssueForm', () => {
         group={group}
         integration={integration}
         onChange={onChange}
-      />,
-      TestStubs.routerContext()
+      />
     );
     component.instance().handleClick(action);
     return component;
@@ -134,15 +129,11 @@ describe('ExternalIssueForm', () => {
         },
         id: '5',
       };
-      getFormConfigRequest = MockApiClient.addMockResponse(
-        {
-          url: `/groups/${group.id}/integrations/${integration.id}/`,
-          body: formConfig,
-        },
-        {
-          predicate: (_, options) => options?.query?.action === 'link',
-        }
-      );
+      getFormConfigRequest = MockApiClient.addMockResponse({
+        url: `/groups/${group.id}/integrations/${integration.id}/`,
+        body: formConfig,
+        match: [MockApiClient.matchQuery({action: 'link'})],
+      });
     });
     it('renders', () => {
       wrapper = generateWrapper('link');

@@ -1,3 +1,5 @@
+from rest_framework.request import Request
+
 from sentry.api.bases.project import ProjectPermission
 
 
@@ -9,5 +11,5 @@ class EventPermission(ProjectPermission):
         "DELETE": ["event:admin"],
     }
 
-    def has_object_permission(self, request, view, event):
+    def has_object_permission(self, request: Request, view, event):
         return super().has_object_permission(request, view, event.project)

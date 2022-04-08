@@ -1,17 +1,10 @@
 from datetime import datetime, timedelta
+from unittest import mock
 
 import pytest
 from django.utils import timezone
 
-from sentry.models import (
-    EventUser,
-    GroupStatus,
-    Release,
-    ReleaseEnvironment,
-    ReleaseProjectEnvironment,
-    Team,
-    User,
-)
+from sentry.models import EventUser, GroupStatus, Release, Team, User
 from sentry.search.base import ANY
 from sentry.search.utils import (
     InvalidQuery,
@@ -23,7 +16,6 @@ from sentry.search.utils import (
     tokenize_query,
 )
 from sentry.testutils import TestCase
-from sentry.utils.compat import mock
 
 
 def test_get_numeric_field_value():
@@ -391,31 +383,31 @@ class ParseQueryTest(TestCase):
 
     def test_first_release(self):
         result = self.parse_query("first-release:bar")
-        assert result == {"first_release": "bar", "tags": {}, "query": ""}
+        assert result == {"first_release": ["bar"], "tags": {}, "query": ""}
 
     def test_first_release_latest(self):
         result = self.parse_query("first-release:latest")
-        assert result == {"first_release": "", "tags": {}, "query": ""}
+        assert result == {"first_release": [""], "tags": {}, "query": ""}
         release = self.create_release(
             project=self.project,
             version="older_release",
             date_added=datetime.now() - timedelta(days=1),
         )
         result = self.parse_query("first-release:latest")
-        assert result == {"first_release": release.version, "tags": {}, "query": ""}
+        assert result == {"first_release": [release.version], "tags": {}, "query": ""}
         release = self.create_release(
             project=self.project, version="new_release", date_added=datetime.now()
         )
         result = self.parse_query("first-release:latest")
-        assert result == {"first_release": release.version, "tags": {}, "query": ""}
+        assert result == {"first_release": [release.version], "tags": {}, "query": ""}
 
     def test_release(self):
         result = self.parse_query("release:bar")
-        assert result == {"tags": {"sentry:release": "bar"}, "query": ""}
+        assert result == {"tags": {"sentry:release": ["bar"]}, "query": ""}
 
     def test_release_latest(self):
         result = self.parse_query("release:latest")
-        assert result == {"tags": {"sentry:release": ""}, "query": ""}
+        assert result == {"tags": {"sentry:release": [""]}, "query": ""}
 
         release = self.create_release(
             project=self.project,
@@ -423,12 +415,12 @@ class ParseQueryTest(TestCase):
             date_added=datetime.now() - timedelta(days=1),
         )
         result = self.parse_query("release:latest")
-        assert result == {"tags": {"sentry:release": release.version}, "query": ""}
+        assert result == {"tags": {"sentry:release": [release.version]}, "query": ""}
         release = self.create_release(
             project=self.project, version="new_release", date_added=datetime.now()
         )
         result = self.parse_query("release:latest")
-        assert result == {"tags": {"sentry:release": release.version}, "query": ""}
+        assert result == {"tags": {"sentry:release": [release.version]}, "query": ""}
 
     def test_dist(self):
         result = self.parse_query("dist:123")
@@ -436,7 +428,7 @@ class ParseQueryTest(TestCase):
 
     def test_padded_spacing(self):
         result = self.parse_query("release:bar  foo   bar")
-        assert result == {"tags": {"sentry:release": "bar"}, "query": "foo bar"}
+        assert result == {"tags": {"sentry:release": ["bar"]}, "query": "foo bar"}
 
     def test_unknown_user_with_dot_query(self):
         result = self.parse_query("user.email:fake@example.com")
@@ -536,13 +528,6 @@ class ParseQueryTest(TestCase):
         assert result["date_to"] == date_value + timedelta(minutes=6)
         assert not result["date_to_inclusive"]
 
-    def test_active_range(self):
-        result = self.parse_query("activeSince:-24h activeSince:+12h")
-        assert result["active_at_from"] > timezone.now() - timedelta(hours=25)
-        assert result["active_at_from"] < timezone.now() - timedelta(hours=23)
-        assert result["active_at_to"] > timezone.now() - timedelta(hours=13)
-        assert result["active_at_to"] < timezone.now() - timedelta(hours=11)
-
     def test_last_seen_range(self):
         result = self.parse_query("lastSeen:-24h lastSeen:+12h")
         assert result["last_seen_from"] > timezone.now() - timedelta(hours=25)
@@ -624,55 +609,82 @@ class GetLatestReleaseTest(TestCase):
             environment = None
             get_latest_release([self.project], environment)
 
-        old = Release.objects.create(organization_id=self.project.organization_id, version="old")
-        old.add_project(self.project)
-
+        old = self.create_release(version="old")
         new_date = old.date_added + timedelta(minutes=1)
-        new = Release.objects.create(
+        new = self.create_release(
             version="new-but-in-environment",
-            organization_id=self.project.organization_id,
+            environments=[self.environment],
             date_released=new_date,
         )
-        new.add_project(self.project)
-        ReleaseEnvironment.get_or_create(
-            project=self.project, release=new, environment=self.environment, datetime=new_date
+        newest = self.create_release(
+            version="newest-overall", date_released=old.date_added + timedelta(minutes=5)
         )
-        ReleaseProjectEnvironment.get_or_create(
-            project=self.project, release=new, environment=self.environment, datetime=new_date
-        )
-
-        newest = Release.objects.create(
-            version="newest-overall",
-            organization_id=self.project.organization_id,
-            date_released=old.date_added + timedelta(minutes=5),
-        )
-        newest.add_project(self.project)
 
         # latest overall (no environment filter)
         environment = None
         result = get_latest_release([self.project], environment)
-        assert result == newest.version
+        assert result == [newest.version]
 
         # latest in environment
         environment = self.environment
         result = get_latest_release([self.project], [environment])
-        assert result == new.version
+        assert result == [new.version]
 
-        assert get_latest_release([self.project.id], [environment]) == ""
-        assert (
-            get_latest_release([self.project.id], [environment], self.project.organization_id)
-            == new.version
-        )
+        assert get_latest_release([self.project.id], [environment]) == []
+        assert get_latest_release(
+            [self.project.id], [environment], self.project.organization_id
+        ) == [new.version]
 
         # Verify that not passing an environment correctly gets the latest one
-        assert get_latest_release([self.project], None) == newest.version
-        assert get_latest_release([self.project], []) == newest.version
+        assert get_latest_release([self.project], None) == [newest.version]
+        assert get_latest_release([self.project], []) == [newest.version]
 
         with pytest.raises(Release.DoesNotExist):
             # environment with no releases
-            environment = self.create_environment()
-            result = get_latest_release([self.project], [environment])
-            assert result == new.version
+            new_environment = self.create_environment()
+            get_latest_release([self.project], [new_environment])
+
+        project_2 = self.create_project()
+        other_project_env_release = self.create_release(
+            project_2, version="other_project_env", environments=[self.environment]
+        )
+        other_project_release = self.create_release(project_2, version="other_project")
+        assert get_latest_release([project_2], None) == [other_project_release.version]
+        assert get_latest_release([project_2], [environment]) == [other_project_env_release.version]
+        assert get_latest_release([self.project, project_2], None) == [
+            newest.version,
+            other_project_release.version,
+        ]
+        assert get_latest_release([self.project, project_2], [environment]) == [
+            new.version,
+            other_project_env_release.version,
+        ]
+
+    def test_semver(self):
+        project_2 = self.create_project()
+        release_1 = self.create_release(version="test@2.0.0")
+        self.create_release(version="test@1.3.2")
+        self.create_release(version="test@1.0.0")
+
+        # Check when we're using a single project that we sort by semver
+        assert get_latest_release([self.project], None) == [release_1.version]
+        assert get_latest_release([project_2, self.project], None) == [release_1.version]
+        release_4 = self.create_release(project_2, version="test@1.3.3")
+        assert get_latest_release([project_2, self.project], None) == [
+            release_4.version,
+            release_1.version,
+        ]
+
+    def test_multiple_projects_mixed_versions(self):
+        project_2 = self.create_project()
+        release_1 = self.create_release(version="test@2.0.0")
+        self.create_release(project_2, version="not_semver")
+        release_2 = self.create_release(project_2, version="not_semver_2")
+        self.create_release(version="test@1.0.0")
+        assert get_latest_release([project_2, self.project], None) == [
+            release_2.version,
+            release_1.version,
+        ]
 
 
 class ConvertUserTagTest(TestCase):

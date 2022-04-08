@@ -1,36 +1,28 @@
-import {Component} from 'react';
-import {ClassNames, css, withTheme} from '@emotion/react';
+import {useEffect} from 'react';
+import {ClassNames, css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps} from 'app/actionCreators/modal';
-import Search from 'app/components/search';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {analytics} from 'app/utils/analytics';
-import {Theme} from 'app/utils/theme';
-import Input from 'app/views/settings/components/forms/controls/input';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import Input from 'sentry/components/forms/controls/input';
+import {Search} from 'sentry/components/search';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {analytics} from 'sentry/utils/analytics';
 
-type Props = ModalRenderProps & {
-  theme: Theme;
-};
+function CommandPalette({Body}: ModalRenderProps) {
+  const theme = useTheme();
 
-class CommandPalette extends Component<Props> {
-  componentDidMount() {
-    analytics('omnisearch.open', {});
-  }
+  useEffect(() => void analytics('omnisearch.open', {}), []);
 
-  render() {
-    const {theme, Body} = this.props;
-
-    return (
-      <Body>
-        <ClassNames>
-          {({css: injectedCss}) => (
-            <Search
-              entryPoint="command_palette"
-              minSearch={1}
-              maxResults={10}
-              dropdownStyle={injectedCss`
+  return (
+    <Body>
+      <ClassNames>
+        {({css: injectedCss}) => (
+          <Search
+            entryPoint="command_palette"
+            minSearch={1}
+            maxResults={10}
+            dropdownStyle={injectedCss`
                 width: 100%;
                 border: transparent;
                 border-top-left-radius: 0;
@@ -39,26 +31,25 @@ class CommandPalette extends Component<Props> {
                 box-shadow: none;
                 border-top: 1px solid ${theme.border};
               `}
-              renderInput={({getInputProps}) => (
-                <InputWrapper>
-                  <StyledInput
-                    autoFocus
-                    {...getInputProps({
-                      type: 'text',
-                      placeholder: t('Search for projects, teams, settings, etc...'),
-                    })}
-                  />
-                </InputWrapper>
-              )}
-            />
-          )}
-        </ClassNames>
-      </Body>
-    );
-  }
+            renderInput={({getInputProps}) => (
+              <InputWrapper>
+                <StyledInput
+                  autoFocus
+                  {...getInputProps({
+                    type: 'text',
+                    placeholder: t('Search for projects, teams, settings, etc...'),
+                  })}
+                />
+              </InputWrapper>
+            )}
+          />
+        )}
+      </ClassNames>
+    </Body>
+  );
 }
 
-export default withTheme(CommandPalette);
+export default CommandPalette;
 
 export const modalCss = css`
   [role='document'] {

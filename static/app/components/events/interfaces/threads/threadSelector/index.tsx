@@ -1,13 +1,12 @@
+import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
-import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
-import DropdownButton from 'app/components/dropdownButton';
-import {t} from 'app/locale';
-import {ExceptionType} from 'app/types';
-import {Event} from 'app/types/event';
-import {Thread} from 'app/types/events';
-import theme from 'app/utils/theme';
+import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
+import DropdownButton from 'sentry/components/dropdownButton';
+import {t} from 'sentry/locale';
+import {Event, ExceptionType, Thread} from 'sentry/types';
+import theme from 'sentry/utils/theme';
 
 import filterThreadInfo from './filterThreadInfo';
 import Header from './header';
@@ -15,16 +14,24 @@ import Option from './option';
 import SelectedOption from './selectedOption';
 
 type Props = {
-  threads: Array<Thread>;
   activeThread: Thread;
   event: Event;
+  threads: Array<Thread>;
   exception?: Required<ExceptionType>;
+  fullWidth?: boolean;
   onChange?: (thread: Thread) => void;
 };
 
 const DROPDOWN_MAX_HEIGHT = 400;
 
-const ThreadSelector = ({threads, event, exception, activeThread, onChange}: Props) => {
+const ThreadSelector = ({
+  threads,
+  event,
+  exception,
+  activeThread,
+  onChange,
+  fullWidth = false,
+}: Props) => {
   const getDropDownItem = (thread: Thread) => {
     const {label, filename, crashedInfo} = filterThreadInfo(event, thread, exception);
     const threadInfo = {label, filename};
@@ -56,35 +63,47 @@ const ThreadSelector = ({threads, event, exception, activeThread, onChange}: Pro
   };
 
   return (
-    <StyledDropdownAutoComplete
-      items={getItems()}
-      onSelect={item => {
-        handleChange(item.thread);
-      }}
-      maxHeight={DROPDOWN_MAX_HEIGHT}
-      searchPlaceholder={t('Filter Threads')}
-      emptyMessage={t('You have no threads')}
-      noResultsMessage={t('No threads found')}
-      menuHeader={<Header />}
-      closeOnSelect
-      emptyHidesInput
-    >
-      {({isOpen, selectedItem}) => (
-        <StyledDropdownButton size="small" isOpen={isOpen} align="left">
-          {selectedItem ? (
-            <SelectedOption
-              id={selectedItem.thread.id}
-              details={selectedItem.threadInfo}
-            />
-          ) : (
-            <SelectedOption
-              id={activeThread.id}
-              details={filterThreadInfo(event, activeThread, exception)}
-            />
+    <ClassNames>
+      {({css}) => (
+        <StyledDropdownAutoComplete
+          data-test-id="thread-selector"
+          items={getItems()}
+          onSelect={item => {
+            handleChange(item.thread);
+          }}
+          maxHeight={DROPDOWN_MAX_HEIGHT}
+          searchPlaceholder={t('Filter Threads')}
+          emptyMessage={t('You have no threads')}
+          noResultsMessage={t('No threads found')}
+          menuHeader={<Header />}
+          rootClassName={
+            fullWidth
+              ? css`
+                  width: 100%;
+                `
+              : undefined
+          }
+          closeOnSelect
+          emptyHidesInput
+        >
+          {({isOpen, selectedItem}) => (
+            <StyledDropdownButton isOpen={isOpen} size="small" align="left">
+              {selectedItem ? (
+                <SelectedOption
+                  id={selectedItem.thread.id}
+                  details={selectedItem.threadInfo}
+                />
+              ) : (
+                <SelectedOption
+                  id={activeThread.id}
+                  details={filterThreadInfo(event, activeThread, exception)}
+                />
+              )}
+            </StyledDropdownButton>
           )}
-        </StyledDropdownButton>
+        </StyledDropdownAutoComplete>
       )}
-    </StyledDropdownAutoComplete>
+    </ClassNames>
   );
 };
 

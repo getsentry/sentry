@@ -1,37 +1,10 @@
-from collections import OrderedDict
+from typing import Any, Sequence
 
 from django import forms
 
+from sentry.eventstore.models import Event
+from sentry.rules import MATCH_CHOICES, EventState, MatchType
 from sentry.rules.conditions.base import EventCondition
-
-
-class MatchType:
-    EQUAL = "eq"
-    NOT_EQUAL = "ne"
-    STARTS_WITH = "sw"
-    NOT_STARTS_WITH = "nsw"
-    ENDS_WITH = "ew"
-    NOT_ENDS_WITH = "new"
-    CONTAINS = "co"
-    NOT_CONTAINS = "nc"
-    IS_SET = "is"
-    NOT_SET = "ns"
-
-
-MATCH_CHOICES = OrderedDict(
-    [
-        (MatchType.EQUAL, "equals"),
-        (MatchType.NOT_EQUAL, "does not equal"),
-        (MatchType.STARTS_WITH, "starts with"),
-        (MatchType.NOT_STARTS_WITH, "does not start with"),
-        (MatchType.ENDS_WITH, "ends with"),
-        (MatchType.NOT_ENDS_WITH, "does not end with"),
-        (MatchType.CONTAINS, "contains"),
-        (MatchType.NOT_CONTAINS, "does not contain"),
-        (MatchType.IS_SET, "is set"),
-        (MatchType.NOT_SET, "is not set"),
-    ]
-)
 
 ATTR_CHOICES = [
     "message",
@@ -46,6 +19,7 @@ ATTR_CHOICES = [
     "user.ip_address",
     "http.method",
     "http.url",
+    "sdk.name",
     "stacktrace.code",
     "stacktrace.module",
     "stacktrace.filename",
@@ -54,7 +28,7 @@ ATTR_CHOICES = [
 ]
 
 
-class EventAttributeForm(forms.Form):
+class EventAttributeForm(forms.Form):  # type: ignore
     attribute = forms.ChoiceField(choices=[(a, a) for a in ATTR_CHOICES])
     match = forms.ChoiceField(choices=list(MATCH_CHOICES.items()))
     value = forms.CharField(widget=forms.TextInput(), required=False)
@@ -75,8 +49,7 @@ class EventAttributeCondition(EventCondition):
     - extra.{FIELD}
     """
 
-    # TODO(dcramer): add support for stacktrace.vars.[name]
-
+    id = "sentry.rules.conditions.event_attribute.EventAttributeCondition"
     form_cls = EventAttributeForm
     label = "The event's {attribute} value {match} {value}"
 
@@ -90,7 +63,7 @@ class EventAttributeCondition(EventCondition):
         "value": {"type": "string", "placeholder": "value"},
     }
 
-    def _get_attribute_values(self, event, attr):
+    def _get_attribute_values(self, event: Event, attr: str) -> Sequence[str]:
         # TODO(dcramer): we should validate attributes (when we can) before
         path = attr.split(".")
 
@@ -102,7 +75,7 @@ class EventAttributeCondition(EventCondition):
         if path[0] == "message":
             if len(path) != 1:
                 return []
-            return [event.message]
+            return [event.message, event.search_message]
         elif path[0] == "environment":
             return [event.get_tag("environment")]
 
@@ -145,6 +118,11 @@ class EventAttributeCondition(EventCondition):
 
             return [getattr(event.interfaces["request"], path[1])]
 
+        elif path[0] == "sdk":
+            if path[1] != "name":
+                return []
+            return [event.data["sdk"].get(path[1])]
+
         elif path[0] == "stacktrace":
             stacks = event.interfaces.get("stacktrace")
             if stacks:
@@ -168,7 +146,7 @@ class EventAttributeCondition(EventCondition):
             return result
         return []
 
-    def render_label(self):
+    def render_label(self) -> str:
         data = {
             "attribute": self.data["attribute"],
             "value": self.data["value"],
@@ -176,7 +154,7 @@ class EventAttributeCondition(EventCondition):
         }
         return self.label.format(**data)
 
-    def passes(self, event, state, **kwargs):
+    def passes(self, event: Event, state: EventState, **kwargs: Any) -> bool:
         attr = self.get_option("attribute")
         match = self.get_option("match")
         value = self.get_option("value")
@@ -247,3 +225,5 @@ class EventAttributeCondition(EventCondition):
 
         elif match == MatchType.NOT_SET:
             return not attribute_values
+
+        raise RuntimeError("Invalid Match")

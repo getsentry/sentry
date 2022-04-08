@@ -1,21 +1,21 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {openCreateTeamModal} from 'app/actionCreators/modal';
-import Button from 'app/components/button';
-import {tct} from 'app/locale';
-import {Organization, Team} from 'app/types';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import TextBlock from 'app/views/settings/components/text/textBlock';
+import {openCreateTeamModal} from 'sentry/actionCreators/modal';
+import Button from 'sentry/components/button';
+import {t, tct} from 'sentry/locale';
+import {Organization, Team} from 'sentry/types';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import AllTeamsRow from './allTeamsRow';
 
 type Props = {
-  urlPrefix: string;
   access: Record<string, any>;
+  openMembership: boolean;
   organization: Organization;
   teamList: Array<Team>;
-  openMembership: boolean;
+  urlPrefix: string;
 };
 
 function AllTeamsList({
@@ -52,6 +52,7 @@ function AllTeamsList({
                         organization,
                       })
                     }
+                    aria-label={t('Create team')}
                   />
                 ),
               })

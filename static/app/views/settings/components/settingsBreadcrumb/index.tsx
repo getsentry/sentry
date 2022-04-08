@@ -1,16 +1,15 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
-import SettingsBreadcrumbActions from 'app/actions/settingsBreadcrumbActions';
-import Link from 'app/components/links/link';
-import SettingsBreadcrumbStore from 'app/stores/settingsBreadcrumbStore';
-import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
-import recreateRoute from 'app/utils/recreateRoute';
-import Crumb from 'app/views/settings/components/settingsBreadcrumb/crumb';
-import Divider from 'app/views/settings/components/settingsBreadcrumb/divider';
-import OrganizationCrumb from 'app/views/settings/components/settingsBreadcrumb/organizationCrumb';
-import ProjectCrumb from 'app/views/settings/components/settingsBreadcrumb/projectCrumb';
-import TeamCrumb from 'app/views/settings/components/settingsBreadcrumb/teamCrumb';
+import Link from 'sentry/components/links/link';
+import SettingsBreadcrumbStore from 'sentry/stores/settingsBreadcrumbStore';
+import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import recreateRoute from 'sentry/utils/recreateRoute';
+import Crumb from 'sentry/views/settings/components/settingsBreadcrumb/crumb';
+import Divider from 'sentry/views/settings/components/settingsBreadcrumb/divider';
+import OrganizationCrumb from 'sentry/views/settings/components/settingsBreadcrumb/organizationCrumb';
+import ProjectCrumb from 'sentry/views/settings/components/settingsBreadcrumb/projectCrumb';
+import TeamCrumb from 'sentry/views/settings/components/settingsBreadcrumb/teamCrumb';
 
 import {RouteWithName} from './types';
 
@@ -21,11 +20,11 @@ const MENUS = {
 } as const;
 
 type Props = {
-  className?: string;
-  routes: RouteWithName[];
-  pathMap: Record<string, string>;
   params: {[param: string]: string | undefined};
+  pathMap: Record<string, string>;
   route: any;
+  routes: RouteWithName[];
+  className?: string;
 };
 
 class SettingsBreadcrumb extends Component<Props> {
@@ -37,7 +36,7 @@ class SettingsBreadcrumb extends Component<Props> {
     if (this.props.routes === prevProps.routes) {
       return;
     }
-    SettingsBreadcrumbActions.trimMappings(this.props.routes);
+    SettingsBreadcrumbStore.trimMappings(this.props.routes);
   }
 
   render() {

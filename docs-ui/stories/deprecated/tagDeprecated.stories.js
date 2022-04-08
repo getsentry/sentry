@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
-import Tag from 'app/components/tagDeprecated';
-import Tooltip from 'app/components/tooltip';
+import Tag from 'sentry/components/tagDeprecated';
+import Tooltip from 'sentry/components/tooltip';
 
 export default {
   title: 'Deprecated/TagDeprecated',

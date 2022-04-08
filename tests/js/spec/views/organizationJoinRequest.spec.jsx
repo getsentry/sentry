@@ -1,13 +1,13 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {trackAdhocEvent} from 'app/utils/analytics';
-import OrganizationJoinRequest from 'app/views/organizationJoinRequest';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {trackAdhocEvent} from 'sentry/utils/analytics';
+import OrganizationJoinRequest from 'sentry/views/organizationJoinRequest';
 
-jest.mock('app/utils/analytics', () => ({
+jest.mock('sentry/utils/analytics', () => ({
   trackAdhocEvent: jest.fn(),
 }));
-jest.mock('app/actionCreators/indicator');
+jest.mock('sentry/actionCreators/indicator');
 
 describe('OrganizationJoinRequest', function () {
   const org = TestStubs.Organization({slug: 'test-org'});
@@ -20,8 +20,7 @@ describe('OrganizationJoinRequest', function () {
 
   it('renders', function () {
     const wrapper = mountWithTheme(
-      <OrganizationJoinRequest params={{orgId: org.slug}} />,
-      TestStubs.routerContext()
+      <OrganizationJoinRequest params={{orgId: org.slug}} />
     );
 
     expect(wrapper.find('h3').text()).toBe('Request to Join');
@@ -41,8 +40,7 @@ describe('OrganizationJoinRequest', function () {
     });
 
     const wrapper = mountWithTheme(
-      <OrganizationJoinRequest params={{orgId: org.slug}} />,
-      TestStubs.routerContext()
+      <OrganizationJoinRequest params={{orgId: org.slug}} />
     );
 
     wrapper
@@ -68,8 +66,7 @@ describe('OrganizationJoinRequest', function () {
     });
 
     const wrapper = mountWithTheme(
-      <OrganizationJoinRequest params={{orgId: org.slug}} />,
-      TestStubs.routerContext()
+      <OrganizationJoinRequest params={{orgId: org.slug}} />
     );
 
     wrapper
@@ -91,8 +88,7 @@ describe('OrganizationJoinRequest', function () {
   it('cancels', function () {
     const spy = jest.spyOn(window.location, 'assign').mockImplementation(() => {});
     const wrapper = mountWithTheme(
-      <OrganizationJoinRequest params={{orgId: org.slug}} />,
-      TestStubs.routerContext()
+      <OrganizationJoinRequest params={{orgId: org.slug}} />
     );
 
     wrapper.find('button[aria-label="Cancel"]').simulate('click');

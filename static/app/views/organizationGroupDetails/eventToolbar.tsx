@@ -3,21 +3,23 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import moment from 'moment-timezone';
 
-import DateTime from 'app/components/dateTime';
-import FileSize from 'app/components/fileSize';
-import GlobalAppStoreConnectUpdateAlert from 'app/components/globalAppStoreConnectUpdateAlert';
-import ExternalLink from 'app/components/links/externalLink';
-import Link from 'app/components/links/link';
-import NavigationButtonGroup from 'app/components/navigationButtonGroup';
-import Tooltip from 'app/components/tooltip';
-import {IconWarning} from 'app/icons';
-import {t} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
-import space from 'app/styles/space';
-import {Group, Organization, Project} from 'app/types';
-import {Event} from 'app/types/event';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import getDynamicText from 'app/utils/getDynamicText';
+import DateTime from 'sentry/components/dateTime';
+import {DataSection} from 'sentry/components/events/styles';
+import FileSize from 'sentry/components/fileSize';
+import GlobalAppStoreConnectUpdateAlert from 'sentry/components/globalAppStoreConnectUpdateAlert';
+import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
+import NavigationButtonGroup from 'sentry/components/navigationButtonGroup';
+import Tooltip from 'sentry/components/tooltip';
+import {IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import space from 'sentry/styles/space';
+import {Group, Organization, Project} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {use24Hours} from 'sentry/utils/dates';
+import getDynamicText from 'sentry/utils/getDynamicText';
 
 import QuickTrace from './quickTrace';
 
@@ -43,11 +45,11 @@ const formatDateDelta = (reference: moment.Moment, observed: moment.Moment) => {
 };
 
 type Props = {
+  event: Event;
+  group: Group;
+  location: Location;
   organization: Organization;
   project: Project;
-  group: Group;
-  event: Event;
-  location: Location;
 };
 
 class GroupEventToolbar extends Component<Props> {
@@ -97,6 +99,7 @@ class GroupEventToolbar extends Component<Props> {
   }
 
   render() {
+    const is24Hours = use24Hours();
     const evt = this.props.event;
 
     const {group, organization, location, project} = this.props;
@@ -114,7 +117,7 @@ class GroupEventToolbar extends Component<Props> {
       Math.abs(+moment(evt.dateReceived) - +moment(evt.dateCreated)) > latencyThreshold;
 
     return (
-      <Wrapper>
+      <StyledDataSection>
         <StyledNavigationButtonGroup
           hasPrevious={!!evt.previousEventID}
           hasNext={!!evt.nextEventID}
@@ -137,7 +140,11 @@ class GroupEventToolbar extends Component<Props> {
         </Heading>
         <Tooltip title={this.getDateTooltip()} disableForVisualTest>
           <StyledDateTime
-            date={getDynamicText({value: evt.dateCreated, fixed: 'Dummy timestamp'})}
+            format={is24Hours ? 'MMM D, YYYY HH:mm:ss zz' : 'll LTS z'}
+            date={getDynamicText({
+              value: evt.dateCreated,
+              fixed: 'Dummy timestamp',
+            })}
           />
           {isOverLatencyThreshold && <StyledIconWarning color="yellow300" />}
         </Tooltip>
@@ -152,18 +159,18 @@ class GroupEventToolbar extends Component<Props> {
           organization={organization}
           location={location}
         />
-      </Wrapper>
+      </StyledDataSection>
     );
   }
 }
 
-const Wrapper = styled('div')`
+const StyledDataSection = styled(DataSection)`
   position: relative;
-  margin-bottom: -5px;
+  display: block;
+  border-top: 0;
   /* z-index seems unnecessary, but increasing (instead of removing) just in case(billy) */
   /* Fixes tooltips in toolbar having lower z-index than .btn-group .btn.active */
   z-index: 3;
-  padding: 20px 30px 20px 40px;
 
   @media (max-width: 767px) {
     display: none;

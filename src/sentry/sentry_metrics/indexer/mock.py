@@ -1,41 +1,65 @@
-from typing import Optional
+import itertools
+from collections import defaultdict
+from typing import DefaultDict, Dict, MutableMapping, Optional, Set
 
-from sentry.models import Organization
+from ...snuba.metrics.naming_layer.mri import SessionMRI
+from .base import StringIndexer
 
-from .base import StringIndexer, UseCase
+_STRINGS = (
+    "crashed",
+    "environment",
+    "errored",
+    "healthy",
+    "production",
+    "release",
+    SessionMRI.RAW_DURATION.value,
+    "session.status",
+    SessionMRI.SESSION.value,
+    "staging",
+    SessionMRI.USER.value,
+    "init",
+    SessionMRI.ERROR.value,
+    "abnormal",
+    "exited",
+)
 
-_STRINGS = {
-    "abnormal": 0,
-    "crashed": 1,
-    "environment": 2,
-    "errored": 3,
-    "healthy": 4,
-    "production": 5,
-    "release": 6,
-    "session.duration": 7,
-    "session.status": 8,
-    "session": 9,
-    "staging": 10,
-    "user": 11,
-}
-_REVERSE = {v: k for k, v in _STRINGS.items()}
+
+class SimpleIndexer(StringIndexer):
+
+    """Simple indexer with in-memory store. Do not use in production."""
+
+    def __init__(self) -> None:
+        self._counter = itertools.count(start=1)
+        self._strings: DefaultDict[str, int] = defaultdict(self._counter.__next__)
+        self._reverse: Dict[int, str] = {}
+
+    def bulk_record(self, org_strings: MutableMapping[int, Set[str]]) -> Dict[str, int]:
+        strings = set()
+        for _, strs in org_strings.items():
+            strings.update(strs)
+        return {string: self._record(string) for string in strings}
+
+    def record(self, org_id: int, string: str) -> int:
+        return self._record(string)
+
+    def resolve(self, org_id: int, string: str) -> Optional[int]:
+        return self._strings.get(string)
+
+    def reverse_resolve(self, id: int) -> Optional[str]:
+        return self._reverse.get(id)
+
+    def _record(self, string: str) -> int:
+        index = self._strings[string]
+        self._reverse[index] = string
+        return index
 
 
-class MockIndexer(StringIndexer):
+class MockIndexer(SimpleIndexer):
     """
-    Mock string indexer
+    Mock string indexer. Comes with a prepared set of strings.
     """
 
-    def record(self, organization: Organization, use_case: UseCase, string: str) -> int:
-        """Mock indexer cannot record."""
-        raise NotImplementedError()
-
-    def resolve(self, organization: Organization, use_case: UseCase, string: str) -> Optional[int]:
-        # NOTE: Ignores ``use_case`` for simplicity.
-        return _STRINGS.get(string)
-
-    def reverse_resolve(
-        self, organization: Organization, use_case: UseCase, id: int
-    ) -> Optional[str]:
-        # NOTE: Ignores ``use_case`` for simplicity.
-        return _REVERSE.get(id)
+    def __init__(self) -> None:
+        super().__init__()
+        for string in _STRINGS:
+            self._record(string)

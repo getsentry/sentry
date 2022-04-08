@@ -3,39 +3,39 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 
-import {Client} from 'app/api';
-import Card from 'app/components/card';
-import EventsRequest from 'app/components/charts/eventsRequest';
-import {HeaderTitle} from 'app/components/charts/styles';
-import {getInterval} from 'app/components/charts/utils';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import Link from 'app/components/links/link';
-import Placeholder from 'app/components/placeholder';
-import QuestionTooltip from 'app/components/questionTooltip';
-import Sparklines from 'app/components/sparklines';
-import SparklinesLine from 'app/components/sparklines/line';
-import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import {defined} from 'app/utils';
-import {getUtcToLocalDateObject} from 'app/utils/dates';
-import DiscoverQuery from 'app/utils/discover/discoverQuery';
-import EventView from 'app/utils/discover/eventView';
+import Card from 'sentry/components/card';
+import EventsRequest from 'sentry/components/charts/eventsRequest';
+import {HeaderTitle} from 'sentry/components/charts/styles';
+import {getInterval} from 'sentry/components/charts/utils';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import Link from 'sentry/components/links/link';
+import Placeholder from 'sentry/components/placeholder';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import Sparklines from 'sentry/components/sparklines';
+import SparklinesLine from 'sentry/components/sparklines/line';
+import Tooltip from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import {getUtcToLocalDateObject} from 'sentry/utils/dates';
+import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
+import EventView from 'sentry/utils/discover/eventView';
 import {
   Column,
   generateFieldAsString,
   getAggregateAlias,
   WebVital,
-} from 'app/utils/discover/fields';
-import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
+} from 'sentry/utils/discover/fields';
+import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import VitalsCardsDiscoverQuery, {
   VitalData,
   VitalsData,
-} from 'app/utils/performance/vitals/vitalsCardsDiscoverQuery';
-import {decodeList} from 'app/utils/queryString';
-import theme from 'app/utils/theme';
-import withApi from 'app/utils/withApi';
+} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
+import {decodeList} from 'sentry/utils/queryString';
+import theme from 'sentry/utils/theme';
+import useApi from 'sentry/utils/useApi';
 
 import ColorBar from '../vitalDetail/colorBar';
 import {
@@ -130,7 +130,6 @@ const VitalBarContainer = styled('div')`
 `;
 
 type BaseCardsProps = {
-  api: Client;
   eventView: EventView;
   location: Location;
   organization: Organization;
@@ -141,12 +140,14 @@ type GenericCardsProps = BaseCardsProps & {
 };
 
 function GenericCards(props: GenericCardsProps) {
-  const {api, eventView: baseEventView, location, organization, functions} = props;
+  const api = useApi();
+
+  const {eventView: baseEventView, location, organization, functions} = props;
   const {query} = location;
   const eventView = baseEventView.withColumns(functions);
 
   // construct request parameters for fetching chart data
-  const globalSelection = eventView.getGlobalSelection();
+  const globalSelection = eventView.getPageFilters();
   const start = globalSelection.datetime.start
     ? getUtcToLocalDateObject(globalSelection.datetime.start)
     : undefined;
@@ -215,7 +216,7 @@ function GenericCards(props: GenericCardsProps) {
 
                   const {title, tooltip, formatter} = cardDetail;
                   const alias = getAggregateAlias(fieldName);
-                  const rawValue = tableData?.data?.[0]?.[alias];
+                  const rawValue = tableData?.data?.[0]?.[alias] as number;
 
                   const data = series?.[fieldName];
                   const value =
@@ -246,7 +247,6 @@ function GenericCards(props: GenericCardsProps) {
 }
 
 function _BackendCards(props: BaseCardsProps) {
-  const {organization} = props;
   const functions: Column[] = [
     {
       kind: 'function',
@@ -254,20 +254,15 @@ function _BackendCards(props: BaseCardsProps) {
     },
     {kind: 'function', function: ['tpm', '', undefined, undefined]},
     {kind: 'function', function: ['failure_rate', '', undefined, undefined]},
-    organization.features.includes('project-transaction-threshold')
-      ? {
-          kind: 'function',
-          function: ['apdex', '', undefined, undefined],
-        }
-      : {
-          kind: 'function',
-          function: ['apdex', `${organization.apdexThreshold}`, undefined, undefined],
-        },
+    {
+      kind: 'function',
+      function: ['apdex', '', undefined, undefined],
+    },
   ];
   return <GenericCards {...props} functions={functions} />;
 }
 
-export const BackendCards = withApi(_BackendCards);
+export const BackendCards = _BackendCards;
 
 type MobileCardsProps = BaseCardsProps & {
   showStallPercentage: boolean;
@@ -283,27 +278,25 @@ function _MobileCards(props: MobileCardsProps) {
       kind: 'function',
       function: ['p75', 'measurements.app_start_warm', undefined, undefined],
     },
+    {
+      kind: 'function',
+      function: ['p75', 'measurements.frames_slow_rate', undefined, undefined],
+    },
+    {
+      kind: 'function',
+      function: ['p75', 'measurements.frames_frozen_rate', undefined, undefined],
+    },
   ];
   if (props.showStallPercentage) {
     functions.push({
       kind: 'function',
       function: ['p75', 'measurements.stall_percentage', undefined, undefined],
     });
-  } else {
-    // TODO(tonyx): add these by default once the SDKs are ready
-    functions.push({
-      kind: 'function',
-      function: ['p75', 'measurements.frames_slow_rate', undefined, undefined],
-    });
-    functions.push({
-      kind: 'function',
-      function: ['p75', 'measurements.frames_frozen_rate', undefined, undefined],
-    });
   }
   return <GenericCards {...props} functions={functions} />;
 }
 
-export const MobileCards = withApi(_MobileCards);
+export const MobileCards = _MobileCards;
 
 type SparklineChartProps = {
   data: number[];
@@ -324,8 +317,8 @@ function SparklineChart(props: SparklineChartProps) {
 }
 
 type SparklineContainerProps = {
-  width: number;
   height: number;
+  width: number;
 };
 
 const SparklineContainer = styled('div')<SparklineContainerProps>`
@@ -350,14 +343,17 @@ const VitalsContainer = styled('div')`
 `;
 
 type VitalBarProps = {
-  isLoading: boolean;
   data: VitalsData | null;
+  isLoading: boolean;
   vital: WebVital | WebVital[];
-  value?: string;
+  barHeight?: number;
   showBar?: boolean;
-  showStates?: boolean;
+  showDetail?: boolean;
   showDurationDetail?: boolean;
+  showStates?: boolean;
+  showTooltip?: boolean;
   showVitalPercentNames?: boolean;
+  value?: string;
 };
 
 export function VitalBar(props: VitalBarProps) {
@@ -370,6 +366,9 @@ export function VitalBar(props: VitalBarProps) {
     showStates = false,
     showDurationDetail = false,
     showVitalPercentNames = false,
+    showDetail = true,
+    showTooltip = false,
+    barHeight,
   } = props;
 
   if (isLoading) {
@@ -408,20 +407,38 @@ export function VitalBar(props: VitalBarProps) {
 
   return (
     <React.Fragment>
-      {showBar && <ColorBar colorStops={colorStops} />}
-      <BarDetail>
-        {showDurationDetail && p75 && (
-          <div data-test-id="vital-bar-p75">
-            {t('The p75 for all transactions is ')}
-            <strong>{p75}</strong>
-          </div>
-        )}
-        <VitalPercents
-          vital={vital}
-          percents={percents}
-          showVitalPercentNames={showVitalPercentNames}
-        />
-      </BarDetail>
+      {showBar && (
+        <StyledTooltip
+          title={
+            <VitalPercents
+              vital={vital}
+              percents={percents}
+              showVitalPercentNames
+              hideTooltips={showTooltip}
+            />
+          }
+          disabled={!showTooltip}
+          position="bottom"
+        >
+          <ColorBar barHeight={barHeight} colorStops={colorStops} />
+        </StyledTooltip>
+      )}
+      {showDetail && (
+        <BarDetail>
+          {showDurationDetail && p75 && (
+            <div>
+              {t('The p75 for all transactions is ')}
+              <strong>{p75}</strong>
+            </div>
+          )}
+
+          <VitalPercents
+            vital={vital}
+            percents={percents}
+            showVitalPercentNames={showVitalPercentNames}
+          />
+        </BarDetail>
+      )}
     </React.Fragment>
   );
 }
@@ -432,13 +449,13 @@ const EmptyVitalBar = styled(EmptyStateWarning)`
 `;
 
 type VitalCardProps = {
+  chart: React.ReactNode;
   title: string;
   tooltip: string;
   value: string | number;
-  chart: React.ReactNode;
-  minHeight?: number;
   horizontal?: boolean;
   isNotInteractive?: boolean;
+  minHeight?: number;
 };
 
 function VitalCard(props: VitalCardProps) {
@@ -472,18 +489,21 @@ const StyledCard = styled(Card)<{minHeight?: number}>`
   ${p => p.minHeight && `min-height: ${p.minHeight}px`};
 `;
 
+const StyledTooltip = styled(Tooltip)`
+  width: 100%;
+`;
+
 function getP75(data: VitalData | null, vitalName: WebVital): string {
   const p75 = data?.p75 ?? null;
   if (p75 === null) {
     return '\u2014';
-  } else {
-    return vitalName === WebVital.CLS ? p75.toFixed(2) : `${p75.toFixed(0)}ms`;
   }
+  return vitalName === WebVital.CLS ? p75.toFixed(2) : `${p75.toFixed(0)}ms`;
 }
 
 type Percent = {
-  vitalState: VitalState;
   percent: number;
+  vitalState: VitalState;
 };
 
 function getPercentsFromCounts({poor, meh, good, total}) {

@@ -2,38 +2,21 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import DateTime from 'app/components/dateTime';
-import TimeSince from 'app/components/timeSince';
-import space from 'app/styles/space';
-import textStyles from 'app/styles/text';
-import {AvatarUser} from 'app/types';
-import {isRenderFunc} from 'app/utils/isRenderFunc';
+import DateTime from 'sentry/components/dateTime';
+import TimeSince from 'sentry/components/timeSince';
+import space from 'sentry/styles/space';
+import textStyles from 'sentry/styles/text';
+import {AvatarUser} from 'sentry/types';
+import {isRenderFunc} from 'sentry/utils/isRenderFunc';
 
 import ActivityAvatar from './avatar';
-import ActivityBubble from './bubble';
+import ActivityBubble, {ActivityBubbleProps} from './bubble';
 
 export type ActivityAuthorType = 'user' | 'system';
 
 type ChildFunction = () => React.ReactNode;
 
-type Props = {
-  children?: React.ReactChild | ChildFunction;
-  className?: string;
-  /**
-   * This is used to uniquely identify the activity item for use as an anchor
-   */
-  id?: string;
-
-  /**
-   * If supplied, will show the time that the activity started
-   */
-  date?: string | Date;
-
-  /**
-   * If supplied, will show the interval that the activity occurred in
-   */
-  interval?: number;
-
+interface ActivityItemProps {
   /**
    * Used to render an avatar for the author. Currently can be a user, otherwise
    * defaults as a "system" avatar (i.e. sentry)
@@ -44,28 +27,45 @@ type Props = {
     type: ActivityAuthorType;
     user?: AvatarUser;
   };
-
   // Size of the avatar.
   avatarSize?: number;
+  bubbleProps?: ActivityBubbleProps;
 
-  // Hides date in header
-  hideDate?: boolean;
+  children?: React.ReactChild | ChildFunction;
 
-  // Instead of showing a relative time/date, show the time
-  showTime?: boolean;
+  className?: string;
 
   /**
-   * Can be a react node or a render function. render function will not include default wrapper
+   * If supplied, will show the time that the activity started
    */
-  header?: React.ReactNode | ChildFunction;
+  date?: string | Date;
 
   /**
    * Can be a react node or a render function. render function will not include default wrapper
    */
   footer?: React.ReactNode | ChildFunction;
 
-  bubbleProps?: React.ComponentProps<typeof ActivityBubble>;
-};
+  /**
+   * Can be a react node or a render function. render function will not include default wrapper
+   */
+  header?: React.ReactNode | ChildFunction;
+
+  // Hides date in header
+  hideDate?: boolean;
+
+  /**
+   * This is used to uniquely identify the activity item for use as an anchor
+   */
+  id?: string;
+
+  /**
+   * If supplied, will show the interval that the activity occurred in
+   */
+  interval?: number;
+
+  // Instead of showing a relative time/date, show the time
+  showTime?: boolean;
+}
 
 function ActivityItem({
   author,
@@ -80,7 +80,7 @@ function ActivityItem({
   header,
   hideDate = false,
   showTime = false,
-}: Props) {
+}: ActivityItemProps) {
   const showDate = !hideDate && date && !interval;
   const showRange = !hideDate && date && interval;
   const dateEnded = showRange

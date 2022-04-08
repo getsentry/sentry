@@ -1,19 +1,19 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Access from 'app/components/acl/access';
-import Role from 'app/components/acl/role';
-import ActionButton from 'app/components/actions/button';
-import MenuItemActionLink from 'app/components/actions/menuItemActionLink';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import Confirm from 'app/components/confirm';
-import DropdownLink from 'app/components/dropdownLink';
-import Tooltip from 'app/components/tooltip';
-import {IconDelete, IconDownload, IconEllipsis} from 'app/icons';
-import {t} from 'app/locale';
-import {Organization} from 'app/types';
-import {CandidateDownloadStatus, ImageCandidate} from 'app/types/debugImage';
+import Access from 'sentry/components/acl/access';
+import {Role} from 'sentry/components/acl/role';
+import ActionButton from 'sentry/components/actions/button';
+import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import Confirm from 'sentry/components/confirm';
+import DropdownLink from 'sentry/components/dropdownLink';
+import Tooltip from 'sentry/components/tooltip';
+import {IconDelete, IconDownload, IconEllipsis} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
+import {CandidateDownloadStatus, ImageCandidate} from 'sentry/types/debugImage';
 
 const noPermissionToDownloadDebugFilesInfo = t(
   'You do not have permission to download debug files'
@@ -26,12 +26,12 @@ const noPermissionToDeleteDebugFilesInfo = t(
 const debugFileDeleteConfirmationInfo = t('Are you sure you wish to delete this file?');
 
 type Props = {
-  candidate: ImageCandidate;
-  organization: Organization;
-  isInternalSource: boolean;
   baseUrl: string;
-  projectId: string;
+  candidate: ImageCandidate;
+  isInternalSource: boolean;
   onDelete: (debugFileId: string) => void;
+  organization: Organization;
+  projSlug: Project['slug'];
 };
 
 function Actions({
@@ -39,7 +39,7 @@ function Actions({
   organization,
   isInternalSource,
   baseUrl,
-  projectId,
+  projSlug,
   onDelete,
 }: Props) {
   const {download, location: debugFileId} = candidate;
@@ -50,7 +50,7 @@ function Actions({
   }
 
   const deleted = status === CandidateDownloadStatus.DELETED;
-  const downloadUrl = `${baseUrl}/projects/${organization.slug}/${projectId}/files/dsyms/?id=${debugFileId}`;
+  const downloadUrl = `${baseUrl}/projects/${organization.slug}/${projSlug}/files/dsyms/?id=${debugFileId}`;
 
   const actions = (
     <Role role={organization.debugFilesRole} organization={organization}>
@@ -62,7 +62,7 @@ function Actions({
                 caret={false}
                 customTitle={
                   <ActionButton
-                    label={t('Actions')}
+                    aria-label={t('Actions')}
                     disabled={deleted}
                     icon={<IconEllipsis size="sm" />}
                   />
@@ -120,6 +120,7 @@ function Actions({
                       icon={<IconDelete size="xs" />}
                       size="xsmall"
                       disabled={!hasAccess}
+                      aria-label={t('Delete')}
                     />
                   </Confirm>
                 </Tooltip>

@@ -1,7 +1,7 @@
-import {DateTimeObject, getSeriesApiInterval} from 'app/components/charts/utils';
-import {DataCategory} from 'app/types';
-import {formatBytesBase10} from 'app/utils';
-import {parsePeriodToHours} from 'app/utils/dates';
+import {DateTimeObject, getSeriesApiInterval} from 'sentry/components/charts/utils';
+import {DataCategory} from 'sentry/types';
+import {formatBytesBase10} from 'sentry/utils';
+import {parsePeriodToHours} from 'sentry/utils/dates';
 
 export const MILLION = 10 ** 6;
 export const BILLION = 10 ** 9;
@@ -64,7 +64,7 @@ export function getFormatUsageOptions(dataCategory: DataCategory): FormatOptions
  * provide clarity on usage of errors/transactions/attachments to the user.
  *
  * If you are not displaying usage numbers, it might be better to use
- * `formatAbbreviatedNumber` in 'app/utils/formatters'
+ * `formatAbbreviatedNumber` in 'sentry/utils/formatters'
  */
 export function abbreviateUsageNumber(n: number) {
   if (n >= BILLION) {

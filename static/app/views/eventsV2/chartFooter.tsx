@@ -1,23 +1,28 @@
 import * as React from 'react';
 
-import OptionSelector from 'app/components/charts/optionSelector';
+import OptionCheckboxSelector from 'sentry/components/charts/optionCheckboxSelector';
+import OptionSelector from 'sentry/components/charts/optionSelector';
 import {
   ChartControls,
   InlineContainer,
   SectionHeading,
   SectionValue,
-} from 'app/components/charts/styles';
-import {t} from 'app/locale';
-import {SelectValue} from 'app/types';
+} from 'sentry/components/charts/styles';
+import {t} from 'sentry/locale';
+import {Organization, SelectValue} from 'sentry/types';
+import {TOP_EVENT_MODES} from 'sentry/utils/discover/types';
 
 type Props = {
-  total: number | null;
-  yAxisValue: string;
-  yAxisOptions: SelectValue<string>[];
-  onAxisChange: (value: string) => void;
   displayMode: string;
   displayOptions: SelectValue<string>[];
+  onAxisChange: (value: string[]) => void;
   onDisplayChange: (value: string) => void;
+  onTopEventsChange: (value: string) => void;
+  organization: Organization;
+  topEvents: string;
+  total: number | null;
+  yAxisOptions: SelectValue<string>[];
+  yAxisValue: string[];
 };
 
 export default function ChartFooter({
@@ -28,6 +33,8 @@ export default function ChartFooter({
   displayMode,
   displayOptions,
   onDisplayChange,
+  onTopEventsChange,
+  topEvents,
 }: Props) {
   const elements: React.ReactNode[] = [];
 
@@ -41,6 +48,10 @@ export default function ChartFooter({
       <SectionValue key="total-value">{total.toLocaleString()}</SectionValue>
     )
   );
+  const topEventOptions: SelectValue<string>[] = [];
+  for (let i = 1; i <= 10; i++) {
+    topEventOptions.push({value: i.toString(), label: i.toString()});
+  }
 
   return (
     <ChartControls>
@@ -53,7 +64,16 @@ export default function ChartFooter({
           onChange={onDisplayChange}
           menuWidth="170px"
         />
-        <OptionSelector
+        {TOP_EVENT_MODES.includes(displayMode) && (
+          <OptionSelector
+            title={t('Limit')}
+            selected={topEvents}
+            options={topEventOptions}
+            onChange={onTopEventsChange}
+            menuWidth="60px"
+          />
+        )}
+        <OptionCheckboxSelector
           title={t('Y-Axis')}
           selected={yAxisValue}
           options={yAxisOptions}

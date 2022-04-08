@@ -1,91 +1,88 @@
+from datetime import datetime, timedelta, timezone
+
 from django.urls import reverse
 
 from sentry.models import AuthIdentity, AuthProvider
 from sentry.testutils import AuthProviderTestCase
-from sentry.utils.auth import SSO_SESSION_KEY
+from sentry.utils.auth import SSO_EXPIRY_TIME, SsoSession
 from sentry.utils.linksign import generate_signed_link
 
 
+# TODO: move these into the tests/sentry/auth directory and remove deprecated logic
 class AuthenticationTest(AuthProviderTestCase):
-    def test_sso_auth_required(self):
-        user = self.create_user("foo@example.com", is_superuser=False)
-        organization = self.create_organization(name="foo")
-        team = self.create_team(name="bar", organization=organization)
-        project = self.create_project(name="baz", organization=organization, teams=[team])
-        member = self.create_member(user=user, organization=organization, teams=[team])
+    def setUp(self):
+        self.organization = self.create_organization(name="foo")
+        self.user = self.create_user("foobar@example.com", is_superuser=False)
+        team = self.create_team(name="bar", organization=self.organization)
+
+        self.project = self.create_project(name="baz", organization=self.organization, teams=[team])
+
+        member = self.create_member(user=self.user, organization=self.organization, teams=[team])
+
         setattr(member.flags, "sso:linked", True)
         member.save()
-        event = self.store_event(data={}, project_id=project.id)
+        event = self.store_event(data={}, project_id=self.project.id)
         group_id = event.group_id
         auth_provider = AuthProvider.objects.create(
-            organization=organization, provider="dummy", flags=0
+            organization=self.organization, provider="dummy", flags=0
         )
+        AuthIdentity.objects.create(auth_provider=auth_provider, user=self.user)
+        self.login_as(self.user)
 
-        AuthIdentity.objects.create(auth_provider=auth_provider, user=user)
-
-        self.login_as(user)
-
-        paths = (
-            f"/api/0/organizations/{organization.slug}/",
-            f"/api/0/projects/{organization.slug}/{project.slug}/",
-            f"/api/0/teams/{organization.slug}/{team.slug}/",
+        self.paths = (
+            f"/api/0/organizations/{self.organization.slug}/",
+            f"/api/0/projects/{self.organization.slug}/{self.project.slug}/",
+            f"/api/0/teams/{self.organization.slug}/{self.team.slug}/",
             f"/api/0/issues/{group_id}/",
             # this uses the internal API, which once upon a time was broken
             f"/api/0/issues/{group_id}/events/latest/",
         )
 
-        for path in paths:
-            # we should be redirecting the user to the authentication form as they
-            # haven't verified this specific organization
-            resp = self.client.get(path)
-            assert resp.status_code == 401, (resp.status_code, resp.content)
+    def test_sso_auth_required(self):
+        # we should be redirecting the user to the authentication form as they
+        # haven't verified this specific organization
+        self._test_paths_with_status(401)
 
+    def test_sso_superuser_required(self):
         # superuser should still require SSO as they're a member of the org
-        user.update(is_superuser=True)
-        for path in paths:
-            resp = self.client.get(path)
-            assert resp.status_code == 401, (resp.status_code, resp.content)
+        self.user.update(is_superuser=True)
+        self._test_paths_with_status(401)
 
-        # XXX(dcramer): using internal API as exposing a request object is hard
-        self.session[SSO_SESSION_KEY] = str(organization.id)
+    def test_sso_with_expiry_valid(self):
+        sso_session = SsoSession.create(self.organization.id)
+        self.session[sso_session.session_key] = sso_session.to_dict()
         self.save_session()
 
-        # now that SSO is marked as complete, we should be able to access dash
-        for path in paths:
+        self._test_paths_with_status(200)
+
+    def test_sso_with_expiry_expired(self):
+        sso_session_expired = SsoSession(
+            self.organization.id,
+            datetime.now(tz=timezone.utc) - SSO_EXPIRY_TIME - timedelta(hours=1),
+        )
+        self.session[sso_session_expired.session_key] = sso_session_expired.to_dict()
+
+        self.save_session()
+        self._test_paths_with_status(401)
+
+    def _test_paths_with_status(self, status):
+        for path in self.paths:
             resp = self.client.get(path)
-            assert resp.status_code == 200, (path, resp.status_code, resp.content)
+            assert resp.status_code == status, (resp.status_code, resp.content)
 
     def test_sso_auth_required_signed_link(self):
-        user = self.create_user("foo@example.com", is_superuser=False)
-        organization = self.create_organization(name="foo")
-        team = self.create_team(name="bar", organization=organization)
-        project = self.create_project(name="baz", organization=organization, teams=[team])
-        member = self.create_member(user=user, organization=organization, teams=[team])
-        setattr(member.flags, "sso:linked", True)
-        member.save()
-
-        self.store_event(data={}, project_id=project.id)
-
-        auth_provider = AuthProvider.objects.create(
-            organization=organization, provider="dummy", flags=0
-        )
-
-        AuthIdentity.objects.create(auth_provider=auth_provider, user=user)
-
-        self.login_as(user)
-
         unsigned_link = reverse(
             "sentry-api-0-project-fix-processing-issues",
-            kwargs={"project_slug": project.slug, "organization_slug": organization.slug},
+            kwargs={"project_slug": self.project.slug, "organization_slug": self.organization.slug},
         )
 
         resp = self.client.get(unsigned_link)
         assert resp.status_code == 401, (resp.status_code, resp.content)
 
         signed_link = generate_signed_link(
-            user,
+            self.user,
             "sentry-api-0-project-fix-processing-issues",
-            kwargs={"project_slug": project.slug, "organization_slug": organization.slug},
+            kwargs={"project_slug": self.project.slug, "organization_slug": self.organization.slug},
         )
 
         resp = self.client.get(signed_link)

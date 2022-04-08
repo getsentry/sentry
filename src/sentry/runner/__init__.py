@@ -15,10 +15,7 @@ from sentry.utils.imports import import_string
 datetime.datetime.strptime("", "")
 
 # Parse out a pretty version for use with --version
-if sentry.__build__ is None:
-    version_string = sentry.VERSION
-else:
-    version_string = f"{sentry.VERSION} ({sentry.__build__[:12]})"
+version_string = sentry.__semantic_version__
 
 
 @click.group(context_settings={"max_content_width": 150})

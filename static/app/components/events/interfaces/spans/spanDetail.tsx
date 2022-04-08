@@ -2,41 +2,46 @@ import * as React from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import map from 'lodash/map';
+import omit from 'lodash/omit';
 
-import {Client} from 'app/api';
-import Alert from 'app/components/alert';
-import Button from 'app/components/button';
-import DateTime from 'app/components/dateTime';
-import DiscoverButton from 'app/components/discoverButton';
-import FileSize from 'app/components/fileSize';
-import ExternalLink from 'app/components/links/externalLink';
-import Link from 'app/components/links/link';
-import LoadingIndicator from 'app/components/loadingIndicator';
+import {Client} from 'sentry/api';
+import Feature from 'sentry/components/acl/feature';
+import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
+import DateTime from 'sentry/components/dateTime';
+import DiscoverButton from 'sentry/components/discoverButton';
+import FileSize from 'sentry/components/fileSize';
+import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {
   ErrorDot,
   ErrorLevel,
   ErrorMessageContent,
   ErrorMessageTitle,
   ErrorTitle,
-} from 'app/components/performance/waterfall/rowDetails';
-import Pill from 'app/components/pill';
-import Pills from 'app/components/pills';
+} from 'sentry/components/performance/waterfall/rowDetails';
+import Pill from 'sentry/components/pill';
+import Pills from 'sentry/components/pills';
 import {
   generateIssueEventTarget,
   generateTraceTarget,
-} from 'app/components/quickTrace/utils';
-import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
-import {IconAnchor, IconWarning} from 'app/icons';
-import {t, tn} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {EventTransaction} from 'app/types/event';
-import {assert} from 'app/types/utils';
-import EventView from 'app/utils/discover/eventView';
-import {generateEventSlug} from 'app/utils/discover/urls';
-import getDynamicText from 'app/utils/getDynamicText';
-import {QuickTraceEvent, TraceError} from 'app/utils/performance/quickTrace/types';
-import withApi from 'app/utils/withApi';
+} from 'sentry/components/quickTrace/utils';
+import {ALL_ACCESS_PROJECTS, PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
+import {IconAnchor} from 'sentry/icons';
+import {t, tn} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {EventTransaction} from 'sentry/types/event';
+import {assert} from 'sentry/types/utils';
+import {defined} from 'sentry/utils';
+import EventView from 'sentry/utils/discover/eventView';
+import {generateEventSlug} from 'sentry/utils/discover/urls';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import {QuickTraceEvent, TraceError} from 'sentry/utils/performance/quickTrace/types';
+import withApi from 'sentry/utils/withApi';
+import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
+import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 import * as SpanEntryContext from './context';
 import InlineDocs from './inlineDocs';
@@ -48,22 +53,22 @@ const DEFAULT_ERRORS_VISIBLE = 5;
 const SIZE_DATA_KEYS = ['Encoded Body Size', 'Decoded Body Size', 'Transfer Size'];
 
 type TransactionResult = {
-  'project.name': string;
-  transaction: string;
-  'trace.span': string;
   id: string;
+  'project.name': string;
+  'trace.span': string;
+  transaction: string;
 };
 
 type Props = WithRouterProps & {
   api: Client;
-  organization: Organization;
-  event: Readonly<EventTransaction>;
-  span: Readonly<ProcessedSpanType>;
-  isRoot: boolean;
-  trace: Readonly<ParsedTraceType>;
   childTransactions: QuickTraceEvent[] | null;
+  event: Readonly<EventTransaction>;
+  isRoot: boolean;
+  organization: Organization;
   relatedErrors: TraceError[] | null;
   scrollToHash: (hash: string) => void;
+  span: Readonly<ProcessedSpanType>;
+  trace: Readonly<ParsedTraceType>;
 };
 
 type State = {
@@ -142,7 +147,7 @@ class SpanDetail extends React.Component<Props, State> {
   }
 
   renderSpanChild(): React.ReactNode {
-    const {childTransactions} = this.props;
+    const {childTransactions, organization, location} = this.props;
 
     if (!childTransactions || childTransactions.length !== 1) {
       return null;
@@ -171,10 +176,22 @@ class SpanDetail extends React.Component<Props, State> {
             return null;
           }
 
+          const target = transactionSummaryRouteWithQuery({
+            orgSlug: organization.slug,
+            transaction: transactionResult.transaction,
+            query: omit(location.query, Object.values(PAGE_URL_PARAM)),
+            projectID: String(childTransaction.project_id),
+          });
+
           return (
-            <StyledButton data-test-id="view-child-transaction" size="xsmall" to={to}>
-              {t('View Transaction')}
-            </StyledButton>
+            <ButtonGroup>
+              <StyledButton data-test-id="view-child-transaction" size="xsmall" to={to}>
+                {t('View Transaction')}
+              </StyledButton>
+              <StyledButton size="xsmall" to={target}>
+                {t('View Summary')}
+              </StyledButton>
+            </ButtonGroup>
           );
         }}
       </SpanEntryContext.Consumer>
@@ -201,6 +218,30 @@ class SpanDetail extends React.Component<Props, State> {
     );
   }
 
+  renderViewSimilarSpansButton() {
+    const {span, organization, location, event} = this.props;
+
+    if (isGapSpan(span) || !span.op || !span.hash) {
+      return null;
+    }
+
+    const transactionName = event.title;
+
+    const target = spanDetailsRouteWithQuery({
+      orgSlug: organization.slug,
+      transaction: transactionName,
+      query: location.query,
+      spanSlug: {op: span.op, group: span.hash},
+      projectID: event.projectID,
+    });
+
+    return (
+      <StyledButton size="xsmall" to={target}>
+        {t('View Similar Spans')}
+      </StyledButton>
+    );
+  }
+
   renderOrphanSpanMessage() {
     const {span} = this.props;
 
@@ -209,7 +250,7 @@ class SpanDetail extends React.Component<Props, State> {
     }
 
     return (
-      <Alert system type="info" icon={<IconWarning size="md" />}>
+      <Alert type="info" showIcon system>
         {t(
           'This is a span that has no parent span within this transaction. It has been attached to the transaction root span by default.'
         )}
@@ -234,7 +275,7 @@ class SpanDetail extends React.Component<Props, State> {
       : relatedErrors.slice(0, DEFAULT_ERRORS_VISIBLE);
 
     return (
-      <Alert system type="error" icon={<IconWarning size="md" />}>
+      <Alert type="error" showIcon system>
         <ErrorMessageTitle>
           {tn(
             'An error event occurred in this transaction.',
@@ -290,7 +331,7 @@ class SpanDetail extends React.Component<Props, State> {
           <InlineDocs
             platform={event.sdk?.name || ''}
             orgSlug={organization.slug}
-            projectSlug={event.projectSlug}
+            projectSlug={event?.projectSlug ?? ''}
           />
         </SpanDetails>
       );
@@ -341,7 +382,9 @@ class SpanDetail extends React.Component<Props, State> {
               <Row title="Trace ID" extra={this.renderTraceButton()}>
                 {span.trace_id}
               </Row>
-              <Row title="Description">{span?.description ?? ''}</Row>
+              <Row title="Description" extra={this.renderViewSimilarSpansButton()}>
+                {span?.description ?? ''}
+              </Row>
               <Row title="Status">{span.status || ''}</Row>
               <Row title="Start Date">
                 {getDynamicText({
@@ -372,6 +415,19 @@ class SpanDetail extends React.Component<Props, State> {
                   ? String(span.same_process_as_parent)
                   : null}
               </Row>
+              <Feature
+                organization={organization}
+                features={['organizations:performance-suspect-spans-view']}
+              >
+                <Row title="Span Group">
+                  {defined(span.hash) ? String(span.hash) : null}
+                </Row>
+                <Row title="Span Self Time">
+                  {defined(span.exclusive_time)
+                    ? `${Number(span.exclusive_time.toFixed(3)).toLocaleString()}ms`
+                    : null}
+                </Row>
+              </Feature>
               <Tags span={span} />
               {allZeroSizes && (
                 <TextTr>
@@ -431,11 +487,7 @@ const StyledDiscoverButton = styled(DiscoverButton)`
   right: ${space(0.5)};
 `;
 
-const StyledButton = styled(Button)`
-  position: absolute;
-  top: ${space(0.75)};
-  right: ${space(0.5)};
-`;
+const StyledButton = styled(Button)``;
 
 export const SpanDetailContainer = styled('div')`
   border-bottom: 1px solid ${p => p.theme.border};
@@ -495,10 +547,10 @@ export const Row = ({
   children,
   extra = null,
 }: {
-  title: JSX.Element | string | null;
   children: JSX.Element | string | null;
-  keep?: boolean;
+  title: JSX.Element | string | null;
   extra?: React.ReactNode;
+  keep?: boolean;
 }) => {
   if (!keep && !children) {
     return null;
@@ -508,10 +560,12 @@ export const Row = ({
     <tr>
       <td className="key">{title}</td>
       <ValueTd className="value">
-        <pre className="val">
-          <span className="val-string">{children}</span>
-        </pre>
-        {extra}
+        <ValueRow>
+          <StyledPre>
+            <span className="val-string">{children}</span>
+          </StyledPre>
+          <ButtonContainer>{extra}</ButtonContainer>
+        </ValueRow>
       </ValueTd>
     </tr>
   );
@@ -550,5 +604,30 @@ function generateSlug(result: TransactionResult): string {
     'project.name': result['project.name'],
   });
 }
+
+const ButtonGroup = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.5)};
+`;
+
+const ValueRow = styled('div')`
+  display: grid;
+  grid-template-columns: auto min-content;
+  gap: ${space(1)};
+
+  border-radius: 4px;
+  background-color: ${p => p.theme.surface100};
+  margin: 2px;
+`;
+
+const StyledPre = styled('pre')`
+  margin: 0 !important;
+  background-color: transparent !important;
+`;
+
+const ButtonContainer = styled('div')`
+  padding: 8px 10px;
+`;
 
 export default withApi(withRouter(SpanDetail));

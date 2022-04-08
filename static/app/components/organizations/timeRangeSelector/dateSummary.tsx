@@ -1,63 +1,60 @@
-/**
- * Displays and formats absolute DateTime ranges
- */
-import {Component, Fragment} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {DEFAULT_DAY_END_TIME, DEFAULT_DAY_START_TIME} from 'app/utils/dates';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {DEFAULT_DAY_END_TIME, DEFAULT_DAY_START_TIME} from 'sentry/utils/dates';
 
 type Props = {
-  start: moment.MomentInput;
   end: moment.MomentInput;
+  start: moment.MomentInput;
 };
 
-class DateSummary extends Component<Props> {
-  getFormattedDate(date: moment.MomentInput, format: string) {
+/**
+ * Displays and formats absolute DateTime ranges
+ */
+function DateSummary({start, end}: Props) {
+  function getFormattedDate(date: moment.MomentInput, format: string) {
     return moment(date).local().format(format);
   }
 
-  formatDate(date: moment.MomentInput) {
-    return this.getFormattedDate(date, 'll');
+  function formatDate(date: moment.MomentInput) {
+    return getFormattedDate(date, 'll');
   }
 
-  formatTime(date: moment.MomentInput, withSeconds = false) {
-    return this.getFormattedDate(date, `HH:mm${withSeconds ? ':ss' : ''}`);
+  function formatTime(date: moment.MomentInput, withSeconds = false) {
+    return getFormattedDate(date, `HH:mm${withSeconds ? ':ss' : ''}`);
   }
 
-  render() {
-    const {start, end} = this.props;
-    const startTimeFormatted = this.formatTime(start, true);
-    const endTimeFormatted = this.formatTime(end, true);
+  const startTimeFormatted = formatTime(start, true);
+  const endTimeFormatted = formatTime(end, true);
 
-    // Show times if either start or end date contain a time that is not midnight
-    const shouldShowTimes =
-      startTimeFormatted !== DEFAULT_DAY_START_TIME ||
-      endTimeFormatted !== DEFAULT_DAY_END_TIME;
+  // Show times if either start or end date contain a time that is not midnight
+  const shouldShowTimes =
+    startTimeFormatted !== DEFAULT_DAY_START_TIME ||
+    endTimeFormatted !== DEFAULT_DAY_END_TIME;
 
-    return (
-      <DateGroupWrapper hasTime={shouldShowTimes}>
+  return (
+    <DateGroupWrapper hasTime={shouldShowTimes}>
+      <DateGroup>
+        <Date hasTime={shouldShowTimes}>
+          {formatDate(start)}
+          {shouldShowTimes && <Time>{formatTime(start)}</Time>}
+        </Date>
+      </DateGroup>
+      <Fragment>
+        <DateRangeDivider>{t('to')}</DateRangeDivider>
+
         <DateGroup>
           <Date hasTime={shouldShowTimes}>
-            {this.formatDate(start)}
-            {shouldShowTimes && <Time>{this.formatTime(start)}</Time>}
+            {formatDate(end)}
+            {shouldShowTimes && <Time>{formatTime(end)}</Time>}
           </Date>
         </DateGroup>
-        <Fragment>
-          <DateRangeDivider>{t('to')}</DateRangeDivider>
-
-          <DateGroup>
-            <Date hasTime={shouldShowTimes}>
-              {this.formatDate(end)}
-              {shouldShowTimes && <Time>{this.formatTime(end)}</Time>}
-            </Date>
-          </DateGroup>
-        </Fragment>
-      </DateGroupWrapper>
-    );
-  }
+      </Fragment>
+    </DateGroupWrapper>
+  );
 }
 
 const DateGroupWrapper = styled('div')<{hasTime: boolean}>`

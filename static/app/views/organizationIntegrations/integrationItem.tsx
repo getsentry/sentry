@@ -1,9 +1,9 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
-import {Integration} from 'app/types';
-import IntegrationIcon from 'app/views/organizationIntegrations/integrationIcon';
+import space from 'sentry/styles/space';
+import {Integration} from 'sentry/types';
+import IntegrationIcon from 'sentry/views/organizationIntegrations/integrationIcon';
 
 type DefaultProps = {
   compact: boolean;
@@ -50,7 +50,7 @@ const Labels = styled('div')<StyledProps>`
 `;
 
 const IntegrationName = styled('div')`
-  font-size: 1.6rem;
+  font-size: 1rem;
 `;
 
 // Not using the overflowEllipsis style import here
@@ -60,7 +60,7 @@ const DomainName = styled('div')<StyledProps>`
   color: ${p => (p.compact ? p.theme.gray200 : p.theme.gray400)};
   margin-left: ${p => (p.compact ? space(1) : 'inherit')};
   margin-top: ${p => (!p.compact ? space(0.25) : 'inherit')};
-  font-size: 1.4rem;
+  font-size: 0.875rem;
   line-height: 1.2;
   overflow: hidden;
   text-overflow: ellipsis;

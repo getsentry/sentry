@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
+import space from 'sentry/styles/space';
 
 type Props = {
   command: string;
@@ -23,7 +23,7 @@ const Wrapper = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
   display: grid;
   grid-template-columns: max-content 1fr;
-  grid-gap: ${space(0.75)};
+  gap: ${space(0.75)};
 `;
 
 const Prompt = styled('div')`

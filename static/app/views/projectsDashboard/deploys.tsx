@@ -1,15 +1,15 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import TextOverflow from 'app/components/textOverflow';
-import TimeSince from 'app/components/timeSince';
-import Version from 'app/components/version';
-import {IconReleases} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Deploy as DeployType, Project} from 'app/types';
-import getDynamicText from 'app/utils/getDynamicText';
+import Button from 'sentry/components/button';
+import TextOverflow from 'sentry/components/textOverflow';
+import TimeSince from 'sentry/components/timeSince';
+import Version from 'sentry/components/version';
+import {IconReleases} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Deploy as DeployType, Project} from 'sentry/types';
+import getDynamicText from 'sentry/utils/getDynamicText';
 
 const DEPLOY_COUNT = 2;
 

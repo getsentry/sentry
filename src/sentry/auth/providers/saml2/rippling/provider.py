@@ -1,3 +1,6 @@
+from rest_framework.request import Request
+from rest_framework.response import Response
+
 from sentry.auth.providers.saml2.forms import URLMetadataForm
 from sentry.auth.providers.saml2.provider import Attributes, SAML2Provider
 from sentry.auth.providers.saml2.views import make_simple_setup
@@ -15,7 +18,7 @@ class WaitForCompletion(AuthView):
     This is simply an extra step to wait for them to complete that.
     """
 
-    def handle(self, request, helper):
+    def handle(self, request: Request, helper) -> Response:
         if "continue_setup" in request.POST:
             return helper.next_step()
 
@@ -24,9 +27,6 @@ class WaitForCompletion(AuthView):
 
 class RipplingSAML2Provider(SAML2Provider):
     name = "Rippling"
-
-    # Rippling is currently it's own feature
-    required_feature = "organizations:sso-rippling"
 
     def get_saml_setup_pipeline(self):
         return [SelectIdP(), WaitForCompletion()]

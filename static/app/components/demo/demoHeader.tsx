@@ -1,87 +1,79 @@
-import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import ExternalLink from 'app/components/links/externalLink';
-import LogoSentry from 'app/components/logoSentry';
-import {t} from 'app/locale';
-import PreferencesStore from 'app/stores/preferencesStore';
-import space from 'app/styles/space';
-import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import {emailQueryParameter, extraQueryParameter} from 'app/utils/demoMode';
-import getCookie from 'app/utils/getCookie';
-
-type Preferences = typeof PreferencesStore.prefs;
+import Button from 'sentry/components/button';
+import ExternalLink from 'sentry/components/links/externalLink';
+import LogoSentry from 'sentry/components/logoSentry';
+import {t} from 'sentry/locale';
+import PreferencesStore from 'sentry/stores/preferencesStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import space from 'sentry/styles/space';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {
+  extraQueryParameter,
+  extraQueryParameterWithEmail,
+  urlAttachQueryParams,
+} from 'sentry/utils/demoMode';
 
 export default function DemoHeader() {
+  const sandboxData = window.SandboxData;
   // if the user came from a SaaS org, we should send them back to upgrade when they leave the sandbox
-  const saasOrgSlug = getCookie('saas_org_slug');
+  const extraSearchParams = extraQueryParameter();
 
-  const queryParameter = emailQueryParameter();
-  const getStartedExtraParameter = extraQueryParameter(true);
-  const extraParameter = extraQueryParameter(false);
-
-  const getStartedText = saasOrgSlug ? t('Upgrade Now') : t('Sign Up for Free');
-  const getStartedUrl = saasOrgSlug
-    ? `https://sentry.io/settings/${saasOrgSlug}/billing/checkout/`
-    : `https://sentry.io/signup/${queryParameter}${getStartedExtraParameter}`;
-
-  const [collapsed, setCollapsed] = useState(PreferencesStore.prefs.collapsed);
-
-  const preferenceUnsubscribe = PreferencesStore.listen(
-    (preferences: Preferences) => onPreferenceChange(preferences),
-    undefined
-  );
-
-  function onPreferenceChange(preferences: Preferences) {
-    if (preferences.collapsed === collapsed) {
-      return;
-    }
-    setCollapsed(!collapsed);
-  }
-
-  useEffect(() => {
-    return () => {
-      preferenceUnsubscribe();
-    };
-  });
+  const collapsed = !!useLegacyStore(PreferencesStore).collapsed;
 
   return (
     <Wrapper collapsed={collapsed}>
       <StyledLogoSentry />
-      <ButtonBar gap={4}>
-        <StyledExternalLink
-          onClick={() =>
-            trackAdvancedAnalyticsEvent('growth.demo_click_docs', {organization: null})
-          }
-          href={`https://docs.sentry.io/${extraParameter}`}
-        >
-          {t('Documentation')}
-        </StyledExternalLink>
-        <BaseButton
-          priority="form"
-          onClick={() =>
-            trackAdvancedAnalyticsEvent('growth.demo_click_request_demo', {
-              organization: null,
-            })
-          }
-          href={`https://sentry.io/_/demo/${extraParameter}`}
-        >
-          {t('Request a Demo')}
-        </BaseButton>
-        <GetStarted
-          onClick={() =>
-            trackAdvancedAnalyticsEvent('growth.demo_click_get_started', {
-              is_upgrade: !!saasOrgSlug,
-              organization: null,
-            })
-          }
-          href={getStartedUrl}
-        >
-          {getStartedText}
-        </GetStarted>
-      </ButtonBar>
+      <StyledExternalLink
+        onClick={() =>
+          trackAdvancedAnalyticsEvent('growth.demo_click_docs', {organization: null})
+        }
+        href={urlAttachQueryParams('https://docs.sentry.io/', extraSearchParams)}
+        openInNewTab
+      >
+        {t('Documentation')}
+      </StyledExternalLink>
+      <RequestDemoBtn
+        priority="form"
+        onClick={() =>
+          trackAdvancedAnalyticsEvent('growth.demo_click_request_demo', {
+            organization: null,
+          })
+        }
+        href={urlAttachQueryParams('https://sentry.io/_/demo/', extraSearchParams)}
+        target="_blank"
+        rel="noreferrer noopener"
+      >
+        {t('Request a Demo')}
+      </RequestDemoBtn>
+      <GetStarted
+        onClick={() => {
+          const url =
+            sandboxData?.cta?.url ||
+            urlAttachQueryParams(
+              'https://sentry.io/signup/',
+              extraQueryParameterWithEmail()
+            );
+
+          // Using window.open instead of href={} because we need to read `email`
+          // from localStorage when the user clicks the button.
+          window.open(url, '_blank');
+
+          trackAdvancedAnalyticsEvent('growth.demo_click_get_started', {
+            cta: sandboxData?.cta?.id,
+            organization: null,
+          });
+        }}
+        target="_blank"
+        rel="noreferrer noopener"
+      >
+        <GetStartedTextLong>
+          {sandboxData?.cta?.title || t('Sign Up for Free')}
+        </GetStartedTextLong>
+        <GetStartedTextShort>
+          {sandboxData?.cta?.shortTitle || t('Sign Up')}
+        </GetStartedTextShort>
+      </GetStarted>
     </Wrapper>
   );
 }
@@ -94,6 +86,9 @@ const Wrapper = styled('div')<{collapsed: boolean}>`
   display: flex;
   justify-content: space-between;
   text-transform: uppercase;
+  align-items: center;
+  white-space: nowrap;
+  gap: ${space(4)};
 
   margin-left: calc(
     -1 * ${p => (p.collapsed ? p.theme.sidebar.collapsedWidth : p.theme.sidebar.expandedWidth)}
@@ -114,6 +109,7 @@ const StyledLogoSentry = styled(LogoSentry)`
   margin-top: auto;
   margin-bottom: auto;
   margin-left: 20px;
+  margin-right: auto;
   width: 130px;
   height: 30px;
   color: ${p => p.theme.textColor};
@@ -124,14 +120,40 @@ const BaseButton = styled(Button)`
   text-transform: uppercase;
 `;
 
+const RequestDemoBtn = styled(BaseButton)`
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: none;
+  }
+`;
+
+const GetStartedTextShort = styled('span')`
+  display: none;
+`;
+
+const GetStartedTextLong = styled('span')``;
+
 // Note many of the colors don't come from the theme as they come from the marketing site
 const GetStarted = styled(BaseButton)`
   border-color: transparent;
   box-shadow: 0 2px 0 rgb(54 45 89 / 10%);
   background-color: #e1567c;
   color: #fff;
+  .short-text {
+    display: none;
+  }
+  @media (max-width: 650px) {
+    ${GetStartedTextLong} {
+      display: none;
+    }
+    ${GetStartedTextShort} {
+      display: inline;
+    }
+  }
 `;
 
 const StyledExternalLink = styled(ExternalLink)`
   color: #584774;
+  @media (max-width: 500px) {
+    display: none;
+  }
 `;

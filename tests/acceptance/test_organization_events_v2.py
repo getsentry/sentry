@@ -1,5 +1,6 @@
 import copy
 from datetime import timedelta
+from unittest.mock import patch
 from urllib.parse import urlencode
 
 import pytest
@@ -9,7 +10,6 @@ from selenium.webdriver.common.keys import Keys
 from sentry.discover.models import DiscoverSavedQuery
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format, timestamp_format
-from sentry.utils.compat.mock import patch
 from sentry.utils.samples import load_data
 
 FEATURE_NAMES = [
@@ -45,6 +45,20 @@ def errors_query(**kwargs):
 def transactions_query(**kwargs):
     options = {
         "sort": ["-count"],
+        "name": ["Transactions"],
+        "field": ["transaction", "project", "count()"],
+        "statsPeriod": ["14d"],
+        "query": ["event.type:transaction"],
+    }
+    options.update(kwargs)
+
+    return urlencode(options, doseq=True)
+
+
+# Sorted by transactions to avoid sorting issues caused by storing events
+def transactions_sorted_query(**kwargs):
+    options = {
+        "sort": ["transaction"],
         "name": ["Transactions"],
         "field": ["transaction", "project", "count()"],
         "statsPeriod": ["14d"],
@@ -144,7 +158,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         self.result_path = f"/organizations/{self.org.slug}/discover/results/"
 
     def wait_until_loaded(self):
-        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
 
     def test_events_default_landing(self):
@@ -205,15 +219,14 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
             # This test is flakey in that we sometimes load this page before the event is processed
             # depend on pytest-retry to reload the page
-            self.browser.wait_until_not(
-                '[data-test-id="grid-editable"] [data-test-id="empty-state"]', timeout=2
-            )
+            self.browser.wait_until('[data-test-id="grid-editable"] > tbody > tr:nth-child(2)')
             self.browser.snapshot("events-v2 - all events query - list")
 
         with self.feature(FEATURE_NAMES):
             # expect table to expand to the right when no tags are provided
             self.browser.get(self.result_path + "?" + all_events_query(tag=[]))
             self.wait_until_loaded()
+            self.browser.wait_until('[data-test-id="grid-editable"] > tbody > tr:nth-child(2)')
             self.browser.snapshot("events-v2 - all events query - list - no tags")
 
     def test_errors_query_empty_state(self):
@@ -393,7 +406,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
         with self.feature(FEATURE_NAMES):
             # Get the list page
-            self.browser.get(self.result_path + "?" + transactions_query())
+            self.browser.get(self.result_path + "?" + transactions_sorted_query())
             self.wait_until_loaded()
 
             # Open the stack
@@ -407,11 +420,11 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.browser.snapshot("events-v2 - transactions event with auto-grouped spans")
 
             # Expand auto-grouped spans
-            self.browser.elements('[data-test-id="span-row"]')[4].click()
+            self.browser.element('[data-test-id="span-row-5"]').click()
 
             # Open a span detail so we can check the search by trace link.
             # Click on the 6th one as a missing instrumentation span is inserted.
-            self.browser.elements('[data-test-id="span-row"]')[6].click()
+            self.browser.element('[data-test-id="span-row-7"]').click()
 
             # Wait until the child event loads.
             child_button = '[data-test-id="view-child-transaction"]'
@@ -421,6 +434,59 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             # Click on the child transaction.
             self.browser.click(child_button)
             self.wait_until_loaded()
+
+    @patch("django.utils.timezone.now")
+    def test_event_detail_view_from_transactions_query_siblings(self, mock_now):
+        # TODO(Ash): Will replace above test after sibling EA.
+        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+
+        event_data = generate_transaction(trace="a" * 32, span="ab" * 8)
+
+        for i in range(5):
+            clone = copy.deepcopy(event_data["spans"][-1])
+            # If range > 9 this might no longer work because of constraints on span_id (hex 16)
+            clone["span_id"] = (str("ac" * 6) + str(i)).ljust(16, "0")
+            event_data["spans"].append(clone)
+
+        self.store_event(data=event_data, project_id=self.project.id, assert_no_errors=True)
+
+        # Create a child event that is linked to the parent so we have coverage
+        # of traversal buttons.
+        child_event = generate_transaction(
+            trace=event_data["contexts"]["trace"]["trace_id"], span="bc" * 8
+        )
+        child_event["event_id"] = "b" * 32
+        child_event["contexts"]["trace"]["parent_span_id"] = event_data["spans"][4]["span_id"]
+        child_event["transaction"] = "z-child-transaction"
+        child_event["spans"] = child_event["spans"][0:3]
+        self.store_event(data=child_event, project_id=self.project.id, assert_no_errors=True)
+
+        with self.feature(FEATURE_NAMES + ["organizations:performance-autogroup-sibling-spans"]):
+            # Get the list page
+            self.browser.get(self.result_path + "?" + transactions_sorted_query())
+            self.wait_until_loaded()
+
+            # Open the stack
+            self.browser.elements('[data-test-id="open-group"]')[0].click()
+            self.wait_until_loaded()
+
+            # View Event
+            self.browser.elements('[data-test-id="view-event"]')[0].click()
+            self.wait_until_loaded()
+
+            self.browser.snapshot(
+                "events-v2 - transactions event with descendant and sibling auto-grouped spans"
+            )
+
+            # Expand auto-grouped descendant spans
+            self.browser.element('[data-test-id="span-row-5"]').click()
+
+            # Expand auto-grouped sibling spans
+            self.browser.element('[data-test-id="span-row-9"]').click()
+
+            self.browser.snapshot(
+                "events-v2 - transactions event with expanded descendant and sibling auto-grouped spans"
+            )
 
     @patch("django.utils.timezone.now")
     def test_transaction_event_detail_view_ops_filtering(self, mock_now):
@@ -537,9 +603,9 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             card = self.browser.element(card_selector)
 
             # Open the context menu
-            card.find_element_by_css_selector('[data-test-id="context-menu"]').click()
+            card.find_element_by_css_selector('[data-test-id="menu-trigger"]').click()
             # Delete the query
-            card.find_element_by_css_selector('[data-test-id="delete-query"]').click()
+            card.find_element_by_css_selector('[data-test-id="delete"]').click()
 
             # Wait for card to clear
             self.browser.wait_until_not(card_selector)
@@ -564,14 +630,19 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             card = self.browser.element(card_selector)
 
             # Open the context menu, and duplicate
-            card.find_element_by_css_selector('[data-test-id="context-menu"]').click()
-            card.find_element_by_css_selector('[data-test-id="duplicate-query"]').click()
+            card.find_element_by_css_selector('[data-test-id="menu-trigger"]').click()
+            card.find_element_by_css_selector('[data-test-id="duplicate"]').click()
 
             duplicate_name = f"{query.name} copy"
+
+            # Reload the page
+            self.browser.get(self.landing_path)
+
             # Wait for new element to show up.
             self.browser.element(f'[data-test-id="card-{duplicate_name}"]')
-        # Assert the new query exists and has 'copy' added to the name.
-        assert DiscoverSavedQuery.objects.filter(name=duplicate_name).exists()
+
+            # Assert the new query exists and has 'copy' added to the name.
+            assert DiscoverSavedQuery.objects.filter(name=duplicate_name).exists()
 
     @pytest.mark.skip(reason="causing timeouts in github actions and travis")
     @patch("django.utils.timezone.now")

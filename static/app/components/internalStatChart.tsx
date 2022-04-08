@@ -1,24 +1,24 @@
 import {Component} from 'react';
 
-import {Client} from 'app/api';
-import MiniBarChart from 'app/components/charts/miniBarChart';
-import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import withApi from 'app/utils/withApi';
+import {Client} from 'sentry/api';
+import MiniBarChart from 'sentry/components/charts/miniBarChart';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import withApi from 'sentry/utils/withApi';
 
 type Props = {
   api: Client;
-  since: number;
-  resolution: string;
-  stat: string;
   label: string;
+  resolution: string;
+  since: number;
+  stat: string;
   height?: number;
 };
 
 type State = {
+  data: [number, number][] | null;
   error: boolean;
   loading: boolean;
-  data: [number, number][] | null;
 };
 
 class InternalStatChart extends Component<Props, State> {
@@ -70,7 +70,8 @@ class InternalStatChart extends Component<Props, State> {
     const {label, height} = this.props;
     if (loading) {
       return <LoadingIndicator />;
-    } else if (error) {
+    }
+    if (error) {
       return <LoadingError onRetry={this.fetchData} />;
     }
 

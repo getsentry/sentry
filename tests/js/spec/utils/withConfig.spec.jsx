@@ -1,17 +1,24 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'app/stores/configStore';
-import withConfig from 'app/utils/withConfig';
+import ConfigStore from 'sentry/stores/configStore';
+import withConfig from 'sentry/utils/withConfig';
 
 describe('withConfig HoC', function () {
-  it('adds config prop', async function () {
+  beforeEach(() => {
     ConfigStore.init();
-    const MyComponent = () => null;
+  });
+
+  afterEach(() => {
+    ConfigStore.teardown();
+  });
+  it('adds config prop', function () {
+    const MyComponent = ({config}) => <div>{config.test}</div>;
     const Container = withConfig(MyComponent);
-    const wrapper = mountWithTheme(<Container />);
-    expect(wrapper.find('MyComponent').prop('config')).toEqual({});
-    ConfigStore.set('user', 'foo');
-    wrapper.update();
-    expect(wrapper.find('MyComponent').prop('config')).toEqual({user: 'foo'});
+
+    render(<Container />);
+
+    act(() => void ConfigStore.set('test', 'foo'));
+
+    expect(screen.getByText('foo')).toBeInTheDocument();
   });
 });

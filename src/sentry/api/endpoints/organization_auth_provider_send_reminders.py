@@ -1,4 +1,5 @@
 from django.utils.translation import ugettext_lazy as _
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
@@ -13,7 +14,7 @@ ERR_NO_SSO = _("The SSO feature is not enabled for this organization.")
 class OrganizationAuthProviderSendRemindersEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationAdminPermission,)
 
-    def post(self, request, organization):
+    def post(self, request: Request, organization) -> Response:
         if not features.has("organizations:sso-basic", organization, actor=request.user):
             return Response(ERR_NO_SSO, status=403)
 

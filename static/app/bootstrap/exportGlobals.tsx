@@ -1,12 +1,12 @@
 import * as React from 'react';
-import ReactDOM from 'react-dom';
+import {findDOMNode, render} from 'react-dom';
 import * as ReactRouter from 'react-router';
 import * as Sentry from '@sentry/react';
 import moment from 'moment';
-import PropTypes from 'prop-types';
-import Reflux from 'reflux';
+import * as PropTypes from 'prop-types';
+import * as Reflux from 'reflux';
 
-import plugins from 'app/plugins';
+import plugins from 'sentry/plugins';
 
 const globals = {
   // The following globals are used in sentry-plugins webpack externals
@@ -17,10 +17,7 @@ const globals = {
   Sentry,
   moment,
   Router: ReactRouter,
-  ReactDOM: {
-    findDOMNode: ReactDOM.findDOMNode,
-    render: ReactDOM.render,
-  },
+  ReactDOM: {findDOMNode, render},
 
   // django templates make use of these globals
   SentryApp: {},
@@ -30,9 +27,9 @@ const globals = {
 // modules that are not compiled with the sentry bundle.
 const SentryApp = {
   // The following components are used in sentry-plugins.
-  Form: require('app/components/forms/form').default,
-  FormState: require('app/components/forms/index').FormState,
-  LoadingIndicator: require('app/components/loadingIndicator').default,
+  Form: require('sentry/components/deprecatedforms/form').default,
+  FormState: require('sentry/components/forms/state').default,
+  LoadingIndicator: require('sentry/components/loadingIndicator').default,
   plugins: {
     add: plugins.add,
     addContext: plugins.addContext,
@@ -41,10 +38,13 @@ const SentryApp = {
   },
 
   // The following components are used in legacy django HTML views
-  ConfigStore: require('app/stores/configStore').default,
-  HookStore: require('app/stores/hookStore').default,
-  Modal: require('app/actionCreators/modal'),
-  getModalPortal: require('app/utils/getModalPortal').default,
+  // or in the Sentry sandbox
+  ConfigStore: require('sentry/stores/configStore').default,
+  HookStore: require('sentry/stores/hookStore').default,
+  GuideActionCreator: require('sentry/actionCreators/guides'),
+  Modal: require('sentry/actionCreators/modal'),
+  getModalPortal: require('sentry/utils/getModalPortal').default,
+  Client: require('sentry/api').Client,
 };
 
 globals.SentryApp = SentryApp;

@@ -4,37 +4,38 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import omit from 'lodash/omit';
 
-import Alert from 'app/components/alert';
-import Button from 'app/components/button';
-import DateTime from 'app/components/dateTime';
-import Link from 'app/components/links/link';
+import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
+import DateTime from 'sentry/components/dateTime';
+import Link from 'sentry/components/links/link';
 import {
   ErrorDot,
   ErrorLevel,
   ErrorMessageContent,
   ErrorMessageTitle,
   ErrorTitle,
-} from 'app/components/performance/waterfall/rowDetails';
-import {generateIssueEventTarget} from 'app/components/quickTrace/utils';
-import {PAGE_URL_PARAM} from 'app/constants/globalSelectionHeader';
-import {IconAnchor, IconWarning} from 'app/icons';
-import {t, tn} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {generateEventSlug} from 'app/utils/discover/urls';
-import getDynamicText from 'app/utils/getDynamicText';
-import {TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
-import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
-import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
-import {getTransactionDetailsUrl} from 'app/views/performance/utils';
+} from 'sentry/components/performance/waterfall/rowDetails';
+import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
+import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
+import {IconAnchor} from 'sentry/icons';
+import {t, tn} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {generateEventSlug} from 'sentry/utils/discover/urls';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
+import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
+import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
+import {ProfilerWithTasks} from 'sentry/utils/performanceForSentry';
+import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 import {Row, Tags, TransactionDetails, TransactionDetailsContainer} from './styles';
 
 type Props = {
   location: Location;
   organization: Organization;
-  transaction: TraceFullDetailed;
   scrollToHash: (hash: string) => void;
+  transaction: TraceFullDetailed;
 };
 
 class TransactionDetail extends Component<Props> {
@@ -49,8 +50,8 @@ class TransactionDetail extends Component<Props> {
     return (
       <Alert
         system
+        showIcon
         type="error"
-        icon={<IconWarning size="md" />}
         expand={errors.map(error => (
           <ErrorMessageContent key={error.event_id}>
             <ErrorDot level={error.level} />
@@ -83,7 +84,7 @@ class TransactionDetail extends Component<Props> {
     });
 
     const target = getTransactionDetailsUrl(
-      organization,
+      organization.slug,
       eventSlug,
       transaction.transaction,
       omit(location.query, Object.values(PAGE_URL_PARAM))
@@ -227,15 +228,17 @@ class TransactionDetail extends Component<Props> {
 
   render() {
     return (
-      <TransactionDetailsContainer
-        onClick={event => {
-          // prevent toggling the transaction detail
-          event.stopPropagation();
-        }}
-      >
-        {this.renderTransactionErrors()}
-        {this.renderTransactionDetail()}
-      </TransactionDetailsContainer>
+      <ProfilerWithTasks id="TransactionDetail">
+        <TransactionDetailsContainer
+          onClick={event => {
+            // prevent toggling the transaction detail
+            event.stopPropagation();
+          }}
+        >
+          {this.renderTransactionErrors()}
+          {this.renderTransactionDetail()}
+        </TransactionDetailsContainer>
+      </ProfilerWithTasks>
     );
   }
 }

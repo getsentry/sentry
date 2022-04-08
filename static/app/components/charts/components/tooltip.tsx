@@ -1,20 +1,22 @@
 import 'echarts/lib/component/tooltip';
 
-import {EChartOption} from 'echarts';
+import {useTheme} from '@emotion/react';
+import type {TooltipComponentFormatterCallback, TooltipComponentOption} from 'echarts';
 import moment from 'moment';
 
-import BaseChart from 'app/components/charts/baseChart';
-import {getFormattedDate, getTimeFormat} from 'app/utils/dates';
+import BaseChart from 'sentry/components/charts/baseChart';
+import {getFormattedDate, getTimeFormat} from 'sentry/utils/dates';
 
 import {truncationFormatter} from '../utils';
 
 type ChartProps = React.ComponentProps<typeof BaseChart>;
 
-function defaultFormatAxisLabel(
+export function defaultFormatAxisLabel(
   value: number,
   isTimestamp: boolean,
   utc: boolean,
   showTimeInTooltip: boolean,
+  addSecondsToTimeFormat: boolean,
   bucketSize?: number
 ) {
   if (!isTimestamp) {
@@ -22,7 +24,9 @@ function defaultFormatAxisLabel(
   }
 
   if (!bucketSize) {
-    const format = `MMM D, YYYY ${showTimeInTooltip ? getTimeFormat() : ''}`.trim();
+    const format = `MMM D, YYYY ${
+      showTimeInTooltip ? getTimeFormat({displaySeconds: addSecondsToTimeFormat}) : ''
+    }`.trim();
     return getFormattedDate(value, format, {local: !utc});
   }
 
@@ -34,10 +38,10 @@ function defaultFormatAxisLabel(
   const showEndDate = bucketStart.date() !== bucketEnd.date();
 
   const formatStart = `MMM D${showYear ? ', YYYY' : ''} ${
-    showTimeInTooltip ? getTimeFormat() : ''
+    showTimeInTooltip ? getTimeFormat({displaySeconds: addSecondsToTimeFormat}) : ''
   }`.trim();
   const formatEnd = `${showEndDate ? `MMM D${showYear ? ', YYYY' : ''} ` : ''}${
-    showTimeInTooltip ? getTimeFormat() : ''
+    showTimeInTooltip ? getTimeFormat({displaySeconds: addSecondsToTimeFormat}) : ''
   }`.trim();
 
   return `${getFormattedDate(bucketStart, formatStart, {
@@ -57,7 +61,11 @@ function defaultNameFormatter(value: string) {
   return value;
 }
 
-function getSeriesValue(series: EChartOption.Tooltip.Format, offset: number) {
+function defaultMarkerFormatter(value: string) {
+  return value;
+}
+
+function getSeriesValue(series: any, offset: number) {
   if (!series.data) {
     return undefined;
   }
@@ -78,10 +86,20 @@ type TooltipFormatters =
   | 'filter'
   | 'formatAxisLabel'
   | 'valueFormatter'
-  | 'nameFormatter';
+  | 'nameFormatter'
+  | 'markerFormatter';
 
 type FormatterOptions = Pick<NonNullable<ChartProps['tooltip']>, TooltipFormatters> &
-  Pick<ChartProps, NeededChartProps>;
+  Pick<ChartProps, NeededChartProps> & {
+    /**
+     * If true seconds will be added to the Axis label time format
+     */
+    addSecondsToTimeFormat?: boolean;
+    /**
+     * Array containing seriesNames that need to be indented
+     */
+    indentLabels?: string[];
+  };
 
 function getFormatter({
   filter,
@@ -93,8 +111,11 @@ function getFormatter({
   bucketSize,
   valueFormatter = defaultValueFormatter,
   nameFormatter = defaultNameFormatter,
+  markerFormatter = defaultMarkerFormatter,
+  indentLabels = [],
+  addSecondsToTimeFormat = false,
 }: FormatterOptions) {
-  const getFilter = (seriesParam: EChartOption.Tooltip.Format) => {
+  const getFilter = (seriesParam: any) => {
     // Series do not necessarily have `data` defined, e.g. releases don't have `data`, but rather
     // has a series using strictly `markLine`s.
     // However, real series will have `data` as a tuple of (label, value) or be
@@ -107,7 +128,7 @@ function getFormatter({
     return true;
   };
 
-  const formatter: EChartOption.Tooltip['formatter'] = seriesParamsOrParam => {
+  const formatter: TooltipComponentFormatterCallback<any> = seriesParamsOrParam => {
     // If this is a tooltip for the axis, it will include all series for that axis item.
     // In this case seriesParamsOrParam will be of type `Object[]`
     //
@@ -128,7 +149,9 @@ function getFormatter({
         !!isGroupedByDate,
         !!utc,
         !!showTimeInTooltip,
-        bucketSize
+        addSecondsToTimeFormat,
+        bucketSize,
+        seriesParamsOrParam
       );
       // eCharts sets seriesName as null when `componentType` !== 'series'
       const truncatedName = truncationFormatter(
@@ -140,10 +163,14 @@ function getFormatter({
         seriesParamsOrParam.name
       );
 
+      const className = indentLabels.includes(seriesParamsOrParam.name ?? '')
+        ? 'tooltip-label tooltip-label-indent'
+        : 'tooltip-label';
+
       return [
         '<div class="tooltip-series">',
         `<div>
-          <span class="tooltip-label"><strong>${seriesParamsOrParam.name}</strong></span>
+          <span class="${className}"><strong>${seriesParamsOrParam.name}</strong></span>
           ${truncatedName}: ${formattedValue}
         </div>`,
         '</div>',
@@ -160,17 +187,19 @@ function getFormatter({
     // The data attribute is usually a list of [name, value] but can also be an object of {name, value} when
     // there is item specific formatting being used.
     const timestamp = Array.isArray(seriesParamsOrParam)
-      ? seriesParams[0].axisValue
+      ? seriesParams[0].value[0]
       : getSeriesValue(seriesParams[0], 0);
 
-    const label =
+    const date =
       seriesParams.length &&
       axisFormatterOrDefault(
         timestamp,
         !!isGroupedByDate,
         !!utc,
         !!showTimeInTooltip,
-        bucketSize
+        addSecondsToTimeFormat,
+        bucketSize,
+        seriesParamsOrParam
       );
 
     return [
@@ -181,25 +210,35 @@ function getFormatter({
           const formattedLabel = nameFormatter(
             truncationFormatter(s.seriesName ?? '', truncate)
           );
-          const value = valueFormatter(getSeriesValue(s, 1), s.seriesName);
-          return `<div><span class="tooltip-label">${s.marker} <strong>${formattedLabel}</strong></span> ${value}</div>`;
+          const value = valueFormatter(getSeriesValue(s, 1), s.seriesName, s);
+
+          const marker = markerFormatter(s.marker ?? '', s.seriesName);
+
+          const className = indentLabels.includes(formattedLabel)
+            ? 'tooltip-label tooltip-label-indent'
+            : 'tooltip-label';
+
+          return `<div><span class="${className}">${marker} <strong>${formattedLabel}</strong></span> ${value}</div>`;
         })
         .join(''),
       '</div>',
-      `<div class="tooltip-date">${label}</div>`,
-      `<div class="tooltip-arrow"></div>`,
+      `<div class="tooltip-date">${date}</div>`,
+      '<div class="tooltip-arrow"></div>',
     ].join('');
   };
 
   return formatter;
 }
 
-type Props = ChartProps['tooltip'] & Pick<ChartProps, NeededChartProps>;
+type Props = ChartProps['tooltip'] &
+  Pick<ChartProps, NeededChartProps> &
+  Pick<FormatterOptions, 'addSecondsToTimeFormat'>;
 
 export default function Tooltip({
   filter,
   isGroupedByDate,
   showTimeInTooltip,
+  addSecondsToTimeFormat,
   formatter,
   truncate,
   utc,
@@ -207,35 +246,55 @@ export default function Tooltip({
   formatAxisLabel,
   valueFormatter,
   nameFormatter,
+  markerFormatter,
   hideDelay,
+  indentLabels,
   ...props
-}: Props = {}): EChartOption.Tooltip {
+}: Props = {}): TooltipComponentOption {
+  const theme = useTheme();
+
   formatter =
     formatter ||
     getFormatter({
       filter,
       isGroupedByDate,
       showTimeInTooltip,
+      addSecondsToTimeFormat,
       truncate,
       utc,
       bucketSize,
       formatAxisLabel,
       valueFormatter,
       nameFormatter,
+      markerFormatter,
+      indentLabels,
     });
 
   return {
     show: true,
     trigger: 'item',
-    backgroundColor: 'transparent',
+    backgroundColor: `${theme.backgroundElevated}`,
+    borderWidth: 0,
+    extraCssText: `box-shadow: 0 0 0 1px ${theme.translucentBorder}, ${theme.dropShadowHeavy}`,
     transitionDuration: 0,
     padding: 0,
+    className: 'tooltip-container',
     // Default hideDelay in echarts docs is 100ms
     hideDelay: hideDelay || 100,
-    position(pos, _params, dom, _rec, _size) {
+    /**
+     * @link https://echarts.apache.org/en/option.html#tooltip.position
+     *
+     * @param pos mouse position
+     * @param _params same as formatter
+     * @param dom dom object of tooltip
+     * @param _rec graphic elements
+     * @param _size The size of dom echarts container.
+     */
+    position(pos, _params, dom, _rec, size) {
+      // Types seem to be broken on dom
+      dom = dom as HTMLDivElement;
       // Center the tooltip slightly above the cursor.
-      const tipWidth = dom.clientWidth;
-      const tipHeight = dom.clientHeight;
+      const [tipWidth, tipHeight] = size.contentSize;
 
       // Get the left offset of the tip container (the chart)
       // so that we can estimate overflows
@@ -246,25 +305,23 @@ export default function Tooltip({
 
       // Determine the new left edge.
       let leftPos = Number(pos[0]) - tipWidth / 2;
-      let arrowPosition = '50%';
-
       // And the right edge taking into account the chart left offset
       const rightEdge = chartLeft + Number(pos[0]) + tipWidth / 2;
 
-      // If the tooltip would leave viewport on the right, pin it.
-      // and adjust the arrow position.
+      let arrowPosition: string | undefined;
       if (rightEdge >= window.innerWidth - 20) {
+        // If the tooltip would leave viewport on the right, pin it.
         leftPos -= rightEdge - window.innerWidth + 20;
         arrowPosition = `${Number(pos[0]) - leftPos}px`;
-      }
-
-      // If the tooltip would leave viewport on the left, pin it.
-      if (leftPos + chartLeft - 20 <= 0) {
+      } else if (leftPos + chartLeft - 20 <= 0) {
+        // If the tooltip would leave viewport on the left, pin it.
         leftPos = chartLeft * -1 + 20;
         arrowPosition = `${Number(pos[0]) - leftPos}px`;
+      } else {
+        // Tooltip not near the window edge, reset position
+        arrowPosition = '50%';
       }
 
-      // Reposition the arrow.
       const arrow = dom.querySelector<HTMLDivElement>('.tooltip-arrow');
       if (arrow) {
         arrow.style.left = arrowPosition;

@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
-import QuestionTooltip from 'app/components/questionTooltip';
-import theme from 'app/utils/theme';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import theme from 'sentry/utils/theme';
 
 export default {
   title: 'Components/Tooltips/Question Tooltip',

@@ -1,53 +1,54 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import {assignToActor, assignToUser, clearAssignment} from 'app/actionCreators/group';
-import {openInviteMembersModal} from 'app/actionCreators/modal';
-import ActorAvatar from 'app/components/avatar/actorAvatar';
-import SuggestedAvatarStack from 'app/components/avatar/suggestedAvatarStack';
-import TeamAvatar from 'app/components/avatar/teamAvatar';
-import UserAvatar from 'app/components/avatar/userAvatar';
-import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
-import {ItemsBeforeFilter} from 'app/components/dropdownAutoComplete/types';
-import DropdownBubble from 'app/components/dropdownBubble';
-import Highlight from 'app/components/highlight';
-import ExternalLink from 'app/components/links/externalLink';
-import Link from 'app/components/links/link';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import TextOverflow from 'app/components/textOverflow';
-import Tooltip from 'app/components/tooltip';
-import {IconAdd, IconChevron, IconClose, IconUser} from 'app/icons';
-import {t, tct, tn} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
-import GroupStore from 'app/stores/groupStore';
-import MemberListStore from 'app/stores/memberListStore';
-import ProjectsStore from 'app/stores/projectsStore';
-import space from 'app/styles/space';
-import {Actor, SuggestedOwner, SuggestedOwnerReason, Team, User} from 'app/types';
-import {buildTeamId, buildUserId, valueIsEqual} from 'app/utils';
+import {assignToActor, assignToUser, clearAssignment} from 'sentry/actionCreators/group';
+import {openInviteMembersModal} from 'sentry/actionCreators/modal';
+import ActorAvatar from 'sentry/components/avatar/actorAvatar';
+import SuggestedAvatarStack from 'sentry/components/avatar/suggestedAvatarStack';
+import TeamAvatar from 'sentry/components/avatar/teamAvatar';
+import UserAvatar from 'sentry/components/avatar/userAvatar';
+import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
+import {ItemsBeforeFilter} from 'sentry/components/dropdownAutoComplete/types';
+import DropdownBubble from 'sentry/components/dropdownBubble';
+import Highlight from 'sentry/components/highlight';
+import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import TextOverflow from 'sentry/components/textOverflow';
+import Tooltip from 'sentry/components/tooltip';
+import {IconAdd, IconChevron, IconClose, IconUser} from 'sentry/icons';
+import {t, tct, tn} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import GroupStore from 'sentry/stores/groupStore';
+import MemberListStore from 'sentry/stores/memberListStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import space from 'sentry/styles/space';
+import {Actor, SuggestedOwner, SuggestedOwnerReason, Team, User} from 'sentry/types';
+import {buildTeamId, buildUserId, valueIsEqual} from 'sentry/utils';
 
 type SuggestedAssignee = Actor & {
-  suggestedReason: SuggestedOwnerReason;
   assignee: AssignableTeam | User;
+  suggestedReason: SuggestedOwnerReason;
 };
 
 type AssignableTeam = {
-  id: string;
   display: string;
   email: string;
+  id: string;
   team: Team;
 };
 
 type Props = {
   id: string;
-  size?: number;
-  memberList?: User[];
   disabled?: boolean;
+  memberList?: User[];
+  noDropdown?: boolean;
   onAssign?: (
     type: Actor['type'],
     assignee: User | Actor,
     suggestedAssignee?: SuggestedAssignee
   ) => void;
+  size?: number;
 };
 
 type State = {
@@ -214,6 +215,7 @@ class AssigneeSelector extends React.Component<Props, State> {
 
   renderMemberNode(member: User, suggestedReason?: string): ItemsBeforeFilter[0] {
     const {size} = this.props;
+    const sessionUser = ConfigStore.get('user');
 
     return {
       value: {type: 'member', assignee: member},
@@ -228,7 +230,11 @@ class AssigneeSelector extends React.Component<Props, State> {
             <UserAvatar user={member} size={size} />
           </IconContainer>
           <Label>
-            <Highlight text={inputValue}>{member.name || member.email}</Highlight>
+            <Highlight text={inputValue}>
+              {sessionUser.id === member.id
+                ? `${member.name || member.email} ${t('(You)')}`
+                : member.name || member.email}
+            </Highlight>
             {suggestedReason && <SuggestedReason>{suggestedReason}</SuggestedReason>}
           </Label>
         </MenuItemWrapper>
@@ -300,9 +306,23 @@ class AssigneeSelector extends React.Component<Props, State> {
   renderNewDropdownItems(): ItemsBeforeFilter {
     const teams = this.renderNewTeamNodes();
     const members = this.renderNewMemberNodes();
+    const sessionUser = ConfigStore.get('user');
     const suggestedAssignees = this.renderSuggestedAssigneeNodes() ?? [];
+
+    const filteredSessionUser: ItemsBeforeFilter = members.filter(
+      member => member.value.assignee.id === sessionUser.id
+    );
+    // filter out session user from Suggested
+    const filteredSuggestedAssignees: ItemsBeforeFilter = suggestedAssignees.filter(
+      assignee => {
+        return assignee.value.type === 'member'
+          ? assignee.value.assignee.id !== sessionUser.id
+          : assignee;
+      }
+    );
+
     const assigneeIds = new Set(
-      suggestedAssignees.map(
+      filteredSuggestedAssignees.map(
         assignee => `${assignee.value.type}:${assignee.value.assignee.id}`
       )
     );
@@ -311,7 +331,10 @@ class AssigneeSelector extends React.Component<Props, State> {
       return !assigneeIds.has(`${team.value.type}:${team.value.assignee.id}`);
     });
     const filteredMembers: ItemsBeforeFilter = members.filter(member => {
-      return !assigneeIds.has(`${member.value.type}:${member.value.assignee.id}`);
+      return (
+        !assigneeIds.has(`${member.value.type}:${member.value.assignee.id}`) &&
+        member.value.assignee.id !== sessionUser.id
+      );
     });
 
     const dropdownItems: ItemsBeforeFilter = [
@@ -327,15 +350,43 @@ class AssigneeSelector extends React.Component<Props, State> {
       },
     ];
 
-    if (suggestedAssignees.length) {
-      dropdownItems.unshift({
-        label: this.renderDropdownGroupLabel(t('Suggested')),
-        id: 'suggested-header',
-        items: suggestedAssignees,
-      });
+    // session user is first on dropdown
+    if (suggestedAssignees.length || filteredSessionUser.length) {
+      dropdownItems.unshift(
+        {
+          label: this.renderDropdownGroupLabel(t('Suggested')),
+          id: 'suggested-header',
+          items: filteredSessionUser,
+        },
+        {
+          hideGroupLabel: true,
+          id: 'suggested-list',
+          items: filteredSuggestedAssignees,
+        }
+      );
     }
 
     return dropdownItems;
+  }
+
+  renderInviteMemberLink() {
+    const {loading} = this.state;
+
+    return (
+      <InviteMemberLink
+        to=""
+        data-test-id="invite-member"
+        disabled={loading}
+        onClick={() => openInviteMembersModal({source: 'assignee_selector'})}
+      >
+        <MenuItemFooterWrapper>
+          <IconContainer>
+            <IconAdd color="purple300" isCircled size="14px" />
+          </IconContainer>
+          <Label>{t('Invite Member')}</Label>
+        </MenuItemFooterWrapper>
+      </InviteMemberLink>
+    );
   }
 
   getSuggestedAssignees(): SuggestedAssignee[] {
@@ -384,14 +435,14 @@ class AssigneeSelector extends React.Component<Props, State> {
   }
 
   render() {
-    const {disabled} = this.props;
+    const {disabled, noDropdown} = this.props;
     const {loading, assignedTo} = this.state;
     const memberList = this.memberList();
     const suggestedActors = this.getSuggestedAssignees();
     const suggestedReasons: Record<SuggestedOwnerReason, React.ReactNode> = {
       suspectCommit: tct('Based on [commit:commit data]', {
         commit: (
-          <TooltipSubExternalLink href="https://docs.sentry.io/product/sentry-basics/guides/integrate-frontend/configure-scms/" />
+          <TooltipSubExternalLink href="https://docs.sentry.io/product/sentry-basics/integrate-frontend/configure-scms/" />
         ),
       }),
       ownershipRule: t('Matching Issue Owners Rule'),
@@ -400,12 +451,77 @@ class AssigneeSelector extends React.Component<Props, State> {
       actor => actor.id === assignedTo?.id
     );
 
+    const avatarElement = assignedTo ? (
+      <ActorAvatar
+        actor={assignedTo}
+        className="avatar"
+        size={24}
+        tooltip={
+          <TooltipWrapper>
+            {tct('Assigned to [name]', {
+              name: assignedTo.type === 'team' ? `#${assignedTo.name}` : assignedTo.name,
+            })}
+            {assignedToSuggestion && (
+              <TooltipSubtext>
+                {suggestedReasons[assignedToSuggestion.suggestedReason]}
+              </TooltipSubtext>
+            )}
+          </TooltipWrapper>
+        }
+      />
+    ) : suggestedActors && suggestedActors.length > 0 ? (
+      <SuggestedAvatarStack
+        size={24}
+        owners={suggestedActors}
+        tooltipOptions={{isHoverable: true}}
+        tooltip={
+          <TooltipWrapper>
+            <div>
+              {tct('Suggestion: [name]', {
+                name:
+                  suggestedActors[0].type === 'team'
+                    ? `#${suggestedActors[0].name}`
+                    : suggestedActors[0].name,
+              })}
+              {suggestedActors.length > 1 &&
+                tn(' + %s other', ' + %s others', suggestedActors.length - 1)}
+            </div>
+            <TooltipSubtext>
+              {suggestedReasons[suggestedActors[0].suggestedReason]}
+            </TooltipSubtext>
+          </TooltipWrapper>
+        }
+      />
+    ) : (
+      <Tooltip
+        isHoverable
+        skipWrapper
+        title={
+          <TooltipWrapper>
+            <div>{t('Unassigned')}</div>
+            <TooltipSubtext>
+              {tct(
+                'You can auto-assign issues by adding [issueOwners:Issue Owner rules].',
+                {
+                  issueOwners: (
+                    <TooltipSubExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/" />
+                  ),
+                }
+              )}
+            </TooltipSubtext>
+          </TooltipWrapper>
+        }
+      >
+        <StyledIconUser size="20px" color="gray400" />
+      </Tooltip>
+    );
+
     return (
       <AssigneeWrapper>
         {loading && (
           <LoadingIndicator mini style={{height: '24px', margin: 0, marginRight: 11}} />
         )}
-        {!loading && (
+        {!loading && !noDropdown && (
           <DropdownAutoComplete
             disabled={disabled}
             maxHeight={400}
@@ -419,112 +535,38 @@ class AssigneeSelector extends React.Component<Props, State> {
             onSelect={this.handleAssign}
             itemSize="small"
             searchPlaceholder={t('Filter teams and people')}
-            menuHeader={
-              assignedTo && (
-                <MenuItemWrapper
-                  data-test-id="clear-assignee"
-                  onClick={this.clearAssignTo}
-                  py={0}
-                >
-                  <IconContainer>
-                    <ClearAssigneeIcon isCircled size="14px" />
-                  </IconContainer>
-                  <Label>{t('Clear Assignee')}</Label>
-                </MenuItemWrapper>
+            menuFooter={
+              assignedTo ? (
+                <div>
+                  <MenuItemFooterWrapper
+                    data-test-id="clear-assignee"
+                    onClick={this.clearAssignTo}
+                    py={0}
+                  >
+                    <IconContainer>
+                      <IconClose color="purple300" isCircled size="14px" />
+                    </IconContainer>
+                    <Label>{t('Clear Assignee')}</Label>
+                  </MenuItemFooterWrapper>
+                  {this.renderInviteMemberLink()}
+                </div>
+              ) : (
+                this.renderInviteMemberLink()
               )
             }
-            menuFooter={
-              <InviteMemberLink
-                to=""
-                data-test-id="invite-member"
-                disabled={loading}
-                onClick={() => openInviteMembersModal({source: 'assignee_selector'})}
-              >
-                <MenuItemWrapper>
-                  <IconContainer>
-                    <InviteMemberIcon isCircled size="14px" />
-                  </IconContainer>
-                  <Label>{t('Invite Member')}</Label>
-                </MenuItemWrapper>
-              </InviteMemberLink>
-            }
+            disableLabelPadding
             menuWithArrow
             emptyHidesInput
           >
             {({getActorProps, isOpen}) => (
               <DropdownButton {...getActorProps({})}>
-                {assignedTo ? (
-                  <ActorAvatar
-                    actor={assignedTo}
-                    className="avatar"
-                    size={24}
-                    tooltip={
-                      <TooltipWrapper>
-                        {tct('Assigned to [name]', {
-                          name:
-                            assignedTo.type === 'team'
-                              ? `#${assignedTo.name}`
-                              : assignedTo.name,
-                        })}
-                        {assignedToSuggestion && (
-                          <TooltipSubtext>
-                            {suggestedReasons[assignedToSuggestion.suggestedReason]}
-                          </TooltipSubtext>
-                        )}
-                      </TooltipWrapper>
-                    }
-                  />
-                ) : suggestedActors && suggestedActors.length > 0 ? (
-                  <SuggestedAvatarStack
-                    size={24}
-                    owners={suggestedActors}
-                    tooltipOptions={{isHoverable: true}}
-                    tooltip={
-                      <TooltipWrapper>
-                        <div>
-                          {tct('Suggestion: [name]', {
-                            name:
-                              suggestedActors[0].type === 'team'
-                                ? `#${suggestedActors[0].name}`
-                                : suggestedActors[0].name,
-                          })}
-                          {suggestedActors.length > 1 &&
-                            tn(' + %s other', ' + %s others', suggestedActors.length - 1)}
-                        </div>
-                        <TooltipSubtext>
-                          {suggestedReasons[suggestedActors[0].suggestedReason]}
-                        </TooltipSubtext>
-                      </TooltipWrapper>
-                    }
-                  />
-                ) : (
-                  <Tooltip
-                    isHoverable
-                    skipWrapper
-                    title={
-                      <TooltipWrapper>
-                        <div>{t('Unassigned')}</div>
-                        <TooltipSubtext>
-                          {tct(
-                            'You can auto-assign issues by adding [issueOwners:Issue Owner rules].',
-                            {
-                              issueOwners: (
-                                <TooltipSubExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/" />
-                              ),
-                            }
-                          )}
-                        </TooltipSubtext>
-                      </TooltipWrapper>
-                    }
-                  >
-                    <StyledIconUser size="20px" color="gray400" />
-                  </Tooltip>
-                )}
+                {avatarElement}
                 <StyledChevron direction={isOpen ? 'up' : 'down'} size="xs" />
               </DropdownButton>
             )}
           </DropdownAutoComplete>
         )}
+        {!loading && noDropdown && avatarElement}
       </AssigneeWrapper>
     );
   }
@@ -577,8 +619,8 @@ const IconContainer = styled('div')`
 `;
 
 const MenuItemWrapper = styled('div')<{
-  py?: number;
   disabled?: boolean;
+  py?: number;
 }>`
   cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
   display: flex;
@@ -592,20 +634,25 @@ const MenuItemWrapper = styled('div')<{
     `};
 `;
 
+const MenuItemFooterWrapper = styled(MenuItemWrapper)`
+  padding: ${space(0.25)} ${space(1)};
+  border-top: 1px solid ${p => p.theme.innerBorder};
+  background-color: ${p => p.theme.tag.highlight.background};
+  color: ${p => p.theme.active};
+  :hover {
+    color: ${p => p.theme.activeHover};
+    svg {
+      fill: ${p => p.theme.activeHover};
+    }
+  }
+`;
+
 const InviteMemberLink = styled(Link)`
   color: ${p => (p.disabled ? p.theme.disabled : p.theme.textColor)};
 `;
 
 const Label = styled(TextOverflow)`
   margin-left: 6px;
-`;
-
-const ClearAssigneeIcon = styled(IconClose)`
-  opacity: 0.3;
-`;
-
-const InviteMemberIcon = styled(IconAdd)`
-  opacity: 0.3;
 `;
 
 const StyledChevron = styled(IconChevron)`

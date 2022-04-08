@@ -1,38 +1,34 @@
-import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {IconCheckmark, IconClose} from 'app/icons';
-import space from 'app/styles/space';
-import {Theme} from 'app/utils/theme';
+import {IconCheckmark, IconClose} from 'sentry/icons';
+import space from 'sentry/styles/space';
 
 type BoxContent = {
   text: string;
   img?: {
-    src: string;
     alt: string;
+    src: string;
   };
 };
 type BoxProps = BoxContent & {
   variant: 'do' | 'dont';
-  theme: Theme;
 };
 type DoDontProps = {
   doBox: BoxContent;
   dontBox: BoxContent;
-  theme: Theme;
 };
 
-const Box = ({text, img, theme, variant}: BoxProps) => (
+const Box = ({text, img, variant}: BoxProps) => (
   <BoxWrap>
     <ImgWrap>
-      <Img src={img.src} alt={img.alt} />
+      <Img src={img?.src} alt={img?.alt} />
     </ImgWrap>
     <Captions>
       <LabelWrap>
         {variant === 'do' ? (
-          <IconCheckmark theme={theme} color="green300" size="xs" />
+          <IconCheckmark color="green300" size="xs" />
         ) : (
-          <IconClose theme={theme} color="red300" size="xs" />
+          <IconClose color="red300" size="xs" />
         )}
         <Label className={variant === 'do' ? 'green' : 'red'}>
           {variant === 'do' ? 'DO' : "DON'T"}
@@ -43,14 +39,14 @@ const Box = ({text, img, theme, variant}: BoxProps) => (
   </BoxWrap>
 );
 
-const DoDont = ({doBox, dontBox, theme}: DoDontProps) => (
+const DoDont = ({doBox, dontBox}: DoDontProps) => (
   <Wrapper>
-    <Box {...doBox} variant="do" theme={theme} />
-    <Box {...dontBox} variant="dont" theme={theme} />
+    <Box {...doBox} variant="do" />
+    <Box {...dontBox} variant="dont" />
   </Wrapper>
 );
 
-export default withTheme(DoDont);
+export default DoDont;
 
 const Wrapper = styled('div')`
   display: flex;
@@ -72,7 +68,7 @@ const ImgWrap = styled('div')`
   position: relative;
   width: 100%;
   padding-top: 50%;
-  border: solid 1px ${p => p.theme.gray100};
+  border: solid 1px ${p => p.theme.innerBorder};
   border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
 `;
@@ -117,5 +113,5 @@ const Label = styled('p')`
 `;
 const Text = styled('p')`
   margin-bottom: 0;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;

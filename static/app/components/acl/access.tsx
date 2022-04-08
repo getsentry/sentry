@@ -1,15 +1,14 @@
 import * as React from 'react';
 
-import Alert from 'app/components/alert';
-import {IconInfo} from 'app/icons';
-import {t} from 'app/locale';
-import {Config, Organization, Scope} from 'app/types';
-import {isRenderFunc} from 'app/utils/isRenderFunc';
-import withConfig from 'app/utils/withConfig';
-import withOrganization from 'app/utils/withOrganization';
+import Alert from 'sentry/components/alert';
+import {t} from 'sentry/locale';
+import {Config, Organization, Scope} from 'sentry/types';
+import {isRenderFunc} from 'sentry/utils/isRenderFunc';
+import withConfig from 'sentry/utils/withConfig';
+import withOrganization from 'sentry/utils/withOrganization';
 
 const DEFAULT_NO_ACCESS_MESSAGE = (
-  <Alert type="error" icon={<IconInfo size="md" />}>
+  <Alert type="error" showIcon>
     {t('You do not have sufficient permissions to access this.')}
   </Alert>
 );
@@ -24,14 +23,9 @@ type ChildFunction = (props: ChildRenderProps) => React.ReactNode;
 
 type DefaultProps = {
   /**
-   * Should the component require all access levels or just one or more.
+   * List of required access levels
    */
-  requireAll?: boolean;
-
-  /**
-   * Requires superuser
-   */
-  isSuperuser?: boolean;
+  access: Scope[];
 
   /**
    * Custom renderer function for "no access" message OR `true` to use
@@ -40,9 +34,14 @@ type DefaultProps = {
   renderNoAccessMessage: ChildFunction | boolean;
 
   /**
-   * List of required access levels
+   * Requires superuser
    */
-  access: Scope[];
+  isSuperuser?: boolean;
+
+  /**
+   * Should the component require all access levels or just one or more.
+   */
+  requireAll?: boolean;
 };
 
 const defaultProps: DefaultProps = {
@@ -54,14 +53,14 @@ const defaultProps: DefaultProps = {
 
 type Props = {
   /**
-   * Current Organization
-   */
-  organization: Organization;
-
-  /**
    * Configuration from ConfigStore
    */
   config: Config;
+
+  /**
+   * Current Organization
+   */
+  organization: Organization;
 
   /**
    * Children can be a node or a function as child.
@@ -101,7 +100,8 @@ class Access extends React.Component<Props> {
 
     if (!render && typeof renderNoAccessMessage === 'function') {
       return renderNoAccessMessage(renderProps);
-    } else if (!render && renderNoAccessMessage) {
+    }
+    if (!render && renderNoAccessMessage) {
       return DEFAULT_NO_ACCESS_MESSAGE;
     }
 

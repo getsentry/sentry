@@ -1,4 +1,4 @@
-import NarrowLayout from 'app/components/narrowLayout';
+import NarrowLayout from 'sentry/components/narrowLayout';
 
 export default {
   title: 'Views/Layout - Narrow',

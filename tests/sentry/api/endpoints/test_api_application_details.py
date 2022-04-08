@@ -1,6 +1,6 @@
 from django.urls import reverse
 
-from sentry.models import ApiApplication, ApiApplicationStatus
+from sentry.models import ApiApplication, ApiApplicationStatus, ScheduledDeletion
 from sentry.testutils import APITestCase
 
 
@@ -40,3 +40,6 @@ class ApiApplicationDeleteTest(APITestCase):
 
         app = ApiApplication.objects.get(id=app.id)
         assert app.status == ApiApplicationStatus.pending_deletion
+        assert ScheduledDeletion.objects.filter(
+            object_id=app.id, model_name="ApiApplication"
+        ).exists()

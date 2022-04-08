@@ -1,11 +1,11 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-import Radio from 'app/components/radio';
-import {t} from 'app/locale';
-import {MemberRole} from 'app/types';
-import TextBlock from 'app/views/settings/components/text/textBlock';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
+import Radio from 'sentry/components/radio';
+import {t} from 'sentry/locale';
+import {MemberRole} from 'sentry/types';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const Label = styled('label')`
   display: flex;
@@ -15,10 +15,10 @@ const Label = styled('label')`
 `;
 
 type Props = {
-  enforceAllowed: boolean;
   disabled: boolean;
-  selectedRole: string;
+  enforceAllowed: boolean;
   roleList: MemberRole[];
+  selectedRole: string;
   setRole: (id: string) => void;
 };
 

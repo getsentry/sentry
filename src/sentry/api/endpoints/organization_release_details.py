@@ -1,8 +1,9 @@
 from django.db.models import Q
 from rest_framework.exceptions import ParseError
+from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import release_health
 from sentry.api.base import ReleaseAnalyticsMixin
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.endpoints.organization_releases import (
@@ -20,11 +21,7 @@ from sentry.api.serializers.rest_framework import (
 )
 from sentry.models import Activity, Project, Release, ReleaseCommitError, ReleaseStatus
 from sentry.models.release import UnsafeReleaseDeletion
-from sentry.snuba.sessions import (
-    STATS_PERIODS,
-    get_adjacent_releases_based_on_adoption,
-    get_release_sessions_time_bounds,
-)
+from sentry.snuba.sessions import STATS_PERIODS
 from sentry.utils.sdk import bind_organization_context, configure_scope
 
 
@@ -96,37 +93,6 @@ class OrganizationReleaseDetailsPaginationMixin:
             | Q(date_added=release.date_added, id__lt=release.id),
             "order_by": ["-date_added", "-id"],
         }
-
-    @staticmethod
-    def __filter_down_snuba_primary_results_according_to_status_and_query(
-        org, project_ids, version_list, status_filter, query
-    ):
-        """
-        Helper function used to query Release model from the primary results of a snuba query
-        which happens when sorting on sessions, users, crash_free_users and crash_free_sessions
-        Inputs:-
-            * org: organization
-            * project_ids: list of project ids
-            * version_list: list of release versions
-            * status_filter: either open or archived
-            * query: query string
-        Returns:-
-            A list of filtered release versions in the same order it received it
-        """
-        queryset = Release.objects.filter(
-            organization=org, projects__id__in=project_ids, version__in=version_list
-        )
-
-        # Add status filter
-        queryset = add_status_filter_to_queryset(queryset, status_filter)
-
-        # Add query filter
-        queryset = add_query_filter_to_queryset(queryset, query)
-
-        # Required re-ordering because django filter does not guarantee order of snuba primary order
-        release_dict = {release.version: release for release in queryset}
-
-        return list(filter(None, [release_dict.get(version) for version in version_list]))
 
     @staticmethod
     def __get_release_according_to_filters_and_order_by_for_date_sort(
@@ -213,45 +179,6 @@ class OrganizationReleaseDetailsPaginationMixin:
             next_release_list = self.__get_release_according_to_filters_and_order_by_for_date_sort(
                 **release_common_filters,
                 **self.__get_next_release_date_query_q_and_order_by(release),
-            )
-
-        elif sort in (
-            "crash_free_sessions",
-            "crash_free_users",
-            "sessions",
-            "users",
-            "sessions_24h",
-            "users_24h",
-        ):
-            # Get primary results from snuba
-            prev_and_next_releases_list = get_adjacent_releases_based_on_adoption(
-                project_id=filter_params["project_id"][0],
-                org_id=org.id,
-                release=release.version,
-                scope=sort,
-                environments=filter_params.get("environment"),
-                stats_period=stats_period,
-            )
-
-            # Get previous queryset of current release
-            prev_release_list = (
-                self.__filter_down_snuba_primary_results_according_to_status_and_query(
-                    org=org.id,
-                    project_ids=filter_params["project_id"],
-                    version_list=prev_and_next_releases_list["prev_releases_list"],
-                    status_filter=status_filter,
-                    query=query,
-                )
-            )
-            # Get next queryset of current release
-            next_release_list = (
-                self.__filter_down_snuba_primary_results_according_to_status_and_query(
-                    org=org.id,
-                    project_ids=filter_params["project_id"],
-                    version_list=prev_and_next_releases_list["next_releases_list"],
-                    status_filter=status_filter,
-                    query=query,
-                )
             )
         else:
             raise InvalidSortException
@@ -343,7 +270,7 @@ class OrganizationReleaseDetailsEndpoint(
     ReleaseAnalyticsMixin,
     OrganizationReleaseDetailsPaginationMixin,
 ):
-    def get(self, request, organization, version):
+    def get(self, request: Request, organization, version) -> Response:
         """
         Retrieve an Organization's Release
         ``````````````````````````````````
@@ -391,7 +318,7 @@ class OrganizationReleaseDetailsEndpoint(
             environments = set(request.GET.getlist("environment")) or None
             current_project_meta.update(
                 {
-                    **get_release_sessions_time_bounds(
+                    **release_health.get_release_sessions_time_bounds(
                         project_id=int(project_id),
                         release=release.version,
                         org_id=organization.id,
@@ -425,10 +352,6 @@ class OrganizationReleaseDetailsEndpoint(
             except InvalidSortException:
                 return Response({"detail": "invalid sort"}, status=400)
 
-        with_adoption_stages = with_adoption_stages and features.has(
-            "organizations:release-adoption-stage", organization, actor=request.user
-        )
-
         return Response(
             serialize(
                 release,
@@ -441,7 +364,7 @@ class OrganizationReleaseDetailsEndpoint(
             )
         )
 
-    def put(self, request, organization, version):
+    def put(self, request: Request, organization, version) -> Response:
         """
         Update an Organization's Release
         ````````````````````````````````
@@ -527,14 +450,21 @@ class OrganizationReleaseDetailsEndpoint(
 
             refs = result.get("refs")
             if not refs:
-                refs = [
-                    {
-                        "repository": r["repository"],
-                        "previousCommit": r.get("previousId"),
-                        "commit": r["currentId"],
-                    }
-                    for r in result.get("headCommits", [])
-                ]
+                # Handle legacy
+                if result.get("headCommits", []):
+                    refs = [
+                        {
+                            "repository": r["repository"],
+                            "previousCommit": r.get("previousId"),
+                            "commit": r["currentId"],
+                        }
+                        for r in result.get("headCommits", [])
+                    ]
+                # Clear commits in release
+                else:
+                    if result.get("refs") == []:
+                        release.clear_commits()
+
             scope.set_tag("has_refs", bool(refs))
             if refs:
                 if not request.user.is_authenticated:
@@ -562,7 +492,7 @@ class OrganizationReleaseDetailsEndpoint(
 
             return Response(serialize(release, request.user))
 
-    def delete(self, request, organization, version):
+    def delete(self, request: Request, organization, version) -> Response:
         """
         Delete an Organization's Release
         ````````````````````````````````

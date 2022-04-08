@@ -304,7 +304,7 @@ class Browser:
         """
         # TODO(dcramer): ideally this would take the executing test package
         # into account for duplicate names
-        if os.environ.get("VISUAL_SNAPSHOT_ENABLE") != "1":
+        if os.environ.get("VISUAL_SNAPSHOT_ENABLE") != "1" or sys.version_info[:2] != (3, 8):
             return self
 
         self.wait_for_images_loaded()
@@ -445,8 +445,8 @@ def pytest_addoption(parser):
 
 
 def pytest_configure(config):
-    if hasattr(config, "slaveinput"):
-        return  # xdist slave
+    if hasattr(config, "workerinput"):
+        return  # xdist worker
 
     config.option.selenium_driver = (
         config.getoption("selenium_driver")

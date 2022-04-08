@@ -1,8 +1,10 @@
-import Reflux from 'reflux';
+import {createActions} from 'reflux';
 
-export default Reflux.createActions([
+const RepositoryActions = createActions([
   'resetRepositories',
   'loadRepositories',
   'loadRepositoriesError',
   'loadRepositoriesSuccess',
 ]);
+
+export default RepositoryActions;

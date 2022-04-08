@@ -1,19 +1,19 @@
 import * as React from 'react';
 import {RouteComponentProps} from 'react-router';
 
-import SavedSearchesStore from 'app/stores/savedSearchesStore';
-import {SavedSearch} from 'app/types';
-import getDisplayName from 'app/utils/getDisplayName';
+import SavedSearchesStore from 'sentry/stores/savedSearchesStore';
+import {SavedSearch} from 'sentry/types';
+import getDisplayName from 'sentry/utils/getDisplayName';
 
 type InjectedSavedSearchesProps = {
-  savedSearches: SavedSearch[];
-  savedSearchLoading: boolean;
   savedSearch: SavedSearch | null;
+  savedSearchLoading: boolean;
+  savedSearches: SavedSearch[];
 } & RouteComponentProps<{searchId?: string}, {}>;
 
 type State = {
-  savedSearches: SavedSearch[];
   isLoading: boolean;
+  savedSearches: SavedSearch[];
 };
 
 /**

@@ -1,13 +1,13 @@
-import AnnotatedText from 'app/components/events/meta/annotatedText';
-import {getMeta} from 'app/components/events/meta/metaProxy';
-import {t} from 'app/locale';
-import {Frame} from 'app/types';
+import AnnotatedText from 'sentry/components/events/meta/annotatedText';
+import {getMeta} from 'sentry/components/events/meta/metaProxy';
+import {t} from 'sentry/locale';
+import {Frame} from 'sentry/types';
 
 type Props = {
   frame: Frame;
+  className?: string;
   hasHiddenDetails?: boolean;
   showCompleteFunctionName?: boolean;
-  className?: string;
 };
 
 const FunctionName = ({
@@ -18,7 +18,7 @@ const FunctionName = ({
   ...props
 }: Props) => {
   const getValueOutput = ():
-    | {value: Frame['function']; meta: ReturnType<typeof getMeta>}
+    | {meta: ReturnType<typeof getMeta>; value: Frame['function']}
     | undefined => {
     if (hasHiddenDetails && showCompleteFunctionName && frame.rawFunction) {
       return {

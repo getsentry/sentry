@@ -1,10 +1,10 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
-import ModalActions from 'app/actions/modalActions';
-import {Client} from 'app/api';
-import AccountSecurity from 'app/views/settings/account/accountSecurity';
-import AccountSecurityWrapper from 'app/views/settings/account/accountSecurity/accountSecurityWrapper';
+import ModalActions from 'sentry/actions/modalActions';
+import {Client} from 'sentry/api';
+import AccountSecurity from 'sentry/views/settings/account/accountSecurity';
+import AccountSecurityWrapper from 'sentry/views/settings/account/accountSecurity/accountSecurityWrapper';
 
 const ENDPOINT = '/users/me/authenticators/';
 const ORG_ENDPOINT = '/organizations/';
@@ -254,7 +254,6 @@ describe('AccountSecurity', function () {
     const Add2FAButton = wrapper.find('Button[className="enroll-button"]').first();
 
     Add2FAButton.simulate('click');
-    // @ts-expect-error
     await tick();
     expect(openEmailModalFunc).toHaveBeenCalled();
   });

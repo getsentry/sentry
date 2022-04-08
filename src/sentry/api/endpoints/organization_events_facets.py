@@ -1,15 +1,16 @@
 from collections import defaultdict
 
 import sentry_sdk
+from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import tagstore
+from sentry import features, tagstore
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.snuba import discover
 
 
 class OrganizationEventsFacetsEndpoint(OrganizationEventsV2EndpointBase):
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
 
@@ -24,6 +25,9 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsV2EndpointBase):
                     query=request.GET.get("query"),
                     params=params,
                     referrer="api.organization-events-facets.top-tags",
+                    use_snql=features.has(
+                        "organizations:discover-use-snql", organization, actor=request.user
+                    ),
                 )
 
         with sentry_sdk.start_span(op="discover.endpoint", description="populate_results") as span:

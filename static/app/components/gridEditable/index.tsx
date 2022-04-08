@@ -1,10 +1,11 @@
 import * as React from 'react';
 import {Location} from 'history';
 
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {IconWarning} from 'app/icons';
-import {t} from 'app/locale';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {onRenderCallback} from 'sentry/utils/performanceForSentry';
 
 import {
   Body,
@@ -61,9 +62,45 @@ export type ColResizeMetadata = {
 };
 
 type GridEditableProps<DataRow, ColumnKey> = {
+  columnOrder: GridColumnOrder<ColumnKey>[];
+  columnSortBy: GridColumnSortBy<ColumnKey>[];
+  data: DataRow[];
+
+  /**
+   * GridEditable allows the parent component to determine how to display the
+   * data within it. Note that this is optional.
+   */
+  grid: {
+    onResizeColumn?: (
+      columnIndex: number,
+      nextColumn: GridColumnOrder<ColumnKey>
+    ) => void;
+    prependColumnWidths?: string[];
+    renderBodyCell?: (
+      column: GridColumnOrder<ColumnKey>,
+      dataRow: DataRow,
+      rowIndex: number,
+      columnIndex: number
+    ) => React.ReactNode;
+    renderHeadCell?: (
+      column: GridColumnOrder<ColumnKey>,
+      columnIndex: number
+    ) => React.ReactNode;
+    renderPrependColumns?: (
+      isHeader: boolean,
+      dataRow?: DataRow,
+      rowIndex?: number
+    ) => React.ReactNode[];
+  };
   location: Location;
-  isLoading?: boolean;
   error?: React.ReactNode | null;
+  /**
+   * Inject a set of buttons into the top of the grid table.
+   * The controlling component is responsible for handling any actions
+   * in these buttons and updating props to the GridEditable instance.
+   */
+  headerButtons?: () => React.ReactNode;
+  isLoading?: boolean;
 
   /**
    * GridEditable (mostly) do not maintain any internal state and relies on the
@@ -75,42 +112,6 @@ type GridEditableProps<DataRow, ColumnKey> = {
    *   move sorting into Grid for performance
    */
   title?: string;
-  /**
-   * Inject a set of buttons into the top of the grid table.
-   * The controlling component is responsible for handling any actions
-   * in these buttons and updating props to the GridEditable instance.
-   */
-  headerButtons?: () => React.ReactNode;
-  columnOrder: GridColumnOrder<ColumnKey>[];
-  columnSortBy: GridColumnSortBy<ColumnKey>[];
-  data: DataRow[];
-
-  /**
-   * GridEditable allows the parent component to determine how to display the
-   * data within it. Note that this is optional.
-   */
-  grid: {
-    renderHeadCell?: (
-      column: GridColumnOrder<ColumnKey>,
-      columnIndex: number
-    ) => React.ReactNode;
-    renderBodyCell?: (
-      column: GridColumnOrder<ColumnKey>,
-      dataRow: DataRow,
-      rowIndex: number,
-      columnIndex: number
-    ) => React.ReactNode;
-    onResizeColumn?: (
-      columnIndex: number,
-      nextColumn: GridColumnOrder<ColumnKey>
-    ) => void;
-    renderPrependColumns?: (
-      isHeader: boolean,
-      dataRow?: DataRow,
-      rowIndex?: number
-    ) => React.ReactNode[];
-    prependColumnWidths?: string[];
-  };
 };
 
 type GridEditableState = {
@@ -218,17 +219,16 @@ class GridEditable<
   onResizeMouseUp = (e: MouseEvent) => {
     const metadata = this.resizeMetadata;
     const onResizeColumn = this.props.grid.onResizeColumn;
-    if (!metadata || !onResizeColumn) {
-      return;
+
+    if (metadata && onResizeColumn) {
+      const {columnOrder} = this.props;
+      const widthChange = e.clientX - metadata.cursorX;
+
+      onResizeColumn(metadata.columnIndex, {
+        ...columnOrder[metadata.columnIndex],
+        width: metadata.columnWidth + widthChange,
+      });
     }
-
-    const {columnOrder} = this.props;
-    const widthChange = e.clientX - metadata.cursorX;
-
-    onResizeColumn(metadata.columnIndex, {
-      ...columnOrder[metadata.columnIndex],
-      width: metadata.columnWidth + widthChange,
-    });
 
     this.resizeMetadata = undefined;
     this.clearWindowLifecycleEvents();
@@ -281,7 +281,8 @@ class GridEditable<
     const widths = columnOrder.map((item, index) => {
       if (item.width === COL_WIDTH_UNDEFINED) {
         return `minmax(${COL_WIDTH_MINIMUM}px, auto)`;
-      } else if (typeof item.width === 'number' && item.width > COL_WIDTH_MINIMUM) {
+      }
+      if (typeof item.width === 'number' && item.width > COL_WIDTH_MINIMUM) {
         if (index === columnOrder.length - 1) {
           return `minmax(${item.width}px, auto)`;
         }
@@ -413,20 +414,22 @@ class GridEditable<
     const showHeader = title || headerButtons;
     return (
       <React.Fragment>
-        {showHeader && (
-          <Header>
-            {title && <HeaderTitle>{title}</HeaderTitle>}
-            {headerButtons && (
-              <HeaderButtonContainer>{headerButtons()}</HeaderButtonContainer>
-            )}
-          </Header>
-        )}
-        <Body>
-          <Grid data-test-id="grid-editable" ref={this.refGrid}>
-            <GridHead>{this.renderGridHead()}</GridHead>
-            <GridBody>{this.renderGridBody()}</GridBody>
-          </Grid>
-        </Body>
+        <React.Profiler id="GridEditable" onRender={onRenderCallback}>
+          {showHeader && (
+            <Header>
+              {title && <HeaderTitle>{title}</HeaderTitle>}
+              {headerButtons && (
+                <HeaderButtonContainer>{headerButtons()}</HeaderButtonContainer>
+              )}
+            </Header>
+          )}
+          <Body>
+            <Grid data-test-id="grid-editable" ref={this.refGrid}>
+              <GridHead>{this.renderGridHead()}</GridHead>
+              <GridBody>{this.renderGridBody()}</GridBody>
+            </Grid>
+          </Body>
+        </React.Profiler>
       </React.Fragment>
     );
   }

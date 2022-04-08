@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import AutoComplete from 'app/components/autoComplete';
+import AutoComplete from 'sentry/components/autoComplete';
 
 const items = [
   {

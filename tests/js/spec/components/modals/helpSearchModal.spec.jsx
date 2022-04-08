@@ -1,8 +1,8 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {openHelpSearchModal} from 'app/actionCreators/modal';
-import App from 'app/views/app';
+import {openHelpSearchModal} from 'sentry/actionCreators/modal';
+import App from 'sentry/views/app';
 
 describe('Docs Search Modal', function () {
   beforeEach(function () {
@@ -46,7 +46,7 @@ describe('Docs Search Modal', function () {
       },
     });
     MockApiClient.addMockResponse({
-      url: '/assistant/?v2',
+      url: '/assistant/',
       body: [],
     });
   });

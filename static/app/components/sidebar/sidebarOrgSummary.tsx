@@ -1,63 +1,73 @@
 import styled from '@emotion/styled';
 
-import OrganizationAvatar from 'app/components/avatar/organizationAvatar';
-import {tn} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import {Organization, OrganizationSummary} from 'app/types';
+import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
+import {IconWarning} from 'sentry/icons';
+import {tn} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {OrganizationSummary} from 'sentry/types';
 
 type Props = {
   organization: OrganizationSummary;
+  className?: string;
+  /**
+   * Show the project count under the organization name.
+   */
+  projectCount?: number;
 };
 
-const SidebarOrgSummary = ({organization}: Props) => {
-  const fullOrg = organization as Organization;
-  const projects = fullOrg.projects && fullOrg.projects.length;
-  const extra: string[] = [];
-
-  if (projects) {
-    extra.push(tn('%s project', '%s projects', projects));
-  }
-
-  return (
-    <OrgSummary>
+const SidebarOrgSummary = styled(({organization, projectCount, ...props}: Props) => (
+  <div {...props}>
+    {organization.status.id === 'pending_deletion' ? (
+      <PendingDeletionAvatar data-test-id="pending-deletion-icon" />
+    ) : (
       <OrganizationAvatar organization={organization} size={36} />
-
-      <Details>
-        <SummaryOrgName>{organization.name}</SummaryOrgName>
-        {!!extra.length && <SummaryOrgDetails>{extra.join(', ')}</SummaryOrgDetails>}
-      </Details>
-    </OrgSummary>
-  );
-};
-
-const OrgSummary = styled('div')`
-  display: flex;
-  padding: 10px 15px;
-  overflow: hidden;
+    )}
+    <div>
+      <Name pendingDeletion={organization.status.id === 'pending_deletion'}>
+        {organization.name}
+      </Name>
+      {!!projectCount && (
+        <ProjectCount>{tn('%s project', '%s projects', projectCount)}</ProjectCount>
+      )}
+    </div>
+  </div>
+))`
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: ${space(1)};
+  align-items: center;
+  padding: ${space(1)} ${p => p.theme.sidebar.menuSpacing};
 `;
-const SummaryOrgName = styled('div')`
-  color: ${p => p.theme.textColor};
-  font-size: 16px;
+
+const Name = styled('div')<{pendingDeletion: boolean}>`
+  color: ${p => (p.pendingDeletion ? p.theme.subText : p.theme.textColor)};
+  font-size: ${p => p.theme.fontSizeLarge};
   line-height: 1.1;
   font-weight: bold;
-  margin-bottom: 4px;
   ${overflowEllipsis};
 `;
-const SummaryOrgDetails = styled('div')`
+
+const ProjectCount = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: 14px;
+  font-size: ${p => p.theme.fontSizeMedium};
   line-height: 1;
+  margin-top: ${space(0.5)};
   ${overflowEllipsis};
 `;
-const Details = styled('div')`
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
 
-  padding-left: 10px;
-  overflow: hidden;
+const PendingDeletionAvatar = styled('div')`
+  height: 36px;
+  width: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed ${p => p.theme.gray200};
+  border-radius: 4px;
 `;
 
-// Needed for styling in SidebarMenuItem
-export {OrgSummary};
+PendingDeletionAvatar.defaultProps = {
+  children: <IconWarning size="sm" color="gray200" />,
+};
+
 export default SidebarOrgSummary;

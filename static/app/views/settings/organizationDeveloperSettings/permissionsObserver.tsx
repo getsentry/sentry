@@ -1,25 +1,25 @@
 import {Component, Fragment} from 'react';
 
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import {t} from 'app/locale';
-import {Permissions, Scope, WebhookEvent} from 'app/types';
-import {toResourcePermissions} from 'app/utils/consolidatedScopes';
-import PermissionSelection from 'app/views/settings/organizationDeveloperSettings/permissionSelection';
-import Subscriptions from 'app/views/settings/organizationDeveloperSettings/resourceSubscriptions';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import {t} from 'sentry/locale';
+import {Permissions, Scope, WebhookEvent} from 'sentry/types';
+import {toResourcePermissions} from 'sentry/utils/consolidatedScopes';
+import PermissionSelection from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
+import Subscriptions from 'sentry/views/settings/organizationDeveloperSettings/resourceSubscriptions';
 
 type DefaultProps = {
-  webhookDisabled: boolean;
   appPublished: boolean;
+  webhookDisabled: boolean;
 };
 
 type Props = DefaultProps & {
-  scopes: Scope[];
   events: WebhookEvent[];
+  scopes: Scope[];
 };
 
 type State = {
-  permissions: Permissions;
   events: WebhookEvent[];
+  permissions: Permissions;
 };
 
 export default class PermissionsObserver extends Component<Props, State> {

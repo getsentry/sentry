@@ -2,9 +2,11 @@ import logging
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.views.decorators.csrf import csrf_exempt
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
-from sentry.integrations.jira.webhooks import handle_assignee_change, handle_status_change
+from sentry.integrations.jira.utils import handle_assignee_change, handle_status_change
 from sentry.models import Integration
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import jwt
@@ -34,7 +36,7 @@ def get_integration_from_token(token):
     try:
         jwt.decode(token, integration.metadata["webhook_secret"])
     except Exception as err:
-        raise ValueError("Could not validate JWT. Got %s" % err)
+        raise ValueError(f"Could not validate JWT. Got {err}")
 
     return integration
 
@@ -44,10 +46,10 @@ class JiraIssueUpdatedWebhook(Endpoint):
     permission_classes = ()
 
     @csrf_exempt
-    def dispatch(self, request, *args, **kwargs):
+    def dispatch(self, request: Request, *args, **kwargs) -> Response:
         return super().dispatch(request, *args, **kwargs)
 
-    def post(self, request, token, *args, **kwargs):
+    def post(self, request: Request, token, *args, **kwargs) -> Response:
         try:
             integration = get_integration_from_token(token)
         except ValueError as err:

@@ -1,32 +1,7 @@
-import InputField from 'app/components/forms/inputField';
+import InputField, {InputFieldProps} from './inputField';
 
-type Props = {
-  min?: number;
-  max?: number;
-} & InputField['props'];
+export interface NumberFieldProps extends Omit<InputFieldProps, 'type'> {}
 
-export default class NumberField extends InputField<Props> {
-  coerceValue(value) {
-    const intValue = parseInt(value, 10);
-
-    // return previous value if new value is NaN, otherwise, will get recursive error
-    const isNewCoercedNaN = isNaN(intValue);
-
-    if (!isNewCoercedNaN) {
-      return intValue;
-    }
-
-    return '';
-  }
-
-  getType() {
-    return 'number';
-  }
-
-  getAttributes() {
-    return {
-      min: this.props.min || undefined,
-      max: this.props.max || undefined,
-    };
-  }
+export default function NumberField(props) {
+  return <InputField {...props} type="number" />;
 }

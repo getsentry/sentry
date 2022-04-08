@@ -1,7 +1,7 @@
 import * as React from 'react';
 import orderBy from 'lodash/orderBy';
 
-import {Relay, RelayActivity} from 'app/types';
+import {Relay, RelayActivity} from 'sentry/types';
 
 import ActivityList from './activityList';
 import CardHeader from './cardHeader';
@@ -12,9 +12,9 @@ type CardHeaderProps = React.ComponentProps<typeof CardHeader>;
 type WaitingActivityProps = React.ComponentProps<typeof WaitingActivity>;
 
 type Props = {
-  relays: Array<Relay>;
-  relayActivities: Array<RelayActivity>;
   disabled: boolean;
+  relayActivities: Array<RelayActivity>;
+  relays: Array<Relay>;
 } & Pick<CardHeaderProps, 'onDelete' | 'onEdit'> &
   Pick<WaitingActivityProps, 'onRefresh'>;
 

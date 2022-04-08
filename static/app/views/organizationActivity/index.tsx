@@ -1,19 +1,19 @@
 import * as React from 'react';
 import {RouteComponentProps} from 'react-router';
 
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import ErrorBoundary from 'app/components/errorBoundary';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import PageHeading from 'app/components/pageHeading';
-import Pagination from 'app/components/pagination';
-import {Panel} from 'app/components/panels';
-import {t} from 'app/locale';
-import {PageContent} from 'app/styles/organization';
-import space from 'app/styles/space';
-import {Activity, Organization} from 'app/types';
-import routeTitle from 'app/utils/routeTitle';
-import withOrganization from 'app/utils/withOrganization';
-import AsyncView from 'app/views/asyncView';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import PageHeading from 'sentry/components/pageHeading';
+import Pagination from 'sentry/components/pagination';
+import {Panel} from 'sentry/components/panels';
+import {t} from 'sentry/locale';
+import {PageContent} from 'sentry/styles/organization';
+import space from 'sentry/styles/space';
+import {Activity, Organization} from 'sentry/types';
+import routeTitle from 'sentry/utils/routeTitle';
+import withOrganization from 'sentry/utils/withOrganization';
+import AsyncView from 'sentry/views/asyncView';
 
 import ActivityFeedItem from './activityFeedItem';
 
@@ -29,7 +29,7 @@ type State = {
 class OrganizationActivity extends AsyncView<Props, State> {
   getTitle() {
     const {orgId} = this.props.params;
-    return routeTitle(t('Activity'), orgId);
+    return routeTitle(t('Activity'), orgId, false);
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
@@ -48,13 +48,13 @@ class OrganizationActivity extends AsyncView<Props, State> {
     );
   }
 
-  renderError(error?: Error, disableLog = false, disableReport = false): React.ReactNode {
+  renderError(error?: Error, disableLog = false): React.ReactNode {
     const {errors} = this.state;
     const notFound = Object.values(errors).find(resp => resp && resp.status === 404);
     if (notFound) {
       return this.renderBody();
     }
-    return super.renderError(error, disableLog, disableReport);
+    return super.renderError(error, disableLog);
   }
 
   renderBody() {

@@ -13,13 +13,17 @@ from sentry.models import (
 
 def create_audit_entry(request, transaction_id=None, logger=None, **kwargs):
     user = kwargs.pop("actor", request.user if request.user.is_authenticated else None)
-    api_key = (
-        request.auth if hasattr(request, "auth") and isinstance(request.auth, ApiKey) else None
+    api_key = get_api_key_for_audit_log(request)
+
+    return create_audit_entry_from_user(
+        user, api_key, request.META["REMOTE_ADDR"], transaction_id, logger, **kwargs
     )
 
-    entry = AuditLogEntry(
-        actor=user, actor_key=api_key, ip_address=request.META["REMOTE_ADDR"], **kwargs
-    )
+
+def create_audit_entry_from_user(
+    user, api_key=None, ip_address=None, transaction_id=None, logger=None, **kwargs
+):
+    entry = AuditLogEntry(actor=user, actor_key=api_key, ip_address=ip_address, **kwargs)
 
     # Only create a real AuditLogEntry record if we are passing an event type
     # otherwise, we want to still log to our actual logging
@@ -53,6 +57,10 @@ def create_audit_entry(request, transaction_id=None, logger=None, **kwargs):
         logger.info(entry.get_event_display(), extra=extra)
 
     return entry
+
+
+def get_api_key_for_audit_log(request):
+    return request.auth if hasattr(request, "auth") and isinstance(request.auth, ApiKey) else None
 
 
 def create_org_delete_log(entry):

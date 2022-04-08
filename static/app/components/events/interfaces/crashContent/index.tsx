@@ -1,9 +1,9 @@
 import * as React from 'react';
 
-import {ExceptionType, ExceptionValue, PlatformType} from 'app/types';
+import {ExceptionType, ExceptionValue, PlatformType} from 'sentry/types';
 
 import Exception from './exception';
-import Stacktrace from './stacktrace';
+import Stacktrace from './stackTrace';
 
 type ExceptionProps = React.ComponentProps<typeof Exception>;
 type Props = Pick<
@@ -20,7 +20,7 @@ type Props = Pick<
   stacktrace?: ExceptionValue['stacktrace'];
 };
 
-const CrashContent = ({
+function CrashContent({
   event,
   stackView,
   stackType,
@@ -30,7 +30,7 @@ const CrashContent = ({
   hasHierarchicalGrouping,
   exception,
   stacktrace,
-}: Props) => {
+}: Props) {
   const platform = (event.platform ?? 'other') as PlatformType;
 
   if (exception) {
@@ -64,6 +64,6 @@ const CrashContent = ({
   }
 
   return null;
-};
+}
 
 export default CrashContent;

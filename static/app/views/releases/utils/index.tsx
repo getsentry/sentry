@@ -3,15 +3,17 @@ import pick from 'lodash/pick';
 import round from 'lodash/round';
 import moment from 'moment';
 
-import {DateTimeObject} from 'app/components/charts/utils';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {PAGE_URL_PARAM, URL_PARAM} from 'app/constants/globalSelectionHeader';
-import {tn} from 'app/locale';
-import {Release, ReleaseStatus} from 'app/types';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
-import {IssueSortOptions} from 'app/views/issueList/utils';
-
-import {DisplayOption} from '../list/utils';
+import {DateTimeObject} from 'sentry/components/charts/utils';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {PAGE_URL_PARAM, URL_PARAM} from 'sentry/constants/pageFilters';
+import {desktop, mobile, PlatformKey} from 'sentry/data/platformCategories';
+import {t, tct} from 'sentry/locale';
+import {Release, ReleaseStatus} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import {Theme} from 'sentry/utils/theme';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 export const CRASH_FREE_DECIMAL_THRESHOLD = 95;
 
@@ -24,7 +26,14 @@ export const getCrashFreePercent = (
   decimalThreshold = CRASH_FREE_DECIMAL_THRESHOLD,
   decimalPlaces = 3
 ): number => {
-  return round(percent, percent > decimalThreshold ? decimalPlaces : 0);
+  const roundedValue = round(percent, percent > decimalThreshold ? decimalPlaces : 0);
+  if (roundedValue === 100 && percent < 100) {
+    return (
+      Math.floor(percent * Math.pow(10, decimalPlaces)) / Math.pow(10, decimalPlaces)
+    );
+  }
+
+  return roundedValue;
 };
 
 export const displayCrashFreePercent = (
@@ -56,17 +65,6 @@ export const getSessionStatusPercent = (percent: number, absolute = true) => {
 export const displaySessionStatusPercent = (percent: number, absolute = true) => {
   return `${getSessionStatusPercent(percent, absolute).toLocaleString()}\u0025`;
 };
-
-export const displayCrashFreeDiff = (
-  diffPercent: number,
-  crashFreePercent?: number | null
-) =>
-  `${Math.abs(
-    round(
-      diffPercent,
-      crashFreePercent && crashFreePercent > CRASH_FREE_DECIMAL_THRESHOLD ? 3 : 0
-    )
-  ).toLocaleString()}\u0025`;
 
 export const getReleaseNewIssuesUrl = (
   orgSlug: string,
@@ -130,57 +128,55 @@ export const getReleaseHandledIssuesUrl = (
 export const isReleaseArchived = (release: Release) =>
   release.status === ReleaseStatus.Archived;
 
-export function releaseDisplayLabel(displayOption: DisplayOption, count?: number | null) {
-  if (displayOption === DisplayOption.USERS) {
-    return tn('user', 'users', count);
-  }
-
-  return tn('session', 'sessions', count);
-}
-
-export type ReleaseBounds = {releaseStart?: string | null; releaseEnd?: string | null};
+export type ReleaseBounds = {
+  type: 'normal' | 'clamped' | 'ancient';
+  releaseEnd?: string | null;
+  releaseStart?: string | null;
+};
 
 export function getReleaseBounds(release?: Release): ReleaseBounds {
+  const retentionBound = moment().subtract(90, 'days');
   const {lastEvent, currentProjectMeta, dateCreated} = release || {};
   const {sessionsUpperBound} = currentProjectMeta || {};
 
-  const releaseStart = moment(dateCreated).startOf('minute').utc().format();
-  const releaseEnd = moment(
+  let type: ReleaseBounds['type'] = 'normal';
+  let releaseStart = moment(dateCreated).startOf('minute');
+  let releaseEnd = moment(
     (moment(sessionsUpperBound).isAfter(lastEvent) ? sessionsUpperBound : lastEvent) ??
       undefined
-  )
-    .startOf('minute')
-    .utc()
-    .format();
+  ).endOf('minute');
 
   if (moment(releaseStart).isSame(releaseEnd, 'minute')) {
-    return {
-      releaseStart,
-      releaseEnd: moment(releaseEnd).add(1, 'minutes').utc().format(),
-    };
+    releaseEnd = moment(releaseEnd).add(1, 'minutes');
+  }
+
+  if (releaseStart.isBefore(retentionBound)) {
+    releaseStart = retentionBound;
+    type = 'clamped';
+
+    if (
+      releaseEnd.isBefore(releaseStart) ||
+      (!defined(sessionsUpperBound) && !defined(lastEvent))
+    ) {
+      releaseEnd = moment();
+      type = 'ancient';
+    }
   }
 
   return {
-    releaseStart,
-    releaseEnd,
+    type,
+    releaseStart: releaseStart.utc().format(),
+    releaseEnd: releaseEnd.utc().format(),
   };
 }
 
 type GetReleaseParams = {
   location: Location;
   releaseBounds: ReleaseBounds;
-  defaultStatsPeriod: string;
-  allowEmptyPeriod: boolean;
 };
 
-// these options are here only temporarily while we still support older and newer release details page
-export function getReleaseParams({
-  location,
-  releaseBounds,
-  defaultStatsPeriod,
-  allowEmptyPeriod,
-}: GetReleaseParams) {
-  const params = getParams(
+export function getReleaseParams({location, releaseBounds}: GetReleaseParams) {
+  const params = normalizeDateTimeParams(
     pick(location.query, [
       ...Object.values(URL_PARAM),
       ...Object.values(PAGE_URL_PARAM),
@@ -188,8 +184,7 @@ export function getReleaseParams({
     ]),
     {
       allowAbsolutePageDatetime: true,
-      defaultStatsPeriod,
-      allowEmptyPeriod,
+      allowEmptyPeriod: true,
     }
   );
   if (
@@ -203,3 +198,40 @@ export function getReleaseParams({
 
   return params;
 }
+
+const adoptionStagesLink = (
+  <ExternalLink href="https://docs.sentry.io/product/releases/health/#adoption-stages" />
+);
+
+export const ADOPTION_STAGE_LABELS: Record<
+  string,
+  {name: string; tooltipTitle: React.ReactNode; type: keyof Theme['tag']}
+> = {
+  low_adoption: {
+    name: t('Low Adoption'),
+    tooltipTitle: tct(
+      'This release has a low percentage of sessions compared to other releases in this project. [link:Learn more]',
+      {link: adoptionStagesLink}
+    ),
+    type: 'warning',
+  },
+  adopted: {
+    name: t('Adopted'),
+    tooltipTitle: tct(
+      'This release has a high percentage of sessions compared to other releases in this project. [link:Learn more]',
+      {link: adoptionStagesLink}
+    ),
+    type: 'success',
+  },
+  replaced: {
+    name: t('Replaced'),
+    tooltipTitle: tct(
+      'This release was previously Adopted, but now has a lower level of sessions compared to other releases in this project. [link:Learn more]',
+      {link: adoptionStagesLink}
+    ),
+    type: 'default',
+  },
+};
+
+export const isMobileRelease = (releaseProjectPlatform: PlatformKey) =>
+  ([...mobile, ...desktop] as string[]).includes(releaseProjectPlatform);

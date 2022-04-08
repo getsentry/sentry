@@ -1,6 +1,7 @@
 from django.urls import reverse
 
-from sentry.models import Integration, Repository, RepositoryProjectPathConfig
+from sentry.api.endpoints.organization_code_mappings import BRANCH_NAME_ERROR_MESSAGE
+from sentry.models import Integration, Repository
 from sentry.testutils import APITestCase
 
 
@@ -9,20 +10,32 @@ class OrganizationCodeMappingsTest(APITestCase):
         super().setUp()
 
         self.login_as(user=self.user)
-        self.org = self.create_organization(owner=self.user, name="baz")
-        self.team = self.create_team(organization=self.org, name="Mariachi Band")
-        self.project1 = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
-        self.project2 = self.create_project(organization=self.org, teams=[self.team], name="Tiger")
-        self.integration = Integration.objects.create(
-            provider="github", name="Example", external_id="abcd"
+        self.user2 = self.create_user("nisanthan@sentry.io", is_superuser=False)
+        self.team = self.create_team(
+            organization=self.organization, name="Mariachi Band", members=[self.user]
         )
-        self.org_integration = self.integration.add_organization(self.org, self.user)
+        self.team2 = self.create_team(
+            organization=self.organization,
+            name="Ecosystem",
+        )
+        self.create_member(
+            organization=self.organization,
+            user=self.user2,
+            has_global_access=False,
+            teams=[self.team2],
+        )
+        self.project1 = self.create_project(
+            organization=self.organization, teams=[self.team], name="Bengal"
+        )
+        self.project2 = self.create_project(
+            organization=self.organization, teams=[self.team, self.team2], name="Tiger"
+        )
         self.repo1 = Repository.objects.create(
-            name="example", organization_id=self.org.id, integration_id=self.integration.id
+            name="example", organization_id=self.organization.id, integration_id=self.integration.id
         )
         self.url = reverse(
             "sentry-api-0-organization-code-mappings",
-            args=[self.org.slug],
+            args=[self.organization.slug],
         )
 
     def make_post(self, data=None):
@@ -32,6 +45,7 @@ class OrganizationCodeMappingsTest(APITestCase):
             "stackRoot": "/stack/root",
             "sourceRoot": "/source/root",
             "defaultBranch": "master",
+            "integrationId": self.integration.id,
         }
         if data:
             config_data.update(data)
@@ -39,14 +53,12 @@ class OrganizationCodeMappingsTest(APITestCase):
 
     def test_basic_get_with_integrationId(self):
         path_config1 = self.create_code_mapping(
-            organization_integration=self.org_integration,
             project=self.project1,
             repo=self.repo1,
             stack_root="stack/root",
             source_root="source/root",
         )
         path_config2 = self.create_code_mapping(
-            organization_integration=self.org_integration,
             project=self.project2,
             repo=self.repo1,
             stack_root="another/path",
@@ -101,16 +113,15 @@ class OrganizationCodeMappingsTest(APITestCase):
         }
 
     def test_basic_get_with_projectId(self):
-        path_config1 = RepositoryProjectPathConfig.objects.create(
-            organization_integration=self.org_integration,
+        path_config1 = self.create_code_mapping(
             project=self.project1,
-            repository=self.repo1,
+            repo=self.repo1,
             stack_root="stack/root",
             source_root="source/root",
             default_branch="master",
         )
 
-        url_path = f"{self.url}?projectId={self.project1.id}"
+        url_path = f"{self.url}?project={self.project1.id}"
         response = self.client.get(url_path, format="json")
 
         assert response.status_code == 200, response.content
@@ -137,19 +148,17 @@ class OrganizationCodeMappingsTest(APITestCase):
         }
 
     def test_basic_get_with_no_integrationId_and_projectId(self):
-        RepositoryProjectPathConfig.objects.create(
-            organization_integration=self.org_integration,
+
+        self.create_code_mapping(
             project=self.project1,
-            repository=self.repo1,
+            repo=self.repo1,
             stack_root="stack/root",
             source_root="source/root",
             default_branch="master",
         )
-
-        RepositoryProjectPathConfig.objects.create(
-            organization_integration=self.org_integration,
+        self.create_code_mapping(
             project=self.project2,
-            repository=self.repo1,
+            repo=self.repo1,
             stack_root="another/path",
             source_root="hey/there",
         )
@@ -157,8 +166,8 @@ class OrganizationCodeMappingsTest(APITestCase):
         url_path = f"{self.url}"
         response = self.client.get(url_path, format="json")
 
-        assert response.status_code == 400, response.content
-        assert response.data == {"detail": 'Missing valid "projectId" or "integrationId"'}
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
 
     def test_basic_get_with_invalid_integrationId(self):
 
@@ -169,13 +178,36 @@ class OrganizationCodeMappingsTest(APITestCase):
 
     def test_basic_get_with_invalid_projectId(self):
 
-        url_path = f"{self.url}?projectId=100"
+        url_path = f"{self.url}?project=100"
         response = self.client.get(url_path, format="json")
 
-        assert response.status_code == 404, response.content
+        assert response.status_code == 403, response.content
+
+    def test_basic_get_with_projectId_minus_1(self):
+        self.login_as(user=self.user2)
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        self.create_code_mapping(
+            project=self.project1,
+            repo=self.repo1,
+            stack_root="stack/root",
+            source_root="source/root",
+            default_branch="master",
+        )
+        self.create_code_mapping(
+            project=self.project2,
+            repo=self.repo1,
+            stack_root="another/path",
+            source_root="hey/there",
+        )
+        url_path = f"{self.url}?projectId=-1"
+        response = self.client.get(url_path, format="json")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
 
     def test_basic_post_with_valid_integrationId(self):
-        response = self.make_post({"integrationId": self.integration.id})
+        response = self.make_post()
         assert response.status_code == 201, response.content
         assert response.data == {
             "id": str(response.data["id"]),
@@ -203,20 +235,9 @@ class OrganizationCodeMappingsTest(APITestCase):
         assert response.status_code == 404, response.content
 
     def test_basic_post_with_no_integrationId(self):
-        response = self.make_post()
-        assert response.status_code == 201, response.content
-        assert response.data == {
-            "id": str(response.data["id"]),
-            "projectId": str(self.project1.id),
-            "projectSlug": self.project1.slug,
-            "repoId": str(self.repo1.id),
-            "repoName": self.repo1.name,
-            "provider": None,
-            "integrationId": None,
-            "stackRoot": "/stack/root",
-            "sourceRoot": "/source/root",
-            "defaultBranch": "master",
-        }
+        response = self.make_post({"integrationId": None})
+        assert response.status_code == 400, response.content
+        assert response.data == "Missing param: integration_id"
 
     def test_empty_roots_post(self):
         response = self.make_post({"stackRoot": "", "sourceRoot": ""})
@@ -231,9 +252,9 @@ class OrganizationCodeMappingsTest(APITestCase):
 
     def test_repo_does_not_exist_on_given_integrationId(self):
         bad_integration = Integration.objects.create(provider="github", external_id="radsfas")
-        bad_integration.add_organization(self.org, self.user)
+        bad_integration.add_organization(self.organization, self.user)
         bad_repo = Repository.objects.create(
-            name="another", organization_id=self.org.id, integration_id=bad_integration.id
+            name="another", organization_id=self.organization.id, integration_id=bad_integration.id
         )
         response = self.make_post(
             {"repositoryId": bad_repo.id, "integrationId": self.integration.id}
@@ -288,30 +309,22 @@ class OrganizationCodeMappingsTest(APITestCase):
     def test_quote_in_branch(self):
         response = self.make_post({"defaultBranch": "f'f"})
         assert response.status_code == 400
-        assert response.data == {
-            "defaultBranch": [
-                "Branch name may only have letters, numbers, underscores, forward slashes and dashes. Branch name may not start or end with a forward slash."
-            ],
-        }
+        assert response.data == {"defaultBranch": [BRANCH_NAME_ERROR_MESSAGE]}
 
     def test_forward_slash_in_branch(self):
         response = self.make_post({"defaultBranch": "prod/deploy-branch"})
         assert response.status_code == 201, response.content
 
+    def test_period_in_branch(self):
+        response = self.make_post({"defaultBranch": "release-2.0.0"})
+        assert response.status_code == 201, response.content
+
     def test_leading_forward_slash_in_branch_conflict(self):
         response = self.make_post({"defaultBranch": "/prod/deploy-branch"})
         assert response.status_code == 400
-        assert response.data == {
-            "defaultBranch": [
-                "Branch name may only have letters, numbers, underscores, forward slashes and dashes. Branch name may not start or end with a forward slash."
-            ],
-        }
+        assert response.data == {"defaultBranch": [BRANCH_NAME_ERROR_MESSAGE]}
 
     def test_ending_forward_slash_in_branch_conflict(self):
         response = self.make_post({"defaultBranch": "prod/deploy-branch/"})
         assert response.status_code == 400
-        assert response.data == {
-            "defaultBranch": [
-                "Branch name may only have letters, numbers, underscores, forward slashes and dashes. Branch name may not start or end with a forward slash."
-            ],
-        }
+        assert response.data == {"defaultBranch": [BRANCH_NAME_ERROR_MESSAGE]}

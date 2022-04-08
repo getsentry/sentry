@@ -2,23 +2,23 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import {addRepository, migrateRepository} from 'app/actionCreators/integrations';
-import RepositoryActions from 'app/actions/repositoryActions';
-import Alert from 'app/components/alert';
-import AsyncComponent from 'app/components/asyncComponent';
-import Button from 'app/components/button';
-import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
-import DropdownButton from 'app/components/dropdownButton';
-import Pagination from 'app/components/pagination';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import RepositoryRow from 'app/components/repositoryRow';
-import {IconCommit, IconFlag} from 'app/icons';
-import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {Integration, Organization, Repository} from 'app/types';
-import withOrganization from 'app/utils/withOrganization';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import {addRepository, migrateRepository} from 'sentry/actionCreators/integrations';
+import RepositoryActions from 'sentry/actions/repositoryActions';
+import Alert from 'sentry/components/alert';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import Button from 'sentry/components/button';
+import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
+import DropdownButton from 'sentry/components/dropdownButton';
+import Pagination from 'sentry/components/pagination';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import RepositoryRow from 'sentry/components/repositoryRow';
+import {IconCommit} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {Integration, Organization, Repository} from 'sentry/types';
+import withOrganization from 'sentry/utils/withOrganization';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 type Props = AsyncComponent['props'] & {
   integration: Integration;
@@ -28,11 +28,11 @@ type Props = AsyncComponent['props'] & {
 type State = AsyncComponent['state'] & {
   adding: boolean;
   dropdownBusy: boolean;
-  itemList: Repository[];
   integrationRepos: {
     repos: {identifier: string; name: string}[];
     searchable: boolean;
   };
+  itemList: Repository[];
 };
 
 class IntegrationRepos extends AsyncComponent<Props, State> {
@@ -104,7 +104,7 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
     this.debouncedSearchRepositoriesRequest(e.target.value);
   };
 
-  addRepo(selection: {searchKey: string; value: string; label: JSX.Element}) {
+  addRepo(selection: {label: JSX.Element; searchKey: string; value: string}) {
     const {integration} = this.props;
     const {itemList} = this.state;
     const orgId = this.props.organization.slug;
@@ -196,7 +196,7 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
     );
     if (badRequest) {
       return (
-        <Alert type="error" icon={<IconFlag size="md" />}>
+        <Alert type="error" showIcon>
           {t(
             'We were unable to fetch repositories for this integration. Try again later. If this error continues, please reconnect this integration by uninstalling and then reinstalling.'
           )}

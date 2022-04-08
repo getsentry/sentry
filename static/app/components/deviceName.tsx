@@ -1,81 +1,41 @@
-import * as React from 'react';
+import {useMemo} from 'react';
 
-import {IOSDeviceList} from 'app/types/iOSDeviceList';
+import {iOSDeviceMapping} from 'sentry/constants/ios-device-list';
 
-export function deviceNameMapper(model: string, iOSDeviceList): string {
-  const modelIdentifier = model.split(' ')[0];
-  const modelId = model.split(' ').splice(1).join(' ');
-  const modelName = iOSDeviceList.generationByIdentifier(modelIdentifier);
-  return modelName === undefined ? model : modelName + ' ' + modelId;
+export function deviceNameMapper(model: string | undefined): string | null {
+  // If we have no model, render nothing
+  if (typeof model !== 'string') {
+    return null;
+  }
+
+  // If module has not loaded yet, render the unparsed model
+  if (module === null) {
+    return model;
+  }
+
+  const [identifier, ...rest] = model.split(' ');
+
+  const modelName = iOSDeviceMapping[identifier];
+  return modelName === undefined ? model : `${modelName} ${rest.join(' ')}`;
 }
 
-export async function loadDeviceListModule() {
-  return import('ios-device-list');
-}
-
-type Props = {
+interface DeviceNameProps {
   value: string;
   children?: (name: string) => React.ReactNode;
-};
+}
 
-type State = {
-  iOSDeviceList: IOSDeviceList | null;
-};
 /**
  * This is used to map iOS Device Names to model name.
  * This asynchronously loads the ios-device-list library because of its size
  */
-export default class DeviceName extends React.Component<Props, State> {
-  constructor(props) {
-    super(props);
+function DeviceName({value, children}: DeviceNameProps): React.ReactElement | null {
+  const deviceName = useMemo(() => deviceNameMapper(value), [value]);
 
-    this.state = {
-      iOSDeviceList: null,
-    };
-  }
-
-  componentDidMount() {
-    // This is to handle react's warning on calling setState for unmounted components
-    // Since we can't cancel promises, we need to do this
-    this._isMounted = true;
-
-    // This library is very big, so we are codesplitting it based on size and
-    // the relatively small utility this library provides
-    loadDeviceListModule().then(iOSDeviceList => {
-      if (!this._isMounted) {
-        return;
-      }
-
-      this.setState({iOSDeviceList});
-    });
-  }
-
-  componentWillUnmount() {
-    this._isMounted = false;
-  }
-
-  private _isMounted?: boolean;
-
-  render() {
-    const {value, children} = this.props;
-    const {iOSDeviceList} = this.state;
-
-    // value can be undefined, need to return null or else react throws
-    if (!value) {
-      return null;
-    }
-
-    // If library has not loaded yet, then just render the raw model string, better than empty
-    if (!iOSDeviceList) {
-      return value;
-    }
-
-    const deviceName = deviceNameMapper(value, iOSDeviceList);
-
-    return (
-      <span data-test-id="loaded-device-name">
-        {children ? children(deviceName) : deviceName}
-      </span>
-    );
-  }
+  return deviceName ? (
+    <span data-test-id="loaded-device-name">
+      {children ? children(deviceName) : deviceName}
+    </span>
+  ) : null;
 }
+
+export {DeviceName};

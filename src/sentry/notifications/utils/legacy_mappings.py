@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from collections import namedtuple
-from typing import Any, Iterable, List, Mapping, Optional, Tuple
+from typing import Any, Iterable, Mapping
 
 from sentry.notifications.types import (
     FineTuningAPIKey,
@@ -93,9 +95,7 @@ LEGACY_VALUE_TO_KEY = {
 }
 
 
-def get_legacy_key(
-    type: NotificationSettingTypes, scope_type: NotificationScopeType
-) -> Optional[str]:
+def get_legacy_key(type: NotificationSettingTypes, scope_type: NotificationScopeType) -> str | None:
     """Temporary mapping from new enum types to legacy strings."""
     if scope_type == NotificationScopeType.USER and type == NotificationSettingTypes.ISSUE_ALERTS:
         return "subscribe_by_default"
@@ -120,11 +120,11 @@ def get_option_value_from_boolean(value: bool) -> NotificationSettingOptionValue
 
 def get_option_value_from_int(
     type: NotificationSettingTypes, value: int
-) -> Optional[NotificationSettingOptionValues]:
+) -> NotificationSettingOptionValues | None:
     return LEGACY_VALUE_TO_KEY.get(type, {}).get(value)
 
 
-def get_type_from_fine_tuning_key(key: FineTuningAPIKey) -> Optional[NotificationSettingTypes]:
+def get_type_from_fine_tuning_key(key: FineTuningAPIKey) -> NotificationSettingTypes | None:
     return {
         FineTuningAPIKey.ALERTS: NotificationSettingTypes.ISSUE_ALERTS,
         FineTuningAPIKey.DEPLOY: NotificationSettingTypes.DEPLOY,
@@ -134,7 +134,7 @@ def get_type_from_fine_tuning_key(key: FineTuningAPIKey) -> Optional[Notificatio
 
 def get_type_from_user_option_settings_key(
     key: UserOptionsSettingsKey,
-) -> Optional[NotificationSettingTypes]:
+) -> NotificationSettingTypes | None:
     return {
         UserOptionsSettingsKey.DEPLOY: NotificationSettingTypes.DEPLOY,
         UserOptionsSettingsKey.WORKFLOW: NotificationSettingTypes.WORKFLOW,
@@ -142,7 +142,7 @@ def get_type_from_user_option_settings_key(
     }.get(key)
 
 
-def get_key_from_legacy(key: str) -> Optional[NotificationSettingTypes]:
+def get_key_from_legacy(key: str) -> NotificationSettingTypes | None:
     return {
         "deploy-emails": NotificationSettingTypes.DEPLOY,
         "mail:alert": NotificationSettingTypes.ISSUE_ALERTS,
@@ -153,7 +153,7 @@ def get_key_from_legacy(key: str) -> Optional[NotificationSettingTypes]:
 
 def get_key_value_from_legacy(
     key: str, value: Any
-) -> Tuple[Optional[NotificationSettingTypes], Optional[NotificationSettingOptionValues]]:
+) -> tuple[NotificationSettingTypes | None, NotificationSettingOptionValues | None]:
     type = get_key_from_legacy(key)
     if type not in LEGACY_VALUE_TO_KEY:
         return None, None
@@ -192,7 +192,7 @@ def get_legacy_object(
 def map_notification_settings_to_legacy(
     notification_settings: Iterable[Any],
     actor_mapping: Mapping[int, Any],
-) -> List[Any]:
+) -> list[Any]:
     """A hack for legacy serializers. Pretend a list of NotificationSettings is a list of UserOptions."""
     project_mapping, organization_mapping = get_parent_mappings(notification_settings)
     return [
@@ -205,7 +205,7 @@ def map_notification_settings_to_legacy(
 
 def get_parent_mappings(
     notification_settings: Iterable[Any],
-) -> Tuple[Mapping[int, Any], Mapping[int, Any]]:
+) -> tuple[Mapping[int, Any], Mapping[int, Any]]:
     """Prefetch a list of Project or Organization objects for the Serializer."""
     from sentry.models.organization import Organization
     from sentry.models.project import Project

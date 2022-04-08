@@ -7,9 +7,9 @@ import omit from 'lodash/omit';
 import * as qs from 'query-string';
 
 type DefaultProps = {
-  index: boolean;
   activeClassName: string;
   disabled: boolean;
+  index: boolean;
 };
 
 type LinkProps = Omit<React.ComponentProps<typeof RouterLink>, 'to'>;
@@ -21,11 +21,11 @@ type Props = WithRouterProps &
      * Link target. We don't want to expose the ToLocationFunction on this component.
      */
     to: LocationDescriptor;
-    query?: string;
     // If supplied by parent component, decides whether link element
     // is "active" or not ... overriding default behavior of strict
     // route matching
     isActive?: (location: LocationDescriptor, indexOnly?: boolean) => boolean;
+    query?: string;
   };
 
 class ListLink extends React.Component<Props> {

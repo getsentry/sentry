@@ -1,8 +1,9 @@
 import operator
+from typing import Any, Sequence
 from uuid import uuid4
 
-from django.db.models import F
-from django.db.models.expressions import CombinedExpression, Value
+from django.db.models import F, Field, Model
+from django.db.models.expressions import BaseExpression, CombinedExpression, Value
 from django.template.defaultfilters import slugify
 from django.utils.crypto import get_random_string
 
@@ -19,8 +20,8 @@ COMBINED_EXPRESSION_CALLBACKS = {
 }
 
 
-def resolve_combined_expression(instance, node):
-    def _resolve(instance, node):
+def resolve_combined_expression(instance: Model, node: BaseExpression) -> BaseExpression:
+    def _resolve(instance: Model, node: BaseExpression) -> BaseExpression:
         if isinstance(node, Value):
             return node.value
         if isinstance(node, F):
@@ -46,7 +47,15 @@ def resolve_combined_expression(instance, node):
     return runner
 
 
-def slugify_instance(inst, label, reserved=(), max_length=30, field_name="slug", *args, **kwargs):
+def slugify_instance(
+    inst: Model,
+    label: str,
+    reserved: Sequence[str] = (),
+    max_length: int = 30,
+    field_name: str = "slug",
+    *args: Any,
+    **kwargs: Any,
+) -> None:
     base_value = slugify(label)[:max_length]
 
     if base_value is not None:
@@ -98,13 +107,13 @@ class Creator:
     SubfieldBase which will be removed in Django1.10
     """
 
-    def __init__(self, field):
+    def __init__(self, field: Field):
         self.field = field
 
-    def __get__(self, obj, type=None):
+    def __get__(self, obj: Model, type: Any = None) -> Any:
         if obj is None:
             return self
         return obj.__dict__[self.field.name]
 
-    def __set__(self, obj, value):
+    def __set__(self, obj: Model, value: Any) -> None:
         obj.__dict__[self.field.name] = self.field.to_python(value)

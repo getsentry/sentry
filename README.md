@@ -16,9 +16,9 @@ in realtime. The server is in Python, but it contains a full API for
 sending events from any language, in any application.
 
 <p align="center">
-  <img src="https://github.com/getsentry/sentry/raw/master/docs/screenshots/thumb-1.png" width="290">
-  <img src="https://github.com/getsentry/sentry/raw/master/docs/screenshots/thumb-2.png" width="290">
-  <img src="https://github.com/getsentry/sentry/raw/master/docs/screenshots/thumb-3.png" width="290">
+  <img src="https://github.com/getsentry/sentry/raw/master/docs/screenshots/thumb-1.png" width="270">
+  <img src="https://github.com/getsentry/sentry/raw/master/docs/screenshots/thumb-2.png" width="270">
+  <img src="https://github.com/getsentry/sentry/raw/master/docs/screenshots/thumb-3.png" width="270">
 </p>
 
 ## Official Sentry SDKs
@@ -26,7 +26,7 @@ sending events from any language, in any application.
   - [JavaScript](https://github.com/getsentry/sentry-javascript)
   - [React-Native](https://github.com/getsentry/sentry-react-native)
   - [Python](https://github.com/getsentry/sentry-python)
-  - [Ruby](https://github.com/getsentry/raven-ruby)
+  - [Ruby](https://github.com/getsentry/sentry-ruby)
   - [PHP](https://github.com/getsentry/sentry-php)
   - [Go](https://github.com/getsentry/sentry-go)
   - [Rust](https://github.com/getsentry/sentry-rust)

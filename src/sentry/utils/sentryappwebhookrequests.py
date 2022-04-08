@@ -1,12 +1,16 @@
+import logging
+
 from dateutil.parser import parse as parse_date
 from django.conf import settings
 from django.utils import timezone
 
-from sentry.models.sentryapp import VALID_EVENTS
+from sentry.models.integrations.sentry_app import VALID_EVENTS
 from sentry.utils import json, redis
 
 BUFFER_SIZE = 100
 KEY_EXPIRY = 60 * 60 * 24 * 30  # 30 days
+
+logger = logging.getLogger("sentry.utils.sentryappwebhookrequests")
 
 EXTENDED_VALID_EVENTS = VALID_EVENTS + (
     "event_alert.triggered",
@@ -19,6 +23,8 @@ EXTENDED_VALID_EVENTS = VALID_EVENTS + (
     "metric_alert.resolved",
     "metric_alert.critical",
     "metric_alert.warning",
+    "alert_rule_action.requested",
+    "alert_rule_action.error",
 )
 
 
@@ -104,6 +110,7 @@ class SentryAppWebhookRequestsBuffer:
 
     def add_request(self, response_code, org_id, event, url, error_id=None, project_id=None):
         if event not in EXTENDED_VALID_EVENTS:
+            logger.warning(f"Event {event} is not a valid event that can be stored.")
             return
 
         request_key = self._get_redis_key(event)

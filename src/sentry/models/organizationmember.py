@@ -1,11 +1,16 @@
+from __future__ import annotations
+
+from collections import defaultdict
 from datetime import timedelta
 from enum import Enum
 from hashlib import md5
+from typing import TYPE_CHECKING, List, Mapping, MutableMapping
 from urllib.parse import urlencode
 from uuid import uuid4
 
 from django.conf import settings
 from django.db import models, transaction
+from django.db.models import QuerySet
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_bytes
@@ -13,19 +18,18 @@ from django.utils.translation import ugettext_lazy as _
 from structlog import get_logger
 
 from bitfield import BitField
-from sentry import roles
+from sentry import features, roles
 from sentry.constants import ALERTS_MEMBER_WRITE_DEFAULT, EVENTS_MEMBER_ADMIN_DEFAULT
-from sentry.db.models import (
-    BaseModel,
-    BoundedAutoField,
-    BoundedPositiveIntegerField,
-    FlexibleForeignKey,
-    Model,
-    sane_repr,
-)
+from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 from sentry.db.models.manager import BaseManager
+from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.models.team import TeamStatus
+from sentry.signals import member_invited
 from sentry.utils.http import absolute_uri
+
+if TYPE_CHECKING:
+    from sentry.models import Integration, Organization, User
+
 
 INVITE_DAYS_VALID = 30
 
@@ -43,46 +47,49 @@ invite_status_names = {
 }
 
 
-class OrganizationMemberTeam(BaseModel):
-    """
-    Identifies relationships between organization members and the teams they are on.
-    """
-
-    __include_in_export__ = True
-
-    id = BoundedAutoField(primary_key=True)
-    team = FlexibleForeignKey("sentry.Team")
-    organizationmember = FlexibleForeignKey("sentry.OrganizationMember")
-    # an inactive membership simply removes the team from the default list
-    # but still allows them to re-join without request
-    is_active = models.BooleanField(default=True)
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_organizationmember_teams"
-        unique_together = (("team", "organizationmember"),)
-
-    __repr__ = sane_repr("team_id", "organizationmember_id")
-
-    def get_audit_log_data(self):
-        return {
-            "team_slug": self.team.slug,
-            "member_id": self.organizationmember_id,
-            "email": self.organizationmember.get_email(),
-            "is_active": self.is_active,
-        }
+ERR_CANNOT_INVITE = "Your organization is not allowed to invite members."
+ERR_JOIN_REQUESTS_DISABLED = "Your organization does not allow requests to join."
 
 
 class OrganizationMemberManager(BaseManager):
-    def get_contactable_members_for_org(self, organization_id):
-        """
-        Get a list of members we can contact for an organization through email
-        """
+    def get_contactable_members_for_org(self, organization_id: int) -> QuerySet:
+        """Get a list of members we can contact for an organization through email."""
+        # TODO(Steve): check member-limit:restricted
         return self.select_related("user").filter(
             organization_id=organization_id,
             invite_status=InviteStatus.APPROVED.value,
             user__isnull=False,
         )
+
+    def delete_expired(self, threshold: int) -> None:
+        """Delete un-accepted member invitations that expired `threshold` days ago."""
+        self.filter(
+            token_expires_at__lt=threshold,
+            user_id__exact=None,
+        ).exclude(email__exact=None).delete()
+
+    def get_for_integration(self, integration: Integration, actor: User) -> QuerySet:
+        return self.filter(
+            user=actor,
+            organization__organizationintegration__integration=integration,
+        ).select_related("organization")
+
+    def get_member_invite_query(self, id: int) -> QuerySet:
+        return self.filter(
+            invite_status__in=[
+                InviteStatus.REQUESTED_TO_BE_INVITED.value,
+                InviteStatus.REQUESTED_TO_JOIN.value,
+            ],
+            user__isnull=True,
+            id=id,
+        )
+
+    def get_teams_by_user(self, organization: Organization) -> Mapping[int, List[int]]:
+        user_teams: MutableMapping[int, List[int]] = defaultdict(list)
+        queryset = self.filter(organization_id=organization.id).values_list("user_id", "teams")
+        for user_id, team_id in queryset:
+            user_teams[user_id].append(team_id)
+        return user_teams
 
 
 class OrganizationMember(Model):
@@ -333,7 +340,7 @@ class OrganizationMember(Model):
         return "letter_avatar"
 
     def get_audit_log_data(self):
-        from sentry.models import Team
+        from sentry.models import OrganizationMemberTeam, Team
 
         teams = list(
             Team.objects.filter(
@@ -354,7 +361,7 @@ class OrganizationMember(Model):
         }
 
     def get_teams(self):
-        from sentry.models import Team
+        from sentry.models import OrganizationMemberTeam, Team
 
         return Team.objects.filter(
             status=TeamStatus.VISIBLE,
@@ -381,12 +388,103 @@ class OrganizationMember(Model):
         scopes = frozenset(s for s in scopes if s not in disabled_scopes)
         return scopes
 
-    @classmethod
-    def delete_expired(cls, threshold):
+    def validate_invitation(self, user_to_approve, allowed_roles):
         """
-        Delete un-accepted member invitations that expired
-        ``threshold`` days ago.
+        Validates whether an org has the options to invite members, handle join requests,
+        and that the member role doesn't exceed the allowed roles to invite.
         """
-        cls.objects.filter(token_expires_at__lt=threshold, user_id__exact=None).exclude(
-            email__exact=None
-        ).delete()
+        organization = self.organization
+        if not features.has("organizations:invite-members", organization, actor=user_to_approve):
+            raise UnableToAcceptMemberInvitationException(ERR_CANNOT_INVITE)
+
+        if (
+            organization.get_option("sentry:join_requests") is False
+            and self.invite_status == InviteStatus.REQUESTED_TO_JOIN.value
+        ):
+            raise UnableToAcceptMemberInvitationException(ERR_JOIN_REQUESTS_DISABLED)
+
+        # members cannot invite roles higher than their own
+        if self.role not in {r.id for r in allowed_roles}:
+            raise UnableToAcceptMemberInvitationException(
+                f"You do not have permission approve a member invitation with the role {self.role}."
+            )
+        return True
+
+    def approve_member_invitation(
+        self, user_to_approve, api_key=None, ip_address=None, referrer=None
+    ):
+        """
+        Approve a member invite/join request and send an audit log entry
+        """
+        from sentry.models.auditlogentry import AuditLogEntryEvent
+        from sentry.utils.audit import create_audit_entry_from_user
+
+        self.approve_invite()
+        self.save()
+
+        if settings.SENTRY_ENABLE_INVITES:
+            self.send_invite_email()
+            member_invited.send_robust(
+                member=self,
+                user=user_to_approve,
+                sender=self.approve_member_invitation,
+                referrer=referrer,
+            )
+
+        create_audit_entry_from_user(
+            user_to_approve,
+            api_key,
+            ip_address,
+            organization_id=self.organization_id,
+            target_object=self.id,
+            data=self.get_audit_log_data(),
+            event=AuditLogEntryEvent.MEMBER_INVITE
+            if settings.SENTRY_ENABLE_INVITES
+            else AuditLogEntryEvent.MEMBER_ADD,
+        )
+
+    def reject_member_invitation(
+        self,
+        user_to_approve,
+        api_key=None,
+        ip_address=None,
+    ):
+        """
+        Reject a member invite/jin request and send an audit log entry
+        """
+        from sentry.models.auditlogentry import AuditLogEntryEvent
+        from sentry.utils.audit import create_audit_entry_from_user
+
+        self.delete()
+
+        create_audit_entry_from_user(
+            user_to_approve,
+            api_key,
+            ip_address,
+            organization_id=self.organization_id,
+            target_object=self.id,
+            data=self.get_audit_log_data(),
+            event=AuditLogEntryEvent.INVITE_REQUEST_REMOVE,
+        )
+
+    def get_allowed_roles_to_invite(self):
+        """
+        Return a list of roles which that member could invite
+        Must check if member member has member:admin first before checking
+        """
+        return [r for r in roles.get_all() if r.priority <= roles.get(self.role).priority]
+
+    def is_only_owner(self) -> bool:
+        if self.role != roles.get_top_dog().id:
+            return False
+
+        return (
+            not OrganizationMember.objects.filter(
+                organization=self.organization_id,
+                role=roles.get_top_dog().id,
+                user__isnull=False,
+                user__is_active=True,
+            )
+            .exclude(id=self.id)
+            .exists()
+        )

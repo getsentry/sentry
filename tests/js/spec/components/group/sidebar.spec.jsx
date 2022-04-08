@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import GroupSidebar from 'app/components/group/sidebar';
+import GroupSidebar from 'sentry/components/group/sidebar';
 
 describe('GroupSidebar', function () {
   let group = TestStubs.Group({tags: TestStubs.Tags()});
@@ -57,7 +57,12 @@ describe('GroupSidebar', function () {
       url: `/prompts-activity/`,
       body: {},
     });
-
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/code-mappings/`,
+      query: {project: -1},
+      method: 'GET',
+      body: [],
+    });
     tagsMock = MockApiClient.addMockResponse({
       url: '/issues/1/tags/',
       body: TestStubs.Tags(),

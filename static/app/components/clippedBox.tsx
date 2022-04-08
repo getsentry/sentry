@@ -1,24 +1,24 @@
 import * as React from 'react';
-import ReactDOM from 'react-dom';
+import {findDOMNode} from 'react-dom';
 import styled from '@emotion/styled';
 import color from 'color';
 
-import Button from 'app/components/button';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
+import Button from 'sentry/components/button';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 
 type DefaultProps = {
-  clipHeight?: number;
   btnText?: string;
+  clipHeight?: number;
   defaultClipped?: boolean;
 };
 
 type Props = {
   clipHeight: number;
-  title?: string;
-  renderedHeight?: number;
-  onReveal?: () => void;
   className?: string;
+  onReveal?: () => void;
+  renderedHeight?: number;
+  title?: string;
 } & DefaultProps;
 
 type State = {
@@ -42,7 +42,7 @@ class ClippedBox extends React.PureComponent<Props, State> {
 
   componentDidMount() {
     // eslint-disable-next-line react/no-find-dom-node
-    const renderedHeight = (ReactDOM.findDOMNode(this) as HTMLElement).offsetHeight;
+    const renderedHeight = (findDOMNode(this) as HTMLElement).offsetHeight;
     this.calcHeight(renderedHeight);
   }
 
@@ -61,7 +61,7 @@ class ClippedBox extends React.PureComponent<Props, State> {
 
     if (!this.props.renderedHeight) {
       // eslint-disable-next-line react/no-find-dom-node
-      const renderedHeight = (ReactDOM.findDOMNode(this) as HTMLElement).offsetHeight;
+      const renderedHeight = (findDOMNode(this) as HTMLElement).offsetHeight;
 
       if (renderedHeight < this.props.clipHeight) {
         this.reveal();
@@ -123,7 +123,12 @@ class ClippedBox extends React.PureComponent<Props, State> {
         {children}
         {isClipped && (
           <ClipFade>
-            <Button onClick={this.reveal} priority="primary" size="xsmall">
+            <Button
+              onClick={this.reveal}
+              priority="primary"
+              size="xsmall"
+              aria-label={btnText ?? t('Show More')}
+            >
               {btnText}
             </Button>
           </ClipFade>

@@ -4,8 +4,10 @@ from datetime import datetime
 import pytz
 from django.conf import settings
 from django.contrib.auth import logout
+from django.db import transaction
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers, status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import roles
@@ -13,12 +15,13 @@ from sentry.api import client
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.user import DetailedUserSerializer
+from sentry.api.serializers.models.user import DetailedSelfUserSerializer
 from sentry.api.serializers.rest_framework import ListField
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import LANGUAGES
 from sentry.models import Organization, OrganizationMember, OrganizationStatus, User, UserOption
 
+audit_logger = logging.getLogger("sentry.audit.user")
 delete_logger = logging.getLogger("sentry.deletions.api")
 
 
@@ -96,6 +99,13 @@ class UserSerializer(BaseUserSerializer):
 
 class SuperuserUserSerializer(BaseUserSerializer):
     isActive = serializers.BooleanField(source="is_active")
+
+    class Meta:
+        model = User
+        fields = ("name", "username", "isActive")
+
+
+class PrivilegedUserSerializer(SuperuserUserSerializer):
     isStaff = serializers.BooleanField(source="is_staff")
     isSuperuser = serializers.BooleanField(source="is_superuser")
 
@@ -112,7 +122,7 @@ class DeleteUserSerializer(serializers.Serializer):
 
 
 class UserDetailsEndpoint(UserEndpoint):
-    def get(self, request, user):
+    def get(self, request: Request, user) -> Response:
         """
         Retrieve User Details
         `````````````````````
@@ -122,9 +132,9 @@ class UserDetailsEndpoint(UserEndpoint):
 
         :auth: required
         """
-        return Response(serialize(user, request.user, DetailedUserSerializer()))
+        return Response(serialize(user, request.user, DetailedSelfUserSerializer()))
 
-    def put(self, request, user):
+    def put(self, request: Request, user) -> Response:
         """
         Update Account Appearance options
         `````````````````````````````````
@@ -140,7 +150,9 @@ class UserDetailsEndpoint(UserEndpoint):
         :auth: required
         """
 
-        if is_active_superuser(request):
+        if request.access.has_permission("users.admin"):
+            serializer_cls = PrivilegedUserSerializer
+        elif is_active_superuser(request):
             serializer_cls = SuperuserUserSerializer
         else:
             serializer_cls = UserSerializer
@@ -171,12 +183,23 @@ class UserDetailsEndpoint(UserEndpoint):
                     user=user, key=key_map.get(key, key), value=options_result.get(key)
                 )
 
-        user = serializer.save()
+        with transaction.atomic():
+            user = serializer.save()
 
-        return Response(serialize(user, request.user, DetailedUserSerializer()))
+            if any(k in request.data for k in ("isStaff", "isSuperuser", "isActive")):
+                audit_logger.info(
+                    "user.edit",
+                    extra={
+                        "user_id": user.id,
+                        "actor_id": request.user.id,
+                        "form_data": request.data,
+                    },
+                )
+
+        return Response(serialize(user, request.user, DetailedSelfUserSerializer()))
 
     @sudo_required
-    def delete(self, request, user):
+    def delete(self, request: Request, user) -> Response:
         """
         Delete User Account
 
@@ -233,9 +256,9 @@ class UserDetailsEndpoint(UserEndpoint):
         hard_delete = serializer.validated_data.get("hardDelete", False)
 
         # Only active superusers can hard delete accounts
-        if hard_delete and not is_active_superuser(request):
+        if hard_delete and not request.access.has_permission("users.admin"):
             return Response(
-                {"detail": "Only superusers may hard delete a user account"},
+                {"detail": "Missing required permission to hard delete account."},
                 status=status.HTTP_403_FORBIDDEN,
             )
 

@@ -3,35 +3,35 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {Client} from 'app/api';
-import Button from 'app/components/button';
-import {HeaderTitleLegend} from 'app/components/charts/styles';
-import Count from 'app/components/count';
-import DropdownLink from 'app/components/dropdownLink';
-import Duration from 'app/components/duration';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import IdBadge from 'app/components/idBadge';
-import Link from 'app/components/links/link';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import MenuItem from 'app/components/menuItem';
-import Pagination, {CursorHandler} from 'app/components/pagination';
-import {Panel} from 'app/components/panels';
-import QuestionTooltip from 'app/components/questionTooltip';
-import Radio from 'app/components/radio';
-import Tooltip from 'app/components/tooltip';
-import {IconArrow, IconEllipsis} from 'app/icons';
-import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {AvatarProject, Organization, Project} from 'app/types';
-import {formatPercentage, getDuration} from 'app/utils/formatters';
-import TrendsDiscoverQuery from 'app/utils/performance/trends/trendsDiscoverQuery';
-import {decodeScalar} from 'app/utils/queryString';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
-import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
-import withProjects from 'app/utils/withProjects';
-import {RadioLineItem} from 'app/views/settings/components/forms/controls/radioGroup';
+import {Client} from 'sentry/api';
+import Button from 'sentry/components/button';
+import {HeaderTitleLegend} from 'sentry/components/charts/styles';
+import Count from 'sentry/components/count';
+import DropdownLink from 'sentry/components/dropdownLink';
+import Duration from 'sentry/components/duration';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
+import IdBadge from 'sentry/components/idBadge';
+import Link from 'sentry/components/links/link';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import MenuItem from 'sentry/components/menuItem';
+import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import {Panel} from 'sentry/components/panels';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import Radio from 'sentry/components/radio';
+import Tooltip from 'sentry/components/tooltip';
+import {IconArrow, IconEllipsis} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {AvatarProject, Organization, Project} from 'sentry/types';
+import {formatPercentage, getDuration} from 'sentry/utils/formatters';
+import TrendsDiscoverQuery from 'sentry/utils/performance/trends/trendsDiscoverQuery';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useApi from 'sentry/utils/useApi';
+import withOrganization from 'sentry/utils/withOrganization';
+import withProjects from 'sentry/utils/withProjects';
 
 import {DisplayModes} from '../transactionSummary/transactionOverview/charts';
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
@@ -59,15 +59,14 @@ import {
 } from './utils';
 
 type Props = {
-  api: Client;
-  organization: Organization;
-  trendChangeType: TrendChangeType;
-  previousTrendFunction?: TrendFunctionField;
-  previousTrendColumn?: TrendColumnField;
-  trendView: TrendView;
   location: Location;
+  organization: Organization;
   projects: Project[];
   setError: (msg: string | undefined) => void;
+  trendChangeType: TrendChangeType;
+  trendView: TrendView;
+  previousTrendColumn?: TrendColumnField;
+  previousTrendFunction?: TrendFunctionField;
 };
 
 type TrendsCursorQuery = {
@@ -171,8 +170,14 @@ function handleFilterTransaction(location: Location, transaction: string) {
   });
 }
 
-function handleFilterDuration(location: Location, value: number, symbol: FilterSymbols) {
-  const durationTag = getCurrentTrendParameter(location).column;
+function handleFilterDuration(
+  location: Location,
+  value: number,
+  symbol: FilterSymbols,
+  projects: Project[],
+  projectIds: Readonly<number[]>
+) {
+  const durationTag = getCurrentTrendParameter(location, projects, projectIds).column;
   const queryString = decodeScalar(location.query.query);
   const conditions = new MutableSearch(queryString ?? '');
 
@@ -202,7 +207,6 @@ function handleFilterDuration(location: Location, value: number, symbol: FilterS
 
 function ChangedTransactions(props: Props) {
   const {
-    api,
     location,
     trendChangeType,
     previousTrendFunction,
@@ -211,9 +215,11 @@ function ChangedTransactions(props: Props) {
     projects,
     setError,
   } = props;
+  const api = useApi();
+
   const trendView = props.trendView.clone();
   const chartTitle = getChartTitle(trendChangeType);
-  modifyTrendView(trendView, location, trendChangeType);
+  modifyTrendView(trendView, location, trendChangeType, projects);
 
   const onCursor = makeTrendsCursorHandler(trendChangeType);
   const cursor = decodeScalar(location.query[trendCursorNames[trendChangeType]]);
@@ -226,11 +232,15 @@ function ChangedTransactions(props: Props) {
       trendChangeType={trendChangeType}
       cursor={cursor}
       limit={5}
-      setError={setError}
+      setError={error => setError(error?.message)}
     >
       {({isLoading, trendsData, pageLinks}) => {
         const trendFunction = getCurrentTrendFunction(location);
-        const trendParameter = getCurrentTrendParameter(location);
+        const trendParameter = getCurrentTrendParameter(
+          location,
+          projects,
+          trendView.project
+        );
         const events = normalizeTrends(
           (trendsData && trendsData.events && trendsData.events.data) || []
         );
@@ -257,7 +267,7 @@ function ChangedTransactions(props: Props) {
         );
 
         return (
-          <TransactionsListContainer>
+          <TransactionsListContainer data-test-id="changed-transactions">
             <TrendsTransactionPanel>
               <StyledHeaderTitleLegend>
                 {chartTitle}
@@ -327,18 +337,18 @@ function ChangedTransactions(props: Props) {
 
 type TrendsListItemProps = {
   api: Client;
-  trendView: TrendView;
-  organization: Organization;
-  transaction: NormalizedTrendsTransaction;
-  trendChangeType: TrendChangeType;
-  currentTrendFunction: string;
   currentTrendColumn: string;
-  transactions: NormalizedTrendsTransaction[];
-  projects: Project[];
-  location: Location;
-  index: number;
-  statsData: TrendsStats;
+  currentTrendFunction: string;
   handleSelectTransaction: (transaction: NormalizedTrendsTransaction) => void;
+  index: number;
+  location: Location;
+  organization: Organization;
+  projects: Project[];
+  statsData: TrendsStats;
+  transaction: NormalizedTrendsTransaction;
+  transactions: NormalizedTrendsTransaction[];
+  trendChangeType: TrendChangeType;
+  trendView: TrendView;
 };
 
 function TrendsListItem(props: TrendsListItemProps) {
@@ -352,6 +362,7 @@ function TrendsListItem(props: TrendsListItemProps) {
     location,
     projects,
     handleSelectTransaction,
+    trendView,
   } = props;
   const color = trendToColor[trendChangeType].default;
 
@@ -414,6 +425,7 @@ function TrendsListItem(props: TrendsListItemProps) {
               </span>
             </TooltipContent>
           }
+          disableForVisualTest // Disabled tooltip in snapshots because of overlap order issues.
         >
           <RadioLineItem index={index} role="radio">
             <Radio
@@ -439,6 +451,7 @@ function TrendsListItem(props: TrendsListItemProps) {
           <StyledButton
             size="xsmall"
             icon={<IconEllipsis data-test-id="trends-item-action" size="xs" />}
+            aria-label={t('Actions')}
           />
         }
       >
@@ -447,27 +460,31 @@ function TrendsListItem(props: TrendsListItemProps) {
             handleFilterDuration(
               location,
               longestPeriodValue,
-              FilterSymbols.LESS_THAN_EQUALS
+              FilterSymbols.LESS_THAN_EQUALS,
+              projects,
+              trendView.project
             )
           }
         >
-          <StyledMenuAction>{t('Show \u2264 %s', longestDuration)}</StyledMenuAction>
+          <MenuAction>{t('Show \u2264 %s', longestDuration)}</MenuAction>
         </MenuItem>
         <MenuItem
           onClick={() =>
             handleFilterDuration(
               location,
               longestPeriodValue,
-              FilterSymbols.GREATER_THAN_EQUALS
+              FilterSymbols.GREATER_THAN_EQUALS,
+              projects,
+              trendView.project
             )
           }
         >
-          <StyledMenuAction>{t('Show \u2265 %s', longestDuration)}</StyledMenuAction>
+          <MenuAction>{t('Show \u2265 %s', longestDuration)}</MenuAction>
         </MenuItem>
         <MenuItem
           onClick={() => handleFilterTransaction(location, transaction.transaction)}
         >
-          <StyledMenuAction>{t('Hide from list')}</StyledMenuAction>
+          <MenuAction>{t('Hide from list')}</MenuAction>
         </MenuItem>
       </DropdownLink>
       <ItemTransactionDurationChange>
@@ -485,7 +502,11 @@ function TrendsListItem(props: TrendsListItemProps) {
   );
 }
 
-const CompareDurations = ({transaction}: TrendsListItemProps) => {
+export const CompareDurations = ({
+  transaction,
+}: {
+  transaction: TrendsListItemProps['transaction'];
+}) => {
   const {fromSeconds, toSeconds, showDigits} = transformDeltaSpread(
     transaction.aggregate_range_1,
     transaction.aggregate_range_2
@@ -536,7 +557,11 @@ const TransactionSummaryLink = (props: TransactionSummaryLinkProps) => {
     trendColumn: currentTrendColumn,
   });
 
-  return <ItemTransactionName to={target}>{transaction.transaction}</ItemTransactionName>;
+  return (
+    <ItemTransactionName to={target} data-test-id="item-transaction-name">
+      {transaction.transaction}
+    </ItemTransactionName>
+  );
 };
 
 const TransactionsListContainer = styled('div')`
@@ -562,10 +587,14 @@ const StyledButton = styled(Button)`
   vertical-align: middle;
 `;
 
-const StyledMenuAction = styled('div')`
+const MenuAction = styled('div')<{['data-test-id']?: string}>`
   white-space: nowrap;
   color: ${p => p.theme.textColor};
 `;
+
+MenuAction.defaultProps = {
+  'data-test-id': 'menu-action',
+};
 
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`
   min-height: 300px;
@@ -629,4 +658,4 @@ const StyledIconArrow = styled(IconArrow)`
   margin: 0 ${space(1)};
 `;
 
-export default withApi(withProjects(withOrganization(ChangedTransactions)));
+export default withProjects(withOrganization(ChangedTransactions));

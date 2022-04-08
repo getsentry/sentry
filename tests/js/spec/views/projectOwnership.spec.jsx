@@ -1,10 +1,10 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {openModal} from 'app/actionCreators/modal';
-import {Client} from 'app/api';
-import ProjectOwnership from 'app/views/settings/project/projectOwnership';
+import {openModal} from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
+import ProjectOwnership from 'sentry/views/settings/project/projectOwnership';
 
-jest.mock('app/actionCreators/modal');
+jest.mock('sentry/actionCreators/modal');
 
 describe('Project Ownership', function () {
   let org = TestStubs.Organization();
@@ -22,7 +22,7 @@ describe('Project Ownership', function () {
     });
     Client.addMockResponse({
       url: `/organizations/${org.slug}/code-mappings/`,
-      query: {projectId: project.id},
+      query: {project: project.id},
       method: 'GET',
       body: [],
     });
@@ -47,8 +47,7 @@ describe('Project Ownership', function () {
           params={{orgId: org.slug, projectId: project.slug}}
           organization={org}
           project={project}
-        />,
-        TestStubs.routerContext()
+        />
       );
       expect(wrapper).toSnapshot();
       // only rendered when `integrations-codeowners` feature flag enabled
@@ -60,7 +59,7 @@ describe('Project Ownership', function () {
     it('renders button', function () {
       org = TestStubs.Organization({
         features: ['integrations-codeowners'],
-        access: ['project:write'],
+        access: ['org:integrations'],
       });
 
       const wrapper = mountWithTheme(
@@ -76,6 +75,10 @@ describe('Project Ownership', function () {
     });
 
     it('clicking button opens modal', async function () {
+      org = TestStubs.Organization({
+        features: ['integrations-codeowners'],
+        access: ['org:integrations'],
+      });
       const wrapper = mountWithTheme(
         <ProjectOwnership
           params={{orgId: org.slug, projectId: project.slug}}
@@ -88,7 +91,7 @@ describe('Project Ownership', function () {
       expect(openModal).toHaveBeenCalled();
     });
 
-    it('does not render without permissions', function () {
+    it('render request to add if no permissions', function () {
       org = TestStubs.Organization({features: ['integrations-codeowners'], access: []});
 
       const wrapper = mountWithTheme(
@@ -99,8 +102,9 @@ describe('Project Ownership', function () {
         />,
         TestStubs.routerContext([{organization: org}])
       );
-
-      expect(wrapper.find('CodeOwnerButton').exists()).toBe(false);
+      expect(
+        wrapper.find('[data-test-id="add-codeowner-request-button"] button').exists()
+      ).toBe(true);
     });
   });
 });

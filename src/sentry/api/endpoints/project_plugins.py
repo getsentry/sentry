@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint
@@ -7,7 +8,7 @@ from sentry.plugins.base import plugins
 
 
 class ProjectPluginsEndpoint(ProjectEndpoint):
-    def get(self, request, project):
+    def get(self, request: Request, project) -> Response:
         context = serialize(
             [plugin for plugin in plugins.configurable_for_project(project, version=None)],
             request.user,

@@ -65,21 +65,6 @@ class DiscoverSavedQuery(Model):
             )
 
 
-class KeyTransaction(Model):
-    __include_in_export__ = False
-
-    # max_length here is based on the maximum for transactions in relay
-    transaction = models.CharField(max_length=200)
-    project = FlexibleForeignKey("sentry.Project", db_constraint=False)
-    owner = FlexibleForeignKey("sentry.User", null=True, on_delete=models.SET_NULL)
-    organization = FlexibleForeignKey("sentry.Organization")
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_discoverkeytransaction"
-        unique_together = (("project", "owner", "transaction"),)
-
-
 class TeamKeyTransaction(Model):
     __include_in_export__ = False
 

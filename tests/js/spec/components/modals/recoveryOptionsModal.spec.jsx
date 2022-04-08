@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import RecoveryOptionsModal from 'app/components/modals/recoveryOptionsModal';
+import RecoveryOptionsModal from 'sentry/components/modals/recoveryOptionsModal';
 
 describe('RecoveryOptionsModal', function () {
   const closeModal = jest.fn();
@@ -22,8 +22,7 @@ describe('RecoveryOptionsModal', function () {
         authenticatorName="Authenticator App"
         closeModal={closeModal}
         onClose={onClose}
-      />,
-      TestStubs.routerContext()
+      />
     );
   });
 
@@ -73,8 +72,7 @@ describe('RecoveryOptionsModal', function () {
         authenticatorName="Authenticator App"
         closeModal={closeModal}
         onClose={onClose}
-      />,
-      TestStubs.routerContext()
+      />
     );
     const mockId = TestStubs.Authenticators().Recovery().authId;
     expect(

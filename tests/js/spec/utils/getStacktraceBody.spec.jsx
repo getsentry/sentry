@@ -1,4 +1,4 @@
-import getStacktraceBody from 'app/utils/getStacktraceBody';
+import getStacktraceBody from 'sentry/utils/getStacktraceBody';
 
 describe('getStacktraceBody', function () {
   const eventException = TestStubs.EventStacktraceException({platform: 'python'});

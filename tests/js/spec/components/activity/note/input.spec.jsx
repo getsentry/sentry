@@ -1,11 +1,9 @@
 import changeReactMentionsInput from 'sentry-test/changeReactMentionsInput';
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import NoteInput from 'app/components/activity/note/input';
+import NoteInput from 'sentry/components/activity/note/input';
 
 describe('NoteInput', function () {
-  const routerContext = TestStubs.routerContext();
-
   describe('New item', function () {
     const props = {
       group: {project: {}, id: 'groupId'},
@@ -14,17 +12,16 @@ describe('NoteInput', function () {
     };
 
     it('renders', function () {
-      mountWithTheme(<NoteInput {...props} />, routerContext);
+      mountWithTheme(<NoteInput {...props} />);
     });
 
     it('submits when meta + enter is pressed', function () {
       const onCreate = jest.fn();
-      const wrapper = mountWithTheme(
-        <NoteInput {...props} onCreate={onCreate} />,
-        routerContext
-      );
+      const wrapper = mountWithTheme(<NoteInput {...props} onCreate={onCreate} />);
 
       const input = wrapper.find('textarea');
+
+      changeReactMentionsInput(wrapper, 'something');
 
       input.simulate('keyDown', {key: 'Enter', metaKey: true});
       expect(onCreate).toHaveBeenCalled();
@@ -32,29 +29,58 @@ describe('NoteInput', function () {
 
     it('submits when ctrl + enter is pressed', function () {
       const onCreate = jest.fn();
-      const wrapper = mountWithTheme(
-        <NoteInput {...props} onCreate={onCreate} />,
-        routerContext
-      );
+      const wrapper = mountWithTheme(<NoteInput {...props} onCreate={onCreate} />);
 
       const input = wrapper.find('textarea');
+
+      changeReactMentionsInput(wrapper, 'something');
 
       input.simulate('keyDown', {key: 'Enter', ctrlKey: true});
       expect(onCreate).toHaveBeenCalled();
     });
 
-    it('handles errors', async function () {
+    it('does not submit when nothing is entered', function () {
+      const onCreate = jest.fn();
+      const wrapper = mountWithTheme(<NoteInput {...props} onCreate={onCreate} />);
+
+      const input = wrapper.find('textarea');
+      input.simulate('keyDown', {key: 'Enter', metaKey: true});
+      expect(onCreate).not.toHaveBeenCalled();
+    });
+
+    it('handles errors', function () {
       const errorJSON = {detail: {message: '', code: 401, extra: ''}};
       const wrapper = mountWithTheme(
-        <NoteInput {...props} error={!!errorJSON} errorJSON={errorJSON} />,
-        routerContext
+        <NoteInput {...props} error={!!errorJSON} errorJSON={errorJSON} />
       );
 
       const input = wrapper.find('textarea');
 
+      changeReactMentionsInput(wrapper, 'something');
+
       input.simulate('keyDown', {key: 'Enter', ctrlKey: true});
       wrapper.update();
       expect(wrapper.find('ErrorMessage')).toHaveLength(1);
+    });
+
+    it('has a disabled submit button when no text is entered', function () {
+      const errorJSON = {detail: {message: '', code: 401, extra: ''}};
+      const wrapper = mountWithTheme(
+        <NoteInput {...props} error={!!errorJSON} errorJSON={errorJSON} />
+      );
+
+      expect(wrapper.find('button[type="submit"]').prop('disabled')).toBe(true);
+    });
+
+    it('enables the submit button when text is entered', function () {
+      const errorJSON = {detail: {message: '', code: 401, extra: ''}};
+      const wrapper = mountWithTheme(
+        <NoteInput {...props} error={!!errorJSON} errorJSON={errorJSON} />
+      );
+
+      changeReactMentionsInput(wrapper, 'something');
+
+      expect(wrapper.find('button[type="submit"]').prop('disabled')).toBe(false);
     });
   });
 
@@ -68,9 +94,9 @@ describe('NoteInput', function () {
     };
 
     const createWrapper = props =>
-      mountWithTheme(<NoteInput {...defaultProps} {...props} />, routerContext);
+      mountWithTheme(<NoteInput {...defaultProps} {...props} />);
 
-    it('edits existing message', async function () {
+    it('edits existing message', function () {
       const onUpdate = jest.fn();
       const wrapper = createWrapper({onUpdate});
 
@@ -94,7 +120,7 @@ describe('NoteInput', function () {
       expect(onUpdate).toHaveBeenCalledWith({text: 'new item', mentions: []});
     });
 
-    it('canels editing and moves to preview mode', async function () {
+    it('canels editing and moves to preview mode', function () {
       const onEditFinish = jest.fn();
       const wrapper = createWrapper({onEditFinish});
 

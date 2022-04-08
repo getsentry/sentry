@@ -1,10 +1,10 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import {IconClose} from 'app/icons/iconClose';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
+import Button, {ButtonPropsWithAriaLabel} from 'sentry/components/button';
+import {IconClose} from 'sentry/icons/iconClose';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 
 const ModalHeader = styled('header')`
   position: relative;
@@ -25,25 +25,23 @@ const ModalHeader = styled('header')`
   }
 `;
 
-const CloseButton = styled(Button)`
+const CloseButton = styled((p: ButtonPropsWithAriaLabel) => (
+  <Button size="zero" icon={<IconClose size="10px" />} {...p} />
+))`
   position: absolute;
   top: 0;
   right: 0;
   transform: translate(50%, -50%);
   border-radius: 50%;
+  border: none;
+  box-shadow: 0 0 0 1px ${p => p.theme.translucentBorder};
   background: ${p => p.theme.background};
   height: 24px;
   width: 24px;
 `;
 
-CloseButton.defaultProps = {
-  label: t('Close Modal'),
-  icon: <IconClose size="10px" />,
-  size: 'zero',
-};
-
 const ModalBody = styled('section')`
-  font-size: 15px;
+  font-size: ${p => p.theme.fontSizeMedium};
 
   p:last-child {
     margin-bottom: 0;
@@ -62,24 +60,28 @@ const ModalFooter = styled('footer')`
   margin: ${space(3)} -${space(4)} -${space(4)};
 `;
 
-type HeaderProps = {
+interface ClosableHeaderProps extends React.HTMLAttributes<HTMLHeadingElement> {
   /**
    * Show a close button in the header
    */
   closeButton?: boolean;
-};
-
+}
 /**
  * Creates a ModalHeader that includes props to enable the close button
  */
 const makeClosableHeader = (closeModal: () => void) => {
-  const ClosableHeader: React.FC<React.ComponentProps<typeof ModalHeader> & HeaderProps> =
-    ({closeButton, children, ...props}) => (
-      <ModalHeader {...props}>
-        {children}
-        {closeButton && <CloseButton onClick={closeModal} />}
-      </ModalHeader>
-    );
+  const ClosableHeader: React.FC<ClosableHeaderProps> = ({
+    closeButton,
+    children,
+    ...props
+  }) => (
+    <ModalHeader {...props}>
+      {children}
+      {closeButton ? (
+        <CloseButton aria-label={t('Close Modal')} onClick={closeModal} />
+      ) : null}
+    </ModalHeader>
+  );
 
   ClosableHeader.displayName = 'Header';
 
@@ -90,8 +92,8 @@ const makeClosableHeader = (closeModal: () => void) => {
  * Creates a CloseButton component that is connected to the provided closeModal trigger
  */
 const makeCloseButton =
-  (closeModal: () => void): React.FC<React.ComponentProps<typeof CloseButton>> =>
+  (closeModal: () => void): React.FC<Omit<ButtonPropsWithAriaLabel, 'aria-label'>> =>
   props =>
-    <CloseButton {...props} onClick={closeModal} />;
+    <CloseButton {...props} aria-label={t('Close Modal')} onClick={closeModal} />;
 
 export {makeClosableHeader, makeCloseButton, ModalBody, ModalFooter};

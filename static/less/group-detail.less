@@ -5,7 +5,6 @@
 
 .group-detail {
   position: relative;
-  margin: 0 0 20px;
   clear: both;
 
   h3 {
@@ -360,6 +359,13 @@
 
     &.ruby .context-item-icon {
       background-image: url(~sentry-logos/logo-ruby.svg);
+    }
+
+    &.python,
+    &.cpython {
+      .context-item-icon {
+        background-image: url(~sentry-logos/logo-python.svg);
+      }
     }
   }
 }

@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import re
+from typing import Any
 
 import phonenumbers
 from django import forms
@@ -87,7 +90,7 @@ class TwilioConfigurationForm(forms.Form):
                 raise forms.ValidationError(f"{phone} is not a valid phone number.")
         return ",".join(sorted(set(map(clean_phone, phones))))
 
-    def clean(self):
+    def clean(self) -> dict[str, Any] | None:
         # TODO: Ping Twilio and check credentials (?)
         return self.cleaned_data
 
@@ -183,7 +186,7 @@ class TwilioPlugin(CorePluginMixin, NotificationPlugin):
                 errors.append(e)
 
         if errors:
-            self.raise_error(errors[0])
+            raise self.raise_error(errors[0])
 
     def get_client(self, project):
         account_sid = self.get_option("account_sid", project)

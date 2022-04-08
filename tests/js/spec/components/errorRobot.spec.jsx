@@ -1,13 +1,14 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'app/api';
-import {ErrorRobot} from 'app/components/errorRobot';
+import {Client} from 'sentry/api';
+import {ErrorRobot} from 'sentry/components/errorRobot';
 
 describe('ErrorRobot', function () {
   let getIssues;
+  let routerContext;
 
   beforeEach(function () {
-    Client.clearMockResponses();
+    routerContext = TestStubs.routerContext();
     getIssues = Client.addMockResponse({
       url: '/projects/org-slug/project-slug/issues/',
       method: 'GET',
@@ -15,53 +16,57 @@ describe('ErrorRobot', function () {
     });
   });
 
+  afterEach(() => {
+    jest.clearAllMocks();
+    Client.clearMockResponses();
+  });
+
   describe('with a project', function () {
-    let wrapper;
-    beforeEach(function () {
-      wrapper = mountWithTheme(
+    function createWrapper() {
+      return render(
         <ErrorRobot
           api={new MockApiClient()}
           org={TestStubs.Organization()}
           project={TestStubs.Project()}
         />,
-        TestStubs.routerContext()
+        {context: routerContext}
       );
-    });
+    }
 
     it('Renders a button for creating an event', function () {
-      const button = wrapper.find('Button[data-test-id="create-sample-event"]');
-      expect(button.exists).toBeTruthy();
-      expect(button.props().disabled).toBeFalsy();
+      createWrapper();
+      const button = screen.getByRole('button', {name: 'Create a sample event'});
+      expect(button).toBeEnabled();
       expect(getIssues).toHaveBeenCalled();
     });
 
     it('Renders installation instructions', function () {
-      const button = wrapper.find('Button[priority="primary"]');
-      expect(button).toHaveLength(1);
-      expect(button.props().to).toEqual(expect.stringContaining('getting-started'));
+      createWrapper();
+      userEvent.click(screen.getByText('Installation Instructions'));
+      expect(routerContext.context.router.push).toHaveBeenCalledWith(
+        '/org-slug/project-slug/getting-started/'
+      );
     });
   });
 
   describe('without a project', function () {
-    let wrapper;
-
-    beforeEach(function () {
-      wrapper = mountWithTheme(
+    function createWrapper() {
+      return render(
         <ErrorRobot api={new MockApiClient()} org={TestStubs.Organization()} />,
-        TestStubs.routerContext()
+        {context: routerContext}
       );
-    });
+    }
 
     it('Renders a disabled create event button', function () {
-      const button = wrapper.find('Button[data-test-id="create-sample-event"]');
-      expect(button.exists).toBeTruthy();
-      expect(button.props().disabled).toBeTruthy();
+      createWrapper();
+      const button = screen.getByRole('button', {name: 'Create a sample event'});
+      expect(button).toBeDisabled();
       expect(getIssues).toHaveBeenCalledTimes(0);
     });
 
     it('does not display install instructions', function () {
-      const button = wrapper.find('Button[priority="primary"]');
-      expect(button).toHaveLength(0);
+      createWrapper();
+      expect(screen.queryByText('Installation Instructions')).not.toBeInTheDocument();
     });
   });
 });

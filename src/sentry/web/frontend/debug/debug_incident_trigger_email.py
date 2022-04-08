@@ -1,4 +1,6 @@
 from django.views.generic import View
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.incidents.action_handlers import generate_incident_trigger_email_context
 from sentry.incidents.models import (
@@ -15,7 +17,7 @@ from .mail import MailPreview
 
 
 class DebugIncidentTriggerEmailView(View):
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         organization = Organization(slug="myorg")
         project = Project(slug="myproject", organization=organization)
 
@@ -34,7 +36,7 @@ class DebugIncidentTriggerEmailView(View):
         trigger = AlertRuleTrigger(alert_rule=alert_rule)
 
         context = generate_incident_trigger_email_context(
-            project, incident, trigger, TriggerStatus.ACTIVE
+            project, incident, trigger, TriggerStatus.ACTIVE, IncidentStatus(incident.status)
         )
 
         return MailPreview(

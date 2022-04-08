@@ -1,11 +1,11 @@
-import {EChartOption} from 'echarts';
+import type {YAXisComponentOption} from 'echarts';
 import merge from 'lodash/merge';
 
-import {Theme} from 'app/utils/theme';
+import {Theme} from 'sentry/utils/theme';
 
-type Props = EChartOption.YAxis & {theme: Theme};
+type Props = YAXisComponentOption & {theme: Theme};
 
-export default function YAxis({theme, ...props}: Props): EChartOption.YAxis {
+export default function YAxis({theme, ...props}: Props): YAXisComponentOption {
   return merge(
     {
       axisLine: {

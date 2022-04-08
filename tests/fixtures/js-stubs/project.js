@@ -1,4 +1,4 @@
-export function Project(params) {
+export function Project(params = {}) {
   return {
     id: '2',
     slug: 'project-slug',
@@ -9,6 +9,9 @@ export function Project(params) {
     teams: [],
     environments: [],
     features: [],
+    eventProcessing: {
+      symbolicationDegraded: false,
+    },
     ...params,
   };
 }

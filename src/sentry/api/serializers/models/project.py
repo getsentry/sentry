@@ -1,13 +1,17 @@
+from __future__ import annotations
+
 from collections import defaultdict
-from datetime import timedelta
-from typing import Any, List, MutableMapping, Optional, Sequence
+from datetime import datetime, timedelta
+from typing import Any, Iterable, List, MutableMapping, Sequence
 
 import sentry_sdk
 from django.db import connection
+from django.db.models import prefetch_related_objects
 from django.db.models.aggregates import Count
 from django.utils import timezone
+from typing_extensions import TypedDict
 
-from sentry import features, options, projectoptions, roles
+from sentry import features, options, projectoptions, release_health, roles
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.api.serializers.models.team import get_org_roles, get_team_memberships
@@ -40,7 +44,7 @@ from sentry.notifications.helpers import (
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.snuba import discover
-from sentry.snuba.sessions import check_has_health_data, get_current_and_previous_crash_free_rates
+from sentry.tasks.symbolication import should_demote_symbolication
 from sentry.utils import json
 from sentry.utils.compat import zip
 
@@ -70,7 +74,6 @@ def get_access_by_project(
     request = env.request
 
     project_teams = list(ProjectTeam.objects.filter(project__in=projects).select_related("team"))
-
     project_team_map = defaultdict(list)
 
     for pt in project_teams:
@@ -78,6 +81,7 @@ def get_access_by_project(
 
     team_memberships = get_team_memberships([pt.team for pt in project_teams], user)
     org_roles = get_org_roles({i.organization_id for i in projects}, user)
+    prefetch_related_objects(projects, "organization")
 
     is_superuser = request and is_active_superuser(request) and request.user == user
     result = {}
@@ -148,8 +152,28 @@ def get_features_for_projects(
     return features_by_project
 
 
+class ProjectSerializerResponse(TypedDict):
+    id: str
+    slug: str
+    name: str  # TODO: add deprecation about this field (not used in app)
+    isPublic: bool
+    isBookmarked: bool
+    color: str
+    dateCreated: datetime
+    firstEvent: datetime
+    firstTransactionEvent: bool
+    hasSessions: bool
+    features: List[str]
+    status: str  # TODO enum/literal
+    platform: str
+    isInternal: bool
+    isMember: bool
+    hasAccess: bool
+    avatar: Any  # TODO: use Avatar type from other serializers
+
+
 @register(Project)
-class ProjectSerializer(Serializer):
+class ProjectSerializer(Serializer):  # type: ignore
     """
     This is primarily used to summarize projects. We utilize it when doing bulk loads for things
     such as "show all projects for this organization", and its attributes be kept to a minimum.
@@ -157,18 +181,29 @@ class ProjectSerializer(Serializer):
 
     def __init__(
         self,
-        environment_id: Optional[str] = None,
-        stats_period: Optional[str] = None,
-        transaction_stats: Optional[str] = None,
-        session_stats: Optional[str] = None,
+        environment_id: str | None = None,
+        stats_period: str | None = None,
+        expand: Iterable[str] | None = None,
+        collapse: Iterable[str] | None = None,
     ) -> None:
         if stats_period is not None:
             assert stats_period in STATS_PERIOD_CHOICES
 
         self.environment_id = environment_id
         self.stats_period = stats_period
-        self.transaction_stats = transaction_stats
-        self.session_stats = session_stats
+        self.expand = expand
+        self.collapse = collapse
+
+    def _expand(self, key: str) -> bool:
+        if self.expand is None:
+            return False
+
+        return key in self.expand
+
+    def _collapse(self, key: str) -> bool:
+        if self.collapse is None:
+            return False
+        return key in self.collapse
 
     def get_attrs(
         self, item_list: Sequence[Project], user: User, **kwargs: Any
@@ -203,13 +238,13 @@ class ProjectSerializer(Serializer):
             transaction_stats = None
             session_stats = None
             project_ids = [o.id for o in item_list]
-            if self.transaction_stats and self.stats_period:
+
+            if self.stats_period:
                 stats = self.get_stats(project_ids, "!event.type:transaction")
-                transaction_stats = self.get_stats(project_ids, "event.type:transaction")
-            elif self.stats_period:
-                stats = self.get_stats(project_ids, "!event.type:transaction")
-            if self.session_stats:
-                session_stats = self.get_session_stats(project_ids)
+                if self._expand("transaction_stats"):
+                    transaction_stats = self.get_stats(project_ids, "event.type:transaction")
+                if self._expand("session_stats"):
+                    session_stats = self.get_session_stats(project_ids)
 
         avatars = {a.project_id: a for a in ProjectAvatar.objects.filter(project__in=item_list)}
         project_ids = [i.id for i in item_list]
@@ -232,7 +267,7 @@ class ProjectSerializer(Serializer):
             for project, serialized in result.items():
                 value = get_most_specific_notification_setting_value(
                     notification_settings_by_scope,
-                    user=user,
+                    recipient=user,
                     parent_id=project.id,
                     type=NotificationSettingTypes.ISSUE_ALERTS,
                 )
@@ -297,7 +332,7 @@ class ProjectSerializer(Serializer):
         current_interval_start = now - (segments * interval)
         previous_interval_start = now - (2 * segments * interval)
 
-        project_health_data_dict = get_current_and_previous_crash_free_rates(
+        project_health_data_dict = release_health.get_current_and_previous_crash_free_rates(
             project_ids=project_ids,
             current_start=current_interval_start,
             current_end=now,
@@ -325,13 +360,15 @@ class ProjectSerializer(Serializer):
         # call -> check_has_data with those ids and then update our `project_health_data_dict`
         # accordingly
         if check_has_health_data_ids:
-            projects_with_health_data = check_has_health_data(check_has_health_data_ids)
+            projects_with_health_data = release_health.check_has_health_data(
+                check_has_health_data_ids
+            )
             for project_id in projects_with_health_data:
                 project_health_data_dict[project_id]["hasHealthData"] = True
 
         return project_health_data_dict
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user) -> ProjectSerializerResponse:
         status_label = STATUS_LABELS.get(obj.status, "unknown")
 
         if attrs.get("avatar"):
@@ -342,7 +379,7 @@ class ProjectSerializer(Serializer):
         else:
             avatar = {"avatarType": "letter_avatar", "avatarUuid": None}
 
-        context = {
+        context: ProjectSerializerResponse = {
             "id": str(obj.id),
             "slug": obj.slug,
             "name": obj.name,
@@ -426,24 +463,6 @@ class ProjectWithTeamSerializer(ProjectSerializer):
 
 
 class ProjectSummarySerializer(ProjectWithTeamSerializer):
-    def __init__(
-        self,
-        environment_id=None,
-        stats_period=None,
-        transaction_stats=None,
-        session_stats=None,
-        collapse=None,
-    ):
-        super(ProjectWithTeamSerializer, self).__init__(
-            environment_id, stats_period, transaction_stats, session_stats
-        )
-        self.collapse = collapse
-
-    def _collapse(self, key):
-        if self.collapse is None:
-            return False
-        return key in self.collapse
-
     def get_deploys_by_project(self, item_list):
         cursor = connection.cursor()
         cursor.execute(
@@ -527,14 +546,16 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             for release in bulk_fetch_project_latest_releases(item_list)
         }
 
+        deploys_by_project = None
         if not self._collapse(LATEST_DEPLOYS_KEY):
             deploys_by_project = self.get_deploys_by_project(item_list)
+
         for item in item_list:
             attrs[item]["latest_release"] = latest_release_versions.get(item.id)
-            if not self._collapse(LATEST_DEPLOYS_KEY):
-                attrs[item]["deploys"] = deploys_by_project.get(item.id)
             attrs[item]["environments"] = environments_by_project.get(item.id, [])
             attrs[item]["has_user_reports"] = item.id in projects_with_user_reports
+            if not self._collapse(LATEST_DEPLOYS_KEY):
+                attrs[item]["deploys"] = deploys_by_project.get(item.id)
 
         return attrs
 
@@ -550,6 +571,9 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             "hasAccess": attrs["has_access"],
             "dateCreated": obj.date_added,
             "environments": attrs["environments"],
+            "eventProcessing": {
+                "symbolicationDegraded": should_demote_symbolication(obj.id),
+            },
             "features": attrs["features"],
             "firstEvent": obj.first_event,
             "firstTransactionEvent": True if obj.flags.has_transactions else False,
@@ -656,6 +680,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "sentry:relay_pii_config",
             "sentry:dynamic_sampling",
             "sentry:breakdowns",
+            "sentry:span_attributes",
             "feedback:branding",
             "digests:mail:minimum_delay",
             "digests:mail:maximum_delay",
@@ -794,6 +819,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "relayPiiConfig": attrs["options"].get("sentry:relay_pii_config"),
                 "builtinSymbolSources": get_value_with_default("sentry:builtin_symbol_sources"),
                 "dynamicSampling": get_value_with_default("sentry:dynamic_sampling"),
+                "eventProcessing": {
+                    "symbolicationDegraded": False,
+                },
             }
         )
         custom_symbol_sources_json = attrs["options"].get("sentry:symbol_sources")

@@ -1,11 +1,12 @@
-import {SessionField, SessionStatus} from 'app/types';
+import {SessionField, SessionStatus} from 'sentry/types';
 import {
   filterSessionsInTimeWindow,
   getCount,
+  getCountAtIndex,
   getCrashFreeRate,
   getSessionsInterval,
   getSessionStatusRate,
-} from 'app/utils/sessions';
+} from 'sentry/utils/sessions';
 
 const sessionsApiResponse = {
   start: '2021-07-09T23:00:00Z',
@@ -66,6 +67,12 @@ const sessionsApiResponse = {
           0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
           0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ],
+        'p50(session.duration)': [
+          5432, 3999, 2632, 2624, 2587, 3525, 3666, 3783, 4059, 3882, 4022, 4490, 4052,
+          4157, 4166, 4502, 4260, 4713, 4474, 3802, 3199, 2296, 2737, 2259, 1560, 1659,
+          1997, 1975, 1777, 1897, 2783, 3310, 4414, 4012, 4230, 4618, 4773, 4814, 4821,
+          3893,
+        ],
       },
     },
     {
@@ -80,6 +87,11 @@ const sessionsApiResponse = {
           29, 3, 0, 0, 11, 0, 0, 0, 0, 1, 2, 5, 1, 16, 40, 0, 5, 0, 1, 13, 3, 0, 0, 5, 0,
           0, 3, 14, 0, 3, 2, 0, 3, 9, 16, 6, 0, 31, 20, 13,
         ],
+        'p50(session.duration)': [
+          0, 1, 2632, 2624, 2587, 3525, 3666, 3783, 4059, 3882, 4022, 4490, 4052, 4157,
+          4166, 4502, 4260, 4713, 4474, 3802, 3199, 2296, 2737, 2259, 1560, 1659, 1997,
+          1975, 1777, 1897, 2783, 3310, 4414, 4012, 4230, 4618, 4773, 4814, 4821, 2,
+        ],
       },
     },
     {
@@ -93,6 +105,11 @@ const sessionsApiResponse = {
         'sum(session)': [
           33, 32, 31, 36, 30, 78, 56, 60, 95, 55, 52, 47, 53, 43, 61, 68, 43, 71, 47, 29,
           38, 65, 55, 14, 14, 34, 30, 32, 23, 20, 21, 53, 40, 39, 56, 34, 60, 61, 62, 25,
+        ],
+        'p50(session.duration)': [
+          3, 4, 5, 2624, 2587, 3525, 3666, 3783, 4059, 3882, 4022, 4490, 4052, 4157, 4166,
+          4502, 4260, 4713, 4474, 3802, 3199, 2296, 2737, 2259, 1560, 1659, 1997, 1975,
+          1777, 1897, 2783, 3310, 4414, 4012, 4230, 4618, 4773, 4814, 4821, 6,
         ],
       },
     },
@@ -111,6 +128,11 @@ const sessionsApiResponse = {
           1997, 1975, 1777, 1897, 2783, 3310, 4414, 4012, 4230, 4618, 4773, 4814, 4821,
           3893,
         ],
+        'p50(session.duration)': [
+          7, 8, 9, 2624, 2587, 3525, 3666, 3783, 4059, 3882, 4022, 4490, 4052, 4157, 4166,
+          4502, 4260, 4713, 4474, 3802, 3199, 2296, 2737, 2259, 1560, 1659, 1997, 1975,
+          1777, 1897, 2783, 3310, 4414, 4012, 4230, 4618, 4773, 4814, 4821, 10,
+        ],
       },
     },
   ],
@@ -124,6 +146,16 @@ describe('utils/sessions', () => {
     });
     it('returns users count', () => {
       expect(getCount(groups, SessionField.USERS)).toBe(720);
+    });
+  });
+
+  describe('getCountAtIndex', () => {
+    const groups = [sessionsApiResponse.groups[1], sessionsApiResponse.groups[2]];
+    it('returns sessions count', () => {
+      expect(getCountAtIndex(groups, SessionField.SESSIONS, 1)).toBe(35);
+    });
+    it('returns users count', () => {
+      expect(getCountAtIndex(groups, SessionField.USERS, 1)).toBe(16);
     });
   });
 
@@ -153,20 +185,20 @@ describe('utils/sessions', () => {
 
   describe('getSessionsInterval', () => {
     describe('with high fidelity', () => {
-      it('greater than 14 days', () => {
-        expect(getSessionsInterval({period: '15d'}, {highFidelity: true})).toBe('1d');
+      it('>= 60 days', () => {
+        expect(getSessionsInterval({period: '60d'}, {highFidelity: true})).toBe('1d');
       });
 
-      it('greater than 7 days', () => {
-        expect(getSessionsInterval({period: '8d'}, {highFidelity: true})).toBe('6h');
+      it('>= 30 days', () => {
+        expect(getSessionsInterval({period: '30d'}, {highFidelity: true})).toBe('4h');
       });
 
-      it('30 minutes or less', () => {
-        expect(getSessionsInterval({period: '28m'}, {highFidelity: true})).toBe('1m');
+      it('14 days', () => {
+        expect(getSessionsInterval({period: '14d'}, {highFidelity: true})).toBe('1h');
       });
 
-      it('between one week and six hours', () => {
-        expect(getSessionsInterval({period: '1d'}, {highFidelity: true})).toBe('1h');
+      it('>= 6 hours', () => {
+        expect(getSessionsInterval({period: '6h'}, {highFidelity: true})).toBe('1h');
       });
 
       it('between 6 hours and 30 minutes', () => {
@@ -175,6 +207,15 @@ describe('utils/sessions', () => {
 
       it('less or equal to 30 minutes', () => {
         expect(getSessionsInterval({period: '30m'}, {highFidelity: true})).toBe('1m');
+      });
+
+      it('less or equal to 10 minutes', () => {
+        expect(
+          getSessionsInterval(
+            {start: '2021-10-08T12:00:00Z', end: '2021-10-08T12:05:00.000Z'},
+            {highFidelity: true}
+          )
+        ).toBe('10s');
       });
 
       it('ignores high fidelity flag if start is older than 30d', () => {
@@ -188,26 +229,26 @@ describe('utils/sessions', () => {
     });
 
     describe('with low fidelity', () => {
-      it('greater than 14 days', () => {
-        expect(getSessionsInterval({period: '15d'})).toBe('1d');
+      it('>= 60 days', () => {
+        expect(getSessionsInterval({period: '60d'})).toBe('1d');
         expect(
           getSessionsInterval(
-            {start: '2021-07-19T15:14:23Z', end: '2021-08-03T15:13:32Z'},
+            {start: '2021-07-19T15:14:23Z', end: '2021-10-19T15:14:23Z'},
             {highFidelity: true}
           )
         ).toBe('1d');
       });
 
-      it('greater than 7 days', () => {
-        expect(getSessionsInterval({period: '8d'})).toBe('6h');
+      it('>= 30 days', () => {
+        expect(getSessionsInterval({period: '30d'})).toBe('4h');
       });
 
-      it('30 minutes or less', () => {
-        expect(getSessionsInterval({period: '28m'})).toBe('1h');
+      it('14 days', () => {
+        expect(getSessionsInterval({period: '14d'})).toBe('1h');
       });
 
-      it('between one week and six hours', () => {
-        expect(getSessionsInterval({period: '1d'})).toBe('1h');
+      it('>= 6 hours', () => {
+        expect(getSessionsInterval({period: '6h'})).toBe('1h');
       });
 
       it('between 6 hours and 30 minutes', () => {
@@ -276,7 +317,11 @@ describe('utils/sessions', () => {
         groups: [
           {
             by: {'session.status': 'abnormal'},
-            totals: {'count_unique(user)': 0, 'sum(session)': 0},
+            totals: {
+              'count_unique(user)': 0,
+              'sum(session)': 0,
+              'p50(session.duration)': 3497.923076923077,
+            },
             series: {
               'count_unique(user)': [
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -286,11 +331,21 @@ describe('utils/sessions', () => {
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
               ],
+              'p50(session.duration)': [
+                3999, 2632, 2624, 2587, 3525, 3666, 3783, 4059, 3882, 4022, 4490, 4052,
+                4157, 4166, 4502, 4260, 4713, 4474, 3802, 3199, 2296, 2737, 2259, 1560,
+                1659, 1997, 1975, 1777, 1897, 2783, 3310, 4414, 4012, 4230, 4618, 4773,
+                4814, 4821, 3893,
+              ],
             },
           },
           {
             by: {'session.status': 'errored'},
-            totals: {'count_unique(user)': 414, 'sum(session)': 226},
+            totals: {
+              'count_unique(user)': 379,
+              'sum(session)': 226,
+              'p50(session.duration)': 3295.641025641026,
+            },
             series: {
               'count_unique(user)': [
                 6, 5, 7, 11, 5, 6, 8, 12, 14, 9, 16, 15, 22, 28, 11, 14, 16, 9, 11, 11, 7,
@@ -300,11 +355,21 @@ describe('utils/sessions', () => {
                 3, 0, 0, 11, 0, 0, 0, 0, 1, 2, 5, 1, 16, 40, 0, 5, 0, 1, 13, 3, 0, 0, 5,
                 0, 0, 3, 14, 0, 3, 2, 0, 3, 9, 16, 6, 0, 31, 20, 13,
               ],
+              'p50(session.duration)': [
+                1, 2632, 2624, 2587, 3525, 3666, 3783, 4059, 3882, 4022, 4490, 4052, 4157,
+                4166, 4502, 4260, 4713, 4474, 3802, 3199, 2296, 2737, 2259, 1560, 1659,
+                1997, 1975, 1777, 1897, 2783, 3310, 4414, 4012, 4230, 4618, 4773, 4814,
+                4821, 2,
+              ],
             },
           },
           {
             by: {'session.status': 'crashed'},
-            totals: {'count_unique(user)': 462, 'sum(session)': 1763},
+            totals: {
+              'count_unique(user)': 341,
+              'sum(session)': 1763,
+              'p50(session.duration)': 3228.4615384615386,
+            },
             series: {
               'count_unique(user)': [
                 10, 5, 6, 6, 12, 9, 16, 24, 16, 11, 13, 20, 16, 12, 18, 18, 17, 12, 8, 8,
@@ -315,11 +380,21 @@ describe('utils/sessions', () => {
                 29, 38, 65, 55, 14, 14, 34, 30, 32, 23, 20, 21, 53, 40, 39, 56, 34, 60,
                 61, 62, 25,
               ],
+              'p50(session.duration)': [
+                4, 5, 2624, 2587, 3525, 3666, 3783, 4059, 3882, 4022, 4490, 4052, 4157,
+                4166, 4502, 4260, 4713, 4474, 3802, 3199, 2296, 2737, 2259, 1560, 1659,
+                1997, 1975, 1777, 1897, 2783, 3310, 4414, 4012, 4230, 4618, 4773, 4814,
+                4821, 6,
+              ],
             },
           },
           {
             by: {'session.status': 'healthy'},
-            totals: {'count_unique(user)': 11347, 'sum(session)': 136419},
+            totals: {
+              'count_unique(user)': 6585,
+              'sum(session)': 136419,
+              'p50(session.duration)': 3228.769230769231,
+            },
             series: {
               'count_unique(user)': [
                 351, 261, 239, 229, 250, 296, 329, 337, 336, 347, 368, 351, 372, 370, 391,
@@ -331,6 +406,12 @@ describe('utils/sessions', () => {
                 4157, 4166, 4502, 4260, 4713, 4474, 3802, 3199, 2296, 2737, 2259, 1560,
                 1659, 1997, 1975, 1777, 1897, 2783, 3310, 4414, 4012, 4230, 4618, 4773,
                 4814, 4821, 3893,
+              ],
+              'p50(session.duration)': [
+                8, 9, 2624, 2587, 3525, 3666, 3783, 4059, 3882, 4022, 4490, 4052, 4157,
+                4166, 4502, 4260, 4713, 4474, 3802, 3199, 2296, 2737, 2259, 1560, 1659,
+                1997, 1975, 1777, 1897, 2783, 3310, 4414, 4012, 4230, 4618, 4773, 4814,
+                4821, 10,
               ],
             },
           },

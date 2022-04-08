@@ -1,8 +1,8 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
-import {ImageStatus} from 'app/types/debugImage';
+import space from 'sentry/styles/space';
+import {ImageStatus} from 'sentry/types/debugImage';
 
 import ProcessingItem from '../processing/item';
 import ProcessingList from '../processing/list';
@@ -10,8 +10,8 @@ import ProcessingList from '../processing/list';
 import ProcessingIcon from './processingIcon';
 
 type Props = {
-  unwind_status?: ImageStatus | null;
   debug_status?: ImageStatus | null;
+  unwind_status?: ImageStatus | null;
 };
 
 function Processings({unwind_status, debug_status}: Props) {

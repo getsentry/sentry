@@ -1,13 +1,13 @@
 import {browserHistory} from 'react-router';
 
-import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
-import EventView from 'app/utils/discover/eventView';
+import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import EventView from 'sentry/utils/discover/eventView';
 import {
   decodeColumnOrder,
   downloadAsCsv,
   getExpandedResults,
   pushEventViewToLocation,
-} from 'app/views/eventsV2/utils';
+} from 'sentry/views/eventsV2/utils';
 
 describe('decodeColumnOrder', function () {
   it('can decode 0 elements', function () {
@@ -222,7 +222,6 @@ describe('pushEventViewToLocation', function () {
   const location = {
     query: {
       bestCountry: 'canada',
-      user: '1',
     },
   };
 
@@ -247,7 +246,6 @@ describe('pushEventViewToLocation', function () {
         end: '2019-10-02T00:00:00',
         statsPeriod: '14d',
         environment: ['staging'],
-        user: '1',
         yAxis: 'count()',
       },
     });
@@ -278,7 +276,6 @@ describe('pushEventViewToLocation', function () {
         statsPeriod: '14d',
         environment: ['staging'],
         cursor: 'some cursor',
-        user: '1',
         yAxis: 'count()',
       },
     });
@@ -543,7 +540,7 @@ describe('getExpandedResults()', function () {
     expect(result.environment).toEqual(['staging', 'dev']);
   });
 
-  it('applies tags that overlap globalselection state', () => {
+  it('applies tags that overlap PageFilters state', () => {
     const view = new EventView({
       ...state,
       fields: [{field: 'project'}, {field: 'environment'}, {field: 'title'}],

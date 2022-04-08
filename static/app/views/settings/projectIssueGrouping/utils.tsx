@@ -1,16 +1,16 @@
 import * as React from 'react';
 
-import Alert from 'app/components/alert';
-import {t} from 'app/locale';
-import {EventGroupingConfig, Project} from 'app/types';
+import Alert from 'sentry/components/alert';
+import {t} from 'sentry/locale';
+import {EventGroupingConfig, Project} from 'sentry/types';
 
 export function getGroupingChanges(
   project: Project,
   groupingConfigs: EventGroupingConfig[]
 ): {
-  updateNotes: string;
-  riskLevel: number;
   latestGroupingConfig: EventGroupingConfig | null;
+  riskLevel: number;
+  updateNotes: string;
 } {
   const byId: Record<string, EventGroupingConfig> = {};
   let updateNotes: string = '';
@@ -43,8 +43,8 @@ export function getGroupingChanges(
 }
 
 export function getGroupingRisk(riskLevel: number): {
-  riskNote: React.ReactNode;
   alertType: React.ComponentProps<typeof Alert>['type'];
+  riskNote: React.ReactNode;
 } {
   switch (riskLevel) {
     case 0:

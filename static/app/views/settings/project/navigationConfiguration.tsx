@@ -1,11 +1,11 @@
-import {t} from 'app/locale';
-import {Organization, Project} from 'app/types';
-import {NavigationSection} from 'app/views/settings/types';
+import {t} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
+import {NavigationSection} from 'sentry/views/settings/types';
 
 type ConfigParams = {
+  debugFilesNeedsReview?: boolean;
   organization?: Organization;
   project?: Project;
-  debugFilesNeedsReview?: boolean;
 };
 
 const pathPrefix = '/settings/:orgId/projects/:projectId';
@@ -33,8 +33,8 @@ export default function getConfiguration({
         },
         {
           path: `${pathPrefix}/alerts/`,
-          title: t('Alerts'),
-          description: t('Manage alert rules for a project'),
+          title: t('Alert Settings'),
+          description: t('Project alert settings'),
         },
         {
           path: `${pathPrefix}/tags/`,
@@ -50,7 +50,7 @@ export default function getConfiguration({
           path: `${pathPrefix}/ownership/`,
           title: t('Issue Owners'),
           description: t('Manage issue ownership rules for a project'),
-          badge: () => 'beta',
+          badge: () => 'new',
         },
         {
           path: `${pathPrefix}/data-forwarding/`,
@@ -89,7 +89,7 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/processing-issues/`,
           title: t('Processing Issues'),
-          // eslint-disable-next-line no-shadow
+          // eslint-disable-next-line @typescript-eslint/no-shadow
           badge: ({project}) => {
             if (!project) {
               return null;
@@ -160,7 +160,7 @@ export default function getConfiguration({
         ...plugins.map(plugin => ({
           path: `${pathPrefix}/plugins/${plugin.id}/`,
           title: plugin.name,
-          show: opts => opts?.access?.has('project:write'),
+          show: opts => opts?.access?.has('project:write') && !plugin.isDeprecated,
           id: 'plugin_details',
           recordAnalytics: true,
         })),

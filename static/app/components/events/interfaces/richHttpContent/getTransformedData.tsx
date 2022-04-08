@@ -1,4 +1,4 @@
-import {defined} from 'app/utils';
+import {defined} from 'sentry/utils';
 
 function getTransformedData(data: any): [string, string][] {
   if (Array.isArray(data)) {

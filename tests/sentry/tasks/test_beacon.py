@@ -1,4 +1,5 @@
 import platform
+from unittest.mock import patch
 from uuid import uuid4
 
 import responses
@@ -9,7 +10,6 @@ from sentry.models import Broadcast
 from sentry.tasks.beacon import BEACON_URL, send_beacon, send_beacon_metric
 from sentry.testutils import TestCase
 from sentry.utils import json
-from sentry.utils.compat.mock import patch
 
 
 class SendBeaconTest(TestCase):

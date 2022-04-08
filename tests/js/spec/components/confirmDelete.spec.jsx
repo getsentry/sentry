@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
-import ConfirmDelete from 'app/components/confirmDelete';
+import ConfirmDelete from 'sentry/components/confirmDelete';
 
 describe('ConfirmDelete', function () {
   it('renders', async function () {
@@ -9,8 +9,7 @@ describe('ConfirmDelete', function () {
     const wrapper = mountWithTheme(
       <ConfirmDelete message="Are you sure?" onConfirm={mock} confirmInput="CoolOrg">
         <button>Confirm?</button>
-      </ConfirmDelete>,
-      TestStubs.routerContext()
+      </ConfirmDelete>
     );
     wrapper.find('button').simulate('click');
 
@@ -25,8 +24,7 @@ describe('ConfirmDelete', function () {
     const wrapper = mountWithTheme(
       <ConfirmDelete message="Are you sure?" onConfirm={mock} confirmInput="CoolOrg">
         <button>Confirm?</button>
-      </ConfirmDelete>,
-      TestStubs.routerContext()
+      </ConfirmDelete>
     );
 
     wrapper.find('button').simulate('click');
@@ -42,8 +40,7 @@ describe('ConfirmDelete', function () {
     const wrapper = mountWithTheme(
       <ConfirmDelete message="Are you sure?" onConfirm={mock} confirmInput="CoolOrg">
         <button>Confirm?</button>
-      </ConfirmDelete>,
-      TestStubs.routerContext()
+      </ConfirmDelete>
     );
     wrapper.find('button').simulate('click');
 
@@ -58,8 +55,7 @@ describe('ConfirmDelete', function () {
     const wrapper = mountWithTheme(
       <ConfirmDelete message="Are you sure?" onConfirm={mock} confirmInput="CoolOrg">
         <button>Confirm?</button>
-      </ConfirmDelete>,
-      TestStubs.routerContext()
+      </ConfirmDelete>
     );
     wrapper.find('button').simulate('click');
 

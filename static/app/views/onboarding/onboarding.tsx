@@ -1,19 +1,19 @@
 import * as React from 'react';
-import DocumentTitle from 'react-document-title';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, MotionProps, useAnimation} from 'framer-motion';
 
-import Button from 'app/components/button';
-import Hook from 'app/components/hook';
-import LogoSentry from 'app/components/logoSentry';
-import {IconChevron} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import testableTransition from 'app/utils/testableTransition';
-import withOrganization from 'app/utils/withOrganization';
-import withProjects from 'app/utils/withProjects';
+import Button, {ButtonProps} from 'sentry/components/button';
+import Hook from 'sentry/components/hook';
+import LogoSentry from 'sentry/components/logoSentry';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {IconChevron} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import testableTransition from 'sentry/utils/testableTransition';
+import withOrganization from 'sentry/utils/withOrganization';
+import withProjects from 'sentry/utils/withProjects';
 
 import PageCorners from './components/pageCorners';
 import OnboardingPlatform from './platform';
@@ -24,7 +24,7 @@ import OnboardingWelcome from './welcome';
 const ONBOARDING_STEPS: StepDescriptor[] = [
   {
     id: 'welcome',
-    title: t('Welcome to Sentry'),
+    title: t('Welcome'),
     Component: OnboardingWelcome,
     centered: true,
   },
@@ -188,12 +188,15 @@ class Onboarding extends React.Component<Props, State> {
 
     return (
       <OnboardingWrapper>
-        <DocumentTitle title={this.activeStep.title} />
+        <SentryDocumentTitle title={this.activeStep.title} />
         <Header>
           <LogoSvg />
           <HeaderRight>
             {this.renderProgressBar()}
-            <Hook name="onboarding:extra-chrome" />
+            <Hook
+              name="onboarding:targeted-onboarding-header"
+              source="simple-onboarding"
+            />
           </HeaderRight>
         </Header>
         <this.Contents />
@@ -251,7 +254,7 @@ const ProgressBar = styled('div')`
     display: block;
     content: '';
     height: 4px;
-    background: ${p => p.theme.inactive};
+    background: ${p => p.theme.border};
     left: 2px;
     right: 2px;
     top: 50%;
@@ -264,7 +267,7 @@ const ProgressStep = styled('div')<{active: boolean}>`
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  border: 4px solid ${p => (p.active ? p.theme.active : p.theme.inactive)};
+  border: 4px solid ${p => (p.active ? p.theme.active : p.theme.border)};
   background: ${p => p.theme.background};
 `;
 
@@ -280,7 +283,7 @@ const HeaderRight = styled('div')`
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: max-content;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 `;
 
 ProgressStatus.defaultProps = {
@@ -290,20 +293,29 @@ ProgressStatus.defaultProps = {
   transition: testableTransition(),
 };
 
-type BackProps = Omit<React.ComponentProps<typeof Button>, 'icon' | 'priority'> & {
+interface BackButtonProps extends Omit<ButtonProps, 'icon' | 'priority'> {
   animate: MotionProps['animate'];
   className?: string;
-};
+}
 
-const Back = styled(({className, animate, ...props}: BackProps) => (
+const Back = styled(({className, animate, ...props}: BackButtonProps) => (
   <motion.div
     className={className}
     animate={animate}
     transition={testableTransition()}
     variants={{
-      initial: {opacity: 0},
-      visible: {opacity: 1, transition: testableTransition({delay: 1})},
-      hidden: {opacity: 0},
+      initial: {opacity: 0, visibility: 'hidden'},
+      visible: {
+        opacity: 1,
+        visibility: 'visible',
+        transition: testableTransition({delay: 1}),
+      },
+      hidden: {
+        opacity: 0,
+        transitionEnd: {
+          visibility: 'hidden',
+        },
+      },
     }}
   >
     <Button {...props} icon={<IconChevron direction="left" size="sm" />} priority="link">

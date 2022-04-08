@@ -1,8 +1,8 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {Client} from 'app/api';
-import {SmartSearchBar} from 'app/components/smartSearchBar';
-import TagStore from 'app/stores/tagStore';
+import {Client} from 'sentry/api';
+import {SmartSearchBar} from 'sentry/components/smartSearchBar';
+import TagStore from 'sentry/stores/tagStore';
 
 describe('SmartSearchBar', function () {
   let location, options, organization, supportedTags;
@@ -19,14 +19,14 @@ describe('SmartSearchBar', function () {
 
   beforeEach(function () {
     TagStore.reset();
-    TagStore.onLoadTagsSuccess(TestStubs.Tags());
+    TagStore.loadTagsSuccess(TestStubs.Tags());
     tagValuesMock.mockClear();
     supportedTags = TagStore.getAllTags();
     supportedTags.firstRelease = {
       key: 'firstRelease',
       name: 'firstRelease',
     };
-    organization = TestStubs.Organization({id: '123', features: ['improved-search']});
+    organization = TestStubs.Organization({id: '123'});
 
     location = {
       pathname: '/organizations/org-slug/recent-searches/',
@@ -374,6 +374,30 @@ describe('SmartSearchBar', function () {
     });
   });
 
+  describe('onPaste()', function () {
+    it('trims pasted content', function () {
+      const onChange = jest.fn();
+      const wrapper = mountWithTheme(
+        <SmartSearchBar
+          organization={organization}
+          location={location}
+          supportedTags={supportedTags}
+          onChange={onChange}
+        />,
+        options
+      );
+      wrapper.setState({inputHasFocus: true});
+
+      const input = ' something ';
+      wrapper
+        .find('textarea')
+        .simulate('paste', {clipboardData: {getData: () => input, value: input}});
+      wrapper.update();
+
+      expect(onChange).toHaveBeenCalledWith('something', expect.anything());
+    });
+  });
+
   describe('onKeyUp()', function () {
     describe('escape', function () {
       it('blurs the textarea', function () {
@@ -665,14 +689,16 @@ describe('SmartSearchBar', function () {
 
     it('shows errors on incorrect tokens', async function () {
       const props = {
-        query: 'tag: ',
+        query: 'tag: is: has: ',
         organization,
         location,
         supportedTags,
       };
       jest.useRealTimers();
       const wrapper = mountWithTheme(<SmartSearchBar {...props} />, options);
-      expect(wrapper.find('Filter').prop('invalid')).toBe(true);
+      wrapper.find('Filter').forEach(filter => {
+        expect(filter.prop('invalid')).toBe(true);
+      });
     });
   });
 

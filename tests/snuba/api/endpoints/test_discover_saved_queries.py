@@ -319,7 +319,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
                     "range": "24h",
                     "limit": 20,
                     "environment": ["dev"],
-                    "yAxis": "count(id)",
+                    "yAxis": ["count(id)"],
                     "aggregations": [],
                     "orderby": "-time",
                 },
@@ -383,7 +383,7 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
                     "environment": ["dev"],
                     "query": "event.type:error browser.name:Firefox",
                     "range": "24h",
-                    "yAxis": "count(id)",
+                    "yAxis": ["count(id)"],
                     "display": "releases",
                     "version": 2,
                 },
@@ -394,7 +394,7 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
         assert data["range"] == "24h"
         assert data["environment"] == ["dev"]
         assert data["query"] == "event.type:error browser.name:Firefox"
-        assert data["yAxis"] == "count(id)"
+        assert data["yAxis"] == ["count(id)"]
         assert data["display"] == "releases"
         assert data["version"] == 2
 

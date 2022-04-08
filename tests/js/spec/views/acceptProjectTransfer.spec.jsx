@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import AcceptProjectTransfer from 'app/views/acceptProjectTransfer';
+import AcceptProjectTransfer from 'sentry/views/acceptProjectTransfer';
 
 describe('AcceptProjectTransfer', function () {
   let getMock;
@@ -32,8 +32,7 @@ describe('AcceptProjectTransfer', function () {
           pathname: 'endpoint',
           query: {data: 'XYZ'},
         }}
-      />,
-      TestStubs.routerContext()
+      />
     );
 
     expect(getMock).toHaveBeenCalled();
@@ -46,8 +45,7 @@ describe('AcceptProjectTransfer', function () {
           pathname: 'endpoint',
           query: {data: 'XYZ'},
         }}
-      />,
-      TestStubs.routerContext()
+      />
     );
 
     wrapper.find('form').simulate('submit');

@@ -1,20 +1,18 @@
-import {PureComponent} from 'react';
-
-import DateTime from 'app/components/dateTime';
-import Duration from 'app/components/duration';
-import {BannerContainer, BannerSummary} from 'app/components/events/styles';
-import {IconMute} from 'app/icons';
-import {t} from 'app/locale';
-import {ResolutionStatusDetails} from 'app/types';
+import DateTime from 'sentry/components/dateTime';
+import Duration from 'sentry/components/duration';
+import {BannerContainer, BannerSummary} from 'sentry/components/events/styles';
+import {IconMute} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {ResolutionStatusDetails} from 'sentry/types';
 
 type Props = {
   statusDetails: ResolutionStatusDetails;
 };
 
-class MutedBox extends PureComponent<Props> {
-  renderReason = () => {
+function MutedBox({statusDetails}: Props) {
+  function renderReason() {
     const {ignoreUntil, ignoreCount, ignoreWindow, ignoreUserCount, ignoreUserWindow} =
-      this.props.statusDetails;
+      statusDetails;
 
     if (ignoreUntil) {
       return t(
@@ -23,7 +21,8 @@ class MutedBox extends PureComponent<Props> {
           <DateTime date={ignoreUntil} />
         </strong>
       );
-    } else if (ignoreCount && ignoreWindow) {
+    }
+    if (ignoreCount && ignoreWindow) {
       return t(
         'This issue has been ignored until it occurs %s time(s) in %s',
         <strong>{ignoreCount.toLocaleString()}</strong>,
@@ -31,12 +30,14 @@ class MutedBox extends PureComponent<Props> {
           <Duration seconds={ignoreWindow * 60} />
         </strong>
       );
-    } else if (ignoreCount) {
+    }
+    if (ignoreCount) {
       return t(
         'This issue has been ignored until it occurs %s more time(s)',
         <strong>{ignoreCount.toLocaleString()}</strong>
       );
-    } else if (ignoreUserCount && ignoreUserWindow) {
+    }
+    if (ignoreUserCount && ignoreUserWindow) {
       return t(
         'This issue has been ignored until it affects %s user(s) in %s',
         <strong>{ignoreUserCount.toLocaleString()}</strong>,
@@ -44,7 +45,8 @@ class MutedBox extends PureComponent<Props> {
           <Duration seconds={ignoreUserWindow * 60} />
         </strong>
       );
-    } else if (ignoreUserCount) {
+    }
+    if (ignoreUserCount) {
       return t(
         'This issue has been ignored until it affects %s more user(s)',
         <strong>{ignoreUserCount.toLocaleString()}</strong>
@@ -52,14 +54,14 @@ class MutedBox extends PureComponent<Props> {
     }
 
     return t('This issue has been ignored');
-  };
+  }
 
-  render = () => (
+  return (
     <BannerContainer priority="default">
       <BannerSummary>
         <IconMute color="red300" size="sm" />
         <span>
-          {this.renderReason()}&nbsp;&mdash;&nbsp;
+          {renderReason()}&nbsp;&mdash;&nbsp;
           {t(
             'You will not be notified of any changes and it will not show up by default in feeds.'
           )}

@@ -1,10 +1,9 @@
-import {act} from 'react-dom/test-utils';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
-import * as projectsActions from 'app/actionCreators/projects';
-import ProjectsStatsStore from 'app/stores/projectsStatsStore';
-import {Dashboard} from 'app/views/projectsDashboard';
+import * as projectsActions from 'sentry/actionCreators/projects';
+import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
+import {Dashboard} from 'sentry/views/projectsDashboard';
 
 jest.unmock('lodash/debounce');
 jest.mock('lodash/debounce', () => {
@@ -115,6 +114,39 @@ describe('ProjectsDashboard', function () {
       expect(wrapper.find('NoProjectMessage').exists()).toBe(false);
       expect(wrapper.find('TeamSection').exists()).toBe(true);
       expect(wrapper.find('Resources').exists()).toBe(false);
+    });
+
+    it('renders users projects without team section for redesign', function () {
+      const projects = [
+        TestStubs.Project({
+          teams,
+          firstEvent: true,
+        }),
+
+        TestStubs.Project({
+          slug: 'project2',
+          teams,
+          isBookmarked: true,
+          firstEvent: true,
+        }),
+      ];
+
+      const userTeams = [TestStubs.Team({projects})];
+
+      render(
+        <Dashboard
+          teams={userTeams}
+          organization={{...org, features: [...org.features, 'projects-page-redesign']}}
+          params={{orgId: org.slug}}
+        />,
+        {routerContext}
+      );
+
+      expect(screen.getByTestId('join-team')).toBeInTheDocument();
+      expect(screen.getByTestId('create-project')).toBeInTheDocument();
+      expect(screen.getByText('My Teams')).toBeInTheDocument();
+      expect(screen.queryByTestId('team')).not.toBeInTheDocument();
+      expect(screen.queryByText('Resources')).not.toBeInTheDocument();
     });
 
     it('renders bookmarked projects first in team list', function () {

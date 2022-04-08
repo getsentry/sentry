@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from sentry.integrations.example import AliasedIntegrationProvider, ExampleIntegrationProvider
 from sentry.integrations.gitlab.integration import GitlabIntegrationProvider
 from sentry.models import (
@@ -10,7 +12,6 @@ from sentry.models import (
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssuePlugin2
 from sentry.testutils import IntegrationTestCase
-from sentry.utils.compat.mock import patch
 
 
 class ExamplePlugin(IssuePlugin2):

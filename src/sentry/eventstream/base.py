@@ -2,7 +2,6 @@ import logging
 from typing import Optional
 
 from sentry.tasks.post_process import post_process_group
-from sentry.utils import metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.services import Service
 
@@ -49,10 +48,6 @@ class EventStream(Service):
             logger.info("post_process.skip.raw_event", extra={"event_id": event_id})
         else:
             cache_key = cache_key_for_event({"project": project_id, "event_id": event_id})
-            if group_id:
-                metrics.incr("eventstream.messages", tags={"type": "errors"})
-            else:
-                metrics.incr("eventstream.messages", tags={"type": "transactions"})
 
             post_process_group.delay(
                 is_new=is_new,
@@ -125,10 +120,12 @@ class EventStream(Service):
 
     def run_post_process_forwarder(
         self,
+        entity,
         consumer_group,
         commit_log_topic,
         synchronize_commit_group,
         commit_batch_size=100,
+        commit_batch_timeout_ms=5000,
         initial_offset_reset="latest",
     ):
         assert not self.requires_post_process_forwarder()

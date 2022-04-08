@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Any
+
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 
@@ -30,6 +34,7 @@ class RedmineOptionsForm(forms.Form):
             initial[key.lstrip(self.prefix or "")] = value
 
         has_credentials = all(initial.get(k) for k in ("host", "key"))
+        client = None
         if has_credentials:
             client = RedmineClient(initial["host"], initial["key"])
             try:
@@ -43,7 +48,7 @@ class RedmineOptionsForm(forms.Form):
                 ]
                 self.fields["project_id"].choices = project_choices
 
-        if has_credentials:
+        if client is not None and has_credentials:
             try:
                 trackers = client.get_trackers()
             except Exception:
@@ -65,7 +70,7 @@ class RedmineOptionsForm(forms.Form):
             del self.fields["tracker_id"]
             del self.fields["default_priority"]
 
-    def clean(self):
+    def clean(self) -> dict[str, Any] | None:
         cd = self.cleaned_data
         if cd.get("host") and cd.get("key"):
             client = RedmineClient(cd["host"], cd["key"])

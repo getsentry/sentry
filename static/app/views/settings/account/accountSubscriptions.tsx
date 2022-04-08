@@ -3,17 +3,17 @@ import styled from '@emotion/styled';
 import groupBy from 'lodash/groupBy';
 import moment from 'moment';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import DateTime from 'app/components/dateTime';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-import Switch from 'app/components/switchButton';
-import {IconToggle} from 'app/icons';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import AsyncView from 'app/views/asyncView';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TextBlock from 'app/views/settings/components/text/textBlock';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import DateTime from 'sentry/components/dateTime';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
+import Switch from 'sentry/components/switchButton';
+import {IconToggle} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import AsyncView from 'sentry/views/asyncView';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const ENDPOINT = '/users/me/subscriptions/';
 
@@ -174,7 +174,7 @@ class AccountSubscriptions extends AsyncView<AsyncView['props'], State> {
 const Heading = styled(PanelItem)`
   display: grid;
   grid-template-columns: max-content 1fr;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
   font-size: ${p => p.theme.fontSizeMedium};
   padding: ${space(1.5)} ${space(2)};

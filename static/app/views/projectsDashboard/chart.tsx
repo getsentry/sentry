@@ -1,26 +1,26 @@
 import * as React from 'react';
-import {withTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 
-import BaseChart from 'app/components/charts/baseChart';
-import {t} from 'app/locale';
-import {Project} from 'app/types';
-import {axisLabelFormatter} from 'app/utils/discover/charts';
-import {Theme} from 'app/utils/theme';
+import BaseChart from 'sentry/components/charts/baseChart';
+import {t} from 'sentry/locale';
+import {Project} from 'sentry/types';
+import {axisLabelFormatter} from 'sentry/utils/discover/charts';
 
 import NoEvents from './noEvents';
 
 type BaseChartProps = React.ComponentProps<typeof BaseChart>;
 
 type Props = {
-  theme: Theme;
   firstEvent: boolean;
   stats: Project['stats'];
   transactionStats?: Project['transactionStats'];
 };
 
-const Chart = ({theme, firstEvent, stats, transactionStats}: Props) => {
+const Chart = ({firstEvent, stats, transactionStats}: Props) => {
   const series: BaseChartProps['series'] = [];
   const hasTransactions = transactionStats !== undefined;
+
+  const theme = useTheme();
 
   if (transactionStats) {
     const transactionSeries = transactionStats.map(([timestamp, value]) => [
@@ -39,7 +39,9 @@ const Chart = ({theme, firstEvent, stats, transactionStats}: Props) => {
       itemStyle: {
         color: theme.gray200,
         opacity: 0.8,
-        emphasis: {
+      },
+      emphasis: {
+        itemStyle: {
           color: theme.gray200,
           opacity: 1.0,
         },
@@ -59,7 +61,9 @@ const Chart = ({theme, firstEvent, stats, transactionStats}: Props) => {
       itemStyle: {
         color: theme.purple300,
         opacity: 0.6,
-        emphasis: {
+      },
+      emphasis: {
+        itemStyle: {
           color: theme.purple300,
           opacity: 0.8,
         },
@@ -164,4 +168,4 @@ const Chart = ({theme, firstEvent, stats, transactionStats}: Props) => {
   );
 };
 
-export default withTheme(Chart);
+export default Chart;

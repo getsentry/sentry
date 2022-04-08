@@ -1,9 +1,9 @@
 import logging
+from unittest import mock
 
 import pytest
 
 from sentry.logging.handlers import StructLogHandler
-from sentry.utils.compat import mock
 
 
 @pytest.fixture

@@ -1,4 +1,6 @@
 from datetime import timedelta
+from unittest import mock
+from unittest.mock import Mock, patch
 
 from django.contrib.auth.models import AnonymousUser
 from django.core import signing
@@ -15,14 +17,16 @@ from sentry.auth.superuser import (
     MAX_AGE,
     SESSION_KEY,
     Superuser,
+    SuperuserAccessFormInvalidJson,
+    SuperuserAccessSerializer,
     is_active_superuser,
 )
 from sentry.auth.system import SystemToken
 from sentry.middleware.superuser import SuperuserMiddleware
 from sentry.models import User
 from sentry.testutils import TestCase
+from sentry.utils import json
 from sentry.utils.auth import mark_sso_complete
-from sentry.utils.compat.mock import Mock, patch
 
 UNSET = object()
 
@@ -142,6 +146,59 @@ class SuperuserTestCase(TestCase):
         superuser = Superuser(request, allowed_ips=())
         assert superuser.is_active is False
 
+    @mock.patch("sentry.auth.superuser.logger")
+    def test_su_access_logs(self, logger):
+        with self.settings(VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True):
+            user = User(is_superuser=True, id=10, email="test@sentry.io")
+            request = self.make_request(user=user, method="PUT")
+            request._body = json.dumps(
+                {
+                    "superuserAccessCategory": "for_unit_test",
+                    "superuserReason": "Edit organization settings",
+                }
+            )
+
+            superuser = Superuser(request, org_id=None)
+            superuser.set_logged_in(request.user)
+            assert superuser.is_active is True
+            assert logger.info.call_count == 2
+            logger.info.assert_any_call(
+                "superuser.superuser_access",
+                extra={
+                    "superuser_token_id": superuser.token,
+                    "user_id": 10,
+                    "user_email": "test@sentry.io",
+                    "su_access_category": "for_unit_test",
+                    "reason_for_su": "Edit organization settings",
+                },
+            )
+
+    # modify test once https://github.com/getsentry/sentry/pull/32191 is merged
+    @mock.patch("sentry.auth.superuser.logger")
+    def test_su_access_no_request(self, logger):
+        user = User(is_superuser=True, id=10, email="test@sentry.io")
+        request = self.make_request(user=user, method="PUT")
+
+        superuser = Superuser(request, org_id=None)
+        with self.settings(VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True):
+            superuser.set_logged_in(request.user)
+            assert superuser.is_active is True
+            assert logger.info.call_count == 1
+            logger.info.assert_any_call(
+                "superuser.logged-in", extra={"ip_address": "127.0.0.1", "user_id": 10}
+            )
+
+    def test_su_access_invalid_request_body(self):
+        user = User(is_superuser=True, id=10, email="test@sentry.io")
+        request = self.make_request(user=user, method="PUT")
+        request._body = '{"invalid" "json"}'
+
+        superuser = Superuser(request, org_id=None)
+        with self.settings(VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True):
+            with self.assertRaises(SuperuserAccessFormInvalidJson):
+                superuser.set_logged_in(request.user)
+                assert superuser.is_active is False
+
     def test_login_saves_session(self):
         user = self.create_user("foo@example.com", is_superuser=True)
         request = self.make_request()
@@ -232,3 +289,77 @@ class SuperuserTestCase(TestCase):
         request = self.build_request()
         request.superuser = None
         assert is_active_superuser(request)
+
+    @mock.patch("sentry.auth.superuser.logger")
+    def test_superuser_session_doesnt_needs_validatation_superuser_prompts(self, logger):
+        with self.settings(VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=False):
+            user = User(is_superuser=True, id=10, email="test@sentry.io")
+            request = self.make_request(user=user, method="PUT")
+            request._body = json.dumps(
+                {
+                    "superuserAccessCategory": "for_unit_test",
+                    "superuserReason": "Edit organization settings",
+                }
+            )
+
+            superuser = Superuser(request, org_id=None)
+            superuser.set_logged_in(request.user)
+            assert superuser.is_active is True
+            assert logger.info.call_count == 1
+            logger.info.assert_any_call(
+                "superuser.logged-in",
+                extra={"ip_address": "127.0.0.1", "user_id": user.id},
+            )
+
+    def test_superuser_invalid_serializer(self):
+        serialized_data = SuperuserAccessSerializer(data={})
+        assert serialized_data.is_valid() is False
+        assert (
+            json.dumps(serialized_data.errors)
+            == '{"superuserAccessCategory":["This field is required."],"superuserReason":["This field is required."]}'
+        )
+
+        serialized_data = SuperuserAccessSerializer(
+            data={
+                "superuserAccessCategory": "for_unit_test",
+            }
+        )
+        assert serialized_data.is_valid() is False
+        assert (
+            json.dumps(serialized_data.errors) == '{"superuserReason":["This field is required."]}'
+        )
+
+        serialized_data = SuperuserAccessSerializer(
+            data={
+                "superuserReason": "Edit organization settings",
+            }
+        )
+        assert serialized_data.is_valid() is False
+        assert (
+            json.dumps(serialized_data.errors)
+            == '{"superuserAccessCategory":["This field is required."]}'
+        )
+
+        serialized_data = SuperuserAccessSerializer(
+            data={
+                "superuserAccessCategory": "for_unit_test",
+                "superuserReason": "Eds",
+            }
+        )
+        assert serialized_data.is_valid() is False
+        assert (
+            json.dumps(serialized_data.errors)
+            == '{"superuserReason":["Ensure this field has at least 4 characters."]}'
+        )
+
+        serialized_data = SuperuserAccessSerializer(
+            data={
+                "superuserAccessCategory": "for_unit_test",
+                "superuserReason": "128 max chars 128 max chars 128 max chars 128 max chars 128 max chars 128 max chars 128 max chars 128 max chars 128 max chars 128 max chars ",
+            }
+        )
+        assert serialized_data.is_valid() is False
+        assert (
+            json.dumps(serialized_data.errors)
+            == '{"superuserReason":["Ensure this field has no more than 128 characters."]}'
+        )

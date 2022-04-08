@@ -1,9 +1,10 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
+import {act} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'app/api';
-import App from 'app/views/app';
-import OrganizationDeveloperSettings from 'app/views/settings/organizationDeveloperSettings/index';
+import {Client} from 'sentry/api';
+import App from 'sentry/views/app';
+import OrganizationDeveloperSettings from 'sentry/views/settings/organizationDeveloperSettings/index';
 
 describe('Organization Developer Settings', function () {
   const org = TestStubs.Organization();
@@ -17,10 +18,9 @@ describe('Organization Developer Settings', function () {
       'org:write',
     ],
   });
-  const routerContext = TestStubs.routerContext();
 
-  const publishButtonSelector = 'StyledButton[aria-label="Publish"]';
-  const deleteButtonSelector = 'StyledButton[aria-label="Delete"]';
+  const publishButtonSelector = 'button[aria-label="Publish"]';
+  const deleteButtonSelector = 'button[aria-label="Delete"]';
 
   beforeEach(() => {
     Client.clearMockResponses();
@@ -33,8 +33,7 @@ describe('Organization Developer Settings', function () {
     });
 
     const wrapper = mountWithTheme(
-      <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
-      routerContext
+      <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />
     );
 
     it('displays empty state', () => {
@@ -56,7 +55,7 @@ describe('Organization Developer Settings', function () {
 
       wrapper = mountWithTheme(
         <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
-        routerContext
+        {organization: org}
       );
     });
 
@@ -97,7 +96,7 @@ describe('Organization Developer Settings', function () {
         },
       });
       Client.addMockResponse({
-        url: '/assistant/?v2',
+        url: '/assistant/',
         body: [],
       });
       Client.addMockResponse({
@@ -129,14 +128,13 @@ describe('Organization Developer Settings', function () {
       wrapper = mountWithTheme(
         <App>
           <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />
-        </App>,
-        routerContext
+        </App>
       );
 
       expect(wrapper.find(publishButtonSelector).prop('disabled')).toEqual(false);
       wrapper.find(publishButtonSelector).simulate('click');
 
-      await tick();
+      await act(tick);
       wrapper.update();
 
       const modal = await mountGlobalModal();
@@ -185,8 +183,7 @@ describe('Organization Developer Settings', function () {
     });
 
     const wrapper = mountWithTheme(
-      <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
-      routerContext
+      <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />
     );
 
     it('shows the published status', () => {
@@ -211,8 +208,7 @@ describe('Organization Developer Settings', function () {
     });
 
     const wrapper = mountWithTheme(
-      <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
-      routerContext
+      <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />
     );
 
     it('public integration list is empty', () => {

@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import {SectionHeading} from 'app/components/charts/styles';
-import {PanelItem} from 'app/components/panels';
-import space from 'app/styles/space';
+import {SectionHeading} from 'sentry/components/charts/styles';
+import {PanelItem} from 'sentry/components/panels';
+import space from 'sentry/styles/space';
 
 export const Card = styled(PanelItem)`
   display: grid;

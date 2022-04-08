@@ -1,188 +1,175 @@
-import * as React from 'react';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import {Client} from 'app/api';
-import Alert from 'app/components/alert';
-import Count from 'app/components/count';
-import DeviceName from 'app/components/deviceName';
-import GlobalSelectionLink from 'app/components/globalSelectionLink';
-import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import Version from 'app/components/version';
-import {t, tct} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {Group, TagWithTopValues} from 'app/types';
-import {percent} from 'app/utils';
-import withApi from 'app/utils/withApi';
+import Alert from 'sentry/components/alert';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import Count from 'sentry/components/count';
+import {DeviceName} from 'sentry/components/deviceName';
+import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
+import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
+import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
+import {Panel, PanelBody} from 'sentry/components/panels';
+import Version from 'sentry/components/version';
+import {tct} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {Group, TagWithTopValues} from 'sentry/types';
+import {percent} from 'sentry/utils';
 
-type Props = {
+type Props = AsyncComponent['props'] & {
   baseUrl: string;
-  group: Group;
-  api: Client;
   environments: string[];
-};
+  group: Group;
+} & RouteComponentProps<{}, {}>;
 
-type State = {
+type State = AsyncComponent['state'] & {
   tagList: null | TagWithTopValues[];
-  loading: boolean;
-  error: boolean;
 };
 
-class GroupTags extends React.Component<Props, State> {
-  state: State = {
-    tagList: null,
-    loading: true,
-    error: false,
-  };
+class GroupTags extends AsyncComponent<Props, State> {
+  getDefaultState(): State {
+    return {
+      ...super.getDefaultState(),
+      tagList: null,
+    };
+  }
 
-  componentDidMount() {
-    this.fetchData();
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+    const {group, environments} = this.props;
+    return [
+      [
+        'tagList',
+        `/issues/${group.id}/tags/`,
+        {
+          query: {environment: environments},
+        },
+      ],
+    ];
   }
 
   componentDidUpdate(prevProps: Props) {
     if (!isEqual(prevProps.environments, this.props.environments)) {
-      this.fetchData();
+      this.remountComponent();
     }
   }
 
-  fetchData = () => {
-    const {api, group, environments} = this.props;
-    this.setState({
-      loading: true,
-      error: false,
-    });
+  renderTags() {
+    const {baseUrl, location} = this.props;
+    const {tagList} = this.state;
 
-    api.request(`/issues/${group.id}/tags/`, {
-      query: {environment: environments},
-      success: data => {
-        this.setState({
-          tagList: data,
-          error: false,
-          loading: false,
-        });
-      },
-      error: () => {
-        this.setState({
-          error: true,
-          loading: false,
-        });
-      },
-    });
-  };
-
-  getTagsDocsUrl() {
-    return 'https://docs.sentry.io/platform-redirect/?next=/enriching-events/tags';
-  }
-
-  render() {
-    const {baseUrl} = this.props;
-
-    let children: React.ReactNode[] = [];
-
-    if (this.state.loading) {
-      return <LoadingIndicator />;
-    } else if (this.state.error) {
-      return <LoadingError onRetry={this.fetchData} />;
-    }
-
-    if (this.state.tagList) {
-      children = this.state.tagList.map((tag, tagIdx) => {
-        const valueChildren = tag.topValues.map((tagValue, tagValueIdx) => {
-          let label: React.ReactNode = null;
-          const pct = percent(tagValue.count, tag.totalValues);
-          const query = tagValue.query || `${tag.key}:"${tagValue.value}"`;
-
-          switch (tag.key) {
-            case 'release':
-              label = <Version version={tagValue.name} anchor={false} />;
-              break;
-            default:
-              label = <DeviceName value={tagValue.name} />;
-          }
-
-          return (
-            <li key={tagValueIdx} data-test-id={tag.key}>
-              <TagBarGlobalSelectionLink
-                to={{
-                  pathname: `${baseUrl}events/`,
-                  query: {query},
-                }}
-              >
-                <TagBarBackground style={{width: pct + '%'}} />
-                <TagBarLabel>{label}</TagBarLabel>
-                <TagBarCount>
-                  <Count value={tagValue.count} />
-                </TagBarCount>
-              </TagBarGlobalSelectionLink>
-            </li>
-          );
-        });
-
-        return (
-          <TagItem key={tagIdx}>
-            <Panel>
-              <PanelHeader hasButtons style={{textTransform: 'none'}}>
-                <div style={{fontSize: 16}}>{tag.key}</div>
-                <DetailsLinkWrapper>
-                  <GlobalSelectionLink
-                    className="btn btn-default btn-sm"
-                    to={`${baseUrl}tags/${tag.key}/`}
-                  >
-                    {t('More Details')}
-                  </GlobalSelectionLink>
-                </DetailsLinkWrapper>
-              </PanelHeader>
-              <PanelBody withPadding>
-                <ul style={{listStyleType: 'none', padding: 0, margin: 0}}>
-                  {valueChildren}
-                </ul>
-              </PanelBody>
-            </Panel>
-          </TagItem>
-        );
-      });
-    }
+    const alphabeticalTags = (tagList ?? []).sort((a, b) => a.key.localeCompare(b.key));
 
     return (
-      <div>
-        <Container>{children}</Container>
-        <Alert type="info">
-          {tct(
-            'Tags are automatically indexed for searching and breakdown charts. Learn how to [link: add custom tags to issues]',
-            {
-              link: <a href={this.getTagsDocsUrl()} />,
-            }
-          )}
-        </Alert>
-      </div>
+      <Container>
+        {alphabeticalTags.map((tag, tagIdx) => (
+          <TagItem key={tagIdx}>
+            <StyledPanel>
+              <PanelBody withPadding>
+                <TagHeading>
+                  <Link
+                    to={{
+                      pathname: `${baseUrl}tags/${tag.key}/`,
+                      query: extractSelectionParameters(location.query),
+                    }}
+                  >
+                    <span data-test-id="tag-title">{tag.key}</span>
+                  </Link>
+                </TagHeading>
+                <UnstyledUnorderedList>
+                  {tag.topValues.map((tagValue, tagValueIdx) => (
+                    <li key={tagValueIdx} data-test-id={tag.key}>
+                      <TagBarGlobalSelectionLink
+                        to={{
+                          pathname: `${baseUrl}events/`,
+                          query: {
+                            query: tagValue.query || `${tag.key}:"${tagValue.value}"`,
+                          },
+                        }}
+                      >
+                        <TagBarBackground
+                          widthPercent={percent(tagValue.count, tag.totalValues) + '%'}
+                        />
+                        <TagBarLabel>
+                          {tag.key === 'release' ? (
+                            <Version version={tagValue.name} anchor={false} />
+                          ) : (
+                            <DeviceName value={tagValue.name} />
+                          )}
+                        </TagBarLabel>
+                        <TagBarCount>
+                          <Count value={tagValue.count} />
+                        </TagBarCount>
+                      </TagBarGlobalSelectionLink>
+                    </li>
+                  ))}
+                </UnstyledUnorderedList>
+              </PanelBody>
+            </StyledPanel>
+          </TagItem>
+        ))}
+      </Container>
+    );
+  }
+
+  renderBody() {
+    return (
+      <Layout.Body>
+        <Layout.Main fullWidth>
+          <Alert type="info">
+            {tct(
+              'Tags are automatically indexed for searching and breakdown charts. Learn how to [link: add custom tags to issues]',
+              {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=/enriching-events/tags" />
+                ),
+              }
+            )}
+          </Alert>
+          {this.renderTags()}
+        </Layout.Main>
+      </Layout.Body>
     );
   }
 }
 
-const DetailsLinkWrapper = styled('div')`
-  display: flex;
+const Container = styled('div')`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: ${space(2)};
+  margin-bottom: ${space(2)};
 `;
 
-const Container = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
+const StyledPanel = styled(Panel)`
+  height: 100%;
+`;
+
+const TagHeading = styled('h5')`
+  font-size: ${p => p.theme.fontSizeLarge};
+  margin-bottom: 0;
+  color: ${p => p.theme.blue300};
+`;
+
+const UnstyledUnorderedList = styled('ul')`
+  list-style: none;
+  padding-left: 0;
+  margin-bottom: 0;
 `;
 
 const TagItem = styled('div')`
-  padding: 0 ${space(1)};
-  width: 50%;
+  padding: 0;
 `;
 
-const TagBarBackground = styled('div')`
+const TagBarBackground = styled('div')<{widthPercent: string}>`
   position: absolute;
   top: 0;
   bottom: 0;
   left: 0;
   background: ${p => p.theme.tagBar};
   border-radius: ${p => p.theme.borderRadius};
+  width: ${p => p.widthPercent};
 `;
 
 const TagBarGlobalSelectionLink = styled(GlobalSelectionLink)`
@@ -206,14 +193,20 @@ const TagBarGlobalSelectionLink = styled(GlobalSelectionLink)`
 `;
 
 const TagBarLabel = styled('div')`
+  display: flex;
+  align-items: center;
+  font-size: ${p => p.theme.fontSizeMedium};
   position: relative;
   flex-grow: 1;
   ${overflowEllipsis}
 `;
 
 const TagBarCount = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
   position: relative;
   padding-left: ${space(2)};
+  padding-right: ${space(1)};
+  font-variant-numeric: tabular-nums;
 `;
 
-export default withApi(GroupTags);
+export default GroupTags;

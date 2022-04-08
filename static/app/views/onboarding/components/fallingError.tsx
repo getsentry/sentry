@@ -1,12 +1,13 @@
 import * as React from 'react';
 import {motion} from 'framer-motion';
 
-import testableTransition from 'app/utils/testableTransition';
+import testableTransition from 'sentry/utils/testableTransition';
 
 type RenderProps = {
   fallCount: number;
-  triggerFall: (countIt?: boolean) => void;
   fallingError: React.ReactNode;
+  isFalling: boolean;
+  triggerFall: (countIt?: boolean) => void;
 };
 
 type Props = {
@@ -15,8 +16,8 @@ type Props = {
 };
 
 type State = {
-  isFalling: boolean;
   fallCount: number;
+  isFalling: boolean;
 };
 
 class FallingError extends React.Component<Props, State> {
@@ -135,6 +136,7 @@ class FallingError extends React.Component<Props, State> {
       fallCount,
       fallingError,
       triggerFall: this.triggerFall,
+      isFalling,
     });
   }
 }

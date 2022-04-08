@@ -4,35 +4,35 @@ import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {ModalRenderProps} from 'app/actionCreators/modal';
-import AlertLink from 'app/components/alertLink';
-import AsyncComponent from 'app/components/asyncComponent';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import {DebugFile, DebugFileFeature} from 'app/types/debugFiles';
-import {CandidateDownloadStatus, Image, ImageStatus} from 'app/types/debugImage';
-import {Event} from 'app/types/event';
-import {displayReprocessEventAction} from 'app/utils/displayReprocessEventAction';
-import theme from 'app/utils/theme';
-import {getFileType} from 'app/views/settings/projectDebugFiles/utils';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import {DebugFile, DebugFileFeature} from 'sentry/types/debugFiles';
+import {CandidateDownloadStatus, Image, ImageStatus} from 'sentry/types/debugImage';
+import {Event} from 'sentry/types/event';
+import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
+import theme from 'sentry/utils/theme';
+import {getFileType} from 'sentry/views/settings/projectDebugFiles/utils';
 
 import {getFileName} from '../utils';
 
 import Candidates from './candidates';
 import GeneralInfo from './generalInfo';
+import ReprocessAlert from './reprocessAlert';
 import {INTERNAL_SOURCE, INTERNAL_SOURCE_LOCATION} from './utils';
 
 type ImageCandidates = Image['candidates'];
 
 type Props = AsyncComponent['props'] &
   ModalRenderProps & {
-    projectId: Project['id'];
-    organization: Organization;
     event: Event;
+    organization: Organization;
+    projSlug: Project['slug'];
     image?: Image & {status: ImageStatus};
     onReprocessEvent?: () => void;
   };
@@ -62,7 +62,7 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {organization, projectId, image} = this.props;
+    const {organization, projSlug, image} = this.props;
 
     if (!image) {
       return [];
@@ -76,7 +76,7 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
     if (uploadedDebugFiles) {
       endpoints.push([
         'debugFiles',
-        `/projects/${organization.slug}/${projectId}/files/dsyms/?debug_id=${debug_id}`,
+        `/projects/${organization.slug}/${projSlug}/files/dsyms/?debug_id=${debug_id}`,
         {
           query: {
             file_formats: ['breakpad', 'macho', 'elf', 'pe', 'pdb', 'sourcebundle'],
@@ -243,13 +243,13 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
   }
 
   handleDelete = async (debugId: string) => {
-    const {organization, projectId} = this.props;
+    const {organization, projSlug} = this.props;
 
     this.setState({loading: true});
 
     try {
       await this.api.requestPromise(
-        `/projects/${organization.slug}/${projectId}/files/dsyms/?id=${debugId}`,
+        `/projects/${organization.slug}/${projSlug}/files/dsyms/?id=${debugId}`,
         {method: 'DELETE'}
       );
       this.fetchData();
@@ -260,28 +260,20 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
   };
 
   getDebugFilesSettingsLink() {
-    const {organization, projectId, image} = this.props;
+    const {organization, projSlug, image} = this.props;
     const orgSlug = organization.slug;
     const debugId = image?.debug_id;
 
-    if (!orgSlug || !projectId || !debugId) {
+    if (!orgSlug || !projSlug || !debugId) {
       return undefined;
     }
 
-    return `/settings/${orgSlug}/projects/${projectId}/debug-symbols/?query=${debugId}`;
+    return `/settings/${orgSlug}/projects/${projSlug}/debug-symbols/?query=${debugId}`;
   }
 
   renderBody() {
-    const {
-      Header,
-      Body,
-      Footer,
-      image,
-      organization,
-      projectId,
-      onReprocessEvent,
-      event,
-    } = this.props;
+    const {Header, Body, Footer, image, organization, projSlug, event, onReprocessEvent} =
+      this.props;
     const {loading} = this.state;
 
     const {code_file, status} = image ?? {};
@@ -309,22 +301,19 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
           <Content>
             <GeneralInfo image={image} />
             {hasReprocessWarning && (
-              <AlertLink
-                priority="warning"
-                size="small"
-                onClick={onReprocessEvent}
-                withoutMarginBottom
-              >
-                {t(
-                  'You’ve uploaded new debug files. Reprocess events in this issue to view a better stack trace'
-                )}
-              </AlertLink>
+              <ReprocessAlert
+                api={this.api}
+                orgSlug={organization.slug}
+                projSlug={projSlug}
+                eventId={event.id}
+                onReprocessEvent={onReprocessEvent}
+              />
             )}
             <Candidates
               imageStatus={status}
               candidates={candidates}
               organization={organization}
-              projectId={projectId}
+              projSlug={projSlug}
               baseUrl={baseUrl}
               isLoading={loading}
               eventDateReceived={event.dateReceived}
@@ -345,7 +334,7 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
               <Button
                 title={t(
                   'Search for this debug file in all images for the %s project',
-                  projectId
+                  projSlug
                 )}
                 to={debugFilesSettingsLink}
               >
@@ -363,14 +352,14 @@ export default DebugImageDetails;
 
 const Content = styled('div')`
   display: grid;
-  grid-gap: ${space(3)};
+  gap: ${space(3)};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const Title = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
   font-size: ${p => p.theme.fontSizeExtraLarge};
   max-width: calc(100% - 40px);

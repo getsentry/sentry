@@ -2,35 +2,35 @@ import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import BarChart from 'app/components/charts/barChart';
-import LineChart from 'app/components/charts/lineChart';
-import DateTime from 'app/components/dateTime';
-import Link from 'app/components/links/link';
-import {Panel, PanelBody, PanelFooter, PanelHeader} from 'app/components/panels';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {SentryApp} from 'app/types';
-import AsyncView from 'app/views/asyncView';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import {BarChart} from 'sentry/components/charts/barChart';
+import {LineChart, LineChartSeries} from 'sentry/components/charts/lineChart';
+import DateTime from 'sentry/components/dateTime';
+import Link from 'sentry/components/links/link';
+import {Panel, PanelBody, PanelFooter, PanelHeader} from 'sentry/components/panels';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {SentryApp} from 'sentry/types';
+import AsyncView from 'sentry/views/asyncView';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import RequestLog from './requestLog';
 
 type Props = RouteComponentProps<{appSlug: string; orgId: string}, {}>;
 
 type State = AsyncView['state'] & {
-  stats: {
-    totalUninstalls: number;
-    totalInstalls: number;
-    installStats: [number, number][];
-    uninstallStats: [number, number][];
-  };
+  app: SentryApp;
   interactions: {
     componentInteractions: {
       [key: string]: [number, number][];
     };
     views: [number, number][];
   };
-  app: SentryApp;
+  stats: {
+    installStats: [number, number][];
+    totalInstalls: number;
+    totalUninstalls: number;
+    uninstallStats: [number, number][];
+  };
 };
 
 export default class SentryApplicationDashboard extends AsyncView<Props, State> {
@@ -211,16 +211,18 @@ type InteractionsChartProps = {
   };
 };
 const InteractionsChart = ({data}: InteractionsChartProps) => {
-  const elementInteractionsSeries = Object.keys(data).map((key: string) => {
-    const seriesData = data[key].map(point => ({
-      value: point[1],
-      name: point[0] * 1000,
-    }));
-    return {
-      seriesName: key,
-      data: seriesData,
-    };
-  });
+  const elementInteractionsSeries: LineChartSeries[] = Object.keys(data).map(
+    (key: string) => {
+      const seriesData = data[key].map(point => ({
+        value: point[1],
+        name: point[0] * 1000,
+      }));
+      return {
+        seriesName: key,
+        data: seriesData,
+      };
+    }
+  );
 
   return (
     <ChartWrapper>

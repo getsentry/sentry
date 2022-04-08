@@ -1,15 +1,11 @@
-import {Component} from 'react';
+import {useEffect, useState} from 'react';
 import {RouteComponentProps} from 'react-router';
 
-import DetailedError from 'app/components/errors/detailedError';
-import {t} from 'app/locale';
-import {PageContent} from 'app/styles/organization';
+import DetailedError from 'sentry/components/errors/detailedError';
+import {t} from 'sentry/locale';
+import {PageContent} from 'sentry/styles/organization';
 
 type Props = RouteComponentProps<{}, {}>;
-
-type State = {
-  error: string | null;
-};
 
 /**
  * This component performs a client-side redirect to Event Details given only
@@ -21,14 +17,10 @@ type State = {
  * See:
  * https://github.com/getsentry/sentry/blob/824c03089907ad22a9282303a5eaca33989ce481/src/sentry/web/urls.py#L578
  */
-class ProjectEventRedirect extends Component<Props, State> {
-  state: State = {
-    error: null,
-  };
+function ProjectEventRedirect({router}: Props) {
+  const [error, setError] = useState<string | null>(null);
 
-  componentDidMount() {
-    const {router} = this.props;
-
+  useEffect(() => {
     // This presumes that _this_ React view/route is only reachable at
     // /:org/:project/events/:eventId (the same URL which serves the ProjectEventRedirect
     // Django view).
@@ -49,7 +41,7 @@ class ProjectEventRedirect extends Component<Props, State> {
 
     xhr.onload = () => {
       if (xhr.status === 404) {
-        this.setState({error: t('Could not find an issue for the provided event id')});
+        setError(t('Could not find an issue for the provided event id'));
         return;
       }
       // responseURL is the URL of the document the browser ultimately loaded,
@@ -61,21 +53,15 @@ class ProjectEventRedirect extends Component<Props, State> {
       router.replace(xhr.responseURL);
     };
     xhr.onerror = () => {
-      this.setState({error: t('Could not load the requested event')});
+      setError(t('Could not load the requested event'));
     };
-  }
+  });
 
-  render() {
-    return this.state.error ? (
-      <DetailedError
-        heading={t('Not found')}
-        message={this.state.error}
-        hideSupportLinks
-      />
-    ) : (
-      <PageContent />
-    );
-  }
+  return error ? (
+    <DetailedError heading={t('Not found')} message={error} hideSupportLinks />
+  ) : (
+    <PageContent />
+  );
 }
 
 export default ProjectEventRedirect;

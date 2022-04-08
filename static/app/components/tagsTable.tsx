@@ -3,21 +3,22 @@ import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
 import capitalize from 'lodash/capitalize';
 
-import {SectionHeading} from 'app/components/charts/styles';
-import {getMeta, withMeta} from 'app/components/events/meta/metaProxy';
-import {KeyValueTable, KeyValueTableRow} from 'app/components/keyValueTable';
-import Link from 'app/components/links/link';
-import Tooltip from 'app/components/tooltip';
-import Version from 'app/components/version';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {MetaError} from 'app/types';
-import {Event, EventTag} from 'app/types/event';
+import {SectionHeading} from 'sentry/components/charts/styles';
+import {getMeta, withMeta} from 'sentry/components/events/meta/metaProxy';
+import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
+import Link from 'sentry/components/links/link';
+import Tooltip from 'sentry/components/tooltip';
+import Version from 'sentry/components/version';
+import {t} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {MetaError} from 'sentry/types';
+import {Event, EventTag} from 'sentry/types/event';
 
 type Props = {
   event: Event;
-  query: string;
   generateUrl: (tag: EventTag) => LocationDescriptor;
+  query: string;
   title?: React.ReactNode;
 };
 
@@ -33,9 +34,8 @@ const TagsTable = ({event, query, generateUrl, title = t('Tag Details')}: Props)
     if (Array.isArray(error)) {
       if (error[1]?.reason) {
         return formatErrorKind(error[1].reason);
-      } else {
-        return formatErrorKind(error[0]);
       }
+      return formatErrorKind(error[0]);
     }
     return formatErrorKind(error);
   };
@@ -71,7 +71,7 @@ const TagsTable = ({event, query, generateUrl, title = t('Tag Details')}: Props)
                     <i>{`<${t('invalid')}>`}</i>
                   </Tooltip>
                 ) : (
-                  tag.key
+                  <StyledTooltip title={tag.key}>{tag.key}</StyledTooltip>
                 )
               }
               value={
@@ -86,7 +86,9 @@ const TagsTable = ({event, query, generateUrl, title = t('Tag Details')}: Props)
                     <span>{renderTagValue()}</span>
                   </Tooltip>
                 ) : (
-                  <Link to={target || ''}>{renderTagValue()}</Link>
+                  <StyledTooltip title={renderTagValue()}>
+                    <Link to={target || ''}>{renderTagValue()}</Link>
+                  </StyledTooltip>
                 )
               }
             />
@@ -98,6 +100,10 @@ const TagsTable = ({event, query, generateUrl, title = t('Tag Details')}: Props)
 };
 
 export default TagsTable;
+
+const StyledTooltip = styled(Tooltip)`
+  ${overflowEllipsis};
+`;
 
 const StyledTagsTable = styled('div')`
   margin-bottom: ${space(3)};

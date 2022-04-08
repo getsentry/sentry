@@ -1,17 +1,16 @@
 import {Location} from 'history';
 
-import {IconInfo} from 'app/icons';
-import {tct} from 'app/locale';
-import {crashReportTypes} from 'app/views/organizationGroupDetails/groupEventAttachments/groupEventAttachmentsFilter';
+import {tct} from 'sentry/locale';
+import {crashReportTypes} from 'sentry/views/organizationGroupDetails/groupEventAttachments/groupEventAttachmentsFilter';
 
 import Alert from '../alert';
 import Link from '../links/link';
 
 type Props = {
+  groupId: string;
+  location: Location;
   orgSlug: string;
   projectSlug: string;
-  location: Location;
-  groupId: string;
 };
 
 const EventAttachmentsCrashReportsNotice = ({
@@ -27,7 +26,7 @@ const EventAttachmentsCrashReportsNotice = ({
   };
 
   return (
-    <Alert type="info" icon={<IconInfo size="md" />}>
+    <Alert type="info" showIcon>
       {tct(
         'Your limit of stored crash reports has been reached for this issue. [attachmentsLink: View crashes] or [settingsLink: configure limit].',
         {

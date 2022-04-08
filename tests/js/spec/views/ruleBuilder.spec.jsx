@@ -1,10 +1,11 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {act} from 'sentry-test/reactTestingLibrary';
 import {findOption, openMenu, selectByValueAsync} from 'sentry-test/select-new';
 
-import MemberListStore from 'app/stores/memberListStore';
-import ProjectsStore from 'app/stores/projectsStore';
-import TeamStore from 'app/stores/teamStore';
-import RuleBuilder from 'app/views/settings/project/projectOwnership/ruleBuilder';
+import MemberListStore from 'sentry/stores/memberListStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import TeamStore from 'sentry/stores/teamStore';
+import RuleBuilder from 'sentry/views/settings/project/projectOwnership/ruleBuilder';
 
 describe('RuleBuilder', function () {
   const organization = TestStubs.Organization();
@@ -56,7 +57,7 @@ describe('RuleBuilder', function () {
       // Teams in project
       teams: [TEAM_1],
     });
-    ProjectsStore.loadInitialData([project]);
+    act(() => ProjectsStore.loadInitialData([project]));
     jest.spyOn(ProjectsStore, 'getBySlug').mockImplementation(() => project);
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -69,29 +70,28 @@ describe('RuleBuilder', function () {
 
   it('renders', async function () {
     const wrapper = mountWithTheme(
-      <RuleBuilder project={project} organization={organization} onAddRule={handleAdd} />,
-      TestStubs.routerContext()
+      <RuleBuilder project={project} organization={organization} onAddRule={handleAdd} />
     );
 
     await tick();
     wrapper.update();
 
-    const add = wrapper.find('Button');
+    const add = wrapper.find('AddButton');
     add.simulate('click');
     expect(handleAdd).not.toHaveBeenCalled();
 
     const text = wrapper.find('BuilderInput');
     text.simulate('change', {target: {value: 'some/path/*'}});
-    expect(wrapper.find('Button').prop('disabled')).toBe(true);
+    expect(wrapper.find('AddButton').prop('disabled')).toBe(true);
 
     add.simulate('click');
     expect(handleAdd).not.toHaveBeenCalled();
 
     // Select the first item in the list.
     await selectByValueAsync(wrapper, 'user:1', {name: 'owners', control: true});
-    await wrapper.update();
+    wrapper.update();
 
-    expect(wrapper.find('Button').prop('disabled')).toBe(false);
+    expect(wrapper.find('AddButton').prop('disabled')).toBe(false);
     add.simulate('click');
     expect(handleAdd).toHaveBeenCalled();
 
@@ -109,8 +109,7 @@ describe('RuleBuilder', function () {
         onAddRule={handleAdd}
         urls={['example.com/a', 'example.com/a/foo']}
         paths={['a/bar', 'a/foo']}
-      />,
-      TestStubs.routerContext()
+      />
     );
 
     // Open the menu so we can do some assertions.
@@ -143,7 +142,7 @@ describe('RuleBuilder', function () {
     wrapper.update();
     expect(wrapper.find(RuleBuilder)).toSnapshot();
 
-    wrapper.find('Button').simulate('click');
+    wrapper.find('AddButton').simulate('click');
     expect(handleAdd).toHaveBeenCalled();
   });
 });

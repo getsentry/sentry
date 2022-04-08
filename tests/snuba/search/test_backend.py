@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime, timedelta
 from hashlib import md5
+from unittest import mock
 
 import pytest
 import pytz
@@ -15,9 +16,11 @@ from sentry.models import (
     GroupAssignee,
     GroupBookmark,
     GroupEnvironment,
+    GroupHistoryStatus,
     GroupStatus,
     GroupSubscription,
     Integration,
+    record_group_history,
 )
 from sentry.models.groupowner import GroupOwner
 from sentry.search.snuba.backend import (
@@ -27,7 +30,6 @@ from sentry.search.snuba.backend import (
 from sentry.search.snuba.executors import InvalidQueryForExecutor
 from sentry.testutils import SnubaTestCase, TestCase, xfail_if_not_postgres
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.utils.compat import mock
 from sentry.utils.snuba import SENTRY_SNUBA_MAP, Dataset, SnubaError
 
 
@@ -645,27 +647,6 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         )
         assert list(results) == []
         assert results.hits == 2
-
-    def test_active_at_filter(self):
-        results = self.make_query(
-            search_filter_query="activeSince:>=%s" % date_to_query_format(self.group2.active_at)
-        )
-        assert set(results) == {self.group2}
-
-        results = self.make_query(
-            search_filter_query="activeSince:<=%s"
-            % date_to_query_format(self.group1.active_at + timedelta(minutes=1))
-        )
-        assert set(results) == {self.group1}
-
-        results = self.make_query(
-            search_filter_query="activeSince:>=%s activeSince:<=%s"
-            % (
-                date_to_query_format(self.group1.active_at),
-                date_to_query_format(self.group1.active_at + timedelta(minutes=1)),
-            )
-        )
-        assert set(results) == {self.group1}
 
     def test_age_filter(self):
         results = self.make_query(
@@ -1414,6 +1395,50 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             assert third_results.hits > 10
             assert third_results.results != second_results.results
 
+    def test_regressed_in_release(self):
+        # expect no groups within the results since there are no releases
+        results = self.make_query(search_filter_query="regressed_in_release:fake")
+        assert set(results) == set()
+
+        # expect no groups even though there is a release; since no group regressed in this release
+        release_1 = self.create_release()
+
+        results = self.make_query(search_filter_query="regressed_in_release:%s" % release_1.version)
+        assert set(results) == set()
+
+        # Create a new event so that we get a group in this release
+        group = self.store_event(
+            data={
+                "release": release_1.version,
+            },
+            project_id=self.project.id,
+        ).group
+
+        # # Should still be no group since we didn't regress in this release
+        results = self.make_query(search_filter_query="regressed_in_release:%s" % release_1.version)
+        assert set(results) == set()
+
+        record_group_history(group, GroupHistoryStatus.REGRESSED, release=release_1)
+        results = self.make_query(search_filter_query="regressed_in_release:%s" % release_1.version)
+        assert set(results) == {group}
+
+        # Make sure this works correctly with multiple releases
+        release_2 = self.create_release()
+        group_2 = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group9001"],
+                "event_id": "a" * 32,
+                "release": release_2.version,
+            },
+            project_id=self.project.id,
+        ).group
+        record_group_history(group_2, GroupHistoryStatus.REGRESSED, release=release_2)
+
+        results = self.make_query(search_filter_query="regressed_in_release:%s" % release_1.version)
+        assert set(results) == {group}
+        results = self.make_query(search_filter_query="regressed_in_release:%s" % release_2.version)
+        assert set(results) == {group_2}
+
     def test_first_release(self):
 
         # expect no groups within the results since there are no releases
@@ -1947,6 +1972,9 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
                 val = self.base_datetime.isoformat()
             elif key in issue_search_config.boolean_keys:
                 val = "true"
+            elif key in {"trace.span", "trace.parent_span"}:
+                val = "abcdef1234abcdef"
+                test_query(f"!{key}:{val}")
             else:
                 val = "abadcafedeadbeefdeaffeedabadfeed"
                 test_query(f"!{key}:{val}")
@@ -2078,6 +2106,8 @@ class CdcEventsSnubaSearchTest(TestCase, SnubaTestCase):
         self.group2.save()
         self.store_group(self.group2)
         self.run_test("is:unresolved", [self.group1], None)
+        self.run_test("is:resolved", [self.group2], None)
+        self.run_test("is:unresolved is:resolved", [], None)
 
     def test_environment(self):
         self.run_test("is:unresolved", [self.group1], None, environments=[self.env1])
@@ -2184,10 +2214,18 @@ class CdcEventsSnubaSearchTest(TestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         )
+        # Test group with no users, which can return a null count
+        group3 = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group3"],
+                "timestamp": iso_format(self.base_datetime + timedelta(days=1)),
+            },
+            project_id=self.project.id,
+        ).group
 
         self.run_test(
             "is:unresolved",
-            [self.group2, self.group1],
+            [self.group2, self.group1, group3],
             None,
             sort_by="user",
             # Change the date range to bust the cache
@@ -2231,3 +2269,11 @@ class CdcEventsSnubaSearchTest(TestCase, SnubaTestCase):
         self.run_test(
             "is:unresolved", [group3, self.group1], 4, limit=2, cursor=results.next, count_hits=True
         )
+
+    def test_rechecking(self):
+        self.group2.status = GroupStatus.RESOLVED
+        self.group2.save()
+        # Explicitly avoid calling `store_group` here. This means that Clickhouse will still see
+        # this group as `UNRESOLVED` and it will be returned in the snuba results. This group
+        # should still be filtered out by our recheck.
+        self.run_test("is:unresolved", [self.group1], None)

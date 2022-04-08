@@ -4,11 +4,13 @@ from celery.task import current
 from django.urls import reverse
 from requests.exceptions import ConnectionError, RequestException, Timeout
 
+from sentry import analytics
 from sentry.api.serializers import AppPlatformEvent, serialize
 from sentry.constants import SentryAppInstallationStatus
 from sentry.eventstore.models import Event
 from sentry.http import safe_urlopen
 from sentry.models import (
+    Activity,
     Group,
     Organization,
     Project,
@@ -18,13 +20,8 @@ from sentry.models import (
     ServiceHookProject,
     User,
 )
-from sentry.models.sentryapp import VALID_EVENTS, track_response_code
-from sentry.shared_integrations.exceptions import (
-    ApiHostError,
-    ApiTimeoutError,
-    ClientError,
-    IgnorableSentryAppError,
-)
+from sentry.models.integrations.sentry_app import VALID_EVENTS, track_response_code
+from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils import metrics
 from sentry.utils.compat import filter
@@ -41,7 +38,7 @@ TASK_OPTIONS = {
 
 RETRY_OPTIONS = {
     "on": (RequestException, ApiHostError, ApiTimeoutError),
-    "ignore": (IgnorableSentryAppError, ClientError),
+    "ignore": (ClientError),
 }
 
 # We call some models by a different name, publicly, than their class name.
@@ -49,7 +46,7 @@ RETRY_OPTIONS = {
 # Hook events to match what we externally call these primitives.
 RESOURCE_RENAMES = {"Group": "issue"}
 
-TYPES = {"Group": Group, "Error": Event}
+TYPES = {"Group": Group, "Error": Event, "Comment": Activity}
 
 
 def _webhook_event_data(event, group_id, project_id):
@@ -74,18 +71,22 @@ def _webhook_event_data(event, group_id, project_id):
     # a valid URL (it can't know which option to pick). We have to manually
     # create this URL for, that reason.
     event_context["issue_url"] = absolute_uri(f"/api/0/issues/{group_id}/")
-
+    event_context["issue_id"] = str(group_id)
     return event_context
 
 
 @instrumented_task(name="sentry.tasks.sentry_apps.send_alert_event", **TASK_OPTIONS)
 @retry(**RETRY_OPTIONS)
-def send_alert_event(event, rule, sentry_app_id):
+def send_alert_event(
+    event, rule, sentry_app_id, additional_payload_key=None, additional_payload=None
+):
     """
     When an incident alert is triggered, send incident data to the SentryApp's webhook.
     :param event: The `Event` for which to build a payload.
     :param rule: The AlertRule that was triggered.
     :param sentry_app_id: The SentryApp to notify.
+    :param additional_payload_key: The key used to attach additional data to the webhook payload
+    :param additional_payload: The extra data attached to the payload body at the key specified by `additional_payload_key`.
     :return:
     """
     group = event.group
@@ -119,11 +120,26 @@ def send_alert_event(event, rule, sentry_app_id):
 
     data = {"event": event_context, "triggered_rule": rule}
 
+    # Attach extra payload to the webhook
+    if additional_payload_key and additional_payload:
+        data[additional_payload_key] = additional_payload
+
     request_data = AppPlatformEvent(
         resource="event_alert", action="triggered", install=install, data=data
     )
-
-    send_and_save_webhook_request(sentry_app, request_data)
+    try:
+        send_and_save_webhook_request(sentry_app, request_data)
+    except Exception as e:
+        raise e
+    else:
+        # On success, record analytic event for Alert Rule UI Component
+        if request_data.data.get("issue_alert"):
+            analytics.record(
+                "alert_rule_ui_component_webhook.sent",
+                organization_id=organization.id,
+                sentry_app_id=sentry_app_id,
+                event=f"{request_data.resource}.{request_data.action}",
+            )
 
 
 def _process_resource_change(action, sender, instance_id, retryer=None, *args, **kwargs):
@@ -136,7 +152,6 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
             extra = {"sender": sender, "action": action, "event_id": instance_id}
             logger.info("process_resource_change.event_missing_event", extra=extra)
             return
-
         name = sender.lower()
     else:
         # Some resources are named differently than their model. eg. Group vs Issue.
@@ -177,7 +192,9 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
 
     installations = filter(
         lambda i: event in i.sentry_app.events,
-        SentryAppInstallation.get_installed_for_org(org.id).select_related("sentry_app"),
+        SentryAppInstallation.objects.get_installed_for_organization(org.id).select_related(
+            "sentry_app"
+        ),
     )
 
     for installation in installations:
@@ -222,8 +239,47 @@ def installation_webhook(installation_id, user_id, *args, **kwargs):
 @instrumented_task(name="sentry.tasks.sentry_apps.workflow_notification", **TASK_OPTIONS)
 @retry(**RETRY_OPTIONS)
 def workflow_notification(installation_id, issue_id, type, user_id, *args, **kwargs):
-    extra = {"installation_id": installation_id, "issue_id": issue_id}
+    install, issue, user = get_webhook_data(installation_id, issue_id, user_id)
 
+    data = kwargs.get("data", {})
+    data.update({"issue": serialize(issue)})
+    send_webhooks(installation=install, event=f"issue.{type}", data=data, actor=user)
+    analytics.record(
+        f"sentry_app.issue.{type}",
+        user_id=user_id,
+        group_id=issue_id,
+        installation_id=installation_id,
+    )
+
+
+@instrumented_task(name="sentry.tasks.sentry_apps.build_comment_webhook", **TASK_OPTIONS)
+@retry(**RETRY_OPTIONS)
+def build_comment_webhook(installation_id, issue_id, type, user_id, *args, **kwargs):
+    install, _, user = get_webhook_data(installation_id, issue_id, user_id)
+    data = kwargs.get("data", {})
+    project_slug = data.get("project_slug")
+    comment_id = data.get("comment_id")
+    payload = {
+        "comment_id": data.get("comment_id"),
+        "issue_id": issue_id,
+        "project_slug": data.get("project_slug"),
+        "timestamp": data.get("timestamp"),
+        "comment": data.get("comment"),
+    }
+    send_webhooks(installation=install, event=type, data=payload, actor=user)
+    # type is comment.created, comment.updated, or comment.deleted
+    analytics.record(
+        type,
+        user_id=user_id,
+        group_id=issue_id,
+        project_slug=project_slug,
+        installation_id=installation_id,
+        comment_id=comment_id,
+    )
+
+
+def get_webhook_data(installation_id, issue_id, user_id):
+    extra = {"installation_id": installation_id, "issue_id": issue_id}
     try:
         install = SentryAppInstallation.objects.get(
             id=installation_id, status=SentryAppInstallationStatus.INSTALLED
@@ -245,10 +301,7 @@ def workflow_notification(installation_id, issue_id, type, user_id, *args, **kwa
     except User.DoesNotExist:
         logger.info("workflow_notification.missing_user", extra=extra)
 
-    data = kwargs.get("data", {})
-    data.update({"issue": serialize(issue)})
-
-    send_webhooks(installation=install, event=f"issue.{type}", data=data, actor=user)
+    return (install, issue, user)
 
 
 @instrumented_task("sentry.tasks.send_process_resource_change_webhook", **TASK_OPTIONS)
@@ -275,8 +328,23 @@ def notify_sentry_app(event, futures):
         if not f.kwargs.get("sentry_app"):
             continue
 
+        extra_kwargs = {
+            "additional_payload_key": None,
+            "additional_payload": None,
+        }
+        # If the future comes from a rule with a UI component form in the schema, append the issue alert payload
+        settings = f.kwargs.get("schema_defined_settings")
+        if settings:
+            extra_kwargs["additional_payload_key"] = "issue_alert"
+            extra_kwargs["additional_payload"] = {
+                "id": f.rule.id,
+                "title": f.rule.label,
+                "sentry_app_id": f.kwargs["sentry_app"].id,
+                "settings": settings,
+            }
+
         send_alert_event.delay(
-            event=event, rule=f.rule.label, sentry_app_id=f.kwargs["sentry_app"].id
+            event=event, rule=f.rule.label, sentry_app_id=f.kwargs["sentry_app"].id, **extra_kwargs
         )
 
 
@@ -286,6 +354,10 @@ def send_webhooks(installation, event, **kwargs):
             organization_id=installation.organization_id, actor_id=installation.id
         )
     except ServiceHook.DoesNotExist:
+        logger.info(
+            "send_webhooks.missing_servicehook",
+            extra={"installation_id": installation.id, "event": event},
+        )
         return
 
     if event not in servicehook.events:
@@ -334,7 +406,7 @@ def ignore_unpublished_app_errors(func):
             if sentry_app.is_published:
                 raise
             else:
-                raise IgnorableSentryAppError("unpublished or internal app")
+                return
 
     return wrapper
 
@@ -355,12 +427,10 @@ def send_and_save_webhook_request(sentry_app, app_platform_event, url=None):
     event = f"{app_platform_event.resource}.{app_platform_event.action}"
     slug = sentry_app.slug_for_metrics
     url = url or sentry_app.webhook_url
-
     try:
         resp = safe_urlopen(
             url=url, data=app_platform_event.body, headers=app_platform_event.headers, timeout=5
         )
-
     except (Timeout, ConnectionError) as e:
         error_type = e.__class__.__name__.lower()
         logger.info(
@@ -398,5 +468,4 @@ def send_and_save_webhook_request(sentry_app, app_platform_event, url=None):
             raise ClientError(resp.status_code, url, response=resp)
 
         resp.raise_for_status()
-
         return resp

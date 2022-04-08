@@ -1,20 +1,20 @@
 import {Component, Fragment} from 'react';
 
-import LoadingPanel from 'app/components/charts/loadingPanel';
+import LoadingPanel from 'sentry/components/charts/loadingPanel';
 
 const defaultProps = {
   height: '200px',
 };
 
 type Props = {
-  reloading: boolean;
   loading: boolean;
+  reloading: boolean;
 } & typeof defaultProps;
 
 type State = {
-  prevReloading: boolean;
-  prevLoading: boolean;
   key: number;
+  prevLoading: boolean;
+  prevReloading: boolean;
 };
 
 class TransitionChart extends Component<Props, State> {

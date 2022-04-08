@@ -1,6 +1,6 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import NarrowLayout from 'app/components/narrowLayout';
+import NarrowLayout from 'sentry/components/narrowLayout';
 
 describe('NarrowLayout', function () {
   beforeAll(function () {
@@ -11,13 +11,13 @@ describe('NarrowLayout', function () {
   });
 
   it('renders without logout', function () {
-    const wrapper = mountWithTheme(<NarrowLayout />);
-    expect(wrapper.find('a.logout')).toHaveLength(0);
+    render(<NarrowLayout />);
+    expect(screen.queryByText('Sign out')).not.toBeInTheDocument();
   });
 
   it('renders with logout', function () {
-    const wrapper = mountWithTheme(<NarrowLayout showLogout />);
-    expect(wrapper.find('a.logout')).toHaveLength(1);
+    render(<NarrowLayout showLogout />);
+    expect(screen.getByText('Sign out')).toBeInTheDocument();
   });
 
   it('can logout', function () {
@@ -26,9 +26,9 @@ describe('NarrowLayout', function () {
       method: 'DELETE',
       status: 204,
     });
-    const wrapper = mountWithTheme(<NarrowLayout showLogout />);
+    render(<NarrowLayout showLogout />);
 
-    wrapper.find('a.logout').simulate('click');
+    userEvent.click(screen.getByText('Sign out'));
     expect(mock).toHaveBeenCalled();
   });
 });

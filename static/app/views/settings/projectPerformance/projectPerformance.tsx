@@ -1,22 +1,21 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import ExternalLink from 'app/components/links/externalLink';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {PanelItem} from 'app/components/panels';
-import {t, tct} from 'app/locale';
-import {Organization, Project} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import routeTitleGen from 'app/utils/routeTitle';
-import AsyncView from 'app/views/asyncView';
-import Form from 'app/views/settings/components/forms/form';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import PermissionAlert from 'app/views/settings/project/permissionAlert';
-
-import {Field} from '../components/forms/type';
+import Button from 'sentry/components/button';
+import Form from 'sentry/components/forms/form';
+import JsonForm from 'sentry/components/forms/jsonForm';
+import {Field} from 'sentry/components/forms/type';
+import ExternalLink from 'sentry/components/links/externalLink';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {PanelItem} from 'sentry/components/panels';
+import {t, tct} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import routeTitleGen from 'sentry/utils/routeTitle';
+import AsyncView from 'sentry/views/asyncView';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
   organization: Organization;
@@ -24,10 +23,10 @@ type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
 };
 
 type ProjectThreshold = {
-  id?: string;
-  threshold: string;
   metric: string;
+  threshold: string;
   editedBy?: string;
+  id?: string;
 };
 
 type State = AsyncView['state'] & {
@@ -138,7 +137,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
     const {organization, project} = this.props;
     const endpoint = `/projects/${organization.slug}/${project.slug}/transaction-threshold/configure/`;
     return (
-      <React.Fragment>
+      <Fragment>
         <SettingsPageHeader title={t('Performance')} />
         <PermissionAlert />
         <Form
@@ -173,7 +172,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
             )}
           />
         </Form>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

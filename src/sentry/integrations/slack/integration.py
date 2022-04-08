@@ -4,7 +4,6 @@ from typing import Any, Mapping, Optional, Sequence
 from django.utils.translation import ugettext_lazy as _
 from django.views import View
 
-from sentry import features
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.integrations import (
     FeatureDescription,
@@ -22,7 +21,8 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.json import JSONData
 
 from .client import SlackClient
-from .utils import get_integration_type, logger
+from .notifications import SlackNotifyBasicMixin
+from .utils import logger
 
 Channel = namedtuple("Channel", ["name", "id"])
 
@@ -66,9 +66,14 @@ metadata = IntegrationMetadata(
 )
 
 
-class SlackIntegration(IntegrationInstallation):  # type: ignore
+class SlackIntegration(SlackNotifyBasicMixin, IntegrationInstallation):  # type: ignore
     def get_config_data(self) -> Mapping[str, str]:
-        return {"installationType": get_integration_type(self.model)}
+        metadata_ = self.model.metadata
+        # Classic bots had a user_access_token in the metadata.
+        default_installation = (
+            "classic_bot" if "user_access_token" in metadata_ else "workspace_app"
+        )
+        return {"installationType": metadata_.get("installation_type", default_installation)}
 
     def uninstall(self) -> None:
         """
@@ -189,6 +194,5 @@ class SlackIntegrationProvider(IntegrationProvider):  # type: ignore
         """
         Create Identity records for an organization's users if their emails match in Sentry and Slack
         """
-        if features.has("organizations:notification-platform", organization):
-            run_args = {"integration": integration, "organization": organization}
-            tasks.link_slack_user_identities.apply_async(kwargs=run_args)
+        run_args = {"integration": integration, "organization": organization}
+        tasks.link_slack_user_identities.apply_async(kwargs=run_args)

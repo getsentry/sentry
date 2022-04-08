@@ -1,10 +1,19 @@
 import os
 import subprocess
+import time
 import uuid
 from collections import defaultdict
 from contextlib import contextmanager
+from unittest.mock import patch
 
 import pytest
+from confluent_kafka.admin import AdminClient
+from django.test import override_settings
+
+from sentry.eventstream.kafka import KafkaEventStream
+from sentry.testutils import TestCase
+from sentry.utils import json, kafka_config
+from sentry.utils.batching_kafka_consumer import wait_for_topics
 
 try:
     from confluent_kafka import Consumer, KafkaError, Producer, TopicPartition
@@ -614,3 +623,108 @@ def test_consumer_rebalance_from_uncommitted_offset(requires_kafka):
         assert (
             message is None or message.error() is KafkaError._PARTITION_EOF
         ), "there should be no more messages to receive"
+
+
+def kafka_message_payload():
+    return [
+        2,
+        "insert",
+        {
+            "group_id": 43,
+            "event_id": "fe0ee9a2bc3b415497bad68aaf70dc7f",
+            "organization_id": 1,
+            "project_id": 1,
+            "primary_hash": "311ee66a5b8e697929804ceb1c456ffe",
+        },
+        {
+            "is_new": False,
+            "is_regression": None,
+            "is_new_group_environment": False,
+            "skip_consume": False,
+        },
+    ]
+
+
+@pytest.mark.usefixtures("requires_kafka")
+class BatchedConsumerTest(TestCase):
+    def _get_producer(self, topic):
+        cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
+        conf = {
+            "bootstrap.servers": settings.KAFKA_CLUSTERS[cluster_name]["common"][
+                "bootstrap.servers"
+            ],
+            "session.timeout.ms": 6000,
+        }
+        return Producer(conf)
+
+    def setUp(self):
+        super().setUp()
+        self.events_topic = f"events-{uuid.uuid4().hex}"
+        self.commit_log_topic = f"events-commit-{uuid.uuid4().hex}"
+        self.override_settings_cm = override_settings(
+            KAFKA_TOPICS={
+                "events": {"cluster": "default", "topic": self.events_topic},
+                "snuba-commit-log": {"cluster": "default", "topic": self.commit_log_topic},
+            },
+        )
+        self.override_settings_cm.__enter__()
+
+        cluster_options = kafka_config.get_kafka_admin_cluster_options(
+            "default", {"allow.auto.create.topics": "true"}
+        )
+        self.admin_client = AdminClient(cluster_options)
+        wait_for_topics(self.admin_client, [self.events_topic, self.commit_log_topic])
+
+    def tearDown(self):
+        super().tearDown()
+        self.override_settings_cm.__exit__(None, None, None)
+        self.admin_client.delete_topics([self.events_topic, self.commit_log_topic])
+
+    @patch("sentry.eventstream.kafka.postprocessworker.dispatch_post_process_group_task")
+    def test_post_process_forwarder_batch_consumer(self, dispatch_post_process_group_task):
+        consumer_group = f"consumer-{uuid.uuid1().hex}"
+        synchronize_commit_group = f"sync-consumer-{uuid.uuid1().hex}"
+
+        events_producer = self._get_producer("events")
+        commit_log_producer = self._get_producer("snuba-commit-log")
+        message = json.dumps(kafka_message_payload()).encode()
+
+        eventstream = KafkaEventStream()
+        consumer = eventstream._build_consumer(
+            entity="all",
+            consumer_group=consumer_group,
+            commit_log_topic=self.commit_log_topic,
+            synchronize_commit_group=synchronize_commit_group,
+            commit_batch_size=1,
+            initial_offset_reset="earliest",
+        )
+
+        # produce message to the events topic
+        events_producer.produce(self.events_topic, message)
+        assert events_producer.flush(5) == 0, "events producer did not successfully flush queue"
+
+        # Move the committed offset forward for our synchronizing group.
+        commit_log_producer.produce(
+            self.commit_log_topic,
+            key=f"{self.events_topic}:0:{synchronize_commit_group}".encode(),
+            value=f"{1}".encode(),
+        )
+        assert (
+            commit_log_producer.flush(5) == 0
+        ), "snuba-commit-log producer did not successfully flush queue"
+
+        # Run the loop for sometime
+        for _ in range(3):
+            consumer._run_once()
+            time.sleep(1)
+
+        # Verify that the task gets called once
+        dispatch_post_process_group_task.assert_called_once_with(
+            event_id="fe0ee9a2bc3b415497bad68aaf70dc7f",
+            project_id=1,
+            group_id=43,
+            primary_hash="311ee66a5b8e697929804ceb1c456ffe",
+            is_new=False,
+            is_regression=None,
+            is_new_group_environment=False,
+        )

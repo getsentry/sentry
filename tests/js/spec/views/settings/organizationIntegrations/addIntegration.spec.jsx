@@ -1,13 +1,11 @@
 /* global global */
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import AddIntegration from 'app/views/organizationIntegrations/addIntegration';
+import AddIntegration from 'sentry/views/organizationIntegrations/addIntegration';
 
 describe('AddIntegration', function () {
   const provider = TestStubs.GitHubIntegrationProvider();
   const integration = TestStubs.GitHubIntegration();
-
-  const routerContext = TestStubs.routerContext();
 
   it('Adds an integration on dialog completion', function () {
     const onAdd = jest.fn();
@@ -23,8 +21,7 @@ describe('AddIntegration', function () {
             Click
           </a>
         )}
-      </AddIntegration>,
-      routerContext
+      </AddIntegration>
     );
 
     const newIntegration = {

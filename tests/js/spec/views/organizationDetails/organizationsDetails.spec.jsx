@@ -1,18 +1,21 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import OrganizationStore from 'app/stores/organizationStore';
-import ProjectsStore from 'app/stores/projectsStore';
-import OrganizationDetails, {
-  LightWeightOrganizationDetails,
-} from 'app/views/organizationDetails';
+import {pinFilter} from 'sentry/actionCreators/pageFilters';
+import OrganizationStore from 'sentry/stores/organizationStore';
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import OrganizationDetails from 'sentry/views/organizationDetails';
 
-let wrapper;
+jest.mock('sentry/components/sidebar', () => () => <div />);
 
 describe('OrganizationDetails', function () {
-  beforeEach(async function () {
+  let getTeamsMock;
+  let getProjectsMock;
+
+  beforeEach(function () {
     OrganizationStore.reset();
-    // wait for store reset changes to propagate
-    await tick();
+    act(() => ProjectsStore.reset());
+    PageFiltersStore.reset();
 
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -23,130 +26,158 @@ describe('OrganizationDetails', function () {
       url: '/organizations/org-slug/environments/',
       body: [],
     });
-  });
-
-  afterEach(function () {
-    // necessary to unsubscribe successfully from org store
-    wrapper.unmount();
-  });
-
-  describe('render()', function () {
-    describe('pending deletion', () => {
-      it('should render a restoration prompt', async function () {
-        MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/',
-          body: TestStubs.Organization({
-            slug: 'org-slug',
-            status: {
-              id: 'pending_deletion',
-              name: 'pending deletion',
-            },
-          }),
-        });
-        wrapper = mountWithTheme(
-          <OrganizationDetails params={{orgId: 'org-slug'}} location={{}} routes={[]} />,
-          TestStubs.routerContext()
-        );
-        await tick();
-        await tick();
-        wrapper.update();
-        expect(wrapper.text()).toContain('Deletion Scheduled');
-        expect(wrapper.text()).toContain(
-          'Would you like to cancel this process and restore the organization back to the original state?'
-        );
-        expect(wrapper.find('button[aria-label="Restore Organization"]')).toHaveLength(1);
-      });
-      it('should render a restoration prompt without action for members', async function () {
-        MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/',
-          body: TestStubs.Organization({
-            slug: 'org-slug',
-            access: [],
-            status: {
-              id: 'pending_deletion',
-              name: 'pending deletion',
-            },
-          }),
-        });
-        wrapper = mountWithTheme(
-          <OrganizationDetails params={{orgId: 'org-slug'}} location={{}} routes={[]} />,
-          TestStubs.routerContext()
-        );
-        await tick();
-        await tick();
-        wrapper.update();
-        expect(wrapper.text()).toContain(
-          [
-            'The org-slug organization is currently scheduled for deletion.',
-            'If this is a mistake, contact an organization owner and ask them to restore this organization.',
-          ].join('')
-        );
-        expect(wrapper.find('button[aria-label="Restore Organization"]')).toHaveLength(0);
-      });
+    getTeamsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/teams/',
+      body: [TestStubs.Team()],
     });
-
-    describe('deletion in progress', () => {
-      beforeEach(() => {
-        MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/',
-          body: TestStubs.Organization({
-            slug: 'org-slug',
-            status: {
-              id: 'deletion_in_progress',
-              name: 'deletion in progress',
-            },
-          }),
-        });
-      });
-
-      it('should render a deletion in progress prompt', async function () {
-        wrapper = mountWithTheme(
-          <OrganizationDetails params={{orgId: 'org-slug'}} location={{}} routes={[]} />,
-          TestStubs.routerContext()
-        );
-        await tick();
-        await tick();
-        wrapper.update();
-        expect(wrapper.text()).toContain(
-          'The org-slug organization is currently in the process of being deleted from Sentry'
-        );
-        expect(wrapper.find('button[aria-label="Restore Organization"]')).toHaveLength(0);
-      });
+    getProjectsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [TestStubs.Project()],
     });
   });
-  it('can render a lightweight version of itself and fetches teams', async function () {
-    ProjectsStore.reset();
+
+  it('can fetch projects and teams', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/',
       body: TestStubs.Organization({
         slug: 'org-slug',
       }),
     });
-    const getTeamsMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/teams/',
-      body: [TestStubs.Team()],
-    });
-    const getProjectsMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/projects/',
-      body: [TestStubs.Project()],
-    });
-    wrapper = mountWithTheme(
-      <LightWeightOrganizationDetails
+
+    render(
+      <OrganizationDetails
         params={{orgId: 'org-slug'}}
         location={{}}
         routes={[]}
         includeSidebar={false}
       >
-        {null}
-      </LightWeightOrganizationDetails>,
-      TestStubs.routerContext()
+        <div />
+      </OrganizationDetails>
     );
-    await tick();
-    await tick();
-    await tick();
-    wrapper.update();
+
     expect(getTeamsMock).toHaveBeenCalled();
     expect(getProjectsMock).toHaveBeenCalled();
-    expect(wrapper.find('OrganizationContext').prop('detailed')).toBe(false);
+  });
+
+  describe('deletion states', () => {
+    it('should render a restoration prompt', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/',
+        body: TestStubs.Organization({
+          slug: 'org-slug',
+          status: {
+            id: 'pending_deletion',
+            name: 'pending deletion',
+          },
+        }),
+      });
+
+      render(
+        <OrganizationDetails params={{orgId: 'org-slug'}} location={{}} routes={[]}>
+          <div />
+        </OrganizationDetails>
+      );
+
+      expect(await screen.findByText('Deletion Scheduled')).toBeInTheDocument();
+      expect(screen.getByLabelText('Restore Organization')).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          'Would you like to cancel this process and restore the organization back to the original state?'
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('should render a restoration prompt without action for members', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/',
+        body: TestStubs.Organization({
+          slug: 'org-slug',
+          access: [],
+          status: {
+            id: 'pending_deletion',
+            name: 'pending deletion',
+          },
+        }),
+      });
+
+      render(
+        <OrganizationDetails params={{orgId: 'org-slug'}} location={{}} routes={[]}>
+          <div />
+        </OrganizationDetails>
+      );
+
+      expect(await screen.findByText('Deletion Scheduled')).toBeInTheDocument();
+
+      const mistakeText = screen.getByText(
+        'If this is a mistake, contact an organization owner and ask them to restore this organization.'
+      );
+
+      expect(mistakeText).toBeInTheDocument();
+      expect(screen.queryByLabelText('Restore Organization')).not.toBeInTheDocument();
+    });
+  });
+
+  it('should render a deletion in progress prompt', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/',
+      body: TestStubs.Organization({
+        slug: 'org-slug',
+        status: {
+          id: 'deletion_in_progress',
+          name: 'deletion in progress',
+        },
+      }),
+    });
+
+    render(
+      <OrganizationDetails params={{orgId: 'org-slug'}} location={{}} routes={[]}>
+        <div />
+      </OrganizationDetails>
+    );
+
+    const inProgress = await screen.findByText(
+      'currently in the process of being deleted from Sentry.',
+      {exact: false}
+    );
+
+    expect(inProgress).toBeInTheDocument();
+    expect(screen.queryByLabelText('Restore Organization')).not.toBeInTheDocument();
+  });
+
+  it('should switch organization', async function () {
+    const body = TestStubs.Organization({slug: 'org-slug'});
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/', body});
+    MockApiClient.addMockResponse({url: '/organizations/other-org/', body});
+    MockApiClient.addMockResponse({url: '/organizations/other-org/teams/', body: []});
+    MockApiClient.addMockResponse({url: '/organizations/other-org/projects/', body: []});
+
+    const {rerender} = render(
+      <OrganizationDetails params={{orgId: undefined}} location={{}} routes={[]}>
+        <div />
+      </OrganizationDetails>
+    );
+
+    pinFilter('projects', true);
+    await waitFor(() =>
+      expect(PageFiltersStore.getState().pinnedFilters).toEqual(new Set(['projects']))
+    );
+
+    rerender(
+      <OrganizationDetails params={{orgId: 'org-slug'}} location={{}} routes={[]}>
+        <div />
+      </OrganizationDetails>
+    );
+
+    expect(PageFiltersStore.getState().pinnedFilters).toEqual(new Set(['projects']));
+
+    rerender(
+      <OrganizationDetails params={{orgId: 'other-org'}} location={{}} routes={[]}>
+        <div />
+      </OrganizationDetails>
+    );
+
+    await waitFor(() =>
+      expect(PageFiltersStore.getState().pinnedFilters).toEqual(new Set())
+    );
   });
 });

@@ -1,18 +1,18 @@
 import {Component, Fragment} from 'react';
 
-import {getAllBroadcasts, markBroadcastsAsSeen} from 'app/actionCreators/broadcasts';
-import {Client} from 'app/api';
-import DemoModeGate from 'app/components/acl/demoModeGate';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import BroadcastSdkUpdates from 'app/components/sidebar/broadcastSdkUpdates';
-import SidebarItem from 'app/components/sidebar/sidebarItem';
-import SidebarPanel from 'app/components/sidebar/sidebarPanel';
-import SidebarPanelEmpty from 'app/components/sidebar/sidebarPanelEmpty';
-import SidebarPanelItem from 'app/components/sidebar/sidebarPanelItem';
-import {IconBroadcast} from 'app/icons';
-import {t} from 'app/locale';
-import {Broadcast, Organization} from 'app/types';
-import withApi from 'app/utils/withApi';
+import {getAllBroadcasts, markBroadcastsAsSeen} from 'sentry/actionCreators/broadcasts';
+import {Client} from 'sentry/api';
+import DemoModeGate from 'sentry/components/acl/demoModeGate';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import BroadcastSdkUpdates from 'sentry/components/sidebar/broadcastSdkUpdates';
+import SidebarItem from 'sentry/components/sidebar/sidebarItem';
+import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
+import SidebarPanelEmpty from 'sentry/components/sidebar/sidebarPanelEmpty';
+import SidebarPanelItem from 'sentry/components/sidebar/sidebarPanelItem';
+import {IconBroadcast} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {Broadcast, Organization} from 'sentry/types';
+import withApi from 'sentry/utils/withApi';
 
 import {CommonSidebarProps, SidebarPanelKey} from './types';
 
@@ -26,8 +26,8 @@ type Props = CommonSidebarProps & {
 
 type State = {
   broadcasts: Broadcast[];
-  loading: boolean;
   error: boolean;
+  loading: boolean;
 };
 
 class Broadcasts extends Component<Props, State> {
@@ -39,39 +39,34 @@ class Broadcasts extends Component<Props, State> {
 
   componentDidMount() {
     this.fetchData();
-
     document.addEventListener('visibilitychange', this.handleVisibilityChange);
   }
 
   componentWillUnmount() {
-    if (this.timer) {
-      window.clearTimeout(this.timer);
-      this.timer = null;
-    }
+    window.clearTimeout(this.markSeenTimeout);
+    window.clearTimeout(this.pollingTimeout);
 
-    if (this.poller) {
-      this.stopPoll();
-    }
     document.removeEventListener('visibilitychange', this.handleVisibilityChange);
   }
 
-  poller: number | null = null;
-  timer: number | null = null;
+  pollingTimeout: number | undefined = undefined;
+  markSeenTimeout: number | undefined = undefined;
 
-  startPoll() {
-    this.poller = window.setTimeout(this.fetchData, POLLER_DELAY);
+  startPolling() {
+    if (this.pollingTimeout) {
+      this.stopPolling();
+    }
+    this.pollingTimeout = window.setTimeout(this.fetchData, POLLER_DELAY);
   }
 
-  stopPoll() {
-    if (this.poller) {
-      window.clearTimeout(this.poller);
-      this.poller = null;
-    }
+  stopPolling() {
+    window.clearTimeout(this.pollingTimeout);
+    this.pollingTimeout = undefined;
   }
 
   fetchData = async () => {
-    if (this.poller) {
-      this.stopPoll();
+    if (this.pollingTimeout) {
+      this.stopPolling();
     }
 
     try {
@@ -81,7 +76,7 @@ class Broadcasts extends Component<Props, State> {
       this.setState({loading: false, error: true});
     }
 
-    this.startPoll();
+    this.startPolling();
   };
 
   /**
@@ -89,10 +84,13 @@ class Broadcasts extends Component<Props, State> {
    * polling for broadcasts data, otherwise, if it gains visibility, start
    * polling again.
    */
-  handleVisibilityChange = () => (document.hidden ? this.stopPoll() : this.startPoll());
+  handleVisibilityChange = () =>
+    document.hidden ? this.stopPolling() : this.startPolling();
 
   handleShowPanel = () => {
-    this.timer = window.setTimeout(this.markSeen, MARK_SEEN_DELAY);
+    window.clearTimeout(this.markSeenTimeout);
+
+    this.markSeenTimeout = window.setTimeout(this.markSeen, MARK_SEEN_DELAY);
     this.props.onShowPanel();
   };
 

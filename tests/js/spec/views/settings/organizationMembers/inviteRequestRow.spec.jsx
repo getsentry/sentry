@@ -1,8 +1,10 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
+import {act} from 'sentry-test/reactTestingLibrary';
 import {selectByValue} from 'sentry-test/select-new';
 
-import InviteRequestRow from 'app/views/settings/organizationMembers/inviteRequestRow';
+import TeamStore from 'sentry/stores/teamStore';
+import InviteRequestRow from 'sentry/views/settings/organizationMembers/inviteRequestRow';
 
 const roles = [
   {
@@ -58,7 +60,6 @@ describe('InviteRequestRow', function () {
         organization={orgWithoutAdminAccess}
         inviteRequest={inviteRequest}
         inviteRequestBusy={inviteRequestBusy}
-        allTeams={[]}
         allRoles={roles}
       />
     );
@@ -76,7 +77,6 @@ describe('InviteRequestRow', function () {
         organization={orgWithoutAdminAccess}
         inviteRequest={joinRequest}
         inviteRequestBusy={inviteRequestBusy}
-        allTeams={[]}
         allRoles={roles}
       />
     );
@@ -97,7 +97,6 @@ describe('InviteRequestRow', function () {
         inviteRequestBusy={inviteRequestBusy}
         onApprove={mockApprove}
         onDeny={mockDeny}
-        allTeams={[]}
         allRoles={roles}
       />
     );
@@ -123,7 +122,6 @@ describe('InviteRequestRow', function () {
         inviteRequestBusy={inviteRequestBusy}
         onApprove={mockApprove}
         onDeny={mockDeny}
-        allTeams={[]}
         allRoles={roles}
       />
     );
@@ -142,7 +140,6 @@ describe('InviteRequestRow', function () {
         inviteRequestBusy={inviteRequestBusy}
         onApprove={() => {}}
         onDeny={() => {}}
-        allTeams={[]}
         allRoles={roles}
       />
     );
@@ -161,6 +158,7 @@ describe('InviteRequestRow', function () {
       teams: ['myteam'],
     });
 
+    act(() => void TeamStore.loadInitialData([{slug: 'one'}, {slug: 'two'}]));
     const mockUpdate = jest.fn();
 
     const wrapper = mountWithTheme(
@@ -169,7 +167,6 @@ describe('InviteRequestRow', function () {
         organization={orgWithAdminAccess}
         inviteRequest={adminInviteRequest}
         inviteRequestBusy={inviteRequestBusy}
-        allTeams={[{slug: 'one'}, {slug: 'two'}]}
         allRoles={roles}
         onUpdate={mockUpdate}
       />
@@ -180,6 +177,8 @@ describe('InviteRequestRow', function () {
 
     selectByValue(wrapper, 'one', {name: 'teams', control: true});
     expect(mockUpdate).toHaveBeenCalledWith({teams: ['one']});
+
+    TeamStore.reset();
   });
 
   it('cannot be approved when invitee role is not allowed', function () {
@@ -200,7 +199,6 @@ describe('InviteRequestRow', function () {
         organization={orgWithoutAdminAccess}
         inviteRequest={ownerInviteRequest}
         inviteRequestBusy={inviteRequestBusy}
-        allTeams={[{slug: 'one'}, {slug: 'two'}]}
         allRoles={roles}
         onUpdate={mockUpdate}
       />

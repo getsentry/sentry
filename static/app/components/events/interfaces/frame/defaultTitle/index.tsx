@@ -1,17 +1,17 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import AnnotatedText from 'app/components/events/meta/annotatedText';
-import {getMeta} from 'app/components/events/meta/metaProxy';
-import ExternalLink from 'app/components/links/externalLink';
-import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'app/components/stacktracePreview';
-import Tooltip from 'app/components/tooltip';
-import Truncate from 'app/components/truncate';
-import {IconOpen, IconQuestion} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Frame, Meta, PlatformType} from 'app/types';
-import {defined, isUrl} from 'app/utils';
+import AnnotatedText from 'sentry/components/events/meta/annotatedText';
+import {getMeta} from 'sentry/components/events/meta/metaProxy';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'sentry/components/stacktracePreview';
+import Tooltip from 'sentry/components/tooltip';
+import Truncate from 'sentry/components/truncate';
+import {IconOpen, IconQuestion} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Frame, Meta, PlatformType} from 'sentry/types';
+import {defined, isUrl} from 'sentry/utils';
 
 import FunctionName from '../functionName';
 import GroupingIndicator from '../groupingIndicator';
@@ -22,11 +22,11 @@ import OriginalSourceInfo from './originalSourceInfo';
 type Props = {
   frame: Frame;
   platform: PlatformType;
-  isUsedForGrouping?: boolean;
   /**
    * Is the stack trace being previewed in a hovercard?
    */
   isHoverPreviewed?: boolean;
+  isUsedForGrouping?: boolean;
 };
 
 type GetPathNameOutput = {key: string; value: string; meta?: Meta};

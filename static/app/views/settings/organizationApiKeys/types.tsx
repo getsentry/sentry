@@ -1,4 +1,4 @@
-import {API_ACCESS_SCOPES} from 'app/constants';
+import {API_ACCESS_SCOPES} from 'sentry/constants';
 
 type Scope = typeof API_ACCESS_SCOPES[number];
 

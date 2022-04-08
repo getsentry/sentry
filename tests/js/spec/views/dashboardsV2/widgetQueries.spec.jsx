@@ -1,8 +1,10 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {Client} from 'app/api';
-import WidgetQueries from 'app/views/dashboardsV2/widgetQueries';
+import {Client} from 'sentry/api';
+import WidgetQueries, {
+  flattenMultiSeriesDataWithGrouping,
+} from 'sentry/views/dashboardsV2/widgetCard/widgetQueries';
 
 describe('Dashboards > WidgetQueries', function () {
   const initialData = initializeOrg({
@@ -14,21 +16,49 @@ describe('Dashboards > WidgetQueries', function () {
     interval: '5m',
     displayType: 'line',
     queries: [
-      {conditions: 'event.type:error', fields: ['count()'], name: 'errors'},
-      {conditions: 'event.type:default', fields: ['count()'], name: 'default'},
+      {
+        conditions: 'event.type:error',
+        fields: ['count()'],
+        aggregates: ['count()'],
+        columns: [],
+        name: 'errors',
+      },
+      {
+        conditions: 'event.type:default',
+        fields: ['count()'],
+        aggregates: ['count()'],
+        columns: [],
+        name: 'default',
+      },
     ],
   };
   const singleQueryWidget = {
     title: 'Errors',
     interval: '5m',
     displayType: 'line',
-    queries: [{conditions: 'event.type:error', fields: ['count()'], name: 'errors'}],
+    queries: [
+      {
+        conditions: 'event.type:error',
+        fields: ['count()'],
+        aggregates: ['count()'],
+        columns: [],
+        name: 'errors',
+      },
+    ],
   };
   const tableWidget = {
     title: 'SDK',
     interval: '5m',
     displayType: 'table',
-    queries: [{conditions: 'event.type:error', fields: ['sdk.name'], name: 'sdk'}],
+    queries: [
+      {
+        conditions: 'event.type:error',
+        fields: ['sdk.name'],
+        aggregates: [],
+        columns: ['sdk.name'],
+        name: 'sdk',
+      },
+    ],
   };
   const selection = {
     projects: [1],
@@ -45,20 +75,16 @@ describe('Dashboards > WidgetQueries', function () {
   });
 
   it('can send multiple API requests', async function () {
-    const errorMock = MockApiClient.addMockResponse(
-      {
-        url: '/organizations/org-slug/events-stats/',
-        body: [],
-      },
-      {
-        predicate(_url, options) {
-          return (
-            options.query.query === 'event.type:error' ||
-            options.query.query === 'event.type:default'
-          );
-        },
-      }
-    );
+    const errorMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: [],
+      match: [MockApiClient.matchQuery({query: 'event.type:error'})],
+    });
+    const defaultMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: [],
+      match: [MockApiClient.matchQuery({query: 'event.type:default'})],
+    });
     const wrapper = mountWithTheme(
       <WidgetQueries
         api={api}
@@ -75,33 +101,22 @@ describe('Dashboards > WidgetQueries', function () {
 
     // Child should be rendered and 2 requests should be sent.
     expect(wrapper.find('[data-test-id="child"]')).toHaveLength(1);
-    expect(errorMock).toHaveBeenCalledTimes(2);
+    expect(errorMock).toHaveBeenCalledTimes(1);
+    expect(defaultMock).toHaveBeenCalledTimes(1);
   });
 
   it('sets errorMessage when the first request fails', async function () {
-    const okMock = MockApiClient.addMockResponse(
-      {
-        url: '/organizations/org-slug/events-stats/',
-        body: [],
-      },
-      {
-        predicate(_url, options) {
-          return options.query.query === 'event.type:error';
-        },
-      }
-    );
-    const failMock = MockApiClient.addMockResponse(
-      {
-        url: '/organizations/org-slug/events-stats/',
-        statusCode: 400,
-        body: {detail: 'Bad request data'},
-      },
-      {
-        predicate(_url, options) {
-          return options.query.query === 'event.type:default';
-        },
-      }
-    );
+    const okMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      match: [MockApiClient.matchQuery({query: 'event.type:error'})],
+      body: [],
+    });
+    const failMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      statusCode: 400,
+      body: {detail: 'Bad request data'},
+      match: [MockApiClient.matchQuery({query: 'event.type:default'})],
+    });
 
     let error = '';
     const wrapper = mountWithTheme(
@@ -251,42 +266,42 @@ describe('Dashboards > WidgetQueries', function () {
   });
 
   it('can send multiple table queries', async function () {
-    const firstQuery = MockApiClient.addMockResponse(
-      {
-        url: '/organizations/org-slug/eventsv2/',
-        body: {
-          meta: {'sdk.name': 'string'},
-          data: [{'sdk.name': 'python'}],
-        },
+    const firstQuery = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/eventsv2/',
+      body: {
+        meta: {'sdk.name': 'string'},
+        data: [{'sdk.name': 'python'}],
       },
-      {
-        predicate(_url, options) {
-          return options.query.query === 'event.type:error';
-        },
-      }
-    );
-    const secondQuery = MockApiClient.addMockResponse(
-      {
-        url: '/organizations/org-slug/eventsv2/',
-        body: {
-          meta: {title: 'string'},
-          data: [{title: 'ValueError'}],
-        },
+      match: [MockApiClient.matchQuery({query: 'event.type:error'})],
+    });
+    const secondQuery = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/eventsv2/',
+      body: {
+        meta: {title: 'string'},
+        data: [{title: 'ValueError'}],
       },
-      {
-        predicate(_url, options) {
-          return options.query.query === 'title:ValueError';
-        },
-      }
-    );
+      match: [MockApiClient.matchQuery({query: 'title:ValueError'})],
+    });
 
     const widget = {
       title: 'SDK',
       interval: '5m',
       displayType: 'table',
       queries: [
-        {conditions: 'event.type:error', fields: ['sdk.name'], name: 'sdk'},
-        {conditions: 'title:ValueError', fields: ['title'], name: 'title'},
+        {
+          conditions: 'event.type:error',
+          fields: ['sdk.name'],
+          aggregates: [],
+          columns: ['sdk.name'],
+          name: 'sdk',
+        },
+        {
+          conditions: 'title:ValueError',
+          fields: ['title'],
+          aggregates: [],
+          columns: ['sdk.name'],
+          name: 'title',
+        },
       ],
     };
 
@@ -335,7 +350,15 @@ describe('Dashboards > WidgetQueries', function () {
           title: 'SDK',
           interval: '5m',
           displayType: 'big_number',
-          queries: [{conditions: 'event.type:error', fields: ['sdk.name'], name: 'sdk'}],
+          queries: [
+            {
+              conditions: 'event.type:error',
+              fields: ['sdk.name'],
+              aggregates: [],
+              columns: ['sdk.name'],
+              name: 'sdk',
+            },
+          ],
         }}
         organization={initialData.organization}
         selection={selection}
@@ -389,7 +412,15 @@ describe('Dashboards > WidgetQueries', function () {
           title: 'SDK',
           interval: '5m',
           displayType: 'world_map',
-          queries: [{conditions: 'event.type:error', fields: ['count()'], name: 'sdk'}],
+          queries: [
+            {
+              conditions: 'event.type:error',
+              fields: ['count()'],
+              aggregates: [],
+              columns: ['count()'],
+              name: 'sdk',
+            },
+          ],
         }}
         organization={initialData.organization}
         selection={selection}
@@ -427,40 +458,40 @@ describe('Dashboards > WidgetQueries', function () {
   });
 
   it('stops loading state once all queries finish even if some fail', async function () {
-    const firstQuery = MockApiClient.addMockResponse(
-      {
-        statusCode: 500,
-        url: '/organizations/org-slug/eventsv2/',
-        body: {detail: 'it didnt work'},
+    const firstQuery = MockApiClient.addMockResponse({
+      statusCode: 500,
+      url: '/organizations/org-slug/eventsv2/',
+      body: {detail: 'it didnt work'},
+      match: [MockApiClient.matchQuery({query: 'event.type:error'})],
+    });
+    const secondQuery = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/eventsv2/',
+      body: {
+        meta: {title: 'string'},
+        data: [{title: 'ValueError'}],
       },
-      {
-        predicate(_url, options) {
-          return options.query.query === 'event.type:error';
-        },
-      }
-    );
-    const secondQuery = MockApiClient.addMockResponse(
-      {
-        url: '/organizations/org-slug/eventsv2/',
-        body: {
-          meta: {title: 'string'},
-          data: [{title: 'ValueError'}],
-        },
-      },
-      {
-        predicate(_url, options) {
-          return options.query.query === 'title:ValueError';
-        },
-      }
-    );
+      match: [MockApiClient.matchQuery({query: 'title:ValueError'})],
+    });
 
     const widget = {
       title: 'SDK',
       interval: '5m',
       displayType: 'table',
       queries: [
-        {conditions: 'event.type:error', fields: ['sdk.name'], name: 'sdk'},
-        {conditions: 'title:ValueError', fields: ['title'], name: 'title'},
+        {
+          conditions: 'event.type:error',
+          fields: ['sdk.name'],
+          aggregates: [],
+          columns: ['sdk.name'],
+          name: 'sdk',
+        },
+        {
+          conditions: 'title:ValueError',
+          fields: ['sdk.name'],
+          aggregates: [],
+          columns: ['sdk.name'],
+          name: 'title',
+        },
       ],
     };
 
@@ -491,17 +522,11 @@ describe('Dashboards > WidgetQueries', function () {
   });
 
   it('sets bar charts to 1d interval', async function () {
-    const errorMock = MockApiClient.addMockResponse(
-      {
-        url: '/organizations/org-slug/events-stats/',
-        body: [],
-      },
-      {
-        predicate(_url, options) {
-          return options.query.interval === '1d';
-        },
-      }
-    );
+    const errorMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: [],
+      match: [MockApiClient.matchQuery({interval: '1d'})],
+    });
     const barWidget = {
       ...singleQueryWidget,
       displayType: 'bar',
@@ -525,5 +550,259 @@ describe('Dashboards > WidgetQueries', function () {
     // Child should be rendered and 1 requests should be sent.
     expect(wrapper.find('[data-test-id="child"]')).toHaveLength(1);
     expect(errorMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns timeseriesResults in the same order as widgetQuery', async function () {
+    MockApiClient.clearMockResponses();
+    const defaultMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      method: 'GET',
+      body: {
+        data: [
+          [
+            1000,
+            [
+              {
+                count: 100,
+              },
+            ],
+          ],
+        ],
+        start: 1000,
+        end: 2000,
+      },
+      match: [MockApiClient.matchQuery({query: 'event.type:default'})],
+    });
+    const errorMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      method: 'GET',
+      body: {
+        data: [
+          [
+            1000,
+            [
+              {
+                count: 200,
+              },
+            ],
+          ],
+        ],
+        start: 1000,
+        end: 2000,
+      },
+      match: [MockApiClient.matchQuery({query: 'event.type:error'})],
+    });
+    const barWidget = {
+      ...multipleQueryWidget,
+      displayType: 'bar',
+      // Should be ignored for bars.
+      interval: '5m',
+    };
+    const child = jest.fn(() => <div data-test-id="child" />);
+    const wrapper = mountWithTheme(
+      <WidgetQueries
+        api={api}
+        widget={barWidget}
+        organization={initialData.organization}
+        selection={selection}
+      >
+        {child}
+      </WidgetQueries>,
+      initialData.routerContext
+    );
+    await tick();
+    await tick();
+    wrapper.update();
+
+    expect(defaultMock).toHaveBeenCalledTimes(1);
+    expect(errorMock).toHaveBeenCalledTimes(1);
+    expect(child).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        timeseriesResults: [
+          {data: [{name: 1000000, value: 200}], seriesName: 'errors : count()'},
+          {data: [{name: 1000000, value: 100}], seriesName: 'default : count()'},
+        ],
+      })
+    );
+  });
+
+  it('calls events-stats with desired 1d interval when interval buckets would exceed 66 and calculated interval is higher fidelity', async function () {
+    const eventsStatsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: [],
+    });
+    const areaWidget = {
+      ...singleQueryWidget,
+      displayType: 'area',
+      interval: '1d',
+    };
+    const wrapper = mountWithTheme(
+      <WidgetQueries
+        api={api}
+        widget={areaWidget}
+        organization={initialData.organization}
+        selection={{
+          ...selection,
+          datetime: {
+            period: '90d',
+          },
+        }}
+      >
+        {() => <div data-test-id="child" />}
+      </WidgetQueries>,
+      initialData.routerContext
+    );
+    await tick();
+    await tick();
+
+    // Child should be rendered and 1 requests should be sent.
+    expect(wrapper.find('[data-test-id="child"]')).toHaveLength(1);
+    expect(eventsStatsMock).toHaveBeenCalledTimes(1);
+    expect(eventsStatsMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({query: expect.objectContaining({interval: '1d'})})
+    );
+  });
+
+  it('calls events-stats with 4h interval when interval buckets would exceed 66', async function () {
+    const eventsStatsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: [],
+    });
+    const areaWidget = {
+      ...singleQueryWidget,
+      displayType: 'area',
+      interval: '5m',
+    };
+    const wrapper = mountWithTheme(
+      <WidgetQueries
+        api={api}
+        widget={areaWidget}
+        organization={initialData.organization}
+        selection={{
+          ...selection,
+          datetime: {
+            period: '90d',
+          },
+        }}
+      >
+        {() => <div data-test-id="child" />}
+      </WidgetQueries>,
+      initialData.routerContext
+    );
+    await tick();
+    await tick();
+
+    // Child should be rendered and 1 requests should be sent.
+    expect(wrapper.find('[data-test-id="child"]')).toHaveLength(1);
+    expect(eventsStatsMock).toHaveBeenCalledTimes(1);
+    expect(eventsStatsMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({query: expect.objectContaining({interval: '4h'})})
+    );
+  });
+
+  describe('multi-series grouped data', () => {
+    const [START, END] = [1647399900, 1647399901];
+    let mockCountData, mockCountUniqueData, mockRawResultData;
+
+    beforeEach(() => {
+      mockCountData = {
+        start: START,
+        end: END,
+        data: [
+          [START, [{'count()': 0}]],
+          [END, [{'count()': 0}]],
+        ],
+      };
+      mockCountUniqueData = {
+        start: START,
+        end: END,
+        data: [
+          [START, [{'count_unique()': 0}]],
+          [END, [{'count_unique()': 0}]],
+        ],
+      };
+      mockRawResultData = {
+        local: {
+          'count()': mockCountData,
+          'count_unique()': mockCountUniqueData,
+          order: 0,
+        },
+        prod: {
+          'count()': mockCountData,
+          'count_unique()': mockCountUniqueData,
+          order: 1,
+        },
+      };
+    });
+
+    it('combines group name and aggregate names in grouped multi series data', () => {
+      const actual = flattenMultiSeriesDataWithGrouping(mockRawResultData, '');
+      expect(actual).toEqual([
+        [
+          0,
+          expect.objectContaining({
+            seriesName: 'local : count()',
+            data: expect.anything(),
+          }),
+        ],
+        [
+          0,
+          expect.objectContaining({
+            seriesName: 'local : count_unique()',
+            data: expect.anything(),
+          }),
+        ],
+        [
+          1,
+          expect.objectContaining({
+            seriesName: 'prod : count()',
+            data: expect.anything(),
+          }),
+        ],
+        [
+          1,
+          expect.objectContaining({
+            seriesName: 'prod : count_unique()',
+            data: expect.anything(),
+          }),
+        ],
+      ]);
+    });
+
+    it('prefixes with a query alias when provided', () => {
+      const actual = flattenMultiSeriesDataWithGrouping(mockRawResultData, 'Query 1');
+      expect(actual).toEqual([
+        [
+          0,
+          expect.objectContaining({
+            seriesName: 'Query 1 > local : count()',
+            data: expect.anything(),
+          }),
+        ],
+        [
+          0,
+          expect.objectContaining({
+            seriesName: 'Query 1 > local : count_unique()',
+            data: expect.anything(),
+          }),
+        ],
+        [
+          1,
+          expect.objectContaining({
+            seriesName: 'Query 1 > prod : count()',
+            data: expect.anything(),
+          }),
+        ],
+        [
+          1,
+          expect.objectContaining({
+            seriesName: 'Query 1 > prod : count_unique()',
+            data: expect.anything(),
+          }),
+        ],
+      ]);
+    });
   });
 });

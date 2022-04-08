@@ -2,29 +2,29 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps} from 'app/actionCreators/modal';
-import Button from 'app/components/button';
-import Buttonbar from 'app/components/buttonBar';
-import Confirm from 'app/components/confirm';
-import DateTime from 'app/components/dateTime';
-import {getRelativeTimeFromEventDateCreated} from 'app/components/events/contexts/utils';
-import NotAvailable from 'app/components/notAvailable';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {EventAttachment, Organization, Project} from 'app/types';
-import {Event} from 'app/types/event';
-import {defined, formatBytesBase2} from 'app/utils';
-import getDynamicText from 'app/utils/getDynamicText';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import Button from 'sentry/components/button';
+import Buttonbar from 'sentry/components/buttonBar';
+import Confirm from 'sentry/components/confirm';
+import DateTime from 'sentry/components/dateTime';
+import {getRelativeTimeFromEventDateCreated} from 'sentry/components/events/contexts/utils';
+import NotAvailable from 'sentry/components/notAvailable';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {EventAttachment, Organization, Project} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import {defined, formatBytesBase2} from 'sentry/utils';
+import getDynamicText from 'sentry/utils/getDynamicText';
 
 import ImageVisualization from './imageVisualization';
 
 type Props = ModalRenderProps & {
+  downloadUrl: string;
+  event: Event;
   eventAttachment: EventAttachment;
+  onDelete: () => void;
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
-  event: Event;
-  onDelete: () => void;
-  downloadUrl: string;
 };
 
 function Modal({
@@ -55,7 +55,7 @@ function Modal({
                   })}
                 />
                 {getRelativeTimeFromEventDateCreated(
-                  event.dateCreated,
+                  event.dateCreated ? event.dateCreated : event.dateReceived,
                   dateCreated,
                   false
                 )}
@@ -73,7 +73,7 @@ function Modal({
             {defined(size) ? formatBytesBase2(size) : <NotAvailable />}
           </Value>
 
-          <Label>{t('Mimetype')}</Label>
+          <Label>{t('MIME Type')}</Label>
           <Value>{mimetype ?? <NotAvailable />}</Value>
         </GeralInfo>
 

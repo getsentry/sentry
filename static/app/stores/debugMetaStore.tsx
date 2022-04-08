@@ -1,28 +1,37 @@
-import Reflux from 'reflux';
+import {createActions, createStore, StoreDefinition} from 'reflux';
 
-const DebugMetaActions = Reflux.createActions(['updateFilter']);
+import {makeSafeRefluxStore, SafeStoreDefinition} from 'sentry/utils/makeSafeRefluxStore';
+
+const DebugMetaActions = createActions(['updateFilter']);
 
 type State = {
   filter: string | null;
 };
 
-type DebugMetaStoreInterface = {
-  init: () => void;
-  reset: () => void;
-  updateFilter: (word: string) => void;
-  get: () => State;
-};
+interface DebugMetaStoreInterface extends StoreDefinition {
+  get(): State;
+  init(): void;
+  reset(): void;
+  updateFilter(word: string): void;
+}
 
 type Internals = {
   filter: string | null;
 };
 
-const storeConfig: Reflux.StoreDefinition & DebugMetaStoreInterface & Internals = {
+const storeConfig: StoreDefinition &
+  DebugMetaStoreInterface &
+  Internals &
+  SafeStoreDefinition = {
   filter: null,
+  unsubscribeListeners: [],
 
   init() {
     this.reset();
-    this.listenTo(DebugMetaActions.updateFilter, this.updateFilter);
+
+    this.unsubscribeListeners.push(
+      this.listenTo(DebugMetaActions.updateFilter, this.updateFilter)
+    );
   },
 
   reset() {
@@ -42,7 +51,7 @@ const storeConfig: Reflux.StoreDefinition & DebugMetaStoreInterface & Internals 
   },
 };
 
-const DebugMetaStore = Reflux.createStore(storeConfig);
+const DebugMetaStore = createStore(makeSafeRefluxStore(storeConfig));
 
 export {DebugMetaActions, DebugMetaStore};
 export default DebugMetaStore;

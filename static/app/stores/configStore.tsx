@@ -1,19 +1,27 @@
 import moment from 'moment-timezone';
-import Reflux from 'reflux';
+import {createStore} from 'reflux';
 
-import {Config} from 'app/types';
+import {Config} from 'sentry/types';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
-type ConfigStoreInterface = {
+import {CommonStoreDefinition} from './types';
+
+interface InternalConfigStore {
   config: Config;
+}
 
+interface ConfigStoreDefinition
+  extends CommonStoreDefinition<Config>,
+    InternalConfigStore {
   get<K extends keyof Config>(key: K): Config[K];
-  set<K extends keyof Config>(key: K, value: Config[K]): void;
   getConfig(): Config;
-  updateTheme(theme: 'light' | 'dark'): void;
+  init(): void;
   loadInitialData(config: Config): void;
-};
+  set<K extends keyof Config>(key: K, value: Config[K]): void;
+  updateTheme(theme: 'light' | 'dark'): void;
+}
 
-const configStoreConfig: Reflux.StoreDefinition & ConfigStoreInterface = {
+const storeConfig: ConfigStoreDefinition = {
   // When the app is booted we will _immediately_ hydrate the config store,
   // effecively ensureing this is not empty.
   config: {} as Config,
@@ -46,10 +54,6 @@ const configStoreConfig: Reflux.StoreDefinition & ConfigStoreInterface = {
     this.set('theme', theme);
   },
 
-  getConfig() {
-    return this.config;
-  },
-
   loadInitialData(config): void {
     const shouldUseDarkMode = config.user?.options.theme === 'dark';
 
@@ -67,10 +71,14 @@ const configStoreConfig: Reflux.StoreDefinition & ConfigStoreInterface = {
 
     this.trigger(config);
   },
+
+  getConfig() {
+    return this.config;
+  },
+
+  getState() {
+    return this.config;
+  },
 };
 
-type ConfigStore = Reflux.Store & ConfigStoreInterface;
-
-const ConfigStore = Reflux.createStore(configStoreConfig) as ConfigStore;
-
-export default ConfigStore;
+export default createStore(makeSafeRefluxStore(storeConfig));

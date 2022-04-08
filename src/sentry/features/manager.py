@@ -174,7 +174,9 @@ class FeatureManager(RegisteredFeatureManager):
         """
         self._entity_handler = handler
 
-    def has(self, name: str, *args: Any, **kwargs: Any) -> bool:
+    def has(
+        self, name: str, *args: Any, skip_entity: Optional[bool] = False, **kwargs: Any
+    ) -> bool:
         """
         Determine if a feature is enabled. If a handler returns None, then the next
         mechanism is used for feature checking.
@@ -213,7 +215,7 @@ class FeatureManager(RegisteredFeatureManager):
         if rv is not None:
             return rv
 
-        if self._entity_handler:
+        if self._entity_handler and not skip_entity:
             rv = self._entity_handler.has(feature, actor)
             if rv is not None:
                 return rv

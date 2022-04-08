@@ -1,5 +1,7 @@
+import datetime
 import time
 import uuid
+from unittest.mock import Mock
 
 import pytest
 
@@ -18,6 +20,13 @@ def get_normalized_event(data, project):
     mgr = EventManager(data, project=project)
     mgr.normalize()
     return dict(mgr.get_data())
+
+
+@pytest.fixture
+def save_event_transaction(monkeypatch):
+    mock = Mock()
+    monkeypatch.setattr("sentry.ingest.ingest_consumer.save_event_transaction", mock)
+    return mock
 
 
 @pytest.fixture
@@ -58,6 +67,55 @@ def test_deduplication_works(default_project, task_runner, preprocess_event):
         "project": default_project,
         "start_time": start_time,
     }
+
+
+@pytest.mark.django_db
+def test_transactions_spawn_save_event_transaction(
+    default_project,
+    task_runner,
+    preprocess_event,
+    save_event_transaction,
+):
+    project_id = default_project.id
+    now = datetime.datetime.now()
+    event = {
+        "type": "transaction",
+        "timestamp": now.isoformat(),
+        "start_timestamp": now.isoformat(),
+        "spans": [],
+        "contexts": {
+            "trace": {
+                "parent_span_id": "8988cec7cc0779c1",
+                "type": "trace",
+                "op": "foobar",
+                "trace_id": "a7d67cf796774551a95be6543cacd459",
+                "span_id": "babaae0d4b7512d9",
+                "status": "ok",
+            }
+        },
+    }
+    payload = get_normalized_event(event, default_project)
+    event_id = payload["event_id"]
+    start_time = time.time() - 3600
+    process_event(
+        {
+            "payload": json.dumps(payload),
+            "start_time": start_time,
+            "event_id": event_id,
+            "project_id": project_id,
+            "remote_addr": "127.0.0.1",
+        },
+        projects={default_project.id: default_project},
+    )
+    assert not len(preprocess_event)
+    assert save_event_transaction.delay.call_args[0] == ()
+    assert save_event_transaction.delay.call_args[1] == dict(
+        cache_key=f"e:{event_id}:{project_id}",
+        data=None,
+        start_time=start_time,
+        event_id=event_id,
+        project_id=project_id,
+    )
 
 
 @pytest.mark.django_db

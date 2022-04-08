@@ -3,7 +3,7 @@ import * as qs from 'query-string';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {selectByValue} from 'sentry-test/select-new';
 
-import AwsLambdaCloudformation from 'app/views/integrationPipeline/awsLambdaCloudformation';
+import AwsLambdaCloudformation from 'sentry/views/integrationPipeline/awsLambdaCloudformation';
 
 describe('AwsLambdaCloudformation', () => {
   let wrapper;

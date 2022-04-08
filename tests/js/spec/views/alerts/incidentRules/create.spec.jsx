@@ -1,7 +1,7 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render} from 'sentry-test/reactTestingLibrary';
 
-import IncidentRulesCreate from 'app/views/alerts/incidentRules/create';
+import IncidentRulesCreate from 'sentry/views/alerts/incidentRules/create';
 
 describe('Incident Rules Create', function () {
   let eventStatsMock;
@@ -38,25 +38,26 @@ describe('Incident Rules Create', function () {
   });
 
   it('renders', function () {
-    const {organization, project, routerContext} = initializeOrg();
-    mountWithTheme(
+    const {organization, project} = initializeOrg();
+    render(
       <IncidentRulesCreate
         params={{orgId: organization.slug, projectId: project.slug}}
         organization={organization}
         project={project}
-      />,
-      routerContext
+        userTeamIds={[]}
+      />
     );
 
     expect(eventStatsMock).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
         query: {
-          interval: '1m',
+          interval: '60m',
           project: [2],
           query: 'event.type:error',
-          statsPeriod: '1d',
+          statsPeriod: '10000m',
           yAxis: 'count()',
+          referrer: 'api.organization-event-stats',
         },
       })
     );

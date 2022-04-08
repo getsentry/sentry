@@ -1,3 +1,5 @@
+from django.core.exceptions import PermissionDenied
+
 from sentry import http, options
 from sentry.identity.oauth2 import OAuth2Provider
 
@@ -38,7 +40,10 @@ class GitHubIdentityProvider(OAuth2Provider):
 
     def build_identity(self, data):
         data = data["data"]
-        user = get_user_info(data["access_token"])
+        access_token = data.get("access_token")
+        if not access_token:
+            raise PermissionDenied()
+        user = get_user_info(access_token)
 
         return {
             "type": "github",

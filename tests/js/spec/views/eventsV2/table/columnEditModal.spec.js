@@ -2,7 +2,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {changeInputValue, openMenu, selectByLabel} from 'sentry-test/select-new';
 
-import ColumnEditModal from 'app/views/eventsV2/table/columnEditModal';
+import ColumnEditModal from 'sentry/views/eventsV2/table/columnEditModal';
 
 const stubEl = props => <div>{props.children}</div>;
 
@@ -26,7 +26,6 @@ describe('EventsV2 -> ColumnEditModal', function () {
   const initialData = initializeOrg({
     organization: {
       features: ['performance-view'],
-      apdexThreshold: 400,
     },
   });
   const tagKeys = ['browser.name', 'custom-field', 'user'];
@@ -231,7 +230,7 @@ describe('EventsV2 -> ColumnEditModal', function () {
 
       // Parameter select should display and use the default value.
       const field = wrapper.find('QueryField input[name="refinement"]');
-      expect(field.props().value).toBe('400');
+      expect(field.props().value).toBe('300');
 
       // Trigger a blur and make sure the column is not wrong.
       field.simulate('blur');
@@ -239,7 +238,7 @@ describe('EventsV2 -> ColumnEditModal', function () {
       // Apply the changes so we can see the new columns.
       wrapper.find('Button[priority="primary"]').simulate('click');
       expect(onApply).toHaveBeenCalledWith([
-        {kind: 'function', function: ['apdex', '400', undefined, undefined]},
+        {kind: 'function', function: ['apdex', '300', undefined, undefined]},
       ]);
     });
 
@@ -248,7 +247,7 @@ describe('EventsV2 -> ColumnEditModal', function () {
 
       // Parameter select should display and use the default value.
       const field = wrapper.find('QueryField input[name="refinement"]');
-      expect(field.props().value).toBe('400');
+      expect(field.props().value).toBe('300');
       expect(field.prop('placeholder')).toBe(undefined);
 
       // Trigger a blur and make sure the column is not wrong.
@@ -263,7 +262,7 @@ describe('EventsV2 -> ColumnEditModal', function () {
       // Apply the changes so we can see the new columns.
       wrapper.find('Button[priority="primary"]').simulate('click');
       expect(onApply).toHaveBeenCalledWith([
-        {kind: 'function', function: ['apdex', '400', undefined, undefined]},
+        {kind: 'function', function: ['apdex', '300', undefined, undefined]},
       ]);
     });
 
@@ -292,7 +291,7 @@ describe('EventsV2 -> ColumnEditModal', function () {
       // Apply the changes so we can see the new columns.
       wrapper.find('Button[priority="primary"]').simulate('click');
       expect(onApply).toHaveBeenCalledWith([
-        {kind: 'function', function: ['count_miserable', 'user', '400', undefined]},
+        {kind: 'function', function: ['count_miserable', 'user', '300', undefined]},
       ]);
     });
 
@@ -356,6 +355,45 @@ describe('EventsV2 -> ColumnEditModal', function () {
       expect(newWrapper.find('QueryField ArithmeticError').prop('title')).toBe(
         'Maximum operators exceeded'
       );
+    });
+
+    it('resets required field to previous value if cleared', function () {
+      const initialColumnVal = '0.6';
+      const newWrapper = mountModal(
+        {
+          columns: [
+            {
+              kind: 'function',
+              function: [
+                'percentile',
+                'transaction.duration',
+                initialColumnVal,
+                undefined,
+              ],
+            },
+          ],
+          onApply,
+          tagKeys,
+        },
+        initialData
+      );
+
+      const field = newWrapper.find('QueryField input[name="refinement"]');
+      changeInputValue(field, '');
+      newWrapper.update();
+      field.simulate('blur');
+
+      expect(newWrapper.find('QueryField input[name="refinement"]').prop('value')).toBe(
+        initialColumnVal
+      );
+
+      newWrapper.find('Button[priority="primary"]').simulate('click');
+      expect(onApply).toHaveBeenCalledWith([
+        {
+          kind: 'function',
+          function: ['percentile', 'transaction.duration', initialColumnVal, undefined],
+        },
+      ]);
     });
   });
 
@@ -500,7 +538,7 @@ describe('EventsV2 -> ColumnEditModal', function () {
       // Apply the changes so we can see the new columns.
       newWrapper.find('Button[priority="primary"]').simulate('click');
       expect(onApply).toHaveBeenCalledWith([
-        {kind: 'function', function: ['count_unique', '', undefined, undefined]},
+        {kind: 'function', function: ['count_unique', 'user', undefined, undefined]},
         {kind: 'function', function: ['count', '', undefined, undefined]},
         {kind: 'equation', field: 'count() - count()'},
       ]);
@@ -534,8 +572,11 @@ describe('EventsV2 -> ColumnEditModal', function () {
       newWrapper.find('Button[priority="primary"]').simulate('click');
       // With the way the parser works only tokens up to the error will be updated
       expect(onApply).toHaveBeenCalledWith([
-        {kind: 'function', function: ['count_unique', '', undefined, undefined]},
-        {kind: 'equation', field: 'count_unique() - count_unique() arst count() '},
+        {kind: 'function', function: ['count_unique', 'user', undefined, undefined]},
+        {
+          kind: 'equation',
+          field: 'count_unique(user) - count_unique(user) arst count() ',
+        },
       ]);
     });
   });

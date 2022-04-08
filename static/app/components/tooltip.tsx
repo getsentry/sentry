@@ -1,40 +1,69 @@
-import * as React from 'react';
-import ReactDOM from 'react-dom';
+import {
+  cloneElement,
+  Fragment,
+  isValidElement,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import {createPortal} from 'react-dom';
 import {Manager, Popper, PopperArrowProps, PopperProps, Reference} from 'react-popper';
 import {SerializedStyles} from '@emotion/react';
 import styled from '@emotion/styled';
-import {AnimatePresence, motion, MotionStyle} from 'framer-motion';
-import memoize from 'lodash/memoize';
+import {AnimatePresence, motion, MotionProps, MotionStyle} from 'framer-motion';
 import * as PopperJS from 'popper.js';
 
-import {IS_ACCEPTANCE_TEST} from 'app/constants';
-import {domId} from 'app/utils/domId';
-import testableTransition from 'app/utils/testableTransition';
+import {IS_ACCEPTANCE_TEST} from 'sentry/constants/index';
+import space from 'sentry/styles/space';
+import domId from 'sentry/utils/domId';
+import testableTransition from 'sentry/utils/testableTransition';
+
+import {AcceptanceTestTooltip} from './acceptanceTestTooltip';
 
 export const OPEN_DELAY = 50;
+
+const TOOLTIP_ANIMATION: MotionProps = {
+  transition: {duration: 0.2},
+  initial: {opacity: 0},
+  animate: {
+    opacity: 1,
+    scale: 1,
+    transition: testableTransition({
+      type: 'linear',
+      ease: [0.5, 1, 0.89, 1],
+      duration: 0.2,
+    }),
+  },
+  exit: {
+    opacity: 0,
+    scale: 0.95,
+    transition: testableTransition({type: 'spring', delay: 0.1}),
+  },
+};
 
 /**
  * How long to wait before closing the tooltip when isHoverable is set
  */
 const CLOSE_DELAY = 50;
-
-type DefaultProps = {
+export interface InternalTooltipProps {
+  children: React.ReactNode;
   /**
-   * Position for the tooltip.
+   * The content to show in the tooltip popover
    */
-  position?: PopperJS.Placement;
+  title: React.ReactNode;
+
+  className?: string;
 
   /**
    * Display mode for the container element
    */
   containerDisplayMode?: React.CSSProperties['display'];
-};
 
-type Props = DefaultProps & {
   /**
-   * The node to attach the Tooltip to
+   * Time to wait (in milliseconds) before showing the tooltip
    */
-  children: React.ReactNode;
+  delay?: number;
 
   /**
    * Disable the tooltip display entirely
@@ -42,19 +71,9 @@ type Props = DefaultProps & {
   disabled?: boolean;
 
   /**
-   * The content to show in the tooltip popover
+   * Force the tooltip to be visible without hovering
    */
-  title: React.ReactNode;
-
-  /**
-   * Additional style rules for the tooltip content.
-   */
-  popperStyle?: React.CSSProperties | SerializedStyles;
-
-  /**
-   * Time to wait (in milliseconds) before showing the tooltip
-   */
-  delay?: number;
+  forceVisible?: boolean;
 
   /**
    * If true, user is able to hover tooltip without it disappearing.
@@ -63,28 +82,25 @@ type Props = DefaultProps & {
   isHoverable?: boolean;
 
   /**
+   * Additional style rules for the tooltip content.
+   */
+  popperStyle?: React.CSSProperties | SerializedStyles;
+
+  /**
+   * Position for the tooltip.
+   */
+  position?: PopperJS.Placement;
+
+  /**
+   * Only display the tooltip only if the content overflows
+   */
+  showOnlyOnOverflow?: boolean;
+
+  /**
    * If child node supports ref forwarding, you can skip apply a wrapper
    */
   skipWrapper?: boolean;
-
-  /**
-   * Stops tooltip from being opened during tooltip visual acceptance.
-   * Should be set to true if tooltip contains unisolated data (eg. dates)
-   */
-  disableForVisualTest?: boolean;
-
-  /**
-   * Force the tooltip to be visible without hovering
-   */
-  forceShow?: boolean;
-
-  className?: string;
-};
-
-type State = {
-  isOpen: boolean;
-  usesGlobalPortal: boolean;
-};
+}
 
 /**
  * Used to compute the transform origin to give the scale-down micro-animation
@@ -109,137 +125,77 @@ function computeOriginFromArrow(
   }
 }
 
-class Tooltip extends React.Component<Props, State> {
-  static defaultProps: DefaultProps = {
-    position: 'top',
-    containerDisplayMode: 'inline-block',
-  };
+function isOverflown(el: Element): boolean {
+  return el.scrollWidth > el.clientWidth || Array.from(el.children).some(isOverflown);
+}
 
-  state: State = {
-    isOpen: false,
-    usesGlobalPortal: true,
-  };
+// Warning: This component is conditionally exported end-of-file based on IS_ACCEPTANCE_TEST env variable
+export function DO_NOT_USE_TOOLTIP({
+  children,
+  className,
+  delay,
+  forceVisible,
+  isHoverable,
+  popperStyle,
+  showOnlyOnOverflow,
+  skipWrapper,
+  title,
+  disabled = false,
+  position = 'top',
+  containerDisplayMode = 'inline-block',
+}: InternalTooltipProps) {
+  const [visible, setVisible] = useState(false);
+  const tooltipId = useMemo(() => domId('tooltip-'), []);
 
-  async componentDidMount() {
-    if (IS_ACCEPTANCE_TEST) {
-      const TooltipStore = (await import('app/stores/tooltipStore')).default;
-      TooltipStore.addTooltip(this);
-    }
-  }
+  // Delayed open and close time handles
+  const delayOpenTimeoutRef = useRef<number | undefined>(undefined);
+  const delayHideTimeoutRef = useRef<number | undefined>(undefined);
 
-  async componentWillUnmount() {
-    const {usesGlobalPortal} = this.state;
+  // When the component is unmounted, make sure to stop the timeouts
+  useEffect(() => {
+    return () => {
+      window.clearTimeout(delayOpenTimeoutRef.current);
+      window.clearTimeout(delayHideTimeoutRef.current);
+    };
+  }, []);
 
-    if (IS_ACCEPTANCE_TEST) {
-      const TooltipStore = (await import('app/stores/tooltipStore')).default;
-      TooltipStore.removeTooltip(this);
-    }
-    if (!usesGlobalPortal) {
-      document.body.removeChild(this.getPortal(usesGlobalPortal));
-    }
-  }
-
-  tooltipId: string = domId('tooltip-');
-  delayTimeout: number | null = null;
-  delayHideTimeout: number | null = null;
-
-  getPortal = memoize((usesGlobalPortal): HTMLElement => {
-    if (usesGlobalPortal) {
-      let portal = document.getElementById('tooltip-portal');
-      if (!portal) {
-        portal = document.createElement('div');
-        portal.setAttribute('id', 'tooltip-portal');
-        document.body.appendChild(portal);
-      }
-      return portal;
-    }
-    const portal = document.createElement('div');
-    document.body.appendChild(portal);
-    return portal;
-  });
-
-  setOpen = () => {
-    this.setState({isOpen: true});
-  };
-
-  setClose = () => {
-    this.setState({isOpen: false});
-  };
-
-  handleOpen = () => {
-    const {delay} = this.props;
-
-    if (this.delayHideTimeout) {
-      window.clearTimeout(this.delayHideTimeout);
-      this.delayHideTimeout = null;
-    }
-
-    if (delay === 0) {
-      this.setOpen();
+  function handleMouseEnter() {
+    if (triggerRef.current && showOnlyOnOverflow && !isOverflown(triggerRef.current)) {
       return;
     }
 
-    this.delayTimeout = window.setTimeout(this.setOpen, delay ?? OPEN_DELAY);
-  };
+    window.clearTimeout(delayHideTimeoutRef.current);
+    window.clearTimeout(delayOpenTimeoutRef.current);
 
-  handleClose = () => {
-    const {isHoverable} = this.props;
-
-    if (this.delayTimeout) {
-      window.clearTimeout(this.delayTimeout);
-      this.delayTimeout = null;
+    if (delay === 0) {
+      setVisible(true);
+      return;
     }
 
-    if (isHoverable) {
-      this.delayHideTimeout = window.setTimeout(this.setClose, CLOSE_DELAY);
-    } else {
-      this.setClose();
-    }
-  };
-
-  renderTrigger(children: React.ReactNode, ref: React.Ref<HTMLElement>) {
-    const propList: {[key: string]: any} = {
-      'aria-describedby': this.tooltipId,
-      onFocus: this.handleOpen,
-      onBlur: this.handleClose,
-      onMouseEnter: this.handleOpen,
-      onMouseLeave: this.handleClose,
-    };
-
-    // Use the `type` property of the react instance to detect whether we
-    // have a basic element (type=string) or a class/function component (type=function or object)
-    // Because we can't rely on the child element implementing forwardRefs we wrap
-    // it with a span tag so that popper has ref
-
-    if (
-      React.isValidElement(children) &&
-      (this.props.skipWrapper || typeof children.type === 'string')
-    ) {
-      // Basic DOM nodes can be cloned and have more props applied.
-      return React.cloneElement(children, {
-        ...propList,
-        ref,
-      });
-    }
-
-    propList.containerDisplayMode = this.props.containerDisplayMode;
-    return (
-      <Container {...propList} className={this.props.className} ref={ref}>
-        {children}
-      </Container>
+    delayOpenTimeoutRef.current = window.setTimeout(
+      () => setVisible(true),
+      delay ?? OPEN_DELAY
     );
   }
 
-  render() {
-    const {disabled, forceShow, children, title, position, popperStyle, isHoverable} =
-      this.props;
-    const {isOpen, usesGlobalPortal} = this.state;
+  function handleMouseLeave() {
+    window.clearTimeout(delayOpenTimeoutRef.current);
+    window.clearTimeout(delayHideTimeoutRef.current);
 
-    if (disabled) {
-      return children;
+    if (isHoverable) {
+      delayHideTimeoutRef.current = window.setTimeout(
+        () => setVisible(false),
+        CLOSE_DELAY
+      );
+    } else {
+      setVisible(false);
     }
+  }
 
-    const modifiers: PopperJS.Modifiers = {
+  // Tracks the triggering element
+  const triggerRef = useRef<HTMLElement | null>(null);
+  const modifiers: PopperJS.Modifiers = useMemo(() => {
+    return {
       hide: {enabled: false},
       preventOverflow: {
         padding: 10,
@@ -250,64 +206,89 @@ class Tooltip extends React.Component<Props, State> {
         gpuAcceleration: true,
       },
     };
+  }, []);
 
-    const visible = forceShow || isOpen;
+  function renderTrigger(triggerChildren: React.ReactNode, ref: React.Ref<HTMLElement>) {
+    const containerProps: Partial<React.ComponentProps<typeof Container>> = {
+      'aria-describedby': tooltipId,
+      onFocus: handleMouseEnter,
+      onBlur: handleMouseLeave,
+      onPointerEnter: handleMouseEnter,
+      onPointerLeave: handleMouseLeave,
+    };
 
-    const tip = visible ? (
-      <Popper placement={position} modifiers={modifiers}>
-        {({ref, style, placement, arrowProps}) => (
-          <PositionWrapper style={style}>
-            <TooltipContent
-              id={this.tooltipId}
-              initial={{opacity: 0}}
-              animate={{
-                opacity: 1,
-                scale: 1,
-                transition: testableTransition({
-                  type: 'linear',
-                  ease: [0.5, 1, 0.89, 1],
-                  duration: 0.2,
-                }),
-              }}
-              exit={{
-                opacity: 0,
-                scale: 0.95,
-                transition: testableTransition({type: 'spring', delay: 0.1}),
-              }}
-              style={computeOriginFromArrow(position, arrowProps)}
-              transition={{duration: 0.2}}
-              className="tooltip-content"
-              aria-hidden={!visible}
-              ref={ref}
-              hide={!title}
-              data-placement={placement}
-              popperStyle={popperStyle}
-              onMouseEnter={() => isHoverable && this.handleOpen()}
-              onMouseLeave={() => isHoverable && this.handleClose()}
-            >
-              {title}
-              <TooltipArrow
-                ref={arrowProps.ref}
-                data-placement={placement}
-                style={arrowProps.style}
-                background={(popperStyle as React.CSSProperties)?.background || '#000'}
-              />
-            </TooltipContent>
-          </PositionWrapper>
-        )}
-      </Popper>
-    ) : null;
+    const setRef = (el: HTMLElement) => {
+      if (typeof ref === 'function') {
+        ref(el);
+      }
+      triggerRef.current = el;
+    };
+
+    // Use the `type` property of the react instance to detect whether we have
+    // a basic element (type=string) or a class/function component
+    // (type=function or object). Because we can't rely on the child element
+    // implementing forwardRefs we wrap it with a span tag for the ref
+
+    if (
+      isValidElement(triggerChildren) &&
+      (skipWrapper || typeof triggerChildren.type === 'string')
+    ) {
+      // Basic DOM nodes can be cloned and have more props applied.
+      return cloneElement(triggerChildren, {...containerProps, ref: setRef});
+    }
+
+    containerProps.containerDisplayMode = containerDisplayMode;
 
     return (
-      <Manager>
-        <Reference>{({ref}) => this.renderTrigger(children, ref)}</Reference>
-        {ReactDOM.createPortal(
-          <AnimatePresence>{tip}</AnimatePresence>,
-          this.getPortal(usesGlobalPortal)
-        )}
-      </Manager>
+      <Container {...containerProps} className={className} ref={setRef}>
+        {triggerChildren}
+      </Container>
     );
   }
+
+  if (disabled || !title) {
+    return <Fragment>{children}</Fragment>;
+  }
+
+  // The tooltip visibility state can be controlled through the forceVisible prop
+  const isVisible = forceVisible || visible;
+
+  return (
+    <Manager>
+      <Reference>{({ref}) => renderTrigger(children, ref)}</Reference>
+      {createPortal(
+        <AnimatePresence>
+          {isVisible ? (
+            <Popper placement={position} modifiers={modifiers}>
+              {({ref, style, placement, arrowProps}) => (
+                <PositionWrapper style={style}>
+                  <TooltipContent
+                    ref={ref}
+                    id={tooltipId}
+                    data-placement={placement}
+                    style={computeOriginFromArrow(position, arrowProps)}
+                    className="tooltip-content"
+                    popperStyle={popperStyle}
+                    onMouseEnter={() => isHoverable && handleMouseEnter()}
+                    onMouseLeave={() => isHoverable && handleMouseLeave()}
+                    {...TOOLTIP_ANIMATION}
+                  >
+                    {title}
+                    <TooltipArrow
+                      ref={arrowProps.ref}
+                      data-placement={placement}
+                      style={arrowProps.style}
+                    />
+                  </TooltipContent>
+                </PositionWrapper>
+              )}
+            </Popper>
+          ) : null}
+        </AnimatePresence>,
+        document.body
+      )}
+    </Manager>
+  );
 }
 
 // Using an inline-block solves the container being smaller
@@ -323,78 +304,112 @@ const PositionWrapper = styled('div')`
   z-index: ${p => p.theme.zIndex.tooltip};
 `;
 
-const TooltipContent = styled(motion.div)<{hide: boolean} & Pick<Props, 'popperStyle'>>`
+const TooltipContent = styled(motion.div)<{
+  popperStyle: InternalTooltipProps['popperStyle'];
+}>`
   will-change: transform, opacity;
   position: relative;
-  color: ${p => p.theme.white};
-  background: #000;
-  opacity: 0.9;
-  padding: 5px 10px;
+  background: ${p => p.theme.backgroundElevated};
+  padding: ${space(1)} ${space(1.5)};
   border-radius: ${p => p.theme.borderRadius};
+  box-shadow: 0 0 0 1px ${p => p.theme.translucentBorder}, ${p => p.theme.dropShadowHeavy};
   overflow-wrap: break-word;
   max-width: 225px;
 
-  font-weight: bold;
+  color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSizeSmall};
-  line-height: 1.4;
+  line-height: 1.2;
 
   margin: 6px;
   text-align: center;
   ${p => p.popperStyle as any};
-  ${p => p.hide && `display: none`};
 `;
 
-const TooltipArrow = styled('span')<{background: string | number}>`
+const TooltipArrow = styled('span')`
   position: absolute;
-  width: 10px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
+  border: solid 6px transparent;
+  pointer-events: none;
+
+  &::before {
+    content: '';
+    display: block;
+    position: absolute;
+    width: 0;
+    height: 0;
+    border: solid 6px transparent;
+    z-index: -1;
+  }
 
   &[data-placement*='bottom'] {
     top: 0;
-    left: 0;
-    margin-top: -5px;
+    margin-top: -12px;
+    border-bottom-color: ${p => p.theme.backgroundElevated};
     &::before {
-      border-width: 0 5px 5px 5px;
-      border-color: transparent transparent ${p => p.background} transparent;
+      bottom: -5px;
+      left: -6px;
+      border-bottom-color: ${p => p.theme.translucentBorder};
     }
   }
 
   &[data-placement*='top'] {
     bottom: 0;
-    left: 0;
-    margin-bottom: -5px;
+    margin-bottom: -12px;
+    border-top-color: ${p => p.theme.backgroundElevated};
     &::before {
-      border-width: 5px 5px 0 5px;
-      border-color: ${p => p.background} transparent transparent transparent;
+      top: -5px;
+      left: -6px;
+      border-top-color: ${p => p.theme.translucentBorder};
     }
   }
 
   &[data-placement*='right'] {
     left: 0;
-    margin-left: -5px;
+    margin-left: -12px;
+    border-right-color: ${p => p.theme.backgroundElevated};
     &::before {
-      border-width: 5px 5px 5px 0;
-      border-color: transparent ${p => p.background} transparent transparent;
+      top: -6px;
+      right: -5px;
+      border-right-color: ${p => p.theme.translucentBorder};
     }
   }
 
   &[data-placement*='left'] {
     right: 0;
-    margin-right: -5px;
+    margin-right: -12px;
+    border-left-color: ${p => p.theme.backgroundElevated};
     &::before {
-      border-width: 5px 0 5px 5px;
-      border-color: transparent transparent transparent ${p => p.background};
+      top: -6px;
+      left: -5px;
+      border-left-color: ${p => p.theme.translucentBorder};
     }
   }
-
-  &::before {
-    content: '';
-    margin: auto;
-    display: block;
-    width: 0;
-    height: 0;
-    border-style: solid;
-  }
 `;
+
+interface TooltipProps extends InternalTooltipProps {
+  /**
+   * Stops tooltip from being opened during tooltip visual acceptance.
+   * Should be set to true if tooltip contains unisolated data (eg. dates)
+   */
+  disableForVisualTest?: boolean;
+}
+
+/**
+ * Tooltip will enhance the internal tooltip with the open/close
+ * functionality used in src/sentry/utils/pytest/selenium.py so that tooltips
+ * can be opened and closed for specific snapshots.
+ */
+function Tooltip({disableForVisualTest, ...props}: TooltipProps) {
+  if (IS_ACCEPTANCE_TEST) {
+    return disableForVisualTest ? (
+      <Fragment>{props.children}</Fragment>
+    ) : (
+      <AcceptanceTestTooltip {...props} />
+    );
+  }
+
+  return <DO_NOT_USE_TOOLTIP {...props} />;
+}
 
 export default Tooltip;

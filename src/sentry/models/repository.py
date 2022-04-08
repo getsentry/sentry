@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from django.db import models
 from django.db.models.signals import pre_delete
 from django.utils import timezone
@@ -6,7 +8,6 @@ from sentry.constants import ObjectStatus
 from sentry.db.mixin import PendingDeletionMixin, delete_pending_deletion_option
 from sentry.db.models import BoundedPositiveIntegerField, JSONField, Model, sane_repr
 from sentry.signals import pending_delete
-from sentry.utils import metrics
 
 
 class Repository(Model, PendingDeletionMixin):
@@ -65,27 +66,34 @@ class Repository(Model, PendingDeletionMixin):
             html_template="sentry/emails/unable-to-delete-repo.html",
         )
 
-    def rename_on_pending_deletion(self, fields=None):
+    def rename_on_pending_deletion(
+        self,
+        fields: set[str] | None = None,
+        extra_fields_to_save: list[str] | None = None,
+    ) -> None:
         # Due to the fact that Repository is shown to the user
         # as it is pending deletion, this is added to display the fields
         # correctly to the user.
         self.config["pending_deletion_name"] = self.name
         super().rename_on_pending_deletion(fields, ["config"])
 
-    def reset_pending_deletion_field_names(self):
+    def reset_pending_deletion_field_names(
+        self,
+        extra_fields_to_save: list[str] | None = None,
+    ) -> bool:
         del self.config["pending_deletion_name"]
-        super().reset_pending_deletion_field_names(["config"])
+        return super().reset_pending_deletion_field_names(["config"])
 
 
 def on_delete(instance, actor=None, **kwargs):
-    # TODO(mark) Remove this metric and code path once it is proven to have no callers.
-    metrics.incr("repository.on_delete", sample_rate=1.0)
-
+    """
+    Remove webhooks for repository providers that use repository level webhooks.
+    This is called from sentry.tasks.deletion.run_deletion()
+    """
     # If there is no provider, we don't have any webhooks, etc to delete
     if not instance.provider:
         return
 
-    # TODO(lb): I'm assuming that this is used by integrations... is it?
     def handle_exception(e):
         from sentry.exceptions import InvalidIdentity, PluginError
         from sentry.shared_integrations.exceptions import IntegrationError

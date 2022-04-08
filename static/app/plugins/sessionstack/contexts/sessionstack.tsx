@@ -1,5 +1,5 @@
 import {Component} from 'react';
-import ReactDOM from 'react-dom';
+import {findDOMNode} from 'react-dom';
 
 const ASPECT_RATIO = 16 / 9;
 
@@ -11,8 +11,8 @@ type Props = {
 
 type State = {
   showIframe: boolean;
-  width?: number;
   height?: number;
+  width?: number;
 };
 
 class SessionStackContextType extends Component<Props, State> {
@@ -22,7 +22,7 @@ class SessionStackContextType extends Component<Props, State> {
 
   componentDidMount() {
     // eslint-disable-next-line react/no-find-dom-node
-    const domNode = ReactDOM.findDOMNode(this) as HTMLElement;
+    const domNode = findDOMNode(this) as HTMLElement;
     this.parentNode = domNode.parentNode as HTMLElement;
     window.addEventListener('resize', () => this.setIframeSize(), false);
     this.setIframeSize();

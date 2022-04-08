@@ -1,11 +1,10 @@
 from django.views.decorators.csrf import csrf_exempt
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.constants import ObjectStatus
-from sentry.integrations.atlassian_connect import (
-    AtlassianConnectValidationError,
-    get_integration_from_jwt,
-)
+from sentry.integrations.utils import AtlassianConnectValidationError, get_integration_from_jwt
 from sentry.models import Repository
 
 
@@ -14,10 +13,10 @@ class BitbucketUninstalledEndpoint(Endpoint):
     permission_classes = ()
 
     @csrf_exempt
-    def dispatch(self, request, *args, **kwargs):
+    def dispatch(self, request: Request, *args, **kwargs) -> Response:
         return super().dispatch(request, *args, **kwargs)
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args, **kwargs) -> Response:
         try:
             token = request.META["HTTP_AUTHORIZATION"].split(" ", 1)[1]
         except (KeyError, IndexError):

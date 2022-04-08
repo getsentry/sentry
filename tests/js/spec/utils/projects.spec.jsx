@@ -1,55 +1,36 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import ProjectActions from 'app/actions/projectActions';
-import ProjectsStore from 'app/stores/projectsStore';
-import Projects from 'app/utils/projects';
+import ProjectActions from 'sentry/actions/projectActions';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import Projects from 'sentry/utils/projects';
 
 describe('utils.projects', function () {
   const renderer = jest.fn(() => null);
 
   const createWrapper = props =>
-    mountWithTheme(<Projects orgId="org-slug" children={renderer} {...props} />); // eslint-disable-line
+    render(<Projects orgId="org-slug" children={renderer} {...props} />); // eslint-disable-line
 
   beforeEach(function () {
     renderer.mockClear();
     MockApiClient.clearMockResponses();
-    ProjectsStore.loadInitialData([
-      TestStubs.Project({id: '1', slug: 'foo'}),
-      TestStubs.Project({id: '2', slug: 'bar'}),
-    ]);
+    act(() =>
+      ProjectsStore.loadInitialData([
+        TestStubs.Project({id: '1', slug: 'foo'}),
+        TestStubs.Project({id: '2', slug: 'bar'}),
+      ])
+    );
   });
 
   afterEach(async function () {
-    ProjectsStore.loadInitialData([]);
+    act(() => ProjectsStore.loadInitialData([]));
     await tick();
   });
 
   describe('with predefined list of slugs', function () {
-    it('gets projects that are in the ProjectsStore ', async function () {
-      const wrapper = createWrapper({slugs: ['foo', 'bar']});
+    it('gets projects that are in the ProjectsStore', async function () {
+      createWrapper({slugs: ['foo', 'bar']});
 
       // This is initial state
-      expect(renderer).toHaveBeenCalledWith(
-        expect.objectContaining({
-          fetching: false,
-          isIncomplete: null,
-          hasMore: null,
-          projects: [
-            expect.objectContaining({
-              id: '1',
-              slug: 'foo',
-            }),
-            expect.objectContaining({
-              id: '2',
-              slug: 'bar',
-            }),
-          ],
-        })
-      );
-
-      await tick();
-      wrapper.update();
-
       expect(renderer).toHaveBeenCalledWith(
         expect.objectContaining({
           fetching: false,
@@ -87,7 +68,7 @@ describe('utils.projects', function () {
         ],
       });
 
-      const wrapper = createWrapper({slugs: ['foo', 'a', 'b']});
+      createWrapper({slugs: ['foo', 'a', 'b']});
 
       // This is initial state
       expect(renderer).toHaveBeenCalledWith(
@@ -106,17 +87,16 @@ describe('utils.projects', function () {
         })
       );
 
-      await tick();
-      wrapper.update();
-
-      expect(request).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          query: {
-            query: 'slug:a slug:b',
-            collapse: ['latestDeploys'],
-          },
-        })
+      await waitFor(() =>
+        expect(request).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            query: {
+              query: 'slug:a slug:b',
+              collapse: ['latestDeploys'],
+            },
+          })
+        )
       );
 
       expect(renderer).toHaveBeenCalledWith(
@@ -153,7 +133,7 @@ describe('utils.projects', function () {
         ],
       });
 
-      const wrapper = createWrapper({slugs: ['foo', 'a', 'b']});
+      createWrapper({slugs: ['foo', 'a', 'b']});
 
       // This is initial state
       expect(renderer).toHaveBeenCalledWith(
@@ -172,17 +152,16 @@ describe('utils.projects', function () {
         })
       );
 
-      await tick();
-      wrapper.update();
-
-      expect(request).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          query: {
-            query: 'slug:a slug:b',
-            collapse: ['latestDeploys'],
-          },
-        })
+      await waitFor(() =>
+        expect(request).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            query: {
+              query: 'slug:a slug:b',
+              collapse: ['latestDeploys'],
+            },
+          })
+        )
       );
 
       expect(renderer).toHaveBeenCalledWith(
@@ -204,6 +183,54 @@ describe('utils.projects', function () {
             }),
           ],
         })
+      );
+    });
+
+    it('responds to updated projects from the project store', async function () {
+      createWrapper({slugs: ['foo', 'bar']});
+
+      await waitFor(() =>
+        expect(renderer).toHaveBeenCalledWith(
+          expect.objectContaining({
+            fetching: false,
+            isIncomplete: null,
+            hasMore: null,
+            projects: [
+              expect.objectContaining({
+                id: '1',
+                slug: 'foo',
+              }),
+              expect.objectContaining({
+                id: '2',
+                slug: 'bar',
+              }),
+            ],
+          })
+        )
+      );
+
+      const newTeam = TestStubs.Team();
+      act(() => ProjectActions.addTeamSuccess(newTeam, 'foo'));
+
+      await waitFor(() =>
+        expect(renderer).toHaveBeenCalledWith(
+          expect.objectContaining({
+            fetching: false,
+            isIncomplete: null,
+            hasMore: null,
+            projects: [
+              expect.objectContaining({
+                id: '1',
+                slug: 'foo',
+                teams: [newTeam],
+              }),
+              expect.objectContaining({
+                id: '2',
+                slug: 'bar',
+              }),
+            ],
+          })
+        )
       );
     });
   });
@@ -230,12 +257,12 @@ describe('utils.projects', function () {
             '<http://127.0.0.1:8000/api/0/organizations/org-slug/projects/?cursor=1443575731:0:0>; rel="next"; results="true"; cursor="1443575731:0:0',
         },
       });
-      ProjectsStore.loadInitialData([]);
+      act(() => ProjectsStore.loadInitialData([]));
       await tick();
     });
 
     it('fetches projects from API', async function () {
-      const wrapper = createWrapper();
+      createWrapper();
 
       // This is initial state
       expect(renderer).toHaveBeenCalledWith(
@@ -247,16 +274,15 @@ describe('utils.projects', function () {
         })
       );
 
-      await tick();
-      wrapper.update();
-
-      expect(request).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          query: {
-            collapse: ['latestDeploys'],
-          },
-        })
+      await waitFor(() =>
+        expect(request).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            query: {
+              collapse: ['latestDeploys'],
+            },
+          })
+        )
       );
 
       expect(renderer).toHaveBeenCalledWith(
@@ -283,7 +309,7 @@ describe('utils.projects', function () {
         <input onChange={({target}) => onSearch(target.value)} />
       ));
 
-      const wrapper = createWrapper({children: myRenderer});
+      createWrapper({children: myRenderer});
 
       // This is initial state
       expect(myRenderer).toHaveBeenCalledWith(
@@ -295,9 +321,6 @@ describe('utils.projects', function () {
         })
       );
 
-      await tick();
-      wrapper.update();
-
       request.mockClear();
       request = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
@@ -313,7 +336,8 @@ describe('utils.projects', function () {
         ],
       });
 
-      wrapper.find('input').simulate('change', {target: {value: 'test'}});
+      userEvent.type(screen.getByRole('textbox'), 'test');
+
       expect(request).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
@@ -324,25 +348,24 @@ describe('utils.projects', function () {
         })
       );
 
-      await tick();
-      wrapper.update();
-
-      expect(myRenderer).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          fetching: false,
-          isIncomplete: null,
-          hasMore: false,
-          projects: [
-            expect.objectContaining({
-              id: '102',
-              slug: 'test1',
-            }),
-            expect.objectContaining({
-              id: '103',
-              slug: 'test2',
-            }),
-          ],
-        })
+      await waitFor(() =>
+        expect(myRenderer).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            fetching: false,
+            isIncomplete: null,
+            hasMore: false,
+            projects: [
+              expect.objectContaining({
+                id: '102',
+                slug: 'test1',
+              }),
+              expect.objectContaining({
+                id: '103',
+                slug: 'test2',
+              }),
+            ],
+          })
+        )
       );
     });
 
@@ -351,10 +374,7 @@ describe('utils.projects', function () {
         <input onChange={({target}) => onSearch(target.value, {append: true})} />
       ));
 
-      const wrapper = createWrapper({children: myRenderer});
-
-      await tick();
-      wrapper.update();
+      createWrapper({children: myRenderer});
 
       request.mockClear();
       request = MockApiClient.addMockResponse({
@@ -371,7 +391,8 @@ describe('utils.projects', function () {
         ],
       });
 
-      wrapper.find('input').simulate('change', {target: {value: 'test'}});
+      userEvent.type(screen.getByRole('textbox'), 'test');
+
       expect(request).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
@@ -382,62 +403,60 @@ describe('utils.projects', function () {
         })
       );
 
-      await tick();
-      wrapper.update();
-
-      expect(myRenderer).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          fetching: false,
-          isIncomplete: null,
-          hasMore: false,
-          projects: [
-            expect.objectContaining({
-              id: '100',
-              slug: 'a',
-            }),
-            expect.objectContaining({
-              id: '101',
-              slug: 'b',
-            }),
-            expect.objectContaining({
-              id: '102',
-              slug: 'test1',
-            }),
-            expect.objectContaining({
-              id: '103',
-              slug: 'test2',
-            }),
-          ],
-        })
+      await waitFor(() =>
+        expect(myRenderer).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            fetching: false,
+            isIncomplete: null,
+            hasMore: false,
+            projects: [
+              expect.objectContaining({
+                id: '100',
+                slug: 'a',
+              }),
+              expect.objectContaining({
+                id: '101',
+                slug: 'b',
+              }),
+              expect.objectContaining({
+                id: '102',
+                slug: 'test1',
+              }),
+              expect.objectContaining({
+                id: '103',
+                slug: 'test2',
+              }),
+            ],
+          })
+        )
       );
 
       // Should not have duplicates
-      wrapper.find('input').simulate('change', {target: {value: 'test'}});
+      userEvent.type(screen.getByRole('textbox'), 'test');
 
-      await tick();
-      wrapper.update();
-
-      expect(myRenderer).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          projects: [
-            expect.objectContaining({
-              id: '100',
-              slug: 'a',
-            }),
-            expect.objectContaining({
-              id: '101',
-              slug: 'b',
-            }),
-            expect.objectContaining({
-              id: '102',
-              slug: 'test1',
-            }),
-            expect.objectContaining({
-              id: '103',
-              slug: 'test2',
-            }),
-          ],
-        })
+      await waitFor(() =>
+        expect(myRenderer).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            projects: [
+              expect.objectContaining({
+                id: '100',
+                slug: 'a',
+              }),
+              expect.objectContaining({
+                id: '101',
+                slug: 'b',
+              }),
+              expect.objectContaining({
+                id: '102',
+                slug: 'test1',
+              }),
+              expect.objectContaining({
+                id: '103',
+                slug: 'test2',
+              }),
+            ],
+          })
+        )
       );
     });
   });
@@ -472,11 +491,12 @@ describe('utils.projects', function () {
         body: mockProjects,
       });
       loadProjects.mockReset();
-      ProjectsStore.reset();
+      act(() => ProjectsStore.reset());
     });
 
     it('can query for a list of all projects and save it to the store', async function () {
-      const wrapper = createWrapper({allProjects: true});
+      createWrapper({allProjects: true});
+
       // This is initial state
       expect(renderer).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -488,13 +508,13 @@ describe('utils.projects', function () {
       );
 
       // wait for request to resolve
-      await tick();
-      wrapper.update();
-      expect(request).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          query: {all_projects: 1, collapse: ['latestDeploys']},
-        })
+      await waitFor(() =>
+        expect(request).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            query: {all_projects: 1, collapse: ['latestDeploys']},
+          })
+        )
       );
 
       expect(renderer).toHaveBeenCalledWith(
@@ -511,21 +531,68 @@ describe('utils.projects', function () {
     });
 
     it('does not refetch projects that are already loaded in the store', async function () {
-      ProjectsStore.loadInitialData(mockProjects);
+      act(() => ProjectsStore.loadInitialData(mockProjects));
 
-      const wrapper = createWrapper({allProjects: true});
-      wrapper.update();
+      createWrapper({allProjects: true});
 
-      expect(renderer).toHaveBeenCalledWith(
-        expect.objectContaining({
-          fetching: false,
-          isIncomplete: null,
-          hasMore: false,
-          projects: mockProjects,
-        })
+      await waitFor(() =>
+        expect(renderer).toHaveBeenCalledWith(
+          expect.objectContaining({
+            fetching: false,
+            isIncomplete: null,
+            hasMore: false,
+            projects: mockProjects,
+          })
+        )
       );
+
       expect(request).not.toHaveBeenCalled();
       expect(loadProjects).not.toHaveBeenCalled();
+    });
+
+    it('responds to updated projects from the project store', async function () {
+      act(() => ProjectsStore.loadInitialData(mockProjects));
+      createWrapper({allProjects: true});
+
+      await waitFor(() =>
+        expect(renderer).toHaveBeenCalledWith(
+          expect.objectContaining({
+            fetching: false,
+            isIncomplete: null,
+            hasMore: false,
+            projects: mockProjects,
+          })
+        )
+      );
+
+      const newTeam = TestStubs.Team();
+      act(() => ProjectActions.addTeamSuccess(newTeam, 'a'));
+
+      // Expect new team information to be available
+      await waitFor(() =>
+        expect(renderer).toHaveBeenCalledWith(
+          expect.objectContaining({
+            fetching: false,
+            isIncomplete: null,
+            hasMore: false,
+            projects: [
+              expect.objectContaining({
+                id: '100',
+                slug: 'a',
+                teams: [newTeam],
+              }),
+              expect.objectContaining({
+                id: '101',
+                slug: 'b',
+              }),
+              expect.objectContaining({
+                id: '102',
+                slug: 'c',
+              }),
+            ],
+          })
+        )
+      );
     });
   });
 });

@@ -3,19 +3,19 @@ import styled from '@emotion/styled';
 import {LocationDescriptorObject} from 'history';
 import omit from 'lodash/omit';
 
-import Link from 'app/components/links/link';
-import {IconArrow} from 'app/icons';
+import Link from 'sentry/components/links/link';
+import {IconArrow} from 'sentry/icons';
 
 export type Alignments = 'left' | 'right' | undefined;
 export type Directions = 'desc' | 'asc' | undefined;
 
 type Props = {
   align: Alignments;
-  title: React.ReactNode;
-  direction: Directions;
   canSort: boolean;
-
+  direction: Directions;
   generateSortLink: () => LocationDescriptorObject | undefined;
+
+  title: React.ReactNode;
   onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void;
 };
 

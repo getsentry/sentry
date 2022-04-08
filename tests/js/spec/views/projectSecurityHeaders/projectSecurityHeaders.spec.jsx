@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import ProjectSecurityHeaders from 'app/views/settings/projectSecurityHeaders';
+import ProjectSecurityHeaders from 'sentry/views/settings/projectSecurityHeaders';
 
 describe('ProjectSecurityHeaders', function () {
   const org = TestStubs.Organization();
@@ -25,8 +25,7 @@ describe('ProjectSecurityHeaders', function () {
           params: {orgId: org.slug, projectId: project.slug},
           location: TestStubs.location({pathname: url}),
         })}
-      />,
-      TestStubs.routerContext()
+      />
     );
     expect(wrapper).toSnapshot();
   });

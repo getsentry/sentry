@@ -1,7 +1,7 @@
 import {Component} from 'react';
 import {PlainRoute} from 'react-router';
 
-import SettingsBreadcrumbActions from 'app/actions/settingsBreadcrumbActions';
+import SettingsBreadcrumbStore from 'sentry/stores/settingsBreadcrumbStore';
 
 type Props = {
   routes: Array<PlainRoute>;
@@ -10,7 +10,7 @@ type Props = {
 
 class BreadcrumbTitle extends Component<Props> {
   componentDidMount() {
-    SettingsBreadcrumbActions.mapTitle(this.props);
+    SettingsBreadcrumbStore.updateRouteMap(this.props);
   }
 
   render() {

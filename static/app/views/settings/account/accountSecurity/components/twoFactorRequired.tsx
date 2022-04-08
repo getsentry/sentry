@@ -1,15 +1,14 @@
 import styled from '@emotion/styled';
 
-import Alert from 'app/components/alert';
-import ExternalLink from 'app/components/links/externalLink';
-import {IconFlag} from 'app/icons';
-import {tct} from 'app/locale';
-import space from 'app/styles/space';
-import getPendingInvite from 'app/utils/getPendingInvite';
+import Alert from 'sentry/components/alert';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import getPendingInvite from 'sentry/utils/getPendingInvite';
 
 const TwoFactorRequired = () =>
   !getPendingInvite() ? null : (
-    <StyledAlert data-test-id="require-2fa" type="error" icon={<IconFlag size="md" />}>
+    <StyledAlert data-test-id="require-2fa" type="error" showIcon>
       {tct(
         'You have been invited to an organization that requires [link:two-factor authentication].' +
           ' Setup two-factor authentication below to join your organization.',

@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint
@@ -7,7 +8,7 @@ from sentry.models import Group
 
 
 class ShortIdLookupEndpoint(OrganizationEndpoint):
-    def get(self, request, organization, short_id):
+    def get(self, request: Request, organization, short_id) -> Response:
         """
         Resolve a Short ID
         ``````````````````

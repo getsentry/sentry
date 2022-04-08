@@ -2,13 +2,15 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
 
-import GlobalSelectionLink from 'app/components/globalSelectionLink';
-import Link from 'app/components/links/link';
-import {IconChevron} from 'app/icons';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {Theme} from 'app/utils/theme';
-import BreadcrumbDropdown from 'app/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
+import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
+import Link from 'sentry/components/links/link';
+import {IconChevron} from 'sentry/icons';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {Theme} from 'sentry/utils/theme';
+import BreadcrumbDropdown, {
+  BreadcrumbDropdownProps,
+} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
 
 const BreadcrumbList = styled('div')`
   display: flex;
@@ -23,41 +25,41 @@ export type Crumb = {
   label: React.ReactNode;
 
   /**
-   * Link of the crumb
-   */
-  to?: React.ComponentProps<typeof Link>['to'] | null;
-
-  /**
-   * It will keep the global selection values (projects, environments, time) in the
-   * querystring when navigating (GlobalSelectionLink)
-   */
-  preserveGlobalSelection?: boolean;
-
-  /**
    * Component will try to come up with unique key, but you can provide your own
    * (used when mapping over crumbs)
    */
   key?: string;
+
+  /**
+   * It will keep the page filter values (projects, environments, time) in the
+   * querystring when navigating (GlobalSelectionLink)
+   */
+  preservePageFilters?: boolean;
+
+  /**
+   * Link of the crumb
+   */
+  to?: React.ComponentProps<typeof Link>['to'] | null;
 };
 
 export type CrumbDropdown = {
+  /**
+   * Items of the crumb dropdown
+   */
+  items: BreadcrumbDropdownProps['items'];
+
   /**
    * Name of the crumb
    */
   label: React.ReactNode;
 
   /**
-   * Items of the crumb dropdown
-   */
-  items: React.ComponentProps<typeof BreadcrumbDropdown>['items'];
-
-  /**
    * Callback function for when an item is selected
    */
-  onSelect: React.ComponentProps<typeof BreadcrumbDropdown>['onSelect'];
+  onSelect: BreadcrumbDropdownProps['onSelect'];
 };
 
-type Props = React.ComponentPropsWithoutRef<typeof BreadcrumbList> & {
+interface Props extends React.HTMLAttributes<HTMLDivElement> {
   /**
    * Array of crumbs that will be rendered
    */
@@ -70,7 +72,7 @@ type Props = React.ComponentPropsWithoutRef<typeof BreadcrumbList> & {
    * assign `to: null/undefined` when passing props to this component.
    */
   linkLastItem?: boolean;
-};
+}
 
 function isCrumbDropdown(crumb: Crumb | CrumbDropdown): crumb is CrumbDropdown {
   return (crumb as CrumbDropdown).items !== undefined;
@@ -105,28 +107,31 @@ const Breadcrumbs = ({crumbs, linkLastItem = false, ...props}: Props) => {
               {...crumbProps}
             />
           );
-        } else {
-          const {label, to, preserveGlobalSelection, key} = crumb;
-          const labelKey = typeof label === 'string' ? label : '';
-          const mapKey =
-            key ?? typeof to === 'string' ? `${labelKey}${to}` : `${labelKey}${index}`;
-
-          return (
-            <React.Fragment key={mapKey}>
-              {to ? (
-                <BreadcrumbLink to={to} preserveGlobalSelection={preserveGlobalSelection}>
-                  {label}
-                </BreadcrumbLink>
-              ) : (
-                <BreadcrumbItem>{label}</BreadcrumbItem>
-              )}
-
-              {index < crumbs.length - 1 && (
-                <BreadcrumbDividerIcon size="xs" direction="right" />
-              )}
-            </React.Fragment>
-          );
         }
+        const {label, to, preservePageFilters, key} = crumb;
+        const labelKey = typeof label === 'string' ? label : '';
+        const mapKey =
+          key ?? typeof to === 'string' ? `${labelKey}${to}` : `${labelKey}${index}`;
+
+        return (
+          <React.Fragment key={mapKey}>
+            {to ? (
+              <BreadcrumbLink
+                to={to}
+                preservePageFilters={preservePageFilters}
+                data-test-id="breadcrumb-link"
+              >
+                {label}
+              </BreadcrumbLink>
+            ) : (
+              <BreadcrumbItem>{label}</BreadcrumbItem>
+            )}
+
+            {index < crumbs.length - 1 && (
+              <BreadcrumbDividerIcon size="xs" direction="right" />
+            )}
+          </React.Fragment>
+        );
       })}
     </BreadcrumbList>
   );
@@ -144,13 +149,13 @@ const getBreadcrumbListItemStyles = (p: {theme: Theme}) => `
 
 type BreadcrumbLinkProps = {
   to: React.ComponentProps<typeof Link>['to'];
-  preserveGlobalSelection?: boolean;
   children?: React.ReactNode;
+  preservePageFilters?: boolean;
 };
 
 const BreadcrumbLink = styled(
-  ({preserveGlobalSelection, to, ...props}: BreadcrumbLinkProps) =>
-    preserveGlobalSelection ? (
+  ({preservePageFilters, to, ...props}: BreadcrumbLinkProps) =>
+    preservePageFilters ? (
       <GlobalSelectionLink to={to as LocationDescriptor} {...props} />
     ) : (
       <Link to={to} {...props} />

@@ -1,13 +1,13 @@
 import {Fragment} from 'react';
-import ReactDOM from 'react-dom';
+import {render} from 'react-dom';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import throttle from 'lodash/throttle';
 import zxcvbn from 'zxcvbn';
 
-import {tct} from 'app/locale';
-import space from 'app/styles/space';
-import theme from 'app/utils/theme';
+import {tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import theme from 'sentry/utils/theme';
 
 /**
  * NOTE: Do not import this component synchronously. The zxcvbn library is
@@ -25,13 +25,13 @@ type Props = {
    */
   value: string;
   /**
-   * A set of labels to display for each password strength level. 5 levels.
-   */
-  labels?: [string, string, string, string, string];
-  /**
    * The color to make the progress bar for each strength level. 5 levels.
    */
   colors?: [string, string, string, string, string];
+  /**
+   * A set of labels to display for each password strength level. 5 levels.
+   */
+  labels?: [string, string, string, string, string];
 };
 
 const PasswordStrength = ({
@@ -110,6 +110,6 @@ export const attachTo = ({input, element}) =>
   input.addEventListener(
     'input',
     throttle(e => {
-      ReactDOM.render(<PasswordStrength value={e.target.value} />, element);
+      render(<PasswordStrength value={e.target.value} />, element);
     })
   );

@@ -2,70 +2,54 @@ import * as React from 'react';
 import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
+import type {LocationDescriptor} from 'history';
 
-import AssigneeSelector from 'app/components/assigneeSelector';
-import GuideAnchor from 'app/components/assistant/guideAnchor';
-import Count from 'app/components/count';
-import DropdownMenu from 'app/components/dropdownMenu';
-import EventOrGroupExtraDetails from 'app/components/eventOrGroupExtraDetails';
-import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
-import Link from 'app/components/links/link';
-import MenuItem from 'app/components/menuItem';
-import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector/utils';
-import {PanelItem} from 'app/components/panels';
-import Placeholder from 'app/components/placeholder';
-import ProgressBar from 'app/components/progressBar';
-import GroupChart from 'app/components/stream/groupChart';
-import GroupCheckBox from 'app/components/stream/groupCheckBox';
-import TimeSince from 'app/components/timeSince';
-import {DEFAULT_STATS_PERIOD} from 'app/constants';
-import {t} from 'app/locale';
-import GroupStore from 'app/stores/groupStore';
-import SelectedGroupStore from 'app/stores/selectedGroupStore';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
+import AssigneeSelector from 'sentry/components/assigneeSelector';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import Count from 'sentry/components/count';
+import DropdownMenu from 'sentry/components/dropdownMenu';
+import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
+import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
+import Link from 'sentry/components/links/link';
+import MenuItem from 'sentry/components/menuItem';
+import {getRelativeSummary} from 'sentry/components/organizations/timeRangeSelector/utils';
+import {PanelItem} from 'sentry/components/panels';
+import Placeholder from 'sentry/components/placeholder';
+import ProgressBar from 'sentry/components/progressBar';
+import GroupChart from 'sentry/components/stream/groupChart';
+import GroupCheckBox from 'sentry/components/stream/groupCheckBox';
+import TimeSince from 'sentry/components/timeSince';
+import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {t} from 'sentry/locale';
+import GroupStore from 'sentry/stores/groupStore';
+import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
 import {
-  GlobalSelection,
   Group,
   GroupReprocessing,
   InboxDetails,
   NewQuery,
   Organization,
+  PageFilters,
   User,
-} from 'app/types';
-import {defined, percent, valueIsEqual} from 'app/utils';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {callIfFunction} from 'app/utils/callIfFunction';
-import EventView from 'app/utils/discover/eventView';
-import {formatPercentage} from 'app/utils/formatters';
-import {queryToObj} from 'app/utils/stream';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import withOrganization from 'app/utils/withOrganization';
-import {TimePeriodType} from 'app/views/alerts/rules/details/constants';
+} from 'sentry/types';
+import {defined, percent, valueIsEqual} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {callIfFunction} from 'sentry/utils/callIfFunction';
+import EventView from 'sentry/utils/discover/eventView';
+import {queryToObj} from 'sentry/utils/stream';
+import withOrganization from 'sentry/utils/withOrganization';
+import withPageFilters from 'sentry/utils/withPageFilters';
+import {TimePeriodType} from 'sentry/views/alerts/rules/details/constants';
 import {
+  DISCOVER_EXCLUSION_FIELDS,
   getTabs,
   isForReviewQuery,
-  IssueDisplayOptions,
   Query,
-} from 'app/views/issueList/utils';
-
-const DiscoveryExclusionFields: string[] = [
-  'query',
-  'status',
-  'bookmarked_by',
-  'assigned',
-  'assigned_to',
-  'unassigned',
-  'subscribed_by',
-  'active_at',
-  'first_release',
-  'first_seen',
-  'is',
-  '__text',
-];
+} from 'sentry/views/issueList/utils';
 
 export const DEFAULT_STREAM_GROUP_STATS_PERIOD = '24h';
-const DEFAULT_DISPLAY = IssueDisplayOptions.EVENTS;
 
 const defaultProps = {
   statsPeriod: DEFAULT_STREAM_GROUP_STATS_PERIOD,
@@ -73,30 +57,28 @@ const defaultProps = {
   withChart: true,
   useFilteredStats: false,
   useTintRow: true,
-  display: DEFAULT_DISPLAY,
   narrowGroups: false,
 };
 
 type Props = {
   id: string;
-  selection: GlobalSelection;
   organization: Organization;
-  displayReprocessingLayout?: boolean;
-  query?: string;
-  hasGuideAnchor?: boolean;
-  memberList?: User[];
-  showInboxTime?: boolean;
-  index?: number;
+  selection: PageFilters;
   customStatsPeriod?: TimePeriodType;
-  display?: IssueDisplayOptions;
+  displayReprocessingLayout?: boolean;
+  hasGuideAnchor?: boolean;
+  index?: number;
+  memberList?: User[];
+  query?: string;
   // TODO(ts): higher order functions break defaultprops export types
   queryFilterDescription?: string;
+  showInboxTime?: boolean;
 } & Partial<typeof defaultProps>;
 
 type State = {
+  actionTaken: boolean;
   data: Group;
   reviewed: boolean;
-  actionTaken: boolean;
 };
 
 class StreamGroup extends React.Component<Props, State> {
@@ -177,7 +159,7 @@ class StreamGroup extends React.Component<Props, State> {
     const tab = getTabs(organization).find(([tabQuery]) => tabQuery === query)?.[1];
     const owners = data?.owners || [];
     return {
-      organization_id: organization.id,
+      organization,
       group_id: data.id,
       tab: tab?.analyticsName || 'other',
       was_shown_suggestion: owners.length > 0,
@@ -188,20 +170,14 @@ class StreamGroup extends React.Component<Props, State> {
     const {query, organization} = this.props;
     const {data} = this.state;
     if (query === Query.FOR_REVIEW) {
-      trackAnalyticsEvent({
-        eventKey: 'inbox_tab.issue_clicked',
-        eventName: 'Clicked Issue from Inbox Tab',
-        organization_id: organization.id,
+      trackAdvancedAnalyticsEvent('inbox_tab.issue_clicked', {
+        organization,
         group_id: data.id,
       });
     }
 
     if (query !== undefined) {
-      trackAnalyticsEvent({
-        eventKey: 'issues_stream.issue_clicked',
-        eventName: 'Clicked Issue from Issues Stream',
-        ...this.sharedAnalytics(),
-      });
+      trackAdvancedAnalyticsEvent('issues_stream.issue_clicked', this.sharedAnalytics());
     }
   };
 
@@ -212,9 +188,7 @@ class StreamGroup extends React.Component<Props, State> {
   ) => {
     const {query} = this.props;
     if (query !== undefined) {
-      trackAnalyticsEvent({
-        eventKey: 'issues_stream.issue_assigned',
-        eventName: 'Assigned Issue from Issues Stream',
+      trackAdvancedAnalyticsEvent('issues_stream.issue_assigned', {
         ...this.sharedAnalytics(),
         did_assign_suggestion: !!suggestedAssignee,
         assigned_suggestion_reason: suggestedAssignee?.suggestedReason,
@@ -245,7 +219,7 @@ class StreamGroup extends React.Component<Props, State> {
     SelectedGroupStore.toggleSelect(this.state.data.id);
   };
 
-  getDiscoverUrl(isFiltered?: boolean) {
+  getDiscoverUrl(isFiltered?: boolean): LocationDescriptor {
     const {organization, query, selection, customStatsPeriod} = this.props;
     const {data} = this.state;
 
@@ -256,13 +230,14 @@ class StreamGroup extends React.Component<Props, State> {
 
     if (isFiltered && typeof query === 'string') {
       const queryObj = queryToObj(query);
-      for (const queryTag in queryObj)
-        if (!DiscoveryExclusionFields.includes(queryTag)) {
+      for (const queryTag in queryObj) {
+        if (!DISCOVER_EXCLUSION_FIELDS.includes(queryTag)) {
           const queryVal = queryObj[queryTag].includes(' ')
             ? `"${queryObj[queryTag]}"`
             : queryObj[queryTag];
           queryTerms.push(`${queryTag}:${queryVal}`);
         }
+      }
 
       if (queryObj.__text) {
         queryTerms.push(queryObj.__text);
@@ -274,7 +249,7 @@ class StreamGroup extends React.Component<Props, State> {
     const searchQuery = (queryTerms.length ? ' ' : '') + queryTerms.join(' ');
 
     if (hasDiscoverQuery) {
-      const {period, start, end} = customStatsPeriod ?? (selection.datetime || {});
+      const {period, start, end, utc} = customStatsPeriod ?? (selection.datetime || {});
 
       const discoverQuery: NewQuery = {
         ...commonQuery,
@@ -287,8 +262,11 @@ class StreamGroup extends React.Component<Props, State> {
       };
 
       if (!!start && !!end) {
-        discoverQuery.start = String(start);
-        discoverQuery.end = String(end);
+        discoverQuery.start = new Date(start).toISOString();
+        discoverQuery.end = new Date(end).toISOString();
+        if (utc) {
+          discoverQuery.utc = true;
+        }
       } else {
         discoverQuery.range = period || DEFAULT_STATS_PERIOD;
       }
@@ -310,6 +288,11 @@ class StreamGroup extends React.Component<Props, State> {
     const {data} = this.state;
     const {statusDetails, count} = data as GroupReprocessing;
     const {info, pendingEvents} = statusDetails;
+
+    if (!info) {
+      return null;
+    }
+
     const {totalEvents, dateCreated} = info;
 
     const remainingEventsToReprocess = totalEvents - pendingEvents;
@@ -317,8 +300,6 @@ class StreamGroup extends React.Component<Props, State> {
       remainingEventsToReprocess,
       totalEvents
     );
-
-    const value = remainingEventsToReprocessPercent || 100;
 
     return (
       <React.Fragment>
@@ -330,14 +311,14 @@ class StreamGroup extends React.Component<Props, State> {
             <Placeholder height="17px" />
           ) : (
             <React.Fragment>
-              <Count value={totalEvents} />
+              <Count value={remainingEventsToReprocess} />
               {'/'}
-              <Count value={Number(count)} />
+              <Count value={totalEvents} />
             </React.Fragment>
           )}
         </EventsReprocessedColumn>
         <ProgressColumn>
-          <ProgressBar value={value} />
+          <ProgressBar value={remainingEventsToReprocessPercent} />
         </ProgressColumn>
       </React.Fragment>
     );
@@ -360,7 +341,6 @@ class StreamGroup extends React.Component<Props, State> {
       useFilteredStats,
       useTintRow,
       customStatsPeriod,
-      display,
       queryFilterDescription,
       narrowGroups,
     } = this.props;
@@ -383,18 +363,6 @@ class StreamGroup extends React.Component<Props, State> {
     const showSecondaryPoints = Boolean(
       withChart && data && data.filtered && statsPeriod && useFilteredStats
     );
-
-    const showSessions = display === IssueDisplayOptions.SESSIONS;
-    // calculate a percentage count based on session data if the user has selected sessions display
-    const primaryPercent =
-      showSessions &&
-      data.sessionCount &&
-      formatPercentage(Number(primaryCount) / Number(data.sessionCount));
-    const secondaryPercent =
-      showSessions &&
-      data.sessionCount &&
-      secondaryCount &&
-      formatPercentage(Number(secondaryCount) / Number(data.sessionCount));
 
     return (
       <Wrapper
@@ -420,11 +388,7 @@ class StreamGroup extends React.Component<Props, State> {
             size="normal"
             onClick={this.trackClick}
           />
-          <EventOrGroupExtraDetails
-            hasGuideAnchor={hasGuideAnchor}
-            data={data}
-            showInboxTime={showInboxTime}
-          />
+          <EventOrGroupExtraDetails data={data} showInboxTime={showInboxTime} />
         </GroupSummary>
         {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
         {withChart && !displayReprocessingLayout && (
@@ -438,6 +402,7 @@ class StreamGroup extends React.Component<Props, State> {
                 statsPeriod={statsPeriod!}
                 data={data}
                 showSecondaryPoints={showSecondaryPoints}
+                showMarkLine
               />
             )}
           </ChartWrapper>
@@ -466,18 +431,10 @@ class StreamGroup extends React.Component<Props, State> {
                         >
                           <span {...getActorProps({})}>
                             <div className="dropdown-actor-title">
-                              {primaryPercent ? (
-                                <PrimaryPercent>{primaryPercent}</PrimaryPercent>
-                              ) : (
-                                <PrimaryCount value={primaryCount} />
+                              <PrimaryCount value={primaryCount} />
+                              {secondaryCount !== undefined && useFilteredStats && (
+                                <SecondaryCount value={secondaryCount} />
                               )}
-                              {secondaryCount !== undefined &&
-                                useFilteredStats &&
-                                (secondaryPercent ? (
-                                  <SecondaryPercent>{secondaryPercent}</SecondaryPercent>
-                                ) : (
-                                  <SecondaryCount value={secondaryCount} />
-                                ))}
                             </div>
                           </span>
                           {useFilteredStats && (
@@ -491,11 +448,7 @@ class StreamGroup extends React.Component<Props, State> {
                                       {queryFilterDescription ??
                                         t('Matching search filters')}
                                     </MenuItemText>
-                                    {primaryPercent ? (
-                                      <MenuItemPercent>{primaryPercent}</MenuItemPercent>
-                                    ) : (
-                                      <MenuItemCount value={data.filtered.count} />
-                                    )}
+                                    <MenuItemCount value={data.filtered.count} />
                                   </StyledMenuItem>
                                   <MenuItem divider />
                                 </React.Fragment>
@@ -503,11 +456,7 @@ class StreamGroup extends React.Component<Props, State> {
 
                               <StyledMenuItem to={this.getDiscoverUrl()}>
                                 <MenuItemText>{t(`Total in ${summary}`)}</MenuItemText>
-                                {secondaryPercent ? (
-                                  <MenuItemPercent>{secondaryPercent}</MenuItemPercent>
-                                ) : (
-                                  <MenuItemCount value={secondaryPercent || data.count} />
-                                )}
+                                <MenuItemCount value={data.count} />
                               </StyledMenuItem>
 
                               {data.lifetime && (
@@ -606,13 +555,13 @@ class StreamGroup extends React.Component<Props, State> {
   }
 }
 
-export default withGlobalSelection(withOrganization(StreamGroup));
+export default withPageFilters(withOrganization(StreamGroup));
 
 // Position for wrapper is relative for overlay actions
 const Wrapper = styled(PanelItem)<{
+  actionTaken: boolean;
   reviewed: boolean;
   unresolved: boolean;
-  actionTaken: boolean;
   useTintRow: boolean;
 }>`
   position: relative;
@@ -643,7 +592,6 @@ const Wrapper = styled(PanelItem)<{
         height: 100%;
         background-color: ${p.theme.bodyBackground};
         opacity: 0.4;
-        z-index: 1;
       }
 
       @keyframes tintRow {
@@ -681,18 +629,16 @@ const GroupCheckBoxWrapper = styled('div')`
 
 const primaryStatStyle = (theme: Theme) => css`
   font-size: ${theme.fontSizeLarge};
+  font-variant-numeric: tabular-nums;
 `;
 
 const PrimaryCount = styled(Count)`
   ${p => primaryStatStyle(p.theme)};
 `;
 
-const PrimaryPercent = styled('div')`
-  ${p => primaryStatStyle(p.theme)};
-`;
-
 const secondaryStatStyle = (theme: Theme) => css`
   font-size: ${theme.fontSizeLarge};
+  font-variant-numeric: tabular-nums;
 
   :before {
     content: '/';
@@ -706,17 +652,13 @@ const SecondaryCount = styled(({value, ...p}) => <Count {...p} value={value} />)
   ${p => secondaryStatStyle(p.theme)}
 `;
 
-const SecondaryPercent = styled('div')`
-  ${p => secondaryStatStyle(p.theme)}
-`;
-
 const StyledDropdownList = styled('ul')`
   z-index: ${p => p.theme.zIndex.hovercard};
 `;
 
-type MenuItemProps = React.HTMLProps<HTMLDivElement> & {
-  to?: React.ComponentProps<typeof Link>['to'];
-};
+interface MenuItemProps extends React.HTMLAttributes<HTMLDivElement> {
+  to?: LocationDescriptor;
+}
 
 const StyledMenuItem = styled(({to, children, ...p}: MenuItemProps) => (
   <MenuItem noAnchor>
@@ -741,6 +683,7 @@ const StyledMenuItem = styled(({to, children, ...p}: MenuItemProps) => (
 const menuItemStatStyles = css`
   text-align: right;
   font-weight: bold;
+  font-variant-numeric: tabular-nums;
   padding-left: ${space(1)};
 `;
 
@@ -753,10 +696,6 @@ const MenuItemCount = styled(({value, ...p}) => (
   color: ${p => p.theme.subText};
 `;
 
-const MenuItemPercent = styled('div')`
-  ${menuItemStatStyles};
-`;
-
 const MenuItemText = styled('div')`
   white-space: nowrap;
   font-weight: normal;
@@ -766,7 +705,7 @@ const MenuItemText = styled('div')`
 `;
 
 const ChartWrapper = styled('div')`
-  width: 160px;
+  width: 200px;
   margin: 0 ${space(2)};
   align-self: center;
 `;

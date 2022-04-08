@@ -1,12 +1,13 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 
-import {Client} from 'app/api';
-import NotFound from 'app/components/errors/notFound';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {Organization} from 'app/types';
-import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
+import {Client} from 'sentry/api';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import NotFound from 'sentry/components/errors/notFound';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Organization} from 'sentry/types';
+import withApi from 'sentry/utils/withApi';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import DashboardDetail from './detail';
 import OrgDashboards from './orgDashboards';
@@ -15,44 +16,45 @@ import {DashboardBasicFeature} from './view';
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
   api: Client;
-  organization: Organization;
   children: React.ReactNode;
+  organization: Organization;
 };
 
-class DashboardsV2Container extends React.Component<Props> {
-  render() {
-    const {organization, params, api, location, children} = this.props;
+function DashboardsV2Container(props: Props) {
+  const {organization, params, api, location, children} = props;
 
-    if (organization.features.includes('dashboards-edit')) {
-      return children;
-    }
-    return (
-      <DashboardBasicFeature organization={organization}>
-        <OrgDashboards
-          api={api}
-          location={location}
-          params={params}
-          organization={organization}
-        >
-          {({dashboard, dashboards, error, reloadData}) => {
-            return error ? (
-              <NotFound />
-            ) : dashboard ? (
+  if (organization.features.includes('dashboards-edit')) {
+    return <Fragment>{children}</Fragment>;
+  }
+
+  return (
+    <DashboardBasicFeature organization={organization}>
+      <OrgDashboards
+        api={api}
+        location={location}
+        params={params}
+        organization={organization}
+      >
+        {({dashboard, dashboards, error, onDashboardUpdate}) => {
+          return error ? (
+            <NotFound />
+          ) : dashboard ? (
+            <ErrorBoundary>
               <DashboardDetail
-                {...this.props}
+                {...props}
                 initialState={DashboardState.VIEW}
                 dashboard={dashboard}
                 dashboards={dashboards}
-                reloadData={reloadData}
+                onDashboardUpdate={onDashboardUpdate}
               />
-            ) : (
-              <LoadingIndicator />
-            );
-          }}
-        </OrgDashboards>
-      </DashboardBasicFeature>
-    );
-  }
+            </ErrorBoundary>
+          ) : (
+            <LoadingIndicator />
+          );
+        }}
+      </OrgDashboards>
+    </DashboardBasicFeature>
+  );
 }
 
 export default withApi(withOrganization(DashboardsV2Container));

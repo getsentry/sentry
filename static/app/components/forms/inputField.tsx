@@ -1,52 +1,60 @@
 import * as React from 'react';
 
-import FormField from 'app/components/forms/formField';
+import Input, {InputProps} from 'sentry/components/forms/controls/input';
+import FormField, {FormFieldProps} from 'sentry/components/forms/formField';
 
-type InputFieldProps = FormField['props'] & {
-  placeholder?: string;
-  inputStyle?: object;
-  onBlur?: (event: React.FocusEvent<HTMLInputElement>) => void;
-  onKeyPress?: (event: React.KeyboardEvent<HTMLInputElement>) => void;
-  onKeyDown?: (event: React.KeyboardEvent<HTMLInputElement>) => void;
-  onFocus?: (event: React.FocusEvent<HTMLInputElement>) => void;
-  autoComplete?: string;
-  min?: number;
-};
+export interface InputFieldProps
+  extends Omit<FormFieldProps, 'children'>,
+    Omit<
+      InputProps,
+      | 'value'
+      | 'placeholder'
+      | 'disabled'
+      | 'onBlur'
+      | 'onKeyDown'
+      | 'onChange'
+      | 'children'
+      | 'name'
+      | 'defaultValue'
+    > {
+  // TODO(ts) Add base types for this. Each input field
+  // has different props, but we could use have a base type that contains
+  // the common properties.
+  field?: (props) => React.ReactNode;
+  value?: any;
+}
 
-class InputField<
-  Props extends InputFieldProps = InputFieldProps,
-  State extends FormField['state'] = FormField['state']
-> extends FormField<Props, State> {
-  getField() {
-    return (
-      <input
-        id={this.getId()} // TODO(Priscila): check the reason behind this. We are getting warnings if we have 2 or more fields with the same name, for instance in the DATA PRIVACY RULES
-        type={this.getType()}
-        className="form-control"
-        autoComplete={this.props.autoComplete}
-        placeholder={this.props.placeholder}
-        onChange={this.onChange}
-        disabled={this.props.disabled}
-        name={this.props.name}
-        required={this.props.required}
-        value={this.state.value as string | number} // can't pass in boolean here
-        style={this.props.inputStyle}
-        onBlur={this.props.onBlur}
-        onFocus={this.props.onFocus}
-        onKeyPress={this.props.onKeyPress}
-        onKeyDown={this.props.onKeyDown}
-        min={this.props.min}
-      />
-    );
-  }
+export type onEvent = (value, event?: React.FormEvent<HTMLInputElement>) => void;
 
-  getClassName() {
-    return 'control-group';
-  }
+function defaultField({
+  onChange,
+  onBlur,
+  onKeyDown,
+  ...rest
+}: {
+  onBlur: onEvent;
+  onChange: onEvent;
+  onKeyDown: onEvent;
+}) {
+  return (
+    <Input
+      onBlur={e => onBlur(e.target.value, e)}
+      onKeyDown={e => onKeyDown((e.target as any).value, e)}
+      onChange={e => onChange(e.target.value, e)}
+      {...rest}
+    />
+  );
+}
 
-  getType(): string {
-    throw new Error('Must be implemented by child.');
-  }
+function InputField(props: InputFieldProps) {
+  return (
+    <FormField className={props.className} {...props}>
+      {formFieldProps => {
+        const {children: _children, ...otherFieldProps} = formFieldProps;
+        return props.field ? props.field(otherFieldProps) : defaultField(otherFieldProps);
+      }}
+    </FormField>
+  );
 }
 
 export default InputField;

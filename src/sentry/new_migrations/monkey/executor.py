@@ -5,7 +5,7 @@ from django.contrib.contenttypes.management import RenameContentType
 from django.db.migrations.executor import MigrationExecutor
 from django.db.migrations.operations import SeparateDatabaseAndState
 from django.db.migrations.operations.fields import FieldOperation
-from django.db.migrations.operations.models import ModelOperation
+from django.db.migrations.operations.models import IndexOperation, ModelOperation
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +37,9 @@ class SentryMigrationExecutor(MigrationExecutor):
         def _check_operations(operations):
             failed_ops = []
             for operation in operations:
-                if isinstance(operation, (FieldOperation, ModelOperation, RenameContentType)):
+                if isinstance(
+                    operation, (FieldOperation, ModelOperation, RenameContentType, IndexOperation)
+                ):
                     continue
                 elif isinstance(operation, SeparateDatabaseAndState):
                     failed_ops.extend(_check_operations(operation.database_operations))

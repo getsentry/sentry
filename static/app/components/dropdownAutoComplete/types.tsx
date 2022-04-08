@@ -1,19 +1,21 @@
 export type Item = {
-  value: any;
-  label: ((value: any) => React.ReactNode) | React.ReactNode;
   index: number;
-  searchKey?: string;
-  groupLabel?: boolean;
+  label: ((value: any) => React.ReactNode) | React.ReactNode;
+  value: any;
+  'data-test-id'?: string;
+  disabled?: boolean;
   /**
    * Error message to display for the field
    */
   error?: React.ReactNode;
+  groupLabel?: boolean;
+  searchKey?: string;
 } & Record<string, any>;
 
 type Items<T> = Array<
   T & {
-    items?: Array<T>;
-    hideGroupLabel?: boolean; // Should hide group label
+    hideGroupLabel?: boolean;
+    items?: Array<T>; // Should hide group label
   }
 >;
 

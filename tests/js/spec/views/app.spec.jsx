@@ -1,7 +1,7 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'app/stores/configStore';
-import App from 'app/views/app';
+import ConfigStore from 'sentry/stores/configStore';
+import App from 'sentry/views/app';
 
 describe('App', function () {
   beforeEach(function () {
@@ -18,34 +18,58 @@ describe('App', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: '/assistant/?v2',
+      url: '/assistant/',
       body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/internal/options/?query=is:required',
+      body: TestStubs.InstallWizard(),
     });
   });
 
-  it('renders newsletter consent with flag', async function () {
-    const user = ConfigStore.get('user');
-    user.flags.newsletter_consent_prompt = true;
-    // XXX(dcramer): shouldn't need to re-set
-    ConfigStore.set('user', user);
-
-    const wrapper = mountWithTheme(
-      <App params={{orgId: 'org-slug'}}>{<div>placeholder content</div>}</App>
+  it('renders', async function () {
+    render(
+      <App params={{orgId: 'org-slug'}}>
+        <div>placeholder content</div>
+      </App>
     );
 
-    expect(wrapper.find('NewsletterConsent')).toHaveLength(1);
+    expect(screen.getByText('placeholder content')).toBeInTheDocument();
   });
 
-  it('does not render newsletter consent without flag', async function () {
+  it('renders NewsletterConsent', async function () {
     const user = ConfigStore.get('user');
-    user.flags.newsletter_consent_prompt = false;
-    // XXX(dcramer): shouldn't need to re-set
-    ConfigStore.set('user', user);
+    user.flags.newsletter_consent_prompt = true;
 
-    const wrapper = mountWithTheme(
-      <App params={{orgId: 'org-slug'}}>{<div>placeholder content</div>}</App>
+    render(
+      <App params={{orgId: 'org-slug'}}>
+        <div>placeholder content</div>
+      </App>
     );
 
-    expect(wrapper.find('NewsletterConsent')).toHaveLength(0);
+    const updatesViaEmail = await screen.findByText(
+      'Yes, I would like to receive updates via email'
+    );
+    expect(updatesViaEmail).toBeInTheDocument();
+
+    user.flags.newsletter_consent_prompt = false;
+  });
+
+  it('renders InstallWizard', async function () {
+    ConfigStore.get('user').isSuperuser = true;
+    ConfigStore.set('needsUpgrade', true);
+    ConfigStore.set('version', {current: '1.33.7'});
+
+    render(
+      <App params={{orgId: 'org-slug'}}>
+        <div>placeholder content</div>
+      </App>
+    );
+
+    const completeSetup = await screen.findByText(
+      'Complete setup by filling out the required configuration.'
+    );
+    expect(completeSetup).toBeInTheDocument();
   });
 });

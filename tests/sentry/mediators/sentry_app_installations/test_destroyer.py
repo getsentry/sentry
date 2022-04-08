@@ -1,7 +1,10 @@
+from unittest.mock import patch
+
 import responses
 from django.db import connection
 from requests.exceptions import RequestException
 
+from sentry.constants import SentryAppStatus
 from sentry.mediators.sentry_app_installations import Creator, Destroyer
 from sentry.models import (
     ApiGrant,
@@ -13,7 +16,6 @@ from sentry.models import (
     ServiceHook,
 )
 from sentry.testutils import TestCase
-from sentry.utils.compat.mock import patch
 
 
 class TestDestroyer(TestCase):
@@ -138,7 +140,7 @@ class TestDestroyer(TestCase):
     @responses.activate
     def test_deletes_on_request_exception(self):
         install = self.install
-
+        self.sentry_app.update(status=SentryAppStatus.PUBLISHED)
         responses.add(
             responses.POST,
             "https://example.com/webhook",
@@ -151,7 +153,6 @@ class TestDestroyer(TestCase):
 
     @responses.activate
     def test_fail_on_other_error(self):
-        from sentry.constants import SentryAppStatus
 
         install = self.install
         self.sentry_app.update(status=SentryAppStatus.PUBLISHED)

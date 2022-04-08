@@ -2,20 +2,22 @@ import {ASAP} from 'downsample/methods/ASAP';
 import {Location} from 'history';
 import moment from 'moment';
 
-import {getInterval} from 'app/components/charts/utils';
-import {t} from 'app/locale';
-import {Project} from 'app/types';
-import {Series, SeriesDataUnit} from 'app/types/echarts';
-import EventView from 'app/utils/discover/eventView';
+import {getInterval} from 'sentry/components/charts/utils';
+import {t} from 'sentry/locale';
+import {Project} from 'sentry/types';
+import {Series, SeriesDataUnit} from 'sentry/types/echarts';
+import EventView from 'sentry/utils/discover/eventView';
 import {
   AggregationKey,
   Field,
   generateFieldAsString,
   Sort,
-} from 'app/utils/discover/fields';
-import {decodeScalar} from 'app/utils/queryString';
-import theme from 'app/utils/theme';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
+} from 'sentry/utils/discover/fields';
+import {decodeScalar} from 'sentry/utils/queryString';
+import theme from 'sentry/utils/theme';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+
+import {platformToPerformanceType, PROJECT_PERFORMANCE_TYPE} from '../utils';
 
 import {
   NormalizedTrendsTransaction,
@@ -64,7 +66,7 @@ export const TRENDS_FUNCTIONS: TrendFunction[] = [
   },
 ];
 
-const TRENDS_PARAMETERS: TrendParameter[] = [
+export const TRENDS_PARAMETERS: TrendParameter[] = [
   {
     label: 'Duration',
     column: TrendColumnField.DURATION,
@@ -85,10 +87,6 @@ const TRENDS_PARAMETERS: TrendParameter[] = [
     label: 'CLS',
     column: TrendColumnField.CLS,
   },
-];
-
-// TODO(perf): Merge with above after ops breakdown feature is mainlined.
-const SPANS_TRENDS_PARAMETERS: TrendParameter[] = [
   {
     label: 'Spans (http)',
     column: TrendColumnField.SPANS_HTTP,
@@ -106,12 +104,6 @@ const SPANS_TRENDS_PARAMETERS: TrendParameter[] = [
     column: TrendColumnField.SPANS_RESOURCE,
   },
 ];
-
-export function getTrendsParameters({canSeeSpanOpTrends} = {canSeeSpanOpTrends: false}) {
-  return canSeeSpanOpTrends
-    ? [...TRENDS_PARAMETERS, ...SPANS_TRENDS_PARAMETERS]
-    : [...TRENDS_PARAMETERS];
-}
 
 export const trendToColor = {
   [TrendChangeType.IMPROVED]: {
@@ -145,18 +137,62 @@ export function resetCursors() {
   return cursors;
 }
 
-export function getCurrentTrendFunction(location: Location): TrendFunction {
-  const trendFunctionField = decodeScalar(location?.query?.trendFunction);
+export function getCurrentTrendFunction(
+  location: Location,
+  _trendFunctionField?: TrendFunctionField
+): TrendFunction {
+  const trendFunctionField =
+    _trendFunctionField ?? decodeScalar(location?.query?.trendFunction);
   const trendFunction = TRENDS_FUNCTIONS.find(({field}) => field === trendFunctionField);
   return trendFunction || TRENDS_FUNCTIONS[0];
 }
 
-export function getCurrentTrendParameter(location: Location): TrendParameter {
+function getDefaultTrendParameter(
+  projects: Project[],
+  projectIds: Readonly<number[]>
+): TrendParameter {
+  const performanceType = platformToPerformanceType(projects, projectIds);
+  const trendParameter = performanceTypeToTrendParameterLabel(performanceType);
+
+  return trendParameter;
+}
+
+export function getCurrentTrendParameter(
+  location: Location,
+  projects: Project[],
+  projectIds: Readonly<number[]>
+): TrendParameter {
   const trendParameterLabel = decodeScalar(location?.query?.trendParameter);
   const trendParameter = TRENDS_PARAMETERS.find(
     ({label}) => label === trendParameterLabel
   );
-  return trendParameter || TRENDS_PARAMETERS[0];
+
+  if (trendParameter) {
+    return trendParameter;
+  }
+
+  const defaultTrendParameter = getDefaultTrendParameter(projects, projectIds);
+  return defaultTrendParameter;
+}
+
+export function performanceTypeToTrendParameterLabel(
+  performanceType: PROJECT_PERFORMANCE_TYPE
+): TrendParameter {
+  switch (performanceType) {
+    case PROJECT_PERFORMANCE_TYPE.FRONTEND:
+      return {
+        label: 'LCP',
+        column: TrendColumnField.LCP,
+      };
+    case PROJECT_PERFORMANCE_TYPE.ANY:
+    case PROJECT_PERFORMANCE_TYPE.BACKEND:
+    case PROJECT_PERFORMANCE_TYPE.FRONTEND_OTHER:
+    default:
+      return {
+        label: 'Duration',
+        column: TrendColumnField.DURATION,
+      };
+  }
 }
 
 export function generateTrendFunctionAsString(
@@ -193,10 +229,11 @@ export function modifyTrendView(
   trendView: TrendView,
   location: Location,
   trendsType: TrendChangeType,
+  projects: Project[],
   isProjectOnly?: boolean
 ) {
   const trendFunction = getCurrentTrendFunction(location);
-  const trendParameter = getCurrentTrendParameter(location);
+  const trendParameter = getCurrentTrendParameter(location, projects, trendView.project);
 
   const transactionField = isProjectOnly ? [] : ['transaction'];
   const fields = [...transactionField, 'project'].map(field => ({

@@ -1,19 +1,17 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {act} from 'sentry-test/reactTestingLibrary';
 
-import {createProject} from 'app/actionCreators/projects';
-import TeamStore from 'app/stores/teamStore';
-import OnboardingPlatform from 'app/views/onboarding/platform';
+import {createProject} from 'sentry/actionCreators/projects';
+import TeamStore from 'sentry/stores/teamStore';
+import OnboardingPlatform from 'sentry/views/onboarding/platform';
 
-jest.mock('app/actionCreators/projects');
+jest.mock('sentry/actionCreators/projects');
 
 describe('OnboardingWelcome', function () {
   it('calls onUpdate when setting the platform', function () {
     const onUpdate = jest.fn();
 
-    const wrapper = mountWithTheme(
-      <OnboardingPlatform active onUpdate={onUpdate} />,
-      TestStubs.routerContext()
-    );
+    const wrapper = mountWithTheme(<OnboardingPlatform active onUpdate={onUpdate} />);
 
     wrapper.find('[data-test-id="platform-dotnet"]').first().simulate('click');
 
@@ -23,16 +21,15 @@ describe('OnboardingWelcome', function () {
   it('creates a project when no project exists', async function () {
     const onComplete = jest.fn();
 
-    const wrapper = mountWithTheme(
-      <OnboardingPlatform active onComplete={onComplete} />,
-      TestStubs.routerContext()
-    );
+    const wrapper = mountWithTheme(<OnboardingPlatform active onComplete={onComplete} />);
 
     const getButton = () => wrapper.find('Button[priority="primary"]');
 
     // Select a platform to create
     wrapper.setProps({platform: 'dotnet'});
-    TeamStore.loadInitialData([{id: '1', slug: 'team-slug'}]);
+    act(() => {
+      TeamStore.loadInitialData([{id: '1', slug: 'team-slug'}]);
+    });
     expect(getButton().text()).toEqual('Create Project');
     expect(getButton().props().disabled).toBe(false);
 
@@ -65,13 +62,14 @@ describe('OnboardingWelcome', function () {
         project={{id: '1', slug: 'test'}}
         platform="dotnet"
         onComplete={onComplete}
-      />,
-      TestStubs.routerContext()
+      />
     );
 
     const getButton = () => wrapper.find('Button[priority="primary"]');
 
-    TeamStore.loadInitialData([{id: '1', slug: 'team-slug'}]);
+    act(() => {
+      TeamStore.loadInitialData([{id: '1', slug: 'team-slug'}]);
+    });
     expect(getButton().text()).toEqual('Set Up Your Project');
     expect(getButton().props().disabled).toBe(false);
 

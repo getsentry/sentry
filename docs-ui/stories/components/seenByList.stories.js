@@ -1,4 +1,4 @@
-import SeenByList from 'app/components/seenByList';
+import SeenByList from 'sentry/components/seenByList';
 
 const USER = {
   id: 1,

@@ -1,9 +1,15 @@
 from datetime import timedelta
+from unittest import mock
+from unittest.mock import ANY, Mock, patch
 
+from django.test import override_settings
 from django.utils import timezone
 
+from sentry import buffer
+from sentry.buffer.redis import RedisBuffer
 from sentry.eventstore.processing import event_processing_store
 from sentry.models import (
+    Activity,
     Group,
     GroupAssignee,
     GroupInbox,
@@ -16,6 +22,7 @@ from sentry.models import (
     ProjectTeam,
 )
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
+from sentry.rules import init_registry
 from sentry.tasks.merge import merge_groups
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils import TestCase
@@ -23,7 +30,6 @@ from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.utils.cache import cache
-from sentry.utils.compat.mock import ANY, Mock, patch
 
 
 class EventMatcher:
@@ -169,6 +175,65 @@ class PostProcessGroupTest(TestCase):
 
         mock_callback.assert_called_once_with(EventMatcher(event), mock_futures)
 
+    def test_rule_processor_buffer_values(self):
+        # Test that pending buffer values for `times_seen` are applied to the group and that alerts
+        # fire as expected
+        from sentry.models import Rule
+
+        MOCK_RULES = ("sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter",)
+
+        redis_buffer = RedisBuffer()
+        with mock.patch("sentry.buffer.get", redis_buffer.get), mock.patch(
+            "sentry.buffer.incr", redis_buffer.incr
+        ), patch("sentry.constants._SENTRY_RULES", MOCK_RULES), patch(
+            "sentry.rules.processor.rules", init_registry()
+        ) as rules:
+            MockAction = mock.Mock()
+            MockAction.rule_type = "action/event"
+            MockAction.id = "tests.sentry.tasks.post_process.tests.MockAction"
+            MockAction.return_value.after.return_value = []
+            rules.add(MockAction)
+
+            conditions = [
+                {
+                    "id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter",
+                    "value": 10,
+                },
+            ]
+            actions = [{"id": "tests.sentry.tasks.post_process.tests.MockAction"}]
+            Rule.objects.filter(project=self.project).delete()
+            Rule.objects.create(
+                project=self.project, data={"conditions": conditions, "actions": actions}
+            )
+
+            event = self.store_event(
+                data={"message": "testing", "fingerprint": ["group-1"]}, project_id=self.project.id
+            )
+            event_2 = self.store_event(
+                data={"message": "testing", "fingerprint": ["group-1"]}, project_id=self.project.id
+            )
+            cache_key = write_event_to_cache(event)
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                cache_key=cache_key,
+                group_id=event.group_id,
+            )
+            event.group.update(times_seen=2)
+            assert MockAction.return_value.after.call_count == 0
+
+            cache_key = write_event_to_cache(event_2)
+            buffer.incr(Group, {"times_seen": 15}, filters={"pk": event.group.id})
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                cache_key=cache_key,
+                group_id=event_2.group_id,
+            )
+            assert MockAction.return_value.after.call_count == 1
+
     @patch("sentry.rules.processor.RuleProcessor")
     def test_group_refresh(self, mock_processor):
         event = self.store_event(data={"message": "testing"}, project_id=self.project.id)
@@ -219,6 +284,7 @@ class PostProcessGroupTest(TestCase):
         )
         assert GroupInbox.objects.filter(group=group, reason=GroupInboxReason.NEW.value).exists()
         GroupInbox.objects.filter(group=group).delete()  # Delete so it creates the UNIGNORED entry.
+        Activity.objects.filter(group=group).delete()
 
         mock_processor.assert_called_with(EventMatcher(event), True, False, True, False)
 
@@ -241,7 +307,49 @@ class PostProcessGroupTest(TestCase):
         assert GroupInbox.objects.filter(
             group=group, reason=GroupInboxReason.UNIGNORED.value
         ).exists()
+        assert Activity.objects.filter(
+            group=group, project=group.project, type=Activity.SET_UNRESOLVED
+        ).exists()
         assert send_robust.called
+
+    @override_settings(SENTRY_BUFFER="sentry.buffer.redis.RedisBuffer")
+    @patch("sentry.signals.issue_unignored.send_robust")
+    @patch("sentry.rules.processor.RuleProcessor")
+    def test_invalidates_snooze_with_buffers(self, mock_processor, send_robust):
+        redis_buffer = RedisBuffer()
+        with mock.patch("sentry.buffer.get", redis_buffer.get), mock.patch(
+            "sentry.buffer.incr", redis_buffer.incr
+        ):
+            event = self.store_event(
+                data={"message": "testing", "fingerprint": ["group-1"]}, project_id=self.project.id
+            )
+            event_2 = self.store_event(
+                data={"message": "testing", "fingerprint": ["group-1"]}, project_id=self.project.id
+            )
+            group = event.group
+            group.update(times_seen=50)
+            snooze = GroupSnooze.objects.create(group=group, count=100, state={"times_seen": 0})
+
+            cache_key = write_event_to_cache(event)
+            post_process_group(
+                is_new=False,
+                is_regression=False,
+                is_new_group_environment=True,
+                cache_key=cache_key,
+                group_id=event.group_id,
+            )
+            assert GroupSnooze.objects.filter(id=snooze.id).exists()
+            cache_key = write_event_to_cache(event_2)
+
+            buffer.incr(Group, {"times_seen": 60}, filters={"pk": event.group.id})
+            post_process_group(
+                is_new=False,
+                is_regression=False,
+                is_new_group_environment=True,
+                cache_key=cache_key,
+                group_id=event.group_id,
+            )
+            assert not GroupSnooze.objects.filter(id=snooze.id).exists()
 
     @patch("sentry.rules.processor.RuleProcessor")
     def test_maintains_valid_snooze(self, mock_processor):
@@ -386,7 +494,7 @@ class PostProcessGroupTest(TestCase):
         event = self.store_event(
             data={
                 "message": "Foo bar",
-                "exception": {"type": "Foo", "value": "shits on fiah yo"},
+                "exception": {"type": "Foo", "value": "oh no"},
                 "level": "error",
                 "timestamp": iso_format(timezone.now()),
             },
@@ -463,7 +571,7 @@ class PostProcessGroupTest(TestCase):
             data={
                 "message": "Foo bar",
                 "level": "error",
-                "exception": {"type": "Foo", "value": "shits on fiah yo"},
+                "exception": {"type": "Foo", "value": "oh no"},
                 "timestamp": iso_format(timezone.now()),
             },
             project_id=self.project.id,
@@ -541,6 +649,7 @@ class PostProcessGroupTest(TestCase):
 class PostProcessGroupAssignmentTest(TestCase):
     def make_ownership(self, extra_rules=None):
         self.user_2 = self.create_user()
+        self.create_team_membership(team=self.team, user=self.user_2)
         rules = [
             Rule(Matcher("path", "src/app/*"), [Owner("team", self.team.name)]),
             Rule(Matcher("path", "src/*"), [Owner("user", self.user.email)]),
@@ -719,6 +828,51 @@ class PostProcessGroupAssignmentTest(TestCase):
         assignee = event.group.assignee_set.first()
         assert assignee.user is None
         assert assignee.team == self.team
+
+    def test_only_first_assignment_works(self):
+        self.make_ownership()
+        event = self.store_event(
+            data={
+                "message": "oh no",
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "src/app/example.py"}]},
+                "fingerprint": ["group1"],
+            },
+            project_id=self.project.id,
+        )
+        cache_key = write_event_to_cache(event)
+        post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            cache_key=cache_key,
+            group_id=event.group_id,
+        )
+        assignee = event.group.assignee_set.first()
+        assert assignee.user == self.user
+        assert assignee.team is None
+
+        event = self.store_event(
+            data={
+                "message": "oh no",
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "tests/src/app/test_example.py"}]},
+                "fingerprint": ["group1"],
+            },
+            project_id=self.project.id,
+        )
+        cache_key = write_event_to_cache(event)
+        post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            cache_key=cache_key,
+            group_id=event.group_id,
+        )
+        assignee = event.group.assignee_set.first()
+        # Assignment shouldn't change.
+        assert assignee.user == self.user
+        assert assignee.team is None
 
     def test_owner_assignment_owner_is_gone(self):
         self.make_ownership()

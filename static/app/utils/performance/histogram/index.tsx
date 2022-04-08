@@ -2,24 +2,24 @@ import * as React from 'react';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
 
-import {SelectValue} from 'app/types';
-import {decodeScalar} from 'app/utils/queryString';
+import {SelectValue} from 'sentry/types';
+import {decodeScalar} from 'sentry/utils/queryString';
 
 import {FILTER_OPTIONS} from './constants';
 import {DataFilter} from './types';
 
 type HistogramChildrenProps = {
-  isZoomed: boolean;
-  handleResetView: () => void;
   activeFilter: SelectValue<DataFilter>;
-  handleFilterChange: (option: string) => void;
   filterOptions: typeof FILTER_OPTIONS;
+  handleFilterChange: (option: string) => void;
+  handleResetView: () => void;
+  isZoomed: boolean;
 };
 
 type Props = {
+  children: (props: HistogramChildrenProps) => React.ReactNode;
   location: Location;
   zoomKeys: string[];
-  children: (props: HistogramChildrenProps) => React.ReactNode;
 };
 
 class Histogram extends React.Component<Props> {

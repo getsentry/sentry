@@ -1,7 +1,7 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'app/api';
-import AsyncComponent from 'app/components/asyncComponent';
+import {Client} from 'sentry/api';
+import AsyncComponent from 'sentry/components/asyncComponent';
 
 describe('AsyncComponent', function () {
   class TestAsyncComponent extends AsyncComponent {
@@ -30,9 +30,8 @@ describe('AsyncComponent', function () {
         message: 'hi',
       },
     });
-    const wrapper = mountWithTheme(<TestAsyncComponent />);
-    expect(wrapper.find('div')).toHaveLength(1);
-    expect(wrapper.find('div').text()).toEqual('hi');
+    render(<TestAsyncComponent />);
+    expect(screen.getByText('hi')).toBeInTheDocument();
   });
 
   it('renders error message', function () {
@@ -45,12 +44,11 @@ describe('AsyncComponent', function () {
       },
       statusCode: 400,
     });
-    const wrapper = mountWithTheme(<TestAsyncComponent />);
-    expect(wrapper.find('LoadingError')).toHaveLength(1);
-    expect(wrapper.find('LoadingError').text()).toEqual('oops there was a problem');
+    render(<TestAsyncComponent />);
+    expect(screen.getByText('oops there was a problem')).toBeInTheDocument();
   });
 
-  it('renders only unique error message', async function () {
+  it('renders only unique error message', function () {
     Client.clearMockResponses();
     Client.addMockResponse({
       url: '/first/path/',
@@ -93,11 +91,11 @@ describe('AsyncComponent', function () {
       }
     }
 
-    const wrapper = mountWithTheme(<UniqueErrorsAsyncComponent />);
+    render(<UniqueErrorsAsyncComponent />);
 
-    expect(wrapper.find('LoadingError').text()).toEqual(
-      'oops there was a problem\noops there was a different problem'
-    );
+    expect(
+      screen.getByText('oops there was a problem oops there was a different problem')
+    ).toBeInTheDocument();
   });
 
   describe('multi-route component', () => {
@@ -107,6 +105,12 @@ describe('AsyncComponent', function () {
           ['data', '/some/path/to/something/'],
           ['project', '/another/path/here'],
         ];
+      }
+
+      renderLoading() {
+        return (
+          <div data-test-id="remaining-requests">{this.state.remainingRequests}</div>
+        );
       }
     }
 
@@ -127,23 +131,19 @@ describe('AsyncComponent', function () {
         'onLoadAllEndpointsSuccess'
       );
 
-      const wrapper = mountWithTheme(<MultiRouteComponent />);
+      render(<MultiRouteComponent />);
 
-      expect(wrapper.state('loading')).toEqual(true);
-      expect(wrapper.state('remainingRequests')).toEqual(2);
-
-      jest.advanceTimersByTime(40);
-      expect(wrapper.state('loading')).toEqual(true);
-      expect(wrapper.state('remainingRequests')).toEqual(2);
+      expect(screen.getByTestId('remaining-requests')).toHaveTextContent('2');
 
       jest.advanceTimersByTime(40);
-      expect(wrapper.state('loading')).toEqual(true);
-      expect(wrapper.state('remainingRequests')).toEqual(1);
+      expect(screen.getByTestId('remaining-requests')).toHaveTextContent('2');
+
+      jest.advanceTimersByTime(40);
+      expect(screen.getByTestId('remaining-requests')).toHaveTextContent('1');
       expect(mockOnAllEndpointsSuccess).not.toHaveBeenCalled();
 
       jest.advanceTimersByTime(40);
-      expect(wrapper.state('loading')).toEqual(false);
-      expect(wrapper.state('remainingRequests')).toEqual(0);
+      expect(screen.queryByTestId('remaining-requests')).not.toBeInTheDocument();
       expect(mockOnAllEndpointsSuccess).toHaveBeenCalled();
 
       jest.restoreAllMocks();

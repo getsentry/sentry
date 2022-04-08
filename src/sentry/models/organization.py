@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import logging
 from datetime import timedelta
 from enum import IntEnum
-from typing import Sequence
+from typing import TYPE_CHECKING, Sequence
 
 from django.conf import settings
 from django.db import IntegrityError, models, router, transaction
@@ -18,6 +20,9 @@ from sentry.db.models import BaseManager, BoundedPositiveIntegerField, Model, sa
 from sentry.db.models.utils import slugify_instance
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
+
+if TYPE_CHECKING:
+    from sentry.models import User
 
 
 class OrganizationStatus(IntEnum):
@@ -59,11 +64,9 @@ OrganizationStatus._labels = {
 class OrganizationManager(BaseManager):
     def get_for_user_ids(self, user_ids: Sequence[int]) -> QuerySet:
         """Returns the QuerySet of all organizations that a set of Users have access to."""
-        from sentry.models import OrganizationMember
-
         return self.filter(
             status=OrganizationStatus.VISIBLE,
-            id__in=OrganizationMember.objects.filter(user_id__in=user_ids).values("organization"),
+            member_set__user_id__in=user_ids,
         )
 
     def get_for_team_ids(self, team_ids: Sequence[int]) -> QuerySet:
@@ -220,7 +223,7 @@ class Organization(Model):
             "default_role": self.default_role,
         }
 
-    def get_owners(self):
+    def get_owners(self) -> Sequence[User]:
         from sentry.models import User
 
         return User.objects.filter(
@@ -263,10 +266,10 @@ class Organization(Model):
             Team,
         )
 
+        logger = logging.getLogger("sentry.merge")
         for from_member in OrganizationMember.objects.filter(
             organization=from_org, user__isnull=False
         ):
-            logger = logging.getLogger("sentry.merge")
             try:
                 to_member = OrganizationMember.objects.get(
                     organization=to_org, user=from_member.user

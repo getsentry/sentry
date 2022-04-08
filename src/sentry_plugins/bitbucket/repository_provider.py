@@ -2,15 +2,15 @@ from uuid import uuid4
 
 from sentry.app import locks
 from sentry.models import OrganizationOption
-from sentry.plugins import providers
+from sentry.plugins.providers import RepositoryProvider
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.utils.email import parse_email, parse_user_name
 from sentry.utils.http import absolute_uri
 
-from .endpoints.webhook import parse_raw_user_email, parse_raw_user_name
 from .mixins import BitbucketMixin
 
 
-class BitbucketRepositoryProvider(BitbucketMixin, providers.RepositoryProvider):
+class BitbucketRepositoryProvider(BitbucketMixin, RepositoryProvider):
     name = "Bitbucket"
     auth_provider = "bitbucket"
 
@@ -39,7 +39,7 @@ class BitbucketRepositoryProvider(BitbucketMixin, providers.RepositoryProvider):
             try:
                 repo = client.get_repo(config["name"])
             except Exception as e:
-                self.raise_error(e, identity=client.auth)
+                raise self.raise_error(e, identity=client.auth)
             else:
                 config["external_id"] = str(repo["uuid"])
         return config
@@ -75,7 +75,7 @@ class BitbucketRepositoryProvider(BitbucketMixin, providers.RepositoryProvider):
                 },
             )
         except Exception as e:
-            self.raise_error(e, identity=client.auth)
+            raise self.raise_error(e, identity=client.auth)
         else:
             return {
                 "name": data["name"],
@@ -101,8 +101,8 @@ class BitbucketRepositoryProvider(BitbucketMixin, providers.RepositoryProvider):
             {
                 "id": c["hash"],
                 "repository": repo.name,
-                "author_email": parse_raw_user_email(c["author"]["raw"]),
-                "author_name": parse_raw_user_name(c["author"]["raw"]),
+                "author_email": parse_email(c["author"]["raw"]),
+                "author_name": parse_user_name(c["author"]["raw"]),
                 "message": c["message"],
                 "patch_set": c.get("patch_set"),
             }
@@ -120,13 +120,13 @@ class BitbucketRepositoryProvider(BitbucketMixin, providers.RepositoryProvider):
             try:
                 res = client.get_last_commits(name, end_sha)
             except Exception as e:
-                self.raise_error(e, identity=client.auth)
+                raise self.raise_error(e, identity=client.auth)
             else:
                 return self._format_commits(repo, res[:10])
         else:
             try:
                 res = client.compare_commits(name, start_sha, end_sha)
             except Exception as e:
-                self.raise_error(e, identity=client.auth)
+                raise self.raise_error(e, identity=client.auth)
             else:
                 return self._format_commits(repo, res)

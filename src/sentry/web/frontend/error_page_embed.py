@@ -63,8 +63,12 @@ class UserReportForm(forms.ModelForm):
         fields = ("name", "email", "comments")
 
 
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+
 class ErrorPageEmbedView(View):
-    def _get_project_key(self, request):
+    def _get_project_key(self, request: Request):
         try:
             dsn = request.GET["dsn"]
         except KeyError:
@@ -77,10 +81,10 @@ class ErrorPageEmbedView(View):
 
         return key
 
-    def _get_origin(self, request):
+    def _get_origin(self, request: Request):
         return origin_from_request(request)
 
-    def _smart_response(self, request, context=None, status=200):
+    def _smart_response(self, request: Request, context=None, status=200):
         json_context = json.dumps(context or {})
         accept = request.META.get("HTTP_ACCEPT") or ""
         if "text/javascript" in accept:
@@ -100,7 +104,7 @@ class ErrorPageEmbedView(View):
         return response
 
     @csrf_exempt
-    def dispatch(self, request):
+    def dispatch(self, request: Request) -> Response:
         try:
             event_id = request.GET["eventId"]
         except KeyError:

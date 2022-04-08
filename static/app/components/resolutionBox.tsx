@@ -1,24 +1,24 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import UserAvatar from 'app/components/avatar/userAvatar';
-import CommitLink from 'app/components/commitLink';
-import {BannerContainer, BannerSummary} from 'app/components/events/styles';
-import TimeSince from 'app/components/timeSince';
-import Version from 'app/components/version';
-import {IconCheckmark} from 'app/icons';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
+import UserAvatar from 'sentry/components/avatar/userAvatar';
+import CommitLink from 'sentry/components/commitLink';
+import {BannerContainer, BannerSummary} from 'sentry/components/events/styles';
+import TimeSince from 'sentry/components/timeSince';
+import Version from 'sentry/components/version';
+import {IconCheckmark} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {
   GroupActivity,
   GroupActivitySetByResolvedInRelease,
   GroupActivityType,
   ResolutionStatusDetails,
-} from 'app/types';
+} from 'sentry/types';
 
 type Props = {
-  statusDetails: ResolutionStatusDetails;
   projectId: string;
+  statusDetails: ResolutionStatusDetails;
   activities?: GroupActivity[];
 };
 
@@ -44,9 +44,11 @@ function renderReason(
     return tct('[actor] marked this issue as resolved in the upcoming release.', {
       actor,
     });
-  } else if (statusDetails.inNextRelease) {
+  }
+  if (statusDetails.inNextRelease) {
     return t('This issue has been marked as resolved in the upcoming release.');
-  } else if (statusDetails.inRelease && statusDetails.actor) {
+  }
+  if (statusDetails.inRelease && statusDetails.actor) {
     return currentReleaseVersion
       ? tct('[actor] marked this issue as resolved in versions greater than [version].', {
           actor,
@@ -68,7 +70,8 @@ function renderReason(
             />
           ),
         });
-  } else if (statusDetails.inRelease) {
+  }
+  if (statusDetails.inRelease) {
     return currentReleaseVersion
       ? tct(
           'This issue has been marked as resolved in versions greater than [version].',
@@ -91,7 +94,8 @@ function renderReason(
             />
           ),
         });
-  } else if (!!statusDetails.inCommit) {
+  }
+  if (!!statusDetails.inCommit) {
     return tct('This issue has been marked as resolved by [commit]', {
       commit: (
         <Fragment>

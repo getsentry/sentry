@@ -3,23 +3,24 @@ import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import Alert from 'app/components/alert';
-import {IconWarning} from 'app/icons';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {LightWeightOrganization, Project} from 'app/types';
-import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
-import withOrganization from 'app/utils/withOrganization';
-import withProject from 'app/utils/withProject';
+import Alert from 'sentry/components/alert';
+import List from 'sentry/components/list';
+import ListItem from 'sentry/components/list/listItem';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import withOrganization from 'sentry/utils/withOrganization';
+import withProject from 'sentry/utils/withProject';
 
 type Props = WithRouterProps & {
-  organization: LightWeightOrganization;
-  error: Error | undefined;
+  organization: Organization;
   /**
    * Disable logging to Sentry
    */
   disableLogSentry?: boolean;
   disableReport?: boolean;
+  error?: Error;
   project?: Project;
 };
 
@@ -86,7 +87,7 @@ class RouteError extends Component<Props> {
   render() {
     // TODO(dcramer): show additional resource links
     return (
-      <Alert icon={<IconWarning size="md" />} type="error">
+      <Alert type="error">
         <Heading>
           <span>{t('Oops! Something went wrong')}</span>
         </Heading>
@@ -97,15 +98,15 @@ class RouteError extends Component<Props> {
           `)}
         </p>
         <p>{t("If you're daring, you may want to try the following:")}</p>
-        <ul>
+        <List symbol="bullet">
           {window && window.adblockSuspected && (
-            <li>
+            <ListItem>
               {t(
                 "We detected something AdBlock-like. Try disabling it, as it's known to cause issues."
               )}
-            </li>
+            </ListItem>
           )}
-          <li>
+          <ListItem>
             {tct(`Give it a few seconds and [link:reload the page].`, {
               link: (
                 <a
@@ -115,13 +116,13 @@ class RouteError extends Component<Props> {
                 />
               ),
             })}
-          </li>
-          <li>
+          </ListItem>
+          <ListItem>
             {tct(`If all else fails, [link:contact us] with more details.`, {
               link: <a href="https://github.com/getsentry/sentry/issues/new/choose" />,
             })}
-          </li>
-        </ul>
+          </ListItem>
+        </List>
       </Alert>
     );
   }

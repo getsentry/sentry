@@ -1,11 +1,11 @@
 import {RouteComponentProps} from 'react-router';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {t} from 'app/locale';
-import {AuthProvider, Organization} from 'app/types';
-import routeTitleGen from 'app/utils/routeTitle';
-import withOrganization from 'app/utils/withOrganization';
-import AsyncView from 'app/views/asyncView';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {t} from 'sentry/locale';
+import {AuthProvider, Organization} from 'sentry/types';
+import routeTitleGen from 'sentry/utils/routeTitle';
+import withOrganization from 'sentry/utils/withOrganization';
+import AsyncView from 'sentry/views/asyncView';
 
 import OrganizationAuthList from './organizationAuthList';
 
@@ -15,8 +15,8 @@ type Props = AsyncView['props'] &
   };
 
 type State = AsyncView['state'] & {
-  providerList: AuthProvider[] | null;
   provider: AuthProvider | null;
+  providerList: AuthProvider[] | null;
 };
 
 class OrganizationAuth extends AsyncView<Props, State> {

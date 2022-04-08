@@ -1,5 +1,5 @@
-import NotAvailable from 'app/components/notAvailable';
-import PanelTable from 'app/components/panels/panelTable';
+import NotAvailable from 'sentry/components/notAvailable';
+import PanelTable from 'sentry/components/panels/panelTable';
 
 export default {
   title: 'Views/Not Available',

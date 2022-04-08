@@ -23,6 +23,7 @@ sentry-package.json
 /env
 /tmp
 node_modules
+/static/app/constants/ios-device-list.tsx
 /src/sentry/assets.json
 /src/sentry/static/version
 /src/sentry/static/sentry/dist/
@@ -34,7 +35,9 @@ node_modules
 /config/chartcuterie/config.js*
 /config/*.pem
 /tests/apidocs/openapi-derefed.json
+/tests/apidocs/openapi-deprecated.json
 /tests/sentry/utils/appleconnect/*.json
+/tests/apidocs/openapi-spectacular.json
 tests/fixtures/integrations/*/data/**
 /wheelhouse
 /test_cli/

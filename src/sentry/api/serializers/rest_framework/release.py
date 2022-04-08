@@ -3,7 +3,7 @@ from rest_framework import serializers
 from sentry.api.fields.user import UserField
 from sentry.api.serializers.rest_framework import CommitSerializer, ListField
 from sentry.constants import COMMIT_RANGE_DELIMITER, MAX_COMMIT_LENGTH, MAX_VERSION_LENGTH
-from sentry.models import Release, ReleaseStatus
+from sentry.models import OrganizationMember, Release, ReleaseStatus
 
 
 class ReleaseHeadCommitSerializerDeprecated(serializers.Serializer):
@@ -76,3 +76,10 @@ class ReleaseWithVersionSerializer(ReleaseSerializer):
         if not Release.is_valid_version(value):
             raise serializers.ValidationError("Release with name %s is not allowed" % value)
         return value
+
+    def validate_owner(self, owner):
+        if not OrganizationMember.objects.filter(
+            organization=self.context["organization"], user=owner
+        ).exists():
+            raise serializers.ValidationError("User does not have access to this organization")
+        return owner

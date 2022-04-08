@@ -6,19 +6,19 @@ import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
-} from 'app/actionCreators/indicator';
-import ExternalLink from 'app/components/links/externalLink';
-import Pagination from 'app/components/pagination';
-import {PanelTable} from 'app/components/panels';
-import SearchBar from 'app/components/searchBar';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project, SourceMapsArchive} from 'app/types';
-import {decodeScalar} from 'app/utils/queryString';
-import routeTitleGen from 'app/utils/routeTitle';
-import AsyncView from 'app/views/asyncView';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TextBlock from 'app/views/settings/components/text/textBlock';
+} from 'sentry/actionCreators/indicator';
+import ExternalLink from 'sentry/components/links/externalLink';
+import Pagination from 'sentry/components/pagination';
+import {PanelTable} from 'sentry/components/panels';
+import SearchBar from 'sentry/components/searchBar';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project, SourceMapsArchive} from 'sentry/types';
+import {decodeScalar} from 'sentry/utils/queryString';
+import routeTitleGen from 'sentry/utils/routeTitle';
+import AsyncView from 'sentry/views/asyncView';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import SourceMapsArchiveRow from './sourceMapsArchiveRow';
 

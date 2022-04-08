@@ -1,35 +1,38 @@
 import styled from '@emotion/styled';
 
-import ClippedBox from 'app/components/clippedBox';
-import ErrorBoundary from 'app/components/errorBoundary';
-import {Assembly} from 'app/components/events/interfaces/assembly';
-import ContextLine from 'app/components/events/interfaces/contextLine';
-import FrameRegisters from 'app/components/events/interfaces/frameRegisters';
-import FrameVariables from 'app/components/events/interfaces/frameVariables';
-import {OpenInContextLine} from 'app/components/events/interfaces/openInContextLine';
-import StacktraceLink from 'app/components/events/interfaces/stacktraceLink';
-import {parseAssembly} from 'app/components/events/interfaces/utils';
-import {IconFlag} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Frame, Organization, SentryAppComponent} from 'app/types';
-import {Event} from 'app/types/event';
-import {defined} from 'app/utils';
-import withOrganization from 'app/utils/withOrganization';
+import ClippedBox from 'sentry/components/clippedBox';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import {IconFlag} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Frame, Organization, SentryAppComponent} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import {defined} from 'sentry/utils';
+import withOrganization from 'sentry/utils/withOrganization';
+
+import {parseAssembly} from '../utils';
+
+import {Assembly} from './assembly';
+import ContextLine from './contextLine';
+import FrameRegisters from './frameRegisters';
+import FrameVariables from './frameVariables';
+import {OpenInContextLine} from './openInContextLine';
+import StacktraceLink from './stacktraceLink';
 
 type Props = {
-  frame: Frame;
-  event: Event;
-  organization?: Organization;
-  registers: {[key: string]: string};
   components: Array<SentryAppComponent>;
-  isExpanded?: boolean;
+  event: Event;
+  frame: Frame;
+  registers: {[key: string]: string};
+  className?: string;
+  emptySourceNotation?: boolean;
+  expandable?: boolean;
+  hasAssembly?: boolean;
+  hasContextRegisters?: boolean;
   hasContextSource?: boolean;
   hasContextVars?: boolean;
-  hasContextRegisters?: boolean;
-  emptySourceNotation?: boolean;
-  hasAssembly?: boolean;
-  expandable?: boolean;
+  isExpanded?: boolean;
+  organization?: Organization;
 };
 
 const Context = ({
@@ -45,6 +48,7 @@ const Context = ({
   frame,
   event,
   organization,
+  className,
 }: Props) => {
   if (!hasContextSource && !hasContextVars && !hasContextRegisters && !hasAssembly) {
     return emptySourceNotation ? (
@@ -67,7 +71,10 @@ const Context = ({
   const startLineNo = hasContextSource ? frame.context[0][0] : undefined;
 
   return (
-    <ol start={startLineNo} className={`context ${isExpanded ? 'expanded' : ''}`}>
+    <ol
+      start={startLineNo}
+      className={`${className} context ${isExpanded ? 'expanded' : ''}`}
+    >
       {defined(frame.errors) && (
         <li className={expandable ? 'expandable error' : 'error'} key="errors">
           {frame.errors.join(', ')}

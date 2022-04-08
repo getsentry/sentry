@@ -139,8 +139,10 @@ class ExternalActorEndpointMixin:
             raise PermissionDenied
 
     @staticmethod
-    def get_external_actor_or_404(external_actor_id: int) -> ExternalActor:
+    def get_external_actor_or_404(
+        external_actor_id: int, organization: Organization
+    ) -> ExternalActor:
         try:
-            return ExternalActor.objects.get(id=external_actor_id)
+            return ExternalActor.objects.get(id=external_actor_id, organization=organization)
         except ExternalActor.DoesNotExist:
             raise Http404

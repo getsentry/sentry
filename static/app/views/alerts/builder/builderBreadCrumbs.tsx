@@ -1,92 +1,103 @@
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
-import Breadcrumbs, {Crumb, CrumbDropdown} from 'app/components/breadcrumbs';
-import IdBadge from 'app/components/idBadge';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Project} from 'app/types';
-import {isActiveSuperuser} from 'app/utils/isActiveSuperuser';
-import recreateRoute from 'app/utils/recreateRoute';
-import withProjects from 'app/utils/withProjects';
-import MenuItem from 'app/views/settings/components/settingsBreadcrumb/menuItem';
-import {RouteWithName} from 'app/views/settings/components/settingsBreadcrumb/types';
+import Breadcrumbs, {Crumb, CrumbDropdown} from 'sentry/components/breadcrumbs';
+import IdBadge from 'sentry/components/idBadge';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import recreateRoute from 'sentry/utils/recreateRoute';
+import useProjects from 'sentry/utils/useProjects';
+import MenuItem from 'sentry/views/settings/components/settingsBreadcrumb/menuItem';
+import type {RouteWithName} from 'sentry/views/settings/components/settingsBreadcrumb/types';
 
-type Props = {
-  orgSlug: string;
-  title: string;
-  projectSlug: string;
-  projects: Project[];
-  routes: RouteWithName[];
+interface Props {
   location: Location;
+  organization: Organization;
+  projectSlug: string;
+  routes: RouteWithName[];
+  title: string;
   alertName?: string;
+  alertType?: string;
   canChangeProject?: boolean;
-};
+}
 
-function BuilderBreadCrumbs(props: Props) {
-  const {
-    orgSlug,
-    title,
-    alertName,
-    projectSlug,
-    projects,
-    routes,
-    canChangeProject,
-    location,
-  } = props;
-  const project = projects.find(({slug}) => projectSlug === slug);
+function BuilderBreadCrumbs({
+  title,
+  alertName,
+  projectSlug,
+  routes,
+  canChangeProject,
+  location,
+  organization,
+  alertType,
+}: Props) {
+  const {projects} = useProjects();
   const isSuperuser = isActiveSuperuser();
+  const project = projects.find(({slug}) => projectSlug === slug);
+  const hasAlertWizardV3 = organization.features.includes('alert-wizard-v3');
 
-  const projectCrumbLink = {
-    to: `/organizations/${orgSlug}/alerts/rules/?project=${project?.id}`,
-    label: <IdBadge project={project} avatarSize={18} disableLink />,
-    preserveGlobalSelection: true,
+  const label = (
+    <IdBadge project={project ?? {slug: projectSlug}} avatarSize={18} disableLink />
+  );
+
+  const projectCrumbLink: Crumb = {
+    to: `/organizations/${organization.slug}/alerts/rules/?project=${project?.id}`,
+    label,
   };
-  const projectCrumbDropdown = {
-    onSelect: ({value}) => {
-      browserHistory.push(
-        recreateRoute('', {
-          routes,
-          params: {orgId: orgSlug, projectId: value},
-          location,
-        })
-      );
-    },
-    label: <IdBadge project={project} avatarSize={18} disableLink />,
-    items: projects
-      .filter(proj => proj.isMember || isSuperuser)
-      .map((proj, index) => ({
-        index,
-        value: proj.slug,
-        label: (
-          <MenuItem>
-            <IdBadge
-              project={proj}
-              avatarProps={{consistentWidth: true}}
-              avatarSize={18}
-              disableLink
-            />
-          </MenuItem>
-        ),
-        searchKey: proj.slug,
-      })),
-  };
-  const projectCrumb = canChangeProject ? projectCrumbDropdown : projectCrumbLink;
+
+  function getProjectDropdownCrumb(): CrumbDropdown {
+    return {
+      onSelect: ({value: projectId}) => {
+        // TODO(taylangocmen): recreating route doesn't update query, don't edit recreateRoute will add project selector for alert-wizard-v3
+        browserHistory.push(
+          recreateRoute('', {
+            routes,
+            params: hasAlertWizardV3
+              ? {orgId: organization.slug, alertType}
+              : {orgId: organization.slug, projectId},
+            location,
+          })
+        );
+      },
+      label,
+      items: projects
+        .filter(proj => proj.isMember || isSuperuser)
+        .map((proj, index) => ({
+          index,
+          value: proj.slug,
+          label: (
+            <MenuItem>
+              <IdBadge
+                project={proj}
+                avatarProps={{consistentWidth: true}}
+                avatarSize={18}
+                disableLink
+              />
+            </MenuItem>
+          ),
+          searchKey: proj.slug,
+        })),
+    };
+  }
+
+  const projectCrumb = canChangeProject ? getProjectDropdownCrumb() : projectCrumbLink;
 
   const crumbs: (Crumb | CrumbDropdown)[] = [
     {
-      to: `/organizations/${orgSlug}/alerts/rules/`,
+      to: `/organizations/${organization.slug}/alerts/rules/`,
       label: t('Alerts'),
-      preserveGlobalSelection: true,
+      preservePageFilters: true,
     },
-    projectCrumb,
+    ...(hasAlertWizardV3 ? [] : [projectCrumb]),
     {
       label: title,
       ...(alertName
         ? {
-            to: `/organizations/${orgSlug}/alerts/${projectSlug}/wizard`,
-            preserveGlobalSelection: true,
+            to: `/organizations/${organization.slug}/alerts/${projectSlug}/wizard`,
+            preservePageFilters: true,
           }
         : {}),
     },
@@ -103,4 +114,4 @@ const StyledBreadcrumbs = styled(Breadcrumbs)`
   margin-bottom: ${space(3)};
 `;
 
-export default withProjects(BuilderBreadCrumbs);
+export default BuilderBreadCrumbs;

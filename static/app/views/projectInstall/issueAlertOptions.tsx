@@ -1,18 +1,17 @@
-import {ReactElement} from 'react';
 import * as React from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
-import AsyncComponent from 'app/components/asyncComponent';
-import SelectControl from 'app/components/forms/selectControl';
-import PageHeading from 'app/components/pageHeading';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import withOrganization from 'app/utils/withOrganization';
-import Input from 'app/views/settings/components/forms/controls/input';
-import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import Input from 'sentry/components/forms/controls/input';
+import RadioGroup from 'sentry/components/forms/controls/radioGroup';
+import SelectControl from 'sentry/components/forms/selectControl';
+import PageHeading from 'sentry/components/pageHeading';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import withOrganization from 'sentry/utils/withOrganization';
 
 enum MetricValues {
   ERRORS,
@@ -41,35 +40,35 @@ const DEFAULT_PLACEHOLDER_VALUE = '10';
 
 type StateUpdater = (updatedData: RequestDataFragment) => void;
 type Props = AsyncComponent['props'] & {
-  organization: Organization;
   onChange: StateUpdater;
+  organization: Organization;
 };
 
 type State = AsyncComponent['state'] & {
+  alertSetting: string;
   // TODO(ts): When we have alert conditional types, convert this
   conditions: any;
-  intervalChoices: [string, string][] | undefined;
-  threshold: string;
   interval: string;
-  alertSetting: string;
+  intervalChoices: [string, string][] | undefined;
   metric: MetricValues;
+  threshold: string;
 };
 
 type RequestDataFragment = {
-  defaultRules: boolean;
-  shouldCreateCustomRule: boolean;
-  name: string;
-  conditions: {interval: string; id: string; value: string}[] | undefined;
-  actions: {id: string}[];
   actionMatch: string;
+  actions: {id: string}[];
+  conditions: {id: string; interval: string; value: string}[] | undefined;
+  defaultRules: boolean;
   frequency: number;
+  name: string;
+  shouldCreateCustomRule: boolean;
 };
 
 function getConditionFrom(
   interval: string,
   metricValue: MetricValues,
   threshold: string
-): {interval: string; id: string; value: string} {
+): {id: string; interval: string; value: string} {
   let condition: string;
   switch (metricValue) {
     case MetricValues.ERRORS:
@@ -115,12 +114,11 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
     };
   }
 
-  getAvailableMetricChoices() {
+  getAvailableMetricOptions() {
     return [
-      [MetricValues.ERRORS, t('occurrences of')],
-      [MetricValues.USERS, t('users affected by')],
-    ].filter(valueDescriptionPair => {
-      const [value] = valueDescriptionPair;
+      {value: MetricValues.ERRORS, label: t('occurrences of')},
+      {value: MetricValues.USERS, label: t('users affected by')},
+    ].filter(({value}) => {
       return this.state.conditions?.some?.(
         object => object?.id === METRIC_CONDITION_MAP[value]
       );
@@ -129,7 +127,7 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
 
   getIssueAlertsChoices(
     hasProperlyLoadedConditions: boolean
-  ): [string, string | ReactElement][] {
+  ): [string, string | React.ReactElement][] {
     const options: [string, React.ReactNode][] = [
       [Actions.CREATE_ALERT_LATER.toString(), t("I'll create my own alerts later")],
       [Actions.ALERT_ON_EVERY_ISSUE.toString(), t('Alert me on every new issue')],
@@ -163,14 +161,17 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
           />
           <InlineSelectControl
             value={this.state.metric}
-            choices={this.getAvailableMetricChoices()}
+            options={this.getAvailableMetricOptions()}
             onChange={metric => this.setStateAndUpdateParents({metric: metric.value})}
             data-test-id="metric-select-control"
           />
           {t('a unique error in')}
           <InlineSelectControl
             value={this.state.interval}
-            choices={this.state.intervalChoices}
+            options={this.state.intervalChoices?.map(([value, label]) => ({
+              value,
+              label,
+            }))}
             onChange={interval =>
               this.setStateAndUpdateParents({interval: interval.value})
             }
@@ -306,7 +307,7 @@ export default withOrganization(IssueAlertOptions);
 const CustomizeAlertsGrid = styled('div')`
   display: grid;
   grid-template-columns: repeat(5, max-content);
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
 `;
 const InlineInput = styled(Input)`

@@ -1,34 +1,30 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import * as incidentActions from 'app/actionCreators/serviceIncidents';
-import SidebarContainer from 'app/components/sidebar';
-import ConfigStore from 'app/stores/configStore';
+import * as incidentActions from 'sentry/actionCreators/serviceIncidents';
+import SidebarContainer from 'sentry/components/sidebar';
+import ConfigStore from 'sentry/stores/configStore';
 
-jest.mock('app/actionCreators/serviceIncidents');
+jest.mock('sentry/actionCreators/serviceIncidents');
 
 describe('Sidebar', function () {
-  let wrapper;
-  const routerContext = TestStubs.routerContext();
-  const {organization, router} = routerContext.context;
+  const {organization, router} = initializeOrg();
+  const broadcast = TestStubs.Broadcast();
   const user = TestStubs.User();
   const apiMocks = {};
 
-  const createWrapper = props =>
-    mountWithTheme(
-      <SidebarContainer
-        organization={organization}
-        user={user}
-        router={router}
-        location={{...router.location, ...{pathname: '/test/'}}}
-        {...props}
-      />,
-      routerContext
-    );
+  const location = {...router.location, ...{pathname: '/test/'}};
+
+  const getElement = props => (
+    <SidebarContainer organization={organization} location={location} {...props} />
+  );
+
+  const renderSidebar = props => render(getElement(props));
 
   beforeEach(function () {
     apiMocks.broadcasts = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/broadcasts/`,
-      body: [TestStubs.Broadcast()],
+      body: [broadcast],
     });
     apiMocks.broadcastsMarkAsSeen = MockApiClient.addMockResponse({
       url: '/broadcasts/',
@@ -41,250 +37,186 @@ describe('Sidebar', function () {
   });
 
   it('renders', function () {
-    wrapper = mountWithTheme(
-      <SidebarContainer organization={organization} user={user} router={router} />,
-      TestStubs.routerContext()
-    );
-
-    expect(wrapper.find('SidebarWrapper')).toHaveLength(1);
+    renderSidebar();
+    expect(screen.getByTestId('sidebar-dropdown')).toBeInTheDocument();
   });
 
-  it('renders without org and router', function () {
-    wrapper = createWrapper({
-      organization: null,
-      router: null,
-    });
+  it('renders without org', function () {
+    const {container} = renderSidebar({organization: null});
 
     // no org displays user details
-    expect(wrapper.find('OrgOrUserName').text()).toContain(user.name);
-    expect(wrapper.find('UserNameOrEmail').text()).toContain(user.email);
+    expect(screen.getByText(user.name)).toBeInTheDocument();
+    expect(screen.getByText(user.email)).toBeInTheDocument();
 
-    wrapper.find('SidebarDropdownActor').simulate('click');
-    expect(wrapper).toSnapshot();
+    userEvent.click(screen.getByTestId('sidebar-dropdown'));
+    expect(container).toSnapshot();
   });
 
-  it('can toggle collapsed state', async function () {
-    wrapper = mountWithTheme(
-      <SidebarContainer organization={organization} user={user} router={router} />,
-      routerContext
-    );
-
-    expect(wrapper.find('OrgOrUserName').text()).toContain(organization.name);
-    expect(wrapper.find('UserNameOrEmail').text()).toContain(user.name);
-
-    wrapper.find('SidebarCollapseItem StyledSidebarItem').simulate('click');
-    await tick();
-    wrapper.update();
-
-    // Because of HoCs, we can't access the collapsed prop
-    // Instead check for `SidebarItemLabel` which doesn't exist in collapsed state
-    expect(wrapper.find('SidebarItemLabel')).toHaveLength(0);
-
-    wrapper.find('SidebarCollapseItem StyledSidebarItem').simulate('click');
-    await tick();
-    wrapper.update();
-    expect(wrapper.find('SidebarItemLabel').length).toBeGreaterThan(0);
-  });
-
-  it('can have onboarding feature', async function () {
-    wrapper = mountWithTheme(
-      <SidebarContainer
-        organization={{...organization, features: ['onboarding']}}
-        user={user}
-        router={router}
-      />,
-      routerContext
-    );
-
-    expect(wrapper.find('OnboardingStatus ProgressRing')).toHaveLength(1);
-
-    wrapper.find('OnboardingStatus ProgressRing').simulate('click');
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('OnboardingStatus TaskSidebarPanel').exists()).toBe(true);
-  });
-
-  describe('SidebarHelp', function () {
-    it('can toggle help menu', function () {
-      wrapper = createWrapper();
-      wrapper.find('HelpActor').simulate('click');
-      const menu = wrapper.find('HelpMenu');
-      expect(menu).toHaveLength(1);
-      expect(wrapper).toSnapshot();
-      expect(menu.find('SidebarMenuItem')).toHaveLength(2);
-      wrapper.find('HelpActor').simulate('click');
-      expect(wrapper.find('HelpMenu')).toHaveLength(0);
+  it('has can logout', async function () {
+    const mock = MockApiClient.addMockResponse({
+      url: '/auth/',
+      method: 'DELETE',
+      status: 204,
     });
+    jest.spyOn(window.location, 'assign').mockImplementation(() => {});
+
+    renderSidebar({
+      organization: TestStubs.Organization({access: ['member:read']}),
+    });
+
+    userEvent.click(screen.getByTestId('sidebar-dropdown'));
+    userEvent.click(screen.getByTestId('sidebar-signout'));
+
+    await waitFor(() => expect(mock).toHaveBeenCalled());
+
+    expect(window.location.assign).toHaveBeenCalledWith('/auth/login/');
+    window.location.assign.mockRestore();
+  });
+
+  it('can toggle help menu', function () {
+    const {container} = renderSidebar();
+
+    userEvent.click(screen.getByText('Help'));
+
+    expect(screen.getByText('Visit Help Center')).toBeInTheDocument();
+    expect(container).toSnapshot();
   });
 
   describe('SidebarDropdown', function () {
     it('can open Sidebar org/name dropdown menu', function () {
-      wrapper = createWrapper();
-      wrapper.find('SidebarDropdownActor').simulate('click');
-      expect(wrapper.find('OrgAndUserMenu')).toHaveLength(1);
-      expect(wrapper).toSnapshot();
+      const {container} = renderSidebar();
+
+      userEvent.click(screen.getByTestId('sidebar-dropdown'));
+
+      const orgSettingsLink = screen.getByText('Organization settings');
+      expect(orgSettingsLink).toBeInTheDocument();
+      expect(container).toSnapshot();
     });
 
     it('has link to Members settings with `member:write`', function () {
-      let org = TestStubs.Organization();
-      org = {
-        ...org,
-        access: [...org.access, 'member:read'],
-      };
-
-      wrapper = createWrapper({
-        organization: org,
+      renderSidebar({
+        organization: TestStubs.Organization({access: ['member:read']}),
       });
-      wrapper.find('SidebarDropdownActor').simulate('click');
-      expect(wrapper.find('OrgAndUserMenu')).toHaveLength(1);
-      expect(
-        wrapper.find('SidebarMenuItem[to="/settings/org-slug/members/"]')
-      ).toHaveLength(1);
+
+      userEvent.click(screen.getByTestId('sidebar-dropdown'));
+
+      expect(screen.getByText('Members')).toBeInTheDocument();
     });
 
     it('can open "Switch Organization" sub-menu', function () {
-      ConfigStore.set('features', new Set(['organizations:create']));
+      act(() => void ConfigStore.set('features', new Set(['organizations:create'])));
+
+      const {container} = renderSidebar();
+
+      userEvent.click(screen.getByTestId('sidebar-dropdown'));
+
       jest.useFakeTimers();
-      wrapper = createWrapper();
-      wrapper.find('SidebarDropdownActor').simulate('click');
-      wrapper.find('SwitchOrganizationMenuActor').simulate('mouseEnter');
-      jest.advanceTimersByTime(500);
-      wrapper.update();
-      expect(wrapper.find('SwitchOrganizationMenu')).toHaveLength(1);
-      expect(wrapper).toSnapshot();
+      userEvent.type(screen.getByText('Switch organization'), '{enter}');
+      act(() => jest.advanceTimersByTime(500));
       jest.useRealTimers();
-    });
 
-    it('has can logout', async function () {
-      const mock = MockApiClient.addMockResponse({
-        url: '/auth/',
-        method: 'DELETE',
-        status: 204,
-      });
-      jest.spyOn(window.location, 'assign').mockImplementation(() => {});
+      const createOrg = screen.getByText('Create a new organization');
+      expect(createOrg).toBeInTheDocument();
 
-      let org = TestStubs.Organization();
-      org = {
-        ...org,
-        access: [...org.access, 'member:read'],
-      };
-
-      wrapper = createWrapper({
-        organization: org,
-        user: TestStubs.User(),
-      });
-      wrapper.find('SidebarDropdownActor').simulate('click');
-      wrapper.find('SidebarMenuItem[data-test-id="sidebarSignout"]').simulate('click');
-      expect(mock).toHaveBeenCalled();
-
-      await tick();
-      expect(window.location.assign).toHaveBeenCalledWith('/auth/login/');
-      window.location.assign.mockRestore();
+      expect(container).toSnapshot();
     });
   });
 
   describe('SidebarPanel', function () {
+    it('hides when path changes', async function () {
+      const {rerender} = renderSidebar();
+
+      userEvent.click(screen.getByText("What's new"));
+      expect(await screen.findByRole('dialog')).toBeInTheDocument();
+      expect(screen.getByText("What's new in Sentry")).toBeInTheDocument();
+
+      rerender(getElement({location: {...router.location, pathname: 'new-path-name'}}));
+
+      expect(screen.queryByText("What's new in Sentry")).not.toBeInTheDocument();
+    });
+
+    it('can have onboarding feature', async function () {
+      renderSidebar({
+        organization: {...organization, features: ['onboarding']},
+      });
+
+      const quickStart = screen.getByText('Quick Start');
+
+      expect(quickStart).toBeInTheDocument();
+      userEvent.click(quickStart);
+
+      expect(await screen.findByRole('dialog')).toBeInTheDocument();
+      expect(screen.getByText('Capture your first error')).toBeInTheDocument();
+    });
+
     it('displays empty panel when there are no Broadcasts', async function () {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/broadcasts/`,
         body: [],
       });
-      wrapper = createWrapper();
+      renderSidebar();
 
-      wrapper.find('Broadcasts SidebarItem').simulate('click');
+      userEvent.click(screen.getByText("What's new"));
 
-      await tick();
-      wrapper.update();
-      expect(wrapper.find('SidebarPanel')).toHaveLength(1);
-
-      expect(wrapper.find('SidebarPanelItem')).toHaveLength(0);
-      expect(wrapper.find('SidebarPanelEmpty')).toHaveLength(1);
+      expect(await screen.findByRole('dialog')).toBeInTheDocument();
+      expect(screen.getByText("What's new in Sentry")).toBeInTheDocument();
+      expect(
+        screen.getByText('No recent updates from the Sentry team.')
+      ).toBeInTheDocument();
 
       // Close the sidebar
-      wrapper.find('Broadcasts SidebarItem').simulate('click');
-      await tick();
-      wrapper.update();
+      userEvent.click(screen.getByText("What's new"));
+      expect(screen.queryByText("What's new in Sentry")).not.toBeInTheDocument();
     });
 
     it('can display Broadcasts panel and mark as seen', async function () {
       jest.useFakeTimers();
-      wrapper = createWrapper();
+      const {container} = renderSidebar();
+
       expect(apiMocks.broadcasts).toHaveBeenCalled();
 
-      wrapper.find('Broadcasts SidebarItem').simulate('click');
+      userEvent.click(screen.getByText("What's new"));
 
-      // XXX: Need to do this for reflux since we're using fake timers
-      jest.advanceTimersByTime(0);
-      await Promise.resolve();
-      wrapper.update();
+      expect(await screen.findByRole('dialog')).toBeInTheDocument();
+      expect(screen.getByText("What's new in Sentry")).toBeInTheDocument();
 
-      expect(wrapper.find('SidebarPanel')).toHaveLength(1);
-
-      expect(wrapper.find('SidebarPanelItem')).toHaveLength(1);
-      expect(wrapper.find('SidebarPanelItem').prop('hasSeen')).toBe(false);
-
-      expect(wrapper.find('SidebarPanelItem')).toSnapshot();
+      const broadcastTitle = screen.getByText(broadcast.title);
+      expect(broadcastTitle).toBeInTheDocument();
+      expect(container).toSnapshot();
 
       // Should mark as seen after a delay
-      jest.advanceTimersByTime(2000);
+      act(() => jest.advanceTimersByTime(2000));
+
       expect(apiMocks.broadcastsMarkAsSeen).toHaveBeenCalledWith(
         '/broadcasts/',
         expect.objectContaining({
-          data: {
-            hasSeen: '1',
-          },
-          query: {
-            id: ['8'],
-          },
+          data: {hasSeen: '1'},
+          query: {id: ['8']},
         })
       );
       jest.useRealTimers();
 
       // Close the sidebar
-      wrapper.find('Broadcasts SidebarItem').simulate('click');
-    });
-
-    it('can toggle display of Broadcasts SidebarPanel', async function () {
-      wrapper = createWrapper();
-      wrapper.update();
-
-      // Show Broadcasts Panel
-      wrapper.find('Broadcasts SidebarItem').simulate('click');
-      await tick();
-      wrapper.update();
-      expect(wrapper.find('SidebarPanel')).toHaveLength(1);
-
-      // Hide Broadcasts Panel
-      wrapper.find('Broadcasts SidebarItem').simulate('click');
-      await tick();
-      wrapper.update();
-      expect(wrapper.find('SidebarPanel')).toHaveLength(0);
-
-      // Close the sidebar
-      wrapper.find('Broadcasts SidebarItem').simulate('click');
+      userEvent.click(screen.getByText("What's new"));
+      expect(screen.queryByText("What's new in Sentry")).not.toBeInTheDocument();
     });
 
     it('can unmount Sidebar (and Broadcasts) and kills Broadcast timers', async function () {
       jest.useFakeTimers();
-      wrapper = createWrapper();
-      const broadcasts = wrapper.find('Broadcasts').instance();
+      const {unmount} = renderSidebar();
 
       // This will start timer to mark as seen
-      await wrapper.find('Broadcasts SidebarItem').simulate('click');
-      wrapper.update();
+      userEvent.click(screen.getByRole('link', {name: "What's new"}));
+      expect(await screen.findByText("What's new in Sentry")).toBeInTheDocument();
 
-      jest.advanceTimersByTime(500);
-      expect(broadcasts.poller).toBeDefined();
-      expect(broadcasts.timer).toBeDefined();
+      act(() => jest.advanceTimersByTime(500));
 
       // Unmounting will cancel timers
-      wrapper.unmount();
-      expect(broadcasts.poller).toBe(null);
-      expect(broadcasts.timer).toBe(null);
+      unmount();
 
-      // This advances timers enough so that mark as seen should be called if it wasn't unmounted
-      jest.advanceTimersByTime(600);
+      // This advances timers enough so that mark as seen should be called if
+      // it wasn't unmounted
+      act(() => jest.advanceTimersByTime(600));
       expect(apiMocks.broadcastsMarkAsSeen).not.toHaveBeenCalled();
       jest.useRealTimers();
     });
@@ -294,42 +226,27 @@ describe('Sidebar', function () {
         incidents: [TestStubs.ServiceIncident()],
       }));
 
-      wrapper = createWrapper();
-      await tick();
+      const {container} = renderSidebar();
 
-      wrapper.find('ServiceIncidents').simulate('click');
-      await tick();
-      wrapper.update();
-      expect(wrapper.find('SidebarPanel')).toHaveLength(1);
+      userEvent.click(await screen.findByText('Service status'));
 
-      expect(wrapper.find('IncidentList')).toSnapshot();
+      expect(container).toSnapshot();
     });
+  });
 
-    it('hides when path changes', async function () {
-      wrapper = createWrapper();
-      wrapper.update();
+  it('can toggle collapsed state', async function () {
+    renderSidebar();
 
-      wrapper.find('Broadcasts SidebarItem').simulate('click');
-      await tick();
-      wrapper.update();
-      expect(wrapper.find('SidebarPanel')).toHaveLength(1);
+    expect(screen.getByText(user.name)).toBeInTheDocument();
+    expect(screen.getByText(organization.name)).toBeInTheDocument();
 
-      const prevProps = wrapper.props();
+    userEvent.click(screen.getByTestId('sidebar-collapse'));
 
-      wrapper.setProps({
-        location: {...router.location, pathname: 'new-path-name'},
-      });
+    // Check that the organization name is no longer visible
+    expect(screen.queryByText(organization.name)).not.toBeInTheDocument();
 
-      // XXX(epurkhsier): Due to a bug in enzyme [0], componentDidUpdate is not
-      // called after props have updated, it still receives _old_ `this.props`.
-      // We manually call it here after the props have been correctly updated.
-      //
-      // [0]: https://github.com/enzymejs/enzyme/issues/2197
-      wrapper.find('Sidebar').instance().componentDidUpdate(prevProps);
-
-      await tick();
-      wrapper.update();
-      expect(wrapper.find('SidebarPanel')).toHaveLength(0);
-    });
+    // Un-collapse he sidebar and make sure the org name is visible again
+    userEvent.click(screen.getByTestId('sidebar-collapse'));
+    expect(await screen.findByText(organization.name)).toBeInTheDocument();
   });
 });

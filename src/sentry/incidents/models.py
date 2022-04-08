@@ -10,6 +10,7 @@ from django.utils import timezone
 from sentry.db.models import (
     ArrayField,
     FlexibleForeignKey,
+    JSONField,
     Model,
     OneToOneCascadeDeletes,
     UUIDField,
@@ -193,7 +194,7 @@ class Incident(Model):
 class PendingIncidentSnapshot(Model):
     __include_in_export__ = True
 
-    incident = OneToOneCascadeDeletes("sentry.Incident")
+    incident = OneToOneCascadeDeletes("sentry.Incident", db_constraint=False)
     target_run_date = models.DateTimeField(db_index=True, default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
 
@@ -205,8 +206,8 @@ class PendingIncidentSnapshot(Model):
 class IncidentSnapshot(Model):
     __include_in_export__ = True
 
-    incident = OneToOneCascadeDeletes("sentry.Incident")
-    event_stats_snapshot = FlexibleForeignKey("sentry.TimeSeriesSnapshot")
+    incident = OneToOneCascadeDeletes("sentry.Incident", db_constraint=False)
+    event_stats_snapshot = FlexibleForeignKey("sentry.TimeSeriesSnapshot", db_constraint=False)
     unique_users = models.IntegerField()
     total_events = models.IntegerField()
     date_added = models.DateTimeField(default=timezone.now)
@@ -228,26 +229,6 @@ class TimeSeriesSnapshot(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_timeseriessnapshot"
-
-    @property
-    def snuba_values(self):
-        """
-        Returns values matching the snuba format, a list of dicts with 'time'
-        and 'count' keys.
-        :return:
-        """
-        # We store the values here as floats so that we can support percentage stats.
-        # We don't want to return the time as a float, and to keep things consistent
-        # with what Snuba returns we cast floats to ints when they're whole numbers.
-        return {
-            "data": [
-                {
-                    "time": int(time),
-                    "count": count if count is None or not count.is_integer() else int(count),
-                }
-                for time, count in self.values
-            ]
-        }
 
 
 class IncidentActivityType(Enum):
@@ -382,7 +363,11 @@ class AlertRule(Model):
     include_all_projects = models.BooleanField(default=False)
     threshold_type = models.SmallIntegerField(null=True)
     resolve_threshold = models.FloatField(null=True)
+    # How many times an alert value must exceed the threshold to fire/resolve the alert
     threshold_period = models.IntegerField()
+    # This represents a time delta, in seconds. If not null, this is used to determine which time
+    # window to query to compare the result from the current time_window to.
+    comparison_delta = models.IntegerField(null=True)
     date_modified = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
 
@@ -391,12 +376,6 @@ class AlertRule(Model):
         db_table = "sentry_alertrule"
         base_manager_name = "objects_with_snapshots"
         default_manager_name = "objects_with_snapshots"
-        # This constraint does not match what is in migration 0061, since there is no
-        # way to declare an index on an expression. Therefore, tests would break depending
-        # on whether we run migrations - to work around this, we skip some tests if
-        # migrations have not been run. In migration 0061, this index is set to
-        # a partial index where status=0
-        unique_together = (("organization", "name", "status"),)
 
     __repr__ = sane_repr("id", "name", "date_added")
 
@@ -410,6 +389,9 @@ class AlertRule(Model):
         except AlertRuleActivity.DoesNotExist:
             pass
         return None
+
+    def get_audit_log_data(self):
+        return {"label": self.name}
 
 
 class TriggerStatus(Enum):
@@ -571,6 +553,7 @@ class AlertRuleTriggerAction(Model):
     # Human readable name to display in the UI
     target_display = models.TextField(null=True)
     date_added = models.DateTimeField(default=timezone.now)
+    sentry_app_config = JSONField(null=True)
 
     class Meta:
         app_label = "sentry"
@@ -600,15 +583,15 @@ class AlertRuleTriggerAction(Model):
         else:
             metrics.incr(f"alert_rule_trigger.unhandled_type.{self.type}")
 
-    def fire(self, action, incident, project, metric_value):
+    def fire(self, action, incident, project, metric_value, new_status):
         handler = self.build_handler(action, incident, project)
         if handler:
-            return handler.fire(metric_value)
+            return handler.fire(metric_value, new_status)
 
-    def resolve(self, action, incident, project, metric_value):
+    def resolve(self, action, incident, project, metric_value, new_status):
         handler = self.build_handler(action, incident, project)
         if handler:
-            return handler.resolve(metric_value)
+            return handler.resolve(metric_value, new_status)
 
     @classmethod
     def register_type(cls, slug, type, supported_target_types, integration_provider=None):

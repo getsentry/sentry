@@ -1,15 +1,15 @@
 import {browserHistory} from 'react-router';
 import {Location, Query} from 'history';
-import Papa from 'papaparse';
+import * as Papa from 'papaparse';
 
-import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
-import {URL_PARAM} from 'app/constants/globalSelectionHeader';
-import {t} from 'app/locale';
-import {LightWeightOrganization, Organization, SelectValue} from 'app/types';
-import {Event} from 'app/types/event';
-import {getUtcDateString} from 'app/utils/dates';
-import {TableDataRow} from 'app/utils/discover/discoverQuery';
-import EventView from 'app/utils/discover/eventView';
+import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import {URL_PARAM} from 'sentry/constants/pageFilters';
+import {t} from 'sentry/locale';
+import {Organization, SelectValue} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import {getUtcDateString} from 'sentry/utils/dates';
+import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import EventView from 'sentry/utils/discover/eventView';
 import {
   aggregateFunctionOutputType,
   Aggregation,
@@ -20,16 +20,17 @@ import {
   Field,
   FIELDS,
   getAggregateAlias,
+  getEquation,
   isAggregateEquation,
   isEquation,
   isMeasurement,
   isSpanOperationBreakdownField,
   measurementType,
   TRACING_FIELDS,
-} from 'app/utils/discover/fields';
-import {getTitle} from 'app/utils/events';
-import localStorage from 'app/utils/localStorage';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
+} from 'sentry/utils/discover/fields';
+import {getTitle} from 'sentry/utils/events';
+import localStorage from 'sentry/utils/localStorage';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 import {FieldValue, FieldValueKind, TableColumn} from './table/types';
 import {ALL_VIEWS, TRANSACTION_VIEWS, WEB_VITALS_VIEWS} from './data';
@@ -41,7 +42,7 @@ export type QueryWithColumnState =
       sort: string | string[] | null | undefined;
     };
 
-const TEMPLATE_TABLE_COLUMN: TableColumn<React.ReactText> = {
+const TEMPLATE_TABLE_COLUMN: TableColumn<string> = {
   key: '',
   name: '',
 
@@ -54,21 +55,21 @@ const TEMPLATE_TABLE_COLUMN: TableColumn<React.ReactText> = {
 
 // TODO(mark) these types are coupled to the gridEditable component types and
 // I'd prefer the types to be more general purpose but that will require a second pass.
-export function decodeColumnOrder(
-  fields: Readonly<Field[]>
-): TableColumn<React.ReactText>[] {
+export function decodeColumnOrder(fields: Readonly<Field[]>): TableColumn<string>[] {
   let equations = 0;
   return fields.map((f: Field) => {
-    const column: TableColumn<React.ReactText> = {...TEMPLATE_TABLE_COLUMN};
+    const column: TableColumn<string> = {...TEMPLATE_TABLE_COLUMN};
 
-    const col = explodeFieldString(f.field);
-    let columnName = f.field;
+    const col = explodeFieldString(f.field, f.alias);
+    const columnName = f.field;
     if (isEquation(f.field)) {
-      columnName = `equation[${equations}]`;
+      column.key = `equation[${equations}]`;
+      column.name = getEquation(columnName);
       equations += 1;
+    } else {
+      column.key = columnName;
+      column.name = columnName;
     }
-    column.key = columnName;
-    column.name = columnName;
     column.width = f.width || COL_WIDTH_UNDEFINED;
 
     if (col.kind === 'function') {
@@ -140,7 +141,7 @@ export function generateTitle({
   return titles.join(' - ');
 }
 
-export function getPrebuiltQueries(organization: LightWeightOrganization) {
+export function getPrebuiltQueries(organization: Organization) {
   const views = [...ALL_VIEWS];
   if (organization.features.includes('performance-view')) {
     // insert transactions queries at index 2
@@ -244,7 +245,7 @@ export function getExpandedResults(
   // Expand any functions in the resulting column, and dedupe the result.
   // Mark any column as null to remove it.
   const expandedColumns: (Column | null)[] = eventView.fields.map((field: Field) => {
-    const exploded = explodeFieldString(field.field);
+    const exploded = explodeFieldString(field.field, field.alias);
     const column = exploded.kind === 'function' ? drilldownAggregate(exploded) : exploded;
 
     if (
@@ -299,7 +300,7 @@ function generateAdditionalConditions(
   }
 
   eventView.fields.forEach((field: Field) => {
-    const column = explodeFieldString(field.field);
+    const column = explodeFieldString(field.field, field.alias);
 
     // Skip aggregate fields
     if (column.kind === 'function') {
@@ -318,10 +319,9 @@ function generateAdditionalConditions(
         if (value.length > 1) {
           conditions[column.field] = value;
           return;
-        } else {
-          // An array with only one value is equivalent to the value itself.
-          value = value[0];
         }
+        // An array with only one value is equivalent to the value itself.
+        value = value[0];
       }
 
       // if the value will be quoted, then do not trim it as the whitespaces
@@ -423,12 +423,12 @@ function generateExpandedConditions(
 }
 
 type FieldGeneratorOpts = {
-  organization: LightWeightOrganization;
-  tagKeys?: string[] | null;
-  measurementKeys?: string[] | null;
-  spanOperationBreakdownKeys?: string[];
+  organization: Organization;
   aggregations?: Record<string, Aggregation>;
   fields?: Record<string, ColumnType>;
+  measurementKeys?: string[] | null;
+  spanOperationBreakdownKeys?: string[];
+  tagKeys?: string[] | null;
 };
 
 export function generateFieldOptions({
@@ -439,7 +439,7 @@ export function generateFieldOptions({
   aggregations = AGGREGATIONS,
   fields = FIELDS,
 }: FieldGeneratorOpts) {
-  let fieldKeys = Object.keys(fields);
+  let fieldKeys = Object.keys(fields).sort();
   let functions = Object.keys(aggregations);
 
   // Strip tracing features if the org doesn't have access.
@@ -461,7 +461,7 @@ export function generateFieldOptions({
       }
       return {
         ...param,
-        ...overrides({parameter: param, organization}),
+        ...overrides({parameter: param}),
       };
     });
 
@@ -490,23 +490,8 @@ export function generateFieldOptions({
     };
   });
 
-  if (tagKeys !== undefined && tagKeys !== null) {
-    tagKeys.forEach(tag => {
-      const tagValue =
-        fields.hasOwnProperty(tag) || AGGREGATIONS.hasOwnProperty(tag)
-          ? `tags[${tag}]`
-          : tag;
-      fieldOptions[`tag:${tag}`] = {
-        label: tag,
-        value: {
-          kind: FieldValueKind.TAG,
-          meta: {name: tagValue, dataType: 'string'},
-        },
-      };
-    });
-  }
-
   if (measurementKeys !== undefined && measurementKeys !== null) {
+    measurementKeys.sort();
     measurementKeys.forEach(measurement => {
       fieldOptions[`measurement:${measurement}`] = {
         label: measurement,
@@ -519,12 +504,30 @@ export function generateFieldOptions({
   }
 
   if (Array.isArray(spanOperationBreakdownKeys)) {
+    spanOperationBreakdownKeys.sort();
     spanOperationBreakdownKeys.forEach(breakdownField => {
       fieldOptions[`span_op_breakdown:${breakdownField}`] = {
         label: breakdownField,
         value: {
           kind: FieldValueKind.BREAKDOWN,
           meta: {name: breakdownField, dataType: 'duration'},
+        },
+      };
+    });
+  }
+
+  if (tagKeys !== undefined && tagKeys !== null) {
+    tagKeys.sort();
+    tagKeys.forEach(tag => {
+      const tagValue =
+        fields.hasOwnProperty(tag) || AGGREGATIONS.hasOwnProperty(tag)
+          ? `tags[${tag}]`
+          : tag;
+      fieldOptions[`tag:${tag}`] = {
+        label: tag,
+        value: {
+          kind: FieldValueKind.TAG,
+          meta: {name: tagValue, dataType: 'string'},
         },
       };
     });

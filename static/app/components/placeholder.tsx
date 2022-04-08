@@ -1,7 +1,7 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
+import space from 'sentry/styles/space';
 
 const defaultProps = {
   shape: 'rect' as 'rect' | 'circle',
@@ -14,8 +14,8 @@ const defaultProps = {
 type DefaultProps = Readonly<typeof defaultProps>;
 
 type Props = {
-  className?: string;
   children?: React.ReactNode;
+  className?: string;
   error?: React.ReactNode;
   testId?: string;
 } & Partial<DefaultProps>;

@@ -1,4 +1,11 @@
-from sentry.models import Organization, OrganizationStatus, User, UserOption
+from sentry.models import (
+    Organization,
+    OrganizationStatus,
+    User,
+    UserOption,
+    UserPermission,
+    UserRole,
+)
 from sentry.testutils import APITestCase
 
 
@@ -36,6 +43,23 @@ class UserDetailsGetTest(UserDetailsTest):
         assert resp.data["id"] == str(self.user.id)
         assert "identities" in resp.data
         assert len(resp.data["identities"]) == 0
+
+    def test_includes_roles_and_permissions(self):
+        superuser = self.create_user(email="b@example.com", is_superuser=True)
+        self.add_user_permission(superuser, "users.admin")
+        self.login_as(user=superuser, superuser=True)
+
+        resp = self.get_valid_response(superuser.id)
+
+        assert resp.data["id"] == str(superuser.id)
+        assert "permissions" in resp.data
+        assert resp.data["permissions"] == ["users.admin"]
+
+        role = UserRole.objects.create(name="test", permissions=["broadcasts.admin"])
+        role.users.add(superuser)
+
+        resp = self.get_valid_response(superuser.id)
+        assert resp.data["permissions"] == ["broadcasts.admin", "users.admin"]
 
 
 class UserDetailsUpdateTest(UserDetailsTest):
@@ -82,26 +106,6 @@ class UserDetailsUpdateTest(UserDetailsTest):
 
         assert UserOption.objects.get_value(user=self.user, key="language") == "en"
 
-    def test_superuser(self):
-        # superuser should be able to change self.user's name
-        superuser = self.create_user(email="b@example.com", is_superuser=True)
-        self.login_as(user=superuser, superuser=True)
-
-        resp = self.get_valid_response(
-            self.user.id,
-            name="hello world",
-            email="c@example.com",
-            isActive="false",
-        )
-        assert resp.data["id"] == str(self.user.id)
-
-        user = User.objects.get(id=self.user.id)
-        assert user.name == "hello world"
-        # note: email should not change, removed support for email changing from this endpoint
-        assert user.email == "a@example.com"
-        assert user.username == "a@example.com"
-        assert not user.is_active
-
     def test_managed_fields(self):
         assert self.user.name == "example name"
         with self.settings(SENTRY_MANAGED_USER_FIELDS=("name",)):
@@ -135,6 +139,92 @@ class UserDetailsUpdateTest(UserDetailsTest):
 
         assert user.email == "new@example.com"
         assert user.username == "new@example.com"
+
+
+class UserDetailsSuperuserUpdateTest(UserDetailsTest):
+    method = "put"
+
+    def test_superuser_can_change_is_active(self):
+        superuser = self.create_user(email="b@example.com", is_superuser=True)
+        self.login_as(user=superuser, superuser=True)
+
+        resp = self.get_valid_response(
+            self.user.id,
+            isActive="false",
+        )
+        assert resp.data["id"] == str(self.user.id)
+
+        user = User.objects.get(id=self.user.id)
+        assert not user.is_active
+
+    def test_superuser_with_permission_can_change_is_active(self):
+        superuser = self.create_user(email="b@example.com", is_superuser=True)
+        UserPermission.objects.create(user=superuser, permission="users.admin")
+        self.login_as(user=superuser, superuser=True)
+
+        resp = self.get_valid_response(
+            self.user.id,
+            isActive="false",
+        )
+        assert resp.data["id"] == str(self.user.id)
+
+        user = User.objects.get(id=self.user.id)
+        assert not user.is_active
+
+    def test_superuser_cannot_add_superuser(self):
+        superuser = self.create_user(email="b@example.com", is_superuser=True)
+        self.login_as(user=superuser, superuser=True)
+
+        resp = self.get_valid_response(
+            self.user.id,
+            isSuperuser="true",
+        )
+        assert resp.data["id"] == str(self.user.id)
+
+        user = User.objects.get(id=self.user.id)
+        assert not user.is_superuser
+
+    def test_superuser_cannot_add_staff(self):
+        self.user.update(is_staff=False)
+        superuser = self.create_user(email="b@example.com", is_superuser=True)
+        self.login_as(user=superuser, superuser=True)
+
+        resp = self.get_valid_response(
+            self.user.id,
+            isStaff="true",
+        )
+        assert resp.data["id"] == str(self.user.id)
+
+        user = User.objects.get(id=self.user.id)
+        assert not user.is_staff
+
+    def test_superuser_with_permission_can_add_superuser(self):
+        superuser = self.create_user(email="b@example.com", is_superuser=True)
+        UserPermission.objects.create(user=superuser, permission="users.admin")
+        self.login_as(user=superuser, superuser=True)
+
+        resp = self.get_valid_response(
+            self.user.id,
+            isSuperuser="true",
+        )
+        assert resp.data["id"] == str(self.user.id)
+
+        user = User.objects.get(id=self.user.id)
+        assert user.is_superuser
+
+    def test_superuser_with_permission_can_add_staff(self):
+        superuser = self.create_user(email="b@example.com", is_superuser=True)
+        UserPermission.objects.create(user=superuser, permission="users.admin")
+        self.login_as(user=superuser, superuser=True)
+
+        resp = self.get_valid_response(
+            self.user.id,
+            isStaff="true",
+        )
+        assert resp.data["id"] == str(self.user.id)
+
+        user = User.objects.get(id=self.user.id)
+        assert user.is_staff
 
 
 class UserDetailsDeleteTest(UserDetailsTest):
@@ -214,14 +304,29 @@ class UserDetailsDeleteTest(UserDetailsTest):
         # Cannot hard delete your own account
         self.get_valid_response(self.user.id, hardDelete=True, organizations=[], status_code=403)
 
-    def test_hard_delete_account(self):
+    def test_hard_delete_account_without_permission(self):
+        self.user.update(is_superuser=True)
         user2 = self.create_user(email="user2@example.com")
 
         # failed authorization, user does not have permissions to delete another user
         self.get_valid_response(user2.id, hardDelete=True, organizations=[], status_code=403)
 
         # Reauthenticate as super user to hard delete an account
+        self.login_as(user=self.user, superuser=True)
+
+        self.get_valid_response(user2.id, hardDelete=True, organizations=[], status_code=403)
+
+        assert User.objects.filter(id=user2.id).exists()
+
+    def test_hard_delete_account_with_permission(self):
         self.user.update(is_superuser=True)
+        user2 = self.create_user(email="user2@example.com")
+
+        # failed authorization, user does not have permissions to delete another user
+        self.get_valid_response(user2.id, hardDelete=True, organizations=[], status_code=403)
+
+        # Reauthenticate as super user to hard delete an account
+        UserPermission.objects.create(user=self.user, permission="users.admin")
         self.login_as(user=self.user, superuser=True)
 
         self.get_valid_response(user2.id, hardDelete=True, organizations=[], status_code=204)

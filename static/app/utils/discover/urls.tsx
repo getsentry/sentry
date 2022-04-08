@@ -1,4 +1,4 @@
-import {OrganizationSummary} from 'app/types';
+import {OrganizationSummary} from 'sentry/types';
 
 import EventView, {EventData} from './eventView';
 
@@ -34,9 +34,9 @@ export function eventDetailsRouteWithEventView({
   eventSlug,
   eventView,
 }: {
-  orgSlug: string;
   eventSlug: string;
   eventView: EventView;
+  orgSlug: string;
 }) {
   const pathname = eventDetailsRoute({
     orgSlug,

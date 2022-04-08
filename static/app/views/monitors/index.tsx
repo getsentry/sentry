@@ -1,10 +1,10 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Feature from 'app/components/acl/feature';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import {PageContent} from 'app/styles/organization';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
+import Feature from 'sentry/components/acl/feature';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import {PageContent} from 'sentry/styles/organization';
+import withPageFilters from 'sentry/utils/withPageFilters';
 
 const Body = styled('div')`
   background-color: ${p => p.theme.backgroundSecondary};
@@ -12,19 +12,21 @@ const Body = styled('div')`
   flex: 1;
 `;
 
-const MonitorsContainer: React.FC = ({children}) => (
-  <Feature features={['monitors']} renderDisabled>
-    <GlobalSelectionHeader
-      showEnvironmentSelector={false}
-      showDateSelector={false}
-      resetParamsOnChange={['cursor']}
-    >
-      <PageContent>
-        <Body>{children}</Body>
-      </PageContent>
-    </GlobalSelectionHeader>
-  </Feature>
-);
+const MonitorsContainer: React.FC = ({children}) => {
+  return (
+    <Feature features={['monitors']} renderDisabled>
+      <PageFiltersContainer
+        showEnvironmentSelector={false}
+        showDateSelector={false}
+        resetParamsOnChange={['cursor']}
+        hideGlobalHeader
+      >
+        <PageContent>
+          <Body>{children}</Body>
+        </PageContent>
+      </PageFiltersContainer>
+    </Feature>
+  );
+};
 
-export default withGlobalSelection(MonitorsContainer);
-export {MonitorsContainer};
+export default withPageFilters(MonitorsContainer);

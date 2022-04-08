@@ -3,32 +3,29 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 import scrollToElement from 'scroll-to-element';
 
-import Button from 'app/components/button';
-import DebugImage from 'app/components/events/interfaces/debugMeta/debugImage';
-import {combineStatus} from 'app/components/events/interfaces/debugMeta/utils';
-import PackageLink from 'app/components/events/interfaces/packageLink';
-import PackageStatus, {
-  PackageStatusIcon,
-} from 'app/components/events/interfaces/packageStatus';
-import TogglableAddress, {
-  AddressToggleIcon,
-} from 'app/components/events/interfaces/togglableAddress';
-import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
-import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'app/components/stacktracePreview';
-import StrictClick from 'app/components/strictClick';
-import {IconChevron, IconRefresh} from 'app/icons';
-import {t} from 'app/locale';
-import {DebugMetaActions} from 'app/stores/debugMetaStore';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {Frame, Organization, PlatformType, SentryAppComponent} from 'app/types';
-import {Event} from 'app/types/event';
-import withOrganization from 'app/utils/withOrganization';
-import withSentryAppComponents from 'app/utils/withSentryAppComponents';
+import Button from 'sentry/components/button';
+import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'sentry/components/stacktracePreview';
+import StrictClick from 'sentry/components/strictClick';
+import {IconChevron, IconRefresh} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {DebugMetaActions} from 'sentry/stores/debugMetaStore';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {Frame, Organization, PlatformType, SentryAppComponent} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import withOrganization from 'sentry/utils/withOrganization';
+import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
+
+import DebugImage from '../debugMeta/debugImage';
+import {combineStatus} from '../debugMeta/utils';
+import {SymbolicatorStatus} from '../types';
 
 import Context from './context';
 import DefaultTitle from './defaultTitle';
+import PackageLink from './packageLink';
+import PackageStatus, {PackageStatusIcon} from './packageStatus';
 import Symbol, {FunctionNameToggleIcon} from './symbol';
+import TogglableAddress, {AddressToggleIcon} from './togglableAddress';
 import {
   getPlatform,
   hasAssembly,
@@ -40,31 +37,31 @@ import {
 } from './utils';
 
 type Props = {
+  components: Array<SentryAppComponent>;
   data: Frame;
   event: Event;
   registers: Record<string, string>;
-  components: Array<SentryAppComponent>;
-  nextFrame?: Frame;
-  prevFrame?: Frame;
-  platform?: PlatformType;
   emptySourceNotation?: boolean;
-  isOnlyFrame?: boolean;
-  timesRepeated?: number;
-  showingAbsoluteAddress?: boolean;
-  onAddressToggle?: (event: React.MouseEvent<SVGElement>) => void;
-  onFunctionNameToggle?: (event: React.MouseEvent<SVGElement>) => void;
-  showCompleteFunctionName?: boolean;
   image?: React.ComponentProps<typeof DebugImage>['image'];
-  maxLengthOfRelativeAddress?: number;
-  isFrameAfterLastNonApp?: boolean;
   includeSystemFrames?: boolean;
   isExpanded?: boolean;
   isFirst?: boolean;
-  organization?: Organization;
+  isFrameAfterLastNonApp?: boolean;
   /**
    * Is the stack trace being previewed in a hovercard?
    */
   isHoverPreviewed?: boolean;
+  isOnlyFrame?: boolean;
+  maxLengthOfRelativeAddress?: number;
+  nextFrame?: Frame;
+  onAddressToggle?: (event: React.MouseEvent<SVGElement>) => void;
+  onFunctionNameToggle?: (event: React.MouseEvent<SVGElement>) => void;
+  organization?: Organization;
+  platform?: PlatformType;
+  prevFrame?: Frame;
+  showCompleteFunctionName?: boolean;
+  showingAbsoluteAddress?: boolean;
+  timesRepeated?: number;
 };
 
 type State = {
@@ -161,7 +158,7 @@ export class Line extends React.Component<Props, State> {
   }
 
   scrollToImage = event => {
-    event.stopPropagation(); // to prevent collapsing if collapsable
+    event.stopPropagation(); // to prevent collapsing if collapsible
 
     const {instructionAddr, addrMode} = this.props.data;
     if (instructionAddr) {
@@ -190,6 +187,7 @@ export class Line extends React.Component<Props, State> {
           className="btn-toggle"
           data-test-id={`toggle-button-${isExpanded ? 'expanded' : 'collapsed'}`}
           css={isDotnet(this.getPlatform()) && {display: 'block !important'}} // remove important once we get rid of css files
+          size="zero"
           title={t('Toggle Context')}
           tooltipProps={
             isHoverPreviewed ? {delay: STACKTRACE_PREVIEW_TOOLTIP_DELAY} : undefined
@@ -415,8 +413,8 @@ const RepeatedFrames = styled('div')`
   margin-left: ${space(1)};
   border-width: thin;
   border-style: solid;
-  border-color: ${p => p.theme.orange500};
-  color: ${p => p.theme.orange500};
+  border-color: ${p => p.theme.pink200};
+  color: ${p => p.theme.pink300};
   background-color: ${p => p.theme.backgroundSecondary};
   white-space: nowrap;
 `;
@@ -433,7 +431,7 @@ const RepeatedContent = styled(VertCenterWrapper)`
 const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
   display: grid;
   flex: 1;
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
   grid-template-columns: ${p =>
     `minmax(${p.isFrameAfterLastNonApp ? '167px' : '117px'}, auto)  1fr`};
   align-items: center;

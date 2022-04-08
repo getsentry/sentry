@@ -1,26 +1,25 @@
 import {Component, Fragment} from 'react';
 import {Location} from 'history';
 
-import {Panel} from 'app/components/panels';
-import {Organization} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
-import {WebVital} from 'app/utils/discover/fields';
-import HistogramQuery from 'app/utils/performance/histogram/histogramQuery';
-import {DataFilter, HistogramData} from 'app/utils/performance/histogram/types';
-import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
-import {VitalGroup} from 'app/utils/performance/vitals/types';
-import VitalsCardDiscoverQuery, {
-  VitalData,
-} from 'app/utils/performance/vitals/vitalsCardsDiscoverQuery';
-import {decodeScalar} from 'app/utils/queryString';
+import {Panel} from 'sentry/components/panels';
+import {Organization} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
+import {WebVital} from 'sentry/utils/discover/fields';
+import HistogramQuery from 'sentry/utils/performance/histogram/histogramQuery';
+import {DataFilter, HistogramData} from 'sentry/utils/performance/histogram/types';
+import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
+import {VitalGroup} from 'sentry/utils/performance/vitals/types';
+import {VitalData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
+import {decodeScalar} from 'sentry/utils/queryString';
 
 import {NUM_BUCKETS, VITAL_GROUPS} from './constants';
 import VitalCard from './vitalCard';
 
 type Props = {
-  organization: Organization;
-  location: Location;
   eventView: EventView;
+  location: Location;
+  organization: Organization;
+  results: object;
   dataFilter?: DataFilter;
 };
 
@@ -87,7 +86,7 @@ class VitalsPanel extends Component<Props> {
     const bounds = vitals.reduce(
       (
         allBounds: Partial<
-          Record<WebVital, {start: string | undefined; end: string | undefined}>
+          Record<WebVital, {end: string | undefined; start: string | undefined}>
         >,
         vital: WebVital
       ) => {
@@ -148,30 +147,17 @@ class VitalsPanel extends Component<Props> {
   }
 
   render() {
-    const {location, organization, eventView} = this.props;
-
-    const allVitals = VITAL_GROUPS.reduce((keys: WebVital[], {vitals}) => {
-      return keys.concat(vitals);
-    }, []);
+    const {results} = this.props;
 
     return (
       <Panel>
-        <VitalsCardDiscoverQuery
-          eventView={eventView}
-          orgSlug={organization.slug}
-          location={location}
-          vitals={allVitals}
-        >
-          {results => (
-            <Fragment>
-              {VITAL_GROUPS.map(vitalGroup => (
-                <Fragment key={vitalGroup.vitals.join('')}>
-                  {this.renderVitalGroup(vitalGroup, results)}
-                </Fragment>
-              ))}
+        <Fragment>
+          {VITAL_GROUPS.map(vitalGroup => (
+            <Fragment key={vitalGroup.vitals.join('')}>
+              {this.renderVitalGroup(vitalGroup, results)}
             </Fragment>
-          )}
-        </VitalsCardDiscoverQuery>
+          ))}
+        </Fragment>
       </Panel>
     );
   }
@@ -183,7 +169,8 @@ function parseBound(
 ): number | undefined {
   if (boundString === undefined) {
     return undefined;
-  } else if (precision === undefined || precision === 0) {
+  }
+  if (precision === undefined || precision === 0) {
     return parseInt(boundString, 10);
   }
   return parseFloat(boundString);

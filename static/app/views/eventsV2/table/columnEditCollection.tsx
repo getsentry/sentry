@@ -1,30 +1,37 @@
 import * as React from 'react';
-import ReactDOM from 'react-dom';
+import {createPortal} from 'react-dom';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {parseArithmetic} from 'app/components/arithmeticInput/parser';
-import Button from 'app/components/button';
-import {SectionHeading} from 'app/components/charts/styles';
-import {IconAdd, IconDelete, IconGrabbable} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {LightWeightOrganization} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
+import Button from 'sentry/components/button';
+import {SectionHeading} from 'sentry/components/charts/styles';
+import Input from 'sentry/components/forms/controls/input';
+import {getOffsetOfElement} from 'sentry/components/performance/waterfall/utils';
+import {IconAdd, IconDelete, IconGrabbable} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {
   AGGREGATIONS,
   Column,
   generateFieldAsString,
   hasDuplicate,
   isLegalEquationColumn,
-} from 'app/utils/discover/fields';
-import theme from 'app/utils/theme';
-import {getPointerPosition} from 'app/utils/touch';
-import {setBodyUserSelect, UserSelectValues} from 'app/utils/userselect';
+} from 'sentry/utils/discover/fields';
+import theme from 'sentry/utils/theme';
+import {getPointerPosition} from 'sentry/utils/touch';
+import {setBodyUserSelect, UserSelectValues} from 'sentry/utils/userselect';
+import {WidgetType} from 'sentry/views/dashboardsV2/types';
+import {FieldKey} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/fields';
 
 import {generateFieldOptions} from '../utils';
 
-import {QueryField} from './queryField';
+import {FieldValueOption, QueryField} from './queryField';
 import {FieldValueKind} from './types';
+
+type Sources = WidgetType;
 
 type Props = {
   // Input columns
@@ -32,16 +39,20 @@ type Props = {
   fieldOptions: ReturnType<typeof generateFieldOptions>;
   // Fired when columns are added/removed/modified
   onChange: (columns: Column[]) => void;
-  organization: LightWeightOrganization;
+  organization: Organization;
   className?: string;
+  filterPrimaryOptions?: (option: FieldValueOption) => boolean;
+  noFieldsMessage?: string;
+  showAliasField?: boolean;
+  source?: Sources;
 };
 
 type State = {
-  isDragging: boolean;
+  draggingGrabbedOffset: undefined | {x: number; y: number};
   draggingIndex: undefined | number;
   draggingTargetIndex: undefined | number;
-  draggingGrabbedOffset: undefined | {x: number; y: number};
   error: Map<number, string | undefined>;
+  isDragging: boolean;
   left: undefined | number;
   top: undefined | number;
 };
@@ -142,6 +153,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
 
   handleUpdateColumn = (index: number, updatedColumn: Column) => {
     const newColumns = [...this.props.columns];
+
     if (updatedColumn.kind === 'equation') {
       this.setState(prevState => {
         const error = new Map(prevState.error);
@@ -155,6 +167,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
       // Update any equations that contain the existing column
       this.updateEquationFields(newColumns, index, updatedColumn);
     }
+
     newColumns.splice(index, 1, updatedColumn);
     this.props.onChange(newColumns);
   };
@@ -225,9 +238,10 @@ class ColumnEditCollection extends React.Component<Props, State> {
 
     // Compute where the user clicked on the drag handle. Avoids the element
     // jumping from the cursor on mousedown.
-    const {x, y} = Array.from(document.querySelectorAll(`.${DRAG_CLASS}`))
-      .find(n => n.contains(event.currentTarget))!
-      .getBoundingClientRect();
+    const draggingElement = Array.from(document.querySelectorAll(`.${DRAG_CLASS}`)).find(
+      n => n.contains(event.currentTarget)
+    )!;
+    const {x, y} = getOffsetOfElement(draggingElement);
 
     const draggingGrabbedOffset = {
       x: left - x + GHOST_PADDING,
@@ -293,9 +307,24 @@ class ColumnEditCollection extends React.Component<Props, State> {
       return top >= thresholdStart && top <= thresholdEnd;
     });
 
+    // Issue column in Issue widgets are fixed (cannot be moved or deleted)
     if (targetIndex >= 0 && targetIndex !== draggingTargetIndex) {
       this.setState({draggingTargetIndex: targetIndex});
     }
+  };
+
+  isFixedIssueColumn = (columnIndex: number) => {
+    const {source, columns} = this.props;
+    const column = columns[columnIndex];
+    const issueFieldColumnCount = columns.filter(
+      col => col.kind === 'field' && col.field === FieldKey.ISSUE
+    ).length;
+    return (
+      issueFieldColumnCount <= 1 &&
+      source === WidgetType.ISSUE &&
+      column.kind === 'field' &&
+      column.field === FieldKey.ISSUE
+    );
   };
 
   onDragEnd = (event: MouseEvent | TouchEvent) => {
@@ -335,7 +364,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
     });
   };
 
-  renderGhost(gridColumns: number) {
+  renderGhost({gridColumns, singleColumn}: {gridColumns: number; singleColumn: boolean}) {
     const {isDragging, draggingIndex, draggingGrabbedOffset} = this.state;
 
     const index = draggingIndex;
@@ -355,24 +384,38 @@ class ColumnEditCollection extends React.Component<Props, State> {
     };
     const ghost = (
       <Ghost ref={this.dragGhostRef} style={style}>
-        {this.renderItem(col, index, {isGhost: true, gridColumns})}
+        {this.renderItem(col, index, {
+          singleColumn,
+          isGhost: true,
+          gridColumns,
+        })}
       </Ghost>
     );
 
-    return ReactDOM.createPortal(ghost, this.portal);
+    return createPortal(ghost, this.portal);
   }
 
   renderItem(
     col: Column,
     i: number,
     {
+      singleColumn = false,
       canDelete = true,
       canDrag = true,
       isGhost = false,
       gridColumns = 2,
-    }: {canDelete?: boolean; canDrag?: boolean; isGhost?: boolean; gridColumns: number}
+      disabled = false,
+    }: {
+      gridColumns: number;
+      singleColumn: boolean;
+      canDelete?: boolean;
+      canDrag?: boolean;
+      disabled?: boolean;
+      isGhost?: boolean;
+    }
   ) {
-    const {columns, fieldOptions} = this.props;
+    const {columns, fieldOptions, filterPrimaryOptions, noFieldsMessage, showAliasField} =
+      this.props;
     const {isDragging, draggingTargetIndex, draggingIndex} = this.state;
 
     let placeholder: React.ReactNode = null;
@@ -400,9 +443,13 @@ class ColumnEditCollection extends React.Component<Props, State> {
     return (
       <React.Fragment key={`${i}:${this.keyForColumn(col, isGhost)}`}>
         {position === PlaceholderPosition.TOP && placeholder}
-        <RowContainer className={isGhost ? '' : DRAG_CLASS}>
+        <RowContainer
+          showAliasField={showAliasField}
+          singleColumn={singleColumn}
+          className={isGhost ? '' : DRAG_CLASS}
+        >
           {canDrag ? (
-            <Button
+            <DragAndReorderButton
               aria-label={t('Drag to reorder')}
               onMouseDown={event => this.startDrag(event, i)}
               onTouchStart={event => this.startDrag(event, i)}
@@ -410,7 +457,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
               size="zero"
               borderless
             />
-          ) : (
+          ) : singleColumn && showAliasField ? null : (
             <span />
           )}
           <QueryField
@@ -421,15 +468,47 @@ class ColumnEditCollection extends React.Component<Props, State> {
             error={this.state.error.get(i)}
             takeFocus={i === this.props.columns.length - 1}
             otherColumns={columns}
+            shouldRenderTag
+            disabled={disabled}
+            filterPrimaryOptions={filterPrimaryOptions}
+            noFieldsMessage={noFieldsMessage}
+            skipParameterPlaceholder={showAliasField}
           />
+          {showAliasField && (
+            <AliasField singleColumn={singleColumn}>
+              <AliasInput
+                name="alias"
+                placeholder={t('Alias')}
+                value={col.alias ?? ''}
+                onChange={value => {
+                  this.handleUpdateColumn(i, {
+                    ...col,
+                    alias: value.target.value,
+                  });
+                }}
+              />
+            </AliasField>
+          )}
           {canDelete || col.kind === 'equation' ? (
-            <Button
-              aria-label={t('Remove column')}
-              onClick={() => this.removeColumn(i)}
-              icon={<IconDelete />}
-              borderless
-            />
-          ) : (
+            showAliasField ? (
+              <RemoveButton
+                data-test-id={`remove-column-${i}`}
+                aria-label={t('Remove column')}
+                title={t('Remove column')}
+                onClick={() => this.removeColumn(i)}
+                icon={<IconDelete />}
+                borderless
+              />
+            ) : (
+              <Button
+                data-test-id={`remove-column-${i}`}
+                aria-label={t('Remove column')}
+                onClick={() => this.removeColumn(i)}
+                icon={<IconDelete />}
+                borderless
+              />
+            )
+          ) : singleColumn && showAliasField ? null : (
             <span />
           )}
         </RowContainer>
@@ -439,41 +518,66 @@ class ColumnEditCollection extends React.Component<Props, State> {
   }
 
   render() {
-    const {className, columns} = this.props;
+    const {className, columns, showAliasField, source} = this.props;
     const canDelete = columns.filter(field => field.kind !== 'equation').length > 1;
     const canDrag = columns.length > 1;
     const canAdd = columns.length < MAX_COL_COUNT;
     const title = canAdd
       ? undefined
-      : `Sorry, you reached the maximum number of columns. Delete columns to add more.`;
+      : t(
+          `Sorry, you've reached the maximum number of columns (${MAX_COL_COUNT}). Delete columns to add more.`
+        );
+
+    const singleColumn = columns.length === 1;
 
     // Get the longest number of columns so we can layout the rows.
     // We always want at least 2 columns.
-    const gridColumns = Math.max(
-      ...columns.map(col =>
-        col.kind === 'function' && AGGREGATIONS[col.function[0]].parameters.length === 2
-          ? 3
-          : 2
-      )
-    );
+    const gridColumns =
+      source === WidgetType.ISSUE
+        ? 1
+        : Math.max(
+            ...columns.map(col =>
+              col.kind === 'function' &&
+              AGGREGATIONS[col.function[0]].parameters.length === 2
+                ? 3
+                : 2
+            )
+          );
 
     return (
       <div className={className}>
-        {this.renderGhost(gridColumns)}
-        <RowContainer>
-          <Heading gridColumns={gridColumns}>
-            <StyledSectionHeading>{t('Tag / Field / Function')}</StyledSectionHeading>
-            <StyledSectionHeading>{t('Field Parameter')}</StyledSectionHeading>
-          </Heading>
-        </RowContainer>
-        {columns.map((col: Column, i: number) =>
-          this.renderItem(col, i, {canDelete, canDrag, gridColumns})
+        {this.renderGhost({gridColumns, singleColumn})}
+        {!showAliasField && source !== WidgetType.ISSUE && (
+          <RowContainer showAliasField={showAliasField} singleColumn={singleColumn}>
+            <Heading gridColumns={gridColumns}>
+              <StyledSectionHeading>{t('Tag / Field / Function')}</StyledSectionHeading>
+              <StyledSectionHeading>{t('Field Parameter')}</StyledSectionHeading>
+            </Heading>
+          </RowContainer>
         )}
-        <RowContainer>
-          <Actions>
+        {columns.map((col: Column, i: number) => {
+          // Issue column in Issue widgets are fixed (cannot be changed or deleted)
+          if (this.isFixedIssueColumn(i)) {
+            return this.renderItem(col, i, {
+              singleColumn,
+              canDelete: false,
+              canDrag,
+              gridColumns,
+              disabled: true,
+            });
+          }
+          return this.renderItem(col, i, {
+            singleColumn,
+            canDelete,
+            canDrag,
+            gridColumns,
+          });
+        })}
+        <RowContainer showAliasField={showAliasField} singleColumn={singleColumn}>
+          <Actions showAliasField={showAliasField}>
             <Button
               size="small"
-              label={t('Add a Column')}
+              aria-label={t('Add a Column')}
               onClick={this.handleAddColumn}
               title={title}
               disabled={!canAdd}
@@ -481,16 +585,18 @@ class ColumnEditCollection extends React.Component<Props, State> {
             >
               {t('Add a Column')}
             </Button>
-            <Button
-              size="small"
-              label={t('Add an Equation')}
-              onClick={this.handleAddEquation}
-              title={title}
-              disabled={!canAdd}
-              icon={<IconAdd isCircled size="xs" />}
-            >
-              {t('Add an Equation')}
-            </Button>
+            {source !== WidgetType.ISSUE && source !== WidgetType.METRICS && (
+              <Button
+                size="small"
+                aria-label={t('Add an Equation')}
+                onClick={this.handleAddEquation}
+                title={title}
+                disabled={!canAdd}
+                icon={<IconAdd isCircled size="xs" />}
+              >
+                {t('Add an Equation')}
+              </Button>
+            )}
           </Actions>
         </RowContainer>
       </div>
@@ -498,14 +604,44 @@ class ColumnEditCollection extends React.Component<Props, State> {
   }
 }
 
-const RowContainer = styled('div')`
+const Actions = styled('div')<{showAliasField?: boolean}>`
+  grid-column: 2 / 3;
+
+  & button {
+    margin-right: ${space(1)};
+  }
+
+  ${p =>
+    p.showAliasField &&
+    css`
+      grid-column: 1/-1;
+    `};
+`;
+
+const RowContainer = styled('div')<{
+  singleColumn: boolean;
+  showAliasField?: boolean;
+}>`
   display: grid;
-  grid-template-columns: ${space(3)} 1fr ${space(3)};
+  grid-template-columns: ${space(3)} 1fr 40px;
   justify-content: center;
   align-items: center;
   width: 100%;
   touch-action: none;
   padding-bottom: ${space(1)};
+
+  ${p =>
+    p.showAliasField &&
+    css`
+      align-items: flex-start;
+      grid-template-columns: ${p.singleColumn ? `1fr` : `${space(3)} 1fr 40px`};
+
+      @media (min-width: ${p.theme.breakpoints[0]}) {
+        grid-template-columns: ${p.singleColumn
+          ? `1fr calc(200px + ${space(1)})`
+          : `${space(3)} 1fr calc(200px + ${space(1)}) 40px`};
+      }
+    `};
 `;
 
 const Ghost = styled('div')`
@@ -536,14 +672,6 @@ const DragPlaceholder = styled('div')`
   height: 41px;
 `;
 
-const Actions = styled('div')`
-  grid-column: 2 / 3;
-
-  & button {
-    margin-right: ${space(1)};
-  }
-`;
-
 const Heading = styled('div')<{gridColumns: number}>`
   grid-column: 2 / 3;
 
@@ -555,6 +683,34 @@ const Heading = styled('div')<{gridColumns: number}>`
 
 const StyledSectionHeading = styled(SectionHeading)`
   margin: 0;
+`;
+
+const AliasInput = styled(Input)`
+  /* Match the height of the select boxes */
+  height: 40px;
+  min-width: 50px;
+`;
+
+const AliasField = styled('div')<{singleColumn: boolean}>`
+  margin-top: ${space(1)};
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    margin-top: 0;
+    margin-left: ${space(1)};
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    grid-row: 2/2;
+    grid-column: ${p => (p.singleColumn ? '1/-1' : '2/2')};
+  }
+`;
+
+const RemoveButton = styled(Button)`
+  margin-left: ${space(1)};
+  height: 40px;
+`;
+
+const DragAndReorderButton = styled(Button)`
+  height: 40px;
 `;
 
 export default ColumnEditCollection;

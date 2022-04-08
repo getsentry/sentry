@@ -1,15 +1,16 @@
-import Access from 'app/components/acl/access';
-import Feature from 'app/components/acl/feature';
-import FeatureDisabled from 'app/components/acl/featureDisabled';
-import {PanelAlert} from 'app/components/panels';
-import {t} from 'app/locale';
-import {Organization} from 'app/types';
-import withOrganization from 'app/utils/withOrganization';
+import Access from 'sentry/components/acl/access';
+import Feature from 'sentry/components/acl/feature';
+import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import {PanelAlert} from 'sentry/components/panels';
+import {t} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import FiltersAndSampling from './filtersAndSampling';
 
 type Props = {
   organization: Organization;
+  project: Project;
 };
 
 const Index = ({organization, ...props}: Props) => (

@@ -5,11 +5,11 @@ from django.db.models import F
 from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
+from rest_framework.request import Request
 
 from sentry import features, roles
 from sentry.auth import manager
 from sentry.auth.helper import AuthHelper
-from sentry.auth.superuser import is_active_superuser
 from sentry.models import AuditLogEntryEvent, AuthProvider, OrganizationMember, User
 from sentry.plugins.base import Response
 from sentry.tasks.auth import email_missing_links, email_unlink_notifications
@@ -72,7 +72,7 @@ class OrganizationAuthSettingsView(OrganizationView):
     # escalate members to own by disabling the default role.
     required_scope = "org:write"
 
-    def _disable_provider(self, request, organization, auth_provider):
+    def _disable_provider(self, request: Request, organization, auth_provider):
         self.create_audit_entry(
             request,
             organization=organization,
@@ -96,7 +96,7 @@ class OrganizationAuthSettingsView(OrganizationView):
             auth_provider.disable_scim(request.user)
         auth_provider.delete()
 
-    def handle_existing_provider(self, request, organization, auth_provider):
+    def handle_existing_provider(self, request: Request, organization, auth_provider):
         provider = auth_provider.get_provider()
 
         if request.method == "POST":
@@ -182,28 +182,15 @@ class OrganizationAuthSettingsView(OrganizationView):
         return self.respond("sentry/organization-auth-provider-settings.html", context)
 
     @transaction.atomic
-    def handle(self, request, organization):
+    def handle(self, request: Request, organization) -> Response:
         try:
             auth_provider = AuthProvider.objects.get(organization=organization)
         except AuthProvider.DoesNotExist:
             pass
         else:
-            provider = auth_provider.get_provider()
-            requires_feature = provider.required_feature
-
-            # Provider is not enabled
-            # Allow superusers to edit and disable SSO for orgs that
-            # downgrade plans and can no longer access the feature
-            if (
-                requires_feature
-                and not features.has(requires_feature, organization, actor=request.user)
-                and not is_active_superuser(request)
-            ):
-                home_url = organization.get_url()
-                messages.add_message(request, messages.ERROR, ERR_NO_SSO)
-
-                return HttpResponseRedirect(home_url)
-
+            # if the org has SSO set up already, allow them to modify the existing provider
+            # regardless if the feature flag is set up. This allows orgs who might no longer
+            # have the SSO feature to be able to turn it off
             return self.handle_existing_provider(
                 request=request, organization=organization, auth_provider=auth_provider
             )

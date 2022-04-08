@@ -10,7 +10,9 @@ jobs:
     name: backend lint
     runs-on: ubuntu-20.04
     timeout-minutes: 10
-
+    strategy:
+      matrix:
+        python-version: [3.8.12]
     steps:
       - uses: actions/checkout@v2
 
@@ -37,10 +39,11 @@ jobs:
           token: ${{ github.token }}
           filters: .github/file-filters.yml
 
-      - name: Setup python
+      - name: Setup Python ${{ matrix.python-version }}
         uses: ./.github/actions/setup-python
         if: steps.changes.outputs.backend == 'true'
         with:
+          python-version: ${{ matrix.python-version }}
           # Note this uses a different cache key than other backend-based workflows because this workflows dependencies are different
           cache-files-hash: ${{ hashFiles('requirements-pre-commit.txt') }}
 

@@ -1,8 +1,9 @@
-import 'echarts/lib/component/toolbox';
+import type {ToolboxComponentOption} from 'echarts';
 
-import {EChartOption} from 'echarts';
-
-function getFeatures({dataZoom, ...features}) {
+function getFeatures({
+  dataZoom,
+  ...features
+}: ToolboxComponentOption['feature'] = {}): ToolboxComponentOption['feature'] {
   return {
     ...(dataZoom
       ? {
@@ -11,7 +12,6 @@ function getFeatures({dataZoom, ...features}) {
             title: {
               zoom: 'zoom',
               back: 'undo',
-              restore: 'reset',
             },
             ...dataZoom,
           },
@@ -21,7 +21,10 @@ function getFeatures({dataZoom, ...features}) {
   };
 }
 
-export default function ToolBox(options, features): EChartOption['toolbox'] {
+export default function ToolBox(
+  options: ToolboxComponentOption,
+  features: ToolboxComponentOption['feature']
+): ToolboxComponentOption {
   return {
     right: 0,
     top: 0,

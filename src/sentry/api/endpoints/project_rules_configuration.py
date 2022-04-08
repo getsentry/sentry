@@ -1,18 +1,14 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.serializers import serialize
-from sentry.api.serializers.models.sentry_app_component import SentryAppAlertRuleActionSerializer
-from sentry.constants import MIGRATED_CONDITIONS, TICKET_ACTIONS
-from sentry.coreapi import APIError
-from sentry.mediators import sentry_app_components
-from sentry.models import SentryAppComponent, SentryAppInstallation
+from sentry.constants import MIGRATED_CONDITIONS, SCHEMA_FORM_ACTIONS, TICKET_ACTIONS
 from sentry.rules import rules
 
 
 class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
-    def get(self, request, project):
+    def get(self, request: Request, project) -> Response:
         """
         Retrieve the list of configuration options for a given project.
         """
@@ -25,9 +21,7 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
         can_create_tickets = features.has(
             "organizations:integrations-ticket-rules", project.organization
         )
-        has_percent_condition = features.has(
-            "organizations:issue-percent-filters", project.organization
-        )
+
         # TODO: conditions need to be based on actions
         for rule_type, rule_cls in rules:
             node = rule_cls(project)
@@ -36,6 +30,12 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
                 continue
 
             if not can_create_tickets and node.id in TICKET_ACTIONS:
+                continue
+
+            if node.id in SCHEMA_FORM_ACTIONS:
+                custom_actions = node.get_custom_actions(project)
+                if custom_actions:
+                    action_list.extend(custom_actions)
                 continue
 
             context = {"id": node.id, "label": node.label, "enabled": node.is_enabled()}
@@ -60,32 +60,11 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
                 continue
 
             if rule_type.startswith("condition/"):
-                if (
-                    has_percent_condition
-                    or context["id"]
-                    != "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition"
-                ):
-                    condition_list.append(context)
+                condition_list.append(context)
             elif rule_type.startswith("filter/"):
                 filter_list.append(context)
             elif rule_type.startswith("action/"):
                 action_list.append(context)
-
-        for install in SentryAppInstallation.get_installed_for_org(project.organization_id):
-            _components = SentryAppComponent.objects.filter(
-                sentry_app_id=install.sentry_app_id, type="alert-rule-action"
-            )
-            for component in _components:
-                try:
-                    sentry_app_components.Preparer.run(
-                        component=component, install=install, project=project
-                    )
-                    action_list.append(
-                        serialize(component, request.user, SentryAppAlertRuleActionSerializer())
-                    )
-
-                except APIError:
-                    continue
 
         context = {"actions": action_list, "conditions": condition_list, "filters": filter_list}
 

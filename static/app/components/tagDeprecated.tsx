@@ -1,15 +1,15 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
-import {Theme} from 'app/utils/theme';
+import space from 'sentry/styles/space';
+import {Theme} from 'sentry/utils/theme';
 
 type Props = React.HTMLAttributes<HTMLDivElement> & {
+  border?: boolean;
+  icon?: string | React.ReactNode;
+  inline?: boolean;
   priority?: keyof Theme['badge'] | keyof Theme['alert'];
   size?: string;
-  icon?: string | React.ReactNode;
-  border?: boolean;
-  inline?: boolean;
 };
 
 type StyleFuncProps = Props & {theme: Theme};

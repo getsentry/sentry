@@ -1,5 +1,6 @@
 import unittest
 from datetime import datetime, timedelta
+from unittest.mock import patch
 
 import pytz
 from django.urls import reverse
@@ -20,7 +21,6 @@ from sentry.models import (
     Repository,
 )
 from sentry.testutils import APITestCase
-from sentry.utils.compat.mock import patch
 
 
 class ReleaseDetailsTest(APITestCase):
@@ -434,122 +434,6 @@ class ReleaseDetailsTest(APITestCase):
         assert response.data["currentProjectMeta"]["nextReleaseVersion"] == "foobar@2.0.0"
         assert response.data["currentProjectMeta"]["prevReleaseVersion"] == "foobar@3.0.0"
 
-    @patch(
-        "sentry.api.endpoints.organization_release_details.get_adjacent_releases_based_on_adoption"
-    )
-    def test_get_prev_and_next_releases_on_sessions_sort_with_status_filter_applied(
-        self, get_adjacent_releases_based_on_adoption
-    ):
-        """
-        Test that ensures status filter is applied to snuba primary results in cases like sorting on
-        sessions, users, crash_free_sessions, crash_free_users
-        """
-        get_adjacent_releases_based_on_adoption.return_value = {
-            "prev_releases_list": ["foobar@1.0.5", "foobar@1.0.0"],
-            "next_releases_list": ["foobar@2.0.0", "foobar@1.2.0"],
-        }
-        release_1 = Release.objects.create(
-            organization_id=self.organization.id,
-            version="foobar@1.0.0",
-            status=ReleaseStatus.ARCHIVED,
-        )
-        release_1.add_project(self.project1)
-
-        release_2 = Release.objects.create(
-            organization_id=self.organization.id, version="foobar@1.0.5"
-        )
-        release_2.add_project(self.project1)
-
-        release_3 = Release.objects.create(
-            organization_id=self.organization.id,
-            version="foobar@1.1.0",
-            status=ReleaseStatus.ARCHIVED,
-        )
-        release_3.add_project(self.project1)
-        release_4 = Release.objects.create(
-            organization_id=self.organization.id, version="foobar@2.0.0"
-        )
-        release_4.add_project(self.project1)
-        release_5 = Release.objects.create(
-            organization_id=self.organization.id,
-            version="foobar@1.2.0",
-            status=ReleaseStatus.ARCHIVED,
-        )
-        release_5.add_project(self.project1)
-
-        self.create_member(teams=[self.team1], user=self.user1, organization=self.organization)
-
-        self.login_as(user=self.user1)
-
-        url = reverse(
-            "sentry-api-0-organization-release-details",
-            kwargs={"organization_slug": self.organization.slug, "version": release_3.version},
-        )
-        response = self.client.get(
-            url, {"project": self.project1.id, "sort": "sessions", "status": "archived"}
-        )
-        assert response.status_code == 200
-        assert response.data["currentProjectMeta"]["prevReleaseVersion"] == "foobar@1.2.0"
-        assert response.data["currentProjectMeta"]["nextReleaseVersion"] == "foobar@1.0.0"
-
-    @patch(
-        "sentry.api.endpoints.organization_release_details.get_adjacent_releases_based_on_adoption"
-    )
-    def test_get_prev_and_next_releases_on_sessions_sort_with_query_filter_applied(
-        self, get_adjacent_releases_based_on_adoption
-    ):
-        """
-        Test that ensures query filter is applied to snuba primary results in cases like sorting on
-        sessions, users, crash_free_sessions, crash_free_users
-        """
-        get_adjacent_releases_based_on_adoption.return_value = {
-            "prev_releases_list": ["foobar@1.0.5", "foobar@1.0.0"],
-            "next_releases_list": ["foobar@2.0.0", "foobar@1.2.0"],
-        }
-        release_1 = Release.objects.create(
-            organization_id=self.organization.id, version="foobar@1.0.0"
-        )
-        release_1.add_project(self.project1)
-
-        release_2 = Release.objects.create(
-            organization_id=self.organization.id, version="foobar@1.0.5"
-        )
-        release_2.add_project(self.project1)
-
-        release_3 = Release.objects.create(
-            organization_id=self.organization.id, version="foobar@1.1.0"
-        )
-        release_3.add_project(self.project1)
-        release_4 = Release.objects.create(
-            organization_id=self.organization.id, version="foobar@2.0.0"
-        )
-        release_4.add_project(self.project1)
-        release_5 = Release.objects.create(
-            organization_id=self.organization.id, version="foobar@1.2.0"
-        )
-        release_5.add_project(self.project1)
-
-        self.create_member(teams=[self.team1], user=self.user1, organization=self.organization)
-
-        self.login_as(user=self.user1)
-
-        # Test for middle release of the list
-        url = reverse(
-            "sentry-api-0-organization-release-details",
-            kwargs={"organization_slug": self.organization.slug, "version": release_3.version},
-        )
-        response = self.client.get(url, {"project": self.project1.id, "sort": "sessions"})
-        assert response.status_code == 200
-        assert response.data["currentProjectMeta"]["prevReleaseVersion"] == "foobar@2.0.0"
-        assert response.data["currentProjectMeta"]["nextReleaseVersion"] == "foobar@1.0.5"
-
-        response2 = self.client.get(
-            url, {"project": self.project1.id, "sort": "sessions", "query": "foobar@1"}
-        )
-        assert response2.status_code == 200
-        assert response2.data["currentProjectMeta"]["prevReleaseVersion"] == "foobar@1.2.0"
-        assert response2.data["currentProjectMeta"]["nextReleaseVersion"] == "foobar@1.0.5"
-
     def test_get_first_and_last_release_on_date_sort(self):
         """
         Test that ensures that the first release and the last release in terms of `date_added` are
@@ -680,9 +564,8 @@ class ReleaseDetailsTest(APITestCase):
             kwargs={"organization_slug": self.organization.slug, "version": release_1.version},
         )
         response = self.client.get(url, {"project": self.project1.id, "sort": "sessions"})
-        assert response.status_code == 200
-        assert response.data["currentProjectMeta"]["firstReleaseVersion"] is None
-        assert response.data["currentProjectMeta"]["lastReleaseVersion"] is None
+        assert response.status_code == 400
+        assert response.data["detail"] == "invalid sort"
 
     def test_get_first_and_last_release_when_project_has_no_releases(self):
         """
@@ -726,21 +609,16 @@ class ReleaseDetailsTest(APITestCase):
             "sentry-api-0-organization-release-details",
             kwargs={"organization_slug": self.organization.slug, "version": release1.version},
         )
-        response = self.client.get(f"{url}?adoptionStages=1", format="json")
+
+        response = self.client.get(url, format="json")
+
         assert response.status_code == 200, response.content
-        # Not returned because we don't have the feature.
+        # Not returned because we don't have `adoptionStages=1`.
         assert "adoptionStages" not in response.data
+        response = self.client.get(f"{url}?adoptionStages=1", format="json")
 
-        with self.feature("organizations:release-adoption-stage"):
-            response = self.client.get(url, format="json")
-
-            assert response.status_code == 200, response.content
-            # Not returned because we don't have `adoptionStages=1`.
-            assert "adoptionStages" not in response.data
-            response = self.client.get(f"{url}?adoptionStages=1", format="json")
-
-            assert response.status_code == 200, response.content
-            assert "adoptionStages" in response.data
+        assert response.status_code == 200, response.content
+        assert "adoptionStages" in response.data
 
 
 class UpdateReleaseDetailsTest(APITestCase):

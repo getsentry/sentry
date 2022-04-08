@@ -1,20 +1,22 @@
-import {Client} from 'app/api';
-import {t} from 'app/locale';
-import {NewQuery, Project} from 'app/types';
-import {IssueAlertRule} from 'app/types/alerts';
-import {getUtcDateString} from 'app/utils/dates';
-import EventView from 'app/utils/discover/eventView';
-import {getAggregateAlias} from 'app/utils/discover/fields';
-import {PRESET_AGGREGATES} from 'app/views/alerts/incidentRules/presets';
+import round from 'lodash/round';
+
+import {Client} from 'sentry/api';
+import {t} from 'sentry/locale';
+import {Organization, SessionField} from 'sentry/types';
+import {IssueAlertRule} from 'sentry/types/alerts';
+import {defined} from 'sentry/utils';
+import {getUtcDateString} from 'sentry/utils/dates';
+import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {
   Dataset,
   Datasource,
   EventTypes,
   IncidentRule,
   SavedIncidentRule,
-} from 'app/views/alerts/incidentRules/types';
+  SessionsAggregate,
+} from 'sentry/views/alerts/incidentRules/types';
 
-import {Incident, IncidentStats, IncidentStatus} from '../types';
+import {AlertRuleStatus, Incident, IncidentStats} from '../types';
 
 // Use this api for requests that are getting cancelled
 const uncancellableApi = new Client();
@@ -33,6 +35,7 @@ export function fetchIncidentsForRule(
 ): Promise<Incident[]> {
   return uncancellableApi.requestPromise(`/organizations/${orgId}/incidents/`, {
     query: {
+      project: '-1',
       alertRule,
       includeSnapshots: true,
       start,
@@ -50,68 +53,6 @@ export function fetchIncident(
   return api.requestPromise(`/organizations/${orgId}/incidents/${alertId}/`);
 }
 
-export function fetchIncidentStats(
-  api: Client,
-  orgId: string,
-  alertId: string
-): Promise<IncidentStats> {
-  return api.requestPromise(`/organizations/${orgId}/incidents/${alertId}/stats/`);
-}
-
-export function updateSubscription(
-  api: Client,
-  orgId: string,
-  alertId: string,
-  isSubscribed?: boolean
-): Promise<Incident> {
-  const method = isSubscribed ? 'POST' : 'DELETE';
-  return api.requestPromise(
-    `/organizations/${orgId}/incidents/${alertId}/subscriptions/`,
-    {
-      method,
-    }
-  );
-}
-
-export function updateStatus(
-  api: Client,
-  orgId: string,
-  alertId: string,
-  status: IncidentStatus
-): Promise<Incident> {
-  return api.requestPromise(`/organizations/${orgId}/incidents/${alertId}/`, {
-    method: 'PUT',
-    data: {
-      status,
-    },
-  });
-}
-
-/**
- * Is incident open?
- *
- * @param {Object} incident Incident object
- * @returns {Boolean}
- */
-export function isOpen(incident: Incident): boolean {
-  switch (incident.status) {
-    case IncidentStatus.CLOSED:
-      return false;
-    default:
-      return true;
-  }
-}
-
-export function getIncidentMetricPreset(incident: Incident) {
-  const alertRule = incident?.alertRule;
-  const aggregate = alertRule?.aggregate ?? '';
-  const dataset = alertRule?.dataset ?? Dataset.ERRORS;
-
-  return PRESET_AGGREGATES.find(
-    p => p.validDataset.includes(dataset) && p.match.test(aggregate)
-  );
-}
-
 /**
  * Gets start and end date query parameters from stats
  */
@@ -124,61 +65,6 @@ export function getStartEndFromStats(stats: IncidentStats) {
   return {start, end};
 }
 
-/**
- * Gets the URL for a discover view of the incident with the following default
- * parameters:
- *
- * - Ordered by the incident aggregate, descending
- * - yAxis maps to the aggregate
- * - The following fields are displayed:
- *   - For Error dataset alerts: [issue, count(), count_unique(user)]
- *   - For Transaction dataset alerts: [transaction, count()]
- * - Start and end are scoped to the same period as the alert rule
- */
-export function getIncidentDiscoverUrl(opts: {
-  orgSlug: string;
-  projects: Project[];
-  incident?: Incident;
-  stats?: IncidentStats;
-  extraQueryParams?: Partial<NewQuery>;
-}) {
-  const {orgSlug, projects, incident, stats, extraQueryParams} = opts;
-
-  if (!projects || !projects.length || !incident || !stats) {
-    return '';
-  }
-
-  const timeWindowString = `${incident.alertRule.timeWindow}m`;
-  const {start, end} = getStartEndFromStats(stats);
-
-  const discoverQuery: NewQuery = {
-    id: undefined,
-    name: (incident && incident.title) || '',
-    orderby: `-${getAggregateAlias(incident.alertRule.aggregate)}`,
-    yAxis: incident.alertRule.aggregate,
-    query: incident?.discoverQuery ?? '',
-    projects: projects
-      .filter(({slug}) => incident.projects.includes(slug))
-      .map(({id}) => Number(id)),
-    version: 2,
-    fields:
-      incident.alertRule.dataset === Dataset.ERRORS
-        ? ['issue', 'count()', 'count_unique(user)']
-        : ['transaction', incident.alertRule.aggregate],
-    start,
-    end,
-    ...extraQueryParams,
-  };
-
-  const discoverView = EventView.fromSavedQuery(discoverQuery);
-  const {query, ...toObject} = discoverView.getResultsViewUrlTarget(orgSlug);
-
-  return {
-    query: {...query, interval: timeWindowString},
-    ...toObject,
-  };
-}
-
 export function isIssueAlert(
   data: IssueAlertRule | SavedIncidentRule | IncidentRule
 ): data is IssueAlertRule {
@@ -188,10 +74,10 @@ export function isIssueAlert(
 export const DATA_SOURCE_LABELS = {
   [Dataset.ERRORS]: t('Errors'),
   [Dataset.TRANSACTIONS]: t('Transactions'),
-  [Datasource.ERROR_DEFAULT]: t('event.type:error OR event.type:default'),
-  [Datasource.ERROR]: t('event.type:error'),
-  [Datasource.DEFAULT]: t('event.type:default'),
-  [Datasource.TRANSACTION]: t('event.type:transaction'),
+  [Datasource.ERROR_DEFAULT]: 'event.type:error OR event.type:default',
+  [Datasource.ERROR]: 'event.type:error',
+  [Datasource.DEFAULT]: 'event.type:default',
+  [Datasource.TRANSACTION]: 'event.type:transaction',
 };
 
 // Maps a datasource to the relevant dataset and event_types for the backend to use
@@ -230,11 +116,11 @@ export function convertDatasetEventTypesToSource(
 
   if (eventTypes.includes(EventTypes.DEFAULT) && eventTypes.includes(EventTypes.ERROR)) {
     return Datasource.ERROR_DEFAULT;
-  } else if (eventTypes.includes(EventTypes.DEFAULT)) {
-    return Datasource.DEFAULT;
-  } else {
-    return Datasource.ERROR;
   }
+  if (eventTypes.includes(EventTypes.DEFAULT)) {
+    return Datasource.DEFAULT;
+  }
+  return Datasource.ERROR;
 }
 
 /**
@@ -245,7 +131,7 @@ export function convertDatasetEventTypesToSource(
  */
 export function getQueryDatasource(
   query: string
-): {source: Datasource; query: string} | null {
+): {query: string; source: Datasource} | null {
   let match = query.match(
     /\(?\bevent\.type:(error|default|transaction)\)?\WOR\W\(?event\.type:(error|default|transaction)\)?/i
   );
@@ -268,4 +154,86 @@ export function getQueryDatasource(
   }
 
   return null;
+}
+
+export function isSessionAggregate(aggregate: string) {
+  return Object.values(SessionsAggregate).includes(aggregate as SessionsAggregate);
+}
+
+export const SESSION_AGGREGATE_TO_FIELD = {
+  [SessionsAggregate.CRASH_FREE_SESSIONS]: SessionField.SESSIONS,
+  [SessionsAggregate.CRASH_FREE_USERS]: SessionField.USERS,
+};
+
+export function alertAxisFormatter(value: number, seriesName: string, aggregate: string) {
+  if (isSessionAggregate(aggregate)) {
+    return defined(value) ? `${round(value, 2)}%` : '\u2015';
+  }
+
+  return axisLabelFormatter(value, seriesName);
+}
+
+export function alertTooltipValueFormatter(
+  value: number,
+  seriesName: string,
+  aggregate: string
+) {
+  if (isSessionAggregate(aggregate)) {
+    return defined(value) ? `${value}%` : '\u2015';
+  }
+
+  return tooltipFormatter(value, seriesName);
+}
+
+export const ALERT_CHART_MIN_MAX_BUFFER = 1.03;
+
+export function shouldScaleAlertChart(aggregate: string) {
+  // We want crash free rate charts to be scaled because they are usually too
+  // close to 100% and therefore too fine to see the spikes on 0%-100% scale.
+  return isSessionAggregate(aggregate);
+}
+
+export function alertDetailsLink(organization: Organization, incident: Incident) {
+  return `/organizations/${organization.slug}/alerts/rules/details/${
+    incident.alertRule.status === AlertRuleStatus.SNAPSHOT &&
+    incident.alertRule.originalAlertRuleId
+      ? incident.alertRule.originalAlertRuleId
+      : incident.alertRule.id
+  }/`;
+}
+
+/**
+ * Noramlizes a status string
+ */
+export function getQueryStatus(status: string | string[]): string[] {
+  if (Array.isArray(status)) {
+    return status;
+  }
+
+  if (status === '') {
+    return [];
+  }
+
+  return ['open', 'closed'].includes(status) ? [status] : [];
+}
+
+const ALERT_LIST_QUERY_DEFAULT_TEAMS = ['myteams', 'unassigned'];
+
+/**
+ * Noramlize a team slug from the query
+ */
+export function getTeamParams(team?: string | string[]): string[] {
+  if (team === undefined) {
+    return ALERT_LIST_QUERY_DEFAULT_TEAMS;
+  }
+
+  if (team === '') {
+    return [];
+  }
+
+  if (Array.isArray(team)) {
+    return team;
+  }
+
+  return [team];
 }

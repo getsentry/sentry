@@ -1,24 +1,24 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import GroupingActions from 'app/actions/groupingActions';
-import Checkbox from 'app/components/checkbox';
-import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
-import Tooltip from 'app/components/tooltip';
-import {IconChevron} from 'app/icons';
-import GroupingStore, {Fingerprint} from 'app/stores/groupingStore';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
+import GroupingActions from 'sentry/actions/groupingActions';
+import Checkbox from 'sentry/components/checkbox';
+import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
+import Tooltip from 'sentry/components/tooltip';
+import {IconChevron} from 'sentry/icons';
+import GroupingStore, {Fingerprint} from 'sentry/stores/groupingStore';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
 
 type Props = {
-  organization: Organization;
   fingerprint: Fingerprint;
+  organization: Organization;
 };
 
 type State = {
-  collapsed: boolean;
-  checked: boolean;
   busy: boolean;
+  checked: boolean;
+  collapsed: boolean;
 };
 
 class MergedItem extends React.Component<Props, State> {
@@ -162,7 +162,7 @@ const Controls = styled('div')<{expanded: boolean}>`
   display: flex;
   justify-content: space-between;
   border-top: 1px solid ${p => p.theme.innerBorder};
-  background-color: ${p => p.theme.gray100};
+  background-color: ${p => p.theme.backgroundSecondary};
   padding: ${space(0.5)} ${space(1)};
   ${p => p.expanded && `border-bottom: 1px solid ${p.theme.innerBorder}`};
 
@@ -193,6 +193,7 @@ const Collapse = styled('span')`
 const MergedEventList = styled('div')`
   overflow: hidden;
   border: none;
+  background-color: ${p => p.theme.background};
 `;
 
 const EventDetails = styled('div')`

@@ -1,8 +1,8 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {selectByValueAsync} from 'sentry-test/select-new';
 
-import MemberListStore from 'app/stores/memberListStore';
-import OwnerInput from 'app/views/settings/project/projectOwnership/ownerInput';
+import MemberListStore from 'sentry/stores/memberListStore';
+import OwnerInput from 'sentry/views/settings/project/projectOwnership/ownerInput';
 
 describe('Project Ownership Input', function () {
   let org;
@@ -23,13 +23,14 @@ describe('Project Ownership Input', function () {
       method: 'PUT',
       body: {raw: 'url:src @dummy@example.com'},
     });
+    MemberListStore.init();
     MemberListStore.loadInitialData([
       TestStubs.User({id: '1', email: 'bob@example.com'}),
     ]);
   });
 
-  afterEach(function () {
-    MemberListStore.init();
+  afterEach(() => {
+    MemberListStore.teardown();
   });
 
   it('renders', function () {
@@ -39,8 +40,7 @@ describe('Project Ownership Input', function () {
         organization={org}
         initialText="url:src @dummy@example.com"
         project={project}
-      />,
-      TestStubs.routerContext()
+      />
     );
 
     const submit = wrapper.find('SaveButton button');
@@ -67,8 +67,7 @@ describe('Project Ownership Input', function () {
         organization={org}
         initialText="url:src @dummy@example.com"
         project={project}
-      />,
-      TestStubs.routerContext()
+      />
     );
 
     // Set a path, as path is selected bu default.
@@ -77,12 +76,12 @@ describe('Project Ownership Input', function () {
 
     // Select the user.
     await selectByValueAsync(wrapper, 'user:1', {control: true, name: 'owners'});
-    await wrapper.update();
+    wrapper.update();
 
     // Add the new rule.
     const button = wrapper.find('RuleBuilder AddButton button');
     button.simulate('click');
-    await wrapper.update();
+    wrapper.update();
 
     expect(put).toHaveBeenCalledWith(
       '/projects/org-slug/project-slug/ownership/',

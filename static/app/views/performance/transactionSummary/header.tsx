@@ -2,27 +2,27 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import Feature from 'app/components/acl/feature';
-import {GuideAnchor} from 'app/components/assistant/guideAnchor';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
-import FeatureBadge from 'app/components/featureBadge';
-import * as Layout from 'app/components/layouts/thirds';
-import ListLink from 'app/components/links/listLink';
-import NavTabs from 'app/components/navTabs';
-import {IconSettings} from 'app/icons';
-import {t} from 'app/locale';
-import {Organization, Project} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import EventView from 'app/utils/discover/eventView';
-import HasMeasurementsQuery from 'app/utils/performance/vitals/hasMeasurementsQuery';
-import {decodeScalar} from 'app/utils/queryString';
-import Breadcrumb from 'app/views/performance/breadcrumb';
+import Feature from 'sentry/components/acl/feature';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import ButtonBar from 'sentry/components/buttonBar';
+import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
+import FeatureBadge from 'sentry/components/featureBadge';
+import * as Layout from 'sentry/components/layouts/thirds';
+import ListLink from 'sentry/components/links/listLink';
+import NavTabs from 'sentry/components/navTabs';
+import {t} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import EventView from 'sentry/utils/discover/eventView';
+import HasMeasurementsQuery from 'sentry/utils/performance/vitals/hasMeasurementsQuery';
+import {decodeScalar} from 'sentry/utils/queryString';
+import Breadcrumb from 'sentry/views/performance/breadcrumb';
 
 import {getCurrentLandingDisplay, LandingDisplayField} from '../landing/utils';
 
+import {anomaliesRouteWithQuery} from './transactionAnomalies/utils';
 import {eventsRouteWithQuery} from './transactionEvents/utils';
+import {spansRouteWithQuery} from './transactionSpans/utils';
 import {tagsRouteWithQuery} from './transactionTags/utils';
 import {vitalsRouteWithQuery} from './transactionVitals/utils';
 import Tab from './tabs';
@@ -49,20 +49,29 @@ const TAB_ANALYTICS: Partial<Record<Tab, AnalyticInfo>> = {
     eventKey: 'performance_views.events.events_tab_clicked',
     eventName: 'Performance Views: Events tab clicked',
   },
+  [Tab.Spans]: {
+    eventKey: 'performance_views.spans.spans_tab_clicked',
+    eventName: 'Performance Views: Spans tab clicked',
+  },
+  [Tab.Anomalies]: {
+    eventKey: 'performance_views.anomalies.anomalies_tab_clicked',
+    eventName: 'Performance Views: Anomalies tab clicked',
+  },
 };
 
 type Props = {
-  eventView: EventView;
-  location: Location;
-  organization: Organization;
-  projects: Project[];
-  transactionName: string;
   currentTab: Tab;
-  hasWebVitals: 'maybe' | 'yes' | 'no';
-  onChangeThreshold?: (threshold: number, metric: TransactionThresholdMetric) => void;
+  eventView: EventView;
   handleIncompatibleQuery: React.ComponentProps<
     typeof CreateAlertFromViewButton
   >['onIncompatibleQuery'];
+  hasWebVitals: 'maybe' | 'yes' | 'no';
+  location: Location;
+  organization: Organization;
+  projectId: string;
+  projects: Project[];
+  transactionName: string;
+  onChangeThreshold?: (threshold: number, metric: TransactionThresholdMetric) => void;
 };
 
 class TransactionHeader extends React.Component<Props> {
@@ -112,6 +121,7 @@ class TransactionHeader extends React.Component<Props> {
         onIncompatibleQuery={this.handleIncompatibleQuery}
         onSuccess={this.handleCreateAlertSuccess}
         referrer="performance"
+        aria-label={t('Create Alert')}
       />
     );
   }
@@ -132,32 +142,14 @@ class TransactionHeader extends React.Component<Props> {
     const {organization, transactionName, eventView, onChangeThreshold} = this.props;
 
     return (
-      <Feature
-        organization={organization}
-        features={['project-transaction-threshold-override']}
-      >
-        {({hasFeature}) =>
-          hasFeature ? (
-            <GuideAnchor
-              target="project_transaction_threshold_override"
-              position="bottom"
-            >
-              <TransactionThresholdButton
-                organization={organization}
-                transactionName={transactionName}
-                eventView={eventView}
-                onChangeThreshold={onChangeThreshold}
-              />
-            </GuideAnchor>
-          ) : (
-            <Button
-              href={`/settings/${organization.slug}/performance/`}
-              icon={<IconSettings />}
-              aria-label={t('Settings')}
-            />
-          )
-        }
-      </Feature>
+      <GuideAnchor target="project_transaction_threshold_override" position="bottom">
+        <TransactionThresholdButton
+          organization={organization}
+          transactionName={transactionName}
+          eventView={eventView}
+          onChangeThreshold={onChangeThreshold}
+        />
+      </GuideAnchor>
     );
   }
 
@@ -226,28 +218,20 @@ class TransactionHeader extends React.Component<Props> {
   }
 
   render() {
-    const {organization, location, transactionName, currentTab} = this.props;
+    const {organization, location, projectId, transactionName, currentTab} = this.props;
 
-    const summaryTarget = transactionSummaryRouteWithQuery({
+    const routeQuery = {
       orgSlug: organization.slug,
       transaction: transactionName,
-      projectID: decodeScalar(location.query.project),
+      projectID: projectId,
       query: location.query,
-    });
+    };
 
-    const tagsTarget = tagsRouteWithQuery({
-      orgSlug: organization.slug,
-      transaction: transactionName,
-      projectID: decodeScalar(location.query.project),
-      query: location.query,
-    });
-
-    const eventsTarget = eventsRouteWithQuery({
-      orgSlug: organization.slug,
-      transaction: transactionName,
-      projectID: decodeScalar(location.query.project),
-      query: location.query,
-    });
+    const summaryTarget = transactionSummaryRouteWithQuery(routeQuery);
+    const tagsTarget = tagsRouteWithQuery(routeQuery);
+    const eventsTarget = eventsRouteWithQuery(routeQuery);
+    const spansTarget = spansRouteWithQuery(routeQuery);
+    const anomaliesTarget = anomaliesRouteWithQuery(routeQuery);
 
     return (
       <Layout.Header>
@@ -255,7 +239,10 @@ class TransactionHeader extends React.Component<Props> {
           <Breadcrumb
             organization={organization}
             location={location}
-            transactionName={transactionName}
+            transaction={{
+              project: projectId,
+              name: transactionName,
+            }}
             tab={currentTab}
           />
           <Layout.Title>{transactionName}</Layout.Title>
@@ -277,26 +264,49 @@ class TransactionHeader extends React.Component<Props> {
             >
               {t('Overview')}
             </ListLink>
-            {this.renderWebVitalsTab()}
-            <Feature features={['organizations:performance-tag-page']}>
+            <ListLink
+              to={eventsTarget}
+              isActive={() => currentTab === Tab.Events}
+              onClick={this.trackTabClick(Tab.Events)}
+            >
+              {t('All Events')}
+            </ListLink>
+            <ListLink
+              to={tagsTarget}
+              isActive={() => currentTab === Tab.Tags}
+              onClick={this.trackTabClick(Tab.Tags)}
+            >
+              {t('Tags')}
+            </ListLink>
+            <Feature
+              organization={organization}
+              features={['organizations:performance-suspect-spans-view']}
+            >
               <ListLink
-                to={tagsTarget}
-                isActive={() => currentTab === Tab.Tags}
-                onClick={this.trackTabClick(Tab.Tags)}
+                data-test-id="spans-tab"
+                to={spansTarget}
+                isActive={() => currentTab === Tab.Spans}
+                onClick={this.trackTabClick(Tab.Spans)}
               >
-                {t('Tags')}
+                {t('Spans')}
                 <FeatureBadge type="new" noTooltip />
               </ListLink>
             </Feature>
-            <Feature features={['organizations:performance-events-page']}>
+            <Feature
+              organization={organization}
+              features={['organizations:performance-anomaly-detection-ui']}
+            >
               <ListLink
-                to={eventsTarget}
-                isActive={() => currentTab === Tab.Events}
-                onClick={this.trackTabClick(Tab.Events)}
+                data-test-id="anomalies-tab"
+                to={anomaliesTarget}
+                isActive={() => currentTab === Tab.Anomalies}
+                onClick={this.trackTabClick(Tab.Anomalies)}
               >
-                {t('All Events')}
+                {t('Anomalies')}
+                <FeatureBadge type="alpha" noTooltip />
               </ListLink>
             </Feature>
+            {this.renderWebVitalsTab()}
           </StyledNavTabs>
         </React.Fragment>
       </Layout.Header>

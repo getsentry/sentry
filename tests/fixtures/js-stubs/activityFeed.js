@@ -1,4 +1,4 @@
-export function ActivityFeed(params) {
+export function ActivityFeed(params = {}) {
   return {
     data: {text: 'Very interesting comment'},
     dateCreated: '2019-04-29T21:43:32.280Z',

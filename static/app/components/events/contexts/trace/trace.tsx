@@ -1,8 +1,8 @@
-import ErrorBoundary from 'app/components/errorBoundary';
-import KeyValueList from 'app/components/events/interfaces/keyValueList';
-import {Organization} from 'app/types';
-import {Event} from 'app/types/event';
-import withOrganization from 'app/utils/withOrganization';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import {Organization} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import getUnknownData from '../getUnknownData';
 
@@ -21,9 +21,9 @@ const traceKnownDataValues = [
 const traceIgnoredDataValues = [];
 
 type Props = {
-  organization: Organization;
-  event: Event;
   data: TraceKnownData;
+  event: Event;
+  organization: Organization;
 };
 
 const InnerTrace = withOrganization(function ({organization, event, data}: Props) {

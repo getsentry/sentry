@@ -1,28 +1,26 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {t} from 'app/locale';
-import ProjectsStore from 'app/stores/projectsStore';
-import EventView from 'app/utils/discover/eventView';
+import {t} from 'sentry/locale';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import EventView from 'sentry/utils/discover/eventView';
 import {
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
   WebVital,
-} from 'app/utils/discover/fields';
-import {SpanOperationBreakdownFilter} from 'app/views/performance/transactionSummary/filter';
-import EventsPageContent from 'app/views/performance/transactionSummary/transactionEvents/content';
-import {EventsDisplayFilterName} from 'app/views/performance/transactionSummary/transactionEvents/utils';
+} from 'sentry/utils/discover/fields';
+import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
+import EventsPageContent from 'sentry/views/performance/transactionSummary/transactionEvents/content';
+import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 
 type Data = {
-  features: string[];
+  features?: string[];
 };
 
-function initializeData({features: additionalFeatures = []}: Data) {
+function initializeData({features: additionalFeatures = []}: Data = {}) {
   const features = ['discover-basic', 'performance-view', ...additionalFeatures];
-  // @ts-expect-error
   const organization = TestStubs.Organization({
     features,
-    // @ts-expect-error
     projects: [TestStubs.Project()],
     apdexThreshold: 400,
   });
@@ -65,32 +63,17 @@ describe('Performance Transaction Events Content', function () {
       'spans.total.time',
       ...SPAN_OP_BREAKDOWN_FIELDS,
     ];
-    // @ts-expect-error
     organization = TestStubs.Organization();
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
     });
-    // @ts-expect-error
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/is-key-transactions/',
-      body: [],
-    });
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/prompts-activity/',
       body: {},
     });
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
-      body: [],
-    });
-    // @ts-expect-error
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/org-slug/legacy-key-transactions-count/`,
       body: [],
     });
     data = [
@@ -124,40 +107,34 @@ describe('Performance Transaction Events Content', function () {
       },
     ];
     // Transaction list response
-    // @ts-expect-error
-    MockApiClient.addMockResponse(
-      {
-        url: '/organizations/org-slug/eventsv2/',
-        headers: {
-          Link:
-            '<http://localhost/api/0/organizations/org-slug/eventsv2/?cursor=2:0:0>; rel="next"; results="true"; cursor="2:0:0",' +
-            '<http://localhost/api/0/organizations/org-slug/eventsv2/?cursor=1:0:0>; rel="previous"; results="false"; cursor="1:0:0"',
-        },
-        body: {
-          meta: {
-            id: 'string',
-            'user.display': 'string',
-            'transaction.duration': 'duration',
-            'project.id': 'integer',
-            timestamp: 'date',
-          },
-          data,
-        },
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/eventsv2/',
+      headers: {
+        Link:
+          '<http://localhost/api/0/organizations/org-slug/eventsv2/?cursor=2:0:0>; rel="next"; results="true"; cursor="2:0:0",' +
+          '<http://localhost/api/0/organizations/org-slug/eventsv2/?cursor=1:0:0>; rel="previous"; results="false"; cursor="1:0:0"',
       },
-      {
-        predicate: (url, options) => {
-          return (
-            url.includes('eventsv2') && options.query?.field.includes('user.display')
-          );
+      body: {
+        meta: {
+          id: 'string',
+          'user.display': 'string',
+          'transaction.duration': 'duration',
+          'project.id': 'integer',
+          timestamp: 'date',
         },
-      }
-    );
-    // @ts-expect-error
+        data,
+      },
+      match: [
+        (_url, options) => {
+          return options.query?.field?.includes('user.display');
+        },
+      ],
+    });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-has-measurements/',
       body: {measurements: false},
     });
-    initialData = initializeData({features: ['performance-events-page']});
+    initialData = initializeData();
     eventView = EventView.fromNewQueryWithLocation(
       {
         id: undefined,
@@ -173,7 +150,6 @@ describe('Performance Transaction Events Content', function () {
   });
 
   afterEach(function () {
-    // @ts-expect-error
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
     jest.clearAllMocks();
@@ -194,7 +170,6 @@ describe('Performance Transaction Events Content', function () {
       />,
       initialData.routerContext
     );
-    // @ts-expect-error
     await tick();
     wrapper.update();
 
@@ -230,7 +205,6 @@ describe('Performance Transaction Events Content', function () {
       />,
       initialData.routerContext
     );
-    // @ts-expect-error
     await tick();
     wrapper.update();
 

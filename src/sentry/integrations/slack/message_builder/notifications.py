@@ -1,42 +1,25 @@
-from typing import Any, Dict, List, Mapping, Union
+from __future__ import annotations
 
+from typing import Any, Mapping
+
+from sentry.digests import Digest
+from sentry.digests.utils import get_groups
 from sentry.integrations.slack.message_builder import SlackBody
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
-from sentry.integrations.slack.message_builder.issues import (
-    SlackIssuesMessageBuilder,
-    build_attachment_title,
-    get_title_link,
-)
+from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
 from sentry.models import Team, User
-from sentry.notifications.notifications.activity.new_processing_issues import (
-    NewProcessingIssuesActivityNotification,
-)
-from sentry.notifications.notifications.activity.release import ReleaseActivityNotification
-from sentry.notifications.notifications.base import BaseNotification
-from sentry.notifications.utils import get_release
-from sentry.utils.http import absolute_uri
-
-from ..utils import build_notification_footer
+from sentry.notifications.notifications.base import BaseNotification, ProjectNotification
+from sentry.notifications.notifications.digest import DigestNotification
+from sentry.utils import json
 
 
-def build_deploy_buttons(notification: ReleaseActivityNotification) -> List[Dict[str, str]]:
-    buttons = []
-    if notification.release:
-        release = get_release(notification.activity, notification.project.organization)
-        if release:
-            for project in notification.release.projects.all():
-                project_url = absolute_uri(
-                    f"/organizations/{project.organization.slug}/releases/{release.version}/?project={project.id}&unselectedSeries=Healthy/"
-                )
-                buttons.append(
-                    {
-                        "text": project.slug,
-                        "name": project.slug,
-                        "type": "button",
-                        "url": project_url,
-                    }
-                )
-    return buttons
+def get_message_builder(klass: str) -> type[SlackNotificationsMessageBuilder]:
+    """TODO(mgaeta): HACK to get around circular imports."""
+    return {
+        "DigestNotificationMessageBuilder": DigestNotificationMessageBuilder,
+        "IssueNotificationMessageBuilder": IssueNotificationMessageBuilder,
+        "SlackNotificationsMessageBuilder": SlackNotificationsMessageBuilder,
+    }[klass]
 
 
 class SlackNotificationsMessageBuilder(SlackMessageBuilder):
@@ -44,7 +27,7 @@ class SlackNotificationsMessageBuilder(SlackMessageBuilder):
         self,
         notification: BaseNotification,
         context: Mapping[str, Any],
-        recipient: Union[Team, User],
+        recipient: Team | User,
     ) -> None:
         super().__init__()
         self.notification = notification
@@ -52,45 +35,64 @@ class SlackNotificationsMessageBuilder(SlackMessageBuilder):
         self.recipient = recipient
 
     def build(self) -> SlackBody:
+        callback_id_raw = self.notification.get_callback_data()
+        return self._build(
+            title=self.notification.build_attachment_title(self.recipient),
+            title_link=self.notification.get_title_link(self.recipient),
+            text=self.notification.get_message_description(self.recipient),
+            footer=self.notification.build_notification_footer(self.recipient),
+            actions=self.notification.get_message_actions(self.recipient),
+            callback_id=json.dumps(callback_id_raw) if callback_id_raw else None,
+        )
+
+
+class IssueNotificationMessageBuilder(SlackNotificationsMessageBuilder):
+    def __init__(
+        self,
+        notification: ProjectNotification,
+        context: Mapping[str, Any],
+        recipient: Team | User,
+    ) -> None:
+        super().__init__(notification, context, recipient)
+        self.notification: ProjectNotification = notification
+
+    def build(self) -> SlackBody:
         group = getattr(self.notification, "group", None)
-        if self.notification.is_message_issue_unfurl:
-            return SlackIssuesMessageBuilder(
+        return SlackIssuesMessageBuilder(
+            group=group,
+            event=getattr(self.notification, "event", None),
+            tags=self.context.get("tags", None),
+            rules=getattr(self.notification, "rules", None),
+            issue_details=True,
+            notification=self.notification,
+            recipient=self.recipient,
+        ).build()
+
+
+class DigestNotificationMessageBuilder(SlackNotificationsMessageBuilder):
+    def __init__(
+        self,
+        notification: DigestNotification,
+        context: Mapping[str, Any],
+        recipient: Team | User,
+    ) -> None:
+        super().__init__(notification, context, recipient)
+        self.notification: DigestNotification = notification
+
+    def build(self) -> SlackBody:
+        """
+        It's currently impossible in mypy to have recursive types so we need a
+        hack to get this to return a SlackBody.
+        """
+        digest: Digest = self.context.get("digest", {})
+        return [
+            SlackIssuesMessageBuilder(  # type: ignore
                 group=group,
-                event=getattr(self.notification, "event", None),
-                tags=self.context.get("tags", None),
-                rules=getattr(self.notification, "rules", None),
+                event=event,
+                rules=[rule],
                 issue_details=True,
                 notification=self.notification,
                 recipient=self.recipient,
             ).build()
-
-        if isinstance(self.notification, ReleaseActivityNotification):
-            return self._build(
-                text="",
-                actions=build_deploy_buttons(self.notification),
-                footer=build_notification_footer(self.notification, self.recipient),
-            )
-
-        if isinstance(self.notification, NewProcessingIssuesActivityNotification):
-            return self._build(
-                title=self.notification.get_title(),
-                text=self.notification.get_message_description(),
-                footer=build_notification_footer(self.notification, self.recipient),
-            )
-
-        return self._build(
-            title=build_attachment_title(group),
-            title_link=get_title_link(group, None, False, True, self.notification),
-            text=self.notification.get_message_description(),
-            footer=build_notification_footer(self.notification, self.recipient),
-            color="info",
-        )
-
-
-def build_notification_attachment(
-    notification: BaseNotification,
-    context: Mapping[str, Any],
-    recipient: Union[Team, User],
-) -> SlackBody:
-    """@deprecated"""
-    return SlackNotificationsMessageBuilder(notification, context, recipient).build()
+            for rule, group, event in get_groups(digest)
+        ]

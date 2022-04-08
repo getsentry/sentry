@@ -12,9 +12,9 @@
 <html lang="en">
 <head>
   <meta http-equiv="content-type" content="text/html; charset=utf-8">
-  <meta name="robots" content="NONE,NOARCHIVE">
+  <!-- The "none" directive is equivalent to using both the noindex and nofollow tags simultaneously -->
+  <meta name="robots" content="none, noarchive">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#000000">
 
   <link rel="icon" type="image/png" href="{% absolute_asset_url "sentry" "images/favicon.png" %}">
 
@@ -25,7 +25,7 @@
 
   <link rel="mask-icon" sizes="any" href="{% absolute_asset_url "sentry" "images/logos/logo-sentry.svg" %}" color="#FB4226">
 
-  <link href="{% unversioned_asset_url "sentry" "entrypoints/sentry.css" cache_bust=True %}" rel="stylesheet"/>
+  <link href="{% frontend_app_asset_url "sentry" "entrypoints/sentry.css" cache_bust=True %}" rel="stylesheet"/>
 
   {% block css %}{% endblock %}
 
@@ -54,7 +54,7 @@
 
   {% block scripts %}
   {% block scripts_main_entrypoint %}
-    {% unversioned_asset_url "sentry" "entrypoints/app.js" cache_bust=True as asset_url %}
+    {% frontend_app_asset_url "sentry" "entrypoints/app.js" cache_bust=True as asset_url %}
     {% script src=asset_url data-entry="true" %}{% endscript %}
   {% endblock %}
 

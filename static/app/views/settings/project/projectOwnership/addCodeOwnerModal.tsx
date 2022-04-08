@@ -1,17 +1,19 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {ModalRenderProps} from 'app/actionCreators/modal';
-import {Client} from 'app/api';
-import Alert from 'app/components/alert';
-import Button from 'app/components/button';
-import Link from 'app/components/links/link';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {Panel, PanelBody} from 'app/components/panels';
-import {IconCheckmark, IconNot} from 'app/icons';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
+import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
+import Form from 'sentry/components/forms/form';
+import SelectField from 'sentry/components/forms/selectField';
+import Link from 'sentry/components/links/link';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Panel, PanelBody} from 'sentry/components/panels';
+import {IconCheckmark, IconNot} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {
   CodeOwner,
   CodeownersFile,
@@ -19,27 +21,25 @@ import {
   Organization,
   Project,
   RepositoryProjectPathConfig,
-} from 'app/types';
-import {getIntegrationIcon} from 'app/utils/integrationUtil';
-import withApi from 'app/utils/withApi';
-import Form from 'app/views/settings/components/forms/form';
-import SelectField from 'app/views/settings/components/forms/selectField';
+} from 'sentry/types';
+import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
+import withApi from 'sentry/utils/withApi';
 
 type Props = {
   api: Client;
-  organization: Organization;
-  project: Project;
   codeMappings: RepositoryProjectPathConfig[];
   integrations: Integration[];
   onSave: (data: CodeOwner) => void;
+  organization: Organization;
+  project: Project;
 } & ModalRenderProps;
 
 type State = {
-  codeownersFile: CodeownersFile | null;
   codeMappingId: string | null;
-  isLoading: boolean;
+  codeownersFile: CodeownersFile | null;
   error: boolean;
   errorJSON: {raw?: string} | null;
+  isLoading: boolean;
 };
 
 class AddCodeOwnerModal extends Component<Props, State> {
@@ -132,9 +132,9 @@ class AddCodeOwnerModal extends Component<Props, State> {
     const {codeMappings} = this.props;
     const codeMapping = codeMappings.find(mapping => mapping.id === codeMappingId);
     const {integrationId, provider} = codeMapping as RepositoryProjectPathConfig;
-    const errActors = errorJSON?.raw?.[0].split('\n').map(el => <p>{el}</p>);
+    const errActors = errorJSON?.raw?.[0].split('\n').map((el, i) => <p key={i}>{el}</p>);
     return (
-      <Alert type="error" icon={<IconNot size="md" />}>
+      <Alert type="error" showIcon>
         {errActors}
         {codeMapping && (
           <p>
@@ -230,10 +230,10 @@ class AddCodeOwnerModal extends Component<Props, State> {
               <StyledSelectField
                 name="codeMappingId"
                 label={t('Apply an existing code mapping')}
-                choices={codeMappings.map((cm: RepositoryProjectPathConfig) => [
-                  cm.id,
-                  cm.repoName,
-                ])}
+                options={codeMappings.map((cm: RepositoryProjectPathConfig) => ({
+                  value: cm.id,
+                  label: cm.repoName,
+                }))}
                 onChange={this.fetchFile}
                 required
                 inline={false}
@@ -251,7 +251,7 @@ class AddCodeOwnerModal extends Component<Props, State> {
         <Footer>
           <Button
             disabled={codeownersFile ? false : true}
-            label={t('Add File')}
+            aria-label={t('Add File')}
             priority="primary"
             onClick={this.addFile}
           >
@@ -288,7 +288,7 @@ const SourceFileBody = styled(PanelBody)`
 
 const IntegrationsList = styled('div')`
   display: grid;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   justify-items: center;
   margin-top: ${space(2)};
 `;

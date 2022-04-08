@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import ProgressBar from 'app/components/progressBar';
-import space from 'app/styles/space';
+import ProgressBar from 'sentry/components/progressBar';
+import space from 'sentry/styles/space';
 
 export default {
   title: 'Components/Data Visualization/Charts/Progress Bar',
@@ -23,5 +23,5 @@ _ProgressBar.storyName = 'Progress Bar';
 const Wrapper = styled('div')`
   width: 200px;
   display: grid;
-  grid-gap: ${space(3)};
+  gap: ${space(3)};
 `;

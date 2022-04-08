@@ -1,8 +1,8 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {Client} from 'app/api';
-import IntegrationListDirectory from 'app/views/organizationIntegrations/integrationListDirectory';
+import {Client} from 'sentry/api';
+import IntegrationListDirectory from 'sentry/views/organizationIntegrations/integrationListDirectory';
 
 const mockResponse = mocks => {
   mocks.forEach(([url, body]) =>
@@ -31,6 +31,7 @@ describe('IntegrationListDirectory', function () {
         ],
         [`/organizations/${org.slug}/sentry-apps/`, TestStubs.OrgOwnedApps()],
         ['/sentry-apps/', TestStubs.PublishedApps()],
+        ['/doc-integrations/', [TestStubs.DocIntegration()]],
         [
           `/organizations/${org.slug}/sentry-app-installations/`,
           TestStubs.SentryAppInstalls(),
@@ -48,23 +49,16 @@ describe('IntegrationListDirectory', function () {
     it('shows installed integrations at the top in order of weight', async function () {
       expect(wrapper.find('SearchBar').exists()).toBeTruthy();
       expect(wrapper.find('PanelBody').exists()).toBeTruthy();
-      expect(wrapper.find('IntegrationRow')).toHaveLength(14);
+      expect(wrapper.find('IntegrationRow')).toHaveLength(7);
 
       [
-        'bitbucket',
-        'pagerduty',
-        'my-headband-washer-289499',
-        'clickup',
-        'asayer',
-        'bitbucket_pipelines',
-        'datadog',
-        'fullstory',
-        'github_actions',
-        'netlify',
-        'octohook',
-        'rocketchat',
-        'amazon-sqs',
-        'la-croix-monitor',
+        'bitbucket', // 10
+        'pagerduty', // 10
+        'my-headband-washer-289499', // 10
+        'sample-doc', // 10
+        'clickup', // 9
+        'amazon-sqs', // 8
+        'la-croix-monitor', // 8
       ].map((name, index) =>
         expect(wrapper.find('IntegrationRow').at(index).props().slug).toEqual(name)
       );

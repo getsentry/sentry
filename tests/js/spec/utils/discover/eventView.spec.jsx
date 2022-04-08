@@ -1,13 +1,13 @@
-import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
+import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import EventView, {
   isAPIPayloadSimilar,
   pickRelevantLocationQueryStrings,
-} from 'app/utils/discover/eventView';
+} from 'sentry/utils/discover/eventView';
 import {
   CHART_AXIS_OPTIONS,
   DISPLAY_MODE_OPTIONS,
   DisplayModes,
-} from 'app/utils/discover/types';
+} from 'sentry/utils/discover/types';
 
 const generateFields = fields =>
   fields.map(field => ({
@@ -366,6 +366,95 @@ describe('EventView.fromSavedQuery()', function () {
 
     // this is expected since datetime (start and end) are normalized
     expect(eventView2.isEqualTo(eventView3)).toBe(true);
+  });
+
+  it('saved queries with undefined yAxis are defaulted to count() when comparing with isEqualTo', function () {
+    const saved = {
+      orderby: '-count_timestamp',
+      end: '2019-10-23T19:27:04+0000',
+      name: 'release query',
+      fields: ['release', 'count(timestamp)'],
+      dateCreated: '2019-10-30T05:10:23.718937Z',
+      environment: ['dev', 'production'],
+      start: '2019-10-20T21:02:51+0000',
+      version: 2,
+      createdBy: '1',
+      dateUpdated: '2019-10-30T07:25:58.291917Z',
+      id: '3',
+      projects: [1],
+    };
+
+    const eventView = EventView.fromSavedQuery(saved);
+
+    const eventView2 = EventView.fromSavedQuery({
+      ...saved,
+      yAxis: 'count()',
+    });
+
+    expect(eventView.isEqualTo(eventView2)).toBe(true);
+  });
+
+  it('uses the first yAxis from the SavedQuery', function () {
+    const saved = {
+      id: '42',
+      name: 'best query',
+      fields: ['count()', 'id'],
+      query: 'event.type:transaction',
+      projects: [123],
+      teams: ['myteams', 1],
+      range: '14d',
+      start: '2019-10-01T00:00:00',
+      end: '2019-10-02T00:00:00',
+      orderby: '-id',
+      environment: ['staging'],
+      display: 'previous',
+      yAxis: ['count()'],
+    };
+    const eventView = EventView.fromSavedQuery(saved);
+
+    expect(eventView).toMatchObject({
+      id: saved.id,
+      name: saved.name,
+      fields: [
+        {field: 'count()', width: COL_WIDTH_UNDEFINED},
+        {field: 'id', width: COL_WIDTH_UNDEFINED},
+      ],
+      sorts: [{field: 'id', kind: 'desc'}],
+      query: 'event.type:transaction',
+      project: [123],
+      team: ['myteams', 1],
+      start: undefined,
+      end: undefined,
+      statsPeriod: '14d',
+      environment: ['staging'],
+      yAxis: 'count()',
+      display: 'previous',
+    });
+  });
+
+  it('preserves utc with start/end', function () {
+    const saved = {
+      name: 'best query',
+      query: 'event.type:transaction',
+      fields: ['count()', 'title'],
+      start: '2019-10-20T21:02:51+0000',
+      end: '2019-10-23T19:27:04+0000',
+      utc: 'true',
+    };
+    const eventView = EventView.fromSavedQuery(saved);
+
+    expect(eventView).toMatchObject({
+      id: saved.id,
+      name: saved.name,
+      fields: [
+        {field: 'count()', width: COL_WIDTH_UNDEFINED},
+        {field: 'title', width: COL_WIDTH_UNDEFINED},
+      ],
+      query: 'event.type:transaction',
+      start: '2019-10-20T21:02:51.000',
+      end: '2019-10-23T19:27:04.000',
+      utc: 'true',
+    });
   });
 });
 
@@ -863,6 +952,52 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
     // this is expected since datetime (start and end) are normalized
     expect(eventView2.isEqualTo(eventView3)).toBe(true);
   });
+
+  it('uses the first yAxis from the SavedQuery', function () {
+    const saved = {
+      id: '42',
+      name: 'best query',
+      fields: ['count()', 'id'],
+      query: 'event.type:transaction',
+      projects: [123],
+      range: '14d',
+      start: '2019-10-01T00:00:00',
+      end: '2019-10-02T00:00:00',
+      orderby: '-id',
+      environment: ['staging'],
+      display: 'previous',
+      yAxis: ['count()', 'failure_count()'],
+    };
+
+    const location = {
+      query: {
+        statsPeriod: '14d',
+        project: ['123'],
+        team: ['myteams', '1', '2'],
+        environment: ['staging'],
+      },
+    };
+    const eventView = EventView.fromSavedQueryOrLocation(saved, location);
+
+    expect(eventView).toMatchObject({
+      id: saved.id,
+      name: saved.name,
+      fields: [
+        {field: 'count()', width: COL_WIDTH_UNDEFINED},
+        {field: 'id', width: COL_WIDTH_UNDEFINED},
+      ],
+      sorts: [{field: 'id', kind: 'desc'}],
+      query: 'event.type:transaction',
+      project: [123],
+      team: ['myteams', 1, 2],
+      start: undefined,
+      end: undefined,
+      statsPeriod: '14d',
+      environment: ['staging'],
+      yAxis: 'count()',
+      display: 'previous',
+    });
+  });
 });
 
 describe('EventView.generateQueryStringObject()', function () {
@@ -889,7 +1024,6 @@ describe('EventView.generateQueryStringObject()', function () {
       project: [],
       environment: [],
       display: 'previous',
-      user: '1',
       yAxis: 'count()',
     };
 
@@ -933,7 +1067,6 @@ describe('EventView.generateQueryStringObject()', function () {
       yAxis: 'count()',
       display: 'releases',
       interval: '1m',
-      user: '1',
     };
 
     expect(eventView.generateQueryStringObject()).toEqual(expected);
@@ -2563,6 +2696,25 @@ describe('EventView.isEqualTo()', function () {
       expect(eventView.isEqualTo(eventView2)).toBe(false);
     }
   });
+
+  it('undefined display type equals default display type', function () {
+    const state = {
+      id: '1234',
+      name: 'best query',
+      fields: [{field: 'count()'}, {field: 'project.id'}],
+      sorts: generateSorts(['count']),
+      query: 'event.type:error',
+      project: [42],
+      start: '2019-10-01T00:00:00',
+      end: '2019-10-02T00:00:00',
+      statsPeriod: '14d',
+      environment: ['staging'],
+      yAxis: 'fam',
+    };
+    const eventView = new EventView(state);
+    const eventView2 = new EventView({...state, display: 'default'});
+    expect(eventView.isEqualTo(eventView2)).toBe(true);
+  });
 });
 
 describe('EventView.getResultsViewUrlTarget()', function () {
@@ -2660,20 +2812,20 @@ describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', function ()
   });
 });
 
-describe('EventView.getGlobalSelection()', function () {
+describe('EventView.getPageFilters()', function () {
   it('return default global selection', function () {
     const eventView = new EventView({});
 
-    expect(eventView.getGlobalSelection()).toMatchObject({
+    expect(eventView.getPageFilters()).toMatchObject({
       projects: [],
       environments: [],
       datetime: {
         start: null,
         end: null,
-        period: '',
+        period: null,
 
         // event views currently do not support the utc option,
-        // see comment in EventView.getGlobalSelection
+        // see comment in EventView.getPageFilters
         utc: true,
       },
     });
@@ -2690,7 +2842,7 @@ describe('EventView.getGlobalSelection()', function () {
 
     const eventView = new EventView(state2);
 
-    expect(eventView.getGlobalSelection()).toMatchObject({
+    expect(eventView.getPageFilters()).toMatchObject({
       projects: state2.project,
       environments: state2.environment,
       datetime: {
@@ -2699,18 +2851,18 @@ describe('EventView.getGlobalSelection()', function () {
         period: state2.statsPeriod,
 
         // event views currently do not support the utc option,
-        // see comment in EventView.getGlobalSelection
+        // see comment in EventView.getPageFilters
         utc: true,
       },
     });
   });
 });
 
-describe('EventView.getGlobalSelectionQuery()', function () {
+describe('EventView.getPageFiltersQuery()', function () {
   it('return default global selection query', function () {
     const eventView = new EventView({});
 
-    expect(eventView.getGlobalSelectionQuery()).toMatchObject({
+    expect(eventView.getPageFiltersQuery()).toMatchObject({
       project: [],
       start: undefined,
       end: undefined,
@@ -2718,7 +2870,7 @@ describe('EventView.getGlobalSelectionQuery()', function () {
       environment: [],
 
       // event views currently do not support the utc option,
-      // see comment in EventView.getGlobalSelection
+      // see comment in EventView.getPageFilters
       utc: 'true',
     });
   });
@@ -2734,14 +2886,14 @@ describe('EventView.getGlobalSelectionQuery()', function () {
 
     const eventView = new EventView(state2);
 
-    expect(eventView.getGlobalSelectionQuery()).toMatchObject({
+    expect(eventView.getPageFiltersQuery()).toMatchObject({
       ...state2,
 
       // when generating the query, it converts numbers to strings
       project: ['42'],
 
       // event views currently do not support the utc option,
-      // see comment in EventView.getGlobalSelection
+      // see comment in EventView.getPageFilters
       utc: 'true',
     });
   });
@@ -3234,7 +3386,7 @@ describe('isAPIPayloadSimilar', function () {
       expect(results).toBe(false);
     });
 
-    it('it is similar if column order changes', function () {
+    it('is similar if column order changes', function () {
       const thisEventView = new EventView(state);
       const location = {};
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
@@ -3249,7 +3401,7 @@ describe('isAPIPayloadSimilar', function () {
       expect(results).toBe(true);
     });
 
-    it('it is similar if equation order relatively same', function () {
+    it('is similar if equation order relatively same', function () {
       const equationField = {field: 'equation|failure_count() / count()'};
       const otherEquationField = {field: 'equation|failure_count() / 2'};
       state.fields = [
@@ -3277,7 +3429,7 @@ describe('isAPIPayloadSimilar', function () {
       expect(results).toBe(true);
     });
 
-    it('it is not similar if equation order changes', function () {
+    it('is not similar if equation order changes', function () {
       const equationField = {field: 'equation|failure_count() / count()'};
       const otherEquationField = {field: 'equation|failure_count() / 2'};
       state.fields = [

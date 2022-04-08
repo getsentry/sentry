@@ -2,18 +2,18 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
-import {openInviteMembersModal} from 'app/actionCreators/modal';
-import Alert from 'app/components/alert';
-import ActorAvatar from 'app/components/avatar/actorAvatar';
-import Button from 'app/components/button';
-import Hovercard from 'app/components/hovercard';
-import Link from 'app/components/links/link';
-import {IconCommit, IconWarning} from 'app/icons';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {Actor, Commit} from 'app/types';
-import {defined} from 'app/utils';
-import theme from 'app/utils/theme';
+import {openInviteMembersModal} from 'sentry/actionCreators/modal';
+import Alert from 'sentry/components/alert';
+import ActorAvatar from 'sentry/components/avatar/actorAvatar';
+import Button from 'sentry/components/button';
+import {Hovercard} from 'sentry/components/hovercard';
+import Link from 'sentry/components/links/link';
+import {IconCommit} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Actor, Commit} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import theme from 'sentry/utils/theme';
 
 type Props = {
   /**
@@ -21,10 +21,16 @@ type Props = {
    */
   actor: Actor;
   /**
+   * Children are required, as they are passed to the hovercard component, without it,
+   * we will not be able to trigger any hovercard actions
+   */
+  children: React.ReactNode;
+  /**
    * The list of commits the actor is suggested for. May be left blank if the
    * actor is not suggested for commits.
    */
   commits?: Commit[];
+
   /**
    * The list of ownership rules the actor is suggested for. May be left blank
    * if the actor is not suggested based on ownership rules.
@@ -64,7 +70,7 @@ class SuggestedOwnerHovercard extends React.Component<Props, State> {
               {actor.name || actor.email}
             </HovercardHeader>
             {actor.id === undefined && (
-              <EmailAlert icon={<IconWarning size="xs" />} type="warning">
+              <EmailAlert type="warning" showIcon>
                 {tct(
                   'The email [actorEmail] is not a member of your organization. [inviteUser:Invite] them or link additional emails in [accountSettings:account settings].',
                   {
@@ -99,8 +105,12 @@ class SuggestedOwnerHovercard extends React.Component<Props, State> {
                 </div>
                 {commits.length > 3 && !commitsExpanded ? (
                   <ViewMoreButton
+                    priority="link"
+                    size="zero"
                     onClick={() => this.setState({commitsExpanded: true})}
-                  />
+                  >
+                    {t('View more')}
+                  </ViewMoreButton>
                 ) : null}
               </React.Fragment>
             )}
@@ -120,7 +130,13 @@ class SuggestedOwnerHovercard extends React.Component<Props, State> {
                     ))}
                 </div>
                 {rules.length > 3 && !rulesExpanded ? (
-                  <ViewMoreButton onClick={() => this.setState({rulesExpanded: true})} />
+                  <ViewMoreButton
+                    priority="link"
+                    size="zero"
+                    onClick={() => this.setState({rulesExpanded: true})}
+                  >
+                    {t('View more')}
+                  </ViewMoreButton>
                 ) : null}
               </React.Fragment>
             )}
@@ -136,7 +152,7 @@ const tagColors = {
   url: theme.green200,
   path: theme.purple300,
   tag: theme.blue300,
-  codeowners: theme.orange300,
+  codeowners: theme.pink300,
 };
 
 const CommitIcon = styled(IconCommit)`
@@ -192,11 +208,7 @@ const OwnershipTag = styled(({tagType, ...props}) => <div {...props}>{tagType}</
   text-align: center;
 `;
 
-const ViewMoreButton = styled((p: React.ComponentProps<typeof Button>) => (
-  <Button {...p} priority="link" size="zero">
-    {t('View more')}
-  </Button>
-))`
+const ViewMoreButton = styled(Button)`
   border: none;
   color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeExtraSmall};

@@ -1,16 +1,19 @@
+from __future__ import annotations
+
 import logging
-from typing import Any, Mapping, MutableMapping, Optional, Set
+from typing import Any, Iterable, Mapping, MutableMapping
 
 import pytz
 
-from sentry.models import User, UserOption
-from sentry.notifications.notifications.base import BaseNotification
-from sentry.notifications.types import ActionTargetType
+from sentry import features
+from sentry.models import Team, User, UserOption
+from sentry.notifications.notifications.base import ProjectNotification
+from sentry.notifications.types import ActionTargetType, NotificationSettingTypes
 from sentry.notifications.utils import (
     get_commits,
+    get_group_settings_link,
     get_integration_link,
     get_interface_list,
-    get_link,
     get_rules,
     has_alert_integration,
     has_integrations,
@@ -23,15 +26,17 @@ from sentry.utils import metrics
 logger = logging.getLogger(__name__)
 
 
-class AlertRuleNotification(BaseNotification):
-    fine_tuning_key = "alerts"
-    is_message_issue_unfurl = True
+class AlertRuleNotification(ProjectNotification):
+    message_builder = "IssueNotificationMessageBuilder"
+    notification_setting_type = NotificationSettingTypes.ISSUE_ALERTS
+    metrics_key = "issue_alert"
+    referrer_base = "alert-rule"
 
     def __init__(
         self,
         notification: Notification,
         target_type: ActionTargetType,
-        target_identifier: Optional[int] = None,
+        target_identifier: int | None = None,
     ) -> None:
         event = notification.event
         group = event.group
@@ -43,7 +48,7 @@ class AlertRuleNotification(BaseNotification):
         self.target_identifier = target_identifier
         self.rules = notification.rules
 
-    def get_participants(self) -> Mapping[ExternalProviders, Set[User]]:
+    def get_participants(self) -> Mapping[ExternalProviders, Iterable[Team | User]]:
         return get_send_to(
             project=self.project,
             target_type=self.target_type,
@@ -57,47 +62,48 @@ class AlertRuleNotification(BaseNotification):
     def get_category(self) -> str:
         return "issue_alert_email"
 
-    def get_subject(self, context: Optional[Mapping[str, Any]] = None) -> str:
+    def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         return str(self.event.get_email_subject())
 
     def get_reference(self) -> Any:
         return self.group
 
-    def get_user_context(
-        self, user: User, extra_context: Mapping[str, Any]
+    def get_recipient_context(
+        self, recipient: Team | User, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
-        parent_context = super().get_user_context(user, extra_context)
-        user_context = {"timezone": pytz.timezone("UTC"), **parent_context}
-        try:
-            # AlertRuleNotification is shared among both email and slack notifications, and in slack
-            # notifications, the `user` arg could be of type `Team` which is why we need this check
-            if isinstance(user, User):
-                user_context.update(
-                    {
-                        "timezone": pytz.timezone(
-                            UserOption.objects.get_value(user=user, key="timezone", default="UTC")
-                        )
-                    }
-                )
-        except pytz.UnknownTimeZoneError:
-            ...
-        return user_context
+        timezone = pytz.timezone("UTC")
+
+        if isinstance(recipient, User):
+            user_tz = UserOption.objects.get_value(user=recipient, key="timezone", default="UTC")
+            try:
+                timezone = pytz.timezone(user_tz)
+            except pytz.UnknownTimeZoneError:
+                pass
+        return {
+            **super().get_recipient_context(recipient, extra_context),
+            "timezone": timezone,
+        }
 
     def get_context(self) -> MutableMapping[str, Any]:
         environment = self.event.get_tag("environment")
         enhanced_privacy = self.organization.flags.enhanced_privacy
+        alert_status_page_enabled = features.has(
+            "organizations:alert-rule-status-page", self.project.organization
+        )
+        rule_details = get_rules(self.rules, self.organization, self.project)
         context = {
             "project_label": self.project.get_full_name(),
             "group": self.group,
             "event": self.event,
-            "link": get_link(self.group, environment),
-            "rules": get_rules(self.rules, self.organization, self.project),
+            "link": get_group_settings_link(self.group, environment, rule_details),
+            "rules": rule_details,
             "has_integrations": has_integrations(self.organization, self.project),
             "enhanced_privacy": enhanced_privacy,
             "commits": get_commits(self.project, self.event),
             "environment": environment,
             "slack_link": get_integration_link(self.organization, "slack"),
             "has_alert_integration": has_alert_integration(self.project),
+            "alert_status_page_enabled": alert_status_page_enabled,
         }
 
         # if the organization has enabled enhanced privacy controls we don't send
@@ -140,6 +146,15 @@ class AlertRuleNotification(BaseNotification):
 
         participants_by_provider = self.get_participants()
         if not participants_by_provider:
+            logger.info(
+                "notifications.notification.rules.alertrulenotification.skip.no_participants",
+                extra={
+                    "target_type": self.target_type.value,
+                    "target_identifier": self.target_identifier,
+                    "group": self.group.id,
+                    "project_id": self.project.id,
+                },
+            )
             return
 
         # Only calculate shared context once.
@@ -147,3 +162,10 @@ class AlertRuleNotification(BaseNotification):
 
         for provider, participants in participants_by_provider.items():
             notify(provider, self, participants, shared_context)
+
+    def get_log_params(self, recipient: Team | User) -> Mapping[str, Any]:
+        return {
+            "target_type": self.target_type,
+            "target_identifier": self.target_identifier,
+            **super().get_log_params(recipient),
+        }

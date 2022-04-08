@@ -1,3 +1,6 @@
+from rest_framework.request import Request
+from rest_framework.response import Response
+
 from sentry import eventstore, features
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import OffsetPaginator
@@ -7,7 +10,7 @@ from sentry.search.utils import tokenize_query
 
 
 class EventAttachmentsEndpoint(ProjectEndpoint):
-    def get(self, request, project, event_id):
+    def get(self, request: Request, project, event_id) -> Response:
         """
         Retrieve attachments for an event
         `````````````````````````````````

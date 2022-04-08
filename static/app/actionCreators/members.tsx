@@ -1,9 +1,9 @@
 import * as Sentry from '@sentry/react';
 
-import MemberActions from 'app/actions/memberActions';
-import {Client} from 'app/api';
-import MemberListStore from 'app/stores/memberListStore';
-import {Member} from 'app/types';
+import MemberActions from 'sentry/actions/memberActions';
+import {Client} from 'sentry/api';
+import MemberListStore from 'sentry/stores/memberListStore';
+import {Member} from 'sentry/types';
 
 function getMemberUser(member: Member) {
   return {
@@ -74,9 +74,9 @@ export function indexMembersByProject(members: Member[]): IndexedMembersByProjec
 }
 
 type UpdateMemberOptions = {
-  orgId: string;
-  memberId: string;
   data: Member | null;
+  memberId: string;
+  orgId: string;
 };
 
 export async function updateMember(
@@ -100,10 +100,10 @@ export async function updateMember(
 }
 
 type ResendMemberInviteOptions = {
-  orgId: string;
   memberId: string;
-  regenerate?: boolean;
+  orgId: string;
   data?: object;
+  regenerate?: boolean;
 };
 
 export async function resendMemberInvite(

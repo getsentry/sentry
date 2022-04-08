@@ -1,15 +1,15 @@
 import * as React from 'react';
 
-import {ModalRenderProps} from 'app/actionCreators/modal';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import {t} from 'app/locale';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import {t} from 'sentry/locale';
 
 type Props = {
-  onSave: () => void;
-  title: string;
   content: React.ReactElement;
   disabled: boolean;
+  onSave: () => void;
+  title: string;
 } & ModalRenderProps;
 
 const Modal = ({

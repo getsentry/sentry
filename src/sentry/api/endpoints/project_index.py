@@ -1,6 +1,8 @@
 from django.db.models import Q
 from django.db.models.query import EmptyQuerySet
 from rest_framework.exceptions import AuthenticationFailed
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.api.bases.project import ProjectPermission
@@ -15,7 +17,7 @@ from sentry.search.utils import tokenize_query
 class ProjectIndexEndpoint(Endpoint):
     permission_classes = (ProjectPermission,)
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         """
         List your Projects
         ``````````````````
@@ -44,7 +46,7 @@ class ProjectIndexEndpoint(Endpoint):
                 queryset = queryset.none()
         elif not (is_active_superuser(request) and request.GET.get("show") == "all"):
             if request.user.is_sentry_app:
-                queryset = SentryAppInstallationToken.get_projects(request.auth)
+                queryset = SentryAppInstallationToken.objects.get_projects(request.auth)
                 if isinstance(queryset, EmptyQuerySet):
                     raise AuthenticationFailed("Token not found")
             else:

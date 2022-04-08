@@ -1,6 +1,6 @@
 from django.urls import reverse
 
-from sentry.models import Integration, ProjectCodeOwners
+from sentry.models import ProjectCodeOwners
 from sentry.testutils import APITestCase
 
 
@@ -9,11 +9,6 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         self.user = self.create_user("admin@sentry.io", is_superuser=True)
 
         self.login_as(user=self.user)
-
-        self.integration = Integration.objects.create(
-            provider="github", name="GitHub", external_id="github:1"
-        )
-        self.oi = self.integration.add_organization(self.organization, self.user)
 
         self.team = self.create_team(
             organization=self.organization, slug="tiger-team", members=[self.user]
@@ -24,7 +19,6 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         )
         self.code_mapping = self.create_code_mapping(
             project=self.project,
-            organization_integration=self.oi,
         )
         self.external_user = self.create_external_user(
             external_name="@NisanthanNanthakumar", integration=self.integration
@@ -39,30 +33,6 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
             "codeMappingId": self.code_mapping.id,
         }
 
-    def _create_codeowner_without_integration(self):
-        self.integration = Integration.objects.create(
-            provider="github",
-            name="getsentry",
-            external_id="1234",
-            metadata={"domain_name": "github.com/getsentry"},
-        )
-        self.integration.add_organization(self.organization, self.user)
-        self.repo = self.create_repo(
-            project=self.project,
-            name="getsentry/sentry",
-            provider="integrations:github",
-            integration_id=self.integration.id,
-            url="https://github.com/getsentry/sentry",
-        )
-        self.code_mapping_without_integration = self.create_code_mapping(
-            project=self.project,
-            repo=self.repo,
-            stack_root="webpack://",
-        )
-        self.code_owner = self.create_codeowners(
-            self.project, self.code_mapping_without_integration, raw="*.js @tiger-team"
-        )
-
     def test_no_codeowners(self):
         with self.feature({"organizations:integrations-codeowners": True}):
             resp = self.client.get(self.url)
@@ -73,18 +43,6 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         resp = self.client.get(self.url)
         assert resp.status_code == 403
         assert resp.data == {"detail": "You do not have permission to perform this action."}
-
-    def test_codeowners_without_integrations(self):
-        self._create_codeowner_without_integration()
-        with self.feature({"organizations:integrations-codeowners": True}):
-            resp = self.client.get(self.url)
-        assert resp.status_code == 200
-        resp_data = resp.data[0]
-        assert resp_data["raw"] == self.code_owner.raw
-        assert resp_data["dateCreated"] == self.code_owner.date_added
-        assert resp_data["dateUpdated"] == self.code_owner.date_updated
-        assert resp_data["codeMappingId"] == str(self.code_mapping_without_integration.id)
-        assert resp_data["provider"] == "unknown"
 
     def test_codeowners_with_integration(self):
         code_owner = self.create_codeowners(self.project, self.code_mapping, raw="*.js @tiger-team")

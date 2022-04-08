@@ -1,5 +1,5 @@
-import {Client, Request} from 'app/api';
-import parseLinkHeader from 'app/utils/parseLinkHeader';
+import {Client, Request} from 'sentry/api';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 
 type Options = {
   endpoint: string;
@@ -35,9 +35,15 @@ class CursorPoller {
 
   enable() {
     this.active = true;
-    if (!this.timeoutId) {
-      this.timeoutId = window.setTimeout(this.poll.bind(this), this.getDelay());
+
+    // Proactively clear timeout and last request
+    if (this.timeoutId) {
+      window.clearTimeout(this.timeoutId);
     }
+    if (this.lastRequest) {
+      this.lastRequest.cancel();
+    }
+    this.timeoutId = window.setTimeout(this.poll.bind(this), this.getDelay());
   }
 
   disable() {

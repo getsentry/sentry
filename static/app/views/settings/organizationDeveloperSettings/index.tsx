@@ -1,19 +1,20 @@
 import {RouteComponentProps} from 'react-router';
 
-import {removeSentryApp} from 'app/actionCreators/sentryApps';
-import Access from 'app/components/acl/access';
-import AlertLink from 'app/components/alertLink';
-import Button from 'app/components/button';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import {IconAdd} from 'app/icons';
-import {t} from 'app/locale';
-import {Organization, SentryApp} from 'app/types';
-import routeTitleGen from 'app/utils/routeTitle';
-import withOrganization from 'app/utils/withOrganization';
-import AsyncView from 'app/views/asyncView';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import SentryApplicationRow from 'app/views/settings/organizationDeveloperSettings/sentryApplicationRow';
+import {removeSentryApp} from 'sentry/actionCreators/sentryApps';
+import Access from 'sentry/components/acl/access';
+import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import {IconAdd} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import {Organization, SentryApp} from 'sentry/types';
+import routeTitleGen from 'sentry/utils/routeTitle';
+import withOrganization from 'sentry/utils/withOrganization';
+import AsyncView from 'sentry/views/asyncView';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import SentryApplicationRow from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationRow';
 
 type Props = Omit<AsyncView['props'], 'params'> & {
   organization: Organization;
@@ -76,7 +77,7 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
             priority="primary"
             disabled={!hasAccess}
             title={!hasAccess ? permissionTooltipText : undefined}
-            size="small"
+            size="xsmall"
             to={`/settings/${orgId}/developer-settings/new-internal/`}
             icon={<IconAdd size="xs" isCircled />}
           >
@@ -105,7 +106,7 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
     );
   }
 
-  renderExernalIntegrations() {
+  renderExternalIntegrations() {
     const {orgId} = this.props.params;
     const {organization} = this.props;
     const integrations = this.state.applications.filter(app => app.status !== 'internal');
@@ -122,7 +123,7 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
             priority="primary"
             disabled={!hasAccess}
             title={!hasAccess ? permissionTooltipText : undefined}
-            size="small"
+            size="xsmall"
             to={`/settings/${orgId}/developer-settings/new-public/`}
             icon={<IconAdd size="xs" isCircled />}
           >
@@ -154,13 +155,32 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
   renderBody() {
     return (
       <div>
-        <SettingsPageHeader title={t('Developer Settings')} />
-        <AlertLink href="https://docs.sentry.io/product/integrations/integration-platform/">
-          {t(
-            'Have questions about the Integration Platform? Learn more about it in our docs.'
+        <SettingsPageHeader
+          title={t('Developer Settings')}
+          body={t(
+            `Create integrations that interact with Sentry using the REST API and webhooks.`
           )}
-        </AlertLink>
-        {this.renderExernalIntegrations()}
+          action={
+            <Button
+              size="small"
+              external
+              href="https://docs.sentry.io/product/integrations/integration-platform/"
+            >
+              {t('View Docs')}
+            </Button>
+          }
+        />
+        <Alert type="info">
+          {tct(
+            'Integrations can now detect when a comment on an issue is added or changes.  [link:Learn more].',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/product/integrations/integration-platform/webhooks/#comments" />
+              ),
+            }
+          )}
+        </Alert>
+        {this.renderExternalIntegrations()}
         {this.renderInternalIntegrations()}
       </div>
     );

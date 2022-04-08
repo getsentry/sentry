@@ -1,4 +1,4 @@
-export function IncidentTrigger(params) {
+export function IncidentTrigger(params = {}) {
   return {
     alertRuleId: '4',
     alertThreshold: 70,

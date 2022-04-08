@@ -1,5 +1,6 @@
 from functools import wraps
 
+from sentry.search.events.constants import TIMEOUT_ERROR_MESSAGE
 from sentry.snuba import discover
 from sentry.utils import metrics, snuba
 from sentry.utils.sdk import capture_exception
@@ -44,7 +45,7 @@ def handle_snuba_errors(logger):
                         snuba.QueryTooManySimultaneous,
                     ),
                 ):
-                    message = "Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects."
+                    message = TIMEOUT_ERROR_MESSAGE
                     recoverable = True
                 elif isinstance(
                     error,

@@ -1,4 +1,4 @@
-import SimpleTableChart from 'app/components/charts/simpleTableChart';
+import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
 
 export default {
   title: 'Components/Data Visualization/Charts/Simple Table Chart',

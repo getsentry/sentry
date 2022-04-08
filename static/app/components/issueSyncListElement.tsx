@@ -3,37 +3,26 @@ import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
-import Hovercard from 'app/components/hovercard';
-import {IconAdd, IconClose} from 'app/icons';
-import space from 'app/styles/space';
-import {callIfFunction} from 'app/utils/callIfFunction';
-import {getIntegrationIcon} from 'app/utils/integrationUtil';
+import {Hovercard} from 'sentry/components/hovercard';
+import {IconAdd, IconClose} from 'sentry/icons';
+import space from 'sentry/styles/space';
+import {callIfFunction} from 'sentry/utils/callIfFunction';
+import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 
 type Props = {
-  externalIssueLink?: string | null;
+  externalIssueDisplayName?: string | null;
   externalIssueId?: string | null;
   externalIssueKey?: string | null;
-  externalIssueDisplayName?: string | null;
-  onOpen?: () => void;
-  onClose?: (externalIssueId?: string | null) => void;
-  integrationType?: string;
-  hoverCardHeader?: React.ReactNode;
+  externalIssueLink?: string | null;
   hoverCardBody?: React.ReactNode;
+  hoverCardHeader?: React.ReactNode;
+  integrationType?: string;
+  onClose?: (externalIssueId?: string | null) => void;
+  onOpen?: () => void;
   showHoverCard?: boolean;
 };
 
 class IssueSyncListElement extends React.Component<Props> {
-  componentDidUpdate(nextProps) {
-    if (
-      this.props.showHoverCard !== nextProps.showHoverCard &&
-      nextProps.showHoverCard === undefined
-    ) {
-      this.hoverCardRef.current && this.hoverCardRef.current.handleToggleOff();
-    }
-  }
-
-  hoverCardRef = React.createRef<Hovercard>();
-
   isLinked(): boolean {
     return !!(this.props.externalIssueLink && this.props.externalIssueId);
   }
@@ -103,11 +92,14 @@ class IssueSyncListElement extends React.Component<Props> {
         <ClassNames>
           {({css}) => (
             <Hovercard
-              ref={this.hoverCardRef}
               containerClassName={css`
                 display: flex;
                 align-items: center;
                 min-width: 0; /* flex-box overflow workaround */
+
+                svg {
+                  flex-shrink: 0;
+                }
               `}
               header={this.props.hoverCardHeader}
               body={this.props.hoverCardBody}

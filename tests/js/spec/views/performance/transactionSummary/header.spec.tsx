@@ -1,17 +1,24 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import EventView from 'app/utils/discover/eventView';
-import TransactionHeader from 'app/views/performance/transactionSummary/header';
-import Tab from 'app/views/performance/transactionSummary/tabs';
+import EventView from 'sentry/utils/discover/eventView';
+import {OrganizationContext} from 'sentry/views/organizationContext';
+import TransactionHeader from 'sentry/views/performance/transactionSummary/header';
+import Tab from 'sentry/views/performance/transactionSummary/tabs';
 
-function initializeData(opts?: {platform?: string}) {
-  // @ts-expect-error
-  const project = TestStubs.Project({platform: opts?.platform});
-  // @ts-expect-error
+type InitialOpts = {
+  features?: string[];
+  platform?: string;
+};
+
+function initializeData(opts?: InitialOpts) {
+  const {features, platform} = opts ?? {};
+  const project = TestStubs.Project({platform});
   const organization = TestStubs.Organization({
     projects: [project],
+    features,
   });
+
   const initialData = initializeOrg({
     organization,
     router: {
@@ -40,32 +47,43 @@ function initializeData(opts?: {platform?: string}) {
   };
 }
 
-describe('Performance > Transaction Summary Header', function () {
-  let wrapper;
+const WrappedComponent = ({
+  hasWebVitals,
+  platform,
+  features,
+}: {
+  hasWebVitals: 'yes' | 'no' | 'maybe';
+} & InitialOpts) => {
+  const {project, organization, router, eventView} = initializeData({features, platform});
 
-  afterEach(function () {
-    // @ts-expect-error
-    MockApiClient.clearMockResponses();
-    wrapper.unmount();
-  });
-
-  it('should render web vitals tab when yes', async function () {
-    const {project, organization, router, eventView} = initializeData();
-
-    wrapper = mountWithTheme(
+  return (
+    <OrganizationContext.Provider value={organization}>
       <TransactionHeader
         eventView={eventView}
         location={router.location}
         organization={organization}
         projects={[project]}
+        projectId={project.id}
         transactionName="transaction_name"
         currentTab={Tab.TransactionSummary}
-        hasWebVitals="yes"
+        hasWebVitals={hasWebVitals}
         handleIncompatibleQuery={() => {}}
       />
-    );
+    </OrganizationContext.Provider>
+  );
+};
 
-    // @ts-expect-error
+describe('Performance > Transaction Summary Header', function () {
+  let wrapper;
+
+  afterEach(function () {
+    MockApiClient.clearMockResponses();
+    wrapper.unmount();
+  });
+
+  it('should render web vitals tab when yes', async function () {
+    wrapper = mountWithTheme(<WrappedComponent hasWebVitals="yes" />);
+
     await tick();
     wrapper.update();
 
@@ -73,22 +91,8 @@ describe('Performance > Transaction Summary Header', function () {
   });
 
   it('should not render web vitals tab when no', async function () {
-    const {project, organization, router, eventView} = initializeData();
+    wrapper = mountWithTheme(<WrappedComponent hasWebVitals="no" />);
 
-    wrapper = mountWithTheme(
-      <TransactionHeader
-        eventView={eventView}
-        location={router.location}
-        organization={organization}
-        projects={[project]}
-        transactionName="transaction_name"
-        currentTab={Tab.TransactionSummary}
-        hasWebVitals="no"
-        handleIncompatibleQuery={() => {}}
-      />
-    );
-
-    // @ts-expect-error
     await tick();
     wrapper.update();
 
@@ -96,24 +100,10 @@ describe('Performance > Transaction Summary Header', function () {
   });
 
   it('should render web vitals tab when maybe and is frontend platform', async function () {
-    const {project, organization, router, eventView} = initializeData({
-      platform: 'javascript',
-    });
-
     wrapper = mountWithTheme(
-      <TransactionHeader
-        eventView={eventView}
-        location={router.location}
-        organization={organization}
-        projects={[project]}
-        transactionName="transaction_name"
-        currentTab={Tab.TransactionSummary}
-        hasWebVitals="maybe"
-        handleIncompatibleQuery={() => {}}
-      />
+      <WrappedComponent hasWebVitals="maybe" platform="javascript" />
     );
 
-    // @ts-expect-error
     await tick();
     wrapper.update();
 
@@ -121,28 +111,13 @@ describe('Performance > Transaction Summary Header', function () {
   });
 
   it('should render web vitals tab when maybe and has measurements', async function () {
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-has-measurements/',
       body: {measurements: true},
     });
 
-    const {project, organization, router, eventView} = initializeData();
+    wrapper = mountWithTheme(<WrappedComponent hasWebVitals="maybe" />);
 
-    wrapper = mountWithTheme(
-      <TransactionHeader
-        eventView={eventView}
-        location={router.location}
-        organization={organization}
-        projects={[project]}
-        transactionName="transaction_name"
-        currentTab={Tab.TransactionSummary}
-        hasWebVitals="maybe"
-        handleIncompatibleQuery={() => {}}
-      />
-    );
-
-    // @ts-expect-error
     await tick();
     wrapper.update();
 
@@ -150,31 +125,30 @@ describe('Performance > Transaction Summary Header', function () {
   });
 
   it('should not render web vitals tab when maybe and has no measurements', async function () {
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-has-measurements/',
       body: {measurements: false},
     });
 
-    const {project, organization, router, eventView} = initializeData();
+    wrapper = mountWithTheme(<WrappedComponent hasWebVitals="maybe" />);
 
-    wrapper = mountWithTheme(
-      <TransactionHeader
-        eventView={eventView}
-        location={router.location}
-        organization={organization}
-        projects={[project]}
-        transactionName="transaction_name"
-        currentTab={Tab.TransactionSummary}
-        hasWebVitals="maybe"
-        handleIncompatibleQuery={() => {}}
-      />
-    );
-
-    // @ts-expect-error
     await tick();
     wrapper.update();
 
     expect(wrapper.find('ListLink[data-test-id="web-vitals-tab"]').exists()).toBeFalsy();
+  });
+
+  it('should render spans tab with feature', async function () {
+    wrapper = mountWithTheme(
+      <WrappedComponent
+        hasWebVitals="yes"
+        features={['performance-suspect-spans-view']}
+      />
+    );
+
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('ListLink[data-test-id="spans-tab"]').exists()).toBeTruthy();
   });
 });

@@ -1,7 +1,14 @@
+from unittest.mock import call, patch
+
+from sentry.api.serializers.base import serialize
 from sentry.constants import SentryAppInstallationStatus
 from sentry.coreapi import APIError
+from sentry.models import SentryApp
 from sentry.testutils import APITestCase
-from sentry.utils.compat.mock import call, patch
+
+
+def get_sentry_app_avatars(sentry_app: SentryApp):
+    return [serialize(avatar) for avatar in sentry_app.avatar.all()]
 
 
 class SentryAppComponentsTest(APITestCase):
@@ -34,6 +41,7 @@ class SentryAppComponentsTest(APITestCase):
                 "uuid": self.sentry_app.uuid,
                 "slug": self.sentry_app.slug,
                 "name": self.sentry_app.name,
+                "avatars": get_sentry_app_avatars(self.sentry_app),
             },
         }
 
@@ -93,6 +101,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
                 "uuid": self.sentry_app1.uuid,
                 "slug": self.sentry_app1.slug,
                 "name": self.sentry_app1.name,
+                "avatars": get_sentry_app_avatars(self.sentry_app1),
             },
         }
 
@@ -104,6 +113,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
                 "uuid": self.sentry_app2.uuid,
                 "slug": self.sentry_app2.slug,
                 "name": self.sentry_app2.name,
+                "avatars": get_sentry_app_avatars(self.sentry_app2),
             },
         }
 
@@ -145,6 +155,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
                     "uuid": sentry_app.uuid,
                     "slug": sentry_app.slug,
                     "name": sentry_app.name,
+                    "avatars": get_sentry_app_avatars(sentry_app),
                 },
             }
         ]
@@ -177,6 +188,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
                     "uuid": self.sentry_app2.uuid,
                     "slug": self.sentry_app2.slug,
                     "name": self.sentry_app2.name,
+                    "avatars": get_sentry_app_avatars(self.sentry_app2),
                 },
             }
         ]

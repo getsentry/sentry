@@ -1,38 +1,52 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import MutedBox from 'app/components/mutedBox';
+import MutedBox from 'sentry/components/mutedBox';
 
 describe('MutedBox', function () {
   describe('render()', function () {
     it('handles ignoreUntil', function () {
-      const wrapper = mountWithTheme(
+      const {container} = render(
         <MutedBox statusDetails={{ignoreUntil: '2017-06-21T19:45:10Z'}} />
       );
-      expect(wrapper).toSnapshot();
+      expect(screen.getByText(/This issue has been ignored until/)).toBeInTheDocument();
+      expect(container).toSnapshot();
     });
     it('handles ignoreCount', function () {
-      const wrapper = mountWithTheme(<MutedBox statusDetails={{ignoreUserCount: 100}} />);
-      expect(wrapper).toSnapshot();
+      const {container} = render(<MutedBox statusDetails={{ignoreUserCount: 100}} />);
+      expect(
+        screen.getByText(/This issue has been ignored until it affects/)
+      ).toBeInTheDocument();
+      expect(container).toSnapshot();
     });
     it('handles ignoreCount with ignoreWindow', function () {
-      const wrapper = mountWithTheme(
+      const {container} = render(
         <MutedBox statusDetails={{ignoreCount: 100, ignoreWindow: 1}} />
       );
-      expect(wrapper).toSnapshot();
+      expect(
+        screen.getByText(/This issue has been ignored until it occurs/)
+      ).toBeInTheDocument();
+      expect(container).toSnapshot();
     });
     it('handles ignoreUserCount', function () {
-      const wrapper = mountWithTheme(<MutedBox statusDetails={{ignoreUserCount: 100}} />);
-      expect(wrapper).toSnapshot();
+      const {container} = render(<MutedBox statusDetails={{ignoreUserCount: 100}} />);
+      expect(
+        screen.getByText(/This issue has been ignored until it affects/)
+      ).toBeInTheDocument();
+      expect(container).toSnapshot();
     });
     it('handles ignoreUserCount with ignoreUserWindow', function () {
-      const wrapper = mountWithTheme(
+      const {container} = render(
         <MutedBox statusDetails={{ignoreUserCount: 100, ignoreUserWindow: 1}} />
       );
-      expect(wrapper).toSnapshot();
+      expect(
+        screen.getByText(/This issue has been ignored until it affects/)
+      ).toBeInTheDocument();
+      expect(container).toSnapshot();
     });
     it('handles default', function () {
-      const wrapper = mountWithTheme(<MutedBox statusDetails={{}} />);
-      expect(wrapper).toSnapshot();
+      const {container} = render(<MutedBox statusDetails={{}} />);
+      expect(screen.getByText(/This issue has been ignored/)).toBeInTheDocument();
+      expect(container).toSnapshot();
     });
   });
 });

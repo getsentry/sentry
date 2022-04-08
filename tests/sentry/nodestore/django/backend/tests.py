@@ -1,5 +1,6 @@
 import pickle
 from datetime import timedelta
+from unittest import mock
 
 import pytest
 from django.utils import timezone
@@ -7,7 +8,6 @@ from django.utils import timezone
 from sentry.nodestore.base import json_dumps
 from sentry.nodestore.django.backend import DjangoNodeStorage
 from sentry.nodestore.django.models import Node
-from sentry.utils.compat import mock
 from sentry.utils.strings import compress
 
 

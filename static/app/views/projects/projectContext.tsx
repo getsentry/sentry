@@ -2,21 +2,21 @@ import {Component, createRef} from 'react';
 import DocumentTitle from 'react-document-title';
 import styled from '@emotion/styled';
 
-import {fetchOrgMembers} from 'app/actionCreators/members';
-import {setActiveProject} from 'app/actionCreators/projects';
-import {Client} from 'app/api';
-import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import MissingProjectMembership from 'app/components/projects/missingProjectMembership';
-import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
-import MemberListStore from 'app/stores/memberListStore';
-import ProjectsStore from 'app/stores/projectsStore';
-import space from 'app/styles/space';
-import {Organization, Project, User} from 'app/types';
-import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
-import withProjects from 'app/utils/withProjects';
+import {fetchOrgMembers} from 'sentry/actionCreators/members';
+import {setActiveProject} from 'sentry/actionCreators/projects';
+import {Client} from 'sentry/api';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
+import {t} from 'sentry/locale';
+import SentryTypes from 'sentry/sentryTypes';
+import MemberListStore from 'sentry/stores/memberListStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import space from 'sentry/styles/space';
+import {Organization, Project, User} from 'sentry/types';
+import withApi from 'sentry/utils/withApi';
+import withOrganization from 'sentry/utils/withOrganization';
+import withProjects from 'sentry/utils/withProjects';
 
 enum ErrorTypes {
   MISSING_MEMBERSHIP = 'MISSING_MEMBERSHIP',
@@ -30,23 +30,24 @@ type ChildFuncProps = {
 
 type Props = {
   api: Client;
+  children: ((props: ChildFuncProps) => React.ReactNode) | React.ReactNode;
+  loadingProjects: boolean;
+  orgId: string;
+  organization: Organization;
+  projectId: string;
+  projects: Project[];
   /**
    * If true, this will not change `state.loading` during `fetchData` phase
    */
   skipReload?: boolean;
-  organization: Organization;
-  projects: Project[];
-  projectId: string;
-  orgId: string;
-  children: ((props: ChildFuncProps) => React.ReactNode) | React.ReactNode;
 };
 
 type State = {
-  memberList: User[];
-  project: Project | null;
-  loading: boolean;
   error: boolean;
   errorType: ErrorTypes | null;
+  loading: boolean;
+  memberList: User[];
+  project: Project | null;
 };
 
 /**
@@ -79,8 +80,13 @@ class ProjectContext extends Component<Props, State> {
     };
   }
 
-  componentWillMount() {
-    this.fetchData();
+  componentDidMount() {
+    // Wait for withProjects to fetch projects before making request
+    // Once loaded we can fetchData in componentDidUpdate
+    const {loadingProjects} = this.props;
+    if (!loadingProjects) {
+      this.fetchData();
+    }
   }
 
   componentWillReceiveProps(nextProps: Props) {
@@ -140,7 +146,7 @@ class ProjectContext extends Component<Props, State> {
   );
 
   unsubscribeMembers = MemberListStore.listen(
-    (memberList: MemberListStore['state']) => this.setState({memberList}),
+    (memberList: typeof MemberListStore['state']) => this.setState({memberList}),
     undefined
   );
 
@@ -239,7 +245,9 @@ class ProjectContext extends Component<Props, State> {
   }
 
   renderBody() {
+    const {children, organization} = this.props;
     const {error, errorType, loading, project} = this.state;
+
     if (loading) {
       return (
         <div className="loading-full-layout">
@@ -249,8 +257,6 @@ class ProjectContext extends Component<Props, State> {
     }
 
     if (!error && project) {
-      const {children} = this.props;
-
       return typeof children === 'function' ? children({project}) : children;
     }
 
@@ -269,10 +275,7 @@ class ProjectContext extends Component<Props, State> {
         // out into a reusable missing access error component
         return (
           <ErrorWrapper>
-            <MissingProjectMembership
-              organization={this.props.organization}
-              projectSlug={project?.slug}
-            />
+            <MissingProjectMembership organization={organization} project={project} />
           </ErrorWrapper>
         );
       default:

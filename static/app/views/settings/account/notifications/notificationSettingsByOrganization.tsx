@@ -1,34 +1,41 @@
-import React from 'react';
+import {Component} from 'react';
 
-import {t} from 'app/locale';
-import {OrganizationSummary} from 'app/types';
-import withOrganizations from 'app/utils/withOrganizations';
+import Form from 'sentry/components/forms/form';
+import JsonForm from 'sentry/components/forms/jsonForm';
+import {t} from 'sentry/locale';
+import {OrganizationSummary} from 'sentry/types';
+import withOrganizations from 'sentry/utils/withOrganizations';
 import {
   NotificationSettingsByProviderObject,
   NotificationSettingsObject,
-} from 'app/views/settings/account/notifications/constants';
+} from 'sentry/views/settings/account/notifications/constants';
 import {
   getParentData,
   getParentField,
-} from 'app/views/settings/account/notifications/utils';
-import Form from 'app/views/settings/components/forms/form';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
+} from 'sentry/views/settings/account/notifications/utils';
 
 type Props = {
-  notificationType: string;
   notificationSettings: NotificationSettingsObject;
-  organizations: OrganizationSummary[];
+  notificationType: string;
   onChange: (
     changedData: NotificationSettingsByProviderObject,
     parentId: string
   ) => NotificationSettingsObject;
+  onSubmitSuccess: () => void;
+  organizations: OrganizationSummary[];
 };
 
 type State = {};
 
-class NotificationSettingsByOrganization extends React.Component<Props, State> {
+class NotificationSettingsByOrganization extends Component<Props, State> {
   render() {
-    const {notificationType, notificationSettings, onChange, organizations} = this.props;
+    const {
+      notificationType,
+      notificationSettings,
+      onChange,
+      onSubmitSuccess,
+      organizations,
+    } = this.props;
 
     return (
       <Form
@@ -36,6 +43,7 @@ class NotificationSettingsByOrganization extends React.Component<Props, State> {
         apiMethod="PUT"
         apiEndpoint="/users/me/notification-settings/"
         initialData={getParentData(notificationType, notificationSettings, organizations)}
+        onSubmitSuccess={onSubmitSuccess}
       >
         <JsonForm
           title={t('Organizations')}

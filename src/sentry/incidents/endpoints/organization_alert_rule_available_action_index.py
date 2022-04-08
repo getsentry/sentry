@@ -1,19 +1,22 @@
 from collections import defaultdict
 
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.constants import SentryAppStatus
 from sentry.incidents.endpoints.bases import OrganizationEndpoint
-from sentry.incidents.endpoints.serializers import action_target_type_to_string
 from sentry.incidents.logic import get_available_action_integrations_for_org, get_pagerduty_services
 from sentry.incidents.models import AlertRuleTriggerAction
-from sentry.models import SentryApp
+from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING
+from sentry.models import SentryAppInstallation
 
 
-def build_action_response(registered_type, integration=None, organization=None, sentry_app=None):
+def build_action_response(
+    registered_type, integration=None, organization=None, sentry_app_installation=None
+):
     """
     Build the "available action" objects for the API. Each one can have different fields.
 
@@ -27,7 +30,7 @@ def build_action_response(registered_type, integration=None, organization=None, 
     action_response = {
         "type": registered_type.slug,
         "allowedTargetTypes": [
-            action_target_type_to_string.get(target_type)
+            ACTION_TARGET_TYPE_TO_STRING.get(target_type)
             for target_type in registered_type.supported_target_types
         ],
     }
@@ -42,16 +45,24 @@ def build_action_response(registered_type, integration=None, organization=None, 
                 for service in get_pagerduty_services(organization, integration.id)
             ]
 
-    elif sentry_app:
-        action_response["sentryAppName"] = sentry_app.name
-        action_response["sentryAppId"] = sentry_app.id
-        action_response["status"] = SentryAppStatus.as_str(sentry_app.status)
+    elif sentry_app_installation:
+        action_response["sentryAppName"] = sentry_app_installation.sentry_app.name
+        action_response["sentryAppId"] = sentry_app_installation.sentry_app_id
+        action_response["sentryAppInstallationUuid"] = sentry_app_installation.uuid
+        action_response["status"] = SentryAppStatus.as_str(
+            sentry_app_installation.sentry_app.status
+        )
+
+        # Sentry Apps can be alertable but not have an Alert Rule UI Component
+        component = sentry_app_installation.prepare_sentry_app_components("alert-rule-action")
+        if component:
+            action_response["settings"] = component.schema.get("settings", {})
 
     return action_response
 
 
 class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         """
         Fetches actions that an alert rule can perform for an organization
         """
@@ -78,8 +89,12 @@ class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):
             # Add all alertable SentryApps to the list.
             elif registered_type.type == AlertRuleTriggerAction.Type.SENTRY_APP:
                 actions += [
-                    build_action_response(registered_type, sentry_app=app)
-                    for app in SentryApp.objects.get_alertable_sentry_apps(organization.id)
+                    build_action_response(registered_type, sentry_app_installation=install)
+                    for install in SentryAppInstallation.objects.get_installed_for_organization(
+                        organization.id
+                    ).filter(
+                        sentry_app__is_alertable=True,
+                    )
                 ]
 
             else:

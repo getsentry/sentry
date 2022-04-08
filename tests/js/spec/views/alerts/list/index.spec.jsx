@@ -1,33 +1,32 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'app/stores/projectsStore';
-import TeamStore from 'app/stores/teamStore';
-import IncidentsList from 'app/views/alerts/list';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import TeamStore from 'sentry/stores/teamStore';
+import IncidentsList from 'sentry/views/alerts/list';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 describe('IncidentsList', function () {
   let routerContext;
   let router;
   let organization;
   let projectMock;
-  let wrapper;
   let projects;
   const projects1 = ['a', 'b', 'c'];
   const projects2 = ['c', 'd'];
 
-  const createWrapper = async (props = {}) => {
-    wrapper = mountWithTheme(
-      <IncidentsList
-        params={{orgId: organization.slug}}
-        location={{query: {}, search: ''}}
-        router={router}
-        {...props}
-      />,
-      routerContext
+  const createWrapper = (props = {}) => {
+    return render(
+      <OrganizationContext.Provider value={organization}>
+        <IncidentsList
+          params={{orgId: organization.slug}}
+          location={{query: {}, search: ''}}
+          router={router}
+          {...props}
+        />
+      </OrganizationContext.Provider>,
+      {context: routerContext}
     );
-    await tick();
-    wrapper.update();
-    return wrapper;
   };
 
   beforeEach(function () {
@@ -80,31 +79,24 @@ describe('IncidentsList', function () {
       url: '/organizations/org-slug/projects/',
       body: projects,
     });
+    act(() => ProjectsStore.loadInitialData(projects));
   });
 
   afterEach(function () {
-    wrapper.unmount();
-    ProjectsStore.reset();
+    act(() => ProjectsStore.reset());
     MockApiClient.clearMockResponses();
   });
 
   it('displays list', async function () {
-    ProjectsStore.loadInitialData(projects);
-    wrapper = await createWrapper();
-    await tick();
-    await tick();
-    await tick();
-    wrapper.update();
+    createWrapper();
 
-    const items = wrapper.find('AlertListRow');
+    const items = await screen.findAllByTestId('alert-title');
 
     expect(items).toHaveLength(2);
-    expect(items.at(0).text()).toContain('First incident');
-    expect(items.at(1).text()).toContain('Second incident');
+    expect(within(items[0]).getByText('First incident')).toBeInTheDocument();
+    expect(within(items[1]).getByText('Second incident')).toBeInTheDocument();
 
-    // GlobalSelectionHeader loads projects + the Projects render-prop
-    // component to load projects for all rows.
-    expect(projectMock).toHaveBeenCalledTimes(2);
+    expect(projectMock).toHaveBeenCalledTimes(1);
 
     expect(projectMock).toHaveBeenLastCalledWith(
       expect.anything(),
@@ -112,9 +104,9 @@ describe('IncidentsList', function () {
         query: expect.objectContaining({query: 'slug:a slug:b slug:c'}),
       })
     );
-    expect(items.at(0).find('IdBadge').prop('project')).toMatchObject({
-      slug: 'a',
-    });
+
+    const projectBadges = screen.getAllByTestId('badge-display-name');
+    expect(within(projectBadges[0]).getByText('a')).toBeInTheDocument();
   });
 
   it('displays empty state (first time experience)', async function () {
@@ -135,17 +127,13 @@ describe('IncidentsList', function () {
       method: 'PUT',
     });
 
-    wrapper = await createWrapper();
+    createWrapper();
+
+    expect(await screen.findByText('More signal, less noise')).toBeInTheDocument();
 
     expect(rulesMock).toHaveBeenCalledTimes(1);
     expect(promptsMock).toHaveBeenCalledTimes(1);
     expect(promptsUpdateMock).toHaveBeenCalledTimes(1);
-
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('PanelItem')).toHaveLength(0);
-    expect(wrapper.find('Onboarding').text()).toContain('More signal, less noise');
   });
 
   it('displays empty state (rules not yet created)', async function () {
@@ -162,16 +150,14 @@ describe('IncidentsList', function () {
       body: {data: {dismissed_ts: Math.floor(Date.now() / 1000)}},
     });
 
-    wrapper = await createWrapper();
+    createWrapper();
+
+    expect(
+      await screen.findByText('No incidents exist for the current query.')
+    ).toBeInTheDocument();
 
     expect(rulesMock).toHaveBeenCalledTimes(1);
     expect(promptsMock).toHaveBeenCalledTimes(1);
-
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('PanelItem')).toHaveLength(0);
-    expect(wrapper.text()).toContain('No incidents exist for the current query');
   });
 
   it('displays empty state (rules created)', async function () {
@@ -188,78 +174,75 @@ describe('IncidentsList', function () {
       body: {data: {dismissed_ts: Math.floor(Date.now() / 1000)}},
     });
 
-    wrapper = await createWrapper();
+    createWrapper();
+
+    expect(
+      await screen.findByText('No incidents exist for the current query.')
+    ).toBeInTheDocument();
 
     expect(rulesMock).toHaveBeenCalledTimes(1);
     expect(promptsMock).toHaveBeenCalledTimes(0);
-
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('PanelItem')).toHaveLength(0);
-    expect(wrapper.text()).toContain('No incidents exist for the current query');
   });
 
-  it('filters by opened issues', async function () {
-    ProjectsStore.loadInitialData(projects);
-    wrapper = await createWrapper();
+  it('filters by opened issues', function () {
+    createWrapper();
 
-    wrapper.find('[data-test-id="filter-button"]').at(1).simulate('click');
+    userEvent.click(screen.getByTestId('filter-button'));
 
-    const resolved = wrapper.find('Filter').find('ListItem').at(1);
-    expect(resolved.text()).toBe('Resolved');
-    expect(resolved.find('[data-test-id="checkbox-fancy"]').props()['aria-checked']).toBe(
-      false
-    );
-
-    wrapper.setProps({
-      location: {query: {status: ['closed']}, search: '?status=closed`'},
-    });
-
+    const resolved = screen.getByText('Resolved');
+    expect(resolved).toBeInTheDocument();
     expect(
-      wrapper
-        .find('Filter')
-        .find('ListItem')
-        .at(1)
-        .find('[data-test-id="checkbox-fancy"]')
-        .props()['aria-checked']
-    ).toBe(true);
+      within(resolved.parentElement).getByTestId('checkbox-fancy')
+    ).not.toBeChecked();
+
+    userEvent.click(resolved);
+
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: undefined,
+      query: {
+        expand: ['original_alert_rule'],
+        status: ['closed'],
+        team: ['myteams', 'unassigned'],
+      },
+    });
   });
 
-  it('disables the new alert button for those without alert:write', async function () {
+  it('disables the new alert button for those without alert:write', function () {
     const noAccessOrg = {
       ...organization,
       access: [],
     };
 
-    wrapper = await createWrapper({organization: noAccessOrg});
+    createWrapper({organization: noAccessOrg});
+    expect(screen.getByLabelText('Create Alert')).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+  });
 
-    const addButton = wrapper.find('button[aria-label="Create Alert Rule"]');
-    expect(addButton.props()['aria-disabled']).toBe(true);
-
+  it('does not disable the new alert button for those with alert:write', function () {
     // Enabled with access
-    wrapper.unmount();
-    wrapper = await createWrapper();
+    createWrapper();
 
-    const addLink = wrapper.find('button[aria-label="Create Alert Rule"]');
-    expect(addLink.props()['aria-disabled']).toBe(false);
+    expect(screen.getByLabelText('Create Alert')).toHaveAttribute(
+      'aria-disabled',
+      'false'
+    );
   });
 
   it('searches by name', async () => {
-    wrapper = await createWrapper();
-    expect(wrapper.find('StyledSearchBar').exists()).toBe(true);
+    createWrapper();
 
+    const input = screen.getByPlaceholderText('Search by name');
+    expect(input).toBeInTheDocument();
     const testQuery = 'test name';
-    wrapper
-      .find('StyledSearchBar')
-      .find('input')
-      .simulate('change', {target: {value: testQuery}})
-      .simulate('submit', {preventDefault() {}});
+    userEvent.type(input, `${testQuery}{enter}`);
 
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
         query: {
           title: testQuery,
+          expand: ['original_alert_rule'],
           team: ['myteams', 'unassigned'],
         },
       })
@@ -286,8 +269,8 @@ describe('IncidentsList', function () {
       features: ['incidents', 'team-alerts-ownership'],
     };
 
-    wrapper = await createWrapper({organization: org});
-    expect(wrapper.find('TeamWrapper').text()).toBe(team.name);
-    expect(wrapper).toSnapshot();
+    const {container} = createWrapper({organization: org});
+    expect(screen.getByText(team.name)).toBeInTheDocument();
+    expect(container).toSnapshot();
   });
 });

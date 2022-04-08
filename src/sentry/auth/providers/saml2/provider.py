@@ -1,16 +1,17 @@
-from datetime import datetime
+import abc
 from urllib.parse import urlparse
 
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.http import HttpResponse, HttpResponseServerError
 from django.urls import reverse
-from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
+from rest_framework.request import Request
+from rest_framework.response import Response
 
-from sentry import features, options
+from sentry import options
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.provider import Provider
 from sentry.auth.view import AuthView
@@ -66,7 +67,7 @@ def get_provider(organization_slug):
 
 
 class SAML2LoginView(AuthView):
-    def dispatch(self, request, helper):
+    def dispatch(self, request: Request, helper) -> Response:
         if "SAMLResponse" in request.POST:
             return helper.next_step()
 
@@ -87,10 +88,10 @@ class SAML2LoginView(AuthView):
 # (sentry) (the typical case) and the Identity Provider. In the second case,
 # the auth assertion is directly posted to the ACS URL. Because the user will
 # not have initiated their SSO flow we must provide a endpoint similar to
-# auth_provider_login, but with support for initing the auth flow.
+# auth_provider_login, but with support for initializing the auth flow.
 class SAML2AcceptACSView(BaseView):
     @method_decorator(csrf_exempt)
-    def dispatch(self, request, organization_slug):
+    def dispatch(self, request: Request, organization_slug):
         from sentry.auth.helper import AuthHelper
 
         helper = AuthHelper.get_for_request(request)
@@ -130,7 +131,7 @@ class SAML2AcceptACSView(BaseView):
 
 class SAML2ACSView(AuthView):
     @method_decorator(csrf_exempt)
-    def dispatch(self, request, helper):
+    def dispatch(self, request: Request, helper) -> Response:
         provider = helper.provider
 
         # If we're authenticating during the setup pipeline the provider will
@@ -149,20 +150,12 @@ class SAML2ACSView(AuthView):
 
         helper.bind_state("auth_attributes", auth.get_attributes())
 
-        # Not all providers send a session expiration value, but if they do,
-        # we should respect it and set session cookies to expire at the given time.
-        if auth.get_session_expiration() is not None:
-            session_expiration = datetime.fromtimestamp(auth.get_session_expiration()).replace(
-                tzinfo=timezone.utc
-            )
-            request.session.set_expiry(session_expiration)
-
         return helper.next_step()
 
 
 class SAML2SLSView(BaseView):
     @method_decorator(csrf_exempt)
-    def dispatch(self, request, organization_slug):
+    def dispatch(self, request: Request, organization_slug):
         provider = get_provider(organization_slug)
         if provider is None:
             messages.add_message(request, messages.ERROR, ERR_NO_SAML_SSO)
@@ -188,7 +181,7 @@ class SAML2SLSView(BaseView):
 
 
 class SAML2MetadataView(BaseView):
-    def dispatch(self, request, organization_slug):
+    def dispatch(self, request: Request, organization_slug):
         provider = get_provider(organization_slug)
         config = provider.config if provider else {}
 
@@ -211,7 +204,7 @@ class Attributes:
     LAST_NAME = "last_name"
 
 
-class SAML2Provider(Provider):
+class SAML2Provider(Provider, abc.ABC):
     """
     Base SAML2 Authentication provider. SAML style authentication plugins
     should implement this.
@@ -264,6 +257,7 @@ class SAML2Provider(Provider):
     def get_setup_pipeline(self):
         return self.get_saml_setup_pipeline() + self.get_auth_pipeline()
 
+    @abc.abstractmethod
     def get_saml_setup_pipeline(self):
         """
         Return a list of AuthViews to setup the SAML provider.
@@ -271,7 +265,7 @@ class SAML2Provider(Provider):
         The setup AuthView(s) must bind the `idp` parameter into the helper
         state.
         """
-        raise NotImplementedError
+        pass
 
     def attribute_mapping(self):
         """
@@ -298,15 +292,16 @@ class SAML2Provider(Provider):
 
         # map configured provider attributes
         for key, provider_key in self.config["attribute_mapping"].items():
-            attributes[key] = raw_attributes.get(provider_key, [""])[0]
+            attribute_list = raw_attributes.get(provider_key, [""])
+            attributes[key] = attribute_list[0] if len(attribute_list) > 0 else ""
 
         # Email and identifier MUST be correctly mapped
         if not attributes[Attributes.IDENTIFIER] or not attributes[Attributes.USER_EMAIL]:
+            error_msg_keys = ", ".join(repr(key) for key in sorted(raw_attributes.keys()))
             raise IdentityNotValid(
                 _(
-                    "Failed to map SAML attributes. Assertion returned the following attribute keys: %(keys)s"
+                    f"Failed to map SAML attributes. Assertion returned the following attribute keys: {error_msg_keys}"
                 )
-                % {"keys": raw_attributes.keys()}
             )
 
         name = (attributes[k] for k in (Attributes.FIRST_NAME, Attributes.LAST_NAME))
@@ -321,13 +316,6 @@ class SAML2Provider(Provider):
     def refresh_identity(self, auth_identity):
         # Nothing to refresh
         return
-
-
-class SCIMMixin:
-    def can_use_scim(self, organization, user):
-        if features.has("organizations:sso-scim", organization, actor=user):
-            return True
-        return False
 
 
 def build_saml_config(provider_config, org):

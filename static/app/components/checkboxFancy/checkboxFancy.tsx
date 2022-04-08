@@ -2,16 +2,15 @@ import * as React from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Theme} from 'app/utils/theme';
+import {IconCheckmark, IconSubtract} from 'sentry/icons';
+import {Theme} from 'sentry/utils/theme';
 
-import CheckboxFancyContent from './checkboxFancyContent';
-
-type Props = {
+interface Props extends React.HTMLAttributes<HTMLDivElement> {
+  isChecked?: boolean;
   isDisabled?: boolean;
+  isIndeterminate?: boolean;
   size?: string;
-  className?: string;
-  onClick?: (event: React.MouseEvent<HTMLDivElement>) => void;
-} & React.ComponentProps<typeof CheckboxFancyContent>;
+}
 
 const disabledStyles = (p: Props & {theme: Theme}) =>
   p.isDisabled &&
@@ -30,16 +29,16 @@ const hoverStyles = (p: Props & {theme: Theme}) =>
   `;
 
 const CheckboxFancy = styled(
-  ({isChecked, className, isDisabled, isIndeterminate, onClick}: Props) => (
+  ({isDisabled, isChecked, isIndeterminate, size: _size, ...props}: Props) => (
     <div
       data-test-id="checkbox-fancy"
       role="checkbox"
       aria-disabled={isDisabled}
-      aria-checked={isChecked}
-      className={className}
-      onClick={onClick}
+      aria-checked={isIndeterminate ? 'mixed' : isChecked}
+      {...props}
     >
-      <CheckboxFancyContent isIndeterminate={isIndeterminate} isChecked={isChecked} />
+      {isIndeterminate && <IconSubtract size="70%" color="white" />}
+      {!isIndeterminate && isChecked && <IconCheckmark size="70%" color="white" />}
     </div>
   )
 )`

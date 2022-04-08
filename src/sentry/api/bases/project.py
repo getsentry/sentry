@@ -1,17 +1,14 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import roles
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ProjectMoved, ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
 from sentry.api.utils import InvalidParams, get_date_range_from_params
-from sentry.auth.superuser import is_active_superuser
-from sentry.auth.system import is_system_auth
-from sentry.models import OrganizationMember, Project, ProjectRedirect, ProjectStatus, SentryApp
+from sentry.models import Project, ProjectRedirect, ProjectStatus
 from sentry.utils.sdk import bind_organization_context, configure_scope
 
 from .organization import OrganizationPermission
-from .team import has_team_permission
 
 
 class ProjectEventsError(Exception):
@@ -26,40 +23,14 @@ class ProjectPermission(OrganizationPermission):
         "DELETE": ["project:admin"],
     }
 
-    def has_object_permission(self, request, view, project):
+    def has_object_permission(self, request: Request, view, project):
         result = super().has_object_permission(request, view, project.organization)
 
         if not result:
             return result
-        if project.teams.exists():
-            return any(
-                has_team_permission(request, team, self.scope_map) for team in project.teams.all()
-            )
-        elif is_system_auth(request.auth):
-            return True
-        elif request.user and request.user.is_authenticated:
-            # this is only for team-less projects
-            if is_active_superuser(request):
-                return True
-            elif request.user.is_sentry_app:
-                return SentryApp.check_project_permission_for_sentry_app_user(request.user, project)
-            try:
-                role = (
-                    OrganizationMember.objects.filter(
-                        organization=project.organization, user=request.user
-                    )
-                    .values_list("role", flat=True)
-                    .get()
-                )
-            except OrganizationMember.DoesNotExist:
-                # this should probably never happen?
-                return False
 
-            return roles.get(role).is_global
-        elif hasattr(request.auth, "project_id") and project.id == request.auth.project_id:
-            return True
-
-        return False
+        allowed_scopes = set(self.scope_map.get(request.method, []))
+        return any(request.access.has_project_scope(project, s) for s in allowed_scopes)
 
 
 class StrictProjectPermission(ProjectPermission):
@@ -121,7 +92,7 @@ class ProjectAlertRulePermission(ProjectPermission):
 class ProjectEndpoint(Endpoint):
     permission_classes = (ProjectPermission,)
 
-    def convert_args(self, request, organization_slug, project_slug, *args, **kwargs):
+    def convert_args(self, request: Request, organization_slug, project_slug, *args, **kwargs):
         try:
             project = (
                 Project.objects.filter(organization__slug=organization_slug, slug=project_slug)
@@ -170,7 +141,7 @@ class ProjectEndpoint(Endpoint):
         kwargs["project"] = project
         return (args, kwargs)
 
-    def get_filter_params(self, request, project, date_filter_optional=False):
+    def get_filter_params(self, request: Request, project, date_filter_optional=False):
         """Similar to the version on the organization just for a single project."""
         # get the top level params -- projects, time range, and environment
         # from the request
@@ -186,7 +157,7 @@ class ProjectEndpoint(Endpoint):
 
         return params
 
-    def handle_exception(self, request, exc):
+    def handle_exception(self, request: Request, exc):
         if isinstance(exc, ProjectMoved):
             response = Response(
                 {"slug": exc.detail["detail"]["extra"]["slug"], "detail": exc.detail["detail"]},

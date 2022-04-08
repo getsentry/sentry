@@ -2,12 +2,12 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {t} from 'app/locale';
-import space from 'app/styles/space';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 
 type Props = {
-  type: 'stack_unwinding' | 'symbolication';
   icon: React.ReactElement;
+  type: 'stack_unwinding' | 'symbolication';
   className?: string;
 };
 

@@ -1,9 +1,10 @@
+from unittest.mock import patch
+
 import responses
 from exam import fixture
 
 from sentry.models import Activity, ExternalIssue, Group, GroupLink, Integration
 from sentry.testutils import APITestCase
-from sentry.utils.compat.mock import patch
 
 
 class GroupNotesDetailsTest(APITestCase):
@@ -44,7 +45,7 @@ class GroupNotesDetailsTest(APITestCase):
 
         assert Group.objects.get(id=self.group.id).num_comments == 0
 
-    @patch("sentry.integrations.issues.IssueBasicMixin.update_comment")
+    @patch("sentry.integrations.mixins.IssueBasicMixin.update_comment")
     @responses.activate
     def test_put(self, mock_update_comment):
         self.login_as(user=self.user)
@@ -94,7 +95,7 @@ class GroupNotesDetailsTest(APITestCase):
             "text": f"hi **@{self.user.username}**",
         }
 
-    @patch("sentry.integrations.issues.IssueBasicMixin.update_comment")
+    @patch("sentry.integrations.mixins.IssueBasicMixin.update_comment")
     def test_put_no_external_id(self, mock_update_comment):
         del self.activity.data["external_id"]
         self.activity.save()

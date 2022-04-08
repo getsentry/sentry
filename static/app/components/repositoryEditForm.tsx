@@ -1,23 +1,22 @@
-import React from 'react';
+import {Component} from 'react';
 
-import ExternalLink from 'app/components/links/externalLink';
-import {IconWarning} from 'app/icons';
-import {t, tct} from 'app/locale';
-import {Repository} from 'app/types';
-import {FieldFromConfig} from 'app/views/settings/components/forms';
-import Form from 'app/views/settings/components/forms/form';
-import {Field} from 'app/views/settings/components/forms/type';
+import {FieldFromConfig} from 'sentry/components/forms';
+import Form from 'sentry/components/forms/form';
+import {Field} from 'sentry/components/forms/type';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {t, tct} from 'sentry/locale';
+import {Repository} from 'sentry/types';
 
 import Alert from './alert';
 
 type Props = Pick<Form['props'], 'onSubmitSuccess' | 'onCancel'> & {
+  closeModal: () => void;
+  onSubmitSuccess: (data: any) => void;
   orgSlug: string;
   repository: Repository;
-  onSubmitSuccess: (data: any) => void;
-  closeModal: () => void;
 };
 
-export default class RepositoryEditForm extends React.Component<Props> {
+export default class RepositoryEditForm extends Component<Props> {
   get initialData() {
     const {repository} = this.props;
 
@@ -60,7 +59,7 @@ export default class RepositoryEditForm extends React.Component<Props> {
         apiMethod="PUT"
         onCancel={onCancel}
       >
-        <Alert type="warning" icon={<IconWarning />}>
+        <Alert type="warning" showIcon>
           {tct(
             'Changing the [name:repo name] may have consequences if it no longer matches the repo name used when [link:sending commits with releases].',
             {

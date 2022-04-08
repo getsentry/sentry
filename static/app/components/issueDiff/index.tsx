@@ -2,17 +2,17 @@ import {Component} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import SplitDiff from 'app/components/splitDiff';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Project} from 'app/types';
-import getStacktraceBody from 'app/utils/getStacktraceBody';
-import withApi from 'app/utils/withApi';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import SplitDiff from 'sentry/components/splitDiff';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Project} from 'sentry/types';
+import getStacktraceBody from 'sentry/utils/getStacktraceBody';
+import withApi from 'sentry/utils/withApi';
 
 import renderGroupingInfo from './renderGroupingInfo';
 
@@ -26,18 +26,18 @@ type DefaultProps = typeof defaultProps;
 type Props = {
   api: Client;
   baseIssueId: string;
-  targetIssueId: string;
   orgId: string;
   project: Project;
+  targetIssueId: string;
   baseEventId?: string;
-  targetEventId?: string;
   className?: string;
+  targetEventId?: string;
 };
 
 type State = {
-  loading: boolean;
-  groupingDiff: boolean;
   baseEvent: Array<string>;
+  groupingDiff: boolean;
+  loading: boolean;
   targetEvent: Array<string>;
   SplitDiffAsync?: typeof SplitDiff;
 };

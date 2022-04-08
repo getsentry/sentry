@@ -1,8 +1,8 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
-import {closeModal, openModal} from 'app/actionCreators/modal';
-import GlobalModal from 'app/components/globalModal';
+import {closeModal, openModal} from 'sentry/actionCreators/modal';
+import GlobalModal from 'sentry/components/globalModal';
 
 describe('GlobalModal', function () {
   it('renders', function () {

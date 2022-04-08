@@ -1,7 +1,7 @@
-import {Client, Request} from 'app/api';
-import {PROJECT_MOVED} from 'app/constants/apiErrorCodes';
+import {Client, Request} from 'sentry/api';
+import {PROJECT_MOVED} from 'sentry/constants/apiErrorCodes';
 
-jest.unmock('app/api');
+jest.unmock('sentry/api');
 
 describe('api', function () {
   let api;

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [tool.black]
 # File filtering is taken care of in pre-commit.
 line-length=100
-target-version=['py36']
+target-version=['py38']
 
 [tool.isort]
 profile = "black"
@@ -41,6 +41,7 @@ filterwarnings = [
     # TODO(joshuarli): Upgrade responses, then revisit this.
     #                  It'll probably show up in other dependencies.
     "ignore::DeprecationWarning",
+    "error:Using or importing the ABCs from 'collections':DeprecationWarning",
 
     # At writing, the Google Bigtable Emulator relies on deprecated behavior
     # internally, this can be removed once a version containing this fix is

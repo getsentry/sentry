@@ -6,6 +6,7 @@ from itertools import chain
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework import serializers, status
+from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_relay.processing import validate_sampling_condition, validate_sampling_configuration
 
@@ -28,7 +29,7 @@ from sentry.lang.native.symbolicator import (
     parse_sources,
     redact_source_secrets,
 )
-from sentry.lang.native.utils import convert_crashreport_count
+from sentry.lang.native.utils import STORE_CRASH_REPORTS_MAX, convert_crashreport_count
 from sentry.models import (
     AuditLogEntryEvent,
     Group,
@@ -38,10 +39,10 @@ from sentry.models import (
     ProjectBookmark,
     ProjectRedirect,
     ProjectStatus,
-    ProjectTeam,
     ScheduledDeletion,
 )
 from sentry.notifications.types import NotificationSettingTypes
+from sentry.notifications.utils import has_alert_integration
 from sentry.notifications.utils.legacy_mappings import get_option_value_from_boolean
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
@@ -139,7 +140,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     sensitiveFields = ListField(child=serializers.CharField(), required=False)
     safeFields = ListField(child=serializers.CharField(), required=False)
     storeCrashReports = serializers.IntegerField(
-        min_value=-1, max_value=20, required=False, allow_null=True
+        min_value=-1, max_value=STORE_CRASH_REPORTS_MAX, required=False, allow_null=True
     )
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     builtinSymbolSources = ListField(child=serializers.CharField(), required=False)
@@ -228,14 +229,6 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
 
         organization = self.context["project"].organization
         request = self.context["request"]
-        has_sources = features.has(
-            "organizations:custom-symbol-sources", organization, actor=request.user
-        )
-
-        if not has_sources:
-            raise serializers.ValidationError(
-                "Organization is not allowed to set custom symbol sources"
-            )
 
         try:
             # We should really only grab and parse if there are sources in sources_json whose
@@ -248,6 +241,22 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             raise serializers.ValidationError(str(e))
 
         sources_json = json.dumps(sources) if sources else ""
+
+        # If no sources are added or modified, we're either only deleting sources or doing nothing.
+        # This is always allowed.
+        added_or_modified_sources = [s for s in sources if s not in orig_sources]
+        if not added_or_modified_sources:
+            return sources_json
+
+        # Adding sources is only allowed if custom symbol sources are enabled.
+        has_sources = features.has(
+            "organizations:custom-symbol-sources", organization, actor=request.user
+        )
+
+        if not has_sources:
+            raise serializers.ValidationError(
+                "Organization is not allowed to set custom symbol sources"
+            )
 
         has_multiple_appconnect = features.has(
             "organizations:app-store-connect-multiple", organization, actor=request.user
@@ -351,7 +360,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         return queryset.count()
 
-    def get(self, request, project):
+    def get(self, request: Request, project) -> Response:
         """
         Retrieve a Project
         ``````````````````
@@ -365,13 +374,18 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         """
         data = serialize(project, request.user, DetailedProjectSerializer())
 
+        # TODO: should switch to expand and move logic into the serializer
         include = set(filter(bool, request.GET.get("include", "").split(",")))
         if "stats" in include:
             data["stats"] = {"unresolved": self._get_unresolved_count(project)}
 
+        expand = request.GET.getlist("expand", [])
+        if "hasAlertIntegration" in expand:
+            data["hasAlertIntegrationInstalled"] = has_alert_integration(project)
+
         return Response(data)
 
-    def put(self, request, project):
+    def put(self, request: Request, project) -> Response:
         """
         Update a Project
         ````````````````
@@ -384,8 +398,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         :pparam string project_slug: the slug of the project to update.
         :param string name: the new name for the project.
         :param string slug: the new slug for the project.
-        :param string team: the slug of new team for the project. Note, will be deprecated
-                            soon when multiple teams can have access to a project.
         :param string platform: the new platform for the project.
         :param boolean isBookmarked: in case this API call is invoked with a
                                      user context this allows changing of
@@ -415,6 +427,12 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         allow_dynamic_sampling = features.has(
             "organizations:filters-and-sampling", project.organization, actor=request.user
+        )
+
+        allow_dynamic_sampling_error_rules = features.has(
+            "organizations:filters-and-sampling-error-rules",
+            project.organization,
+            actor=request.user,
         )
 
         if not allow_dynamic_sampling and result.get("dynamicSampling"):
@@ -448,24 +466,12 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             changed = True
             changed_proj_settings["new_project"] = project.name
 
-        old_team_id = None
-        new_team = None
-        if result.get("team"):
-            return Response(
-                {"detail": ["Editing a team via this endpoint has been deprecated."]}, status=400
-            )
-
         if result.get("platform"):
             project.platform = result["platform"]
             changed = True
 
         if changed:
             project.save()
-            if old_team_id is not None:
-                ProjectTeam.objects.filter(project=project, team_id=old_team_id).update(
-                    team=new_team
-                )
-
             if old_slug:
                 ProjectRedirect.record(project, old_slug)
 
@@ -598,6 +604,19 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         if "dynamicSampling" in result:
             raw_dynamic_sampling = result["dynamicSampling"]
+            if (
+                not allow_dynamic_sampling_error_rules
+                and self._dynamic_sampling_contains_error_rule(raw_dynamic_sampling)
+            ):
+                return Response(
+                    {
+                        "detail": [
+                            "Dynamic Sampling only accepts rules of type transaction or trace"
+                        ]
+                    },
+                    status=400,
+                )
+
             fixed_rules = self._fix_rule_ids(project, raw_dynamic_sampling)
             project.update_option("sentry:dynamic_sampling", fixed_rules)
 
@@ -719,14 +738,14 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         return Response(data)
 
     @sudo_required
-    def delete(self, request, project):
+    def delete(self, request: Request, project) -> Response:
         """
         Delete a Project
         ````````````````
 
         Schedules a project for deletion.
 
-        Deletion happens asynchronously and therefor is not immediate.
+        Deletion happens asynchronously and therefore is not immediate.
         However once deletion has begun the state of a project changes and
         will be hidden from most public views.
 
@@ -800,3 +819,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         raw_dynamic_sampling["next_id"] = next_id
         return raw_dynamic_sampling
+
+    def _dynamic_sampling_contains_error_rule(self, raw_dynamic_sampling):
+        if raw_dynamic_sampling is not None:
+            rules = raw_dynamic_sampling.get("rules", [])
+            for rule in rules:
+                if rule["type"] == "error":
+                    return True

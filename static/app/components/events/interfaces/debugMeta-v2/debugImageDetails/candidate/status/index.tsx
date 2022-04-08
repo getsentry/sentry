@@ -1,8 +1,8 @@
 import * as Sentry from '@sentry/react';
 
-import Tag from 'app/components/tag';
-import {t} from 'app/locale';
-import {CandidateDownloadStatus} from 'app/types/debugImage';
+import Tag from 'sentry/components/tag';
+import {t} from 'sentry/locale';
+import {CandidateDownloadStatus} from 'sentry/types/debugImage';
 
 type Props = {
   status: CandidateDownloadStatus;

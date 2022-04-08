@@ -3,7 +3,9 @@ import {
   getDiffInMinutes,
   getInterval,
   getSeriesApiInterval,
-} from 'app/components/charts/utils';
+  lightenHexToRgb,
+  processTableResults,
+} from 'sentry/components/charts/utils';
 
 describe('Chart Utils', function () {
   describe('getInterval()', function () {
@@ -135,6 +137,53 @@ describe('Chart Utils', function () {
     it('returns value of `includePrevious` if no period', function () {
       expect(canIncludePreviousPeriod(true)).toBe(true);
       expect(canIncludePreviousPeriod(false)).toBe(false);
+    });
+  });
+
+  describe('lightenHexToRgb', function () {
+    it('converts hex to rgb and lightens values', function () {
+      expect(lightenHexToRgb(['#2f2936', '#f0f0f0'])).toEqual([
+        'rgb(77, 71, 84)',
+        'rgb(255, 255, 255)',
+      ]);
+    });
+  });
+
+  describe('processTableResults', function () {
+    it('transforms TableDataWithTitle array to chartable data', function () {
+      const tableData = [
+        {
+          data: [
+            {
+              'geo.country_code': 'PE',
+              count: 9215,
+            },
+            {
+              'geo.country_code': 'VI',
+              count: 1,
+            },
+          ],
+          meta: {
+            'geo.country_code': 'string',
+            count: 'integer',
+          },
+          title: 'Country',
+        },
+      ];
+      const result = {
+        title: 'Country',
+        data: [
+          {
+            name: 'PE',
+            value: 9215,
+          },
+          {
+            name: 'VI',
+            value: 1,
+          },
+        ],
+      };
+      expect(processTableResults(tableData)).toEqual(result);
     });
   });
 });

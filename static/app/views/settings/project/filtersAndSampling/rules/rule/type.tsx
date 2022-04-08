@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {t} from 'app/locale';
-import {DynamicSamplingRuleType} from 'app/types/dynamicSampling';
+import {t} from 'sentry/locale';
+import {DynamicSamplingRuleType} from 'sentry/types/dynamicSampling';
 
 type Props = {
   type: DynamicSamplingRuleType;

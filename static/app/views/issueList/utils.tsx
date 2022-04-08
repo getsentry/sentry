@@ -1,8 +1,8 @@
 import * as React from 'react';
 
-import ExternalLink from 'app/components/links/externalLink';
-import {t, tct} from 'app/locale';
-import {Organization} from 'app/types';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {t, tct} from 'sentry/locale';
+import {Organization} from 'sentry/types';
 
 export enum Query {
   FOR_REVIEW = 'is:unresolved is:for_review assigned_or_suggested:[me, none]',
@@ -12,13 +12,13 @@ export enum Query {
 }
 
 type OverviewTab = {
-  name: string;
   /** Emitted analytics event tab name  */
   analyticsName: string;
   /** Will fetch a count to display on this tab */
   count: boolean;
   /** Tabs can be disabled via flag */
   enabled: boolean;
+  name: string;
   /** Tooltip text for each tab */
   tooltipTitle: React.ReactNode;
   /** Tooltip text to be hoverable when text has links */
@@ -140,17 +140,17 @@ export function getSortLabel(key: string) {
   }
 }
 
-export enum IssueDisplayOptions {
-  EVENTS = 'events',
-  SESSIONS = 'sessions',
-}
-
-export function getDisplayLabel(key: IssueDisplayOptions) {
-  switch (key) {
-    case IssueDisplayOptions.SESSIONS:
-      return t('Events as %');
-    case IssueDisplayOptions.EVENTS:
-    default:
-      return t('Event Count');
-  }
-}
+export const DISCOVER_EXCLUSION_FIELDS: string[] = [
+  'query',
+  'status',
+  'bookmarked_by',
+  'assigned',
+  'assigned_to',
+  'unassigned',
+  'subscribed_by',
+  'active_at',
+  'first_release',
+  'first_seen',
+  'is',
+  '__text',
+];

@@ -1,10 +1,11 @@
+import unittest
+
 from sentry.api.validators.sentry_apps.schema import validate_ui_element_schema
-from sentry.testutils import TestCase
 
 from .util import invalid_schema_with_error_message
 
 
-class TestSchemaValidation(TestCase):
+class TestSchemaValidation(unittest.TestCase):
     def setUp(self):
         self.schema = {
             "elements": [
@@ -103,8 +104,70 @@ class TestSchemaValidation(TestCase):
     @invalid_schema_with_error_message(
         "'uri' is a required property for element of type 'stacktrace-link'"
     )
-    def test_invalid_chema_element_missing_uri(self):
+    def test_invalid_schema_element_missing_uri(self):
         schema = {
             "elements": [{"url": "/stacktrace/github/getsentry/sentry", "type": "stacktrace-link"}]
+        }
+        validate_ui_element_schema(schema)
+
+    @invalid_schema_with_error_message("Multiple elements of type: stacktrace-link")
+    def test_multiple_of_same_element_type(self):
+        schema = {
+            "elements": [
+                {"uri": "/stacktrace/github/getsentry/sentry", "type": "stacktrace-link"},
+                {"uri": "/stacktrace/github/getsentry/sentry", "type": "stacktrace-link"},
+            ]
+        }
+        validate_ui_element_schema(schema)
+
+    @invalid_schema_with_error_message(
+        "Elements of type ['text', 'textarea'] may only have a default value of the following: ['issue.title', 'issue.description'], but issue.something was found."
+    )
+    def test_invalid_textarea_default_value(self):
+        schema = {
+            "elements": [
+                {
+                    "type": "alert-rule-action",
+                    "title": "Mudpuppy",
+                    "settings": {
+                        "type": "alert-rule-settings",
+                        "uri": "/alert-rule-action",
+                        "required_fields": [
+                            {
+                                "label": "Team",
+                                "type": "textarea",
+                                "name": "teamId",
+                                "default": "issue.something",
+                            }
+                        ],
+                    },
+                }
+            ]
+        }
+        validate_ui_element_schema(schema)
+
+    @invalid_schema_with_error_message(
+        "Elements of type ['text', 'textarea'] may only have a default value of the following: ['issue.title', 'issue.description'], but issue.someone was found."
+    )
+    def test_invalid_text_default_value(self):
+        schema = {
+            "elements": [
+                {
+                    "type": "alert-rule-action",
+                    "title": "Tater Tots",
+                    "settings": {
+                        "type": "alert-rule-settings",
+                        "uri": "/alert-rule-action",
+                        "optional_fields": [
+                            {
+                                "label": "Team",
+                                "type": "text",
+                                "name": "teamId",
+                                "default": "issue.someone",
+                            }
+                        ],
+                    },
+                }
+            ]
         }
         validate_ui_element_schema(schema)

@@ -1,20 +1,20 @@
 import {Component, Fragment} from 'react';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {ModalRenderProps, openModal} from 'app/actionCreators/modal';
-import {Client} from 'app/api';
-import IssueSyncListElement from 'app/components/issueSyncListElement';
-import NavTabs from 'app/components/navTabs';
-import {t, tct} from 'app/locale';
-import plugins from 'app/plugins';
-import {Group, Organization, Plugin, Project} from 'app/types';
-import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
+import IssueSyncListElement from 'sentry/components/issueSyncListElement';
+import NavTabs from 'sentry/components/navTabs';
+import {t, tct} from 'sentry/locale';
+import plugins from 'sentry/plugins';
+import {Group, Organization, Plugin, Project} from 'sentry/types';
+import withApi from 'sentry/utils/withApi';
+import withOrganization from 'sentry/utils/withOrganization';
 
 type PluginIssue = {
   issue_id: string;
-  url: string;
   label: string;
+  url: string;
 };
 
 type TitledPlugin = Plugin & {
@@ -27,8 +27,8 @@ type Props = {
   api: Client;
   group: Group;
   organization: Organization;
-  project: Project;
   plugin: TitledPlugin;
+  project: Project;
 };
 
 type State = {
@@ -132,10 +132,10 @@ class PluginActions extends Component<Props, State> {
 
 type ModalProps = ModalRenderProps & {
   group: Group;
-  project: Project;
+  onSuccess: (data: any) => void;
   organization: Organization;
   plugin: TitledPlugin & {issue: PluginIssue | null};
-  onSuccess: (data: any) => void;
+  project: Project;
 };
 
 type ModalState = {

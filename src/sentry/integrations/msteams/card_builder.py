@@ -1,5 +1,7 @@
+from typing import Optional
+
 from sentry.integrations.metric_alerts import incident_attachment_info
-from sentry.models import GroupAssignee, GroupStatus, Project, Team
+from sentry.models import Group, GroupStatus, Project, Team, User
 from sentry.utils.assets import get_asset_url
 from sentry.utils.compat import map
 from sentry.utils.http import absolute_uri
@@ -28,24 +30,16 @@ def generate_action_payload(action_type, event, rules, integration):
     }
 
 
-# get the string of the assignee
-# if a user, show the email address
-# if a team, show the team slug prepended with a #
-def get_assignee_string(group):
-    try:
-        actor = GroupAssignee.objects.get(group=group).assigned_actor()
-    except GroupAssignee.DoesNotExist:
-        return None
+def get_assignee_string(group: Group) -> Optional[str]:
+    """Get a string representation of the group's assignee."""
+    assignee = group.get_assignee()
+    if isinstance(assignee, User):
+        return assignee.email
 
-    try:
-        assigned_actor = actor.resolve()
-    except assigned_actor.type.DoesNotExist:
-        return None
+    if isinstance(assignee, Team):
+        return f"#{assignee.slug}"
 
-    if actor.type == Team:
-        return f"#{assigned_actor.slug}"
-    else:
-        return assigned_actor.email
+    return None
 
 
 def build_welcome_card(signed_params):
@@ -115,7 +109,7 @@ def build_installation_confirmation_message(organization):
         "text": "Now that setup is complete, you can continue by configuring alerts.",
         "wrap": True,
     }
-    alert_rule_url = absolute_uri(f"organizations/{organization.slug}/rules/")
+    alert_rule_url = absolute_uri(f"organizations/{organization.slug}/alerts/rules/")
     alert_rule_button = {
         "type": "Action.OpenUrl",
         "title": "Add Alert Rules",
@@ -591,7 +585,7 @@ def build_assignee_note(group):
     assignee = get_assignee_string(group)
     if not assignee:
         return None
-    return {"type": "TextBlock", "size": "Small", "text": "**Assigned to %s**" % (assignee)}
+    return {"type": "TextBlock", "size": "Small", "text": f"**Assigned to {assignee}**"}
 
 
 def build_group_card(group, event, rules, integration):
@@ -688,8 +682,8 @@ def build_unlinked_card():
     }
 
 
-def build_incident_attachment(action, incident, metric_value=None, method=None):
-    data = incident_attachment_info(incident, metric_value, action=action, method=method)
+def build_incident_attachment(incident, new_status, metric_value=None):
+    data = incident_attachment_info(incident, new_status, metric_value)
 
     colors = {"Resolved": "good", "Warning": "warning", "Critical": "attention"}
 

@@ -12,7 +12,11 @@ from sentry.incidents.action_handlers import (
     EmailActionHandler,
     generate_incident_trigger_email_context,
 )
-from sentry.incidents.logic import create_alert_rule_trigger, create_alert_rule_trigger_action
+from sentry.incidents.logic import (
+    CRITICAL_TRIGGER_LABEL,
+    create_alert_rule_trigger,
+    create_alert_rule_trigger_action,
+)
 from sentry.incidents.models import (
     AlertRuleTriggerAction,
     Incident,
@@ -57,7 +61,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
                 threshold_period=1,
                 resolve_threshold=10,
             )
-            trigger = create_alert_rule_trigger(rule, "hi", 100)
+            trigger = create_alert_rule_trigger(rule, CRITICAL_TRIGGER_LABEL, 100)
             create_alert_rule_trigger_action(
                 trigger,
                 AlertRuleTriggerAction.Type.EMAIL,
@@ -95,10 +99,17 @@ class HandleSnubaQueryUpdateTest(TestCase):
         # calls the correct callback, which should result in an incident being created.
 
         message = {
-            "version": 1,
+            "version": 3,
             "payload": {
                 "subscription_id": self.subscription.subscription_id,
-                "values": {"data": [{"some_col": self.trigger.alert_threshold + 1}]},
+                "result": {"data": [{"some_col": 101}]},
+                "request": {
+                    "some": "data",
+                    "query": """MATCH (metrics_counters) SELECT sum(value) AS value BY
+                            tags[3] WHERE org_id = 1 AND project_id IN tuple(1) AND metric_id = 16
+                            AND tags[3] IN tuple(13, 4)""",
+                },
+                "entity": "metrics_counters",
                 "timestamp": "2020-01-01T01:23:45.1234",
             },
         }
@@ -136,6 +147,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
                 handler.incident,
                 handler.action.alert_rule_trigger,
                 TriggerStatus.ACTIVE,
+                IncidentStatus.CRITICAL,
             ),
             TriggerStatus.ACTIVE,
             self.user.id,

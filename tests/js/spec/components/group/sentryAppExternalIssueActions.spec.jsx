@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import GlobalModal from 'app/components/globalModal';
-import SentryAppExternalIssueActions from 'app/components/group/sentryAppExternalIssueActions';
+import GlobalModal from 'sentry/components/globalModal';
+import SentryAppExternalIssueActions from 'sentry/components/group/sentryAppExternalIssueActions';
 
 describe('SentryAppExternalIssueActions', () => {
   let group;
@@ -49,8 +49,7 @@ describe('SentryAppExternalIssueActions', () => {
             sentryAppInstallation={install}
             sentryAppComponent={component}
           />
-        </Fragment>,
-        TestStubs.routerContext()
+        </Fragment>
       );
     });
 
@@ -175,8 +174,7 @@ describe('SentryAppExternalIssueActions', () => {
           sentryAppComponent={component}
           sentryAppInstallation={install}
           externalIssue={externalIssue}
-        />,
-        TestStubs.routerContext()
+        />
       );
     });
 

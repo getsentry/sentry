@@ -1,4 +1,6 @@
-import Breadcrumbs from 'app/components/breadcrumbs';
+import {action} from '@storybook/addon-actions';
+
+import Breadcrumbs from 'sentry/components/breadcrumbs';
 
 export default {
   title: 'Views/Breadcrumbs',
@@ -12,6 +14,26 @@ export const _Breadcrumbs = () => (
       {label: 'Test 2', to: '#'},
       {label: 'Test 3', to: '#'},
       {label: 'Test 4', to: null},
+    ]}
+  />
+);
+
+export const _BreadcrumbWithDropdown = () => (
+  <Breadcrumbs
+    crumbs={[
+      {
+        label: 'dropdown crumb',
+        onSelect: action('onSelect'),
+        items: [{label: 'item1'}, {label: 'item2'}, {label: 'item3'}],
+      },
+      {
+        label: 'Test 2',
+        to: '/test2',
+      },
+      {
+        label: 'Test 3',
+        to: null,
+      },
     ]}
   />
 );

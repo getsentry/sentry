@@ -1,7 +1,10 @@
-import Reflux from 'reflux';
+import {createStore} from 'reflux';
 
-import TagActions from 'app/actions/tagActions';
-import {Tag, TagCollection} from 'app/types';
+import {Tag, TagCollection} from 'sentry/types';
+import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
+
+import {CommonStoreDefinition} from './types';
 
 // This list is only used on issues. Events/discover
 // have their own field list that exists elsewhere.
@@ -49,25 +52,25 @@ const BUILTIN_TAGS = [
   return acc;
 }, {});
 
-type TagStoreInterface = {
+interface TagStoreDefinition extends CommonStoreDefinition<TagCollection> {
+  getAllTags(): TagCollection;
+  getBuiltInTags(): TagCollection;
+  getIssueAttributes(): TagCollection;
+  loadTagsSuccess(data: Tag[]): void;
+  reset(): void;
   state: TagCollection;
-  getBuiltInTags: () => TagCollection;
-  getIssueAttributes: () => TagCollection;
-  getAllTags: () => TagCollection;
-  reset: () => void;
-  onLoadTagsSuccess: (data: Tag[]) => void;
-};
+}
 
-const tagStoreConfig: Reflux.StoreDefinition & TagStoreInterface = {
+const storeConfig: TagStoreDefinition = {
   state: {},
+  unsubscribeListeners: [],
 
   init() {
     this.state = {};
-    this.listenTo(TagActions.loadTagsSuccess, this.onLoadTagsSuccess);
   },
 
   getBuiltInTags() {
-    return {...BUILTIN_TAGS};
+    return {...BUILTIN_TAGS, ...SEMVER_TAGS};
   },
 
   getIssueAttributes() {
@@ -159,7 +162,11 @@ const tagStoreConfig: Reflux.StoreDefinition & TagStoreInterface = {
     return this.state;
   },
 
-  onLoadTagsSuccess(data) {
+  getState() {
+    return this.getAllTags();
+  },
+
+  loadTagsSuccess(data) {
     const newTags = data.reduce<TagCollection>((acc, tag) => {
       acc[tag.key] = {
         values: [],
@@ -168,13 +175,11 @@ const tagStoreConfig: Reflux.StoreDefinition & TagStoreInterface = {
 
       return acc;
     }, {});
+
     this.state = {...this.state, ...newTags};
     this.trigger(this.state);
   },
 };
 
-type TagStore = Reflux.Store & TagStoreInterface;
-
-const TagStore = Reflux.createStore(tagStoreConfig) as TagStore;
-
+const TagStore = createStore(makeSafeRefluxStore(storeConfig));
 export default TagStore;

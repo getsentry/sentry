@@ -1,8 +1,8 @@
-import {GuidesContent} from 'app/components/assistant/types';
-import ExternalLink from 'app/components/links/externalLink';
-import Link from 'app/components/links/link';
-import {t, tct} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
+import {GuidesContent} from 'sentry/components/assistant/types';
+import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
+import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 
 export default function getGuidesContent(orgSlug: string | null): GuidesContent {
   if (ConfigStore.get('demoMode')) {
@@ -106,68 +106,6 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
       ],
     },
     {
-      guide: 'inbox_guide',
-      requiredTargets: ['inbox_guide_tab'],
-      dateThreshold: new Date(2021, 1, 26),
-      steps: [
-        {
-          target: 'inbox_guide_tab',
-          description: t(`We’ve made some changes to help you focus on what’s new.`),
-          dismissText: t(`Later`),
-          nextText: t(`Take a Look`),
-          hasNextGuide: true,
-        },
-      ],
-    },
-    {
-      guide: 'for_review_guide',
-      requiredTargets: ['for_review_guide_tab', 'inbox_guide_reason', 'is_inbox_tab'],
-      steps: [
-        {
-          target: 'for_review_guide_tab',
-          description: t(
-            `This is a list of Unresolved issues that are new or reopened in the last 7 days.`
-          ),
-          cantDismiss: true,
-        },
-        {
-          target: 'inbox_guide_reason',
-          description: t(`These labels explain why an issue needs review.`),
-          nextText: t(`When does this end?`),
-          cantDismiss: true,
-        },
-        {
-          target: 'inbox_guide_review',
-          description: t(
-            `Marking an issue reviewed, resolving it, or ignoring it removes it from this list and removes the label.`
-          ),
-          nextText: t(`Make It Stop Already`),
-        },
-      ],
-    },
-    {
-      guide: 'assigned_or_suggested_guide',
-      dateThreshold: new Date(2021, 4, 1),
-      requiredTargets: ['assigned_or_suggested_query'],
-      steps: [
-        {
-          target: 'assigned_or_suggested_query',
-          description: tct(
-            "Tip: use [assignedOrSuggested] to include search results based on your [ownership:ownership rules] and [committed:code you've committed].",
-            {
-              assignedOrSuggested: <code>assigned_or_suggested</code>,
-              ownership: (
-                <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/" />
-              ),
-              committed: (
-                <ExternalLink href="https://docs.sentry.io/product/sentry-basics/guides/integrate-frontend/configure-scms/" />
-              ),
-            }
-          ),
-        },
-      ],
-    },
-    {
       guide: 'alerts_write_owner',
       requiredTargets: ['alerts_write_owner'],
       steps: [
@@ -181,20 +119,6 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
           ),
           nextText: t(`Allow`),
           hasNextGuide: true,
-        },
-      ],
-    },
-    {
-      guide: 'stack_trace_preview',
-      requiredTargets: ['issue_stream_title'],
-      dateThreshold: new Date(2021, 2, 15),
-      steps: [
-        {
-          title: t('Stack Trace Preview'),
-          target: 'issue_stream_title',
-          description: t(
-            `Hover over the issue title to see the stack trace of the latest event.`
-          ),
         },
       ],
     },
@@ -309,28 +233,9 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
       ],
     },
     {
-      guide: 'percentage_based_alerts',
-      requiredTargets: ['percentage_based_alerts'],
-      steps: [
-        {
-          title: t('Percentage Based Alerts'),
-          target: 'percentage_based_alerts',
-          description: tct(
-            'View the event count as a percentage of sessions and alert on this number to adapt to changes in traffic patterns. [link:View the docs] to learn more.',
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/product/alerts/create-alerts/issue-alert-config/#when-conditions-triggers" />
-              ),
-            }
-          ),
-          nextText: t('Got it'),
-        },
-      ],
-    },
-    {
       guide: 'semver',
       requiredTargets: ['releases_search'],
-      dateThreshold: new Date(2021, 6, 1),
+      dateThreshold: new Date('2021-05-01'),
       steps: [
         {
           title: t('Filter by Semver'),
@@ -351,7 +256,7 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
     {
       guide: 'release_stages',
       requiredTargets: ['release_stages'],
-      dateThreshold: new Date(2021, 6, 1),
+      dateThreshold: new Date('2021-05-01'),
       steps: [
         {
           title: t('Adoption Filter'),
@@ -366,6 +271,29 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
             }
           ),
           nextText: t('Got it'),
+        },
+      ],
+    },
+    {
+      guide: 'new_page_filters',
+      requiredTargets: ['new_page_filter_button'],
+      expectedTargets: ['new_page_filter_pin'],
+      dateThreshold: new Date('2022-04-05'),
+      steps: [
+        {
+          title: t('Selection Filters have moved!'),
+          target: 'new_page_filter_button',
+          description: t(
+            'Selection filters have teleported from the top of the page to live closer to the content they are filtering on!'
+          ),
+          nextText: t('Tell me more'),
+        },
+        {
+          title: t('Explicit memory'),
+          target: 'new_page_filter_pin',
+          description: t(
+            'Selection filters will no longer be implicitly be remembered between sessions. You can now "Pin" a filter to remember it'
+          ),
         },
       ],
     },

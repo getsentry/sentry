@@ -1,11 +1,11 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import TextOverflow from 'app/components/textOverflow';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {defined} from 'app/utils';
-import InputField from 'app/views/settings/components/forms/inputField';
+import InputField from 'sentry/components/forms/inputField';
+import TextOverflow from 'sentry/components/textOverflow';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 
 import {SourceSuggestion, SourceSuggestionType} from '../../types';
 import {binarySuggestions, unarySuggestions} from '../../utils';
@@ -17,21 +17,21 @@ const defaultHelp = t(
 );
 
 type Props = {
-  value: string;
-  onChange: (value: string) => void;
   isRegExMatchesSelected: boolean;
+  onChange: (value: string) => void;
   suggestions: Array<SourceSuggestion>;
+  value: string;
   error?: string;
   onBlur?: (value: string, event: React.FocusEvent<HTMLInputElement>) => void;
 };
 
 type State = {
-  suggestions: Array<SourceSuggestion>;
-  fieldValues: Array<SourceSuggestion | Array<SourceSuggestion>>;
   activeSuggestion: number;
-  showSuggestions: boolean;
-  hideCaret: boolean;
+  fieldValues: Array<SourceSuggestion | Array<SourceSuggestion>>;
   help: string;
+  hideCaret: boolean;
+  showSuggestions: boolean;
+  suggestions: Array<SourceSuggestion>;
 };
 
 class SourceField extends React.Component<Props, State> {
@@ -476,7 +476,7 @@ const Suggestions = styled('ul')<{error?: string}>`
 const Suggestion = styled('li')<{active: boolean}>`
   display: grid;
   grid-template-columns: auto 1fr max-content;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   border-bottom: 1px solid ${p => p.theme.border};
   padding: ${space(1)} ${space(2)};
   font-size: ${p => p.theme.fontSizeMedium};

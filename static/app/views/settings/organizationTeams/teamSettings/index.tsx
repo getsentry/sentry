@@ -1,26 +1,26 @@
 import {Fragment} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {removeTeam, updateTeamSuccess} from 'app/actionCreators/teams';
-import Button from 'app/components/button';
-import Confirm from 'app/components/confirm';
-import {Panel, PanelHeader} from 'app/components/panels';
-import teamSettingsFields from 'app/data/forms/teamSettingsFields';
-import {IconDelete} from 'app/icons';
-import {t, tct} from 'app/locale';
-import {LightWeightOrganization, Scope, Team} from 'app/types';
-import withOrganization from 'app/utils/withOrganization';
-import AsyncView from 'app/views/asyncView';
-import Field from 'app/views/settings/components/forms/field';
-import Form from 'app/views/settings/components/forms/form';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import FormModel from 'app/views/settings/components/forms/model';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {removeTeam, updateTeamSuccess} from 'sentry/actionCreators/teams';
+import Button from 'sentry/components/button';
+import Confirm from 'sentry/components/confirm';
+import Field from 'sentry/components/forms/field';
+import Form from 'sentry/components/forms/form';
+import JsonForm from 'sentry/components/forms/jsonForm';
+import FormModel from 'sentry/components/forms/model';
+import {Panel, PanelHeader} from 'sentry/components/panels';
+import teamSettingsFields from 'sentry/data/forms/teamSettingsFields';
+import {IconDelete} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import {Organization, Scope, Team} from 'sentry/types';
+import withOrganization from 'sentry/utils/withOrganization';
+import AsyncView from 'sentry/views/asyncView';
 
 import TeamModel from './model';
 
 type Props = RouteComponentProps<{orgId: string; teamId: string}, {}> & {
-  organization: LightWeightOrganization;
+  organization: Organization;
   team: Team;
 };
 

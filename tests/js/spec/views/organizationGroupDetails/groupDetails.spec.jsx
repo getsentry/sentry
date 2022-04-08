@@ -1,18 +1,23 @@
 import {browserHistory} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import GlobalSelectionStore from 'app/stores/globalSelectionStore';
-import GroupStore from 'app/stores/groupStore';
-import ProjectsStore from 'app/stores/projectsStore';
-import GroupDetails from 'app/views/organizationGroupDetails';
+import GroupStore from 'sentry/stores/groupStore';
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import GroupDetails from 'sentry/views/organizationGroupDetails';
 
-jest.unmock('app/utils/recreateRoute');
+jest.unmock('sentry/utils/recreateRoute');
+
+const SAMPLE_EVENT_ALERT_TEXT =
+  'You are viewing a sample error. Configure Sentry to start viewing real errors.';
 
 describe('groupDetails', () => {
   const group = TestStubs.Group();
   const event = TestStubs.Event();
+  const project = TestStubs.Project({teams: [TestStubs.Team()]});
+  const selection = {environments: []};
 
   const routes = [
     {path: '/', childRoutes: [], component: null},
@@ -31,8 +36,8 @@ describe('groupDetails', () => {
     },
   ];
 
-  const {organization, project, router, routerContext} = initializeOrg({
-    project: TestStubs.Project(),
+  const {organization, router, routerContext} = initializeOrg({
+    project,
     router: {
       location: {
         pathname: `/organizations/org-slug/issues/${group.id}/`,
@@ -58,14 +63,9 @@ describe('groupDetails', () => {
     );
   }
 
-  const createWrapper = (props = {organization, router, routerContext}) => {
-    return mountWithTheme(
-      <GroupDetails
-        organization={props.organization}
-        params={props.router.params}
-        location={props.router.location}
-        routes={props.router.routes}
-      >
+  const createWrapper = (props = {selection}) => {
+    return render(
+      <GroupDetails organization={organization} {...router} selection={props.selection}>
         <MockComponent />
       </GroupDetails>,
       {context: routerContext}
@@ -73,7 +73,8 @@ describe('groupDetails', () => {
   };
 
   beforeEach(() => {
-    ProjectsStore.loadInitialData(organization.projects);
+    act(() => ProjectsStore.loadInitialData(organization.projects));
+
     MockApiClient.addMockResponse({
       url: `/issues/${group.id}/`,
       body: {...group},
@@ -105,25 +106,29 @@ describe('groupDetails', () => {
       body: {firstRelease: group.firstRelease, lastRelease: group.lastRelease},
     });
   });
+
   afterEach(() => {
-    ProjectsStore.reset();
+    act(() => ProjectsStore.reset());
     GroupStore.reset();
-    GlobalSelectionStore.reset();
+    PageFiltersStore.reset();
     MockApiClient.clearMockResponses();
   });
 
-  it('renders', () => {
-    ProjectsStore.reset();
-    const {findByText, queryByText} = createWrapper();
+  it('renders', async function () {
+    act(() => ProjectsStore.reset());
+    createWrapper();
 
-    expect(queryByText(group.title)).toBeNull();
+    expect(screen.queryByText(group.title)).not.toBeInTheDocument();
 
-    ProjectsStore.loadInitialData(organization.projects);
+    act(() => ProjectsStore.loadInitialData(organization.projects));
 
-    expect(findByText(group.title)).toBeTruthy();
+    expect(await screen.findByText(group.title, {exact: false})).toBeInTheDocument();
+
+    // Sample event alert should not show up
+    expect(screen.queryByText(SAMPLE_EVENT_ALERT_TEXT)).not.toBeInTheDocument();
   });
 
-  it('renders error when issue is not found', () => {
+  it('renders error when issue is not found', async function () {
     MockApiClient.addMockResponse({
       url: `/issues/${group.id}/`,
       statusCode: 404,
@@ -133,81 +138,72 @@ describe('groupDetails', () => {
       statusCode: 404,
     });
 
-    const {findByText, queryByTestId} = createWrapper();
+    createWrapper();
 
-    expect(queryByTestId('loading-indicator')).toBeNull();
-    expect(findByText('The issue you were looking for was not found.')).toBeTruthy();
-  });
-
-  it('renders MissingProjectMembership when trying to access issue in project the user does not belong to', () => {
-    MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/`,
-      statusCode: 403,
-    });
-    MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/events/latest/`,
-      statusCode: 403,
-    });
-    const {queryByTestId, findByText} = createWrapper();
-
-    expect(queryByTestId('loading-indicator')).toBeNull();
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(
-      findByText("You'll need to join a team with access before you can view this data.")
-    ).toBeTruthy();
+      await screen.findByText('The issue you were looking for was not found.')
+    ).toBeInTheDocument();
   });
 
-  it('fetches issue details for a given environment', () => {
-    const props = initializeOrg({
-      project: TestStubs.Project(),
-      router: {
-        location: {
-          pathname: '/issues/groupId/',
-          query: {environment: 'staging'},
-        },
-        params: {
-          groupId: group.id,
-        },
-        routes,
-      },
+  it('renders MissingProjectMembership when trying to access issue in project the user does not belong to', async function () {
+    MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/`,
+      statusCode: 403,
+    });
+    MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/events/latest/`,
+      statusCode: 403,
     });
 
-    const {queryByTestId, findByText} = createWrapper(props);
+    createWrapper();
 
-    ProjectsStore.loadInitialData(props.organization.projects);
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        "You'll need to join a team with access before you can view this data."
+      )
+    ).toBeInTheDocument();
+  });
 
-    expect(queryByTestId('loading-indicator')).toBeNull();
+  it('fetches issue details for a given environment', async function () {
+    createWrapper({
+      selection: {environments: ['staging']},
+    });
 
-    expect(findByText('environment: staging')).toBeTruthy();
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+
+    expect(await screen.findByText('environment: staging')).toBeInTheDocument();
   });
 
   /**
    * This is legacy code that I'm not even sure still happens
    */
-  it('redirects to new issue if params id !== id returned from API request', async () => {
+  it('redirects to new issue if params id !== id returned from API request', async function () {
     MockApiClient.addMockResponse({
       url: `/issues/${group.id}/`,
       body: {...group, id: 'new-id'},
     });
-    const {queryByText} = createWrapper();
-    expect(queryByText('Group Details Mock')).toBeNull();
+    createWrapper();
+    expect(screen.queryByText('Group Details Mock')).not.toBeInTheDocument();
     await waitFor(() => {
       expect(browserHistory.push).toHaveBeenCalledTimes(1);
-      expect(browserHistory.push).toHaveBeenCalledWith(
-        '/organizations/org-slug/issues/new-id/?foo=bar#hash'
-      );
     });
+    expect(browserHistory.push).toHaveBeenCalledWith(
+      '/organizations/org-slug/issues/new-id/?foo=bar#hash'
+    );
   });
 
-  it('renders issue event error', () => {
+  it('renders issue event error', async function () {
     MockApiClient.addMockResponse({
       url: `/issues/${group.id}/events/latest/`,
       statusCode: 404,
     });
-    const {findByText} = createWrapper();
-    expect(findByText('eventError')).toBeTruthy();
+    createWrapper();
+    expect(await screen.findByText('eventError')).toBeInTheDocument();
   });
 
-  it('renders for review reason', () => {
+  it('renders for review reason', async function () {
     MockApiClient.addMockResponse({
       url: `/issues/${group.id}/`,
       body: {
@@ -219,11 +215,24 @@ describe('groupDetails', () => {
         },
       },
     });
-    ProjectsStore.reset();
-    const {findByText} = createWrapper();
+    act(() => ProjectsStore.reset());
+    createWrapper();
 
-    ProjectsStore.loadInitialData(organization.projects);
+    act(() => ProjectsStore.loadInitialData(organization.projects));
 
-    expect(findByText('New Issue')).toBeTruthy();
+    expect(await screen.findByText('New Issue')).toBeInTheDocument();
+  });
+
+  it('renders alert for sample event', async function () {
+    const sampleGruop = TestStubs.Group();
+    sampleGruop.tags.push({key: 'sample_event'});
+    MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/`,
+      body: {...sampleGruop},
+    });
+
+    createWrapper();
+
+    expect(await screen.findByText(SAMPLE_EVENT_ALERT_TEXT)).toBeInTheDocument();
   });
 });

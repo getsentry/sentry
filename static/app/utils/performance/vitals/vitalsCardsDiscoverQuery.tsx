@@ -1,18 +1,18 @@
 import * as React from 'react';
 import pick from 'lodash/pick';
 
-import {MetaType} from 'app/utils/discover/eventView';
-import {WebVital} from 'app/utils/discover/fields';
+import {MetaType} from 'sentry/utils/discover/eventView';
+import {WebVital} from 'sentry/utils/discover/fields';
 import GenericDiscoverQuery, {
-  DiscoverQueryProps,
+  DiscoverQueryPropsWithContext,
   GenericChildrenProps,
-} from 'app/utils/discover/genericDiscoverQuery';
-import {PERFORMANCE_URL_PARAM} from 'app/utils/performance/constants';
-import withApi from 'app/utils/withApi';
+} from 'sentry/utils/discover/genericDiscoverQuery';
+import {PERFORMANCE_URL_PARAM} from 'sentry/utils/performance/constants';
+import withApi from 'sentry/utils/withApi';
 
 export type TableDataRow = {
-  id: string;
   [key: string]: React.ReactText;
+  id: string;
 };
 
 export type TableData = {
@@ -21,11 +21,11 @@ export type TableData = {
 };
 
 export type VitalData = {
-  poor: number;
-  meh: number;
   good: number;
-  total: number;
+  meh: number;
   p75: number | null;
+  poor: number;
+  total: number;
 };
 
 export type VitalsData = Record<string, VitalData>;
@@ -34,7 +34,7 @@ type VitalsProps = {
   vitals: WebVital[];
 };
 
-type RequestProps = DiscoverQueryProps & VitalsProps;
+type RequestProps = DiscoverQueryPropsWithContext & VitalsProps;
 
 type ChildrenProps = Omit<GenericChildrenProps<VitalsProps>, 'tableData'> & {
   vitalsData: VitalsData | null;

@@ -1,12 +1,11 @@
 import {browserHistory, Router} from 'react-router';
 
-import DemoHeader from 'app/components/demo/demoHeader';
-import routes from 'app/routes';
-import ConfigStore from 'app/stores/configStore';
+import DemoHeader from 'sentry/components/demo/demoHeader';
+import ThemeAndStyleProvider from 'sentry/components/themeAndStyleProvider';
+import routes from 'sentry/routes';
+import ConfigStore from 'sentry/stores/configStore';
 
-import ThemeAndStyleProvider from './themeAndStyleProvider';
-
-export default function Main() {
+function Main() {
   return (
     <ThemeAndStyleProvider>
       {ConfigStore.get('demoMode') && <DemoHeader />}
@@ -14,3 +13,5 @@ export default function Main() {
     </ThemeAndStyleProvider>
   );
 }
+
+export default Main;

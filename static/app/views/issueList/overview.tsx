@@ -11,56 +11,53 @@ import omit from 'lodash/omit';
 import pickBy from 'lodash/pickBy';
 import * as qs from 'query-string';
 
-import {fetchOrgMembers, indexMembersByProject} from 'app/actionCreators/members';
+import {addMessage} from 'sentry/actionCreators/indicator';
+import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
 import {
   deleteSavedSearch,
   fetchSavedSearches,
   resetSavedSearches,
-} from 'app/actionCreators/savedSearches';
-import {fetchTagValues, loadOrganizationTags} from 'app/actionCreators/tags';
-import GroupActions from 'app/actions/groupActions';
-import {Client} from 'app/api';
-import GuideAnchor from 'app/components/assistant/guideAnchor';
-import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
-import Pagination, {CursorHandler} from 'app/components/pagination';
-import {Panel, PanelBody} from 'app/components/panels';
-import QueryCount from 'app/components/queryCount';
-import StreamGroup from 'app/components/stream/group';
-import ProcessingIssueList from 'app/components/stream/processingIssueList';
-import {
-  DEFAULT_QUERY,
-  DEFAULT_STATS_PERIOD,
-  RELEASE_ADOPTION_STAGES,
-} from 'app/constants';
-import {tct} from 'app/locale';
-import GroupStore from 'app/stores/groupStore';
-import {PageContent} from 'app/styles/organization';
-import space from 'app/styles/space';
+} from 'sentry/actionCreators/savedSearches';
+import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
+import GroupActions from 'sentry/actions/groupActions';
+import {Client} from 'sentry/api';
+import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
+import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import {Panel, PanelBody} from 'sentry/components/panels';
+import QueryCount from 'sentry/components/queryCount';
+import StreamGroup from 'sentry/components/stream/group';
+import ProcessingIssueList from 'sentry/components/stream/processingIssueList';
+import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {t, tct} from 'sentry/locale';
+import GroupStore from 'sentry/stores/groupStore';
+import {PageContent} from 'sentry/styles/organization';
 import {
   BaseGroup,
-  GlobalSelection,
   Group,
   Member,
   Organization,
+  PageFilters,
   SavedSearch,
   TagCollection,
-} from 'app/types';
-import {defined} from 'app/utils';
-import {analytics, metric, trackAnalyticsEvent} from 'app/utils/analytics';
-import {callIfFunction} from 'app/utils/callIfFunction';
-import CursorPoller from 'app/utils/cursorPoller';
-import {getUtcDateString} from 'app/utils/dates';
-import getCurrentSentryReactTransaction from 'app/utils/getCurrentSentryReactTransaction';
-import parseApiError from 'app/utils/parseApiError';
-import parseLinkHeader from 'app/utils/parseLinkHeader';
-import StreamManager from 'app/utils/streamManager';
-import withApi from 'app/utils/withApi';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import withIssueTags from 'app/utils/withIssueTags';
-import withOrganization from 'app/utils/withOrganization';
-import withSavedSearches from 'app/utils/withSavedSearches';
+} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {callIfFunction} from 'sentry/utils/callIfFunction';
+import CursorPoller from 'sentry/utils/cursorPoller';
+import {getUtcDateString} from 'sentry/utils/dates';
+import getCurrentSentryReactTransaction from 'sentry/utils/getCurrentSentryReactTransaction';
+import parseApiError from 'sentry/utils/parseApiError';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import StreamManager from 'sentry/utils/streamManager';
+import withApi from 'sentry/utils/withApi';
+import withIssueTags from 'sentry/utils/withIssueTags';
+import withOrganization from 'sentry/utils/withOrganization';
+import withPageFilters from 'sentry/utils/withPageFilters';
+import withSavedSearches from 'sentry/utils/withSavedSearches';
 
 import IssueListActions from './actions';
 import IssueListFilters from './filters';
@@ -71,7 +68,6 @@ import {
   getTabs,
   getTabsWithCounts,
   isForReviewQuery,
-  IssueDisplayOptions,
   IssueSortOptions,
   Query,
   QueryCounts,
@@ -80,7 +76,6 @@ import {
 
 const MAX_ITEMS = 25;
 const DEFAULT_SORT = IssueSortOptions.DATE;
-const DEFAULT_DISPLAY = IssueDisplayOptions.EVENTS;
 // the default period for the graph in each issue row
 const DEFAULT_GRAPH_STATS_PERIOD = '24h';
 // the allowed period choices for graph in each issue row
@@ -95,17 +90,24 @@ type Props = {
   location: Location;
   organization: Organization;
   params: Params;
-  selection: GlobalSelection;
   savedSearch: SavedSearch;
-  savedSearches: SavedSearch[];
   savedSearchLoading: boolean;
+  savedSearches: SavedSearch[];
+  selection: PageFilters;
   tags: TagCollection;
 } & RouteComponentProps<{searchId?: string}, {}>;
 
 type State = {
+  actionTaken: boolean;
+  actionTakenIds: string[];
+  error: string | null;
+  // TODO(Kelly): remove forReview once issue-list-removal-action feature is stable
+  forReview: boolean;
   groupIds: string[];
-  selectAllActive: boolean;
-  realtimeActive: boolean;
+  isSidebarVisible: boolean;
+  issuesLoading: boolean;
+  itemsRemoved: number;
+  memberList: ReturnType<typeof indexMembersByProject>;
   pageLinks: string;
   /**
    * Current query total
@@ -116,28 +118,24 @@ type State = {
    */
   queryCounts: QueryCounts;
   queryMaxCount: number;
-  itemsRemoved: number;
-  error: string | null;
-  isSidebarVisible: boolean;
-  renderSidebar: boolean;
-  issuesLoading: boolean;
+  realtimeActive: boolean;
+  // TODO(Kelly): remove reviewedIds once issue-list-removal-action feature is stable
+  reviewedIds: string[];
+  selectAllActive: boolean;
   tagsLoading: boolean;
-  memberList: ReturnType<typeof indexMembersByProject>;
   // Will be set to true if there is valid session data from issue-stats api call
-  hasSessions: boolean;
   query?: string;
 };
 
-type EndpointParams = Partial<GlobalSelection['datetime']> & {
-  project: number[];
+type EndpointParams = Partial<PageFilters['datetime']> & {
   environment: string[];
+  project: number[];
+  cursor?: string;
+  groupStatsPeriod?: string | null;
+  page?: number | string;
   query?: string;
   sort?: string;
-  statsPeriod?: string;
-  groupStatsPeriod?: string;
-  cursor?: string;
-  page?: number | string;
-  display?: string;
+  statsPeriod?: string | null;
 };
 
 type CountsEndpointParams = Omit<EndpointParams, 'cursor' | 'page' | 'query'> & {
@@ -161,6 +159,11 @@ class IssueListOverview extends React.Component<Props, State> {
 
     return {
       groupIds: [],
+      // TODO(Kelly): remove reviewedIds and forReview once issue-list-removal-action feature is stable
+      reviewedIds: [],
+      actionTaken: false,
+      actionTakenIds: [],
+      forReview: false,
       selectAllActive: false,
       realtimeActive,
       pageLinks: '',
@@ -170,11 +173,9 @@ class IssueListOverview extends React.Component<Props, State> {
       queryMaxCount: 0,
       error: null,
       isSidebarVisible: false,
-      renderSidebar: false,
       issuesLoading: true,
       tagsLoading: true,
       memberList: {},
-      hasSessions: false,
     };
   }
 
@@ -193,31 +194,6 @@ class IssueListOverview extends React.Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
-    // Fire off profiling/metrics first
-    if (prevState.issuesLoading && !this.state.issuesLoading) {
-      // First Meaningful Paint for /organizations/:orgId/issues/
-      if (prevState.queryCount === null) {
-        metric.measure({
-          name: 'app.page.perf.issue-list',
-          start: 'page-issue-list-start',
-          data: {
-            // start_type is set on 'page-issue-list-start'
-            org_id: parseInt(this.props.organization.id, 10),
-            group: this.props.organization.features.includes('enterprise-perf')
-              ? 'enterprise-perf'
-              : 'control',
-            milestone: 'first-meaningful-paint',
-            is_enterprise: this.props.organization.features
-              .includes('enterprise-orgs')
-              .toString(),
-            is_outlier: this.props.organization.features
-              .includes('enterprise-orgs-outliers')
-              .toString(),
-          },
-        });
-      }
-    }
-
     if (prevState.realtimeActive !== this.state.realtimeActive) {
       // User toggled realtime button
       if (this.state.realtimeActive) {
@@ -232,18 +208,20 @@ class IssueListOverview extends React.Component<Props, State> {
     if (!isEqual(prevProps.selection.projects, this.props.selection.projects)) {
       this.fetchMemberList();
       this.fetchTags();
-      // Reset display when selecting multiple projects
-      const projects = this.props.selection.projects ?? [];
-      const hasMultipleProjects = projects.length !== 1 || projects[0] === -1;
-      if (hasMultipleProjects && this.getDisplay() !== DEFAULT_DISPLAY) {
-        this.transitionTo({display: undefined});
+    }
+
+    // TODO(Kelly): remove once issue-list-removal-action feature is stable
+    if (!this.props.organization.features.includes('issue-list-removal-action')) {
+      if (prevState.forReview !== this.state.forReview) {
+        this.fetchData();
       }
     }
 
     // Wait for saved searches to load before we attempt to fetch stream data
     if (this.props.savedSearchLoading) {
       return;
-    } else if (prevProps.savedSearchLoading) {
+    }
+    if (prevProps.savedSearchLoading) {
       this.fetchData();
       return;
     }
@@ -297,6 +275,7 @@ class IssueListOverview extends React.Component<Props, State> {
   private _poller: any;
   private _lastRequest: any;
   private _lastStatsRequest: any;
+  private _lastFetchCountsRequest: any;
   private _streamManager = new StreamManager(GroupStore);
 
   getQuery(): string {
@@ -325,21 +304,6 @@ class IssueListOverview extends React.Component<Props, State> {
     }
 
     return DEFAULT_SORT;
-  }
-
-  getDisplay(): IssueDisplayOptions {
-    const {organization, location} = this.props;
-
-    if (organization.features.includes('issue-percent-display')) {
-      if (
-        location.query.display &&
-        Object.values(IssueDisplayOptions).includes(location.query.display)
-      ) {
-        return location.query.display as IssueDisplayOptions;
-      }
-    }
-
-    return DEFAULT_DISPLAY;
   }
 
   getGroupStatsPeriod(): string {
@@ -384,11 +348,6 @@ class IssueListOverview extends React.Component<Props, State> {
       params.sort = sort;
     }
 
-    const display = this.getDisplay();
-    if (display !== DEFAULT_DISPLAY) {
-      params.display = display;
-    }
-
     const groupStatsPeriod = this.getGroupStatsPeriod();
     if (groupStatsPeriod !== DEFAULT_GRAPH_STATS_PERIOD) {
       params.groupStatsPeriod = groupStatsPeriod;
@@ -425,7 +384,6 @@ class IssueListOverview extends React.Component<Props, State> {
   fetchStats = (groups: string[]) => {
     // If we have no groups to fetch, just skip stats
     if (!groups.length) {
-      this.setState({hasSessions: false});
       return;
     }
     const requestParams: StatEndpointParams = {
@@ -436,9 +394,6 @@ class IssueListOverview extends React.Component<Props, State> {
     if (!requestParams.statsPeriod && !requestParams.start) {
       requestParams.statsPeriod = DEFAULT_STATS_PERIOD;
     }
-    if (this.props.organization.features.includes('issue-percent-display')) {
-      requestParams.expand = 'sessions';
-    }
 
     this._lastStatsRequest = this.props.api.request(this.getGroupStatsEndpoint(), {
       method: 'GET',
@@ -447,15 +402,7 @@ class IssueListOverview extends React.Component<Props, State> {
         if (!data) {
           return;
         }
-
         GroupActions.populateStats(groups, data);
-        const hasSessions =
-          data.filter(groupStats => !groupStats.sessionCount).length === 0;
-        if (hasSessions !== this.state.hasSessions) {
-          this.setState({
-            hasSessions,
-          });
-        }
       },
       error: err => {
         this.setState({
@@ -475,7 +422,7 @@ class IssueListOverview extends React.Component<Props, State> {
     });
   };
 
-  fetchCounts = async (currentQueryCount: number, fetchAllCounts: boolean) => {
+  fetchCounts = (currentQueryCount: number, fetchAllCounts: boolean) => {
     const {organization} = this.props;
     const {queryCounts: _queryCounts} = this.state;
     let queryCounts: QueryCounts = {..._queryCounts};
@@ -485,6 +432,25 @@ class IssueListOverview extends React.Component<Props, State> {
     const currentTabQuery = tabQueriesWithCounts.includes(endpointParams.query as Query)
       ? endpointParams.query
       : null;
+
+    // Update the count based on the exact number of issues, these shown as is
+    if (currentTabQuery) {
+      queryCounts[currentTabQuery] = {
+        count: currentQueryCount,
+        hasMore: false,
+      };
+      const tab = getTabs(organization).find(
+        ([tabQuery]) => currentTabQuery === tabQuery
+      )?.[1];
+      if (tab && !endpointParams.cursor) {
+        trackAdvancedAnalyticsEvent('issues_tab.viewed', {
+          organization,
+          tab: tab.analyticsName,
+          num_issues: queryCounts[currentTabQuery].count,
+        });
+      }
+    }
+    this.setState({queryCounts});
 
     // If all tabs' counts are fetched, skip and only set
     if (
@@ -502,63 +468,79 @@ class IssueListOverview extends React.Component<Props, State> {
         requestParams.statsPeriod = DEFAULT_STATS_PERIOD;
       }
 
-      try {
-        const response = await this.props.api.requestPromise(
-          this.getGroupCountsEndpoint(),
-          {
-            method: 'GET',
-            data: qs.stringify(requestParams),
-          }
-        );
+      this._lastFetchCountsRequest = this.props.api.request(
+        this.getGroupCountsEndpoint(),
+        {
+          method: 'GET',
+          data: qs.stringify(requestParams),
 
-        // Counts coming from the counts endpoint is limited to 100, for >= 100 we display 99+
-        queryCounts = {
-          ...queryCounts,
-          ...mapValues(response, (count: number) => ({
-            count,
-            hasMore: count > TAB_MAX_COUNT,
-          })),
-        };
-      } catch (e) {
-        this.setState({
-          error: parseApiError(e),
-        });
-        return;
-      }
+          success: data => {
+            if (!data) {
+              return;
+            }
+            // Counts coming from the counts endpoint is limited to 100, for >= 100 we display 99+
+            queryCounts = {
+              ...queryCounts,
+              ...mapValues(data, (count: number) => ({
+                count,
+                hasMore: count > TAB_MAX_COUNT,
+              })),
+            };
+          },
+          error: err => {
+            this.setState({
+              error: parseApiError(err),
+            });
+          },
+          complete: () => {
+            this._lastFetchCountsRequest = null;
+
+            this.setState({queryCounts});
+          },
+        }
+      );
     }
-
-    // Update the count based on the exact number of issues, these shown as is
-    if (currentTabQuery) {
-      queryCounts[currentTabQuery] = {
-        count: currentQueryCount,
-        hasMore: false,
-      };
-
-      const tab = getTabs(organization).find(
-        ([tabQuery]) => currentTabQuery === tabQuery
-      )?.[1];
-      if (tab && !endpointParams.cursor) {
-        trackAnalyticsEvent({
-          eventKey: 'issues_tab.viewed',
-          eventName: 'Viewed Issues Tab',
-          organization_id: organization.id,
-          tab: tab.analyticsName,
-          num_issues: queryCounts[currentTabQuery].count,
-        });
-      }
-    }
-
-    this.setState({queryCounts});
   };
 
   fetchData = (fetchAllCounts = false) => {
-    GroupStore.loadInitialData([]);
-    this._streamManager.reset();
+    const {organization} = this.props;
+    const query = this.getQuery();
+    const hasIssueListRemovalAction = organization.features.includes(
+      'issue-list-removal-action'
+    );
+
+    // TODO(Kelly): update once issue-list-removal-action feature is stable
+    if (hasIssueListRemovalAction && !this.state.realtimeActive) {
+      if (!this.state.actionTaken) {
+        GroupStore.loadInitialData([]);
+        this._streamManager.reset();
+
+        this.setState({
+          issuesLoading: true,
+          queryCount: 0,
+          itemsRemoved: 0,
+          error: null,
+        });
+      }
+    } else {
+      if (!this.state.reviewedIds.length || !isForReviewQuery(query)) {
+        GroupStore.loadInitialData([]);
+        this._streamManager.reset();
+
+        this.setState({
+          issuesLoading: true,
+          queryCount: 0,
+          itemsRemoved: 0,
+          reviewedIds: [],
+          error: null,
+        });
+      }
+    }
+
     const transaction = getCurrentSentryReactTransaction();
     transaction?.setTag('query.sort', this.getSort());
 
     this.setState({
-      issuesLoading: true,
       queryCount: 0,
       itemsRemoved: 0,
       error: null,
@@ -588,6 +570,9 @@ class IssueListOverview extends React.Component<Props, State> {
     }
     if (this._lastStatsRequest) {
       this._lastStatsRequest.cancel();
+    }
+    if (this._lastFetchCountsRequest) {
+      this._lastFetchCountsRequest.cancel();
     }
 
     this._poller.disable();
@@ -620,6 +605,14 @@ class IssueListOverview extends React.Component<Props, State> {
         }
 
         this._streamManager.push(data);
+
+        // TODO(Kelly): update once issue-list-removal-action feature is stable
+        if (!hasIssueListRemovalAction) {
+          if (isForReviewQuery(query)) {
+            GroupStore.remove(this.state.reviewedIds);
+          }
+        }
+
         this.fetchStats(data.map((group: BaseGroup) => group.id));
 
         const hits = resp.getResponseHeader('X-Hits');
@@ -630,7 +623,14 @@ class IssueListOverview extends React.Component<Props, State> {
           typeof maxHits !== 'undefined' && maxHits ? parseInt(maxHits, 10) || 0 : 0;
         const pageLinks = resp.getResponseHeader('Link');
 
-        this.fetchCounts(queryCount, fetchAllCounts);
+        // TODO(Kelly): update once issue-list-removal-action feature is stable
+        if (hasIssueListRemovalAction && !this.state.realtimeActive) {
+          this.fetchCounts(queryCount, fetchAllCounts);
+        } else {
+          if (!this.state.forReview) {
+            this.fetchCounts(queryCount, fetchAllCounts);
+          }
+        }
 
         this.setState({
           error: null,
@@ -641,10 +641,8 @@ class IssueListOverview extends React.Component<Props, State> {
         });
       },
       error: err => {
-        trackAnalyticsEvent({
-          eventKey: 'issue_search.failed',
-          eventName: 'Issue Search: Failed',
-          organization_id: this.props.organization.id,
+        trackAdvancedAnalyticsEvent('issue_search.failed', {
+          organization: this.props.organization,
           search_type: 'issues',
           search_source: 'main_search',
           error: parseApiError(err),
@@ -659,6 +657,13 @@ class IssueListOverview extends React.Component<Props, State> {
         this._lastRequest = null;
 
         this.resumePolling();
+
+        // TODO(Kelly): update once issue-list-removal-action feature is stable
+        if (hasIssueListRemovalAction && !this.state.realtimeActive) {
+          this.setState({actionTaken: false, actionTakenIds: []});
+        } else {
+          this.setState({forReview: false});
+        }
       },
     });
   };
@@ -703,8 +708,12 @@ class IssueListOverview extends React.Component<Props, State> {
   };
 
   onSelectStatsPeriod = (period: string) => {
+    const {location} = this.props;
     if (period !== this.getGroupStatsPeriod()) {
-      this.transitionTo({groupStatsPeriod: period});
+      const cursor = location.query.cursor;
+      const queryPageInt = parseInt(location.query.page, 10);
+      const page = isNaN(queryPageInt) || !location.query.cursor ? 0 : queryPageInt;
+      this.transitionTo({cursor, page, groupStatsPeriod: period});
     }
   };
 
@@ -717,6 +726,62 @@ class IssueListOverview extends React.Component<Props, State> {
   listener = GroupStore.listen(() => this.onGroupChange(), undefined);
 
   onGroupChange() {
+    const {organization} = this.props;
+    const {actionTakenIds} = this.state;
+    const query = this.getQuery();
+    const hasIssueListRemovalAction = organization.features.includes(
+      'issue-list-removal-action'
+    );
+
+    // TODO(Kelly): update once issue-list-removal-action feature is stable
+    if (
+      hasIssueListRemovalAction &&
+      !this.state.realtimeActive &&
+      actionTakenIds.length > 0
+    ) {
+      const filteredItems = this._streamManager.getAllItems().filter(item => {
+        return actionTakenIds.indexOf(item.id) !== -1;
+      });
+
+      const resolvedIds = filteredItems
+        .filter(item => item.status === 'resolved')
+        .map(id => id.id);
+      const ignoredIds = filteredItems
+        .filter(item => item.status === 'ignored')
+        .map(i => i.id);
+      // need to include resolve and ignored statuses because marking as resolved/ignored also
+      // counts as reviewed
+      const reviewedIds = filteredItems
+        .filter(
+          item => !item.inbox && item.status !== 'resolved' && item.status !== 'ignored'
+        )
+        .map(i => i.id);
+      // Remove Ignored and Resolved group ids from the issue stream if on the All Unresolved,
+      // For Review, or Ignored tab. Still include on the saved/custom search tab.
+      if (
+        resolvedIds.length > 0 &&
+        (query.includes('is:unresolved') ||
+          query.includes('is:ignored') ||
+          isForReviewQuery(query))
+      ) {
+        this.onIssueAction(resolvedIds, t('Resolved'));
+      }
+      if (
+        ignoredIds.length > 0 &&
+        (query.includes('is:unresolved') || isForReviewQuery(query))
+      ) {
+        this.onIssueAction(ignoredIds, t('Ignored'));
+      }
+      // Remove issues that are marked as Reviewed from the For Review tab, but still include the
+      // issues if on the All Unresolved tab or saved/custom searches.
+      if (
+        reviewedIds.length > 0 &&
+        (isForReviewQuery(query) || query.includes('is:ignored'))
+      ) {
+        this.onIssueAction(reviewedIds, t('Reviewed'));
+      }
+    }
+
     const groupIds = this._streamManager.getAllItems().map(item => item.id) ?? [];
     if (!isEqual(groupIds, this.state.groupIds)) {
       this.setState({groupIds});
@@ -724,8 +789,8 @@ class IssueListOverview extends React.Component<Props, State> {
   }
 
   onIssueListSidebarSearch = (query: string) => {
-    analytics('search.searched', {
-      org_id: this.props.organization.id,
+    trackAdvancedAnalyticsEvent('search.searched', {
+      organization: this.props.organization,
       query,
       search_type: 'issues',
       search_source: 'search_builder',
@@ -746,10 +811,6 @@ class IssueListOverview extends React.Component<Props, State> {
 
   onSortChange = (sort: string) => {
     this.transitionTo({sort});
-  };
-
-  onDisplayChange = (display: string) => {
-    this.transitionTo({display});
   };
 
   onCursorChange: CursorHandler = (nextCursor, _path, _query, delta) => {
@@ -773,10 +834,9 @@ class IssueListOverview extends React.Component<Props, State> {
     const {organization} = this.props;
     this.setState({
       isSidebarVisible: !this.state.isSidebarVisible,
-      renderSidebar: true,
     });
-    analytics('issue.search_sidebar_clicked', {
-      org_id: parseInt(organization.id, 10),
+    trackAdvancedAnalyticsEvent('issue.search_sidebar_clicked', {
+      organization,
     });
   };
 
@@ -885,7 +945,6 @@ class IssueListOverview extends React.Component<Props, State> {
           displayReprocessingLayout={displayReprocessingLayout}
           useFilteredStats
           showInboxTime={showInboxTime}
-          display={this.getDisplay()}
         />
       );
     });
@@ -893,9 +952,9 @@ class IssueListOverview extends React.Component<Props, State> {
 
   renderLoading(): React.ReactNode {
     return (
-      <StyledPageContent>
+      <PageContent>
         <LoadingIndicator />
-      </StyledPageContent>
+      </PageContent>
     );
   }
 
@@ -938,14 +997,11 @@ class IssueListOverview extends React.Component<Props, State> {
   };
 
   onSavedSearchSelect = (savedSearch: SavedSearch) => {
-    trackAnalyticsEvent({
-      eventKey: 'organization_saved_search.selected',
-      eventName: 'Organization Saved Search: Selected saved search',
-      organization_id: this.props.organization.id,
+    trackAdvancedAnalyticsEvent('organization_saved_search.selected', {
+      organization: this.props.organization,
       search_type: 'issues',
       id: savedSearch.id ? parseInt(savedSearch.id, 10) : -1,
     });
-
     this.setState({issuesLoading: true}, () => this.transitionTo(undefined, savedSearch));
   };
 
@@ -963,13 +1019,24 @@ class IssueListOverview extends React.Component<Props, State> {
   };
 
   onDelete = () => {
+    this.setState({actionTaken: true});
     this.fetchData(true);
   };
 
   onMarkReviewed = (itemIds: string[]) => {
+    const {organization} = this.props;
     const query = this.getQuery();
+    const hasIssueListRemovalAction = organization.features.includes(
+      'issue-list-removal-action'
+    );
 
     if (!isForReviewQuery(query)) {
+      if (itemIds.length > 1) {
+        addMessage(t(`Reviewed ${itemIds.length} Issues`), 'success', {duration: 4000});
+      } else {
+        const shortId = itemIds.map(item => GroupStore.get(item)?.shortId).toString();
+        addMessage(t(`Reviewed ${shortId}`), 'success', {duration: 4000});
+      }
       return;
     }
 
@@ -978,6 +1045,13 @@ class IssueListOverview extends React.Component<Props, State> {
     if (itemIds.length && currentQueryCount) {
       const inInboxCount = itemIds.filter(id => GroupStore.get(id)?.inbox).length;
       currentQueryCount.count -= inInboxCount;
+      // TODO(Kelly): update once issue-list-removal-action feature is stable
+      if (!hasIssueListRemovalAction) {
+        this.setState({
+          reviewedIds: itemIds,
+          forReview: true,
+        });
+      }
       this.setState({
         queryCounts: {
           ...queryCounts,
@@ -986,6 +1060,27 @@ class IssueListOverview extends React.Component<Props, State> {
         itemsRemoved: itemsRemoved + inInboxCount,
       });
     }
+  };
+
+  onActionTaken = (itemIds: string[]) => {
+    this.setState({
+      actionTakenIds: itemIds,
+    });
+  };
+
+  onIssueAction = (itemIds: string[], actionType: string) => {
+    if (itemIds.length > 1) {
+      addMessage(t(`${actionType} ${itemIds.length} Issues`), 'success', {
+        duration: 4000,
+      });
+    } else {
+      const shortId = itemIds.map(item => GroupStore.get(item)?.shortId).toString();
+      addMessage(t(`${actionType} ${shortId}`), 'success', {duration: 4000});
+    }
+
+    GroupStore.remove(itemIds);
+    this.setState({actionTaken: true});
+    this.fetchData(true);
   };
 
   tagValueLoader = (key: string, search: string) => {
@@ -1009,7 +1104,6 @@ class IssueListOverview extends React.Component<Props, State> {
     }
 
     const {
-      renderSidebar,
       isSidebarVisible,
       tagsLoading,
       pageLinks,
@@ -1019,7 +1113,6 @@ class IssueListOverview extends React.Component<Props, State> {
       groupIds,
       queryMaxCount,
       itemsRemoved,
-      hasSessions,
     } = this.state;
     const {organization, savedSearch, savedSearches, tags, selection, location, router} =
       this.props;
@@ -1054,28 +1147,6 @@ class IssueListOverview extends React.Component<Props, State> {
       ),
     });
 
-    // TODO(workflow): When organization:semver flag is removed add semver tags to tagStore
-    if (organization.features.includes('semver') && !tags['release.version']) {
-      tags['release.version'] = {
-        key: 'release.version',
-        name: 'release.version',
-      };
-      tags['release.build'] = {
-        key: 'release.build',
-        name: 'release.build',
-      };
-      tags['release.package'] = {
-        key: 'release.package',
-        name: 'release.package',
-      };
-      tags['release.stage'] = {
-        key: 'release.stage',
-        name: 'release.stage',
-        predefined: true,
-        values: RELEASE_ADOPTION_STAGES,
-      };
-    }
-
     const projectIds = selection?.projects?.map(p => p.toString());
 
     const showReprocessingTab = this.displayReprocessingTab();
@@ -1084,136 +1155,109 @@ class IssueListOverview extends React.Component<Props, State> {
       query
     );
 
+    const layoutProps = {
+      fullWidth: !isSidebarVisible,
+    };
+
     return (
       <React.Fragment>
-        <IssueListHeader
-          organization={organization}
-          query={query}
-          sort={this.getSort()}
-          queryCount={queryCount}
-          queryCounts={queryCounts}
-          realtimeActive={realtimeActive}
-          onRealtimeChange={this.onRealtimeChange}
-          router={router}
-          savedSearchList={savedSearches}
-          onSavedSearchSelect={this.onSavedSearchSelect}
-          onSavedSearchDelete={this.onSavedSearchDelete}
-          displayReprocessingTab={showReprocessingTab}
-        />
-
         <StyledPageContent>
-          <StreamContent showSidebar={isSidebarVisible}>
-            <IssueListFilters
-              organization={organization}
-              query={query}
-              savedSearch={savedSearch}
-              sort={this.getSort()}
-              display={this.getDisplay()}
-              onDisplayChange={this.onDisplayChange}
-              onSortChange={this.onSortChange}
-              onSearch={this.onSearch}
-              onSidebarToggle={this.onSidebarToggle}
-              isSearchDisabled={isSidebarVisible}
-              tagValueLoader={this.tagValueLoader}
-              tags={tags}
-              hasSessions={hasSessions}
-              selectedProjects={selection.projects}
-            />
-
-            <Panel>
-              <IssueListActions
+          <IssueListHeader
+            organization={organization}
+            query={query}
+            sort={this.getSort()}
+            queryCount={queryCount}
+            queryCounts={queryCounts}
+            realtimeActive={realtimeActive}
+            onRealtimeChange={this.onRealtimeChange}
+            router={router}
+            savedSearchList={savedSearches}
+            onSavedSearchSelect={this.onSavedSearchSelect}
+            onSavedSearchDelete={this.onSavedSearchDelete}
+            displayReprocessingTab={showReprocessingTab}
+            selectedProjectIds={selection.projects}
+          />
+          <Layout.Body {...layoutProps}>
+            <Layout.Main {...layoutProps}>
+              <IssueListFilters
                 organization={organization}
-                selection={selection}
                 query={query}
-                queryCount={modifiedQueryCount}
-                displayCount={displayCount}
-                onSelectStatsPeriod={this.onSelectStatsPeriod}
-                onMarkReviewed={this.onMarkReviewed}
-                onDelete={this.onDelete}
-                statsPeriod={this.getGroupStatsPeriod()}
-                groupIds={groupIds}
-                allResultsVisible={this.allResultsVisible()}
-                displayReprocessingActions={displayReprocessingActions}
-              />
-              <PanelBody>
-                <ProcessingIssueList
-                  organization={organization}
-                  projectIds={projectIds}
-                  showProject
-                />
-                {this.renderStreamBody()}
-              </PanelBody>
-            </Panel>
-            <StyledPagination
-              caption={tct('Showing [displayCount] issues', {
-                displayCount,
-              })}
-              pageLinks={pageLinks}
-              onCursor={this.onCursorChange}
-            />
-          </StreamContent>
-
-          <SidebarContainer showSidebar={isSidebarVisible}>
-            {/* Avoid rendering sidebar until first accessed */}
-            {renderSidebar && (
-              <IssueListSidebar
-                loading={tagsLoading}
-                tags={tags}
-                query={query}
-                onQueryChange={this.onIssueListSidebarSearch}
+                queryCount={queryCount}
+                savedSearch={savedSearch}
+                sort={this.getSort()}
+                onSortChange={this.onSortChange}
+                onSearch={this.onSearch}
+                onSidebarToggle={this.onSidebarToggle}
+                isSearchDisabled={isSidebarVisible}
                 tagValueLoader={this.tagValueLoader}
+                tags={tags}
               />
-            )}
-          </SidebarContainer>
-        </StyledPageContent>
 
-        {query === Query.FOR_REVIEW && <GuideAnchor target="is_inbox_tab" />}
+              <Panel>
+                <IssueListActions
+                  organization={organization}
+                  selection={selection}
+                  query={query}
+                  queryCount={modifiedQueryCount}
+                  displayCount={displayCount}
+                  onSelectStatsPeriod={this.onSelectStatsPeriod}
+                  onMarkReviewed={this.onMarkReviewed}
+                  onActionTaken={this.onActionTaken}
+                  onDelete={this.onDelete}
+                  statsPeriod={this.getGroupStatsPeriod()}
+                  groupIds={groupIds}
+                  allResultsVisible={this.allResultsVisible()}
+                  displayReprocessingActions={displayReprocessingActions}
+                />
+                <PanelBody>
+                  <ProcessingIssueList
+                    organization={organization}
+                    projectIds={projectIds}
+                    showProject
+                  />
+                  <VisuallyCompleteWithData
+                    hasData={this.state.groupIds.length > 0}
+                    id="IssueList-Body"
+                  >
+                    {this.renderStreamBody()}
+                  </VisuallyCompleteWithData>
+                </PanelBody>
+              </Panel>
+              <StyledPagination
+                caption={tct('Showing [displayCount] issues', {
+                  displayCount,
+                })}
+                pageLinks={pageLinks}
+                onCursor={this.onCursorChange}
+              />
+            </Layout.Main>
+
+            {/* Avoid rendering sidebar until first accessed */}
+            {isSidebarVisible && (
+              <Layout.Side>
+                <IssueListSidebar
+                  loading={tagsLoading}
+                  tags={tags}
+                  query={query}
+                  onQueryChange={this.onIssueListSidebarSearch}
+                  tagValueLoader={this.tagValueLoader}
+                />
+              </Layout.Side>
+            )}
+          </Layout.Body>
+        </StyledPageContent>
       </React.Fragment>
     );
   }
 }
 
 export default withApi(
-  withGlobalSelection(
+  withPageFilters(
     withSavedSearches(withOrganization(withIssueTags(withProfiler(IssueListOverview))))
   )
 );
 
 export {IssueListOverview};
-
-// TODO(workflow): Replace PageContent with thirds body
-const StyledPageContent = styled(PageContent)`
-  display: flex;
-  flex-direction: row;
-  background-color: ${p => p.theme.background};
-
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    /* Matches thirds layout */
-    padding: ${space(2)} ${space(2)} 0 ${space(2)};
-  }
-`;
-
-const StreamContent = styled('div')<{showSidebar: boolean}>`
-  width: ${p => (p.showSidebar ? '75%' : '100%')};
-  transition: width 0.2s ease-in-out;
-
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    width: 100%;
-  }
-`;
-
-const SidebarContainer = styled('div')<{showSidebar: boolean}>`
-  display: ${p => (p.showSidebar ? 'block' : 'none')};
-  overflow: ${p => (p.showSidebar ? 'visible' : 'hidden')};
-  height: ${p => (p.showSidebar ? 'auto' : 0)};
-  width: ${p => (p.showSidebar ? '25%' : 0)};
-  transition: width 0.2s ease-in-out;
-  margin-left: 20px;
-
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    display: none;
-  }
-`;
 
 const StyledPagination = styled(Pagination)`
   margin-top: 0;
@@ -1221,4 +1265,8 @@ const StyledPagination = styled(Pagination)`
 
 const StyledQueryCount = styled(QueryCount)`
   margin-left: 0;
+`;
+
+const StyledPageContent = styled(PageContent)`
+  padding: 0;
 `;

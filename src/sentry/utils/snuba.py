@@ -1,6 +1,7 @@
 import functools
 import logging
 import os
+import random
 import re
 import time
 from collections import OrderedDict, namedtuple
@@ -23,6 +24,7 @@ from sentry_sdk import Hub
 from snuba_sdk.legacy import json_to_snql
 from snuba_sdk.query import Query
 
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
     Environment,
     Group,
@@ -34,12 +36,12 @@ from sentry.models import (
     ReleaseProject,
 )
 from sentry.net.http import connection_from_url
+from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
 from sentry.utils import json, metrics
 from sentry.utils.compat import map
 from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
-from sentry.utils.snql import should_use_snql
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +88,10 @@ TRANSACTIONS_SNUBA_MAP = {
     if col.value.transaction_name is not None
 }
 
+SESSIONS_FIELD_LIST = ["release", "sessions", "sessions_crashed", "users", "users_crashed"]
+
+SESSIONS_SNUBA_MAP = {column: column for column in SESSIONS_FIELD_LIST}
+
 # This maps the public column aliases to the discover dataset column names.
 # Longer term we would like to not expose the transactions dataset directly
 # to end users and instead have all ad-hoc queries go through the discover
@@ -96,20 +102,31 @@ DISCOVER_COLUMN_MAP = {
     if col.value.discover_name is not None
 }
 
+# Not using the Columns enum here, because there are far fewer columns in the metrics tables
+METRICS_COLUMN_MAP = {
+    "timestamp": "timestamp",
+    "project_id": "project_id",
+    "project.id": "project_id",
+    "organization_id": "org_id",
+}
+
 
 DATASETS = {
     Dataset.Events: SENTRY_SNUBA_MAP,
     Dataset.Transactions: TRANSACTIONS_SNUBA_MAP,
     Dataset.Discover: DISCOVER_COLUMN_MAP,
+    Dataset.Sessions: SESSIONS_SNUBA_MAP,
+    Dataset.Metrics: METRICS_COLUMN_MAP,
 }
 
 # Store the internal field names to save work later on.
-# Add `group_id` to the events dataset list as we don't want to publically
+# Add `group_id` to the events dataset list as we don't want to publicly
 # expose that field, but it is used by eventstore and other internals.
 DATASET_FIELDS = {
     Dataset.Events: list(SENTRY_SNUBA_MAP.values()),
     Dataset.Transactions: list(TRANSACTIONS_SNUBA_MAP.values()),
     Dataset.Discover: list(DISCOVER_COLUMN_MAP.values()),
+    Dataset.Sessions: SESSIONS_FIELD_LIST,
 }
 
 SNUBA_OR = "or"
@@ -482,6 +499,9 @@ def get_query_params_to_update_for_organizations(query_params):
 
 
 def _prepare_query_params(query_params):
+    kwargs = deepcopy(query_params.kwargs)
+    query_params_conditions = deepcopy(query_params.conditions)
+
     # convert to naive UTC datetimes, as Snuba only deals in UTC
     # and this avoids offset-naive and offset-aware issues
     start = naiveify_datetime(query_params.start)
@@ -510,14 +530,14 @@ def _prepare_query_params(query_params):
             "No strategy found for getting an organization for the given dataset."
         )
 
-    query_params.kwargs.update(params_to_update)
+    kwargs.update(params_to_update)
 
     for col, keys in forward(deepcopy(query_params.filter_keys)).items():
         if keys:
             if len(keys) == 1 and None in keys:
-                query_params.conditions.append((col, "IS NULL", None))
+                query_params_conditions.append((col, "IS NULL", None))
             else:
-                query_params.conditions.append((col, "IN", keys))
+                query_params_conditions.append((col, "IN", keys))
 
     expired, start = outside_retention_with_modified_start(
         start, end, Organization(organization_id)
@@ -541,18 +561,18 @@ def _prepare_query_params(query_params):
     if start > end:
         raise QueryOutsideGroupActivityError
 
-    query_params.kwargs.update(
+    kwargs.update(
         {
             "dataset": query_params.dataset.value,
             "from_date": start.isoformat(),
             "to_date": end.isoformat(),
             "groupby": query_params.groupby,
-            "conditions": query_params.conditions,
+            "conditions": query_params_conditions,
             "aggregations": query_params.aggregations,
             "granularity": query_params.rollup,  # TODO name these things the same
         }
     )
-    kwargs = {k: v for k, v in query_params.kwargs.items() if v is not None}
+    kwargs = {k: v for k, v in kwargs.items() if v is not None}
 
     kwargs.update(OVERRIDE_OPTIONS)
     return kwargs, forward, reverse
@@ -601,7 +621,9 @@ class SnubaQueryParams:
     ):
         # TODO: instead of having events be the default, make dataset required.
         self.dataset = dataset or Dataset.Events
-        self.start = start or datetime.utcfromtimestamp(0)  # will be clamped to project retention
+        self.start = start or datetime(
+            2008, 5, 8
+        )  # Date of sentry's first commit. Will be clamped to project retention
         # Snuba has end exclusive but our UI wants it generally to be inclusive.
         # This shows up in unittests: https://github.com/getsentry/sentry/pull/15939
         # We generally however require that the API user is aware of the exclusive
@@ -648,14 +670,7 @@ def raw_query(
         **kwargs,
     )
 
-    use_snql = should_use_snql(referrer)
-
-    return bulk_raw_query(
-        [snuba_params],
-        referrer=referrer,
-        use_cache=use_cache,
-        use_snql=use_snql,
-    )[0]
+    return bulk_raw_query([snuba_params], referrer=referrer, use_cache=use_cache)[0]
 
 
 SnubaQuery = Union[Query, MutableMapping[str, Any]]
@@ -673,8 +688,21 @@ def raw_snql_query(
     # other functions do here. It does not add any automatic conditions, format
     # results, nothing. Use at your own risk.
     metrics.incr("snql.sdk.api", tags={"referrer": referrer or "unknown"})
-    params: SnubaQuery = (query, lambda x: x, lambda x: x)
+    params: SnubaQueryBody = (query, lambda x: x, lambda x: x)
     return _apply_cache_and_build_results([params], referrer=referrer, use_cache=use_cache)[0]
+
+
+def bulk_snql_query(
+    queries: List[Query],
+    referrer: Optional[str] = None,
+    use_cache: bool = False,
+) -> Mapping[str, Any]:
+    # XXX (evanh): This function does none of the extra processing that the
+    # other functions do here. It does not add any automatic conditions, format
+    # results, nothing. Use at your own risk.
+    metrics.incr("snql.sdk.api", tags={"referrer": referrer or "unknown"})
+    params: SnubaQuery = [(query, lambda x: x, lambda x: x) for query in queries]
+    return _apply_cache_and_build_results(params, referrer=referrer, use_cache=use_cache)
 
 
 def get_cache_key(query: SnubaQuery) -> str:
@@ -691,19 +719,15 @@ def bulk_raw_query(
     snuba_param_list: Sequence[SnubaQueryParams],
     referrer: Optional[str] = None,
     use_cache: Optional[bool] = False,
-    use_snql: Optional[bool] = None,
 ) -> ResultSet:
     params = map(_prepare_query_params, snuba_param_list)
-    return _apply_cache_and_build_results(
-        params, referrer=referrer, use_cache=use_cache, use_snql=use_snql
-    )
+    return _apply_cache_and_build_results(params, referrer=referrer, use_cache=use_cache)
 
 
 def _apply_cache_and_build_results(
     snuba_param_list: Sequence[SnubaQueryBody],
     referrer: Optional[str] = None,
     use_cache: Optional[bool] = False,
-    use_snql: Optional[bool] = None,
 ) -> ResultSet:
     headers = {}
     if referrer:
@@ -715,7 +739,7 @@ def _apply_cache_and_build_results(
     results = []
 
     if use_cache:
-        cache_keys = [get_cache_key(query_params) for _, query_params in query_param_list]
+        cache_keys = [get_cache_key(query_params[0]) for _, query_params in query_param_list]
         cache_data = cache.get_many(cache_keys)
         to_query: List[Tuple[int, SnubaQueryBody, Optional[str]]] = []
         for (query_pos, query_params), cache_key in zip(query_param_list, cache_keys):
@@ -731,7 +755,7 @@ def _apply_cache_and_build_results(
         to_query = [(query_pos, query_params, None) for query_pos, query_params in query_param_list]
 
     if to_query:
-        query_results = _bulk_snuba_query(map(itemgetter(1), to_query), headers, use_snql)
+        query_results = _bulk_snuba_query(map(itemgetter(1), to_query), headers)
         for result, (query_pos, _, cache_key) in zip(query_results, to_query):
             if cache_key:
                 cache.set(cache_key, json.dumps(result), settings.SENTRY_SNUBA_CACHE_TTL_SECONDS)
@@ -746,32 +770,45 @@ def _apply_cache_and_build_results(
 def _bulk_snuba_query(
     snuba_param_list: Sequence[SnubaQueryBody],
     headers: Mapping[str, str],
-    use_snql: Optional[bool] = None,
 ) -> ResultSet:
+    query_referrer = headers.get("referer", "<unknown>")
+
     with sentry_sdk.start_span(
-        op="start_snuba_query",
-        description=f"running {len(snuba_param_list)} snuba queries",
+        op="snuba_query",
+        description=query_referrer,
     ) as span:
-        query_referrer = headers.get("referer", "<unknown>")
+        span.set_tag("snuba.num_queries", len(snuba_param_list))
         # We set both span + sdk level, this is cause 1 txn/error might query snuba more than once
         # but we still want to know a general sense of how referrers impact performance
         span.set_tag("query.referrer", query_referrer)
         sentry_sdk.set_tag("query.referrer", query_referrer)
-        # This is confusing because this function is overloaded right now with three cases:
-        # 1. A legacy JSON query (_snuba_query)
-        # 2. A SnQL query of a legacy query (_legacy_snql_query)
-        # 3. A direct SnQL query using the new SDK (_snql_query)
-        query_fn, query_type = _snuba_query, "legacy"
+        # This is confusing because this function is overloaded right now with two cases:
+        # 1. A SnQL query of a legacy query (_legacy_snql_query)
+        # 2. A direct SnQL query using the new SDK (_snql_query)
+        query_fn = _legacy_snql_query
         if isinstance(snuba_param_list[0][0], Query):
-            query_fn, query_type = _snql_query, "snql"
-        elif use_snql:
-            query_fn, query_type = _legacy_snql_query, "translated"
+            query_fn = _snql_query
 
-        metrics.incr(
-            "snuba.snql.query.type",
-            tags={"type": query_type, "referrer": query_referrer},
-        )
-        span.set_tag("snuba.query.type", query_type)
+        with sentry_sdk.configure_scope() as scope:
+            if scope.transaction:
+                # XXX(evanh): There seems to be a bug where the parent API is attributed to
+                # the wrong referrer. For one example of this, log a warning so I can capture
+                # the stack trace and try to figure out if this is a bug or not.
+                parent_api = scope.transaction.name
+                referrer = headers.get("referer", "<unknown>")
+                if (
+                    referrer == "tsdb-modelid:500"
+                    and parent_api
+                    != "/api/0/projects/{organization_slug}/{project_slug}/keys/{key_id}/stats/"
+                    and random.random() < 0.1
+                ):
+                    span.set_tag("parent_api_mismatch", f"{referrer}||{parent_api}")
+                    sentry_sdk.set_tag("parent_api_mismatch", f"{referrer}||{parent_api}")
+                    logger.warning(
+                        "unthreaded referrer attributed to incorrect parent api",
+                        stack_info=True,
+                        extra={"parent_api": parent_api},
+                    )
 
         if len(snuba_param_list) > 1:
             query_results = list(
@@ -829,30 +866,6 @@ def _bulk_snuba_query(
 RawResult = Tuple[urllib3.response.HTTPResponse, Callable[[Any], Any], Callable[[Any], Any]]
 
 
-def _snuba_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> RawResult:
-    query_data, thread_hub, headers = params
-    query_params, forward, reverse = query_data
-    try:
-        with timer("snuba_query"):
-            referrer = headers.get("referer", "<unknown>")
-            if SNUBA_INFO:
-                # We want debug in the body, but not in the logger, so dump the json twice
-                logger.info(f"{referrer}.body: {json.dumps(query_params)}")
-                query_params["debug"] = True
-            body = json.dumps(query_params)
-            with thread_hub.start_span(op="snuba", description=f"query {referrer}") as span:
-                span.set_tag("referrer", referrer)
-                for param_key, param_data in query_params.items():
-                    span.set_data(param_key, param_data)
-                return (
-                    _snuba_pool.urlopen("POST", "/query", body=body, headers=headers),
-                    forward,
-                    reverse,
-                )
-    except urllib3.exceptions.HTTPError as err:
-        raise SnubaError(err)
-
-
 def _snql_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> RawResult:
     # Eventually we can get rid of this wrapper, but for now it's cleaner to unwrap
     # the params here than in the calling function.
@@ -883,16 +896,32 @@ def _legacy_snql_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> Raw
 def _raw_snql_query(
     query: Query, thread_hub: Hub, headers: Mapping[str, str]
 ) -> urllib3.response.HTTPResponse:
-    with timer("snql_query"):
+    # Enter hub such that http spans are properly nested
+    with thread_hub, timer("snql_query"):
         referrer = headers.get("referer", "<unknown>")
         if SNUBA_INFO:
             logger.info(f"{referrer}.body: {query}")
             query = query.set_debug(True)
 
-        body = query.snuba()
-        with thread_hub.start_span(op="snuba_snql", description=f"query {referrer}") as span:
-            span.set_tag("referrer", referrer)
-            span.set_data("snql", str(query))
+        with thread_hub.start_span(op="snuba_snql.validation", description=referrer) as span:
+            span.set_tag("snuba.referrer", referrer)
+            scope = thread_hub.scope
+            if scope.transaction:
+                query = query.set_parent_api(scope.transaction.name)
+
+            metrics.incr(
+                "snuba.parent_api",
+                tags={
+                    "parent_api": query.parent_api.name
+                    if query.parent_api is not None
+                    else "<unknown>",
+                    "referrer": referrer,
+                },
+            )
+            body = query.snuba()
+
+        with thread_hub.start_span(op="snuba_snql.run", description=str(query)) as span:
+            span.set_tag("snuba.referrer", referrer)
             return _snuba_pool.urlopen("POST", f"/{query.dataset}/snql", body=body, headers=headers)
 
 
@@ -974,7 +1003,7 @@ def nest_groups(data, groups, aggregate_cols):
 
 
 def resolve_column(dataset):
-    def _resolve_column(col):
+    def _resolve_column(col: str, organization_id: Optional[int] = None) -> str:
         if col is None:
             return col
         if isinstance(col, int) or isinstance(col, float):
@@ -986,6 +1015,13 @@ def resolve_column(dataset):
         if dataset == Dataset.Discover:
             if isinstance(col, (list, tuple)) or col == "project_id":
                 return col
+        elif dataset == Dataset.Metrics:
+            if col in DATASETS[dataset]:
+                return DATASETS[dataset][col]
+            tag_id = indexer.resolve(organization_id, col)
+            if tag_id is None:
+                raise InvalidSearchQuery(f"Unknown field: {col}")
+            return f"tags[{tag_id}]"
         else:
             if (
                 col in DATASET_FIELDS[dataset]

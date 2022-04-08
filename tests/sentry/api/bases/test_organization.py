@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest import mock
 
 from django.db.models import F
 from django.test import RequestFactory
@@ -8,13 +9,18 @@ from freezegun import freeze_time
 from rest_framework.exceptions import PermissionDenied
 
 from sentry.api.bases.organization import NoProjects, OrganizationEndpoint, OrganizationPermission
-from sentry.api.exceptions import MemberDisabledOverLimit, ResourceDoesNotExist, TwoFactorRequired
+from sentry.api.exceptions import (
+    MemberDisabledOverLimit,
+    ResourceDoesNotExist,
+    SuperuserRequired,
+    TwoFactorRequired,
+)
 from sentry.api.utils import MAX_STATS_PERIOD
 from sentry.auth.access import NoAccess, from_request
 from sentry.auth.authenticators import TotpInterface
+from sentry.constants import ALL_ACCESS_PROJECTS, ALL_ACCESS_PROJECTS_SLUG
 from sentry.models import ApiKey, Organization, OrganizationMember
 from sentry.testutils import TestCase
-from sentry.utils.compat import mock
 
 
 class MockSuperUser:
@@ -97,6 +103,13 @@ class OrganizationPermissionTest(OrganizationPermissionBase):
 
         with self.assertRaises(TwoFactorRequired):
             self.has_object_perm("GET", self.org, user=user)
+
+    def test_org_requires_2fa_with_superuser_not_active(self):
+        self.org_require_2fa()
+        user = self.create_user(is_superuser=True)
+        self.create_member(user=user, organization=self.org, role="member")
+        with self.assertRaises(SuperuserRequired):
+            assert self.has_object_perm("GET", self.org, user=user)
 
     @mock.patch("sentry.api.utils.get_cached_organization_member")
     def test_member_limit_error(self, mock_get_org_member):
@@ -184,10 +197,10 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
         self.team_3 = self.create_team(organization=self.org)
         self.create_team_membership(user=self.member, team=self.team_2)
         self.project_1 = self.create_project(
-            organization=self.org, teams=[self.team_1, self.team_3]
+            organization=self.org, teams=[self.team_1, self.team_3], slug="foo"
         )
         self.project_2 = self.create_project(
-            organization=self.org, teams=[self.team_2, self.team_3]
+            organization=self.org, teams=[self.team_2, self.team_3], slug="bar"
         )
 
     def run_test(
@@ -297,6 +310,80 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
         # With membership on only one team you get all projects
         self.create_team_membership(user=self.user, team=self.team_1)
         self.run_test([self.project_1, self.project_2], project_ids=[-1])
+
+    @mock.patch("sentry.api.bases.organization.OrganizationEndpoint._get_projects_by_id")
+    @mock.patch(
+        "sentry.api.bases.organization.OrganizationEndpoint.get_requested_project_ids_unchecked"
+    )
+    def test_get_projects_no_slug_fallsback_to_ids(
+        self, mock_get_project_ids_unchecked, mock__get_projects_by_id
+    ):
+        project_slugs = [""]
+        request = self.build_request(projectSlug=project_slugs)
+        mock_project_ids = set()
+        mock_get_project_ids_unchecked.return_value = mock_project_ids
+
+        self.endpoint.get_projects(
+            request,
+            self.org,
+        )
+
+        mock_get_project_ids_unchecked.assert_called_with(request)
+        mock__get_projects_by_id.assert_called_with(
+            mock_project_ids,
+            request,
+            self.org,
+            False,
+            False,
+        )
+
+    @mock.patch("sentry.api.bases.organization.OrganizationEndpoint._get_projects_by_id")
+    @mock.patch(
+        "sentry.api.bases.organization.OrganizationEndpoint.get_requested_project_ids_unchecked"
+    )
+    def test_get_projects_by_slugs_grabs_project_ids(
+        self, mock_get_project_ids_unchecked, mock__get_projects_by_id
+    ):
+        project_slugs = [self.project_1.slug]
+        request = self.build_request(projectSlug=project_slugs)
+
+        self.endpoint.get_projects(
+            request,
+            self.org,
+        )
+
+        assert not mock_get_project_ids_unchecked.called
+        mock__get_projects_by_id.assert_called_with(
+            set({self.project_1.id}),
+            request,
+            self.org,
+            False,
+            False,
+        )
+
+    @mock.patch("sentry.api.bases.organization.OrganizationEndpoint._get_projects_by_id")
+    @mock.patch(
+        "sentry.api.bases.organization.OrganizationEndpoint.get_requested_project_ids_unchecked"
+    )
+    def test_get_projects_by_slugs_all(
+        self, mock_get_project_ids_unchecked, mock__get_projects_by_id
+    ):
+        project_slugs = ALL_ACCESS_PROJECTS_SLUG
+        request = self.build_request(projectSlug=project_slugs)
+
+        self.endpoint.get_projects(
+            request,
+            self.org,
+        )
+
+        assert not mock_get_project_ids_unchecked.called
+        mock__get_projects_by_id.assert_called_with(
+            ALL_ACCESS_PROJECTS,
+            request,
+            self.org,
+            False,
+            False,
+        )
 
 
 class GetEnvironmentsTest(BaseOrganizationEndpointTest):

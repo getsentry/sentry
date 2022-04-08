@@ -1,6 +1,8 @@
 import time
 
 from django.conf import settings
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.loader.browsersdkversion import get_browser_sdk_version
 from sentry.models import Project, ProjectKey
@@ -41,7 +43,7 @@ class JavaScriptSdkLoader(BaseView):
             sdk_url,
         )
 
-    def get(self, request, public_key, minified):
+    def get(self, request: Request, public_key, minified) -> Response:
         """Returns a js file that can be integrated into a website"""
         start_time = time.time()
         key = None

@@ -1,6 +1,6 @@
-import Reflux from 'reflux';
+import {createActions} from 'reflux';
 
-export default Reflux.createActions([
+const SavedSearchActions = createActions([
   'resetSavedSearches',
   'startFetchSavedSearches',
   'fetchSavedSearchesSuccess',
@@ -11,3 +11,5 @@ export default Reflux.createActions([
   'pinSearchSuccess',
   'unpinSearch',
 ]);
+
+export default SavedSearchActions;

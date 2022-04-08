@@ -6,9 +6,9 @@ import {
   EmailField,
   RadioBooleanField,
   TextField,
-} from 'app/components/forms';
-import {t, tct} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
+} from 'sentry/components/forms';
+import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 
 type Section = {
   key: string;
@@ -18,16 +18,17 @@ type Section = {
 type Field = {
   key: string;
   label: React.ReactNode;
+  allowEmpty?: boolean;
+  component?: React.ComponentType<any>;
+  defaultValue?: () => string | false;
+  disabled?: boolean;
+  disabledReason?: string;
   help?: React.ReactNode;
   noLabel?: string;
-  yesLabel?: string;
-  yesFirst?: boolean;
   placeholder?: string;
   required?: boolean;
-  allowEmpty?: boolean;
-  disabledReason?: string;
-  defaultValue?: () => string | false;
-  component?: React.ComponentType<any>;
+  yesFirst?: boolean;
+  yesLabel?: string;
 };
 
 // This are ordered based on their display order visually
@@ -194,11 +195,11 @@ const disabledReasons = {
   smtpDisabled: 'SMTP mail has been disabled, so this option is unavailable',
 };
 
-export function getOption(option: string) {
+export function getOption(option: string): Field {
   return definitionsMap[option];
 }
 
-export function getOptionDefault(option: string) {
+export function getOptionDefault(option: string): string | false | undefined {
   const meta = getOption(option);
   return meta.defaultValue ? meta.defaultValue() : undefined;
 }

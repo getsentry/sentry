@@ -4,6 +4,7 @@ from uuid import uuid4
 import pytest
 
 from sentry.models.eventattachment import EventAttachment
+from sentry.spans.grouping.utils import hash_values
 from sentry.testutils import RelayStoreHelper, TransactionTestCase
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import before_now, iso_format, timestamp_format
@@ -146,7 +147,7 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
                 {
                     "description": "browser span",
                     "op": "browser",
-                    "parent_span_id": "8f5a2b8768cafb4e",
+                    "parent_span_id": "bd429c44b67a3eb4",
                     "span_id": "a99fd04e79e17631",
                     "start_timestamp": timestamp_format(before_now(minutes=1, milliseconds=200)),
                     "timestamp": timestamp_format(before_now(minutes=1)),
@@ -155,7 +156,7 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
                 {
                     "description": "resource span",
                     "op": "resource",
-                    "parent_span_id": "8f5a2b8768cafb4e",
+                    "parent_span_id": "bd429c44b67a3eb4",
                     "span_id": "a71a5e67db5ce938",
                     "start_timestamp": timestamp_format(before_now(minutes=1, milliseconds=200)),
                     "timestamp": timestamp_format(before_now(minutes=1)),
@@ -164,7 +165,7 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
                 {
                     "description": "http span",
                     "op": "http",
-                    "parent_span_id": "8f5a2b8768cafb4e",
+                    "parent_span_id": "a99fd04e79e17631",
                     "span_id": "abe79ad9292b90a9",
                     "start_timestamp": timestamp_format(before_now(minutes=1, milliseconds=200)),
                     "timestamp": timestamp_format(before_now(minutes=1)),
@@ -173,7 +174,7 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
                 {
                     "description": "db span",
                     "op": "db",
-                    "parent_span_id": "8f5a2b8768cafb4e",
+                    "parent_span_id": "abe79ad9292b90a9",
                     "span_id": "9c045ea336297177",
                     "start_timestamp": timestamp_format(before_now(minutes=1, milliseconds=200)),
                     "timestamp": timestamp_format(before_now(minutes=1)),
@@ -182,11 +183,26 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
             ],
         }
 
-        with Feature({"organizations:performance-ops-breakdown": True}):
+        with Feature(
+            {
+                "organizations:performance-ops-breakdown": True,
+                "projects:performance-suspect-spans-ingestion": True,
+            }
+        ):
             event = self.post_and_retrieve_event(event_data)
             raw_event = event.get_raw_data()
 
-            assert raw_event["spans"] == event_data["spans"]
+            exclusive_times = [
+                pytest.approx(50),
+                pytest.approx(0),
+                pytest.approx(200),
+                pytest.approx(0),
+                pytest.approx(200),
+            ]
+            assert raw_event["spans"] == [
+                dict(span, exclusive_time=exclusive_time, hash=hash_values([span["description"]]))
+                for span, exclusive_time in zip(event_data["spans"], exclusive_times)
+            ]
             assert raw_event["breakdowns"] == {
                 "span_ops": {
                     "ops.browser": {"value": pytest.approx(200)},

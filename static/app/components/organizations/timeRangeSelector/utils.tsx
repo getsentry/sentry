@@ -1,7 +1,7 @@
 import moment from 'moment';
 
-import {DEFAULT_RELATIVE_PERIODS} from 'app/constants';
-import {t} from 'app/locale';
+import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
+import {t} from 'sentry/locale';
 
 const DATE_TIME_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
 
@@ -18,7 +18,7 @@ const DATE_TIME_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
 export function parseStatsPeriod(
   statsPeriod: string,
   outputFormat: string | null = DATE_TIME_FORMAT
-): {start: string; end: string} {
+): {end: string; start: string} {
   const statsPeriodRegex = /^(\d+)([smhd]{1})$/;
 
   const result = statsPeriodRegex.exec(statsPeriod);

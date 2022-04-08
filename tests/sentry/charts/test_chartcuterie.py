@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 import responses
 from django.urls.base import reverse
@@ -6,7 +8,6 @@ from sentry.charts import generate_chart, is_enabled
 from sentry.charts.types import ChartType
 from sentry.testutils import TestCase
 from sentry.utils import json
-from sentry.utils.compat.mock import patch
 from sentry.utils.http import absolute_uri
 
 

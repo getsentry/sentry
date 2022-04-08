@@ -1,22 +1,27 @@
-import logging
+from __future__ import annotations
 
-from sentry.models import Integration
-from sentry.plugins import providers
+from typing import Any, Mapping, MutableMapping, Sequence
+
+from sentry.integrations import IntegrationInstallation
+from sentry.models import Integration, Organization, PullRequest, Repository
+from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.utils.json import JSONData
 
 WEBHOOK_EVENTS = ["push", "pull_request"]
 
 
-class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
+class GitHubRepositoryProvider(IntegrationRepositoryProvider):  # type: ignore
     name = "GitHub"
-    logger = logging.getLogger("sentry.integrations.github")
     repo_provider = "github"
 
-    def _validate_repo(self, client, installation, repo):
+    def _validate_repo(
+        self, client: Any, installation: IntegrationInstallation, repo: str
+    ) -> JSONData:
         try:
             repo_data = client.get_repo(repo)
         except Exception as e:
-            installation.raise_error(e)
+            raise installation.raise_error(e)
 
         try:
             # make sure installation has access to this specific repo
@@ -29,18 +34,21 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
 
         return repo_data
 
-    def get_repository_data(self, organization, config):
-        integration = Integration.objects.get(id=config["installation"], organizations=organization)
-        installation = integration.get_installation(organization.id)
+    def get_repository_data(
+        self, organization: Organization, config: MutableMapping[str, Any]
+    ) -> Mapping[str, Any]:
+        installation = self.get_installation(config.get("installation"), organization.id)
         client = installation.get_client()
 
         repo = self._validate_repo(client, installation, config["identifier"])
         config["external_id"] = str(repo["id"])
-        config["integration_id"] = integration.id
+        config["integration_id"] = installation.model.id
 
         return config
 
-    def build_repository_config(self, organization, data):
+    def build_repository_config(
+        self, organization: Organization, data: Mapping[str, Any]
+    ) -> Mapping[str, Any]:
         return {
             "name": data["identifier"],
             "external_id": data["external_id"],
@@ -49,8 +57,10 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
             "integration_id": data["integration_id"],
         }
 
-    def compare_commits(self, repo, start_sha, end_sha):
-        def eval_commits(client):
+    def compare_commits(
+        self, repo: Repository, start_sha: str | None, end_sha: str
+    ) -> Sequence[Mapping[str, Any]]:
+        def eval_commits(client: Any) -> Sequence[Mapping[str, Any]]:
             # use config name because that is kept in sync via webhooks
             name = repo.config["name"]
             if start_sha is None:
@@ -75,12 +85,17 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
                     client.get_token(force_refresh=True)
                     return eval_commits(client)
                 except Exception as e:
-                    installation.raise_error(e)
-            installation.raise_error(e)
+                    raise installation.raise_error(e)
+            raise installation.raise_error(e)
         except Exception as e:
-            installation.raise_error(e)
+            raise installation.raise_error(e)
 
-    def _format_commits(self, client, repo_name, commit_list):
+    def _format_commits(
+        self,
+        client: Any,
+        repo_name: str,
+        commit_list: Sequence[Mapping[str, Any]],
+    ) -> Sequence[Mapping[str, Any]]:
         """Convert GitHub commits into our internal format
 
         For each commit in the list we have to fetch patch data, as the
@@ -103,12 +118,12 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
             for c in commit_list
         ]
 
-    def _get_patchset(self, client, repo_name, sha):
+    def _get_patchset(self, client: Any, repo_name: str, sha: str) -> Sequence[Mapping[str, Any]]:
         """Get the modified files for a commit"""
         commit = client.get_commit(repo_name, sha)
         return self._transform_patchset(commit["files"])
 
-    def _transform_patchset(self, diff):
+    def _transform_patchset(self, diff: Sequence[Mapping[str, Any]]) -> Sequence[Mapping[str, Any]]:
         """Convert the patch data from GitHub into our internal format
 
         See sentry.models.Release.set_commits
@@ -126,8 +141,10 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
                 changes.append({"path": change["filename"], "type": "A"})
         return changes
 
-    def pull_request_url(self, repo, pull_request):
+    def pull_request_url(self, repo: Repository, pull_request: PullRequest) -> str:
         return f"{repo.url}/pull/{pull_request.key}"
 
-    def repository_external_slug(self, repo):
-        return repo.name
+    def repository_external_slug(self, repo: Repository) -> str:
+        # Explicitly typing to satisfy mypy.
+        slug: str = repo.name
+        return slug

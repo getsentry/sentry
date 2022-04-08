@@ -4,19 +4,19 @@ import {
   clamp,
   rectOfContent,
   toPercent,
-} from 'app/components/performance/waterfall/utils';
-import getDisplayName from 'app/utils/getDisplayName';
-import {setBodyUserSelect, UserSelectValues} from 'app/utils/userselect';
+} from 'sentry/components/performance/waterfall/utils';
+import getDisplayName from 'sentry/utils/getDisplayName';
+import {setBodyUserSelect, UserSelectValues} from 'sentry/utils/userselect';
 
 import {DragManagerChildrenProps} from './dragManager';
 
 export type ScrollbarManagerChildrenProps = {
   generateContentSpanBarRef: () => (instance: HTMLDivElement | null) => void;
-  virtualScrollbarRef: React.RefObject<HTMLDivElement>;
-  scrollBarAreaRef: React.RefObject<HTMLDivElement>;
   onDragStart: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
   onScroll: () => void;
+  scrollBarAreaRef: React.RefObject<HTMLDivElement>;
   updateScrollState: () => void;
+  virtualScrollbarRef: React.RefObject<HTMLDivElement>;
 };
 
 const ScrollbarManagerContext = React.createContext<ScrollbarManagerChildrenProps>({
@@ -55,11 +55,11 @@ const lerp = (start: number, end: number, needle: number) => {
 type Props = {
   children: React.ReactNode;
   dividerPosition: number;
-  dragProps?: DragManagerChildrenProps;
-
   // this is the DOM element where the drag events occur. it's also the reference point
   // for calculating the relative mouse x coordinate.
   interactiveLayerRef: React.RefObject<HTMLDivElement>;
+
+  dragProps?: DragManagerChildrenProps;
 };
 
 type State = {

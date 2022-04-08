@@ -1,9 +1,13 @@
-import {fireEvent, mountWithTheme, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
-import IssueListTagFilter from 'app/views/issueList/tagFilter';
+import IssueListTagFilter from 'sentry/views/issueList/tagFilter';
 
 describe('IssueListTagFilter', function () {
-  // @ts-expect-error
   MockApiClient.clearMockResponses();
 
   const selectMock = jest.fn();
@@ -39,7 +43,7 @@ describe('IssueListTagFilter', function () {
     );
 
   it('calls API and renders options when opened', async function () {
-    const {getByLabelText, getByText, getAllByText} = mountWithTheme(
+    render(
       <IssueListTagFilter
         tag={tag}
         value=""
@@ -49,21 +53,19 @@ describe('IssueListTagFilter', function () {
     );
 
     // changes dropdown input value
-    const input = getByLabelText(tag.key);
-    fireEvent.change(input, {target: {value: 'foo'}});
+    const input = screen.getByLabelText(tag.key);
+    userEvent.type(input, 'foo');
 
     // waits for the loading indicator to disappear
-    const loadingIndicator = getByText('Loading\u2026');
-
-    await waitFor(() => expect(loadingIndicator).not.toBeInTheDocument());
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     // the result has a length of 2, because when performing a search,
     // an element containing the same value is present in the rendered HTML markup
-    const allFoo = getAllByText('foo');
+    const allFoo = screen.getAllByText('foo');
 
     // selects menu option
     const menuOptionFoo = allFoo[1];
-    fireEvent.click(menuOptionFoo);
+    userEvent.click(menuOptionFoo);
 
     expect(selectMock).toHaveBeenCalledWith(tag, 'foo');
   });

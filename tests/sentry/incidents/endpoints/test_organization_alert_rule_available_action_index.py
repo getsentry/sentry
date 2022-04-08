@@ -1,9 +1,9 @@
-from sentry.constants import SentryAppStatus
+from sentry.constants import ObjectStatus, SentryAppStatus
 from sentry.incidents.endpoints.organization_alert_rule_available_action_index import (
     build_action_response,
 )
 from sentry.incidents.models import AlertRuleTriggerAction
-from sentry.models.integration import Integration, PagerDutyService
+from sentry.models import Integration, PagerDutyService
 from sentry.testutils import APITestCase
 
 SERVICES = [
@@ -32,10 +32,10 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
             name=name, organization=self.organization, is_alertable=True, verify_install=False
         )
         sentry_app = self.create_sentry_app(**kwargs)
-        self.create_sentry_app_installation(
+        installation = self.create_sentry_app_installation(
             slug=sentry_app.slug, organization=self.organization, user=self.user
         )
-        return sentry_app
+        return installation
 
     def test_build_action_response_email(self):
         data = build_action_response(self.email)
@@ -73,13 +73,9 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
         assert data["options"] == [{"value": service.id, "label": service_name}]
 
     def test_build_action_response_sentry_app(self):
-        sentry_app = self.create_sentry_app(
-            name="foo", organization=self.organization, is_alertable=True, verify_install=False
-        )
-        self.create_sentry_app_installation(
-            slug=sentry_app.slug, organization=self.organization, user=self.user
-        )
-        data = build_action_response(self.sentry_app, sentry_app=sentry_app)
+        installation = self.install_new_sentry_app("foo")
+
+        data = build_action_response(self.sentry_app, sentry_app_installation=installation)
 
         assert data["type"] == "sentry_app"
         assert data["allowedTargetTypes"] == ["sentry_app"]
@@ -138,24 +134,30 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
         self.get_error_response(self.organization.slug, status_code=404)
 
     def test_sentry_apps(self):
-        sentry_app = self.install_new_sentry_app("foo")
+        installation = self.install_new_sentry_app("foo")
 
         with self.feature("organizations:incidents"):
             response = self.get_success_response(self.organization.slug)
 
         assert len(response.data) == 2
         assert build_action_response(self.email) in response.data
-        assert build_action_response(self.sentry_app, sentry_app=sentry_app) in response.data
+        assert (
+            build_action_response(self.sentry_app, sentry_app_installation=installation)
+            in response.data
+        )
 
     def test_published_sentry_apps(self):
         # Should show up in available actions.
-        published_app = self.install_new_sentry_app("published", published=True)
+        installation = self.install_new_sentry_app("published", published=True)
 
         with self.feature("organizations:incidents"):
             response = self.get_success_response(self.organization.slug)
 
         assert len(response.data) == 2
-        assert build_action_response(self.sentry_app, sentry_app=published_app) in response.data
+        assert (
+            build_action_response(self.sentry_app, sentry_app_installation=installation)
+            in response.data
+        )
 
     def test_no_ticket_actions(self):
         integration = Integration.objects.create(external_id="1", provider="jira")
@@ -165,5 +167,28 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
             response = self.get_success_response(self.organization.slug)
 
         # There should be no ticket actions for Metric Alerts.
+        assert len(response.data) == 1
+        assert build_action_response(self.email) in response.data
+
+    def test_integration_disabled(self):
+        integration = Integration.objects.create(
+            external_id="1", provider="slack", status=ObjectStatus.DISABLED
+        )
+        integration.add_organization(self.organization)
+
+        with self.feature("organizations:incidents"):
+            response = self.get_success_response(self.organization.slug)
+
+        assert len(response.data) == 1
+        assert build_action_response(self.email) in response.data
+
+    def test_org_integration_disabled(self):
+        integration = Integration.objects.create(external_id="1", provider="slack")
+        org_integration = integration.add_organization(self.organization)
+        org_integration.update(status=ObjectStatus.DISABLED)
+
+        with self.feature("organizations:incidents"):
+            response = self.get_success_response(self.organization.slug)
+
         assert len(response.data) == 1
         assert build_action_response(self.email) in response.data

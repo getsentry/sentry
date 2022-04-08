@@ -1,3 +1,4 @@
+import responses
 from django.core import mail
 from django.urls import reverse
 from exam import fixture
@@ -9,6 +10,9 @@ from sentry.models import (
     OrganizationOption,
 )
 from sentry.testutils import APITestCase
+from sentry.testutils.cases import SlackActivityNotificationTest
+from sentry.testutils.helpers.slack import get_attachment_no_text
+from sentry.utils import json
 
 
 class OrganizationInviteRequestListTest(APITestCase):
@@ -57,21 +61,30 @@ class OrganizationInviteRequestListTest(APITestCase):
         assert resp.data[0]["inviteStatus"] == "requested_to_be_invited"
 
 
-class OrganizationInviteRequestCreateTest(APITestCase):
-    def setUp(self):
-        self.user = self.create_user("foo@localhost")
-        manager = self.create_user(email="manager@localhost")
+class OrganizationInviteRequestCreateTest(APITestCase, SlackActivityNotificationTest):
+    endpoint = "sentry-api-0-organization-invite-request-index"
+    method = "post"
 
-        self.org = self.create_organization()
-        self.team = self.create_team(organization=self.org)
-        self.member = self.create_member(user=self.user, organization=self.org, role="member")
-        self.create_member(user=manager, organization=self.org, role="manager")
+    def setUp(self):
+        self.organization = self.create_organization()
+
+        # SlackActivityNotificationTest needs the manager as self.user to create the identity
+        self.user = self.create_user(email="manager@localhost")
+        self.create_member(user=self.user, organization=self.organization, role="manager")
+        super().setUp()
+
+        # different user for logging in
+        self.user = self.create_user("foo@localhost")
+        self.team = self.create_team(organization=self.organization)
+        self.member = self.create_member(
+            user=self.user, organization=self.organization, role="member"
+        )
 
         self.login_as(user=self.user)
 
         self.url = reverse(
             "sentry-api-0-organization-invite-request-index",
-            kwargs={"organization_slug": self.org.slug},
+            kwargs={"organization_slug": self.organization.slug},
         )
 
     def test_simple(self):
@@ -86,7 +99,9 @@ class OrganizationInviteRequestCreateTest(APITestCase):
 
         assert len(mail.outbox) == 1
 
-        member = OrganizationMember.objects.get(organization=self.org, email=response.data["email"])
+        member = OrganizationMember.objects.get(
+            organization=self.organization, email=response.data["email"]
+        )
         assert member.user is None
         assert member.role == "member"
         assert member.inviter == self.user
@@ -106,14 +121,16 @@ class OrganizationInviteRequestCreateTest(APITestCase):
         assert response.status_code == 201
         assert response.data["email"] == "eric@localhost"
 
-        member = OrganizationMember.objects.get(organization=self.org, email=response.data["email"])
+        member = OrganizationMember.objects.get(
+            organization=self.organization, email=response.data["email"]
+        )
         assert member.role == "owner"
 
     def test_existing_member(self):
         self.login_as(user=self.user)
 
         user2 = self.create_user("foobar@example.com")
-        self.create_member(user=user2, organization=self.org)
+        self.create_member(user=user2, organization=self.organization)
 
         resp = self.client.post(
             self.url, {"email": user2.email, "role": "member", "teams": [self.team.slug]}
@@ -127,7 +144,7 @@ class OrganizationInviteRequestCreateTest(APITestCase):
 
         invite_request = self.create_member(
             email="foobar@example.com",
-            organization=self.org,
+            organization=self.organization,
             invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
         )
 
@@ -139,3 +156,77 @@ class OrganizationInviteRequestCreateTest(APITestCase):
         assert ("There is an existing invite request for %s" % invite_request.email).encode(
             "utf-8"
         ) in resp.content
+
+    def test_request_to_invite_email(self):
+        with self.tasks():
+            resp = self.get_success_response(
+                self.organization.slug,
+                email="eric@localhost",
+                role="member",
+                teams=[self.team.slug],
+                status_code=201,
+            )
+
+        members = OrganizationMember.objects.filter(organization=self.organization)
+        join_request = members.get(email=resp.data["email"])
+        assert join_request.user is None
+        assert join_request.role == "member"
+        assert not join_request.invite_approved
+
+        assert len(mail.outbox) == 1
+
+        assert mail.outbox[0].to == ["manager@localhost"]
+
+        expected_subject = f"Access request to {self.organization.name}"
+        assert mail.outbox[0].subject == expected_subject
+        assert "eric@localhost" in mail.outbox[0].body
+
+    @responses.activate
+    def test_request_to_invite_slack(self):
+        with self.tasks():
+            self.get_success_response(
+                self.organization.slug,
+                email="eric@localhost",
+                role="member",
+                teams=[self.team.slug],
+                status_code=201,
+            )
+
+        attachment = get_attachment_no_text()
+        assert (
+            attachment["text"]
+            == f"foo@localhost is requesting to invite eric@localhost into {self.organization.name}"
+        )
+        assert attachment["actions"] == [
+            {
+                "text": "Approve",
+                "name": "Approve",
+                "style": "primary",
+                "type": "button",
+                "value": "approve_member",
+                "action_id": "approve_request",
+            },
+            {
+                "text": "Reject",
+                "name": "Reject",
+                "style": "danger",
+                "type": "button",
+                "value": "reject_member",
+                "action_id": "approve_request",
+            },
+            {
+                "text": "See Members & Requests",
+                "name": "See Members & Requests",
+                "url": f"http://testserver/settings/{self.organization.slug}/members/?referrer=invite_request-slack-user",
+                "type": "button",
+            },
+        ]
+        assert (
+            attachment["footer"]
+            == "You are receiving this notification because you're listed as an organization Manager | <http://testserver/settings/account/notifications/approval/?referrer=invite_request-slack-user|Notification Settings>"
+        )
+        member = OrganizationMember.objects.get(email="eric@localhost")
+        assert json.loads(attachment["callback_id"]) == {
+            "member_id": member.id,
+            "member_email": "eric@localhost",
+        }

@@ -1,6 +1,6 @@
 import {LocationRange} from 'pegjs';
 
-import {Token, TokenConverter, TokenResult} from './parser';
+import {Token, TokenResult} from './parser';
 
 /**
  * Used internally within treeResultLocator to stop recursion once we've
@@ -22,10 +22,6 @@ const skipTokenMarker = Symbol('Returned to skip visiting a token');
 
 type VisitorFn = (opts: {
   /**
-   * The token being visited
-   */
-  token: TokenResult<Token>;
-  /**
    * Call this to return the provided value as the result of treeResultLocator
    */
   returnResult: (result: any) => TokenResultFound;
@@ -33,9 +29,18 @@ type VisitorFn = (opts: {
    * Return this to skip visiting any inner tokens
    */
   skipToken: typeof skipTokenMarker;
+  /**
+   * The token being visited
+   */
+  token: TokenResult<Token>;
 }) => null | TokenResultFound | typeof skipTokenMarker;
 
 type TreeResultLocatorOpts = {
+  /**
+   * The value to return when returnValue was never called and all nodes of the
+   * search tree were visited.
+   */
+  noResultValue: any;
   /**
    * The tree to visit
    */
@@ -46,11 +51,6 @@ type TreeResultLocatorOpts = {
    * inner nodes.
    */
   visitorTest: VisitorFn;
-  /**
-   * The value to return when returnValue was never called and all nodes of the
-   * search tree were visited.
-   */
-  noResultValue: any;
 };
 
 /**
@@ -132,13 +132,13 @@ export function treeResultLocator<T>({
 
 type TreeTransformerOpts = {
   /**
-   * The tree to transform
-   */
-  tree: TokenResult<Token>[];
-  /**
    * The function used to transform each node
    */
   transform: (token: TokenResult<Token>) => any;
+  /**
+   * The tree to transform
+   */
+  tree: TokenResult<Token>[];
 };
 
 /**
@@ -208,9 +208,7 @@ type GetKeyNameOpts = {
  * Utility to get the string name of any type of key.
  */
 export const getKeyName = (
-  key: ReturnType<
-    TokenConverter['tokenKeySimple' | 'tokenKeyExplicitTag' | 'tokenKeyAggregate']
-  >,
+  key: TokenResult<Token.KeySimple | Token.KeyExplicitTag | Token.KeyAggregate>,
   options: GetKeyNameOpts = {}
 ) => {
   const {aggregateWithArgs} = options;

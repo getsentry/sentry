@@ -1,4 +1,4 @@
-import GroupStore from 'app/stores/groupStore';
+import GroupStore from 'sentry/stores/groupStore';
 
 describe('GroupStore', function () {
   beforeEach(function () {

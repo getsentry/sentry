@@ -1,4 +1,4 @@
-import Placeholder from 'app/components/placeholder';
+import Placeholder from 'sentry/components/placeholder';
 
 export default {
   title: 'Components/Loading Indicators/Placeholder',

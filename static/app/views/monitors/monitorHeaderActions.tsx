@@ -5,27 +5,27 @@ import {
   addErrorMessage,
   addLoadingMessage,
   clearIndicators,
-} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import Confirm from 'app/components/confirm';
-import {IconDelete, IconEdit} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {logException} from 'app/utils/logging';
-import withApi from 'app/utils/withApi';
+} from 'sentry/actionCreators/indicator';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import Confirm from 'sentry/components/confirm';
+import {IconDelete, IconEdit} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {logException} from 'sentry/utils/logging';
+import useApi from 'sentry/utils/useApi';
 
 import {Monitor} from './types';
 
 type Props = {
-  api: Client;
   monitor: Monitor;
-  orgId: string;
   onUpdate: (data: Monitor) => void;
+  orgId: string;
 };
 
-const MonitorHeaderActions = ({api, monitor, orgId, onUpdate}: Props) => {
+const MonitorHeaderActions = ({monitor, orgId, onUpdate}: Props) => {
+  const api = useApi();
+
   const handleDelete = () => {
     const redirectPath = `/organizations/${orgId}/monitors/`;
     addLoadingMessage(t('Deleting Monitor...'));
@@ -99,4 +99,4 @@ const ButtonContainer = styled('div')`
   flex-shrink: 1;
 `;
 
-export default withApi(MonitorHeaderActions);
+export default MonitorHeaderActions;

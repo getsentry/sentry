@@ -5,22 +5,21 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {loadDocs} from 'app/actionCreators/projects';
-import {Client} from 'app/api';
-import Alert, {alertStyles} from 'app/components/alert';
-import ExternalLink from 'app/components/links/externalLink';
-import LoadingError from 'app/components/loadingError';
-import {PlatformKey} from 'app/data/platformCategories';
-import platforms from 'app/data/platforms';
-import {IconInfo} from 'app/icons';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import getDynamicText from 'app/utils/getDynamicText';
-import {Theme} from 'app/utils/theme';
-import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
+import {loadDocs} from 'sentry/actionCreators/projects';
+import {Client} from 'sentry/api';
+import Alert, {alertStyles} from 'sentry/components/alert';
+import ExternalLink from 'sentry/components/links/externalLink';
+import LoadingError from 'sentry/components/loadingError';
+import {PlatformKey} from 'sentry/data/platformCategories';
+import platforms from 'sentry/data/platforms';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import {Theme} from 'sentry/utils/theme';
+import withApi from 'sentry/utils/withApi';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import FirstEventFooter from './components/firstEventFooter';
 import FullIntroduction from './components/fullIntroduction';
@@ -38,9 +37,9 @@ type Props = StepProps & {
 };
 
 type State = {
-  platformDocs: {html: string; link: string} | null;
-  loadedPlatform: PlatformKey | null;
   hasError: boolean;
+  loadedPlatform: PlatformKey | null;
+  platformDocs: {html: string; link: string} | null;
 };
 
 class DocumentationSetup extends React.Component<Props, State> {
@@ -98,7 +97,7 @@ class DocumentationSetup extends React.Component<Props, State> {
     }
 
     return (
-      <Alert type="warning" icon={<IconInfo size="md" />}>
+      <Alert type="warning" showIcon>
         {tct(
           `Looks like this getting started example is still undergoing some
            work and doesn't include an example for triggering an event quite
@@ -205,7 +204,7 @@ const Content = styled(motion.div)`
 
   .alert h5 {
     font-size: 1em;
-    margin-bottom: 1rem;
+    margin-bottom: 0.625rem;
   }
 
   /**

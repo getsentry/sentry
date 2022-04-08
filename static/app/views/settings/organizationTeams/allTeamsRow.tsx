@@ -1,30 +1,30 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {joinTeam, leaveTeam} from 'app/actionCreators/teams';
-import TeamActions from 'app/actions/teamActions';
-import {Client} from 'app/api';
-import Button from 'app/components/button';
-import IdBadge from 'app/components/idBadge';
-import Link from 'app/components/links/link';
-import {PanelItem} from 'app/components/panels';
-import {t, tct, tn} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Team} from 'app/types';
-import withApi from 'app/utils/withApi';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {joinTeam, leaveTeam} from 'sentry/actionCreators/teams';
+import TeamActions from 'sentry/actions/teamActions';
+import {Client} from 'sentry/api';
+import Button from 'sentry/components/button';
+import IdBadge from 'sentry/components/idBadge';
+import Link from 'sentry/components/links/link';
+import {PanelItem} from 'sentry/components/panels';
+import {t, tct, tn} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Team} from 'sentry/types';
+import withApi from 'sentry/utils/withApi';
 
 type Props = {
   api: Client;
-  urlPrefix: string;
+  openMembership: boolean;
   organization: Organization;
   team: Team;
-  openMembership: boolean;
+  urlPrefix: string;
 };
 
 type State = {
-  loading: boolean;
   error: boolean;
+  loading: boolean;
 };
 
 class AllTeamsRow extends React.Component<Props, State> {
@@ -74,8 +74,8 @@ class AllTeamsRow extends React.Component<Props, State> {
     successMessage,
     errorMessage,
   }: {
-    successMessage: React.ReactNode;
     errorMessage: React.ReactNode;
+    successMessage: React.ReactNode;
   }) => {
     const {api, organization, team} = this.props;
 

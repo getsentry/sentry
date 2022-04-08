@@ -2,7 +2,7 @@ import groupBy from 'lodash/groupBy';
 import invertBy from 'lodash/invertBy';
 import pick from 'lodash/pick';
 
-import {Permissions} from 'app/types';
+import {Permissions} from 'sentry/types';
 
 const PERMISSION_LEVELS = {
   read: 0,
@@ -31,9 +31,9 @@ const DEFAULT_RESOURCE_PERMISSIONS: Permissions = {
 const PROJECT_RELEASES = 'project:releases';
 
 type PermissionLevelResources = {
+  admin: string[];
   read: string[];
   write: string[];
-  admin: string[];
 };
 /**
  * Numerical value of the scope where Admin is higher than Write,

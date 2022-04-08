@@ -1,14 +1,13 @@
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 
-import {Client} from 'app/api';
-import {escapeDoubleQuotes} from 'app/utils';
+import {escapeDoubleQuotes} from 'sentry/utils';
 import GenericDiscoverQuery, {
   DiscoverQueryProps,
   GenericChildrenProps,
-} from 'app/utils/discover/genericDiscoverQuery';
-import {escapeFilterValue} from 'app/utils/tokenizeSearch';
-import withApi from 'app/utils/withApi';
+} from 'sentry/utils/discover/genericDiscoverQuery';
+import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
+import withApi from 'sentry/utils/withApi';
 
 type HasMeasurementsProps = {
   transaction: string;
@@ -41,16 +40,11 @@ function getHasMeasurementsRequestPayload(props: RequestProps) {
   return Object.assign(baseApiPayload, additionalApiPayload);
 }
 
-function beforeFetch(api: Client) {
-  api.clear();
-}
-
 function HasMeasurementsQuery(props: Props) {
   return (
     <GenericDiscoverQuery<HasMeasurements, HasMeasurementsProps>
       route="events-has-measurements"
       getRequestPayload={getHasMeasurementsRequestPayload}
-      beforeFetch={beforeFetch}
       {...omit(props, 'children')}
     >
       {({tableData, ...rest}) => {

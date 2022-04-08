@@ -1,38 +1,32 @@
-import * as React from 'react';
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import Link from 'app/components/links/link';
-import Panel from 'app/components/panels/panel';
-import {IconSentry} from 'app/icons';
-import space from 'app/styles/space';
+import Link from 'sentry/components/links/link';
+import Panel from 'sentry/components/panels/panel';
+import {IconSentry} from 'sentry/icons';
+import space from 'sentry/styles/space';
 
 const BODY_CLASSES = ['narrow'];
 
-class Layout extends React.Component {
-  componentDidMount() {
+function Layout({children}) {
+  useEffect(() => {
     document.body.classList.add(...BODY_CLASSES);
-  }
+    return () => document.body.classList.remove(...BODY_CLASSES);
+  }, []);
 
-  componentWillUnmount() {
-    document.body.classList.remove(...BODY_CLASSES);
-  }
-
-  render() {
-    const {children} = this.props;
-    return (
-      <div className="app">
-        <AuthContainer>
-          <div className="pattern-bg" />
-          <AuthPanel>
-            <AuthSidebar>
-              <SentryButton />
-            </AuthSidebar>
-            <div>{children}</div>
-          </AuthPanel>
-        </AuthContainer>
-      </div>
-    );
-  }
+  return (
+    <div className="app">
+      <AuthContainer>
+        <div className="pattern-bg" />
+        <AuthPanel>
+          <AuthSidebar>
+            <SentryButton />
+          </AuthSidebar>
+          <div>{children}</div>
+        </AuthPanel>
+      </AuthContainer>
+    </div>
+  );
 }
 
 const AuthContainer = styled('div')`

@@ -1,12 +1,12 @@
 import * as React from 'react';
 
-import OrganizationsStore from 'app/stores/organizationsStore';
-import {OrganizationSummary} from 'app/types';
-import getDisplayName from 'app/utils/getDisplayName';
+import OrganizationsStore from 'sentry/stores/organizationsStore';
+import {OrganizationSummary} from 'sentry/types';
+import getDisplayName from 'sentry/utils/getDisplayName';
 
 type InjectedOrganizationsProps = {
-  organizationsLoading?: boolean;
   organizations: OrganizationSummary[];
+  organizationsLoading?: boolean;
 };
 
 type State = {

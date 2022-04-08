@@ -1,16 +1,16 @@
-import Link from 'app/components/links/link';
-import Tag from 'app/components/tag';
-import {IconOpen} from 'app/icons';
-import {t} from 'app/locale';
-import {Deploy} from 'app/types';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
+import Link from 'sentry/components/links/link';
+import Tag from 'sentry/components/tag';
+import {IconOpen} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {Deploy} from 'sentry/types';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 type Props = {
   deploy: Deploy;
-  projectId?: number;
-  orgSlug?: string;
-  version?: string;
   className?: string;
+  orgSlug?: string;
+  projectId?: number;
+  version?: string;
 };
 
 const DeployBadge = ({deploy, orgSlug, projectId, version, className}: Props) => {

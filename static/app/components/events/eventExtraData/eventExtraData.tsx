@@ -1,8 +1,8 @@
 import {memo, useState} from 'react';
 
-import EventDataSection from 'app/components/events/eventDataSection';
-import {t} from 'app/locale';
-import {Event} from 'app/types/event';
+import EventDataSection from 'sentry/components/events/eventDataSection';
+import {t} from 'sentry/locale';
+import {Event} from 'sentry/types/event';
 
 import EventDataContent from './eventDataContent';
 

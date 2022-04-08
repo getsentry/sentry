@@ -1,31 +1,27 @@
 import * as React from 'react';
-import ReactDOM from 'react-dom';
+import {createPortal} from 'react-dom';
 import {browserHistory} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {createFocusTrap, FocusTrap} from 'focus-trap';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import {closeModal as actionCloseModal} from 'app/actionCreators/modal';
-import {ROOT_ELEMENT} from 'app/constants';
-import ModalStore from 'app/stores/modalStore';
-import space from 'app/styles/space';
-import getModalPortal from 'app/utils/getModalPortal';
-import testableTransition from 'app/utils/testableTransition';
+import {closeModal as actionCloseModal} from 'sentry/actionCreators/modal';
+import {ROOT_ELEMENT} from 'sentry/constants';
+import ModalStore from 'sentry/stores/modalStore';
+import space from 'sentry/styles/space';
+import getModalPortal from 'sentry/utils/getModalPortal';
+import testableTransition from 'sentry/utils/testableTransition';
 
 import {makeClosableHeader, makeCloseButton, ModalBody, ModalFooter} from './components';
 
 type ModalOptions = {
   /**
-   * Callback for when the modal is closed
+   * Set to `false` to disable the ability to click outside the modal to
+   * close it. This is useful for modals containing user input which will
+   * disappear on an accidental click. Defaults to `true`.
    */
-  onClose?: () => void;
-  /**
-   * Additional CSS which will be applied to the modals `role="dialog"`
-   * component. You may use the `[role="document"]` selector to target the
-   * actual modal content to style the visual element of the modal.
-   */
-  modalCss?: ReturnType<typeof css>;
+  allowClickClose?: boolean;
   /**
    * Set to `false` to disable the backdrop from being rendered. Set to
    * `static` to disable the 'click outside' behavior from closing the modal.
@@ -33,36 +29,51 @@ type ModalOptions = {
    */
   backdrop?: 'static' | boolean;
   /**
-   * Set to `false` to disable the ability to click outside the modal to
-   * close it. This is useful for modals containing user input which will
-   * disappear on an accidental click. Defaults to `true`.
+   * Additional CSS which will be applied to the modals `role="dialog"`
+   * component. You may use the `[role="document"]` selector to target the
+   * actual modal content to style the visual element of the modal.
    */
-  allowClickClose?: boolean;
+  modalCss?: ReturnType<typeof css>;
+  /**
+   * Callback for when the modal is closed
+   */
+  onClose?: () => void;
 };
 
 type ModalRenderProps = {
   /**
-   * Closes the modal
+   * Body container for the modal
    */
-  closeModal: () => void;
+  Body: typeof ModalBody;
+  /**
+   * Looks like a close button. Useful for when you don't want to render the
+   * header which can include the close button.
+   */
+  CloseButton: ReturnType<typeof makeCloseButton>;
+  /**
+   * Footer container for the modal, typically for actions
+   */
+  Footer: typeof ModalFooter;
   /**
    * The modal header, optionally includes a close button which will close the
    * modal.
    */
   Header: ReturnType<typeof makeClosableHeader>;
   /**
-   * Body container for the modal
+   * Closes the modal
    */
-  Body: typeof ModalBody;
-  /**
-   * Footer container for the modal, typically for actions
-   */
-  Footer: typeof ModalFooter;
-  /**
-   * Looks like a close button. Useful for when you don't want to render the
-   * header which can include the close button.
-   */
-  CloseButton: ReturnType<typeof makeCloseButton>;
+  closeModal: () => void;
+};
+
+/**
+ * Meta-type to make re-exporting these in the action creator easy without
+ * poluting the global API namespace with duplicate type names.
+ *
+ * eg. you won't accidentally import ModalRenderProps from here.
+ */
+export type ModalTypes = {
+  options: ModalOptions;
+  renderProps: ModalRenderProps;
 };
 
 type Props = {
@@ -131,7 +142,7 @@ function GlobalModal({visible = false, options = {}, children, onClose}: Props) 
       body.style.removeProperty('overflow');
       root.removeAttribute('aria-hidden');
       focusTrap.current?.deactivate();
-      portal.removeEventListener('keydown', handleEscapeClose);
+      document.removeEventListener('keydown', handleEscapeClose);
     };
 
     if (visible) {
@@ -139,13 +150,16 @@ function GlobalModal({visible = false, options = {}, children, onClose}: Props) 
       root.setAttribute('aria-hidden', 'true');
       focusTrap.current?.activate();
 
-      portal.addEventListener('keydown', handleEscapeClose);
+      document.addEventListener('keydown', handleEscapeClose);
     } else {
       reset();
     }
 
     return reset;
   }, [portal, handleEscapeClose, visible]);
+
+  // Close the modal when the browser history changes
+  React.useEffect(() => browserHistory.listen(() => actionCloseModal()), []);
 
   const renderedChild = children?.({
     CloseButton: makeCloseButton(closeModal),
@@ -166,7 +180,7 @@ function GlobalModal({visible = false, options = {}, children, onClose}: Props) 
   const clickClose = (e: React.MouseEvent) =>
     containerRef.current === e.target && allowClickClose && closeModal();
 
-  return ReactDOM.createPortal(
+  return createPortal(
     <React.Fragment>
       <Backdrop
         style={backdrop && visible ? {opacity: 0.5, pointerEvents: 'auto'} : {}}
@@ -200,7 +214,7 @@ const fullPageCss = css`
 const Backdrop = styled('div')`
   ${fullPageCss};
   z-index: ${p => p.theme.zIndex.modal};
-  background: ${p => p.theme.gray500};
+  background: ${p => p.theme.black};
   will-change: opacity;
   transition: opacity 200ms;
   pointer-events: none;
@@ -236,8 +250,8 @@ const Content = styled('div')`
   padding: ${space(4)};
   background: ${p => p.theme.background};
   border-radius: 8px;
-  border: ${p => p.theme.modalBorder};
-  box-shadow: ${p => p.theme.modalBoxShadow};
+  box-shadow: 0 0 0 1px ${p => p.theme.translucentBorder}, ${p => p.theme.dropShadowHeavy};
+  position: relative;
 `;
 
 type State = {
@@ -249,13 +263,7 @@ class GlobalModalContainer extends React.Component<Partial<Props>, State> {
     modalStore: ModalStore.get(),
   };
 
-  componentDidMount() {
-    // Listen for route changes so we can dismiss modal
-    this.unlistenBrowserHistory = browserHistory.listen(() => actionCloseModal());
-  }
-
   componentWillUnmount() {
-    this.unlistenBrowserHistory?.();
     this.unlistener?.();
   }
 
@@ -263,8 +271,6 @@ class GlobalModalContainer extends React.Component<Partial<Props>, State> {
     (modalStore: State['modalStore']) => this.setState({modalStore}),
     undefined
   );
-
-  unlistenBrowserHistory?: ReturnType<typeof browserHistory.listen>;
 
   render() {
     const {modalStore} = this.state;

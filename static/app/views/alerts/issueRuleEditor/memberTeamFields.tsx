@@ -1,27 +1,28 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import SelectControl from 'app/components/forms/selectControl';
-import {PanelItem} from 'app/components/panels';
-import SelectMembers from 'app/components/selectMembers';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import {IssueAlertRuleAction, IssueAlertRuleCondition} from 'app/types/alerts';
+import SelectControl from 'sentry/components/forms/selectControl';
+import TeamSelector from 'sentry/components/forms/teamSelector';
+import {PanelItem} from 'sentry/components/panels';
+import SelectMembers from 'sentry/components/selectMembers';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import {IssueAlertRuleAction, IssueAlertRuleCondition} from 'sentry/types/alerts';
 
 interface OptionRecord {
-  value: string;
   label: string;
+  value: string;
 }
 
 type Props = {
-  project: Project;
-  organization: Organization;
   disabled: boolean;
   loading: boolean;
-  ruleData: IssueAlertRuleAction | IssueAlertRuleCondition;
+  memberValue: string | number;
   onChange: (action: IssueAlertRuleAction) => void;
   options: OptionRecord[];
-  memberValue: string | number;
+  organization: Organization;
+  project: Project;
+  ruleData: IssueAlertRuleAction | IssueAlertRuleCondition;
   teamValue: string | number;
 };
 
@@ -86,11 +87,21 @@ class MemberTeamFields extends React.Component<Props> {
           options={options}
           onChange={this.handleChangeActorType}
         />
-        {teamSelected || memberSelected ? (
+        {teamSelected ? (
+          <TeamSelector
+            disabled={disabled}
+            key={teamValue}
+            project={project}
+            // The value from the endpoint is of type `number`, `SelectMembers` require value to be of type `string`
+            value={`${ruleData.targetIdentifier}`}
+            styles={selectControlStyles}
+            onChange={this.handleChangeActorId}
+            useId
+          />
+        ) : memberSelected ? (
           <SelectMembers
             disabled={disabled}
             key={teamSelected ? teamValue : memberValue}
-            showTeam={teamSelected}
             project={project}
             organization={organization}
             // The value from the endpoint is of type `number`, `SelectMembers` require value to be of type `string`
@@ -98,9 +109,7 @@ class MemberTeamFields extends React.Component<Props> {
             styles={selectControlStyles}
             onChange={this.handleChangeActorId}
           />
-        ) : (
-          <span />
-        )}
+        ) : null}
       </PanelItemGrid>
     );
   }
@@ -111,7 +120,7 @@ const PanelItemGrid = styled(PanelItem)`
   grid-template-columns: 200px 200px;
   padding: 0;
   align-items: center;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
 `;
 
 export default MemberTeamFields;

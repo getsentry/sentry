@@ -1,6 +1,6 @@
 import {LocationRange} from 'pegjs';
 
-import {t} from 'app/locale';
+import {t} from 'sentry/locale';
 
 import grammar from './grammar.pegjs';
 
@@ -10,8 +10,8 @@ const MAX_OPERATOR_MESSAGE = t('Maximum operators exceeded');
 
 type OperationOpts = {
   operator: Operator;
-  lhs?: Expression;
   rhs: Expression;
+  lhs?: Expression;
 };
 
 type Operator = 'plus' | 'minus' | 'multiply' | 'divide';
@@ -33,7 +33,7 @@ class Term {
   term: Expression;
   location: LocationRange;
 
-  constructor({term, location}: {term: Expression; location: LocationRange}) {
+  constructor({term, location}: {location: LocationRange; term: Expression}) {
     this.term = term;
     this.location = location;
   }
@@ -56,9 +56,8 @@ export class TokenConverter {
     if (remainingAdds.length > 0) {
       remainingAdds[0].lhs = maybeFactor;
       return flatten(remainingAdds);
-    } else {
-      return maybeFactor;
     }
+    return maybeFactor;
   };
 
   tokenOperation = (operator: Operator, rhs: Expression): Operation => {
@@ -112,8 +111,8 @@ function flatten(remaining: Array<Operation>): Operation {
 }
 
 type parseResult = {
-  result: Expression;
   error: string | undefined;
+  result: Expression;
   tc: TokenConverter;
 };
 

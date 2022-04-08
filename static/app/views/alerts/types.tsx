@@ -1,27 +1,34 @@
-import {User} from 'app/types';
-import {IssueAlertRule} from 'app/types/alerts';
-import {IncidentRule} from 'app/views/alerts/incidentRules/types';
+import {User} from 'sentry/types';
+import {IssueAlertRule} from 'sentry/types/alerts';
+import {IncidentRule} from 'sentry/views/alerts/incidentRules/types';
 
 type Data = [number, {count: number}[]][];
 
+export enum AlertRuleType {
+  METRIC = 'metric',
+  ISSUE = 'issue',
+}
+
 export type Incident = {
+  alertRule: IncidentRule;
   dateClosed: string | null;
-  dateStarted: string;
-  dateDetected: string;
   dateCreated: string;
+  dateDetected: string;
+  dateStarted: string;
+  // Array of group ids
+  discoverQuery: string;
+  groups: string[];
+  hasSeen: boolean;
   id: string;
   identifier: string;
   isSubscribed: boolean;
-  groups: string[]; // Array of group ids
-  discoverQuery: string;
   organizationId: string;
-  projects: string[]; // Array of slugs
+  projects: string[];
+  // Array of slugs
   seenBy: User[];
   status: IncidentStatus;
   statusMethod: IncidentStatusMethod;
   title: string;
-  hasSeen: boolean;
-  alertRule: IncidentRule;
   activities?: ActivityType[];
 };
 
@@ -43,9 +50,9 @@ export type ActivityTypeDraft = {
 };
 
 export type ActivityType = ActivityTypeDraft & {
-  eventStats?: {data: Data};
   previousValue: string | null;
   value: string | null;
+  eventStats?: {data: Data};
 };
 
 export enum IncidentActivityType {

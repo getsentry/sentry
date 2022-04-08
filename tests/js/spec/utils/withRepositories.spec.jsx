@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import RepositoryStore from 'app/stores/repositoryStore';
-import withRepositories from 'app/utils/withRepositories';
+import RepositoryStore from 'sentry/stores/repositoryStore';
+import withRepositories from 'sentry/utils/withRepositories';
 
 describe('withRepositories HoC', function () {
   const organization = TestStubs.Organization();
@@ -20,6 +20,10 @@ describe('withRepositories HoC', function () {
 
     jest.restoreAllMocks();
     RepositoryStore.init();
+  });
+
+  afterEach(() => {
+    RepositoryStore.teardown();
   });
 
   it('adds repositories prop', async () => {

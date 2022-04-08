@@ -1,21 +1,19 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {openInviteMembersModal} from 'app/actionCreators/modal';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import OrganizationMembersList from 'app/views/settings/organizationMembers/organizationMembersList';
-import OrganizationMembersWrapper from 'app/views/settings/organizationMembers/organizationMembersWrapper';
+import {openInviteMembersModal} from 'sentry/actionCreators/modal';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import OrganizationMembersList from 'sentry/views/settings/organizationMembers/organizationMembersList';
+import OrganizationMembersWrapper from 'sentry/views/settings/organizationMembers/organizationMembersWrapper';
 
-jest.mock('app/utils/analytics', () => ({
-  trackAnalyticsEvent: jest.fn(),
-  metric: {mark: jest.fn()},
-}));
-jest.mock('app/actionCreators/modal', () => ({
+jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent', () => jest.fn());
+jest.mock('sentry/actionCreators/modal', () => ({
   openInviteMembersModal: jest.fn(),
 }));
 
 describe('OrganizationMembersWrapper', function () {
   const member = TestStubs.Member();
   const organization = TestStubs.Organization({
+    features: ['invite-members'],
     access: ['member:admin', 'org:admin', 'member:write'],
     status: {
       id: 'active',
@@ -28,7 +26,7 @@ describe('OrganizationMembersWrapper', function () {
   };
 
   beforeEach(function () {
-    trackAnalyticsEvent.mockClear();
+    trackAdvancedAnalyticsEvent.mockClear();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/me/',
@@ -59,8 +57,7 @@ describe('OrganizationMembersWrapper', function () {
 
   it('can invite member', function () {
     const wrapper = mountWithTheme(
-      <OrganizationMembersWrapper organization={organization} {...defaultProps} />,
-      TestStubs.routerContext()
+      <OrganizationMembersWrapper organization={organization} {...defaultProps} />
     );
 
     const inviteButton = wrapper.find('StyledButton');
@@ -69,8 +66,25 @@ describe('OrganizationMembersWrapper', function () {
     expect(openInviteMembersModal).toHaveBeenCalled();
   });
 
+  it('can not invite members without the invite-members feature', function () {
+    const org = TestStubs.Organization({
+      features: [],
+      access: ['member:admin', 'org:admin', 'member:write'],
+      status: {
+        id: 'active',
+      },
+    });
+    const wrapper = mountWithTheme(
+      <OrganizationMembersWrapper organization={org} {...defaultProps} />
+    );
+
+    const inviteButton = wrapper.find('StyledButton');
+    expect(inviteButton.props().disabled).toBeTruthy();
+  });
+
   it('can invite without permissions', function () {
     const org = TestStubs.Organization({
+      features: ['invite-members'],
       access: [],
       status: {
         id: 'active',
@@ -78,8 +92,7 @@ describe('OrganizationMembersWrapper', function () {
     });
 
     const wrapper = mountWithTheme(
-      <OrganizationMembersWrapper organization={org} {...defaultProps} />,
-      TestStubs.routerContext()
+      <OrganizationMembersWrapper organization={org} {...defaultProps} />
     );
 
     const inviteButton = wrapper.find('StyledButton');
@@ -97,8 +110,7 @@ describe('OrganizationMembersWrapper', function () {
     const wrapper = mountWithTheme(
       <OrganizationMembersWrapper organization={organization} {...defaultProps}>
         <OrganizationMembersList {...defaultProps} router={{routes: []}} />
-      </OrganizationMembersWrapper>,
-      TestStubs.routerContext()
+      </OrganizationMembersWrapper>
     );
 
     expect(wrapper.find('OrganizationMembersList').exists()).toBe(true);

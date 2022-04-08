@@ -1,15 +1,13 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
-import type {Theme} from 'app/utils/theme';
+import space from 'sentry/styles/space';
+import type {Theme} from 'sentry/utils/theme';
 
-type Props = React.HTMLProps<HTMLSpanElement> & {
-  children?: React.ReactNode;
+interface Props extends React.HTMLAttributes<HTMLSpanElement> {
   text?: string | number | null;
   type?: keyof Theme['badge'];
-  className?: string;
-};
+}
 
 const Badge = styled(({children, text, ...props}: Props) => (
   <span {...props}>{children ?? text}</span>
@@ -29,7 +27,6 @@ const Badge = styled(({children, text, ...props}: Props) => (
   transition: background 100ms linear;
 
   position: relative;
-  top: -1px;
 `;
 
 export default Badge;

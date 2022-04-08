@@ -1,4 +1,4 @@
-export function InstallWizard(params) {
+export function InstallWizard(params = {}) {
   return {
     'mail.use-tls': {
       field: {

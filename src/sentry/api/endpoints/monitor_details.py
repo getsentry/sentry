@@ -1,19 +1,15 @@
-import logging
-from uuid import uuid4
-
 from django.db import transaction
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.api.bases.monitor import MonitorEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.validators import MonitorValidator
-from sentry.models import AuditLogEntryEvent, Monitor, MonitorStatus
-from sentry.tasks.deletion import generic_delete
-
-delete_logger = logging.getLogger("sentry.deletions.api")
+from sentry.models import AuditLogEntryEvent, Monitor, MonitorStatus, ScheduledDeletion
 
 
 class MonitorDetailsEndpoint(MonitorEndpoint):
-    def get(self, request, project, monitor):
+    def get(self, request: Request, project, monitor) -> Response:
         """
         Retrieve a monitor
         ``````````````````
@@ -23,7 +19,7 @@ class MonitorDetailsEndpoint(MonitorEndpoint):
         """
         return self.respond(serialize(monitor, request.user))
 
-    def put(self, request, project, monitor):
+    def put(self, request: Request, project, monitor) -> Response:
         """
         Update a monitor
         ````````````````
@@ -74,7 +70,7 @@ class MonitorDetailsEndpoint(MonitorEndpoint):
 
         return self.respond(serialize(monitor, request.user))
 
-    def delete(self, request, project, monitor):
+    def delete(self, request: Request, project, monitor) -> Response:
         """
         Delete a monitor
         ````````````````
@@ -82,7 +78,6 @@ class MonitorDetailsEndpoint(MonitorEndpoint):
         :pparam string monitor_id: the id of the monitor.
         :auth: required
         """
-        # TODO(dcramer0:)
         with transaction.atomic():
             affected = (
                 Monitor.objects.filter(id=monitor.id)
@@ -94,33 +89,14 @@ class MonitorDetailsEndpoint(MonitorEndpoint):
             if not affected:
                 return self.respond(status=404)
 
-            transaction_id = uuid4().hex
-
+            schedule = ScheduledDeletion.schedule(monitor, days=0, actor=request.user)
             self.create_audit_entry(
                 request=request,
                 organization=project.organization,
                 target_object=monitor.id,
                 event=AuditLogEntryEvent.MONITOR_REMOVE,
                 data=monitor.get_audit_log_data(),
-                transaction_id=transaction_id,
+                transaction_id=schedule.guid,
             )
 
-        generic_delete.apply_async(
-            kwargs={
-                "app_label": Monitor._meta.app_label,
-                "model_name": Monitor._meta.model_name,
-                "object_id": monitor.id,
-                "transaction_id": transaction_id,
-                "actor_id": request.user.id,
-            }
-        )
-
-        delete_logger.info(
-            "object.delete.queued",
-            extra={
-                "object_id": monitor.id,
-                "transaction_id": transaction_id,
-                "model": Monitor.__name__,
-            },
-        )
         return self.respond(status=202)

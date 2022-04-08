@@ -1,31 +1,24 @@
-import {cloneElement, Component, Fragment, isValidElement} from 'react';
+import {cloneElement, Fragment, isValidElement} from 'react';
 
-import Feature from 'app/components/acl/feature';
-import {Organization} from 'app/types';
-import withOrganization from 'app/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
-  organization: Organization;
+  children: React.ReactNode;
 };
 
-class AlertsContainer extends Component<Props> {
-  render() {
-    const {children, organization} = this.props;
-    return (
-      <Feature organization={organization} features={['incidents']}>
-        {({hasFeature: hasMetricAlerts}) => (
-          <Fragment>
-            {children && isValidElement(children)
-              ? cloneElement(children, {
-                  organization,
-                  hasMetricAlerts,
-                })
-              : children}
-          </Fragment>
-        )}
-      </Feature>
-    );
-  }
+function AlertsContainer({children}: Props) {
+  const organization = useOrganization();
+  const hasMetricAlerts = organization.features.includes('incidents');
+
+  const content =
+    children && isValidElement(children)
+      ? cloneElement(children, {
+          organization,
+          hasMetricAlerts,
+        })
+      : children;
+
+  return <Fragment>{content}</Fragment>;
 }
 
-export default withOrganization(AlertsContainer);
+export default AlertsContainer;

@@ -1,5 +1,7 @@
 import time
 from datetime import timedelta
+from unittest import mock
+from unittest.mock import patch
 
 import pytz
 from django.utils import timezone
@@ -27,8 +29,6 @@ from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.cache import cache
-from sentry.utils.compat import mock
-from sentry.utils.compat.mock import patch
 from sentry.utils.hashlib import hash_values
 
 

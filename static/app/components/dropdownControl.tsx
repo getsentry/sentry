@@ -1,11 +1,14 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import DropdownBubble from 'app/components/dropdownBubble';
-import DropdownButton from 'app/components/dropdownButton';
-import DropdownMenu, {GetActorPropsFn, GetMenuPropsFn} from 'app/components/dropdownMenu';
-import MenuItem from 'app/components/menuItem';
-import Tooltip from 'app/components/tooltip';
+import DropdownBubble from 'sentry/components/dropdownBubble';
+import DropdownButton from 'sentry/components/dropdownButton';
+import DropdownMenu, {
+  GetActorPropsFn,
+  GetMenuPropsFn,
+} from 'sentry/components/dropdownMenu';
+import MenuItem from 'sentry/components/menuItem';
+import Tooltip from 'sentry/components/tooltip';
 
 type ButtonPriority = React.ComponentProps<typeof DropdownButton>['priority'];
 
@@ -22,13 +25,13 @@ type DefaultProps = {
 };
 
 type ChildrenArgs = {
-  isOpen: boolean;
   getMenuProps: GetMenuPropsFn;
+  isOpen: boolean;
 };
 
 type ButtonArgs = {
-  isOpen: boolean;
   getActorProps: GetActorPropsFn;
+  isOpen: boolean;
 };
 
 type Props = DefaultProps & {
@@ -37,18 +40,19 @@ type Props = DefaultProps & {
     | React.ReactElement
     | Array<React.ReactElement>;
   /**
-   * String or element for the button contents.
+   * Align the dropdown menu to the right. (Default aligns to left)
    */
-  label?: React.ReactNode;
+  alignRight?: boolean;
+  /**
+   * This makes the dropdown menu blend (e.g. corners are not rounded) with its
+   * actor (opener) component
+   */
+  blendWithActor?: boolean;
   /**
    * A closure that returns a styled button. Function will get {isOpen, getActorProps}
    * as arguments. Use this if you need to style/replace the dropdown button.
    */
   button?: (args: ButtonArgs) => React.ReactNode;
-  /**
-   * Align the dropdown menu to the right. (Default aligns to left)
-   */
-  alignRight?: boolean;
   /**
    * Props to pass to DropdownButton
    */
@@ -57,15 +61,15 @@ type Props = DefaultProps & {
    * Tooltip to show on button when dropdown isn't open
    */
   buttonTooltipTitle?: string | null;
+  className?: string;
+  detached?: boolean;
+
   /**
-   * This makes the dropdown menu blend (e.g. corners are not rounded) with its
-   * actor (opener) component
+   * String or element for the button contents.
    */
-  blendWithActor?: boolean;
+  label?: NonNullable<React.ReactNode>;
 
   priority?: ButtonPriority;
-
-  className?: string;
 };
 
 /*
@@ -80,7 +84,8 @@ class DropdownControl extends React.Component<Props> {
   };
 
   renderButton(isOpen: boolean, getActorProps: GetActorPropsFn) {
-    const {label, button, buttonProps, buttonTooltipTitle, priority} = this.props;
+    const {label, button, buttonProps, buttonTooltipTitle, priority, detached} =
+      this.props;
 
     if (button) {
       return button({isOpen, getActorProps});
@@ -93,6 +98,9 @@ class DropdownControl extends React.Component<Props> {
             priority={priority}
             {...getActorProps(buttonProps)}
             isOpen={isOpen}
+            data-test-id="dropdown-control-button"
+            detached={detached}
+            hideBottomBorder={!detached}
           >
             {label}
           </StyledDropdownButton>
@@ -105,6 +113,9 @@ class DropdownControl extends React.Component<Props> {
         priority={priority}
         {...getActorProps(buttonProps)}
         isOpen={isOpen}
+        data-test-id="dropdown-control-button"
+        detached={detached}
+        hideBottomBorder={!detached}
       >
         {label}
       </StyledDropdownButton>
@@ -112,7 +123,8 @@ class DropdownControl extends React.Component<Props> {
   }
 
   renderChildren(isOpen: boolean, getMenuProps: GetMenuPropsFn) {
-    const {children, alignRight, menuWidth, blendWithActor, priority} = this.props;
+    const {children, alignRight, menuWidth, blendWithActor, priority, detached} =
+      this.props;
 
     if (typeof children === 'function') {
       return children({isOpen, getMenuProps});
@@ -128,7 +140,9 @@ class DropdownControl extends React.Component<Props> {
         width={menuWidth}
         isOpen={isOpen}
         blendWithActor={blendWithActor}
+        detached={detached}
         blendCorner
+        data-test-id="dropdown-control"
       >
         {children}
       </Content>

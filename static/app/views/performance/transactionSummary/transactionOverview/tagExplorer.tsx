@@ -3,42 +3,44 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject} from 'history';
 
-import Feature from 'app/components/acl/feature';
-import {GuideAnchor} from 'app/components/assistant/guideAnchor';
-import Button from 'app/components/button';
-import {SectionHeading} from 'app/components/charts/styles';
-import FeatureBadge from 'app/components/featureBadge';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import Button from 'sentry/components/button';
+import {SectionHeading} from 'sentry/components/charts/styles';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumn,
   GridColumnOrder,
-} from 'app/components/gridEditable';
-import SortLink from 'app/components/gridEditable/sortLink';
-import Link from 'app/components/links/link';
-import Pagination, {CursorHandler} from 'app/components/pagination';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import EventView, {fromSorts, isFieldSortable} from 'app/utils/discover/eventView';
-import {fieldAlignment} from 'app/utils/discover/fields';
-import {formatPercentage} from 'app/utils/formatters';
+} from 'sentry/components/gridEditable';
+import SortLink from 'sentry/components/gridEditable/sortLink';
+import Link from 'sentry/components/links/link';
+import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import PerformanceDuration from 'sentry/components/performanceDuration';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import EventView, {fromSorts, isFieldSortable} from 'sentry/utils/discover/eventView';
+import {fieldAlignment} from 'sentry/utils/discover/fields';
+import {formatPercentage} from 'sentry/utils/formatters';
 import SegmentExplorerQuery, {
   TableData,
   TableDataRow,
-} from 'app/utils/performance/segmentExplorer/segmentExplorerQuery';
-import {decodeScalar} from 'app/utils/queryString';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
-import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
-import {TableColumn} from 'app/views/eventsV2/table/types';
+} from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import CellAction, {Actions, updateQuery} from 'sentry/views/eventsV2/table/cellAction';
+import {TableColumn} from 'sentry/views/eventsV2/table/types';
 
 import {
-  PerformanceDuration,
   platformAndConditionsToPerformanceType,
   PROJECT_PERFORMANCE_TYPE,
 } from '../../utils';
-import {SpanOperationBreakdownFilter} from '../filter';
+import {
+  SPAN_OPERATION_BREAKDOWN_FILTER_TO_FIELD,
+  SpanOperationBreakdownFilter,
+} from '../filter';
 import {tagsRouteWithQuery} from '../transactionTags/utils';
+import {normalizeSearchConditions} from '../utils';
 
 const TAGS_CURSOR_NAME = 'tags_cursor';
 
@@ -117,19 +119,12 @@ const COLUMN_ORDER: TagColumn[] = [
   },
 ];
 
-const filterToField = {
-  [SpanOperationBreakdownFilter.Browser]: 'spans.browser',
-  [SpanOperationBreakdownFilter.Http]: 'spans.http',
-  [SpanOperationBreakdownFilter.Db]: 'spans.db',
-  [SpanOperationBreakdownFilter.Resource]: 'spans.resource',
-};
-
 export const getTransactionField = (
   currentFilter: SpanOperationBreakdownFilter,
   projects: Project[],
   eventView: EventView
 ) => {
-  const fieldFromFilter = filterToField[currentFilter];
+  const fieldFromFilter = SPAN_OPERATION_BREAKDOWN_FILTER_TO_FIELD[currentFilter];
   if (fieldFromFilter) {
     return fieldFromFilter;
   }
@@ -154,7 +149,7 @@ const getColumnsWithReplacedDuration = (
     return columns;
   }
 
-  const fieldFromFilter = filterToField[currentFilter];
+  const fieldFromFilter = SPAN_OPERATION_BREAKDOWN_FILTER_TO_FIELD[currentFilter];
   if (fieldFromFilter) {
     durationColumn.name = 'Avg Span Duration';
     return columns;
@@ -178,12 +173,12 @@ export function TagValue(props: TagValueProps) {
 }
 
 type Props = {
+  currentFilter: SpanOperationBreakdownFilter;
   eventView: EventView;
-  organization: Organization;
   location: Location;
+  organization: Organization;
   projects: Project[];
   transactionName: string;
-  currentFilter: SpanOperationBreakdownFilter;
 };
 
 type State = {
@@ -309,10 +304,7 @@ class _TagExplorer extends React.Component<Props> {
         organization_id: parseInt(organization.id, 10),
       });
 
-      const searchConditions = new MutableSearch(eventView.query);
-
-      // remove any event.type queries since it is implied to apply to only transactions
-      searchConditions.removeFilter('event.type');
+      const searchConditions = normalizeSearchConditions(eventView.query);
 
       updateQuery(searchConditions, action, {...column, name: actionRow.id}, tagValue);
 
@@ -352,18 +344,9 @@ class _TagExplorer extends React.Component<Props> {
         query: {...location.query, tagKey: dataRow.tags_key},
       });
       return (
-        <Feature features={['performance-tag-page']} organization={organization}>
-          {({hasFeature}) => {
-            if (hasFeature) {
-              return (
-                <Link to={target} onClick={() => this.onTagKeyClick()}>
-                  {dataRow.tags_key}
-                </Link>
-              );
-            }
-            return dataRow.tags_key;
-          }}
-        </Feature>
+        <Link to={target} onClick={() => this.onTagKeyClick()}>
+          {dataRow.tags_key}
+        </Link>
       );
     }
 
@@ -378,27 +361,7 @@ class _TagExplorer extends React.Component<Props> {
           handleCellAction={this.handleCellAction(column, dataRow.tags_value, actionRow)}
           allowActions={allowActions}
         >
-          <Feature features={['performance-tag-page']} organization={organization}>
-            {({hasFeature}) => {
-              if (hasFeature) {
-                return <div className="truncate">{dataRow.tags_value}</div>;
-              }
-              return (
-                <Link
-                  to=""
-                  onClick={() =>
-                    this.handleTagValueClick(
-                      location,
-                      dataRow.tags_key,
-                      dataRow.tags_value
-                    )
-                  }
-                >
-                  <TagValue row={dataRow} />
-                </Link>
-              );
-            }}
-          </Feature>
+          <div className="truncate">{dataRow.tags_value}</div>
         </CellAction>
       );
     }
@@ -519,10 +482,10 @@ class _TagExplorer extends React.Component<Props> {
 }
 
 type HeaderProps = {
-  organization: Organization;
-  transactionName: string;
   location: Location;
+  organization: Organization;
   pageLinks: string | null;
+  transactionName: string;
 };
 
 function TagsHeader(props: HeaderProps) {
@@ -560,31 +523,31 @@ function TagsHeader(props: HeaderProps) {
     <Header>
       <div>
         <SectionHeading>{t('Suspect Tags')}</SectionHeading>
-        <FeatureBadge type="new" />
       </div>
-      <Feature features={['performance-tag-page']} organization={organization}>
-        <Button
-          onClick={handleViewAllTagsClick}
-          to={viewAllTarget}
-          size="small"
-          data-test-id="tags-explorer-open-tags"
-        >
-          {t('View All Tags')}
-        </Button>
-      </Feature>
-      <StyledPagination pageLinks={pageLinks} onCursor={handleCursor} size="small" />
+      <Button
+        onClick={handleViewAllTagsClick}
+        to={viewAllTarget}
+        size="xsmall"
+        data-test-id="tags-explorer-open-tags"
+      >
+        {t('View All Tags')}
+      </Button>
+      <StyledPagination pageLinks={pageLinks} onCursor={handleCursor} size="xsmall" />
     </Header>
   );
 }
 
 const AlignRight = styled('div')`
   text-align: right;
+  font-variant-numeric: tabular-nums;
+  width: 100%;
 `;
 
 const Header = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto auto;
   margin-bottom: ${space(1)};
+  align-items: center;
 `;
 
 const StyledPagination = styled(Pagination)`

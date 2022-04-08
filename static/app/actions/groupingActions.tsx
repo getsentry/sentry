@@ -1,7 +1,7 @@
-import Reflux from 'reflux';
+import {createActions} from 'reflux';
 
 // Actions for "Grouping" view - for merging/unmerging events/issues
-const GroupingActions = Reflux.createActions([
+const GroupingActions = createActions([
   'fetch',
   'showAllSimilarItems',
   'toggleUnmerge',
@@ -11,4 +11,5 @@ const GroupingActions = Reflux.createActions([
   'toggleCollapseFingerprint',
   'toggleCollapseFingerprints',
 ]);
+
 export default GroupingActions;

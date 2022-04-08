@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {PanelItem} from 'app/components/panels';
+import {PanelItem} from 'sentry/components/panels';
 
 const PreviewPanelItem = styled(PanelItem)`
   overflow: auto;

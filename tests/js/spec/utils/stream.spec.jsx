@@ -1,4 +1,4 @@
-import {objToQuery, queryToObj} from 'app/utils/stream';
+import {objToQuery, queryToObj} from 'sentry/utils/stream';
 
 describe('utils/stream', function () {
   describe('queryToObj()', function () {

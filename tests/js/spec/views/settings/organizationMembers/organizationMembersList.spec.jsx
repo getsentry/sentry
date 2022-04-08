@@ -4,17 +4,17 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 import {selectByValue} from 'sentry-test/select-new';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
-import ConfigStore from 'app/stores/configStore';
-import OrganizationsStore from 'app/stores/organizationsStore';
-import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import OrganizationMembersList from 'app/views/settings/organizationMembers/organizationMembersList';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
+import ConfigStore from 'sentry/stores/configStore';
+import OrganizationsStore from 'sentry/stores/organizationsStore';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import OrganizationMembersList from 'sentry/views/settings/organizationMembers/organizationMembersList';
 
-jest.mock('app/utils/analytics/trackAdvancedAnalyticsEvent', () => jest.fn());
+jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent', () => jest.fn());
 
-jest.mock('app/api');
-jest.mock('app/actionCreators/indicator');
+jest.mock('sentry/api');
+jest.mock('sentry/actionCreators/indicator');
 
 const roles = [
   {

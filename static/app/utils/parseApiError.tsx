@@ -1,4 +1,4 @@
-import {ResponseMeta} from 'app/api';
+import {ResponseMeta} from 'sentry/api';
 
 export default function parseApiError(resp: ResponseMeta): string {
   const {detail} = (resp && resp.responseJSON) || ({} as object);

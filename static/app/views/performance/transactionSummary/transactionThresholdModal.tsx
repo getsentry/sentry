@@ -4,22 +4,22 @@ import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 import set from 'lodash/set';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {ModalRenderProps} from 'app/actionCreators/modal';
-import {Client} from 'app/api';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import SelectControl from 'app/components/forms/selectControl';
-import Link from 'app/components/links/link';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import {defined} from 'app/utils';
-import EventView from 'app/utils/discover/eventView';
-import withApi from 'app/utils/withApi';
-import withProjects from 'app/utils/withProjects';
-import Input from 'app/views/settings/components/forms/controls/input';
-import Field from 'app/views/settings/components/forms/field';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import Input from 'sentry/components/forms/controls/input';
+import Field from 'sentry/components/forms/field';
+import SelectControl from 'sentry/components/forms/selectControl';
+import Link from 'sentry/components/links/link';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import EventView from 'sentry/utils/discover/eventView';
+import withApi from 'sentry/utils/withApi';
+import withProjects from 'sentry/utils/withProjects';
 
 import {transactionSummaryRouteWithQuery} from './utils';
 
@@ -35,20 +35,20 @@ export const METRIC_CHOICES = [
 
 type Props = {
   api: Client;
-  organization: Organization;
-  transactionName: string;
-  onApply?: (threshold, metric) => void;
-  project?: string;
-  projects: Project[];
   eventView: EventView;
+  organization: Organization;
+  projects: Project[];
+  transactionName: string;
   transactionThreshold: number | undefined;
   transactionThresholdMetric: TransactionThresholdMetric | undefined;
+  onApply?: (threshold, metric) => void;
+  project?: string;
 } & ModalRenderProps;
 
 type State = {
-  threshold: number | undefined;
-  metric: TransactionThresholdMetric | undefined;
   error: string | null;
+  metric: TransactionThresholdMetric | undefined;
+  threshold: number | undefined;
 };
 
 class TransactionThresholdModal extends React.Component<Props, State> {
@@ -63,10 +63,9 @@ class TransactionThresholdModal extends React.Component<Props, State> {
 
     if (defined(project)) {
       return projects.find(proj => proj.id === project);
-    } else {
-      const projectId = String(eventView.project[0]);
-      return projects.find(proj => proj.id === projectId);
     }
+    const projectId = String(eventView.project[0]);
+    return projects.find(proj => proj.id === projectId);
   }
 
   handleApply = async (event: React.FormEvent) => {
@@ -274,7 +273,7 @@ class TransactionThresholdModal extends React.Component<Props, State> {
               {t('Reset All')}
             </Button>
             <Button
-              label={t('Apply')}
+              aria-label={t('Apply')}
               priority="primary"
               onClick={this.handleApply}
               data-test-id="apply-threshold"

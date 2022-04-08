@@ -1,46 +1,46 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Access from 'app/components/acl/access';
-import Feature from 'app/components/acl/feature';
-import FeatureDisabled from 'app/components/acl/featureDisabled';
-import Button from 'app/components/button';
-import Hovercard from 'app/components/hovercard';
-import {PanelItem} from 'app/components/panels';
-import Tag from 'app/components/tag';
-import {IconLock} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {AuthProvider} from 'app/types';
-import {FeatureDisabledHooks} from 'app/types/hooks';
-import {descopeFeatureName} from 'app/utils';
+import Access from 'sentry/components/acl/access';
+import Feature from 'sentry/components/acl/feature';
+import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import Button from 'sentry/components/button';
+import {Hovercard} from 'sentry/components/hovercard';
+import {PanelItem} from 'sentry/components/panels';
+import Tag from 'sentry/components/tag';
+import {IconLock} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {AuthProvider} from 'sentry/types';
+import {FeatureDisabledHooks} from 'sentry/types/hooks';
+import {descopeFeatureName} from 'sentry/utils';
 
 type RenderInstallButtonProps = {
+  hasFeature: boolean;
   /**
    * We pass the provider so that it may be passed into any hook provided
    * callbacks.
    */
   provider: AuthProvider;
-  hasFeature: boolean;
 };
 
 type LockedFeatureProps = {
-  provider: AuthProvider;
   features: string[];
+  provider: AuthProvider;
   className?: string;
 };
 
 type FeatureRenderProps = {
-  children?: (p: FeatureRenderProps) => React.ReactNode;
-  hasFeature: boolean;
   features: string[];
+  hasFeature: boolean;
   renderDisabled: (p: LockedFeatureProps) => React.ReactNode;
   renderInstallButton: (p: RenderInstallButtonProps) => React.ReactNode;
+  children?: (p: FeatureRenderProps) => React.ReactNode;
 };
 
 type Props = {
-  provider: AuthProvider;
   active: boolean;
+  provider: AuthProvider;
   onConfigure?: (providerKey: string, e: React.MouseEvent) => void;
 };
 
@@ -151,7 +151,7 @@ const ProviderInfo = styled('div')`
   flex: 1;
   display: grid;
   grid-template-columns: max-content 1fr;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
 `;
 
 const ProviderLogo = styled('div')`
@@ -203,6 +203,6 @@ const LockedFeature = ({provider, features, className}: LockedFeatureProps) => (
       />
     }
   >
-    <Tag icon={<IconLock />}>{t('disabled')}</Tag>
+    <Tag icon={<IconLock isSolid />}>{t('disabled')}</Tag>
   </DisabledHovercard>
 );

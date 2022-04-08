@@ -1,29 +1,33 @@
 import * as React from 'react';
 import {InjectedRouter} from 'react-router';
-import {EChartOption} from 'echarts/lib/echarts';
+import type {
+  DataZoomComponentOption,
+  ToolboxComponentOption,
+  XAXisComponentOption,
+} from 'echarts';
 import moment from 'moment';
 import * as qs from 'query-string';
 
-import {updateDateTime} from 'app/actionCreators/globalSelection';
-import DataZoomInside from 'app/components/charts/components/dataZoomInside';
-import ToolBox from 'app/components/charts/components/toolBox';
-import {DateString} from 'app/types';
+import {updateDateTime} from 'sentry/actionCreators/pageFilters';
+import DataZoomInside from 'sentry/components/charts/components/dataZoomInside';
+import ToolBox from 'sentry/components/charts/components/toolBox';
+import {DateString} from 'sentry/types';
 import {
   EChartChartReadyHandler,
   EChartDataZoomHandler,
   EChartFinishedHandler,
   EChartRestoreHandler,
-} from 'app/types/echarts';
-import {callIfFunction} from 'app/utils/callIfFunction';
-import {getUtcDateString, getUtcToLocalDateObject} from 'app/utils/dates';
+} from 'sentry/types/echarts';
+import {callIfFunction} from 'sentry/utils/callIfFunction';
+import {getUtcDateString, getUtcToLocalDateObject} from 'sentry/utils/dates';
 
 const getDate = date =>
   date ? moment.utc(date).format(moment.HTML5_FMT.DATETIME_LOCAL_SECONDS) : null;
 
 type Period = {
-  period: string;
-  start: DateString;
   end: DateString;
+  period: string | null;
+  start: DateString;
 };
 
 const ZoomPropKeys = [
@@ -36,31 +40,31 @@ const ZoomPropKeys = [
 ] as const;
 
 export type ZoomRenderProps = Pick<Props, typeof ZoomPropKeys[number]> & {
-  utc?: boolean;
-  start?: Date;
+  dataZoom?: DataZoomComponentOption[];
   end?: Date;
   isGroupedByDate?: boolean;
   showTimeInTooltip?: boolean;
-  dataZoom?: EChartOption.DataZoom[];
-  toolBox?: EChartOption['toolbox'];
+  start?: Date;
+  toolBox?: ToolboxComponentOption;
+  utc?: boolean;
 };
 
 type Props = {
-  router?: InjectedRouter;
   children: (props: ZoomRenderProps) => React.ReactNode;
   disabled?: boolean;
-  xAxis?: EChartOption.XAxis;
-  xAxisIndex?: number | number[];
-  start?: DateString;
   end?: DateString;
-  period?: string;
-  utc?: boolean | null;
   onChartReady?: EChartChartReadyHandler;
   onDataZoom?: EChartDataZoomHandler;
   onFinished?: EChartFinishedHandler;
   onRestore?: EChartRestoreHandler;
   onZoom?: (period: Period) => void;
+  period?: string | null;
+  router?: InjectedRouter;
+  start?: DateString;
   usePageDate?: boolean;
+  utc?: boolean | null;
+  xAxis?: XAXisComponentOption;
+  xAxisIndex?: number | number[];
 };
 
 /**
@@ -72,7 +76,7 @@ type Props = {
  * generic if need be in the future.
  */
 class ChartZoom extends React.Component<Props> {
-  constructor(props) {
+  constructor(props: Props) {
     super(props);
 
     // Zoom history
@@ -176,12 +180,6 @@ class ChartZoom extends React.Component<Props> {
    * Enable zoom immediately instead of having to toggle to zoom
    */
   handleChartReady = chart => {
-    chart.dispatchAction({
-      type: 'takeGlobalCursor',
-      key: 'dataZoomSelect',
-      dataZoomSelectActive: true,
-    });
-
     callIfFunction(this.props.onChartReady, chart);
   };
 
@@ -205,11 +203,10 @@ class ChartZoom extends React.Component<Props> {
 
   handleDataZoom = (evt, chart) => {
     const model = chart.getModel();
-    const {xAxis} = model.option;
-    const axis = xAxis[0];
+    const {startValue, endValue} = model._payload.batch[0];
 
     // if `rangeStart` and `rangeEnd` are null, then we are going back
-    if (axis.rangeStart === null && axis.rangeEnd === null) {
+    if (startValue === null && endValue === null) {
       const previousPeriod = this.history.pop();
 
       if (!previousPeriod) {
@@ -218,10 +215,10 @@ class ChartZoom extends React.Component<Props> {
 
       this.setPeriod(previousPeriod);
     } else {
-      const start = moment.utc(axis.rangeStart);
+      const start = moment.utc(startValue);
 
       // Add a day so we go until the end of the day (e.g. next day at midnight)
-      const end = moment.utc(axis.rangeEnd);
+      const end = moment.utc(endValue);
 
       this.setPeriod({period: null, start, end}, true);
     }
@@ -236,11 +233,23 @@ class ChartZoom extends React.Component<Props> {
    * we can let the native zoom animation on the chart complete
    * before we update URL state and re-render
    */
-  handleChartFinished = () => {
+  handleChartFinished = (_props, chart) => {
     if (typeof this.zooming === 'function') {
       this.zooming();
       this.zooming = null;
     }
+
+    // This attempts to activate the area zoom toolbox feature
+    const zoom = chart._componentsViews?.find(c => c._features && c._features.dataZoom);
+    if (zoom && !zoom._features.dataZoom._isZoomActive) {
+      // Calling dispatchAction will re-trigger handleChartFinished
+      chart.dispatchAction({
+        type: 'takeGlobalCursor',
+        key: 'dataZoomSelect',
+        dataZoomSelectActive: true,
+      });
+    }
+
     callIfFunction(this.props.onFinished);
   };
 

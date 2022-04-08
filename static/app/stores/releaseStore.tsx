@@ -1,50 +1,51 @@
-import Reflux from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
-import OrganizationActions from 'app/actions/organizationActions';
-import ReleaseActions from 'app/actions/releaseActions';
-import {Deploy, Organization, Release} from 'app/types';
+import OrganizationActions from 'sentry/actions/organizationActions';
+import ReleaseActions from 'sentry/actions/releaseActions';
+import {Deploy, Organization, Release} from 'sentry/types';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 type StoreRelease = Map<string, Release>;
 type StoreDeploys = Map<string, Array<Deploy>>;
 type StoreLoading = Map<string, boolean>;
 type StoreError = Map<string, Error>;
 
-type ReleaseStoreInterface = {
+interface ReleaseStoreDefinition extends StoreDefinition {
   get(
     projectSlug: string,
     releaseVersion: string
   ): {
-    release: Release | undefined;
-    releaseLoading: boolean | undefined;
-    releaseError: Error | undefined;
     deploys: Array<Deploy> | undefined;
-    deploysLoading: boolean | undefined;
     deploysError: Error | undefined;
+    deploysLoading: boolean | undefined;
+    release: Release | undefined;
+    releaseError: Error | undefined;
+    releaseLoading: boolean | undefined;
   };
 
+  loadDeploys(orgSlug: string, projectSlug: string, releaseVersion: string): void;
+
+  loadDeploysError(projectSlug: string, releaseVersion: string, error: Error): void;
+  loadDeploysSuccess(projectSlug: string, releaseVersion: string, data: Release): void;
+  loadRelease(orgSlug: string, projectSlug: string, releaseVersion: string): void;
+  loadReleaseError(projectSlug: string, releaseVersion: string, error: Error): void;
+  loadReleaseSuccess(projectSlug: string, releaseVersion: string, data: Release): void;
   state: {
+    deploys: StoreDeploys;
+    deploysError: StoreError;
+    deploysLoading: StoreLoading;
     orgSlug: string | undefined;
     release: StoreRelease;
-    releaseLoading: StoreLoading;
     releaseError: StoreError;
-    deploys: StoreDeploys;
-    deploysLoading: StoreLoading;
-    deploysError: StoreError;
+    releaseLoading: StoreLoading;
   };
-
   updateOrganization(org: Organization): void;
-  loadRelease(orgSlug: string, projectSlug: string, releaseVersion: string): void;
-  loadReleaseSuccess(projectSlug: string, releaseVersion: string, data: Release): void;
-  loadReleaseError(projectSlug: string, releaseVersion: string, error: Error): void;
-  loadDeploys(orgSlug: string, projectSlug: string, releaseVersion: string): void;
-  loadDeploysSuccess(projectSlug: string, releaseVersion: string, data: Release): void;
-  loadDeploysError(projectSlug: string, releaseVersion: string, error: Error): void;
-};
+}
 
 export const getReleaseStoreKey = (projectSlug: string, releaseVersion: string) =>
   `${projectSlug}${releaseVersion}`;
 
-const ReleaseStoreConfig: Reflux.StoreDefinition & ReleaseStoreInterface = {
+const storeConfig: ReleaseStoreDefinition = {
   state: {
     orgSlug: undefined,
     release: new Map() as StoreRelease,
@@ -56,9 +57,12 @@ const ReleaseStoreConfig: Reflux.StoreDefinition & ReleaseStoreInterface = {
   },
 
   listenables: ReleaseActions,
+  unsubscribeListeners: [],
 
   init() {
-    this.listenTo(OrganizationActions.update, this.updateOrganization);
+    this.unsubscribeListeners.push(
+      this.listenTo(OrganizationActions.update, this.updateOrganization)
+    );
     this.reset();
   },
 
@@ -222,8 +226,5 @@ const ReleaseStoreConfig: Reflux.StoreDefinition & ReleaseStoreInterface = {
   },
 };
 
-type ReleaseStore = Reflux.Store & ReleaseStoreInterface;
-
-const ReleaseStore = Reflux.createStore(ReleaseStoreConfig) as ReleaseStore;
-
+const ReleaseStore = createStore(makeSafeRefluxStore(storeConfig));
 export default ReleaseStore;

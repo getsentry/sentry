@@ -1,14 +1,14 @@
-import ResolveActions from 'app/components/actions/resolve';
-import {Organization} from 'app/types';
+import ResolveActions from 'sentry/components/actions/resolve';
+import {Organization} from 'sentry/types';
 
 import {ConfirmAction} from './utils';
 
 type Props = {
-  orgSlug: Organization['slug'];
   anySelected: boolean;
-  params: any;
-  onUpdate: (data?: any) => void;
   onShouldConfirm: (action: ConfirmAction) => boolean;
+  onUpdate: (data?: any) => void;
+  orgSlug: Organization['slug'];
+  params: any;
 };
 
 function ResolveActionsContainer({

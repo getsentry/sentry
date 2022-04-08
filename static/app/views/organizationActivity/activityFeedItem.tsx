@@ -1,22 +1,22 @@
 import {Component, createRef} from 'react';
 import styled from '@emotion/styled';
 
-import ActivityAvatar from 'app/components/activity/item/avatar';
-import CommitLink from 'app/components/commitLink';
-import Duration from 'app/components/duration';
-import IssueLink from 'app/components/issueLink';
-import ExternalLink from 'app/components/links/externalLink';
-import Link from 'app/components/links/link';
-import PullRequestLink from 'app/components/pullRequestLink';
-import TimeSince from 'app/components/timeSince';
-import Version from 'app/components/version';
-import VersionHoverCard from 'app/components/versionHoverCard';
-import {t, tct, tn} from 'app/locale';
-import MemberListStore from 'app/stores/memberListStore';
-import TeamStore from 'app/stores/teamStore';
-import space from 'app/styles/space';
-import {Activity, GroupActivity, Organization} from 'app/types';
-import marked from 'app/utils/marked';
+import ActivityAvatar from 'sentry/components/activity/item/avatar';
+import CommitLink from 'sentry/components/commitLink';
+import Duration from 'sentry/components/duration';
+import IssueLink from 'sentry/components/issueLink';
+import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
+import PullRequestLink from 'sentry/components/pullRequestLink';
+import TimeSince from 'sentry/components/timeSince';
+import Version from 'sentry/components/version';
+import VersionHoverCard from 'sentry/components/versionHoverCard';
+import {t, tct, tn} from 'sentry/locale';
+import MemberListStore from 'sentry/stores/memberListStore';
+import TeamStore from 'sentry/stores/teamStore';
+import space from 'sentry/styles/space';
+import {Activity, GroupActivity, Organization} from 'sentry/types';
+import marked from 'sentry/utils/marked';
 
 const defaultProps = {
   defaultClipped: false,
@@ -25,9 +25,9 @@ const defaultProps = {
 type DefaultProps = typeof defaultProps;
 
 type Props = {
-  className?: string;
-  organization: Organization;
   item: Activity;
+  organization: Organization;
+  className?: string;
 } & DefaultProps;
 
 type State = {
@@ -169,7 +169,8 @@ class ActivityItem extends Component<Props, State> {
             duration: <Duration seconds={data.ignoreDuration * 60} />,
             issue: issueLink,
           });
-        } else if (data.ignoreCount && data.ignoreWindow) {
+        }
+        if (data.ignoreCount && data.ignoreWindow) {
           return tct(
             '[author] ignored [issue] until it happens [count] time(s) in [duration]',
             {
@@ -179,13 +180,15 @@ class ActivityItem extends Component<Props, State> {
               issue: issueLink,
             }
           );
-        } else if (data.ignoreCount) {
+        }
+        if (data.ignoreCount) {
           return tct('[author] ignored [issue] until it happens [count] time(s)', {
             author,
             count: data.ignoreCount,
             issue: issueLink,
           });
-        } else if (data.ignoreUserCount && data.ignoreUserWindow) {
+        }
+        if (data.ignoreUserCount && data.ignoreUserWindow) {
           return tct(
             '[author] ignored [issue] until it affects [count] user(s) in [duration]',
             {
@@ -195,7 +198,8 @@ class ActivityItem extends Component<Props, State> {
               issue: issueLink,
             }
           );
-        } else if (data.ignoreUserCount) {
+        }
+        if (data.ignoreUserCount) {
           return tct('[author] ignored [issue] until it affects [count] user(s)', {
             author,
             count: data.ignoreUserCount,
@@ -279,7 +283,8 @@ class ActivityItem extends Component<Props, State> {
             assignee: <span title={assignee.email}>{assignee.name}</span>,
             issue: issueLink,
           });
-        } else if (data.assigneeEmail) {
+        }
+        if (data.assigneeEmail) {
           return tct('[author] assigned [issue] to [assignee]', {
             author,
             assignee: data.assigneeEmail,
@@ -381,7 +386,7 @@ class ActivityItem extends Component<Props, State> {
 
 export default styled(ActivityItem)`
   display: grid;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   grid-template-columns: max-content auto;
   position: relative;
   margin: 0;

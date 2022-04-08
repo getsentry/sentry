@@ -4,28 +4,26 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {PlatformIcon} from 'platformicons';
 
-import {openCreateTeamModal} from 'app/actionCreators/modal';
-import ProjectActions from 'app/actions/projectActions';
-import Alert from 'app/components/alert';
-import Button from 'app/components/button';
-import SelectControl from 'app/components/forms/selectControl';
-import IdBadge from 'app/components/idBadge';
-import PageHeading from 'app/components/pageHeading';
-import PlatformPicker from 'app/components/platformPicker';
-import Tooltip from 'app/components/tooltip';
-import categoryList from 'app/data/platformCategories';
-import {IconAdd} from 'app/icons';
-import {t} from 'app/locale';
-import {inputStyles} from 'app/styles/input';
-import space from 'app/styles/space';
-import {Organization, Project, Team} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import getPlatformName from 'app/utils/getPlatformName';
-import slugify from 'app/utils/slugify';
-import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
-import withTeams from 'app/utils/withTeams';
-import IssueAlertOptions from 'app/views/projectInstall/issueAlertOptions';
+import {openCreateTeamModal} from 'sentry/actionCreators/modal';
+import ProjectActions from 'sentry/actions/projectActions';
+import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
+import TeamSelector from 'sentry/components/forms/teamSelector';
+import PageHeading from 'sentry/components/pageHeading';
+import PlatformPicker from 'sentry/components/platformPicker';
+import categoryList from 'sentry/data/platformCategories';
+import {IconAdd} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {inputStyles} from 'sentry/styles/input';
+import space from 'sentry/styles/space';
+import {Organization, Project, Team} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import getPlatformName from 'sentry/utils/getPlatformName';
+import slugify from 'sentry/utils/slugify';
+import withApi from 'sentry/utils/withApi';
+import withOrganization from 'sentry/utils/withOrganization';
+import withTeams from 'sentry/utils/withTeams';
+import IssueAlertOptions from 'sentry/views/projectInstall/issueAlertOptions';
 
 const getCategoryName = (category?: string) =>
   categoryList.find(({id}) => id === category)?.id;
@@ -51,20 +49,20 @@ type IssueAlertFragment = Parameters<
 >[0];
 
 type State = {
+  dataFragment: IssueAlertFragment | undefined;
   error: boolean;
+  inFlight: boolean;
+  platform: PlatformName | null;
   projectName: string;
   team: string;
-  platform: PlatformName | null;
-  inFlight: boolean;
-  dataFragment: IssueAlertFragment | undefined;
 };
 
 class CreateProject extends React.Component<Props, State> {
-  constructor(props, context) {
+  constructor(props: Props, context) {
     super(props, context);
 
-    const {query} = props.location;
-    const {teams} = props.organization;
+    const {teams, location} = props;
+    const {query} = location;
     const accessTeams = teams.filter((team: Team) => team.hasAccess);
 
     const team = query.team || (accessTeams.length && accessTeams[0].slug);
@@ -89,8 +87,6 @@ class CreateProject extends React.Component<Props, State> {
     const {organization} = this.props;
     const {projectName, platform, team} = this.state;
 
-    const teams = this.props.teams.filter(filterTeam => filterTeam.hasAccess);
-
     const createProjectForm = (
       <CreateProjectForm onSubmit={this.createProject}>
         <div>
@@ -110,31 +106,28 @@ class CreateProject extends React.Component<Props, State> {
         <div>
           <FormLabel>{t('Team')}</FormLabel>
           <TeamSelectInput>
-            <SelectControl
+            <TeamSelector
               name="select-team"
               clearable={false}
               value={team}
               placeholder={t('Select a Team')}
               onChange={choice => this.setState({team: choice.value})}
-              options={teams.map(teamItem => ({
-                label: <IdBadge team={teamItem} />,
-                value: teamItem.slug,
-              }))}
+              teamFilter={(filterTeam: Team) => filterTeam.hasAccess}
             />
-            <Tooltip title={t('Create a team')}>
-              <Button
-                borderless
-                data-test-id="create-team"
-                type="button"
-                icon={<IconAdd isCircled />}
-                onClick={() =>
-                  openCreateTeamModal({
-                    organization,
-                    onClose: ({slug}) => this.setState({team: slug}),
-                  })
-                }
-              />
-            </Tooltip>
+            <Button
+              borderless
+              data-test-id="create-team"
+              type="button"
+              icon={<IconAdd isCircled />}
+              onClick={() =>
+                openCreateTeamModal({
+                  organization,
+                  onClose: ({slug}) => this.setState({team: slug}),
+                })
+              }
+              title={t('Create a team')}
+              aria-label={t('Create a team')}
+            />
           </TeamSelectInput>
         </div>
         <div>
@@ -324,13 +317,14 @@ class CreateProject extends React.Component<Props, State> {
   }
 }
 
+// TODO(davidenwang): change to functional component and replace withTeams with useTeams
 export default withApi(withRouter(withOrganization(withTeams(CreateProject))));
 export {CreateProject};
 
 const CreateProjectForm = styled('form')`
   display: grid;
-  grid-template-columns: 300px 250px max-content;
-  grid-gap: ${space(2)};
+  grid-template-columns: 300px minmax(250px, max-content) max-content;
+  gap: ${space(2)};
   align-items: end;
   padding: ${space(3)} 0;
   box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.1);

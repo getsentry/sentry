@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 
-import DateTime from 'app/components/dateTime';
-import Link from 'app/components/links/link';
-import ShortId from 'app/components/shortId';
-import {IconUser} from 'app/icons/iconUser';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
+import DateTime from 'sentry/components/dateTime';
+import Link from 'sentry/components/links/link';
+import ShortId from 'sentry/components/shortId';
+import {IconUser} from 'sentry/icons/iconUser';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
 
 // Styled components used to render discover result sets.
 
@@ -19,11 +19,13 @@ export const VersionContainer = styled('div')`
 
 export const NumberContainer = styled('div')`
   text-align: right;
+  font-variant-numeric: tabular-nums;
   ${overflowEllipsis};
 `;
 
 export const FieldDateTime = styled(DateTime)`
   color: ${p => p.theme.gray300};
+  font-variant-numeric: tabular-nums;
   ${overflowEllipsis};
 `;
 
@@ -33,6 +35,7 @@ export const OverflowLink = styled(Link)`
 
 export const FieldShortId = styled(ShortId)`
   justify-content: flex-start;
+  display: block;
 `;
 
 export const BarContainer = styled('div')`
@@ -43,9 +46,19 @@ export const BarContainer = styled('div')`
 export const FlexContainer = styled('div')`
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  width: 100%;
 `;
 
 export const UserIcon = styled(IconUser)`
   margin-left: ${space(1)};
   color: ${p => p.theme.gray400};
+`;
+
+export const ActorContainer = styled('div')`
+  display: flex;
+  justify-content: center;
+  :hover {
+    cursor: default;
+  }
 `;

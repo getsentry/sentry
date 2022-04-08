@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint, RelaxedSearchPermission
@@ -21,7 +22,7 @@ class SavedSearchSerializer(serializers.Serializer):
 class ProjectSearchDetailsEndpoint(ProjectEndpoint):
     permission_classes = (RelaxedSearchPermission,)
 
-    def get(self, request, project, search_id):
+    def get(self, request: Request, project, search_id) -> Response:
         """
         Retrieve a saved search
 
@@ -37,7 +38,7 @@ class ProjectSearchDetailsEndpoint(ProjectEndpoint):
 
         return Response(serialize(search, request.user))
 
-    def put(self, request, project, search_id):
+    def put(self, request: Request, project, search_id) -> Response:
         """
         Update a saved search
 
@@ -92,7 +93,7 @@ class ProjectSearchDetailsEndpoint(ProjectEndpoint):
 
         return Response(serialize(search, request.user))
 
-    def delete(self, request, project, search_id):
+    def delete(self, request: Request, project, search_id) -> Response:
         """
         Delete a saved search
 

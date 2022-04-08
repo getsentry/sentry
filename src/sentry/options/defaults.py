@@ -51,6 +51,13 @@ register(
     flags=FLAG_PRIORITIZE_DISK,
 )
 register("releasefile.cache-limit", type=Int, default=10 * 1024 * 1024, flags=FLAG_PRIORITIZE_DISK)
+register(
+    "releasefile.cache-max-archive-size",
+    type=Int,
+    default=1024 * 1024 * 1024,
+    flags=FLAG_PRIORITIZE_DISK,
+)
+
 
 # Mail
 register("mail.backend", default="smtp", flags=FLAG_NOSTORE)
@@ -109,9 +116,6 @@ register(
     default={"url": "http://localhost:3021"},
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
 )
-
-# The ratio of requests for which the new stackwalking method should be compared against the old one
-register("symbolicator.compare_stackwalking_methods_rate", default=0.0)
 
 # Killswitch for symbolication sources, based on a list of source IDs. Meant to be used in extreme
 # situations where it is preferable to break symbolication in a few places as opposed to letting
@@ -212,8 +216,6 @@ register("snuba.search.max-chunk-size", default=2000)
 register("snuba.search.max-total-chunk-time-seconds", default=30.0)
 register("snuba.search.hits-sample-size", default=100)
 register("snuba.track-outcomes-sample-rate", default=0.0)
-register("snuba.snql.referrer-rate", default=0.0)
-register("snuba.snql.snql_only", default=1.0)
 
 # The percentage of tagkeys that we want to cache. Set to 1.0 in order to cache everything, <=0.0 to stop caching
 register("snuba.tagstore.cache-tagkeys-rate", default=0.0, flags=FLAG_PRIORITIZE_DISK)
@@ -324,6 +326,9 @@ register("store.load-shed-parsed-pipeline-projects", type=Any, default=[])
 register("store.load-shed-save-event-projects", type=Any, default=[])
 register("store.load-shed-process-event-projects", type=Any, default=[])
 register("store.load-shed-symbolicate-event-projects", type=Any, default=[])
+register("store.symbolicate-event-lpq-never", type=Sequence, default=[])
+register("store.symbolicate-event-lpq-always", type=Sequence, default=[])
+register("post_process.get-autoassign-owners", type=Sequence, default=[])
 
 # Switch for more performant project counter incr
 register("store.projectcounter-modern-upsert-sample-rate", default=0.0)
@@ -353,5 +358,29 @@ register("relay.static_auth", default={}, flags=FLAG_NOSTORE)
 # Write new kafka headers in eventstream
 register("eventstream:kafka-headers", default=False)
 
-# Post process forwarder gets data from Kafka headers
+# Post process forwarder options
+# Gets data from Kafka headers
 register("post-process-forwarder:kafka-headers", default=False)
+# Number of threads to use for post processing
+register("post-process-forwarder:concurrency", default=1)
+
+# Subscription queries sampling rate
+register("subscriptions-query.sample-rate", default=0.01)
+
+# The ratio of symbolication requests for which metrics will be submitted to redis.
+#
+# This is to allow gradual rollout of metrics collection for symbolication requests and can be
+# removed once it is fully rolled out.
+register("symbolicate-event.low-priority.metrics.submission-rate", default=0.0)
+
+# This is to enable the ingestion of suspect spans by project ids.
+register("performance.suspect-spans-ingestion-projects", default={})
+# This is to enable the ingestion of suspect spans by project groups.
+register("performance.suspect-spans-ingestion.rollout-rate", default=0)
+
+# Sampling rate for controlled rollout of a change where ignest-consumer spawns
+# special save_event task for transactions avoiding the preprocess.
+register("store.save-transactions-ingest-consumer-rate", default=0.0)
+
+# Drop delete_old_primary_hash messages for a particular project.
+register("reprocessing2.drop-delete-old-primary-hash", default=[])

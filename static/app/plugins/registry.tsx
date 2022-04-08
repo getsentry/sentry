@@ -1,9 +1,9 @@
 /* eslint no-console:0 */
-import {DefaultIssuePlugin} from 'app/plugins/defaultIssuePlugin';
-import {DefaultPlugin} from 'app/plugins/defaultPlugin';
-import SessionStackPlugin from 'app/plugins/sessionstack';
-import {Plugin} from 'app/types';
-import {defined} from 'app/utils';
+import {DefaultIssuePlugin} from 'sentry/plugins/defaultIssuePlugin';
+import {DefaultPlugin} from 'sentry/plugins/defaultPlugin';
+import SessionStackPlugin from 'sentry/plugins/sessionstack';
+import {Plugin} from 'sentry/types';
+import {defined} from 'sentry/utils';
 
 type PluginComponent =
   | typeof DefaultIssuePlugin

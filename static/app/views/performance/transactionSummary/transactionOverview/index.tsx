@@ -1,101 +1,90 @@
-import {ReactNode, useEffect, useState} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
-import styled from '@emotion/styled';
+import {useEffect} from 'react';
+import {browserHistory} from 'react-router';
 import {Location} from 'history';
 
-import {loadOrganizationTags} from 'app/actionCreators/tags';
-import {Client} from 'app/api';
-import GlobalSdkUpdateAlert from 'app/components/globalSdkUpdateAlert';
-import * as Layout from 'app/components/layouts/thirds';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import {t} from 'app/locale';
-import {PageContent} from 'app/styles/organization';
-import {GlobalSelection, Organization, Project} from 'app/types';
-import {defined} from 'app/utils';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import DiscoverQuery from 'app/utils/discover/discoverQuery';
-import EventView from 'app/utils/discover/eventView';
+import {loadOrganizationTags} from 'sentry/actionCreators/tags';
+import {t} from 'sentry/locale';
+import {Organization, PageFilters, Project} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
+import EventView from 'sentry/utils/discover/eventView';
 import {
   Column,
   isAggregateField,
   QueryFieldValue,
   WebVital,
-} from 'app/utils/discover/fields';
-import {removeHistogramQueryStrings} from 'app/utils/performance/histogram';
-import {decodeScalar} from 'app/utils/queryString';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
-import withApi from 'app/utils/withApi';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import withOrganization from 'app/utils/withOrganization';
-import withProjects from 'app/utils/withProjects';
+} from 'sentry/utils/discover/fields';
+import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useApi from 'sentry/utils/useApi';
+import withOrganization from 'sentry/utils/withOrganization';
+import withPageFilters from 'sentry/utils/withPageFilters';
+import withProjects from 'sentry/utils/withProjects';
 
-import {addRoutePerformanceContext, getTransactionName} from '../../utils';
+import {addRoutePerformanceContext} from '../../utils';
 import {
   decodeFilterFromLocation,
   filterToLocationQuery,
   SpanOperationBreakdownFilter,
 } from '../filter';
-import TransactionHeader from '../header';
+import PageLayout, {ChildProps} from '../pageLayout';
 import Tab from '../tabs';
-import {TransactionThresholdMetric} from '../transactionThresholdModal';
 import {
   PERCENTILE as VITAL_PERCENTILE,
   VITAL_GROUPS,
 } from '../transactionVitals/constants';
 
+import {ZOOM_END, ZOOM_START} from './latencyChart/utils';
 import SummaryContent from './content';
-import {ZOOM_END, ZOOM_START} from './latencyChart';
 
 // Used to cast the totals request to numbers
 // as React.ReactText
 type TotalValues = Record<string, number>;
 
-type Props = RouteComponentProps<{}, {}> & {
-  api: Client;
-  selection: GlobalSelection;
+type Props = {
+  location: Location;
   organization: Organization;
   projects: Project[];
+  selection: PageFilters;
 };
 
 function TransactionOverview(props: Props) {
-  const {api, location, selection, organization, projects} = props;
-  const projectId = decodeScalar(location.query.project);
-  const transactionName = getTransactionName(location);
+  const api = useApi();
 
-  if (!defined(projectId) || !defined(transactionName)) {
-    // If there is no transaction name, redirect to the Performance landing page
-    browserHistory.replace({
-      pathname: `/organizations/${organization.slug}/performance/`,
-      query: {
-        ...location.query,
-      },
-    });
-    return null;
-  }
-
-  const project = projects.find(p => p.id === projectId);
+  const {location, selection, organization, projects} = props;
 
   useEffect(() => {
     loadOrganizationTags(api, organization.slug, selection);
     addRoutePerformanceContext(selection);
   }, [selection]);
 
-  const [incompatibleAlertNotice, setIncompatibleAlertNotice] = useState<ReactNode>(null);
-  const handleIncompatibleQuery = (incompatibleAlertNoticeFn, _errors) => {
-    const notice = incompatibleAlertNoticeFn(() => setIncompatibleAlertNotice(null));
-    setIncompatibleAlertNotice(notice);
-  };
+  return (
+    <PageLayout
+      location={location}
+      organization={organization}
+      projects={projects}
+      tab={Tab.TransactionSummary}
+      getDocumentTitle={getDocumentTitle}
+      generateEventView={generateEventView}
+      childComponent={OverviewContentWrapper}
+    />
+  );
+}
 
-  const [transactionThreshold, setTransactionThreshold] = useState<number | undefined>();
-  const [transactionThresholdMetric, setTransactionThresholdMetric] = useState<
-    TransactionThresholdMetric | undefined
-  >();
+function OverviewContentWrapper(props: ChildProps) {
+  const {
+    location,
+    organization,
+    eventView,
+    projectId,
+    transactionName,
+    transactionThreshold,
+    transactionThresholdMetric,
+  } = props;
 
   const spanOperationBreakdownFilter = decodeFilterFromLocation(location);
 
-  const eventView = generateEventView(location, transactionName);
   const totalsView = getTotalsEventView(organization, eventView);
 
   const onChangeFilter = (newFilter: SpanOperationBreakdownFilter) => {
@@ -114,6 +103,7 @@ function TransactionOverview(props: Props) {
     if (newFilter === SpanOperationBreakdownFilter.None) {
       delete nextQuery.breakdown;
     }
+
     browserHistory.push({
       pathname: location.pathname,
       query: nextQuery,
@@ -121,70 +111,33 @@ function TransactionOverview(props: Props) {
   };
 
   return (
-    <SentryDocumentTitle
-      title={getDocumentTitle(transactionName)}
+    <DiscoverQuery
+      eventView={totalsView}
       orgSlug={organization.slug}
-      projectSlug={project?.slug}
+      location={location}
+      transactionThreshold={transactionThreshold}
+      transactionThresholdMetric={transactionThresholdMetric}
+      referrer="api.performance.transaction-summary"
     >
-      <GlobalSelectionHeader
-        lockedMessageSubject={t('transaction')}
-        shouldForceProject={defined(project)}
-        forceProject={project}
-        specificProjectSlugs={defined(project) ? [project.slug] : []}
-        disableMultipleProjectSelection
-        showProjectSettingsLink
-      >
-        <StyledPageContent>
-          <LightWeightNoProjectMessage organization={organization}>
-            <TransactionHeader
-              eventView={eventView}
-              location={location}
-              organization={organization}
-              projects={projects}
-              transactionName={transactionName}
-              currentTab={Tab.TransactionSummary}
-              hasWebVitals="maybe"
-              handleIncompatibleQuery={handleIncompatibleQuery}
-              onChangeThreshold={(threshold, metric) => {
-                setTransactionThreshold(threshold);
-                setTransactionThresholdMetric(metric);
-              }}
-            />
-            <Layout.Body>
-              <StyledSdkUpdatesAlert />
-              {incompatibleAlertNotice && (
-                <Layout.Main fullWidth>{incompatibleAlertNotice}</Layout.Main>
-              )}
-              <DiscoverQuery
-                eventView={totalsView}
-                orgSlug={organization.slug}
-                location={location}
-                transactionThreshold={transactionThreshold}
-                transactionThresholdMetric={transactionThresholdMetric}
-                referrer="api.performance.transaction-summary"
-              >
-                {({isLoading, error, tableData}) => {
-                  const totals: TotalValues | null = tableData?.data?.[0] ?? null;
-                  return (
-                    <SummaryContent
-                      location={location}
-                      organization={organization}
-                      eventView={eventView}
-                      transactionName={transactionName}
-                      isLoading={isLoading}
-                      error={error}
-                      totalValues={totals}
-                      onChangeFilter={onChangeFilter}
-                      spanOperationBreakdownFilter={spanOperationBreakdownFilter}
-                    />
-                  );
-                }}
-              </DiscoverQuery>
-            </Layout.Body>
-          </LightWeightNoProjectMessage>
-        </StyledPageContent>
-      </GlobalSelectionHeader>
-    </SentryDocumentTitle>
+      {({isLoading, error, tableData}) => {
+        const totals: TotalValues | null =
+          (tableData?.data?.[0] as {[k: string]: number}) ?? null;
+        return (
+          <SummaryContent
+            location={location}
+            organization={organization}
+            eventView={eventView}
+            projectId={projectId}
+            transactionName={transactionName}
+            isLoading={isLoading}
+            error={error}
+            totalValues={totals}
+            onChangeFilter={onChangeFilter}
+            spanOperationBreakdownFilter={spanOperationBreakdownFilter}
+          />
+        );
+      }}
+    </DiscoverQuery>
   );
 }
 
@@ -199,21 +152,25 @@ function getDocumentTitle(transactionName: string): string {
   return [t('Summary'), t('Performance')].join(' - ');
 }
 
-const StyledPageContent = styled(PageContent)`
-  padding: 0;
-`;
-
-function generateEventView(location: Location, transactionName: string): EventView {
+function generateEventView({
+  location,
+  transactionName,
+}: {
+  location: Location;
+  transactionName: string;
+}): EventView {
   // Use the user supplied query but overwrite any transaction or event type
   // conditions they applied.
   const query = decodeScalar(location.query.query, '');
   const conditions = new MutableSearch(query);
-  conditions
-    .setFilterValues('event.type', ['transaction'])
-    .setFilterValues('transaction', [transactionName]);
+
+  conditions.setFilterValues('event.type', ['transaction']);
+  conditions.setFilterValues('transaction', [transactionName]);
 
   Object.keys(conditions.filters).forEach(field => {
-    if (isAggregateField(field)) conditions.removeFilter(field);
+    if (isAggregateField(field)) {
+      conditions.removeFilter(field);
+    }
   });
 
   const fields = ['id', 'user.display', 'transaction.duration', 'trace', 'timestamp'];
@@ -231,9 +188,10 @@ function generateEventView(location: Location, transactionName: string): EventVi
   );
 }
 
-function getTotalsEventView(organization: Organization, eventView: EventView): EventView {
-  const threshold = organization.apdexThreshold.toString();
-
+function getTotalsEventView(
+  _organization: Organization,
+  eventView: EventView
+): EventView {
   const vitals = VITAL_GROUPS.map(({vitals: vs}) => vs).reduce((keys: WebVital[], vs) => {
     vs.forEach(vital => keys.push(vital));
     return keys;
@@ -260,43 +218,22 @@ function getTotalsEventView(organization: Organization, eventView: EventView): E
       kind: 'function',
       function: ['tpm', '', undefined, undefined],
     },
+    {
+      kind: 'function',
+      function: ['count_miserable', 'user', undefined, undefined],
+    },
+    {
+      kind: 'function',
+      function: ['user_misery', '', undefined, undefined],
+    },
+    {
+      kind: 'function',
+      function: ['apdex', '', undefined, undefined],
+    },
   ];
-
-  const featureColumns: QueryFieldValue[] = organization.features.includes(
-    'project-transaction-threshold'
-  )
-    ? [
-        {
-          kind: 'function',
-          function: ['count_miserable', 'user', undefined, undefined],
-        },
-        {
-          kind: 'function',
-          function: ['user_misery', '', undefined, undefined],
-        },
-        {
-          kind: 'function',
-          function: ['apdex', '', undefined, undefined],
-        },
-      ]
-    : [
-        {
-          kind: 'function',
-          function: ['count_miserable', 'user', threshold, undefined],
-        },
-        {
-          kind: 'function',
-          function: ['user_misery', threshold, undefined, undefined],
-        },
-        {
-          kind: 'function',
-          function: ['apdex', threshold, undefined, undefined],
-        },
-      ];
 
   return eventView.withColumns([
     ...totalsColumns,
-    ...featureColumns,
     ...vitals.map(
       vital =>
         ({
@@ -307,16 +244,4 @@ function getTotalsEventView(organization: Organization, eventView: EventView): E
   ]);
 }
 
-const StyledSdkUpdatesAlert = styled(GlobalSdkUpdateAlert)`
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    margin-bottom: 0;
-  }
-`;
-
-StyledSdkUpdatesAlert.defaultProps = {
-  Wrapper: p => <Layout.Main fullWidth {...p} />,
-};
-
-export default withApi(
-  withGlobalSelection(withProjects(withOrganization(TransactionOverview)))
-);
+export default withPageFilters(withProjects(withOrganization(TransactionOverview)));

@@ -1,0 +1,46 @@
+---
+created: '2021-09-20T12:36:00.825449Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "e0e7c4713e9092dc77635d5a0d5db31d"
+  tree_label: "_flushPointerEventQueue"
+  component:
+    app-depth-1*
+      stacktrace*
+        frame* (marked out of app by stack trace rule (family:javascript module:**/packages/flutter/** -app))
+          module*
+            "opt/hostedtoolcache/flutter/2.5.0-stable/x64/packages/flutter/lib/src/gestures/binding"
+          filename (ignored because frame points to a URL)
+            "binding.dart"
+          function* (trimmed javascript function)
+            "_flushPointerEventQueue"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "e0e7c4713e9092dc77635d5a0d5db31d"
+  tree_label: "_flushPointerEventQueue"
+  component:
+    app-depth-max*
+      stacktrace*
+        frame* (marked out of app by stack trace rule (family:javascript module:**/packages/flutter/** -app))
+          module*
+            "opt/hostedtoolcache/flutter/2.5.0-stable/x64/packages/flutter/lib/src/gestures/binding"
+          filename (ignored because frame points to a URL)
+            "binding.dart"
+          function* (trimmed javascript function)
+            "_flushPointerEventQueue"
+--------------------------------------------------------------------------
+system:
+  hash: "e0e7c4713e9092dc77635d5a0d5db31d"
+  tree_label: "_flushPointerEventQueue"
+  component:
+    system*
+      stacktrace*
+        frame* (marked out of app by stack trace rule (family:javascript module:**/packages/flutter/** -app))
+          module*
+            "opt/hostedtoolcache/flutter/2.5.0-stable/x64/packages/flutter/lib/src/gestures/binding"
+          filename (ignored because frame points to a URL)
+            "binding.dart"
+          function* (trimmed javascript function)
+            "_flushPointerEventQueue"

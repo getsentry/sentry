@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import {t} from 'app/locale';
+import {t} from 'sentry/locale';
 
 import {EventExtraData, EventExtraDataType} from './types';
 

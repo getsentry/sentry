@@ -1,7 +1,7 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
+from unittest.mock import patch
 
 import pytest
-import pytz
 import responses
 from django.conf import settings
 from django.core import mail
@@ -9,6 +9,7 @@ from django.utils import timezone
 from exam import fixture, patcher
 from freezegun import freeze_time
 
+from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidSearchQuery
 from sentry.incidents.events import (
     IncidentCommentCreatedEvent,
@@ -18,20 +19,17 @@ from sentry.incidents.events import (
 from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
     DEFAULT_ALERT_RULE_RESOLUTION,
+    DEFAULT_CMP_ALERT_RULE_RESOLUTION,
     WARNING_TRIGGER_LABEL,
     WINDOWED_STATS_DATA_POINTS,
-    AlertRuleNameAlreadyUsedError,
     AlertRuleTriggerLabelAlreadyUsedError,
     InvalidTriggerActionError,
     ProjectsNotAssociatedWithAlertRuleError,
-    calculate_incident_time_range,
     create_alert_rule,
     create_alert_rule_trigger,
     create_alert_rule_trigger_action,
-    create_event_stat_snapshot,
     create_incident,
     create_incident_activity,
-    create_incident_snapshot,
     deduplicate_trigger_actions,
     delete_alert_rule,
     delete_alert_rule_trigger,
@@ -42,8 +40,6 @@ from sentry.incidents.logic import (
     get_available_action_integrations_for_org,
     get_excluded_projects_for_alert_rule,
     get_incident_aggregates,
-    get_incident_event_stats,
-    get_incident_stats,
     get_incident_subscribers,
     get_triggers_for_alert_rule,
     subscribe_to_incident,
@@ -64,25 +60,19 @@ from sentry.incidents.models import (
     IncidentActivity,
     IncidentActivityType,
     IncidentProject,
-    IncidentSnapshot,
     IncidentStatus,
     IncidentStatusMethod,
     IncidentSubscription,
     IncidentTrigger,
     IncidentType,
-    PendingIncidentSnapshot,
-    TimeSeriesSnapshot,
     TriggerStatus,
 )
-from sentry.models import ActorTuple, PagerDutyService
-from sentry.models.integration import Integration
+from sentry.models import ActorTuple, Integration, PagerDutyService
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
 from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQueryEventType
-from sentry.testutils import BaseIncidentsTest, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils import BaseIncidentsTest, SnubaTestCase, TestCase
+from sentry.testutils.cases import SessionMetricsTestCase
 from sentry.utils import json
-from sentry.utils.compat.mock import patch
-from sentry.utils.samples import load_data
 
 
 class CreateIncidentTest(TestCase):
@@ -193,12 +183,7 @@ class UpdateIncidentStatus(TestCase):
         incident = self.create_incident(
             self.organization, title="Test", date_started=timezone.now(), projects=[self.project]
         )
-        with self.assertChanges(
-            lambda: PendingIncidentSnapshot.objects.filter(incident=incident).exists(),
-            before=False,
-            after=True,
-        ):
-            self.run_test(incident, IncidentStatus.CLOSED, timezone.now())
+        self.run_test(incident, IncidentStatus.CLOSED, timezone.now())
 
     def test_closed_specify_date(self):
         incident = self.create_incident(
@@ -207,24 +192,8 @@ class UpdateIncidentStatus(TestCase):
             date_started=timezone.now() - timedelta(days=5),
             projects=[self.project],
         )
-        with self.assertChanges(
-            lambda: PendingIncidentSnapshot.objects.filter(incident=incident).exists(),
-            before=False,
-            after=True,
-        ):
-            date_closed = timezone.now() - timedelta(days=1)
-            self.run_test(incident, IncidentStatus.CLOSED, date_closed, date_closed=date_closed)
-
-    def test_pending_snapshot_management(self):
-        # Test to verify PendingIncidentSnapshot's are created on close, and deleted on open
-        incident = self.create_incident(
-            self.organization, title="Test", date_started=timezone.now(), projects=[self.project]
-        )
-        assert PendingIncidentSnapshot.objects.all().count() == 0
-        update_incident_status(incident, IncidentStatus.CLOSED)
-        assert PendingIncidentSnapshot.objects.filter(incident=incident).count() == 1
-        update_incident_status(incident, IncidentStatus.OPEN)
-        assert PendingIncidentSnapshot.objects.filter(incident=incident).count() == 0
+        date_closed = timezone.now() - timedelta(days=1)
+        self.run_test(incident, IncidentStatus.CLOSED, date_closed, date_closed=date_closed)
 
     def test_all_params(self):
         incident = self.create_incident()
@@ -233,29 +202,7 @@ class UpdateIncidentStatus(TestCase):
         )
 
 
-class BaseIncidentEventStatsTest(BaseIncidentsTest):
-    @fixture
-    def project_incident(self):
-        self.create_event(self.now - timedelta(minutes=2))
-        self.create_event(self.now - timedelta(minutes=2))
-        self.create_event(self.now - timedelta(minutes=1))
-        return self.create_incident(
-            date_started=self.now - timedelta(minutes=5), query="", projects=[self.project]
-        )
-
-    @fixture
-    def group_incident(self):
-        fingerprint = "group-1"
-        event = self.create_event(self.now - timedelta(minutes=2), fingerprint=fingerprint)
-        self.create_event(self.now - timedelta(minutes=2), fingerprint="other-group")
-        self.create_event(self.now - timedelta(minutes=1), fingerprint=fingerprint)
-        return self.create_incident(
-            date_started=self.now - timedelta(minutes=5),
-            query="",
-            projects=[],
-            groups=[event.group],
-        )
-
+class BaseIncidentsValidation:
     def validate_result(self, incident, result, expected_results, start, end, windowed_stats):
         # Duration of 300s, but no alert rule
         time_window = incident.alert_rule.snuba_query.time_window if incident.alert_rule else 60
@@ -280,84 +227,28 @@ class BaseIncidentEventStatsTest(BaseIncidentsTest):
         assert [r["count"] for r in result.data["data"]] == expected_results
 
 
-@freeze_time()
-class GetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
+class BaseIncidentEventStatsTest(BaseIncidentsTest, BaseIncidentsValidation):
     @fixture
-    def bucket_incident(self):
-        incident_start = self.now - timedelta(minutes=23)
-        self.create_event(incident_start + timedelta(seconds=1))
-        self.create_event(incident_start + timedelta(minutes=2))
-        self.create_event(incident_start + timedelta(minutes=6))
-        self.create_event(incident_start + timedelta(minutes=9, seconds=59))
-        self.create_event(incident_start + timedelta(minutes=14))
-        self.create_event(incident_start + timedelta(minutes=16))
-        alert_rule = self.create_alert_rule(time_window=10)
-        return self.create_incident(date_started=incident_start, query="", alert_rule=alert_rule)
-
-    def run_test(self, incident, expected_results, start=None, end=None, windowed_stats=False):
-        kwargs = {}
-        if start is not None:
-            kwargs["start"] = start
-        if end is not None:
-            kwargs["end"] = end
-
-        result = get_incident_event_stats(incident, windowed_stats=windowed_stats, **kwargs)
-        self.validate_result(incident, result, expected_results, start, end, windowed_stats)
-
-    def test_project(self):
-        self.run_test(self.project_incident, [2, 1])
-        self.run_test(self.project_incident, [1], start=self.now - timedelta(minutes=1))
-        self.run_test(self.project_incident, [2], end=self.now - timedelta(minutes=1, seconds=59))
-
-        self.run_test(self.project_incident, [2, 1], windowed_stats=True)
-        self.run_test(
-            self.project_incident,
-            [2, 1],
-            start=self.now - timedelta(minutes=1),
-            windowed_stats=True,
-        )
-        self.run_test(
-            self.project_incident,
-            [2, 1],
-            end=self.now - timedelta(minutes=1, seconds=59),
-            windowed_stats=True,
+    def project_incident(self):
+        self.create_event(self.now - timedelta(minutes=2))
+        self.create_event(self.now - timedelta(minutes=2))
+        self.create_event(self.now - timedelta(minutes=1))
+        return self.create_incident(
+            date_started=self.now - timedelta(minutes=5), query="", projects=[self.project]
         )
 
-    def test_start_bucket(self):
-        self.run_test(self.bucket_incident, [2, 4, 2, 2])
-
-    def test_buckets_already_aligned(self):
-        self.bucket_incident.update(
-            date_started=self.now - timedelta(minutes=30), date_closed=self.now
+    @fixture
+    def group_incident(self):
+        fingerprint = "group-1"
+        event = self.create_event(self.now - timedelta(minutes=2), fingerprint=fingerprint)
+        self.create_event(self.now - timedelta(minutes=2), fingerprint="other-group")
+        self.create_event(self.now - timedelta(minutes=1), fingerprint=fingerprint)
+        return self.create_incident(
+            date_started=self.now - timedelta(minutes=5),
+            query="",
+            projects=[],
+            groups=[event.group],
         )
-        self.run_test(self.bucket_incident, [2, 2, 2])
-
-    def test_start_and_end_bucket(self):
-        self.create_event(self.bucket_incident.date_started + timedelta(minutes=19))
-
-        self.bucket_incident.update(
-            date_closed=self.bucket_incident.date_started + timedelta(minutes=18)
-        )
-        self.run_test(self.bucket_incident, [2, 4, 2, 3, 1])
-
-    def test_with_transactions(self):
-        incident = self.project_incident
-        alert_rule = self.create_alert_rule(
-            self.organization, [self.project], query="", time_window=1
-        )
-        incident.update(alert_rule=alert_rule)
-
-        event_data = load_data("transaction")
-        event_data.update(
-            {
-                "start_timestamp": iso_format(before_now(minutes=2)),
-                "timestamp": iso_format(before_now(minutes=2)),
-            }
-        )
-        event_data["transaction"] = "/foo_transaction/"
-        self.store_event(data=event_data, project_id=self.project.id)
-
-        self.run_test(incident, [2, 1])
 
 
 class BaseIncidentAggregatesTest(BaseIncidentsTest):
@@ -375,28 +266,41 @@ class BaseIncidentAggregatesTest(BaseIncidentsTest):
 
 class GetIncidentAggregatesTest(TestCase, BaseIncidentAggregatesTest):
     def test_projects(self):
-        assert get_incident_aggregates(self.project_incident) == {"count": 4, "unique_users": 2}
+        assert get_incident_aggregates(self.project_incident) == {"count": 4}
 
 
-@freeze_time()
-class CreateEventStatTest(TestCase, BaseIncidentsTest):
-    def test_simple(self):
-        self.create_event(self.now - timedelta(minutes=2))
-        self.create_event(self.now - timedelta(minutes=2))
-        self.create_event(self.now - timedelta(minutes=1))
+class GetCrashRateIncidentAggregatesTest(TestCase, SnubaTestCase):
+    def setUp(self):
+        super().setUp()
+        self.now = timezone.now().replace(minute=0, second=0, microsecond=0)
+        for _ in range(2):
+            self.store_session(self.build_session(status="exited"))
+        self.dataset = QueryDatasets.SESSIONS
+
+    def test_sessions(self):
         incident = self.create_incident(
-            date_started=self.now - timedelta(minutes=5), query="", projects=[self.project]
+            date_started=self.now - timedelta(minutes=120), query="", projects=[self.project]
         )
-        snapshot = create_event_stat_snapshot(incident, windowed_stats=False)
-        assert snapshot.start == incident.date_started - timedelta(minutes=1)
-        assert snapshot.end == incident.current_end_date + timedelta(minutes=1)
-        assert [row[1] for row in snapshot.values] == [2, 1]
+        alert_rule = self.create_alert_rule(
+            self.organization,
+            [self.project],
+            query="",
+            time_window=1,
+            dataset=self.dataset,
+            aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
+        )
+        incident.update(alert_rule=alert_rule)
+        incident_aggregates = get_incident_aggregates(incident)
+        assert "count" in incident_aggregates
+        assert incident_aggregates["count"] == 100.0
 
-        snapshot = create_event_stat_snapshot(incident, windowed_stats=True)
-        expected_start, expected_end = calculate_incident_time_range(incident, windowed_stats=True)
-        assert snapshot.start == expected_start
-        assert snapshot.end == expected_end
-        assert [row[1] for row in snapshot.values] == [2, 1]
+
+class GetCrashRateMetricsIncidentAggregatesTest(
+    GetCrashRateIncidentAggregatesTest, SessionMetricsTestCase
+):
+    def setUp(self):
+        super().setUp()
+        self.dataset = QueryDatasets.METRICS
 
 
 @freeze_time()
@@ -505,207 +409,6 @@ class GetIncidentSubscribersTest(TestCase, BaseIncidentsTest):
         assert list(get_incident_subscribers(incident)) == [subscription]
 
 
-@freeze_time()
-class CreateIncidentSnapshotTest(TestCase, BaseIncidentsTest):
-    def test(self):
-        incident = self.create_incident(self.organization)
-        incident.update(status=IncidentStatus.CLOSED.value)
-        snapshot = create_incident_snapshot(incident, windowed_stats=False)
-        expected_snapshot = create_event_stat_snapshot(incident, windowed_stats=False)
-
-        assert snapshot.event_stats_snapshot.start == expected_snapshot.start
-        assert snapshot.event_stats_snapshot.end == expected_snapshot.end
-        assert snapshot.event_stats_snapshot.values == expected_snapshot.values
-        assert snapshot.event_stats_snapshot.period == expected_snapshot.period
-        assert snapshot.event_stats_snapshot.date_added == expected_snapshot.date_added
-        aggregates = get_incident_aggregates(incident)
-        assert snapshot.unique_users == aggregates["unique_users"]
-        assert snapshot.total_events == aggregates["count"]
-
-    def test_windowed(self):
-        incident = self.create_incident(self.organization)
-        incident.update(status=IncidentStatus.CLOSED.value)
-        snapshot = create_incident_snapshot(incident, windowed_stats=True)
-        expected_snapshot = create_event_stat_snapshot(incident, windowed_stats=True)
-
-        assert snapshot.event_stats_snapshot.start == expected_snapshot.start
-        assert snapshot.event_stats_snapshot.end == expected_snapshot.end
-        assert snapshot.event_stats_snapshot.values == expected_snapshot.values
-        assert snapshot.event_stats_snapshot.period == expected_snapshot.period
-        assert snapshot.event_stats_snapshot.date_added == expected_snapshot.date_added
-        aggregates = get_incident_aggregates(incident)
-        assert snapshot.unique_users == aggregates["unique_users"]
-        assert snapshot.total_events == aggregates["count"]
-
-    def test_windowed_capped_start(self):
-        # When calculating start/end time for long incidents, the start can be
-        # further in the past than we support based on an org's retention period.
-        # This test ensures we cap the query so we never query further back in time than retention.
-
-        time_window = 1500  # more than 24 hours, so gets capped at 10 days
-        alert_rule = self.create_alert_rule(time_window=time_window)
-
-        incident = self.create_incident(self.organization)
-        incident.update(
-            status=IncidentStatus.CLOSED.value,
-            alert_rule=alert_rule,
-            date_started=datetime.utcnow() - timedelta(days=100),
-            date_closed=datetime.utcnow() - timedelta(days=1),
-        )
-
-        start, end = calculate_incident_time_range(incident)
-        assert start == datetime.utcnow().replace(tzinfo=pytz.utc) - timedelta(days=90)
-        assert end == incident.date_closed.replace(tzinfo=pytz.utc) + timedelta(minutes=time_window)
-
-        incident.update(
-            date_closed=datetime.utcnow() - timedelta(days=95),
-        )
-
-        start, end = calculate_incident_time_range(incident)
-        assert start == datetime.utcnow().replace(tzinfo=pytz.utc) - timedelta(days=90)
-        assert end == start
-
-    def test_windowed_capped_end(self):
-        # When processing PendingIncidentSnapshots, the task could run later than we'd like the
-        # end to actually be, so we have logic to cap it to 10 datapoints, or 10 days, whichever is less. This tests that logic.
-
-        time_window = 1500  # more than 24 hours, so gets capped at 10 days
-        alert_rule = self.create_alert_rule(time_window=time_window)
-
-        incident = self.create_incident(self.organization)
-        incident.update(status=IncidentStatus.CLOSED.value, alert_rule=alert_rule)
-        incident.date_closed = timezone.now() - timedelta(days=11)
-
-        start, end = calculate_incident_time_range(incident, windowed_stats=True)
-        assert end == incident.current_end_date + timedelta(days=10)
-
-        alert_rule.snuba_query.update(time_window=600)
-
-        start, end = calculate_incident_time_range(incident, windowed_stats=True)
-        assert end == incident.current_end_date + timedelta(minutes=100)
-
-    def test_skip_existing(self):
-        incident = self.create_incident(self.organization)
-        incident.update(status=IncidentStatus.CLOSED.value)
-        create_incident_snapshot(incident, windowed_stats=False)
-        assert create_incident_snapshot(incident, windowed_stats=False) is None
-
-
-@freeze_time()
-class GetIncidentStatsTest(TestCase, BaseIncidentsTest):
-    def run_test(self, incident):
-        incident_stats = get_incident_stats(incident, windowed_stats=True)
-        event_stats = get_incident_event_stats(incident, windowed_stats=True)
-        assert incident_stats["event_stats"].data["data"] == event_stats.data["data"]
-        expected_start, expected_end = calculate_incident_time_range(incident, windowed_stats=True)
-        assert event_stats.start == expected_start
-        assert event_stats.end == expected_end
-        assert incident_stats["event_stats"].rollup == event_stats.rollup
-
-        aggregates = get_incident_aggregates(incident)
-        assert incident_stats["total_events"] == aggregates["count"]
-        assert incident_stats["unique_users"] == aggregates["unique_users"]
-
-    def test_open(self):
-        open_incident = self.create_incident(
-            self.organization,
-            title="Open",
-            query="",
-            date_started=timezone.now() - timedelta(days=30),
-        )
-        self.run_test(open_incident)
-
-    def test_closed(self):
-        closed_incident = self.create_incident(
-            self.organization,
-            title="Closed",
-            query="",
-            date_started=timezone.now() - timedelta(days=30),
-        )
-        update_incident_status(
-            closed_incident,
-            IncidentStatus.CLOSED,
-            status_method=IncidentStatusMethod.RULE_TRIGGERED,
-        )
-        self.run_test(closed_incident)
-
-    def test_transaction(self):
-        alert_rule = self.create_alert_rule(
-            self.organization, dataset=QueryDatasets.TRANSACTIONS, aggregate="p75()"
-        )
-        open_incident = self.create_incident(
-            self.organization,
-            title="Open",
-            date_started=timezone.now() - timedelta(days=30),
-            alert_rule=alert_rule,
-        )
-        self.run_test(open_incident)
-
-    def test_floats(self):
-        alert_rule = self.create_alert_rule(
-            self.organization, dataset=QueryDatasets.TRANSACTIONS, aggregate="p75()"
-        )
-        incident = self.create_incident(
-            self.organization,
-            title="Hi",
-            date_started=timezone.now() - timedelta(days=30),
-            alert_rule=alert_rule,
-        )
-        update_incident_status(
-            incident, IncidentStatus.CLOSED, status_method=IncidentStatusMethod.RULE_TRIGGERED
-        )
-        time_series_values = [[0, 1], [1, 5], [2, 5.5]]
-        time_series_snapshot = TimeSeriesSnapshot.objects.create(
-            start=timezone.now() - timedelta(hours=1),
-            end=timezone.now(),
-            values=time_series_values,
-            period=3000,
-        )
-        IncidentSnapshot.objects.create(
-            incident=incident,
-            event_stats_snapshot=time_series_snapshot,
-            unique_users=1234,
-            total_events=4567,
-        )
-
-        incident_stats = get_incident_stats(incident, windowed_stats=True)
-        assert incident_stats["event_stats"].data["data"] == [
-            {"time": time, "count": count} for time, count in time_series_values
-        ]
-
-    def test_count_with_none(self):
-        alert_rule = self.create_alert_rule(
-            self.organization, dataset=QueryDatasets.TRANSACTIONS, aggregate="p75()"
-        )
-        incident = self.create_incident(
-            self.organization,
-            title="Hi",
-            date_started=timezone.now() - timedelta(days=30),
-            alert_rule=alert_rule,
-        )
-        update_incident_status(
-            incident, IncidentStatus.CLOSED, status_method=IncidentStatusMethod.RULE_TRIGGERED
-        )
-        time_series_values = [[0, 1], [1, None], [2, 5.5]]
-        time_series_snapshot = TimeSeriesSnapshot.objects.create(
-            start=timezone.now() - timedelta(days=120),
-            end=timezone.now() - timedelta(days=110),
-            values=time_series_values,
-            period=3000,
-        )
-        IncidentSnapshot.objects.create(
-            incident=incident,
-            event_stats_snapshot=time_series_snapshot,
-            unique_users=1234,
-            total_events=4567,
-        )
-
-        incident_stats = get_incident_stats(incident, windowed_stats=True)
-        assert incident_stats["event_stats"].data["data"] == [
-            {"time": time, "count": count} for time, count in time_series_values
-        ]
-
-
 class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
     def test(self):
         name = "hello"
@@ -770,59 +473,6 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
                 1,
             )
 
-    def test_existing_name(self):
-        name = "uh oh"
-        create_alert_rule(
-            self.organization,
-            [self.project],
-            name,
-            "level:error",
-            "count()",
-            1,
-            AlertRuleThresholdType.ABOVE,
-            1,
-        )
-        with self.assertRaises(AlertRuleNameAlreadyUsedError):
-            create_alert_rule(
-                self.organization,
-                [self.project],
-                name,
-                "level:error",
-                "count()",
-                1,
-                AlertRuleThresholdType.ABOVE,
-                1,
-            )
-
-    def test_existing_name_allowed_when_archived(self):
-        name = "allowed"
-        alert_rule_1 = create_alert_rule(
-            self.organization,
-            [self.project],
-            name,
-            "level:error",
-            "count()",
-            1,
-            AlertRuleThresholdType.ABOVE,
-            1,
-        )
-        alert_rule_1.update(status=AlertRuleStatus.SNAPSHOT.value)
-
-        alert_rule_2 = create_alert_rule(
-            self.organization,
-            [self.project],
-            name,
-            "level:error",
-            "count()",
-            1,
-            AlertRuleThresholdType.ABOVE,
-            1,
-        )
-
-        assert alert_rule_1.name == alert_rule_2.name
-        assert alert_rule_1.status == AlertRuleStatus.SNAPSHOT.value
-        assert alert_rule_2.status == AlertRuleStatus.PENDING.value
-
     # This test will fail unless real migrations are run. Refer to migration 0061.
     @pytest.mark.skipif(
         not settings.MIGRATIONS_TEST_MIGRATE, reason="requires custom migration 0061"
@@ -883,6 +533,23 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         )
         assert alert_rule_2.owner.id == self.team.actor.id
 
+    def test_comparison_delta(self):
+        comparison_delta = 60
+        alert_rule = create_alert_rule(
+            self.organization,
+            [self.project],
+            "alert rule 1",
+            "level:error",
+            "count()",
+            1,
+            AlertRuleThresholdType.ABOVE,
+            1,
+            comparison_delta=comparison_delta,
+        )
+        assert alert_rule.snuba_query.subscriptions.get().project == self.project
+        assert alert_rule.comparison_delta == comparison_delta * 60
+        assert alert_rule.snuba_query.resolution == DEFAULT_CMP_ALERT_RULE_RESOLUTION * 60
+
 
 class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
     @fixture
@@ -939,12 +606,6 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
     def test_empty_query(self):
         alert_rule = update_alert_rule(self.alert_rule, query="")
         assert alert_rule.snuba_query.query == ""
-
-    def test_name_used(self):
-        used_name = "uh oh"
-        self.create_alert_rule(name=used_name)
-        with self.assertRaises(AlertRuleNameAlreadyUsedError):
-            update_alert_rule(self.alert_rule, name=used_name)
 
     def test_invalid_query(self):
         with self.assertRaises(InvalidSearchQuery):
@@ -1132,6 +793,29 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             name="not updating owner",
         )
         assert alert_rule.owner.id == self.user.actor.id
+
+        update_alert_rule(
+            alert_rule=alert_rule,
+            owner=None,
+        )
+        assert alert_rule.owner is None
+
+    def test_comparison_delta(self):
+        comparison_delta = 60
+
+        update_alert_rule(self.alert_rule, comparison_delta=comparison_delta)
+        assert self.alert_rule.comparison_delta == comparison_delta * 60
+        assert self.alert_rule.snuba_query.resolution == DEFAULT_CMP_ALERT_RULE_RESOLUTION * 60
+
+        # Should be no change if we don't specify `comparison_delta` for update at all.
+        update_alert_rule(self.alert_rule)
+        assert self.alert_rule.comparison_delta == comparison_delta * 60
+        assert self.alert_rule.snuba_query.resolution == DEFAULT_CMP_ALERT_RULE_RESOLUTION * 60
+
+        # Should change if we explicitly set it to None.
+        update_alert_rule(self.alert_rule, comparison_delta=None)
+        assert self.alert_rule.comparison_delta is None
+        assert self.alert_rule.snuba_query.resolution == DEFAULT_ALERT_RULE_RESOLUTION * 60
 
 
 class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
@@ -1474,7 +1158,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
             )
 
     def test_pagerduty(self):
-        SERVICES = [
+        services = [
             {
                 "type": "service",
                 "integration_key": "PND4F9",
@@ -1486,12 +1170,12 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
             provider="pagerduty",
             name="Example PagerDuty",
             external_id="example-pagerduty",
-            metadata={"services": SERVICES},
+            metadata={"services": services},
         )
         integration.add_organization(self.organization, self.user)
         service = PagerDutyService.objects.create(
-            service_name=SERVICES[0]["service_name"],
-            integration_key=SERVICES[0]["integration_key"],
+            service_name=services[0]["service_name"],
+            integration_key=services[0]["integration_key"],
             organization_integration=integration.organizationintegration_set.first(),
         )
         type = AlertRuleTriggerAction.Type.PAGERDUTY
@@ -1680,7 +1364,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             )
 
     def test_pagerduty(self):
-        SERVICES = [
+        services = [
             {
                 "type": "service",
                 "integration_key": "PND4F9",
@@ -1692,12 +1376,12 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             provider="pagerduty",
             name="Example PagerDuty",
             external_id="example-pagerduty",
-            metadata={"services": SERVICES},
+            metadata={"services": services},
         )
         integration.add_organization(self.organization, self.user)
         service = PagerDutyService.objects.create(
-            service_name=SERVICES[0]["service_name"],
-            integration_key=SERVICES[0]["integration_key"],
+            service_name=services[0]["service_name"],
+            integration_key=services[0]["integration_key"],
             organization_integration=integration.organizationintegration_set.first(),
         )
         type = AlertRuleTriggerAction.Type.PAGERDUTY
@@ -1788,6 +1472,19 @@ class GetAvailableActionIntegrationsForOrgTest(TestCase):
         other_integration = Integration.objects.create(external_id="12345", provider="random")
         other_integration.add_organization(self.organization)
         assert list(get_available_action_integrations_for_org(self.organization)) == [integration]
+
+    def test_disabled_integration(self):
+        integration = Integration.objects.create(
+            external_id="1", provider="slack", status=ObjectStatus.DISABLED
+        )
+        integration.add_organization(self.organization)
+        assert list(get_available_action_integrations_for_org(self.organization)) == []
+
+    def test_disabled_org_integration(self):
+        integration = Integration.objects.create(external_id="1", provider="slack")
+        org_integration = integration.add_organization(self.organization)
+        org_integration.update(status=ObjectStatus.DISABLED)
+        assert list(get_available_action_integrations_for_org(self.organization)) == []
 
 
 class MetricTranslationTest(TestCase):

@@ -1,4 +1,4 @@
-import {defined, formatBytesBase2} from 'app/utils';
+import {defined, formatBytesBase2} from 'sentry/utils';
 
 import {DeviceData, DeviceKnownDataType} from './types';
 

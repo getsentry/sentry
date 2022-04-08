@@ -1,16 +1,17 @@
-import {Component, Fragment} from 'react';
+import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
-import * as queryString from 'query-string';
+import * as qs from 'query-string';
 
-import GroupingActions from 'app/actions/groupingActions';
-import Alert from 'app/components/alert';
-import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {t} from 'app/locale';
-import GroupingStore, {Fingerprint} from 'app/stores/groupingStore';
-import {Group, Organization, Project} from 'app/types';
-import {callIfFunction} from 'app/utils/callIfFunction';
-import withOrganization from 'app/utils/withOrganization';
+import GroupingActions from 'sentry/actions/groupingActions';
+import Alert from 'sentry/components/alert';
+import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {t} from 'sentry/locale';
+import GroupingStore, {Fingerprint} from 'sentry/stores/groupingStore';
+import {Group, Organization, Project} from 'sentry/types';
+import {callIfFunction} from 'sentry/utils/callIfFunction';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import MergedList from './mergedList';
 
@@ -18,15 +19,15 @@ type Props = RouteComponentProps<
   {groupId: Group['id']; orgId: Organization['slug']},
   {}
 > & {
-  project: Project;
   organization: Organization;
+  project: Project;
 };
 
 type State = {
-  query: string;
-  loading: boolean;
   error: boolean;
+  loading: boolean;
   mergedItems: Array<Fingerprint>;
+  query: string;
   mergedLinks?: string;
 };
 
@@ -84,7 +85,7 @@ class GroupMergedView extends Component<Props, State> {
       query: this.state.query,
     };
 
-    return `/issues/${groupId}/hashes/?${queryString.stringify(queryParams)}`;
+    return `/issues/${groupId}/hashes/?${qs.stringify(queryParams)}`;
   }
 
   fetchData = () => {
@@ -114,32 +115,34 @@ class GroupMergedView extends Component<Props, State> {
     const isLoadedSuccessfully = !isError && !isLoading;
 
     return (
-      <Fragment>
-        <Alert type="warning">
-          {t(
-            'This is an experimental feature. Data may not be immediately available while we process unmerges.'
+      <Layout.Body>
+        <Layout.Main fullWidth>
+          <Alert type="warning">
+            {t(
+              'This is an experimental feature. Data may not be immediately available while we process unmerges.'
+            )}
+          </Alert>
+
+          {isLoading && <LoadingIndicator />}
+          {isError && (
+            <LoadingError
+              message={t('Unable to load merged events, please try again later')}
+              onRetry={this.fetchData}
+            />
           )}
-        </Alert>
 
-        {isLoading && <LoadingIndicator />}
-        {isError && (
-          <LoadingError
-            message={t('Unable to load merged events, please try again later')}
-            onRetry={this.fetchData}
-          />
-        )}
-
-        {isLoadedSuccessfully && (
-          <MergedList
-            project={project}
-            fingerprints={mergedItems}
-            pageLinks={mergedLinks}
-            groupId={groupId}
-            onUnmerge={this.handleUnmerge}
-            onToggleCollapse={GroupingActions.toggleCollapseFingerprints}
-          />
-        )}
-      </Fragment>
+          {isLoadedSuccessfully && (
+            <MergedList
+              project={project}
+              fingerprints={mergedItems}
+              pageLinks={mergedLinks}
+              groupId={groupId}
+              onUnmerge={this.handleUnmerge}
+              onToggleCollapse={GroupingActions.toggleCollapseFingerprints}
+            />
+          )}
+        </Layout.Main>
+      </Layout.Body>
     );
   }
 }

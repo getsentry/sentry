@@ -17,19 +17,6 @@ def pytest_configure(config):
     warnings.filterwarnings("error", "", Warning, r"^(?!(|kombu|raven|sentry))")
 
 
-def pytest_addoption(parser):
-    parser.addoption(
-        "--itunes",
-        action="store_true",
-        help="Run iTunes tests, see tests/sentry/utils/appleconnect/itunes",
-    )
-
-
-def pytest_runtest_setup(item):
-    if item.get_closest_marker("itunes") and not item.config.getoption("--itunes"):
-        pytest.skip("Test requires --itunes")
-
-
 # XXX: The below code is vendored code from https://github.com/utgwkk/pytest-github-actions-annotate-failures
 # so that we can add support for pytest_rerunfailures
 # retried tests will no longer be annotated in GHA
@@ -54,16 +41,14 @@ def pytest_runtest_makereport(item, call):
     if os.environ.get("GITHUB_ACTIONS") != "true":
         return
 
-    try:
-        # If we have the pytest_rerunfailures plugin,
-        # and there are still retries to be run,
-        # then do not return the error
+    # If we have the pytest_rerunfailures plugin,
+    # and there are still retries to be run,
+    # then do not return the error
+    if hasattr(item, "execution_count"):
         import pytest_rerunfailures
 
         if item.execution_count <= pytest_rerunfailures.get_reruns_count(item):
             return
-    except ImportError:
-        pass
 
     if report.when == "call" and report.failed:
         # collect information to be annotated
@@ -83,8 +68,9 @@ def pytest_runtest_makereport(item, call):
             if not rel_path.startswith(".."):
                 filesystempath = rel_path
 
-        # 0-index to 1-index
-        lineno += 1
+        if lineno is not None:
+            # 0-index to 1-index
+            lineno += 1
 
         # get the name of the current failed test, with parametrize info
         longrepr = report.head_line or item.name
@@ -93,13 +79,10 @@ def pytest_runtest_makereport(item, call):
         try:
             longrepr += "\n\n" + report.longrepr.reprcrash.message
             lineno = report.longrepr.reprcrash.lineno
-
         except AttributeError:
             pass
 
-        print(  # noqa: B314
-            _error_workflow_command(filesystempath, lineno, longrepr), file=sys.stderr
-        )
+        print(_error_workflow_command(filesystempath, lineno, longrepr))  # noqa: B314
 
 
 def _error_workflow_command(filesystempath, lineno, longrepr):

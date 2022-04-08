@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import logging
-from typing import Any, Mapping, MutableMapping, Optional, Sequence, Tuple
+from typing import Any, Generator, Sequence
 
 from django import forms
 from django.core.exceptions import ValidationError
@@ -8,13 +10,16 @@ from django.utils.translation import ugettext_lazy as _
 from sentry.eventstore.models import Event
 from sentry.integrations.slack.message_builder.issues import build_group_attachment
 from sentry.models import Integration
+from sentry.notifications.additional_attachment_manager import get_additional_attachment
+from sentry.rules import EventState
 from sentry.rules.actions.base import IntegrationEventAction
-from sentry.rules.processor import RuleFuture
+from sentry.rules.base import CallbackFuture
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiRateLimitedError,
     DuplicateDisplayNameError,
 )
+from sentry.types.rules import RuleFuture
 from sentry.utils import json, metrics
 
 from .client import SlackClient
@@ -31,7 +36,7 @@ logger = logging.getLogger("sentry.rules")
 class SlackNotifyServiceForm(forms.Form):  # type: ignore
     workspace = forms.ChoiceField(choices=(), widget=forms.Select())
     channel = forms.CharField(widget=forms.TextInput())
-    channel_id = forms.HiddenInput()
+    channel_id = forms.CharField(required=False, widget=forms.TextInput())
     tags = forms.CharField(required=False, widget=forms.TextInput())
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -52,8 +57,12 @@ class SlackNotifyServiceForm(forms.Form):  # type: ignore
         # in the task (integrations/slack/tasks.py) if the channel_id is found.
         self._pending_save = False
 
-    def clean(self) -> Mapping[str, Any]:
-        channel_id = self.data.get("inputChannelId") or self.data.get("input_channel_id")
+    def clean(self) -> dict[str, Any] | None:
+        channel_id = (
+            self.data.get("inputChannelId")
+            or self.data.get("input_channel_id")
+            or self.data.get("channel_id")
+        )
         if channel_id:
             logger.info(
                 "rule.slack.provide_channel_id",
@@ -62,12 +71,19 @@ class SlackNotifyServiceForm(forms.Form):  # type: ignore
                     "channel_id": self.data.get("channel_id"),
                 },
             )
+            if not self.data.get("channel"):
+                raise forms.ValidationError(
+                    _(
+                        "Slack channel name is a required field.",
+                    ),
+                    code="invalid",
+                )
             # default to "#" if they have the channel name without the prefix
             channel_prefix = self.data["channel"][0] if self.data["channel"][0] == "@" else "#"
 
-        cleaned_data: MutableMapping[str, Any] = super().clean()
+        cleaned_data: dict[str, Any] = super().clean()
 
-        workspace: Optional[int] = cleaned_data.get("workspace")
+        workspace: int | None = cleaned_data.get("workspace")
 
         if channel_id:
             try:
@@ -96,6 +112,8 @@ class SlackNotifyServiceForm(forms.Form):  # type: ignore
             )
 
         channel = cleaned_data.get("channel", "")
+        timed_out = False
+        channel_prefix = ""
 
         # XXX(meredith): If the user is creating/updating a rule via the API and provides
         # the channel_id in the request, we don't need to call the channel_transformer - we
@@ -145,9 +163,10 @@ class SlackNotifyServiceForm(forms.Form):  # type: ignore
         return cleaned_data
 
 
-class SlackNotifyServiceAction(IntegrationEventAction):  # type: ignore
+class SlackNotifyServiceAction(IntegrationEventAction):
+    id = "sentry.integrations.slack.notify_action.SlackNotifyServiceAction"
     form_cls = SlackNotifyServiceForm
-    label = "Send a notification to the {workspace} Slack workspace to {channel} and show tags {tags} in notification"
+    label = "Send a notification to the {workspace} Slack workspace to {channel} (optionally, an ID: {channel_id}) and show tags {tags} in notification"
     prompt = "Send a Slack notification"
     provider = "slack"
     integration_key = "workspace"
@@ -160,10 +179,11 @@ class SlackNotifyServiceAction(IntegrationEventAction):  # type: ignore
                 "choices": [(i.id, i.name) for i in self.get_integrations()],
             },
             "channel": {"type": "string", "placeholder": "i.e #critical"},
+            "channel_id": {"type": "string", "placeholder": "i.e. CA2FRA079 or UA1J9RTE1"},
             "tags": {"type": "string", "placeholder": "i.e environment,user,my_tag"},
         }
 
-    def after(self, event: Event, state: str) -> Any:
+    def after(self, event: Event, state: EventState) -> Generator[CallbackFuture, None, None]:
         channel = self.get_option("channel_id")
         tags = set(self.get_tags_list())
 
@@ -176,6 +196,12 @@ class SlackNotifyServiceAction(IntegrationEventAction):  # type: ignore
         def send_notification(event: Event, futures: Sequence[RuleFuture]) -> None:
             rules = [f.rule for f in futures]
             attachments = [build_group_attachment(event.group, event=event, tags=tags, rules=rules)]
+            # getsentry might add a billing related attachment
+            additional_attachment = get_additional_attachment(
+                integration, self.project.organization
+            )
+            if additional_attachment:
+                attachments.append(additional_attachment)
 
             payload = {
                 "token": integration.metadata["access_token"],
@@ -209,6 +235,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):  # type: ignore
         return self.label.format(
             workspace=self.get_integration_name(),
             channel=self.get_option("channel"),
+            channel_id=self.get_option("channel_id"),
             tags="[{}]".format(", ".join(tags)),
         )
 
@@ -220,7 +247,5 @@ class SlackNotifyServiceAction(IntegrationEventAction):  # type: ignore
             self.data, integrations=self.get_integrations(), channel_transformer=self.get_channel_id
         )
 
-    def get_channel_id(
-        self, integration: Integration, name: str
-    ) -> Tuple[str, Optional[str], bool]:
+    def get_channel_id(self, integration: Integration, name: str) -> tuple[str, str | None, bool]:
         return get_channel_id(self.project.organization, integration, name)

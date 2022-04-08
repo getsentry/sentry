@@ -1,24 +1,24 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import OpsBreakdown from 'app/components/events/opsBreakdown';
+import OpsBreakdown from 'sentry/components/events/opsBreakdown';
 import {
   DividerSpacer,
   ScrollbarContainer,
   VirtualScrollbar,
   VirtualScrollbarGrip,
-} from 'app/components/performance/waterfall/miniHeader';
+} from 'sentry/components/performance/waterfall/miniHeader';
 import {
   getHumanDuration,
   pickBarColor,
   rectOfContent,
   toPercent,
-} from 'app/components/performance/waterfall/utils';
-import ConfigStore from 'app/stores/configStore';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {EventTransaction} from 'app/types/event';
-import theme from 'app/utils/theme';
+} from 'sentry/components/performance/waterfall/utils';
+import ConfigStore from 'sentry/stores/configStore';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {EventTransaction} from 'sentry/types/event';
+import theme from 'sentry/utils/theme';
 
 import {
   MINIMAP_CONTAINER_HEIGHT,
@@ -46,16 +46,16 @@ import {
 } from './utils';
 
 type PropType = {
-  organization: Organization;
-  minimapInteractiveRef: React.RefObject<HTMLDivElement>;
-  virtualScrollBarContainerRef: React.RefObject<HTMLDivElement>;
   dragProps: DragManagerChildrenProps;
-  trace: ParsedTraceType;
   event: EventTransaction;
+  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
+  minimapInteractiveRef: React.RefObject<HTMLDivElement>;
   operationNameFilters: ActiveOperationFilter;
+  organization: Organization;
   rootSpan: RawSpanType;
   spans: EnhancedProcessedSpanType[];
-  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
+  trace: ParsedTraceType;
+  virtualScrollBarContainerRef: React.RefObject<HTMLDivElement>;
 };
 
 type State = {
@@ -94,8 +94,8 @@ class TraceViewHeader extends React.Component<PropType, State> {
     mouseLeft,
   }: {
     cursorGuideHeight: number;
-    showCursorGuide: boolean;
     mouseLeft: number | undefined;
+    showCursorGuide: boolean;
   }) {
     if (!showCursorGuide || !mouseLeft) {
       return null;
@@ -185,8 +185,8 @@ class TraceViewHeader extends React.Component<PropType, State> {
     showCursorGuide,
     mouseLeft,
   }: {
-    showCursorGuide: boolean;
     mouseLeft: number | undefined;
+    showCursorGuide: boolean;
   }) {
     if (!showCursorGuide || !mouseLeft) {
       return null;
@@ -304,8 +304,8 @@ class TraceViewHeader extends React.Component<PropType, State> {
     showCursorGuide,
     mouseLeft,
   }: {
-    showCursorGuide: boolean;
     mouseLeft: number | undefined;
+    showCursorGuide: boolean;
   }) {
     return (
       <TimeAxis>
@@ -511,15 +511,15 @@ class TraceViewHeader extends React.Component<PropType, State> {
 }
 
 class ActualMinimap extends React.PureComponent<{
-  spans: EnhancedProcessedSpanType[];
-  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   dividerPosition: number;
+  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   rootSpan: RawSpanType;
+  spans: EnhancedProcessedSpanType[];
 }> {
   renderRootSpan(): React.ReactNode {
     const {spans, generateBounds} = this.props;
 
-    return spans.map(payload => {
+    return spans.map((payload, i) => {
       switch (payload.type) {
         case 'root_span':
         case 'span':
@@ -536,6 +536,7 @@ class ActualMinimap extends React.PureComponent<{
 
           return (
             <MinimapSpanBar
+              key={`${payload.type}-${i}`}
               style={{
                 backgroundColor:
                   payload.type === 'span_group_chain' ? theme.blue300 : spanBarColor,
@@ -543,6 +544,37 @@ class ActualMinimap extends React.PureComponent<{
                 width: spanWidth,
               }}
             />
+          );
+        }
+        case 'span_group_siblings': {
+          const {spanSiblingGrouping} = payload;
+
+          return (
+            <MinimapSiblingGroupBar
+              data-test-id="minimap-sibling-group-bar"
+              key={`${payload.type}-${i}`}
+            >
+              {spanSiblingGrouping?.map(({span}, index) => {
+                const bounds = generateBounds({
+                  startTimestamp: span.start_timestamp,
+                  endTimestamp: span.timestamp,
+                });
+                const {left: spanLeft, width: spanWidth} = this.getBounds(bounds);
+
+                return (
+                  <MinimapSpanBar
+                    style={{
+                      backgroundColor: theme.blue300,
+                      left: spanLeft,
+                      width: spanWidth,
+                      minWidth: 0,
+                      position: 'absolute',
+                    }}
+                    key={index}
+                  />
+                );
+              })}
+            </MinimapSiblingGroupBar>
           );
         }
         default: {
@@ -614,6 +646,7 @@ const TimeAxis = styled('div')`
   color: ${p => p.theme.gray300};
   font-size: 10px;
   font-weight: 500;
+  font-variant-numeric: tabular-nums;
   overflow: hidden;
 `;
 
@@ -662,10 +695,10 @@ const TickMarker = styled('div')`
 `;
 
 const TickLabel = (props: {
-  style: React.CSSProperties;
-  hideTickMarker?: boolean;
-  align?: TickAlignment;
   duration: number;
+  style: React.CSSProperties;
+  align?: TickAlignment;
+  hideTickMarker?: boolean;
 }) => {
   const {style, duration, hideTickMarker = false, align = TickAlignment.Center} = props;
 
@@ -764,6 +797,15 @@ const MinimapSpanBar = styled('div')`
   box-sizing: border-box;
 `;
 
+const MinimapSiblingGroupBar = styled('div')`
+  display: flex;
+  position: relative;
+  height: 2px;
+  min-height: 2px;
+  max-height: 2px;
+  top: -2px;
+`;
+
 const BackgroundSlider = styled('div')`
   position: relative;
 `;
@@ -781,9 +823,9 @@ const Handle = ({
   onMouseDown,
   isDragging,
 }: {
+  isDragging: boolean;
   left: number;
   onMouseDown: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
-  isDragging: boolean;
 }) => (
   <ViewHandleContainer
     style={{

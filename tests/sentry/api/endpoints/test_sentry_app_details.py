@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.urls import reverse
 
 from sentry.constants import SentryAppStatus
@@ -5,7 +7,6 @@ from sentry.models import OrganizationMember, SentryApp
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
 from sentry.utils import json
-from sentry.utils.compat.mock import patch
 
 
 class SentryAppDetailsTest(APITestCase):
@@ -15,17 +16,26 @@ class SentryAppDetailsTest(APITestCase):
         self.org = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.org)
         self.super_org = self.create_organization(owner=self.superuser)
+        self.popularity = 27
         self.published_app = self.create_sentry_app(
-            name="Test", organization=self.org, published=True
+            name="Test",
+            organization=self.org,
+            published=True,
+            popularity=self.popularity,
         )
 
-        self.unpublished_app = self.create_sentry_app(name="Testin", organization=self.org)
+        self.unpublished_app = self.create_sentry_app(
+            name="Testin",
+            organization=self.org,
+            popularity=self.popularity,
+        )
 
         self.unowned_unpublished_app = self.create_sentry_app(
             name="Nosee",
             organization=self.create_organization(),
             scopes=(),
             webhook_url="https://example.com",
+            popularity=self.popularity,
         )
 
         self.internal_integration = self.create_internal_integration(organization=self.org)
@@ -100,9 +110,11 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
                 "webhookUrl": "https://newurl.com",
                 "redirectUrl": "https://newredirecturl.com",
                 "isAlertable": True,
+                "features": [1, 2],
             },
             format="json",
         )
+
         assert json.loads(response.content) == {
             "name": self.published_app.name,
             "author": "A Company",
@@ -123,10 +135,18 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             "owner": {"id": self.org.id, "slug": self.org.slug},
             "featureData": [
                 {
-                    "description": "Test can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course).",
-                    "featureGate": "integrations-api",
-                }
+                    "featureId": 1,
+                    "featureGate": "integrations-issue-link",
+                    "description": "Organizations can **create or link Sentry issues** to another service.",
+                },
+                {
+                    "featureId": 2,
+                    "featureGate": "integrations-stacktrace-link",
+                    "description": "Organizations can **open a line to Sentry's stack trace** in another service.",
+                },
             ],
+            "popularity": self.popularity,
+            "avatars": [],
         }
 
     def test_update_unpublished_app(self):
@@ -141,6 +161,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
                 "webhookUrl": "https://newurl.com",
                 "scopes": ("event:read",),
                 "events": ("issue",),
+                "features": [1, 2],
             },
             format="json",
         )
@@ -152,6 +173,18 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         assert response.data["events"] == {"issue"}
         assert response.data["uuid"] == self.unpublished_app.uuid
         assert response.data["webhookUrl"] == "https://newurl.com"
+        assert response.data["featureData"] == [
+            {
+                "featureId": 1,
+                "featureGate": "integrations-issue-link",
+                "description": "Organizations can **create or link Sentry issues** to another service.",
+            },
+            {
+                "featureId": 2,
+                "featureGate": "integrations-stacktrace-link",
+                "description": "Organizations can **open a line to Sentry's stack trace** in another service.",
+            },
+        ]
 
     def test_can_update_name_with_non_unique_name(self):
         from sentry.mediators import sentry_apps
@@ -197,6 +230,17 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         assert response.status_code == 400
         assert response.data["detail"] == "Cannot update permissions on a published integration."
 
+    def test_cannot_update_features_published_app_permissions(self):
+        self.login_as(user=self.user)
+
+        response = self.client.put(
+            self.url,
+            data={"features": [1, 2, 3]},
+            format="json",
+        )
+        assert response.status_code == 400
+        assert response.data["detail"] == "Cannot update features on a published integration."
+
     def test_cannot_update_non_owned_apps(self):
         self.login_as(user=self.user)
         app = self.create_sentry_app(name="SampleApp", organization=self.super_org)
@@ -205,6 +249,26 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             url, data={"name": "NewName", "webhookUrl": "https://newurl.com"}, format="json"
         )
         assert response.status_code == 404
+
+    def test_superusers_can_update_popularity(self):
+        self.login_as(user=self.superuser, superuser=True)
+        app = self.create_sentry_app(name="SampleApp", organization=self.org)
+        assert not app.date_published
+        url = reverse("sentry-api-0-sentry-app-details", args=[app.slug])
+        popularity = 100
+        response = self.client.put(url, data={"popularity": popularity}, format="json")
+        assert response.status_code == 200
+        assert SentryApp.objects.get(id=app.id).popularity == popularity
+
+    def test_nonsuperusers_cannot_update_popularity(self):
+        self.login_as(user=self.user)
+        app = self.create_sentry_app(
+            name="SampleApp", organization=self.org, popularity=self.popularity
+        )
+        url = reverse("sentry-api-0-sentry-app-details", args=[app.slug])
+        response = self.client.put(url, data={"popularity": 100}, format="json")
+        assert response.status_code == 200
+        assert SentryApp.objects.get(id=app.id).popularity == self.popularity
 
     def test_superusers_can_publish_apps(self):
         self.login_as(user=self.superuser, superuser=True)

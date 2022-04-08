@@ -1,16 +1,16 @@
 import {Component} from 'react';
 
-import EventsTableRow from 'app/components/eventsTable/eventsTableRow';
-import {t} from 'app/locale';
-import {Tag} from 'app/types';
-import {Event} from 'app/types/event';
+import EventsTableRow from 'sentry/components/eventsTable/eventsTableRow';
+import {t} from 'sentry/locale';
+import {Tag} from 'sentry/types';
+import {Event} from 'sentry/types/event';
 
 type Props = {
   events: Event[];
-  tagList: Tag[];
+  groupId: string;
   orgId: string;
   projectId: string;
-  groupId: string;
+  tagList: Tag[];
 };
 class EventsTable extends Component<Props> {
   render() {

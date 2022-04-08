@@ -1,6 +1,7 @@
 import functools
 import re
-from collections import Iterable, OrderedDict, defaultdict
+from collections import OrderedDict, defaultdict
+from collections.abc import Iterable
 from typing import Optional, Sequence
 
 from dateutil.parser import parse as parse_datetime
@@ -18,15 +19,15 @@ from sentry.models import (
 )
 from sentry.search.events.constants import (
     PROJECT_ALIAS,
+    RELEASE_ALIAS,
     RELEASE_STAGE_ALIAS,
     SEMVER_ALIAS,
     SEMVER_BUILD_ALIAS,
     SEMVER_PACKAGE_ALIAS,
-    SEMVER_WILDCARDS,
     USER_DISPLAY_ALIAS,
 )
 from sentry.search.events.fields import FIELD_ALIASES
-from sentry.search.events.filter import _flip_field_sort, parse_semver
+from sentry.search.events.filter import _flip_field_sort
 from sentry.snuba.dataset import Dataset
 from sentry.tagstore import TagKeyStatus
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT, TagStorage
@@ -58,6 +59,10 @@ FUZZY_NUMERIC_DISTANCE = 50
 DEFAULT_TYPE_CONDITION = ["type", "!=", "transaction"]
 
 tag_value_data_transformers = {"first_seen": parse_datetime, "last_seen": parse_datetime}
+
+
+def is_fuzzy_numeric_key(key):
+    return key in FUZZY_NUMERIC_KEYS or snuba.is_measurement(key) or snuba.is_span_op_breakdown(key)
 
 
 def fix_tag_value_data(data):
@@ -239,6 +244,7 @@ class SnubaTagStorage(TagStorage):
         if include_transactions:
             dataset = Dataset.Discover
 
+        cache_key = None
         if should_cache:
             filtering_strings = [f"{key}={value}" for key, value in filters.items()]
             filtering_strings.append(f"dataset={dataset.name}")
@@ -345,14 +351,14 @@ class SnubaTagStorage(TagStorage):
         use_cache=False,
         include_transactions=False,
     ):
-        MAX_UNSAMPLED_PROJECTS = 50
+        max_unsampled_projects = 50
         # We want to disable FINAL in the snuba query to reduce load.
         optimize_kwargs = {"turbo": True}
-        # If we are fetching less than MAX_UNSAMPLED_PROJECTS, then disable
+        # If we are fetching less than max_unsampled_projects, then disable
         # the sampling that turbo enables so that we get more accurate results.
         # We only want sampling when we have a large number of projects, so
         # that we don't cause performance issues for Snuba.
-        if len(projects) <= MAX_UNSAMPLED_PROJECTS:
+        if len(projects) <= max_unsampled_projects:
             optimize_kwargs["sample"] = 1
         return self.__get_tag_keys_for_projects(
             projects,
@@ -727,17 +733,17 @@ class SnubaTagStorage(TagStorage):
             versions = self._get_semver_versions_for_package(projects, organization_id, query)
         else:
             include_package = "@" in query
-            if not query:
-                query = "*"
-            elif query[-1] not in SEMVER_WILDCARDS | {"@"}:
-                if query[-1] != ".":
-                    query += "."
-                query += "*"
+            query = query.replace("*", "")
+            if "@" in query:
+                versions = Release.objects.filter(version__startswith=query)
+            else:
+                versions = Release.objects.filter(version__contains="@" + query)
 
-            versions = Release.objects.filter_by_semver(
-                organization_id,
-                parse_semver(query, "="),
-                project_ids=projects,
+        if projects:
+            versions = versions.filter(
+                id__in=ReleaseProject.objects.filter(project_id__in=projects).values_list(
+                    "release_id", flat=True
+                )
             )
         if environments:
             versions = versions.filter(
@@ -748,7 +754,10 @@ class SnubaTagStorage(TagStorage):
 
         order_by = map(_flip_field_sort, Release.SEMVER_COLS + ["package"])
         versions = (
-            versions.filter_to_semver().order_by(*order_by).values_list("version", flat=True)[:1000]
+            versions.filter_to_semver()
+            .annotate_prerelease_column()
+            .order_by(*order_by)
+            .values_list("version", flat=True)[:1000]
         )
 
         seen = set()
@@ -852,6 +861,36 @@ class SnubaTagStorage(TagStorage):
             [(i, TagValue(SEMVER_BUILD_ALIAS, v, None, None, None)) for i, v in enumerate(packages)]
         )
 
+    def _get_tag_values_for_releases_across_all_datasets(self, projects, environments, query):
+        from sentry.api.paginator import SequencePaginator
+
+        organization_id = Project.objects.filter(id=projects[0]).values_list(
+            "organization_id", flat=True
+        )[0]
+        qs = Release.objects.filter(organization_id=organization_id)
+
+        if projects:
+            qs = qs.filter(
+                id__in=ReleaseProject.objects.filter(project_id__in=projects).values_list(
+                    "release_id", flat=True
+                )
+            )
+        if environments:
+            qs = qs.filter(
+                id__in=ReleaseEnvironment.objects.filter(
+                    environment_id__in=environments
+                ).values_list("release_id", flat=True)
+            )
+
+        if query:
+            qs = qs.filter(version__startswith=query)
+
+        versions = qs.order_by("version").values_list("version", flat=True)[:1000]
+
+        return SequencePaginator(
+            [(i, TagValue(RELEASE_ALIAS, v, None, None, None)) for i, v in enumerate(versions)]
+        )
+
     def get_tag_value_paginator_for_projects(
         self,
         projects,
@@ -862,6 +901,7 @@ class SnubaTagStorage(TagStorage):
         query=None,
         order_by="-last_seen",
         include_transactions=False,
+        include_sessions=False,
     ):
         from sentry.api.paginator import SequencePaginator
 
@@ -932,7 +972,13 @@ class SnubaTagStorage(TagStorage):
         if key == SEMVER_BUILD_ALIAS:
             return self._get_tag_values_for_semver_build(projects, environments, query)
 
+        if key == RELEASE_ALIAS and include_sessions:
+            return self._get_tag_values_for_releases_across_all_datasets(
+                projects, environments, query
+            )
+
         conditions = []
+        project_slugs = {}
         # transaction status needs a special case so that the user interacts with the names and not codes
         transaction_status = snuba_key == "transaction_status"
         if include_transactions and transaction_status:
@@ -947,7 +993,7 @@ class SnubaTagStorage(TagStorage):
                 conditions.append([snuba_key, "IN", status_codes])
             else:
                 return SequencePaginator([])
-        elif key in FUZZY_NUMERIC_KEYS:
+        elif is_fuzzy_numeric_key(key):
             converted_query = int(query) if query is not None and query.isdigit() else None
             if converted_query is not None:
                 conditions.append([snuba_key, ">=", converted_query - FUZZY_NUMERIC_DISTANCE])
@@ -981,6 +1027,7 @@ class SnubaTagStorage(TagStorage):
                 snuba_name = f"tags[{key}]"
 
             if query:
+                query = query.replace("\\", "\\\\")
                 conditions.append([snuba_name, "LIKE", f"%{query}%"])
             else:
                 conditions.append([snuba_name, "!=", ""])
@@ -1028,6 +1075,12 @@ class SnubaTagStorage(TagStorage):
                         for value, data in results.items()
                         if value in project_slugs
                     ]
+                )
+            elif is_fuzzy_numeric_key(key):
+                # numeric keys like measurements and breakdowns are nullable
+                # so filter out the None values from the results
+                results = OrderedDict(
+                    [(value, data) for value, data in results.items() if value is not None]
                 )
 
         tag_values = [

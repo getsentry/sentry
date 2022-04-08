@@ -1,12 +1,12 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import HookOrDefault from 'app/components/hookOrDefault';
-import {t} from 'app/locale';
-import {fadeIn} from 'app/styles/animations';
-import space from 'app/styles/space';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import HookOrDefault from 'sentry/components/hookOrDefault';
+import {t} from 'sentry/locale';
+import {fadeIn} from 'sentry/styles/animations';
+import space from 'sentry/styles/space';
 
 type Props = {
   children: (opts: {skip: (e: React.MouseEvent) => void}) => React.ReactNode;
@@ -60,8 +60,8 @@ const SkipHelp = HookOrDefault({
 });
 
 type ConfirmProps = React.HTMLAttributes<HTMLDivElement> & {
-  onSkip: (e: React.MouseEvent) => void;
   onDismiss: (e: React.MouseEvent) => void;
+  onSkip: (e: React.MouseEvent) => void;
   visible: boolean;
 };
 

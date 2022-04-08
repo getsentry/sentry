@@ -3,12 +3,12 @@ from urllib.parse import urlparse
 
 from unidiff import PatchSet
 
-from sentry.integrations.atlassian_connect import get_query_hash
 from sentry.integrations.client import ApiClient
+from sentry.integrations.utils import get_query_hash
 from sentry.utils import jwt
 from sentry.utils.http import absolute_uri
 
-BITBUCKET_KEY = "%s.bitbucket" % urlparse(absolute_uri()).hostname
+BITBUCKET_KEY = f"{urlparse(absolute_uri()).hostname}.bitbucket"
 
 
 class BitbucketAPIPath:

@@ -2,19 +2,19 @@ import * as React from 'react';
 import {Link as RouterLink} from 'react-router';
 import styled from '@emotion/styled';
 
-import Badge from 'app/components/badge';
-import FeatureBadge from 'app/components/featureBadge';
-import HookOrDefault from 'app/components/hookOrDefault';
-import Tooltip from 'app/components/tooltip';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
+import Badge from 'sentry/components/badge';
+import FeatureBadge from 'sentry/components/featureBadge';
+import HookOrDefault from 'sentry/components/hookOrDefault';
+import Tooltip from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 
 type Props = {
-  to: React.ComponentProps<RouterLink>['to'];
   label: React.ReactNode;
+  to: React.ComponentProps<RouterLink>['to'];
   badge?: string | number | null;
-  index?: boolean;
   id?: string;
+  index?: boolean;
   onClick?: (e: React.MouseEvent) => void;
 };
 
@@ -32,7 +32,7 @@ const SettingsNavItem = ({badge, label, index, id, ...props}: Props) => {
     renderedBadge = <FeatureBadge type="beta" />;
   } else if (badge === 'warning') {
     renderedBadge = (
-      <Tooltip title={t('This settings needs review')} position="right">
+      <Tooltip title={t('This setting needs review')} position="right">
         <StyledBadge text={badge} type="warning" />
       </Tooltip>
     );

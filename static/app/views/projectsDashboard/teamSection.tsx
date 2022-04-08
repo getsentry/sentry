@@ -1,20 +1,20 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import PageHeading from 'app/components/pageHeading';
-import space from 'app/styles/space';
-import {Project, Scope, Team} from 'app/types';
+import PageHeading from 'sentry/components/pageHeading';
+import space from 'sentry/styles/space';
+import {Project, Scope, Team} from 'sentry/types';
 
 import ProjectCard from './projectCard';
 import TeamMembers from './teamMembers';
 
 type Props = {
-  team: Team;
-  orgId: string;
-  showBorder: boolean;
   access: Set<Scope>;
-  title: React.ReactNode;
+  orgId: string;
   projects: Project[];
+  showBorder: boolean;
+  team: Team;
+  title: React.ReactNode;
 };
 
 const TeamSection = ({team, projects, title, showBorder, orgId, access}: Props) => {
@@ -44,7 +44,7 @@ const TeamSection = ({team, projects, title, showBorder, orgId, access}: Props) 
 const ProjectCards = styled('div')`
   display: grid;
   grid-template-columns: minmax(100px, 1fr);
-  grid-gap: ${space(3)};
+  gap: ${space(3)};
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-columns: repeat(2, minmax(100px, 1fr));

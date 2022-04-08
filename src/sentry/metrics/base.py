@@ -25,3 +25,6 @@ class MetricsBackend(local):
 
     def timing(self, key, value, instance=None, tags=None, sample_rate=1):
         raise NotImplementedError
+
+    def gauge(self, key, value, instance=None, tags=None, sample_rate=1):
+        raise NotImplementedError

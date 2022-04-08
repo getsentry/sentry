@@ -1,39 +1,44 @@
-import Reflux from 'reflux';
+import {createStore} from 'reflux';
 
-import CommitterActions from 'app/actions/committerActions';
-import {Committer} from 'app/types';
+import CommitterActions from 'sentry/actions/committerActions';
+import {Committer} from 'sentry/types';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
-type CommitterStoreInterface = {
-  state: {
-    // Use `getCommitterStoreKey` to generate key
-    [key: string]: {
-      committers?: Committer[];
-      committersLoading?: boolean;
-      committersError?: Error;
-    };
+type State = {
+  // Use `getCommitterStoreKey` to generate key
+  [key: string]: {
+    committers?: Committer[];
+    committersError?: Error;
+    committersLoading?: boolean;
   };
+};
 
-  load(orgSlug: string, projectSlug: string, eventId: string): void;
-  loadSuccess(
-    orgSlug: string,
-    projectSlug: string,
-    eventId: string,
-    data: Committer[]
-  ): void;
-  loadError(orgSlug: string, projectSlug: string, eventId: string, error: Error): void;
-
+interface CommitterStoreDefinition extends Reflux.StoreDefinition {
   get(
     orgSlug: string,
     projectSlug: string,
     eventId: string
   ): {
     committers?: Committer[];
-    committersLoading?: boolean;
     committersError?: Error;
+    committersLoading?: boolean;
   };
-};
 
-export const CommitterStoreConfig: Reflux.StoreDefinition & CommitterStoreInterface = {
+  init(): void;
+
+  load(orgSlug: string, projectSlug: string, eventId: string): void;
+  loadError(orgSlug: string, projectSlug: string, eventId: string, error: Error): void;
+  loadSuccess(
+    orgSlug: string,
+    projectSlug: string,
+    eventId: string,
+    data: Committer[]
+  ): void;
+
+  state: State;
+}
+
+export const storeConfig: CommitterStoreDefinition = {
   listenables: CommitterActions,
   state: {},
 
@@ -102,8 +107,5 @@ export function getCommitterStoreKey(
   return `${orgSlug} ${projectSlug} ${eventId}`;
 }
 
-type CommitterStore = Reflux.Store & CommitterStoreInterface;
-
-const CommitterStore = Reflux.createStore(CommitterStoreConfig) as CommitterStore;
-
+const CommitterStore = createStore(makeSafeRefluxStore(storeConfig));
 export default CommitterStore;

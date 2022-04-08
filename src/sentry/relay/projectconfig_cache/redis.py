@@ -1,57 +1,41 @@
 from sentry.relay.projectconfig_cache.base import ProjectConfigCache
-from sentry.utils import json
-from sentry.utils.redis import get_dynamic_cluster_from_options, validate_dynamic_cluster
+from sentry.utils import json, redis
+from sentry.utils.redis import validate_dynamic_cluster
 
 REDIS_CACHE_TIMEOUT = 3600  # 1 hr
 
 
 class RedisProjectConfigCache(ProjectConfigCache):
     def __init__(self, **options):
-        self.is_redis_cluster, self.cluster, options = get_dynamic_cluster_from_options(
-            "SENTRY_RELAY_PROJECTCONFIG_CACHE_OPTIONS", options
-        )
+        cluster_key = options.get("cluster", "default")
+        self.cluster = redis.redis_clusters.get(cluster_key)
+
         super().__init__(**options)
 
     def validate(self):
-        validate_dynamic_cluster(self.is_redis_cluster, self.cluster)
+        validate_dynamic_cluster(True, self.cluster)
 
-    def __get_redis_key(self, project_id):
-        return f"relayconfig:{project_id}"
-
-    def __get_redis_client(self, routing_key):
-        if self.is_redis_cluster:
-            return self.cluster
-        else:
-            return self.cluster.get_local_client_for_key(routing_key)
+    def __get_redis_key(self, public_key):
+        return f"relayconfig:{public_key}"
 
     def set_many(self, configs):
-        for project_id, config in configs.items():
-            # XXX(markus): Figure out how to do pipelining here. We may have
-            # multiple routing keys (-> multiple clients).
-            #
-            # We cannot route by org, because Relay does not know the org when
-            # fetching.
+        # Note: Those are multiple pipelines, one per cluster node
+        p = self.cluster.pipeline()
+        for public_key, config in configs.items():
+            p.setex(self.__get_redis_key(public_key), REDIS_CACHE_TIMEOUT, json.dumps(config))
 
-            key = self.__get_redis_key(project_id)
-            client = self.__get_redis_client(key)
-            client.setex(key, REDIS_CACHE_TIMEOUT, json.dumps(config))
+        p.execute()
 
-    def delete_many(self, project_ids):
-        for project_id in project_ids:
-            # XXX(markus): Figure out how to do pipelining here. We may have
-            # multiple routing keys (-> multiple clients).
-            #
-            # We cannot route by org, because Relay does not know the org when
-            # fetching.
+    def delete_many(self, public_keys):
+        # Note: Those are multiple pipelines, one per cluster node
+        p = self.cluster.pipeline()
+        for public_key in public_keys:
+            p.delete(self.__get_redis_key(public_key))
 
-            key = self.__get_redis_key(project_id)
-            client = self.__get_redis_client(key)
-            client.delete(key)
+        p.execute()
 
-    def get(self, project_id):
-        key = self.__get_redis_key(project_id)
-        client = self.__get_redis_client(key)
-        rv = client.get(key)
+    def get(self, public_key):
+        rv = self.cluster.get(self.__get_redis_key(public_key))
         if rv is not None:
             return json.loads(rv)
         return None

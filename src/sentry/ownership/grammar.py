@@ -2,13 +2,14 @@ import operator
 import re
 from collections import namedtuple
 from functools import reduce
-from typing import List, Pattern, Tuple
+from typing import Iterable, List, Mapping, Pattern, Tuple
 
 from django.db.models import Q
 from parsimonious.exceptions import ParseError  # noqa
 from parsimonious.grammar import Grammar, NodeVisitor
 from rest_framework.serializers import ValidationError
 
+from sentry.models import ActorTuple
 from sentry.utils.glob import glob_match
 from sentry.utils.safe import get_path
 
@@ -119,13 +120,13 @@ class Matcher(namedtuple("Matcher", "type pattern")):
 
     def test_frames(self, data, keys):
         for frame in _iter_frames(data):
-            value = next((frame.get(key) for key in keys if frame.get(key)), None)
+            for key in keys:
+                value = frame.get(key)
+                if not value:
+                    continue
 
-            if not value:
-                continue
-
-            if glob_match(value, self.pattern, ignorecase=True, path_normalize=True):
-                return True
+                if glob_match(value, self.pattern, ignorecase=True, path_normalize=True):
+                    return True
 
         return False
 
@@ -263,7 +264,6 @@ def _path_to_regex(pattern: str) -> Pattern[str]:
     SOFTWARE.
     """
     regex = ""
-
     # Special case backslash can match a backslash file or directory
     if pattern[0] == "\\":
         return re.compile(r"\\(?:\Z|/)")
@@ -276,10 +276,9 @@ def _path_to_regex(pattern: str) -> Pattern[str]:
     matches_dir = pattern[-1] == "/"
     if matches_dir:
         pattern = pattern.rstrip("/")
-
     # patterns ending with "/*" are special. They only match items directly in the directory
     # not deeper
-    trailing_slash_star = pattern[-1] == "*" and len(pattern) > 1 and pattern[-2] == "/"
+    trailing_slash_star = pattern[-1] == "*" and pattern[-2] == "/" if len(pattern) > 1 else False
 
     iterator = enumerate(pattern)
 
@@ -380,8 +379,7 @@ def parse_code_owners(data: str) -> Tuple[List[str], List[str], List[str]]:
         if rule.startswith("#") or not len(rule):
             continue
 
-        _, *assignees = rule.strip().split()
-
+        _, assignees = get_codeowners_path_and_owners(rule)
         for assignee in assignees:
             if "/" not in assignee:
                 if re.match(r"[^@]+@[^@]+\.[^@]+", assignee):
@@ -393,6 +391,13 @@ def parse_code_owners(data: str) -> Tuple[List[str], List[str], List[str]]:
                 teams.append(assignee)
 
     return teams, usernames, emails
+
+
+def get_codeowners_path_and_owners(rule):
+    # Regex does a negative lookbehind for a backslash. Matches on whitespace without a preceding backslash.
+    pattern = re.compile(r"(?<!\\)\s")
+    path, *code_owners = (i for i in pattern.split(rule.strip()) if i)
+    return path, code_owners
 
 
 def convert_codeowners_syntax(codeowners, associations, code_mapping):
@@ -410,7 +415,7 @@ def convert_codeowners_syntax(codeowners, associations, code_mapping):
             result += f"{rule}\n"
             continue
 
-        path, *code_owners = (x.strip() for x in rule.split())
+        path, code_owners = get_codeowners_path_and_owners(rule)
         # Escape invalid paths https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-repository-on-github/about-code-owners#syntax-exceptions
         # Check if path has whitespace
         # Check if path has '#' not as first character
@@ -453,7 +458,7 @@ def convert_codeowners_syntax(codeowners, associations, code_mapping):
     return result
 
 
-def resolve_actors(owners, project_id):
+def resolve_actors(owners: Iterable["Owner"], project_id: int) -> Mapping["Owner", "ActorTuple"]:
     """Convert a list of Owner objects into a dictionary
     of {Owner: Actor} pairs. Actors not identified are returned
     as None."""

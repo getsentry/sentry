@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Panel, PanelBody} from 'app/components/panels';
-import space from 'app/styles/space';
+import {Panel, PanelBody} from 'sentry/components/panels';
+import space from 'sentry/styles/space';
 
 export const GRID_HEAD_ROW_HEIGHT = 45;
 export const GRID_BODY_ROW_HEIGHT = 40;
@@ -34,7 +34,7 @@ export const HeaderTitle = styled('h4')`
 
 export const HeaderButtonContainer = styled('div')`
   display: grid;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   grid-auto-flow: column;
   grid-auto-columns: auto;
   justify-items: end;
@@ -46,15 +46,14 @@ export const HeaderButtonContainer = styled('div')`
   }
 `;
 
-const PanelWithProtectedBorder = styled(Panel)`
+export const Body = styled(({children, ...props}) => (
+  <Panel {...props}>
+    <PanelBody>{children}</PanelBody>
+  </Panel>
+))`
   overflow: hidden;
   z-index: ${Z_INDEX_PANEL};
 `;
-export const Body = props => (
-  <PanelWithProtectedBorder>
-    <PanelBody>{props.children}</PanelBody>
-  </PanelWithProtectedBorder>
-);
 
 /**
  * Grid is the parent element for the tableResizable component.
@@ -197,6 +196,10 @@ export const GridBodyCell = styled('td')`
   background-color: ${p => p.theme.background};
   border-top: 1px solid ${p => p.theme.innerBorder};
 
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
   font-size: ${p => p.theme.fontSizeMedium};
 
   &:first-child {
@@ -249,9 +252,9 @@ export const GridResizer = styled('div')<{dataRows: number}>`
     const numOfRows = p.dataRows;
     let height = GRID_HEAD_ROW_HEIGHT + numOfRows * GRID_BODY_ROW_HEIGHT;
 
-    if (numOfRows >= 2) {
+    if (numOfRows >= 1) {
       // account for border-bottom height
-      height += numOfRows - 1;
+      height += numOfRows;
     }
 
     return height;

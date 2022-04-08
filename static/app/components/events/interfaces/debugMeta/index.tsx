@@ -10,25 +10,25 @@ import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import isNil from 'lodash/isNil';
 
-import GuideAnchor from 'app/components/assistant/guideAnchor';
-import Button from 'app/components/button';
-import Checkbox from 'app/components/checkbox';
-import EventDataSection from 'app/components/events/eventDataSection';
-import ImageForBar from 'app/components/events/interfaces/imageForBar';
-import {getImageRange, parseAddress} from 'app/components/events/interfaces/utils';
-import {Panel, PanelBody} from 'app/components/panels';
-import SearchBar from 'app/components/searchBar';
-import {IconWarning} from 'app/icons';
-import {t, tct} from 'app/locale';
-import DebugMetaStore, {DebugMetaActions} from 'app/stores/debugMetaStore';
-import space from 'app/styles/space';
-import {Frame, Organization, Project} from 'app/types';
-import {Event} from 'app/types/event';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import Button from 'sentry/components/button';
+import Checkbox from 'sentry/components/checkbox';
+import EventDataSection from 'sentry/components/events/eventDataSection';
+import {getImageRange, parseAddress} from 'sentry/components/events/interfaces/utils';
+import {Panel, PanelBody} from 'sentry/components/panels';
+import SearchBar from 'sentry/components/searchBar';
+import {IconWarning} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import DebugMetaStore, {DebugMetaActions} from 'sentry/stores/debugMetaStore';
+import space from 'sentry/styles/space';
+import {Frame, Organization, Project} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 import {shouldSkipSection} from '../debugMeta-v2/utils';
 
 import DebugImage from './debugImage';
+import ImageForBar from './imageForBar';
 import {getFileName} from './utils';
 
 const MIN_FILTER_LEN = 3;
@@ -49,11 +49,11 @@ type Props = DefaultProps & {
 };
 
 type State = {
-  filter: string;
   debugImages: Array<Image>;
+  filter: string;
   filteredImages: Array<Image>;
-  showUnused: boolean;
   showDetails: boolean;
+  showUnused: boolean;
   foundFrame?: Frame;
   panelBodyHeight?: number;
 };
@@ -282,7 +282,13 @@ class DebugMeta extends React.PureComponent<Props, State> {
       return tct(
         'No images are referenced in the stack trace. [toggle: Show Unreferenced]',
         {
-          toggle: <Button priority="link" onClick={this.handleShowUnused} />,
+          toggle: (
+            <Button
+              priority="link"
+              onClick={this.handleShowUnused}
+              aria-label={t('Show Unreferenced')}
+            />
+          ),
         }
       );
     }
@@ -421,7 +427,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
     }
 
     return (
-      <StyledEventDataSection
+      <EventDataSection
         type="images-loaded"
         title={
           <GuideAnchor target="images-loaded" position="bottom">
@@ -449,7 +455,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
             </EmptyMessage>
           )}
         </DebugImagesPanel>
-      </StyledEventDataSection>
+      </EventDataSection>
     );
   }
 }
@@ -474,16 +480,6 @@ const Label = styled('label')`
 
   > input {
     margin-right: 1ex;
-  }
-`;
-
-const StyledEventDataSection = styled(EventDataSection)`
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    padding-bottom: ${space(4)};
-  }
-  /* to increase specificity */
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    padding-bottom: ${space(2)};
   }
 `;
 

@@ -1,5 +1,7 @@
+import unittest
 from base64 import b64encode
 from datetime import datetime, timedelta
+from unittest.mock import patch
 
 import pytz
 from django.urls import reverse
@@ -43,7 +45,6 @@ from sentry.testutils import (
     SnubaTestCase,
     TestCase,
 )
-from sentry.utils.compat.mock import patch
 
 
 class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
@@ -333,6 +334,10 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
         response = self.get_valid_response(self.organization.slug, query=f"{RELEASE_ALIAS}:baz")
         self.assert_expected_versions(response, [])
 
+        # NOT release
+        response = self.get_valid_response(self.organization.slug, query=f"!{RELEASE_ALIAS}:foobar")
+        self.assert_expected_versions(response, [release2])
+
     def test_query_filter_suffix(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
@@ -374,7 +379,7 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
         release_1 = self.create_release(version="test@1.2.4+124")
         release_2 = self.create_release(version="test@1.2.3+123")
         release_3 = self.create_release(version="test2@1.2.5+125")
-        self.create_release(version="some.release")
+        release_4 = self.create_release(version="some.release")
 
         response = self.get_valid_response(self.organization.slug, query=f"{SEMVER_ALIAS}:>1.2.3")
         self.assert_expected_versions(response, [release_3, release_1])
@@ -384,6 +389,10 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
 
         response = self.get_valid_response(self.organization.slug, query=f"{SEMVER_ALIAS}:1.2.*")
         self.assert_expected_versions(response, [release_3, release_2, release_1])
+
+        # NOT semver version
+        response = self.get_valid_response(self.organization.slug, query=f"!{SEMVER_ALIAS}:1.2.3")
+        self.assert_expected_versions(response, [release_4, release_3, release_1])
 
         response = self.get_valid_response(
             self.organization.slug, query=f"{SEMVER_ALIAS}:>=1.2.3", sort="semver"
@@ -403,6 +412,12 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
         )
         self.assert_expected_versions(response, [release_2, release_1])
 
+        # NOT semver package
+        response = self.get_valid_response(
+            self.organization.slug, query=f"!{SEMVER_PACKAGE_ALIAS}:test2"
+        )
+        self.assert_expected_versions(response, [release_4, release_2, release_1])
+
         response = self.get_valid_response(
             self.organization.slug, query=f"{SEMVER_BUILD_ALIAS}:>124"
         )
@@ -412,6 +427,12 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
             self.organization.slug, query=f"{SEMVER_BUILD_ALIAS}:<125"
         )
         self.assert_expected_versions(response, [release_2, release_1])
+
+        # NOT semver build
+        response = self.get_valid_response(
+            self.organization.slug, query=f"!{SEMVER_BUILD_ALIAS}:125"
+        )
+        self.assert_expected_versions(response, [release_4, release_2, release_1])
 
     def test_release_stage_filter(self):
         self.login_as(user=self.user)
@@ -465,6 +486,14 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
             environment=self.environment.name,
         )
         self.assert_expected_versions(response, [replaced_release])
+
+        # NOT release stage
+        response = self.get_valid_response(
+            self.organization.slug,
+            query=f"!{RELEASE_STAGE_ALIAS}:{ReleaseStages.REPLACED}",
+            environment=self.environment.name,
+        )
+        self.assert_expected_versions(response, [not_adopted_release, adopted_release])
 
         response = self.get_valid_response(
             self.organization.slug,
@@ -789,25 +818,18 @@ class OrganizationReleasesStatsTest(APITestCase):
         )
         release1.add_project(project1)
         url = reverse("sentry-api-0-organization-releases", kwargs={"organization_slug": org.slug})
+
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        # Not returned because we don't have `adoptionStages=1`.
+        assert "adoptionStages" not in response.data[0]
         response = self.client.get(f"{url}?adoptionStages=1", format="json")
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        # Not returned because we don't have the feature.
-        assert "adoptionStages" not in response.data[0]
-
-        with self.feature("organizations:release-adoption-stage"):
-            response = self.client.get(url, format="json")
-
-            assert response.status_code == 200, response.content
-            assert len(response.data) == 1
-            # Not returned because we don't have `adoptionStages=1`.
-            assert "adoptionStages" not in response.data[0]
-            response = self.client.get(f"{url}?adoptionStages=1", format="json")
-
-            assert response.status_code == 200, response.content
-            assert len(response.data) == 1
-            assert "adoptionStages" in response.data[0]
+        assert "adoptionStages" in response.data[0]
 
     def test_semver_filter(self):
         self.login_as(user=self.user)
@@ -1244,6 +1266,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         project = self.create_project(name="foo", organization=org, teams=[team])
 
         self.create_member(teams=[team], user=user, organization=org)
+        self.create_member(teams=[team], user=self.user, organization=org)
         self.login_as(user=user)
 
         url = reverse("sentry-api-0-organization-releases", kwargs={"organization_slug": org.slug})
@@ -2016,7 +2039,8 @@ class ReleaseSerializerWithProjectsTest(TestCase):
                 "headCommits": self.headCommits,
                 "refs": self.refs,
                 "projects": self.projects,
-            }
+            },
+            context={"organization": self.organization},
         )
 
         assert serializer.is_valid(), serializer.errors
@@ -2047,7 +2071,8 @@ class ReleaseSerializerWithProjectsTest(TestCase):
 
     def test_fields_not_required(self):
         serializer = ReleaseSerializerWithProjects(
-            data={"version": self.version, "projects": self.projects}
+            data={"version": self.version, "projects": self.projects},
+            context={"organization": self.organization},
         )
         assert serializer.is_valid()
         result = serializer.validated_data
@@ -2056,19 +2081,22 @@ class ReleaseSerializerWithProjectsTest(TestCase):
 
     def test_do_not_allow_null_commits(self):
         serializer = ReleaseSerializerWithProjects(
-            data={"version": self.version, "projects": self.projects, "commits": None}
+            data={"version": self.version, "projects": self.projects, "commits": None},
+            context={"organization": self.organization},
         )
         assert not serializer.is_valid()
 
     def test_do_not_allow_null_head_commits(self):
         serializer = ReleaseSerializerWithProjects(
-            data={"version": self.version, "projects": self.projects, "headCommits": None}
+            data={"version": self.version, "projects": self.projects, "headCommits": None},
+            context={"organization": self.organization},
         )
         assert not serializer.is_valid()
 
     def test_do_not_allow_null_refs(self):
         serializer = ReleaseSerializerWithProjects(
-            data={"version": self.version, "projects": self.projects, "refs": None}
+            data={"version": self.version, "projects": self.projects, "refs": None},
+            context={"organization": self.organization},
         )
         assert not serializer.is_valid()
 
@@ -2078,7 +2106,8 @@ class ReleaseSerializerWithProjectsTest(TestCase):
                 "version": self.version,
                 "projects": self.projects,
                 "ref": "a" * MAX_VERSION_LENGTH,
-            }
+            },
+            context={"organization": self.organization},
         )
         assert serializer.is_valid()
         serializer = ReleaseSerializerWithProjects(
@@ -2086,7 +2115,8 @@ class ReleaseSerializerWithProjectsTest(TestCase):
                 "version": self.version,
                 "projects": self.projects,
                 "ref": "a" * (MAX_VERSION_LENGTH + 1),
-            }
+            },
+            context={"organization": self.organization},
         )
         assert not serializer.is_valid()
 
@@ -2096,14 +2126,16 @@ class ReleaseSerializerWithProjectsTest(TestCase):
         )
         assert serializer.is_valid()
         serializer = ReleaseSerializerWithProjects(
-            data={"version": "a" * (MAX_VERSION_LENGTH + 1), "projects": self.projects}
+            data={"version": "a" * (MAX_VERSION_LENGTH + 1), "projects": self.projects},
+            context={"organization": self.organization},
         )
         assert not serializer.is_valid()
 
     def test_version_does_not_allow_whitespace(self):
         for char in BAD_RELEASE_CHARS:
             serializer = ReleaseSerializerWithProjects(
-                data={"version": char, "projects": self.projects}
+                data={"version": char, "projects": self.projects},
+                context={"organization": self.organization},
             )
             assert not serializer.is_valid()
 
@@ -2111,26 +2143,32 @@ class ReleaseSerializerWithProjectsTest(TestCase):
         serializer = ReleaseSerializerWithProjects(data={"version": ".", "projects": self.projects})
         assert not serializer.is_valid()
         serializer = ReleaseSerializerWithProjects(
-            data={"version": "..", "projects": self.projects}
+            data={"version": "..", "projects": self.projects},
+            context={"organization": self.organization},
         )
         assert not serializer.is_valid()
 
     def test_version_does_not_allow_null_or_empty_value(self):
         serializer = ReleaseSerializerWithProjects(
-            data={"version": None, "projects": self.projects}
+            data={"version": None, "projects": self.projects},
+            context={"organization": self.organization},
         )
         assert not serializer.is_valid()
-        serializer = ReleaseSerializerWithProjects(data={"version": "", "projects": self.projects})
+        serializer = ReleaseSerializerWithProjects(
+            data={"version": "", "projects": self.projects},
+            context={"organization": self.organization},
+        )
         assert not serializer.is_valid()
 
     def test_version_cannot_be_latest(self):
         serializer = ReleaseSerializerWithProjects(
-            data={"version": "Latest", "projects": self.projects}
+            data={"version": "Latest", "projects": self.projects},
+            context={"organization": self.organization},
         )
         assert not serializer.is_valid()
 
 
-class ReleaseHeadCommitSerializerTest(TestCase):
+class ReleaseHeadCommitSerializerTest(unittest.TestCase):
     def setUp(self):
         super().setUp()
         self.repo_name = "repo/name"

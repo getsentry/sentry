@@ -1,6 +1,6 @@
-import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {render} from 'sentry-test/reactTestingLibrary';
 
-import SimilarSpectrum from 'app/components/similarSpectrum';
+import SimilarSpectrum from 'sentry/components/similarSpectrum';
 
 describe('SimilarSpectrum', function () {
   beforeEach(function () {});
@@ -8,7 +8,7 @@ describe('SimilarSpectrum', function () {
   afterEach(function () {});
 
   it('renders', function () {
-    const {container} = mountWithTheme(<SimilarSpectrum />);
+    const {container} = render(<SimilarSpectrum />);
     expect(container).toSnapshot();
   });
 });

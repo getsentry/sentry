@@ -28,28 +28,6 @@ class OrganizationTeamsListTest(APITestCase):
         assert response.data[1]["id"] == str(team1.id)
         assert response.data[1]["isMember"]
 
-    def test_teams_without_membership(self):
-        user = self.create_user()
-        org = self.create_organization(owner=self.user)
-        team1 = self.create_team(organization=org, name="foo")
-        team2 = self.create_team(organization=org, name="bar")
-        team3 = self.create_team(organization=org, name="baz")
-
-        self.create_member(organization=org, user=user, has_global_access=False, teams=[team1])
-
-        path = f"/api/0/organizations/{org.slug}/teams/?is_not_member=1"
-
-        self.login_as(user=user)
-
-        response = self.client.get(path)
-
-        assert response.status_code == 200, response.content
-        assert len(response.data) == 2
-        assert response.data[0]["id"] == str(team2.id)
-        assert not response.data[0]["isMember"]
-        assert response.data[1]["id"] == str(team3.id)
-        assert not response.data[1]["isMember"]
-
     def test_simple_results_no_projects(self):
         user = self.create_user()
         org = self.create_organization(owner=self.user)
@@ -131,6 +109,36 @@ class OrganizationTeamsListTest(APITestCase):
         response = self.client.get(path)
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
+
+    def test_query_by_slug(self):
+        self.create_team(organization=self.organization, name="foo")
+        self.create_team(organization=self.organization, name="bar")
+        self.login_as(user=self.user)
+
+        path = f"/api/0/organizations/{self.organization.slug}/teams/?query=slug:foo"
+        response = self.client.get(path)
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+
+        path = f"/api/0/organizations/{self.organization.slug}/teams/?query=slug:foo+slug:bar"
+        response = self.client.get(path)
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+
+    def test_query_by_id(self):
+        team1 = self.create_team(organization=self.organization, name="foo")
+        team2 = self.create_team(organization=self.organization, name="bar")
+        self.login_as(user=self.user)
+
+        path = f"/api/0/organizations/{self.organization.slug}/teams/?query=id:{team1.id}"
+        response = self.client.get(path)
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+
+        path = f"/api/0/organizations/{self.organization.slug}/teams/?query=id:{team1.id}+id:{team2.id}"
+        response = self.client.get(path)
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
 
 
 class OrganizationTeamsCreateTest(APITestCase):

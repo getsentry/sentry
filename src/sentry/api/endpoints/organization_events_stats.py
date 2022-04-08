@@ -1,29 +1,103 @@
+from datetime import datetime, timedelta
+from typing import Dict, Mapping, Optional, Sequence, Set
+
 import sentry_sdk
+from rest_framework.exceptions import ValidationError
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.bases import OrganizationEventsV2EndpointBase
 from sentry.constants import MAX_TOP_EVENTS
-from sentry.snuba import discover
+from sentry.models import Organization
+from sentry.snuba import discover, metrics_enhanced_performance
+from sentry.utils.snuba import SnubaTSResult
+
+METRICS_ENHANCED_REFERRERS: Set[str] = {
+    "api.performance.homepage.widget-chart",
+    "api.performance.generic-widget-chart.duration-histogram",
+    "api.performance.generic-widget-chart.lcp-histogram",
+    "api.performance.generic-widget-chart.fcp-histogram",
+    "api.performance.generic-widget-chart.fid-histogram",
+    "api.performance.generic-widget-chart.apdex-area",
+    "api.performance.generic-widget-chart.p50-duration-area",
+    "api.performance.generic-widget-chart.p75-duration-area",
+    "api.performance.generic-widget-chart.p95-duration-area",
+    "api.performance.generic-widget-chart.p99-duration-area",
+    "api.performance.generic-widget-chart.p75-lcp-area",
+    "api.performance.generic-widget-chart.tpm-area",
+    "api.performance.generic-widget-chart.failure-rate-area",
+    "api.performance.generic-widget-chart.user-misery-area",
+    "api.performance.generic-widget-chart.worst-lcp-vitals",
+    "api.performance.generic-widget-chart.worst-fcp-vitals",
+    "api.performance.generic-widget-chart.worst-cls-vitals",
+    "api.performance.generic-widget-chart.worst-fid-vitals",
+    "api.performance.generic-widget-chart.most-improved",
+    "api.performance.generic-widget-chart.most-regressed",
+    "api.performance.generic-widget-chart.most-related-errors",
+    "api.performance.generic-widget-chart.most-related-issues",
+    "api.performance.generic-widget-chart.slow-http-ops",
+    "api.performance.generic-widget-chart.slow-db-ops",
+    "api.performance.generic-widget-chart.slow-resource-ops",
+    "api.performance.generic-widget-chart.slow-browser-ops",
+    "api.performance.generic-widget-chart.cold-startup-area",
+    "api.performance.generic-widget-chart.warm-startup-area",
+    "api.performance.generic-widget-chart.slow-frames-area",
+    "api.performance.generic-widget-chart.frozen-frames-area",
+    "api.performance.generic-widget-chart.most-slow-frames",
+    "api.performance.generic-widget-chart.most-frozen-frames",
+}
 
 
-class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
-    def has_chart_interpolation(self, organization, request):
-        return features.has(
-            "organizations:performance-chart-interpolation", organization, actor=request.user
+ALLOWED_EVENTS_STATS_REFERRERS: Set[str] = {
+    "api.alerts.alert-rule-chart",
+    "api.dashboards.widget.area-chart",
+    "api.dashboards.widget.bar-chart",
+    "api.dashboards.widget.line-chart",
+    "api.dashboards.top-events",
+    "api.discover.prebuilt-chart",
+    "api.discover.previous-chart",
+    "api.discover.default-chart",
+    "api.discover.daily-chart",
+    "api.discover.top5-chart",
+    "api.discover.dailytop5-chart",
+    "api.performance.homepage.duration-chart",
+    "api.performance.homepage.widget-chart",
+    "api.performance.transaction-summary.sidebar-chart",
+    "api.performance.transaction-summary.vitals-chart",
+    "api.performance.transaction-summary.trends-chart",
+    "api.performance.transaction-summary.duration",
+    "api.releases.release-details-chart",
+}
+
+
+class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type: ignore
+    def get_features(self, organization: Organization, request: Request) -> Mapping[str, bool]:
+        feature_names = [
+            "organizations:performance-chart-interpolation",
+            "organizations:discover-use-snql",
+            "organizations:performance-use-metrics",
+            "organizations:performance-dry-run-mep",
+        ]
+        batch_features = features.batch_has(
+            feature_names,
+            organization=organization,
+            actor=request.user,
+        )
+        return (
+            batch_features.get(f"organization:{organization.id}", {})
+            if batch_features is not None
+            else {
+                feature_name: features.has(
+                    feature_name, organization=organization, actor=request.user
+                )
+                for feature_name in feature_names
+            }
         )
 
-    def has_top_events(self, organization, request):
-        return features.has("organizations:discover-top-events", organization, actor=request.user)
-
-    def get(self, request, organization):
+    def get(self, request: Request, organization: Organization) -> Response:
         with sentry_sdk.start_span(op="discover.endpoint", description="filter_params") as span:
             span.set_data("organization", organization)
-            if not self.has_feature(organization, request):
-                # We used to return a "v1" result here, keeping tags to keep an eye on its use
-                span.set_data("using_v1_results", True)
-                sentry_sdk.set_tag("stats.using_v1", organization.slug)
-                return Response(status=404)
 
             top_events = 0
 
@@ -40,12 +114,48 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 elif top_events <= 0:
                     return Response({"detail": "If topEvents needs to be at least 1"}, status=400)
 
-            # The partial parameter determins whether or not partial buckets are allowed.
+            comparison_delta = None
+            if "comparisonDelta" in request.GET:
+                try:
+                    comparison_delta = timedelta(seconds=int(request.GET["comparisonDelta"]))
+                except ValueError:
+                    return Response({"detail": "comparisonDelta must be an integer"}, status=400)
+
+            # The partial parameter determines whether or not partial buckets are allowed.
             # The last bucket of the time series can potentially be a partial bucket when
             # the start of the bucket does not align with the rollup.
             allow_partial_buckets = request.GET.get("partial") == "1"
 
-        def get_event_stats(query_columns, query, params, rollup, zerofill_results):
+            referrer = request.GET.get("referrer")
+            referrer = (
+                referrer
+                if referrer in ALLOWED_EVENTS_STATS_REFERRERS.union(METRICS_ENHANCED_REFERRERS)
+                else "api.organization-event-stats"
+            )
+            batch_features = self.get_features(organization, request)
+            discover_snql = batch_features.get("organizations:discover-use-snql", False)
+            has_chart_interpolation = batch_features.get(
+                "organizations:performance-chart-interpolation", False
+            )
+            performance_use_metrics = batch_features.get(
+                "organizations:performance-use-metrics", False
+            )
+            performance_dry_run_mep = batch_features.get(
+                "organizations:performance-dry-run-mep", False
+            )
+
+            metrics_enhanced = request.GET.get("metricsEnhanced") == "1" and performance_use_metrics
+            allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
+            sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
+
+        def get_event_stats(
+            query_columns: Sequence[str],
+            query: str,
+            params: Dict[str, str],
+            rollup: int,
+            zerofill_results: bool,
+            comparison_delta: Optional[datetime],
+        ) -> SnubaTSResult:
             if top_events > 0:
                 return discover.top_events_timeseries(
                     timeseries_columns=query_columns,
@@ -57,31 +167,43 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     rollup=rollup,
                     limit=top_events,
                     organization=organization,
-                    referrer="api.organization-event-stats.find-topn",
+                    referrer=referrer + ".find-topn",
                     allow_empty=False,
                     zerofill_results=zerofill_results,
-                    include_other=self.has_top_events(organization, request),
+                    include_other=True,
+                    use_snql=discover_snql,
                 )
-            return discover.timeseries_query(
-                selected_columns=query_columns,
-                query=query,
-                params=params,
-                rollup=rollup,
-                referrer="api.organization-event-stats",
-                zerofill_results=zerofill_results,
-            )
+            dataset = discover if not metrics_enhanced else metrics_enhanced_performance
+            query_details = {
+                "selected_columns": query_columns,
+                "query": query,
+                "params": params,
+                "rollup": rollup,
+                "referrer": referrer,
+                "zerofill_results": zerofill_results,
+                "comparison_delta": comparison_delta,
+                "allow_metric_aggregates": allow_metric_aggregates,
+                "use_snql": discover_snql,
+            }
+            if not metrics_enhanced and performance_dry_run_mep:
+                sentry_sdk.set_tag("query.mep_compatible", False)
+                metrics_enhanced_performance.timeseries_query(dry_run=True, **query_details)
+            return dataset.timeseries_query(**query_details)
 
-        return Response(
-            self.get_event_stats_data(
-                request,
-                organization,
-                get_event_stats,
-                top_events,
-                allow_partial_buckets=allow_partial_buckets,
-                zerofill_results=not (
-                    request.GET.get("withoutZerofill") == "1"
-                    and self.has_chart_interpolation(organization, request)
+        try:
+            return Response(
+                self.get_event_stats_data(
+                    request,
+                    organization,
+                    get_event_stats,
+                    top_events,
+                    allow_partial_buckets=allow_partial_buckets,
+                    zerofill_results=not (
+                        request.GET.get("withoutZerofill") == "1" and has_chart_interpolation
+                    ),
+                    comparison_delta=comparison_delta,
                 ),
-            ),
-            status=200,
-        )
+                status=200,
+            )
+        except ValidationError:
+            return Response({"detail": "Comparison period is outside retention window"}, status=400)

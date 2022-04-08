@@ -1,4 +1,5 @@
 import sentry_sdk
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tagstore
@@ -9,7 +10,7 @@ from sentry.tagstore.base import TAG_KEY_RE
 
 
 class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):
-    def get(self, request, organization, key):
+    def get(self, request: Request, organization, key) -> Response:
         if not TAG_KEY_RE.match(key):
             return Response({"detail": f'Invalid tag key format for "{key}"'}, status=400)
 
@@ -22,14 +23,18 @@ class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):
             paginator = SequencePaginator([])
         else:
             with self.handle_query_errors():
+                environment_ids = None
+                if "environment_objects" in filter_params:
+                    environment_ids = [env.id for env in filter_params["environment_objects"]]
                 paginator = tagstore.get_tag_value_paginator_for_projects(
                     filter_params["project_id"],
-                    filter_params.get("environment"),
+                    environment_ids,
                     key,
                     filter_params["start"],
                     filter_params["end"],
                     query=request.GET.get("query"),
                     include_transactions=request.GET.get("includeTransactions") == "1",
+                    include_sessions=request.GET.get("includeSessions") == "1",
                 )
 
         return self.paginate(

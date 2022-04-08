@@ -1,17 +1,18 @@
 import * as React from 'react';
+import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {fetchSavedQuery} from 'app/actionCreators/discoverSavedQueries';
-import {Client} from 'app/api';
-import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
-import * as Layout from 'app/components/layouts/thirds';
-import TimeSince from 'app/components/timeSince';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, SavedQuery} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
-import withApi from 'app/utils/withApi';
+import {fetchSavedQuery} from 'sentry/actionCreators/discoverSavedQueries';
+import {Client} from 'sentry/api';
+import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
+import * as Layout from 'sentry/components/layouts/thirds';
+import TimeSince from 'sentry/components/timeSince';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, SavedQuery} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
+import withApi from 'sentry/utils/withApi';
 
 import DiscoverBreadcrumb from './breadcrumb';
 import EventInputName from './eventInputName';
@@ -19,18 +20,20 @@ import SavedQueryButtonGroup from './savedQuery';
 
 type Props = {
   api: Client;
-  organization: Organization;
-  location: Location;
   errorCode: number;
   eventView: EventView;
+  location: Location;
   onIncompatibleAlertQuery: React.ComponentProps<
     typeof CreateAlertFromViewButton
   >['onIncompatibleQuery'];
+  organization: Organization;
+  router: InjectedRouter;
+  yAxis: string[];
 };
 
 type State = {
-  savedQuery: SavedQuery | undefined;
   loading: boolean;
+  savedQuery: SavedQuery | undefined;
 };
 
 class ResultsHeader extends React.Component<Props, State> {
@@ -86,8 +89,15 @@ class ResultsHeader extends React.Component<Props, State> {
   }
 
   render() {
-    const {organization, location, errorCode, eventView, onIncompatibleAlertQuery} =
-      this.props;
+    const {
+      organization,
+      location,
+      errorCode,
+      eventView,
+      onIncompatibleAlertQuery,
+      yAxis,
+      router,
+    } = this.props;
     const {savedQuery, loading} = this.state;
 
     return (
@@ -115,6 +125,8 @@ class ResultsHeader extends React.Component<Props, State> {
             disabled={errorCode >= 400 && errorCode < 500}
             updateCallback={() => this.fetchData()}
             onIncompatibleAlertQuery={onIncompatibleAlertQuery}
+            yAxis={yAxis}
+            router={router}
           />
         </Layout.HeaderActions>
       </Layout.Header>

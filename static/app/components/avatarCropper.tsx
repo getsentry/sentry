@@ -1,11 +1,11 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import Well from 'app/components/well';
-import {AVATAR_URL_MAP} from 'app/constants';
-import {t, tct} from 'app/locale';
-import {AvatarUser} from 'app/types';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import Well from 'sentry/components/well';
+import {AVATAR_URL_MAP} from 'sentry/constants';
+import {t, tct} from 'sentry/locale';
+import {AvatarUser} from 'sentry/types';
 
 const resizerPositions = {
   nw: ['top', 'left'],
@@ -20,16 +20,23 @@ type Model = Pick<AvatarUser, 'avatar'>;
 
 type Props = {
   model: Model;
-  updateDataUrlState: (opts: {savedDataUrl?: string | null; dataUrl?: string}) => void;
-  type: 'user' | 'team' | 'organization' | 'project';
+  type:
+    | 'user'
+    | 'team'
+    | 'organization'
+    | 'project'
+    | 'sentryAppColor'
+    | 'sentryAppSimple'
+    | 'docIntegration';
+  updateDataUrlState: (opts: {dataUrl?: string; savedDataUrl?: string | null}) => void;
   savedDataUrl?: string;
 };
 
 type State = {
   file: File | null;
-  objectURL: string | null;
   mousePosition: {pageX: number; pageY: number};
-  resizeDimensions: {top: number; left: number; size: number};
+  objectURL: string | null;
+  resizeDimensions: {left: number; size: number; top: number};
   resizeDirection: Position | null;
 };
 
@@ -384,7 +391,7 @@ class AvatarCropper extends React.Component<Props, State> {
     const upload = <a onClick={this.uploadClick} />;
     const uploader = (
       <Well hasImage centered>
-        <p>{tct('[upload:Upload a photo] to get started.', {upload})}</p>
+        <p>{tct('[upload:Upload an image] to get started.', {upload})}</p>
       </Well>
     );
 

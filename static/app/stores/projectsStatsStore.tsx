@@ -1,30 +1,37 @@
-import Reflux from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
-import ProjectActions from 'app/actions/projectActions';
-import {Project} from 'app/types';
+import ProjectActions from 'sentry/actions/projectActions';
+import {Project} from 'sentry/types';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
-type ProjectsStatsStoreInterface = {
-  itemsBySlug: Record<string, Project>;
+interface ProjectsStatsStoreDefinition extends StoreDefinition {
+  getAll(): ProjectsStatsStoreDefinition['itemsBySlug'];
 
-  getInitialState(): ProjectsStatsStoreInterface['itemsBySlug'];
-  reset(): void;
   getBySlug(slug: string): Project;
-  getAll(): ProjectsStatsStoreInterface['itemsBySlug'];
-};
+  getInitialState(): ProjectsStatsStoreDefinition['itemsBySlug'];
+  itemsBySlug: Record<string, Project>;
+  reset(): void;
+}
 
 /**
  * This is a store specifically used by the dashboard, so that we can
  * clear the store when the Dashboard unmounts
  * (as to not disrupt ProjectsStore which a lot more components use)
  */
-const projectsStatsStore: Reflux.StoreDefinition & ProjectsStatsStoreInterface = {
+const storeConfig: ProjectsStatsStoreDefinition = {
   itemsBySlug: {},
+  unsubscribeListeners: [],
 
   init() {
     this.reset();
-    this.listenTo(ProjectActions.loadStatsForProjectSuccess, this.onStatsLoadSuccess);
-    this.listenTo(ProjectActions.update, this.onUpdate);
-    this.listenTo(ProjectActions.updateError, this.onUpdateError);
+
+    this.unsubscribeListeners.push(
+      this.listenTo(ProjectActions.loadStatsForProjectSuccess, this.onStatsLoadSuccess)
+    );
+    this.unsubscribeListeners.push(this.listenTo(ProjectActions.update, this.onUpdate));
+    this.unsubscribeListeners.push(
+      this.listenTo(ProjectActions.updateError, this.onUpdateError)
+    );
   },
 
   getInitialState() {
@@ -101,8 +108,5 @@ const projectsStatsStore: Reflux.StoreDefinition & ProjectsStatsStoreInterface =
   },
 };
 
-type ProjectsStatsStore = Reflux.Store & ProjectsStatsStoreInterface;
-
-const ProjectsStatsStore = Reflux.createStore(projectsStatsStore) as ProjectsStatsStore;
-
+const ProjectsStatsStore = createStore(makeSafeRefluxStore(storeConfig));
 export default ProjectsStatsStore;

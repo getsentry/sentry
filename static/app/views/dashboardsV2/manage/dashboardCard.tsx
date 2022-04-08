@@ -1,19 +1,19 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import ActivityAvatar from 'app/components/activity/item/avatar';
-import Card from 'app/components/card';
-import Link from 'app/components/links/link';
-import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {User} from 'app/types';
+import ActivityAvatar from 'sentry/components/activity/item/avatar';
+import Card from 'sentry/components/card';
+import Link from 'sentry/components/links/link';
+import {t} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {User} from 'sentry/types';
 
 type Props = {
-  title: string;
   detail: React.ReactNode;
-  to: React.ComponentProps<typeof Link>['to'];
   renderWidgets: () => React.ReactNode;
+  title: string;
+  to: React.ComponentProps<typeof Link>['to'];
   createdBy?: User;
   dateStatus?: React.ReactNode;
   onEventClick?: () => void;
@@ -95,8 +95,10 @@ const CardHeader = styled('div')`
 `;
 
 const Title = styled('div')`
-  color: ${p => p.theme.textColor};
+  ${p => p.theme.text.cardTitle};
+  color: ${p => p.theme.headingColor};
   ${overflowEllipsis};
+  font-weight: normal;
 `;
 
 const Detail = styled('div')`
@@ -113,6 +115,7 @@ const CardBody = styled('div')`
   max-height: 150px;
   min-height: 150px;
   overflow: hidden;
+  border-bottom: 1px solid ${p => p.theme.gray100};
 `;
 
 const CardFooter = styled('div')`

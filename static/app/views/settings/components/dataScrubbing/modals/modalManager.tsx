@@ -2,11 +2,11 @@ import * as React from 'react';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {ModalRenderProps} from 'app/actionCreators/modal';
-import {Client} from 'app/api';
-import {t} from 'app/locale';
-import {Organization, Project} from 'app/types';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
+import {t} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
 
 import submitRules from '../submitRules';
 import {
@@ -30,24 +30,24 @@ type EventId = NonNullable<FormProps['eventId']>;
 type SourceSuggestions = FormProps['sourceSuggestions'];
 
 type Props<T> = ModalRenderProps & {
-  onSubmitSuccess: (data: T extends undefined ? Organization : Project) => void;
-  onGetNewRules: (values: Values) => Array<Rule>;
-  orgSlug: Organization['slug'];
   api: Client;
   endpoint: string;
+  onGetNewRules: (values: Values) => Array<Rule>;
+  onSubmitSuccess: (data: T extends undefined ? Organization : Project) => void;
+  orgSlug: Organization['slug'];
   savedRules: Array<Rule>;
   title: string;
-  projectId?: T;
   initialState?: Partial<Values>;
+  projectId?: T;
 };
 
 type State = {
-  values: Values;
-  requiredValues: Array<keyof Values>;
   errors: FormProps['errors'];
-  isFormValid: boolean;
-  sourceSuggestions: SourceSuggestions;
   eventId: EventId;
+  isFormValid: boolean;
+  requiredValues: Array<keyof Values>;
+  sourceSuggestions: SourceSuggestions;
+  values: Values;
 };
 
 class ModalManager<T extends ProjectId> extends React.Component<Props<T>, State> {
@@ -138,7 +138,7 @@ class ModalManager<T extends ProjectId> extends React.Component<Props<T>, State>
     }));
 
     try {
-      const query: {projectId?: string; eventId: string} = {eventId: eventId.value};
+      const query: {eventId: string; projectId?: string} = {eventId: eventId.value};
       if (projectId) {
         query.projectId = projectId;
       }

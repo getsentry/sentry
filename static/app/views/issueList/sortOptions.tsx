@@ -1,19 +1,21 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Feature from 'app/components/acl/feature';
-import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
-import Tooltip from 'app/components/tooltip';
-import {t} from 'app/locale';
-import {getSortLabel, IssueSortOptions, Query} from 'app/views/issueList/utils';
+import Feature from 'sentry/components/acl/feature';
+import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
+import Tooltip from 'sentry/components/tooltip';
+import {IconSort} from 'sentry/icons/iconSort';
+import {t} from 'sentry/locale';
+import {getSortLabel, IssueSortOptions, Query} from 'sentry/views/issueList/utils';
 
 type Props = {
-  sort: string;
-  query: string;
   onSelect: (sort: string) => void;
+  query: string;
+  sort: string;
+  hasPageFilters?: boolean;
 };
 
-export function getSortTooltip(key: IssueSortOptions) {
+function getSortTooltip(key: IssueSortOptions) {
   switch (key) {
     case IssueSortOptions.INBOX:
       return t('When the issue was flagged for review.');
@@ -33,7 +35,7 @@ export function getSortTooltip(key: IssueSortOptions) {
   }
 }
 
-const IssueListSortOptions = ({onSelect, sort, query}: Props) => {
+const IssueListSortOptions = ({onSelect, sort, query, hasPageFilters}: Props) => {
   const sortKey = sort || IssueSortOptions.DATE;
 
   const getMenuItem = (key: IssueSortOptions): React.ReactNode => (
@@ -51,7 +53,16 @@ const IssueListSortOptions = ({onSelect, sort, query}: Props) => {
 
   return (
     <StyledDropdownControl
-      buttonProps={{prefix: t('Sort by')}}
+      buttonProps={
+        hasPageFilters
+          ? {
+              borderless: true,
+              size: 'small',
+              icon: <IconSort />,
+            }
+          : {prefix: t('Sort by')}
+      }
+      detached={hasPageFilters}
       label={getSortLabel(sortKey)}
     >
       <React.Fragment>

@@ -26,6 +26,15 @@ requires_snuba = pytest.mark.skipif(
 )
 
 
+def is_arm64():
+    return os.uname().machine == "arm64"
+
+
+requires_not_arm64 = pytest.mark.skipif(
+    is_arm64(), reason="this test fails in our arm64 testing env"
+)
+
+
 def xfail_if_not_postgres(reason):
     def decorator(function):
         return pytest.mark.xfail(os.environ.get("TEST_SUITE") != "postgres", reason=reason)(

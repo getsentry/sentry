@@ -1,7 +1,7 @@
-import InputField from 'app/components/forms/inputField';
+import InputField, {InputFieldProps} from './inputField';
 
-export default class EmailField extends InputField {
-  getType() {
-    return 'email';
-  }
+export interface EmailFieldProps extends Omit<InputFieldProps, 'type'> {}
+
+export default function EmailField(props: EmailFieldProps) {
+  return <InputField {...props} type="email" />;
 }

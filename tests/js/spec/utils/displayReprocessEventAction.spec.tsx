@@ -1,10 +1,9 @@
-import {displayReprocessEventAction} from 'app/utils/displayReprocessEventAction';
+import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
 
 describe('DisplayReprocessEventAction', function () {
   const orgFeatures = ['reprocessing-v2'];
 
   it('returns false in case of no reprocessing-v2 feature', function () {
-    // @ts-expect-error
     const event = TestStubs.EventStacktraceMessage();
     expect(displayReprocessEventAction([], event)).toBe(false);
   });
@@ -14,13 +13,11 @@ describe('DisplayReprocessEventAction', function () {
   });
 
   it('returns false if no exception entry is found', function () {
-    // @ts-expect-error
     const event = TestStubs.EventStacktraceMessage();
     expect(displayReprocessEventAction(orgFeatures, event)).toBe(false);
   });
 
   it('returns false if the event is not a mini-dump event or an Apple crash report event or a Native event', function () {
-    // @ts-expect-error
     const event = TestStubs.EventStacktraceException();
     expect(displayReprocessEventAction(orgFeatures, event)).toBe(false);
   });
@@ -29,7 +26,6 @@ describe('DisplayReprocessEventAction', function () {
     describe('native event', function () {
       describe('event with defined platform', function () {
         it('native', function () {
-          // @ts-expect-error
           const event = TestStubs.EventStacktraceException({
             platform: 'native',
           });
@@ -38,7 +34,6 @@ describe('DisplayReprocessEventAction', function () {
         });
 
         it('cocoa', function () {
-          // @ts-expect-error
           const event = TestStubs.EventStacktraceException({
             platform: 'cocoa',
           });
@@ -49,7 +44,6 @@ describe('DisplayReprocessEventAction', function () {
 
       describe('event with undefined platform, but stack trace has platform', function () {
         it('native', function () {
-          // @ts-expect-error
           const event = TestStubs.EventStacktraceException({
             platform: undefined,
           });
@@ -60,7 +54,6 @@ describe('DisplayReprocessEventAction', function () {
         });
 
         it('cocoa', function () {
-          // @ts-expect-error
           const event = TestStubs.EventStacktraceException({
             platform: undefined,
           });
@@ -73,7 +66,6 @@ describe('DisplayReprocessEventAction', function () {
     });
 
     it('mini-dump event', function () {
-      // @ts-expect-error
       const event = TestStubs.EventStacktraceException({
         platform: undefined,
       });
@@ -89,7 +81,6 @@ describe('DisplayReprocessEventAction', function () {
     });
 
     it('apple crash report event', function () {
-      // @ts-expect-error
       const event = TestStubs.EventStacktraceException({
         platform: undefined,
       });

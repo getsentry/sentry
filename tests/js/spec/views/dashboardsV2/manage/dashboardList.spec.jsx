@@ -1,14 +1,11 @@
+import {act} from 'react-dom/test-utils';
+
+import {selectDropdownMenuItem} from 'sentry-test/dropdownMenu';
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountGlobalModal} from 'sentry-test/modal';
+import {triggerPress} from 'sentry-test/utils';
 
-import DashboardList from 'app/views/dashboardsV2/manage/dashboardList';
-
-function openContextMenu(card) {
-  card.find('DropdownMenu MoreOptions svg').simulate('click');
-}
-
-function clickMenuItem(card, selector) {
-  card.find(`DropdownMenu MenuItem[data-test-id="${selector}"]`).simulate('click');
-}
+import DashboardList from 'sentry/views/dashboardsV2/manage/dashboardList';
 
 describe('Dashboards > DashboardList', function () {
   let dashboards, widgets, deleteMock, dashboardUpdateMock, createMock;
@@ -183,14 +180,20 @@ describe('Dashboards > DashboardList', function () {
         onDashboardsChange={dashboardUpdateMock}
       />
     );
-    let card = wrapper.find('DashboardCard').last();
+    const card = wrapper.find('DashboardCard').last();
     expect(card.find('Title').text()).toEqual(dashboards[1].title);
 
-    openContextMenu(card);
-    wrapper.update();
+    await selectDropdownMenuItem({
+      wrapper,
+      specifiers: {prefix: 'DashboardCard', last: true},
+      itemKey: 'dashboard-delete',
+    });
 
-    card = wrapper.find('DashboardCard').last();
-    clickMenuItem(card, 'dashboard-delete');
+    expect(deleteMock).not.toHaveBeenCalled();
+
+    // Confirm
+    const modal = await mountGlobalModal();
+    modal.find('Button').last().simulate('click');
 
     await tick();
 
@@ -220,16 +223,16 @@ describe('Dashboards > DashboardList', function () {
     let card = wrapper.find('DashboardCard').last();
     expect(card.find('Title').text()).toEqual(singleDashboard[0].title);
 
-    openContextMenu(card);
-    wrapper.update();
+    await act(async () => {
+      triggerPress(card.find('DropdownTrigger'));
+
+      await tick();
+      wrapper.update();
+    });
 
     card = wrapper.find('DashboardCard').last();
-    const dashboardDelete = card.find(
-      `DropdownMenu MenuItem[data-test-id="dashboard-delete"]`
-    );
-    await tick();
-
-    expect(dashboardDelete.prop('disabled')).toBe(true);
+    const dashboardDelete = card.find(`MenuItemWrap[data-test-id="dashboard-delete"]`);
+    expect(dashboardDelete.prop('isDisabled')).toBe(true);
   });
 
   it('can duplicate dashboards', async function () {
@@ -242,18 +245,45 @@ describe('Dashboards > DashboardList', function () {
         onDashboardsChange={dashboardUpdateMock}
       />
     );
-    let card = wrapper.find('DashboardCard').last();
+    const card = wrapper.find('DashboardCard').last();
     expect(card.find('Title').text()).toEqual(dashboards[1].title);
 
-    openContextMenu(card);
-    wrapper.update();
-
-    card = wrapper.find('DashboardCard').last();
-    clickMenuItem(card, 'dashboard-duplicate');
-
-    await tick();
+    await selectDropdownMenuItem({
+      wrapper,
+      specifiers: {prefix: 'DashboardCard', last: true},
+      itemKey: 'dashboard-duplicate',
+    });
 
     expect(createMock).toHaveBeenCalled();
     expect(dashboardUpdateMock).toHaveBeenCalled();
+  });
+
+  it('does not throw an error if the POST fails during duplication', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      method: 'POST',
+      statusCode: 404,
+    });
+
+    const wrapper = mountWithTheme(
+      <DashboardList
+        organization={organization}
+        dashboards={dashboards}
+        pageLinks=""
+        location={{query: {}}}
+        onDashboardsChange={dashboardUpdateMock}
+      />
+    );
+    const card = wrapper.find('DashboardCard').last();
+    expect(card.find('Title').text()).toEqual(dashboards[1].title);
+
+    await selectDropdownMenuItem({
+      wrapper,
+      specifiers: {prefix: 'DashboardCard', last: true},
+      itemKey: 'dashboard-duplicate',
+    });
+
+    // Should not update, and not throw error
+    expect(dashboardUpdateMock).not.toHaveBeenCalled();
   });
 });

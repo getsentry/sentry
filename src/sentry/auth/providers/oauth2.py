@@ -1,7 +1,12 @@
+import abc
 import logging
 from time import time
+from typing import Any, Mapping
 from urllib.parse import parse_qsl, urlencode
 from uuid import uuid4
+
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.provider import Provider
@@ -41,7 +46,7 @@ class OAuth2Login(AuthView):
             "redirect_uri": redirect_uri,
         }
 
-    def dispatch(self, request, helper):
+    def dispatch(self, request: Request, helper) -> Response:
         if "code" in request.GET:
             return helper.next_step()
 
@@ -78,7 +83,7 @@ class OAuth2Callback(AuthView):
             "client_secret": self.client_secret,
         }
 
-    def exchange_token(self, request, helper, code):
+    def exchange_token(self, request: Request, helper, code):
         # TODO: this needs the auth yet
         data = self.get_token_params(code=code, redirect_uri=helper.get_redirect_url())
         req = safe_urlopen(self.access_token_url, data=data)
@@ -87,7 +92,7 @@ class OAuth2Callback(AuthView):
             return dict(parse_qsl(body))
         return json.loads(body)
 
-    def dispatch(self, request, helper):
+    def dispatch(self, request: Request, helper) -> Response:
         error = request.GET.get("error")
         state = request.GET.get("state")
         code = request.GET.get("code")
@@ -115,7 +120,7 @@ class OAuth2Callback(AuthView):
         return helper.next_step()
 
 
-class OAuth2Provider(Provider):
+class OAuth2Provider(Provider, abc.ABC):
     client_id = None
     client_secret = None
 
@@ -131,8 +136,9 @@ class OAuth2Provider(Provider):
             OAuth2Callback(client_id=self.get_client_id(), client_secret=self.get_client_secret()),
         ]
 
-    def get_refresh_token_url(self):
-        raise NotImplementedError
+    @abc.abstractmethod
+    def get_refresh_token_url(self) -> str:
+        pass
 
     def get_refresh_token_params(self, refresh_token):
         return {
@@ -150,15 +156,19 @@ class OAuth2Provider(Provider):
             data["refresh_token"] = payload["refresh_token"]
         return data
 
-    def build_identity(self, state):
-        # data = state['data']
-        # return {
-        #     'id': '',
-        #     'email': '',
-        #     'name': '',
-        #     'data': self.get_oauth_data(data),
-        # }
-        raise NotImplementedError
+    @abc.abstractmethod
+    def build_identity(self, state: Mapping[str, Any]) -> Mapping[str, Any]:
+        """
+        Example implementation:
+        data = state['data']
+        return {
+            'id': '',
+            'email': '',
+            'name': '',
+            'data': self.get_oauth_data(data),
+        }
+        """
+        pass
 
     def update_identity(self, new_data, current_data):
         # we want to maintain things like refresh_token that might not

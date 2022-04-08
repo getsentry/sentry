@@ -7,6 +7,7 @@ import logging
 import os.path
 from collections import OrderedDict, namedtuple
 from datetime import timedelta
+from typing import Dict, List, Optional, Sequence, Tuple
 
 import sentry_relay
 from django.conf import settings
@@ -16,7 +17,7 @@ from sentry.utils.geo import rust_geoip
 from sentry.utils.integrationdocs import load_doc
 
 
-def get_all_languages():
+def get_all_languages() -> List[str]:
     results = []
     for path in os.listdir(os.path.join(MODULE_ROOT, "locale")):
         if path.startswith("."):
@@ -155,6 +156,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
 
 RESERVED_PROJECT_SLUGS = frozenset(
     (
+        "$all",
         "api-keys",
         "audit-log",
         "auth",
@@ -218,6 +220,7 @@ _SENTRY_RULES = (
     "sentry.mail.actions.NotifyEmailAction",
     "sentry.rules.actions.notify_event.NotifyEventAction",
     "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+    "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
     "sentry.rules.conditions.every_event.EveryEventCondition",
     "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
     "sentry.rules.conditions.regression_event.RegressionEventCondition",
@@ -253,6 +256,10 @@ TICKET_ACTIONS = frozenset(
     ]
 )
 
+SCHEMA_FORM_ACTIONS = frozenset(
+    ["sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction"]
+)
+
 # methods as defined by http://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html + PATCH
 HTTP_METHODS = ("GET", "POST", "PUT", "OPTIONS", "HEAD", "DELETE", "TRACE", "CONNECT", "PATCH")
 
@@ -271,7 +278,7 @@ WARN_SESSION_EXPIRED = "Your session has expired."  # TODO: translate this
 MAX_SYM = 256
 
 # Known debug information file mimetypes
-KNOWN_DIF_FORMATS = {
+KNOWN_DIF_FORMATS: Dict[str, str] = {
     "text/x-breakpad": "breakpad",
     "application/x-mach-binary": "macho",
     "application/x-elf-binary": "elf",
@@ -299,10 +306,10 @@ MAX_RELEASE_FILES_OFFSET = 20000
 #                           "link": "https://docs.sentry.io/clients/java/integrations/#logback",
 #                           "id": "java-logback",
 #                           "name": "Logback"}
-INTEGRATION_ID_TO_PLATFORM_DATA = {}
+INTEGRATION_ID_TO_PLATFORM_DATA: Dict[str, Dict[str, str]] = {}
 
 
-def _load_platform_data():
+def _load_platform_data() -> None:
     INTEGRATION_ID_TO_PLATFORM_DATA.clear()
     data = load_doc("_platforms")
 
@@ -358,12 +365,14 @@ MARKETING_SLUG_TO_INTEGRATION_ID = {
 
 # to go from a marketing page slug like /for/android/ to the integration id
 # (in _platforms.json), for looking up documentation urls, etc.
-def get_integration_id_for_marketing_slug(slug):
+def get_integration_id_for_marketing_slug(slug: str) -> Optional[str]:
     if slug in MARKETING_SLUG_TO_INTEGRATION_ID:
         return MARKETING_SLUG_TO_INTEGRATION_ID[slug]
 
     if slug in INTEGRATION_ID_TO_PLATFORM_DATA:
         return slug
+
+    return None
 
 
 # special cases where the integration sent with the SDK differ from
@@ -380,7 +389,9 @@ PLATFORM_INTEGRATION_TO_INTEGRATION_ID = {
 # {"platform": "java",
 #  "sdk": {"name": "sentry-java",
 #          "integrations": ["java.util.logging"]}} -> java-logging
-def get_integration_id_for_event(platform, sdk_name, integrations):
+def get_integration_id_for_event(
+    platform: str, sdk_name: str, integrations: List[str]
+) -> Optional[str]:
     if integrations:
         for integration in integrations:
             # check special cases
@@ -404,6 +415,8 @@ def get_integration_id_for_event(platform, sdk_name, integrations):
     if platform in INTEGRATION_ID_TO_PLATFORM_DATA:
         return platform
 
+    return None
+
 
 class ObjectStatus:
     VISIBLE = 0
@@ -415,7 +428,7 @@ class ObjectStatus:
     DISABLED = 1
 
     @classmethod
-    def as_choices(cls):
+    def as_choices(cls) -> Sequence[Tuple[int, str]]:
         return (
             (cls.ACTIVE, "active"),
             (cls.DISABLED, "disabled"),
@@ -435,16 +448,16 @@ class SentryAppStatus:
     PUBLISH_REQUEST_INPROGRESS_STR = "publish_request_inprogress"
 
     @classmethod
-    def as_choices(cls):
+    def as_choices(cls) -> Sequence[Tuple[int, str]]:
         return (
-            (cls.UNPUBLISHED, str(cls.UNPUBLISHED_STR)),
-            (cls.PUBLISHED, str(cls.PUBLISHED_STR)),
-            (cls.INTERNAL, str(cls.INTERNAL_STR)),
-            (cls.PUBLISH_REQUEST_INPROGRESS, str(cls.PUBLISH_REQUEST_INPROGRESS_STR)),
+            (cls.UNPUBLISHED, cls.UNPUBLISHED_STR),
+            (cls.PUBLISHED, cls.PUBLISHED_STR),
+            (cls.INTERNAL, cls.INTERNAL_STR),
+            (cls.PUBLISH_REQUEST_INPROGRESS, cls.PUBLISH_REQUEST_INPROGRESS_STR),
         )
 
     @classmethod
-    def as_str(cls, status):
+    def as_str(cls, status: int) -> Optional[str]:
         if status == cls.UNPUBLISHED:
             return cls.UNPUBLISHED_STR
         elif status == cls.PUBLISHED:
@@ -453,6 +466,8 @@ class SentryAppStatus:
             return cls.INTERNAL_STR
         elif status == cls.PUBLISH_REQUEST_INPROGRESS:
             return cls.PUBLISH_REQUEST_INPROGRESS_STR
+        else:
+            return None
 
 
 class SentryAppInstallationStatus:
@@ -462,18 +477,20 @@ class SentryAppInstallationStatus:
     INSTALLED_STR = "installed"
 
     @classmethod
-    def as_choices(cls):
+    def as_choices(cls) -> Sequence[Tuple[int, str]]:
         return (
-            (cls.PENDING, str(cls.PENDING_STR)),
-            (cls.INSTALLED, str(cls.INSTALLED_STR)),
+            (cls.PENDING, cls.PENDING_STR),
+            (cls.INSTALLED, cls.INSTALLED_STR),
         )
 
     @classmethod
-    def as_str(cls, status):
+    def as_str(cls, status: int) -> Optional[str]:
         if status == cls.PENDING:
             return cls.PENDING_STR
         elif status == cls.INSTALLED:
             return cls.INSTALLED_STR
+        else:
+            return None
 
 
 class ExportQueryType:
@@ -483,29 +500,33 @@ class ExportQueryType:
     DISCOVER_STR = "Discover"
 
     @classmethod
-    def as_choices(cls):
+    def as_choices(cls) -> Sequence[Tuple[int, str]]:
         return ((cls.ISSUES_BY_TAG, cls.ISSUES_BY_TAG_STR), (cls.DISCOVER, cls.DISCOVER_STR))
 
     @classmethod
-    def as_str_choices(cls):
+    def as_str_choices(cls) -> Sequence[Tuple[str, str]]:
         return (
             (cls.ISSUES_BY_TAG_STR, cls.ISSUES_BY_TAG_STR),
             (cls.DISCOVER_STR, cls.DISCOVER_STR),
         )
 
     @classmethod
-    def as_str(cls, integer):
+    def as_str(cls, integer: int) -> Optional[str]:
         if integer == cls.ISSUES_BY_TAG:
             return cls.ISSUES_BY_TAG_STR
         elif integer == cls.DISCOVER:
             return cls.DISCOVER_STR
+        else:
+            return None
 
     @classmethod
-    def from_str(cls, string):
+    def from_str(cls, string: str) -> Optional[int]:
         if string == cls.ISSUES_BY_TAG_STR:
             return cls.ISSUES_BY_TAG
         elif string == cls.DISCOVER_STR:
             return cls.DISCOVER
+        else:
+            return None
 
 
 StatsPeriod = namedtuple("StatsPeriod", ("segments", "interval"))
@@ -529,9 +550,10 @@ DEFAULT_STORE_NORMALIZER_ARGS = dict(
 INTERNAL_INTEGRATION_TOKEN_COUNT_MAX = 20
 
 ALL_ACCESS_PROJECTS = {-1}
+ALL_ACCESS_PROJECTS_SLUG = "$all"
 
 # Most number of events for the top-n graph
-MAX_TOP_EVENTS = 5
+MAX_TOP_EVENTS = 10
 
 # org option default values
 PROJECT_RATE_LIMIT_DEFAULT = 100
@@ -555,3 +577,6 @@ ALERTS_MEMBER_WRITE_DEFAULT = True
 
 # Defined at https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
 DataCategory = sentry_relay.DataCategory
+
+CRASH_RATE_ALERT_SESSION_COUNT_ALIAS = "_total_count"
+CRASH_RATE_ALERT_AGGREGATE_ALIAS = "_crash_rate_alert_aggregate"

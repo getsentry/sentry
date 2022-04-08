@@ -1,7 +1,6 @@
 import logging
 from copy import copy
 from datetime import datetime
-from uuid import uuid4
 
 from django.db import models, transaction
 from django.db.models.query_utils import DeferredAttribute
@@ -10,6 +9,7 @@ from rest_framework import serializers, status
 
 from bitfield.types import BitHandler
 from sentry import roles
+from sentry.api.base import ONE_DAY
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.fields import AvatarField
@@ -20,7 +20,11 @@ from sentry.api.serializers.models.organization import TrustedRelaySerializer
 from sentry.api.serializers.rest_framework import ListField
 from sentry.constants import LEGACY_RATE_LIMIT_OPTIONS, RESERVED_ORGANIZATION_SLUGS
 from sentry.datascrubbing import validate_pii_config_update
-from sentry.lang.native.utils import STORE_CRASH_REPORTS_DEFAULT, convert_crashreport_count
+from sentry.lang.native.utils import (
+    STORE_CRASH_REPORTS_DEFAULT,
+    STORE_CRASH_REPORTS_MAX,
+    convert_crashreport_count,
+)
 from sentry.models import (
     AuditLogEntryEvent,
     Authenticator,
@@ -29,12 +33,9 @@ from sentry.models import (
     OrganizationAvatar,
     OrganizationOption,
     OrganizationStatus,
-    Project,
-    ProjectTransactionThreshold,
+    ScheduledDeletion,
     UserEmail,
 )
-from sentry.models.transaction_threshold import TransactionMetric
-from sentry.tasks.deletion import delete_organization
 from sentry.utils.cache import memoize
 
 ERR_DEFAULT_ORG = "You cannot remove the default organization."
@@ -113,8 +114,6 @@ ORG_OPTIONS = (
     ("apdexThreshold", "sentry:apdex_threshold", int, None),
 )
 
-delete_logger = logging.getLogger("sentry.deletions.api")
-
 DELETION_STATUSES = frozenset(
     [OrganizationStatus.PENDING_DELETION, OrganizationStatus.DELETION_IN_PROGRESS]
 )
@@ -146,7 +145,9 @@ class OrganizationSerializer(serializers.Serializer):
     dataScrubberDefaults = serializers.BooleanField(required=False)
     sensitiveFields = ListField(child=serializers.CharField(), required=False)
     safeFields = ListField(child=serializers.CharField(), required=False)
-    storeCrashReports = serializers.IntegerField(min_value=-1, max_value=20, required=False)
+    storeCrashReports = serializers.IntegerField(
+        min_value=-1, max_value=STORE_CRASH_REPORTS_MAX, required=False
+    )
     attachmentsRole = serializers.CharField(required=True)
     debugFilesRole = serializers.CharField(required=True)
     eventsMemberAdmin = serializers.BooleanField(required=False)
@@ -228,7 +229,7 @@ class OrganizationSerializer(serializers.Serializer):
 
     def validate_requireEmailVerification(self, value):
         user = self.context["user"]
-        has_verified = UserEmail.get_primary_email(user).is_verified
+        has_verified = UserEmail.objects.get_primary_email(user).is_verified
         if value and not has_verified:
             raise serializers.ValidationError(ERR_EMAIL_VERIFICATION)
         return value
@@ -361,9 +362,9 @@ class OrganizationSerializer(serializers.Serializer):
                     changed_data[key] = f"from {old_val} to {option_inst.value}"
                 option_inst.save()
 
-        trusted_realy_info = self.validated_data.get("trustedRelays")
-        if trusted_realy_info is not None:
-            self.save_trusted_relays(trusted_realy_info, changed_data, org)
+        trusted_relay_info = self.validated_data.get("trustedRelays")
+        if trusted_relay_info is not None:
+            self.save_trusted_relays(trusted_relay_info, changed_data, org)
 
         if "openMembership" in self.initial_data:
             org.flags.allow_joinleave = self.initial_data["openMembership"]
@@ -444,8 +445,12 @@ class OwnerOrganizationSerializer(OrganizationSerializer):
         return super().save(*args, **kwargs)
 
 
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+
 class OrganizationDetailsEndpoint(OrganizationEndpoint):
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         """
         Retrieve an Organization
         ````````````````````````
@@ -468,7 +473,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
 
         return self.respond(context)
 
-    def put(self, request, organization):
+    def put(self, request: Request, organization) -> Response:
         """
         Update an Organization
         ``````````````````````
@@ -483,8 +488,6 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                             to be available and unique.
         :auth: required
         """
-        from sentry import features
-
         if request.access.has_scope("org:admin"):
             serializer_cls = OwnerOrganizationSerializer
         else:
@@ -508,10 +511,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     event=AuditLogEntryEvent.ORG_RESTORE,
                     data=organization.get_audit_log_data(),
                 )
-                delete_logger.info(
-                    "object.delete.canceled",
-                    extra={"object_id": organization.id, "model": Organization.__name__},
-                )
+                ScheduledDeletion.cancel(organization)
             elif changed_data:
                 self.create_audit_entry(
                     request=request,
@@ -520,35 +520,6 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     event=AuditLogEntryEvent.ORG_EDIT,
                     data=changed_data,
                 )
-
-                # Temporarily writing org-level apdex changes to ProjectTransactionThreshold
-                # for orgs who don't have the feature enabled so that when this
-                # feature is GA'ed it captures the orgs current apdex threshold.
-                if serializer.validated_data.get("apdexThreshold") is not None and not features.has(
-                    "organizations:project-transaction-threshold", organization
-                ):
-                    apdex_threshold = serializer.validated_data.get("apdexThreshold")
-
-                    with transaction.atomic():
-                        ProjectTransactionThreshold.objects.filter(
-                            organization_id=organization.id
-                        ).delete()
-
-                        project_ids = Project.objects.filter(
-                            organization_id=organization.id
-                        ).values_list("id", flat=True)
-
-                        ProjectTransactionThreshold.objects.bulk_create(
-                            [
-                                ProjectTransactionThreshold(
-                                    project_id=project_id,
-                                    organization_id=organization.id,
-                                    threshold=int(apdex_threshold),
-                                    metric=TransactionMetric.DURATION.value,
-                                )
-                                for project_id in project_ids
-                            ]
-                        )
 
             context = serialize(
                 organization,
@@ -560,7 +531,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             return self.respond(context)
         return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def handle_delete(self, request, organization):
+    def handle_delete(self, request: Request, organization):
         """
         This method exists as a way for getsentry to override this endpoint with less duplication.
         """
@@ -568,37 +539,23 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             return self.respond({"detail": ERR_NO_USER}, status=401)
         if organization.is_default:
             return self.respond({"detail": ERR_DEFAULT_ORG}, status=400)
-        updated = Organization.objects.filter(
-            id=organization.id, status=OrganizationStatus.VISIBLE
-        ).update(status=OrganizationStatus.PENDING_DELETION)
-        if updated:
-            transaction_id = uuid4().hex
-            countdown = 86400
-            entry = self.create_audit_entry(
-                request=request,
-                organization=organization,
-                target_object=organization.id,
-                event=AuditLogEntryEvent.ORG_REMOVE,
-                data=organization.get_audit_log_data(),
-                transaction_id=transaction_id,
-            )
-            organization.send_delete_confirmation(entry, countdown)
-            delete_organization.apply_async(
-                kwargs={
-                    "object_id": organization.id,
-                    "transaction_id": transaction_id,
-                    "actor_id": request.user.id,
-                },
-                countdown=countdown,
-            )
-            delete_logger.info(
-                "object.delete.queued",
-                extra={
-                    "object_id": organization.id,
-                    "transaction_id": transaction_id,
-                    "model": Organization.__name__,
-                },
-            )
+
+        with transaction.atomic():
+            updated = Organization.objects.filter(
+                id=organization.id, status=OrganizationStatus.VISIBLE
+            ).update(status=OrganizationStatus.PENDING_DELETION)
+            if updated:
+                organization.status = OrganizationStatus.PENDING_DELETION
+                schedule = ScheduledDeletion.schedule(organization, days=1, actor=request.user)
+                entry = self.create_audit_entry(
+                    request=request,
+                    organization=organization,
+                    target_object=organization.id,
+                    event=AuditLogEntryEvent.ORG_REMOVE,
+                    data=organization.get_audit_log_data(),
+                    transaction_id=schedule.guid,
+                )
+                organization.send_delete_confirmation(entry, ONE_DAY)
         context = serialize(
             organization,
             request.user,
@@ -608,7 +565,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         return self.respond(context, status=202)
 
     @sudo_required
-    def delete(self, request, organization):
+    def delete(self, request: Request, organization) -> Response:
         """
         Delete an Organization
         ``````````````````````
@@ -616,9 +573,11 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         be invoked without a user context for security reasons.  This means
         that at present an organization can only be deleted from the
         Sentry UI.
+
         Deletion happens asynchronously and therefore is not immediate.
         However once deletion has begun the state of an organization changes and
         will be hidden from most public views.
+
         :pparam string organization_slug: the slug of the organization the
                                           team should be created for.
         :auth: required, user-context-needed

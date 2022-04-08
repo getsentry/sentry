@@ -1,4 +1,5 @@
 from time import time
+from unittest import mock
 
 import responses
 
@@ -7,7 +8,6 @@ from sentry.identity.oauth2 import OAuth2Provider
 from sentry.integrations.client import ApiClient, OAuth2RefreshMixin
 from sentry.models import Identity, IdentityProvider
 from sentry.testutils import TestCase
-from sentry.utils.compat import mock
 
 
 class ApiClientTest(TestCase):
@@ -46,7 +46,7 @@ class ApiClientTest(TestCase):
         resp = ApiClient().patch("http://example.com")
         assert resp.status_code == 200
 
-    @mock.patch("sentry.shared_integrations.client.cache")
+    @mock.patch("sentry.shared_integrations.client.base.cache")
     @responses.activate
     def test_cache_mocked(self, cache):
         cache.get.return_value = None

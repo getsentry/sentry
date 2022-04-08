@@ -1,25 +1,25 @@
-import React, {useEffect, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import debounce from 'lodash/debounce';
 
-import {Client} from 'app/api';
-import ExternalLink from 'app/components/links/externalLink';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import Pagination from 'app/components/pagination';
-import {PanelTable} from 'app/components/panels';
-import {DEFAULT_DEBOUNCE_DURATION} from 'app/constants';
-import {IconMegaphone} from 'app/icons';
-import {t, tct, tn} from 'app/locale';
-import space from 'app/styles/space';
-import {BaseGroup, Group, Organization, Project} from 'app/types';
-import {defined} from 'app/utils';
-import parseLinkHeader from 'app/utils/parseLinkHeader';
-import withApi from 'app/utils/withApi';
-import RangeSlider, {
-  Slider,
-} from 'app/views/settings/components/forms/controls/rangeSlider';
+import {Client} from 'sentry/api';
+import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
+import Slider from 'sentry/components/forms/controls/rangeSlider/slider';
+import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Pagination from 'sentry/components/pagination';
+import {PanelTable} from 'sentry/components/panels';
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
+import {IconMegaphone} from 'sentry/icons';
+import {t, tct, tn} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {BaseGroup, Group, Organization, Project} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import withApi from 'sentry/utils/withApi';
 
 import ErrorMessage from './errorMessage';
 import NewIssue from './newIssue';
@@ -28,11 +28,11 @@ type Error = React.ComponentProps<typeof ErrorMessage>['error'];
 
 type Props = {
   api: Client;
-  organization: Organization;
   groupId: Group['id'];
+  location: Location<{cursor?: string; level?: number}>;
+  organization: Organization;
   projSlug: Project['slug'];
   router: InjectedRouter;
-  location: Location<{level?: number; cursor?: string}>;
 };
 
 type GroupingLevelDetails = Partial<Pick<BaseGroup, 'title' | 'metadata'>> & {
@@ -95,7 +95,7 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
     fetchGroupingLevelDetails();
   }, [activeGroupingLevel, cursor]);
 
-  function handleRouteLeave(newLocation: Location<{level?: number; cursor?: string}>) {
+  function handleRouteLeave(newLocation: Location<{cursor?: string; level?: number}>) {
     if (
       newLocation.pathname === location.pathname ||
       (newLocation.pathname !== location.pathname &&
@@ -211,17 +211,21 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
 
   if (error) {
     return (
-      <React.Fragment>
-        <ErrorMessage
-          onRetry={fetchGroupingLevels}
-          groupId={groupId}
-          error={error}
-          projSlug={projSlug}
-          orgSlug={organization.slug}
-          hasProjectWriteAccess={organization.access.includes('project:write')}
-        />
-        <LinkFooter />
-      </React.Fragment>
+      <Fragment>
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            <ErrorMessage
+              onRetry={fetchGroupingLevels}
+              groupId={groupId}
+              error={error}
+              projSlug={projSlug}
+              orgSlug={organization.slug}
+              hasProjectWriteAccess={organization.access.includes('project:write')}
+            />
+            <LinkFooter />
+          </Layout.Main>
+        </Layout.Body>
+      </Fragment>
     );
   }
 
@@ -234,64 +238,70 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
   const paginationCurrentQuantity = activeGroupingLevelDetails.length;
 
   return (
-    <Wrapper>
-      <Header>
-        {t(
-          'This issue is an aggregate of multiple events that sentry determined originate from the same root-cause. Use this page to explore more detailed groupings that exist within this issue.'
-        )}
-      </Header>
-      <Body>
-        <SliderWrapper>
-          {t('Fewer issues')}
-          <StyledRangeSlider
-            name="grouping-level"
-            allowedValues={groupingLevels.map(groupingLevel => Number(groupingLevel.id))}
-            value={activeGroupingLevel ?? 0}
-            onChange={handleSetActiveGroupingLevel}
-            showLabel={false}
-          />
-          {t('More issues')}
-        </SliderWrapper>
-        <Content isReloading={isGroupingLevelDetailsLoading}>
-          <StyledPanelTable headers={['', t('Events')]}>
-            {activeGroupingLevelDetails.map(
-              ({hash, title, metadata, latestEvent, eventCount}) => {
-                // XXX(markus): Ugly hack to make NewIssue show the right things.
-                return (
-                  <NewIssue
-                    key={hash}
-                    sampleEvent={{
-                      ...latestEvent,
-                      metadata: {
-                        ...(metadata || latestEvent.metadata),
-                        current_level: activeGroupingLevel,
-                      },
-                      title: title || latestEvent.title,
-                    }}
-                    eventCount={eventCount}
-                    organization={organization}
-                  />
-                );
-              }
+    <Layout.Body>
+      <Layout.Main fullWidth>
+        <Wrapper>
+          <Header>
+            {t(
+              'This issue is an aggregate of multiple events that sentry determined originate from the same root-cause. Use this page to explore more detailed groupings that exist within this issue.'
             )}
-          </StyledPanelTable>
-          <StyledPagination
-            pageLinks={pagination}
-            disabled={isGroupingLevelDetailsLoading}
-            caption={tct('Showing [current] of [total] [result]', {
-              result: hasMore
-                ? t('results')
-                : tn('result', 'results', paginationCurrentQuantity),
-              current: paginationCurrentQuantity,
-              total: hasMore
-                ? `${paginationCurrentQuantity}+`
-                : paginationCurrentQuantity,
-            })}
-          />
-        </Content>
-      </Body>
-      <LinkFooter />
-    </Wrapper>
+          </Header>
+          <Body>
+            <SliderWrapper>
+              {t('Fewer issues')}
+              <StyledRangeSlider
+                name="grouping-level"
+                allowedValues={groupingLevels.map(groupingLevel =>
+                  Number(groupingLevel.id)
+                )}
+                value={activeGroupingLevel ?? 0}
+                onChange={handleSetActiveGroupingLevel}
+                showLabel={false}
+              />
+              {t('More issues')}
+            </SliderWrapper>
+            <Content isReloading={isGroupingLevelDetailsLoading}>
+              <StyledPanelTable headers={['', t('Events')]}>
+                {activeGroupingLevelDetails.map(
+                  ({hash, title, metadata, latestEvent, eventCount}) => {
+                    // XXX(markus): Ugly hack to make NewIssue show the right things.
+                    return (
+                      <NewIssue
+                        key={hash}
+                        sampleEvent={{
+                          ...latestEvent,
+                          metadata: {
+                            ...(metadata || latestEvent.metadata),
+                            current_level: activeGroupingLevel,
+                          },
+                          title: title || latestEvent.title,
+                        }}
+                        eventCount={eventCount}
+                        organization={organization}
+                      />
+                    );
+                  }
+                )}
+              </StyledPanelTable>
+              <StyledPagination
+                pageLinks={pagination}
+                disabled={isGroupingLevelDetailsLoading}
+                caption={tct('Showing [current] of [total] [result]', {
+                  result: hasMore
+                    ? t('results')
+                    : tn('result', 'results', paginationCurrentQuantity),
+                  current: paginationCurrentQuantity,
+                  total: hasMore
+                    ? `${paginationCurrentQuantity}+`
+                    : paginationCurrentQuantity,
+                })}
+              />
+            </Content>
+          </Body>
+          <LinkFooter />
+        </Wrapper>
+      </Layout.Main>
+    </Layout.Body>
   );
 }
 
@@ -323,7 +333,7 @@ const Footer = styled('p')`
 
 const Body = styled('div')`
   display: grid;
-  grid-gap: ${space(3)};
+  gap: ${space(3)};
 `;
 
 const StyledPanelTable = styled(PanelTable)`
@@ -362,7 +372,7 @@ const Content = styled('div')<{isReloading: boolean}>`
 
 const SliderWrapper = styled('div')`
   display: grid;
-  grid-gap: ${space(1.5)};
+  gap: ${space(1.5)};
   grid-template-columns: max-content max-content;
   justify-content: space-between;
   align-items: flex-start;

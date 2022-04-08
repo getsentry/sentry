@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from sentry.models import User
-from sentry.notifications.helpers import where_should_user_be_notified
+from sentry.notifications.helpers import where_should_recipient_be_notified
 from sentry.notifications.types import NotificationScopeType, NotificationSettingOptionValues
 from sentry.types.integrations import ExternalProviders
 
@@ -18,7 +18,7 @@ class WhereShouldBeNotifiedTest(TestCase):
                 }
             }
         }
-        assert where_should_user_be_notified(notification_settings, self.user) == [
+        assert where_should_recipient_be_notified(notification_settings, self.user) == [
             ExternalProviders.EMAIL
         ]
 
@@ -31,7 +31,7 @@ class WhereShouldBeNotifiedTest(TestCase):
                 }
             }
         }
-        assert where_should_user_be_notified(notification_settings, self.user) == [
+        assert where_should_recipient_be_notified(notification_settings, self.user) == [
             ExternalProviders.EMAIL,
             ExternalProviders.SLACK,
         ]

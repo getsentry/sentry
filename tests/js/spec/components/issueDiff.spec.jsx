@@ -1,12 +1,11 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {IssueDiff} from 'app/components/issueDiff';
+import {IssueDiff} from 'sentry/components/issueDiff';
 
-jest.mock('app/api');
+jest.mock('sentry/api');
 
 describe('IssueDiff', function () {
   const entries = TestStubs.Entries();
-  const routerContext = TestStubs.routerContext();
   const api = new MockApiClient();
   const project = TestStubs.ProjectDetails();
 
@@ -66,8 +65,7 @@ describe('IssueDiff', function () {
         targetIssueId="target"
         orgId="org-slug"
         project={project}
-      />,
-      routerContext
+      />
     );
 
     await tick();
@@ -100,8 +98,7 @@ describe('IssueDiff', function () {
         targetIssueId="target"
         orgId="org-slug"
         project={project}
-      />,
-      routerContext
+      />
     );
 
     await tick();

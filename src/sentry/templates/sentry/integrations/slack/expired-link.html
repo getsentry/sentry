@@ -1,0 +1,15 @@
+{% extends "sentry/bases/modal.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "Slack Expired Link" %} | {{ block.super }}{% endblock %}
+{% block wrapperclass %}narrow auth{% endblock %}
+
+{% block main %}
+  <div class="align-center">
+    <p>
+      {% trans "Your link is expired. Please try re-linking your identity again by interacting with a Sentry notification in Slack.
+      " %}
+    </p>
+  </div>
+{% endblock %}

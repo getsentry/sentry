@@ -1,16 +1,9 @@
-__all__ = [
-    "IntegrationInstallation",
-    "IntegrationFeatures",
-    "IntegrationProvider",
-    "IntegrationMetadata",
-    "FeatureDescription",
-]
-
+import abc
 import logging
 import sys
 from collections import namedtuple
 from enum import Enum
-from typing import Any, Dict, FrozenSet, Mapping, Optional, Sequence
+from typing import Any, Dict, FrozenSet, Mapping, MutableMapping, Optional, Sequence
 from urllib.request import Request
 
 from django.views import View
@@ -19,10 +12,12 @@ from sentry.db.models.manager import M
 from sentry.exceptions import InvalidIdentity
 from sentry.models import (
     AuditLogEntryEvent,
+    ExternalActor,
     Identity,
     Integration,
     Organization,
     OrganizationIntegration,
+    Team,
 )
 from sentry.pipeline import PipelineProvider
 from sentry.shared_integrations.constants import (
@@ -115,7 +110,7 @@ class IntegrationFeatures(Enum):
     DEPLOYMENT = "deployment"
 
 
-class IntegrationProvider(PipelineProvider):  # type: ignore
+class IntegrationProvider(PipelineProvider, abc.ABC):  # type: ignore
     """
     An integration provider describes a third party that can be registered within Sentry.
 
@@ -129,11 +124,6 @@ class IntegrationProvider(PipelineProvider):  # type: ignore
     it provides (such as extensions provided).
     """
 
-    # a unique identifier (e.g. 'slack').
-    # Used to lookup sibling classes and the ``key`` used when creating
-    # Integration objects.
-    key: Optional[str] = None
-
     # a unique identifier to use when creating the ``Integration`` object.
     # Only needed when you want to create the above object with something other
     # than ``key``. See: VstsExtensionIntegrationProvider.
@@ -142,9 +132,6 @@ class IntegrationProvider(PipelineProvider):  # type: ignore
     # Whether this integration should show up in the list on the Organization
     # Integrations page.
     visible = True
-
-    # a human readable name (e.g. 'Slack')
-    name: Optional[str] = None
 
     # an IntegrationMetadata object, used to provide extra details in the
     # configuration interface of the integration.
@@ -301,7 +288,7 @@ class IntegrationInstallation:
         """
         return []
 
-    def update_organization_config(self, data: Mapping[str, Any]) -> None:
+    def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
         """
         Update the configuration field for an organization integration.
         """
@@ -338,7 +325,7 @@ class IntegrationInstallation:
         """
         return None
 
-    def message_from_error(self, exc: ApiError) -> str:
+    def message_from_error(self, exc: Exception) -> str:
         if isinstance(exc, ApiUnauthorized):
             return ERR_UNAUTHORIZED
         elif isinstance(exc, ApiHostError):
@@ -356,7 +343,7 @@ class IntegrationInstallation:
         else:
             return ERR_INTERNAL
 
-    def raise_error(self, exc: ApiError, identity: Optional[Identity] = None) -> None:
+    def raise_error(self, exc: Exception, identity: Optional[Identity] = None) -> None:
         if isinstance(exc, ApiUnauthorized):
             raise InvalidIdentity(self.message_from_error(exc), identity=identity).with_traceback(
                 sys.exc_info()[2]
@@ -383,7 +370,15 @@ class IntegrationInstallation:
     def uninstall(self) -> None:
         """
         For integrations that need additional steps for uninstalling
-        that are not covered in the `delete_organization_integration`
+        that are not covered by the deletion task for OrganizationIntegration
         task.
         """
+        pass
+
+    # NotifyBasicMixin noops
+
+    def notify_remove_external_team(self, external_team: ExternalActor, team: Team) -> None:
+        pass
+
+    def remove_notification_settings(self, actor_id: int, provider: str) -> None:
         pass

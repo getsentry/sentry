@@ -2,28 +2,27 @@ name: dev env
 on:
   pull_request:
     paths:
+      - '.pre-commit-config.yaml'
       - 'Makefile'
       - '.github/workflows/development-environment.yml'
+      - 'requirements-*.txt'
+      - '.python-version'
+      - '.github/actions/setup-python'
       - '.envrc'
       - 'Brewfile'
       - 'scripts/*'
       - 'src/sentry/runner/commands/devserver.py'
       - 'src/sentry/runner/commands/devservices.py'
+      - 'bin/load-mocks'
 
 jobs:
-  dev-environment:
-    name: set up
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 40
-    strategy:
-      matrix:
-        # macosx-11.0 is Big Sur, however, it takes long for jobs to get started
-        # Using Ubuntu 18 until I figure out this error:
-        # -> ImportError: libffi.so.6: cannot open shared object file: No such file or directory
-        os: [macos-11.0, ubuntu-18.04]
-      fail-fast: false
+  # This workflow is optimized to test the dev env with dev services as fast as possible
+  # The bootstrap workflow (see last workflow) tests the experience of first time engineers
+  docker-setup:
+    name: Docker set up
+    runs-on: macos-11
+    timeout-minutes: 30
     env:
-      PIP_DISABLE_PIP_VERSION_CHECK: on
       # Make the environment more similar to what Mac defaults to
       SHELL: /bin/zsh
 
@@ -31,61 +30,97 @@ jobs:
       - name: Checkout sentry
         uses: actions/checkout@v2
 
-      - name: Install prerequisites
-        # Xcode CLI & brew are already installed, thus, no need to call xcode-select install
-        # Sometimes, brew needs to be updated before brew bundle would work
-        # After installing Docker (via homebrew) we need to make sure that it is properly initialized on Mac
-        run: |
-          brew update && brew bundle -q
-          # This code is mentioned in our dev docs. Only remove if you adjust the docs as well
-          SENTRY_NO_VENV_CHECK=1 ./scripts/do.sh init-docker
-
-      # The next few steps are to set up the cache quickly
-      - name: Set environment variables & others
+      - name: Set up
         id: info
         run: |
-          echo "::set-output name=python-version::$(SENTRY_NO_VENV_CHECK=1 ./scripts/do.sh get-pyenv-version)"
-          echo "::set-output name=pip-cache-dir::$(pip3 cache dir)"
-          echo "::set-output name=pip-version::$(pip -V | awk -F ' ' '{print $2}')"
           echo "::set-output name=yarn-cache-dir::$(yarn cache dir)"
 
-      # In a sense, we set up Python two times (once here and once via pyenv). Setting
-      # it up here is instant and it helps us to get the cache primed sooner
-      - name: Setup Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ steps.info.outputs.python-version }}
+      # Trick for unattended Docker installations
+      # https://github.com/docker/for-mac/issues/2359#issuecomment-943131345
+      # NOTE: This can sometimes take up to 10 minutes
+      - name: Install Docker
+        run: |
+          HOMEBREW_NO_AUTO_UPDATE=1 brew install -v --cask docker
+          sudo /Applications/Docker.app/Contents/MacOS/Docker --unattended --install-privileged-components
+          open -a /Applications/Docker.app --args --unattended --accept-license
 
-      - name: Cache (pyenv)
-        uses: actions/cache@v2
-        with:
-          path: ~/.pyenv
-          key: devenv-${{ matrix.os }}-pyenv-${{ hashFiles('.python-version') }}
+      - name: Install missing brew packages
+        run: |
+          HOMEBREW_NO_AUTO_UPDATE=1 brew install -v libxmlsec1
 
-      - name: Cache (pip)
-        uses: actions/cache@v2
+      - name: Install volta
+        run: |
+          curl https://get.volta.sh | bash
+
+      # This handles Python's cache
+      - name: Setup Python & cache
+        uses: ./.github/actions/setup-python
+        # Remove this block when 3.8.13 becomes available in:
+        # https://raw.githubusercontent.com/actions/python-versions/main/versions-manifest.json
         with:
-          path: ${{ steps.info.outputs.pip-cache-dir }}
-          key: devenv-${{ matrix.os }}-py${{ steps.info.outputs.python-version }}-pip${{ steps.info.outputs.pip-version }}-${{ hashFiles('**/requirements.txt') }}
+          python-version: 3.8.12
 
       - name: Cache (yarn)
         uses: actions/cache@v1 # We are explicitly using v1 due to perf reasons
         with:
           path: ${{ steps.info.outputs.yarn-cache-dir }}
-          key: devenv-${{ matrix.os }}-v2-yarn-${{ hashFiles('yarn.lock') }}
+          key: devenv-${{ runner.os }}-v1-yarn-${{ hashFiles('yarn.lock') }}
 
-      - name: Set up development environment (mostly as per docs)
+      # This tests starting up the dev services, loading mocks and pre-commit installation
+      # This can take over 15 minutes
+      - name: make bootstrap
         run: |
-          curl https://get.volta.sh | bash
           export VOLTA_HOME="$HOME/.volta"
           export PATH="$HOME/.volta/bin:$PATH"
-          make setup-pyenv
-          eval "$(pyenv init --path)"
           python -m venv .venv
           source .venv/bin/activate
           make bootstrap
 
-      - name: Test direnv
+  # The pyenv set up takes long, thus, separating it into its own
+  pyenv-setup:
+    name: pyenv set up
+    runs-on: macos-11
+    timeout-minutes: 25
+    env:
+      # This is to support this code https://github.com/getsentry/sentry/blob/47b837a69c38e190a7555de81e6d7d216498b854/scripts/pyenv_setup.sh#L17-L40
+      SHELL: /bin/zsh
+
+    steps:
+      - name: Checkout sentry
+        uses: actions/checkout@v2
+
+      # We update brew because we need a newer version of pyenv which has access to 3.8.13
+      - name: Install pyenv
         run: |
-          brew install direnv
-          direnv allow
+          brew update && brew install pyenv
+
+      # Only after we source ~/.zprofile that the right Python will be selected
+      - name: Set up pyenv
+        run: |
+          make setup-pyenv
+          [[ $(which python) != "${HOME}/.pyenv/shims/python" ]]
+          source ~/.zprofile
+          [[ $(which python) == "${HOME}/.pyenv/shims/python" ]]
+          [[ $(python -V) == "Python $(cat .python-version)" ]]
+          python -m venv .venv
+          source .venv/bin/activate
+          [[ $(python -V) == "Python $(cat .python-version)" ]]
+
+
+  # We don't yet test the bootstrap step
+  # https://github.com/getsentry/bootstrap-sentry/blob/7af557be84920dd587e48613dbc308c937bc0e08/bootstrap.sh#L618-L619
+  bootstrap-script:
+    runs-on: macos-11
+    timeout-minutes: 40
+    env:
+      # Make the environment more similar to what Mac defaults to
+      SHELL: /bin/zsh
+
+    steps:
+      - name: Run bootstrap code
+        env:
+          STRAP_DEBUG: 1
+          # This ensures that the bootstrap code will test against this branch
+          CI_CHECKOUT_BRANCH: ${{ github.head_ref || github.sha }}
+        run: |
+          bash <(curl -s https://raw.githubusercontent.com/getsentry/bootstrap-sentry/main/bootstrap.sh)

@@ -2,8 +2,10 @@ import logging
 import uuid
 from datetime import datetime, timedelta
 from time import time
+from unittest import mock
 
 import pytest
+from django.core.cache import cache
 from django.utils import timezone
 
 from sentry import nodestore
@@ -39,9 +41,9 @@ from sentry.models import (
     ReleaseProjectEnvironment,
     UserReport,
 )
+from sentry.spans.grouping.utils import hash_values
 from sentry.testutils import TestCase, assert_mock_called_once_with_partial
 from sentry.utils.cache import cache_key_for_event
-from sentry.utils.compat import mock
 from sentry.utils.outcomes import Outcome
 
 
@@ -148,7 +150,6 @@ class EventManagerTest(TestCase):
         project.update_option("sentry:secondary_grouping_expiry", time() + (24 * 90 * 3600))
 
         # Switching to newstyle grouping changes hashes as 123 will be removed
-
         manager = EventManager(
             make_event(message="foo 123", event_id="b" * 32, timestamp=timestamp + 2.0)
         )
@@ -168,6 +169,77 @@ class EventManagerTest(TestCase):
         assert group.message == event2.message
         assert group.data.get("type") == "default"
         assert group.data.get("metadata") == {"title": "foo 123"}
+
+        # After expiry, new events are still assigned to the same group:
+        project.update_option("sentry:secondary_grouping_expiry", 0)
+        manager = EventManager(
+            make_event(message="foo 123", event_id="c" * 32, timestamp=timestamp + 4.0)
+        )
+        manager.normalize()
+
+        with self.tasks():
+            event3 = manager.save(project.id)
+        assert event3.group_id == event2.group_id
+
+    def test_applies_secondary_grouping_hierarchical(self):
+        project = self.project
+        project.update_option("sentry:grouping_config", "legacy:2019-03-12")
+        project.update_option("sentry:secondary_grouping_expiry", 0)
+
+        timestamp = time() - 300
+
+        def save_event(ts_offset):
+            ts = timestamp + ts_offset
+            manager = EventManager(
+                make_event(
+                    message="foo 123",
+                    event_id=hex(2 ** 127 + int(ts))[-32:],
+                    timestamp=ts,
+                    exception={
+                        "values": [
+                            {
+                                "type": "Hello",
+                                "stacktrace": {
+                                    "frames": [
+                                        {
+                                            "function": "not_in_app_function",
+                                        },
+                                        {
+                                            "function": "in_app_function",
+                                        },
+                                    ]
+                                },
+                            }
+                        ]
+                    },
+                )
+            )
+            manager.normalize()
+            with self.tasks():
+                return manager.save(project.id)
+
+        event = save_event(0)
+
+        project.update_option("sentry:grouping_config", "mobile:2021-02-12")
+        project.update_option("sentry:secondary_grouping_config", "legacy:2019-03-12")
+        project.update_option("sentry:secondary_grouping_expiry", time() + (24 * 90 * 3600))
+
+        # Switching to newstyle grouping changes hashes as 123 will be removed
+        event2 = save_event(2)
+
+        # make sure that events did get into same group because of fallback grouping, not because of hashes which come from primary grouping only
+        assert not set(event.get_hashes().hashes) & set(event2.get_hashes().hashes)
+        assert event.group_id == event2.group_id
+
+        group = Group.objects.get(id=event.group_id)
+
+        assert group.times_seen == 2
+        assert group.last_seen == event2.datetime
+
+        # After expiry, new events are still assigned to the same group:
+        project.update_option("sentry:secondary_grouping_expiry", 0)
+        event3 = save_event(4)
+        assert event3.group_id == event2.group_id
 
     @mock.patch("sentry.event_manager._calculate_background_grouping")
     def test_applies_background_grouping(self, mock_calc_grouping):
@@ -997,6 +1069,10 @@ class EventManagerTest(TestCase):
         euser = EventUser.objects.get(project_id=self.project.id, ident="1")
         assert event.get_tag("sentry:user") == euser.tag_value
 
+        # clear the cache otherwise the cached EventUser from prev
+        # manager.save() will be used instead of jane
+        cache.clear()
+
         # ensure event user is mapped to tags in second attempt
         manager = EventManager(make_event(event_id="b", **{"user": {"id": "1", "name": "jane"}}))
         manager.normalize()
@@ -1182,7 +1258,11 @@ class EventManagerTest(TestCase):
         event = manager.save(self.project.id)
         group = event.group
         assert group.data.get("type") == "error"
-        assert group.data.get("metadata") == {"type": "Foo", "value": "bar"}
+        assert group.data.get("metadata") == {
+            "type": "Foo",
+            "value": "bar",
+            "display_title_with_tree_label": False,
+        }
 
     def test_csp_event_type(self):
         manager = EventManager(
@@ -1233,6 +1313,67 @@ class EventManagerTest(TestCase):
         manager.normalize()
         data = manager.get_data()
         assert data["type"] == "transaction"
+
+    def test_transaction_event_span_grouping(self):
+        with self.feature("projects:performance-suspect-spans-ingestion"):
+            manager = EventManager(
+                make_event(
+                    **{
+                        "transaction": "wait",
+                        "contexts": {
+                            "trace": {
+                                "parent_span_id": "bce14471e0e9654d",
+                                "op": "foobar",
+                                "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                                "span_id": "bf5be759039ede9a",
+                            }
+                        },
+                        "spans": [
+                            {
+                                "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                                "parent_span_id": "bf5be759039ede9a",
+                                "span_id": "a" * 16,
+                                "start_timestamp": 0,
+                                "timestamp": 1,
+                                "same_process_as_parent": True,
+                                "op": "default",
+                                "description": "span a",
+                            },
+                            {
+                                "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                                "parent_span_id": "bf5be759039ede9a",
+                                "span_id": "b" * 16,
+                                "start_timestamp": 0,
+                                "timestamp": 1,
+                                "same_process_as_parent": True,
+                                "op": "default",
+                                "description": "span a",
+                            },
+                            {
+                                "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                                "parent_span_id": "bf5be759039ede9a",
+                                "span_id": "c" * 16,
+                                "start_timestamp": 0,
+                                "timestamp": 1,
+                                "same_process_as_parent": True,
+                                "op": "default",
+                                "description": "span b",
+                            },
+                        ],
+                        "timestamp": "2019-06-14T14:01:40Z",
+                        "start_timestamp": "2019-06-14T14:01:40Z",
+                        "type": "transaction",
+                    }
+                )
+            )
+            manager.normalize()
+            event = manager.save(self.project.id)
+            data = event.data
+            assert data["type"] == "transaction"
+            assert data["span_grouping_config"]["id"] == "default:2021-08-25"
+            spans = [{"hash": span["hash"]} for span in data["spans"]]
+            # the basic strategy is to simply use the description
+            assert spans == [{"hash": hash_values([span["description"]])} for span in data["spans"]]
 
     def test_sdk(self):
         manager = EventManager(make_event(**{"sdk": {"name": "sentry-unity", "version": "1.0"}}))

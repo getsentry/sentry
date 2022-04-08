@@ -1,6 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import ProjectFilters from 'app/views/projectDetail/projectFilters';
+import {OrganizationContext} from 'sentry/views/organizationContext';
+import ProjectFilters from 'sentry/views/projectDetail/projectFilters';
 
 describe('ProjectDetail > ProjectFilters', () => {
   const onSearch = jest.fn();
@@ -11,6 +12,7 @@ describe('ProjectDetail > ProjectFilters', () => {
   });
 
   it('recommends semver search tag', async () => {
+    const organization = TestStubs.Organization();
     tagValueLoader.mockImplementationOnce(() =>
       Promise.resolve([
         {
@@ -24,7 +26,9 @@ describe('ProjectDetail > ProjectFilters', () => {
       ])
     );
     const wrapper = mountWithTheme(
-      <ProjectFilters query="" onSearch={onSearch} tagValueLoader={tagValueLoader} />,
+      <OrganizationContext.Provider value={organization}>
+        <ProjectFilters query="" onSearch={onSearch} tagValueLoader={tagValueLoader} />
+      </OrganizationContext.Provider>,
       TestStubs.routerContext()
     );
     wrapper.find('SmartSearchBar textarea').simulate('click');

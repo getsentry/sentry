@@ -1,54 +1,38 @@
-import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'app/api';
-import useApi from 'app/utils/useApi';
+import {Client} from 'sentry/api';
+import useApi from 'sentry/utils/useApi';
 
 describe('useApi', function () {
-  let apiInstance: Client;
+  it('provides an api client', function () {
+    const {result} = reactHooks.renderHook(() => useApi());
 
-  type Props = {
-    /**
-     * Test passthrough API clients
-     */
-    api?: Client;
-    /**
-     * Test persistInFlight
-     */
-    persistInFlight?: boolean;
-  };
-
-  const MyComponent: React.FC<Props> = ({api, persistInFlight}) => {
-    apiInstance = useApi({api, persistInFlight});
-    return <div />;
-  };
-
-  it('renders MyComponent with an api prop', function () {
-    mountWithTheme(<MyComponent />);
-
-    expect(apiInstance).toBeInstanceOf(Client);
+    expect(result.current).toBeInstanceOf(Client);
   });
 
-  it('cancels pending API requests when component is unmounted', function () {
-    const {unmount} = mountWithTheme(<MyComponent />);
+  it('cancels pending API requests when unmounted', function () {
+    const {result, unmount} = reactHooks.renderHook(() => useApi());
 
-    jest.spyOn(apiInstance, 'clear');
+    jest.spyOn(result.current, 'clear');
     unmount();
 
-    expect(apiInstance.clear).toHaveBeenCalled();
+    expect(result.current.clear).toHaveBeenCalled();
   });
 
   it('does not cancel inflights when persistInFlight is true', function () {
-    const {unmount} = mountWithTheme(<MyComponent persistInFlight />);
+    const {result, unmount} = reactHooks.renderHook(() =>
+      useApi({persistInFlight: true})
+    );
 
-    jest.spyOn(apiInstance, 'clear');
+    jest.spyOn(result.current, 'clear');
     unmount();
 
-    expect(apiInstance.clear).not.toHaveBeenCalled();
+    expect(result.current.clear).not.toHaveBeenCalled();
   });
 
   it('uses pass through API when provided', function () {
     const myClient = new Client();
-    const {unmount} = mountWithTheme(<MyComponent api={myClient} />);
+    const {unmount} = reactHooks.renderHook(() => useApi({api: myClient}));
 
     jest.spyOn(myClient, 'clear');
     unmount();

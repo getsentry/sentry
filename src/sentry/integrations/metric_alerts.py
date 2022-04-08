@@ -1,8 +1,10 @@
 from datetime import timedelta
 
 from django.urls import reverse
+from django.utils.translation import ugettext as _
 
-from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL, get_incident_aggregates
+from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
+from sentry.incidents.logic import get_incident_aggregates
 from sentry.incidents.models import INCIDENT_STATUS, IncidentStatus, IncidentTrigger
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
@@ -10,35 +12,24 @@ from sentry.utils.http import absolute_uri
 QUERY_AGGREGATION_DISPLAY = {
     "count()": "events",
     "count_unique(tags[sentry:user])": "users affected",
+    "percentage(sessions_crashed, sessions)": "% sessions crash free rate",
+    "percentage(users_crashed, users)": "% users crash free rate",
 }
 
 
-def incident_status_info(incident, metric_value, action, method):
-    if action and method:
-        # Get status from trigger
-        incident_status = (
-            IncidentStatus.CLOSED
-            if method == "resolve"
-            else (
-                IncidentStatus.CRITICAL
-                if action.alert_rule_trigger.label == CRITICAL_TRIGGER_LABEL
-                else IncidentStatus.WARNING
-            )
-        )
-    else:
-        incident_status = incident.status
-    return IncidentStatus(incident_status)
-
-
-def incident_attachment_info(incident, metric_value=None, action=None, method=None):
+def incident_attachment_info(incident, new_status: IncidentStatus, metric_value=None, unfurl=False):
     logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
     alert_rule = incident.alert_rule
 
-    status = INCIDENT_STATUS[incident_status_info(incident, metric_value, action, method)]
+    status = INCIDENT_STATUS[new_status]
 
-    agg_text = QUERY_AGGREGATION_DISPLAY.get(
-        alert_rule.snuba_query.aggregate, alert_rule.snuba_query.aggregate
-    )
+    agg_display_key = alert_rule.snuba_query.aggregate
+
+    if CRASH_RATE_ALERT_AGGREGATE_ALIAS in alert_rule.snuba_query.aggregate:
+        agg_display_key = agg_display_key.split(f"AS {CRASH_RATE_ALERT_AGGREGATE_ALIAS}")[0].strip()
+
+    agg_text = QUERY_AGGREGATION_DISPLAY.get(agg_display_key, alert_rule.snuba_query.aggregate)
+
     if metric_value is None:
         incident_trigger = (
             IncidentTrigger.objects.filter(incident=incident).order_by("-date_modified").first()
@@ -55,12 +46,24 @@ def incident_attachment_info(incident, metric_value=None, action=None, method=No
             end = incident_trigger.date_modified
         else:
             start, end = None, None
-        metric_value = get_incident_aggregates(incident, start, end, use_alert_aggregate=True)[
-            "count"
-        ]
+
+        metric_value = get_incident_aggregates(incident=incident, start=start, end=end).get("count")
     time_window = alert_rule.snuba_query.time_window // 60
 
-    text = f"{metric_value} {agg_text} in the last {time_window} minutes"
+    if agg_text.startswith("%"):
+        if metric_value is not None:
+            metric_and_agg_text = f"{metric_value}{agg_text}"
+        else:
+            metric_and_agg_text = f"No{agg_text[1:]}"
+    else:
+        metric_and_agg_text = f"{metric_value} {agg_text}"
+
+    interval = "minute" if time_window == 1 else "minutes"
+    text = _("%(metric_and_agg_text)s in the last %(time_window)d %(interval)s") % {
+        "metric_and_agg_text": metric_and_agg_text,
+        "time_window": time_window,
+        "interval": interval,
+    }
     if alert_rule.snuba_query.query != "":
         text += f"\nFilter: {alert_rule.snuba_query.query}"
 
@@ -68,15 +71,22 @@ def incident_attachment_info(incident, metric_value=None, action=None, method=No
 
     title = f"{status}: {alert_rule.name}"
 
-    title_link = absolute_uri(
-        reverse(
-            "sentry-metric-alert",
-            kwargs={
-                "organization_slug": incident.organization.slug,
-                "incident_id": incident.identifier,
-            },
+    if unfurl:
+        # this URL is needed for the Slack unfurl, but nothing else
+        title_link = absolute_uri(
+            f"organizations/{incident.organization.slug}/alerts/rules/details/{incident.identifier}"
         )
-    )
+
+    else:
+        title_link = absolute_uri(
+            reverse(
+                "sentry-metric-alert",
+                kwargs={
+                    "organization_slug": incident.organization.slug,
+                    "incident_id": incident.identifier,
+                },
+            )
+        )
 
     return {
         "title": title,

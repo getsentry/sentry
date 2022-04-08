@@ -4,6 +4,7 @@ from functools import wraps
 from hashlib import sha256
 
 from django.utils.crypto import constant_time_compare
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import options
@@ -16,7 +17,7 @@ logger = logging.getLogger("sentry.integrations.cloudflare")
 
 def requires_auth(func):
     @wraps(func)
-    def wrapped(self, request, *args, **kwargs):
+    def wrapped(self, request: Request, *args, **kwargs) -> Response:
         if not request.user.is_authenticated:
             return Response({"proceed": False}, 401)
         return func(self, request, *args, **kwargs)
@@ -25,7 +26,7 @@ def requires_auth(func):
 
 
 class CloudflareTokenAuthentication(TokenAuthentication):
-    def authenticate(self, request):
+    def authenticate(self, request: Request):
         # XXX(dcramer): Hack around CF needing a token in the JSON body,
         # but us additionally needing to verify the signature of the payload.
         # This technically lets a user brute force a token before we actually
@@ -48,7 +49,7 @@ class CloudflareWebhookEndpoint(Endpoint):
             hmac.new(key=key.encode("utf-8"), msg=payload, digestmod=sha256).hexdigest(),
         )
 
-    def organization_from_json(self, request, data, scope="project:write"):
+    def organization_from_json(self, request: Request, data, scope="project:write"):
         try:
             organization_id = data["install"]["options"]["organization"]
         except KeyError:
@@ -60,7 +61,7 @@ class CloudflareWebhookEndpoint(Endpoint):
                 return org
         return None
 
-    def project_from_json(self, request, data, scope="project:write"):
+    def project_from_json(self, request: Request, data, scope="project:write"):
         try:
             project_id = data["install"]["options"]["project"]
         except KeyError:
@@ -77,14 +78,14 @@ class CloudflareWebhookEndpoint(Endpoint):
                 return project
         return None
 
-    def on_preview(self, request, data, is_test):
+    def on_preview(self, request: Request, data, is_test):
         if not request.user.is_authenticated:
             return Response({"install": data["install"], "proceed": True})
 
         return self.on_account_change(request, data, is_test)
 
     @requires_auth
-    def on_account_change(self, request, data, is_test):
+    def on_account_change(self, request: Request, data, is_test):
         organizations = sorted(
             Organization.objects.get_for_user(request.user, scope="project:write"),
             key=lambda x: x.slug,
@@ -109,7 +110,7 @@ class CloudflareWebhookEndpoint(Endpoint):
         return self.on_organization_change(request, data, is_test)
 
     @requires_auth
-    def on_organization_clear(self, request, data, is_test):
+    def on_organization_clear(self, request: Request, data, is_test):
         data["install"]["schema"]["properties"].pop("project", None)
         data["install"]["schema"]["properties"].pop("dsn", None)
         data["install"]["options"].pop("organization", None)
@@ -118,7 +119,7 @@ class CloudflareWebhookEndpoint(Endpoint):
         return Response({"install": data["install"], "proceed": True})
 
     @requires_auth
-    def on_organization_change(self, request, data, is_test):
+    def on_organization_change(self, request: Request, data, is_test):
         org = self.organization_from_json(request, data)
 
         projects = sorted(
@@ -148,14 +149,14 @@ class CloudflareWebhookEndpoint(Endpoint):
         return self.on_project_change(request, data, is_test)
 
     @requires_auth
-    def on_project_clear(self, request, data, is_test):
+    def on_project_clear(self, request: Request, data, is_test):
         data["install"]["schema"]["properties"].pop("dsn", None)
         data["install"]["options"].pop("project", None)
         data["install"]["options"].pop("dsn", None)
         return Response({"install": data["install"], "proceed": True})
 
     @requires_auth
-    def on_project_change(self, request, data, is_test):
+    def on_project_change(self, request: Request, data, is_test):
         project = self.project_from_json(request, data)
 
         keys = sorted(ProjectKey.objects.filter(project=project), key=lambda x: x.public_key)
@@ -180,11 +181,11 @@ class CloudflareWebhookEndpoint(Endpoint):
         return Response({"install": data["install"], "proceed": True})
 
     @requires_auth
-    def on_dsn_clear(self, request, data, is_test):
+    def on_dsn_clear(self, request: Request, data, is_test):
         data["install"]["options"].pop("dsn", None)
         return Response({"install": data["install"], "proceed": True})
 
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         signature = request.META.get("HTTP_X_SIGNATURE_HMAC_SHA256_HEX")
         variant = request.META.get("HTTP_X_SIGNATURE_KEY_VARIANT")
         logging_data = {

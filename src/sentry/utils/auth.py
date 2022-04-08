@@ -1,22 +1,75 @@
 import logging
+from datetime import datetime, timedelta, timezone
 from time import time
 from typing import Container, Optional
 
 from django.conf import settings
 from django.contrib.auth import login as _login
 from django.contrib.auth.backends import ModelBackend
+from django.http.request import HttpRequest
 from django.urls import resolve, reverse
 from django.utils.http import is_safe_url
+from rest_framework.request import Request
 
 from sentry.models import Authenticator, User
+from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.auth")
 
 _LOGIN_URL = None
 
-SSO_SESSION_KEY = "sso"
+from typing import Any, Dict, Mapping
 
 MFA_SESSION_KEY = "mfa"
+
+
+def _sso_expiry_from_env(seconds):
+    if seconds is None:
+        return None
+    return timedelta(seconds=int(seconds))
+
+
+SSO_EXPIRY_TIME = _sso_expiry_from_env(settings.SENTRY_SSO_EXPIRY_SECONDS) or timedelta(hours=20)
+
+
+class SsoSession:
+    """
+    The value returned from to_dict is stored in the django session cookie, with the org id being the key.
+    """
+
+    SSO_SESSION_KEY = "sso_s"
+    SSO_LOGIN_TIMESTAMP = "ts"
+
+    def __init__(self, organization_id: int, time: datetime) -> None:
+        self.organization_id = organization_id
+        self.authenticated_at_time = time
+        self.session_key = self.django_session_key(organization_id)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {self.SSO_LOGIN_TIMESTAMP: self.authenticated_at_time.timestamp()}
+
+    @classmethod
+    def create(cls, organization_id: int) -> "SsoSession":
+        return cls(organization_id, datetime.now(tz=timezone.utc))
+
+    @classmethod
+    def from_django_session_value(
+        cls, organization_id: int, session_value: Mapping[str, Any]
+    ) -> "SsoSession":
+
+        return cls(
+            organization_id,
+            datetime.fromtimestamp(session_value[cls.SSO_LOGIN_TIMESTAMP], tz=timezone.utc),
+        )
+
+    def is_sso_authtime_fresh(self) -> bool:
+        expired_time_cutoff = datetime.now(tz=timezone.utc) - SSO_EXPIRY_TIME
+
+        return self.authenticated_at_time > expired_time_cutoff
+
+    @staticmethod
+    def django_session_key(organization_id: int) -> str:
+        return f"{SsoSession.SSO_SESSION_KEY}:{organization_id}"
 
 
 class AuthUserPasswordExpired(Exception):
@@ -127,21 +180,43 @@ def is_valid_redirect(url: str, allowed_hosts: Optional[Container] = None) -> bo
 
 
 def mark_sso_complete(request, organization_id):
+    """
+    Store sso session status in the django session per org, with the value being the timestamp of when they logged in,
+    for usage when expiring sso sessions.
+    """
     # TODO(dcramer): this needs to be bound based on SSO options (e.g. changing
     # or enabling SSO invalidates this)
-    sso = request.session.get(SSO_SESSION_KEY, "")
-    if sso:
-        sso = sso.split(",")
-    else:
-        sso = []
-    sso.append(str(organization_id))
-    request.session[SSO_SESSION_KEY] = ",".join(sso)
+    sso_session = SsoSession.create(organization_id)
+    request.session[sso_session.session_key] = sso_session.to_dict()
+
+    metrics.incr("sso.session-added-success")
+
     request.session.modified = True
 
 
-def has_completed_sso(request, organization_id):
-    sso = request.session.get(SSO_SESSION_KEY, "").split(",")
-    return str(organization_id) in sso
+def has_completed_sso(request, organization_id) -> bool:
+    """
+    look for the org id under the sso session key, and check that the timestamp isn't past our expiry limit
+    """
+    sso_session_in_request = request.session.get(
+        SsoSession.django_session_key(organization_id), None
+    )
+
+    if not sso_session_in_request:
+        metrics.incr("sso.no-value-in-session")
+        return False
+
+    django_session_value = SsoSession.from_django_session_value(
+        organization_id, sso_session_in_request
+    )
+
+    if not django_session_value.is_sso_authtime_fresh():
+        metrics.incr("sso.session-timed-out")
+        return False
+
+    metrics.incr("sso.session-verify-success")
+
+    return True
 
 
 def find_users(username, with_valid_password=True, is_active=None):
@@ -169,7 +244,9 @@ def find_users(username, with_valid_password=True, is_active=None):
     return []
 
 
-def login(request, user, passed_2fa=None, after_2fa=None, organization_id=None, source=None):
+def login(
+    request: HttpRequest, user, passed_2fa=None, after_2fa=None, organization_id=None, source=None
+):
     """
     This logs a user in for the session and current request.
 
@@ -225,9 +302,10 @@ def login(request, user, passed_2fa=None, after_2fa=None, organization_id=None, 
     # reasonable place.
     if not hasattr(user, "backend"):
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
-    _login(request, user)
     if organization_id:
         mark_sso_complete(request, organization_id)
+    _login(request, user)
+
     log_auth_success(request, user.username, organization_id, source)
     return True
 
@@ -266,6 +344,13 @@ def is_user_signed_request(request):
         return False
 
 
+def set_active_org(request: Request, org_slug: str) -> None:
+    # even if the value being set is the same this will trigger a session
+    # modification and reset the users expiry, so check if they are different first.
+    if request.session.get("activeorg") != org_slug:
+        request.session["activeorg"] = org_slug
+
+
 class EmailAuthBackend(ModelBackend):
     """
     Authenticate against django.contrib.auth.models.User.
@@ -273,7 +358,7 @@ class EmailAuthBackend(ModelBackend):
     Supports authenticating via an email address or a username.
     """
 
-    def authenticate(self, request, username=None, password=None):
+    def authenticate(self, request: Request, username=None, password=None):
         users = find_users(username)
         if users:
             for user in users:

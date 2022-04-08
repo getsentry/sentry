@@ -2,10 +2,10 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import Input from 'app/views/settings/components/forms/controls/input';
-import Field from 'app/views/settings/components/forms/field';
+import Input from 'sentry/components/forms/controls/input';
+import Field from 'sentry/components/forms/field';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 
 import {EventId, EventIdStatus} from '../../types';
 import {saveToSourceGroupData} from '../utils';
@@ -13,14 +13,14 @@ import {saveToSourceGroupData} from '../utils';
 import EventIdFieldStatusIcon from './eventIdFieldStatusIcon';
 
 type Props = {
-  onUpdateEventId: (eventId: string) => void;
   eventId: EventId;
+  onUpdateEventId: (eventId: string) => void;
   disabled?: boolean;
 };
 
 type State = {
-  value: string;
   status: EventIdStatus;
+  value: string;
 };
 
 class EventIdField extends React.Component<Props, State> {

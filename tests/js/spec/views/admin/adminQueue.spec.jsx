@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {Client} from 'app/api';
-import AdminQueue from 'app/views/admin/adminQueue';
+import {Client} from 'sentry/api';
+import AdminQueue from 'sentry/views/admin/adminQueue';
 
 // TODO(dcramer): this doesnt really test anything as we need to
 // mock the API Response/wait on it
@@ -23,14 +23,7 @@ describe('AdminQueue', function () {
           'sentry.tasks.activity.send_activity_notifications',
           'sentry.tasks.clear_expired_resolutions',
           'sentry.tasks.commits.fetch_commits',
-          'sentry.tasks.deletion.delete_api_application',
           'sentry.tasks.deletion.delete_group',
-          'sentry.tasks.deletion.delete_organization',
-          'sentry.tasks.deletion.delete_project',
-          'sentry.tasks.deletion.delete_repository',
-          'sentry.tasks.deletion.delete_team',
-          'sentry.tasks.deletion.generic_delete',
-          'sentry.tasks.deletion.revoke_api_tokens',
           'sentry.tasks.deletion.run_deletion',
           'sentry.tasks.deletion.run_scheduled_deletions',
           'sentry.tasks.digests.deliver_digest',

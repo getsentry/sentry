@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import math
 import re
@@ -7,11 +9,10 @@ from datetime import timedelta
 from enum import Enum
 from functools import reduce
 from operator import or_
-from typing import List, Mapping, Optional, Set
+from typing import TYPE_CHECKING, Mapping, Sequence
 
-from django.core.cache import cache
 from django.db import models
-from django.db.models import Q
+from django.db.models import Q, QuerySet
 from django.utils import timezone
 from django.utils.http import urlencode, urlquote
 from django.utils.translation import ugettext_lazy as _
@@ -29,9 +30,14 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.eventstore.models import Event
+from sentry.models.grouphistory import record_group_history_from_activity_type
+from sentry.types.activity import ActivityType
 from sentry.utils.http import absolute_uri
 from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.strings import strip, truncatechars
+
+if TYPE_CHECKING:
+    from sentry.models import Integration, Organization, Team, User
 
 logger = logging.getLogger(__name__)
 
@@ -175,7 +181,7 @@ class EventOrdering(Enum):
 
 def get_oldest_or_latest_event_for_environments(
     ordering, environments=(), issue_id=None, project_id=None
-) -> Optional[Event]:
+) -> Event | None:
     conditions = []
 
     if len(environments) > 0:
@@ -202,7 +208,9 @@ class GroupManager(BaseManager):
     def by_qualified_short_id(self, organization_id: int, short_id: str):
         return self.by_qualified_short_id_bulk(organization_id, [short_id])[0]
 
-    def by_qualified_short_id_bulk(self, organization_id: int, short_ids: List[str]):
+    def by_qualified_short_id_bulk(
+        self, organization_id: int, short_ids: list[str]
+    ) -> Sequence[Group]:
         short_ids = [parse_short_id(short_id) for short_id in short_ids]
         if not short_ids or any(short_id is None for short_id in short_ids):
             raise Group.DoesNotExist()
@@ -219,8 +227,8 @@ class GroupManager(BaseManager):
             ],
         )
 
-        groups: List[Group] = list(
-            Group.objects.exclude(
+        groups = list(
+            self.exclude(
                 status__in=[
                     GroupStatus.PENDING_DELETION,
                     GroupStatus.DELETION_IN_PROGRESS,
@@ -228,7 +236,7 @@ class GroupManager(BaseManager):
                 ]
             ).filter(short_id_lookup, project__organization=organization_id)
         )
-        group_lookup: Set[int] = {group.short_id for group in groups}
+        group_lookup: set[int] = {group.short_id for group in groups}
         for short_id in short_ids:
             if short_id.short_id not in group_lookup:
                 raise Group.DoesNotExist()
@@ -247,10 +255,7 @@ class GroupManager(BaseManager):
             logger.info("discarded.hash", extra={"project_id": project, "description": str(e)})
 
     def from_event_id(self, project, event_id):
-        """
-        Resolves the 32 character event_id string into
-        a Group for which it is found.
-        """
+        """Resolves the 32 character event_id string into a Group for which it is found."""
         group_id = None
 
         event = eventstore.get_event_by_id(project.id, event_id)
@@ -264,36 +269,90 @@ class GroupManager(BaseManager):
             # a Group.
             raise Group.DoesNotExist()
 
-        return Group.objects.get(id=group_id)
+        return self.get(id=group_id)
 
     def filter_by_event_id(self, project_ids, event_id):
-        event_ids = [event_id]
-        conditions = [["group_id", "IS NOT NULL", None]]
-        data = eventstore.get_events(
+        events = eventstore.get_events(
             filter=eventstore.Filter(
-                event_ids=event_ids, project_ids=project_ids, conditions=conditions
+                event_ids=[event_id],
+                project_ids=project_ids,
+                conditions=[["group_id", "IS NOT NULL", None]],
             ),
             limit=max(len(project_ids), 100),
             referrer="Group.filter_by_event_id",
         )
+        return self.filter(id__in={event.group_id for event in events})
 
-        group_ids = {evt.group_id for evt in data}
-
-        return Group.objects.filter(id__in=group_ids)
-
-    def get_groups_by_external_issue(self, integration, external_issue_key):
+    def get_groups_by_external_issue(
+        self,
+        integration: Integration,
+        organizations: Sequence[Organization],
+        external_issue_key: str,
+    ) -> QuerySet:
         from sentry.models import ExternalIssue, GroupLink
 
-        return Group.objects.filter(
-            id__in=GroupLink.objects.filter(
-                linked_id__in=ExternalIssue.objects.filter(
-                    key=external_issue_key,
-                    integration_id=integration.id,
-                    organization_id__in=integration.organizations.values_list("id", flat=True),
-                ).values_list("id", flat=True)
-            ).values_list("group_id", flat=True),
-            project__organization_id__in=integration.organizations.values_list("id", flat=True),
+        external_issue_subquery = ExternalIssue.objects.get_for_integration(
+            integration, external_issue_key
+        ).values_list("id", flat=True)
+
+        group_link_subquery = GroupLink.objects.filter(
+            linked_id__in=external_issue_subquery
+        ).values_list("group_id", flat=True)
+
+        return self.filter(
+            id__in=group_link_subquery,
+            project__organization__in=organizations,
+            project__organization__organizationintegration__integration=integration,
+        ).select_related("project")
+
+    def update_group_status(
+        self, groups: Sequence[Group], status: GroupStatus, activity_type: ActivityType
+    ) -> None:
+        """For each groups, update status to `status` and create an Activity."""
+        from sentry.models import Activity
+
+        updated_count = (
+            self.filter(id__in=[g.id for g in groups]).exclude(status=status).update(status=status)
         )
+        if updated_count:
+            for group in groups:
+                Activity.objects.create_group_activity(group, activity_type)
+                record_group_history_from_activity_type(group, activity_type.value)
+
+    def from_share_id(self, share_id: str) -> Group:
+        if not share_id or len(share_id) != 32:
+            raise Group.DoesNotExist
+
+        from sentry.models import GroupShare
+
+        return self.get(id__in=GroupShare.objects.filter(uuid=share_id).values_list("group_id")[:1])
+
+    def filter_to_team(self, team):
+        from sentry.models import GroupAssignee, Project
+
+        project_list = Project.objects.get_for_team_ids(team_ids=[team.id])
+        user_ids = list(team.member_set.values_list("user_id", flat=True))
+        assigned_groups = GroupAssignee.objects.filter(
+            Q(team=team) | Q(user_id__in=user_ids)
+        ).values_list("group_id", flat=True)
+        return self.filter(
+            project__in=project_list,
+            id__in=assigned_groups,
+        )
+
+    def get_issues_mapping(
+        self,
+        group_ids: Sequence[int],
+        project_ids: Sequence[int],
+        organization: Organization,
+    ) -> Mapping[int, str | None]:
+        """Create a dictionary of group_ids to their qualified_short_ids."""
+        return {
+            i.id: i.qualified_short_id
+            for i in self.filter(
+                id__in=group_ids, project_id__in=project_ids, project__organization=organization
+            )
+        }
 
 
 class Group(Model):
@@ -386,9 +445,9 @@ class Group(Model):
 
     def get_absolute_url(
         self,
-        params: Optional[Mapping[str, str]] = None,
-        event_id: Optional[int] = None,
-        organization_slug: Optional[str] = None,
+        params: Mapping[str, str] | None = None,
+        event_id: int | None = None,
+        organization_slug: str | None = None,
     ) -> str:
         # Built manually in preference to django.urls.reverse,
         # because reverse has a measured performance impact.
@@ -455,21 +514,10 @@ class Group(Model):
             # Otherwise it has not been shared yet.
             return None
 
-    @classmethod
-    def from_share_id(cls, share_id):
-        if not share_id or len(share_id) != 32:
-            raise cls.DoesNotExist
-
-        from sentry.models import GroupShare
-
-        return cls.objects.get(
-            id__in=GroupShare.objects.filter(uuid=share_id).values_list("group_id")[:1]
-        )
-
     def get_score(self):
         return type(self).calculate_score(self.times_seen, self.last_seen)
 
-    def get_latest_event(self) -> Optional[Event]:
+    def get_latest_event(self) -> Event | None:
         if not hasattr(self, "_latest_event"):
             self._latest_event = self.get_latest_event_for_environments()
 
@@ -491,39 +539,23 @@ class Group(Model):
             project_id=self.project_id,
         )
 
-    def _get_cache_key(self, project_id, group_id, first):
-        return f"g-r:{group_id}-{project_id}-{first}"
+    def get_first_release(self) -> str | None:
+        from sentry.models import Release
 
-    def __get_release(self, project_id, group_id, first=True, use_cache=True):
-        from sentry.models import GroupRelease, Release
-
-        orderby = "first_seen" if first else "-last_seen"
-        cache_key = self._get_cache_key(project_id, group_id, first)
-        try:
-            release_version = cache.get(cache_key) if use_cache else None
-            if release_version is None:
-                release_version = Release.objects.get(
-                    id__in=GroupRelease.objects.filter(group_id=group_id)
-                    .order_by(orderby)
-                    .values("release_id")[:1]
-                ).version
-                cache.set(cache_key, release_version, 3600)
-            elif release_version is False:
-                release_version = None
-            return release_version
-        except Release.DoesNotExist:
-            cache.set(cache_key, False, 3600)
-            return None
-
-    def get_first_release(self):
         if self.first_release_id is None:
-            first_release = self.__get_release(self.project_id, self.id, True)
-            return first_release
+            return Release.objects.get_group_release_version(self.project_id, self.id)
 
         return self.first_release.version
 
-    def get_last_release(self, use_cache=True):
-        return self.__get_release(self.project_id, self.id, False, use_cache=use_cache)
+    def get_last_release(self, use_cache: bool = True) -> str | None:
+        from sentry.models import Release
+
+        return Release.objects.get_group_release_version(
+            project_id=self.project_id,
+            group_id=self.id,
+            first=False,
+            use_cache=use_cache,
+        )
 
     def get_event_type(self):
         """
@@ -582,12 +614,37 @@ class Group(Model):
     def calculate_score(cls, times_seen, last_seen):
         return math.log(float(times_seen or 1)) * 600 + float(last_seen.strftime("%s"))
 
-    @staticmethod
-    def issues_mapping(group_ids, project_ids, organization):
-        """Create a dictionary of group_ids to their qualified_short_ids"""
-        return {
-            i.id: i.qualified_short_id
-            for i in Group.objects.filter(
-                id__in=group_ids, project_id__in=project_ids, project__organization=organization
-            )
-        }
+    def get_assignee(self) -> Team | User | None:
+        from sentry.models import GroupAssignee
+
+        try:
+            group_assignee = GroupAssignee.objects.get(group=self)
+        except GroupAssignee.DoesNotExist:
+            return None
+
+        assigned_actor = group_assignee.assigned_actor()
+
+        try:
+            return assigned_actor.resolve()
+        except assigned_actor.type.DoesNotExist:
+            return None
+
+    @property
+    def times_seen_with_pending(self) -> int:
+        """
+        Returns `times_seen` with any additional pending updates from `buffers` added on. This value
+        must be set first.
+        """
+        return self.times_seen + self.times_seen_pending
+
+    @property
+    def times_seen_pending(self) -> int:
+        assert hasattr(self, "_times_seen_pending")
+        if not hasattr(self, "_times_seen_pending"):
+            logger.error("Attempted to fetch pending `times_seen` value without first setting it")
+
+        return getattr(self, "_times_seen_pending", 0)
+
+    @times_seen_pending.setter
+    def times_seen_pending(self, times_seen: int):
+        self._times_seen_pending = times_seen

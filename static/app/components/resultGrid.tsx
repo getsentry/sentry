@@ -2,22 +2,22 @@ import * as React from 'react';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
 
-import {Client, RequestOptions} from 'app/api';
-import DropdownLink from 'app/components/dropdownLink';
-import MenuItem from 'app/components/menuItem';
-import Pagination from 'app/components/pagination';
-import {IconSearch} from 'app/icons';
-import withApi from 'app/utils/withApi';
+import {Client, RequestOptions} from 'sentry/api';
+import DropdownLink from 'sentry/components/dropdownLink';
+import MenuItem from 'sentry/components/menuItem';
+import Pagination from 'sentry/components/pagination';
+import {IconSearch} from 'sentry/icons';
+import withApi from 'sentry/utils/withApi';
 
 type Option = [value: string, label: string];
 
 type FilterProps = {
+  location: Location;
   name: string;
-  queryKey: string;
   options: Option[];
   path: string;
+  queryKey: string;
   value: string;
-  location: Location;
 };
 
 class Filter extends React.Component<FilterProps> {
@@ -83,9 +83,9 @@ class Filter extends React.Component<FilterProps> {
 }
 
 type SortByProps = {
+  location: Location;
   options: Option[];
   path: string;
-  location: Location;
   value: string;
 };
 
@@ -147,10 +147,10 @@ type Props = {
 type DefaultProps = {
   columns: React.ReactNode[];
   columnsForRow: (row: any) => React.ReactNode[];
-  defaultSort: string;
   defaultParams: Record<string, any>;
-  filters: Record<string, FilterConfig>;
+  defaultSort: string;
   endpoint: string;
+  filters: Record<string, FilterConfig>;
   hasPagination: boolean;
   hasSearch: boolean;
   keyForRow: (row: any) => string;
@@ -160,13 +160,13 @@ type DefaultProps = {
 };
 
 type State = {
-  rows: any[];
-  loading: boolean;
   error: string | boolean;
+  filters: Record<string, string>;
+  loading: boolean;
   pageLinks: null | string;
   query: string;
+  rows: any[];
   sortBy: string;
-  filters: Record<string, string>;
 };
 
 class ResultGrid extends React.Component<Props, State> {

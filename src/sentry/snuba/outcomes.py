@@ -12,6 +12,7 @@ from snuba_sdk.query import Query
 from sentry.constants import DataCategory
 from sentry.search.utils import InvalidQuery
 from sentry.snuba.sessions_v2 import (
+    AllowedResolution,
     InvalidField,
     SimpleGroupBy,
     get_constrained_date_range,
@@ -213,7 +214,10 @@ class QueryDefinition:
             raise InvalidField('At least one "field" is required.')
         self.fields = {}
         self.query: List[Any] = []  # not used but needed for compat with sessions logic
-        start, end, rollup = get_constrained_date_range(query, allow_minute_resolution)
+        allowed_resolution = (
+            AllowedResolution.one_minute if allow_minute_resolution else AllowedResolution.one_hour
+        )
+        start, end, rollup = get_constrained_date_range(query, allowed_resolution)
         self.dataset, self.match = _outcomes_dataset(rollup)
         self.rollup = rollup
         self.start = start

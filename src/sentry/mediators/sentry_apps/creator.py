@@ -1,4 +1,4 @@
-from collections import Iterable
+from collections.abc import Iterable
 
 from django.db import IntegrityError, transaction
 from rest_framework.serializers import ValidationError
@@ -14,10 +14,13 @@ from sentry.models import (
     SentryAppComponent,
     User,
 )
-from sentry.models.sentryapp import default_uuid, generate_slug
+from sentry.models.integrations.integration_feature import IntegrationTypes
+from sentry.models.integrations.sentry_app import default_uuid, generate_slug
+
+from .mixin import SentryAppMixin
 
 
-class Creator(Mediator):
+class Creator(Mediator, SentryAppMixin):
     name = Param((str,))
     author = Param((str,))
     organization = Param("sentry.models.Organization")
@@ -32,6 +35,7 @@ class Creator(Mediator):
     schema = Param(dict, default=lambda self: {})
     overview = Param((str,), required=False)
     allowed_origins = Param(Iterable, default=lambda self: [])
+    popularity = Param(int, required=False)
     request = Param("rest_framework.request.Request", required=False)
     user = Param("sentry.models.User")
     is_internal = Param(bool)
@@ -85,6 +89,7 @@ class Creator(Mediator):
             "is_alertable": self.is_alertable,
             "verify_install": self.verify_install,
             "overview": self.overview,
+            "popularity": self.popularity or SentryApp._meta.get_field("popularity").default,
             "creator_user": self.user,
             "creator_label": self.user.email
             or self.user.username,  # email is not required for some users (sentry apps)
@@ -108,7 +113,10 @@ class Creator(Mediator):
         # defaults to 'integrations-api'
         try:
             with transaction.atomic():
-                IntegrationFeature.objects.create(sentry_app=self.sentry_app)
+                IntegrationFeature.objects.create(
+                    target_id=self.sentry_app.id,
+                    target_type=IntegrationTypes.SENTRY_APP.value,
+                )
         except IntegrityError as e:
             self.log(sentry_app=self.sentry_app.slug, error_message=str(e))
 
@@ -130,4 +138,5 @@ class Creator(Mediator):
             user_id=self.user.id,
             organization_id=self.organization.id,
             sentry_app=self.sentry_app.slug,
+            created_alert_rule_ui_component="alert-rule-action" in self.get_schema_types(),
         )

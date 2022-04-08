@@ -1,18 +1,15 @@
-import EditableText from 'app/components/editableText';
-import {t} from 'app/locale';
-import {Organization} from 'app/types';
-import withOrganization from 'app/utils/withOrganization';
+import EditableText from 'sentry/components/editableText';
+import {t} from 'sentry/locale';
 
 import {DashboardDetails} from './types';
 
 type Props = {
   dashboard: DashboardDetails | null;
   isEditing: boolean;
-  organization: Organization;
   onUpdate: (dashboard: DashboardDetails) => void;
 };
 
-function DashboardTitle({dashboard, isEditing, organization, onUpdate}: Props) {
+function DashboardTitle({dashboard, isEditing, onUpdate}: Props) {
   return (
     <div>
       {!dashboard ? (
@@ -20,19 +17,14 @@ function DashboardTitle({dashboard, isEditing, organization, onUpdate}: Props) {
       ) : (
         <EditableText
           isDisabled={!isEditing}
-          value={
-            organization.features.includes('dashboards-edit') &&
-            dashboard.id === 'default-overview'
-              ? 'Default Dashboard'
-              : dashboard.title
-          }
+          value={dashboard.title}
           onChange={newTitle => onUpdate({...dashboard, title: newTitle})}
           errorMessage={t('Please set a title for this dashboard')}
-          successMessage={t('Dashboard title updated successfully')}
+          autoSelect
         />
       )}
     </div>
   );
 }
 
-export default withOrganization(DashboardTitle);
+export default DashboardTitle;

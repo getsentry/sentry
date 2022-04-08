@@ -5,15 +5,15 @@ import SentryRRWeb from '@sentry/rrweb';
 import {Integrations} from '@sentry/tracing';
 import {_browserPerformanceTimeOriginMode} from '@sentry/utils';
 
-import {DISABLE_RR_WEB, SPA_DSN} from 'app/constants';
-import {Config} from 'app/types';
-import {init as initApiSentryClient} from 'app/utils/apiSentryClient';
+import {DISABLE_RR_WEB, SENTRY_RELEASE_VERSION, SPA_DSN} from 'sentry/constants';
+import {Config} from 'sentry/types';
+import {init as initApiSentryClient} from 'sentry/utils/apiSentryClient';
 
 /**
- * We accept a routes argument here because importing `app/routes`
+ * We accept a routes argument here because importing `static/routes`
  * is expensive in regards to bundle size. Some entrypoints may opt to forgo
  * having routing instrumentation in order to have a smaller bundle size.
- * (e.g.  `app/views/integrationPipeline`)
+ * (e.g.  `static/views/integrationPipeline`)
  */
 function getSentryIntegrations(hasReplays: boolean = false, routes?: Function) {
   const integrations = [
@@ -31,9 +31,9 @@ function getSentryIntegrations(hasReplays: boolean = false, routes?: Function) {
             ),
           }
         : {}),
-      idleTimeout: 4000,
+      idleTimeout: 5000,
       _metricOptions: {
-        _reportAllChanges: true,
+        _reportAllChanges: false,
       },
     }),
   ];
@@ -76,6 +76,11 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
      * as well as `whitelistUrls`
      */
     dsn: SPA_DSN || sentryConfig?.dsn,
+    /**
+     * Frontend can be built with a `SENTRY_RELEASE_VERSION` environment variable for release string, useful if frontend is
+     * deployed separately from backend.
+     */
+    release: SENTRY_RELEASE_VERSION ?? sentryConfig?.release,
     whitelistUrls: SPA_DSN
       ? ['localhost', 'dev.getsentry.net', 'sentry.dev', 'webpack-internal://']
       : sentryConfig?.whitelistUrls,

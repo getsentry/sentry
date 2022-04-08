@@ -3,8 +3,8 @@ import {Fragment} from 'react';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import GlobalModal from 'app/components/globalModal';
-import ProjectLatestReleases from 'app/views/projectDetail/projectLatestReleases';
+import GlobalModal from 'sentry/components/globalModal';
+import ProjectLatestReleases from 'sentry/views/projectDetail/projectLatestReleases';
 
 describe('ProjectDetail > ProjectLatestReleases', function () {
   let endpointMock, endpointOlderReleasesMock;
@@ -113,7 +113,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
     expect(docsButton.text()).toBe('Start Setup');
     expect(docsButton.prop('href')).toBe('https://docs.sentry.io/product/releases/');
 
-    expect(tourButton.text()).toBe('Get a tour');
+    expect(tourButton.text()).toBe('Get Tour');
     expect(wrapper.find('GlobalModal').props().visible).toEqual(false);
     tourButton.simulate('click');
     await tick();

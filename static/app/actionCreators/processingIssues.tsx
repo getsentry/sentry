@@ -1,4 +1,4 @@
-import {Client} from 'app/api';
+import {Client} from 'sentry/api';
 
 export function fetchProcessingIssues(
   api: Client,

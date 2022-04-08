@@ -1,7 +1,8 @@
 import * as React from 'react';
 
-import {clamp, rectOfContent} from 'app/components/performance/waterfall/utils';
-import {setBodyUserSelect, UserSelectValues} from 'app/utils/userselect';
+import {clamp, rectOfContent} from 'sentry/components/performance/waterfall/utils';
+import {PerformanceInteraction} from 'sentry/utils/performanceForSentry';
+import {setBodyUserSelect, UserSelectValues} from 'sentry/utils/userselect';
 
 // we establish the minimum window size so that the window size of 0% is not possible
 const MINIMUM_WINDOW_SIZE = 0.5 / 100; // 0.5% window size
@@ -16,30 +17,31 @@ export type DragManagerChildrenProps = {
 
   isDragging: boolean;
 
-  // left-side handle
-
-  onLeftHandleDragStart: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
-  leftHandlePosition: number; // between 0 to 1
-
-  // right-side handle
-
-  onRightHandleDragStart: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
-  rightHandlePosition: number; // between 0 to 1
-
+  // between 0 to 1
   // window selection
-
   isWindowSelectionDragging: boolean;
-  windowSelectionInitial: number; // between 0 (0%) and 1 (100%)
-  windowSelectionCurrent: number; // between 0 (0%) and 1 (100%)
-  windowSelectionSize: number;
+  leftHandlePosition: number;
+
+  // left-side handle
+  onLeftHandleDragStart: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
+  // between 0 to 1
+  // right-side handle
+  onRightHandleDragStart: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
+
   onWindowSelectionDragStart: (
     event: React.MouseEvent<HTMLDivElement, MouseEvent>
   ) => void;
-
+  rightHandlePosition: number;
+  // between 0 to 1
+  viewWindowEnd: number;
   // window sizes
+  viewWindowStart: number;
+  // between 0 (0%) and 1 (100%)
+  windowSelectionCurrent: number;
 
-  viewWindowStart: number; // between 0 to 1
-  viewWindowEnd: number; // between 0 to 1
+  windowSelectionInitial: number;
+  // between 0 (0%) and 1 (100%)
+  windowSelectionSize: number; // between 0 to 1
 };
 
 type DragManagerProps = {
@@ -51,24 +53,21 @@ type DragManagerProps = {
 };
 
 type DragManagerState = {
-  // draggable handles
-
-  isDragging: boolean;
   currentDraggingHandle: ViewHandleType | undefined;
-  leftHandlePosition: number;
-  rightHandlePosition: number;
-
+  // draggable handles
+  isDragging: boolean;
   // window selection
-
   isWindowSelectionDragging: boolean;
-  windowSelectionInitial: number;
-  windowSelectionCurrent: number;
-  windowSelectionSize: number;
+  leftHandlePosition: number;
 
-  // window sizes
-
-  viewWindowStart: number;
+  rightHandlePosition: number;
   viewWindowEnd: number;
+  // window sizes
+  viewWindowStart: number;
+  windowSelectionCurrent: number;
+
+  windowSelectionInitial: number;
+  windowSelectionSize: number;
 };
 
 class DragManager extends React.Component<DragManagerProps, DragManagerState> {
@@ -239,6 +238,8 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
       return;
     }
 
+    PerformanceInteraction.startInteraction('SpanTreeWindowDrag');
+
     // prevent the user from selecting things outside the minimap when dragging
     // the mouse cursor outside the minimap
 
@@ -309,6 +310,8 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
     ) {
       return;
     }
+
+    PerformanceInteraction.finishInteraction();
 
     // remove listeners that were attached in onWindowSelectionDragStart
 

@@ -21,6 +21,7 @@ from sentry.models import (
     ProjectKey,
     SentryAppInstallation,
     SentryAppInstallationForProvider,
+    SentryAppInstallationToken,
     User,
 )
 from sentry.pipeline import NestedPipelineView
@@ -54,7 +55,7 @@ INSTALL_NOTICE_TEXT = _(
 
 
 external_install = {
-    "url": "https://vercel.com/integrations/%s/add" % options.get("vercel.integration-slug"),
+    "url": f"https://vercel.com/integrations/{options.get('vercel.integration-slug')}/add",
     "buttonText": _("Vercel Marketplace"),
     "noticeText": _(INSTALL_NOTICE_TEXT),
 }
@@ -93,11 +94,9 @@ class VercelIntegration(IntegrationInstallation):
 
     def get_dynamic_display_information(self):
         organization = Organization.objects.get_from_cache(id=self.organization_id)
-        source_code_link = absolute_uri(
-            "/settings/%s/integrations/?%s"
-            % (organization.slug, urlencode({"category": "source code management"}))
-        )
-        add_project_link = absolute_uri("/organizations/%s/projects/new/" % (organization.slug))
+        qs = urlencode({"category": "source code management"})
+        source_code_link = absolute_uri(f"/settings/{organization.slug}/integrations/?{qs}")
+        add_project_link = absolute_uri(f"/organizations/{organization.slug}/projects/new/")
         return {
             "configure_integration": {
                 "instructions": [
@@ -146,7 +145,7 @@ class VercelIntegration(IntegrationInstallation):
         vercel_client = self.get_client()
         # TODO: add try/catch if we get API failure
         slug = self.get_slug()
-        base_url = "https://vercel.com/%s" % slug
+        base_url = f"https://vercel.com/{slug}"
         vercel_projects = [
             {"value": p["id"], "label": p["name"], "url": "{}/{}".format(base_url, p["name"])}
             for p in vercel_client.get_projects()
@@ -229,7 +228,7 @@ class VercelIntegration(IntegrationInstallation):
             is_next_js = vercel_project.get("framework") == "nextjs"
             dsn_env_name = "NEXT_PUBLIC_SENTRY_DSN" if is_next_js else "SENTRY_DSN"
 
-            sentry_auth_token = SentryAppInstallationForProvider.get_token(
+            sentry_auth_token = SentryAppInstallationToken.objects.get_token(
                 sentry_project.organization.id,
                 "vercel",
             )
@@ -264,7 +263,15 @@ class VercelIntegration(IntegrationInstallation):
             return client.create_env_variable(vercel_project_id, data)
         except ApiError as e:
             if e.json and e.json.get("error", {}).get("code") == "ENV_ALREADY_EXISTS":
-                return self.update_env_variable(client, vercel_project_id, data)
+                try:
+                    return self.update_env_variable(client, vercel_project_id, data)
+                except ApiError as e:
+                    error_message = (
+                        e.json.get("error", {}).get("message")
+                        if e.json
+                        else f"Could not update environment variable {key}."
+                    )
+                    raise ValidationError({"project_mappings": [error_message]})
             raise
 
     def update_env_variable(self, client, vercel_project_id, data):

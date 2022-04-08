@@ -15,7 +15,13 @@ import FixStyleOnlyEntriesPlugin from 'webpack-remove-empty-scripts';
 import IntegrationDocsFetchPlugin from './build-utils/integration-docs-fetch-plugin';
 import LastBuiltPlugin from './build-utils/last-built-plugin';
 import SentryInstrumentation from './build-utils/sentry-instrumentation';
+import {extractIOSDeviceNames} from './scripts/extract-ios-device-names';
 import babelConfig from './babel.config';
+
+// Runs as part of prebuild step to generate a list of identifier -> name mappings for  iOS
+(async () => {
+  await extractIOSDeviceNames();
+})();
 
 /**
  * Merges the devServer config into the webpack config
@@ -28,9 +34,8 @@ interface Configuration extends webpack.Configuration {
 
 const {env} = process;
 
-/**
- * Environment configuration
- */
+// Environment configuration
+env.NODE_ENV = env.NODE_ENV ?? 'development';
 const IS_PRODUCTION = env.NODE_ENV === 'production';
 const IS_TEST = env.NODE_ENV === 'test' || !!env.TEST_SUITE;
 const IS_STORYBOOK = env.STORYBOOK_BUILD === '1';
@@ -52,28 +57,26 @@ const IS_UI_DEV_ONLY = !!env.SENTRY_UI_DEV_ONLY;
 const DEV_MODE = !(IS_PRODUCTION || IS_CI);
 const WEBPACK_MODE: Configuration['mode'] = IS_PRODUCTION ? 'production' : 'development';
 
-/**
- * Environment variables that are used by other tooling and should
- * not be user configurable.
- */
+// Environment variables that are used by other tooling and should
+// not be user configurable.
+//
 // Ports used by webpack dev server to proxy to backend and webpack
 const SENTRY_BACKEND_PORT = env.SENTRY_BACKEND_PORT;
 const SENTRY_WEBPACK_PROXY_HOST = env.SENTRY_WEBPACK_PROXY_HOST;
 const SENTRY_WEBPACK_PROXY_PORT = env.SENTRY_WEBPACK_PROXY_PORT;
+const SENTRY_RELEASE_VERSION = env.SENTRY_RELEASE_VERSION;
 
 // Used by sentry devserver runner to force using webpack-dev-server
 const FORCE_WEBPACK_DEV_SERVER = !!env.FORCE_WEBPACK_DEV_SERVER;
 const HAS_WEBPACK_DEV_SERVER_CONFIG =
   !!SENTRY_BACKEND_PORT && !!SENTRY_WEBPACK_PROXY_PORT;
 
-/**
- * User/tooling configurable environment variables
- */
+// User/tooling configurable environment variables
 const NO_DEV_SERVER = !!env.NO_DEV_SERVER; // Do not run webpack dev server
 const SHOULD_FORK_TS = DEV_MODE && !env.NO_TS_FORK; // Do not run fork-ts plugin (or if not dev env)
 const SHOULD_HOT_MODULE_RELOAD = DEV_MODE && !!env.SENTRY_UI_HOT_RELOAD;
 
-// Deploy previews are built using zeit. We can check if we're in zeit's
+// Deploy previews are built using vercel. We can check if we're in vercel's
 // build process by checking the existence of the PULL_REQUEST env var.
 const DEPLOY_PREVIEW_CONFIG = IS_DEPLOY_PREVIEW && {
   branch: env.NOW_GITHUB_COMMIT_REF,
@@ -99,15 +102,13 @@ const sentryDjangoAppPath = path.join(__dirname, 'src/sentry/static/sentry');
 const distPath = env.SENTRY_STATIC_DIST_PATH || path.join(sentryDjangoAppPath, 'dist');
 const staticPrefix = path.join(__dirname, 'static');
 
-/**
- * Locale file extraction build step
- */
+// Locale file extraction build step
 if (env.SENTRY_EXTRACT_TRANSLATIONS === '1') {
   babelConfig.plugins?.push([
     'module:babel-gettext-extractor',
     {
       fileName: 'build/javascript.po',
-      baseDirectory: path.join(__dirname, 'src/sentry'),
+      baseDirectory: path.join(__dirname),
       functionNames: {
         gettext: ['msgid'],
         ngettext: ['msgid', 'msgid_plural', 'count'],
@@ -120,21 +121,19 @@ if (env.SENTRY_EXTRACT_TRANSLATIONS === '1') {
   ]);
 }
 
-/**
- * Locale compilation and optimizations.
- *
- * Locales are code-split from the app and vendor chunk into separate chunks
- * that will be loaded by layout.html depending on the users configured locale.
- *
- * Code splitting happens using the splitChunks plugin, configured under the
- * `optimization` key of the webpack module. We create chunk (cache) groups for
- * each of our supported locales and extract the PO files and moment.js locale
- * files into each chunk.
- *
- * A plugin is used to remove the locale chunks from the app entry's chunk
- * dependency list, so that our compiled bundle does not expect that *all*
- * locale chunks must be loaded
- */
+// Locale compilation and optimizations.
+//
+// Locales are code-split from the app and vendor chunk into separate chunks
+// that will be loaded by layout.html depending on the users configured locale.
+//
+// Code splitting happens using the splitChunks plugin, configured under the
+// `optimization` key of the webpack module. We create chunk (cache) groups for
+// each of our supported locales and extract the PO files and moment.js locale
+// files into each chunk.
+//
+// A plugin is used to remove the locale chunks from the app entry's chunk
+// dependency list, so that our compiled bundle does not expect that *all*
+// locale chunks must be loaded
 const localeCatalogPath = path.join(
   __dirname,
   'src',
@@ -221,7 +220,7 @@ const babelLoaderConfig = {
 /**
  * Main Webpack config for Sentry React SPA.
  */
-let appConfig: Configuration = {
+const appConfig: Configuration = {
   mode: WEBPACK_MODE,
   entry: {
     /**
@@ -229,12 +228,12 @@ let appConfig: Configuration = {
      *
      * The order here matters for `getsentry`
      */
-    app: ['app/utils/statics-setup', 'app'],
+    app: ['sentry/utils/statics-setup', 'sentry'],
 
     /**
      * Pipeline View for integrations
      */
-    pipeline: ['app/utils/statics-setup', 'app/views/integrationPipeline'],
+    pipeline: ['sentry/utils/statics-setup', 'sentry/views/integrationPipeline'],
 
     /**
      * Legacy CSS Webpack appConfig for Django-powered views.
@@ -261,7 +260,7 @@ let appConfig: Configuration = {
         use: {
           loader: 'po-catalog-loader',
           options: {
-            referenceExtensions: ['.js', '.jsx'],
+            referenceExtensions: ['.js', '.jsx', '.tsx'],
             domain: 'sentry',
           },
         },
@@ -335,6 +334,7 @@ let appConfig: Configuration = {
         DEPLOY_PREVIEW_CONFIG: JSON.stringify(DEPLOY_PREVIEW_CONFIG),
         EXPERIMENTAL_SPA: JSON.stringify(SENTRY_EXPERIMENTAL_SPA),
         SPA_DSN: JSON.stringify(SENTRY_SPA_DSN),
+        SENTRY_RELEASE_VERSION: JSON.stringify(SENTRY_RELEASE_VERSION),
       },
     }),
 
@@ -358,7 +358,7 @@ let appConfig: Configuration = {
                 compilerOptions: {incremental: true},
               },
             },
-            logger: {devServer: false},
+            devServer: false,
           }),
         ]
       : []),
@@ -385,7 +385,9 @@ let appConfig: Configuration = {
 
   resolve: {
     alias: {
-      app: path.join(staticPrefix, 'app'),
+      'react-dom$': 'react-dom/profiling',
+      'scheduler/tracing': 'scheduler/tracing-profiling',
+      sentry: path.join(staticPrefix, 'app'),
       'sentry-images': path.join(staticPrefix, 'images'),
       'sentry-logos': path.join(sentryDjangoAppPath, 'images', 'logos'),
       'sentry-fonts': path.join(staticPrefix, 'fonts'),
@@ -553,6 +555,11 @@ if (IS_UI_DEV_ONLY) {
       rewrites: [{from: /^\/.*$/, to: '/_assets/index.html'}],
     },
   };
+  appConfig.optimization = {
+    runtimeChunk: 'single',
+  };
+  // TODO: remove target "web" when upgrading to webpack-dev-server v4
+  appConfig.target = 'web';
 }
 
 if (IS_UI_DEV_ONLY || IS_DEPLOY_PREVIEW) {
@@ -610,12 +617,6 @@ if (env.WEBPACK_CACHE_PATH) {
       // By default webpack and loaders are build dependencies
     },
   };
-}
-
-if (env.MEASURE) {
-  const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
-  const smp = new SpeedMeasurePlugin();
-  appConfig = smp.wrap(appConfig);
 }
 
 export default appConfig;

@@ -4,18 +4,18 @@ import Cookies from 'js-cookie';
 import isUndefined from 'lodash/isUndefined';
 import * as qs from 'query-string';
 
-import {openSudo, redirectToProject} from 'app/actionCreators/modal';
-import {EXPERIMENTAL_SPA} from 'app/constants';
+import {openSudo, redirectToProject} from 'sentry/actionCreators/modal';
+import {EXPERIMENTAL_SPA} from 'sentry/constants';
 import {
   PROJECT_MOVED,
   SUDO_REQUIRED,
   SUPERUSER_REQUIRED,
-} from 'app/constants/apiErrorCodes';
-import {metric} from 'app/utils/analytics';
-import {run} from 'app/utils/apiSentryClient';
-import getCsrfToken from 'app/utils/getCsrfToken';
-import {uniqueId} from 'app/utils/guid';
-import createRequestError from 'app/utils/requestError/createRequestError';
+} from 'sentry/constants/apiErrorCodes';
+import {metric} from 'sentry/utils/analytics';
+import {run} from 'sentry/utils/apiSentryClient';
+import getCsrfToken from 'sentry/utils/getCsrfToken';
+import {uniqueId} from 'sentry/utils/guid';
+import createRequestError from 'sentry/utils/requestError/createRequestError';
 
 export class Request {
   /**
@@ -47,6 +47,18 @@ export class Request {
 
 export type ResponseMeta<R = any> = {
   /**
+   * Get a header value from the response
+   */
+  getResponseHeader: (header: string) => string | null;
+  /**
+   * The response body decoded from json
+   */
+  responseJSON: R;
+  /**
+   * The string value of the response
+   */
+  responseText: string;
+  /**
    * The response status code
    */
   status: Response['status'];
@@ -54,18 +66,6 @@ export type ResponseMeta<R = any> = {
    * The response status code text
    */
   statusText: Response['statusText'];
-  /**
-   * The string value of the response
-   */
-  responseText: string;
-  /**
-   * The response body decoded from json
-   */
-  responseJSON: R;
-  /**
-   * Get a header value from the response
-   */
-  getResponseHeader: (header: string) => string | null;
 };
 
 /**
@@ -108,8 +108,6 @@ export const initApiClientErrorHandling = () =>
         'ignore',
         '2fa-required',
         'app-connect-authentication-error',
-        'itunes-authentication-error',
-        'itunes-2fa-required',
       ].includes(code)
     ) {
       return;
@@ -197,35 +195,35 @@ export type RequestCallbacks = {
    */
   complete?: (resp: ResponseMeta, textStatus: string) => void;
   /**
-   * Callback for the request completing successfully
-   */
-  success?: (data: any, textStatus?: string, resp?: ResponseMeta) => void;
-  /**
    * Callback for the request failing with an error
    */
   // TODO(ts): Update this when sentry is mostly migrated to TS
   error?: FunctionCallback;
+  /**
+   * Callback for the request completing successfully
+   */
+  success?: (data: any, textStatus?: string, resp?: ResponseMeta) => void;
 };
 
 export type RequestOptions = RequestCallbacks & {
-  /**
-   * The HTTP method to use when making the API request
-   */
-  method?: APIRequestMethod;
   /**
    * Values to attach to the body of the request.
    */
   data?: any;
   /**
-   * Query parameters to add to the requested URL.
+   * The HTTP method to use when making the API request
    */
-  query?: Array<any> | object;
+  method?: APIRequestMethod;
   /**
    * Because of the async nature of API requests, errors will happen outside of
    * the stack that initated the request. a preservedError can be passed to
    * coalesce the stacks together.
    */
   preservedError?: Error;
+  /**
+   * Query parameters to add to the requested URL.
+   */
+  query?: Record<string, any>;
 };
 
 type ClientOptions = {
@@ -307,7 +305,7 @@ export class Client {
 
     if (isSudoRequired) {
       openSudo({
-        superuser: code === SUPERUSER_REQUIRED,
+        isSuperuser: code === SUPERUSER_REQUIRED,
         sudo: code === SUDO_REQUIRED,
         retryRequest: async () => {
           try {

@@ -2,7 +2,7 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from sentry.models import Monitor, MonitorStatus, MonitorType, ScheduleType
+from sentry.models import Monitor, MonitorStatus, MonitorType, ScheduledDeletion, ScheduleType
 from sentry.testutils import APITestCase
 
 
@@ -220,3 +220,4 @@ class DeleteMonitorTest(APITestCase):
 
         monitor = Monitor.objects.get(id=monitor.id)
         assert monitor.status == MonitorStatus.PENDING_DELETION
+        assert ScheduledDeletion.objects.filter(object_id=monitor.id, model_name="Monitor").exists()

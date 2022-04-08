@@ -1,9 +1,9 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {Client} from 'app/api';
-import SuggestedOwners from 'app/components/group/suggestedOwners/suggestedOwners';
-import CommitterStore from 'app/stores/committerStore';
-import MemberListStore from 'app/stores/memberListStore';
+import {Client} from 'sentry/api';
+import SuggestedOwners from 'sentry/components/group/suggestedOwners/suggestedOwners';
+import CommitterStore from 'sentry/stores/committerStore';
+import MemberListStore from 'sentry/stores/memberListStore';
 
 describe('SuggestedOwners', function () {
   const user = TestStubs.User();
@@ -29,6 +29,12 @@ describe('SuggestedOwners', function () {
     Client.addMockResponse({
       url: `/prompts-activity/`,
       body: {},
+    });
+    Client.addMockResponse({
+      url: `/organizations/${organization.slug}/code-mappings/`,
+      query: {project: -1},
+      method: 'GET',
+      body: [],
     });
   });
 

@@ -1,45 +1,34 @@
-import {ReactNode, useState} from 'react';
 import {browserHistory} from 'react-router';
-import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import Feature from 'app/components/acl/feature';
-import Alert from 'app/components/alert';
-import GlobalSdkUpdateAlert from 'app/components/globalSdkUpdateAlert';
-import * as Layout from 'app/components/layouts/thirds';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import {IconFlag} from 'app/icons';
-import {t} from 'app/locale';
-import {Organization, Project} from 'app/types';
-import {defined} from 'app/utils';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import DiscoverQuery from 'app/utils/discover/discoverQuery';
-import EventView from 'app/utils/discover/eventView';
+import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {t} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
+import EventView from 'sentry/utils/discover/eventView';
 import {
   isAggregateField,
   QueryFieldValue,
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
   WebVital,
-} from 'app/utils/discover/fields';
-import {removeHistogramQueryStrings} from 'app/utils/performance/histogram';
-import {decodeScalar} from 'app/utils/queryString';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
-import withOrganization from 'app/utils/withOrganization';
-import withProjects from 'app/utils/withProjects';
+} from 'sentry/utils/discover/fields';
+import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import withOrganization from 'sentry/utils/withOrganization';
+import withProjects from 'sentry/utils/withProjects';
 
-import {getTransactionName} from '../../utils';
 import {
   decodeFilterFromLocation,
   filterToLocationQuery,
   SpanOperationBreakdownFilter,
 } from '../filter';
-import TransactionHeader from '../header';
+import PageLayout, {ChildProps} from '../pageLayout';
 import Tab from '../tabs';
-import {ZOOM_END, ZOOM_START} from '../transactionOverview/latencyChart';
+import {ZOOM_END, ZOOM_START} from '../transactionOverview/latencyChart/utils';
 
 import EventsContent from './content';
 import {
@@ -59,35 +48,26 @@ type Props = {
 
 function TransactionEvents(props: Props) {
   const {location, organization, projects} = props;
-  const projectId = decodeScalar(location.query.project);
-  const transactionName = getTransactionName(location);
 
-  if (!defined(projectId) || !defined(transactionName)) {
-    // If there is no transaction name, redirect to the Performance landing page
-    browserHistory.replace({
-      pathname: `/organizations/${organization.slug}/performance/`,
-      query: {
-        ...location.query,
-      },
-    });
-    return null;
-  }
+  return (
+    <PageLayout
+      location={location}
+      organization={organization}
+      projects={projects}
+      tab={Tab.Events}
+      getDocumentTitle={getDocumentTitle}
+      generateEventView={generateEventView}
+      childComponent={EventsContentWrapper}
+    />
+  );
+}
 
-  const project = projects.find(p => p.id === projectId);
-
-  const [incompatibleAlertNotice, setIncompatibleAlertNotice] = useState<ReactNode>(null);
-  const handleIncompatibleQuery = (incompatibleAlertNoticeFn, _errors) => {
-    const notice = incompatibleAlertNoticeFn(() => setIncompatibleAlertNotice(null));
-    setIncompatibleAlertNotice(notice);
-  };
-
-  const [error, setError] = useState<string | undefined>();
-
+function EventsContentWrapper(props: ChildProps) {
+  const {location, organization, eventView, transactionName, setError} = props;
   const eventsDisplayFilterName = decodeEventsDisplayFilterFromLocation(location);
   const spanOperationBreakdownFilter = decodeFilterFromLocation(location);
   const webVital = getWebVital(location);
 
-  const eventView = generateEventView(location, transactionName);
   const percentilesView = getPercentilesEventView(eventView);
 
   const getFilteredEventView = (percentiles: PercentileValues) => {
@@ -167,87 +147,42 @@ function TransactionEvents(props: Props) {
   };
 
   return (
-    <SentryDocumentTitle
-      title={getDocumentTitle(transactionName)}
+    <DiscoverQuery
+      eventView={percentilesView}
       orgSlug={organization.slug}
-      projectSlug={project?.slug}
+      location={location}
+      referrer="api.performance.transaction-events"
     >
-      <Feature
-        features={['performance-events-page']}
-        organization={organization}
-        renderDisabled={NoAccess}
-      >
-        <GlobalSelectionHeader
-          lockedMessageSubject={t('transaction')}
-          shouldForceProject={defined(project)}
-          forceProject={project}
-          specificProjectSlugs={defined(project) ? [project.slug] : []}
-          disableMultipleProjectSelection
-          showProjectSettingsLink
-        >
-          <LightWeightNoProjectMessage organization={organization}>
-            <TransactionHeader
-              eventView={eventView}
-              location={location}
-              organization={organization}
-              projects={projects}
-              transactionName={transactionName}
-              currentTab={Tab.Events}
-              hasWebVitals="maybe"
-              handleIncompatibleQuery={handleIncompatibleQuery}
-            />
-            <Layout.Body>
-              <StyledSdkUpdatesAlert />
-              {defined(error) && (
-                <StyledAlert type="error" icon={<IconFlag size="md" />}>
-                  {error}
-                </StyledAlert>
-              )}
-              {incompatibleAlertNotice && (
-                <Layout.Main fullWidth>{incompatibleAlertNotice}</Layout.Main>
-              )}
-              <DiscoverQuery
-                eventView={percentilesView}
-                orgSlug={organization.slug}
-                location={location}
-                referrer="api.performance.transaction-events"
-              >
-                {({isLoading, tableData}) => {
-                  if (isLoading) {
-                    return (
-                      <Layout.Main fullWidth>
-                        <LoadingIndicator />
-                      </Layout.Main>
-                    );
-                  }
+      {({isLoading, tableData}) => {
+        if (isLoading) {
+          return (
+            <Layout.Main fullWidth>
+              <LoadingIndicator />
+            </Layout.Main>
+          );
+        }
 
-                  const percentiles: PercentileValues = tableData?.data?.[0];
-                  const filteredEventView = getFilteredEventView(percentiles);
+        const percentiles: PercentileValues = tableData
+          ?.data?.[0] as any as PercentileValues;
+        const filteredEventView = getFilteredEventView(percentiles);
 
-                  return (
-                    <EventsContent
-                      location={location}
-                      organization={organization}
-                      eventView={filteredEventView}
-                      transactionName={transactionName}
-                      spanOperationBreakdownFilter={spanOperationBreakdownFilter}
-                      onChangeSpanOperationBreakdownFilter={
-                        onChangeSpanOperationBreakdownFilter
-                      }
-                      eventsDisplayFilterName={eventsDisplayFilterName}
-                      onChangeEventsDisplayFilter={onChangeEventsDisplayFilter}
-                      percentileValues={percentiles}
-                      webVital={webVital}
-                      setError={setError}
-                    />
-                  );
-                }}
-              </DiscoverQuery>
-            </Layout.Body>
-          </LightWeightNoProjectMessage>
-        </GlobalSelectionHeader>
-      </Feature>
-    </SentryDocumentTitle>
+        return (
+          <EventsContent
+            location={location}
+            organization={organization}
+            eventView={filteredEventView}
+            transactionName={transactionName}
+            spanOperationBreakdownFilter={spanOperationBreakdownFilter}
+            onChangeSpanOperationBreakdownFilter={onChangeSpanOperationBreakdownFilter}
+            eventsDisplayFilterName={eventsDisplayFilterName}
+            onChangeEventsDisplayFilter={onChangeEventsDisplayFilter}
+            percentileValues={percentiles}
+            webVital={webVital}
+            setError={setError}
+          />
+        );
+      }}
+    </DiscoverQuery>
   );
 }
 
@@ -262,10 +197,6 @@ function getDocumentTitle(transactionName: string): string {
   return [t('Summary'), t('Events')].join(' \u2014 ');
 }
 
-function NoAccess() {
-  return <Alert type="warning">{t("You don't have access to this feature")}</Alert>;
-}
-
 function getWebVital(location: Location): WebVital | undefined {
   const webVital = decodeScalar(location.query.webVital, '') as WebVital;
   if (Object.values(WebVital).includes(webVital)) {
@@ -274,15 +205,23 @@ function getWebVital(location: Location): WebVital | undefined {
   return undefined;
 }
 
-function generateEventView(location: Location, transactionName: string): EventView {
+function generateEventView({
+  location,
+  transactionName,
+}: {
+  location: Location;
+  transactionName: string;
+}): EventView {
   const query = decodeScalar(location.query.query, '');
   const conditions = new MutableSearch(query);
-  conditions
-    .setFilterValues('event.type', ['transaction'])
-    .setFilterValues('transaction', [transactionName]);
+
+  conditions.setFilterValues('event.type', ['transaction']);
+  conditions.setFilterValues('transaction', [transactionName]);
 
   Object.keys(conditions.filters).forEach(field => {
-    if (isAggregateField(field)) conditions.removeFilter(field);
+    if (isAggregateField(field)) {
+      conditions.removeFilter(field);
+    }
   });
 
   // Default fields for relative span view
@@ -345,20 +284,5 @@ function getPercentilesEventView(eventView: EventView): EventView {
 
   return eventView.withColumns(percentileColumns);
 }
-
-const StyledAlert = styled(Alert)`
-  grid-column: 1/3;
-  margin: 0;
-`;
-
-const StyledSdkUpdatesAlert = styled(GlobalSdkUpdateAlert)`
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    margin-bottom: 0;
-  }
-`;
-
-StyledSdkUpdatesAlert.defaultProps = {
-  Wrapper: p => <Layout.Main fullWidth {...p} />,
-};
 
 export default withProjects(withOrganization(TransactionEvents));

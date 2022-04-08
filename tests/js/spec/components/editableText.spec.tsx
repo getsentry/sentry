@@ -1,15 +1,14 @@
-import {act} from 'react-dom/test-utils';
-
 import {createListeners} from 'sentry-test/createListeners';
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {act} from 'sentry-test/reactTestingLibrary';
 
-import EditableText from 'app/components/editableText';
+import EditableText from 'sentry/components/editableText';
 
 const currentValue = 'foo';
 
-function renderedComponent(onChange: () => void, newValue = 'bar') {
+function renderedComponent(onChange: () => void, newValue = 'bar', maxLength?: number) {
   const wrapper = mountWithTheme(
-    <EditableText value={currentValue} onChange={onChange} />
+    <EditableText value={currentValue} onChange={onChange} maxLength={maxLength} />
   );
 
   let label = wrapper.find('Label');
@@ -168,6 +167,12 @@ describe('EditableText', function () {
       expect(updatedLabel.length).toEqual(1);
 
       expect(updatedLabel.text()).toEqual(currentValue);
+    });
+
+    it('enforces a max length if provided', function () {
+      const wrapper = renderedComponent(jest.fn(), '', 4);
+      const input = wrapper.find('input');
+      expect(input.prop('maxLength')).toBe(4);
     });
   });
 });

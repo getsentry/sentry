@@ -2,17 +2,16 @@ import sortBy from 'lodash/sortBy';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {openModal} from 'app/actionCreators/modal';
-import GlobalModal from 'app/components/globalModal';
-import convertRelayPiiConfig from 'app/views/settings/components/dataScrubbing/convertRelayPiiConfig';
-import Add from 'app/views/settings/components/dataScrubbing/modals/add';
-import {MethodType, RuleType} from 'app/views/settings/components/dataScrubbing/types';
+import {openModal} from 'sentry/actionCreators/modal';
+import GlobalModal from 'sentry/components/globalModal';
+import convertRelayPiiConfig from 'sentry/views/settings/components/dataScrubbing/convertRelayPiiConfig';
+import Add from 'sentry/views/settings/components/dataScrubbing/modals/add';
+import {MethodType, RuleType} from 'sentry/views/settings/components/dataScrubbing/types';
 import {
   getMethodLabel,
   getRuleLabel,
-} from 'app/views/settings/components/dataScrubbing/utils';
+} from 'sentry/views/settings/components/dataScrubbing/utils';
 
-// @ts-expect-error
 const relayPiiConfig = TestStubs.DataScrubbingRelayPiiConfig();
 const stringRelayPiiConfig = JSON.stringify(relayPiiConfig);
 const organizationSlug = 'sentry';
@@ -21,7 +20,6 @@ const rules = convertedRules;
 const successfullySaved = jest.fn();
 const projectId = 'foo';
 const endpoint = `/projects/${organizationSlug}/${projectId}/`;
-// @ts-expect-error
 const api = new MockApiClient();
 
 async function renderComponent() {
@@ -39,7 +37,6 @@ async function renderComponent() {
     />
   ));
 
-  // @ts-expect-error
   await tick();
   wrapper.update();
 
@@ -108,7 +105,6 @@ describe('Add Modal', () => {
     expect(cancelButton.exists()).toBe(true);
     cancelButton.simulate('click');
 
-    // @ts-expect-error
     await tick();
     wrapper.update();
 
@@ -250,7 +246,6 @@ describe('Add Modal', () => {
   it('Display Event Id', async () => {
     const eventId = '12345678901234567890123456789012';
 
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: `/organizations/${organizationSlug}/data-scrubbing-selector-suggestions/`,
       body: {
@@ -272,7 +267,6 @@ describe('Add Modal', () => {
 
     eventIdFieldInput.simulate('blur');
 
-    // @ts-expect-error
     await tick();
 
     // Loading

@@ -1,55 +1,49 @@
-import * as React from 'react';
+import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
-import Button from 'app/components/button';
-import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
-import {IconAdd} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import theme from 'app/utils/theme';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import Button from 'sentry/components/button';
+import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
+import PageFilterPinButton from 'sentry/components/organizations/pageFilters/pageFilterPinButton';
+import {IconAdd} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import theme from 'sentry/utils/theme';
 
 import SelectorItem from './selectorItem';
 
 type DropdownAutoCompleteProps = React.ComponentProps<typeof DropdownAutoComplete>;
 
 type Props = {
-  organization: Organization;
-  /**
-   * Used by multiProjectSelector
-   */
-  multiProjects: Array<Project>;
-  nonMemberProjects: Array<Project>;
-  /**
-   * Use this if the component should be a controlled component
-   */
-  selectedProjects: Array<Project>;
   children: (
     args: Parameters<DropdownAutoCompleteProps['children']>[0] & {
       selectedProjects: Project[];
     }
   ) => React.ReactElement;
   /**
-   * Allow selecting multiple projects
+   * Used by multiProjectSelector
    */
-  multi?: boolean;
-  /**
-   * Represents if a search is taking place
-   */
-  searching?: boolean;
-  /**
-   * Represents if the current project selector is paginated or fully loaded.
-   * Currently only used to ensure that in an empty state the input is not
-   * hidden. This is for the case in which a user searches for a project which
-   * does not exist. If we hide the input due to no results, the user cannot
-   * recover
-   */
-  paginated?: boolean;
+  multiProjects: Array<Project>;
+  nonMemberProjects: Array<Project>;
   /**
    * Callback when a project is selected
    */
   onSelect: (project: Project) => void;
+  organization: Organization;
+  /**
+   * Use this if the component should be a controlled component
+   */
+  selectedProjects: Array<Project>;
+  /**
+   * Whether the menu should be detached from the actor
+   */
+  detached?: boolean;
+  /**
+   * Allow selecting multiple projects
+   */
+  multi?: boolean;
   /**
    * Callback when the input filter changes
    */
@@ -59,6 +53,22 @@ type Props = {
    * Calls back with (projects[], event)
    */
   onMultiSelect?: (projects: Array<Project>, event: React.MouseEvent) => void;
+  /**
+   * Represents if the current project selector is paginated or fully loaded.
+   * Currently only used to ensure that in an empty state the input is not
+   * hidden. This is for the case in which a user searches for a project which
+   * does not exist. If we hide the input due to no results, the user cannot
+   * recover
+   */
+  paginated?: boolean;
+  /**
+   * Represents if a search is taking place
+   */
+  searching?: boolean;
+  /**
+   * Show the pin button in the dropdown's header actions
+   */
+  showPin?: boolean;
 } & Pick<
   DropdownAutoCompleteProps,
   'menuFooter' | 'onScroll' | 'onClose' | 'rootClassName' | 'className'
@@ -70,6 +80,7 @@ const ProjectSelector = ({
   menuFooter,
   className,
   rootClassName,
+  detached,
   onClose,
   onFilterChange,
   onScroll,
@@ -80,13 +91,23 @@ const ProjectSelector = ({
   onMultiSelect,
   multi = false,
   selectedProjects = [],
+  showPin,
   ...props
 }: Props) => {
+  // We'll only update the selected project list every time we open the menu,
+  // this helps avoid re-sorting as we select projects.
+  const lastSelected = useRef<Project[]>(selectedProjects);
+
+  const handleClose = () => {
+    lastSelected.current = selectedProjects;
+    onClose?.();
+  };
+
   const getProjects = () => {
     const {nonMemberProjects = []} = props;
     return [
       sortBy(multiProjects, project => [
-        !selectedProjects.find(selectedProject => selectedProject.slug === project.slug),
+        !lastSelected.current.find(p => p.slug === project.slug),
         !project.isBookmarked,
         project.slug,
       ]),
@@ -164,13 +185,15 @@ const ProjectSelector = ({
   return (
     <DropdownAutoComplete
       blendCorner={false}
+      detached={detached}
       searchPlaceholder={t('Filter projects')}
       onSelect={handleSelect}
-      onClose={onClose}
+      onClose={handleClose}
       onChange={onFilterChange}
       busyItemsStillVisible={searching}
       onScroll={onScroll}
       maxHeight={500}
+      minWidth={350}
       inputProps={{style: {padding: 8, paddingLeft: 10}}}
       rootClassName={rootClassName}
       className={className}
@@ -180,17 +203,27 @@ const ProjectSelector = ({
       virtualizedLabelHeight={theme.headerSelectorLabelHeight}
       emptyHidesInput={!paginated}
       inputActions={
-        <AddButton
-          disabled={!hasProjectWrite}
-          to={newProjectUrl}
-          size="xsmall"
-          icon={<IconAdd size="xs" isCircled />}
-          title={
-            !hasProjectWrite ? t("You don't have permission to add a project") : undefined
-          }
-        >
-          {t('Project')}
-        </AddButton>
+        <InputActions>
+          <AddButton
+            aria-label={t('Add Project')}
+            disabled={!hasProjectWrite}
+            to={newProjectUrl}
+            size="xsmall"
+            icon={<IconAdd size="xs" isCircled />}
+            title={
+              !hasProjectWrite
+                ? t("You don't have permission to add a project")
+                : undefined
+            }
+          >
+            {showPin ? '' : t('Project')}
+          </AddButton>
+          {showPin && (
+            <GuideAnchor target="new_page_filter_pin" position="bottom">
+              <PageFilterPinButton size="xsmall" filter="projects" />
+            </GuideAnchor>
+          )}
+        </InputActions>
       }
       menuFooter={renderProps => {
         const renderedFooter =
@@ -203,14 +236,14 @@ const ProjectSelector = ({
         }
 
         return (
-          <React.Fragment>
+          <Fragment>
             {showCreateProjectButton && (
               <CreateProjectButton priority="primary" size="small" to={newProjectUrl}>
                 {t('Create project')}
               </CreateProjectButton>
             )}
             {renderedFooter}
-          </React.Fragment>
+          </Fragment>
         );
       }}
       items={getItems(hasProjects)}
@@ -231,7 +264,6 @@ const Label = styled('div')`
 
 const AddButton = styled(Button)`
   display: block;
-  margin: 0 ${space(1)};
   color: ${p => p.theme.gray300};
   :hover {
     color: ${p => p.theme.subText};
@@ -242,4 +274,12 @@ const CreateProjectButton = styled(Button)`
   display: block;
   text-align: center;
   margin: ${space(0.5)} 0;
+`;
+
+const InputActions = styled('div')`
+  display: grid;
+  margin: 0 ${space(1)};
+  gap: ${space(1)};
+  grid-auto-flow: column;
+  grid-auto-columns: auto;
 `;

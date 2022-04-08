@@ -1,13 +1,15 @@
 import {Component} from 'react';
 import {Location, LocationDescriptor} from 'history';
 
-import Breadcrumbs, {Crumb} from 'app/components/breadcrumbs';
-import {t} from 'app/locale';
-import {Organization} from 'app/types';
-import {decodeScalar} from 'app/utils/queryString';
+import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
+import {t} from 'sentry/locale';
+import {Organization} from 'sentry/types';
+import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
+import {decodeScalar} from 'sentry/utils/queryString';
 
 import Tab from './transactionSummary/tabs';
 import {eventsRouteWithQuery} from './transactionSummary/transactionEvents/utils';
+import {spansRouteWithQuery} from './transactionSummary/transactionSpans/utils';
 import {tagsRouteWithQuery} from './transactionSummary/transactionTags/utils';
 import {vitalsRouteWithQuery} from './transactionSummary/transactionVitals/utils';
 import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
@@ -15,14 +17,17 @@ import {vitalDetailRouteWithQuery} from './vitalDetail/utils';
 import {getPerformanceLandingUrl} from './utils';
 
 type Props = {
-  organization: Organization;
   location: Location;
-  transactionName?: string;
-  vitalName?: string;
+  organization: Organization;
   eventSlug?: string;
-  traceSlug?: string;
-  transactionComparison?: boolean;
+  spanSlug?: SpanSlug;
   tab?: Tab;
+  traceSlug?: string;
+  transaction?: {
+    name: string;
+    project: string;
+  };
+  vitalName?: string;
 };
 
 class Breadcrumb extends Component<Props> {
@@ -31,11 +36,11 @@ class Breadcrumb extends Component<Props> {
     const {
       organization,
       location,
-      transactionName,
+      transaction,
       vitalName,
+      spanSlug,
       eventSlug,
       traceSlug,
-      transactionComparison,
       tab,
     } = this.props;
 
@@ -51,7 +56,7 @@ class Breadcrumb extends Component<Props> {
     crumbs.push({
       to: performanceTarget,
       label: t('Performance'),
-      preserveGlobalSelection: true,
+      preservePageFilters: true,
     });
 
     if (vitalName) {
@@ -64,82 +69,74 @@ class Breadcrumb extends Component<Props> {
       crumbs.push({
         to: webVitalsTarget,
         label: t('Vital Detail'),
-        preserveGlobalSelection: true,
+        preservePageFilters: true,
       });
-    } else if (transactionName) {
+    } else if (transaction) {
+      const routeQuery = {
+        orgSlug: organization.slug,
+        transaction: transaction.name,
+        projectID: transaction.project,
+        query: location.query,
+      };
+
       switch (tab) {
         case Tab.Tags: {
-          const tagsTarget = tagsRouteWithQuery({
-            orgSlug: organization.slug,
-            transaction: transactionName,
-            projectID: decodeScalar(location.query.project),
-            query: location.query,
-          });
-
+          const tagsTarget = tagsRouteWithQuery(routeQuery);
           crumbs.push({
             to: tagsTarget,
             label: t('Tags'),
-            preserveGlobalSelection: true,
+            preservePageFilters: true,
           });
           break;
         }
         case Tab.Events: {
-          const eventsTarget = eventsRouteWithQuery({
-            orgSlug: organization.slug,
-            transaction: transactionName,
-            projectID: decodeScalar(location.query.project),
-            query: location.query,
-          });
-
+          const eventsTarget = eventsRouteWithQuery(routeQuery);
           crumbs.push({
             to: eventsTarget,
             label: t('All Events'),
-            preserveGlobalSelection: true,
+            preservePageFilters: true,
           });
           break;
         }
         case Tab.WebVitals: {
-          const webVitalsTarget = vitalsRouteWithQuery({
-            orgSlug: organization.slug,
-            transaction: transactionName,
-            projectID: decodeScalar(location.query.project),
-            query: location.query,
-          });
-
+          const webVitalsTarget = vitalsRouteWithQuery(routeQuery);
           crumbs.push({
             to: webVitalsTarget,
             label: t('Web Vitals'),
-            preserveGlobalSelection: true,
+            preservePageFilters: true,
+          });
+          break;
+        }
+        case Tab.Spans: {
+          const spansTarget = spansRouteWithQuery(routeQuery);
+          crumbs.push({
+            to: spansTarget,
+            label: t('Spans'),
+            preservePageFilters: true,
           });
           break;
         }
         case Tab.TransactionSummary:
         default: {
-          const summaryTarget = transactionSummaryRouteWithQuery({
-            orgSlug: organization.slug,
-            transaction: transactionName,
-            projectID: decodeScalar(location.query.project),
-            query: location.query,
-          });
-
+          const summaryTarget = transactionSummaryRouteWithQuery(routeQuery);
           crumbs.push({
             to: summaryTarget,
             label: t('Transaction Summary'),
-            preserveGlobalSelection: true,
+            preservePageFilters: true,
           });
         }
       }
     }
 
-    if (transactionName && eventSlug) {
+    if (transaction && spanSlug) {
+      crumbs.push({
+        to: '',
+        label: t('Span Summary'),
+      });
+    } else if (transaction && eventSlug) {
       crumbs.push({
         to: '',
         label: t('Event Details'),
-      });
-    } else if (transactionComparison) {
-      crumbs.push({
-        to: '',
-        label: t('Compare to Baseline'),
       });
     } else if (traceSlug) {
       crumbs.push({

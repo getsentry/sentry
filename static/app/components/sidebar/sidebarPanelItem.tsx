@@ -1,19 +1,19 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
+import space from 'sentry/styles/space';
 
 import {t} from '../../locale';
 import ExternalLink from '../links/externalLink';
 
 type Props = {
-  hasSeen?: boolean;
-  title?: string;
-  image?: string;
-  message?: React.ReactNode;
-  link?: string;
-  cta?: string;
   children?: React.ReactNode;
+  cta?: string;
+  hasSeen?: boolean;
+  image?: string;
+  link?: string;
+  message?: React.ReactNode;
+  title?: string;
 };
 
 const SidebarPanelItem = ({

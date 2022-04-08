@@ -2,34 +2,41 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import {MessageRow} from 'app/components/performance/waterfall/messageRow';
-import {pickBarColor} from 'app/components/performance/waterfall/utils';
-import {t, tct} from 'app/locale';
-import {Organization} from 'app/types';
+import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
+import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
+import {t, tct} from 'sentry/locale';
+import {Organization} from 'sentry/types';
 
 import {DragManagerChildrenProps} from './dragManager';
 import {ScrollbarManagerChildrenProps, withScrollbarManager} from './scrollbarManager';
 import SpanBar from './spanBar';
-import SpanGroupBar from './spanGroupBar';
+import {SpanDescendantGroupBar} from './spanDescendantGroupBar';
+import SpanSiblingGroupBar from './spanSiblingGroupBar';
 import {
   EnhancedProcessedSpanType,
   EnhancedSpan,
   FilterSpans,
+  GroupType,
   ParsedTraceType,
+  SpanType,
 } from './types';
-import {getSpanID, getSpanOperation} from './utils';
+import {getSpanID, getSpanOperation, setSpansOnTransaction} from './utils';
 import WaterfallModel from './waterfallModel';
 
 type PropType = ScrollbarManagerChildrenProps & {
-  organization: Organization;
   dragProps: DragManagerChildrenProps;
-  traceViewRef: React.RefObject<HTMLDivElement>;
   filterSpans: FilterSpans | undefined;
-  waterfallModel: WaterfallModel;
+  organization: Organization;
   spans: EnhancedProcessedSpanType[];
+  traceViewRef: React.RefObject<HTMLDivElement>;
+  waterfallModel: WaterfallModel;
 };
 
 class SpanTree extends React.Component<PropType> {
+  componentDidMount() {
+    setSpansOnTransaction(this.props.spans.length);
+  }
+
   shouldComponentUpdate(nextProps: PropType) {
     if (
       this.props.dragProps.isDragging !== nextProps.dragProps.isDragging ||
@@ -62,10 +69,10 @@ class SpanTree extends React.Component<PropType> {
   }
 
   generateInfoMessage(input: {
-    isCurrentSpanHidden: boolean;
-    numOfSpansOutOfViewAbove: number;
     isCurrentSpanFilteredOut: boolean;
+    isCurrentSpanHidden: boolean;
     numOfFilteredSpansAbove: number;
+    numOfSpansOutOfViewAbove: number;
   }): React.ReactNode {
     const {
       isCurrentSpanHidden,
@@ -136,7 +143,7 @@ class SpanTree extends React.Component<PropType> {
   }
 
   toggleSpanTree = (spanID: string) => () => {
-    this.props.waterfallModel.toggleSpanGroup(spanID);
+    this.props.waterfallModel.toggleSpanSubTree(spanID);
     // Update horizontal scroll states after this subtree was either hidden or
     // revealed.
     this.props.updateScrollState();
@@ -150,10 +157,10 @@ class SpanTree extends React.Component<PropType> {
     });
 
     type AccType = {
-      numOfSpansOutOfViewAbove: number;
       numOfFilteredSpansAbove: number;
-      spanTree: React.ReactNode[];
+      numOfSpansOutOfViewAbove: number;
       spanNumber: number;
+      spanTree: React.ReactNode[];
     };
 
     const numOfSpans = spans.reduce((sum: number, payload: EnhancedProcessedSpanType) => {
@@ -206,7 +213,7 @@ class SpanTree extends React.Component<PropType> {
 
         if (payload.type === 'span_group_chain') {
           acc.spanTree.push(
-            <SpanGroupBar
+            <SpanDescendantGroupBar
               key={`${spanNumber}-span-group`}
               event={waterfallModel.event}
               span={span}
@@ -214,8 +221,28 @@ class SpanTree extends React.Component<PropType> {
               treeDepth={treeDepth}
               continuingTreeDepths={continuingTreeDepths}
               spanNumber={spanNumber}
-              spanGrouping={payload.spanGrouping as EnhancedSpan[]}
-              toggleSpanGroup={payload.toggleSpanGroup as () => void}
+              spanGrouping={payload.spanNestedGrouping as EnhancedSpan[]}
+              toggleSpanGroup={payload.toggleNestedSpanGroup as () => void}
+            />
+          );
+          acc.spanNumber = spanNumber + 1;
+          return acc;
+        }
+
+        if (payload.type === 'span_group_siblings') {
+          acc.spanTree.push(
+            <SpanSiblingGroupBar
+              key={`${spanNumber}-span-sibling`}
+              event={waterfallModel.event}
+              span={span}
+              generateBounds={generateBounds}
+              treeDepth={treeDepth}
+              continuingTreeDepths={continuingTreeDepths}
+              spanNumber={spanNumber}
+              spanGrouping={payload.spanSiblingGrouping as EnhancedSpan[]}
+              toggleSiblingSpanGroup={payload.toggleSiblingSpanGroup}
+              isLastSibling={payload.isLastSibling ?? false}
+              occurrence={payload.occurrence}
             />
           );
           acc.spanNumber = spanNumber + 1;
@@ -233,7 +260,21 @@ class SpanTree extends React.Component<PropType> {
 
         let toggleSpanGroup: (() => void) | undefined = undefined;
         if (payload.type === 'span') {
-          toggleSpanGroup = payload.toggleSpanGroup;
+          toggleSpanGroup = payload.toggleNestedSpanGroup;
+        }
+
+        let toggleSiblingSpanGroup:
+          | ((span: SpanType, occurrence: number) => void)
+          | undefined = undefined;
+        if (payload.type === 'span' && payload.isFirstSiblingOfGroup) {
+          toggleSiblingSpanGroup = payload.toggleSiblingSpanGroup;
+        }
+
+        let groupType;
+        if (toggleSpanGroup) {
+          groupType = GroupType.DESCENDANTS;
+        } else if (toggleSiblingSpanGroup) {
+          groupType = GroupType.SIBLINGS;
         }
 
         acc.spanTree.push(
@@ -244,7 +285,7 @@ class SpanTree extends React.Component<PropType> {
             spanBarColor={spanBarColor}
             spanBarHatch={type === 'gap'}
             span={span}
-            showSpanTree={!waterfallModel.hiddenSpanGroups.has(getSpanID(span))}
+            showSpanTree={!waterfallModel.hiddenSpanSubTrees.has(getSpanID(span))}
             numOfSpanChildren={numOfSpanChildren}
             trace={waterfallModel.parsedTrace}
             generateBounds={generateBounds}
@@ -256,9 +297,12 @@ class SpanTree extends React.Component<PropType> {
             isRoot={isRoot}
             showEmbeddedChildren={payload.showEmbeddedChildren}
             toggleEmbeddedChildren={payload.toggleEmbeddedChildren}
+            toggleSiblingSpanGroup={toggleSiblingSpanGroup}
             fetchEmbeddedChildrenState={payload.fetchEmbeddedChildrenState}
             toggleSpanGroup={toggleSpanGroup}
             numOfSpans={numOfSpans}
+            groupType={groupType}
+            groupOccurrence={payload.groupOccurrence}
           />
         );
 

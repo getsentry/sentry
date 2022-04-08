@@ -1,14 +1,14 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
-import DropdownButton from 'app/components/dropdownButton';
-import DropdownControl from 'app/components/dropdownControl';
-import {pickBarColor} from 'app/components/performance/waterfall/utils';
-import {IconFilter} from 'app/icons';
-import {t, tn} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
+import CheckboxFancy from 'sentry/components/checkboxFancy/checkboxFancy';
+import DropdownButton from 'sentry/components/dropdownButton';
+import DropdownControl from 'sentry/components/dropdownControl';
+import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
+import {IconFilter} from 'sentry/icons';
+import {t, tn} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
 
 type DropdownButtonProps = React.ComponentProps<typeof DropdownButton>;
 
@@ -17,8 +17,8 @@ type NoFilter = {
 };
 
 export type ActiveFilter = {
-  type: 'active_filter';
   operationNames: Set<string>;
+  type: 'active_filter';
 };
 
 export const noFilter: NoFilter = {
@@ -30,8 +30,8 @@ export type ActiveOperationFilter = NoFilter | ActiveFilter;
 type Props = {
   operationNameCounts: Map<string, number>;
   operationNameFilter: ActiveOperationFilter;
-  toggleOperationNameFilter: (operationName: string) => void;
   toggleAllOperationNameFilters: () => void;
+  toggleOperationNameFilter: (operationName: string) => void;
 };
 
 class Filter extends React.Component<Props> {
@@ -71,7 +71,7 @@ class Filter extends React.Component<Props> {
     } = {
       children: (
         <React.Fragment>
-          <IconFilter size="xs" />
+          <IconFilter />
           <FilterLabel>{t('Filter')}</FilterLabel>
         </React.Fragment>
       ),

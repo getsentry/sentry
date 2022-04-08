@@ -1,32 +1,31 @@
 import {RouteComponentProps} from 'react-router';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import Alert from 'app/components/alert';
-import AutoSelectText from 'app/components/autoSelectText';
-import Button from 'app/components/button';
-import Confirm from 'app/components/confirm';
-import ExternalLink from 'app/components/links/externalLink';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import PluginList from 'app/components/pluginList';
-import {IconFlag} from 'app/icons';
-import {t, tct} from 'app/locale';
-import {Organization, Plugin, Project} from 'app/types';
-import getDynamicText from 'app/utils/getDynamicText';
-import routeTitleGen from 'app/utils/routeTitle';
-import withPlugins from 'app/utils/withPlugins';
-import AsyncView from 'app/views/asyncView';
-import Field from 'app/views/settings/components/forms/field';
-import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import Alert from 'sentry/components/alert';
+import AutoSelectText from 'sentry/components/autoSelectText';
+import Button from 'sentry/components/button';
+import Confirm from 'sentry/components/confirm';
+import Field from 'sentry/components/forms/field';
+import TextCopyInput from 'sentry/components/forms/textCopyInput';
+import ExternalLink from 'sentry/components/links/externalLink';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import PluginList from 'sentry/components/pluginList';
+import {t, tct} from 'sentry/locale';
+import {Organization, Plugin, Project} from 'sentry/types';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import routeTitleGen from 'sentry/utils/routeTitle';
+import withPlugins from 'sentry/utils/withPlugins';
+import AsyncView from 'sentry/views/asyncView';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 const TOKEN_PLACEHOLDER = 'YOUR_TOKEN';
 const WEBHOOK_PLACEHOLDER = 'YOUR_WEBHOOK_URL';
 
 type Props = {
   organization: Organization;
+  plugins: {loading: boolean; plugins: Plugin[]};
   project: Project;
-  plugins: {plugins: Plugin[]; loading: boolean};
 } & RouteComponentProps<{orgId: string; projectId: string}, {}>;
 
 type State = {
@@ -121,7 +120,7 @@ class ProjectReleaseTracking extends AsyncView<Props, State> {
       <div>
         <SettingsPageHeader title={t('Release Tracking')} />
         {!hasWrite && (
-          <Alert icon={<IconFlag size="md" />} type="warning">
+          <Alert type="warning">
             {t(
               'You do not have sufficient permissions to access Release tokens, placeholders are displayed below.'
             )}

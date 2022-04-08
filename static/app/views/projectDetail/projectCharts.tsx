@@ -3,40 +3,40 @@ import {browserHistory, InjectedRouter} from 'react-router';
 import {withTheme} from '@emotion/react';
 import {Location} from 'history';
 
-import {Client} from 'app/api';
-import BarChart from 'app/components/charts/barChart';
-import LoadingPanel from 'app/components/charts/loadingPanel';
-import OptionSelector from 'app/components/charts/optionSelector';
+import {Client} from 'sentry/api';
+import {BarChart} from 'sentry/components/charts/barChart';
+import LoadingPanel from 'sentry/components/charts/loadingPanel';
+import OptionSelector from 'sentry/components/charts/optionSelector';
 import {
   ChartContainer,
   ChartControls,
   InlineContainer,
   SectionHeading,
   SectionValue,
-} from 'app/components/charts/styles';
+} from 'sentry/components/charts/styles';
 import {
   getDiffInMinutes,
   ONE_HOUR,
   ONE_WEEK,
   TWENTY_FOUR_HOURS,
   TWO_WEEKS,
-} from 'app/components/charts/utils';
-import {Panel} from 'app/components/panels';
-import Placeholder from 'app/components/placeholder';
-import CHART_PALETTE from 'app/constants/chartPalette';
-import NOT_AVAILABLE_MESSAGES from 'app/constants/notAvailableMessages';
-import {t} from 'app/locale';
-import {Organization, SelectValue} from 'app/types';
-import {defined} from 'app/utils';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {decodeScalar} from 'app/utils/queryString';
-import {Theme} from 'app/utils/theme';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
-import withApi from 'app/utils/withApi';
+} from 'sentry/components/charts/utils';
+import {Panel} from 'sentry/components/panels';
+import Placeholder from 'sentry/components/placeholder';
+import CHART_PALETTE from 'sentry/constants/chartPalette';
+import NOT_AVAILABLE_MESSAGES from 'sentry/constants/notAvailableMessages';
+import {t} from 'sentry/locale';
+import {Organization, SelectValue} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {Theme} from 'sentry/utils/theme';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import withApi from 'sentry/utils/withApi';
 import {
   getSessionTermDescription,
   SessionTerm,
-} from 'app/views/releases/utils/sessionTerm';
+} from 'sentry/views/releases/utils/sessionTerm';
 
 import {getTermHelp, PERFORMANCE_TERM} from '../performance/data';
 
@@ -51,19 +51,20 @@ export enum DisplayModes {
   ERRORS = 'errors',
   TRANSACTIONS = 'transactions',
   STABILITY = 'crash_free',
+  STABILITY_USERS = 'crash_free_users',
   SESSIONS = 'sessions',
 }
 
 type Props = {
   api: Client;
+  chartId: string;
+  chartIndex: number;
+  hasSessions: boolean | null;
+  hasTransactions: boolean;
   location: Location;
   organization: Organization;
   router: InjectedRouter;
-  chartId: string;
-  chartIndex: number;
   theme: Theme;
-  hasSessions: boolean | null;
-  hasTransactions: boolean;
   visibleCharts: string[];
   projectId?: string;
   query?: string;
@@ -136,6 +137,14 @@ class ProjectCharts extends Component<Props, State> {
         tooltip: !hasSessions ? noHealthTooltip : undefined,
       },
       {
+        value: DisplayModes.STABILITY_USERS,
+        label: t('Crash Free Users'),
+        disabled:
+          this.otherActiveDisplayModes.includes(DisplayModes.STABILITY_USERS) ||
+          !hasSessions,
+        tooltip: !hasSessions ? noHealthTooltip : undefined,
+      },
+      {
         value: DisplayModes.APDEX,
         label: t('Apdex'),
         disabled:
@@ -202,6 +211,8 @@ class ProjectCharts extends Component<Props, State> {
       case DisplayModes.STABILITY:
       case DisplayModes.SESSIONS:
         return t('Total Sessions');
+      case DisplayModes.STABILITY_USERS:
+        return t('Total Users');
       case DisplayModes.APDEX:
       case DisplayModes.FAILURE_RATE:
       case DisplayModes.TPM:
@@ -271,16 +282,6 @@ class ProjectCharts extends Component<Props, State> {
     const hasDiscover = organization.features.includes('discover-basic');
     const displayMode = this.displayMode;
 
-    let apdexYAxis: string;
-    let apdexPerformanceTerm: PERFORMANCE_TERM;
-    if (organization.features.includes('project-transaction-threshold')) {
-      apdexPerformanceTerm = PERFORMANCE_TERM.APDEX_NEW;
-      apdexYAxis = 'apdex()';
-    } else {
-      apdexPerformanceTerm = PERFORMANCE_TERM.APDEX;
-      apdexYAxis = `apdex(${organization.apdexThreshold})`;
-    }
-
     return (
       <Panel>
         <ChartContainer>
@@ -291,13 +292,13 @@ class ProjectCharts extends Component<Props, State> {
               {displayMode === DisplayModes.APDEX && (
                 <ProjectBaseEventsChart
                   title={t('Apdex')}
-                  help={getTermHelp(organization, apdexPerformanceTerm)}
+                  help={getTermHelp(organization, PERFORMANCE_TERM.APDEX)}
                   query={new MutableSearch([
                     'event.type:transaction',
                     query ?? '',
                   ]).formatString()}
-                  yAxis={apdexYAxis}
-                  field={[apdexYAxis]}
+                  yAxis="apdex()"
+                  field={['apdex()']}
                   api={api}
                   router={router}
                   organization={organization}
@@ -390,6 +391,18 @@ class ProjectCharts extends Component<Props, State> {
                 <ProjectBaseSessionsChart
                   title={t('Crash Free Sessions')}
                   help={getSessionTermDescription(SessionTerm.STABILITY, null)}
+                  router={router}
+                  api={api}
+                  organization={organization}
+                  onTotalValuesChange={this.handleTotalValuesChange}
+                  displayMode={displayMode}
+                  query={query}
+                />
+              )}
+              {displayMode === DisplayModes.STABILITY_USERS && (
+                <ProjectBaseSessionsChart
+                  title={t('Crash Free Users')}
+                  help={getSessionTermDescription(SessionTerm.CRASH_FREE_USERS, null)}
                   router={router}
                   api={api}
                   organization={organization}

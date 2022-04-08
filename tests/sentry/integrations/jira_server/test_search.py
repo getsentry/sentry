@@ -4,37 +4,15 @@ import responses
 from django.urls import reverse
 from exam import fixture
 
-from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration
 from sentry.testutils import APITestCase
 
-from .testutils import EXAMPLE_ISSUE_SEARCH, EXAMPLE_PRIVATE_KEY, EXAMPLE_USER_SEARCH_RESPONSE
+from . import EXAMPLE_ISSUE_SEARCH, EXAMPLE_USER_SEARCH_RESPONSE, get_integration
 
 
 class JiraSearchEndpointTest(APITestCase):
     @fixture
     def integration(self):
-        integration = Integration.objects.create(
-            provider="jira_server",
-            name="Example Jira",
-            metadata={"verify_ssl": False, "base_url": "https://jira.example.org"},
-        )
-        identity_provider = IdentityProvider.objects.create(
-            external_id="jira.example.org:sentry-test", type="jira_server"
-        )
-        identity = Identity.objects.create(
-            idp=identity_provider,
-            user=self.user,
-            scopes=(),
-            status=IdentityStatus.VALID,
-            data={
-                "consumer_key": "sentry-test",
-                "private_key": EXAMPLE_PRIVATE_KEY,
-                "access_token": "access-token",
-                "access_token_secret": "access-token-secret",
-            },
-        )
-        integration.add_organization(self.organization, self.user, default_auth_id=identity.id)
-        return integration
+        return get_integration(self.organization, self.user)
 
     @responses.activate
     def test_get_success_text_search(self):

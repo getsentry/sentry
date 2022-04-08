@@ -1,4 +1,5 @@
 from hashlib import sha1
+from unittest.mock import patch
 from uuid import uuid4
 
 from sentry.models import (
@@ -7,6 +8,8 @@ from sentry.models import (
     CommitAuthor,
     Group,
     GroupAssignee,
+    GroupHistory,
+    GroupHistoryStatus,
     GroupInbox,
     GroupInboxReason,
     GroupLink,
@@ -20,7 +23,6 @@ from sentry.models import (
     add_group_to_inbox,
 )
 from sentry.testutils import TestCase
-from sentry.utils.compat.mock import patch
 
 
 class ResolveGroupResolutionsTest(TestCase):
@@ -41,6 +43,10 @@ class ResolvedInCommitTest(TestCase):
             id=group.id, status=GroupStatus.RESOLVED, resolved_at__isnull=False
         ).exists()
         assert not GroupInbox.objects.filter(group=group).exists()
+        assert GroupHistory.objects.filter(
+            group=group,
+            status=GroupHistoryStatus.SET_RESOLVED_IN_COMMIT,
+        ).exists()
 
     def assertNotResolvedFromCommit(self, group, commit):
         assert not GroupLink.objects.filter(
@@ -143,7 +149,7 @@ class ResolvedInCommitTest(TestCase):
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
         user = self.create_user(name="Foo Bar", email="foo@example.com", is_active=True)
-        email = UserEmail.get_primary_email(user=user)
+        email = UserEmail.objects.get_primary_email(user=user)
         email.is_verified = True
         email.save()
         repo = Repository.objects.create(name="example", organization_id=self.group.organization.id)
@@ -178,7 +184,7 @@ class ResolvedInCommitTest(TestCase):
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
         user = self.create_user(name="Foo Bar", email="foo@example.com", is_active=True)
-        email = UserEmail.get_primary_email(user=user)
+        email = UserEmail.objects.get_primary_email(user=user)
         email.is_verified = True
         email.save()
         repo = Repository.objects.create(name="example", organization_id=self.group.organization.id)

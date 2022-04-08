@@ -1,4 +1,4 @@
-import {replaceAtArrayIndex} from 'app/utils/replaceAtArrayIndex';
+import {replaceAtArrayIndex} from 'sentry/utils/replaceAtArrayIndex';
 
 describe('utils/replaceAtArrayIndex', function () {
   it('replaces simple value at index', function () {

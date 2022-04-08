@@ -1,4 +1,4 @@
-import {t} from 'app/locale';
+import {t} from 'sentry/locale';
 
 const NOT_AVAILABLE_MESSAGES = {
   performance: t('This view is only available with Performance Monitoring.'),

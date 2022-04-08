@@ -1,24 +1,31 @@
 import {browserHistory, RouteComponentProps} from 'react-router';
+import debounce from 'lodash/debounce';
 
-import IdBadge from 'app/components/idBadge';
-import {Team} from 'app/types';
-import recreateRoute from 'app/utils/recreateRoute';
-import withTeams from 'app/utils/withTeams';
-import BreadcrumbDropdown from 'app/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
-import MenuItem from 'app/views/settings/components/settingsBreadcrumb/menuItem';
+import IdBadge from 'sentry/components/idBadge';
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
+import recreateRoute from 'sentry/utils/recreateRoute';
+import useTeams from 'sentry/utils/useTeams';
+import BreadcrumbDropdown from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
+import MenuItem from 'sentry/views/settings/components/settingsBreadcrumb/menuItem';
 
 import {RouteWithName} from './types';
 import {CrumbLink} from '.';
 
 type Props = RouteComponentProps<{teamId: string}, {}> & {
-  teams: Team[];
   routes: RouteWithName[];
   route?: RouteWithName;
 };
 
-const TeamCrumb = ({teams, params, routes, route, ...props}: Props) => {
+const TeamCrumb = ({params, routes, route, ...props}: Props) => {
+  const {teams, onSearch, fetching} = useTeams();
+
   const team = teams.find(({slug}) => slug === params.teamId);
   const hasMenu = teams.length > 1;
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    onSearch(e.target.value);
+  };
+  const debouncedHandleSearch = debounce(handleSearchChange, DEFAULT_DEBOUNCE_DURATION);
 
   if (!team) {
     return null;
@@ -55,10 +62,11 @@ const TeamCrumb = ({teams, params, routes, route, ...props}: Props) => {
           </MenuItem>
         ),
       }))}
+      onChange={debouncedHandleSearch}
+      busyItemsStillVisible={fetching}
       {...props}
     />
   );
 };
 
-export {TeamCrumb};
-export default withTeams(TeamCrumb);
+export default TeamCrumb;

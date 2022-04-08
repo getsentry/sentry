@@ -1,9 +1,9 @@
 import {LocationDescriptor} from 'history';
 
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import {IconNext, IconPrevious} from 'app/icons';
-import {t} from 'app/locale';
+import Button, {ButtonProps} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import {IconNext, IconPrevious} from 'sentry/icons';
+import {t} from 'sentry/locale';
 
 type Props = {
   /**
@@ -11,14 +11,14 @@ type Props = {
    * [Oldest, Older, Newer, Newest]
    */
   links: [LocationDescriptor, LocationDescriptor, LocationDescriptor, LocationDescriptor];
+  className?: string;
   hasNext?: boolean;
   hasPrevious?: boolean;
-  className?: string;
-  size?: React.ComponentProps<typeof Button>['size'];
-  onOldestClick?: () => void;
-  onOlderClick?: () => void;
   onNewerClick?: () => void;
   onNewestClick?: () => void;
+  onOlderClick?: () => void;
+  onOldestClick?: () => void;
+  size?: ButtonProps['size'];
 };
 
 const NavigationButtonGroup = ({
@@ -31,31 +31,33 @@ const NavigationButtonGroup = ({
   onOlderClick,
   onNewerClick,
   onNewestClick,
-}: Props) => (
-  <ButtonBar className={className} merged>
-    <Button
-      size={size}
-      to={links[0]}
-      disabled={!hasPrevious}
-      label={t('Oldest')}
-      icon={<IconPrevious size="xs" />}
-      onClick={onOldestClick}
-    />
-    <Button size={size} to={links[1]} disabled={!hasPrevious} onClick={onOlderClick}>
-      {t('Older')}
-    </Button>
-    <Button size={size} to={links[2]} disabled={!hasNext} onClick={onNewerClick}>
-      {t('Newer')}
-    </Button>
-    <Button
-      size={size}
-      to={links[3]}
-      disabled={!hasNext}
-      label={t('Newest')}
-      icon={<IconNext size="xs" />}
-      onClick={onNewestClick}
-    />
-  </ButtonBar>
-);
+}: Props) => {
+  return (
+    <ButtonBar className={className} merged>
+      <Button
+        size={size}
+        to={links[0]}
+        disabled={!hasPrevious}
+        aria-label={t('Oldest')}
+        icon={<IconPrevious size="xs" />}
+        onClick={onOldestClick}
+      />
+      <Button size={size} to={links[1]} disabled={!hasPrevious} onClick={onOlderClick}>
+        {t('Older')}
+      </Button>
+      <Button size={size} to={links[2]} disabled={!hasNext} onClick={onNewerClick}>
+        {t('Newer')}
+      </Button>
+      <Button
+        size={size}
+        to={links[3]}
+        disabled={!hasNext}
+        aria-label={t('Newest')}
+        icon={<IconNext size="xs" />}
+        onClick={onNewestClick}
+      />
+    </ButtonBar>
+  );
+};
 
 export default NavigationButtonGroup;

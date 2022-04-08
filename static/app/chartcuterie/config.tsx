@@ -8,6 +8,9 @@
  * into the configuration file loaded by the service.
  */
 
+// eslint-disable-next-line import/no-named-default
+import {default as worldMap} from 'sentry/data/world.json';
+
 import {discoverCharts} from './discover';
 import {ChartcuterieConfig, ChartType, RenderConfig, RenderDescriptor} from './types';
 
@@ -21,6 +24,9 @@ const renderConfig: RenderConfig<ChartType> = new Map();
  */
 const config: ChartcuterieConfig = {
   version: process.env.COMMIT_SHA!,
+  init: echarts => {
+    echarts.registerMap('sentryWorld', worldMap);
+  },
   renderConfig,
 };
 

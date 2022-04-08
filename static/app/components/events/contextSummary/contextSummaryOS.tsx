@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 
-import AnnotatedText from 'app/components/events/meta/annotatedText';
-import {getMeta} from 'app/components/events/meta/metaProxy';
-import TextOverflow from 'app/components/textOverflow';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Meta} from 'app/types';
+import AnnotatedText from 'sentry/components/events/meta/annotatedText';
+import {getMeta} from 'sentry/components/events/meta/metaProxy';
+import TextOverflow from 'sentry/components/textOverflow';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Meta} from 'sentry/types';
 
 import ContextSummaryNoSummary from './contextSummaryNoSummary';
 import generateClassName from './generateClassName';
@@ -17,8 +17,8 @@ type Props = {
 
 type Data = {
   name: string;
-  version?: string;
   kernel_version?: string;
+  version?: string;
 };
 
 type VersionElement = {
@@ -66,7 +66,7 @@ const ContextSummaryOS = ({data}: Props) => {
   return (
     <Item className={className} icon={<span className="context-item-icon" />}>
       <h3>{renderName()}</h3>
-      <TextOverflow isParagraph>
+      <TextOverflow isParagraph data-test-id="context-sub-title">
         <Subject>{versionElement.subject}</Subject>
         <AnnotatedText value={versionElement.value} meta={versionElement.meta} />
       </TextOverflow>

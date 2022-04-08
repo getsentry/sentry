@@ -1,18 +1,18 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
-import TimeSince from 'app/components/timeSince';
-import {IconClock} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {Event} from 'app/types/event';
+import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
+import TimeSince from 'sentry/components/timeSince';
+import {IconClock} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {Event} from 'sentry/types/event';
 
 type Props = {
-  sampleEvent: Event;
   eventCount: number;
   organization: Organization;
+  sampleEvent: Event;
 };
 
 function NewIssue({sampleEvent, eventCount, organization}: Props) {
@@ -22,13 +22,21 @@ function NewIssue({sampleEvent, eventCount, organization}: Props) {
         <EventOrGroupHeader
           data={sampleEvent}
           organization={organization}
+          grouping
           hideIcons
           hideLevel
         />
         <ExtraInfo>
           <TimeWrapper>
             <StyledIconClock size="11px" />
-            <TimeSince date={sampleEvent.dateCreated} suffix={t('old')} />
+            <TimeSince
+              date={
+                sampleEvent.dateCreated
+                  ? sampleEvent.dateCreated
+                  : sampleEvent.dateReceived
+              }
+              suffix={t('old')}
+            />
           </TimeWrapper>
         </ExtraInfo>
       </EventDetails>
@@ -47,13 +55,13 @@ const EventDetails = styled('div')`
 const ExtraInfo = styled('div')`
   display: grid;
   grid-auto-flow: column;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   justify-content: flex-start;
 `;
 
 const TimeWrapper = styled('div')`
   display: grid;
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
   grid-template-columns: max-content 1fr;
   align-items: center;
   font-size: ${p => p.theme.fontSizeSmall};
@@ -61,6 +69,7 @@ const TimeWrapper = styled('div')`
 
 const EventCount = styled('div')`
   align-items: center;
+  font-variant-numeric: tabular-nums;
   line-height: 1.1;
 `;
 

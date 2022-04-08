@@ -11,9 +11,9 @@
         xhr.onload = function () {
           try {
             this.status >= 200 && this.status < 300
-              ? resolve(JSON.parse(xhr.response))
+              ? resolve([JSON.parse(xhr.response), this.statusText, xhr])
               : reject([this.status, this.statusText]);
-          } catch(e) {
+          } catch (e) {
             reject();
           }
         };
@@ -28,16 +28,17 @@
       return '/api/0/organizations/' + slug + suffix;
     }
 
-
     // There are probably more, but this is at least one case where
     // this should not be treated as a slug
     if (slug !== 'new') {
-      var preloadPromises = { orgSlug: slug };
+      var preloadPromises = {orgSlug: slug};
       window.__sentry_preload = preloadPromises;
 
-      preloadPromises['organization?detailed=0'] = promiseRequest(makeUrl('/?detailed=0'));
-      preloadPromises.projects =  promiseRequest(makeUrl('/projects/?all_projects=1&collapse=latestDeploys'));
+      preloadPromises.organization = promiseRequest(makeUrl('/?detailed=0'));
+      preloadPromises.projects = promiseRequest(
+        makeUrl('/projects/?all_projects=1&collapse=latestDeploys')
+      );
       preloadPromises.teams = promiseRequest(makeUrl('/teams/'));
     }
-  } catch(_) {}
+  } catch (_) {}
 </script>

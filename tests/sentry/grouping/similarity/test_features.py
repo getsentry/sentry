@@ -7,7 +7,6 @@ from sentry.grouping.api import get_default_grouping_config_dict
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from sentry.models import Group, Project
 from sentry.utils import json
-from sentry.utils.compat import zip
 from tests.sentry.grouping import with_fingerprint_input, with_grouping_input
 
 

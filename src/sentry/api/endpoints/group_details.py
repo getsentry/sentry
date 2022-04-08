@@ -3,6 +3,7 @@ import logging
 from datetime import timedelta
 
 from django.utils import timezone
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tagstore, tsdb
@@ -11,18 +12,18 @@ from sentry.api.base import EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.group_index import (
+    delete_group_list,
     get_first_last_release,
     prep_search,
-    rate_limit_endpoint,
     update_groups,
 )
 from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
-from sentry.api.serializers.models.plugin import PluginSerializer
+from sentry.api.serializers.models.plugin import PluginSerializer, is_plugin_deprecated
 from sentry.models import Activity, Group, GroupSeen, GroupSubscriptionManager, UserReport
 from sentry.models.groupinbox import get_inbox_details
 from sentry.plugins.base import plugins
 from sentry.plugins.bases import IssueTrackingPlugin2
-from sentry.signals import issue_deleted
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 
@@ -30,20 +31,42 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 
 
 class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
-    def _get_activity(self, request, group, num):
-        return Activity.get_activities_for_group(group, num)
+    enforce_rate_limit = True
+    rate_limits = {
+        "GET": {
+            RateLimitCategory.IP: RateLimit(5, 1),
+            RateLimitCategory.USER: RateLimit(5, 1),
+            RateLimitCategory.ORGANIZATION: RateLimit(5, 1),
+        },
+        "PUT": {
+            RateLimitCategory.IP: RateLimit(5, 1),
+            RateLimitCategory.USER: RateLimit(5, 1),
+            RateLimitCategory.ORGANIZATION: RateLimit(5, 1),
+        },
+        "DELETE": {
+            RateLimitCategory.IP: RateLimit(5, 5),
+            RateLimitCategory.USER: RateLimit(5, 5),
+            RateLimitCategory.ORGANIZATION: RateLimit(5, 5),
+        },
+    }
 
-    def _get_seen_by(self, request, group):
+    def _get_activity(self, request: Request, group, num):
+        return Activity.objects.get_activities_for_group(group, num)
+
+    def _get_seen_by(self, request: Request, group):
         seen_by = list(
             GroupSeen.objects.filter(group=group).select_related("user").order_by("-last_seen")
         )
         return serialize(seen_by, request.user)
 
-    def _get_actions(self, request, group):
+    def _get_actions(self, request: Request, group):
         project = group.project
 
         action_list = []
         for plugin in plugins.for_project(project, version=1):
+            if is_plugin_deprecated(plugin, project):
+                continue
+
             results = safe_execute(
                 plugin.actions, request, group, action_list, _with_transaction=False
             )
@@ -54,6 +77,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             action_list = results
 
         for plugin in plugins.for_project(project, version=2):
+            if is_plugin_deprecated(plugin, project):
+                continue
             for action in (
                 safe_execute(plugin.get_actions, request, group, _with_transaction=False) or ()
             ):
@@ -61,18 +86,20 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
 
         return action_list
 
-    def _get_available_issue_plugins(self, request, group):
+    def _get_available_issue_plugins(self, request: Request, group):
         project = group.project
 
         plugin_issues = []
         for plugin in plugins.for_project(project, version=1):
             if isinstance(plugin, IssueTrackingPlugin2):
+                if is_plugin_deprecated(plugin, project):
+                    continue
                 plugin_issues = safe_execute(
                     plugin.plugin_issues, request, group, plugin_issues, _with_transaction=False
                 )
         return plugin_issues
 
-    def _get_context_plugins(self, request, group):
+    def _get_context_plugins(self, request: Request, group):
         project = group.project
         return serialize(
             [
@@ -86,8 +113,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             PluginSerializer(project),
         )
 
-    @rate_limit_endpoint(limit=5, window=1)
-    def get(self, request, group):
+    def get(self, request: Request, group) -> Response:
         """
         Retrieve an Issue
         `````````````````
@@ -99,9 +125,10 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         :pparam string issue_id: the ID of the issue to retrieve.
         :auth: required
         """
+        from sentry.utils import snuba
+
         try:
             # TODO(dcramer): handle unauthenticated/public response
-            from sentry.utils import snuba
 
             organization = group.project.organization
             environments = get_environments(request, organization)
@@ -200,8 +227,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             )
             raise
 
-    @rate_limit_endpoint(limit=5, window=1)
-    def put(self, request, group):
+    def put(self, request: Request, group) -> Response:
         """
         Update an Issue
         ```````````````
@@ -269,8 +295,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         except Exception:
             raise
 
-    @rate_limit_endpoint(limit=5, window=1)
-    def delete(self, request, group):
+    def delete(self, request: Request, group) -> Response:
         """
         Remove an Issue
         ```````````````
@@ -280,38 +305,15 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         :pparam string issue_id: the ID of the issue to delete.
         :auth: required
         """
+        from sentry.utils import snuba
+
         try:
-            from sentry.group_deletion import delete_group
-            from sentry.utils import snuba
-
-            transaction_id = delete_group(group)
-
-            if transaction_id:
-                self.create_audit_entry(
-                    request=request,
-                    organization_id=group.project.organization_id if group.project else None,
-                    target_object=group.id,
-                    transaction_id=transaction_id,
-                )
-
-                delete_logger.info(
-                    "object.delete.queued",
-                    extra={
-                        "object_id": group.id,
-                        "transaction_id": transaction_id,
-                        "model": type(group).__name__,
-                    },
-                )
-
-                # This is exclusively used for analytics, as such it should not run as part of reprocessing.
-                issue_deleted.send_robust(
-                    group=group, user=request.user, delete_type="delete", sender=self.__class__
-                )
+            delete_group_list(request, group.project, [group], "delete")
 
             metrics.incr(
                 "group.update.http_response",
                 sample_rate=1.0,
-                tags={"status": 200, "detail": "group_details:delete:Reponse"},
+                tags={"status": 200, "detail": "group_details:delete:Response"},
             )
             return Response(status=202)
         except snuba.RateLimitExceeded:

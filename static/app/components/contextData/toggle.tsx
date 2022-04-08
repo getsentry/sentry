@@ -1,12 +1,12 @@
 import {Children, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {IconAdd, IconSubtract} from 'app/icons';
+import {IconAdd, IconSubtract} from 'sentry/icons';
 
 type Props = {
+  children: React.ReactNode;
   highUp: boolean;
   wrapClassName: string;
-  children: React.ReactNode;
 };
 
 function Toggle({highUp, wrapClassName, children}: Props) {
@@ -46,7 +46,6 @@ export default Toggle;
 
 const IconWrapper = styled('div')<{isExpanded: boolean}>`
   border-radius: 2px;
-  background: ${p => p.theme.white};
   display: inline-flex;
   align-items: center;
   justify-content: center;

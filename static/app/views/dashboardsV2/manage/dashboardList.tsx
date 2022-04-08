@@ -3,43 +3,40 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, Query} from 'history';
 
-import WidgetArea from 'sentry-images/dashboard/widget-area.svg';
-import WidgetBar from 'sentry-images/dashboard/widget-bar.svg';
-import WidgetBigNumber from 'sentry-images/dashboard/widget-big-number.svg';
-import WidgetLine from 'sentry-images/dashboard/widget-line-1.svg';
-import WidgetTable from 'sentry-images/dashboard/widget-table.svg';
-import WidgetWorldMap from 'sentry-images/dashboard/widget-world-map.svg';
-
 import {
   createDashboard,
   deleteDashboard,
   fetchDashboard,
-} from 'app/actionCreators/dashboards';
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import MenuItem from 'app/components/menuItem';
-import Pagination from 'app/components/pagination';
-import TimeSince from 'app/components/timeSince';
-import {t, tn} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import withApi from 'app/utils/withApi';
-import {DashboardListItem, DisplayType} from 'app/views/dashboardsV2/types';
+} from 'sentry/actionCreators/dashboards';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
+import Button from 'sentry/components/button';
+import {openConfirmModal} from 'sentry/components/confirm';
+import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
+import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import Pagination from 'sentry/components/pagination';
+import TimeSince from 'sentry/components/timeSince';
+import {IconEllipsis} from 'sentry/icons';
+import {t, tn} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import withApi from 'sentry/utils/withApi';
+import {DashboardListItem, DisplayType} from 'sentry/views/dashboardsV2/types';
 
-import ContextMenu from '../contextMenu';
-import {cloneDashboard} from '../utils';
+import {cloneDashboard, miniWidget} from '../utils';
 
 import DashboardCard from './dashboardCard';
+import GridPreview from './gridPreview';
 
 type Props = {
   api: Client;
-  organization: Organization;
-  location: Location;
   dashboards: DashboardListItem[] | null;
-  pageLinks: string;
+  location: Location;
   onDashboardsChange: () => void;
+  organization: Organization;
+  pageLinks: string;
 };
 
 function DashboardList({
@@ -50,24 +47,6 @@ function DashboardList({
   pageLinks,
   onDashboardsChange,
 }: Props) {
-  function miniWidget(displayType: DisplayType): string {
-    switch (displayType) {
-      case DisplayType.BAR:
-        return WidgetBar;
-      case DisplayType.AREA:
-        return WidgetArea;
-      case DisplayType.BIG_NUMBER:
-        return WidgetBigNumber;
-      case DisplayType.TABLE:
-        return WidgetTable;
-      case DisplayType.WORLD_MAP:
-        return WidgetWorldMap;
-      case DisplayType.LINE:
-      default:
-        return WidgetLine;
-    }
-  }
-
   function handleDelete(dashboard: DashboardListItem) {
     deleteDashboard(api, organization.slug, dashboard.id)
       .then(() => {
@@ -85,80 +64,117 @@ function DashboardList({
       });
   }
 
-  function handleDuplicate(dashboard: DashboardListItem) {
-    fetchDashboard(api, organization.slug, dashboard.id)
-      .then(dashboardDetail => {
-        const newDashboard = cloneDashboard(dashboardDetail);
-        newDashboard.widgets.map(widget => (widget.id = undefined));
-        createDashboard(api, organization.slug, newDashboard, true).then(() => {
-          trackAnalyticsEvent({
-            eventKey: 'dashboards_manage.duplicate',
-            eventName: 'Dashboards Manager: Dashboard Duplicated',
-            organization_id: parseInt(organization.id, 10),
-            dashboard_id: parseInt(dashboard.id, 10),
+  async function handleDuplicate(dashboard: DashboardListItem) {
+    try {
+      const dashboardDetail = await fetchDashboard(api, organization.slug, dashboard.id);
+      const newDashboard = cloneDashboard(dashboardDetail);
+      newDashboard.widgets.map(widget => (widget.id = undefined));
+      await createDashboard(api, organization.slug, newDashboard, true);
+
+      trackAnalyticsEvent({
+        eventKey: 'dashboards_manage.duplicate',
+        eventName: 'Dashboards Manager: Dashboard Duplicated',
+        organization_id: parseInt(organization.id, 10),
+        dashboard_id: parseInt(dashboard.id, 10),
+      });
+      onDashboardsChange();
+      addSuccessMessage(t('Dashboard duplicated'));
+    } catch (e) {
+      addErrorMessage(t('Error duplicating Dashboard'));
+    }
+  }
+
+  function renderDropdownMenu(dashboard: DashboardListItem) {
+    const menuItems: MenuItemProps[] = [
+      {
+        key: 'dashboard-duplicate',
+        label: t('Duplicate'),
+        onAction: () => handleDuplicate(dashboard),
+      },
+      {
+        key: 'dashboard-delete',
+        label: t('Delete'),
+        priority: 'danger',
+        onAction: () => {
+          openConfirmModal({
+            message: t('Are you sure you want to delete this dashboard?'),
+            priority: 'danger',
+            onConfirm: () => handleDelete(dashboard),
           });
-          onDashboardsChange();
-          addSuccessMessage(t('Dashboard duplicated'));
-        });
-      })
-      .catch(() => addErrorMessage(t('Error duplicating Dashboard')));
+        },
+      },
+    ];
+
+    return (
+      <DropdownMenuControlV2
+        items={menuItems}
+        trigger={({props: triggerProps, ref: triggerRef}) => (
+          <DropdownTrigger
+            ref={triggerRef}
+            {...triggerProps}
+            aria-label={t('Dashboard actions')}
+            size="xsmall"
+            borderless
+            onClick={e => {
+              e.stopPropagation();
+              e.preventDefault();
+
+              triggerProps.onClick?.(e);
+            }}
+            icon={<IconEllipsis direction="down" size="sm" />}
+          />
+        )}
+        placement="bottom right"
+        disabledKeys={dashboards && dashboards.length <= 1 ? ['dashboard-delete'] : []}
+        offset={4}
+      />
+    );
+  }
+
+  function renderDndPreview(dashboard) {
+    return (
+      <WidgetGrid>
+        {dashboard.widgetDisplay.map((displayType, i) => {
+          return displayType === DisplayType.BIG_NUMBER ? (
+            <BigNumberWidgetWrapper key={`${i}-${displayType}`}>
+              <WidgetImage src={miniWidget(displayType)} />
+            </BigNumberWidgetWrapper>
+          ) : (
+            <MiniWidgetWrapper key={`${i}-${displayType}`}>
+              <WidgetImage src={miniWidget(displayType)} />
+            </MiniWidgetWrapper>
+          );
+        })}
+      </WidgetGrid>
+    );
+  }
+
+  function renderGridPreview(dashboard) {
+    return <GridPreview widgetPreview={dashboard.widgetPreview} />;
   }
 
   function renderMiniDashboards() {
+    const isUsingGrid = organization.features.includes('dashboard-grid-layout');
     return dashboards?.map((dashboard, index) => {
+      const widgetRenderer = isUsingGrid ? renderGridPreview : renderDndPreview;
+      const widgetCount = isUsingGrid
+        ? dashboard.widgetPreview.length
+        : dashboard.widgetDisplay.length;
       return (
         <DashboardCard
           key={`${index}-${dashboard.id}`}
-          title={
-            dashboard.id === 'default-overview' ? 'Default Dashboard' : dashboard.title
-          }
+          title={dashboard.title}
           to={{
             pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
             query: {...location.query},
           }}
-          detail={tn('%s widget', '%s widgets', dashboard.widgetDisplay.length)}
+          detail={tn('%s widget', '%s widgets', widgetCount)}
           dateStatus={
             dashboard.dateCreated ? <TimeSince date={dashboard.dateCreated} /> : undefined
           }
           createdBy={dashboard.createdBy}
-          renderWidgets={() => (
-            <WidgetGrid>
-              {dashboard.widgetDisplay.map((displayType, i) => {
-                return displayType === DisplayType.BIG_NUMBER ? (
-                  <BigNumberWidgetWrapper key={`${i}-${displayType}`}>
-                    <WidgetImage src={miniWidget(displayType)} />
-                  </BigNumberWidgetWrapper>
-                ) : (
-                  <MiniWidgetWrapper key={`${i}-${displayType}`}>
-                    <WidgetImage src={miniWidget(displayType)} />
-                  </MiniWidgetWrapper>
-                );
-              })}
-            </WidgetGrid>
-          )}
-          renderContextMenu={() => (
-            <ContextMenu>
-              <MenuItem
-                data-test-id="dashboard-delete"
-                onClick={event => {
-                  event.preventDefault();
-                  handleDelete(dashboard);
-                }}
-                disabled={dashboards.length <= 1}
-              >
-                {t('Delete')}
-              </MenuItem>
-              <MenuItem
-                data-test-id="dashboard-duplicate"
-                onClick={event => {
-                  event.preventDefault();
-                  handleDuplicate(dashboard);
-                }}
-              >
-                {t('Duplicate')}
-              </MenuItem>
-            </ContextMenu>
-          )}
+          renderWidgets={() => widgetRenderer(dashboard)}
+          renderContextMenu={() => renderDropdownMenu(dashboard)}
         />
       );
     });
@@ -210,9 +226,9 @@ const DashboardGrid = styled('div')`
   display: grid;
   grid-template-columns: minmax(100px, 1fr);
   grid-template-rows: repeat(3, max-content);
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-columns: repeat(2, minmax(100px, 1fr));
   }
 
@@ -225,7 +241,7 @@ const WidgetGrid = styled('div')`
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-auto-flow: row dense;
-  grid-gap: ${space(0.25)};
+  gap: ${space(0.25)};
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -275,6 +291,10 @@ const WidgetImage = styled('img')`
 
 const PaginationRow = styled(Pagination)`
   margin-bottom: ${space(3)};
+`;
+
+const DropdownTrigger = styled(Button)`
+  transform: translateX(${space(1)});
 `;
 
 export default withApi(DashboardList);

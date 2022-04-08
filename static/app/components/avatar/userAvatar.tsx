@@ -1,9 +1,9 @@
 import * as React from 'react';
 
-import BaseAvatar from 'app/components/avatar/baseAvatar';
-import {Actor, AvatarUser} from 'app/types';
-import {userDisplayName} from 'app/utils/formatters';
-import {isRenderFunc} from 'app/utils/isRenderFunc';
+import BaseAvatar from 'sentry/components/avatar/baseAvatar';
+import {Actor, AvatarUser} from 'sentry/types';
+import {userDisplayName} from 'sentry/utils/formatters';
+import {isRenderFunc} from 'sentry/utils/isRenderFunc';
 
 type RenderTooltipFunc = (user: AvatarUser | Actor) => React.ReactNode;
 
@@ -16,9 +16,9 @@ const defaultProps = {
 };
 
 type Props = {
-  user?: Actor | AvatarUser;
-  renderTooltip?: RenderTooltipFunc;
   gravatar?: boolean;
+  renderTooltip?: RenderTooltipFunc;
+  user?: Actor | AvatarUser;
 } & Omit<BaseAvatar['props'], 'uploadPath' | 'uploadId'>;
 
 function isActor(maybe: AvatarUser | Actor): maybe is Actor {

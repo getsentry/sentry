@@ -3,7 +3,7 @@ import {
   getLastTermIndex,
   getQueryTerms,
   removeSpace,
-} from 'app/components/smartSearchBar/utils';
+} from 'sentry/components/smartSearchBar/utils';
 
 describe('addSpace()', function () {
   it('should add a space when there is no trailing space', function () {

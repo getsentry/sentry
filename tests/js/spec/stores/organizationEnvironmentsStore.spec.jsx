@@ -1,12 +1,15 @@
-import OrganizationEnvironmentsStore from 'app/stores/organizationEnvironmentsStore';
+import OrganizationEnvironmentsStore from 'sentry/stores/organizationEnvironmentsStore';
 
 describe('OrganizationEnvironmentsStore', function () {
-  afterEach(function () {
+  beforeEach(() => {
     OrganizationEnvironmentsStore.init();
+  });
+  afterEach(() => {
+    OrganizationEnvironmentsStore.teardown();
   });
 
   it('get()', function () {
-    expect(OrganizationEnvironmentsStore.get()).toEqual({
+    expect(OrganizationEnvironmentsStore.getState()).toEqual({
       environments: null,
       error: null,
     });
@@ -17,7 +20,7 @@ describe('OrganizationEnvironmentsStore', function () {
 
     await tick();
 
-    const {environments} = OrganizationEnvironmentsStore.get();
+    const {environments} = OrganizationEnvironmentsStore.getState();
 
     expect(environments).toHaveLength(3);
     expect(environments.map(env => env.name)).toEqual([
@@ -35,7 +38,7 @@ describe('OrganizationEnvironmentsStore', function () {
   it('has the correct loading state', async function () {
     OrganizationEnvironmentsStore.onFetchEnvironments();
 
-    const {environments, error} = OrganizationEnvironmentsStore.get();
+    const {environments, error} = OrganizationEnvironmentsStore.getState();
 
     expect(environments).toBeNull();
     expect(error).toBeNull();
@@ -44,7 +47,7 @@ describe('OrganizationEnvironmentsStore', function () {
   it('has the correct error state', async function () {
     OrganizationEnvironmentsStore.onFetchEnvironmentsError(Error('bad'));
 
-    const {environments, error} = OrganizationEnvironmentsStore.get();
+    const {environments, error} = OrganizationEnvironmentsStore.getState();
 
     expect(environments).toBeNull();
     expect(error).not.toBeNull();

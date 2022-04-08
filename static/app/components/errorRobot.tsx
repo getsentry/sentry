@@ -3,21 +3,21 @@ import styled from '@emotion/styled';
 
 import robotBackground from 'sentry-images/spot/sentry-robot.png';
 
-import {Client} from 'app/api';
-import Button from 'app/components/button';
-import Link from 'app/components/links/link';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {LightWeightOrganization, Project} from 'app/types';
-import {defined} from 'app/utils';
-import withApi from 'app/utils/withApi';
-import CreateSampleEventButton from 'app/views/onboarding/createSampleEventButton';
+import {Client} from 'sentry/api';
+import Button from 'sentry/components/button';
+import Link from 'sentry/components/links/link';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import withApi from 'sentry/utils/withApi';
+import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
 
 type Props = {
   api: Client;
-  org: LightWeightOrganization;
-  project?: Project;
   gradient: boolean;
+  org: Organization;
+  project?: Project;
   /**
    * sampleIssueId can have 3 values:
    * - empty string to indicate it doesn't exist (render "create sample event")

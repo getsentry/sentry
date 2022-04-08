@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
+import space from 'sentry/styles/space';
 
 type Props = {
   dashedBorder?: boolean;
+  'data-test-id'?: string;
 };
 
 const Panel = styled('div')<Props>`
@@ -12,7 +13,7 @@ const Panel = styled('div')<Props>`
   border: 1px
     ${p => (p.dashedBorder ? 'dashed' + p.theme.gray300 : 'solid ' + p.theme.border)};
   box-shadow: ${p => (p.dashedBorder ? 'none' : p.theme.dropShadowLight)};
-  margin-bottom: ${space(3)};
+  margin-bottom: ${space(2)};
   position: relative;
 `;
 

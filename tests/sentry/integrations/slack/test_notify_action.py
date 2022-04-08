@@ -2,30 +2,30 @@ from urllib.parse import parse_qs
 
 import responses
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.slack import SlackNotifyServiceAction
 from sentry.integrations.slack.utils import SLACK_RATE_LIMITED_MESSAGE
-from sentry.models import Integration
+from sentry.models import Integration, OrganizationIntegration
+from sentry.notifications.additional_attachment_manager import manager
 from sentry.testutils.cases import RuleTestCase
+from sentry.testutils.helpers import install_slack
+from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
+
+
+def additional_attachment_generator(integration, organization):
+    # nonsense to make sure we pass in the right fields
+    return {"title": organization.slug, "text": integration.id}
 
 
 class SlackNotifyActionTest(RuleTestCase):
     rule_cls = SlackNotifyServiceAction
 
     def setUp(self):
-        event = self.get_event()
+        self.integration = install_slack(self.get_event().project.organization)
 
-        self.integration = Integration.objects.create(
-            provider="slack",
-            name="Awesome Team",
-            external_id="TXXXXXXX1",
-            metadata={
-                "access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
-                "installation_type": "born_as_bot",
-                "domain_name": "sentry.slack.com",
-            },
-        )
-        self.integration.add_organization(event.project.organization, self.user)
+    def tearDown(self):
+        manager.attachment_generators[ExternalProviders.SLACK] = None
 
     def assert_form_valid(self, form, expected_channel_id, expected_channel):
         assert form.is_valid()
@@ -61,25 +61,35 @@ class SlackNotifyActionTest(RuleTestCase):
 
     def test_render_label(self):
         rule = self.get_rule(
-            data={"workspace": self.integration.id, "channel": "#my-channel", "tags": "one, two"}
+            data={
+                "workspace": self.integration.id,
+                "channel": "#my-channel",
+                "channel_id": "",
+                "tags": "one, two",
+            }
         )
 
         assert (
             rule.render_label()
-            == "Send a notification to the Awesome Team Slack workspace to #my-channel and show tags [one, two] in notification"
+            == "Send a notification to the Awesome Team Slack workspace to #my-channel (optionally, an ID: ) and show tags [one, two] in notification"
         )
 
     def test_render_label_without_integration(self):
         self.integration.delete()
 
         rule = self.get_rule(
-            data={"workspace": self.integration.id, "channel": "#my-channel", "tags": ""}
+            data={
+                "workspace": self.integration.id,
+                "channel": "#my-channel",
+                "channel_id": "",
+                "tags": "",
+            }
         )
 
         label = rule.render_label()
         assert (
             label
-            == "Send a notification to the [removed] Slack workspace to #my-channel and show tags [] in notification"
+            == "Send a notification to the [removed] Slack workspace to #my-channel (optionally, an ID: ) and show tags [] in notification"
         )
 
     @responses.activate
@@ -339,3 +349,58 @@ class SlackNotifyActionTest(RuleTestCase):
         assert [
             'Multiple users were found with display name "@morty". Please use your username, found at sentry.slack.com/account/settings#username.'
         ] in form.errors.values()
+
+    def test_disabled_org_integration(self):
+        org = self.create_organization(owner=self.user)
+        OrganizationIntegration.objects.create(organization=org, integration=self.integration)
+        OrganizationIntegration.objects.filter(
+            integration=self.integration, organization=self.event.project.organization
+        ).update(status=ObjectStatus.DISABLED)
+        event = self.get_event()
+
+        rule = self.get_rule(data={"workspace": self.integration.id, "channel": "#my-channel"})
+
+        results = list(rule.after(event=event, state=self.get_state()))
+        assert len(results) == 0
+
+    @responses.activate
+    def test_additional_attachment(self):
+        manager.attachment_generators[ExternalProviders.SLACK] = additional_attachment_generator
+        event = self.get_event()
+
+        rule = self.get_rule(data={"workspace": self.integration.id, "channel": "#my-channel"})
+
+        results = list(rule.after(event=event, state=self.get_state()))
+        assert len(results) == 1
+
+        responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/chat.postMessage",
+            body='{"ok": true}',
+            status=200,
+            content_type="application/json",
+        )
+
+        # Trigger rule callback
+        results[0].callback(event, futures=[])
+        data = parse_qs(responses.calls[0].request.body)
+
+        assert "attachments" in data
+        attachments = json.loads(data["attachments"][0])
+
+        assert len(attachments) == 2
+        assert attachments[0]["title"] == event.title
+        assert attachments[1]["title"] == self.organization.slug
+        assert attachments[1]["text"] == self.integration.id
+
+    @responses.activate
+    def test_multiple_integrations(self):
+        org = self.create_organization(owner=self.user)
+        OrganizationIntegration.objects.create(organization=org, integration=self.integration)
+
+        event = self.get_event()
+
+        rule = self.get_rule(data={"workspace": self.integration.id, "channel": "#my-channel"})
+
+        results = list(rule.after(event=event, state=self.get_state()))
+        assert len(results) == 1

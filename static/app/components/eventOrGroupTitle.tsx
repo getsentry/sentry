@@ -1,36 +1,33 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import GuideAnchor from 'app/components/assistant/guideAnchor';
-import ProjectsStore from 'app/stores/projectsStore';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import {BaseGroup, GroupTombstone, Organization} from 'app/types';
-import {Event} from 'app/types/event';
-import {getTitle} from 'app/utils/events';
-import withOrganization from 'app/utils/withOrganization';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import {BaseGroup, GroupTombstone, Organization} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import {getTitle} from 'sentry/utils/events';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import EventTitleTreeLabel from './eventTitleTreeLabel';
-import StacktracePreview from './stacktracePreview';
+import {StackTracePreview} from './stacktracePreview';
 
-type Props = Partial<DefaultProps> & {
+type Props = {
   data: Event | BaseGroup | GroupTombstone;
   organization: Organization;
+  className?: string;
+  /* is issue breakdown? */
+  grouping?: boolean;
   hasGuideAnchor?: boolean;
   withStackTracePreview?: boolean;
-  guideAnchorName?: string;
-  className?: string;
-};
-
-type DefaultProps = {
-  guideAnchorName: string;
 };
 
 function EventOrGroupTitle({
-  guideAnchorName = 'issue_title',
   organization,
   data,
   withStackTracePreview,
   hasGuideAnchor,
+  grouping = false,
   className,
 }: Props) {
   const event = data as Event;
@@ -42,24 +39,29 @@ function EventOrGroupTitle({
   );
   const {id, eventID, groupID, projectID} = event;
 
-  const {title, subtitle, treeLabel} = getTitle(event, organization?.features);
+  const {title, subtitle, treeLabel} = getTitle(event, organization?.features, grouping);
 
   return (
     <Wrapper className={className} hasGroupingTreeUI={hasGroupingTreeUI}>
-      <GuideAnchor disabled={!hasGuideAnchor} target={guideAnchorName} position="bottom">
-        <StyledStacktracePreview
-          organization={organization}
-          issueId={groupID ? groupID : id}
-          groupingCurrentLevel={groupingCurrentLevel}
-          // we need eventId and projectSlug only when hovering over Event, not Group
-          // (different API call is made to get the stack trace then)
-          eventId={eventID}
-          projectSlug={eventID ? ProjectsStore.getById(projectID)?.slug : undefined}
-          disablePreview={!withStackTracePreview}
-          hasGroupingStacktraceUI={hasGroupingStacktraceUI}
-        >
-          {treeLabel ? <EventTitleTreeLabel treeLabel={treeLabel} /> : title}
-        </StyledStacktracePreview>
+      <GuideAnchor disabled={!hasGuideAnchor} target="issue_title" position="bottom">
+        {withStackTracePreview ? (
+          <StyledStacktracePreview
+            organization={organization}
+            issueId={groupID ? groupID : id}
+            groupingCurrentLevel={groupingCurrentLevel}
+            // we need eventId and projectSlug only when hovering over Event, not Group
+            // (different API call is made to get the stack trace then)
+            eventId={eventID}
+            projectSlug={eventID ? ProjectsStore.getById(projectID)?.slug : undefined}
+            hasGroupingStacktraceUI={hasGroupingStacktraceUI}
+          >
+            {treeLabel ? <EventTitleTreeLabel treeLabel={treeLabel} /> : title}
+          </StyledStacktracePreview>
+        ) : treeLabel ? (
+          <EventTitleTreeLabel treeLabel={treeLabel} />
+        ) : (
+          title
+        )}
       </GuideAnchor>
       {subtitle && (
         <Fragment>
@@ -86,15 +88,16 @@ const Subtitle = styled('em')`
   font-style: normal;
 `;
 
-const StyledStacktracePreview = styled(StacktracePreview)<{
+const StyledStacktracePreview = styled(StackTracePreview)<{
   hasGroupingStacktraceUI: boolean;
 }>`
   ${p =>
     p.hasGroupingStacktraceUI &&
     `
       display: inline-flex;
+      overflow: hidden;
       > span:first-child {
-        display: inline-flex;
+        ${overflowEllipsis}
       }
     `}
 `;
@@ -103,7 +106,6 @@ const Wrapper = styled('span')<{hasGroupingTreeUI: boolean}>`
   ${p =>
     p.hasGroupingTreeUI &&
     `
-
       display: inline-grid;
       grid-template-columns: auto max-content 1fr max-content;
       align-items: flex-end;

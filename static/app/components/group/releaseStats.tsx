@@ -1,25 +1,26 @@
 import {Fragment, memo} from 'react';
 import styled from '@emotion/styled';
 
-import GroupReleaseChart from 'app/components/group/releaseChart';
-import SeenInfo from 'app/components/group/seenInfo';
-import Placeholder from 'app/components/placeholder';
-import Tooltip from 'app/components/tooltip';
-import {IconQuestion} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {CurrentRelease, Environment, Group, Organization, Project} from 'app/types';
-import getDynamicText from 'app/utils/getDynamicText';
+import AlertLink from 'sentry/components/alertLink';
+import GroupReleaseChart from 'sentry/components/group/releaseChart';
+import SeenInfo from 'sentry/components/group/seenInfo';
+import Placeholder from 'sentry/components/placeholder';
+import Tooltip from 'sentry/components/tooltip';
+import {IconQuestion} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {CurrentRelease, Environment, Group, Organization, Project} from 'sentry/types';
+import getDynamicText from 'sentry/utils/getDynamicText';
 
 import SidebarSection from './sidebarSection';
 
 type Props = {
+  allEnvironments: Group | undefined;
+  currentRelease: CurrentRelease | undefined;
+  environments: Environment[];
+  group: Group | undefined;
   organization: Organization;
   project: Project;
-  environments: Environment[];
-  allEnvironments: Group | undefined;
-  group: Group | undefined;
-  currentRelease: CurrentRelease | undefined;
 };
 
 const GroupReleaseStats = ({
@@ -53,44 +54,48 @@ const GroupReleaseStats = ({
         <Placeholder height="288px" />
       ) : (
         <Fragment>
-          <GroupReleaseChart
-            group={allEnvironments}
-            environment={environmentLabel}
-            environmentStats={group.stats}
-            release={currentRelease?.release}
-            releaseStats={currentRelease?.stats}
-            statsPeriod="24h"
-            title={t('Last 24 Hours')}
-            firstSeen={group.firstSeen}
-            lastSeen={group.lastSeen}
-          />
-          <GroupReleaseChart
-            group={allEnvironments}
-            environment={environmentLabel}
-            environmentStats={group.stats}
-            release={currentRelease?.release}
-            releaseStats={currentRelease?.stats}
-            statsPeriod="30d"
-            title={t('Last 30 Days')}
-            className="bar-chart-small"
-            firstSeen={group.firstSeen}
-            lastSeen={group.lastSeen}
-          />
+          <GraphContainer>
+            <GroupReleaseChart
+              group={allEnvironments}
+              environment={environmentLabel}
+              environmentStats={group.stats}
+              release={currentRelease?.release}
+              releaseStats={currentRelease?.stats}
+              statsPeriod="24h"
+              title={t('Last 24 Hours')}
+              firstSeen={group.firstSeen}
+              lastSeen={group.lastSeen}
+            />
+          </GraphContainer>
+          <GraphContainer>
+            <GroupReleaseChart
+              group={allEnvironments}
+              environment={environmentLabel}
+              environmentStats={group.stats}
+              release={currentRelease?.release}
+              releaseStats={currentRelease?.stats}
+              statsPeriod="30d"
+              title={t('Last 30 Days')}
+              className="bar-chart-small"
+              firstSeen={group.firstSeen}
+              lastSeen={group.lastSeen}
+            />
+          </GraphContainer>
 
           <SidebarSection
             secondary
             title={
-              <span>
+              <Fragment>
                 {t('Last seen')}
                 <TooltipWrapper>
                   <Tooltip
                     title={t('When the most recent event in this issue was captured.')}
                     disableForVisualTest
                   >
-                    <StyledIconQuest size="xs" color="gray200" />
+                    <IconQuestion size="xs" color="gray200" />
                   </Tooltip>
                 </TooltipWrapper>
-              </span>
+              </Fragment>
             }
           >
             <SeenInfo
@@ -112,17 +117,17 @@ const GroupReleaseStats = ({
           <SidebarSection
             secondary
             title={
-              <span>
+              <Fragment>
                 {t('First seen')}
                 <TooltipWrapper>
                   <Tooltip
                     title={t('When the first event in this issue was captured.')}
                     disableForVisualTest
                   >
-                    <StyledIconQuest size="xs" color="gray200" />
+                    <IconQuestion size="xs" color="gray200" />
                   </Tooltip>
                 </TooltipWrapper>
-              </span>
+              </Fragment>
             }
           >
             <SeenInfo
@@ -141,9 +146,10 @@ const GroupReleaseStats = ({
             />
           </SidebarSection>
           {!hasRelease ? (
-            <SidebarSection secondary title={t('Releases not configured')}>
-              <a href={releaseTrackingUrl}>{t('Setup Releases')}</a>{' '}
-              {t(' to make issues easier to fix.')}
+            <SidebarSection secondary title={t('Releases')}>
+              <AlertLink priority="muted" size="small" to={releaseTrackingUrl}>
+                {t('See which release caused this issue ')}
+              </AlertLink>
             </SidebarSection>
           ) : null}
         </Fragment>
@@ -158,7 +164,6 @@ const TooltipWrapper = styled('span')`
   margin-left: ${space(0.5)};
 `;
 
-const StyledIconQuest = styled(IconQuestion)`
-  position: relative;
-  top: 2px;
+const GraphContainer = styled('div')`
+  margin-bottom: ${space(3)};
 `;

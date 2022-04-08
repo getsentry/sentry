@@ -5,14 +5,14 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
 import {selectByValue} from 'sentry-test/select-new';
 
-import {updateOnboardingTask} from 'app/actionCreators/onboardingTasks';
-import {metric} from 'app/utils/analytics';
-import IssueRuleEditor from 'app/views/alerts/issueRuleEditor';
-import ProjectAlerts from 'app/views/settings/projectAlerts';
+import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
+import {metric} from 'sentry/utils/analytics';
+import IssueRuleEditor from 'sentry/views/alerts/issueRuleEditor';
+import ProjectAlerts from 'sentry/views/settings/projectAlerts';
 
-jest.unmock('app/utils/recreateRoute');
-jest.mock('app/actionCreators/onboardingTasks');
-jest.mock('app/utils/analytics', () => ({
+jest.unmock('sentry/utils/recreateRoute');
+jest.mock('sentry/actionCreators/onboardingTasks');
+jest.mock('sentry/utils/analytics', () => ({
   metric: {
     startTransaction: jest.fn(() => ({
       setTag: jest.fn(),
@@ -78,6 +78,10 @@ describe('ProjectAlerts -> IssueRuleEditor', function () {
       url: '/projects/org-slug/project-slug/environments/',
       body: TestStubs.Environments(),
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/project-slug/?expand=hasAlertIntegration`,
+      body: {},
+    });
   });
 
   afterEach(function () {
@@ -96,6 +100,7 @@ describe('ProjectAlerts -> IssueRuleEditor', function () {
           routes={projectAlertRuleDetailsRoutes}
           onChangeTitle={onChangeTitleMock}
           project={project}
+          userTeamIds={[]}
         />
       </ProjectAlerts>,
       routerContext

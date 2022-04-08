@@ -1,52 +1,52 @@
 import * as React from 'react';
-import keydown from 'react-keydown';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import {PlatformIcon} from 'platformicons';
 
-import Button from 'app/components/button';
-import ExternalLink from 'app/components/links/externalLink';
-import ListLink from 'app/components/links/listLink';
-import NavTabs from 'app/components/navTabs';
-import categoryList, {filterAliases, PlatformKey} from 'app/data/platformCategories';
-import platforms from 'app/data/platforms';
-import {IconClose, IconProject, IconSearch} from 'app/icons';
-import {t, tct} from 'app/locale';
-import {inputStyles} from 'app/styles/input';
-import space from 'app/styles/space';
-import {Organization, PlatformIntegration} from 'app/types';
-import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import Button from 'sentry/components/button';
+import ExternalLink from 'sentry/components/links/externalLink';
+import ListLink from 'sentry/components/links/listLink';
+import NavTabs from 'sentry/components/navTabs';
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
+import categoryList, {filterAliases, PlatformKey} from 'sentry/data/platformCategories';
+import platforms from 'sentry/data/platforms';
+import {IconClose, IconProject, IconSearch} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import {inputStyles} from 'sentry/styles/input';
+import space from 'sentry/styles/space';
+import {Organization, PlatformIntegration} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 const PLATFORM_CATEGORIES = [...categoryList, {id: 'all', name: t('All')}] as const;
 
 const PlatformList = styled('div')`
   display: grid;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   grid-template-columns: repeat(auto-fill, 112px);
   margin-bottom: ${space(2)};
 `;
 
 type Category = typeof PLATFORM_CATEGORIES[number]['id'];
 
-type Props = {
+interface PlatformPickerProps {
   setPlatform: (key: PlatformKey | null) => void;
+  defaultCategory?: Category;
+  listClassName?: string;
+  listProps?: React.HTMLAttributes<HTMLDivElement>;
+  noAutoFilter?: boolean;
+  organization?: Organization;
   platform?: string | null;
   showOther?: boolean;
-  listClassName?: string;
-  listProps?: React.ComponentProps<typeof PlatformList>;
-  noAutoFilter?: boolean;
-  defaultCategory?: Category;
-  organization?: Organization;
   source?: string;
-};
+}
 
 type State = {
   category: Category;
   filter: string;
 };
 
-class PlatformPicker extends React.Component<Props, State> {
+class PlatformPicker extends React.Component<PlatformPickerProps, State> {
   static defaultProps = {
     showOther: true,
   };
@@ -87,17 +87,7 @@ class PlatformPicker extends React.Component<Props, State> {
         organization: this.props.organization ?? null,
       });
     }
-  }, 300);
-
-  @keydown('/')
-  focusSearch(e: KeyboardEvent) {
-    if (e.target !== this.searchInput.current) {
-      this.searchInput?.current?.focus();
-      e.preventDefault();
-    }
-  }
-
-  searchInput = React.createRef<HTMLInputElement>();
+  }, DEFAULT_DEBOUNCE_DURATION);
 
   render() {
     const platformList = this.platformList;
@@ -131,7 +121,6 @@ class PlatformPicker extends React.Component<Props, State> {
             <IconSearch size="xs" />
             <input
               type="text"
-              ref={this.searchInput}
               value={filter}
               placeholder={t('Filter Platforms')}
               onChange={e => this.setState({filter: e.target.value}, this.logSearch)}
@@ -187,7 +176,7 @@ class PlatformPicker extends React.Component<Props, State> {
 const NavContainer = styled('div')`
   margin-bottom: ${space(2)};
   display: grid;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   grid-template-columns: 1fr minmax(0, 300px);
   align-items: start;
   border-bottom: 1px solid ${p => p.theme.border};
@@ -235,6 +224,7 @@ const ClearButton = styled(Button)`
   position: absolute;
   top: -6px;
   right: -6px;
+  min-height: 0;
   height: 22px;
   width: 22px;
   display: flex;
@@ -262,7 +252,7 @@ const PlatformCard = styled(({platform, selected, onClear, ...props}) => (
     />
 
     <h3>{platform.name}</h3>
-    {selected && <ClearButton onClick={onClear} />}
+    {selected && <ClearButton onClick={onClear} aria-label={t('Clear')} />}
   </div>
 ))`
   position: relative;

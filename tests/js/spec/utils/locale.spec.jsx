@@ -1,11 +1,11 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {tct} from 'app/locale';
+import {tct} from 'sentry/locale';
 
 describe('locale.gettextComponentTemplate', () => {
   it('should render two component templates inside the same parent', async () => {
-    const wrapper = mountWithTheme(
-      <div>
+    render(
+      <div data-test-id="subject">
         {tct('1st: [one]', {
           one: 'one',
         })}
@@ -14,9 +14,7 @@ describe('locale.gettextComponentTemplate', () => {
         })}
       </div>
     );
-    await tick();
-    wrapper.update();
 
-    expect(wrapper.text()).toBe('1st: one2nd: two');
+    expect(screen.getByTestId('subject')).toHaveTextContent('1st: one2nd: two');
   });
 });

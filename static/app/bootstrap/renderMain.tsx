@@ -1,5 +1,5 @@
-import {ROOT_ELEMENT} from 'app/constants';
-import Main from 'app/main';
+import {ROOT_ELEMENT} from 'sentry/constants';
+import Main from 'sentry/main';
 
 import {renderDom} from './renderDom';
 

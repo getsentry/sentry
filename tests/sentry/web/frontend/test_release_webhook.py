@@ -1,5 +1,6 @@
 import hmac
 from hashlib import sha256
+from unittest.mock import patch
 
 from django.urls import reverse
 from exam import fixture
@@ -7,7 +8,6 @@ from exam import fixture
 from sentry.models import ProjectOption
 from sentry.testutils import TestCase
 from sentry.utils import json
-from sentry.utils.compat.mock import patch
 
 
 class ReleaseWebhookTestBase(TestCase):
@@ -107,8 +107,3 @@ class BuiltinReleaseWebhookTest(ReleaseWebhookTestBase):
         assert resp.status_code == 201, resp.content
         data = json.loads(resp.content)
         assert data["version"] == "a"
-
-    def test_no_teams_and_no_user(self):
-        self.project.remove_team(self.team)
-        resp = self.client.post(self.path, user=None, content_type="application/json")
-        assert resp.status_code == 403

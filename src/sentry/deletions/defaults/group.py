@@ -13,6 +13,7 @@ DIRECT_GROUP_RELATED_MODELS = (
     models.GroupAssignee,
     models.GroupCommitResolution,
     models.GroupLink,
+    models.GroupHistory,
     models.GroupBookmark,
     models.GroupMeta,
     models.GroupEnvironment,
@@ -27,6 +28,8 @@ DIRECT_GROUP_RELATED_MODELS = (
     models.GroupOwner,
     models.GroupEmailThread,
     models.GroupSubscription,
+    models.GroupHistory,
+    models.RuleFireHistory,
 )
 
 _GROUP_RELATED_MODELS = DIRECT_GROUP_RELATED_MODELS + (
@@ -96,7 +99,6 @@ class EventDataDeletionTask(BaseDeletionTask):
 
 class GroupDeletionTask(ModelDeletionTask):
     def get_child_relations(self, instance):
-
         relations = []
 
         relations.extend(

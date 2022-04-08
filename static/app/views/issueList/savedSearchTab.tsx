@@ -1,21 +1,21 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Badge from 'app/components/badge';
-import DropdownLink from 'app/components/dropdownLink';
-import QueryCount from 'app/components/queryCount';
-import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {Organization, SavedSearch} from 'app/types';
+import Badge from 'sentry/components/badge';
+import DropdownLink from 'sentry/components/dropdownLink';
+import QueryCount from 'sentry/components/queryCount';
+import {t} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {Organization, SavedSearch} from 'sentry/types';
 
 import SavedSearchMenu from './savedSearchMenu';
 
 type Props = {
+  onSavedSearchDelete: (savedSearch: SavedSearch) => void;
+  onSavedSearchSelect: (savedSearch: SavedSearch) => void;
   organization: Organization;
   savedSearchList: SavedSearch[];
-  onSavedSearchSelect: (savedSearch: SavedSearch) => void;
-  onSavedSearchDelete: (savedSearch: SavedSearch) => void;
   sort: string;
   isActive?: boolean;
   query?: string;
@@ -58,7 +58,11 @@ function SavedSearchTab({
   );
 
   return (
-    <TabWrapper isActive={isActive} className="saved-search-tab">
+    <TabWrapper
+      isActive={isActive}
+      className="saved-search-tab"
+      data-test-id="saved-search-tab"
+    >
       <StyledDropdownLink
         alwaysRenderMenu={false}
         anchorMiddle
@@ -130,8 +134,6 @@ const StyledDropdownLink = styled(DropdownLink)<{isActive?: boolean}>`
   position: relative;
   display: block;
   padding: ${space(1)} 0;
-  /* Important to override a media query from .nav-tabs */
-  font-size: ${p => p.theme.fontSizeLarge} !important;
   text-align: center;
   text-transform: capitalize;
   /* TODO(scttcper): Replace hex color when nav-tabs is replaced */

@@ -3,36 +3,36 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Location, LocationDescriptor} from 'history';
 
-import {fetchTagFacets, Tag, TagSegment} from 'app/actionCreators/events';
-import {Client} from 'app/api';
-import ErrorPanel from 'app/components/charts/errorPanel';
-import {SectionHeading} from 'app/components/charts/styles';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import Placeholder from 'app/components/placeholder';
-import TagDistributionMeter from 'app/components/tagDistributionMeter';
-import {IconWarning} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
-import withApi from 'app/utils/withApi';
+import {fetchTagFacets, Tag, TagSegment} from 'sentry/actionCreators/events';
+import {Client} from 'sentry/api';
+import ErrorPanel from 'sentry/components/charts/errorPanel';
+import {SectionHeading} from 'sentry/components/charts/styles';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import Placeholder from 'sentry/components/placeholder';
+import TagDistributionMeter from 'sentry/components/tagDistributionMeter';
+import {IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import EventView, {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
+import withApi from 'sentry/utils/withApi';
 
 type Props = {
   api: Client;
-  organization: Organization;
   eventView: EventView;
+  generateUrl: (key: string, value: string) => LocationDescriptor;
   location: Location;
+  organization: Organization;
   totalValues: null | number;
   confirmedQuery?: boolean;
-  generateUrl: (key: string, value: string) => LocationDescriptor;
 };
 
 type State = {
+  error: string;
   loading: boolean;
   tags: Tag[];
   totalValues: null | number;
-  error: string;
 };
 
 class Tags extends Component<Props, State> {
@@ -152,11 +152,8 @@ class Tags extends Component<Props, State> {
     }
     if (tags.length > 0) {
       return tags.map(tag => this.renderTag(tag));
-    } else {
-      return (
-        <StyledEmptyStateWarning small>{t('No tags found')}</StyledEmptyStateWarning>
-      );
     }
+    return <StyledEmptyStateWarning small>{t('No tags found')}</StyledEmptyStateWarning>;
   };
 
   render() {

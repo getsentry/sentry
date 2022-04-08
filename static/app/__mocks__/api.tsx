@@ -1,102 +1,167 @@
-import * as ImportedClient from 'app/api';
+import isEqual from 'lodash/isEqual';
 
-const RealClient: typeof ImportedClient = jest.requireActual('app/api');
+import * as ApiNamespace from 'sentry/api';
+
+const RealApi: typeof ApiNamespace = jest.requireActual('sentry/api');
 
 export class Request {}
 
-export const initApiClientErrorHandling = RealClient.initApiClientErrorHandling;
+export const initApiClientErrorHandling = RealApi.initApiClientErrorHandling;
 
-const respond = (isAsync: boolean, fn, ...args): void => {
-  if (fn) {
-    if (isAsync) {
-      setTimeout(() => fn(...args), 1);
-    } else {
-      fn(...args);
+const respond = (isAsync: boolean, fn?: Function, ...args: any[]): void => {
+  if (!fn) {
+    return;
+  }
+
+  if (isAsync) {
+    setTimeout(() => fn(...args), 1);
+    return;
+  }
+
+  fn(...args);
+};
+
+type FunctionCallback<Args extends any[] = any[]> = (...args: Args) => void;
+
+/**
+ * Callables for matching requests based on arbitrary conditions.
+ */
+interface MatchCallable {
+  (url: string, options: ApiNamespace.RequestOptions): boolean;
+}
+
+type ResponseType = ApiNamespace.ResponseMeta & {
+  body: any;
+  callCount: 0;
+  headers: Record<string, string>;
+  match: MatchCallable[];
+  method: string;
+  statusCode: number;
+  url: string;
+};
+
+type MockResponse = [resp: ResponseType, mock: jest.Mock];
+
+/**
+ * Compare two records. `want` is all the entries we want to have the same value in `check`
+ */
+function compareRecord(want: Record<string, any>, check: Record<string, any>): boolean {
+  for (const entry of Object.entries(want)) {
+    const [key, value] = entry;
+    if (!isEqual(check[key], value)) {
+      return false;
     }
   }
-};
+  return true;
+}
 
-const DEFAULT_MOCK_RESPONSE_OPTIONS = {
-  predicate: () => true,
-};
+class Client implements ApiNamespace.Client {
+  static mockResponses: MockResponse[] = [];
 
-type ResponseType = ImportedClient.ResponseMeta & {
-  url: string;
-  statusCode: number;
-  method: string;
-  callCount: 0;
-  body: any;
-  headers: {[key: string]: string};
-};
-
-class Client {
-  static mockResponses: Array<
-    [
-      ResponseType,
-      jest.Mock,
-      (url: string, options: Readonly<ImportedClient.RequestOptions>) => boolean
-    ]
-  > = [];
+  static mockAsync = false;
 
   static clearMockResponses() {
     Client.mockResponses = [];
   }
 
+  /**
+   * Create a query string match callable.
+   *
+   * Only keys/values defined in `query` are checked.
+   */
+  static matchQuery(query: Record<string, any>): MatchCallable {
+    const queryMatcher: MatchCallable = (_url, options) => {
+      return compareRecord(query, options.query ?? {});
+    };
+
+    return queryMatcher;
+  }
+
+  /**
+   * Create a data match callable.
+   *
+   * Only keys/values defined in `data` are checked.
+   */
+  static matchData(data: Record<string, any>): MatchCallable {
+    const dataMatcher: MatchCallable = (_url, options) => {
+      return compareRecord(data, options.data ?? {});
+    };
+
+    return dataMatcher;
+  }
+
   // Returns a jest mock that represents Client.request calls
-  static addMockResponse(response, options = DEFAULT_MOCK_RESPONSE_OPTIONS) {
+  static addMockResponse(response: Partial<ResponseType>) {
     const mock = jest.fn();
+
     Client.mockResponses.unshift([
       {
+        url: '',
+        status: 200,
         statusCode: 200,
+        statusText: 'OK',
+        responseText: '',
+        responseJSON: '',
         body: '',
         method: 'GET',
         callCount: 0,
+        match: [],
         ...response,
-        headers: response.headers || {},
+        headers: response.headers ?? {},
+        getResponseHeader: (key: string) => response.headers?.[key] ?? null,
       },
       mock,
-      options.predicate,
     ]);
 
     return mock;
   }
 
-  static findMockResponse(url: string, options: Readonly<ImportedClient.RequestOptions>) {
-    return Client.mockResponses.find(([response, _mock, predicate]) => {
-      const matchesURL = url === response.url;
-      const matchesMethod = (options.method || 'GET') === response.method;
-      const matchesPredicate = predicate(url, options);
-
-      return matchesURL && matchesMethod && matchesPredicate;
+  static findMockResponse(url: string, options: Readonly<ApiNamespace.RequestOptions>) {
+    return Client.mockResponses.find(([response]) => {
+      if (url !== response.url) {
+        return false;
+      }
+      if ((options.method || 'GET') !== response.method) {
+        return false;
+      }
+      return response.match.every(matcher => matcher(url, options));
     });
   }
+
+  activeRequests: Record<string, ApiNamespace.Request> = {};
+  baseUrl = '';
 
   uniqueId() {
     return '123';
   }
 
-  // In the real client, this clears in-flight responses. It's NOT clearMockResponses. You probably don't want to call this from a test.
+  /**
+   * In the real client, this clears in-flight responses. It's NOT
+   * clearMockResponses. You probably don't want to call this from a test.
+   */
   clear() {}
 
-  static mockAsync = false;
-
-  wrapCallback(_id, error) {
-    return (...args) => {
+  wrapCallback<T extends any[]>(
+    _id: string,
+    func: FunctionCallback<T> | undefined,
+    _cleanup: boolean = false
+  ) {
+    return (...args: T) => {
       // @ts-expect-error
-      if (RealClient.hasProjectBeenRenamed(...args)) {
+      if (RealApi.hasProjectBeenRenamed(...args)) {
         return;
       }
-      respond(Client.mockAsync, error, ...args);
+      respond(Client.mockAsync, func, ...args);
     };
   }
 
   requestPromise(
-    path,
+    path: string,
     {
       includeAllArgs,
       ...options
-    }: {includeAllArgs?: boolean} & Readonly<ImportedClient.RequestOptions> = {}
-  ) {
+    }: {includeAllArgs?: boolean} & Readonly<ApiNamespace.RequestOptions> = {}
+  ): any {
     return new Promise((resolve, reject) => {
       this.request(path, {
         ...options,
@@ -110,7 +175,9 @@ class Client {
     });
   }
 
-  request(url, options: Readonly<ImportedClient.RequestOptions> = {}) {
+  // XXX(ts): We type the return type for requestPromise and request as `any`. Typically these woul
+
+  request(url: string, options: Readonly<ApiNamespace.RequestOptions> = {}): any {
     const [response, mock] = Client.findMockResponse(url, options) || [
       undefined,
       undefined,
@@ -144,7 +211,7 @@ class Client {
       const body =
         typeof response.body === 'function' ? response.body(url, options) : response.body;
 
-      if (response.statusCode !== 200) {
+      if (![200, 202].includes(response.statusCode)) {
         response.callCount++;
 
         const errorResponse = Object.assign(
@@ -180,7 +247,9 @@ class Client {
           body,
           {},
           {
-            getResponseHeader: key => response.headers[key],
+            getResponseHeader: (key: string) => response.headers[key],
+            statusCode: response.statusCode,
+            status: response.statusCode,
           }
         );
       }
@@ -189,7 +258,7 @@ class Client {
     respond(Client.mockAsync, options.complete);
   }
 
-  handleRequestError = RealClient.Client.prototype.handleRequestError;
+  handleRequestError = RealApi.Client.prototype.handleRequestError;
 }
 
 export {Client};

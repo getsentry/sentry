@@ -1,13 +1,14 @@
 import {Fragment} from 'react';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import GlobalModal from 'app/components/globalModal';
-import {metric} from 'app/utils/analytics';
-import IncidentRulesDetails from 'app/views/alerts/incidentRules/details';
+import GlobalModal from 'sentry/components/globalModal';
+import {metric} from 'sentry/utils/analytics';
+import IncidentRulesDetails from 'sentry/views/alerts/incidentRules/details';
+import {AlertRuleTriggerType} from 'sentry/views/alerts/incidentRules/types';
 
-jest.mock('app/utils/analytics', () => ({
+jest.mock('sentry/utils/analytics', () => ({
   metric: {
     startTransaction: jest.fn(() => ({
       setTag: jest.fn(),
@@ -53,7 +54,7 @@ describe('Incident Rules Details', function () {
   });
 
   it('renders and edits trigger', async function () {
-    const {organization, project, routerContext} = initializeOrg();
+    const {organization, project} = initializeOrg();
     const rule = TestStubs.IncidentRule();
     const onChangeTitleMock = jest.fn();
     const req = MockApiClient.addMockResponse({
@@ -72,7 +73,7 @@ describe('Incident Rules Details', function () {
       body: rule,
     });
 
-    const wrapper = mountWithTheme(
+    render(
       <Fragment>
         <GlobalModal />
         <IncidentRulesDetails
@@ -85,40 +86,29 @@ describe('Incident Rules Details', function () {
           onChangeTitle={onChangeTitleMock}
           project={project}
         />
-      </Fragment>,
-      routerContext
+      </Fragment>
     );
-
-    await tick();
-    wrapper.update();
 
     // has existing trigger
-    expect(wrapper.find('input[name="criticalThreshold"]').first().prop('value')).toEqual(
-      70
-    );
-    expect(wrapper.find('input[name="resolveThreshold"]').first().prop('value')).toEqual(
-      36
-    );
+    expect(screen.getByTestId('critical-threshold')).toHaveValue('70');
+    expect(screen.getByTestId('resolve-threshold')).toHaveValue('36');
 
     expect(req).toHaveBeenCalled();
 
     // Check correct rule name is called
     expect(onChangeTitleMock).toHaveBeenCalledWith(rule.name);
 
-    wrapper
-      .find('input[name="warningThreshold"]')
-      .first(1)
-      .simulate('change', {target: {value: 13}});
-    wrapper
-      .find('input[name="resolveThreshold"]')
-      .first()
-      .simulate('change', {target: {value: 12}});
+    userEvent.clear(screen.getByTestId('warning-threshold'));
+    userEvent.type(screen.getByTestId('warning-threshold'), '13');
+
+    userEvent.clear(screen.getByTestId('resolve-threshold'));
+    userEvent.type(screen.getByTestId('resolve-threshold'), '12');
 
     // Create a new action
-    wrapper.find('button[aria-label="Add Action"]').simulate('click');
+    userEvent.click(screen.getByLabelText('Add Action'));
 
     // Save Trigger
-    wrapper.find('button[aria-label="Save Rule"]').simulate('submit');
+    userEvent.click(screen.getByLabelText('Save Rule'));
 
     expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
     expect(editRule).toHaveBeenCalledWith(
@@ -161,26 +151,74 @@ describe('Incident Rules Details', function () {
     );
 
     // New Trigger should be in list
-    await tick();
-    wrapper.update();
-
     // Has correct values
-    expect(wrapper.find('input[name="criticalThreshold"]').first().prop('value')).toBe(
-      70
-    );
-    expect(wrapper.find('input[name="warningThreshold"]').first().prop('value')).toBe(13);
-    expect(wrapper.find('input[name="resolveThreshold"]').first().prop('value')).toBe(12);
+    expect(screen.getByTestId('critical-threshold')).toHaveValue('70');
+    expect(screen.getByTestId('warning-threshold')).toHaveValue('13');
+    expect(screen.getByTestId('resolve-threshold')).toHaveValue('12');
+  });
 
-    editRule.mockReset();
+  it('clears trigger', async function () {
+    const {organization, project} = initializeOrg();
+    const rule = TestStubs.IncidentRule();
+    rule.triggers.push({
+      label: AlertRuleTriggerType.WARNING,
+      alertThreshold: 13,
+      actions: [],
+    });
+    rule.resolveThreshold = 12;
+
+    const onChangeTitleMock = jest.fn();
+    const req = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/alert-rules/${rule.id}/`,
+      body: rule,
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [TestStubs.Member()],
+    });
+
+    const editRule = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/project-slug/alert-rules/${rule.id}/`,
+      method: 'PUT',
+      body: rule,
+    });
+
+    render(
+      <Fragment>
+        <GlobalModal />
+        <IncidentRulesDetails
+          params={{
+            orgId: organization.slug,
+            projectId: project.slug,
+            ruleId: rule.id,
+          }}
+          organization={organization}
+          onChangeTitle={onChangeTitleMock}
+          project={project}
+        />
+      </Fragment>
+    );
+
+    // has existing trigger
+    expect(screen.getByTestId('critical-threshold')).toHaveValue('70');
+    expect(screen.getByTestId('warning-threshold')).toHaveValue('13');
+    expect(screen.getByTestId('resolve-threshold')).toHaveValue('12');
+
+    expect(req).toHaveBeenCalled();
+
+    // Check correct rule name is called
+    expect(onChangeTitleMock).toHaveBeenCalledWith(rule.name);
+
+    userEvent.click(screen.getByLabelText('Add Action'));
 
     // Clear warning Trigger
-    wrapper
-      .find('input[name="warningThreshold"]')
-      .first()
-      .simulate('change', {target: {value: ''}});
+    userEvent.clear(screen.getByTestId('warning-threshold'));
+
+    await waitFor(() => expect(screen.getByLabelText('Save Rule')).toBeEnabled());
 
     // Save Trigger
-    wrapper.find('button[aria-label="Save Rule"]').simulate('submit');
+    userEvent.click(screen.getByLabelText('Save Rule'));
 
     expect(editRule).toHaveBeenCalledWith(
       expect.anything(),

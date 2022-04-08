@@ -2,10 +2,12 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import Tooltip from 'app/components/tooltip';
-import {t, tct} from 'app/locale';
-import {Organization} from 'app/types';
+import Button from 'sentry/components/button';
+import FormField from 'sentry/components/forms/formField';
+import FormModel from 'sentry/components/forms/model';
+import Tooltip from 'sentry/components/tooltip';
+import {t, tct} from 'sentry/locale';
+import {Organization} from 'sentry/types';
 import {
   Aggregation,
   AGGREGATIONS,
@@ -13,17 +15,15 @@ import {
   explodeFieldString,
   FIELDS,
   generateFieldAsString,
-} from 'app/utils/discover/fields';
+} from 'sentry/utils/discover/fields';
 import {
   AlertType,
   hideParameterSelectorSet,
   hidePrimarySelectorSet,
-} from 'app/views/alerts/wizard/options';
-import {QueryField} from 'app/views/eventsV2/table/queryField';
-import {FieldValueKind} from 'app/views/eventsV2/table/types';
-import {generateFieldOptions} from 'app/views/eventsV2/utils';
-import FormField from 'app/views/settings/components/forms/formField';
-import FormModel from 'app/views/settings/components/forms/model';
+} from 'sentry/views/alerts/wizard/options';
+import {QueryField} from 'sentry/views/eventsV2/table/queryField';
+import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
+import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 
 import {
   errorFieldConfig,
@@ -36,15 +36,15 @@ import {Dataset} from './types';
 
 type Props = Omit<FormField['props'], 'children'> & {
   organization: Organization;
+  alertType?: AlertType;
   /**
    * Optionally set a width for each column of selector
    */
   columnWidth?: number;
   inFieldLabels?: boolean;
-  alertType?: AlertType;
 };
 
-const getFieldOptionConfig = ({
+export const getFieldOptionConfig = ({
   dataset,
   alertType,
 }: {
@@ -97,7 +97,7 @@ const getFieldOptionConfig = ({
   };
 };
 
-const help = ({name, model}: {name: string; model: FormModel}) => {
+const help = ({name, model}: {model: FormModel; name: string}) => {
   const aggregate = model.getValue(name) as string;
 
   const presets = PRESET_AGGREGATES.filter(preset =>

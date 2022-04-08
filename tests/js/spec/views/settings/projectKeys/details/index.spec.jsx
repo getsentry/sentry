@@ -1,9 +1,9 @@
-import PropTypes from 'prop-types';
+import * as PropTypes from 'prop-types';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
-import ProjectKeyDetails from 'app/views/settings/project/projectKeys/details';
+import ProjectKeyDetails from 'sentry/views/settings/project/projectKeys/details';
 
 describe('ProjectKeyDetails', function () {
   let org;
@@ -70,7 +70,6 @@ describe('ProjectKeyDetails', function () {
       url: `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0].id}/`,
       method: 'DELETE',
     });
-    const routerContext = TestStubs.routerContext();
 
     wrapper = mountWithTheme(
       <ProjectKeyDetails
@@ -82,13 +81,10 @@ describe('ProjectKeyDetails', function () {
         }}
       />,
       {
-        ...routerContext,
         context: {
-          ...routerContext.context,
           project: TestStubs.Project(),
         },
         childContextTypes: {
-          ...routerContext.childContextTypes,
           project: PropTypes.object,
         },
       }

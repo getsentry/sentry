@@ -1,11 +1,12 @@
-import {GridColumnOrder, GridColumnSortBy} from 'app/components/gridEditable';
-import {TableDataRow} from 'app/utils/discover/discoverQuery';
+import {GridColumnOrder, GridColumnSortBy} from 'sentry/components/gridEditable';
+import {MetricsType} from 'sentry/types';
+import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {
   AggregateParameter,
   Column,
   ColumnType,
   ColumnValueType,
-} from 'app/utils/discover/fields';
+} from 'sentry/utils/discover/fields';
 
 /**
  * It is assumed that `aggregation` and `field` have the same ColumnValueType
@@ -14,10 +15,10 @@ export type TableColumn<K> = GridColumnOrder<K> & {
   // key: K                     From GridColumn
   // name: string               From GridColumnHeader
   column: Readonly<Column>;
-  width?: number;
+  isSortable: boolean;
 
   type: ColumnValueType;
-  isSortable: boolean;
+  width?: number;
   // isPrimary: boolean         From GridColumnHeader
 };
 
@@ -35,14 +36,16 @@ export enum FieldValueKind {
   FIELD = 'field',
   FUNCTION = 'function',
   EQUATION = 'equation',
+  METRICS = 'metric',
+  NUMERIC_METRICS = 'numeric_metric',
 }
 
 export type FieldValueColumns =
   | {
       kind: FieldValueKind.TAG;
       meta: {
-        name: string;
         dataType: ColumnType;
+        name: string;
         // Set to true for tag values we invent at runtime.
         unknown?: boolean;
       };
@@ -50,22 +53,36 @@ export type FieldValueColumns =
   | {
       kind: FieldValueKind.MEASUREMENT;
       meta: {
-        name: string;
         dataType: ColumnType;
+        name: string;
       };
     }
   | {
       kind: FieldValueKind.BREAKDOWN;
       meta: {
-        name: string;
         dataType: 'duration';
+        name: string;
       };
     }
   | {
       kind: FieldValueKind.FIELD;
       meta: {
-        name: string;
         dataType: ColumnType;
+        name: string;
+      };
+    }
+  | {
+      kind: FieldValueKind.METRICS;
+      meta: {
+        dataType: MetricsType;
+        name: string;
+      };
+    }
+  | {
+      kind: FieldValueKind.NUMERIC_METRICS;
+      meta: {
+        dataType: 'numeric';
+        name: string;
       };
     };
 

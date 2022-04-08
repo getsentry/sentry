@@ -1,37 +1,42 @@
-import Reflux from 'reflux';
+import {createStore} from 'reflux';
 
-import FormSearchActions from 'app/actions/formSearchActions';
-import {FieldObject} from 'app/views/settings/components/forms/type';
+import {FieldObject} from 'sentry/components/forms/type';
+import {makeSafeRefluxStore, SafeStoreDefinition} from 'sentry/utils/makeSafeRefluxStore';
 
 /**
  * Processed form field metadata.
  */
 export type FormSearchField = {
-  route: string;
-  title: React.ReactNode;
   description: React.ReactNode;
   field: FieldObject;
+  route: string;
+  title: React.ReactNode;
 };
 
-type StoreInterface = {
-  reset: () => void;
-  get: () => Internals['searchMap'];
-};
+interface StoreInterface {
+  get(): InternalDefinition['searchMap'];
+  reset(): void;
+}
 
-type Internals = {
+type InternalDefinition = {
+  loadSearchMap: (searchMap: null | FormSearchField[]) => void;
   searchMap: null | FormSearchField[];
-  onLoadSearchMap: (searchMap: null | FormSearchField[]) => void;
 };
+
+interface ExternalIssuesDefinition
+  extends SafeStoreDefinition,
+    InternalDefinition,
+    StoreInterface {}
 
 /**
  * Store for "form" searches, but probably will include more
  */
-const formSearchStoreConfig: Reflux.StoreDefinition & Internals & StoreInterface = {
+const storeConfig: ExternalIssuesDefinition = {
   searchMap: null,
+  unsubscribeListeners: [],
 
   init() {
     this.reset();
-    this.listenTo(FormSearchActions.loadSearchMap, this.onLoadSearchMap);
   },
 
   get() {
@@ -46,7 +51,7 @@ const formSearchStoreConfig: Reflux.StoreDefinition & Internals & StoreInterface
   /**
    * Adds to search map
    */
-  onLoadSearchMap(searchMap) {
+  loadSearchMap(searchMap) {
     // Only load once
     if (this.searchMap !== null) {
       return;
@@ -57,8 +62,5 @@ const formSearchStoreConfig: Reflux.StoreDefinition & Internals & StoreInterface
   },
 };
 
-type FormSearchStore = Reflux.Store & StoreInterface;
-
-const FormSearchStore = Reflux.createStore(formSearchStoreConfig) as FormSearchStore;
-
+const FormSearchStore = createStore(makeSafeRefluxStore(storeConfig));
 export default FormSearchStore;

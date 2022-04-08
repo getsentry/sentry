@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import itertools
 import logging
 import re
@@ -8,15 +10,17 @@ from typing import List, Mapping, Optional, Sequence, Union
 import sentry_sdk
 from django.db import IntegrityError, models, router
 from django.db.models import Case, F, Func, Q, Subquery, Sum, Value, When
+from django.db.models.signals import pre_save
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 from sentry_relay import RelayError, parse_release
 
 from sentry.app import locks
-from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER, SEMVER_FAKE_PACKAGE
+from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER
 from sentry.db.models import (
     ArrayField,
+    BaseQuerySet,
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
@@ -27,11 +31,13 @@ from sentry.db.models import (
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
     Activity,
+    BaseManager,
     CommitFileChange,
     GroupInbox,
     GroupInboxRemoveAction,
     remove_group_from_inbox,
 )
+from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.signals import issue_resolved
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -117,9 +123,10 @@ class SemverFilter:
     operator: str
     version_parts: Sequence[Union[int, str]]
     package: Optional[str] = None
+    negated: bool = False
 
 
-class ReleaseQuerySet(models.QuerySet):
+class ReleaseQuerySet(BaseQuerySet):
     def annotate_prerelease_column(self):
         """
         Adds a `prerelease_case` column to the queryset which is used to properly sort
@@ -144,6 +151,7 @@ class ReleaseQuerySet(models.QuerySet):
         operator: str,
         build: str,
         project_ids: Optional[Sequence[int]] = None,
+        negated: bool = False,
     ) -> models.QuerySet:
         """
         Filters released by build. If the passed `build` is a numeric string, we'll filter on
@@ -152,6 +160,7 @@ class ReleaseQuerySet(models.QuerySet):
         wildcard only at the end of this string, so that we can filter efficiently via the index.
         """
         qs = self.filter(organization_id=organization_id)
+        query_func = "exclude" if negated else "filter"
 
         if project_ids:
             qs = qs.filter(
@@ -161,12 +170,12 @@ class ReleaseQuerySet(models.QuerySet):
             )
 
         if build.isnumeric() and validate_bigint(int(build)):
-            qs = qs.filter(**{f"build_number__{operator}": int(build)})
+            qs = getattr(qs, query_func)(**{f"build_number__{operator}": int(build)})
         else:
             if not build or build.endswith("*"):
-                qs = qs.filter(build_code__startswith=build[:-1])
+                qs = getattr(qs, query_func)(build_code__startswith=build[:-1])
             else:
-                qs = qs.filter(build_code=build)
+                qs = getattr(qs, query_func)(build_code=build)
 
         return qs
 
@@ -188,8 +197,10 @@ class ReleaseQuerySet(models.QuerySet):
         Typically we build a `SemverFilter` via `sentry.search.events.filter.parse_semver`
         """
         qs = self.filter(organization_id=organization_id).annotate_prerelease_column()
+        query_func = "exclude" if semver_filter.negated else "filter"
+
         if semver_filter.package:
-            qs = qs.filter(package=semver_filter.package)
+            qs = getattr(qs, query_func)(package=semver_filter.package)
         if project_ids:
             qs = qs.filter(
                 id__in=ReleaseProject.objects.filter(project_id__in=project_ids).values_list(
@@ -208,7 +219,8 @@ class ReleaseQuerySet(models.QuerySet):
             cols = self.model.SEMVER_COLS[: len(semver_filter.version_parts)]
             qs = qs.annotate(
                 semver=Func(*(F(col) for col in cols), function="ROW", output_field=ArrayField())
-            ).filter(**{f"semver__{semver_filter.operator}": filter_func})
+            )
+            qs = getattr(qs, query_func)(**{f"semver__{semver_filter.operator}": filter_func})
         return qs
 
     def filter_by_stage(
@@ -260,8 +272,69 @@ class ReleaseQuerySet(models.QuerySet):
     def order_by_recent(self):
         return self.order_by("-date_added", "-id")
 
+    @staticmethod
+    def massage_semver_cols_into_release_object_data(kwargs):
+        """
+        Helper function that takes kwargs as an argument and massages into it the release semver
+        columns (if possible)
+        Inputs:
+            * kwargs: data of the release that is about to be created
+        """
+        if "version" in kwargs:
+            try:
+                version_info = parse_release(kwargs["version"])
+                package = version_info.get("package")
+                version_parsed = version_info.get("version_parsed")
 
-class ReleaseModelManager(models.Manager):
+                if version_parsed is not None and all(
+                    validate_bigint(version_parsed[field])
+                    for field in ("major", "minor", "patch", "revision")
+                ):
+                    build_code = version_parsed.get("build_code")
+                    build_number = ReleaseQuerySet._convert_build_code_to_build_number(build_code)
+
+                    kwargs.update(
+                        {
+                            "major": version_parsed.get("major"),
+                            "minor": version_parsed.get("minor"),
+                            "patch": version_parsed.get("patch"),
+                            "revision": version_parsed.get("revision"),
+                            "prerelease": version_parsed.get("pre") or "",
+                            "build_code": build_code,
+                            "build_number": build_number,
+                            "package": package,
+                        }
+                    )
+            except RelayError:
+                # This can happen on invalid legacy releases
+                pass
+
+    @staticmethod
+    def _convert_build_code_to_build_number(build_code):
+        """
+        Helper function that takes the build_code and checks if that build code can be parsed into
+        a 64 bit integer
+        Inputs:
+            * build_code: str
+        Returns:
+            * build_number
+        """
+        build_number = None
+        if build_code is not None:
+            try:
+                build_code_as_int = int(build_code)
+                if validate_bigint(build_code_as_int):
+                    build_number = build_code_as_int
+            except ValueError:
+                pass
+        return build_number
+
+
+def _get_cache_key(project_id: int, group_id: int, first: bool) -> str:
+    return f"g-r:{group_id}-{project_id}-{first}"
+
+
+class ReleaseModelManager(BaseManager):
     def get_queryset(self):
         return ReleaseQuerySet(self.model, using=self._db)
 
@@ -277,9 +350,14 @@ class ReleaseModelManager(models.Manager):
         operator: str,
         build: str,
         project_ids: Optional[Sequence[int]] = None,
+        negated: bool = False,
     ) -> models.QuerySet:
         return self.get_queryset().filter_by_semver_build(
-            organization_id, operator, build, project_ids
+            organization_id,
+            operator,
+            build,
+            project_ids,
+            negated=negated,
         )
 
     def filter_by_semver(
@@ -305,73 +383,37 @@ class ReleaseModelManager(models.Manager):
     def order_by_recent(self):
         return self.get_queryset().order_by_recent()
 
-    @staticmethod
-    def _convert_build_code_to_build_number(build_code):
-        """
-        Helper function that takes the build_code and checks if that build code can be parsed into
-        a 64 bit integer
-        Inputs:
-            * build_code: str
-        Returns:
-            * build_number
-        """
-        build_number = None
-        if build_code is not None:
+    def _get_group_release_version(self, group_id: int, orderby: str) -> str:
+        from sentry.models import GroupRelease
+
+        # Using `id__in()` because there is no foreign key relationship.
+        return self.get(
+            id__in=GroupRelease.objects.filter(group_id=group_id)
+            .order_by(orderby)
+            .values("release_id")[:1]
+        ).version
+
+    def get_group_release_version(
+        self, project_id: int, group_id: int, first: bool = True, use_cache: bool = True
+    ) -> str | None:
+        cache_key = _get_cache_key(project_id, group_id, first)
+
+        release_version = cache.get(cache_key) if use_cache else None
+        if release_version is False:
+            # We've cached the fact that no rows exist.
+            return None
+
+        if release_version is None:
+            # Cache miss or not use_cache.
+            orderby = "first_seen" if first else "-last_seen"
             try:
-                build_code_as_int = int(build_code)
-                if validate_bigint(build_code_as_int):
-                    build_number = build_code_as_int
-            except ValueError:
-                pass
-        return build_number
+                release_version = self._get_group_release_version(group_id, orderby)
+            except Release.DoesNotExist:
+                release_version = False
+            cache.set(cache_key, release_version, 3600)
 
-    @staticmethod
-    def _massage_semver_cols_into_release_object_data(kwargs):
-        """
-        Helper function that takes kwargs as an argument and massages into it the release semver
-        columns (if possible)
-        Inputs:
-            * kwargs: data of the release that is about to be created
-        """
-        if "version" in kwargs:
-            try:
-                version_info = parse_release(kwargs["version"])
-                package = version_info.get("package")
-                version_parsed = version_info.get("version_parsed")
-
-                if version_parsed is not None and all(
-                    validate_bigint(version_parsed[field])
-                    for field in ("major", "minor", "patch", "revision")
-                ):
-                    build_code = version_parsed.get("build_code")
-                    build_number = ReleaseModelManager._convert_build_code_to_build_number(
-                        build_code
-                    )
-
-                    kwargs.update(
-                        {
-                            "major": version_parsed.get("major"),
-                            "minor": version_parsed.get("minor"),
-                            "patch": version_parsed.get("patch"),
-                            "revision": version_parsed.get("revision"),
-                            "prerelease": version_parsed.get("pre") or "",
-                            "build_code": build_code,
-                            "build_number": build_number,
-                            "package": package,
-                        }
-                    )
-            except RelayError:
-                # This can happen on invalid legacy releases
-                pass
-
-    def create(self, *args, **kwargs):
-        """
-        Override create method to parse semver release if it follows semver format, and updates the
-        release object that is about to be created with semver columns i.e. major, minor, patch,
-        revision, prerelease, build_code, build_number and package
-        """
-        self._massage_semver_cols_into_release_object_data(kwargs)
-        return super().create(*args, **kwargs)
+        # Convert the False back into a None.
+        return release_version or None
 
 
 class Release(Model):
@@ -436,7 +478,7 @@ class Release(Model):
     build_number = models.BigIntegerField(null=True)
 
     # HACK HACK HACK
-    # As a transitionary step we permit release rows to exist multiple times
+    # As a transitional step we permit release rows to exist multiple times
     # where they are "specialized" for a specific project.  The goal is to
     # later split up releases by project again.  This is for instance used
     # by the org release listing.
@@ -462,6 +504,13 @@ class Release(Model):
             ("organization", "date_added"),
             ("organization", "status"),
         )
+        indexes = [
+            models.Index(
+                fields=["organization", "version"],
+                opclasses=["", "text_pattern_ops"],
+                name="sentry_release_version_btree",
+            )
+        ]
 
     __repr__ = sane_repr("organization_id", "version")
 
@@ -496,11 +545,10 @@ class Release(Model):
         """
         Method that checks if a version follows semantic versioning
         """
-        if not Release.is_valid_version(version):
+        # If version is not a valid release version, or it has no package then we return False
+        if not Release.is_valid_version(version) or "@" not in version:
             return False
 
-        # Release name has to contain package_name to be parsed correctly by parse_release
-        version = version if "@" in version else f"{SEMVER_FAKE_PACKAGE}@{version}"
         try:
             version_info = parse_release(version)
             version_parsed = version_info.get("version_parsed")
@@ -675,14 +723,6 @@ class Release(Model):
             defaults={"date_added": date_added, "organization_id": self.organization_id},
         )[0]
 
-    def get_dist(self, name):
-        from sentry.models import Distribution
-
-        try:
-            return Distribution.objects.get(name=name, release=self)
-        except Distribution.DoesNotExist:
-            pass
-
     def add_project(self, project):
         """
         Add a project to this release.
@@ -743,7 +783,7 @@ class Release(Model):
             repos_by_name = {r.name: r for r in repos}
             invalid_repos = names - set(repos_by_name.keys())
             if invalid_repos:
-                raise InvalidRepository("Invalid repository names: %s" % ",".join(invalid_repos))
+                raise InvalidRepository(f"Invalid repository names: {','.join(invalid_repos)}")
 
             self.handle_commit_ranges(refs)
 
@@ -895,17 +935,19 @@ class Release(Model):
 
                     # Guard against patch_set being None
                     patch_set = data.get("patch_set") or []
-                    for patched_file in patch_set:
-                        try:
-                            with atomic_transaction(using=router.db_for_write(CommitFileChange)):
-                                CommitFileChange.objects.create(
+                    if patch_set:
+                        CommitFileChange.objects.bulk_create(
+                            [
+                                CommitFileChange(
                                     organization_id=self.organization.id,
                                     commit=commit,
                                     filename=patched_file["path"],
                                     type=patched_file["type"],
                                 )
-                        except IntegrityError:
-                            pass
+                                for patched_file in patch_set
+                            ],
+                            ignore_conflicts=True,
+                        )
 
                     try:
                         with atomic_transaction(using=router.db_for_write(ReleaseCommit)):
@@ -1033,6 +1075,8 @@ class Release(Model):
                 group = Group.objects.get(id=group_id)
                 group.update(status=GroupStatus.RESOLVED)
                 remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED, user=actor)
+                record_group_history(group, GroupHistoryStatus.RESOLVED, actor=actor)
+
                 metrics.incr("group.resolved", instance="in_commit", skip_internal=True)
 
             issue_resolved.send_robust(
@@ -1052,8 +1096,8 @@ class Release(Model):
         """Deletes a release if possible or raises a `UnsafeReleaseDeletion`
         exception.
         """
+        from sentry import release_health
         from sentry.models import Group, ReleaseFile
-        from sentry.snuba.sessions import check_has_health_data
 
         # we don't want to remove the first_release metadata on the Group, and
         # while people might want to kill a release (maybe to remove files),
@@ -1066,7 +1110,7 @@ class Release(Model):
         # We would need to be able to delete this data from snuba which we
         # can't do yet.
         project_ids = list(self.projects.values_list("id").all())
-        if check_has_health_data([(p[0], self.version) for p in project_ids]):
+        if release_health.check_has_health_data([(p[0], self.version) for p in project_ids]):
             raise UnsafeReleaseDeletion(ERR_RELEASE_HEALTH_DATA)
 
         # TODO(dcramer): this needs to happen in the queue as it could be a long
@@ -1084,6 +1128,25 @@ class Release(Model):
         """
         counts = get_artifact_counts([self.id])
         return counts.get(self.id, 0)
+
+    def clear_commits(self):
+        """
+        Delete all release-specific commit data associated to this release. We will not delete the Commit model values because other releases may use these commits.
+        """
+        with sentry_sdk.start_span(op="clear_commits"):
+            from sentry.models import ReleaseCommit, ReleaseHeadCommit
+
+            ReleaseHeadCommit.objects.get(
+                organization_id=self.organization_id, release=self
+            ).delete()
+            ReleaseCommit.objects.filter(
+                organization_id=self.organization_id, release=self
+            ).delete()
+
+            self.authors = []
+            self.commit_count = 0
+            self.last_commit_id = None
+            self.save()
 
 
 def get_artifact_counts(release_ids: List[int]) -> Mapping[int, int]:
@@ -1120,9 +1183,9 @@ def follows_semver_versioning_scheme(org_id, project_id, release_version=None):
 
         # Check if the latest ten releases are semver compliant
         releases_list = list(
-            Release.objects.filter(organization_id=org_id, projects__id__in=[project_id]).order_by(
-                "-date_added"
-            )[:10]
+            Release.objects.filter(organization_id=org_id, projects__id__in=[project_id])
+            .using_replica()
+            .order_by("-date_added")[:10]
         )
 
         if not releases_list:
@@ -1132,8 +1195,8 @@ def follows_semver_versioning_scheme(org_id, project_id, release_version=None):
         # ToDo(ahmed): re-visit/replace these conditions once we enable project wide `semver` setting
         # A project is said to be following semver versioning schemes if it satisfies the following
         # conditions:-
-        # 1: Atleast one semver compliant in the most recent 3 releases
-        # 2: Atleast 3 semver compliant releases in the most recent 10 releases
+        # 1: At least one semver compliant in the most recent 3 releases
+        # 2: At least 3 semver compliant releases in the most recent 10 releases
         if len(releases_list) <= 2:
             # Most recent release is considered to decide if project follows semver
             follows_semver = releases_list[0].is_semver_release
@@ -1145,15 +1208,26 @@ def follows_semver_versioning_scheme(org_id, project_id, release_version=None):
             # Count number of semver releases in the last ten
             semver_matches = sum(map(lambda release: release.is_semver_release, releases_list))
 
-            atleast_three_in_last_ten = semver_matches >= 3
-            atleast_one_in_last_three = any(
+            at_least_three_in_last_ten = semver_matches >= 3
+            at_least_one_in_last_three = any(
                 release.is_semver_release for release in releases_list[0:3]
             )
 
-            follows_semver = atleast_one_in_last_three and atleast_three_in_last_ten
+            follows_semver = at_least_one_in_last_three and at_least_three_in_last_ten
         cache.set(cache_key, follows_semver, 3600)
 
     # Check release_version that is passed is semver compliant
     if release_version:
         follows_semver = follows_semver and Release.is_semver_version(release_version)
     return follows_semver
+
+
+def parse_semver_pre_save(instance, **kwargs):
+    if instance.id:
+        return
+    ReleaseQuerySet.massage_semver_cols_into_release_object_data(instance.__dict__)
+
+
+pre_save.connect(
+    parse_semver_pre_save, sender="sentry.Release", dispatch_uid="parse_semver_pre_save"
+)

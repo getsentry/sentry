@@ -1,18 +1,18 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import {IconEdit} from 'app/icons';
-import space from 'app/styles/space';
-import {callIfFunction} from 'app/utils/callIfFunction';
+import {IconEdit} from 'sentry/icons';
+import space from 'sentry/styles/space';
+import {callIfFunction} from 'sentry/utils/callIfFunction';
 
 type Props = {
   name: string;
   className?: string;
-  style?: React.CSSProperties;
   disabled?: boolean;
+  placeholder?: string;
   required?: boolean;
 
-  placeholder?: string;
+  style?: React.CSSProperties;
   value?: string;
 } & React.DOMAttributes<HTMLInputElement>;
 
@@ -65,6 +65,11 @@ class InputInline extends React.Component<Props, State> {
     isHovering: false,
   };
 
+  componentWillUnmount() {
+    window.clearTimeout(this.onFocusSelectAllTimeout);
+  }
+
+  onFocusSelectAllTimeout: number | undefined = undefined;
   private refInput = React.createRef<HTMLDivElement>();
 
   /**
@@ -97,8 +102,13 @@ class InputInline extends React.Component<Props, State> {
   onFocus = (event: React.FocusEvent<HTMLDivElement>) => {
     this.setState({isFocused: true});
     callIfFunction(this.props.onFocus, InputInline.setValueOnEvent(event));
+    window.clearTimeout(this.onFocusSelectAllTimeout);
+
     // Wait for the next event loop so that the content region has focus.
-    window.setTimeout(() => document.execCommand('selectAll', false, undefined), 1);
+    this.onFocusSelectAllTimeout = window.setTimeout(
+      () => document.execCommand('selectAll', false, undefined),
+      1
+    );
   };
 
   /**
@@ -200,8 +210,8 @@ const Wrapper = styled('div')`
   vertical-align: text-bottom;
 `;
 const Input = styled('div')<{
-  isHovering?: boolean;
   isDisabled?: boolean;
+  isHovering?: boolean;
 }>`
   min-width: 40px;
   margin: 0;

@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.core import mail
 from django.db.models import F
 from django.urls import reverse
@@ -13,8 +15,6 @@ from sentry.models import (
     UserOption,
 )
 from sentry.testutils import APITestCase
-from sentry.utils.compat import map
-from sentry.utils.compat.mock import patch
 
 
 class OrganizationMemberTestBase(APITestCase):
@@ -118,7 +118,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
         self.get_success_response(self.organization.slug, member_om.id, reinvite=1)
         mock_send_invite_email.assert_called_once_with()
 
-    @patch("sentry.utils.ratelimits.for_organization_member_invite")
+    @patch("sentry.ratelimits.for_organization_member_invite")
     @patch("sentry.models.OrganizationMember.send_invite_email")
     def test_rate_limited(self, mock_send_invite_email, mock_rate_limit):
         mock_rate_limit.return_value = True
@@ -261,13 +261,13 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
         self.get_success_response(self.organization.slug, member_om.id, teams=[foo.slug, bar.slug])
 
         member_teams = OrganizationMemberTeam.objects.filter(organizationmember=member_om)
-        team_ids = map(lambda x: x.team_id, member_teams)
+        team_ids = list(map(lambda x: x.team_id, member_teams))
         assert foo.id in team_ids
         assert bar.id in team_ids
 
         member_om = OrganizationMember.objects.get(id=member_om.id)
 
-        teams = map(lambda team: team.slug, member_om.teams.all())
+        teams = list(map(lambda team: team.slug, member_om.teams.all()))
         assert foo.slug in teams
         assert bar.slug in teams
 
@@ -282,7 +282,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
         )
 
         member_om = OrganizationMember.objects.get(id=member_om.id)
-        teams = map(lambda team: team.slug, member_om.teams.all())
+        teams = list(map(lambda team: team.slug, member_om.teams.all()))
         assert len(teams) == 0
 
     def test_can_update_role(self):
@@ -440,6 +440,22 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
 
         self.get_error_response(self.organization.slug, join_request.id, status_code=404)
         self.get_error_response(self.organization.slug, invite_request.id, status_code=404)
+
+    def test_disabled_member_can_remove(self):
+        other_user = self.create_user("bar@example.com")
+        self.create_member(
+            organization=self.organization,
+            role="member",
+            user=other_user,
+            flags=OrganizationMember.flags["member-limit:restricted"],
+        )
+
+        self.login_as(other_user)
+        self.get_success_response(self.organization.slug, "me")
+
+        assert not OrganizationMember.objects.filter(
+            user=other_user, organization=self.organization
+        ).exists()
 
 
 class ResetOrganizationMember2faTest(APITestCase):

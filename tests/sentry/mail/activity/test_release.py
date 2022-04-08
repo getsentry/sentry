@@ -7,8 +7,8 @@ from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
+from sentry.testutils.cases import ActivityTestCase
 from sentry.types.integrations import ExternalProviders
-from tests.sentry.mail.activity import ActivityTestCase
 
 
 class ReleaseTestCase(ActivityTestCase):
@@ -105,7 +105,7 @@ class ReleaseTestCase(ActivityTestCase):
             (self.commit4, self.user5),
         ]
 
-        user_context = email.get_user_context(self.user1, {})
+        user_context = email.get_recipient_context(self.user1, {})
         # make sure this only includes projects user has access to
         assert len(user_context["projects"]) == 1
         assert user_context["projects"][0][0] == self.project
@@ -130,7 +130,6 @@ class ReleaseTestCase(ActivityTestCase):
         )
 
         assert email.release is None
-        assert not email.should_email()
 
     def test_no_committers(self):
         release, deploy = self.another_release("b")
@@ -155,7 +154,7 @@ class ReleaseTestCase(ActivityTestCase):
         assert context["environment"] == "production"
         assert context["repos"] == []
 
-        user_context = email.get_user_context(self.user1, {})
+        user_context = email.get_recipient_context(self.user1, {})
         # make sure this only includes projects user has access to
         assert len(user_context["projects"]) == 1
         assert user_context["projects"][0][0] == self.project
@@ -205,7 +204,7 @@ class ReleaseTestCase(ActivityTestCase):
         assert context["environment"] == "production"
         assert context["repos"] == []
 
-        user_context = email.get_user_context(user6, {})
+        user_context = email.get_recipient_context(user6, {})
         # make sure this only includes projects user has access to
         assert len(user_context["projects"]) == 1
         assert user_context["projects"][0][0] == self.project

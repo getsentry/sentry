@@ -1,22 +1,23 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Avatar from 'app/components/avatar';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {AvatarProject, Organization, Team} from 'app/types';
+import Avatar from 'sentry/components/avatar';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {AvatarProject, Organization, Team} from 'sentry/types';
 
 type Props = {
   displayName: React.ReactNode;
-  hideName?: boolean; // Hides the main display name
-  hideAvatar?: boolean;
   avatarProps?: Record<string, any>;
   avatarSize?: number;
+  className?: string;
   description?: React.ReactNode;
-  team?: Team;
+  // Hides the main display name
+  hideAvatar?: boolean;
+  hideName?: boolean;
   organization?: Organization;
   project?: AvatarProject;
-  className?: string;
+  team?: Team;
 };
 
 const BaseBadge = React.memo(
@@ -41,6 +42,7 @@ const BaseBadge = React.memo(
           team={team}
           organization={organization}
           project={project}
+          data-test-id="badge-styled-avatar"
         />
       )}
 
@@ -72,7 +74,7 @@ const StyledAvatar = styled(Avatar)<{hideName: boolean}>`
 const DisplayNameAndDescription = styled('div')`
   display: flex;
   flex-direction: column;
-  line-height: 1;
+  line-height: 1.2;
   overflow: hidden;
 `;
 

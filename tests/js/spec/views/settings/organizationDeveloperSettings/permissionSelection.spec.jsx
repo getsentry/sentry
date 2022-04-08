@@ -1,8 +1,8 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {openMenu, selectByValue} from 'sentry-test/select-new';
 
-import Form from 'app/views/settings/components/forms/form';
-import PermissionSelection from 'app/views/settings/organizationDeveloperSettings/permissionSelection';
+import Form from 'sentry/components/forms/form';
+import PermissionSelection from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
 
 describe('PermissionSelection', () => {
   let wrapper;
@@ -22,8 +22,7 @@ describe('PermissionSelection', () => {
           }}
           onChange={onChange}
         />
-      </Form>,
-      TestStubs.routerContext()
+      </Form>
     );
   });
 

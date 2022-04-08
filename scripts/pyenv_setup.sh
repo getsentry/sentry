@@ -14,9 +14,6 @@ HERE="$(
 )"
 source "${HERE}/lib.sh"
 
-# We can use PYENV_VERSION to define different Python versions, otherwise, determine load default values
-[ -z ${PYENV_VERSION+x} ] && export PYENV_VERSION=$(get-pyenv-version)
-
 get_shell_startup_script() {
   local _startup_script=''
   if [[ -n "$SHELL" ]]; then
@@ -53,8 +50,8 @@ _append_to_startup_script() {
       ;;
     */zsh)
       # shellcheck disable=SC2016
-      echo -e '# It is assumed that pyenv is installed via Brew, so this is all we need to do.\n' \
-        'eval "$(pyenv init --path)"' >>"${1}"
+      echo -e '# It is assumed that pyenv is installed via Brew, so this is all we need to do.' \
+        '\neval "$(pyenv init --path)"' >>"${1}"
       ;;
     */fish)
       # shellcheck disable=SC2016
@@ -69,6 +66,7 @@ _append_to_startup_script() {
 
 append_to_config() {
   if [[ -n "$1" ]]; then
+    [ ! -f "$1" ] && touch "$1"
     if grep -qF "(pyenv init -)" "${1}"; then
       echo >&2 "!!! Please remove the old-style pyenv initialization and try again:"
       echo "sed -i.bak 's/(pyenv init -)/(pyenv init --path)/' ${1}"
@@ -84,27 +82,17 @@ append_to_config() {
 
 install_pyenv() {
   if require pyenv; then
+    pyenv_version=$(pyenv -v | awk '{print $2}')
     # NOTE: We're dropping support for older pyenv versions
-    if [[ "$(pyenv -v | awk '{print $2}')" < 2.0.0 ]]; then
-      echo >&2 "!!! We've dropped support for pyenv v1." \
-        "Run the following (this is slow) and try again."
+    if [[ "${pyenv_version}" < 2.2.5 ]]; then
+      echo >&2 "!!! We've dropped support for pyenv version ${pyenv_version}." \
+        "Run the following steps (this is slow) and try again."
       # brew upgrade does not quite do the right thing
       # > ~/.pyenv/shims/python: line 8: /usr/local/Cellar/pyenv/1.2.26/libexec/pyenv: No such file or directory
       echo >&2 "brew update && brew uninstall pyenv && brew install pyenv"
       exit 1
     fi
-
-    if query-apple-m1; then
-      pyenv install --skip-existing "${PYENV_VERSION}"
-    elif query-big-sur; then
-      # We need to patch the source code on Big Sur before building Python
-      # We can remove this once we upgrade to newer versions of Python
-      # cat is used since pyenv would finish to soon when the Python version is already installed
-      curl -sSL https://github.com/python/cpython/commit/8ea6353.patch | cat |
-        pyenv install --skip-existing --patch "${PYENV_VERSION}"
-    else
-      pyenv install --skip-existing "${PYENV_VERSION}"
-    fi
+    pyenv install --skip-existing
   else
     echo >&2 "!!! pyenv not found, try running bootstrap script again or run \`brew bundle\` in the sentry repo"
     exit 1
@@ -122,7 +110,7 @@ setup_pyenv() {
   # Sets up PATH for pyenv
   eval "$(pyenv init --path)"
   python_version=$(python -V | sed s/Python\ //g)
-  [[ $python_version == "${PYENV_VERSION}" ]] ||
+  [[ $python_version == "$(cat .python-version)" ]] ||
     (echo "Wrong Python version: $python_version. Please report in #discuss-dev-tooling" && exit 1)
 }
 

@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
-import {EventGroupComponent} from 'app/types';
+import space from 'sentry/styles/space';
+import {EventGroupComponent} from 'sentry/types';
 
 import GroupingComponentChildren from './groupingComponentChildren';
 import GroupingComponentStacktrace from './groupingComponentStacktrace';
@@ -47,12 +47,12 @@ const GroupingComponentList = styled('ul')<{isInline: boolean}>`
   }
 `;
 
-export const GroupingComponentListItem = styled('li')<{isCollapsable?: boolean}>`
+export const GroupingComponentListItem = styled('li')<{isCollapsible?: boolean}>`
   padding: 0;
   margin: ${space(0.25)} 0 ${space(0.25)} ${space(1.5)};
 
   ${p =>
-    p.isCollapsable &&
+    p.isCollapsible &&
     `
     border-left: 1px solid ${p.theme.innerBorder};
     margin: 0 0 -${space(0.25)} ${space(1)};

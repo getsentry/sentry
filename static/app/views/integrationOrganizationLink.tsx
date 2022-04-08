@@ -4,36 +4,37 @@ import {components} from 'react-select';
 import styled from '@emotion/styled';
 import {urlEncode} from '@sentry/utils';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import Alert from 'app/components/alert';
-import Button from 'app/components/button';
-import SelectControl from 'app/components/forms/selectControl';
-import IdBadge from 'app/components/idBadge';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import NarrowLayout from 'app/components/narrowLayout';
-import {IconFlag} from 'app/icons';
-import {t, tct} from 'app/locale';
-import {Integration, IntegrationProvider, Organization} from 'app/types';
-import {IntegrationAnalyticsKey} from 'app/utils/analytics/integrationAnalyticsEvents';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
+import Field from 'sentry/components/forms/field';
+import SelectControl from 'sentry/components/forms/selectControl';
+import IdBadge from 'sentry/components/idBadge';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import NarrowLayout from 'sentry/components/narrowLayout';
+import {t, tct} from 'sentry/locale';
+import {Integration, IntegrationProvider, Organization} from 'sentry/types';
+import {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrationAnalyticsEvents';
 import {
   getIntegrationFeatureGate,
   trackIntegrationAnalytics,
-} from 'app/utils/integrationUtil';
-import {singleLineRenderer} from 'app/utils/marked';
-import AsyncView from 'app/views/asyncView';
-import AddIntegration from 'app/views/organizationIntegrations/addIntegration';
-import Field from 'app/views/settings/components/forms/field';
+} from 'sentry/utils/integrationUtil';
+import {singleLineRenderer} from 'sentry/utils/marked';
+import AsyncView from 'sentry/views/asyncView';
+import AddIntegration from 'sentry/views/organizationIntegrations/addIntegration';
 
 // installationId present for Github flow
 type Props = RouteComponentProps<{integrationSlug: string; installationId?: string}, {}>;
 
 type State = AsyncView['state'] & {
-  selectedOrgSlug?: string;
   organization?: Organization;
   provider?: IntegrationProvider;
+  selectedOrgSlug?: string;
 };
 
 export default class IntegrationOrganizationLink extends AsyncView<Props, State> {
+  disableErrorReport = false;
+
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     return [['organizations', '/organizations/']];
   }
@@ -255,7 +256,7 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
     return (
       <Fragment>
         {selectedOrgSlug && organization && !this.hasAccess() && (
-          <Alert type="error" icon={<IconFlag size="md" />}>
+          <Alert type="error" showIcon>
             <p>
               {tct(
                 `You do not have permission to install integrations in

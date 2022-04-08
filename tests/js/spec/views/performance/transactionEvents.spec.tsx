@@ -1,10 +1,13 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {act} from 'sentry-test/reactTestingLibrary';
 
-import {t} from 'app/locale';
-import ProjectsStore from 'app/stores/projectsStore';
-import {WebVital} from 'app/utils/discover/fields';
-import TransactionEvents from 'app/views/performance/transactionSummary/transactionEvents';
+import {t} from 'sentry/locale';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import {Organization} from 'sentry/types';
+import {WebVital} from 'sentry/utils/discover/fields';
+import {OrganizationContext} from 'sentry/views/organizationContext';
+import TransactionEvents from 'sentry/views/performance/transactionSummary/transactionEvents';
 
 type Data = {
   features?: string[];
@@ -15,10 +18,8 @@ type Data = {
 
 function initializeData({features: additionalFeatures = [], query = {}}: Data = {}) {
   const features = ['discover-basic', 'performance-view', ...additionalFeatures];
-  // @ts-expect-error
   const organization = TestStubs.Organization({
     features,
-    // @ts-expect-error
     projects: [TestStubs.Project()],
     apdexThreshold: 400,
   });
@@ -37,110 +38,112 @@ function initializeData({features: additionalFeatures = [], query = {}}: Data = 
     project: 1,
     projects: [],
   });
-  ProjectsStore.loadInitialData(initialData.organization.projects);
+  act(() => ProjectsStore.loadInitialData(initialData.organization.projects));
   return initialData;
 }
 
+const WrappedComponent = ({
+  organization,
+  ...props
+}: Omit<React.ComponentProps<typeof TransactionEvents>, 'organization'> & {
+  organization: Organization;
+}) => {
+  return (
+    <OrganizationContext.Provider value={organization}>
+      <TransactionEvents organization={organization} {...props} />
+    </OrganizationContext.Provider>
+  );
+};
+
 describe('Performance > TransactionSummary', function () {
+  enforceActOnUseLegacyStoreHook();
+
   beforeEach(function () {
-    // @ts-expect-error
+    // @ts-ignore no-console
+    // eslint-disable-next-line no-console
+    console.error = jest.fn();
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
     });
-    // @ts-expect-error
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/is-key-transactions/',
-      body: [],
-    });
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/prompts-activity/',
       body: {},
     });
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
       body: [],
     });
-    // @ts-expect-error
-    MockApiClient.addMockResponse(
-      {
-        url: '/organizations/org-slug/eventsv2/',
-        body: {
-          data: [
-            {
-              p100: 9502,
-              p99: 9285.7,
-              p95: 7273.6,
-              p75: 3639.5,
-              p50: 755.5,
-            },
-          ],
-          meta: {
-            p100: 'duration',
-            p99: 'duration',
-            p95: 'duration',
-            p75: 'duration',
-            p50: 'duration',
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/eventsv2/',
+      body: {
+        data: [
+          {
+            p100: 9502,
+            p99: 9285.7,
+            p95: 7273.6,
+            p75: 3639.5,
+            p50: 755.5,
           },
+        ],
+        meta: {
+          p100: 'duration',
+          p99: 'duration',
+          p95: 'duration',
+          p75: 'duration',
+          p50: 'duration',
         },
       },
-      {
-        predicate: (url, options) => {
-          return url.includes('eventsv2') && options.query?.field.includes('p95()');
+      match: [
+        (_, options) => {
+          return options.query?.field?.includes('p95()');
         },
-      }
-    );
+      ],
+    });
     // Transaction list response
-    // @ts-expect-error
-    MockApiClient.addMockResponse(
-      {
-        url: '/organizations/org-slug/eventsv2/',
-        headers: {
-          Link:
-            '<http://localhost/api/0/organizations/org-slug/eventsv2/?cursor=2:0:0>; rel="next"; results="true"; cursor="2:0:0",' +
-            '<http://localhost/api/0/organizations/org-slug/eventsv2/?cursor=1:0:0>; rel="previous"; results="false"; cursor="1:0:0"',
-        },
-        body: {
-          meta: {
-            id: 'string',
-            'user.display': 'string',
-            'transaction.duration': 'duration',
-            'project.id': 'integer',
-            timestamp: 'date',
-          },
-          data: [
-            {
-              id: 'deadbeef',
-              'user.display': 'uhoh@example.com',
-              'transaction.duration': 400,
-              'project.id': 1,
-              timestamp: '2020-05-21T15:31:18+00:00',
-              trace: '1234',
-              'measurements.lcp': 200,
-            },
-            {
-              id: 'moredeadbeef',
-              'user.display': 'moreuhoh@example.com',
-              'transaction.duration': 600,
-              'project.id': 1,
-              timestamp: '2020-05-22T15:31:18+00:00',
-              trace: '4321',
-              'measurements.lcp': 300,
-            },
-          ],
-        },
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/eventsv2/',
+      headers: {
+        Link:
+          '<http://localhost/api/0/organizations/org-slug/eventsv2/?cursor=2:0:0>; rel="next"; results="true"; cursor="2:0:0",' +
+          '<http://localhost/api/0/organizations/org-slug/eventsv2/?cursor=1:0:0>; rel="previous"; results="false"; cursor="1:0:0"',
       },
-      {
-        predicate: (url, options) => {
-          return (
-            url.includes('eventsv2') && options.query?.field.includes('user.display')
-          );
+      body: {
+        meta: {
+          id: 'string',
+          'user.display': 'string',
+          'transaction.duration': 'duration',
+          'project.id': 'integer',
+          timestamp: 'date',
         },
-      }
-    );
-    // @ts-expect-error
+        data: [
+          {
+            id: 'deadbeef',
+            'user.display': 'uhoh@example.com',
+            'transaction.duration': 400,
+            'project.id': 1,
+            timestamp: '2020-05-21T15:31:18+00:00',
+            trace: '1234',
+            'measurements.lcp': 200,
+          },
+          {
+            id: 'moredeadbeef',
+            'user.display': 'moreuhoh@example.com',
+            'transaction.duration': 600,
+            'project.id': 1,
+            timestamp: '2020-05-22T15:31:18+00:00',
+            trace: '4321',
+            'measurements.lcp': 300,
+          },
+        ],
+      },
+      match: [
+        (_url, options) => {
+          return options.query?.field?.includes('user.display');
+        },
+      ],
+    });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-has-measurements/',
       body: {measurements: false},
@@ -148,22 +151,24 @@ describe('Performance > TransactionSummary', function () {
   });
 
   afterEach(function () {
-    // @ts-expect-error
     MockApiClient.clearMockResponses();
-    ProjectsStore.reset();
+    // @ts-ignore no-console
+    // eslint-disable-next-line no-console
+    console.error.mockRestore();
+
+    act(() => ProjectsStore.reset());
     jest.clearAllMocks();
   });
 
-  it('renders basic UI elements when feature flagged', async function () {
-    const initialData = initializeData({features: ['performance-events-page']});
+  it('renders basic UI elements', async function () {
+    const initialData = initializeData();
     const wrapper = mountWithTheme(
-      <TransactionEvents
+      <WrappedComponent
         organization={initialData.organization}
         location={initialData.router.location}
       />,
       initialData.routerContext
     );
-    // @ts-expect-error
     await tick();
     wrapper.update();
 
@@ -178,38 +183,15 @@ describe('Performance > TransactionSummary', function () {
     expect(wrapper.find('TransactionHeader')).toHaveLength(1);
   });
 
-  it('renders alert when not feature flagged', async function () {
+  it('renders relative span breakdown header when no filter selected', async function () {
     const initialData = initializeData();
     const wrapper = mountWithTheme(
-      <TransactionEvents
+      <WrappedComponent
         organization={initialData.organization}
         location={initialData.router.location}
       />,
       initialData.routerContext
     );
-    // @ts-expect-error
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('Alert').props().type).toEqual('warning');
-    expect(wrapper.find('SentryDocumentTitle')).toHaveLength(1);
-    expect(wrapper.find('SearchBar')).toHaveLength(0);
-    expect(wrapper.find('TransactionsTable')).toHaveLength(0);
-    expect(wrapper.find('Pagination')).toHaveLength(0);
-    expect(wrapper.find('EventsContent')).toHaveLength(0);
-    expect(wrapper.find('TransactionHeader')).toHaveLength(0);
-  });
-
-  it('renders relative span breakdown header when no filter selected', async function () {
-    const initialData = initializeData({features: ['performance-events-page']});
-    const wrapper = mountWithTheme(
-      <TransactionEvents
-        organization={initialData.organization}
-        location={initialData.router.location}
-      />,
-      initialData.routerContext
-    );
-    // @ts-expect-error
     await tick();
     wrapper.update();
 
@@ -220,15 +202,14 @@ describe('Performance > TransactionSummary', function () {
   });
 
   it('renders event column results correctly', async function () {
-    const initialData = initializeData({features: ['performance-events-page']});
+    const initialData = initializeData();
     const wrapper = mountWithTheme(
-      <TransactionEvents
+      <WrappedComponent
         organization={initialData.organization}
         location={initialData.router.location}
       />,
       initialData.routerContext
     );
-    // @ts-expect-error
     await tick();
     wrapper.update();
 
@@ -246,7 +227,7 @@ describe('Performance > TransactionSummary', function () {
     expect(keyAt(1)).toEqual('user.display');
     expect(valueAt(1, 'span')).toEqual('uhoh@example.com');
     expect(keyAt(2)).toEqual('span_ops_breakdown.relative');
-    expect(valueAt(2, 'span')).toEqual('n/a');
+    expect(valueAt(2, 'span')).toEqual('(no value)');
     expect(keyAt(3)).toEqual('transaction.duration');
     expect(valueAt(3, 'span')).toEqual('400.00ms');
     expect(keyAt(4)).toEqual('trace');
@@ -257,17 +238,15 @@ describe('Performance > TransactionSummary', function () {
 
   it('renders additional Web Vital column', async function () {
     const initialData = initializeData({
-      features: ['performance-events-page'],
       query: {webVital: WebVital.LCP},
     });
     const wrapper = mountWithTheme(
-      <TransactionEvents
+      <WrappedComponent
         organization={initialData.organization}
         location={initialData.router.location}
       />,
       initialData.routerContext
     );
-    // @ts-expect-error
     await tick();
     wrapper.update();
 
@@ -285,7 +264,7 @@ describe('Performance > TransactionSummary', function () {
     expect(keyAt(1)).toEqual('user.display');
     expect(valueAt(1, 'span')).toEqual('uhoh@example.com');
     expect(keyAt(2)).toEqual('span_ops_breakdown.relative');
-    expect(valueAt(2, 'span')).toEqual('n/a');
+    expect(valueAt(2, 'span')).toEqual('(no value)');
     expect(keyAt(3)).toEqual('measurements.lcp');
     expect(valueAt(3)).toEqual('200');
     expect(keyAt(4)).toEqual('transaction.duration');

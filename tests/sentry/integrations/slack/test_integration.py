@@ -3,7 +3,7 @@ from urllib.parse import parse_qs, urlencode, urlparse
 import responses
 
 from sentry.integrations.slack import SlackIntegration, SlackIntegrationProvider
-from sentry.integrations.slack.utils import SLACK_GET_USERS_PAGE_SIZE
+from sentry.integrations.slack.utils.users import SLACK_GET_USERS_PAGE_SIZE
 from sentry.models import (
     AuditLogEntry,
     AuditLogEntryEvent,
@@ -276,8 +276,7 @@ class SlackIntegrationPostInstallTest(APITestCase):
         if their Sentry email matches their Slack email
         """
         with self.tasks():
-            with self.feature("organizations:notification-platform"):
-                SlackIntegrationProvider().post_install(self.integration, self.organization)
+            SlackIntegrationProvider().post_install(self.integration, self.organization)
 
         user1_identity = Identity.objects.get(user=self.user)
         assert user1_identity
@@ -295,8 +294,7 @@ class SlackIntegrationPostInstallTest(APITestCase):
         Test that a user whose email does not match does not have an Identity created
         """
         with self.tasks():
-            with self.feature("organizations:notification-platform"):
-                SlackIntegrationProvider().post_install(self.integration, self.organization)
+            SlackIntegrationProvider().post_install(self.integration, self.organization)
 
         identities = Identity.objects.all()
         assert identities.count() == 3
@@ -308,8 +306,7 @@ class SlackIntegrationPostInstallTest(APITestCase):
         changes, that we update the Identity's external ID to match
         """
         with self.tasks():
-            with self.feature("organizations:notification-platform"):
-                SlackIntegrationProvider().post_install(self.integration, self.organization)
+            SlackIntegrationProvider().post_install(self.integration, self.organization)
 
         user3_identity = Identity.objects.get(user=self.user4)
         assert user3_identity

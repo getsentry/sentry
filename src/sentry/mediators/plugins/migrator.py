@@ -5,7 +5,7 @@ from sentry.utils.cache import memoize
 
 
 class Migrator(Mediator):
-    integration = Param("sentry.models.integration.Integration")
+    integration = Param("sentry.models.integrations.integration.Integration")
     organization = Param("sentry.models.organization.Organization")
 
     def call(self):
@@ -21,8 +21,6 @@ class Migrator(Mediator):
                     self.disable_for_all_projects(plugin)
 
     def all_repos_migrated(self, provider):
-        provider = "visualstudio" if provider == "vsts" else provider
-
         return all(r.integration_id is not None for r in self.repos_for_provider(provider))
 
     def disable_for_all_projects(self, plugin):
