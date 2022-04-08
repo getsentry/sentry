@@ -4,12 +4,12 @@ import styled from '@emotion/styled';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
-import Link from 'sentry/components/links/link';
+import type {LinkProps} from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
 interface Props {
-  goBackLocation: React.ComponentProps<typeof Link>['to'];
+  goBackLocation: LinkProps['to'];
   invalidForm: boolean;
   onSave: (event: React.MouseEvent) => void;
   isEditing?: boolean;
