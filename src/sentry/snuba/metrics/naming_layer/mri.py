@@ -79,3 +79,4 @@ class TransactionMRI(Enum):
     ALL = "e:transactions/all@none"
     FAILURE_COUNT = "e:transactions/failure_count@none"
     FAILURE_RATE = "e:transaction/failure_rate@ratio"
+    SATISFIED = "e:transactions/satisfied@none"
