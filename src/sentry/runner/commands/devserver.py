@@ -260,7 +260,7 @@ def devserver(
     if settings.SENTRY_USE_RELAY:
         daemons += [_get_daemon("ingest")]
 
-        if ingest_profiles:
+        if ingest_profiles or settings.SENTRY_USE_PROFILING:
             daemons += [_get_daemon("profiles")]
 
     if needs_https and has_https:
