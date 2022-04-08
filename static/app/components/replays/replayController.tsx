@@ -72,7 +72,7 @@ const ReplayControls = ({
             title={isPlaying ? t('Pause the Replay') : t('Play the Replay')}
             icon={isPlaying ? <IconPause size="sm" /> : <IconPlay size="sm" />}
             onClick={() => togglePlayPause(!isPlaying)}
-            aria-label={t('Toggle real-time updates')}
+            aria-label={isPlaying ? t('Pause the Replay') : t('Play the Replay')}
           />
           <Button
             data-test-id="replay-forward-10s"
