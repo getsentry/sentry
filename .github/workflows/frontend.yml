@@ -22,7 +22,6 @@ jobs:
 
   typescript-and-lint:
     needs: files-changed
-    if: ${{ needs.changes.outputs.frontend == 'true' }}
     name: typescript and lint
     runs-on: ubuntu-20.04
     steps:
@@ -132,7 +131,6 @@ jobs:
 
   webpack:
     needs: files-changed
-    if: ${{ needs.changes.outputs.frontend == 'true' }}
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
