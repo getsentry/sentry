@@ -75,6 +75,8 @@ describe('add to dashboard modal', () => {
         organization={initialData.organization}
         widget={widget}
         selection={defaultSelection}
+        router={initialData.router}
+        widgetAsQueryParams={{}}
       />
     );
 
@@ -104,6 +106,8 @@ describe('add to dashboard modal', () => {
         organization={initialData.organization}
         widget={widget}
         selection={defaultSelection}
+        router={initialData.router}
+        widgetAsQueryParams={{}}
       />
     );
 
@@ -131,6 +135,8 @@ describe('add to dashboard modal', () => {
         organization={initialData.organization}
         widget={widget}
         selection={defaultSelection}
+        router={initialData.router}
+        widgetAsQueryParams={{}}
       />
     );
 
@@ -154,6 +160,8 @@ describe('add to dashboard modal', () => {
         organization={initialData.organization}
         widget={widget}
         selection={defaultSelection}
+        router={initialData.router}
+        widgetAsQueryParams={{}}
       />
     );
 
