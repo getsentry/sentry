@@ -27,6 +27,8 @@ from arroyo.processing.strategies import MessageRejected
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
 from arroyo.processing.strategies import ProcessingStrategyFactory
+from arroyo.processing.strategies.streaming import KafkaConsumerStrategyFactory
+from arroyo.processing.strategies.streaming.factory import StreamMessageFilter
 from arroyo.processing.strategies.streaming.transform import ParallelTransformStep
 from arroyo.types import Message, Partition, Position, Topic
 from confluent_kafka import Producer
@@ -441,7 +443,6 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
     def create(
         self, commit: Callable[[Mapping[Partition, Position]], None]
     ) -> ProcessingStrategy[KafkaPayload]:
-
         parallel_strategy = ParallelTransformStep(
             process_messages,
             ProduceStep(commit),
@@ -478,7 +479,6 @@ class BatchConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
     def create(
         self, commit: Callable[[Mapping[Partition, Position]], None]
     ) -> ProcessingStrategy[KafkaPayload]:
-
         transform_step = TransformStep(
             next_step=SimpleProduceStep(
                 commit,
@@ -678,7 +678,6 @@ def get_streaming_metrics_consumer(
     factory_name: str,
     **options: Mapping[str, Union[str, int]],
 ) -> StreamProcessor:
-
     if factory_name == "multiprocess":
         processing_factory = MetricsConsumerStrategyFactory(
             max_batch_size=max_batch_size,
@@ -698,6 +697,60 @@ def get_streaming_metrics_consumer(
 
     create_topics([topic])
 
+    return StreamProcessor(
+        KafkaConsumer(get_config(topic, group_id, auto_offset_reset)),
+        Topic(topic),
+        processing_factory,
+    )
+
+
+class LastSeenUpdaterMessageFilter(StreamMessageFilter[KafkaPayload]):
+    def should_drop(self, message: KafkaPayload):
+        return False
+
+
+class LastSeenUpdaterCollector(ProcessingStrategy[int]):
+    def __init__(self):
+        self.__counter = 0
+
+    def submit(self, message: int):
+        self.__counter += message
+
+    def poll(self) -> None:
+        pass
+
+    def terminate(self) -> None:
+        pass
+
+    def close(self) -> None:
+        pass
+
+    def join(self, timeout: Optional[float] = None) -> None:
+        logger.info(f"{self.__counter} messages processed")
+        self.__counter = 0
+
+
+def get_last_seen_updater(
+    topic: str,
+    group_id: str,
+    input_block_size: int,
+    output_block_size: int,
+    processes: int,
+    max_batch_size: int,
+    max_batch_time: float,
+    auto_offset_reset: str,
+    **options: Mapping[str, Union[str, int]],
+) -> StreamProcessor:
+    processing_factory = KafkaConsumerStrategyFactory(
+        max_batch_time=max_batch_time,
+        max_batch_size=max_batch_size,
+        processes=processes,
+        input_block_size=input_block_size,
+        output_block_size=output_block_size,
+        process_message=lambda message: 1,
+        prefilter=LastSeenUpdaterMessageFilter(),
+        collector=lambda: LastSeenUpdaterCollector(),
+    )
     return StreamProcessor(
         KafkaConsumer(get_config(topic, group_id, auto_offset_reset)),
         Topic(topic),
