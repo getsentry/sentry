@@ -223,16 +223,17 @@ class SudoModal extends React.Component<Props, State> {
           {!isSelfHosted && showAccessForms && isSuperuser && (
             <Hook name="component:superuser-access-category" />
           )}
-          {((!showAccessForms && isSuperuser) || !isSuperuser || isSelfHosted) && (
-            <StyledInputField
-              type="password"
-              inline={false}
-              label={t('Password')}
-              name="password"
-              autoFocus
-              flexibleControlStateSize
-            />
-          )}
+          {((!showAccessForms && isSuperuser) || !isSuperuser || isSelfHosted) &&
+            user.hasPasswordAuth && (
+              <StyledInputField
+                type="password"
+                inline={false}
+                label={t('Password')}
+                name="password"
+                autoFocus
+                flexibleControlStateSize
+              />
+            )}
           {((!showAccessForms && isSuperuser) || !isSuperuser || isSelfHosted) && (
             <U2fContainer
               authenticators={authenticators}
