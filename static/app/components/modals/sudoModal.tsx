@@ -14,6 +14,7 @@ import {ErrorCodes} from 'sentry/constants/superuserAccessErrors';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
+import {Authenticator} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -34,6 +35,7 @@ type Props = WithRouterProps &
   };
 
 type State = {
+  authenticators: Array<Authenticator>;
   busy: boolean;
   error: boolean;
   errorType: string;
@@ -50,7 +52,12 @@ class SudoModal extends React.Component<Props, State> {
     showAccessForms: true,
     superuserAccessCategory: '',
     superuserReason: '',
+    authenticators: [],
   };
+
+  componentDidMount() {
+    this.getAuthenticators();
+  }
 
   handleSubmit = async data => {
     const {api, isSuperuser} = this.props;
@@ -128,12 +135,24 @@ class SudoModal extends React.Component<Props, State> {
     }
   };
 
+  async getAuthenticators() {
+    const {api} = this.props;
+
+    try {
+      const authenticators = await api.requestPromise('/authenticators/');
+      this.setState({authenticators: authenticators ?? []});
+    } catch {
+      // ignore errors
+    }
+  }
+
   renderBodyContent() {
     const {isSuperuser} = this.props;
-    const {error, showAccessForms, errorType} = this.state;
+    const {authenticators, error, showAccessForms, errorType} = this.state;
     const user = ConfigStore.get('user');
     const isSelfHosted = ConfigStore.get('isSelfHosted');
-    if (!user.hasPasswordAuth) {
+
+    if (!user.hasPasswordAuth && authenticators.length === 0) {
       return (
         <React.Fragment>
           <StyledTextBlock>
@@ -197,25 +216,30 @@ class SudoModal extends React.Component<Props, State> {
           onSubmit={this.handleSubmit}
           onSubmitSuccess={this.handleSuccess}
           onSubmitError={this.handleError}
-          hideFooter={!user.hasPasswordAuth}
+          hideFooter={!user.hasPasswordAuth && authenticators.length === 0}
           initialData={{isSuperuserModal: isSuperuser}}
           resetOnError
         >
           {!isSelfHosted && showAccessForms && isSuperuser && (
             <Hook name="component:superuser-access-category" />
           )}
+          {((!showAccessForms && isSuperuser) || !isSuperuser || isSelfHosted) &&
+            user.hasPasswordAuth && (
+              <StyledInputField
+                type="password"
+                inline={false}
+                label={t('Password')}
+                name="password"
+                autoFocus
+                flexibleControlStateSize
+              />
+            )}
           {((!showAccessForms && isSuperuser) || !isSuperuser || isSelfHosted) && (
-            <StyledInputField
-              type="password"
-              inline={false}
-              label={t('Password')}
-              name="password"
-              autoFocus
-              flexibleControlStateSize
+            <U2fContainer
+              authenticators={authenticators}
+              displayMode="sudo"
+              onTap={this.handleU2fTap}
             />
-          )}
-          {((!showAccessForms && isSuperuser) || !isSuperuser || isSelfHosted) && (
-            <U2fContainer displayMode="sudo" onTap={this.handleU2fTap} />
           )}
         </Form>
       </React.Fragment>
