@@ -178,6 +178,7 @@ jobs:
   # This check is the only required Github check
   frontend-required-check:
     needs: [typescript-and-lint, webpack]
+    if: ${{ needs.changes.outputs.frontend == 'true' }}
     name: Frontend
     runs-on: ubuntu-20.04
     steps:
