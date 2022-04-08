@@ -24,8 +24,8 @@ interface ControlsProps extends Required<ReplayControllerProps> {
   duration: number | undefined;
   isPlaying: boolean;
   isSkippingInactive: boolean;
-  onChangeSpeed: (value: number) => void;
   setCurrentTime: (time: number) => void;
+  setSpeed: (value: number) => void;
   speed: number;
   togglePlayPause: (play: boolean) => void;
   toggleSkipInactive: (skip: boolean) => void;
@@ -36,9 +36,9 @@ const ReplayControls = ({
   duration,
   isPlaying,
   isSkippingInactive,
-  onChangeSpeed,
   onFullscreen,
   setCurrentTime,
+  setSpeed,
   speed,
   speedOptions,
   togglePlayPause,
@@ -103,7 +103,7 @@ const ReplayControls = ({
               key={opt}
               size="xsmall"
               barId={String(opt)}
-              onClick={() => onChangeSpeed(opt)}
+              onClick={() => setSpeed(opt)}
               title={t('Set playback speed to %s', `${opt}x`)}
             >
               {opt}x
@@ -116,7 +116,7 @@ const ReplayControls = ({
           size="xsmall"
           title={t('View the Replay in full screen')}
           icon={<IconResize size="sm" />}
-          onClick={() => onFullscreen()}
+          onClick={onFullscreen}
           aria-label={t('View in full screen')}
         />
       </ButtonGrid>
@@ -164,8 +164,8 @@ export default function ReplayController({
         duration,
         isPlaying,
         setCurrentTime,
-        skipInactive,
         setSpeed,
+        skipInactive,
         speed,
         togglePlayPause,
         toggleSkipInactive,
@@ -176,9 +176,9 @@ export default function ReplayController({
             duration={duration}
             isPlaying={isPlaying}
             isSkippingInactive={skipInactive}
-            onChangeSpeed={setSpeed}
             onFullscreen={onFullscreen}
             setCurrentTime={setCurrentTime}
+            setSpeed={setSpeed}
             speed={speed}
             speedOptions={speedOptions}
             togglePlayPause={togglePlayPause}
