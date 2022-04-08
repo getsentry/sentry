@@ -438,7 +438,7 @@ jobs:
   # https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/defining-the-mergeability-of-pull-requests/troubleshooting-required-status-checks#handling-skipped-but-required-checks
   fake-backend-required-check:
     needs: files-changed
-    if: ${{ needs.changes.outputs.backend != 'true' }}
+    if: ${{ needs.changes.outputs.backend_any_type != 'true' }}
     name: Backend
     runs-on: ubuntu-20.04
     steps:

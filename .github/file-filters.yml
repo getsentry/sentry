@@ -56,9 +56,15 @@ backend: &backend
   - 'migrations_lockfile.txt'
   - 'config/**/*'
 
-backend_or_frontend: &backend_or_frontend
+acceptance: &acceptance
   - *backend
   - *frontend
+
+# This is the ultimate controller for backend.yml
+backend_any_type: &backend_any_type
+  - *backend
+  - *api_docs
+  - *plugins
 
 plugins:
   - *backend
