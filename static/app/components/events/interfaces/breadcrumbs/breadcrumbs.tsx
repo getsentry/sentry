@@ -40,19 +40,21 @@ type Props = Pick<
     'emptyMessage' | 'emptyAction'
   >;
   onSwitchTimeFormat: () => void;
+  narrow?: boolean;
 };
 
 function Breadcrumbs({
   breadcrumbs,
   displayRelativeTime,
+  emptyMessage,
+  event,
+  narrow = false,
   onSwitchTimeFormat,
   organization,
-  searchTerm,
-  event,
   relativeTime,
-  emptyMessage,
   route,
   router,
+  searchTerm,
 }: Props) {
   const [scrollToIndex, setScrollToIndex] = useState<number | undefined>(undefined);
   const [scrollbarSize, setScrollbarSize] = useState(0);
@@ -109,6 +111,7 @@ function Breadcrumbs({
             event={event}
             relativeTime={relativeTime}
             displayRelativeTime={displayRelativeTime}
+            narrow={narrow}
             height={height ? String(height) : undefined}
             scrollbarSize={
               (contentRef?.current?.offsetHeight ?? 0) < PANEL_MAX_HEIGHT
@@ -125,6 +128,7 @@ function Breadcrumbs({
 
   return (
     <StyledPanelTable
+      narrow={narrow}
       scrollbarSize={scrollbarSize}
       headers={[
         t('Type'),
@@ -176,7 +180,26 @@ function Breadcrumbs({
 
 export default Breadcrumbs;
 
-const StyledPanelTable = styled(PanelTable)<{scrollbarSize: number}>`
+const hiddenPanelTableHeadings = `> * {
+  :nth-child(-n + 6) {
+    /* Type, Category & Level */
+    :nth-child(6n-5),
+    :nth-child(6n-4),
+    :nth-child(6n-2) {
+      color: transparent;
+    }
+
+    /* Description & Scrollbar */
+    :nth-child(6n-3) {
+      display: none;
+    }
+  }
+}`;
+
+const StyledPanelTable = styled(PanelTable)<{
+  narrow: boolean;
+  scrollbarSize: number;
+}>`
   display: grid;
   grid-template-columns: 64px 140px 1fr 106px 100px ${p => `${p.scrollbarSize}px`};
 
@@ -204,24 +227,18 @@ const StyledPanelTable = styled(PanelTable)<{scrollbarSize: number}>`
     }
   }
 
-  @media (max-width: ${props => props.theme.breakpoints[0]}) {
-    grid-template-columns: 48px 1fr 74px 82px ${p => `${p.scrollbarSize}px`};
-    > * {
-      :nth-child(-n + 6) {
-        /* Type, Category & Level */
-        :nth-child(6n-5),
-        :nth-child(6n-4),
-        :nth-child(6n-2) {
-          color: transparent;
-        }
-
-        /* Description & Scrollbar */
-        :nth-child(6n-3) {
-          display: none;
-        }
+  ${p =>
+    p.narrow
+      ? `
+      grid-template-columns: 48px 1fr 74px 82px ${`${p.scrollbarSize}px`};
+      ${hiddenPanelTableHeadings}
+      `
+      : `
+      @media (max-width: ${props => props.theme.breakpoints[0]}) {
+        grid-template-columns: 48px 1fr 74px 82px ${`${p.scrollbarSize}px`};
+        ${hiddenPanelTableHeadings}
       }
-    }
-  }
+    `}
 
   overflow: hidden;
 `;

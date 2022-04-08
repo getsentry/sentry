@@ -25,6 +25,7 @@ type Props = Pick<React.ComponentProps<typeof Data>, 'route' | 'router'> & {
   searchTerm: string;
   style: React.CSSProperties;
   height?: string;
+  narrow?: boolean;
 };
 
 const Breadcrumb = memo(function Breadcrumb({
@@ -40,12 +41,14 @@ const Breadcrumb = memo(function Breadcrumb({
   route,
   router,
   ['data-test-id']: dataTestId,
+  narrow = false,
 }: Props) {
   const {type, description, color, level, category, timestamp} = breadcrumb;
   const error = breadcrumb.type === BreadcrumbType.ERROR;
 
   return (
     <Wrapper
+      narrow={narrow}
       style={style}
       error={error}
       onLoad={onLoad}
@@ -77,7 +80,45 @@ const Breadcrumb = memo(function Breadcrumb({
 
 export default Breadcrumb;
 
-const Wrapper = styled('div')<{error: boolean; scrollbarSize: number}>`
+const stackedWrapper = `
+grid-template-rows: repeat(2, auto);
+grid-template-columns: max-content 1fr 74px 82px ${p => p.scrollbarSize}px;
+
+> * {
+  padding: ${space(1)};
+
+  /* Type */
+  :nth-child(5n-4) {
+    grid-row: 1/-1;
+    padding-right: 0;
+    padding-left: 0;
+    margin-left: ${space(2)};
+    margin-right: ${space(1)};
+  }
+
+  /* Data */
+  :nth-child(5n-2) {
+    grid-row: 2/2;
+    grid-column: 2/-1;
+    padding-top: 0;
+    padding-right: ${space(2)};
+  }
+
+  /* Level */
+  :nth-child(5n-1) {
+    padding-right: 0;
+    display: flex;
+    justify-content: flex-end;
+    align-items: flex-start;
+  }
+
+  /* Time */
+  :nth-child(5n) {
+    padding: ${space(1)} ${space(2)};
+  }
+}`;
+
+const Wrapper = styled('div')<{error: boolean; narrow: boolean; scrollbarSize: number}>`
   display: grid;
   grid-template-columns: 64px 140px 1fr 106px 100px ${p => p.scrollbarSize}px;
 
@@ -85,44 +126,13 @@ const Wrapper = styled('div')<{error: boolean; scrollbarSize: number}>`
     padding: ${space(1)} ${space(2)};
   }
 
-  @media (max-width: ${props => props.theme.breakpoints[0]}) {
-    grid-template-rows: repeat(2, auto);
-    grid-template-columns: max-content 1fr 74px 82px ${p => p.scrollbarSize}px;
-
-    > * {
-      padding: ${space(1)};
-
-      /* Type */
-      :nth-child(5n-4) {
-        grid-row: 1/-1;
-        padding-right: 0;
-        padding-left: 0;
-        margin-left: ${space(2)};
-        margin-right: ${space(1)};
-      }
-
-      /* Data */
-      :nth-child(5n-2) {
-        grid-row: 2/2;
-        grid-column: 2/-1;
-        padding-top: 0;
-        padding-right: ${space(2)};
-      }
-
-      /* Level */
-      :nth-child(5n-1) {
-        padding-right: 0;
-        display: flex;
-        justify-content: flex-end;
-        align-items: flex-start;
-      }
-
-      /* Time */
-      :nth-child(5n) {
-        padding: ${space(1)} ${space(2)};
-      }
-    }
-  }
+  ${p =>
+    p.narrow
+      ? stackedWrapper
+      : `
+    @media (max-width: ${p.theme.breakpoints[0]}) {
+      ${stackedWrapper}
+    }`}
 
   word-break: break-all;
   white-space: pre-wrap;

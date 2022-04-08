@@ -5,23 +5,20 @@ import styled from '@emotion/styled';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import DetailedError from 'sentry/components/errors/detailedError';
 import NotFound from 'sentry/components/errors/notFound';
-import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventEntry from 'sentry/components/events/eventEntry';
-import EventMessage from 'sentry/components/events/eventMessage';
-import FeatureBadge from 'sentry/components/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import ReplayBreadcrumbs from 'sentry/components/replays/replayBreadcrumbs';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayController from 'sentry/components/replays/replayController';
+import ReplayHeader from 'sentry/components/replays/replayHeader';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
 import useFullscreen from 'sentry/components/replays/useFullscreen';
 import TagsTable from 'sentry/components/tagsTable';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
-import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import {getMessage} from 'sentry/utils/events';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 
@@ -46,22 +43,6 @@ type ReplayLoaderProps = {
 };
 
 type State = AsyncView['state'];
-
-const EventHeader = ({event}: {event: Event}) => {
-  const message = getMessage(event);
-  return (
-    <EventHeaderContainer data-test-id="event-header">
-      <TitleWrapper>
-        <EventOrGroupTitle data={event} /> <FeatureBadge type="alpha" />
-      </TitleWrapper>
-      {message && (
-        <MessageWrapper>
-          <EventMessage message={message} />
-        </MessageWrapper>
-      )}
-    </EventHeaderContainer>
-  );
-};
 
 class ReplayDetails extends AsyncView<Props, State> {
   state: State = {
@@ -181,18 +162,6 @@ function ReplayLoader(props: ReplayLoaderProps) {
           </FullscreenWrapper>
         </ReplayContextProvider>
 
-        {breadcrumbEntry && (
-          <EventEntry
-            projectSlug={getProjectSlug(event)}
-            // group={group}
-            organization={props.organization}
-            event={event}
-            entry={breadcrumbEntry}
-            route={props.route}
-            router={props.router}
-          />
-        )}
-
         {mergedReplayEvent && (
           <EventEntry
             key={`${mergedReplayEvent.id}`}
@@ -211,7 +180,20 @@ function ReplayLoader(props: ReplayLoaderProps) {
 
   const renderSide = () => {
     if (event) {
-      return <TagsTable generateUrl={() => ''} event={event} query="" />;
+      return (
+        <React.Fragment>
+          {breadcrumbEntry && (
+            <ReplayBreadcrumbs
+              entry={breadcrumbEntry}
+              event={event}
+              organization={props.organization}
+              route={props.route}
+              router={props.router}
+            />
+          )}
+          <TagsTable generateUrl={() => ''} event={event} query="" />
+        </React.Fragment>
+      );
     }
     return null;
   };
@@ -229,7 +211,7 @@ function ReplayLoader(props: ReplayLoaderProps) {
               {label: t('Replay Details')}, // TODO(replay): put replay ID or something here
             ]}
           />
-          {event ? <EventHeader event={event} /> : null}
+          {event ? <ReplayHeader event={event} /> : null}
         </Layout.HeaderContent>
       </Layout.Header>
       <Layout.Body>
@@ -239,19 +221,6 @@ function ReplayLoader(props: ReplayLoaderProps) {
     </NoPaddingContent>
   );
 }
-
-const EventHeaderContainer = styled('div')`
-  max-width: ${p => p.theme.breakpoints[0]};
-`;
-
-const TitleWrapper = styled('div')`
-  font-size: ${p => p.theme.headerFontSize};
-  margin-top: 20px;
-`;
-
-const MessageWrapper = styled('div')`
-  margin-top: ${space(1)};
-`;
 
 const NoPaddingContent = styled(PageContent)`
   padding: 0;
