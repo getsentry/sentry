@@ -1,4 +1,5 @@
 import {useEffect, useRef, useState} from 'react';
+import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import {useHover, useKeyboard} from '@react-aria/interactions';
 import {useMenuItem} from '@react-aria/menu';
@@ -305,7 +306,12 @@ const getHoverBackground = (theme: Theme, priority?: Priority) => {
   return `background: ${hoverBackground}; z-index: 1;`;
 };
 
-const InnerWrap = styled('div')<{
+const InnerWrap = styled('div', {
+  shouldForwardProp: p =>
+    typeof p === 'string' &&
+    isPropValid(p) &&
+    !['isDisabled', 'isFocused', 'priority'].includes(p),
+})<{
   isDisabled: boolean;
   isFocused: boolean;
   priority?: Priority;

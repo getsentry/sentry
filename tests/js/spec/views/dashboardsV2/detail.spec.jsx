@@ -796,7 +796,9 @@ describe('Dashboards > Detail', function () {
       });
 
       expect(
-        wrapper.find(`MenuItemWrap[data-test-id="duplicate-widget"]`).props().isDisabled
+        wrapper.find(`MenuItemWrap[data-test-id="duplicate-widget"]`).props()[
+          'aria-disabled'
+        ]
       ).toEqual(true);
     });
 
