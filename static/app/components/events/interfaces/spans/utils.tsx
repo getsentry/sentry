@@ -9,6 +9,7 @@ import {EntryType, EventTransaction} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 
+import SpanTreeModel from './spanTreeModel';
 import {
   EnhancedSpan,
   GapSpanType,
@@ -717,4 +718,16 @@ export function getSpanGroupBounds(
       return _exhaustiveCheck;
     }
   }
+}
+
+export function adjustEmbeddedTransactionTimestamps(
+  root: SpanTreeModel,
+  startTimeDelta: number
+) {
+  root.span.start_timestamp += startTimeDelta;
+  root.span.timestamp += startTimeDelta;
+
+  root.children.forEach(child =>
+    adjustEmbeddedTransactionTimestamps(child, startTimeDelta)
+  );
 }

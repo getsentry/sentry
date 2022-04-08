@@ -19,6 +19,7 @@ import {
   TreeDepthType,
 } from './types';
 import {
+  adjustEmbeddedTransactionTimestamps,
   generateRootSpan,
   getSiblingGroupKey,
   getSpanID,
@@ -34,9 +35,9 @@ export const MIN_SIBLING_GROUP_SIZE = 5;
 
 class SpanTreeModel {
   api: Client;
+  span: SpanType;
 
   // readonly state
-  span: Readonly<SpanType>;
   children: Array<SpanTreeModel> = [];
   isRoot: boolean;
 
@@ -771,6 +772,10 @@ class SpanTreeModel {
             this.api,
             false
           );
+
+          const startTimeDelta =
+            this.span.start_timestamp - parsedRootSpan.span.start_timestamp;
+          adjustEmbeddedTransactionTimestamps(parsedRootSpan, startTimeDelta);
 
           this.embeddedChildren = [parsedRootSpan];
           this.fetchEmbeddedChildrenState = 'idle';
