@@ -121,17 +121,13 @@ class QueryList extends React.Component<Props> {
     const defaultWidgetQuery: WidgetQuery = {
       name: '',
       aggregates: [
-        ...new Set([
-          ...(displayType === DisplayType.TOP_N ? aggregates : []),
-          ...(typeof savedQuery?.yAxis === 'string' ? [savedQuery?.yAxis] : yAxis),
-        ]),
+        ...(displayType === DisplayType.TOP_N ? aggregates : []),
+        ...(typeof savedQuery?.yAxis === 'string' ? [savedQuery?.yAxis] : yAxis),
       ],
       columns: [...(displayType === DisplayType.TOP_N ? columns : [])],
       fields: [
-        ...new Set([
-          ...(displayType === DisplayType.TOP_N ? defaultTableFields : []),
-          ...(typeof savedQuery?.yAxis === 'string' ? [savedQuery?.yAxis] : yAxis),
-        ]),
+        ...(displayType === DisplayType.TOP_N ? defaultTableFields : []),
+        ...(typeof savedQuery?.yAxis === 'string' ? [savedQuery?.yAxis] : yAxis),
       ],
       conditions: eventView.query,
       orderby,

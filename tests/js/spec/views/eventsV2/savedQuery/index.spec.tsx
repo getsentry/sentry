@@ -368,7 +368,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
         testData.router,
         EventView.fromSavedQuery(savedTopNQuery),
         savedTopNQuery,
-        []
+        ['count()']
       );
       userEvent.click(screen.getByText('Add to Dashboard'));
       expect(openAddDashboardWidgetModal).not.toHaveBeenCalled();
@@ -381,10 +381,10 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
               displayType: DisplayType.TOP_N,
               queries: [
                 {
-                  aggregates: ['count()'],
+                  aggregates: ['count()', 'count()'],
                   columns: ['test'],
                   conditions: '',
-                  fields: ['test', 'count()'],
+                  fields: ['test', 'count()', 'count()'],
                   name: '',
                   orderby: 'test',
                 },
@@ -394,7 +394,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
               defaultTableColumns: ['test', 'count()'],
               defaultTitle: 'Saved query #1',
               defaultWidgetQuery:
-                'name=&aggregates=count()&columns=test&fields=test%2Ccount()&conditions=&orderby=test',
+                'name=&aggregates=count()%2Ccount()&columns=test&fields=test%2Ccount()%2Ccount()&conditions=&orderby=test',
               displayType: DisplayType.TOP_N,
               source: DashboardWidgetSource.DISCOVERV2,
             }),

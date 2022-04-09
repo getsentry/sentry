@@ -318,10 +318,10 @@ describe('EventsV2 > QueryList', function () {
             displayType: DisplayType.TOP_N,
             queries: [
               {
-                aggregates: ['count()'],
+                aggregates: ['count()', 'count()'],
                 columns: ['test'],
                 conditions: '',
-                fields: ['test', 'count()'],
+                fields: ['test', 'count()', 'count()'],
                 name: '',
                 orderby: 'test',
               },
@@ -331,7 +331,7 @@ describe('EventsV2 > QueryList', function () {
             defaultTableColumns: ['test', 'count()'],
             defaultTitle: 'Saved query #1',
             defaultWidgetQuery:
-              'name=&aggregates=count()&columns=test&fields=test%2Ccount()&conditions=&orderby=test',
+              'name=&aggregates=count()%2Ccount()&columns=test&fields=test%2Ccount()%2Ccount()&conditions=&orderby=test',
             displayType: DisplayType.TOP_N,
             source: DashboardWidgetSource.DISCOVERV2,
           }),
