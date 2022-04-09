@@ -25,7 +25,7 @@ import {Organization, SavedQuery} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
-import {getColumnsAndAggregates} from 'sentry/utils/discover/fields';
+import {getAggregateAlias, getColumnsAndAggregates} from 'sentry/utils/discover/fields';
 import {DisplayModes} from 'sentry/utils/discover/types';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeList} from 'sentry/utils/queryString';
@@ -113,19 +113,27 @@ class QueryList extends React.Component<Props> {
       yAxis = ['count()'];
     }
     let orderby = '';
-    if (displayType === DisplayType.TOP_N && sort) {
+    if (
+      sort &&
+      (displayType === DisplayType.TOP_N ||
+        new Set(aggregates.map(getAggregateAlias)).has(sort.field))
+    ) {
       orderby = `${sort.kind === 'desc' ? '-' : ''}${sort.field}`;
     }
     const defaultWidgetQuery: WidgetQuery = {
       name: '',
       aggregates: [
-        ...(displayType === DisplayType.TOP_N ? aggregates : []),
-        ...(typeof savedQuery?.yAxis === 'string' ? [savedQuery?.yAxis] : yAxis),
+        ...new Set([
+          ...(displayType === DisplayType.TOP_N ? aggregates : []),
+          ...(typeof savedQuery?.yAxis === 'string' ? [savedQuery?.yAxis] : yAxis),
+        ]),
       ],
       columns: [...(displayType === DisplayType.TOP_N ? columns : [])],
       fields: [
-        ...(displayType === DisplayType.TOP_N ? defaultTableFields : []),
-        ...(typeof savedQuery?.yAxis === 'string' ? [savedQuery?.yAxis] : yAxis),
+        ...new Set([
+          ...(displayType === DisplayType.TOP_N ? defaultTableFields : []),
+          ...(typeof savedQuery?.yAxis === 'string' ? [savedQuery?.yAxis] : yAxis),
+        ]),
       ],
       conditions: eventView.query,
       orderby,

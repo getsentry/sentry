@@ -258,13 +258,17 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     const defaultWidgetQuery: WidgetQuery = {
       name: '',
       aggregates: [
-        ...(displayType === DisplayType.TOP_N ? aggregates : []),
-        ...(typeof yAxis === 'string' ? [yAxis] : yAxis ?? ['count()']),
+        ...new Set([
+          ...(displayType === DisplayType.TOP_N ? aggregates : []),
+          ...(typeof yAxis === 'string' ? [yAxis] : yAxis ?? ['count()']),
+        ]),
       ],
       columns: [...(displayType === DisplayType.TOP_N ? columns : [])],
       fields: [
-        ...(displayType === DisplayType.TOP_N ? defaultTableFields : []),
-        ...(typeof yAxis === 'string' ? [yAxis] : yAxis ?? ['count()']),
+        ...new Set([
+          ...(displayType === DisplayType.TOP_N ? defaultTableFields : []),
+          ...(typeof yAxis === 'string' ? [yAxis] : yAxis ?? ['count()']),
+        ]),
       ],
       conditions: eventView.query,
       orderby,
