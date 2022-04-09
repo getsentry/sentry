@@ -140,15 +140,13 @@ class Dashboard extends Component<Props, State> {
   }
 
   async componentDidMount() {
-    const {isEditing, organization, newWidget} = this.props;
+    const {organization, newWidget} = this.props;
     if (organization.features.includes('dashboard-grid-layout')) {
       window.addEventListener('resize', this.debouncedHandleResize);
     }
 
-    // Load organization tags when in edit mode.
-    if (isEditing) {
-      this.fetchTags();
-    }
+    // Always load organization tags on dashboards
+    this.fetchTags();
 
     if (newWidget) {
       this.addNewWidget();
@@ -159,13 +157,8 @@ class Dashboard extends Component<Props, State> {
   }
 
   async componentDidUpdate(prevProps: Props) {
-    const {selection, isEditing, newWidget} = this.props;
+    const {selection, newWidget} = this.props;
 
-    // Load organization tags when going into edit mode.
-    // We use tags on the add widget modal.
-    if (prevProps.isEditing !== isEditing && isEditing) {
-      this.fetchTags();
-    }
     if (newWidget && newWidget !== prevProps.newWidget) {
       this.addNewWidget();
     }

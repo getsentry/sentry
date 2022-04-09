@@ -227,6 +227,20 @@ def satisfaction_count_transaction(org_id, metric_ids, alias=None):
     )
 
 
+def tolerated_count_transaction(org_id, metric_ids, alias=None):
+    return _dist_count_aggregation_on_tx_satisfaction_factory(
+        org_id, TransactionSatisfactionTagValue.TOLERATED.value, metric_ids, alias
+    )
+
+
+def apdex(satifactory_snql, tolerable_snql, total_snql, alias=None):
+    return division_float(
+        arg1_snql=addition(satifactory_snql, division_float(tolerable_snql, 2)),
+        arg2_snql=total_snql,
+        alias=alias,
+    )
+
+
 def percentage(arg1_snql, arg2_snql, alias=None):
     return Function("minus", [1, Function("divide", [arg1_snql, arg2_snql])], alias)
 
