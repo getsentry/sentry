@@ -14,13 +14,16 @@ def backfill_alertrule_organization(apps, schema_editor):
         if not alert_rule.organization_id:
             continue
 
-        correct_org = (
-            Organization.objects.filter(
-                project__querysubscription__snuba_query__alertrule__id=alert_rule.id
+        try:
+            correct_org = (
+                Organization.objects.filter(
+                    project__querysubscription__snuba_query__alertrule__id=alert_rule.id
+                )
+                .distinct()
+                .get()
             )
-            .distinct()
-            .get()
-        )
+        except Organization.DoesNotExist:
+            continue
 
         if alert_rule.organization_id != correct_org.id:
             alert_rule.organization_id = correct_org.id
@@ -38,7 +41,7 @@ class Migration(CheckedMigration):
     # - Adding indexes to large tables. Since this can take a long time, we'd generally prefer to
     #   have ops run this and not block the deploy. Note that while adding an index is a schema
     #   change, it's completely safe to run the operation after the code has deployed.
-    is_dangerous = False
+    is_dangerous = True
 
     # This flag is used to decide whether to run this migration in a transaction or not. Generally
     # we don't want to run in a transaction here, since for long running operations like data

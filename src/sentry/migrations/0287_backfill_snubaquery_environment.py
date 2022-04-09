@@ -15,15 +15,19 @@ def backfill_snubaquery_environment(apps, schema_editor):
 
     SnubaQuery = apps.get_model("sentry", "SnubaQuery")
     Environment = apps.get_model("sentry", "Environment")
+    EnvironmentProject = apps.get_model("sentry", "EnvironmentProject")
+    Project = apps.get_model("sentry", "Project")
 
-    for snuba_query in RangeQuerySetWrapperWithProgressBar(SnubaQuery.objects.all()):
-        if not snuba_query.environment_id:
+    for snuba_query in RangeQuerySetWrapperWithProgressBar(
+        SnubaQuery.objects.all().select_related("environment")
+    ):
+        if not snuba_query.environment:
             continue
 
-        snuba_env = Environment.objects.filter(snubaquery__id=snuba_query.id).get()
+        snuba_env = snuba_query.environment
         envs_by_project = Environment.objects.filter(
             environmentproject__project__querysubscription__snuba_query=snuba_query
-        )
+        ).distinct()
 
         mapped_env: Environment = None
         for candidate_env in envs_by_project:
@@ -36,6 +40,35 @@ def backfill_snubaquery_environment(apps, schema_editor):
 
         if mapped_env:
             snuba_query.environment_id = mapped_env.id
+            snuba_query.save()
+        else:
+            projects_by_query = [
+                project
+                for project in Project.objects.filter(querysubscription__snuba_query=snuba_query)
+            ]
+            if len(projects_by_query) != 1:
+                continue
+
+            project_for_env = projects_by_query[0]
+
+            try:
+                old_env_project = EnvironmentProject.objects.get(
+                    environment_id=snuba_env.id, project_id=project_for_env.id
+                )
+            except EnvironmentProject.DoesNotExist:
+                old_env_project = None
+
+            created_env = Environment.objects.create(
+                organization_id=project_for_env.organization_id, name=snuba_env.name
+            )
+
+            EnvironmentProject.objects.create(
+                environment=created_env,
+                project=project_for_env,
+                is_hidden=old_env_project.is_hidden if old_env_project else False,
+            )
+
+            snuba_query.environment_id = created_env.id
             snuba_query.save()
 
 
