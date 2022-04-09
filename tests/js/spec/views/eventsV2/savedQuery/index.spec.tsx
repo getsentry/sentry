@@ -348,7 +348,6 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
     it('opens a modal with the correct params for top 5 display mode', async function () {
       const featuredOrganization = TestStubs.Organization({
         features: [
-          'discover-query',
           'dashboards-edit',
           'new-widget-builder-experience',
           'new-widget-builder-experience-design',
@@ -407,7 +406,6 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
     it('opens a modal with the correct params for default display mode', async function () {
       const featuredOrganization = TestStubs.Organization({
         features: [
-          'discover-query',
           'dashboards-edit',
           'new-widget-builder-experience',
           'new-widget-builder-experience-design',
