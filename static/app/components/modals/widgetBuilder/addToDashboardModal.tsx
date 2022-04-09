@@ -170,7 +170,7 @@ function AddToDashboardModal({
       </Body>
 
       <Footer>
-        <ButtonBar gap={1.5}>
+        <StyledButtonBar gap={1.5}>
           <Button
             onClick={handleAddAndStayInDiscover}
             disabled={!canSubmit}
@@ -186,7 +186,7 @@ function AddToDashboardModal({
           >
             {t('Open in Widget Builder')}
           </Button>
-        </ButtonBar>
+        </StyledButtonBar>
       </Footer>
     </Fragment>
   );
@@ -198,8 +198,20 @@ const SelectControlWrapper = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
+const StyledButtonBar = styled(ButtonBar)`
+  @media (max-width: ${props => props.theme.breakpoints[0]}) {
+    display: flex;
+    flex-direction: column;
+    gap: ${space(1.5)};
+    width: 100%;
+
+    > button {
+      width: 100%;
+    }
+  }
+`;
+
 export const modalCss = css`
-  min-width: 500px;
   max-width: 700px;
   margin: 70px auto;
 `;
