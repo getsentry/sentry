@@ -1225,15 +1225,16 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
     ):
         internal_metric = METRICS_MAP[metric]
         entity = self.ENTITY_MAP[metric]
-        if tags is None:
-            tags = {}
-        else:
-            tags = {
-                indexer.resolve(self.organization.id, key): indexer.resolve(
-                    self.organization.id, value
-                )
-                for key, value in tags.items()
-            }
+        org_id = self.organization.id
+        transformed_tags: Dict[int, int] = {}
+
+        if tags:
+            for k, v in tags.items():
+                resolved_key = indexer.resolve(org_id, k)
+                resolved_value = indexer.resolve(org_id, v)
+                new_key = resolved_key if resolved_key else indexer.record(org_id, k)
+                new_value = resolved_value if resolved_value else indexer.record(org_id, v)
+                transformed_tags[new_key] = new_value
 
         if timestamp is None:
             metric_timestamp = self.DEFAULT_METRIC_TIMESTAMP.timestamp()
@@ -1249,11 +1250,11 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
         self._send_buckets(
             [
                 {
-                    "org_id": self.organization.id,
+                    "org_id": org_id,
                     "project_id": project,
-                    "metric_id": indexer.resolve(self.organization.id, internal_metric),
+                    "metric_id": indexer.resolve(org_id, internal_metric),
                     "timestamp": metric_timestamp,
-                    "tags": tags,
+                    "tags": transformed_tags,
                     "type": self.TYPE_MAP[entity],
                     "value": value,
                     "retention_days": 90,
