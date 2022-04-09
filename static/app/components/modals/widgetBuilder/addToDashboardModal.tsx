@@ -104,7 +104,7 @@ function AddToDashboardModal({
       closeModal();
       addSuccessMessage(t('Successfully added widget to dashboard'));
     } catch (e) {
-      addErrorMessage(t('Something went wrong'));
+      addErrorMessage(t('Unable to add widget to dashboard'));
     }
   }
 
