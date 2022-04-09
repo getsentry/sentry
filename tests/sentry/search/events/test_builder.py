@@ -651,6 +651,11 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
             Condition(Column("org_id"), Op.EQ, self.organization.id),
         ]
 
+        for string in self.METRIC_STRINGS:
+            indexer.record(self.organization.id, string)
+
+        indexer.record(self.organization.id, "transaction")
+
     def setup_orderby_data(self):
         self.store_metric(
             100,
@@ -1305,6 +1310,9 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         assert data["avg"] == 100
 
     def test_failure_rate(self):
+        for string in ["transaction.status", "internal_error", "ok"]:
+            indexer.record(self.organization.id, string)
+
         for _ in range(3):
             self.store_metric(
                 100,
