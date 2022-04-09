@@ -1,7 +1,7 @@
 import selectEvent from 'react-select-event';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import AddToDashboardModal from 'sentry/components/modals/widgetBuilder/addToDashboardModal';
@@ -182,5 +182,83 @@ describe('add to dashboard modal', () => {
         }),
       })
     );
+  });
+
+  it('navigates to the widget builder when clicking Open in Widget Builder', async () => {
+    const testQueryParams = {
+      defaultWidgetQuery: 'mocked url encoded widget query',
+      defaultTableColumns: ['field1', 'field2'],
+      statsPeriod: '24h',
+      defaultTitle: 'Test Widget',
+      displayType: DisplayType.LINE,
+    };
+    render(
+      <AddToDashboardModal
+        Header={stubEl}
+        Footer={stubEl as ModalRenderProps['Footer']}
+        Body={stubEl as ModalRenderProps['Body']}
+        CloseButton={stubEl}
+        closeModal={() => undefined}
+        organization={initialData.organization}
+        widget={widget}
+        selection={defaultSelection}
+        router={initialData.router}
+        widgetAsQueryParams={testQueryParams}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Select Dashboard')).toBeEnabled();
+    });
+    await selectEvent.select(screen.getByText('Select Dashboard'), 'Test Dashboard');
+
+    userEvent.click(screen.getByText('Open in Widget Builder'));
+    expect(initialData.router.push).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/dashboard/1/widget/new/',
+      query: testQueryParams,
+    });
+  });
+
+  it('updates the selected dashboard with the widget when clicking Add + Stay in Discover', async () => {
+    const dashboardDetailGetMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/1/',
+      body: {id: '1', widgets: []},
+    });
+    const dashboardDetailPutMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/1/',
+      method: 'PUT',
+      body: {},
+    });
+    render(
+      <AddToDashboardModal
+        Header={stubEl}
+        Footer={stubEl as ModalRenderProps['Footer']}
+        Body={stubEl as ModalRenderProps['Body']}
+        CloseButton={stubEl}
+        closeModal={() => undefined}
+        organization={initialData.organization}
+        widget={widget}
+        selection={defaultSelection}
+        router={initialData.router}
+        widgetAsQueryParams={{}}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Select Dashboard')).toBeEnabled();
+    });
+    await selectEvent.select(screen.getByText('Select Dashboard'), 'Test Dashboard');
+
+    userEvent.click(screen.getByText('Add + Stay in Discover'));
+    expect(dashboardDetailGetMock).toHaveBeenCalled();
+
+    // mocked widgets response is an empty array, assert this new widget
+    // is sent as an update to the dashboard
+    await waitFor(() => {
+      expect(dashboardDetailPutMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/dashboards/1/',
+        expect.objectContaining({data: expect.objectContaining({widgets: [widget]})})
+      );
+    });
   });
 });
