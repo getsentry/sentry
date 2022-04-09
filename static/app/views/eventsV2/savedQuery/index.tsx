@@ -27,7 +27,7 @@ import {Organization, Project, SavedQuery} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
-import {getColumnsAndAggregates} from 'sentry/utils/discover/fields';
+import {getAggregateAlias, getColumnsAndAggregates} from 'sentry/utils/discover/fields';
 import {DisplayModes} from 'sentry/utils/discover/types';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import withApi from 'sentry/utils/withApi';
@@ -248,7 +248,11 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     const sort = eventView.sorts[0];
 
     let orderby = '';
-    if (displayType === DisplayType.TOP_N && sort) {
+    if (
+      sort &&
+      (displayType === DisplayType.TOP_N ||
+        new Set(aggregates.map(getAggregateAlias)).has(sort.field))
+    ) {
       orderby = `${sort.kind === 'desc' ? '-' : ''}${sort.field}`;
     }
     const defaultWidgetQuery: WidgetQuery = {
