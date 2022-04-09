@@ -38,6 +38,7 @@ from sentry.snuba.metrics.fields.snql import (
     all_sessions,
     all_transactions,
     all_users,
+    apdex,
     crashed_sessions,
     crashed_users,
     division_float,
@@ -49,6 +50,7 @@ from sentry.snuba.metrics.fields.snql import (
     session_duration_filters,
     sessions_errored_set,
     subtraction,
+    tolerated_count_transaction,
 )
 from sentry.snuba.metrics.naming_layer.mapping import get_public_name_from_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
@@ -917,6 +919,26 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             unit="transactions",
             snql=lambda *_, org_id, metric_ids, alias=None: satisfaction_count_transaction(
                 org_id=org_id, metric_ids=metric_ids, alias=alias
+            ),
+        ),
+        SingularEntityDerivedMetric(
+            metric_name=TransactionMRI.TOLERATED.value,
+            metrics=[TransactionMRI.DURATION.value],
+            unit="transactions",
+            snql=lambda *_, org_id, metric_ids, alias=None: tolerated_count_transaction(
+                org_id=org_id, metric_ids=metric_ids, alias=alias
+            ),
+        ),
+        SingularEntityDerivedMetric(
+            metric_name=TransactionMRI.APDEX.value,
+            metrics=[
+                TransactionMRI.SATISFIED.value,
+                TransactionMRI.TOLERATED.value,
+                TransactionMRI.ALL.value,
+            ],
+            unit="percentage",
+            snql=lambda satisfied, tolerated, total, org_id, metric_ids, alias=None: apdex(
+                satisfied, tolerated, total, alias=alias
             ),
         ),
     ]
