@@ -191,6 +191,9 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
         its detail info
         """
         mocked_derived_metrics.return_value = MOCKED_DERIVED_METRICS_2
+        org_id = self.organization.id
+        metric_id = indexer.record(org_id, "metric_foo_doe")
+
         self.store_session(
             self.build_session(
                 project_id=self.project.id,
@@ -209,18 +212,15 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
             "Not all the requested metrics or the constituent metrics in "
             "['derived_metric.multiple_metrics'] have data in the dataset"
         )
-        org_id = self.organization.id
         self._send_buckets(
             [
                 {
                     "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": indexer.record(org_id, "metric_foo_doe"),
+                    "metric_id": metric_id,
                     "timestamp": int(time.time()),
                     "tags": {
-                        resolve_weak(self.organization.id, "release"): indexer.record(
-                            org_id, "foo"
-                        ),
+                        resolve_weak(org_id, "release"): indexer.record(org_id, "foo"),
                     },
                     "type": "c",
                     "value": 1,
