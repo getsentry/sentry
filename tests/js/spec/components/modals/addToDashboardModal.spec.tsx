@@ -5,9 +5,23 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import AddToDashboardModal from 'sentry/components/modals/widgetBuilder/addToDashboardModal';
-import {DashboardDetails, DisplayType} from 'sentry/views/dashboardsV2/types';
+import {
+  DashboardDetails,
+  DashboardWidgetSource,
+  DisplayType,
+} from 'sentry/views/dashboardsV2/types';
 
 const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</div>;
+
+const mockWidgetAsQueryParams = {
+  defaultTableColumns: ['field1', 'field2'],
+  defaultTitle: 'Default title',
+  defaultWidgetQuery: '',
+  displayType: DisplayType.LINE,
+  environment: [],
+  project: [],
+  source: DashboardWidgetSource.DISCOVERV2,
+};
 
 describe('add to dashboard modal', () => {
   let eventsStatsMock;
@@ -76,7 +90,7 @@ describe('add to dashboard modal', () => {
         widget={widget}
         selection={defaultSelection}
         router={initialData.router}
-        widgetAsQueryParams={{}}
+        widgetAsQueryParams={mockWidgetAsQueryParams}
       />
     );
 
@@ -107,7 +121,7 @@ describe('add to dashboard modal', () => {
         widget={widget}
         selection={defaultSelection}
         router={initialData.router}
-        widgetAsQueryParams={{}}
+        widgetAsQueryParams={mockWidgetAsQueryParams}
       />
     );
 
@@ -136,7 +150,7 @@ describe('add to dashboard modal', () => {
         widget={widget}
         selection={defaultSelection}
         router={initialData.router}
-        widgetAsQueryParams={{}}
+        widgetAsQueryParams={mockWidgetAsQueryParams}
       />
     );
 
@@ -161,7 +175,7 @@ describe('add to dashboard modal', () => {
         widget={widget}
         selection={defaultSelection}
         router={initialData.router}
-        widgetAsQueryParams={{}}
+        widgetAsQueryParams={mockWidgetAsQueryParams}
       />
     );
 
@@ -185,13 +199,6 @@ describe('add to dashboard modal', () => {
   });
 
   it('navigates to the widget builder when clicking Open in Widget Builder', async () => {
-    const testQueryParams = {
-      defaultWidgetQuery: 'mocked url encoded widget query',
-      defaultTableColumns: ['field1', 'field2'],
-      statsPeriod: '24h',
-      defaultTitle: 'Test Widget',
-      displayType: DisplayType.LINE,
-    };
     render(
       <AddToDashboardModal
         Header={stubEl}
@@ -203,7 +210,7 @@ describe('add to dashboard modal', () => {
         widget={widget}
         selection={defaultSelection}
         router={initialData.router}
-        widgetAsQueryParams={testQueryParams}
+        widgetAsQueryParams={mockWidgetAsQueryParams}
       />
     );
 
@@ -215,7 +222,7 @@ describe('add to dashboard modal', () => {
     userEvent.click(screen.getByText('Open in Widget Builder'));
     expect(initialData.router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/dashboard/1/widget/new/',
-      query: testQueryParams,
+      query: mockWidgetAsQueryParams,
     });
   });
 
@@ -240,7 +247,7 @@ describe('add to dashboard modal', () => {
         widget={widget}
         selection={defaultSelection}
         router={initialData.router}
-        widgetAsQueryParams={{}}
+        widgetAsQueryParams={mockWidgetAsQueryParams}
       />
     );
 

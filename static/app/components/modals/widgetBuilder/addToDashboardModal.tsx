@@ -3,6 +3,7 @@ import {InjectedRouter} from 'react-router';
 import {OptionProps} from 'react-select';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {Query} from 'history';
 
 import {
   fetchDashboard,
@@ -20,16 +21,33 @@ import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters, SelectValue} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
-import {DashboardListItem, MAX_WIDGETS, Widget} from 'sentry/views/dashboardsV2/types';
+import {
+  DashboardListItem,
+  DisplayType,
+  MAX_WIDGETS,
+  Widget,
+} from 'sentry/views/dashboardsV2/types';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
+
+type WidgetAsQueryParams = Query & {
+  defaultTableColumns: string[];
+  defaultTitle: string;
+  defaultWidgetQuery: string;
+  displayType: DisplayType;
+  environment: string[];
+  project: number[];
+  source: string;
+  end?: unknown;
+  start?: unknown;
+  statsPeriod?: unknown;
+};
 
 export type AddToDashboardModalProps = {
   organization: Organization;
   router: InjectedRouter;
   selection: PageFilters;
   widget: Widget;
-  // TODO(nar): Fill in type
-  widgetAsQueryParams: any;
+  widgetAsQueryParams: WidgetAsQueryParams;
 };
 
 type Props = ModalRenderProps & AddToDashboardModalProps;

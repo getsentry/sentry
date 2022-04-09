@@ -103,14 +103,12 @@ class QueryList extends React.Component<Props> {
     const defaultTableFields = eventView.fields.map(({field}) => field);
     const {columns, aggregates} = getColumnsAndAggregates(defaultTableFields);
     const sort = eventView.sorts[0];
-    let yAxis;
+
+    let yAxis = ['count()'];
     if (savedQuery?.yAxis) {
-      // TODO does this need to be an array
       yAxis = savedQuery.yAxis;
     } else if (eventView.yAxis) {
       yAxis = [eventView.yAxis];
-    } else {
-      yAxis = ['count()'];
     }
     let orderby = '';
     if (
