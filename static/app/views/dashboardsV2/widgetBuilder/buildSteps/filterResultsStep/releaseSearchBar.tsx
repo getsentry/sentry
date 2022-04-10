@@ -5,6 +5,10 @@ import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {Organization} from 'sentry/types';
 import {WidgetQuery} from 'sentry/views/dashboardsV2/types';
 import MetricsSearchBar from 'sentry/views/dashboardsV2/widgetBuilder/metricWidget/metricsSearchBar';
+import {
+  MAX_MENU_HEIGHT,
+  MAX_SEARCH_ITEMS,
+} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 
 interface Props {
   onBlur: SearchBarProps['onBlur'];
@@ -30,6 +34,8 @@ export function ReleaseSearchBar({
       projectIds={projectIds ?? []}
       onSearch={onSearch}
       onBlur={onBlur}
+      maxSearchItems={MAX_SEARCH_ITEMS}
+      maxMenuHeight={MAX_MENU_HEIGHT}
     />
   );
 }

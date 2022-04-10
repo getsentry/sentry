@@ -14,11 +14,15 @@ const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
 
 type Props = Pick<
   React.ComponentProps<typeof SmartSearchBar>,
-  'onSearch' | 'onBlur' | 'query' | 'maxQueryLength' | 'searchSource'
+  'onSearch' | 'onBlur' | 'query' | 'maxQueryLength' | 'searchSource' | 'maxSearchItems'
 > & {
   orgSlug: Organization['slug'];
   projectIds: number[] | readonly number[];
   className?: string;
+  /**
+   * Used to define the max height of the menu in px.
+   */
+  maxMenuHeight?: number;
 };
 
 function MetricsSearchBar({
@@ -29,14 +33,14 @@ function MetricsSearchBar({
   searchSource,
   projectIds,
   className,
+  maxSearchItems,
+  maxMenuHeight,
   ...props
 }: Props) {
   const api = useApi();
   const {tags} = useMetricsContext();
 
-  /**
-   * Prepare query string (e.g. strip special characters like negation operator)
-   */
+  // Prepare query string (e.g. strip special characters like negation operator)
   function prepareQuery(query: string) {
     return query.replace(SEARCH_SPECIAL_CHARS_REGEXP, '');
   }
@@ -68,9 +72,10 @@ function MetricsSearchBar({
           onGetTagValues={memoize(getTagValues, ({key}, query) => `${key}-${query}`)}
           supportedTags={supportedTags}
           prepareQuery={prepareQuery}
+          maxSearchItems={maxSearchItems}
           excludeEnvironment
           dropdownClassName={css`
-            max-height: 300px;
+            max-height: ${maxMenuHeight ?? 300}px;
             overflow-y: auto;
           `}
           onSearch={onSearch}

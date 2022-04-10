@@ -275,3 +275,9 @@ export function getMetricFields(queries: WidgetQuery[]) {
     return acc;
   }, [] as string[]);
 }
+
+// Used to limit the number of results of the "filter your results" fields dropdown
+export const MAX_SEARCH_ITEMS = 5;
+
+// Used to set the max height of the smartSearchBar menu
+export const MAX_MENU_HEIGHT = 250;
