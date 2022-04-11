@@ -2,6 +2,7 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 
+import {Panel} from 'sentry/components/panels';
 import {Consumer as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 
 interface Props {
@@ -79,6 +80,12 @@ const PlayerRoot = styled(BasePlayerRoot)`
   /* Override default user-agent styles */
   .replayer-wrapper > iframe {
     border: none;
+  }
+`;
+
+const PlayerPanel = styled(Panel)`
+  iframe {
+    border-radius: ${p => p.theme.borderRadius};
   }
 `;
 
@@ -165,11 +172,13 @@ export default function ReplayPlayer({className}: Props) {
   return (
     <ReplayContextProvider>
       {({initRoot, dimensions}) => (
-        <SentryPlayerRoot
-          className={className}
-          initRoot={initRoot}
-          videoDimensions={dimensions}
-        />
+        <PlayerPanel>
+          <SentryPlayerRoot
+            className={className}
+            initRoot={initRoot}
+            videoDimensions={dimensions}
+          />
+        </PlayerPanel>
       )}
     </ReplayContextProvider>
   );

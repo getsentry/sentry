@@ -5,6 +5,7 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import BooleanField from 'sentry/components/forms/booleanField';
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
+import {Panel, PanelBody} from 'sentry/components/panels';
 import {Consumer as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import {IconPause, IconPlay, IconRefresh, IconResize} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -169,23 +170,25 @@ export default function ReplayController({
         speed,
         togglePlayPause,
         toggleSkipInactive,
-      }) => {
-        return (
-          <ReplayControls
-            currentTime={currentTime}
-            duration={duration}
-            isPlaying={isPlaying}
-            isSkippingInactive={skipInactive}
-            onFullscreen={onFullscreen}
-            setCurrentTime={setCurrentTime}
-            setSpeed={setSpeed}
-            speed={speed}
-            speedOptions={speedOptions}
-            togglePlayPause={togglePlayPause}
-            toggleSkipInactive={toggleSkipInactive}
-          />
-        );
-      }}
+      }) => (
+        <Panel>
+          <PanelBody withPadding>
+            <ReplayControls
+              currentTime={currentTime}
+              duration={duration}
+              isPlaying={isPlaying}
+              isSkippingInactive={skipInactive}
+              onFullscreen={onFullscreen}
+              setCurrentTime={setCurrentTime}
+              setSpeed={setSpeed}
+              speed={speed}
+              speedOptions={speedOptions}
+              togglePlayPause={togglePlayPause}
+              toggleSkipInactive={toggleSkipInactive}
+            />
+          </PanelBody>
+        </Panel>
+      )}
     </ReplayContextProvider>
   );
 }
