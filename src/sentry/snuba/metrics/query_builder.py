@@ -355,8 +355,8 @@ class SnubaQueryBuilder:
     def _build_orderby(self) -> Optional[List[OrderBy]]:
         if self._query_definition.orderby is None:
             return None
-        (op, metric_mri), direction = self._query_definition.orderby
-        metric_field_obj = metric_object_factory(op, metric_mri)
+        (op, metric_name), direction = self._query_definition.orderby
+        metric_field_obj = metric_object_factory(op, metric_name)
         return metric_field_obj.generate_orderby_clause(
             projects=self._projects, direction=direction
         )
@@ -397,27 +397,27 @@ class SnubaQueryBuilder:
         return rv
 
     def __update_query_dicts_with_component_entities(
-        self, component_entities, metric_mri_to_obj_dict, fields_in_entities
+        self, component_entities, metric_name_to_obj_dict, fields_in_entities
     ):
         # At this point in time, we are only supporting raw metrics in the metrics attribute of
         # any instance of DerivedMetric, and so in this case the op will always be None
         # ToDo(ahmed): In future PR, we might want to allow for dependency metrics to also have an
         #  an aggregate and in this case, we would need to parse the op here
         op = None
-        for entity, metric_mris in component_entities.items():
-            for metric_mri in metric_mris:
-                metric_key = (op, metric_mri)
-                if metric_key not in metric_mri_to_obj_dict:
-                    metric_mri_to_obj_dict[metric_key] = metric_object_factory(op, metric_mri)
+        for entity, metric_names in component_entities.items():
+            for metric_name in metric_names:
+                metric_key = (op, metric_name)
+                if metric_key not in metric_name_to_obj_dict:
+                    metric_name_to_obj_dict[metric_key] = metric_object_factory(op, metric_name)
                     fields_in_entities.setdefault(entity, []).append(metric_key)
-        return metric_mri_to_obj_dict
+        return metric_name_to_obj_dict
 
     def get_snuba_queries(self):
-        metric_mri_to_obj_dict = {}
+        metric_name_to_obj_dict = {}
         fields_in_entities = {}
 
-        for op, metric_mri in self._query_definition.fields.values():
-            metric_field_obj = metric_object_factory(op, metric_mri)
+        for op, metric_name in self._query_definition.fields.values():
+            metric_field_obj = metric_object_factory(op, metric_name)
             # `get_entity` is called the first, to fetch the entities of constituent metrics,
             # and validate especially in the case of SingularEntityDerivedMetric that it is
             # actually composed of metrics that belong to the same entity
@@ -432,12 +432,12 @@ class SnubaQueryBuilder:
                 component_entities = metric_field_obj.get_entity(projects=self._projects)
                 if isinstance(component_entities, dict):
                     # In this case, component_entities is a dictionary with entity keys and
-                    # lists of metric_mris as values representing all the entities and
-                    # metric_mris combination that this metric_object is composed of, or rather
+                    # lists of metric_names as values representing all the entities and
+                    # metric_names combination that this metric_object is composed of, or rather
                     # the instances of SingleEntityDerivedMetric that it is composed of
-                    metric_mri_to_obj_dict = self.__update_query_dicts_with_component_entities(
+                    metric_name_to_obj_dict = self.__update_query_dicts_with_component_entities(
                         component_entities=component_entities,
-                        metric_mri_to_obj_dict=metric_mri_to_obj_dict,
+                        metric_name_to_obj_dict=metric_name_to_obj_dict,
                         fields_in_entities=fields_in_entities,
                     )
                     continue
@@ -455,8 +455,8 @@ class SnubaQueryBuilder:
             if entity not in self._implemented_datasets:
                 raise NotImplementedError(f"Dataset not yet implemented: {entity}")
 
-            metric_mri_to_obj_dict[(op, metric_mri)] = metric_field_obj
-            fields_in_entities.setdefault(entity, []).append((op, metric_mri))
+            metric_name_to_obj_dict[(op, metric_name)] = metric_field_obj
+            fields_in_entities.setdefault(entity, []).append((op, metric_name))
 
         where = self._build_where()
         groupby = self._build_groupby()
@@ -466,7 +466,7 @@ class SnubaQueryBuilder:
             select = []
             metric_ids_set = set()
             for op, name in fields:
-                metric_field_obj = metric_mri_to_obj_dict[(op, name)]
+                metric_field_obj = metric_name_to_obj_dict[(op, name)]
                 select += metric_field_obj.generate_select_statements(projects=self._projects)
                 metric_ids_set |= metric_field_obj.generate_metric_ids(self._projects)
 
@@ -510,10 +510,10 @@ class SnubaResultConverter:
         self._results = results
         self._query_definition = query_definition
 
-        # This is a set of all the `(op, metric_mri)` combinations passed in the query_definition
+        # This is a set of all the `(op, metric_name)` combinations passed in the query_definition
         self._query_definition_fields_set = set(query_definition.fields.values())
-        # This is a set of all queryable `(op, metric_mri)` combinations. Queryable can mean it
-        # includes one of the following: AggregatedRawMetric (op, metric_mri), instance of
+        # This is a set of all queryable `(op, metric_name)` combinations. Queryable can mean it
+        # includes one of the following: AggregatedRawMetric (op, metric_name), instance of
         # SingularEntityDerivedMetric or the instances of SingularEntityDerivedMetric that are
         # the constituents necessary to calculate instances of CompositeEntityDerivedMetric but
         # are not necessarily requested in the query definition
@@ -557,10 +557,10 @@ class SnubaResultConverter:
         # We query the union of the query_definition fields, and the fields_in_entities from the
         # QueryBuilder necessary as it contains the constituent instances of
         # SingularEntityDerivedMetric for instances of CompositeEntityDerivedMetric
-        for op, metric_mri in self._set_of_constituent_queries:
-            key = f"{op}({metric_mri})" if op is not None else metric_mri
+        for op, metric_name in self._set_of_constituent_queries:
+            key = f"{op}({metric_name})" if op is not None else metric_name
             default_null_value = metric_object_factory(
-                op, metric_mri
+                op, metric_name
             ).generate_default_null_values()
 
             try:
@@ -616,9 +616,9 @@ class SnubaResultConverter:
             totals = group.get("totals")
             series = group.get("series")
 
-            for op, metric_mri in self._bottom_up_dependency_tree:
-                metric_obj = metric_object_factory(op=op, metric_mri=metric_mri)
-                grp_key = f"{op}({metric_mri})" if op is not None else metric_mri
+            for op, metric_name in self._bottom_up_dependency_tree:
+                metric_obj = metric_object_factory(op=op, metric_name=metric_name)
+                grp_key = f"{op}({metric_name})" if op is not None else metric_name
 
                 if totals is not None:
                     totals[grp_key] = metric_obj.run_post_query_function(
@@ -648,25 +648,25 @@ class SnubaResultConverter:
                 matches = FIELD_REGEX.match(key)
                 if matches:
                     operation = matches[1]
-                    metric_mri = matches[2]
+                    metric_name = matches[2]
                 else:
                     operation = None
-                    metric_mri = key
+                    metric_name = key
 
-                if (operation, metric_mri) not in self._query_definition_fields_set:
+                if (operation, metric_name) not in self._query_definition_fields_set:
                     if totals is not None:
                         del totals[key]
                     if series is not None:
                         del series[key]
                 else:
-                    public_metric_key = (
-                        f"{get_public_name_from_mri(metric_mri)}"
+                    reversed_mri_key = (
+                        f"{get_public_name_from_mri(metric_name)}"
                         if operation is None
-                        else f"{operation}({get_public_name_from_mri(metric_mri)})"
+                        else f"{operation}({get_public_name_from_mri(metric_name)})"
                     )
                     if totals is not None:
-                        totals[public_metric_key] = totals.pop(key)
+                        totals[reversed_mri_key] = totals.pop(key)
                     if series is not None:
-                        series[public_metric_key] = series.pop(key)
+                        series[reversed_mri_key] = series.pop(key)
 
         return groups
