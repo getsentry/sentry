@@ -1000,7 +1000,7 @@ def nest_groups(data, groups, aggregate_cols):
         return OrderedDict((k, nest_groups(v, rest, aggregate_cols)) for k, v in inter.items())
 
 
-def resolve_column(dataset):
+def resolve_column(dataset) -> Callable[[str], str]:
     def _resolve_column(col: str) -> str:
         if col is None:
             return col

@@ -147,7 +147,9 @@ class QueryBuilder:
         )
 
     def resolve_column_name(self, col: str) -> str:
-        return resolve_column(self.dataset)(col)
+        # TODO when utils/snuba.py becomes typed don't need this extra annotation
+        column_resolver: Callable[[str], str] = resolve_column(self.dataset)
+        return column_resolver(col)
 
     def resolve_query(
         self,
@@ -1525,7 +1527,7 @@ class MetricsQueryBuilder(QueryBuilder):
             col = tag_match.group("tag") if tag_match else col
 
         if col in DATASETS[Dataset.Metrics]:
-            return DATASETS[Dataset.Metrics][col]
+            return str(DATASETS[Dataset.Metrics][col])
         tag_id = self.resolve_metric_index(col)
         if tag_id is None:
             raise InvalidSearchQuery(f"Unknown field: {col}")
@@ -1675,7 +1677,7 @@ class MetricsQueryBuilder(QueryBuilder):
         result = self.resolve_metric_index(value)
         if result is None:
             raise InvalidSearchQuery("Tag value was not found")
-        return cast(int, result)
+        return result
 
     def _default_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         if search_filter.value.is_wildcard():
