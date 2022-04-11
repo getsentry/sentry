@@ -316,7 +316,7 @@ const InnerWrap = styled('div', {
   isDisabled: boolean;
   isFocused: boolean;
   priority?: Priority;
-  to?: string;
+  to?: LocationDescriptor;
 }>`
   display: flex;
   position: relative;
