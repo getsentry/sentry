@@ -26,7 +26,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 class RatelimitMiddlewareTest(TestCase):
-    middleware = RatelimitMiddleware(None)
+    middleware = fixture(RatelimitMiddleware)
     factory = fixture(RequestFactory)
 
     class TestEndpoint(Endpoint):

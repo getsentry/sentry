@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import logging
 import uuid
-from typing import Callable
 
 from django.http.response import HttpResponse
+from django.utils.deprecation import MiddlewareMixin
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -23,19 +23,8 @@ DEFAULT_ERROR_MESSAGE = (
 )
 
 
-class RatelimitMiddleware:
-    """Middleware that applies a rate limit to every endpoint.
-    See: https://docs.djangoproject.com/en/4.0/topics/http/middleware/#writing-your-own-middleware
-    """
-
-    def __init__(self, get_response: Callable[[Request], Response]):
-        self.get_response = get_response
-
-    def __call__(self, request: Request) -> Response:
-        # process_view is automatically called by Django
-        response = self.get_response(request)
-        self.process_response(request, response)
-        return response
+class RatelimitMiddleware(MiddlewareMixin):
+    """Middleware that applies a rate limit to every endpoint."""
 
     def process_view(self, request: Request, view_func, view_args, view_kwargs) -> Response | None:
         """Check if the endpoint call will violate."""
