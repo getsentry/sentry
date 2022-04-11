@@ -19,7 +19,8 @@ import SelectOption from 'sentry/components/forms/selectOption';
 import Tooltip from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, PageFilters, SelectValue} from 'sentry/types';
+import {DateString, Organization, PageFilters, SelectValue} from 'sentry/types';
+import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
 import {
   DashboardListItem,
@@ -27,6 +28,7 @@ import {
   MAX_WIDGETS,
   Widget,
 } from 'sentry/views/dashboardsV2/types';
+import {NEW_DASHBOARD_ID} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 
 type WidgetAsQueryParams = Query & {
@@ -37,9 +39,9 @@ type WidgetAsQueryParams = Query & {
   environment: string[];
   project: number[];
   source: string;
-  end?: unknown;
-  start?: unknown;
-  statsPeriod?: unknown;
+  end?: DateString;
+  start?: DateString;
+  statsPeriod?: string | null;
 };
 
 export type AddToDashboardModalProps = {
@@ -73,7 +75,7 @@ function AddToDashboardModal({
 
   function handleGoToBuilder() {
     const pathname =
-      selectedDashboardId === 'new'
+      selectedDashboardId === NEW_DASHBOARD_ID
         ? `/organizations/${organization.slug}/dashboards/new/widget/new/`
         : `/organizations/${organization.slug}/dashboard/${selectedDashboardId}/widget/new/`;
 
@@ -95,7 +97,7 @@ function AddToDashboardModal({
         ...dashboard,
         widgets: [
           ...dashboard.widgets,
-          {...widget, title: widget.title === '' ? 'All Events' : widget.title},
+          {...widget, title: widget.title === '' ? t('All Events') : widget.title},
         ],
       };
 
@@ -104,7 +106,9 @@ function AddToDashboardModal({
       closeModal();
       addSuccessMessage(t('Successfully added widget to dashboard'));
     } catch (e) {
-      addErrorMessage(t('Unable to add widget to dashboard'));
+      const errorMessage = t('Unable to add widget to dashboard');
+      handleXhrErrorResponse(errorMessage)(e);
+      addErrorMessage(errorMessage);
     }
   }
 

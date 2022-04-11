@@ -77,12 +77,10 @@ import {
   getMetricFields,
   getParsedDefaultWidgetQuery,
   mapErrors,
+  NEW_DASHBOARD_ID,
   normalizeQueries,
 } from './utils';
 import {WidgetLibrary} from './widgetLibrary';
-
-// Both dashboards and widgets use the 'new' keyword when creating
-const NEW_DASHBOARD_ID = 'new';
 
 function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, WidgetQuery> {
   return {
@@ -300,7 +298,7 @@ function WidgetBuilder({
         ...prevState,
         selectedDashboard: {
           label: dashboard.title,
-          value: dashboard.id === '' ? 'new' : dashboard.id,
+          value: dashboard.id === '' ? NEW_DASHBOARD_ID : dashboard.id,
         },
       }));
     }

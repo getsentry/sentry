@@ -25,6 +25,9 @@ import {FlatValidationError, ValidationError} from '../utils';
 export const DEFAULT_RESULTS_LIMIT = 5;
 export const RESULTS_LIMIT = 10;
 
+// Both dashboards and widgets use the 'new' keyword when creating
+export const NEW_DASHBOARD_ID = 'new';
+
 export enum DataSet {
   EVENTS = 'events',
   ISSUES = 'issues',

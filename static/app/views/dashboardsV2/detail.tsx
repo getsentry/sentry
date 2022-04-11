@@ -110,7 +110,7 @@ class DashboardDetail extends Component<Props, State> {
     this.checkIfShouldMountWidgetViewerModal();
   }
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps: Props) {
     this.checkIfShouldMountWidgetViewerModal();
 
     if (prevProps.initialState !== this.props.initialState) {
