@@ -8,6 +8,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import * as modals from 'sentry/actionCreators/modal';
+import TagStore from 'sentry/stores/tagStore';
 import {TOP_N} from 'sentry/utils/discover/types';
 import {SessionMetric} from 'sentry/utils/metrics/fields';
 import {
@@ -109,6 +110,7 @@ describe('WidgetBuilder', function () {
   let eventsStatsMock: jest.Mock | undefined;
   let eventsv2Mock: jest.Mock | undefined;
   let metricsDataMock: jest.Mock | undefined;
+  let tagsMock: jest.Mock | undefined;
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
@@ -225,6 +227,13 @@ describe('WidgetBuilder', function () {
         field: `sum(${SessionMetric.SESSION})`,
       }),
     });
+
+    tagsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/',
+      method: 'GET',
+      body: TestStubs.Tags(),
+    });
+    TagStore.reset();
   });
 
   afterEach(function () {
@@ -1317,6 +1326,17 @@ describe('WidgetBuilder', function () {
         })
       );
     });
+  });
+
+  it('fetches tags when tag store is empty', function () {
+    renderTestComponent();
+    expect(tagsMock).toHaveBeenCalled();
+  });
+
+  it('does not fetch tags when tag store is not empty', function () {
+    TagStore.loadTagsSuccess(TestStubs.Tags());
+    renderTestComponent();
+    expect(tagsMock).not.toHaveBeenCalled();
   });
 
   describe('Sort by selectors', function () {

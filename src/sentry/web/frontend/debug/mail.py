@@ -693,11 +693,7 @@ def render_preview_email_for_notification(
 ) -> MutableMapping[str, Any]:
     # remove unneeded fields
     basic_args = get_builder_args(notification, recipient)
-    args = {
-        k: v
-        for k, v in basic_args.items()
-        if k not in ["headers", "reference", "reply_reference", "subject"]
-    }
+    args = {k: v for k, v in basic_args.items() if k not in ["headers", "reference", "subject"]}
     # convert subject back to a string
     args["subject"] = basic_args["subject"].decode("utf-8")
 
