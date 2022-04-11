@@ -53,7 +53,7 @@ function BasePlayerRoot({className, initRoot, videoDimensions}: RootProps) {
       if (scale) {
         viewEl.current.style.transform = `scale(${scale})`;
         viewEl.current.style.width = `${videoDimensions.width * scale}px`;
-        viewEl.current.style.height = `${videoDimensions?.height * scale}px`;
+        viewEl.current.style.height = `${videoDimensions.height * scale}px`;
       }
     }
   }, [windowDimensions, videoDimensions]);
