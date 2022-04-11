@@ -1,6 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {PersistedStoreProvider} from 'sentry/stores/persistedStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import Onboarding from 'sentry/views/onboarding/targetedOnboarding/onboarding';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -34,13 +35,15 @@ describe('Onboarding', function () {
       },
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/client-state/onboarding/`,
+      url: `/organizations/${organization.slug}/client-state/`,
       body: {},
     });
     render(
-      <OrganizationContext.Provider value={organization}>
-        <Onboarding {...router} />
-      </OrganizationContext.Provider>,
+      <PersistedStoreProvider>
+        <OrganizationContext.Provider value={organization}>
+          <Onboarding {...router} />
+        </OrganizationContext.Provider>
+      </PersistedStoreProvider>,
       {
         context: routerContext,
       }
@@ -75,12 +78,14 @@ describe('Onboarding', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/client-state/onboarding/`,
       body: {
-        platformToProjectIdMap: {
-          'javascript-react': projects[0].slug,
-          ruby: projects[1].slug,
-          'javascript-nextjs': projects[2].slug,
+        onboarding: {
+          platformToProjectIdMap: {
+            'javascript-react': projects[0].slug,
+            ruby: projects[1].slug,
+            'javascript-nextjs': projects[2].slug,
+          },
+          selectedPlatforms: ['ruby', 'javascript-nextjs'],
         },
-        selectedPlatforms: ['ruby', 'javascript-nextjs'],
       },
     });
     MockApiClient.addMockResponse({
@@ -95,9 +100,11 @@ describe('Onboarding', function () {
     });
     ProjectsStore.loadInitialData(projects);
     render(
-      <OrganizationContext.Provider value={organization}>
-        <Onboarding {...router} />
-      </OrganizationContext.Provider>,
+      <PersistedStoreProvider>
+        <OrganizationContext.Provider value={organization}>
+          <Onboarding {...router} />
+        </OrganizationContext.Provider>
+      </PersistedStoreProvider>,
       {
         context: routerContext,
       }

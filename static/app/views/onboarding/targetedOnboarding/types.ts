@@ -35,13 +35,15 @@ export type OnboardingState = {
 };
 
 export function useOnboardingState(): [
-  OnboardingState,
+  OnboardingState | null,
   (next: OnboardingState | null) => void
 ] {
   const [state, setState] = usePersistedStoreCategory('onboarding');
-  const onboardingState = state || {
-    platformToProjectIdMap: {},
-    selectedPlatforms: [],
-  };
+  const onboardingState = state
+    ? {
+        platformToProjectIdMap: state.platformToProjectIdMap || {},
+        selectedPlatforms: state.selectedPlatforms || [],
+      }
+    : null;
   return [onboardingState, setState];
 }

@@ -23,7 +23,9 @@ function OnboardingPlatform(props: StepProps) {
 
   const [clientState, _] = useOnboardingState();
   useEffect(() => {
-    setSelectedPlatforms(clientState.selectedPlatforms);
+    if (clientState) {
+      setSelectedPlatforms(clientState.selectedPlatforms);
+    }
   }, [clientState]);
 
   const clearPlatforms = () => setSelectedPlatforms([]);

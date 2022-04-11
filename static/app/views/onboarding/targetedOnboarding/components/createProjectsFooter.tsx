@@ -45,6 +45,10 @@ export default function CreateProjectsFooter({
   const [clientState, setClientState] = useOnboardingState();
 
   const createProjects = async () => {
+    if (!clientState) {
+      // Do nothing if client state is not loaded yet.
+      return;
+    }
     try {
       addLoadingMessage(t('Creating projects'));
 

@@ -15,7 +15,7 @@ import OrganizationStore from './organizationStore';
 import {useLegacyStore} from './useLegacyStore';
 
 type PersistedStore = Readonly<{
-  onboarding: OnboardingState | null;
+  onboarding: Partial<OnboardingState> | null;
 }>;
 
 const DefaultPersistedStore: PersistedStore = {
