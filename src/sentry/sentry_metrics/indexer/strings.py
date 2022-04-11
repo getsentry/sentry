@@ -37,6 +37,7 @@ TRANSACTION_METRICS_NAMES = {
 
 # 200 - 299
 SHARED_TAG_STRINGS = {
+    # release helth
     "abnormal": PREFIX + 200,
     "crashed": PREFIX + 201,
     "environment": PREFIX + 202,
@@ -48,6 +49,19 @@ SHARED_TAG_STRINGS = {
     "release": PREFIX + 208,
     "session.status": PREFIX + 209,
     "staging": PREFIX + 210,
+    "errored_preaggr": PREFIX + 211,
+    # transactions
+    "transaction": PREFIX + 212,
+    "transaction.status": PREFIX + 213,
+    "satisfaction": PREFIX + 214,
+    "ok": PREFIX + 215,
+    "cancelled": PREFIX + 216,
+    "unknown": PREFIX + 217,
+    "aborted": PREFIX + 218,
+    "satisfied": PREFIX + 219,
+    "tolerated": PREFIX + 220,
+    "frustrated": PREFIX + 221,
+    "internal_error": PREFIX + 222,
 }
 SHARED_STRINGS = {**SESSION_METRIC_NAMES, **TRANSACTION_METRICS_NAMES, **SHARED_TAG_STRINGS}
 REVERSE_SHARED_STRINGS = {v: k for k, v in SHARED_STRINGS.items()}

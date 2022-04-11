@@ -1310,9 +1310,6 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         assert data["avg"] == 100
 
     def test_failure_rate(self):
-        for string in ["transaction.status", "internal_error", "ok"]:
-            indexer.record(self.organization.id, string)
-
         for _ in range(3):
             self.store_metric(
                 100,
