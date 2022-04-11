@@ -31,15 +31,15 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
   // once an import occurs, it will always take precedence over the profile in the props
   const profiles = importedProfiles ?? props.profiles;
 
-  // if the activeProfileIndex is null, use the activeProfileIndex from the profile group
-  const profileIndex = activeProfileIndex ?? profiles.activeProfileIndex;
-
   const flamegraph = useMemo(() => {
+    // if the activeProfileIndex is null, use the activeProfileIndex from the profile group
+    const profileIndex = activeProfileIndex ?? profiles.activeProfileIndex;
+
     return new FlamegraphModel(profiles.profiles[profileIndex], profileIndex, {
       inverted: view === 'bottom up',
       leftHeavy: sorting === 'left heavy',
     });
-  }, [profiles, profileIndex, sorting, view]);
+  }, [profiles, activeProfileIndex, sorting, view]);
 
   const onImport = useCallback((profile: ProfileGroup) => {
     setActiveProfileIndex(null);
@@ -76,7 +76,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       <FlamegraphZoomViewContainer>
         <ProfileDragDropImport onImport={onImport}>
           <FlamegraphZoomView
-            key={`${profiles.traceID}-${profileIndex}`}
+            key={`${profiles.traceID}-${flamegraph.profileIndex}`}
             flamegraph={flamegraph}
             canvasPoolManager={canvasPoolManager}
           />
