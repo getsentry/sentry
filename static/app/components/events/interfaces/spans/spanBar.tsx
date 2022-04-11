@@ -806,7 +806,19 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     return null;
   }
 
-  renderWarningText({warningText}: {warningText?: string} = {}) {
+  renderWarningText() {
+    let warningText = this.getBounds().warning;
+
+    if (this.props.showEmbeddedChildren) {
+      const embeddedWarningText = t(
+        'All child spans have been adjusted to account for server and client time differences.'
+      );
+
+      warningText = warningText
+        ? `${warningText}. ${embeddedWarningText}`
+        : embeddedWarningText;
+    }
+
     if (!warningText) {
       return null;
     }
@@ -885,7 +897,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
                 spanBarHatch={!!spanBarHatch}
               >
                 {durationString}
-                {this.renderWarningText({warningText: bounds.warning})}
+                {this.renderWarningText()}
               </DurationPill>
             </RowRectangle>
           )}
