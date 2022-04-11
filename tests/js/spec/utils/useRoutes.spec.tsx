@@ -44,7 +44,7 @@ describe('useRoutes', () => {
           <Route
             path="/"
             component={() => {
-              const _routes = useRoutes();
+              useRoutes();
               return null;
             }}
           />
