@@ -62,6 +62,18 @@ export function Provider({children, events}: React.PropsWithChildren<Props>) {
   const [skipInactive, setSkipInactive] = useState(false);
   const [speed, setSpeedState] = useState(1);
 
+  const forceDimensions = dimension => {
+    setDimensions(dimension as Dimensions);
+  };
+  const setPlayingFalse = () => {
+    setIsPlaying(false);
+  };
+
+  const cleanupListeners = () => {
+    replayerRef.current?.off(ReplayerEvents.Resize, forceDimensions);
+    replayerRef.current?.off(ReplayerEvents.Finish, setPlayingFalse);
+  };
+
   const initRoot = (root: RootElem) => {
     if (events === undefined) {
       return;
@@ -79,9 +91,10 @@ export function Provider({children, events}: React.PropsWithChildren<Props>) {
 
       // We have new events, need to clear out the old iframe because a new
       // `Replayer` instance is about to be created
-      while (root.lastChild) {
-        root.removeChild(root.lastChild);
+      while (root.firstChild) {
+        root.removeChild(root.firstChild);
       }
+      cleanupListeners();
     }
 
     // eslint-disable-next-line no-new
@@ -100,12 +113,8 @@ export function Provider({children, events}: React.PropsWithChildren<Props>) {
       // plugins: [],
     });
 
-    inst.on(ReplayerEvents.Resize, dimension => {
-      setDimensions(dimension as Dimensions);
-    });
-    inst.on(ReplayerEvents.Finish, () => {
-      setIsPlaying(false);
-    });
+    inst.on(ReplayerEvents.Resize, forceDimensions);
+    inst.on(ReplayerEvents.Finish, setPlayingFalse);
 
     // `.current` is marked as readonly, but it's safe to set the value from
     // inside a `useEffect` hook.
@@ -116,8 +125,9 @@ export function Provider({children, events}: React.PropsWithChildren<Props>) {
 
   useEffect(() => {
     if (replayerRef.current && events) {
-      initRoot(replayerRef.current.wrapper);
+      initRoot(replayerRef.current.wrapper.parentElement as RootElem);
     }
+    return cleanupListeners;
   }, [replayerRef.current, events]);
 
   const getCurrentTime = useCallback(
