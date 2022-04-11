@@ -33,7 +33,7 @@ import {
 type Props = {
   continuingTreeDepths: Array<TreeDepthType>;
   event: Readonly<EventTransaction>;
-  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
+  generateBounds: () => (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   span: Readonly<ProcessedSpanType>;
   spanGrouping: EnhancedSpan[];
   spanNumber: number;
@@ -123,7 +123,7 @@ export function SpanDescendantGroupBar(props: Props) {
   }
 
   function renderSpanRectangles() {
-    const bounds = getSpanGroupBounds(spanGrouping, generateBounds);
+    const bounds = getSpanGroupBounds(spanGrouping, generateBounds());
     const durationDisplay = getDurationDisplay(bounds);
     const {startTimestamp, endTimestamp} = getSpanGroupTimestamps(spanGrouping);
     const duration = Math.abs(endTimestamp - startTimestamp);
@@ -157,7 +157,7 @@ export function SpanDescendantGroupBar(props: Props) {
       spanGrouping={spanGrouping}
       treeDepth={props.treeDepth}
       spanNumber={spanNumber}
-      generateBounds={generateBounds}
+      generateBounds={generateBounds()}
       toggleSpanGroup={toggleSpanGroup}
       renderSpanTreeConnector={renderSpanTreeConnector}
       renderGroupSpansTitle={renderGroupSpansTitle}

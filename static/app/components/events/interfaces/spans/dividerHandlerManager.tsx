@@ -1,4 +1,5 @@
 import * as React from 'react';
+import {throttle} from 'lodash';
 
 import {
   clamp,
@@ -143,7 +144,10 @@ export class Provider extends React.Component<PropType, StateType> {
     if (!this.isDragging || event.type !== 'mousemove' || !this.hasInteractiveLayer()) {
       return;
     }
+    this.onDragMoveThrottled(event);
+  };
 
+  onDragMoveThrottled = throttle((event: MouseEvent) => {
     const rect = rectOfContent(this.props.interactiveLayerRef.current!);
 
     // mouse x-coordinate relative to the interactive layer's left side
@@ -168,7 +172,7 @@ export class Provider extends React.Component<PropType, StateType> {
 
       container.style.width = `calc(${dividerHandlePositionString} + 0.5px)`;
     });
-  };
+  }, 1000 / 10); // 10 fps
 
   onDragEnd = (event: MouseEvent) => {
     if (!this.isDragging || event.type !== 'mouseup' || !this.hasInteractiveLayer()) {

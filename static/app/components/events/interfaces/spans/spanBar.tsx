@@ -46,7 +46,6 @@ import {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
-import * as QuickTraceContext from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import {QuickTraceContextChildrenProps} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import {QuickTraceEvent, TraceError} from 'sentry/utils/performance/quickTrace/types';
 import {isTraceFull} from 'sentry/utils/performance/quickTrace/utils';
@@ -63,6 +62,7 @@ import SpanBarCursorGuide from './spanBarCursorGuide';
 import SpanDetail from './spanDetail';
 import {MeasurementMarker} from './styles';
 import {
+  EnhancedProcessedSpanType,
   FetchEmbeddedChildrenState,
   GroupType,
   ParsedTraceType,
@@ -104,22 +104,27 @@ const INTERSECTION_THRESHOLDS: Array<number> = [
 const MARGIN_LEFT = 0;
 
 type SpanBarProps = {
-  continuingTreeDepths: Array<TreeDepthType>;
+  continuingTreeDepths: (payload: EnhancedProcessedSpanType) => Array<TreeDepthType>;
+  dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps;
+  enhancedSpan: EnhancedProcessedSpanType;
   event: Readonly<EventTransaction>;
   fetchEmbeddedChildrenState: FetchEmbeddedChildrenState;
-  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
+  generateBounds: () => (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   numOfSpanChildren: number;
   numOfSpans: number;
   organization: Organization;
+  quickTrace: any;
+  scrollbarManagerChildrenProps: ScrollbarManager.ScrollbarManagerChildrenProps;
   showEmbeddedChildren: boolean;
   showSpanTree: boolean;
   span: Readonly<ProcessedSpanType>;
+  spanId: string;
   spanNumber: number;
-  toggleEmbeddedChildren:
-    | ((props: {eventSlug: string; orgSlug: string}) => void)
-    | undefined;
+  toggleEmbeddedChildren: (
+    payload: EnhancedProcessedSpanType
+  ) => ((props: {eventSlug: string; orgSlug: string}) => void) | undefined;
   toggleSpanGroup: (() => void) | undefined;
-  toggleSpanTree: () => void;
+  toggleSpanTree: (spanId: string) => () => void;
   trace: Readonly<ParsedTraceType>;
   treeDepth: number;
   groupOccurrence?: number;
@@ -145,6 +150,47 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     if (this.spanRowDOMRef.current) {
       this.connectObservers();
     }
+  }
+
+  shouldComponentUpdate(nextProps) {
+    const bounds = this.props.generateBounds()({
+      startTimestamp: this.props.span.start_timestamp,
+      endTimestamp: this.props.span.timestamp,
+    });
+
+    const nextBounds = nextProps.generateBounds()({
+      startTimestamp: nextProps.span.start_timestamp,
+      endTimestamp: nextProps.span.timestamp,
+    });
+
+    const transactions = this.getChildTransactions(this.props.quickTrace);
+    const nextTransactions = this.getChildTransactions(nextProps.quickTrace);
+
+    if (nextBounds.type !== bounds.type) {
+      return true;
+    }
+
+    if (nextBounds.isSpanVisibleInView !== bounds.isSpanVisibleInView) {
+      return true;
+    }
+
+    if (nextBounds.width !== bounds.width) {
+      return true;
+    }
+
+    if (nextBounds.left !== bounds.left) {
+      return true;
+    }
+
+    if (transactions?.length !== nextTransactions?.length) {
+      return true;
+    }
+
+    if (this.props.showEmbeddedChildren !== nextProps.showEmbeddedChildren) {
+      return true;
+    }
+
+    return false;
   }
 
   componentWillUnmount() {
@@ -215,7 +261,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   getBounds(): SpanViewBoundsType {
     const {event, span, generateBounds} = this.props;
 
-    const bounds = generateBounds({
+    const bounds = generateBounds()({
       startTimestamp: span.start_timestamp,
       endTimestamp: span.timestamp,
     });
@@ -289,7 +335,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     return (
       <React.Fragment>
         {Array.from(measurements).map(([timestamp, verticalMark]) => {
-          const bounds = getMeasurementBounds(timestamp, generateBounds);
+          const bounds = getMeasurementBounds(timestamp, generateBounds());
 
           const shouldDisplay = defined(bounds.left) && defined(bounds.width);
 
@@ -337,7 +383,9 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       return null;
     }
 
-    const connectorBars: Array<React.ReactNode> = continuingTreeDepths.map(treeDepth => {
+    const connectorBars: Array<React.ReactNode> = continuingTreeDepths(
+      this.props.enhancedSpan
+    ).map(treeDepth => {
       const depth: number = unwrapTreeDepth(treeDepth);
 
       if (depth === 0) {
@@ -414,7 +462,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
               return;
             }
 
-            this.props.toggleSpanTree();
+            this.props.toggleSpanTree(this.props.spanId);
           }}
         >
           <Count value={numOfSpanChildren} />
@@ -790,7 +838,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
                   });
                 }
 
-                toggleEmbeddedChildren({
+                toggleEmbeddedChildren?.(this.props.enhancedSpan)?.({
                   orgSlug: organization.slug,
                   eventSlug: generateEventSlug({
                     id: transaction.event_id,
@@ -945,6 +993,8 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     const {spanNumber} = this.props;
     const bounds = this.getBounds();
     const {isSpanVisibleInView} = bounds;
+    const errors = this.getRelatedErrors(this.props.quickTrace);
+    const transactions = this.getChildTransactions(this.props.quickTrace);
 
     return (
       <React.Fragment>
@@ -954,37 +1004,19 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
           showBorder={this.state.showDetail}
           data-test-id={`span-row-${spanNumber}`}
         >
-          <QuickTraceContext.Consumer>
-            {quickTrace => {
-              const errors = this.getRelatedErrors(quickTrace);
-              const transactions = this.getChildTransactions(quickTrace);
-              return (
-                <React.Fragment>
-                  <ScrollbarManager.Consumer>
-                    {scrollbarManagerChildrenProps => (
-                      <DividerHandlerManager.Consumer>
-                        {(
-                          dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
-                        ) =>
-                          this.renderHeader({
-                            dividerHandlerChildrenProps,
-                            scrollbarManagerChildrenProps,
-                            errors,
-                            transactions,
-                          })
-                        }
-                      </DividerHandlerManager.Consumer>
-                    )}
-                  </ScrollbarManager.Consumer>
-                  {this.renderDetail({
-                    isVisible: isSpanVisibleInView,
-                    transactions,
-                    errors,
-                  })}
-                </React.Fragment>
-              );
-            }}
-          </QuickTraceContext.Consumer>
+          <React.Fragment>
+            {this.renderHeader({
+              dividerHandlerChildrenProps: this.props.dividerHandlerChildrenProps,
+              scrollbarManagerChildrenProps: this.props.scrollbarManagerChildrenProps,
+              errors,
+              transactions,
+            })}
+            {this.renderDetail({
+              isVisible: isSpanVisibleInView,
+              transactions,
+              errors,
+            })}
+          </React.Fragment>
         </Row>
         {this.renderEmbeddedChildrenState()}
       </React.Fragment>

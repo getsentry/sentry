@@ -1,13 +1,18 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
+import {uuid4} from '@sentry/utils';
+import {memoize} from 'lodash';
 import isEqual from 'lodash/isEqual';
 
 import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
+import * as QuickTraceContext from 'sentry/utils/performance/quickTrace/quickTraceContext';
 
+import * as DividerHandlerManager from './dividerHandlerManager';
 import {DragManagerChildrenProps} from './dragManager';
+import * as ScrollbarManager from './scrollbarManager';
 import {ScrollbarManagerChildrenProps, withScrollbarManager} from './scrollbarManager';
 import SpanBar from './spanBar';
 import {SpanDescendantGroupBar} from './spanDescendantGroupBar';
@@ -24,9 +29,13 @@ import {getSpanID, getSpanOperation, setSpansOnTransaction} from './utils';
 import WaterfallModel from './waterfallModel';
 
 type PropType = ScrollbarManagerChildrenProps & {
+  allSpans: EnhancedProcessedSpanType[];
+  dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps;
   dragProps: DragManagerChildrenProps;
   filterSpans: FilterSpans | undefined;
   organization: Organization;
+  quickTrace: any;
+  scrollbarManagerChildrenProps: ScrollbarManager.ScrollbarManagerChildrenProps;
   spans: EnhancedProcessedSpanType[];
   traceViewRef: React.RefObject<HTMLDivElement>;
   waterfallModel: WaterfallModel;
@@ -149,12 +158,43 @@ class SpanTree extends React.Component<PropType> {
     this.props.updateScrollState();
   };
 
-  render() {
-    const {waterfallModel, spans, organization, dragProps} = this.props;
-    const generateBounds = waterfallModel.generateBounds({
-      viewStart: dragProps.viewWindowStart,
-      viewEnd: dragProps.viewWindowEnd,
+  generateBounds = () => {
+    return this.props.waterfallModel.generateBounds({
+      viewStart: this.props.dragProps.viewWindowStart,
+      viewEnd: this.props.dragProps.viewWindowEnd,
     });
+  };
+
+  getContinuingDepthFromPayload = (payload: EnhancedProcessedSpanType) => {
+    if (
+      payload.type === 'filtered_out' ||
+      payload.type === 'out_of_view' ||
+      payload.type === 'span_group_chain' ||
+      payload.type === 'span_group_siblings'
+    ) {
+      return [];
+    }
+    return payload.continuingTreeDepths;
+  };
+
+  toggleEmbeddedFromPayload = (payload: EnhancedProcessedSpanType) => {
+    if (
+      payload.type === 'filtered_out' ||
+      payload.type === 'out_of_view' ||
+      payload.type === 'span_group_chain' ||
+      payload.type === 'span_group_siblings'
+    ) {
+      return () => {};
+    }
+    return payload.toggleEmbeddedChildren;
+  };
+
+  getSpan = memoize((spanId: string, allSpans: EnhancedProcessedSpanType[]) => {
+    return allSpans.find(span => span.span.span_id === spanId) || allSpans[0];
+  });
+
+  render() {
+    const {waterfallModel, spans, organization} = this.props;
 
     type AccType = {
       numOfFilteredSpansAbove: number;
@@ -217,7 +257,7 @@ class SpanTree extends React.Component<PropType> {
               key={`${spanNumber}-span-group`}
               event={waterfallModel.event}
               span={span}
-              generateBounds={generateBounds}
+              generateBounds={this.generateBounds}
               treeDepth={treeDepth}
               continuingTreeDepths={continuingTreeDepths}
               spanNumber={spanNumber}
@@ -235,7 +275,7 @@ class SpanTree extends React.Component<PropType> {
               key={`${spanNumber}-span-sibling`}
               event={waterfallModel.event}
               span={span}
-              generateBounds={generateBounds}
+              generateBounds={this.generateBounds}
               treeDepth={treeDepth}
               continuingTreeDepths={continuingTreeDepths}
               spanNumber={spanNumber}
@@ -285,18 +325,23 @@ class SpanTree extends React.Component<PropType> {
             spanBarColor={spanBarColor}
             spanBarHatch={type === 'gap'}
             span={span}
+            quickTrace={this.props.quickTrace}
+            scrollbarManagerChildrenProps={this.props.scrollbarManagerChildrenProps}
+            dividerHandlerChildrenProps={this.props.dividerHandlerChildrenProps}
+            enhancedSpan={this.getSpan(span.span_id ?? uuid4(), this.props.allSpans)}
             showSpanTree={!waterfallModel.hiddenSpanSubTrees.has(getSpanID(span))}
             numOfSpanChildren={numOfSpanChildren}
             trace={waterfallModel.parsedTrace}
-            generateBounds={generateBounds}
-            toggleSpanTree={this.toggleSpanTree(getSpanID(span))}
+            generateBounds={this.generateBounds}
+            toggleSpanTree={this.toggleSpanTree}
+            spanId={getSpanID(span)}
             treeDepth={treeDepth}
-            continuingTreeDepths={continuingTreeDepths}
+            continuingTreeDepths={this.getContinuingDepthFromPayload}
             spanNumber={spanNumber}
             isLast={isLast}
             isRoot={isRoot}
             showEmbeddedChildren={payload.showEmbeddedChildren}
-            toggleEmbeddedChildren={payload.toggleEmbeddedChildren}
+            toggleEmbeddedChildren={this.toggleEmbeddedFromPayload}
             toggleSiblingSpanGroup={toggleSiblingSpanGroup}
             fetchEmbeddedChildrenState={payload.fetchEmbeddedChildrenState}
             toggleSpanGroup={toggleSpanGroup}

@@ -1,9 +1,11 @@
 import {createRef, PureComponent} from 'react';
+import {memoize} from 'lodash';
 import {Observer} from 'mobx-react';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
+import * as QuickTraceContext from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import {ProfilerWithTasks} from 'sentry/utils/performanceForSentry';
 
 import * as CursorGuideHandler from './cursorGuideHandler';
@@ -25,6 +27,23 @@ class TraceView extends PureComponent<Props> {
   virtualScrollBarContainerRef = createRef<HTMLDivElement>();
   minimapInteractiveRef = createRef<HTMLDivElement>();
 
+  generateBounds = memoize((waterfallModel: WaterfallModel) => {
+    return waterfallModel.generateBounds({
+      viewStart: 0,
+      viewEnd: 1,
+    });
+  });
+
+  getSpans = memoize((waterfallModel: WaterfallModel, organization: Organization) => {
+    return waterfallModel.getWaterfall(
+      {
+        viewStart: 0,
+        viewEnd: 1,
+      },
+      organization.features.includes('performance-autogroup-sibling-spans')
+    );
+  });
+
   renderHeader = (dragProps: DragManagerChildrenProps) => (
     <Observer>
       {() => {
@@ -40,17 +59,8 @@ class TraceView extends PureComponent<Props> {
             virtualScrollBarContainerRef={this.virtualScrollBarContainerRef}
             operationNameFilters={waterfallModel.operationNameFilters}
             rootSpan={waterfallModel.rootSpan.span}
-            spans={waterfallModel.getWaterfall(
-              {
-                viewStart: 0,
-                viewEnd: 1,
-              },
-              organization.features.includes('performance-autogroup-sibling-spans')
-            )}
-            generateBounds={waterfallModel.generateBounds({
-              viewStart: 0,
-              viewEnd: 1,
-            })}
+            spans={this.getSpans(waterfallModel, organization)}
+            generateBounds={this.generateBounds(waterfallModel)}
           />
         );
       }}
@@ -94,22 +104,46 @@ class TraceView extends PureComponent<Props> {
                               {() => {
                                 return (
                                   <ProfilerWithTasks id="SpanTree">
-                                    <SpanTree
-                                      traceViewRef={this.traceViewRef}
-                                      dragProps={dragProps}
-                                      organization={organization}
-                                      waterfallModel={waterfallModel}
-                                      filterSpans={waterfallModel.filterSpans}
-                                      spans={waterfallModel.getWaterfall(
-                                        {
-                                          viewStart: dragProps.viewWindowStart,
-                                          viewEnd: dragProps.viewWindowEnd,
-                                        },
-                                        organization.features.includes(
-                                          'performance-autogroup-sibling-spans'
-                                        )
+                                    <QuickTraceContext.Consumer>
+                                      {quickTrace => (
+                                        <ScrollbarManager.Consumer>
+                                          {scrollbarManagerChildrenProps => (
+                                            <SpanTree
+                                              traceViewRef={this.traceViewRef}
+                                              dragProps={dragProps}
+                                              organization={organization}
+                                              quickTrace={quickTrace}
+                                              scrollbarManagerChildrenProps={
+                                                scrollbarManagerChildrenProps
+                                              }
+                                              dividerHandlerChildrenProps={
+                                                dividerHandlerChildrenProps
+                                              }
+                                              waterfallModel={waterfallModel}
+                                              filterSpans={waterfallModel.filterSpans}
+                                              allSpans={waterfallModel.getWaterfall(
+                                                {
+                                                  viewStart: 0,
+                                                  viewEnd: 1,
+                                                },
+                                                organization.features.includes(
+                                                  'performance-autogroup-sibling-spans'
+                                                )
+                                              )}
+                                              spans={waterfallModel.getWaterfall(
+                                                {
+                                                  viewStart: dragProps.viewWindowStart,
+                                                  viewEnd: dragProps.viewWindowEnd,
+                                                },
+                                                organization.features.includes(
+                                                  'performance-autogroup-sibling-spans'
+                                                )
+                                              )}
+                                            />
+                                          )}
+                                        </ScrollbarManager.Consumer>
                                       )}
-                                    />
+                                    </QuickTraceContext.Consumer>
                                   </ProfilerWithTasks>
                                 );
                               }}

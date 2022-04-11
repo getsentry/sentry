@@ -1,4 +1,5 @@
 import * as React from 'react';
+import {throttle} from 'lodash';
 
 import {clamp, rectOfContent} from 'sentry/components/performance/waterfall/utils';
 import {PerformanceInteraction} from 'sentry/utils/performanceForSentry';
@@ -278,7 +279,10 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
     ) {
       return;
     }
+    this.onWindowSelectionDragMoveThrottled(event);
+  };
 
+  onWindowSelectionDragMoveThrottled = throttle((event: MouseEvent) => {
     const rect = rectOfContent(this.props.interactiveLayerRef.current!);
 
     // mouse x-coordinate relative to the interactive layer's left side
@@ -300,7 +304,7 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
       windowSelectionCurrent,
       windowSelectionSize,
     });
-  };
+  }, 1000 / 10); // 10 fps
 
   onWindowSelectionDragEnd = (event: MouseEvent) => {
     if (

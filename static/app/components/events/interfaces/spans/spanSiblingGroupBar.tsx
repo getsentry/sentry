@@ -24,7 +24,7 @@ import {
 type Props = {
   continuingTreeDepths: Array<TreeDepthType>;
   event: Readonly<EventTransaction>;
-  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
+  generateBounds: () => (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   isLastSibling: boolean;
   occurrence: number;
   span: Readonly<ProcessedSpanType>;
@@ -116,12 +116,12 @@ export default function SpanSiblingGroupBar(props: Props) {
           <SpanRectangle
             key={index}
             spanGrouping={spanGrouping}
-            bounds={getSpanGroupBounds([spanGrouping[index]], generateBounds)}
+            bounds={getSpanGroupBounds([spanGrouping[index]], generateBounds())}
           />
         ))}
         <SpanRectangleOverlay
           spanGrouping={spanGrouping}
-          bounds={getSpanGroupBounds(spanGrouping, generateBounds)}
+          bounds={getSpanGroupBounds(spanGrouping, generateBounds())}
         />
       </React.Fragment>
     );
@@ -134,7 +134,7 @@ export default function SpanSiblingGroupBar(props: Props) {
       spanGrouping={spanGrouping}
       treeDepth={props.treeDepth}
       spanNumber={spanNumber}
-      generateBounds={generateBounds}
+      generateBounds={generateBounds()}
       toggleSpanGroup={() => toggleSiblingSpanGroup?.(spanGrouping[0].span, occurrence)}
       renderSpanTreeConnector={renderSpanTreeConnector}
       renderGroupSpansTitle={renderGroupSpansTitle}
