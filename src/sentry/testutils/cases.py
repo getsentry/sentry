@@ -1522,7 +1522,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
         self.login_as(self.user)
 
 
-class TestMigrations(TestCase):
+class TestMigrations(TransactionTestCase):
     """
     From https://www.caktusgroup.com/blog/2016/02/02/writing-unit-tests-django-migrations/
     """
@@ -1535,6 +1535,7 @@ class TestMigrations(TestCase):
     migrate_to = None
 
     def setUp(self):
+        super().setUp()
         assert (
             self.migrate_from and self.migrate_to
         ), "TestCase '{}' must define migrate_from and migrate_to properties".format(
@@ -1542,7 +1543,11 @@ class TestMigrations(TestCase):
         )
         self.migrate_from = [(self.app, self.migrate_from)]
         self.migrate_to = [(self.app, self.migrate_to)]
+
         executor = MigrationExecutor(connection)
+        self.current_migration = [
+            max(m for m in executor.loader.applied_migrations if m[0] == self.app)
+        ]
         old_apps = executor.loader.project_state(self.migrate_from).apps
 
         # Reverse to the original migration
@@ -1556,6 +1561,12 @@ class TestMigrations(TestCase):
         executor.migrate(self.migrate_to)
 
         self.apps = executor.loader.project_state(self.migrate_to).apps
+
+    def tearDown(self):
+        super().tearDown()
+        executor = MigrationExecutor(connection)
+        executor.loader.build_graph()  # reload.
+        executor.migrate(self.current_migration)
 
     def setup_before_migration(self, apps):
         pass
