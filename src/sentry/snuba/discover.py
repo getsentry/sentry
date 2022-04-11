@@ -1663,8 +1663,8 @@ def find_span_histogram_min_max(span, min_value, max_value, user_query, params, 
     selected_columns = []
     min_column = ""
     max_column = ""
-    q1_column = ""
-    q3_column = ""
+    outlier_lower_fence = ""
+    outlier_upper_fence = ""
     if min_value is None:
         min_column = f'fn_span_exclusive_time("{span.op}", {span.group}, min)'
         selected_columns.append(min_column)
@@ -1672,10 +1672,10 @@ def find_span_histogram_min_max(span, min_value, max_value, user_query, params, 
         max_column = f'fn_span_exclusive_time("{span.op}", {span.group}, max)'
         selected_columns.append(max_column)
     if data_filter == "exclude_outliers":
-        q1_column = f'fn_span_exclusive_time("{span.op}", {span.group}, quantile(0.25))'
-        q3_column = f'fn_span_exclusive_time("{span.op}", {span.group}, quantile(0.75))'
-        selected_columns.append(q1_column)
-        selected_columns.append(q3_column)
+        outlier_lower_fence = f'fn_span_exclusive_time("{span.op}", {span.group}, quantile(0.25))'
+        outlier_upper_fence = f'fn_span_exclusive_time("{span.op}", {span.group}, quantile(0.75))'
+        selected_columns.append(outlier_lower_fence)
+        selected_columns.append(outlier_upper_fence)
 
     results = query(
         selected_columns=selected_columns,
@@ -1713,11 +1713,11 @@ def find_span_histogram_min_max(span, min_value, max_value, user_query, params, 
 
         max_fence_value = None
         if data_filter == "exclude_outliers":
-            q1_alias = get_function_alias(q1_column)
-            q3_alias = get_function_alias(q3_column)
+            outlier_lower_fence_alias = get_function_alias(outlier_lower_fence)
+            outlier_upper_fence_alias = get_function_alias(outlier_upper_fence)
 
-            first_quartile = row[q1_alias]
-            third_quartile = row[q3_alias]
+            first_quartile = row[outlier_lower_fence_alias]
+            third_quartile = row[outlier_upper_fence_alias]
 
             if (
                 first_quartile is not None
