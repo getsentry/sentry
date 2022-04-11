@@ -2101,7 +2101,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                         ),
                     },
                     "type": "s",
-                    "value": [3],
+                    "value": [3, 4],
                     "retention_days": 90,
                 },
                 {
@@ -2111,11 +2111,11 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "timestamp": user_ts,
                     "tags": {
                         self.tx_satisfaction: indexer.record(
-                            self.organization.id, TransactionSatisfactionTagValue.FRUSTRATED.value
+                            self.organization.id, TransactionSatisfactionTagValue.SATISFIED.value
                         ),
                     },
                     "type": "s",
-                    "value": [4],
+                    "value": [5, 6],
                     "retention_days": 90,
                 },
             ],
@@ -2128,11 +2128,10 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             statsPeriod="1m",
             interval="1m",
         )
-
-        print(response.data)
-
         assert len(response.data["groups"]) == 1
-        assert response.data["groups"][0]["totals"] == {"transaction.user_misery": 2}
+        assert response.data["groups"][0]["totals"] == {
+            "transaction.user_misery": 0.06807638364440609
+        }
 
     def test_session_duration_derived_alias(self):
         org_id = self.organization.id

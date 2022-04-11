@@ -41,7 +41,7 @@ from sentry.snuba.metrics.fields.snql import (
     crashed_sessions,
     errored_preaggr_sessions,
     percentage,
-    sessions_errored_set,
+    uniq_aggregation_on_metric,
 )
 from sentry.snuba.metrics.naming_layer.mapping import get_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
@@ -383,7 +383,7 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2, monkeypatch):
                 dataset="metrics",
                 match=Entity("metrics_sets"),
                 select=[
-                    sessions_errored_set(
+                    uniq_aggregation_on_metric(
                         metric_ids=[resolve_weak(org_id, SessionMRI.ERROR.value)],
                         alias=SessionMRI.ERRORED_SET.value,
                     ),

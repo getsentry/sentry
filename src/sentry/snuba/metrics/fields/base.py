@@ -50,9 +50,9 @@ from sentry.snuba.metrics.fields.snql import (
     percentage,
     satisfaction_count_transaction,
     session_duration_filters,
-    sessions_errored_set,
     subtraction,
     tolerated_count_transaction,
+    uniq_aggregation_on_metric,
 )
 from sentry.snuba.metrics.naming_layer.mapping import get_public_name_from_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
@@ -472,6 +472,10 @@ class DerivedMetricExpressionDefinition:
     op: Optional[str] = None
     result_type: Optional[MetricType] = None
     # TODO: better typing
+    # snql attribute is a function that takes optional args that map to strings that are MRIs for
+    # the derived metric, org_id, metric_ids required to generate the snql and a string alias,
+    # and in return, return snql that snuba can understand and represents how to query for the
+    # derived metric
     snql: Optional[Callable[..., Function]] = None
     post_query_func: Any = lambda *args: args
     is_private: bool = False
@@ -827,7 +831,7 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             metric_mri=SessionMRI.ERRORED_SET.value,
             metrics=[SessionMRI.ERROR.value],
             unit="sessions",
-            snql=lambda *_, org_id, metric_ids, alias=None: sessions_errored_set(
+            snql=lambda *_, org_id, metric_ids, alias=None: uniq_aggregation_on_metric(
                 metric_ids, alias=alias
             ),
             is_private=True,
@@ -954,32 +958,24 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
                 org_id=org_id, metric_ids=metric_ids, alias=alias
             ),
         ),
-        CompositeEntityDerivedMetric(
-            metric_name=TransactionMRI.USER.value,
-            metrics=[TransactionMRI.MISERABLE_USER.value, TransactionMRI.DURATION.value],
+        SingularEntityDerivedMetric(
+            metric_mri=TransactionMRI.ALL_USER.value,
+            metrics=[TransactionMRI.USER.value],
             unit="percentage",
-            snql=lambda *args, org_id, metric_ids, alias=None: a(args),
-            # snql=lambda mu, au, org_id, metric_ids, alias=None: division_float(
-            #     arg1_snql=addition(mu, MISERY_ALPHA),
-            #     arg2_snql=addition(au, MISERY_BETA),
-            #     alias=alias,
-            # ),
+            snql=lambda *_, org_id, metric_ids, alias=None: uniq_aggregation_on_metric(
+                metric_ids, alias=alias
+            ),
+        ),
+        SingularEntityDerivedMetric(
+            metric_mri=TransactionMRI.USER_MISERY.value,
+            metrics=[TransactionMRI.MISERABLE_USER.value, TransactionMRI.ALL_USER.value],
+            unit="percentage",
+            snql=lambda miserable_user, user, org_id, metric_ids, alias=None: division_float(
+                addition(miserable_user, MISERY_ALPHA), addition(user, MISERY_BETA), alias
+            ),
         ),
     ]
 }
-
-
-def a(args):
-    print("args:")
-    print(len(args))
-    for ar in args:
-        print(ar)
-    # print(args)
-    # return division_float(
-    #     arg1_snql=addition(miserable_users, MISERY_ALPHA),
-    #     arg2_snql=addition(all_users, MISERY_BETA),
-    #     alias=alias,
-    # )
 
 
 DERIVED_OPS: Mapping[str, DerivedOp] = {
