@@ -105,7 +105,13 @@ class SentryPermission(ScopedPermission):
                         extra=extra,
                     )
 
-                    raise SsoRequired(organization)
+                    after_login_redirect = request.META.get("HTTP_REFERER", "")
+                    if not auth.is_valid_redirect(
+                        after_login_redirect, allowed_hosts=(request.get_host(),)
+                    ):
+                        after_login_redirect = None
+
+                    raise SsoRequired(organization, after_login_redirect=after_login_redirect)
 
                 if self.is_not_2fa_compliant(request, organization):
                     logger.info(
