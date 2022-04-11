@@ -1,15 +1,21 @@
 from __future__ import annotations
 
 import time
-from typing import Sequence
+from typing import TYPE_CHECKING, Sequence
 from urllib.parse import urlparse, urlunparse
 
 from django.utils.http import urlencode
 
 from sentry.incidents.models import AlertRuleTriggerAction
-from sentry.models import Group, Organization, Project, Rule
-from sentry.notifications.utils import NotificationRuleDetails
+from sentry.models import Group, Organization, Project, Rule, Team, User
+from sentry.notifications.types import get_notification_setting_type_name
 from sentry.utils.http import absolute_uri
+
+if TYPE_CHECKING:
+    from sentry.notifications.notifications.base import BaseNotification
+    from sentry.notifications.types import NotificationSettingTypes
+    from sentry.notifications.utils import NotificationRuleDetails
+    from sentry.types.integrations import ExternalProviders
 
 
 def get_link_to_activity_tab_from_group_link(group_link: str) -> str:
@@ -75,5 +81,34 @@ def get_integration_link(organization: Organization, integration_slug: str) -> s
 def build_rule_url(rule: Rule, group: Group, project: Project) -> str:
     org_slug = group.organization.slug
     project_slug = project.slug
-    rule_url = f"/organizations/{org_slug}/alerts/rules/{project_slug}/{rule.id}/"
-    return absolute_uri(rule_url)
+    rule_url: str = absolute_uri(
+        f"/organizations/{org_slug}/alerts/rules/{project_slug}/{rule.id}/"
+    )
+    return rule_url
+
+
+def get_team_settings_url(team: Team) -> str:
+    return f"/settings/{team.organization.slug}/teams/{team.slug}/notifications/"
+
+
+def get_user_settings_url(type_key: NotificationSettingTypes | None = None) -> str:
+    if not type_key:
+        return "/settings/account/notifications/"
+
+    fine_tuning_key = get_notification_setting_type_name(type_key)
+    return f"/settings/account/notifications/{fine_tuning_key}/"
+
+
+def get_settings_url(
+    notification: BaseNotification,
+    recipient: Team | User,
+    provider: ExternalProviders,
+) -> str:
+    if isinstance(recipient, Team):
+        team = Team.objects.get(id=recipient.id)
+        url = get_team_settings_url(team)
+    else:
+        url = get_user_settings_url(notification.notification_setting_type)
+
+    params = notification.get_tracking_params(provider, recipient)
+    return f"{absolute_uri(url)}?{urlencode(params)}"

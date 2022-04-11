@@ -4,7 +4,6 @@ from typing import Any, Iterable, Mapping, MutableMapping, Sequence
 
 from sentry_relay import parse_release
 
-from sentry.integrations.slack.message_builder.footer import get_settings_url
 from sentry.models import (
     Activity,
     CommitFileChange,
@@ -25,6 +24,7 @@ from sentry.notifications.utils import (
 )
 from sentry.notifications.utils.actions import MessageAction
 from sentry.notifications.utils.participants import get_participants_for_release
+from sentry.notifications.utils.urls import get_settings_url
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.compat import zip
 from sentry.utils.http import absolute_uri

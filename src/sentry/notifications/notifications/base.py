@@ -7,10 +7,10 @@ import sentry_sdk
 
 from sentry import analytics
 from sentry.db.models import Model
-from sentry.integrations.slack.message_builder.footer import get_settings_url
 from sentry.models import Environment, NotificationSetting, Team
 from sentry.notifications.types import NotificationSettingTypes, get_notification_setting_type_name
 from sentry.notifications.utils.actions import MessageAction
+from sentry.notifications.utils.urls import get_settings_url
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute

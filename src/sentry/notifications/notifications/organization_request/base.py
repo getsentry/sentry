@@ -5,13 +5,13 @@ import logging
 from typing import TYPE_CHECKING, Any, Iterable, MutableMapping, Type
 
 from sentry.db.models import Model
-from sentry.integrations.slack.message_builder.footer import get_settings_url
 from sentry.models import Team
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.strategies.role_based_recipient_strategy import (
     RoleBasedRecipientStrategy,
 )
 from sentry.notifications.types import NotificationSettingTypes
+from sentry.notifications.utils.urls import get_settings_url
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:

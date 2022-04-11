@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from .base import SlackNotificationsMessageBuilder
 from .digest import DigestNotificationMessageBuilder
 from .issues import IssueNotificationMessageBuilder

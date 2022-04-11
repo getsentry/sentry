@@ -35,7 +35,7 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
 
-class SlackUnassignedNotificationTest(SlackActivityNotificationTest):
+class SlackIssueAlertNotificationTest(SlackActivityNotificationTest):
     @responses.activate
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_issue_alert_user(self, mock_func):
