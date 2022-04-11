@@ -78,10 +78,10 @@ const ReplayControls = ({
           <Button
             data-test-id="replay-forward-10s"
             size="xsmall"
-            title={t('Go forwards 10 seconds')}
+            title={t('Go forward 10 seconds')}
             icon={<IconRefresh color="gray500" size="sm" />}
             onClick={() => setCurrentTime(currentTime + 10 * SECOND)}
-            aria-label={t('Go forwards 10 seconds')}
+            aria-label={t('Go forward 10 seconds')}
           />
         </ButtonBar>
         <span>
@@ -115,7 +115,7 @@ const ReplayControls = ({
         <Button
           data-test-id="replay-fullscreen"
           size="xsmall"
-          title={t('View the Replay in full screen')}
+          title={t('View in full screen')}
           icon={<IconResize size="sm" />}
           onClick={onFullscreen}
           aria-label={t('View in full screen')}

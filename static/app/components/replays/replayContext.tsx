@@ -205,17 +205,6 @@ export function Provider({children, events}: React.PropsWithChildren<Props>) {
     [replayerRef.current]
   );
 
-  // if (replayerRef.current) {
-  //   console.log({
-  //     replayerRef,
-  //     currentTime: replayerRef.current.getCurrentTime(),
-  //     metadata: replayerRef.current.getMetaData(),
-  //     mirror: replayerRef.current.getMirror(),
-  //     timeOffset: replayerRef.current.getTimeOffset(),
-  //     config: replayerRef.current.config,
-  //   });
-  // }
-
   const currentTime = useCurrentTime(getCurrentTime);
 
   return (
