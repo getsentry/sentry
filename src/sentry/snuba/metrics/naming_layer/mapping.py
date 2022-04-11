@@ -22,12 +22,12 @@ def create_name_mapping_layers() -> None:
         }
     )
 
-    for (MerticKey, MRI) in (
+    for (MetricKey, MRI) in (
         (SessionMetricKey, SessionMRI),
         (TransactionMetricKey, TransactionMRI),
     ):
         # Adds new names at the end, so that when the reverse mapping is created
-        for metric_key in MerticKey:
+        for metric_key in MetricKey:
             NAME_TO_MRI[metric_key.value] = MRI[metric_key.name]
 
     MRI_TO_NAME.update({v.value: k for k, v in NAME_TO_MRI.items()})
