@@ -32,7 +32,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
   afterEach(function () {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
-    browserHistory.push.mockReset();
+    (browserHistory.push as Record<string, any>).mockReset();
   });
 
   describe('Without Span Data', function () {
