@@ -186,9 +186,7 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
     @patch("sentry.snuba.metrics.datasource.get_derived_metrics")
     def test_same_entity_multiple_metric_ids_missing_data(self, mocked_derived_metrics):
         """
-        Test that ensures that if a derived metric is defined with constituent metrics that
-        belong to the same entity but have different ids, then we are able to correctly return
-        its detail info
+        Test when not requested metrics have data in the dataset
         """
         mocked_derived_metrics.return_value = MOCKED_DERIVED_METRICS_2
         indexer.record(self.organization.id, "metric_foo_doe")
@@ -224,6 +222,11 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
     )
     @patch("sentry.snuba.metrics.datasource.get_derived_metrics")
     def test_same_entity_multiple_metric_ids(self, mocked_derived_metrics):
+        """
+        Test that ensures that if a derived metric is defined with constituent metrics that
+        belong to the same entity but have different ids, then we are able to correctly return
+        its detail info
+        """
         mocked_derived_metrics.return_value = MOCKED_DERIVED_METRICS_2
         org_id = self.project.organization.id
         metric_id = indexer.record(org_id, "metric_foo_doe")
