@@ -118,13 +118,23 @@ class AlertRuleSerializer(Serializer):
                     "originalAlertRuleId"
                 ] = activity.previous_alert_rule_id
 
+        if "lastTriggered" in self.expand:
+            last_triggered_lookup = {
+                inc["alert_rule_id"]: inc["date_started"]
+                for inc in Incident.objects.filter(alert_rule__in=item_list)
+                .values("alert_rule_id")
+                .annotate(date_started=Max("date_started"))
+            }
+            for alert_rule in alert_rules.values():
+                result[alert_rule]["lastTriggered"] = last_triggered_lookup.get(alert_rule.id, None)
+
         return result
 
     def serialize(self, obj, attrs, user, **kwargs):
         env = obj.snuba_query.environment
         # Temporary: Translate aggregate back here from `tags[sentry:user]` to `user` for the frontend.
         aggregate = translate_aggregate_field(obj.snuba_query.aggregate, reverse=True)
-        return {
+        data = {
             "id": str(obj.id),
             "name": obj.name,
             "organizationId": str(obj.organization_id),
@@ -150,6 +160,10 @@ class AlertRuleSerializer(Serializer):
             "dateCreated": obj.date_added,
             "createdBy": attrs.get("created_by", None),
         }
+        if "lastTriggered" in self.expand:
+            data["lastTriggered"] = attrs.get("lastTriggered", None)
+
+        return data
 
 
 class DetailedAlertRuleSerializer(AlertRuleSerializer):
@@ -172,26 +186,12 @@ class DetailedAlertRuleSerializer(AlertRuleSerializer):
             )
             event_types.append(SnubaQueryEventType.EventType(event_type.type).name.lower())
 
-        if "lastTriggered" in self.expand:
-            last_triggered_lookup = {
-                inc["alert_rule_id"]: inc["date_started"]
-                for inc in Incident.objects.filter(alert_rule__in=item_list)
-                .values("alert_rule_id")
-                .annotate(date_started=Max("date_started"))
-            }
-            for alert_rule in alert_rules.values():
-                result[alert_rules[alert_rule.id]]["lastTriggered"] = last_triggered_lookup.get(
-                    alert_rule.id, None
-                )
-
         return result
 
     def serialize(self, obj, attrs, user, **kwargs):
         data = super().serialize(obj, attrs, user)
         data["excludedProjects"] = sorted(attrs.get("excluded_projects", []))
         data["eventTypes"] = sorted(attrs.get("event_types", []))
-        if "lastTriggered" in self.expand:
-            data["lastTriggered"] = attrs.get("lastTriggered", None)
         return data
 
 
