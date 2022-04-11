@@ -5,6 +5,7 @@ import logging
 from typing import TYPE_CHECKING, Any, Iterable, MutableMapping, Type
 
 from sentry.db.models import Model
+from sentry.integrations.slack.message_builder.footer import get_settings_url
 from sentry.models import Team
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.strategies.role_based_recipient_strategy import (
@@ -48,7 +49,7 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
             raise NotImplementedError
 
         # notification footer only used for Slack for now
-        settings_url = self.get_settings_url(recipient, ExternalProviders.SLACK)
+        settings_url = get_settings_url(self, recipient, ExternalProviders.SLACK)
         return self.role_based_recipient_strategy.build_notification_footer_from_settings_url(
             settings_url, recipient
         )

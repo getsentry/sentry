@@ -7,7 +7,7 @@ from urllib.parse import urlparse, urlunparse
 from django.utils.http import urlencode
 
 from sentry.incidents.models import AlertRuleTriggerAction
-from sentry.models import Group, Organization
+from sentry.models import Group, Organization, Project, Rule
 from sentry.notifications.utils import NotificationRuleDetails
 from sentry.utils.http import absolute_uri
 
@@ -70,3 +70,10 @@ def get_integration_link(organization: Organization, integration_slug: str) -> s
         f"/settings/{organization.slug}/integrations/{integration_slug}/?referrer=alert_email"
     )
     return integration_link
+
+
+def build_rule_url(rule: Rule, group: Group, project: Project) -> str:
+    org_slug = group.organization.slug
+    project_slug = project.slug
+    rule_url = f"/organizations/{org_slug}/alerts/rules/{project_slug}/{rule.id}/"
+    return absolute_uri(rule_url)

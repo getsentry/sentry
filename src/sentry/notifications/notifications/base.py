@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import abc
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Optional, Sequence
-from urllib.parse import urljoin
 
 import sentry_sdk
 
 from sentry import analytics
 from sentry.db.models import Model
+from sentry.integrations.slack.message_builder.footer import get_settings_url
 from sentry.models import Environment, NotificationSetting, Team
 from sentry.notifications.types import NotificationSettingTypes, get_notification_setting_type_name
 from sentry.notifications.utils.actions import MessageAction
@@ -115,6 +115,12 @@ class BaseNotification(abc.ABC):
             "actor_id": recipient.actor_id,
         }
 
+    def get_tracking_params(
+        self, provider: ExternalProviders, recipient: Optional[Team | User] = None
+    ) -> Mapping[str, Any]:
+        """Returns the query params that allow us to track clicks into Sentry links."""
+        return {"referrer": self.get_referrer(provider, recipient)}
+
     def get_custom_analytics_params(self, recipient: Team | User) -> Mapping[str, Any]:
         """
         Returns a mapping of params used to record the event associated with self.analytics_event.
@@ -167,25 +173,8 @@ class BaseNotification(abc.ABC):
     def get_sentry_query_params(
         self, provider: ExternalProviders, recipient: Optional[Team | User] = None
     ) -> str:
-        """
-        Returns the query params that allow us to track clicks into Sentry links.
-        If the recipient is not necessarily a user (ex: sending to an email address associated with an account),
-        The recipient may be omitted.
-        """
+        """Deprecated. Use `get_tracking_params()`."""
         return f"?referrer={self.get_referrer(provider, recipient)}"
-
-    def get_settings_url(self, recipient: Team | User, provider: ExternalProviders) -> str:
-        # settings url is dependant on the provider so we know which provider is sending them into Sentry
-        if isinstance(recipient, Team):
-            team = Team.objects.get(id=recipient.id)
-            url_str = f"/settings/{self.org_slug}/teams/{team.slug}/notifications/"
-        else:
-            url_str = "/settings/account/notifications/"
-            if self.fine_tuning_key:
-                url_str += f"{self.fine_tuning_key}/"
-        return str(
-            urljoin(absolute_uri(url_str), self.get_sentry_query_params(provider, recipient))
-        )
 
     def determine_recipients(self) -> Iterable[Team | User]:
         raise NotImplementedError
@@ -243,7 +232,7 @@ class ProjectNotification(BaseNotification, abc.ABC):
 
     def build_notification_footer(self, recipient: Team | User) -> str:
         # notification footer only used for Slack for now
-        settings_url = self.get_settings_url(recipient, ExternalProviders.SLACK)
+        settings_url = get_settings_url(self, recipient, ExternalProviders.SLACK)
 
         parent = getattr(self, "project", self.organization)
         footer: str = parent.slug
