@@ -32,6 +32,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
   afterEach(function () {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
+    browserHistory.push.mockReset();
   });
 
   describe('Without Span Data', function () {
@@ -360,6 +361,60 @@ describe('Performance > Transaction Spans > Span Summary', function () {
 
         const searchBarNode = await screen.findByPlaceholderText('Filter Transactions');
         expect(searchBarNode).toBeInTheDocument();
+      });
+
+      it('disables reset button when no min or max query parameters were set', function () {
+        const data = initializeData({
+          features: FEATURES,
+          query: {project: '1', transaction: 'transaction'},
+        });
+
+        render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
+          context: data.routerContext,
+          organization: data.organization,
+        });
+
+        const resetButton = screen.getByRole('button', {
+          name: /reset view/i,
+        });
+        expect(resetButton).toBeInTheDocument();
+        expect(resetButton).toBeDisabled();
+      });
+
+      it('enables reset button when min and max are set', function () {
+        const data = initializeData({
+          features: FEATURES,
+          query: {project: '1', transaction: 'transaction', min: 10, max: 100},
+        });
+
+        render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
+          context: data.routerContext,
+          organization: data.organization,
+        });
+
+        const resetButton = screen.getByRole('button', {
+          name: /reset view/i,
+        });
+        expect(resetButton).toBeEnabled();
+      });
+
+      it('clears min and max query parameters when reset button is clicked', function () {
+        const data = initializeData({
+          features: FEATURES,
+          query: {project: '1', transaction: 'transaction', min: 10, max: 100},
+        });
+
+        render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
+          context: data.routerContext,
+          organization: data.organization,
+        });
+
+        const resetButton = screen.getByRole('button', {
+          name: /reset view/i,
+        });
+        resetButton.click();
+        expect(browserHistory.push).not.toHaveProperty('min');
+        expect(browserHistory.push).not.toHaveProperty('max');
       });
 
       it('does not add aggregate filters to the query', async function () {
