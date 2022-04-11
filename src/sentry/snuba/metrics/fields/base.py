@@ -944,7 +944,7 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             ),
         ),
         SingularEntityDerivedMetric(
-            metric_name=TransactionMRI.MISERABLE_USER.value,
+            metric_mri=TransactionMRI.MISERABLE_USER.value,
             metrics=[
                 TransactionMRI.USER.value,
             ],
