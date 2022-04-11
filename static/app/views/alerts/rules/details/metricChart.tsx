@@ -275,6 +275,7 @@ class MetricChart extends React.PureComponent<Props, State> {
         type: 'line',
         markLine: MarkLine({
           silent: true,
+          animation: false,
           lineStyle: {color: theme.gray200, type: 'solid', width: 1},
           data: [{xAxis: ruleChanged}],
           label: {
@@ -381,7 +382,7 @@ class MetricChart extends React.PureComponent<Props, State> {
     );
 
     const series: AreaChartSeries[] = [...timeseriesData];
-    const areaSeries: any[] = [];
+    const areaSeries: AreaChartSeries[] = [];
     // Ensure series data appears below incident/mark lines
     series[0].z = 1;
     series[0].color = CHART_PALETTE[0][0];
@@ -525,6 +526,7 @@ class MetricChart extends React.PureComponent<Props, State> {
               incidentColor === theme.yellow300 ? theme.yellow100 : theme.red100;
 
             areaSeries.push({
+              seriesName: '',
               type: 'line',
               markArea: MarkArea({
                 silent: true,
