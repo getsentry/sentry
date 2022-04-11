@@ -113,7 +113,6 @@ from sentry.search.events.constants import (
     METRICS_MAP,
 )
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.indexer.postgres import PGStringIndexer
 from sentry.tagstore.snuba import SnubaTagStorage
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.helpers.slack import install_slack
@@ -1213,7 +1212,7 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
             *list(METRICS_MAP.values()),
         ]
         org_strings = {self.organization.id: set(strings)}
-        PGStringIndexer().bulk_record(org_strings=org_strings)
+        indexer.bulk_record(org_strings=org_strings)
 
     def store_metric(
         self,
