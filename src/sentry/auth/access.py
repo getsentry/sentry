@@ -4,12 +4,12 @@ import abc
 import warnings
 from dataclasses import dataclass
 from functools import cached_property
-from typing import FrozenSet, Iterable, Mapping, Optional, Tuple
+from typing import Collection, FrozenSet, Iterable, Mapping, Optional, Tuple
 
 import sentry_sdk
 from django.conf import settings
 
-from sentry import roles
+from sentry import features, roles
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.models import (
@@ -222,11 +222,27 @@ class Access(abc.ABC):
 
         >>> access.has_project_scope(project, 'project:read')
         """
+        return self.has_any_project_scope(project, [scope])
+
+    def has_any_project_scope(self, project: Project, scopes: Collection[str]) -> bool:
+        """
+        Represent if a user should have access with any one of the given scopes to
+        information for the given project.
+
+        For performance's sake, prefer this over multiple calls to `has_project_scope`.
+        """
         if not self.has_project_access(project):
             return False
-        if self.has_scope(scope):
+        if any(self.has_scope(scope) for scope in scopes):
             return True
-        return any(self.has_team_scope(team, scope) for team in project.teams.all())
+
+        if self.member and features.has("organizations:team-roles", self.member.organization):
+            for team in project.teams.all():
+                if team in self._team_memberships:
+                    team_scopes = self._team_memberships[team].get_scopes()
+                    if any(scope in team_scopes for scope in scopes):
+                        return True
+        return False
 
     def to_django_context(self) -> Mapping[str, bool]:
         return {s.replace(":", "_"): self.has_scope(s) for s in settings.SENTRY_SCOPES}
