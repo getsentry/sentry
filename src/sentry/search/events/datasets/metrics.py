@@ -79,6 +79,12 @@ class MetricsDatasetConfig(DatasetConfig):
                 ),
                 fields.MetricsFunction(
                     "avg",
+                    required_args=[
+                        fields.MetricArg(
+                            "column", allowed_columns=constants.METRIC_DURATION_COLUMNS
+                        )
+                    ],
+                    calculated_args=[resolve_metric_id],
                     snql_distribution=lambda args, alias: Function(
                         "avgIf",
                         [
@@ -87,7 +93,7 @@ class MetricsDatasetConfig(DatasetConfig):
                                 "equals",
                                 [
                                     Column("metric_id"),
-                                    self.resolve_metric("transaction.duration"),
+                                    args["metric_id"],
                                 ],
                             ),
                         ],
