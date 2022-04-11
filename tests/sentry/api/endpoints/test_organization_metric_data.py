@@ -2086,6 +2086,54 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert len(response.data["groups"]) == 1
         assert response.data["groups"][0]["totals"] == {"transaction.miserable_user": 2}
 
+    def test_user_misery(self):
+        user_ts = time.time()
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.tx_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.tx_satisfaction: indexer.record(
+                            self.organization.id, TransactionSatisfactionTagValue.FRUSTRATED.value
+                        ),
+                    },
+                    "type": "s",
+                    "value": [3],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.tx_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.tx_satisfaction: indexer.record(
+                            self.organization.id, TransactionSatisfactionTagValue.FRUSTRATED.value
+                        ),
+                    },
+                    "type": "s",
+                    "value": [4],
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_sets",
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["transaction.user_misery"],
+            statsPeriod="1m",
+            interval="1m",
+        )
+
+        print(response.data)
+
+        assert len(response.data["groups"]) == 1
+        assert response.data["groups"][0]["totals"] == {"transaction.user_misery": 2}
+
     def test_session_duration_derived_alias(self):
         org_id = self.organization.id
         user_ts = time.time()

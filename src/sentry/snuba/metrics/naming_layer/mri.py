@@ -83,3 +83,4 @@ class TransactionMRI(Enum):
     TOLERATED = "e:transactions/tolerated@none"
     APDEX = "e:transactions/apdex@ratio"
     MISERABLE_USER = "e:transactions/user.miserable@none"
+    USER_MISERY = "e:transactions/user_misery@ratio"

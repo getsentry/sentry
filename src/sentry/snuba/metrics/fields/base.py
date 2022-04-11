@@ -27,6 +27,7 @@ from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.api.utils import InvalidParams
 from sentry.models import Project
+from sentry.search.events.constants import MISERY_ALPHA, MISERY_BETA
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.utils import resolve_weak
 from sentry.snuba.dataset import Dataset, EntityKey
@@ -953,8 +954,32 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
                 org_id=org_id, metric_ids=metric_ids, alias=alias
             ),
         ),
+        CompositeEntityDerivedMetric(
+            metric_name=TransactionMRI.USER.value,
+            metrics=[TransactionMRI.MISERABLE_USER.value, TransactionMRI.DURATION.value],
+            unit="percentage",
+            snql=lambda *args, org_id, metric_ids, alias=None: a(args),
+            # snql=lambda mu, au, org_id, metric_ids, alias=None: division_float(
+            #     arg1_snql=addition(mu, MISERY_ALPHA),
+            #     arg2_snql=addition(au, MISERY_BETA),
+            #     alias=alias,
+            # ),
+        ),
     ]
 }
+
+
+def a(args):
+    print("args:")
+    print(len(args))
+    for ar in args:
+        print(ar)
+    # print(args)
+    # return division_float(
+    #     arg1_snql=addition(miserable_users, MISERY_ALPHA),
+    #     arg2_snql=addition(all_users, MISERY_BETA),
+    #     alias=alias,
+    # )
 
 
 DERIVED_OPS: Mapping[str, DerivedOp] = {
