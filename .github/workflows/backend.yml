@@ -13,6 +13,7 @@ jobs:
     timeout-minutes: 3
     # Map a step output to a job output
     outputs:
+      api_docs: ${{ steps.changes.outputs.api_docs }}
       backend: ${{ steps.changes.outputs.backend }}
       backend_any_type: ${{ steps.changes.outputs.backend_any_type }}
       migration_lockfile: ${{ steps.changes.outputs.migration_lockfile }}
