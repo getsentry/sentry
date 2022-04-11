@@ -17,6 +17,7 @@ def backfill_snubaquery_environment(apps, schema_editor):
     Environment = apps.get_model("sentry", "Environment")
     EnvironmentProject = apps.get_model("sentry", "EnvironmentProject")
     Project = apps.get_model("sentry", "Project")
+    AlertRule = apps.get_model("sentry", "AlertRule")
 
     for snuba_query in RangeQuerySetWrapperWithProgressBar(
         SnubaQuery.objects.all().select_related("environment")
@@ -25,12 +26,22 @@ def backfill_snubaquery_environment(apps, schema_editor):
             continue
 
         snuba_env = snuba_query.environment
-        envs_by_project = Environment.objects.filter(
-            environmentproject__project__querysubscription__snuba_query=snuba_query
+        alert_rule = None
+        try:
+            alert_rule = AlertRule.objects_with_snapshots.filter(
+                snuba_query_id=snuba_query.id
+            ).get()
+            if alert_rule.organization_id == snuba_env.organization_id:
+                continue
+        except AlertRule.DoesNotExist:
+            continue
+
+        envs_by_org = Environment.objects.filter(
+            organization_id=alert_rule.organization_id, name=snuba_env.name
         ).distinct()
 
         mapped_env: Environment = None
-        for candidate_env in envs_by_project:
+        for candidate_env in envs_by_org:
             if (
                 candidate_env.organization_id != snuba_env.organization_id
                 and candidate_env.name == snuba_env.name
@@ -42,10 +53,9 @@ def backfill_snubaquery_environment(apps, schema_editor):
             snuba_query.environment_id = mapped_env.id
             snuba_query.save()
         else:
-            projects_by_query = [
-                project
-                for project in Project.objects.filter(querysubscription__snuba_query=snuba_query)
-            ]
+            projects_by_query = list(
+                Project.objects.filter(querysubscription__snuba_query=snuba_query)
+            )
             if len(projects_by_query) != 1:
                 continue
 
@@ -59,7 +69,7 @@ def backfill_snubaquery_environment(apps, schema_editor):
                 old_env_project = None
 
             created_env = Environment.objects.create(
-                organization_id=project_for_env.organization_id, name=snuba_env.name
+                organization_id=alert_rule.organization_id, name=snuba_env.name
             )
 
             EnvironmentProject.objects.create(
