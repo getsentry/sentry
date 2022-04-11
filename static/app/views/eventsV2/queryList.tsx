@@ -105,7 +105,9 @@ class QueryList extends React.Component<Props> {
     const sort = eventView.sorts[0];
 
     let yAxis = ['count()'];
-    if (savedQuery?.yAxis) {
+    if (typeof savedQuery?.yAxis === 'string') {
+      yAxis = [savedQuery.yAxis];
+    } else if (savedQuery?.yAxis) {
       yAxis = savedQuery.yAxis;
     } else if (eventView.yAxis) {
       yAxis = [eventView.yAxis];
@@ -120,14 +122,11 @@ class QueryList extends React.Component<Props> {
     }
     const defaultWidgetQuery: WidgetQuery = {
       name: '',
-      aggregates: [
-        ...(displayType === DisplayType.TOP_N ? aggregates : []),
-        ...(typeof savedQuery?.yAxis === 'string' ? [savedQuery?.yAxis] : yAxis),
-      ],
+      aggregates: [...(displayType === DisplayType.TOP_N ? aggregates : []), ...yAxis],
       columns: [...(displayType === DisplayType.TOP_N ? columns : [])],
       fields: [
         ...(displayType === DisplayType.TOP_N ? defaultTableFields : []),
-        ...(typeof savedQuery?.yAxis === 'string' ? [savedQuery?.yAxis] : yAxis),
+        ...yAxis,
       ],
       conditions: eventView.query,
       orderby,
