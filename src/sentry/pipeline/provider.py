@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import abc
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING, Any, Mapping, Sequence
 
 if TYPE_CHECKING:
+    from sentry.pipeline import Pipeline
     from sentry.pipeline.views.base import PipelineView
 
 
@@ -13,8 +14,8 @@ class PipelineProvider(abc.ABC):
     views that the Pipeline will traverse through.
     """
 
-    def __init__(self):
-        self.config = {}
+    def __init__(self) -> None:
+        self.config: dict[str, Any] = {}
 
     @property
     @abc.abstractmethod
@@ -40,7 +41,7 @@ class PipelineProvider(abc.ABC):
         """
         pass
 
-    def update_config(self, config):
+    def update_config(self, config: Mapping[str, Any]) -> None:
         """
         Use update_config to allow additional provider configuration be assigned to
         the provider instance. This is useful for example when nesting
@@ -48,7 +49,7 @@ class PipelineProvider(abc.ABC):
         """
         self.config.update(config)
 
-    def set_pipeline(self, pipeline):
+    def set_pipeline(self, pipeline: Pipeline) -> None:
         """
         Used by the pipeline to give the provider access to the executing pipeline.
         """

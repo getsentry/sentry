@@ -249,7 +249,7 @@ class GitHubIntegrationProvider(IntegrationProvider):  # type: ignore
         )
 
 
-class GitHubInstallationRedirect(PipelineView):  # type: ignore
+class GitHubInstallationRedirect(PipelineView):
     def get_app_url(self) -> str:
         name = options.get("github-app.name")
         return f"https://github.com/apps/{slugify(name)}"
@@ -261,7 +261,8 @@ class GitHubInstallationRedirect(PipelineView):  # type: ignore
         if "installation_id" in request.GET:
             organization = self.get_active_organization(request)
 
-            # We want to wait until the scheduled deletions finish or else the post install to migrate repos do not work.
+            # We want to wait until the scheduled deletions finish or else the
+            # post install to migrate repos do not work.
             integration_pending_deletion_exists = OrganizationIntegration.objects.filter(
                 integration__provider=GitHubIntegrationProvider.key,
                 organization=organization,

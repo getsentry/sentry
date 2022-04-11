@@ -1,4 +1,6 @@
 from django.views.generic import View
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.auth.providers.dummy import DummyProvider
 from sentry.models import Organization
@@ -13,10 +15,6 @@ def get_context(request):
     return {"organization": org, "actor": request.user, "provider": provider}
 
 
-from rest_framework.request import Request
-from rest_framework.response import Response
-
-
 class DebugSsoLinkedEmailView(View):
     def get(self, request: Request) -> Response:
         context = get_context(request)
@@ -26,10 +24,6 @@ class DebugSsoLinkedEmailView(View):
             html_template="sentry/emails/auth-link-identity.html",
             context=context,
         ).render(request)
-
-
-from rest_framework.request import Request
-from rest_framework.response import Response
 
 
 class DebugSsoUnlinkedEmailView(View):
@@ -42,10 +36,6 @@ class DebugSsoUnlinkedEmailView(View):
             html_template="sentry/emails/auth-sso-disabled.html",
             context=context,
         ).render(request)
-
-
-from rest_framework.request import Request
-from rest_framework.response import Response
 
 
 class DebugSsoUnlinkedNoPasswordEmailView(View):
