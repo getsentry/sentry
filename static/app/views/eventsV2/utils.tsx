@@ -580,7 +580,7 @@ function eventViewToWidgetQuery({
     conditions: eventView.query,
     orderby: sort ? `${sort.kind === 'desc' ? '-' : ''}${sort.field}` : '',
   };
-  return {fields, widgetQuery};
+  return widgetQuery;
 }
 
 export function handleAddQueryToDashboard({
@@ -596,7 +596,7 @@ export function handleAddQueryToDashboard({
 }) {
   const displayType = displayModeToDisplayType(eventView.display as DisplayModes);
   const defaultTableFields = eventView.fields.map(({field}) => field);
-  const {widgetQuery: defaultWidgetQuery} = eventViewToWidgetQuery({
+  const defaultWidgetQuery = eventViewToWidgetQuery({
     eventView,
     displayType,
     yAxis,
@@ -631,7 +631,7 @@ export function constructAddQueryToDashboardLink({
 }) {
   const displayType = displayModeToDisplayType(eventView.display as DisplayModes);
   const defaultTableFields = eventView.fields.map(({field}) => field);
-  const {widgetQuery: defaultWidgetQuery} = eventViewToWidgetQuery({
+  const defaultWidgetQuery = eventViewToWidgetQuery({
     eventView,
     displayType,
     yAxis,
