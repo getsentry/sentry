@@ -13,7 +13,7 @@ from .base import ActivityNotification
 
 class NewProcessingIssuesActivityNotification(ActivityNotification):
     referrer_base = "new-processing-issues-activity"
-    activity_filename = "new_processing_issues"
+    template_path = "sentry/emails/activity/new_processing_issues"
 
     def __init__(self, activity: Activity) -> None:
         super().__init__(activity)

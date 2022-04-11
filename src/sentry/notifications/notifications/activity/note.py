@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 class NoteActivityNotification(GroupActivityNotification):
     message_builder = "SlackNotificationsMessageBuilder"
     referrer_base = "note-activity"
-    activity_filename = "note"
+    template_path = "sentry/emails/activity/note"
 
     def get_activity_name(self) -> str:
         return "Note"

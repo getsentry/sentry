@@ -34,7 +34,7 @@ from .base import ActivityNotification
 class ReleaseActivityNotification(ActivityNotification):
     referrer_base = "release-activity"
     notification_setting_type = NotificationSettingTypes.DEPLOY
-    activity_filename = "release"
+    template_path = "sentry/emails/activity/release"
 
     def __init__(self, activity: Activity) -> None:
         super().__init__(activity)
