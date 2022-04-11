@@ -1,11 +1,13 @@
 import {browserHistory} from 'react-router';
+import {urlEncode} from '@sentry/utils';
 import {Location, Query} from 'history';
 import * as Papa from 'papaparse';
 
+import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import {Organization, SelectValue} from 'sentry/types';
+import {NewQuery, Organization, SelectValue} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -20,6 +22,7 @@ import {
   Field,
   FIELDS,
   getAggregateAlias,
+  getColumnsAndAggregates,
   getEquation,
   isAggregateEquation,
   isEquation,
@@ -28,10 +31,14 @@ import {
   measurementType,
   TRACING_FIELDS,
 } from 'sentry/utils/discover/fields';
+import {DisplayModes} from 'sentry/utils/discover/types';
 import {getTitle} from 'sentry/utils/events';
 import localStorage from 'sentry/utils/localStorage';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
+import {DashboardWidgetSource, DisplayType, WidgetQuery} from '../dashboardsV2/types';
+
+import {displayModeToDisplayType} from './savedQuery/utils';
 import {FieldValue, FieldValueKind, TableColumn} from './table/types';
 import {ALL_VIEWS, TRANSACTION_VIEWS, WEB_VITALS_VIEWS} from './data';
 
@@ -542,6 +549,108 @@ export function shouldRenderPrebuilt(): boolean {
   const shouldRender = localStorage.getItem(RENDER_PREBUILT_KEY);
   return shouldRender === 'true' || shouldRender === null;
 }
+
 export function setRenderPrebuilt(value: boolean) {
   localStorage.setItem(RENDER_PREBUILT_KEY, value ? 'true' : 'false');
+}
+
+function eventViewToWidgetQuery({
+  eventView,
+  yAxis,
+  displayType,
+}: {
+  displayType: DisplayType;
+  eventView: EventView;
+  yAxis?: string[];
+}) {
+  const fields = eventView.fields.map(({field}) => field);
+  const {columns, aggregates} = getColumnsAndAggregates(fields);
+  const sort = eventView.sorts[0];
+  const widgetQuery: WidgetQuery = {
+    name: '',
+    aggregates: [
+      ...(displayType === DisplayType.TOP_N ? aggregates : []),
+      ...(typeof yAxis === 'string' ? [yAxis] : yAxis ?? ['count()']),
+    ],
+    columns: [...(displayType === DisplayType.TOP_N ? columns : [])],
+    fields: [
+      ...(displayType === DisplayType.TOP_N ? fields : []),
+      ...(typeof yAxis === 'string' ? [yAxis] : yAxis ?? ['count()']),
+    ],
+    conditions: eventView.query,
+    orderby: sort ? `${sort.kind === 'desc' ? '-' : ''}${sort.field}` : '',
+  };
+  return {fields, widgetQuery};
+}
+
+export function handleAddQueryToDashboard({
+  eventView,
+  query,
+  organization,
+  yAxis,
+}: {
+  eventView: EventView;
+  organization: Organization;
+  query?: NewQuery;
+  yAxis?: string[];
+}) {
+  const displayType = displayModeToDisplayType(eventView.display as DisplayModes);
+  const defaultTableFields = eventView.fields.map(({field}) => field);
+  const {widgetQuery: defaultWidgetQuery} = eventViewToWidgetQuery({
+    eventView,
+    displayType,
+    yAxis,
+  });
+
+  openAddDashboardWidgetModal({
+    organization,
+    start: eventView.start,
+    end: eventView.end,
+    statsPeriod: eventView.statsPeriod,
+    source: DashboardWidgetSource.DISCOVERV2,
+    defaultWidgetQuery,
+    defaultTableColumns: defaultTableFields,
+    defaultTitle:
+      query?.name ?? (eventView.name !== 'All Events' ? eventView.name : undefined),
+    displayType,
+  });
+}
+
+export function constructAddQueryToDashboardLink({
+  eventView,
+  query,
+  organization,
+  yAxis,
+  location,
+}: {
+  eventView: EventView;
+  organization: Organization;
+  location?: Location;
+  query?: NewQuery;
+  yAxis?: string[];
+}) {
+  const displayType = displayModeToDisplayType(eventView.display as DisplayModes);
+  const defaultTableFields = eventView.fields.map(({field}) => field);
+  const {widgetQuery: defaultWidgetQuery} = eventViewToWidgetQuery({
+    eventView,
+    displayType,
+    yAxis,
+  });
+  const defaultTitle =
+    query?.name ?? (eventView.name !== 'All Events' ? eventView.name : undefined);
+
+  return {
+    pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
+    query: {
+      ...location?.query,
+      source: DashboardWidgetSource.DISCOVERV2,
+      start: eventView.start,
+      end: eventView.end,
+      statsPeriod: eventView.statsPeriod,
+      defaultWidgetQuery: urlEncode(defaultWidgetQuery),
+      defaultTableColumns: defaultTableFields,
+      defaultTitle,
+      displayType,
+    },
+  };
 }

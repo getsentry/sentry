@@ -6,6 +6,7 @@ import {useMenuItem} from '@react-aria/menu';
 import {mergeProps} from '@react-aria/utils';
 import {TreeState} from '@react-stately/tree';
 import {Node} from '@react-types/shared';
+import {LocationDescriptor} from 'history';
 
 import Link from 'sentry/components/links/link';
 import {IconChevron} from 'sentry/icons';
@@ -77,7 +78,7 @@ export type MenuItemProps = {
   /**
    * Destination if this menu item is a link. See also: `isExternalLink`.
    */
-  to?: string;
+  to?: LocationDescriptor;
   /*
    * Items to be added to the right of the label.
    */
