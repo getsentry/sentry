@@ -51,7 +51,7 @@ describe('useRoutes', () => {
         </Router>
       );
     } catch (error) {
-      expect(error.message).toBe('useRoutes called outside of routes provider');
+      expect(error.message).toBe('useRouteContext called outside of routes provider');
     }
   });
 });
