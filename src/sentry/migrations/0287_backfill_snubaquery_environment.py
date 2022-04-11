@@ -26,7 +26,7 @@ def backfill_snubaquery_environment(apps, schema_editor):
             continue
 
         snuba_env = snuba_query.environment
-        alert_rule = None
+
         try:
             alert_rule = AlertRule.objects_with_snapshots.filter(
                 snuba_query_id=snuba_query.id
