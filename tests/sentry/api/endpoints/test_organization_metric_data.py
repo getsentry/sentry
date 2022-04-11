@@ -1138,7 +1138,30 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "timestamp": (user_ts // 60 - 4) * 60,
                     "tags": {
                         self.session_status_tag: indexer.record(org_id, "errored_preaggr"),
-                        self.release_tag: indexer.record(org_id, "foo"),
+                    },
+                    "type": "c",
+                    "value": 10,
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_metric,
+                    "timestamp": (user_ts // 60 - 4) * 60,
+                    "tags": {
+                        self.session_status_tag: indexer.record(org_id, "crashed"),
+                    },
+                    "type": "c",
+                    "value": 2,
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_metric,
+                    "timestamp": (user_ts // 60 - 4) * 60,
+                    "tags": {
+                        self.session_status_tag: indexer.record(org_id, "abnormal"),
                     },
                     "type": "c",
                     "value": 4,
@@ -1151,10 +1174,9 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "timestamp": user_ts,
                     "tags": {
                         self.session_status_tag: indexer.record(org_id, "init"),
-                        self.release_tag: indexer.record(org_id, "foo"),
                     },
                     "type": "c",
-                    "value": 10,
+                    "value": 15,
                     "retention_days": 90,
                 },
             ],

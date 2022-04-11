@@ -81,6 +81,8 @@ __all__ = (
     "SingularEntityDerivedMetric",
     "DERIVED_METRICS",
     "generate_bottom_up_dependency_tree_for_metrics",
+    "get_derived_metrics",
+    "org_id_from_projects",
 )
 
 SnubaDataType = Dict[str, Any]
@@ -830,14 +832,35 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             ),
             is_private=True,
         ),
+        SingularEntityDerivedMetric(
+            metric_mri=SessionMRI.CRASHED_AND_ABNORMAL.value,
+            metrics=[
+                SessionMRI.CRASHED.value,
+                SessionMRI.ABNORMAL.value,
+            ],
+            unit="sessions",
+            snql=lambda *args, org_id, metric_ids, alias=None: addition(*args, alias=alias),
+            is_private=True,
+        ),
         CompositeEntityDerivedMetric(
-            metric_mri=SessionMRI.ERRORED.value,
+            metric_mri=SessionMRI.ERRORED_ALL.value,
             metrics=[
                 SessionMRI.ERRORED_PREAGGREGATED.value,
                 SessionMRI.ERRORED_SET.value,
             ],
             unit="sessions",
             post_query_func=lambda *args: sum([*args]),
+        ),
+        CompositeEntityDerivedMetric(
+            metric_mri=SessionMRI.ERRORED.value,
+            metrics=[
+                SessionMRI.ERRORED_ALL.value,
+                SessionMRI.CRASHED_AND_ABNORMAL.value,
+            ],
+            unit="sessions",
+            post_query_func=lambda errored_all, crashed_abnormal: max(
+                0, errored_all - crashed_abnormal
+            ),
         ),
         SingularEntityDerivedMetric(
             metric_mri=SessionMRI.ERRORED_USER_ALL.value,
