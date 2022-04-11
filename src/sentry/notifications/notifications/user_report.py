@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, Mapping, MutableMapping
 
 from django.utils.encoding import force_text
 
+from sentry.db.models import Model
 from sentry.models import Group, GroupSubscription
 from sentry.notifications.helpers import get_reason_context
 from sentry.notifications.notifications.base import ProjectNotification
@@ -55,7 +56,8 @@ class UserReportNotification(ProjectNotification):
         # This shouldn't be possible but adding a message just in case.
         return self.get_subject()
 
-    def get_reference(self) -> Any:
+    @property
+    def reference(self) -> Model | None:
         return self.project
 
     def get_context(self) -> MutableMapping[str, Any]:

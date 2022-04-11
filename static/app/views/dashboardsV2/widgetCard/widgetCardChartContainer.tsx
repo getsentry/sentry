@@ -12,7 +12,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
-import {EChartDataZoomHandler, EChartEventHandler} from 'sentry/types/echarts';
+import {EChartDataZoomHandler, EChartEventHandler, Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -41,6 +41,7 @@ type Props = WithRouterProps & {
   expandNumbers?: boolean;
   isMobile?: boolean;
   legendOptions?: LegendComponentOption;
+  onDataFetched?: (results: {timeseriesResults?: Series[]}) => void;
   onLegendSelectChanged?: EChartEventHandler<{
     name: string;
     selected: Record<string, boolean>;
@@ -67,6 +68,7 @@ export function WidgetCardChartContainer({
   onLegendSelectChanged,
   legendOptions,
   expandNumbers,
+  onDataFetched,
 }: Props) {
   function issueTableResultComponent({
     loading,
@@ -151,7 +153,7 @@ export function WidgetCardChartContainer({
         organization={organization}
         widget={widget}
         selection={selection}
-        limit={tableItemLimit}
+        limit={widget.limit ?? tableItemLimit}
       >
         {({tableResults, timeseriesResults, errorMessage, loading}) => {
           return (
@@ -187,6 +189,7 @@ export function WidgetCardChartContainer({
         widget={widget}
         selection={selection}
         limit={tableItemLimit}
+        onDataFetched={onDataFetched}
       >
         {({tableResults, timeseriesResults, errorMessage, loading}) => {
           return (

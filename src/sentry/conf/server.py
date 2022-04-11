@@ -1112,8 +1112,6 @@ SENTRY_FEATURES = {
     "organizations:mobile-screenshots": False,
     # Enable the release details performance section
     "organizations:release-comparison-performance": False,
-    # Enable percent displays in issue stream
-    "organizations:issue-percent-display": False,
     # Enable team insights page
     "organizations:team-insights": True,
     # Adds additional filters and a new section to issue alert rules.
@@ -1706,6 +1704,9 @@ SENTRY_USE_METRICS_DEV = False
 # This flags activates the Change Data Capture backend in the development environment
 SENTRY_USE_CDC_DEV = False
 
+# This flag activates profiling backend in the development environment
+SENTRY_USE_PROFILING = False
+
 # SENTRY_DEVSERVICES = {
 #     "service-name": lambda settings, options: (
 #         {
@@ -1864,6 +1865,7 @@ SENTRY_DEVSERVICES = {
                 "REDIS_PORT": "6379",
                 "REDIS_DB": "1",
                 "ENABLE_SENTRY_METRICS_DEV": "1" if settings.SENTRY_USE_METRICS_DEV else "",
+                "ENABLE_PROFILES_CONSUMER": "1" if settings.SENTRY_USE_PROFILING else "",
             },
             "only_if": "snuba" in settings.SENTRY_EVENTSTREAM
             or "kafka" in settings.SENTRY_EVENTSTREAM,
@@ -2528,4 +2530,10 @@ SENTRY_ISSUE_ALERT_HISTORY_OPTIONS = {}
 # This is useful for testing SSO expiry flows
 SENTRY_SSO_EXPIRY_SECONDS = os.environ.get("SENTRY_SSO_EXPIRY_SECONDS", None)
 
+# Set to an iterable of strings matching services so only logs from those services show up
+# eg. DEVSERVER_LOGS_ALLOWLIST = {"server", "webpack", "worker"}
+DEVSERVER_LOGS_ALLOWLIST = None
+
 LOG_API_ACCESS = not IS_DEV or os.environ.get("SENTRY_LOG_API_ACCESS")
+
+VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = False

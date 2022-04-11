@@ -369,7 +369,9 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         if "id" in validated_data:
             validated_data.pop("id")
         with transaction.atomic():
-            alert_rule = update_alert_rule(instance, **validated_data)
+            alert_rule = update_alert_rule(
+                instance, user=self.context.get("user", None), **validated_data
+            )
             self._handle_triggers(alert_rule, triggers)
             return alert_rule
 

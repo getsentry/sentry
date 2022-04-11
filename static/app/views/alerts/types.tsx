@@ -4,6 +4,11 @@ import {IncidentRule} from 'sentry/views/alerts/incidentRules/types';
 
 type Data = [number, {count: number}[]][];
 
+export enum AlertRuleType {
+  METRIC = 'metric',
+  ISSUE = 'issue',
+}
+
 export type Incident = {
   alertRule: IncidentRule;
   dateClosed: string | null;

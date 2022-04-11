@@ -43,6 +43,7 @@ type Props = {
   selection: PageFilters;
   widget: Widget;
   isFirstPage?: boolean;
+  onHeaderClick?: () => void;
   tableData?: TableDataWithTitle;
 };
 
@@ -82,7 +83,7 @@ export const renderIssueGridHeaderCell =
   };
 
 export const renderDiscoverGridHeaderCell =
-  ({location, selection, widget, tableData, organization}: Props) =>
+  ({location, selection, widget, tableData, organization, onHeaderClick}: Props) =>
   (column: TableColumn<keyof TableDataRow>, _columnIndex: number): React.ReactNode => {
     const eventView = eventViewFromWidget(
       widget.title,
@@ -126,6 +127,7 @@ export const renderDiscoverGridHeaderCell =
         canSort={canSort}
         generateSortLink={generateSortLink}
         onClick={() => {
+          onHeaderClick?.();
           trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.sort', {
             organization,
             widget_type: widget.widgetType ?? WidgetType.DISCOVER,

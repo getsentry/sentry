@@ -40,6 +40,10 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
+import {
+  WidgetViewerContext,
+  WidgetViewerContextProps,
+} from './widgetViewer/widgetViewerContext';
 import Controls from './controls';
 import Dashboard from './dashboard';
 import {DEFAULT_STATS_PERIOD} from './data';
@@ -87,13 +91,16 @@ type State = {
   dashboardState: DashboardState;
   modifiedDashboard: DashboardDetails | null;
   widgetLimitReached: boolean;
-};
+} & WidgetViewerContextProps;
 
 class DashboardDetail extends Component<Props, State> {
   state: State = {
     dashboardState: this.props.initialState,
     modifiedDashboard: this.updateModifiedDashboard(this.props.initialState),
     widgetLimitReached: this.props.dashboard.widgets.length >= MAX_WIDGETS,
+    setData: data => {
+      this.setState(data);
+    },
   };
 
   componentDidMount() {
@@ -119,6 +126,7 @@ class DashboardDetail extends Component<Props, State> {
       location,
       router,
     } = this.props;
+    const {seriesData, tableData} = this.state;
     if (isWidgetViewerPath(location.pathname)) {
       const widget =
         defined(widgetId) &&
@@ -128,6 +136,8 @@ class DashboardDetail extends Component<Props, State> {
         openWidgetViewerModal({
           organization,
           widget,
+          seriesData,
+          tableData,
           onClose: () => {
             // Filter out Widget Viewer Modal query params when exiting the Modal
             const query = omit(location.query, Object.values(WidgetViewerQueryField));
@@ -578,12 +588,10 @@ class DashboardDetail extends Component<Props, State> {
     const {modifiedDashboard, dashboardState, widgetLimitReached} = this.state;
     const {dashboardId} = params;
 
-    const hasPageFilters = organization.features.includes('selection-filters-v2');
-
     return (
       <PageFiltersContainer
         skipLoadLastUsed={organization.features.includes('global-views')}
-        hideGlobalHeader={hasPageFilters}
+        hideGlobalHeader
         defaultSelection={{
           datetime: {
             start: null,
@@ -615,13 +623,11 @@ class DashboardDetail extends Component<Props, State> {
                 widgetLimitReached={widgetLimitReached}
               />
             </StyledPageHeader>
-            {hasPageFilters && (
-              <DashboardPageFilterBar>
-                <ProjectPageFilter />
-                <EnvironmentPageFilter alignDropdown="right" />
-                <DatePageFilter alignDropdown="right" />
-              </DashboardPageFilterBar>
-            )}
+            <DashboardPageFilterBar>
+              <ProjectPageFilter />
+              <EnvironmentPageFilter alignDropdown="right" />
+              <DatePageFilter alignDropdown="right" />
+            </DashboardPageFilterBar>
             <HookHeader organization={organization} />
             <Dashboard
               paramDashboardId={dashboardId}
@@ -665,16 +671,15 @@ class DashboardDetail extends Component<Props, State> {
       newWidget,
       onSetNewWidget,
     } = this.props;
-    const {modifiedDashboard, dashboardState, widgetLimitReached} = this.state;
+    const {modifiedDashboard, dashboardState, widgetLimitReached, seriesData, setData} =
+      this.state;
     const {dashboardId} = params;
-
-    const hasPageFilters = organization.features.includes('selection-filters-v2');
 
     return (
       <SentryDocumentTitle title={dashboard.title} orgSlug={organization.slug}>
         <PageFiltersContainer
           skipLoadLastUsed={organization.features.includes('global-views')}
-          hideGlobalHeader={hasPageFilters}
+          hideGlobalHeader
           defaultSelection={{
             datetime: {
               start: null,
@@ -723,28 +728,28 @@ class DashboardDetail extends Component<Props, State> {
               </Layout.Header>
               <Layout.Body>
                 <Layout.Main fullWidth>
-                  {hasPageFilters && (
-                    <DashboardPageFilterBar>
-                      <ProjectPageFilter />
-                      <EnvironmentPageFilter alignDropdown="right" />
-                      <DatePageFilter alignDropdown="right" />
-                    </DashboardPageFilterBar>
-                  )}
-                  <Dashboard
-                    paramDashboardId={dashboardId}
-                    dashboard={modifiedDashboard ?? dashboard}
-                    organization={organization}
-                    isEditing={this.isEditing}
-                    widgetLimitReached={widgetLimitReached}
-                    onUpdate={this.onUpdateWidget}
-                    handleUpdateWidgetList={this.handleUpdateWidgetList}
-                    handleAddCustomWidget={this.handleAddCustomWidget}
-                    router={router}
-                    location={location}
-                    newWidget={newWidget}
-                    onSetNewWidget={onSetNewWidget}
-                    isPreview={this.isPreview}
-                  />
+                  <DashboardPageFilterBar>
+                    <ProjectPageFilter />
+                    <EnvironmentPageFilter alignDropdown="right" />
+                    <DatePageFilter alignDropdown="right" />
+                  </DashboardPageFilterBar>
+                  <WidgetViewerContext.Provider value={{seriesData, setData}}>
+                    <Dashboard
+                      paramDashboardId={dashboardId}
+                      dashboard={modifiedDashboard ?? dashboard}
+                      organization={organization}
+                      isEditing={this.isEditing}
+                      widgetLimitReached={widgetLimitReached}
+                      onUpdate={this.onUpdateWidget}
+                      handleUpdateWidgetList={this.handleUpdateWidgetList}
+                      handleAddCustomWidget={this.handleAddCustomWidget}
+                      router={router}
+                      location={location}
+                      newWidget={newWidget}
+                      onSetNewWidget={onSetNewWidget}
+                      isPreview={this.isPreview}
+                    />
+                  </WidgetViewerContext.Provider>
                 </Layout.Main>
               </Layout.Body>
             </NoProjectMessage>
