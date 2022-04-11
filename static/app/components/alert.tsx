@@ -183,10 +183,7 @@ const Wrap = styled('div')<AlertProps & {hovered: boolean}>`
 const IconWrapper = styled('div')`
   display: flex;
   height: calc(${p => p.theme.fontSizeMedium} * ${p => p.theme.text.lineHeightBody});
-  padding-top: ${space(1.5)};
-  padding-bottom: ${space(1.5)};
-  padding-left: ${space(2)};
-  padding-right: ${space(1)};
+  padding: ${space(1.5)} ${space(1)} ${space(1.5)} ${space(2)};
   box-sizing: content-box;
   align-items: center;
 `;
