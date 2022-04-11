@@ -376,6 +376,7 @@ class CompositeEntityDerivedMetricTestCase(TestCase):
         component_entities = DERIVED_METRICS[SessionMRI.HEALTHY.value].get_entity(projects=[1])
         assert sorted(component_entities["metrics_counters"]) == [
             SessionMRI.ALL.value,
+            SessionMRI.CRASHED_AND_ABNORMAL.value,
             SessionMRI.ERRORED_PREAGGREGATED.value,
         ]
         assert sorted(component_entities["metrics_sets"]) == [SessionMRI.ERRORED_SET.value]
@@ -423,12 +424,16 @@ class CompositeEntityDerivedMetricTestCase(TestCase):
         totals = {
             SessionMRI.ERRORED_SET.value: 3,
             SessionMRI.ERRORED_PREAGGREGATED.value: 4.0,
+            SessionMRI.CRASHED_AND_ABNORMAL.value: 0,
             SessionMRI.ERRORED.value: 0,
+            SessionMRI.ERRORED_ALL.value: 7,
         }
         series = {
             SessionMRI.ERRORED_SET.value: [0, 0, 0, 0, 3, 0],
             SessionMRI.ERRORED.value: [0, 0, 0, 0, 0, 0],
             SessionMRI.ERRORED_PREAGGREGATED.value: [4.0, 0, 0, 0, 0, 0],
+            SessionMRI.CRASHED_AND_ABNORMAL.value: [0, 0, 0, 0, 0, 0],
+            SessionMRI.ERRORED_ALL.value: [4.0, 0, 0, 0, 3, 0],
         }
         assert (
             self.sessions_errored.run_post_query_function(totals, query_definition=query_definition)
