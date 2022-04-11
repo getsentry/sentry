@@ -39,8 +39,9 @@ export function useOnboardingState(): [
   (next: OnboardingState | null) => void
 ] {
   const [state, setState] = usePersistedStoreCategory('onboarding');
-  const onboardingState: any = state || {};
-  onboardingState.platformToProjectIdMap = onboardingState.platformToProjectIdMap || {};
-  onboardingState.selectedPlatforms = onboardingState.selectedPlatforms || [];
+  const onboardingState = state || {
+    platformToProjectIdMap: {},
+    selectedPlatforms: [],
+  };
   return [onboardingState, setState];
 }
