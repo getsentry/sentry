@@ -1704,6 +1704,9 @@ SENTRY_USE_METRICS_DEV = False
 # This flags activates the Change Data Capture backend in the development environment
 SENTRY_USE_CDC_DEV = False
 
+# This flag activates profiling backend in the development environment
+SENTRY_USE_PROFILING = False
+
 # SENTRY_DEVSERVICES = {
 #     "service-name": lambda settings, options: (
 #         {
@@ -1862,6 +1865,7 @@ SENTRY_DEVSERVICES = {
                 "REDIS_PORT": "6379",
                 "REDIS_DB": "1",
                 "ENABLE_SENTRY_METRICS_DEV": "1" if settings.SENTRY_USE_METRICS_DEV else "",
+                "ENABLE_PROFILES_CONSUMER": "1" if settings.SENTRY_USE_PROFILING else "",
             },
             "only_if": "snuba" in settings.SENTRY_EVENTSTREAM
             or "kafka" in settings.SENTRY_EVENTSTREAM,
