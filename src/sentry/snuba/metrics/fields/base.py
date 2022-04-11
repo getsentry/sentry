@@ -915,7 +915,7 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             ),
         ),
         SingularEntityDerivedMetric(
-            metric_name=TransactionMRI.SATISFIED.value,
+            metric_mri=TransactionMRI.SATISFIED.value,
             metrics=[TransactionMRI.DURATION.value],
             unit="transactions",
             snql=lambda *_, org_id, metric_ids, alias=None: satisfaction_count_transaction(
@@ -923,7 +923,7 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             ),
         ),
         SingularEntityDerivedMetric(
-            metric_name=TransactionMRI.TOLERATED.value,
+            metric_mri=TransactionMRI.TOLERATED.value,
             metrics=[TransactionMRI.DURATION.value],
             unit="transactions",
             snql=lambda *_, org_id, metric_ids, alias=None: tolerated_count_transaction(
@@ -931,7 +931,7 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             ),
         ),
         SingularEntityDerivedMetric(
-            metric_name=TransactionMRI.APDEX.value,
+            metric_mri=TransactionMRI.APDEX.value,
             metrics=[
                 TransactionMRI.SATISFIED.value,
                 TransactionMRI.TOLERATED.value,
