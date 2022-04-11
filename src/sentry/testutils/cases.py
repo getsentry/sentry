@@ -1525,6 +1525,9 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
 class TestMigrations(TransactionTestCase):
     """
     From https://www.caktusgroup.com/blog/2016/02/02/writing-unit-tests-django-migrations/
+
+    Note that when running these tests locally you will need to set the `MIGRATIONS_TEST_MIGRATE=1`
+    environmental variable for these to pass.
     """
 
     @property
