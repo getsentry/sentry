@@ -137,6 +137,7 @@ jobs:
           yarn storybook-build
 
   webpack:
+    if: needs.files-changed.outputs.frontend != 'true'
     needs: files-changed
     runs-on: ubuntu-20.04
     steps:
