@@ -132,7 +132,7 @@ export function FilterResultsStep({
                   />
                 ) : (
                   <ReleaseSearchBar
-                    organization={organization}
+                    orgSlug={organization.slug}
                     query={query}
                     projectIds={projectIds}
                     onBlur={handleBlur(queryIndex)}
