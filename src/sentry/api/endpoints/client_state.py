@@ -39,7 +39,8 @@ class ClientStateListEndpoint(OrganizationEndpoint):
         for category in STATE_CATEGORIES:
             key = self.get_key(organization.slug, category, request.user)
             value = self.client.get(key)
-            result[category] = json.loads(value)
+            if value:
+                result[category] = json.loads(value)
         return Response(result)
 
 
