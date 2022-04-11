@@ -353,6 +353,7 @@ type VitalBarProps = {
   showStates?: boolean;
   showTooltip?: boolean;
   showVitalPercentNames?: boolean;
+  showVitalThresholds?: boolean;
   value?: string;
 };
 
@@ -365,7 +366,8 @@ export function VitalBar(props: VitalBarProps) {
     showBar = true,
     showStates = false,
     showDurationDetail = false,
-    showVitalPercentNames = false,
+    showVitalPercentNames = true,
+    showVitalThresholds = false,
     showDetail = true,
     showTooltip = false,
     barHeight,
@@ -413,7 +415,8 @@ export function VitalBar(props: VitalBarProps) {
             <VitalPercents
               vital={vital}
               percents={percents}
-              showVitalPercentNames
+              showVitalPercentNames={false}
+              showVitalThresholds={false}
               hideTooltips={showTooltip}
             />
           }
@@ -436,6 +439,7 @@ export function VitalBar(props: VitalBarProps) {
             vital={vital}
             percents={percents}
             showVitalPercentNames={showVitalPercentNames}
+            showVitalThresholds={showVitalThresholds}
           />
         </BarDetail>
       )}
