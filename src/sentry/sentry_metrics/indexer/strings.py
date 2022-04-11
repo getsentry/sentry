@@ -1,4 +1,30 @@
-# DO NOT CHANGE THESE VALUES
+# !!! DO NOT CHANGE THESE VALUES !!!
+#
+# These are hardcoded ids for the metrics indexer and if
+# they are changed they will break the product for as long
+# as there are queries that use any of the strings.
+#
+# If there are strings that need to be added, one must make
+# sure there is NOT already a record of that string.
+#
+# Normally, string -> id mappings are unique per organization
+# but these hardcoded strings allow us to have one id across
+# organizations for strings we already know are specific to the
+# product.
+#
+# These ids are 64-bit ints. In order to hardcode the ids
+# we needed to start db sequence at a higher number to make
+# room so we added a db migration (0284) to alter the seq
+# and reserve the first 16 bits (65536).
+#
+# However, since db migrations don't run in CI or dev testing
+# without explicitly doing so for each test, the ids generated
+# during CI and testing clobbered the ids listed here (when
+# starting from 1)
+#
+# Instead of starting at 1 for these ids, we now add a prefix.
+# The prefix allows us to start at the second half of the
+# 64-bit int at `9223372036854775808`.
 PREFIX = 1 << 63
 # 1-99
 SESSION_METRIC_NAMES = {
