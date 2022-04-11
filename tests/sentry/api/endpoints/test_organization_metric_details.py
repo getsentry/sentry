@@ -17,7 +17,7 @@ MOCKED_DERIVED_METRICS_2 = copy.deepcopy(MOCKED_DERIVED_METRICS)
 MOCKED_DERIVED_METRICS_2.update(
     {
         "derived_metric.multiple_metrics": SingularEntityDerivedMetric(
-            metric_mri="derived_metric.multiple_metrics",
+            metric_name="derived_metric.multiple_metrics",
             metrics=["metric_foo_doe", SessionMRI.ALL.value],
             unit="percentage",
             snql=lambda *args, metric_ids, alias=None: percentage(
