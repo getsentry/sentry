@@ -1071,17 +1071,30 @@ class IssueListOverview extends React.Component<Props, State> {
   onUndo = () => {
     const {organization, selection} = this.props;
     const {actionTakenGroupData} = this.state;
+    const query = this.getQuery();
 
     const groupIds = actionTakenGroupData.map(data => data.id);
     const projectIds = selection?.projects?.map(p => p.toString());
     const isMarkedReviewed = actionTakenGroupData.every(data => data.inbox);
     const endpoint = `/organizations/${organization.slug}/issues/`;
+    // if action taken on Ignored tab, revert back to ignored instead of unresolved
+    const status = query.includes('is:ignored') ? 'ignored' : 'unresolved';
+
+    if (this._lastRequest) {
+      this._lastRequest.cancel();
+    }
+    if (this._lastStatsRequest) {
+      this._lastStatsRequest.cancel();
+    }
+    if (this._lastFetchCountsRequest) {
+      this._lastFetchCountsRequest.cancel();
+    }
 
     this.props.api.request(endpoint, {
       method: 'PUT',
       data: {
         ...(isMarkedReviewed && {inbox: true}),
-        status: 'unresolved',
+        status,
       },
       query: {
         project: projectIds,
@@ -1091,6 +1104,7 @@ class IssueListOverview extends React.Component<Props, State> {
         if (!response) {
           return;
         }
+        GroupStore.add(actionTakenGroupData);
         this.setState({undo: true});
       },
       error: err => {
