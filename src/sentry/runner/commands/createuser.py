@@ -37,10 +37,6 @@ def _get_superuser():
     return click.confirm("Should this user be a superuser?", default=False)
 
 
-def _get_staff():
-    return click.confirm("Should this user be staff?", default=False)
-
-
 def _set_superadmin(user):
     from sentry.models import UserRole, UserRoleUser
 
