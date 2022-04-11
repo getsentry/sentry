@@ -704,16 +704,16 @@ def get_streaming_metrics_consumer(
     )
 
 
-class LastSeenUpdaterMessageFilter(StreamMessageFilter[KafkaPayload]):
-    def should_drop(self, message: KafkaPayload):
+class LastSeenUpdaterMessageFilter(StreamMessageFilter[KafkaPayload]):  # type: ignore
+    def should_drop(self, message: KafkaPayload) -> bool:
         return False
 
 
-class LastSeenUpdaterCollector(ProcessingStrategy[int]):
-    def __init__(self):
+class LastSeenUpdaterCollector(ProcessingStrategy[int]):  # type: ignore
+    def __init__(self) -> None:
         self.__counter = 0
 
-    def submit(self, message: int):
+    def submit(self, message: int) -> None:
         self.__counter += message
 
     def poll(self) -> None:
