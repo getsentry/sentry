@@ -1,11 +1,9 @@
 import * as React from 'react';
 import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
-import {urlEncode} from '@sentry/utils';
 import {Location, Query} from 'history';
 import moment from 'moment';
 
-import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
 import {resetPageFilters} from 'sentry/actionCreators/pageFilters';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
@@ -20,27 +18,19 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, SavedQuery} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
-import {getColumnsAndAggregates} from 'sentry/utils/discover/fields';
-import {DisplayModes} from 'sentry/utils/discover/types';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeList} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
-import {
-  DashboardWidgetSource,
-  DisplayType,
-  WidgetQuery,
-} from 'sentry/views/dashboardsV2/types';
 
-import {
-  displayModeToDisplayType,
-  handleCreateQuery,
-  handleDeleteQuery,
-} from './savedQuery/utils';
+import {handleCreateQuery, handleDeleteQuery} from './savedQuery/utils';
 import MiniGraph from './miniGraph';
 import QueryCard from './querycard';
-import {getPrebuiltQueries} from './utils';
+import {
+  constructAddQueryToDashboardLink,
+  getPrebuiltQueries,
+  handleAddQueryToDashboard,
+} from './utils';
 
 type Props = {
   api: Client;
@@ -90,73 +80,6 @@ class QueryList extends React.Component<Props> {
         pathname: location.pathname,
         query: {},
       });
-    });
-  };
-
-  handleAddQueryToDashboard = (eventView: EventView, savedQuery?: SavedQuery) => {
-    const {organization, router, location} = this.props;
-
-    const displayType = displayModeToDisplayType(eventView.display as DisplayModes);
-    const defaultTableFields = eventView.fields.map(({field}) => field);
-    const {columns, aggregates} = getColumnsAndAggregates(defaultTableFields);
-    const sort = eventView.sorts[0];
-    const defaultWidgetQuery: WidgetQuery = {
-      name: '',
-      aggregates: [
-        ...(displayType === DisplayType.TOP_N ? aggregates : []),
-        ...(typeof savedQuery?.yAxis === 'string'
-          ? [savedQuery?.yAxis]
-          : savedQuery?.yAxis ?? ['count()']),
-      ],
-      columns: [...(displayType === DisplayType.TOP_N ? columns : [])],
-      fields: [
-        ...(displayType === DisplayType.TOP_N ? defaultTableFields : []),
-        ...(typeof savedQuery?.yAxis === 'string'
-          ? [savedQuery?.yAxis]
-          : savedQuery?.yAxis ?? ['count()']),
-      ],
-      conditions: eventView.query,
-      orderby: sort ? `${sort.kind === 'desc' ? '-' : ''}${sort.field}` : '',
-    };
-
-    trackAdvancedAnalyticsEvent('discover_views.add_to_dashboard.modal_open', {
-      organization,
-      saved_query: !!savedQuery,
-    });
-
-    const defaultTitle =
-      savedQuery?.name ?? (eventView.name !== 'All Events' ? eventView.name : undefined);
-
-    if (organization.features.includes('new-widget-builder-experience')) {
-      router.push({
-        pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
-        query: {
-          ...location.query,
-          source: DashboardWidgetSource.DISCOVERV2,
-          start: eventView.start,
-          end: eventView.end,
-          statsPeriod: eventView.statsPeriod,
-          defaultWidgetQuery: urlEncode(defaultWidgetQuery),
-          defaultTableColumns: defaultTableFields,
-          defaultTitle,
-          displayType,
-        },
-      });
-      return;
-    }
-
-    openAddDashboardWidgetModal({
-      organization,
-      start: eventView.start,
-      end: eventView.end,
-      statsPeriod: eventView.statsPeriod,
-      source: DashboardWidgetSource.DISCOVERV2,
-      defaultWidgetQuery,
-      defaultTableColumns: defaultTableFields,
-      defaultTitle:
-        savedQuery?.name ??
-        (eventView.name !== 'All Events' ? eventView.name : undefined),
-      displayType,
     });
   };
 
@@ -243,7 +166,25 @@ class QueryList extends React.Component<Props> {
         {
           key: 'add-to-dashboard',
           label: t('Add to Dashboard'),
-          onAction: () => this.handleAddQueryToDashboard(eventView),
+          ...(organization.features.includes('new-widget-builder-experience')
+            ? {
+                to: constructAddQueryToDashboardLink({
+                  eventView,
+                  query: view,
+                  organization,
+                  yAxis: view?.yAxis,
+                  location,
+                }),
+              }
+            : {
+                onAction: () =>
+                  handleAddQueryToDashboard({
+                    eventView,
+                    query: view,
+                    organization,
+                    yAxis: view?.yAxis,
+                  }),
+              }),
         },
       ];
 
@@ -310,7 +251,25 @@ class QueryList extends React.Component<Props> {
               {
                 key: 'add-to-dashboard',
                 label: t('Add to Dashboard'),
-                onAction: () => this.handleAddQueryToDashboard(eventView, savedQuery),
+                ...(organization.features.includes('new-widget-builder-experience')
+                  ? {
+                      to: constructAddQueryToDashboardLink({
+                        eventView,
+                        query: savedQuery,
+                        organization,
+                        yAxis: savedQuery?.yAxis,
+                        location,
+                      }),
+                    }
+                  : {
+                      onAction: () =>
+                        handleAddQueryToDashboard({
+                          eventView,
+                          query: savedQuery,
+                          organization,
+                          yAxis: savedQuery?.yAxis,
+                        }),
+                    }),
               },
             ]
           : []),
