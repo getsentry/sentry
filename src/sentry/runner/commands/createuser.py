@@ -68,9 +68,9 @@ def _set_superadmin(user):
 def createuser(email, password, superuser, staff, no_password, no_input, force_update):
     "Create a new user."
 
-    if settings.SENTRY_SELF_HOSTED or settings.SENTRY_SINGLE_ORGANIZATION:
+    from django.conf import settings
 
-        from django.conf import settings
+    if settings.SENTRY_SELF_HOSTED or settings.SENTRY_SINGLE_ORGANIZATION:
 
         if not no_input:
             if not email:
