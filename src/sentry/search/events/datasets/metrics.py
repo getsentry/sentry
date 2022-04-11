@@ -11,7 +11,6 @@ from sentry.search.events.builder import MetricsQueryBuilder
 from sentry.search.events.datasets import field_aliases, filter_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.types import SelectType, WhereType
-from sentry.sentry_metrics import indexer
 
 
 class MetricsDatasetConfig(DatasetConfig):
@@ -48,7 +47,7 @@ class MetricsDatasetConfig(DatasetConfig):
     def resolve_value(self, value: str) -> int:
         if self.builder.dry_run:
             return -1
-        value_id = indexer.resolve(self.builder.organization_id, value)
+        value_id = self.builder.resolve_metric_index(value)
 
         return value_id
 
