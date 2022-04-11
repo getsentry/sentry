@@ -9,12 +9,12 @@ from django.utils import timezone
 from exam import patcher
 
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.sessions import SessionMetricKey
 from sentry.sentry_metrics.utils import resolve, resolve_many_weak, resolve_tag_key, resolve_weak
 from sentry.snuba.entity_subscription import (
     apply_dataset_query_conditions,
     get_entity_subscription_for_dataset,
 )
+from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.tasks import (
     SUBSCRIPTION_STATUS_MAX_AGE,
@@ -157,13 +157,13 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest, TestCase):
 
     @responses.activate
     def test_granularity_on_metrics_crash_rate_alerts(self):
-        for tag in [SessionMetricKey.SESSION.value, SessionMetricKey.USER.value, "session.status"]:
+        for tag in [SessionMRI.SESSION.value, SessionMRI.USER.value, "session.status"]:
             indexer.record(self.organization.id, tag)
         for (time_window, expected_granularity) in [
-            (30, 10),
-            (90, 60),
+            (30, 60),
+            (90, 3600),
             (5 * 60, 3600),
-            (25 * 60, 3600 * 24),
+            (25 * 60, 3600),
         ]:
             for idx, aggregate in enumerate(["sessions", "users"]):
                 sub = self.create_subscription(
@@ -294,7 +294,7 @@ class BuildSnubaFilterTest(TestCase):
 
     def test_simple_sessions_for_metrics(self):
         org_id = self.organization.id
-        for tag in [SessionMetricKey.SESSION.value, "session.status", "crashed", "init"]:
+        for tag in [SessionMRI.SESSION.value, "session.status", "crashed", "init"]:
             indexer.record(org_id, tag)
         entity_subscription = get_entity_subscription_for_dataset(
             dataset=QueryDatasets.METRICS,
@@ -307,19 +307,19 @@ class BuildSnubaFilterTest(TestCase):
             query="",
             environment=None,
         )
-        session_status = resolve_tag_key("session.status")
-        session_status_tag_values = resolve_many_weak(["crashed", "init"])
+        session_status = resolve_tag_key(org_id, "session.status")
+        session_status_tag_values = resolve_many_weak(org_id, ["crashed", "init"])
         assert snuba_filter
         assert snuba_filter.aggregations == [["sum(value)", None, "value"]]
         assert snuba_filter.conditions == [
-            ["metric_id", "=", resolve(SessionMetricKey.SESSION.value)],
+            ["metric_id", "=", resolve(org_id, SessionMRI.SESSION.value)],
             [session_status, "IN", session_status_tag_values],
         ]
         assert snuba_filter.groupby == [session_status]
 
     def test_simple_users_for_metrics(self):
         org_id = self.organization.id
-        for tag in [SessionMetricKey.USER.value, "session.status", "crashed", "init"]:
+        for tag in [SessionMRI.USER.value, "session.status", "crashed", "init"]:
             indexer.record(org_id, tag)
         entity_subscription = get_entity_subscription_for_dataset(
             dataset=QueryDatasets.METRICS,
@@ -332,12 +332,12 @@ class BuildSnubaFilterTest(TestCase):
             query="",
             environment=None,
         )
-        session_status = resolve_tag_key("session.status")
-        session_status_tag_values = resolve_many_weak(["crashed", "init"])
+        session_status = resolve_tag_key(org_id, "session.status")
+        session_status_tag_values = resolve_many_weak(org_id, ["crashed", "init"])
         assert snuba_filter
         assert snuba_filter.aggregations == [["uniq(value)", None, "value"]]
         assert snuba_filter.conditions == [
-            ["metric_id", "=", resolve(SessionMetricKey.USER.value)],
+            ["metric_id", "=", resolve(org_id, SessionMRI.USER.value)],
             [session_status, "IN", session_status_tag_values],
         ]
         assert snuba_filter.groupby == [session_status]
@@ -387,7 +387,7 @@ class BuildSnubaFilterTest(TestCase):
         env = self.create_environment(self.project, name="development")
         org_id = self.organization.id
         for tag in [
-            SessionMetricKey.SESSION.value,
+            SessionMRI.SESSION.value,
             "session.status",
             "environment",
             "development",
@@ -410,16 +410,16 @@ class BuildSnubaFilterTest(TestCase):
         )
         assert snuba_filter
         assert snuba_filter.aggregations == [["sum(value)", None, "value"]]
-        assert snuba_filter.groupby == [resolve_tag_key("session.status")]
+        assert snuba_filter.groupby == [resolve_tag_key(org_id, "session.status")]
         assert snuba_filter.conditions == [
-            ["metric_id", "=", resolve(SessionMetricKey.SESSION.value)],
+            ["metric_id", "=", resolve(org_id, SessionMRI.SESSION.value)],
             [
-                resolve_tag_key("session.status"),
+                resolve_tag_key(org_id, "session.status"),
                 "IN",
-                resolve_many_weak(["crashed", "init"]),
+                resolve_many_weak(org_id, ["crashed", "init"]),
             ],
-            [resolve_tag_key("environment"), "=", resolve_weak("development")],
-            [resolve_tag_key("release"), "=", resolve_weak("ahmed@12.2")],
+            [resolve_tag_key(org_id, "environment"), "=", resolve_weak(org_id, "development")],
+            [resolve_tag_key(org_id, "release"), "=", resolve_weak(org_id, "ahmed@12.2")],
         ]
 
     def test_query_and_environment_users(self):
@@ -453,7 +453,7 @@ class BuildSnubaFilterTest(TestCase):
         env = self.create_environment(self.project, name="development")
         org_id = self.organization.id
         for tag in [
-            SessionMetricKey.USER.value,
+            SessionMRI.USER.value,
             "session.status",
             "environment",
             "development",
@@ -476,16 +476,16 @@ class BuildSnubaFilterTest(TestCase):
         )
         assert snuba_filter
         assert snuba_filter.aggregations == [["uniq(value)", None, "value"]]
-        assert snuba_filter.groupby == [resolve_tag_key("session.status")]
+        assert snuba_filter.groupby == [resolve_tag_key(org_id, "session.status")]
         assert snuba_filter.conditions == [
-            ["metric_id", "=", resolve(SessionMetricKey.USER.value)],
+            ["metric_id", "=", resolve(org_id, SessionMRI.USER.value)],
             [
-                resolve_tag_key("session.status"),
+                resolve_tag_key(org_id, "session.status"),
                 "IN",
-                resolve_many_weak(["crashed", "init"]),
+                resolve_many_weak(org_id, ["crashed", "init"]),
             ],
-            [resolve_tag_key("environment"), "=", resolve_weak("development")],
-            [resolve_tag_key("release"), "=", resolve_weak("ahmed@12.2")],
+            [resolve_tag_key(org_id, "environment"), "=", resolve_weak(org_id, "development")],
+            [resolve_tag_key(org_id, "release"), "=", resolve_weak(org_id, "ahmed@12.2")],
         ]
 
     def test_aliased_query_transactions(self):

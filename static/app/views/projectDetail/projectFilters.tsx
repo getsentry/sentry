@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -16,10 +16,9 @@ type Props = {
   onSearch: (q: string) => void;
   query: string;
   tagValueLoader: TagValueLoader;
-  hasPageFilters?: boolean;
 };
 
-function ProjectFilters({query, tagValueLoader, onSearch, hasPageFilters}: Props) {
+function ProjectFilters({query, tagValueLoader, onSearch}: Props) {
   const getTagValues = async (tag: Tag, currentQuery: string): Promise<string[]> => {
     const values = await tagValueLoader(tag.key, currentQuery);
     return values.map(({value}) => value);
@@ -27,12 +26,10 @@ function ProjectFilters({query, tagValueLoader, onSearch, hasPageFilters}: Props
 
   return (
     <FiltersWrapper>
-      {hasPageFilters && (
-        <StyledPageFilterBar>
-          <EnvironmentPageFilter />
-          <DatePageFilter alignDropdown="left" />
-        </StyledPageFilterBar>
-      )}
+      <StyledPageFilterBar>
+        <EnvironmentPageFilter />
+        <DatePageFilter alignDropdown="left" />
+      </StyledPageFilterBar>
       <SearchBarWrapper>
         <GuideAnchor target="releases_search" position="bottom">
           <SmartSearchBar

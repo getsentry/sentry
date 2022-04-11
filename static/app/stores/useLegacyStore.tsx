@@ -1,13 +1,14 @@
-import {useEffect, useState} from 'react';
-import Reflux from 'reflux';
+import {useEffect, useRef, useState} from 'react';
+import {Store} from 'reflux';
 
 import {SafeRefluxStore} from '../utils/makeSafeRefluxStore';
 
-import {CommonStoreInterface} from './types';
+import {CommonStoreDefinition} from './types';
 
-type LegacyStoreShape =
-  | (Reflux.Store & CommonStoreInterface<any>)
-  | (SafeRefluxStore & CommonStoreInterface<any>);
+interface UnsafeStore extends Store, CommonStoreDefinition<any> {}
+interface SafeStore extends SafeRefluxStore, CommonStoreDefinition<any> {}
+
+type LegacyStoreShape = UnsafeStore | SafeStore;
 
 /**
  * This wrapper exists because we have many old-style enzyme tests that trigger
@@ -35,12 +36,17 @@ export function useLegacyStore<T extends LegacyStoreShape>(
   // Not all stores emit the new state, call get on change
   const callback = () => window._legacyStoreHookUpdate(() => setState(store.getState()));
 
-  useEffect(() => {
-    const listener = store.listen(callback, undefined);
+  // If we setup the listener in useEffect, there is a small race condition
+  // where the store may emit an event before we're listening (since useEffect
+  // fires AFTER rendering). Avoid this by ensuring we start listening
+  // *immediately* after we initialize the useState.
+  const unlisten = useRef<Function>();
+  if (unlisten.current === undefined) {
+    unlisten.current = store.listen(callback, undefined);
+  }
 
-    return () => {
-      listener();
-    };
+  useEffect(() => {
+    return () => void unlisten.current?.();
   }, []);
 
   return state;

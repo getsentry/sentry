@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Any, List, MutableMapping, Optional, Sequence
+from typing import Any, Iterable, List, MutableMapping, Sequence
 
 import sentry_sdk
 from django.db import connection
@@ -179,18 +181,29 @@ class ProjectSerializer(Serializer):  # type: ignore
 
     def __init__(
         self,
-        environment_id: Optional[str] = None,
-        stats_period: Optional[str] = None,
-        transaction_stats: Optional[str] = None,
-        session_stats: Optional[str] = None,
+        environment_id: str | None = None,
+        stats_period: str | None = None,
+        expand: Iterable[str] | None = None,
+        collapse: Iterable[str] | None = None,
     ) -> None:
         if stats_period is not None:
             assert stats_period in STATS_PERIOD_CHOICES
 
         self.environment_id = environment_id
         self.stats_period = stats_period
-        self.transaction_stats = transaction_stats
-        self.session_stats = session_stats
+        self.expand = expand
+        self.collapse = collapse
+
+    def _expand(self, key: str) -> bool:
+        if self.expand is None:
+            return False
+
+        return key in self.expand
+
+    def _collapse(self, key: str) -> bool:
+        if self.collapse is None:
+            return False
+        return key in self.collapse
 
     def get_attrs(
         self, item_list: Sequence[Project], user: User, **kwargs: Any
@@ -225,13 +238,13 @@ class ProjectSerializer(Serializer):  # type: ignore
             transaction_stats = None
             session_stats = None
             project_ids = [o.id for o in item_list]
-            if self.transaction_stats and self.stats_period:
+
+            if self.stats_period:
                 stats = self.get_stats(project_ids, "!event.type:transaction")
-                transaction_stats = self.get_stats(project_ids, "event.type:transaction")
-            elif self.stats_period:
-                stats = self.get_stats(project_ids, "!event.type:transaction")
-            if self.session_stats:
-                session_stats = self.get_session_stats(project_ids)
+                if self._expand("transaction_stats"):
+                    transaction_stats = self.get_stats(project_ids, "event.type:transaction")
+                if self._expand("session_stats"):
+                    session_stats = self.get_session_stats(project_ids)
 
         avatars = {a.project_id: a for a in ProjectAvatar.objects.filter(project__in=item_list)}
         project_ids = [i.id for i in item_list]
@@ -450,24 +463,6 @@ class ProjectWithTeamSerializer(ProjectSerializer):
 
 
 class ProjectSummarySerializer(ProjectWithTeamSerializer):
-    def __init__(
-        self,
-        environment_id=None,
-        stats_period=None,
-        transaction_stats=None,
-        session_stats=None,
-        collapse=None,
-    ):
-        super(ProjectWithTeamSerializer, self).__init__(
-            environment_id, stats_period, transaction_stats, session_stats
-        )
-        self.collapse = collapse
-
-    def _collapse(self, key):
-        if self.collapse is None:
-            return False
-        return key in self.collapse
-
     def get_deploys_by_project(self, item_list):
         cursor = connection.cursor()
         cursor.execute(

@@ -10,10 +10,12 @@ import {
   SectionHeading,
   SectionValue,
 } from 'sentry/components/charts/styles';
+import Count from 'sentry/components/count';
 import {Panel} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
@@ -49,6 +51,11 @@ function Chart(props: Props) {
   }
 
   function handleDisplayChange(value: string) {
+    trackAdvancedAnalyticsEvent('performance_views.span_summary.change_chart', {
+      organization: props.organization,
+      change_to_display: value,
+    });
+
     browserHistory.push({
       pathname: location.pathname,
       query: {
@@ -78,7 +85,7 @@ function Chart(props: Props) {
           <InlineContainer>
             <SectionHeading>{t('Total Events')}</SectionHeading>
             <SectionValue data-test-id="total-value">
-              {defined(props.totalCount) ? props.totalCount : '\u2014'}
+              {defined(props.totalCount) ? <Count value={props.totalCount} /> : '\u2014'}
             </SectionValue>
           </InlineContainer>
           <InlineContainer data-test-id="display-toggle">

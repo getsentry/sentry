@@ -22,5 +22,35 @@
       },
       {"type": "spaces", "value": ""}
     ]
+  },
+  {
+    "query": "p95:>5s",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "p95", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": ">5s", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "p95:>5k",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "p95", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": ">5k", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
   }
 ]

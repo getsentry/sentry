@@ -1,4 +1,4 @@
-import {experimentList, unassignedValue} from 'sentry/data/experimentConfig';
+import type {experimentList, unassignedValue} from 'sentry/data/experimentConfig';
 
 /**
  * The grouping of the experiment

@@ -2,7 +2,7 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import DropdownButton from 'sentry/components/dropdownButton';
 import DropdownControl from 'sentry/components/dropdownControl';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';

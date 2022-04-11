@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import ButtonBar from 'sentry/components/buttonBar';
@@ -29,6 +28,7 @@ interface Props {
   onChange: (aggregates: QueryFieldValue[]) => void;
   widgetType: Widget['widgetType'];
   errors?: Record<string, any>;
+  noFieldsMessage?: string;
 }
 
 export function YAxisSelector({
@@ -38,6 +38,7 @@ export function YAxisSelector({
   fieldOptions,
   onChange,
   errors,
+  noFieldsMessage,
 }: Props) {
   const organization = useOrganization();
   const isMetricWidget = widgetType === WidgetType.METRICS;
@@ -77,9 +78,8 @@ export function YAxisSelector({
   }
 
   function handleTopNChangeField(value: QueryFieldValue) {
-    const newAggregates = [...aggregates];
-    newAggregates[aggregates.length - 1] = value;
-    onChange(newAggregates);
+    // Top N widgets can only ever change a single y-axis
+    onChange([value]);
   }
 
   // Any function/field choice for Big Number widgets is legal since the
@@ -89,6 +89,15 @@ export function YAxisSelector({
   const doNotValidateYAxis = displayType === DisplayType.BIG_NUMBER;
 
   function filterPrimaryOptions(option: FieldValueOption) {
+    if (widgetType === WidgetType.METRICS) {
+      if (displayType === DisplayType.TABLE) {
+        return [FieldValueKind.FUNCTION, FieldValueKind.TAG].includes(option.value.kind);
+      }
+      if (displayType === DisplayType.TOP_N) {
+        return option.value.kind === FieldValueKind.TAG;
+      }
+    }
+
     // Only validate function names for timeseries widgets and
     // world map widgets.
     if (!doNotValidateYAxis && option.value.kind === FieldValueKind.FUNCTION) {
@@ -100,16 +109,6 @@ export function YAxisSelector({
         // If a function returns a specific type, then validate it.
         return isLegalYAxisType(primaryOutput);
       }
-    }
-
-    if (
-      widgetType === WidgetType.METRICS &&
-      (displayType === DisplayType.TABLE || displayType === DisplayType.TOP_N)
-    ) {
-      return (
-        option.value.kind === FieldValueKind.FUNCTION ||
-        option.value.kind === FieldValueKind.TAG
-      );
     }
 
     return option.value.kind === FieldValueKind.FUNCTION;
@@ -187,6 +186,7 @@ export function YAxisSelector({
             filterPrimaryOptions={filterPrimaryOptions}
             filterAggregateParameters={filterAggregateParameters(fieldValue)}
             otherColumns={aggregates}
+            noFieldsMessage={noFieldsMessage}
           />
           {aggregates.length > 1 &&
             (canDelete || fieldValue.kind === FieldValueKind.EQUATION) && (
@@ -197,7 +197,9 @@ export function YAxisSelector({
       {!hideAddYAxisButtons && (
         <Actions gap={1}>
           <AddButton title={t('Add Overlay')} onAdd={handleAddOverlay} />
-          <AddButton title={t('Add an Equation')} onAdd={handleAddEquation} />
+          {!isMetricWidget && (
+            <AddButton title={t('Add an Equation')} onAdd={handleAddEquation} />
+          )}
         </Actions>
       )}
     </Field>

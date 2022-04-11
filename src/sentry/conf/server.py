@@ -928,8 +928,10 @@ SENTRY_FEATURES = {
     "auth:register": True,
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
+    # Use metrics as the dataset for crash free metric alerts
+    "organizations:alert-crash-free-metrics": False,
     # Enable issue alert status page
-    "organizations:alert-rule-status-page": False,
+    "organizations:alert-rule-status-page": True,
     # Alert wizard redesign version 3
     "organizations:alert-wizard-v3": False,
     "organizations:api-keys": False,
@@ -966,6 +968,8 @@ SENTRY_FEATURES = {
     "organizations:performance-view": True,
     # Enable profiling
     "organizations:profiling": False,
+    # Enable projects page redesign
+    "organizations:projects-page-redesign": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
@@ -1008,6 +1012,8 @@ SENTRY_FEATURES = {
     "organizations:release-health-check-metrics": False,
     # True if differences between the metrics and sessions backend should be reported
     "organizations:release-health-check-metrics-report": False,
+    # True if the metrics data should be returned as API response (if possible with current data)
+    "organizations:release-health-return-metrics": False,
     # Enable threshold period in metric alert rule builder
     "organizations:metric-alert-threshold-period": False,
     # Enable integration functionality to create and link groups to issues on
@@ -1060,8 +1066,6 @@ SENTRY_FEATURES = {
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
-    # Display a global dashboard notification for this org
-    "organizations:prompt-dashboards": False,
     # Enable views for ops breakdown
     "organizations:performance-ops-breakdown": False,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
@@ -1108,8 +1112,6 @@ SENTRY_FEATURES = {
     "organizations:mobile-screenshots": False,
     # Enable the release details performance section
     "organizations:release-comparison-performance": False,
-    # Enable percent displays in issue stream
-    "organizations:issue-percent-display": False,
     # Enable team insights page
     "organizations:team-insights": True,
     # Adds additional filters and a new section to issue alert rules.
@@ -1702,6 +1704,9 @@ SENTRY_USE_METRICS_DEV = False
 # This flags activates the Change Data Capture backend in the development environment
 SENTRY_USE_CDC_DEV = False
 
+# This flag activates profiling backend in the development environment
+SENTRY_USE_PROFILING = False
+
 # SENTRY_DEVSERVICES = {
 #     "service-name": lambda settings, options: (
 #         {
@@ -1759,7 +1764,7 @@ SENTRY_DEVSERVICES = {
     ),
     "postgres": lambda settings, options: (
         {
-            "image": "postgres:9.6-alpine",
+            "image": f"postgres:{os.getenv('PG_VERSION') or '9.6'}-alpine",
             "pull": True,
             "ports": {"5432/tcp": 5432},
             "environment": {"POSTGRES_DB": "sentry", "POSTGRES_HOST_AUTH_METHOD": "trust"},
@@ -1860,6 +1865,7 @@ SENTRY_DEVSERVICES = {
                 "REDIS_PORT": "6379",
                 "REDIS_DB": "1",
                 "ENABLE_SENTRY_METRICS_DEV": "1" if settings.SENTRY_USE_METRICS_DEV else "",
+                "ENABLE_PROFILES_CONSUMER": "1" if settings.SENTRY_USE_PROFILING else "",
             },
             "only_if": "snuba" in settings.SENTRY_EVENTSTREAM
             or "kafka" in settings.SENTRY_EVENTSTREAM,
@@ -2521,5 +2527,13 @@ SENTRY_PROFILING_SERVICE_URL = "http://localhost:8085"
 SENTRY_ISSUE_ALERT_HISTORY = "sentry.rules.history.backends.postgres.PostgresRuleHistoryBackend"
 SENTRY_ISSUE_ALERT_HISTORY_OPTIONS = {}
 
+# This is useful for testing SSO expiry flows
+SENTRY_SSO_EXPIRY_SECONDS = os.environ.get("SENTRY_SSO_EXPIRY_SECONDS", None)
+
+# Set to an iterable of strings matching services so only logs from those services show up
+# eg. DEVSERVER_LOGS_ALLOWLIST = {"server", "webpack", "worker"}
+DEVSERVER_LOGS_ALLOWLIST = None
 
 LOG_API_ACCESS = not IS_DEV or os.environ.get("SENTRY_LOG_API_ACCESS")
+
+VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = False

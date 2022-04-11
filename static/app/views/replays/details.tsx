@@ -1,35 +1,54 @@
-import {Fragment} from 'react';
+import React from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import NotFound from 'sentry/components/errors/notFound';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
+import EventEntry from 'sentry/components/events/eventEntry';
 import EventMessage from 'sentry/components/events/eventMessage';
-import RRWebIntegration from 'sentry/components/events/rrwebIntegration';
+import BaseRRWebReplayer from 'sentry/components/events/rrwebReplayer/baseRRWebReplayer';
+import FeatureBadge from 'sentry/components/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TagsTable from 'sentry/components/tagsTable';
 import {t} from 'sentry/locale';
+import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import EventView from 'sentry/utils/discover/eventView';
 import {getMessage} from 'sentry/utils/events';
+import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 
-type Props = AsyncView['props'] &
-  RouteComponentProps<{eventSlug: string; orgId: string}, {}>;
+import useReplayEvent from './utils/useReplayEvent';
 
-type State = AsyncView['state'] & {
-  event: Event | undefined;
-  eventView: EventView;
+type Props = AsyncView['props'] &
+  RouteComponentProps<
+    {
+      eventSlug: string;
+      orgId: string;
+    },
+    {}
+  > & {organization: Organization};
+
+type ReplayLoaderProps = {
+  eventSlug: string;
+  location: Props['location'];
+  orgId: string;
+  organization: Organization;
+  route: Props['route'];
+  router: Props['router'];
 };
+
+type State = AsyncView['state'];
 
 const EventHeader = ({event}: {event: Event}) => {
   const message = getMessage(event);
   return (
     <EventHeaderContainer data-test-id="event-header">
       <TitleWrapper>
-        <EventOrGroupTitle data={event} />
+        <EventOrGroupTitle data={event} /> <FeatureBadge type="alpha" />
       </TitleWrapper>
       {message && (
         <MessageWrapper>
@@ -42,24 +61,11 @@ const EventHeader = ({event}: {event: Event}) => {
 
 class ReplayDetails extends AsyncView<Props, State> {
   state: State = {
-    eventView: EventView.fromLocation(this.props.location),
     loading: true,
     reloading: false,
     error: false,
     errors: {},
-    event: undefined,
   };
-
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {params, location} = this.props;
-
-    const eventView = EventView.fromLocation(location);
-    const query = eventView.getEventsAPIPayload(location);
-
-    return [
-      ['event', `/organizations/${params.orgId}/events/${params.eventSlug}/`, {query}],
-    ];
-  }
 
   getTitle() {
     if (this.state.event) {
@@ -68,63 +74,127 @@ class ReplayDetails extends AsyncView<Props, State> {
     return `Replays - ${this.props.params.orgId}`;
   }
 
-  onUpdate = (data: Event) =>
-    this.setState(state => ({event: {...state.event, ...data}}));
-
-  generateTagUrl = () => {
-    return ''; // todo
-  };
-
-  getEventView = (): EventView => {
-    const {location} = this.props;
-
-    return EventView.fromLocation(location);
-  };
+  renderLoading() {
+    return <PageContent>{super.renderLoading()}</PageContent>;
+  }
 
   renderBody() {
-    const {event} = this.state;
-    const orgSlug = this.props.params.orgId;
+    const {
+      location,
+      router,
+      route,
+      organization,
+      params: {eventSlug, orgId},
+    } = this.props;
+    return (
+      <ReplayLoader
+        eventSlug={eventSlug}
+        location={location}
+        orgId={orgId}
+        organization={organization}
+        router={router}
+        route={route}
+      />
+    );
+  }
+}
+
+function getProjectSlug(event: Event) {
+  return event.projectSlug || event['project.name']; // seems janky
+}
+
+function ReplayLoader(props: ReplayLoaderProps) {
+  const orgSlug = props.orgId;
+
+  const {
+    fetchError,
+    fetching,
+    breadcrumbEntry,
+    event,
+    replayEvents,
+    rrwebEvents,
+    mergedReplayEvent,
+  } = useReplayEvent(props);
+
+  /* eslint-disable-next-line no-console */
+  console.log({
+    fetchError,
+    fetching,
+    event,
+    replayEvents,
+    rrwebEvents,
+    mergedReplayEvent,
+  });
+
+  const renderMain = () => {
+    if (fetching) {
+      return <LoadingIndicator />;
+    }
     if (!event) {
       return <NotFound />;
     }
 
-    const eventView = this.getEventView();
-    const projectSlug = event.projectSlug || event['project.name']; // seems janky
-
     return (
-      <Fragment>
-        <Fragment>
-          <Layout.Header>
-            <Layout.HeaderContent>
-              <Breadcrumbs
-                crumbs={[
-                  {
-                    to: `/organizations/${orgSlug}/replays/`,
-                    label: t('Replays'),
-                  },
-                  {label: t('Replay Details')}, // TODO: put replay ID or something here
-                ]}
-              />
-              <EventHeader event={event} />
-            </Layout.HeaderContent>
-          </Layout.Header>
-        </Fragment>
+      <React.Fragment>
+        <BaseRRWebReplayer events={rrwebEvents} />
 
-        <Layout.Body>
-          <Layout.Main>
-            <RRWebIntegration event={event} orgId={orgSlug} projectId={projectSlug} />
-          </Layout.Main>
-          <Layout.Side>
-            <TagsTable
-              generateUrl={this.generateTagUrl}
-              event={event}
-              query={eventView.query}
-            />
-          </Layout.Side>
-        </Layout.Body>
-      </Fragment>
+        {breadcrumbEntry && (
+          <EventEntry
+            projectSlug={getProjectSlug(event)}
+            // group={group}
+            organization={props.organization}
+            event={event}
+            entry={breadcrumbEntry}
+            route={props.route}
+            router={props.router}
+          />
+        )}
+
+        {mergedReplayEvent && (
+          <EventEntry
+            key={`${mergedReplayEvent.id}`}
+            projectSlug={getProjectSlug(mergedReplayEvent)}
+            // group={group}
+            organization={props.organization}
+            event={mergedReplayEvent}
+            entry={mergedReplayEvent.entries[0]}
+            route={props.route}
+            router={props.router}
+          />
+        )}
+      </React.Fragment>
     );
-  }
+  };
+
+  const renderSide = () => {
+    if (event) {
+      return <TagsTable generateUrl={() => ''} event={event} query="" />;
+    }
+    return null;
+  };
+
+  return (
+    <NoPaddingContent>
+      <Layout.Header>
+        <Layout.HeaderContent>
+          <Breadcrumbs
+            crumbs={[
+              {
+                to: `/organizations/${orgSlug}/replays/`,
+                label: t('Replays'),
+              },
+              {label: t('Replay Details')}, // TODO: put replay ID or something here
+            ]}
+          />
+          {event ? <EventHeader event={event} /> : null}
+        </Layout.HeaderContent>
+      </Layout.Header>
+      <Layout.Body>
+        <Layout.Main>{renderMain()}</Layout.Main>
+        <Layout.Side>{renderSide()}</Layout.Side>
+      </Layout.Body>
+    </NoPaddingContent>
+  );
 }
 
 const EventHeaderContainer = styled('div')`
@@ -140,4 +210,8 @@ const MessageWrapper = styled('div')`
   margin-top: ${space(1)};
 `;
 
-export default ReplayDetails;
+const NoPaddingContent = styled(PageContent)`
+  padding: 0;
+`;
+
+export default withOrganization(ReplayDetails);

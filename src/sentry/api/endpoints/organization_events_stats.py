@@ -77,6 +77,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
             "organizations:performance-chart-interpolation",
             "organizations:discover-use-snql",
             "organizations:performance-use-metrics",
+            "organizations:performance-dry-run-mep",
         ]
         batch_features = features.batch_has(
             feature_names,
@@ -139,10 +140,13 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
             performance_use_metrics = batch_features.get(
                 "organizations:performance-use-metrics", False
             )
+            performance_dry_run_mep = batch_features.get(
+                "organizations:performance-dry-run-mep", False
+            )
 
             metrics_enhanced = request.GET.get("metricsEnhanced") == "1" and performance_use_metrics
             allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
-            sentry_sdk.set_tag("performance.use_metrics", metrics_enhanced)
+            sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
 
         def get_event_stats(
             query_columns: Sequence[str],
@@ -170,17 +174,21 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                     use_snql=discover_snql,
                 )
             dataset = discover if not metrics_enhanced else metrics_enhanced_performance
-            return dataset.timeseries_query(
-                selected_columns=query_columns,
-                query=query,
-                params=params,
-                rollup=rollup,
-                referrer=referrer,
-                zerofill_results=zerofill_results,
-                comparison_delta=comparison_delta,
-                allow_metric_aggregates=allow_metric_aggregates,
-                use_snql=discover_snql,
-            )
+            query_details = {
+                "selected_columns": query_columns,
+                "query": query,
+                "params": params,
+                "rollup": rollup,
+                "referrer": referrer,
+                "zerofill_results": zerofill_results,
+                "comparison_delta": comparison_delta,
+                "allow_metric_aggregates": allow_metric_aggregates,
+                "use_snql": discover_snql,
+            }
+            if not metrics_enhanced and performance_dry_run_mep:
+                sentry_sdk.set_tag("query.mep_compatible", False)
+                metrics_enhanced_performance.timeseries_query(dry_run=True, **query_details)
+            return dataset.timeseries_query(**query_details)
 
         try:
             return Response(

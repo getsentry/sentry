@@ -1,53 +1,38 @@
-import Reflux from 'reflux';
+import {createStore} from 'reflux';
 
-import SidebarPanelActions from 'sentry/actions/sidebarPanelActions';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
-import {makeSafeRefluxStore, SafeStoreDefinition} from 'sentry/utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
-import {CommonStoreInterface} from './types';
+import {CommonStoreDefinition} from './types';
 
 type ActivePanelType = SidebarPanelKey | '';
 
-type SidebarPanelStoreInterface = CommonStoreInterface<ActivePanelType> & {
+interface SidebarPanelStoreDefinition extends CommonStoreDefinition<ActivePanelType> {
+  activatePanel(panel: SidebarPanelKey): void;
+
   activePanel: ActivePanelType;
+  hidePanel(): void;
+  togglePanel(panel: SidebarPanelKey): void;
+}
 
-  onActivatePanel(panel: SidebarPanelKey): void;
-  onHidePanel(): void;
-  onTogglePanel(panel: SidebarPanelKey): void;
-};
-
-const storeConfig: Reflux.StoreDefinition &
-  SidebarPanelStoreInterface &
-  SafeStoreDefinition = {
+const storeConfig: SidebarPanelStoreDefinition = {
   activePanel: '',
   unsubscribeListeners: [],
 
-  init() {
-    this.unsubscribeListeners.push(
-      this.listenTo(SidebarPanelActions.activatePanel, this.onActivatePanel)
-    );
-    this.unsubscribeListeners.push(
-      this.listenTo(SidebarPanelActions.hidePanel, this.onHidePanel)
-    );
-    this.unsubscribeListeners.push(
-      this.listenTo(SidebarPanelActions.togglePanel, this.onTogglePanel)
-    );
-  },
-
-  onActivatePanel(panel: SidebarPanelKey) {
+  activatePanel(panel: SidebarPanelKey) {
     this.activePanel = panel;
     this.trigger(this.activePanel);
   },
 
-  onTogglePanel(panel: SidebarPanelKey) {
+  togglePanel(panel: SidebarPanelKey) {
     if (this.activePanel === panel) {
-      this.onHidePanel();
+      this.hidePanel();
     } else {
-      this.onActivatePanel(panel);
+      this.activatePanel(panel);
     }
   },
 
-  onHidePanel() {
+  hidePanel() {
     this.activePanel = '';
     this.trigger(this.activePanel);
   },
@@ -61,8 +46,5 @@ const storeConfig: Reflux.StoreDefinition &
  * This store is used to hold local user preferences
  * Side-effects (like reading/writing to cookies) are done in associated actionCreators
  */
-const SidebarPanelStore = Reflux.createStore(
-  makeSafeRefluxStore(storeConfig)
-) as Reflux.Store & SidebarPanelStoreInterface;
-
+const SidebarPanelStore = createStore(makeSafeRefluxStore(storeConfig));
 export default SidebarPanelStore;

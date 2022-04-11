@@ -1,5 +1,5 @@
 import pick from 'lodash/pick';
-import Reflux from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
 import {mergeGroups} from 'sentry/actionCreators/group';
 import {
@@ -11,7 +11,7 @@ import GroupingActions from 'sentry/actions/groupingActions';
 import {Client} from 'sentry/api';
 import {Group, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import {makeSafeRefluxStore, SafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 // Between 0-100
 const MIN_SCORE = 0.6;
@@ -110,7 +110,11 @@ type IdState = {
   collapsed?: boolean;
 };
 
-type GroupingStoreInterface = Reflux.StoreDefinition & {
+type InternalDefinition = {
+  api: Client;
+};
+
+interface GroupingStoreDefinition extends StoreDefinition, InternalDefinition {
   getInitialState(): State;
   init(): void;
   isAllUnmergedSelected(): boolean;
@@ -166,13 +170,9 @@ type GroupingStoreInterface = Reflux.StoreDefinition & {
     | 'enableFingerprintCompare'
     | 'unmergeLastCollapsed'
   >;
-};
+}
 
-type Internals = {
-  api: Client;
-};
-
-const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface = {
+const storeConfig: GroupingStoreDefinition = {
   listenables: [GroupingActions],
   api: new Client(),
 
@@ -617,8 +617,5 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
   },
 };
 
-const GroupingStore = Reflux.createStore(
-  makeSafeRefluxStore(storeConfig)
-) as SafeRefluxStore & GroupingStoreInterface;
-
+const GroupingStore = createStore(makeSafeRefluxStore(storeConfig));
 export default GroupingStore;

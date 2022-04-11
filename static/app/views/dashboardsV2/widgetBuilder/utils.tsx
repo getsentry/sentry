@@ -3,7 +3,11 @@ import isEqual from 'lodash/isEqual';
 import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesForm';
 import {t} from 'sentry/locale';
 import {Organization, TagCollection} from 'sentry/types';
-import {aggregateOutputType, isLegalYAxisType} from 'sentry/utils/discover/fields';
+import {
+  aggregateOutputType,
+  getAggregateAlias,
+  isLegalYAxisType,
+} from 'sentry/utils/discover/fields';
 import {MeasurementCollection} from 'sentry/utils/measurements/measurements';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
 import {
@@ -15,6 +19,8 @@ import {
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
+import {FlatValidationError, ValidationError} from '../utils';
+
 // Used in the widget builder to limit the number of lines plotted in the chart
 export const DEFAULT_RESULTS_LIMIT = 5;
 export const RESULTS_LIMIT = 10;
@@ -22,7 +28,7 @@ export const RESULTS_LIMIT = 10;
 export enum DataSet {
   EVENTS = 'events',
   ISSUES = 'issues',
-  METRICS = 'metrics',
+  RELEASE = 'release',
 }
 
 export enum SortDirection {
@@ -43,14 +49,6 @@ export const displayTypes = {
   [DisplayType.WORLD_MAP]: t('World Map'),
   [DisplayType.BIG_NUMBER]: t('Big Number'),
   [DisplayType.TOP_N]: t('Top 5 Events'),
-};
-
-type ValidationError = {
-  [key: string]: string | string[] | ValidationError[] | ValidationError;
-};
-
-export type FlatValidationError = {
-  [key: string]: string | FlatValidationError[] | FlatValidationError;
 };
 
 export function mapErrors(
@@ -121,24 +119,22 @@ export function normalizeQueries({
         query.fields = fields.filter(field => !columns.includes(field));
       }
 
-      if (!!query.orderby) {
-        return query;
-      }
-
       const orderBy =
-        queries[0].orderby ||
-        (widgetType === WidgetType.DISCOVER
-          ? generateOrderOptions({
-              widgetType,
+        getAggregateAlias(queries[0].orderby) ||
+        (widgetType === WidgetType.ISSUE
+          ? IssueSortOptions.DATE
+          : generateOrderOptions({
+              widgetType: widgetType ?? WidgetType.DISCOVER,
               widgetBuilderNewDesign,
               columns: queries[0].columns,
               aggregates: queries[0].aggregates,
-            })[0].value
-          : IssueSortOptions.DATE);
+            })[0].value);
 
       // Issues data set doesn't support order by descending
       query.orderby =
-        widgetType === WidgetType.DISCOVER ? `-${String(orderBy)}` : String(orderBy);
+        widgetType === WidgetType.DISCOVER && !orderBy.startsWith('-')
+          ? `-${String(orderBy)}`
+          : String(orderBy);
 
       return query;
     });
@@ -264,4 +260,18 @@ export function getAmendedFieldOptions({
     measurementKeys: Object.values(measurements).map(({key}) => key),
     spanOperationBreakdownKeys: SPAN_OP_BREAKDOWN_FIELDS,
   });
+}
+
+// Extract metric names from aggregation functions present in the widget queries
+export function getMetricFields(queries: WidgetQuery[]) {
+  return queries.reduce((acc, query) => {
+    for (const field of [...query.aggregates, ...query.columns]) {
+      const fieldParameter = /\(([^)]*)\)/.exec(field)?.[1];
+      if (fieldParameter && !acc.includes(fieldParameter)) {
+        acc.push(fieldParameter);
+      }
+    }
+
+    return acc;
+  }, [] as string[]);
 }

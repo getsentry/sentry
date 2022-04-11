@@ -27,7 +27,6 @@ const Badge = styled(({children, text, ...props}: Props) => (
   transition: background 100ms linear;
 
   position: relative;
-  top: -1px;
 `;
 
 export default Badge;
