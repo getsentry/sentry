@@ -184,16 +184,14 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
         ),
     )
     @patch("sentry.snuba.metrics.datasource.get_derived_metrics")
-    def test_same_entity_multiple_metric_ids(self, mocked_derived_metrics):
+    def test_same_entity_multiple_metric_ids_missing_data(self, mocked_derived_metrics):
         """
         Test that ensures that if a derived metric is defined with constituent metrics that
         belong to the same entity but have different ids, then we are able to correctly return
         its detail info
         """
         mocked_derived_metrics.return_value = MOCKED_DERIVED_METRICS_2
-        org_id = self.organization.id
-        metric_id = indexer.record(org_id, "metric_foo_doe")
-
+        indexer.record(self.organization.id, "metric_foo_doe")
         self.store_session(
             self.build_session(
                 project_id=self.project.id,
@@ -212,18 +210,45 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
             "Not all the requested metrics or the constituent metrics in "
             "['derived_metric.multiple_metrics'] have data in the dataset"
         )
+
+    @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS_2)
+    @patch(
+        "sentry.snuba.metrics.datasource.get_mri",
+        mocked_mri_resolver(["metric_foo_doe", "derived_metric.multiple_metrics"], get_mri),
+    )
+    @patch(
+        "sentry.snuba.metrics.datasource.get_public_name_from_mri",
+        mocked_mri_resolver(
+            ["metric_foo_doe", "derived_metric.multiple_metrics"], get_public_name_from_mri
+        ),
+    )
+    @patch("sentry.snuba.metrics.datasource.get_derived_metrics")
+    def test_same_entity_multiple_metric_ids(self, mocked_derived_metrics):
+        mocked_derived_metrics.return_value = MOCKED_DERIVED_METRICS_2
+        org_id = self.project.organization.id
+        metric_id = indexer.record(org_id, "metric_foo_doe")
+
+        self.store_session(
+            self.build_session(
+                project_id=self.project.id,
+                started=(time.time() // 60) * 60,
+                status="ok",
+                release="foobar@2.0",
+                errors=2,
+            )
+        )
         self._send_buckets(
             [
                 {
                     "org_id": org_id,
                     "project_id": self.project.id,
                     "metric_id": metric_id,
-                    "timestamp": int(time.time()),
+                    "timestamp": (time.time() // 60 - 2) * 60,
                     "tags": {
-                        resolve_weak(org_id, "release"): indexer.record(org_id, "foo"),
+                        resolve_weak(org_id, "release"): indexer.record(org_id, "fooww"),
                     },
                     "type": "c",
-                    "value": 1,
+                    "value": 5,
                     "retention_days": 90,
                 },
             ],
