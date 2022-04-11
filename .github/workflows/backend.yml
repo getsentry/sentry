@@ -421,7 +421,7 @@ jobs:
     needs:
       [
         api-docs,
-        backend,
+        backend-test,
         cli,
         lint,
         migration,
