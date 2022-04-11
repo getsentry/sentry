@@ -44,7 +44,7 @@ type Props = Omit<FormField['props'], 'children'> & {
   inFieldLabels?: boolean;
 };
 
-const getFieldOptionConfig = ({
+export const getFieldOptionConfig = ({
   dataset,
   alertType,
 }: {

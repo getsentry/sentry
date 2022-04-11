@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import AlertActions from 'sentry/actions/alertActions';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -14,7 +13,7 @@ type Props = {
 };
 
 const AlertMessage = ({alert, system}: Props) => {
-  const handleClose = () => AlertActions.closeAlert(alert);
+  const handleClose = () => AlertStore.closeAlert(alert);
 
   const {url, message, type, opaque} = alert;
 

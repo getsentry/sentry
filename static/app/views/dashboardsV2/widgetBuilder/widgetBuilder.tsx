@@ -9,7 +9,7 @@ import set from 'lodash/set';
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
-import {fetchMetricsFields, fetchMetricsTags} from 'sentry/actionCreators/metrics';
+import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesForm';
 import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
@@ -26,7 +26,7 @@ import {
   SelectValue,
   TagCollection,
 } from 'sentry/types';
-import {defined} from 'sentry/utils';
+import {defined, objectIsEmpty} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {
   explodeField,
@@ -38,6 +38,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import {SessionMetric} from 'sentry/utils/metrics/fields';
+import {MetricsProvider} from 'sentry/utils/metrics/metricsProvider';
 import useApi from 'sentry/utils/useApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withTags from 'sentry/utils/withTags';
@@ -73,6 +74,7 @@ import {Header} from './header';
 import {
   DataSet,
   DEFAULT_RESULTS_LIMIT,
+  getMetricFields,
   getParsedDefaultWidgetQuery,
   mapErrors,
   normalizeQueries,
@@ -109,7 +111,7 @@ function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, Widge
       fieldAliases: [],
       aggregates: [`sum(${SessionMetric.SESSION})`],
       conditions: '',
-      orderby: '',
+      orderby: widgetBuilderNewDesign ? `-sum(${SessionMetric.SESSION})` : '',
     },
   };
 }
@@ -118,6 +120,12 @@ const WIDGET_TYPE_TO_DATA_SET = {
   [WidgetType.DISCOVER]: DataSet.EVENTS,
   [WidgetType.ISSUE]: DataSet.ISSUES,
   [WidgetType.METRICS]: DataSet.RELEASE,
+};
+
+const DATA_SET_TO_WIDGET_TYPE = {
+  [DataSet.EVENTS]: WidgetType.DISCOVER,
+  [DataSet.ISSUES]: WidgetType.ISSUE,
+  [DataSet.RELEASE]: WidgetType.METRICS,
 };
 
 interface RouteParams {
@@ -178,6 +186,12 @@ function WidgetBuilder({
   const defaultWidgetQuery = getParsedDefaultWidgetQuery(
     location.query.defaultWidgetQuery
   );
+
+  useEffect(() => {
+    if (objectIsEmpty(tags)) {
+      loadOrganizationTags(api, organization.slug, selection);
+    }
+  }, []);
 
   const isEditing = defined(widgetIndex);
   const widgetIndexNum = Number(widgetIndex);
@@ -286,13 +300,6 @@ function WidgetBuilder({
     fetchOrgMembers(api, organization.slug, selection.projects?.map(String));
   }, [selection.projects]);
 
-  useEffect(() => {
-    if (widgetBuilderNewDesign) {
-      fetchMetricsTags(api, organization.slug, selection.projects);
-      fetchMetricsFields(api, organization.slug, selection.projects);
-    }
-  }, [selection.projects, organization.slug, widgetBuilderNewDesign]);
-
   const widgetType =
     state.dataSet === DataSet.EVENTS
       ? WidgetType.DISCOVER
@@ -335,8 +342,7 @@ function WidgetBuilder({
       const normalized = normalizeQueries({
         displayType: newDisplayType,
         queries: prevState.queries,
-        widgetType:
-          prevState.dataSet === DataSet.EVENTS ? WidgetType.DISCOVER : WidgetType.ISSUE,
+        widgetType: DATA_SET_TO_WIDGET_TYPE[prevState.dataSet],
         widgetBuilderNewDesign,
       });
 
@@ -469,7 +475,7 @@ function WidgetBuilder({
   function handleAddSearchConditions() {
     setState(prevState => {
       const newState = cloneDeep(prevState);
-      const query = cloneDeep(getDataSetQuery(widgetBuilderNewDesign)[DataSet.EVENTS]);
+      const query = cloneDeep(getDataSetQuery(widgetBuilderNewDesign)[prevState.dataSet]);
       query.fields = prevState.queries[0].fields;
       query.aggregates = prevState.queries[0].aggregates;
       query.columns = prevState.queries[0].columns;
@@ -907,107 +913,120 @@ function WidgetBuilder({
           <Body>
             <MainWrapper>
               <Main>
-                <BuildSteps symbol="colored-numeric">
-                  <VisualizationStep
-                    widget={currentWidget}
-                    organization={organization}
-                    pageFilters={pageFilters}
-                    displayType={state.displayType}
-                    error={state.errors?.displayType}
-                    onChange={newDisplayType => {
-                      handleDisplayTypeOrTitleChange('displayType', newDisplayType);
-                    }}
-                    widgetBuilderNewDesign={widgetBuilderNewDesign}
-                  />
-                  <DataSetStep
-                    dataSet={state.dataSet}
-                    displayType={state.displayType}
-                    onChange={handleDataSetChange}
-                    widgetBuilderNewDesign={widgetBuilderNewDesign}
-                  />
-                  {isTabularChart && (
-                    <ColumnsStep
-                      dataSet={state.dataSet}
-                      queries={state.queries}
+                <MetricsProvider
+                  organization={organization}
+                  projects={selection.projects}
+                  fields={
+                    state.dataSet === DataSet.RELEASE
+                      ? getMetricFields(state.queries)
+                      : []
+                  }
+                  skipLoad={!widgetBuilderNewDesign}
+                >
+                  <BuildSteps symbol="colored-numeric">
+                    <VisualizationStep
+                      widget={currentWidget}
+                      organization={organization}
+                      pageFilters={pageFilters}
                       displayType={state.displayType}
-                      widgetType={widgetType}
-                      queryErrors={state.errors?.queries}
-                      onQueryChange={handleQueryChange}
-                      onYAxisOrColumnFieldChange={newFields => {
-                        handleYAxisOrColumnFieldChange(newFields, true);
+                      error={state.errors?.displayType}
+                      onChange={newDisplayType => {
+                        handleDisplayTypeOrTitleChange('displayType', newDisplayType);
                       }}
-                      explodedFields={explodedFields}
-                      tags={tags}
-                      organization={organization}
-                    />
-                  )}
-                  {![DisplayType.TABLE].includes(state.displayType) && (
-                    <YAxisStep
-                      dataSet={state.dataSet}
-                      displayType={state.displayType}
-                      widgetType={widgetType}
-                      queryErrors={state.errors?.queries}
-                      onYAxisChange={newFields => {
-                        handleYAxisOrColumnFieldChange(newFields);
-                      }}
-                      aggregates={explodedAggregates}
-                      tags={tags}
-                      organization={organization}
-                    />
-                  )}
-                  <FilterResultsStep
-                    queries={state.queries}
-                    hideLegendAlias={hideLegendAlias}
-                    canAddSearchConditions={canAddSearchConditions}
-                    organization={organization}
-                    queryErrors={state.errors?.queries}
-                    onAddSearchConditions={handleAddSearchConditions}
-                    onQueryChange={handleQueryChange}
-                    onQueryRemove={handleQueryRemove}
-                    selection={pageFilters}
-                    widgetType={widgetType}
-                  />
-                  {widgetBuilderNewDesign && isTimeseriesChart && (
-                    <GroupByStep
-                      columns={columns
-                        .filter(field => !(field === 'equation|'))
-                        .map((field, index) =>
-                          explodeField({field, alias: fieldAliases[index]})
-                        )}
-                      onGroupByChange={handleGroupByChange}
-                      organization={organization}
-                      tags={tags}
-                    />
-                  )}
-                  {((widgetBuilderNewDesign && isTimeseriesChart) || isTabularChart) && (
-                    <SortByStep
-                      limit={state.limit}
-                      displayType={state.displayType}
-                      queries={state.queries}
-                      dataSet={state.dataSet}
                       widgetBuilderNewDesign={widgetBuilderNewDesign}
-                      error={state.errors?.orderby}
-                      onSortByChange={handleSortByChange}
-                      onLimitChange={handleLimitChange}
+                    />
+                    <DataSetStep
+                      dataSet={state.dataSet}
+                      displayType={state.displayType}
+                      onChange={handleDataSetChange}
+                      widgetBuilderNewDesign={widgetBuilderNewDesign}
+                    />
+                    {isTabularChart && (
+                      <ColumnsStep
+                        dataSet={state.dataSet}
+                        queries={state.queries}
+                        displayType={state.displayType}
+                        widgetType={widgetType}
+                        queryErrors={state.errors?.queries}
+                        onQueryChange={handleQueryChange}
+                        onYAxisOrColumnFieldChange={newFields => {
+                          handleYAxisOrColumnFieldChange(newFields, true);
+                        }}
+                        explodedFields={explodedFields}
+                        tags={tags}
+                        organization={organization}
+                      />
+                    )}
+                    {![DisplayType.TABLE].includes(state.displayType) && (
+                      <YAxisStep
+                        dataSet={state.dataSet}
+                        displayType={state.displayType}
+                        widgetType={widgetType}
+                        queryErrors={state.errors?.queries}
+                        onYAxisChange={newFields => {
+                          handleYAxisOrColumnFieldChange(newFields);
+                        }}
+                        aggregates={explodedAggregates}
+                        tags={tags}
+                        organization={organization}
+                      />
+                    )}
+                    <FilterResultsStep
+                      queries={state.queries}
+                      hideLegendAlias={hideLegendAlias}
+                      canAddSearchConditions={canAddSearchConditions}
                       organization={organization}
+                      queryErrors={state.errors?.queries}
+                      onAddSearchConditions={handleAddSearchConditions}
+                      onQueryChange={handleQueryChange}
+                      onQueryRemove={handleQueryRemove}
+                      selection={pageFilters}
                       widgetType={widgetType}
                     />
-                  )}
-                  {notDashboardsOrigin && (
-                    <DashboardStep
-                      error={state.errors?.dashboard}
-                      dashboards={state.dashboards}
-                      onChange={selectedDashboard =>
-                        setState({
-                          ...state,
-                          selectedDashboard,
-                          errors: {...state.errors, dashboard: undefined},
-                        })
-                      }
-                      disabled={state.loading}
-                    />
-                  )}
-                </BuildSteps>
+                    {widgetBuilderNewDesign && isTimeseriesChart && (
+                      <GroupByStep
+                        columns={columns
+                          .filter(field => !(field === 'equation|'))
+                          .map((field, index) =>
+                            explodeField({field, alias: fieldAliases[index]})
+                          )}
+                        onGroupByChange={handleGroupByChange}
+                        organization={organization}
+                        tags={tags}
+                        dataSet={state.dataSet}
+                      />
+                    )}
+                    {((widgetBuilderNewDesign && isTimeseriesChart) ||
+                      isTabularChart) && (
+                      <SortByStep
+                        limit={state.limit}
+                        displayType={state.displayType}
+                        queries={state.queries}
+                        dataSet={state.dataSet}
+                        widgetBuilderNewDesign={widgetBuilderNewDesign}
+                        error={state.errors?.orderby}
+                        onSortByChange={handleSortByChange}
+                        onLimitChange={handleLimitChange}
+                        organization={organization}
+                        widgetType={widgetType}
+                      />
+                    )}
+                    {notDashboardsOrigin && (
+                      <DashboardStep
+                        error={state.errors?.dashboard}
+                        dashboards={state.dashboards}
+                        onChange={selectedDashboard =>
+                          setState({
+                            ...state,
+                            selectedDashboard,
+                            errors: {...state.errors, dashboard: undefined},
+                          })
+                        }
+                        disabled={state.loading}
+                      />
+                    )}
+                  </BuildSteps>
+                </MetricsProvider>
               </Main>
               <Footer
                 goBackLocation={previousLocation}

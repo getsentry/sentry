@@ -75,6 +75,7 @@ export interface FlamegraphTheme {
     BAR_PADDING: number;
     FLAMEGRAPH_DEPTH_OFFSET: number;
     FRAME_BORDER_WIDTH: number;
+    GRID_LINE_WIDTH: number;
     HOVERED_FRAME_BORDER_WIDTH: number;
     LABEL_FONT_PADDING: number;
     LABEL_FONT_SIZE: number;
@@ -135,6 +136,7 @@ export const LightFlamegraphTheme: FlamegraphTheme = {
     FRAME_BORDER_WIDTH: 2,
     HOVERED_FRAME_BORDER_WIDTH: 1,
     TOOLTIP_FONT_SIZE: 12,
+    GRID_LINE_WIDTH: 2,
   },
   COLORS: {
     LABEL_FONT_COLOR: '#1f233a',
@@ -192,6 +194,7 @@ export const DarkFlamegraphTheme: FlamegraphTheme = {
     FRAME_BORDER_WIDTH: 2,
     HOVERED_FRAME_BORDER_WIDTH: 1,
     TOOLTIP_FONT_SIZE: 12,
+    GRID_LINE_WIDTH: 2,
   },
   COLORS: {
     LABEL_FONT_COLOR: 'rgba(255, 255, 255, 0.8)',
