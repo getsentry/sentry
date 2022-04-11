@@ -70,7 +70,6 @@ access_log_fields = (
     "response",
     "user_id",
     "is_app",
-    "group",
     "token_type",
     "organization_id",
     "auth_id",
@@ -141,7 +140,6 @@ class TestAccessLogRateLimited(LogCaptureAPITestCase):
         assert self.captured_logs[0].token_type == "None"
         assert self.captured_logs[0].limit == "0"
         assert self.captured_logs[0].remaining == "0"
-        assert self.captured_logs[0].group == RateLimitedEndpoint.rate_limits.group
 
 
 class TestAccessLogConcurrentRateLimited(LogCaptureAPITestCase):
@@ -157,7 +155,6 @@ class TestAccessLogConcurrentRateLimited(LogCaptureAPITestCase):
         self.assert_access_log_recorded()
         for i in range(10):
             assert self.captured_logs[i].token_type == "None"
-            assert self.captured_logs[i].group == ConcurrentRateLimitedEndpoint.rate_limits.group
             assert self.captured_logs[i].concurrent_requests == "1"
             assert self.captured_logs[i].concurrent_limit == "1"
             assert self.captured_logs[i].rate_limit_type == "RateLimitType.NOT_LIMITED"
