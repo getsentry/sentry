@@ -1,3 +1,6 @@
+import {JSSelfProfile} from 'sentry/utils/profiling/profile/formats/jsSelfProfile';
+import {SampledProfile} from 'sentry/utils/profiling/profile/formats/sampledProfile';
+import {isTypeScriptTypeTree} from 'sentry/utils/profiling/profile/guards';
 import {importDroppedFile} from 'sentry/utils/profiling/profile/importDroppedFile';
 
 describe('importDroppedFile', () => {
@@ -48,6 +51,11 @@ describe('importDroppedFile', () => {
     await expect(importDroppedFile(file)).rejects.toBeInstanceOf(Error);
   });
 
+  it('throws if contents are not an object', async () => {
+    const file = new File(['true'], 'test.tsx');
+    await expect(importDroppedFile(file)).rejects.toBeInstanceOf(Error);
+  });
+
   it('imports schema file', async () => {
     const schema: Profiling.Schema = {
       name: 'profile',
@@ -68,7 +76,11 @@ describe('importDroppedFile', () => {
       },
     };
     const file = new File([JSON.stringify(schema)], 'test.tsx');
-    const imported = (await importDroppedFile(file)) as ProfileGroup;
+    const imported = await importDroppedFile(file);
+
+    if (isTypeScriptTypeTree(imported)) {
+      throw new Error('Imported is not a profile');
+    }
 
     expect(imported.profiles[0]).toBeInstanceOf(SampledProfile);
   });
@@ -94,8 +106,21 @@ describe('importDroppedFile', () => {
     };
 
     const file = new File([JSON.stringify(jsSelfProfile)], 'test.tsx');
-    const imported = (await importDroppedFile(file)) as ProfileGroup;
+    const imported = await importDroppedFile(file);
+
+    if (isTypeScriptTypeTree(imported)) {
+      throw new Error('Imported is not a profile');
+    }
 
     expect(imported.profiles[0]).toBeInstanceOf(JSSelfProfile);
+  });
+
+  it('imports typescript type tree', async () => {
+    const typesJSON: TypeScript.TypeDescriptor[] = [{id: 0, intrinsicName: 'Foo'}];
+
+    const file = new File([JSON.stringify(typesJSON)], 'test.tsx');
+    const imported = await importDroppedFile(file);
+
+    expect(isTypeScriptTypeTree(imported)).toBe(true);
   });
 });

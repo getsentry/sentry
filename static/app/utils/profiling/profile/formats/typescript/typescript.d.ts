@@ -1,5 +1,5 @@
 // https://github.com/microsoft/TypeScript/blob/7e3eccedd70de40a40425e2a1fb6bbc61965762a/src/compiler/tracing.ts
-namespace TypeScriptTypes {
+namespace TypeScript {
   interface TypeLocationDescriptor {
     path: string;
     start: {
@@ -60,42 +60,42 @@ namespace TypeScriptTypes {
     flags?: TypeFlag[];
 
     // extra index accessed type properties
-    indexedAccessObjectType?: number | undefined;
-    indexedAccessIndexType?: number | undefined;
-    instantiatedType?: number | undefined;
+    indexedAccessObjectType?: number;
+    indexedAccessIndexType?: number;
+    instantiatedType?: number;
 
     // extra referenced type properties
-    typeArguments?: number[] | undefined;
+    typeArguments?: number[];
     referenceLocation?: TypeLocationDescriptor;
 
     // extra conditional type properties
-    conditionalCheckType?: number | undefined;
-    conditionalExtendsType?: number | undefined;
+    conditionalCheckType?: number;
+    conditionalExtendsType?: number;
     conditionalTrueType?: number | -1;
     conditionalFalseType?: number | -1;
 
     // substitutional types
-    substitutionBaseType?: number | undefined;
-    substituteType?: number | undefined;
+    substitutionBaseType?: number;
+    substituteType?: number;
 
     // reverse mapped types
-    reverseMappedSourceType?: number | undefined;
-    reverseMappedMappedType?: number | undefined;
-    reverseMappedConstraintType?: number | undefined;
+    reverseMappedSourceType?: number;
+    reverseMappedMappedType?: number;
+    reverseMappedConstraintType?: number;
 
     // evolving array
     evolvingArrayElementType?: number;
-    evolvingArrayFinalType?: number | undefined;
+    evolvingArrayFinalType?: number;
   }
 
   interface ResolvedTree {
     children: ResolvedTree[];
-    type: TypeScriptTypes.TypeDescriptor | undefined;
+    type: TypeScript.TypeDescriptor;
   }
   interface TypeTree {
-    tree: Record<TypeDescriptor['id'], TypeScriptTypes.TypeDescriptor>;
-    indexType(type: TypeScriptTypes.TypeDescriptor): TypeScriptTypes.TypeDescriptor;
+    tree: Record<TypeDescriptor['id'], TypeScript.TypeDescriptor>;
+    indexType(type: TypeScript.TypeDescriptor): TypeScript.TypeDescriptor;
     resolveTypeTreeForId(id: number): ResolvedTree | null;
-    queryByTypeId(id: number): TypeScriptTypes.TypeDescriptor | undefined;
+    queryByTypeId(id: number): TypeScript.TypeDescriptor | undefined;
   }
 }

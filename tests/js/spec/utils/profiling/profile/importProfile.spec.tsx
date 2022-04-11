@@ -51,7 +51,6 @@ describe('importProfile', () => {
   it.each([
     ['evented', eventedProfile, EventedProfile],
     ['sampled', sampledProfile, SampledProfile],
-    ['chrometrace', chromeTraceProfile, ChromeTraceProfile],
     ['js self profile', jsSelfProfile, JSSelfProfile],
   ])('it imports as %s', (_, profile, constructor) => {
     expect(
@@ -65,5 +64,10 @@ describe('importProfile', () => {
         ''
       ).profiles[0]
     ).toBeInstanceOf(constructor);
+  });
+  it('imports chrometrace', () => {
+    expect(importProfile(chromeTraceProfile, '').profiles[0]).toBeInstanceOf(
+      ChromeTraceProfile
+    );
   });
 });

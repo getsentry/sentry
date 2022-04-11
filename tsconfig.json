@@ -1,7 +1,8 @@
 {
   "extends": "./config/tsconfig.build.json",
   "compilerOptions": {
-    "allowJs": true
+    "allowJs": true,
+    "strictNullChecks": true
   },
   "include": ["static", "tests/js", "docs-ui"],
   "exclude": ["node_modules"]

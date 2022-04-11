@@ -1,7 +1,7 @@
 import {SampledProfile} from 'sentry/utils/profiling/profile/formats/sampledProfile';
 import {createFrameIndex} from 'sentry/utils/profiling/profile/utils';
 
-import {firstCallee, makeTestingBoilerplate} from './profile.spec';
+import {firstCallee, makeTestingBoilerplate} from './../profile.spec';
 
 describe('SampledProfile', () => {
   it('imports the base properties', () => {

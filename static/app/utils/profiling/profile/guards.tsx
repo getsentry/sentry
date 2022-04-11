@@ -8,10 +8,12 @@ export function isSchema(input: any): input is Profiling.Schema {
   );
 }
 
-export function isTypeScriptTypesJSONFile(
-  input: any
-): input is TypeScriptTypes.TypeDescriptor[] {
+export function isTypeScriptJSONFile(input: any): input is TypeScript.TypeDescriptor[] {
   return Array.isArray(input) && typeof input[0]?.id === 'number';
+}
+
+export function isTypeScriptTypeTree(input: any): input is TypeScript.TypeTree {
+  return 'tree' in input;
 }
 
 export function isEventedProfile(profile: any): profile is Profiling.EventedProfile {

@@ -1,25 +1,53 @@
 import {
   ChromeTraceProfile,
+  importChromeTraceArrayFormat,
   splitEventsByProcessAndTraceId,
   TypeScriptProfile,
 } from 'sentry/utils/profiling/profile/formats/chromeTraceProfile';
 
+const BASE_EVENT: ChromeTrace.Event = {
+  pid: 0,
+  tid: 0,
+  ph: 'B',
+  cat: '',
+  name: '',
+  ts: 0,
+  args: [],
+};
+
 describe('splitEventsByProcessAndTraceId', () => {
+  it('splits by process id', () => {
+    const trace: ChromeTrace.ArrayFormat = [
+      {
+        ...BASE_EVENT,
+        pid: 0,
+        tid: 0,
+      },
+      {
+        ...BASE_EVENT,
+        pid: 1,
+        tid: 0,
+      },
+    ];
+
+    expect(splitEventsByProcessAndTraceId(trace)[0][0]).toEqual([trace[0]]);
+    expect(splitEventsByProcessAndTraceId(trace)[1][0]).toEqual([trace[1]]);
+  });
   it('splits by thread id', () => {
     const trace: ChromeTrace.ArrayFormat = [
       {
-        ph: 'B',
-        tid: 0,
         pid: 0,
+        tid: 0,
+        ph: 'B',
         cat: '',
         name: '',
         ts: 0,
         args: [],
       },
       {
-        ph: 'B',
-        tid: 1,
         pid: 0,
+        tid: 1,
+        ph: 'B',
         cat: '',
         name: '',
         ts: 0,
@@ -35,7 +63,7 @@ describe('splitEventsByProcessAndTraceId', () => {
 describe('importChromeTrace', () => {
   it('returns chrometrace profile', () => {
     expect(
-      parseChromeTraceArrayFormat(
+      importChromeTraceArrayFormat(
         [
           {
             ph: 'M',
@@ -63,7 +91,7 @@ describe('importChromeTrace', () => {
 
   it('marks process name', () => {
     expect(
-      parseChromeTraceArrayFormat(
+      importChromeTraceArrayFormat(
         [
           {
             ph: 'M',
@@ -91,7 +119,7 @@ describe('importChromeTrace', () => {
 
   it('marks thread name', () => {
     expect(
-      parseChromeTraceArrayFormat(
+      importChromeTraceArrayFormat(
         [
           {
             ph: 'M',
@@ -118,7 +146,7 @@ describe('importChromeTrace', () => {
   });
 
   it('imports a simple trace', () => {
-    const trace = parseChromeTraceArrayFormat(
+    const trace = importChromeTraceArrayFormat(
       [
         {
           ph: 'B',
@@ -147,7 +175,7 @@ describe('importChromeTrace', () => {
   });
 
   it('closes unclosed events', () => {
-    const trace = parseChromeTraceArrayFormat(
+    const trace = importChromeTraceArrayFormat(
       [
         {
           ph: 'B',
@@ -189,7 +217,7 @@ describe('importChromeTrace', () => {
   });
 
   it('handles out of order E events', () => {
-    const trace = parseChromeTraceArrayFormat(
+    const trace = importChromeTraceArrayFormat(
       [
         {
           ph: 'B',
@@ -234,18 +262,16 @@ describe('importChromeTrace', () => {
     expect(trace.profiles[0].duration).toBe(2);
     expect(trace.profiles[0].appendOrderTree.children[0].selfWeight).toBe(1);
     expect(trace.profiles[0].appendOrderTree.children[0].totalWeight).toBe(2);
-    expect(trace.profiles[0].appendOrderTree.children[0].frame.name).toBe(
-      'Unknown {"frame":"0"}'
-    );
+    expect(trace.profiles[0].appendOrderTree.children[0].frame.name).toBe('Unknown');
     expect(trace.profiles[0].appendOrderTree.children[0].children[0].frame.name).toBe(
-      'Unknown {"frame":"1"}'
+      'Unknown'
     );
     expect(trace.profiles[0].appendOrderTree.children[0].children[0].selfWeight).toBe(1);
     expect(trace.profiles[0].appendOrderTree.children[0].children[0].totalWeight).toBe(1);
   });
 
   it('handles out of order B events', () => {
-    const trace = parseChromeTraceArrayFormat(
+    const trace = importChromeTraceArrayFormat(
       [
         {
           ph: 'B',
@@ -290,18 +316,16 @@ describe('importChromeTrace', () => {
     expect(trace.profiles[0].duration).toBe(2);
     expect(trace.profiles[0].appendOrderTree.children[0].selfWeight).toBe(1);
     expect(trace.profiles[0].appendOrderTree.children[0].totalWeight).toBe(2);
-    expect(trace.profiles[0].appendOrderTree.children[0].frame.name).toBe(
-      'Unknown {"frame":"0"}'
-    );
+    expect(trace.profiles[0].appendOrderTree.children[0].frame.name).toBe('Unknown');
     expect(trace.profiles[0].appendOrderTree.children[0].children[0].frame.name).toBe(
-      'Unknown {"frame":"1"}'
+      'Unknown'
     );
     expect(trace.profiles[0].appendOrderTree.children[0].children[0].selfWeight).toBe(1);
     expect(trace.profiles[0].appendOrderTree.children[0].children[0].totalWeight).toBe(1);
   });
 
   it('handles X trace with tdur', () => {
-    const trace = parseChromeTraceArrayFormat(
+    const trace = importChromeTraceArrayFormat(
       [
         {
           ph: 'X',
@@ -321,7 +345,7 @@ describe('importChromeTrace', () => {
   });
 
   it('handles X trace with dur', () => {
-    const trace = parseChromeTraceArrayFormat(
+    const trace = importChromeTraceArrayFormat(
       [
         {
           ph: 'X',
@@ -342,67 +366,47 @@ describe('importChromeTrace', () => {
 
   it('marks trace as typescript trace if first frame.cat is createProgram', () => {
     expect(
-      importChromeTrace([
-        {
-          name: 'process_name',
-          args: {name: 'tsc'},
-          cat: '__metadata',
-          ph: 'M',
-          ts: 86978.20799797773,
-          pid: 1,
-          tid: 1,
-        },
-        {
-          name: 'TracingStartedInBrowser',
-          cat: 'disabled-by-default-devtools.timeline',
-          ph: 'M',
-          ts: 86978.20799797773,
-          pid: 1,
-          tid: 1,
-        },
-        {
-          pid: 1,
-          tid: 1,
-          ph: 'B',
-          cat: 'program',
-          ts: 87415.45800119638,
-          name: 'createProgram',
-          args: {},
-        },
-        {
-          ph: 'X',
-          ts: 900000,
-          cat: '',
-          pid: 1,
-          tid: 1,
-          dur: 100,
-          name: '',
-          args: {frame: '0'},
-        },
-      ]).profiles[0]
+      importChromeTraceArrayFormat(
+        [
+          {
+            name: 'process_name',
+            args: {name: 'tsc'},
+            cat: '__metadata',
+            ph: 'M',
+            ts: 86978.20799797773,
+            pid: 1,
+            tid: 1,
+          },
+          {
+            name: 'TracingStartedInBrowser',
+            cat: 'disabled-by-default-devtools.timeline',
+            ph: 'M',
+            ts: 86978.20799797773,
+            pid: 1,
+            tid: 1,
+          },
+          {
+            pid: 1,
+            tid: 1,
+            ph: 'B',
+            cat: 'program',
+            ts: 87415.45800119638,
+            name: 'createProgram',
+            args: {},
+          },
+          {
+            ph: 'X',
+            ts: 900000,
+            cat: '',
+            pid: 1,
+            tid: 1,
+            dur: 100,
+            name: '',
+            args: {frame: '0'},
+          },
+        ],
+        ''
+      ).profiles[0]
     ).toBeInstanceOf(TypeScriptProfile);
   });
 });
-
-// import trace from './samples/chrometrace/typescript/trace.json';
-// import {parseChromeTraceArrayFormat} from '../../../../../../static/app/utils/profiling/profile/chromeTraceProfile';
-
-// // Keeping the benchmark around
-// // eslint-disable-next-line
-// describe.skip('Benchmark', () => {
-//   it('imports profile', () => {
-//     const measures: number[] = [];
-//     // eslint-disable-next-line
-//     const avg = (arr: number[]) => arr.reduce((a, b) => a + b) / arr.length;
-
-//     for (let i = 0; i < 10; i++) {
-//       const start = performance.now();
-
-//       importChromeTrace(trace as ChromeTrace.Tracew);
-//       measures.push(performance.now() - start);
-//     }
-
-//     avg(measures);
-//     expect(true).toBe(true);
-//   });
-// });

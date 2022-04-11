@@ -81,6 +81,23 @@ function importSingleProfile(
   throw new Error('Unrecognized trace format');
 }
 
+function importSchema(
+  input: Profiling.Schema,
+  traceID: string,
+  options: ImportOptions
+): ProfileGroup {
+  const frameIndex = createFrameIndex(input.shared.frames);
+
+  return {
+    traceID,
+    name: input.name,
+    activeProfileIndex: input.activeProfileIndex ?? 0,
+    profiles: input.profiles.map(profile =>
+      importSingleProfile(profile, frameIndex, options)
+    ),
+  };
+}
+
 export function importProfile(
   input: Profiling.Schema | JSSelfProfiling.Trace | ChromeTrace.Trace,
   traceID: string
@@ -113,21 +130,4 @@ export function importProfile(
   } finally {
     transaction.finish();
   }
-}
-
-function importSchema(
-  input: Profiling.Schema,
-  traceID: string,
-  options: ImportOptions
-): ProfileGroup {
-  const frameIndex = createFrameIndex(input.shared.frames);
-
-  return {
-    traceID,
-    name: input.name,
-    activeProfileIndex: input.activeProfileIndex ?? 0,
-    profiles: input.profiles.map(profile =>
-      importSingleProfile(profile, frameIndex, options)
-    ),
-  };
 }

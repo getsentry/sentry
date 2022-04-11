@@ -1,5 +1,5 @@
+import {importTypeScriptJSON} from 'sentry/utils/profiling/profile/formats/typescript/importTypeScriptJSON';
 import {importProfile, ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
-import {importTypeScriptTypesJSON} from 'sentry/utils/profiling/profile/typescript/importTypeScriptTypesJSON';
 
 const tryParseInputString: JSONParser = input => {
   try {
@@ -39,7 +39,7 @@ function readFileAsString(file: File): Promise<string> {
 export async function importDroppedFile(
   file: File,
   parsers: JSONParser[] = TRACE_JSON_PARSERS
-): Promise<ProfileGroup | TypeScriptTypes.TypeTree> {
+): Promise<ProfileGroup | TypeScript.TypeTree> {
   const fileContents = await readFileAsString(file);
 
   for (const parser of parsers) {
@@ -57,7 +57,7 @@ export async function importDroppedFile(
       }
 
       try {
-        return importTypeScriptTypesJSON(json);
+        return importTypeScriptJSON(json);
       } catch (e) {
         // Fallthrough
       }

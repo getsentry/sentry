@@ -5,6 +5,7 @@ describe('weightedNode', () => {
     const node = new WeightedNode();
     node.addToTotalWeight(100);
     node.addToTotalWeight(100);
+    expect(node.selfWeight).toBe(0);
     expect(node.totalWeight).toBe(200);
   });
 
@@ -13,5 +14,6 @@ describe('weightedNode', () => {
     node.addToSelfWeight(100);
     node.addToSelfWeight(100);
     expect(node.selfWeight).toBe(200);
+    expect(node.totalWeight).toBe(0);
   });
 });

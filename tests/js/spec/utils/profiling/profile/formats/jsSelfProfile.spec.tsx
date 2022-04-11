@@ -1,7 +1,7 @@
 import {JSSelfProfile} from 'sentry/utils/profiling/profile/formats/jsSelfProfile';
 import {createFrameIndex} from 'sentry/utils/profiling/profile/utils';
 
-import {firstCallee, makeTestingBoilerplate, nthCallee} from './profile.spec';
+import {firstCallee, makeTestingBoilerplate, nthCallee} from './../profile.spec';
 
 describe('jsSelfProfile', () => {
   it('imports the base properties', () => {

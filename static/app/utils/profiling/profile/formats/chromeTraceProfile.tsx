@@ -29,9 +29,9 @@ export class ChromeTraceProfile extends EventedProfile {
   }
 }
 export class TypeScriptProfile extends ChromeTraceProfile {
-  typeScriptTypeTree?: TypeScriptTypes.TypeTree;
+  typeScriptTypeTree?: TypeScript.TypeTree;
 
-  setTypeScriptTypeTree(tree: TypeScriptTypes.TypeTree) {
+  setTypeScriptTypeTree(tree: TypeScript.TypeTree) {
     this.typeScriptTypeTree = tree;
   }
 }
