@@ -75,12 +75,8 @@ def _create_api_access_log(
             else "Unknown"
         )
         func = getattr(resolver_match, "func", None)
-        view_class = None
-        group = RateLimitConfig().group
-        if func:
-            view_class = getattr(func, "view_class", None)
-        if view_class:
-            group = get_rate_limit_config(view_class).group
+        view_class = getattr(func, "view_class", None) if func else None
+        group = get_rate_limit_config(view_class).group if view_class else RateLimitConfig().group
         request_user = getattr(request, "user", None)
         user_id = getattr(request_user, "id", None)
         is_app = getattr(request_user, "is_sentry_app", None)
