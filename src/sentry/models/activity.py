@@ -28,8 +28,7 @@ class ActivityManager(BaseManager):
         # we select excess so we can filter dupes
         for item in activity_qs[: num * 2]:
             sig = (item.type, item.ident, item.user_id)
-            # TODO: we could just generate a signature (hash(text)) for notes
-            # so there's no special casing
+            # TODO: we could just generate a signature (hash(text)) for notes so there's no special casing
             if item.type == ActivityType.NOTE.value:
                 activity.append(item)
             elif sig not in activity_items:
