@@ -34,6 +34,7 @@ jobs:
 
   frontend:
     if: ${{ needs.files-changed.outputs.acceptance == 'true' }}
+    needs: files-changed
     name: frontend tests
     runs-on: ubuntu-20.04
     timeout-minutes: 20
@@ -113,6 +114,7 @@ jobs:
 
   webpack:
     if: ${{ needs.files-changed.outputs.acceptance == 'true' }}
+    needs: files-changed
     name: create frontend bundle
     runs-on: ubuntu-20.04
     timeout-minutes: 10
@@ -171,6 +173,7 @@ jobs:
 
   acceptance:
     if: ${{ needs.files-changed.outputs.acceptance == 'true' }}
+    needs: files-changed
     name: acceptance
     runs-on: ubuntu-20.04
     timeout-minutes: 20
@@ -239,6 +242,7 @@ jobs:
 
   chartcuterie:
     if: ${{ needs.files-changed.outputs.acceptance == 'true' }}
+    needs: files-changed
     name: chartcuterie integration
     runs-on: ubuntu-20.04
     timeout-minutes: 30
