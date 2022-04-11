@@ -295,7 +295,7 @@ def test_build_snuba_query(mock_now, mock_now2, monkeypatch):
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
 @mock.patch(
-    "sentry.snuba.metrics.fields.base._get_entity_of_metric_name", get_entity_of_metric_mocked
+    "sentry.snuba.metrics.fields.base._get_entity_of_metric_mri", get_entity_of_metric_mocked
 )
 def test_build_snuba_query_derived_metrics(mock_now, mock_now2, monkeypatch):
     org_id = 666

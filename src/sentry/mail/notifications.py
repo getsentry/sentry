@@ -153,8 +153,7 @@ def get_builder_args_from_context(
         "template": notification.get_template(),
         "html_template": notification.get_html_template(),
         "headers": get_headers(notification),
-        "reference": notification.get_reference(),
-        "reply_reference": notification.get_reply_reference(),
+        "reference": notification.reference,
         "type": notification.get_type(),
     }
     # add in optinal fields
