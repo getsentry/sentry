@@ -45,6 +45,7 @@ from sentry.snuba.metrics.fields.snql import (
     errored_all_users,
     errored_preaggr_sessions,
     failure_count_transaction,
+    miserable_users,
     percentage,
     satisfaction_count_transaction,
     session_duration_filters,
@@ -972,6 +973,16 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             unit="percentage",
             snql=lambda satisfied, tolerated, total, org_id, metric_ids, alias=None: apdex(
                 satisfied, tolerated, total, alias=alias
+            ),
+        ),
+        SingularEntityDerivedMetric(
+            metric_mri=TransactionMRI.MISERABLE_USER.value,
+            metrics=[
+                TransactionMRI.USER.value,
+            ],
+            unit="users",
+            snql=lambda *_, org_id, metric_ids, alias=None: miserable_users(
+                org_id=org_id, metric_ids=metric_ids, alias=alias
             ),
         ),
     ]
