@@ -694,6 +694,9 @@ class CompositeEntityDerivedMetric(DerivedMetricExpression):
                 entities_and_metric_mris.setdefault(entity, []).append(
                     constituent_metric_obj.metric_mri
                 )
+                # We do not care about the components of a SingularEntityDerivedMetric
+                continue
+
             # This is necessary because we don't want to override entity lists but rather append
             # to them
             entities_and_metric_mris = combine_dictionary_of_list_values(
@@ -722,7 +725,12 @@ class CompositeEntityDerivedMetric(DerivedMetricExpression):
             if node.metric_mri in DERIVED_METRICS:
                 results.append((None, node.metric_mri))
             for metric in node.metrics:
-                if metric in DERIVED_METRICS:
+                # We do not really care about getting the components of an instance of
+                # SingularEntityDerivedMetric because there is a direct mapping to the response
+                # returned by the dataset anyways
+                if metric in DERIVED_METRICS and not isinstance(
+                    DERIVED_METRICS[metric], SingularEntityDerivedMetric
+                ):
                     metric_nodes.append(DERIVED_METRICS[metric])
         return reversed(results)
 
@@ -850,6 +858,7 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             ],
             unit="sessions",
             post_query_func=lambda *args: sum([*args]),
+            is_private=True,
         ),
         CompositeEntityDerivedMetric(
             metric_mri=SessionMRI.ERRORED.value,
@@ -1034,6 +1043,8 @@ def generate_bottom_up_dependency_tree_for_metrics(
 
 
 def get_derived_metrics(exclude_private: bool = True) -> Mapping[str, DerivedMetricExpression]:
+    # ToDo(ahmed): Modify the behaviour here to determine whether a metric is private or not
+    #  based on whether it is added to the public naming layer or not
     return (
         {key: value for (key, value) in DERIVED_METRICS.items() if not value.is_private}
         if exclude_private
