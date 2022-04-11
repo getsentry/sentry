@@ -252,7 +252,13 @@ function MultipleEnvironmentSelector({
           virtualizedHeight={theme.headerSelectorRowHeight}
           emptyHidesInput
           inputActions={
-            showPin ? <StyledPinButton size="xsmall" filter="environments" /> : undefined
+            showPin ? (
+              <StyledPinButton
+                size="xsmall"
+                filter="environments"
+                organization={organization}
+              />
+            ) : undefined
           }
           menuFooter={({actions}) =>
             hasChanges ? (

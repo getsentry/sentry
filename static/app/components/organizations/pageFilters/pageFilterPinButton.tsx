@@ -6,19 +6,26 @@ import {IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {PinnedPageFilter} from 'sentry/types';
+import {Organization, PinnedPageFilter} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 type Props = {
   filter: PinnedPageFilter;
+  organization: Organization;
   size: Extract<ButtonProps['size'], 'xsmall' | 'zero'>;
   className?: string;
 };
 
-function PageFilterPinButton({filter, size, className}: Props) {
+function PageFilterPinButton({filter, organization, size, className}: Props) {
   const {pinnedFilters} = useLegacyStore(PageFiltersStore);
   const pinned = pinnedFilters.has(filter);
 
   const onPin = () => {
+    trackAdvancedAnalyticsEvent('page_filters.pin_click', {
+      organization,
+      filter,
+      pin: !pinned,
+    });
     pinFilter(filter, !pinned);
   };
 

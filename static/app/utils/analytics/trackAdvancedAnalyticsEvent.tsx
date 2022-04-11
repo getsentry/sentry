@@ -1,3 +1,4 @@
+import {coreUIEventMap, CoreUIEventParameters} from './coreuiAnalyticsEvents';
 import {dashboardsEventMap, DashboardsEventParameters} from './dashboardsAnalyticsEvents';
 import {discoverEventMap, DiscoverEventParameters} from './discoverAnalyticsEvents';
 import {growthEventMap, GrowthEventParameters} from './growthAnalyticsEvents';
@@ -18,7 +19,8 @@ type EventParameters = GrowthEventParameters &
   DiscoverEventParameters &
   TeamInsightsEventParameters &
   SearchEventParameters &
-  SettingsEventParameters;
+  SettingsEventParameters &
+  CoreUIEventParameters;
 
 const allEventMap = {
   ...growthEventMap,
@@ -29,6 +31,7 @@ const allEventMap = {
   ...workflowEventMap,
   ...searchEventMap,
   ...settingsEventMap,
+  ...coreUIEventMap,
 };
 
 /**
