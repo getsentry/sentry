@@ -144,8 +144,7 @@ const SelectControlWrapper = styled('div')`
 
 const StyledButtonBar = styled(ButtonBar)`
   @media (max-width: ${props => props.theme.breakpoints[0]}) {
-    display: flex;
-    flex-direction: column;
+    grid-template-rows: repeat(2, 1fr);
     gap: ${space(1.5)};
     width: 100%;
 
