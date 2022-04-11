@@ -85,7 +85,7 @@ const VisualizationWrapper = styled('div')<{displayType: DisplayType}>`
     p.displayType === DisplayType.TABLE &&
     css`
       ${TableCell} {
-        /* 24px ActorContainer height + 16px top and bottom padding + 1px border = 38px */
+        /* 24px ActorContainer height + 16px top and bottom padding + 1px border = 41px */
         height: 41px;
       }
       /* total size of a table, if it would display 5 rows of content */
