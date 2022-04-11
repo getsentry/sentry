@@ -2055,7 +2055,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                         ),
                     },
                     "type": "s",
-                    "value": [1],
+                    "value": [1, 2],
                     "retention_days": 90,
                 },
                 {
@@ -2065,11 +2065,11 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "timestamp": user_ts,
                     "tags": {
                         self.tx_satisfaction: indexer.record(
-                            self.organization.id, TransactionSatisfactionTagValue.FRUSTRATED.value
+                            self.organization.id, TransactionSatisfactionTagValue.SATISFIED.value
                         ),
                     },
                     "type": "s",
-                    "value": [2],
+                    "value": [1, 3],  # user 1 had mixed transactions, user 3 only satisfied
                     "retention_days": 90,
                 },
             ],
