@@ -47,11 +47,23 @@ def _set_superadmin(user):
 @click.command()
 @click.option("--email")
 @click.option("--password")
-@click.option("--superuser/--no-superuser", default=None, is_flag=True, help="Superusers have full access to Sentry, across all organizations.")
-@click.option("--staff/--no-staff", default=None, is_flag=True, help="Staff users have access to Django backend.")
+@click.option(
+    "--superuser/--no-superuser",
+    default=None,
+    is_flag=True,
+    help="Superusers have full access to Sentry, across all organizations.",
+)
+@click.option(
+    "--staff/--no-staff",
+    default=None,
+    is_flag=True,
+    help="Staff users have access to Django backend.",
+)
 @click.option("--no-password", default=False, is_flag=True)
 @click.option("--no-input", default=False, is_flag=True)
-@click.option("--force-update", default=False, is_flag=True, help="If true, will update existing users.")
+@click.option(
+    "--force-update", default=False, is_flag=True, help="If true, will update existing users."
+)
 @configuration
 def createuser(email, password, superuser, staff, no_password, no_input, force_update):
     "Create a new user."
@@ -117,7 +129,12 @@ def createuser(email, password, superuser, staff, no_password, no_input, force_u
 
             # TODO(dcramer): kill this when we improve flows
             if settings.SENTRY_SINGLE_ORGANIZATION:
-                from sentry.models import Organization, OrganizationMember, OrganizationMemberTeam, Team
+                from sentry.models import (
+                    Organization,
+                    OrganizationMember,
+                    OrganizationMemberTeam,
+                    Team,
+                )
 
                 org = Organization.get_default()
                 if superuser:
