@@ -228,8 +228,7 @@ export default class DetailsBody extends React.Component<Props> {
                     location={location}
                     rule={rule}
                     projects={[project]}
-                    start={timePeriod.start}
-                    end={timePeriod.end}
+                    timePeriod={timePeriod}
                     filter={extractEventTypeFilterFromRule(rule)}
                   />
                 )}
