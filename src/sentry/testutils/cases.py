@@ -1546,7 +1546,7 @@ class TestMigrations(TransactionTestCase):
 
         executor = MigrationExecutor(connection)
         self.current_migration = [
-            max(m for m in executor.loader.applied_migrations if m[0] == self.app)
+            max(filter(lambda m: m[0] == self.app, executor.loader.applied_migrations))
         ]
         old_apps = executor.loader.project_state(self.migrate_from).apps
 
