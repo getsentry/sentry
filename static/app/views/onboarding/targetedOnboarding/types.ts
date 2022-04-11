@@ -1,5 +1,5 @@
 import {PlatformKey} from 'sentry/data/platformCategories';
-import {usePersistedStore} from 'sentry/stores/persistedStore';
+import {usePersistedStoreCategory} from 'sentry/stores/persistedStore';
 import {Organization} from 'sentry/types';
 
 export type StepData = {
@@ -38,7 +38,7 @@ export function useOnboardingState(): [
   OnboardingState,
   (next: OnboardingState | null) => void
 ] {
-  const [state, setState] = usePersistedStore<OnboardingState>('onboarding');
+  const [state, setState] = usePersistedStoreCategory('onboarding');
   const onboardingState: any = state || {};
   onboardingState.platformToProjectIdMap = onboardingState.platformToProjectIdMap || {};
   onboardingState.selectedPlatforms = onboardingState.selectedPlatforms || [];
