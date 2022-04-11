@@ -17,7 +17,7 @@ MOCKED_DERIVED_METRICS = copy.deepcopy(DERIVED_METRICS)
 MOCKED_DERIVED_METRICS.update(
     {
         "crash_free_fake": SingularEntityDerivedMetric(
-            metric_name="crash_free_fake",
+            metric_mri="crash_free_fake",
             metrics=[
                 SessionMRI.CRASHED.value,
                 SessionMRI.ERRORED_SET.value,
