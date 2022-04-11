@@ -9,6 +9,7 @@ import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {NewQuery, Organization, SelectValue} from 'sentry/types';
 import {Event} from 'sentry/types/event';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -613,6 +614,10 @@ export function handleAddQueryToDashboard({
     defaultTitle:
       query?.name ?? (eventView.name !== 'All Events' ? eventView.name : undefined),
     displayType,
+  });
+  trackAdvancedAnalyticsEvent('discover_views.add_to_dashboard.modal_open', {
+    organization,
+    saved_query: !!query,
   });
 }
 
