@@ -87,12 +87,12 @@ def createuser(email, password, superuser, staff, no_password, no_input, force_u
 
         # Prevent a user from being set to staff without superuser
         if not superuser and staff:
-            click.echo(f"Non-superuser asked to be given staff access, correcting to staff=False")
+            click.echo("Non-superuser asked to be given staff access, correcting to staff=False")
             staff = False
 
         # Default staff to match the superuser setting
         if staff is None:
-            click.echo(f"--staff/--no-staff not specified, matching superuser value.")
+            click.echo("--staff/--no-staff not specified, matching superuser value.")
             staff = superuser
 
         if not email:
