@@ -70,8 +70,20 @@ function Dashboard({
     return <LoadingError message={t('An error occurred while fetching your projects')} />;
   }
 
-  const selectedTeams = new Set(getTeamParams(location.query.team));
-  const filteredTeams = teams.filter(team => selectedTeams.has(team.id));
+  const canCreateProjects = organization.access.includes('project:admin');
+  const canJoinTeam = organization.access.includes('team:read');
+  const hasTeamAdminAccess = organization.access.includes('team:admin');
+  const hasProjectAccess = organization.access.includes('project:read');
+  const hasProjectRedesign = organization.features.includes('projects-page-redesign');
+
+  const selectedTeams = new Set(getTeamParams(location ? location.query.team : ''));
+  const filteredTeams = teams.filter(team =>
+    hasProjectRedesign ? selectedTeams.has(team.id) : team.projects.length
+  );
+
+  if (!hasProjectRedesign) {
+    filteredTeams.sort((team1, team2) => team1.slug.localeCompare(team2.slug));
+  }
   const filteredTeamProjects = uniqBy(
     flatten((filteredTeams ?? teams).map(team => team.projects)),
     'id'
@@ -82,12 +94,6 @@ function Dashboard({
     project.slug.includes(projectQuery)
   );
   const favorites = projects.filter(project => project.isBookmarked);
-
-  const canCreateProjects = organization.access.includes('project:admin');
-  const canJoinTeam = organization.access.includes('team:read');
-  const hasTeamAdminAccess = organization.access.includes('team:admin');
-  const hasProjectAccess = organization.access.includes('project:read');
-  const hasProjectRedesign = organization.features.includes('projects-page-redesign');
 
   const showEmptyMessage = projects.length === 0 && favorites.length === 0;
   const showResources = projects.length === 1 && !projects[0].firstEvent;

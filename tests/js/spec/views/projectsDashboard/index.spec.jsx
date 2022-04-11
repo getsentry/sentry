@@ -147,7 +147,7 @@ describe('ProjectsDashboard', function () {
       expect(
         screen.getByPlaceholderText('Search for projects by name')
       ).toBeInTheDocument();
-      expect(screen.getByText('My Teams')).toBeInTheDocument();
+      expect(screen.getByText('All Teams')).toBeInTheDocument();
       expect(screen.queryByTestId('team')).not.toBeInTheDocument();
       expect(screen.queryByText('Resources')).not.toBeInTheDocument();
     });
