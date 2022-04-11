@@ -40,7 +40,8 @@ def get_entity_of_metric_mocked(_, metric_mri):
         SessionMRI.SESSION.value: EntityKey.MetricsCounters,
         SessionMRI.USER.value: EntityKey.MetricsSets,
         SessionMRI.ERROR.value: EntityKey.MetricsSets,
-        TransactionMRI.DURATION.value: EntityKey.Transactions,
+        TransactionMRI.DURATION.value: EntityKey.MetricsDistributions,
+        TransactionMRI.USER.value: EntityKey.MetricsSets,
     }[metric_mri]
 
 

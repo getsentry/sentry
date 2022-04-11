@@ -14,6 +14,7 @@ backend.expose(locals())
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    bulk_record = backend.bulk_record
     record = backend.record
     resolve = backend.resolve
     reverse_resolve = backend.reverse_resolve
