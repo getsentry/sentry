@@ -5,6 +5,7 @@ import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
 
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Badge from 'sentry/components/badge';
 import MultipleProjectSelector from 'sentry/components/organizations/multipleProjectSelector';
 import PageFilterDropdownButton from 'sentry/components/organizations/pageFilters/pageFilterDropdownButton';
@@ -20,6 +21,8 @@ import {MinimalProject} from 'sentry/types';
 import {trimSlug} from 'sentry/utils/trimSlug';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+
+type MultipleProjectSelectorProps = React.ComponentProps<typeof MultipleProjectSelector>;
 
 type Props = WithRouterProps & {
   /**
@@ -114,7 +117,11 @@ export function ProjectPageFilter({
   const isOrgAdmin = organization.access.includes('org:admin');
   const nonMemberProjects = isSuperuser || isOrgAdmin ? otherProjects : [];
 
-  const customProjectDropdown = ({getActorProps, selectedProjects, isOpen}) => {
+  const customProjectDropdown: MultipleProjectSelectorProps['customDropdownButton'] = ({
+    actions,
+    selectedProjects,
+    isOpen,
+  }) => {
     const selectedProjectIds = new Set(selection.projects);
     const hasSelected = !!selectedProjects.length;
 
@@ -139,22 +146,28 @@ export function ProjectPageFilter({
     ) : (
       <IconProject />
     );
+
     return (
-      <PageFilterDropdownButton
-        detached
-        hideBottomBorder={false}
-        isOpen={isOpen}
-        highlighted={desyncedFilters.has('projects')}
-        {...getActorProps()}
+      <GuideAnchor
+        target="new_page_filter_button"
+        position="bottom"
+        onStepComplete={actions.open}
       >
-        <DropdownTitle>
-          {icon}
-          <TitleContainer>{title}</TitleContainer>
-          {selectedProjects.length > projectsToShow.length && (
-            <StyledBadge text={`+${selectedProjects.length - projectsToShow.length}`} />
-          )}
-        </DropdownTitle>
-      </PageFilterDropdownButton>
+        <PageFilterDropdownButton
+          detached
+          hideBottomBorder={false}
+          isOpen={isOpen}
+          highlighted={desyncedFilters.has('projects')}
+        >
+          <DropdownTitle>
+            {icon}
+            <TitleContainer>{title}</TitleContainer>
+            {selectedProjects.length > projectsToShow.length && (
+              <StyledBadge text={`+${selectedProjects.length - projectsToShow.length}`} />
+            )}
+          </DropdownTitle>
+        </PageFilterDropdownButton>
+      </GuideAnchor>
     );
   };
 

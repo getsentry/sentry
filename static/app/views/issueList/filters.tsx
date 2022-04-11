@@ -7,22 +7,17 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import QueryCount from 'sentry/components/queryCount';
 import {tct} from 'sentry/locale';
-import ProjectsStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import {Organization, SavedSearch} from 'sentry/types';
 
-import IssueListDisplayOptions from './displayOptions';
 import IssueListSearchBar from './searchBar';
 import IssueListSortOptions from './sortOptions';
 import {TagValueLoader} from './types';
-import {IssueDisplayOptions} from './utils';
 
 type IssueListSearchBarProps = React.ComponentProps<typeof IssueListSearchBar>;
 
 type Props = {
-  display: IssueDisplayOptions;
   isSearchDisabled: boolean;
-  onDisplayChange: (display: string) => void;
   onSearch: (query: string) => void;
   onSidebarToggle: (event: React.MouseEvent) => void;
   onSortChange: (sort: string) => void;
@@ -31,7 +26,6 @@ type Props = {
   query: string;
   queryCount: number;
   savedSearch: SavedSearch;
-  selectedProjects: number[];
   sort: string;
   tagValueLoader: TagValueLoader;
   tags: NonNullable<IssueListSearchBarProps['supportedTags']>;
@@ -44,29 +38,17 @@ function IssueListFilters({
   queryCount,
   isSearchDisabled,
   sort,
-  display,
-  selectedProjects,
   onSidebarToggle,
   onSearch,
   onSortChange,
-  onDisplayChange,
   tagValueLoader,
   tags,
 }: Props) {
-  const hasIssuePercentDisplay = organization.features.includes('issue-percent-display');
-  const hasMultipleProjectsSelected =
-    !selectedProjects || selectedProjects.length !== 1 || selectedProjects[0] === -1;
-  const hasSessions =
-    !hasMultipleProjectsSelected &&
-    (ProjectsStore.getById(`${selectedProjects[0]}`)?.hasSessions ?? false);
   const hasPageFilters = organization.features.includes('selection-filters-v2');
 
   return (
     <FilterContainer>
-      <SearchContainer
-        hasPageFilters={hasPageFilters}
-        hasIssuePercentDisplay={hasIssuePercentDisplay}
-      >
+      <SearchContainer hasPageFilters={hasPageFilters}>
         {hasPageFilters && (
           <PageFilterBar>
             <ProjectPageFilter />
@@ -87,15 +69,7 @@ function IssueListFilters({
           onSidebarToggle={onSidebarToggle}
         />
         {!hasPageFilters && (
-          <DropdownsWrapper hasIssuePercentDisplay={hasIssuePercentDisplay}>
-            {hasIssuePercentDisplay && (
-              <IssueListDisplayOptions
-                onDisplayChange={onDisplayChange}
-                display={display}
-                hasMultipleProjectsSelected={hasMultipleProjectsSelected}
-                hasSessions={hasSessions}
-              />
-            )}
+          <DropdownsWrapper>
             <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
           </DropdownsWrapper>
         )}
@@ -109,15 +83,6 @@ function IssueListFilters({
               })}
           </QueryCountText>
           <DisplayOptionsBar>
-            {hasIssuePercentDisplay && (
-              <IssueListDisplayOptions
-                onDisplayChange={onDisplayChange}
-                display={display}
-                hasMultipleProjectsSelected={hasMultipleProjectsSelected}
-                hasSessions={hasSessions}
-                hasPageFilters
-              />
-            )}
             <IssueListSortOptions
               sort={sort}
               query={query}
@@ -138,7 +103,6 @@ const FilterContainer = styled('div')`
 `;
 
 const SearchContainer = styled('div')<{
-  hasIssuePercentDisplay?: boolean;
   hasPageFilters?: boolean;
 }>`
   display: inline-grid;
@@ -150,7 +114,7 @@ const SearchContainer = styled('div')<{
     p.hasPageFilters
       ? `grid-template-columns: minmax(0, max-content) minmax(20rem, 1fr);`
       : `
-    @media (min-width: ${p.theme.breakpoints[p.hasIssuePercentDisplay ? 1 : 0]}) {
+    @media (min-width: ${p.theme.breakpoints[0]}) {
       grid-template-columns: 1fr auto;
     }
   }`}
@@ -160,10 +124,10 @@ const SearchContainer = styled('div')<{
   }
 `;
 
-const DropdownsWrapper = styled('div')<{hasIssuePercentDisplay?: boolean}>`
+const DropdownsWrapper = styled('div')`
   display: grid;
   gap: ${space(1)};
-  grid-template-columns: 1fr ${p => (p.hasIssuePercentDisplay ? '1fr' : '')};
+  grid-template-columns: 1fr;
   align-items: start;
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {

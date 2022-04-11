@@ -10,14 +10,14 @@ type ColorEncoding =
   | 'device_manufacturer'
   | 'device_model'
   | 'device_os_version'
-  | 'interaction_name';
+  | 'transaction_name';
 
 const COLOR_ENCODING_LABELS: Record<ColorEncoding, string> = {
   version: t('App Version'),
   device_manufacturer: t('Device Manufacturer'),
   device_model: t('Device Model'),
   device_os_version: t('Device Os Version'),
-  interaction_name: t('Interaction Name'),
+  transaction_name: t('Transaction Name'),
 };
 
 export const COLOR_ENCODINGS: SelectValue<ColorEncoding>[] = Object.entries(
@@ -31,5 +31,5 @@ export function getColorEncodingFromLocation(location: Location): ColorEncoding 
     return colorCoding as ColorEncoding;
   }
 
-  return 'interaction_name';
+  return 'transaction_name';
 }

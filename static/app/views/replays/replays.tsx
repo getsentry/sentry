@@ -85,7 +85,7 @@ class Replays extends React.Component<Props> {
           <PageHeader>
             <HeaderTitle>
               <div>
-                {t('Replays')} <FeatureBadge type="beta" />
+                {t('Replays')} <FeatureBadge type="alpha" />
               </div>
             </HeaderTitle>
           </PageHeader>
