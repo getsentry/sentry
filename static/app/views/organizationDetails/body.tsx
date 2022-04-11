@@ -1,13 +1,12 @@
 import {Fragment, useState} from 'react';
 
-import AlertActions from 'sentry/actions/alertActions';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Footer from 'sentry/components/footer';
 import {Body, Main} from 'sentry/components/layouts/thirds';
-import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import AlertStore from 'sentry/stores/alertStore';
 import {Organization} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -21,7 +20,7 @@ function DeletionInProgress({organization}: Props) {
   return (
     <Body>
       <Main>
-        <Alert type="warning" icon={<IconWarning />}>
+        <Alert type="warning" showIcon>
           {tct(
             'The [organization] organization is currently in the process of being deleted from Sentry.',
             {
@@ -49,7 +48,7 @@ function DeletionPending({organization}: Props) {
       window.location.reload();
     } catch {
       setIsRestoring(false);
-      AlertActions.addAlert({
+      AlertStore.addAlert({
         message:
           'We were unable to restore this organization. Please try again or contact support.',
         type: 'error',

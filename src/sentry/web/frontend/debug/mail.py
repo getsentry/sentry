@@ -39,6 +39,7 @@ from sentry.models import (
 )
 from sentry.notifications.notifications.activity import EMAIL_CLASSES_BY_TYPE
 from sentry.notifications.notifications.base import BaseNotification
+from sentry.notifications.notifications.digest import DigestNotification
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.notifications.utils import get_group_settings_link, get_rules
 from sentry.utils import loremipsum
@@ -357,12 +358,12 @@ def digest(request):
 
     group_generator = make_group_generator(random, project)
 
-    for i in range(random.randint(1, 30)):
+    for _ in range(random.randint(1, 30)):
         group = next(group_generator)
         state["groups"][group.id] = group
 
         offset = timedelta(seconds=0)
-        for i in range(random.randint(1, 10)):
+        for _ in range(random.randint(1, 10)):
             offset += timedelta(seconds=random.random() * 120)
 
             data = dict(load_data("python"))
@@ -400,16 +401,8 @@ def digest(request):
     digest = build_digest(project, records, state)[0]
     start, end, counts = get_digest_metadata(digest)
 
-    context = {
-        "project": project,
-        "counts": counts,
-        "digest": digest,
-        "start": start,
-        "end": end,
-        "referrer": "digest_email",
-        "alert_status_page_enabled": features.has("organizations:alert-rule-status-page", org),
-        "rules_details": {rule.id: rule for rule in get_rules(rules.values(), org, project)},
-    }
+    rule_details = get_rules(list(rules.values()), org, project)
+    context = DigestNotification.build_context(digest, project, org, rule_details, 1337)
     add_unsubscribe_link(context)
 
     return MailPreview(
@@ -700,11 +693,7 @@ def render_preview_email_for_notification(
 ) -> MutableMapping[str, Any]:
     # remove unneeded fields
     basic_args = get_builder_args(notification, recipient)
-    args = {
-        k: v
-        for k, v in basic_args.items()
-        if k not in ["headers", "reference", "reply_reference", "subject"]
-    }
+    args = {k: v for k, v in basic_args.items() if k not in ["headers", "reference", "subject"]}
     # convert subject back to a string
     args["subject"] = basic_args["subject"].decode("utf-8")
 

@@ -19,7 +19,7 @@ from sentry.sentry_metrics.multiprocess import (
     ProduceStep,
     process_messages,
 )
-from sentry.sentry_metrics.sessions import SessionMetricKey
+from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.utils import json
 
 
@@ -157,7 +157,7 @@ def test_metrics_batch_builder():
 
 ts = int(datetime.now(tz=timezone.utc).timestamp())
 counter_payload = {
-    "name": SessionMetricKey.SESSION.value,
+    "name": SessionMRI.SESSION.value,
     "tags": {
         "environment": "production",
         "session.status": "init",
@@ -169,7 +169,7 @@ counter_payload = {
     "project_id": 3,
 }
 distribution_payload = {
-    "name": SessionMetricKey.SESSION_DURATION.value,
+    "name": SessionMRI.RAW_DURATION.value,
     "tags": {
         "environment": "production",
         "session.status": "healthy",
@@ -183,7 +183,7 @@ distribution_payload = {
 }
 
 set_payload = {
-    "name": SessionMetricKey.SESSION_ERROR.value,
+    "name": SessionMRI.ERROR.value,
     "tags": {
         "environment": "production",
         "session.status": "errored",
@@ -206,9 +206,12 @@ def __translated_payload(
     """
     indexer = MockIndexer()
     payload = payload.copy()
+    org_id = payload["org_id"]
 
-    new_tags = {indexer.resolve(k): indexer.resolve(v) for k, v in payload["tags"].items()}
-    payload["metric_id"] = indexer.resolve(payload["name"])
+    new_tags = {
+        indexer.resolve(org_id, k): indexer.resolve(org_id, v) for k, v in payload["tags"].items()
+    }
+    payload["metric_id"] = indexer.resolve(org_id, payload["name"])
     payload["retention_days"] = 90
     payload["tags"] = new_tags
 
@@ -248,6 +251,8 @@ def test_process_messages(mock_indexer, mock_task) -> None:
         for i, m in enumerate(message_batch)
     ]
 
+    print(new_batch)
+    print(expected_new_batch)
     assert new_batch == expected_new_batch
 
 

@@ -4,12 +4,6 @@ type MobilePromptBannerParams = {
   matchedUserAgentString: string;
 };
 
-type ShowParams = MobilePromptBannerParams & {
-  matchedUserAgentString: string;
-  mobileEventBrowserName: string;
-  mobileEventClientOsName: string;
-};
-
 type PlatformParam = {
   platform: PlatformKey;
 };
@@ -56,19 +50,22 @@ export type GrowthEventParameters = {
   'growth.demo_click_request_demo': {};
   'growth.demo_modal_clicked_continue': {};
   'growth.demo_modal_clicked_signup': {};
-  'growth.dismissed_mobile_prompt_banner': MobilePromptBannerParams;
   'growth.issue_open_in_discover_btn_clicked': {};
   'growth.onboarding_clicked_instrument_app': {source?: string};
+  'growth.onboarding_clicked_project_in_sidebar': {platform: string};
+  'growth.onboarding_clicked_setup_platform_later': PlatformParam & {
+    project_index: number;
+  };
   'growth.onboarding_clicked_skip': {source?: string};
   'growth.onboarding_load_choose_platform': {};
   'growth.onboarding_set_up_your_project': PlatformParam;
+  'growth.onboarding_set_up_your_projects': {platforms: string};
   'growth.onboarding_start_onboarding': {
     source?: string;
   };
   'growth.onboarding_take_to_error': {};
   'growth.onboarding_view_full_docs': {};
   'growth.onboarding_view_sample_event': SampleEventParam;
-  'growth.opened_mobile_project_suggest_modal': MobilePromptBannerParams;
   'growth.platformpicker_category': PlatformCategory;
   'growth.platformpicker_search': PlatformSearchParam;
   'growth.sample_error_onboarding_link_clicked': {
@@ -79,7 +76,6 @@ export type GrowthEventParameters = {
     project_id: string;
   };
   'growth.select_platform': PlatformPickerParam;
-  'growth.show_mobile_prompt_banner': ShowParams;
   'growth.submitted_mobile_prompt_ask_teammate': MobilePromptBannerParams;
   'invite_modal.add_more': InviteModal;
   'invite_modal.closed': InviteModal;
@@ -103,10 +99,6 @@ export type GrowthEventParameters = {
 type GrowthAnalyticsKey = keyof GrowthEventParameters;
 
 export const growthEventMap: Record<GrowthAnalyticsKey, string> = {
-  'growth.show_mobile_prompt_banner': 'Growth: Show Mobile Prompt Banner',
-  'growth.dismissed_mobile_prompt_banner': 'Growth: Dismissed Mobile Prompt Banner',
-  'growth.opened_mobile_project_suggest_modal':
-    'Growth: Open Mobile Project Suggest Modal',
   'growth.clicked_mobile_prompt_setup_project':
     'Growth: Clicked Mobile Prompt Setup Project',
   'growth.clicked_mobile_prompt_ask_teammate':
@@ -119,6 +111,8 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string> = {
   'growth.onboarding_load_choose_platform':
     'Growth: Onboarding Load Choose Platform Page',
   'growth.onboarding_set_up_your_project': 'Growth: Onboarding Click Set Up Your Project',
+  'growth.onboarding_set_up_your_projects':
+    'Growth: Onboarding Click Set Up Your Projects',
   'growth.select_platform': 'Growth: Onboarding Choose Platform',
   'growth.platformpicker_category': 'Growth: Onboarding Platform Category',
   'growth.platformpicker_search': 'Growth: Onboarding Platform Search',
@@ -128,11 +122,14 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string> = {
   'growth.onboarding_view_full_docs': 'Growth: Onboarding View Full Docs',
   'growth.onboarding_view_sample_event': 'Growth: Onboarding View Sample Event',
   'growth.onboarding_clicked_instrument_app': 'Growth: Onboarding Clicked Instrument App',
+  'growth.onboarding_clicked_setup_platform_later':
+    'Growth: Onboarding Clicked Setup Platform Later',
   'invite_request.approved': 'Invite Request Approved',
   'invite_request.denied': 'Invite Request Denied',
   'growth.demo_modal_clicked_signup': 'Growth: Demo Modal Clicked Signup',
   'growth.demo_modal_clicked_continue': 'Growth: Demo Modal Clicked Continue',
   'growth.clicked_enter_sandbox': 'Growth: Clicked Enter Sandbox',
+  'growth.onboarding_clicked_project_in_sidebar': 'Growth: Clicked Project Sidebar',
   'growth.sample_transaction_docs_link_clicked':
     'Growth: Sample Transaction Docs Link Clicked',
   'growth.sample_error_onboarding_link_clicked':

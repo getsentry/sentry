@@ -11,6 +11,7 @@ import omit from 'lodash/omit';
 import pickBy from 'lodash/pickBy';
 import * as qs from 'query-string';
 
+import {addMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
 import {
   deleteSavedSearch,
@@ -30,7 +31,7 @@ import QueryCount from 'sentry/components/queryCount';
 import StreamGroup from 'sentry/components/stream/group';
 import ProcessingIssueList from 'sentry/components/stream/processingIssueList';
 import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {PageContent} from 'sentry/styles/organization';
 import {
@@ -67,7 +68,6 @@ import {
   getTabs,
   getTabsWithCounts,
   isForReviewQuery,
-  IssueDisplayOptions,
   IssueSortOptions,
   Query,
   QueryCounts,
@@ -76,7 +76,6 @@ import {
 
 const MAX_ITEMS = 25;
 const DEFAULT_SORT = IssueSortOptions.DATE;
-const DEFAULT_DISPLAY = IssueDisplayOptions.EVENTS;
 // the default period for the graph in each issue row
 const DEFAULT_GRAPH_STATS_PERIOD = '24h';
 // the allowed period choices for graph in each issue row
@@ -100,6 +99,7 @@ type Props = {
 
 type State = {
   actionTaken: boolean;
+  actionTakenIds: string[];
   error: string | null;
   // TODO(Kelly): remove forReview once issue-list-removal-action feature is stable
   forReview: boolean;
@@ -131,7 +131,6 @@ type EndpointParams = Partial<PageFilters['datetime']> & {
   environment: string[];
   project: number[];
   cursor?: string;
-  display?: string;
   groupStatsPeriod?: string | null;
   page?: number | string;
   query?: string;
@@ -162,8 +161,9 @@ class IssueListOverview extends React.Component<Props, State> {
       groupIds: [],
       // TODO(Kelly): remove reviewedIds and forReview once issue-list-removal-action feature is stable
       reviewedIds: [],
-      forReview: false,
       actionTaken: false,
+      actionTakenIds: [],
+      forReview: false,
       selectAllActive: false,
       realtimeActive,
       pageLinks: '',
@@ -208,12 +208,6 @@ class IssueListOverview extends React.Component<Props, State> {
     if (!isEqual(prevProps.selection.projects, this.props.selection.projects)) {
       this.fetchMemberList();
       this.fetchTags();
-      // Reset display when selecting multiple projects
-      const projects = this.props.selection.projects ?? [];
-      const hasMultipleProjects = projects.length !== 1 || projects[0] === -1;
-      if (hasMultipleProjects && this.getDisplay() !== DEFAULT_DISPLAY) {
-        this.transitionTo({display: undefined});
-      }
     }
 
     // TODO(Kelly): remove once issue-list-removal-action feature is stable
@@ -312,21 +306,6 @@ class IssueListOverview extends React.Component<Props, State> {
     return DEFAULT_SORT;
   }
 
-  getDisplay(): IssueDisplayOptions {
-    const {organization, location} = this.props;
-
-    if (organization.features.includes('issue-percent-display')) {
-      if (
-        location.query.display &&
-        Object.values(IssueDisplayOptions).includes(location.query.display)
-      ) {
-        return location.query.display as IssueDisplayOptions;
-      }
-    }
-
-    return DEFAULT_DISPLAY;
-  }
-
   getGroupStatsPeriod(): string {
     let currentPeriod: string;
     if (typeof this.props.location.query?.groupStatsPeriod === 'string') {
@@ -367,11 +346,6 @@ class IssueListOverview extends React.Component<Props, State> {
     const sort = this.getSort();
     if (sort !== DEFAULT_SORT) {
       params.sort = sort;
-    }
-
-    const display = this.getDisplay();
-    if (display !== DEFAULT_DISPLAY) {
-      params.display = display;
     }
 
     const groupStatsPeriod = this.getGroupStatsPeriod();
@@ -419,9 +393,6 @@ class IssueListOverview extends React.Component<Props, State> {
     // If no stats period values are set, use default
     if (!requestParams.statsPeriod && !requestParams.start) {
       requestParams.statsPeriod = DEFAULT_STATS_PERIOD;
-    }
-    if (this.props.organization.features.includes('issue-percent-display')) {
-      requestParams.expand = 'sessions';
     }
 
     this._lastStatsRequest = this.props.api.request(this.getGroupStatsEndpoint(), {
@@ -689,7 +660,7 @@ class IssueListOverview extends React.Component<Props, State> {
 
         // TODO(Kelly): update once issue-list-removal-action feature is stable
         if (hasIssueListRemovalAction && !this.state.realtimeActive) {
-          this.setState({actionTaken: false});
+          this.setState({actionTaken: false, actionTakenIds: []});
         } else {
           this.setState({forReview: false});
         }
@@ -756,38 +727,58 @@ class IssueListOverview extends React.Component<Props, State> {
 
   onGroupChange() {
     const {organization} = this.props;
+    const {actionTakenIds} = this.state;
     const query = this.getQuery();
     const hasIssueListRemovalAction = organization.features.includes(
       'issue-list-removal-action'
     );
 
     // TODO(Kelly): update once issue-list-removal-action feature is stable
-    if (hasIssueListRemovalAction && !this.state.realtimeActive) {
-      const resolvedIds = this._streamManager
-        .getAllItems()
-        .filter(id => id.status === 'resolved')
-        .map(item => item.id);
-      const ignoredIds = this._streamManager
-        .getAllItems()
-        .filter(id => id.status === 'ignored')
-        .map(item => item.id);
-      const reviewedIds = this._streamManager
-        .getAllItems()
-        .filter(id => !id.inbox)
-        .map(item => item.id);
-      // Remove Ignored and Resolved group ids from the issue stream, but if you have a query
-      // that includes these statuses or there's no query/you want to see ALL issues,
-      // don't trigger these group ids to be removed from the issue stream.
-      if (resolvedIds.length > 0 && !query.includes('is:resolved') && !!query) {
-        this.onIssueAction(resolvedIds);
+    if (
+      hasIssueListRemovalAction &&
+      !this.state.realtimeActive &&
+      actionTakenIds.length > 0
+    ) {
+      const filteredItems = this._streamManager.getAllItems().filter(item => {
+        return actionTakenIds.indexOf(item.id) !== -1;
+      });
+
+      const resolvedIds = filteredItems
+        .filter(item => item.status === 'resolved')
+        .map(id => id.id);
+      const ignoredIds = filteredItems
+        .filter(item => item.status === 'ignored')
+        .map(i => i.id);
+      // need to include resolve and ignored statuses because marking as resolved/ignored also
+      // counts as reviewed
+      const reviewedIds = filteredItems
+        .filter(
+          item => !item.inbox && item.status !== 'resolved' && item.status !== 'ignored'
+        )
+        .map(i => i.id);
+      // Remove Ignored and Resolved group ids from the issue stream if on the All Unresolved,
+      // For Review, or Ignored tab. Still include on the saved/custom search tab.
+      if (
+        resolvedIds.length > 0 &&
+        (query.includes('is:unresolved') ||
+          query.includes('is:ignored') ||
+          isForReviewQuery(query))
+      ) {
+        this.onIssueAction(resolvedIds, t('Resolved'));
       }
-      if (ignoredIds.length > 0 && !query.includes('is:ignored') && !!query) {
-        this.onIssueAction(ignoredIds);
+      if (
+        ignoredIds.length > 0 &&
+        (query.includes('is:unresolved') || isForReviewQuery(query))
+      ) {
+        this.onIssueAction(ignoredIds, t('Ignored'));
       }
       // Remove issues that are marked as Reviewed from the For Review tab, but still include the
-      // issues if not on the For Review tab, or no query for ALL issues.
-      if (reviewedIds.length > 0 && isForReviewQuery(query) && !!query) {
-        this.onIssueAction(reviewedIds);
+      // issues if on the All Unresolved tab or saved/custom searches.
+      if (
+        reviewedIds.length > 0 &&
+        (isForReviewQuery(query) || query.includes('is:ignored'))
+      ) {
+        this.onIssueAction(reviewedIds, t('Reviewed'));
       }
     }
 
@@ -820,13 +811,6 @@ class IssueListOverview extends React.Component<Props, State> {
 
   onSortChange = (sort: string) => {
     this.transitionTo({sort});
-  };
-
-  onDisplayChange = (display: string) => {
-    this.transitionTo({display});
-    trackAdvancedAnalyticsEvent('search.display_changed', {
-      organization: this.props.organization,
-    });
   };
 
   onCursorChange: CursorHandler = (nextCursor, _path, _query, delta) => {
@@ -961,7 +945,6 @@ class IssueListOverview extends React.Component<Props, State> {
           displayReprocessingLayout={displayReprocessingLayout}
           useFilteredStats
           showInboxTime={showInboxTime}
-          display={this.getDisplay()}
         />
       );
     });
@@ -1048,6 +1031,12 @@ class IssueListOverview extends React.Component<Props, State> {
     );
 
     if (!isForReviewQuery(query)) {
+      if (itemIds.length > 1) {
+        addMessage(t(`Reviewed ${itemIds.length} Issues`), 'success', {duration: 4000});
+      } else {
+        const shortId = itemIds.map(item => GroupStore.get(item)?.shortId).toString();
+        addMessage(t(`Reviewed ${shortId}`), 'success', {duration: 4000});
+      }
       return;
     }
 
@@ -1073,11 +1062,24 @@ class IssueListOverview extends React.Component<Props, State> {
     }
   };
 
-  onIssueAction = (itemIds: string[]) => {
-    GroupStore.remove(itemIds);
+  onActionTaken = (itemIds: string[]) => {
     this.setState({
-      actionTaken: true,
+      actionTakenIds: itemIds,
     });
+  };
+
+  onIssueAction = (itemIds: string[], actionType: string) => {
+    if (itemIds.length > 1) {
+      addMessage(t(`${actionType} ${itemIds.length} Issues`), 'success', {
+        duration: 4000,
+      });
+    } else {
+      const shortId = itemIds.map(item => GroupStore.get(item)?.shortId).toString();
+      addMessage(t(`${actionType} ${shortId}`), 'success', {duration: 4000});
+    }
+
+    GroupStore.remove(itemIds);
+    this.setState({actionTaken: true});
     this.fetchData(true);
   };
 
@@ -1183,15 +1185,12 @@ class IssueListOverview extends React.Component<Props, State> {
                 queryCount={queryCount}
                 savedSearch={savedSearch}
                 sort={this.getSort()}
-                display={this.getDisplay()}
-                onDisplayChange={this.onDisplayChange}
                 onSortChange={this.onSortChange}
                 onSearch={this.onSearch}
                 onSidebarToggle={this.onSidebarToggle}
                 isSearchDisabled={isSidebarVisible}
                 tagValueLoader={this.tagValueLoader}
                 tags={tags}
-                selectedProjects={selection.projects}
               />
 
               <Panel>
@@ -1203,6 +1202,7 @@ class IssueListOverview extends React.Component<Props, State> {
                   displayCount={displayCount}
                   onSelectStatsPeriod={this.onSelectStatsPeriod}
                   onMarkReviewed={this.onMarkReviewed}
+                  onActionTaken={this.onActionTaken}
                   onDelete={this.onDelete}
                   statsPeriod={this.getGroupStatsPeriod()}
                   groupIds={groupIds}

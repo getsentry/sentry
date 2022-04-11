@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from abc import ABC
+import abc
 from typing import TYPE_CHECKING, Any, Mapping, MutableMapping
 from urllib.parse import urlparse, urlunparse
 
 from django.utils.html import escape
 from django.utils.safestring import SafeString, mark_safe
 
+from sentry.db.models import Model
 from sentry.notifications.helpers import get_reason_context
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import NotificationSettingTypes
@@ -19,7 +20,7 @@ if TYPE_CHECKING:
     from sentry.models import Activity, Team, User
 
 
-class ActivityNotification(ProjectNotification, ABC):
+class ActivityNotification(ProjectNotification, abc.ABC):
     notification_setting_type = NotificationSettingTypes.WORKFLOW
     metrics_key = "activity"
 
@@ -50,19 +51,22 @@ class ActivityNotification(ProjectNotification, ABC):
         context = super().get_recipient_context(recipient, extra_context)
         return {**context, **get_reason_context(context)}
 
-    def get_reference(self) -> Any:
+    @property
+    def reference(self) -> Model | None:
         return self.activity
 
     def get_type(self) -> str:
         return f"notify.activity.{self.activity.get_type_display()}"
 
+    @abc.abstractmethod
     def get_context(self) -> MutableMapping[str, Any]:
-        raise NotImplementedError
+        pass
 
+    @abc.abstractmethod
     def get_participants_with_group_subscription_reason(
         self,
     ) -> Mapping[ExternalProviders, Mapping[Team | User, int]]:
-        raise NotImplementedError
+        pass
 
     def send(self) -> None:
         return send_activity_notification(self)
@@ -71,7 +75,7 @@ class ActivityNotification(ProjectNotification, ABC):
         return {"activity": self.activity, **super().get_log_params(recipient)}
 
 
-class GroupActivityNotification(ActivityNotification, ABC):
+class GroupActivityNotification(ActivityNotification, abc.ABC):
     message_builder = "IssueNotificationMessageBuilder"
 
     def __init__(self, activity: Activity) -> None:
@@ -98,9 +102,6 @@ class GroupActivityNotification(ActivityNotification, ABC):
     ) -> Mapping[ExternalProviders, Mapping[Team | User, int]]:
         """This is overridden by the activity subclasses."""
         return get_participants_for_group(self.group, self.activity.user)
-
-    def get_reply_reference(self) -> Any | None:
-        return self.group
 
     def get_unsubscribe_key(self) -> tuple[str, int, str | None] | None:
         return "issue", self.group.id, None

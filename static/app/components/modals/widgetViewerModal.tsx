@@ -15,7 +15,6 @@ import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import FeatureBadge from 'sentry/components/featureBadge';
 import SelectControl from 'sentry/components/forms/selectControl';
 import Option from 'sentry/components/forms/selectOption';
 import GridEditable, {
@@ -27,13 +26,14 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
 import Tooltip from 'sentry/components/tooltip';
-import {IconInfo, IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters, SelectValue} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {getAggregateAlias, isAggregateField} from 'sentry/utils/discover/fields';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
@@ -47,6 +47,7 @@ import {
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
 } from 'sentry/views/dashboardsV2/utils';
+import WidgetCardChart from 'sentry/views/dashboardsV2/widgetCard/chart';
 import IssueWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/issueWidgetQueries';
 import {WidgetCardChartContainer} from 'sentry/views/dashboardsV2/widgetCard/widgetCardChartContainer';
 import WidgetQueries from 'sentry/views/dashboardsV2/widgetCard/widgetQueries';
@@ -63,6 +64,8 @@ export type WidgetViewerModalOptions = {
   organization: Organization;
   widget: Widget;
   onEdit?: () => void;
+  seriesData?: Series[];
+  tableData?: TableDataWithTitle[];
 };
 
 type Props = ModalRenderProps &
@@ -83,7 +86,7 @@ const EMPTY_QUERY_NAME = '(Empty Query Condition)';
 // causing unnecessary rerenders which can break persistent legends functionality.
 const MemoizedWidgetCardChartContainer = React.memo(
   WidgetCardChartContainer,
-  (props, prevProps) => {
+  (prevProps, props) => {
     return (
       props.selection === prevProps.selection &&
       props.location.query[WidgetViewerQueryField.QUERY] ===
@@ -95,6 +98,18 @@ const MemoizedWidgetCardChartContainer = React.memo(
     );
   }
 );
+
+const MemoizedWidgetCardChart = React.memo(WidgetCardChart, (prevProps, props) => {
+  return (
+    props.selection === prevProps.selection &&
+    props.location.query[WidgetViewerQueryField.QUERY] ===
+      prevProps.location.query[WidgetViewerQueryField.QUERY] &&
+    props.location.query[WidgetViewerQueryField.SORT] ===
+      prevProps.location.query[WidgetViewerQueryField.SORT] &&
+    props.location.query[WidgetViewerQueryField.WIDTH] ===
+      prevProps.location.query[WidgetViewerQueryField.WIDTH]
+  );
+});
 
 async function fetchDiscoverTotal(
   api: Client,
@@ -133,22 +148,48 @@ function WidgetViewerModal(props: Props) {
     router,
     routes,
     params,
+    seriesData,
+    tableData,
   } = props;
+  // Get widget zoom from location
+  // We use the start and end query params for just the initial state
+  const start = decodeScalar(location.query[WidgetViewerQueryField.START]);
+  const end = decodeScalar(location.query[WidgetViewerQueryField.END]);
   const isTableWidget = widget.displayType === DisplayType.TABLE;
-  const [modalSelection, setModalSelection] = React.useState<PageFilters>(selection);
+  const locationPageFilter =
+    start && end
+      ? {
+          ...selection,
+          datetime: {start, end, period: null, utc: null},
+        }
+      : selection;
+
+  const [chartUnmodified, setChartUnmodified] = React.useState<boolean>(true);
+
+  const [modalSelection, setModalSelection] =
+    React.useState<PageFilters>(locationPageFilter);
+
+  // Detect when a user clicks back and set the PageFilter state to match the location
+  // We need to use useEffect to prevent infinite looping rerenders due to the setModalSelection call
+  React.useEffect(() => {
+    if (location.action === 'POP') {
+      setModalSelection(locationPageFilter);
+    }
+  }, [location]);
+
+  // Get legends toggle settings from location
+  // We use the legend query params for just the initial state
+  const [disabledLegends, setDisabledLegends] = React.useState<{[key: string]: boolean}>(
+    decodeList(location.query[WidgetViewerQueryField.LEGEND]).reduce((acc, legend) => {
+      acc[legend] = false;
+      return acc;
+    }, {})
+  );
   const [totalResults, setTotalResults] = React.useState<string | undefined>();
 
   // Get query selection settings from location
   const selectedQueryIndex =
     decodeInteger(location.query[WidgetViewerQueryField.QUERY]) ?? 0;
-
-  // Get legends toggle settings from location
-  const disabledLegends = decodeList(
-    location.query[WidgetViewerQueryField.LEGEND]
-  ).reduce((acc, legend) => {
-    acc[legend] = false;
-    return acc;
-  }, {});
 
   // Get pagination settings from location
   const page = decodeInteger(location.query[WidgetViewerQueryField.PAGE]) ?? 0;
@@ -294,6 +335,56 @@ function WidgetViewerModal(props: Props) {
     getDiscoverTotals();
   }, [selectedQueryIndex]);
 
+  function onLegendSelectChanged({selected}: {selected: Record<string, boolean>}) {
+    setDisabledLegends(selected);
+    router.replace({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        [WidgetViewerQueryField.LEGEND]: Object.keys(selected).filter(
+          key => !selected[key]
+        ),
+      },
+    });
+    trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.toggle_legend', {
+      organization,
+      widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+      display_type: widget.displayType,
+    });
+  }
+
+  function onZoom(_evt, chart) {
+    // @ts-ignore getModel() is private but we need this to retrieve datetime values of zoomed in region
+    const model = chart.getModel();
+    const {startValue, endValue} = model._payload.batch[0];
+    const newStart = getUtcDateString(moment.utc(startValue));
+    const newEnd = getUtcDateString(moment.utc(endValue));
+    setModalSelection({
+      ...modalSelection,
+      datetime: {
+        ...modalSelection.datetime,
+        start: newStart,
+        end: newEnd,
+        period: null,
+      },
+    });
+    router.push({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        [WidgetViewerQueryField.START]: newStart,
+        [WidgetViewerQueryField.END]: newEnd,
+      },
+    });
+    trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.zoom', {
+      organization,
+      widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+      display_type: widget.displayType,
+    });
+  }
+
+  const shouldUseDataFromProps = (!!seriesData || !!tableData) && chartUnmodified;
+
   function renderWidgetViewer() {
     return (
       <React.Fragment>
@@ -303,58 +394,74 @@ function WidgetViewerModal(props: Props) {
               widget.displayType !== DisplayType.BIG_NUMBER ? HALF_CONTAINER_HEIGHT : null
             }
           >
-            <MemoizedWidgetCardChartContainer
-              location={location}
-              router={router}
-              routes={routes}
-              params={params}
-              api={api}
-              organization={organization}
-              selection={modalSelection}
-              // Top N charts rely on the orderby of the table
-              widget={primaryWidget}
-              onZoom={(_evt, chart) => {
-                // @ts-ignore getModel() is private but we need this to retrieve datetime values of zoomed in region
-                const model = chart.getModel();
-                const {startValue, endValue} = model._payload.batch[0];
-                const start = getUtcDateString(moment.utc(startValue));
-                const end = getUtcDateString(moment.utc(endValue));
-                setModalSelection({
-                  ...modalSelection,
-                  datetime: {...modalSelection.datetime, start, end, period: null},
-                });
-                trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.zoom', {
-                  organization,
-                  widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                  display_type: widget.displayType,
-                });
-              }}
-              onLegendSelectChanged={({selected}) => {
-                router.replace({
-                  pathname: location.pathname,
-                  query: {
-                    ...location.query,
-                    [WidgetViewerQueryField.LEGEND]: Object.keys(selected).filter(
-                      key => !selected[key]
-                    ),
-                  },
-                });
-                trackAdvancedAnalyticsEvent(
-                  'dashboards_views.widget_viewer.toggle_legend',
-                  {
+            {shouldUseDataFromProps ? (
+              <MemoizedWidgetCardChart
+                timeseriesResults={seriesData}
+                tableResults={tableData}
+                errorMessage={undefined}
+                loading={false}
+                location={location}
+                widget={widget}
+                selection={selection}
+                router={router}
+                organization={organization}
+                onZoom={(_evt, chart) => {
+                  onZoom(_evt, chart);
+                  setChartUnmodified(false);
+                }}
+                onLegendSelectChanged={onLegendSelectChanged}
+                legendOptions={{selected: disabledLegends}}
+                expandNumbers
+              />
+            ) : (
+              <MemoizedWidgetCardChartContainer
+                location={location}
+                router={router}
+                routes={routes}
+                params={params}
+                api={api}
+                organization={organization}
+                selection={modalSelection}
+                // Top N charts rely on the orderby of the table
+                widget={primaryWidget}
+                onZoom={(_evt, chart) => {
+                  // @ts-ignore getModel() is private but we need this to retrieve datetime values of zoomed in region
+                  const model = chart.getModel();
+                  const {startValue, endValue} = model._payload.batch[0];
+                  const newStart = getUtcDateString(moment.utc(startValue));
+                  const newEnd = getUtcDateString(moment.utc(endValue));
+                  setModalSelection({
+                    ...modalSelection,
+                    datetime: {
+                      ...modalSelection.datetime,
+                      start: newStart,
+                      end: newEnd,
+                      period: null,
+                    },
+                  });
+                  router.push({
+                    pathname: location.pathname,
+                    query: {
+                      ...location.query,
+                      [WidgetViewerQueryField.START]: newStart,
+                      [WidgetViewerQueryField.END]: newEnd,
+                    },
+                  });
+                  trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.zoom', {
                     organization,
                     widget_type: widget.widgetType ?? WidgetType.DISCOVER,
                     display_type: widget.displayType,
-                  }
-                );
-              }}
-              legendOptions={{selected: disabledLegends}}
-              expandNumbers
-            />
+                  });
+                }}
+                onLegendSelectChanged={onLegendSelectChanged}
+                legendOptions={{selected: disabledLegends}}
+                expandNumbers
+              />
+            )}
           </Container>
         )}
         {widget.queries.length > 1 && (
-          <StyledAlert type="info" icon={<IconInfo />}>
+          <StyledAlert type="info" showIcon>
             {t(
               'This widget was built with multiple queries. Table data can only be displayed for one query at a time.'
             )}
@@ -398,7 +505,6 @@ function WidgetViewerModal(props: Props) {
                         display: 'flex',
                       })}
                     >
-                      <StyledIconSearch />
                       {queryOptions[selectedQueryIndex].getHighlightedQuery({
                         display: 'block',
                       }) ??
@@ -473,14 +579,18 @@ function WidgetViewerModal(props: Props) {
                       columnSortBy={columnSortBy}
                       grid={{
                         renderHeadCell: renderIssueGridHeaderCell({
-                          ...props,
+                          location,
+                          organization,
+                          selection,
                           widget: tableWidget,
                         }) as (
                           column: GridColumnOrder,
                           columnIndex: number
                         ) => React.ReactNode,
                         renderBodyCell: renderGridBodyCell({
-                          ...props,
+                          location,
+                          organization,
+                          selection,
                           widget: tableWidget,
                         }),
                         onResizeColumn,
@@ -555,6 +665,7 @@ function WidgetViewerModal(props: Props) {
                           ...props,
                           widget: tableWidget,
                           tableData: tableResults?.[0],
+                          onHeaderClick: () => setChartUnmodified(false),
                         }) as (
                           column: GridColumnOrder,
                           columnIndex: number
@@ -631,7 +742,6 @@ function WidgetViewerModal(props: Props) {
         <Tooltip title={widget.title} showOnlyOnOverflow>
           <WidgetTitle>{widget.title}</WidgetTitle>
         </Tooltip>
-        <FeatureBadge type="beta" />
       </StyledHeader>
       <Body>{renderWidgetViewer()}</Body>
       <StyledFooter>
@@ -790,10 +900,6 @@ const StyledButtonBar = styled(ButtonBar)`
 
 const EmptyQueryContainer = styled('span')`
   color: ${p => p.theme.disabled};
-`;
-
-const StyledIconSearch = styled(IconSearch)`
-  margin: auto ${space(1.5)} auto 0;
 `;
 
 const StyledSelectControlRowContainer = styled('span')`

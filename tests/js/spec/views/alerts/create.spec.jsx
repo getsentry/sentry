@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import selectEvent from 'react-select-event';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -30,9 +29,9 @@ jest.mock('sentry/utils/analytics', () => ({
 jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
 
 describe('ProjectAlertsCreate', function () {
-  TeamStore.loadInitialData([], false, null);
-
   beforeEach(function () {
+    TeamStore.init();
+    TeamStore.loadInitialData([], false, null);
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/rules/configuration/',
       body: TestStubs.ProjectAlertRuleConfiguration(),
@@ -54,6 +53,7 @@ describe('ProjectAlertsCreate', function () {
   afterEach(function () {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
+    TeamStore.teardown();
   });
 
   const createWrapper = (props = {}, location = {}) => {
@@ -87,9 +87,9 @@ describe('ProjectAlertsCreate', function () {
 
   it('redirects to wizard', function () {
     const location = {query: {}};
-    createWrapper(undefined, location);
+    const wrapper = createWrapper(undefined, location);
 
-    expect(browserHistory.replace).toHaveBeenCalledWith(
+    expect(wrapper.router.replace).toHaveBeenCalledWith(
       '/organizations/org-slug/alerts/project-slug/wizard'
     );
   });

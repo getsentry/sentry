@@ -10,22 +10,27 @@ import {
   SectionHeading,
   SectionValue,
 } from 'sentry/components/charts/styles';
+import Count from 'sentry/components/count';
 import {Panel} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
+import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 
 import ExclusiveTimeHistogram from './exclusiveTimeHistogram';
 import ExclusiveTimeTimeSeries from './exclusiveTimeTimeSeries';
+import {MAX, MIN} from './utils';
 
 type Props = WithRouterProps & {
   eventView: EventView;
   location: Location;
   organization: Organization;
   spanSlug: SpanSlug;
-  totalCount: number;
+  totalCount?: number;
 };
 
 enum DisplayModes {
@@ -46,12 +51,15 @@ function Chart(props: Props) {
   }
 
   function handleDisplayChange(value: string) {
+    trackAdvancedAnalyticsEvent('performance_views.span_summary.change_chart', {
+      organization: props.organization,
+      change_to_display: value,
+    });
+
     browserHistory.push({
       pathname: location.pathname,
       query: {
-        ...location.query,
-        // TODO (udameli) implement removeHistogramQueryStrings here
-        // once histogram is displaying correctly
+        ...removeHistogramQueryStrings(location, [MIN, MAX]),
         display: value,
       },
     });
@@ -76,7 +84,9 @@ function Chart(props: Props) {
         <ChartControls>
           <InlineContainer>
             <SectionHeading>{t('Total Events')}</SectionHeading>
-            <SectionValue data-test-id="total-value">{props.totalCount}</SectionValue>
+            <SectionValue data-test-id="total-value">
+              {defined(props.totalCount) ? <Count value={props.totalCount} /> : '\u2014'}
+            </SectionValue>
           </InlineContainer>
           <InlineContainer data-test-id="display-toggle">
             <OptionSelector

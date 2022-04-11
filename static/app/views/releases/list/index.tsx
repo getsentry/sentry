@@ -7,20 +7,23 @@ import pick from 'lodash/pick';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import Alert from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import DatePageFilter from 'sentry/components/datePageFilter';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {getRelativeSummary} from 'sentry/components/organizations/timeRangeSelector/utils';
 import PageHeading from 'sentry/components/pageHeading';
 import Pagination from 'sentry/components/pagination';
+import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {ItemType} from 'sentry/components/smartSearchBar/types';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {releaseHealth} from 'sentry/data/platformCategories';
-import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {PageContent, PageHeader} from 'sentry/styles/organization';
@@ -378,7 +381,7 @@ class ReleasesList extends AsyncView<Props, State> {
           }
 
           return (
-            <Alert type="info" icon={<IconInfo size="md" />}>
+            <Alert type="info" showIcon>
               <AlertText>
                 <div>
                   {t(
@@ -489,6 +492,7 @@ class ReleasesList extends AsyncView<Props, State> {
         timeRangeHint={t(
           'Changing this date range will recalculate the release metrics.'
         )}
+        hideGlobalHeader
       >
         <PageContent>
           <NoProjectMessage organization={organization}>
@@ -497,6 +501,12 @@ class ReleasesList extends AsyncView<Props, State> {
             </PageHeader>
 
             {this.renderHealthCta()}
+
+            <ReleasesPageFilterBar>
+              <ProjectPageFilter />
+              <EnvironmentPageFilter />
+              <DatePageFilter />
+            </ReleasesPageFilterBar>
 
             <SortAndFilterWrapper>
               <GuideAnchor
@@ -573,6 +583,12 @@ const AlertText = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     flex-direction: row;
   }
+`;
+
+const ReleasesPageFilterBar = styled(PageFilterBar)`
+  width: max-content;
+  max-width: 100%;
+  margin-bottom: ${space(1)};
 `;
 
 const SortAndFilterWrapper = styled('div')`

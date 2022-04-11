@@ -22,7 +22,7 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 
 import FilterBar from '../filterBar';
 import AlertHeader from '../list/header';
-import {CombinedMetricIssueAlerts} from '../types';
+import {AlertRuleType, CombinedMetricIssueAlerts} from '../types';
 import {getTeamParams, isIssueAlert} from '../utils';
 
 import RuleListRow from './row';
@@ -138,7 +138,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     );
 
     return (
-      <StyledLayoutBody>
+      <Layout.Body>
         <Layout.Main fullWidth>
           <FilterBar
             location={location}
@@ -231,7 +231,9 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
                     ruleList.map(rule => (
                       <RuleListRow
                         // Metric and issue alerts can have the same id
-                        key={`${isIssueAlert(rule) ? 'metric' : 'issue'}-${rule.id}`}
+                        key={`${
+                          isIssueAlert(rule) ? AlertRuleType.METRIC : AlertRuleType.ISSUE
+                        }-${rule.id}`}
                         projectsLoaded={initiallyLoaded}
                         projects={projects as Project[]}
                         rule={rule}
@@ -262,7 +264,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
             }}
           />
         </Layout.Main>
-      </StyledLayoutBody>
+      </Layout.Body>
     );
   }
 
@@ -315,10 +317,6 @@ class AlertRulesListContainer extends Component<Props> {
 }
 
 export default withPageFilters(AlertRulesListContainer);
-
-const StyledLayoutBody = styled(Layout.Body)`
-  margin-bottom: -20px;
-`;
 
 const StyledSortLink = styled(Link)`
   color: inherit;

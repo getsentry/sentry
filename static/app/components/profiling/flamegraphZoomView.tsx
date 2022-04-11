@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
@@ -44,6 +44,8 @@ function FlamegraphZoomView({
   const [flamegraphState, dispatchFlamegraphState] = useFlamegraphState();
   const [canvasBounds, setCanvasBounds] = useState<Rect>(Rect.Empty());
   const [startPanVector, setStartPanVector] = useState<vec2 | null>(null);
+  const [selectedNode, setSelectedNode] = useState<FlamegraphFrame | null>(null);
+  const [configSpaceCursor, setConfigSpaceCursor] = useState<vec2 | null>(null);
 
   const flamegraphRenderer = useMemoWithPrevious<FlamegraphRenderer | null>(
     previousRenderer => {
@@ -114,11 +116,6 @@ function FlamegraphZoomView({
     }
     return new SelectedFrameRenderer(flamegraphOverlayCanvasRef);
   }, [flamegraphOverlayCanvasRef, flamegraph, flamegraphTheme]);
-
-  const [selectedNode, setSelectedNode] = useState<FlamegraphFrame | null>(null);
-  const [configSpaceCursor, setConfigSpaceCursor] = useState<[number, number] | null>(
-    null
-  );
 
   const hoveredNode = useMemo(() => {
     if (!configSpaceCursor || !flamegraphRenderer) {
@@ -476,7 +473,7 @@ function FlamegraphZoomView({
         vec2.fromValues(evt.nativeEvent.offsetX, evt.nativeEvent.offsetY)
       );
 
-      setConfigSpaceCursor([configSpaceMouse[0], configSpaceMouse[1]]);
+      setConfigSpaceCursor(configSpaceMouse);
 
       if (lastInteraction) {
         onMouseDrag(evt);
@@ -584,7 +581,7 @@ function FlamegraphZoomView({
   }, [flamegraphCanvasRef, zoom, scroll]);
 
   return (
-    <React.Fragment>
+    <Fragment>
       <Canvas
         ref={canvas => setFlamegraphCanvasRef(canvas)}
         onMouseDown={onCanvasMouseDown}
@@ -608,7 +605,7 @@ function FlamegraphZoomView({
           {hoveredNode?.frame?.name}
         </BoundTooltip>
       ) : null}
-    </React.Fragment>
+    </Fragment>
   );
 }
 

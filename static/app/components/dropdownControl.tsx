@@ -84,7 +84,8 @@ class DropdownControl extends React.Component<Props> {
   };
 
   renderButton(isOpen: boolean, getActorProps: GetActorPropsFn) {
-    const {label, button, buttonProps, buttonTooltipTitle, priority} = this.props;
+    const {label, button, buttonProps, buttonTooltipTitle, priority, detached} =
+      this.props;
 
     if (button) {
       return button({isOpen, getActorProps});
@@ -97,6 +98,9 @@ class DropdownControl extends React.Component<Props> {
             priority={priority}
             {...getActorProps(buttonProps)}
             isOpen={isOpen}
+            data-test-id="dropdown-control-button"
+            detached={detached}
+            hideBottomBorder={!detached}
           >
             {label}
           </StyledDropdownButton>
@@ -109,6 +113,9 @@ class DropdownControl extends React.Component<Props> {
         priority={priority}
         {...getActorProps(buttonProps)}
         isOpen={isOpen}
+        data-test-id="dropdown-control-button"
+        detached={detached}
+        hideBottomBorder={!detached}
       >
         {label}
       </StyledDropdownButton>
@@ -135,6 +142,7 @@ class DropdownControl extends React.Component<Props> {
         blendWithActor={blendWithActor}
         detached={detached}
         blendCorner
+        data-test-id="dropdown-control"
       >
         {children}
       </Content>

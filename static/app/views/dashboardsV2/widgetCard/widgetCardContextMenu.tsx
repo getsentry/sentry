@@ -12,10 +12,13 @@ import {IconEllipsis, IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {getWidgetDiscoverUrl, getWidgetIssueUrl} from 'sentry/views/dashboardsV2/utils';
 
 import {Widget, WidgetType} from '../types';
+import {WidgetViewerContext} from '../widgetViewer/widgetViewerContext';
 
 type Props = {
   location: Location;
@@ -29,8 +32,10 @@ type Props = {
   onDelete?: () => void;
   onDuplicate?: () => void;
   onEdit?: () => void;
+  seriesData?: Series[];
   showContextMenu?: boolean;
   showWidgetViewerButton?: boolean;
+  tableData?: TableDataWithTitle[];
 };
 
 function WidgetCardContextMenu({
@@ -47,6 +52,8 @@ function WidgetCardContextMenu({
   router,
   location,
   index,
+  seriesData,
+  tableData,
 }: Props) {
   if (!showContextMenu) {
     return null;
@@ -68,34 +75,43 @@ function WidgetCardContextMenu({
 
   if (isPreview) {
     return (
-      <ContextWrapper>
-        <StyledDropdownMenuControlV2
-          items={[
-            {
-              key: 'preview',
-              label: t('This is a preview only. To edit, you must add this dashboard.'),
-            },
-          ]}
-          triggerProps={{
-            'aria-label': t('Widget actions'),
-            size: 'xsmall',
-            borderless: true,
-            showChevron: false,
-            icon: <IconEllipsis direction="down" size="sm" />,
-          }}
-          placement="bottom right"
-          disabledKeys={['preview']}
-        />
-        {showWidgetViewerButton && (
-          <OpenWidgetViewerButton
-            aria-label={t('Open Widget Viewer')}
-            priority="link"
-            size="zero"
-            icon={<IconExpand size="xs" />}
-            onClick={() => openWidgetViewerPath(index)}
-          />
+      <WidgetViewerContext.Consumer>
+        {({setData}) => (
+          <ContextWrapper>
+            <StyledDropdownMenuControlV2
+              items={[
+                {
+                  key: 'preview',
+                  label: t(
+                    'This is a preview only. To edit, you must add this dashboard.'
+                  ),
+                },
+              ]}
+              triggerProps={{
+                'aria-label': t('Widget actions'),
+                size: 'xsmall',
+                borderless: true,
+                showChevron: false,
+                icon: <IconEllipsis direction="down" size="sm" />,
+              }}
+              placement="bottom right"
+              disabledKeys={['preview']}
+            />
+            {showWidgetViewerButton && (
+              <OpenWidgetViewerButton
+                aria-label={t('Open Widget Viewer')}
+                priority="link"
+                size="zero"
+                icon={<IconExpand size="xs" />}
+                onClick={() => {
+                  (seriesData || tableData) && setData({seriesData, tableData});
+                  openWidgetViewerPath(index);
+                }}
+              />
+            )}
+          </ContextWrapper>
         )}
-      </ContextWrapper>
+      </WidgetViewerContext.Consumer>
     );
   }
 
@@ -172,29 +188,36 @@ function WidgetCardContextMenu({
   }
 
   return (
-    <ContextWrapper>
-      <StyledDropdownMenuControlV2
-        items={menuOptions}
-        triggerProps={{
-          'aria-label': t('Widget actions'),
-          size: 'xsmall',
-          borderless: true,
-          showChevron: false,
-          icon: <IconEllipsis direction="down" size="sm" />,
-        }}
-        placement="bottom right"
-        disabledKeys={disabledKeys}
-      />
-      {showWidgetViewerButton && (
-        <OpenWidgetViewerButton
-          aria-label={t('Open Widget Viewer')}
-          priority="link"
-          size="zero"
-          icon={<IconExpand size="xs" />}
-          onClick={() => openWidgetViewerPath(widget.id)}
-        />
+    <WidgetViewerContext.Consumer>
+      {({setData}) => (
+        <ContextWrapper>
+          <StyledDropdownMenuControlV2
+            items={menuOptions}
+            triggerProps={{
+              'aria-label': t('Widget actions'),
+              size: 'xsmall',
+              borderless: true,
+              showChevron: false,
+              icon: <IconEllipsis direction="down" size="sm" />,
+            }}
+            placement="bottom right"
+            disabledKeys={disabledKeys}
+          />
+          {showWidgetViewerButton && (
+            <OpenWidgetViewerButton
+              aria-label={t('Open Widget Viewer')}
+              priority="link"
+              size="zero"
+              icon={<IconExpand size="xs" />}
+              onClick={() => {
+                (seriesData || tableData) && setData({seriesData, tableData});
+                openWidgetViewerPath(widget.id ?? index);
+              }}
+            />
+          )}
+        </ContextWrapper>
       )}
-    </ContextWrapper>
+    </WidgetViewerContext.Consumer>
   );
 }
 

@@ -57,7 +57,7 @@ function ProfilingScatterChart({
     for (const row of traces) {
       const seriesName =
         colorEncoding === 'version'
-          ? `${row.app_version_name} (build ${row.app_version})`
+          ? `${row.version_name} (build ${row.version_code})`
           : row[colorEncoding];
       if (!dataMap[seriesName]) {
         dataMap[seriesName] = [];
@@ -72,7 +72,7 @@ function ProfilingScatterChart({
       return {
         seriesName,
         data: seriesData.map(row => ({
-          name: row.start_time_unix * 1000,
+          name: row.timestamp * 1000,
           value: row.trace_duration_ms,
         })),
       };
@@ -163,20 +163,20 @@ function makeScatterChartOptions({
 
   const _tooltipFormatter: TooltipComponentFormatterCallback<any> = seriesParams => {
     const dataPoint = data[seriesParams.seriesName]?.[seriesParams.dataIndex];
-    const project = dataPoint && projects.find(proj => proj.id === dataPoint.app_id);
+    const project = dataPoint && projects.find(proj => proj.id === dataPoint.project_id);
 
     const entries = [
       {label: t('Project'), value: project?.slug},
-      {label: t('App Version'), value: dataPoint?.app_version},
+      {label: t('App Version'), value: dataPoint?.version_code},
       {
         label: t('Duration'),
         value: defined(dataPoint?.trace_duration_ms)
           ? getDuration(dataPoint?.trace_duration_ms, 2, true)
           : null,
       },
-      {label: t('Interaction'), value: dataPoint?.interaction_name},
+      {label: t('Transaction'), value: dataPoint?.transaction_name},
       {label: t('Device Model'), value: dataPoint?.device_model},
-      {label: t('Device Class'), value: dataPoint?.device_class},
+      {label: t('Device Classification'), value: dataPoint?.device_classification},
       {label: t('Device Manufacturer'), value: dataPoint?.device_manufacturer},
     ].map(
       ({label, value}) =>
@@ -185,9 +185,9 @@ function makeScatterChartOptions({
         }</div>`
     );
 
-    const date = defined(dataPoint?.start_time_unix)
+    const date = defined(dataPoint?.timestamp)
       ? momentTimezone
-          .tz(dataPoint?.start_time_unix * 1000, options?.timezone ?? '')
+          .tz(dataPoint?.timestamp * 1000, options?.timezone ?? '')
           .format('lll')
       : null;
 
@@ -244,7 +244,7 @@ function makeScatterChartOptions({
       if (!defined(dataPoint)) {
         return;
       }
-      const project = projects.find(proj => proj.id === dataPoint.app_id);
+      const project = projects.find(proj => proj.id === dataPoint.project_id);
       if (!defined(project)) {
         return;
       }

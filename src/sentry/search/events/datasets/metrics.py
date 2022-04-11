@@ -27,6 +27,7 @@ class MetricsDatasetConfig(DatasetConfig):
             constants.PROJECT_NAME_ALIAS: self._project_slug_filter_converter,
             constants.EVENT_TYPE_ALIAS: self._event_type_converter,
             constants.TEAM_KEY_TRANSACTION_ALIAS: self._key_transaction_filter_converter,
+            "transaction.duration": self._duration_filter_converter,
         }
 
     @property
@@ -39,12 +40,18 @@ class MetricsDatasetConfig(DatasetConfig):
         }
 
     def resolve_metric(self, value: str) -> int:
-        metric_id = indexer.resolve(constants.METRICS_MAP.get(value, value))
+        metric_id = self.resolve_value(constants.METRICS_MAP.get(value, value))
         if metric_id is None:
             raise IncompatibleMetricsQuery(f"Metric: {value} could not be resolved")
-
-        self.builder.metric_ids.append(metric_id)
+        self.builder.metric_ids.add(metric_id)
         return metric_id
+
+    def resolve_value(self, value: str) -> int:
+        if self.builder.dry_run:
+            return -1
+        value_id = indexer.resolve(self.builder.organization_id, value)
+
+        return value_id
 
     @property
     def function_converter(self) -> Mapping[str, fields.MetricsFunction]:
@@ -69,6 +76,24 @@ class MetricsDatasetConfig(DatasetConfig):
                     optional_args=[],
                     snql_distribution=self._resolve_apdex_function,
                     default_result_type="number",
+                ),
+                fields.MetricsFunction(
+                    "avg",
+                    snql_distribution=lambda args, alias: Function(
+                        "avgIf",
+                        [
+                            Column("value"),
+                            Function(
+                                "equals",
+                                [
+                                    Column("metric_id"),
+                                    self.resolve_metric("transaction.duration"),
+                                ],
+                            ),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="integer",
                 ),
                 fields.MetricsFunction(
                     "count_miserable",
@@ -175,14 +200,22 @@ class MetricsDatasetConfig(DatasetConfig):
                         ),
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_distribution=lambda args, alias: Function(
-                        "maxIf",
-                        [
-                            Column("value"),
-                            Function("equals", [Column("metric_id"), args["metric_id"]]),
-                        ],
-                        alias,
-                    ),
+                    snql_distribution=lambda args, alias: self._resolve_percentile(args, alias, 1),
+                    default_result_type="duration",
+                ),
+                fields.MetricsFunction(
+                    "percentile",
+                    required_args=[
+                        fields.with_default(
+                            "transaction.duration",
+                            fields.MetricArg(
+                                "column", allowed_columns=constants.METRIC_DURATION_COLUMNS
+                            ),
+                        ),
+                        fields.NumberRange("percentile", 0, 1),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_distribution=self._resolve_percentile,
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
@@ -194,6 +227,24 @@ class MetricsDatasetConfig(DatasetConfig):
                         [
                             Column("value"),
                             Function("equals", [Column("metric_id"), args["metric_id"]]),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
+                fields.MetricsFunction(
+                    "count",
+                    snql_distribution=lambda args, alias: Function(
+                        "countIf",
+                        [
+                            Column("value"),
+                            Function(
+                                "equals",
+                                [
+                                    Column("metric_id"),
+                                    self.resolve_metric("transaction.duration"),
+                                ],
+                            ),
                         ],
                         alias,
                     ),
@@ -312,11 +363,15 @@ class MetricsDatasetConfig(DatasetConfig):
         return AliasedExpression(self.builder.resolve_column("transaction"), alias)
 
     def _resolve_team_key_transaction_alias(self, _: str) -> SelectType:
+        if self.builder.dry_run:
+            return field_aliases.dry_run_default(self.builder, constants.TEAM_KEY_TRANSACTION_ALIAS)
         return field_aliases.resolve_team_key_transaction_alias(
             self.builder, resolve_metric_index=True
         )
 
     def _resolve_project_slug_alias(self, alias: str) -> SelectType:
+        if self.builder.dry_run:
+            return field_aliases.dry_run_default(self.builder, alias)
         return field_aliases.resolve_project_slug_alias(self.builder, alias)
 
     # Query Filters
@@ -333,6 +388,16 @@ class MetricsDatasetConfig(DatasetConfig):
 
     def _release_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         return filter_aliases.release_filter_converter(self.builder, search_filter)
+
+    def _duration_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        if (
+            self.builder.dry_run
+            and search_filter.value.raw_value == 900000
+            and search_filter.operator == "<"
+        ):
+            return None
+
+        return self.builder._default_filter_converter(search_filter)
 
     # Query Functions
     def _resolve_count_if(
@@ -361,7 +426,7 @@ class MetricsDatasetConfig(DatasetConfig):
         _: Mapping[str, Union[str, Column, SelectType, int, float]],
         alias: Optional[str] = None,
     ) -> SelectType:
-        metric_true = indexer.resolve(constants.METRIC_TRUE_TAG_VALUE)
+        metric_true = self.resolve_value(constants.METRIC_TRUE_TAG_VALUE)
 
         # Nothing is satisfied or tolerated, the score must be 0
         if metric_true is None:
@@ -404,7 +469,7 @@ class MetricsDatasetConfig(DatasetConfig):
         args: Mapping[str, Union[str, Column, SelectType, int, float]],
         alias: Optional[str] = None,
     ) -> SelectType:
-        metric_true = indexer.resolve(constants.METRIC_TRUE_TAG_VALUE)
+        metric_true = self.resolve_value(constants.METRIC_TRUE_TAG_VALUE)
 
         # Nobody is miserable, we can return 0
         if metric_true is None:
@@ -471,7 +536,7 @@ class MetricsDatasetConfig(DatasetConfig):
         _: Mapping[str, Union[str, Column, SelectType, int, float]],
         alias: Optional[str] = None,
     ) -> SelectType:
-        statuses = [indexer.resolve(status) for status in constants.NON_FAILURE_STATUS]
+        statuses = [self.resolve_value(status) for status in constants.NON_FAILURE_STATUS]
         return self._resolve_count_if(
             Function(
                 "equals",
@@ -494,21 +559,36 @@ class MetricsDatasetConfig(DatasetConfig):
         self,
         args: Mapping[str, Union[str, Column, SelectType, int, float]],
         alias: str,
-        fixed_percentile: float,
+        fixed_percentile: Optional[float] = None,
     ) -> SelectType:
-        return Function(
-            "arrayElement",
-            [
-                Function(
-                    f"quantilesIf({fixed_percentile})",
-                    [
-                        Column("value"),
-                        Function("equals", [Column("metric_id"), args["metric_id"]]),
-                    ],
-                ),
-                1,
-            ],
-            alias,
+        if fixed_percentile is None:
+            fixed_percentile = args["percentile"]
+        if fixed_percentile not in constants.METRIC_PERCENTILES:
+            raise IncompatibleMetricsQuery("Custom quantile incompatible with metrics")
+        return (
+            Function(
+                "maxIf",
+                [
+                    Column("value"),
+                    Function("equals", [Column("metric_id"), args["metric_id"]]),
+                ],
+                alias,
+            )
+            if fixed_percentile == 1
+            else Function(
+                "arrayElement",
+                [
+                    Function(
+                        f"quantilesIf({fixed_percentile})",
+                        [
+                            Column("value"),
+                            Function("equals", [Column("metric_id"), args["metric_id"]]),
+                        ],
+                    ),
+                    1,
+                ],
+                alias,
+            )
         )
 
     def _key_transaction_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
@@ -534,7 +614,7 @@ class MetricsDatasetConfig(DatasetConfig):
 
         measurement_rating = self.builder.resolve_column("measurement_rating")
 
-        quality_id = indexer.resolve(quality)
+        quality_id = self.resolve_value(quality)
         if quality_id is None:
             return Function(
                 # This matches the type from doing `select toTypeName(count()) ...` from clickhouse

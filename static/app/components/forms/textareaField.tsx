@@ -1,4 +1,3 @@
-import * as React from 'react';
 import omit from 'lodash/omit';
 
 import Textarea, {TextAreaProps} from 'sentry/components/forms/controls/textarea';

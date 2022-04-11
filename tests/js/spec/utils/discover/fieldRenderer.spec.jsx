@@ -72,6 +72,15 @@ describe('getFieldRenderer', function () {
     expect(text.text()).toEqual(data.url);
   });
 
+  it('can render empty string fields', function () {
+    const renderer = getFieldRenderer('url', {url: 'string'});
+    data.url = '';
+    const wrapper = mountWithTheme(renderer(data, {location, organization}));
+    const value = wrapper.find('EmptyValueContainer');
+    expect(value).toHaveLength(1);
+    expect(value.text()).toEqual('(empty string)');
+  });
+
   it('can render boolean fields', function () {
     const renderer = getFieldRenderer('boolValue', {boolValue: 'boolean'});
     const wrapper = mountWithTheme(renderer(data, {location, organization}));
@@ -104,7 +113,7 @@ describe('getFieldRenderer', function () {
 
     const value = wrapper.find('FieldDateTime');
     expect(value).toHaveLength(0);
-    expect(wrapper.text()).toEqual('n/a');
+    expect(wrapper.text()).toEqual('(no value)');
   });
 
   it('can render timestamp.to_day', function () {
@@ -125,16 +134,37 @@ describe('getFieldRenderer', function () {
   it('can render error.handled values', function () {
     const renderer = getFieldRenderer('error.handled', {'error.handled': 'boolean'});
 
-    // Should render the last value.
+    // Should render the same as the filter.
+    // ie. all 1 or null
     let wrapper = mountWithTheme(
       renderer({'error.handled': [0, 1]}, {location, organization})
+    );
+    expect(wrapper.text()).toEqual('false');
+
+    wrapper = mountWithTheme(
+      renderer({'error.handled': [1, 0]}, {location, organization})
+    );
+    expect(wrapper.text()).toEqual('false');
+
+    wrapper = mountWithTheme(
+      renderer({'error.handled': [null, 0]}, {location, organization})
+    );
+    expect(wrapper.text()).toEqual('false');
+
+    wrapper = mountWithTheme(
+      renderer({'error.handled': [0, null]}, {location, organization})
+    );
+    expect(wrapper.text()).toEqual('false');
+
+    wrapper = mountWithTheme(
+      renderer({'error.handled': [null, 1]}, {location, organization})
     );
     expect(wrapper.text()).toEqual('true');
 
     wrapper = mountWithTheme(
-      renderer({'error.handled': [0, 0]}, {location, organization})
+      renderer({'error.handled': [1, null]}, {location, organization})
     );
-    expect(wrapper.text()).toEqual('false');
+    expect(wrapper.text()).toEqual('true');
 
     // null = true for error.handled data.
     wrapper = mountWithTheme(
@@ -144,11 +174,11 @@ describe('getFieldRenderer', function () {
 
     // Default events won't have error.handled and will return an empty list.
     wrapper = mountWithTheme(renderer({'error.handled': []}, {location, organization}));
-    expect(wrapper.text()).toEqual('n/a');
+    expect(wrapper.text()).toEqual('(no value)');
 
     // Transactions will have null for error.handled as the 'tag' won't be set.
     wrapper = mountWithTheme(renderer({'error.handled': null}, {location, organization}));
-    expect(wrapper.text()).toEqual('n/a');
+    expect(wrapper.text()).toEqual('(no value)');
   });
 
   it('can render user fields with aliased user', function () {
@@ -175,7 +205,7 @@ describe('getFieldRenderer', function () {
 
     const value = wrapper.find('EmptyValueContainer');
     expect(value).toHaveLength(1);
-    expect(value.text()).toEqual('n/a');
+    expect(value.text()).toEqual('(no value)');
   });
 
   it('can render null release fields', function () {
@@ -186,7 +216,7 @@ describe('getFieldRenderer', function () {
 
     const value = wrapper.find('EmptyValueContainer');
     expect(value).toHaveLength(1);
-    expect(value.text()).toEqual('n/a');
+    expect(value.text()).toEqual('(no value)');
   });
 
   it('can render project as an avatar', function () {

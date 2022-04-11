@@ -69,6 +69,7 @@ describe('IntegrationCodeMappings', function () {
   let wrapper;
 
   beforeEach(() => {
+    ModalStore.init();
     Client.clearMockResponses();
 
     mockResponse([
@@ -84,6 +85,7 @@ describe('IntegrationCodeMappings', function () {
   afterEach(() => {
     // Clear the fields from the GlobalModal after every test
     ModalStore.reset();
+    ModalStore.teardown();
   });
 
   it('shows the paths', async () => {
