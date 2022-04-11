@@ -1,4 +1,4 @@
-import React, {useCallback, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {Replayer, ReplayerEvents} from 'rrweb';
 import type {eventWithTime} from 'rrweb/typings/types';
@@ -76,8 +76,12 @@ export function Provider({children, events}: React.PropsWithChildren<Props>) {
         // Already have a player for these events, the parent node must've re-rendered
         return;
       }
-      // TODO: need to replace events that the player knows about
-      return;
+
+      // We have new events, need to clear out the old iframe because a new
+      // `Replayer` instance is about to be created
+      while (root.lastChild) {
+        root.removeChild(root.lastChild);
+      }
     }
 
     // eslint-disable-next-line no-new
@@ -99,6 +103,9 @@ export function Provider({children, events}: React.PropsWithChildren<Props>) {
     inst.on(ReplayerEvents.Resize, dimension => {
       setDimensions(dimension as Dimensions);
     });
+    inst.on(ReplayerEvents.Finish, () => {
+      setIsPlaying(false);
+    });
 
     // `.current` is marked as readonly, but it's safe to set the value from
     // inside a `useEffect` hook.
@@ -106,6 +113,12 @@ export function Provider({children, events}: React.PropsWithChildren<Props>) {
     // @ts-expect-error
     replayerRef.current = inst;
   };
+
+  useEffect(() => {
+    if (replayerRef.current && events) {
+      initRoot(replayerRef.current.wrapper);
+    }
+  }, [replayerRef.current, events]);
 
   const getCurrentTime = useCallback(
     () => (replayerRef.current ? Math.max(replayerRef.current.getCurrentTime(), 0) : 0),
