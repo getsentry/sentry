@@ -49,7 +49,7 @@ export function ColumnsStep({
       description={
         dataSet === DataSet.ISSUES
           ? tct(
-              '[tagFieldLink: Tag and field] columns will help you view more details about the issues (i.e. title).',
+              '[tagFieldLink: Field and tag] columns will help you view more details about the issues (e.g., title).',
               {
                 tagFieldLink: (
                   <ExternalLink href="https://docs.sentry.io/product/sentry-basics/search/searchable-properties/#event-properties" />
@@ -57,7 +57,7 @@ export function ColumnsStep({
               }
             )
           : tct(
-              'To group events, add [functionLink: functions] f(x) that may take in additional parameters. [tagFieldLink: Tag and field] columns will help you view more details about the events (i.e. title).',
+              'To stack events, add [functionLink: functions] f(x) that may take in additional parameters. [tagFieldLink: Field and tag] columns will help you view more details about the events (e.g., title).',
               {
                 functionLink: (
                   <ExternalLink href="https://docs.sentry.io/product/discover-queries/query-builder/#filter-by-table-columns" />
