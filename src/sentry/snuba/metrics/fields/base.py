@@ -725,13 +725,13 @@ class CompositeEntityDerivedMetric(DerivedMetricExpression):
             node = metric_nodes.popleft()
             if node.metric_mri in DERIVED_METRICS:
                 results.append((None, node.metric_mri))
-            for metric in node.metrics:
                 # We do not really care about getting the components of an instance of
                 # SingularEntityDerivedMetric because there is a direct mapping to the response
                 # returned by the dataset anyways
-                if metric in DERIVED_METRICS and not isinstance(
-                    DERIVED_METRICS[metric], SingularEntityDerivedMetric
-                ):
+                if isinstance(node, SingularEntityDerivedMetric):
+                    continue
+            for metric in node.metrics:
+                if metric in DERIVED_METRICS:
                     metric_nodes.append(DERIVED_METRICS[metric])
         return reversed(results)
 
@@ -927,6 +927,7 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             snql=lambda *_, org_id, metric_ids, alias=None: all_transactions(
                 org_id, metric_ids=metric_ids, alias=alias
             ),
+            is_private=True,
         ),
         SingularEntityDerivedMetric(
             metric_mri=TransactionMRI.FAILURE_COUNT.value,
@@ -935,6 +936,7 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             snql=lambda *_, org_id, metric_ids, alias=None: failure_count_transaction(
                 org_id, metric_ids=metric_ids, alias=alias
             ),
+            is_private=True,
         ),
         SingularEntityDerivedMetric(
             metric_mri=TransactionMRI.FAILURE_RATE.value,
@@ -954,6 +956,7 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             snql=lambda *_, org_id, metric_ids, alias=None: satisfaction_count_transaction(
                 org_id=org_id, metric_ids=metric_ids, alias=alias
             ),
+            is_private=True,
         ),
         SingularEntityDerivedMetric(
             metric_mri=TransactionMRI.TOLERATED.value,
@@ -962,6 +965,7 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             snql=lambda *_, org_id, metric_ids, alias=None: tolerated_count_transaction(
                 org_id=org_id, metric_ids=metric_ids, alias=alias
             ),
+            is_private=True,
         ),
         SingularEntityDerivedMetric(
             metric_mri=TransactionMRI.APDEX.value,

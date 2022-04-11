@@ -367,7 +367,10 @@ class CompositeEntityDerivedMetricTestCase(TestCase):
     )
     def test_get_entity_and_validate_dependency_tree_of_single_entity_constituents(self):
         assert self.sessions_errored.get_entity(projects=[1]) == {
-            "metrics_counters": [SessionMRI.ERRORED_PREAGGREGATED.value],
+            "metrics_counters": [
+                SessionMRI.ERRORED_PREAGGREGATED.value,
+                SessionMRI.CRASHED_AND_ABNORMAL.value,
+            ],
             "metrics_sets": [SessionMRI.ERRORED_SET.value],
         }
         component_entities = DERIVED_METRICS[SessionMRI.HEALTHY.value].get_entity(projects=[1])
@@ -397,6 +400,8 @@ class CompositeEntityDerivedMetricTestCase(TestCase):
         assert list(self.sessions_errored.generate_bottom_up_derived_metrics_dependencies()) == [
             (None, SessionMRI.ERRORED_SET.value),
             (None, SessionMRI.ERRORED_PREAGGREGATED.value),
+            (None, SessionMRI.CRASHED_AND_ABNORMAL.value),
+            (None, SessionMRI.ERRORED_ALL.value),
             (None, SessionMRI.ERRORED.value),
         ]
 
@@ -407,6 +412,8 @@ class CompositeEntityDerivedMetricTestCase(TestCase):
         ) == [
             (None, SessionMRI.ERRORED_SET.value),
             (None, SessionMRI.ERRORED_PREAGGREGATED.value),
+            (None, SessionMRI.CRASHED_AND_ABNORMAL.value),
+            (None, SessionMRI.ERRORED_ALL.value),
             (None, SessionMRI.ERRORED.value),
             (None, "random_composite"),
         ]

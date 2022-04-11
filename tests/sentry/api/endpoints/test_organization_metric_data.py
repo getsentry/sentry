@@ -995,9 +995,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             self.organization.id, TransactionTagsKey.TRANSACTION_SATISFACTION.value
         )
         self.tx_user_metric = indexer.record(self.organization.id, TransactionMRI.USER.value)
-        self.tx_satisfaction = indexer.record(
-            self.organization.id, TransactionTagsKey.TRANSACTION_SATISFACTION.value
-        )
 
     @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
     @patch("sentry.snuba.metrics.fields.base.get_public_name_from_mri")
