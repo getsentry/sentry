@@ -37,6 +37,6 @@ export function isChromeTraceArrayFormat(input: any): input is ChromeTrace.Array
   );
 }
 
-export function isChromeTraceFormat(input: any): input is ChromeTrace.ProfileType {
+export function isChromeTraceFormat(input: any): input is ChromeTrace.Trace {
   return isChromeTraceArrayFormat(input) || isChromeTraceObjectFormat(input);
 }

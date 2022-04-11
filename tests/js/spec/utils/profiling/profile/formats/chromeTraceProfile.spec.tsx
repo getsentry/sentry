@@ -398,7 +398,7 @@ describe('importChromeTrace', () => {
 //     for (let i = 0; i < 10; i++) {
 //       const start = performance.now();
 
-//       importChromeTrace(trace as ChromeTrace.ProfileType);
+//       importChromeTrace(trace as ChromeTrace.Tracew);
 //       measures.push(performance.now() - start);
 //     }
 

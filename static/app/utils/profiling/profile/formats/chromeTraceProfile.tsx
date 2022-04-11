@@ -8,32 +8,13 @@
  * to color encode by the program/bind/check/emit phases.
  */
 import {Frame} from 'sentry/utils/profiling/frame';
-import {
-  isChromeTraceArrayFormat,
-  isChromeTraceObjectFormat,
-} from 'sentry/utils/profiling/guards/profile';
 import {Profile} from 'sentry/utils/profiling/profile/profile';
 import {wrapWithSpan} from 'sentry/utils/profiling/profile/utils';
 
+import {isChromeTraceArrayFormat, isChromeTraceObjectFormat} from '../guards';
 import {ImportOptions, ProfileGroup} from '../importProfile';
 
 import {EventedProfile} from './eventedProfile';
-
-export function importChromeTraceProfile(
-  input: ChromeTrace.ProfileType,
-  traceID: string,
-  options: ImportOptions
-): ProfileGroup {
-  if (isChromeTraceObjectFormat(input)) {
-    throw new Error('Chrometrace object format is not yet supported');
-  }
-
-  if (isChromeTraceArrayFormat(input)) {
-    return parseChromeTraceArrayFormat(input, traceID, options);
-  }
-
-  throw new Error('Failed to parse chrometrace input format');
-}
 
 export class ChromeTraceProfile extends EventedProfile {
   static FromArrayProfile(
@@ -296,7 +277,15 @@ function createFrameInfoFromEvent(event: ChromeTrace.Event): Profiling.FrameInfo
   };
 }
 
-export function parseChromeTraceArrayFormat(
+export function importChromeTraceObjectFormat(
+  _input: ChromeTrace.ObjectFormat,
+  _traceID: string,
+  _options?: ImportOptions
+): ProfileGroup {
+  throw new Error('Chrometrace object format is not supported');
+}
+
+export function importChromeTraceArrayFormat(
   input: ChromeTrace.ArrayFormat,
   traceID: string,
   options?: ImportOptions
@@ -330,4 +319,19 @@ export function parseChromeTraceArrayFormat(
     activeProfileIndex: 0,
     profiles,
   };
+}
+
+export function importChromeTraceProfile(
+  input: ChromeTrace.Trace,
+  traceID: string,
+  options?: ImportOptions
+): ProfileGroup {
+  if (isChromeTraceArrayFormat(input)) {
+    return importChromeTraceArrayFormat(input, traceID, options);
+  }
+  if (isChromeTraceObjectFormat(input)) {
+    return importChromeTraceObjectFormat(input, traceID, options);
+  }
+
+  throw new Error('Unrecognized trace format');
 }

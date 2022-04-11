@@ -98,5 +98,5 @@ namespace ChromeTrace {
     timeDeltas?: number[];
   }
 
-  type ProfileType = ArrayFormat | ObjectFormat;
+  type Trace = ArrayFormat | ObjectFormat;
 }

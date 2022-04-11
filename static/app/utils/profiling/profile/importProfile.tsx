@@ -1,20 +1,17 @@
 import * as Sentry from '@sentry/react';
 import {Transaction} from '@sentry/types';
 
+import {importChromeTraceProfile} from './formats/chromeTraceProfile';
+import {EventedProfile} from './formats/eventedProfile';
+import {JSSelfProfile} from './formats/jsSelfProfile';
+import {SampledProfile} from './formats/sampledProfile';
 import {
-  isChromeTraceArrayFormat,
   isChromeTraceFormat,
-  isChromeTraceObjectFormat,
   isEventedProfile,
   isJSProfile,
   isSampledProfile,
   isSchema,
-} from '../guards/profile';
-
-import {ChromeTraceProfile, importChromeTraceProfile} from './formats/chromeTraceProfile';
-import {EventedProfile} from './formats/eventedProfile';
-import {JSSelfProfile} from './formats/jsSelfProfile';
-import {SampledProfile} from './formats/sampledProfile';
+} from './guards';
 import {Profile} from './profile';
 import {createFrameIndex, wrapWithSpan} from './utils';
 
@@ -81,18 +78,11 @@ function importSingleProfile(
     );
   }
 
-  if (isChromeTraceFormat(profile)) {
-    return wrapWithSpan(transaction, () => ChromeTraceProfile.FromProfile(), {
-      op: 'profile.import',
-      description: 'js-self-profile',
-    });
-  }
-
   throw new Error('Unrecognized trace format');
 }
 
 export function importProfile(
-  input: Profiling.Schema | JSSelfProfiling.Trace | ChromeTrace.ProfileType,
+  input: Profiling.Schema | JSSelfProfiling.Trace | ChromeTrace.Trace,
   traceID: string
 ): ProfileGroup {
   const transaction = Sentry.startTransaction({

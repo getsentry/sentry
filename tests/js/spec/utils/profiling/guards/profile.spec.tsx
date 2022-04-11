@@ -2,7 +2,7 @@ import {
   isEventedProfile,
   isJSProfile,
   isSampledProfile,
-} from 'sentry/utils/profiling/guards/profile';
+} from 'sentry/utils/profiling/profile/guards';
 
 const sampledProfile: Profiling.SampledProfile = {
   type: 'sampled',
