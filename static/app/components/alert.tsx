@@ -90,7 +90,11 @@ function Alert({
               <TrailingItems onClick={e => e.stopPropagation()}>
                 {trailingItems}
               </TrailingItems>
-              {showExpand && <ExpandIcon isExpanded={isExpanded} />}
+              {showExpand && (
+                <ExpandIconWrap>
+                  <IconChevron direction={isExpanded ? 'up' : 'down'} />
+                </ExpandIconWrap>
+              )}
             </TrailingItemsWrap>
           )}
         </MessageContainer>
@@ -143,14 +147,14 @@ const alertStyles = ({
       margin: ${space(0.5)} 0 0;
     }
 
-    ${IconWrapper}, ${ExpandIcon} {
+    ${IconWrapper}, ${ExpandIconWrap} {
       color: ${alertColors.iconColor};
     }
 
     ${hovered &&
     `
       border-color: ${alertColors.borderHover};
-      ${IconWrapper}, ${ExpandIcon} {
+      ${IconWrapper}, ${IconChevron} {
         color: ${alertColors.iconHoverColor};
       }
     `}
@@ -222,10 +226,10 @@ const TrailingItemsWrap = styled(TrailingItems)`
   margin-left: ${space(1)};
 `;
 
-const ExpandIcon = styled(IconChevron, {
-  shouldForwardProp: (p: string) => p !== 'isExpanded',
-})<{isExpanded: boolean}>`
-  transform: ${p => (p.isExpanded ? 'rotate(0deg)' : 'rotate(180deg)')};
+const ExpandIconWrap = styled('div')`
+  height: 100%;
+  display: flex;
+  align-items: center;
 `;
 
 const ExpandContainer = styled('div')`
