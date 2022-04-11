@@ -3,22 +3,22 @@ import styled from '@emotion/styled';
 
 import ActivityAvatar from 'sentry/components/activity/item/avatar';
 import Card from 'sentry/components/card';
-import Link from 'sentry/components/links/link';
+import Link, {LinkProps} from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {User} from 'sentry/types';
 
-type Props = {
+interface Props {
   detail: React.ReactNode;
   renderWidgets: () => React.ReactNode;
   title: string;
-  to: React.ComponentProps<typeof Link>['to'];
+  to: LinkProps['to'];
   createdBy?: User;
   dateStatus?: React.ReactNode;
   onEventClick?: () => void;
   renderContextMenu?: () => void;
-};
+}
 
 function DashboardCard({
   title,

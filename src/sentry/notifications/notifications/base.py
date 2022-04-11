@@ -7,6 +7,7 @@ from urllib.parse import urljoin
 import sentry_sdk
 
 from sentry import analytics
+from sentry.db.models import Model
 from sentry.models import Environment, NotificationSetting, Team
 from sentry.notifications.types import NotificationSettingTypes, get_notification_setting_type_name
 from sentry.notifications.utils.actions import MessageAction
@@ -66,11 +67,13 @@ class BaseNotification(abc.ABC):
         """The subject line when sending this notifications as an email."""
         raise NotImplementedError
 
-    def get_reference(self) -> Any:
+    @property
+    def reference(self) -> Model | None:
+        """
+        The Sentry model with which this notification is associated. For
+        example, an Activity or a Group.
+        """
         raise NotImplementedError
-
-    def get_reply_reference(self) -> Any | None:
-        return None
 
     def get_template(self) -> str:
         return f"sentry/emails/{self.get_filename()}.txt"
