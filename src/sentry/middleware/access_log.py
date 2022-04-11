@@ -9,6 +9,9 @@ from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.ratelimits.config import RateLimitConfig
+from sentry.ratelimits.utils import get_rate_limit_config
+
 from . import is_frontend_request
 
 api_access_logger = logging.getLogger("sentry.access.api")
@@ -65,16 +68,21 @@ def _create_api_access_log(
     Create a log entry to be used for api metrics gathering
     """
     try:
-        try:
-            view = request.resolver_match._func_path
-        except AttributeError:
-            view = "Unknown"
-
+        resolver_match = getattr(request, "resolver_match", None)
+        view = (
+            getattr(resolver_match, "_func_path", "Unknown")
+            if resolver_match is not None
+            else "Unknown"
+        )
+        group = (
+            get_rate_limit_config(resolver_match.func.view_class).group
+            if resolver_match
+            else RateLimitConfig().group
+        )
         request_user = getattr(request, "user", None)
         user_id = getattr(request_user, "id", None)
         is_app = getattr(request_user, "is_sentry_app", None)
         org_id = getattr(getattr(request, "organization", None), "id", None)
-
         request_auth = _get_request_auth(request)
         auth_id = getattr(request_auth, "id", None)
         status_code = response.status_code if response else 500
@@ -84,6 +92,7 @@ def _create_api_access_log(
             response=status_code,
             user_id=str(user_id),
             is_app=str(is_app),
+            group=group,
             token_type=str(_get_token_name(request_auth)),
             is_frontend_request=str(is_frontend_request(request)),
             organization_id=str(org_id),
