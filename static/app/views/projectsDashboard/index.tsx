@@ -1,7 +1,6 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import LazyLoad from 'react-lazyload';
 import {RouteComponentProps} from 'react-router';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 import debounce from 'lodash/debounce';
@@ -10,7 +9,6 @@ import uniqBy from 'lodash/uniqBy';
 
 import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
-import TeamSelector from 'sentry/components/forms/teamSelector';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
@@ -26,14 +24,15 @@ import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
 import space from 'sentry/styles/space';
 import {Organization, TeamWithProjects} from 'sentry/types';
 import {sortProjects} from 'sentry/utils';
-import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withTeamsForUser from 'sentry/utils/withTeamsForUser';
+import TeamFilter from 'sentry/views/alerts/rules/teamFilter';
 
 import ProjectCard from './projectCard';
 import Resources from './resources';
 import TeamSection from './teamSection';
+import {getTeamParams} from './utils';
 
 type Props = {
   api: Client;
@@ -43,14 +42,21 @@ type Props = {
   teams: TeamWithProjects[];
 } & RouteComponentProps<{orgId: string}, {}>;
 
-function Dashboard({teams, params, organization, loadingTeams, error}: Props) {
+function Dashboard({
+  teams,
+  params,
+  organization,
+  loadingTeams,
+  error,
+  router,
+  location,
+}: Props) {
   useEffect(() => {
     return function cleanup() {
       ProjectsStatsStore.reset();
     };
   }, []);
   const [projectQuery, setProjectQuery] = useState('');
-  const [currentTeam, setCurrentTeam] = useState('');
   const debouncedSearchQuery = useCallback(
     debounce(handleSearch, DEFAULT_DEBOUNCE_DURATION),
     []
@@ -64,14 +70,14 @@ function Dashboard({teams, params, organization, loadingTeams, error}: Props) {
     return <LoadingError message={t('An error occurred while fetching your projects')} />;
   }
 
-  const theme = useTheme();
-  const isSuperuser = isActiveSuperuser();
-
-  const filteredTeams = teams.filter(team => team.projects.length);
-  filteredTeams.sort((team1, team2) => team1.slug.localeCompare(team2.slug));
-
+  const selectedTeams = new Set(getTeamParams(location.query.team));
+  const filteredTeams = teams.filter(team => selectedTeams.has(team.id));
+  const filteredTeamProjects = uniqBy(
+    flatten((filteredTeams ?? teams).map(team => team.projects)),
+    'id'
+  );
   const projects = uniqBy(flatten(teams.map(teamObj => teamObj.projects)), 'id');
-  const currentProjects = filteredTeams.find(team => team.id === currentTeam)?.projects;
+  const currentProjects = !selectedTeams.size ? projects : filteredTeamProjects;
   const filteredProjects = (currentProjects ?? projects).filter(project =>
     project.slug.includes(projectQuery)
   );
@@ -90,9 +96,21 @@ function Dashboard({teams, params, organization, loadingTeams, error}: Props) {
     setProjectQuery(searchQuery);
   }
 
-  function handleChange(newValue) {
-    const updatedTeam = newValue ? newValue.actor.id : '';
-    setCurrentTeam(updatedTeam);
+  function handleChangeFilter(sectionId: string, activeFilters: Set<string>) {
+    const {...currentQuery} = location.query;
+
+    let team = currentQuery.team;
+    if (sectionId === 'teams') {
+      team = activeFilters.size ? [...activeFilters] : '';
+    }
+
+    router.push({
+      pathname: location.pathname,
+      query: {
+        ...currentQuery,
+        team: team.length === 0 ? '' : team,
+      },
+    });
   }
 
   if (showEmptyMessage) {
@@ -144,63 +162,17 @@ function Dashboard({teams, params, organization, loadingTeams, error}: Props) {
           </ProjectsHeader>
           {hasProjectRedesign && (
             <SearchAndSelectorWrapper>
+              <StyledTeamFilter
+                selectedTeams={selectedTeams}
+                handleChangeFilter={handleChangeFilter}
+                showIsMemberTeams
+                showMyTeamsAndUnassigned={false}
+              />
               <StyledSearchBar
                 defaultQuery=""
                 placeholder={t('Search for projects by name')}
                 onChange={debouncedSearchQuery}
                 query={projectQuery}
-              />
-              <StyledTeamSelector
-                name="select-team"
-                aria-label="select-team"
-                inFieldLabel={t('Team: ')}
-                placeholder={t('My Teams')}
-                value={currentTeam}
-                onChange={choice => handleChange(choice)}
-                teamFilter={isSuperuser ? undefined : filterTeam => filterTeam.isMember}
-                useId
-                clearable
-                styles={{
-                  placeholder: (provided: any) => ({
-                    ...provided,
-                    paddingLeft: space(0.5),
-                    ':before': {
-                      ...provided[':before'],
-                      color: theme.textColor,
-                    },
-                  }),
-                  singleValue(provided: any) {
-                    const custom = {
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      fontSize: theme.fontSizeMedium,
-                      ':before': {
-                        ...provided[':before'],
-                        color: theme.textColor,
-                        marginRight: space(1.5),
-                        marginLeft: space(0.5),
-                      },
-                    };
-                    return {...provided, ...custom};
-                  },
-                  input: (provided: any, state: any) => ({
-                    ...provided,
-                    display: 'grid',
-                    gridTemplateColumns: 'max-content 1fr',
-                    alignItems: 'center',
-                    marginRight: space(0.25),
-                    gridGap: space(1.5),
-                    ':before': {
-                      backgroundColor: state.theme.backgroundSecondary,
-                      height: 24,
-                      width: 38,
-                      borderRadius: 3,
-                      content: '""',
-                      display: 'block',
-                    },
-                  }),
-                }}
               />
             </SearchAndSelectorWrapper>
           )}
@@ -273,6 +245,7 @@ const ButtonContainer = styled('div')`
 `;
 
 const SearchAndSelectorWrapper = styled('div')`
+  margin: ${space(2)} 30px 0 30px;
   display: flex;
   gap: 16px;
   justify-content: flex-end;
@@ -280,13 +253,11 @@ const SearchAndSelectorWrapper = styled('div')`
 `;
 
 const StyledSearchBar = styled(SearchBar)`
-  margin-left: 30px;
   flex-grow: 1;
 `;
 
-const StyledTeamSelector = styled(TeamSelector)`
+const StyledTeamFilter = styled(TeamFilter)`
   margin: ${space(2)} 30px 0 0;
-  width: 300px;
 `;
 
 const ProjectCardsContainer = styled('div')`
