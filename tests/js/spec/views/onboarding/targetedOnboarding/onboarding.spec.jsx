@@ -1,6 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import OrganizationStore from 'sentry/stores/organizationStore';
 import {PersistedStoreProvider} from 'sentry/stores/persistedStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import Onboarding from 'sentry/views/onboarding/targetedOnboarding/onboarding';
@@ -38,12 +39,13 @@ describe('Onboarding', function () {
       url: `/organizations/${organization.slug}/client-state/`,
       body: {},
     });
+    OrganizationStore.onUpdate(organization);
     render(
-      <PersistedStoreProvider>
-        <OrganizationContext.Provider value={organization}>
+      <OrganizationContext.Provider value={organization}>
+        <PersistedStoreProvider>
           <Onboarding {...router} />
-        </OrganizationContext.Provider>
-      </PersistedStoreProvider>,
+        </PersistedStoreProvider>
+      </OrganizationContext.Provider>,
       {
         context: routerContext,
       }
@@ -76,7 +78,7 @@ describe('Onboarding', function () {
       },
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/client-state/onboarding/`,
+      url: `/organizations/${organization.slug}/client-state/`,
       body: {
         onboarding: {
           platformToProjectIdMap: {
@@ -99,12 +101,13 @@ describe('Onboarding', function () {
       body: null,
     });
     ProjectsStore.loadInitialData(projects);
+    OrganizationStore.onUpdate(organization);
     render(
-      <PersistedStoreProvider>
-        <OrganizationContext.Provider value={organization}>
+      <OrganizationContext.Provider value={organization}>
+        <PersistedStoreProvider>
           <Onboarding {...router} />
-        </OrganizationContext.Provider>
-      </PersistedStoreProvider>,
+        </PersistedStoreProvider>
+      </OrganizationContext.Provider>,
       {
         context: routerContext,
       }
