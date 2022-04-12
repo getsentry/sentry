@@ -166,7 +166,8 @@ class QueryList extends React.Component<Props> {
         {
           key: 'add-to-dashboard',
           label: t('Add to Dashboard'),
-          ...(organization.features.includes('new-widget-builder-experience')
+          ...(organization.features.includes('new-widget-builder-experience') &&
+          !organization.features.includes('new-widget-builder-experience-design')
             ? {
                 to: constructAddQueryToDashboardLink({
                   eventView,
@@ -251,7 +252,8 @@ class QueryList extends React.Component<Props> {
               {
                 key: 'add-to-dashboard',
                 label: t('Add to Dashboard'),
-                ...(organization.features.includes('new-widget-builder-experience')
+                ...(organization.features.includes('new-widget-builder-experience') &&
+                !organization.features.includes('new-widget-builder-experience-design')
                   ? {
                       to: constructAddQueryToDashboardLink({
                         eventView,
