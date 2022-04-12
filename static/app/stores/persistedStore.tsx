@@ -81,39 +81,33 @@ type UsePersistedCategory<T> = [T | null, (nextState: T | null) => void];
 export function usePersistedStoreCategory<C extends keyof PersistedStore>(
   category: C
 ): UsePersistedCategory<PersistedStore[C]> {
-  type T = PersistedStore[C];
   const api = useApi();
   const organization = useOrganization();
   const [state, setState] = usePersistedStore();
 
   const setCategoryState = useCallback(
-    (val: T | null) => {
+    (val: PersistedStore[C] | null) => {
       setState(oldState => ({...(oldState || DefaultPersistedStore), [category]: val}));
 
       // If a state is set with null, we can clear it from the server.
+      const endpointLocation = `/organizations/${organization.slug}/client-state/${category}/`;
       if (val === null) {
-        api.requestPromise(
-          `/organizations/${organization.slug}/client-state/${category}/`,
-          {
-            method: 'DELETE',
-          }
-        );
+        api.requestPromise(endpointLocation, {
+          method: 'DELETE',
+        });
         return;
       }
 
       // Else we want to sync our state with the server
-      api.requestPromise(
-        `/organizations/${organization.slug}/client-state/${category}/`,
-        {
-          method: 'PUT',
-          data: val,
-        }
-      );
+      api.requestPromise(endpointLocation, {
+        method: 'PUT',
+        data: val,
+      });
     },
     [category, organization]
   );
 
-  const stableState: UsePersistedCategory<T> = useMemo(() => {
+  const stableState: UsePersistedCategory<PersistedStore[C]> = useMemo(() => {
     return [state?.[category] ?? null, setCategoryState];
   }, [state?.[category], setCategoryState]);
 

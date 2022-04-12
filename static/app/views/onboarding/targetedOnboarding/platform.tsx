@@ -10,7 +10,7 @@ import testableTransition from 'sentry/utils/testableTransition';
 import StepHeading from 'sentry/views/onboarding/components/stepHeading';
 
 import CreateProjectsFooter from './components/createProjectsFooter';
-import {StepProps, useOnboardingState} from './types';
+import {StepProps, usePersistedOnboardingState} from './types';
 
 function OnboardingPlatform(props: StepProps) {
   const [selectedPlatforms, setSelectedPlatforms] = useState<PlatformKey[]>([]);
@@ -21,7 +21,7 @@ function OnboardingPlatform(props: StepProps) {
     setSelectedPlatforms(selectedPlatforms.filter(p => p !== platform));
   };
 
-  const [clientState] = useOnboardingState();
+  const [clientState] = usePersistedOnboardingState();
   useEffect(() => {
     if (clientState) {
       setSelectedPlatforms(clientState.selectedPlatforms);
