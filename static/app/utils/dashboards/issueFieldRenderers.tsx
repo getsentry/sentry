@@ -290,6 +290,8 @@ const ActorContainer = styled('div')`
   display: flex;
   justify-content: left;
   margin-left: 18px;
+  /* IconUser is the only one with 20px. We are setting 24px here to make the height consistent */
+  height: 24px;
   :hover {
     cursor: default;
   }
