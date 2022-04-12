@@ -3,6 +3,7 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
+import DetailedError from 'sentry/components/errors/detailedError';
 import NotFound from 'sentry/components/errors/notFound';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventEntry from 'sentry/components/events/eventEntry';
@@ -111,6 +112,7 @@ function ReplayLoader(props: ReplayLoaderProps) {
   const {
     fetchError,
     fetching,
+    onRetry,
     breadcrumbEntry,
     event,
     replayEvents,
@@ -122,6 +124,7 @@ function ReplayLoader(props: ReplayLoaderProps) {
   console.log({
     fetchError,
     fetching,
+    onRetry,
     event,
     replayEvents,
     rrwebEvents,
@@ -136,9 +139,29 @@ function ReplayLoader(props: ReplayLoaderProps) {
       return <NotFound />;
     }
 
+    if (!rrwebEvents || rrwebEvents.length < 2) {
+      return (
+        <DetailedError
+          onRetry={onRetry}
+          hideSupportLinks
+          heading={t('Expected two or more replay events')}
+          message={
+            <React.Fragment>
+              <p>{t('This Replay may not have captured any user actions.')}</p>
+              <p>
+                {t(
+                  'Or there may be an issue loading the actions from the server, click to try loading the Replay again.'
+                )}
+              </p>
+            </React.Fragment>
+          }
+        />
+      );
+    }
+
     return (
       <React.Fragment>
-        <ReplayContextProvider events={rrwebEvents || []}>
+        <ReplayContextProvider events={rrwebEvents}>
           <ReplayPlayer />
           <ReplayController />
         </ReplayContextProvider>
