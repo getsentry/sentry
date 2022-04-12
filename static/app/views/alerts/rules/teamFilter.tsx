@@ -38,6 +38,7 @@ function TeamFilter({
   handleChangeFilter,
   showIsMemberTeams = false,
   showMyTeamsAndUnassigned = true,
+  showMyTeamsDescription = false,
 }: Props) {
   const {teams, onSearch, fetching} = useTeams();
   const debouncedSearch = debounce(onSearch, DEFAULT_DEBOUNCE_DURATION);
@@ -87,7 +88,7 @@ function TeamFilter({
 
   return (
     <Filter
-      showMyTeamsDescription
+      showMyTeamsDescription={showMyTeamsDescription}
       header={
         <InputWrapper>
           <StyledInput

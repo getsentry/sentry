@@ -65,7 +65,7 @@ function Filter({
   onFilterChange,
   header,
   dropdownSections,
-  showMyTeamsDescription = false,
+  showMyTeamsDescription,
 }: Props) {
   function toggleFilter(sectionId: string, value: string) {
     const section = dropdownSections.find(
