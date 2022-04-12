@@ -135,7 +135,6 @@ function Dashboard({
             <ButtonContainer>
               {hasProjectRedesign && (
                 <Button
-                  size="small"
                   icon={<IconUser size="xs" />}
                   title={
                     canJoinTeam
@@ -150,7 +149,6 @@ function Dashboard({
                 </Button>
               )}
               <Button
-                size="small"
                 priority={hasProjectRedesign ? 'primary' : 'default'}
                 disabled={!canCreateProjects}
                 title={
@@ -173,6 +171,7 @@ function Dashboard({
                 handleChangeFilter={handleChangeFilter}
                 showIsMemberTeams
                 showMyTeamsAndUnassigned={false}
+                showMyTeamsDescription
               />
               <StyledSearchBar
                 defaultQuery=""

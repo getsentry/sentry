@@ -24,6 +24,10 @@ type Props = {
    * show My Teams and Unassigned options
    */
   showMyTeamsAndUnassigned?: boolean;
+  /**
+   * show My Teams as the default dropdown description
+   */
+  showMyTeamsDescription?: boolean;
   showStatus?: boolean;
 };
 
@@ -83,6 +87,7 @@ function TeamFilter({
 
   return (
     <Filter
+      showMyTeamsDescription
       header={
         <InputWrapper>
           <StyledInput
