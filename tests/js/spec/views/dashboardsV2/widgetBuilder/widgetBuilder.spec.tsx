@@ -1510,11 +1510,6 @@ describe('WidgetBuilder', function () {
       // Selector "sortBy"
       expect(screen.getAllByText('title')).toHaveLength(2);
 
-      await selectEvent.select(
-        screen.getByText('Select a dashboard'),
-        '+ Create New Dashboard'
-      );
-
       // Saves the widget
       userEvent.click(screen.getByText('Add Widget'));
 
