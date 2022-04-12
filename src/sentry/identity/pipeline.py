@@ -60,7 +60,6 @@ class IdentityProviderPipeline(Pipeline):
                 "provider": self.provider.key,
             },
             skip_internal=False,
-            sample_rate=1.0,
         )
 
         self.state.clear()
