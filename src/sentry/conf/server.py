@@ -930,8 +930,6 @@ SENTRY_FEATURES = {
     "organizations:advanced-search": True,
     # Use metrics as the dataset for crash free metric alerts
     "organizations:alert-crash-free-metrics": False,
-    # Enable issue alert status page
-    "organizations:alert-rule-status-page": True,
     # Alert wizard redesign version 3
     "organizations:alert-wizard-v3": False,
     "organizations:api-keys": False,
