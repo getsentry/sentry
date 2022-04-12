@@ -174,7 +174,7 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
   };
 
   getErrors() {
-    const errors = [] as string[];
+    const errors: string[] = [];
     for (const field of this.cleanFields()) {
       if (field.type === 'select' && field.default) {
         let found;

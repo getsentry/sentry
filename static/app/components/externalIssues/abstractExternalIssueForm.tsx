@@ -358,14 +358,11 @@ export default class AbstractExternalIssueForm<
                           field={field}
                           flexibleControlStateSize
                           inline={false}
-                          key={`${field.name}-${field.default}-${field.required}`}
                           stacked
                           {...this.getFieldProps(field)}
                         />
                         {errors.find(e => e === field.name) ? (
-                          <FieldErrorLabel
-                            key={`${field.name}-error`}
-                          >{`Could not fetch saved option for ${field.label}. Please reselect.`}</FieldErrorLabel>
+                          <FieldErrorLabel>{`Could not fetch saved option for ${field.label}. Please reselect.`}</FieldErrorLabel>
                         ) : null}
                       </Fragment>
                     );
