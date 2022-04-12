@@ -298,7 +298,7 @@ function WidgetBuilder({
         ...prevState,
         selectedDashboard: {
           label: dashboard.title,
-          value: dashboard.id === '' ? NEW_DASHBOARD_ID : dashboard.id,
+          value: dashboard.id || NEW_DASHBOARD_ID,
         },
       }));
     }
