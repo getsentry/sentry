@@ -3,6 +3,7 @@ from typing import Sequence
 from sentry.models import Activity
 from sentry.testutils import TestCase
 from sentry.types.activity import ActivityType
+from sentry.utils.iterators import chunked
 
 
 class ActivityTest(TestCase):
@@ -246,6 +247,6 @@ class ActivityTest(TestCase):
         assert len(act_for_group) == len(activities) + 1
         assert act_for_group[-1].type == ActivityType.FIRST_SEEN.value
 
-        for pair in zip(act_for_group[0:-2:2], act_for_group[1:-2:2]):
+        for pair in chunked(act_for_group[:-1], 2):
             assert pair[0].type == ActivityType.SET_IGNORED.value
             assert pair[1].type == ActivityType.SET_UNRESOLVED.value
