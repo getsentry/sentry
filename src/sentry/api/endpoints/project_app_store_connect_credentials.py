@@ -51,6 +51,7 @@ from sentry.api.fields.secret import SecretField, validate_secret
 from sentry.lang.native import appconnect
 from sentry.lang.native.symbolicator import redact_source_secrets, secret_fields
 from sentry.models import AppConnectBuild, AuditLogEntryEvent, LatestAppConnectBuildsCheck, Project
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.tasks.app_store_connect import dsym_download
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import json
@@ -344,13 +345,16 @@ class AppStoreConnectRefreshEndpoint(ProjectEndpoint):  # type: ignore
 
     # At the time of writing the App Store Connect API has a rate limit of 3600 requests/h
     # per project.  We can not set per-project rate limits unfortunately.
-    rate_limits = {
-        "POST": {
-            RateLimitCategory.IP: RateLimit(1, 20),
-            RateLimitCategory.USER: RateLimit(1, 45),
-            RateLimitCategory.ORGANIZATION: RateLimit(720, 3600),
-        }
-    }
+    rate_limits = RateLimitConfig(
+        group="appconnect-refresh",
+        limit_overrides={
+            "POST": {
+                RateLimitCategory.IP: RateLimit(1, 20),
+                RateLimitCategory.USER: RateLimit(1, 45),
+                RateLimitCategory.ORGANIZATION: RateLimit(720, 3600),
+            }
+        },
+    )
 
     def post(self, request: Request, project: Project, credentials_id: str) -> Response:
         try:

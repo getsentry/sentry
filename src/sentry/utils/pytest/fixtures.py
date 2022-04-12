@@ -166,12 +166,20 @@ def session():
 @pytest.mark.django_db
 @pytest.fixture(scope="function")
 def default_user(factories):
+    """A default (super)user with email ``admin@localhost`` and password ``admin``.
+
+    :returns: A :class:`sentry.models.user.User` instance.
+    """
     return factories.create_user(email="admin@localhost", is_superuser=True)
 
 
 @pytest.mark.django_db
 @pytest.fixture(scope="function")
 def default_organization(factories, default_user):
+    """A default organization (slug=``baz``) owned by the ``default_user`` fixture.
+
+    :returns: A :class:`sentry.models.organization.Organization` instance.
+    """
     # XXX(dcramer): ensure that your org slug doesnt match your team slug
     # and the same for your project slug
     return factories.create_organization(name="baz", slug="baz", owner=default_user)
