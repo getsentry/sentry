@@ -74,6 +74,7 @@ class TransactionMetricKey(Enum):
     FAILURE_RATE = "transaction.failure_rate"
     APDEX = "transaction.apdex"
     MISERABLE_USER = "transaction.miserable_user"
+    USER_MISERY = "transaction.user_misery"
 
 
 # TODO: these tag keys and values below probably don't belong here, and should
