@@ -48,11 +48,13 @@ export type GetMenuPropsFn = <E extends Element = Element>(
   opts?: GetMenuArgs<E>
 ) => MenuProps<E>;
 
+export type MenuActions = {
+  close: (event?: React.MouseEvent<Element>) => void;
+  open: (event?: React.MouseEvent<Element>) => void;
+};
+
 type RenderProps = {
-  actions: {
-    close: (event?: React.MouseEvent<Element>) => void;
-    open: (event?: React.MouseEvent<Element>) => void;
-  };
+  actions: MenuActions;
   getActorProps: GetActorPropsFn;
   getMenuProps: GetMenuPropsFn;
   getRootProps: Function;
@@ -120,20 +122,16 @@ class DropdownMenu extends React.Component<Props, State> {
   };
 
   componentWillUnmount() {
-    if (this.mouseLeaveTimeout) {
-      window.clearTimeout(this.mouseLeaveTimeout);
-    }
-    if (this.mouseEnterTimeout) {
-      window.clearTimeout(this.mouseEnterTimeout);
-    }
+    window.clearTimeout(this.mouseLeaveTimeout);
+    window.clearTimeout(this.mouseEnterTimeout);
     document.removeEventListener('click', this.checkClickOutside, true);
   }
 
   dropdownMenu: Element | null = null;
   dropdownActor: Element | null = null;
 
-  mouseLeaveTimeout: number | null = null;
-  mouseEnterTimeout: number | null = null;
+  mouseLeaveTimeout: number | undefined = undefined;
+  mouseEnterTimeout: number | undefined = undefined;
 
   // Gets open state from props or local state when appropriate
   isOpen = () => {
@@ -200,9 +198,7 @@ class DropdownMenu extends React.Component<Props, State> {
       });
     }
 
-    if (this.mouseLeaveTimeout) {
-      window.clearTimeout(this.mouseLeaveTimeout);
-    }
+    window.clearTimeout(this.mouseLeaveTimeout);
 
     // If we always render menu (e.g. DropdownLink), then add the check click outside handlers when we open the menu
     // instead of when the menu component mounts. Otherwise we will have many click handlers attached on initial load.
@@ -229,6 +225,7 @@ class DropdownMenu extends React.Component<Props, State> {
         this.dropdownMenu &&
         (!(toElement instanceof Element) || !this.dropdownMenu.contains(toElement))
       ) {
+        window.clearTimeout(this.mouseLeaveTimeout);
         this.mouseLeaveTimeout = window.setTimeout(() => {
           this.handleClose(e);
         }, MENU_CLOSE_DELAY);
@@ -354,9 +351,8 @@ class DropdownMenu extends React.Component<Props, State> {
           return;
         }
 
-        if (this.mouseLeaveTimeout) {
-          window.clearTimeout(this.mouseLeaveTimeout);
-        }
+        window.clearTimeout(this.mouseEnterTimeout);
+        window.clearTimeout(this.mouseLeaveTimeout);
 
         this.mouseEnterTimeout = window.setTimeout(() => {
           this.handleOpen(e);
@@ -368,9 +364,9 @@ class DropdownMenu extends React.Component<Props, State> {
           onMouseLeave(e);
         }
 
-        if (this.mouseEnterTimeout) {
-          window.clearTimeout(this.mouseEnterTimeout);
-        }
+        window.clearTimeout(this.mouseEnterTimeout);
+        window.clearTimeout(this.mouseLeaveTimeout);
+
         this.handleMouseLeave(e);
       },
 
@@ -411,9 +407,7 @@ class DropdownMenu extends React.Component<Props, State> {
         }
 
         // There is a delay before closing a menu on mouse leave, cancel this action if mouse enters menu again
-        if (this.mouseLeaveTimeout) {
-          window.clearTimeout(this.mouseLeaveTimeout);
-        }
+        window.clearTimeout(this.mouseLeaveTimeout);
       },
       onMouseLeave: (e: React.MouseEvent<E>) => {
         if (typeof onMouseLeave === 'function') {

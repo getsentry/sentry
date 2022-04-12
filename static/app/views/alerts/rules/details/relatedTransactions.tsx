@@ -16,10 +16,12 @@ import DiscoverQuery, {
 import EventView, {EventData} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
-import {IncidentRule} from 'sentry/views/alerts/incidentRules/types';
+import {IncidentRule, TimePeriod} from 'sentry/views/alerts/incidentRules/types';
 import {TableColumn} from 'sentry/views/eventsV2/table/types';
 import {DEFAULT_PROJECT_THRESHOLD} from 'sentry/views/performance/data';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
+
+import type {TimePeriodType} from './constants';
 
 function getProjectID(eventData: EventData, projects: Project[]): string | undefined {
   const projectSlug = (eventData?.project as string) || undefined;
@@ -171,52 +173,63 @@ class Table extends React.Component<TableProps, TableState> {
   }
 }
 
-type Props = {
+interface Props {
   filter: string;
   location: Location;
   organization: Organization;
   projects: Project[];
   rule: IncidentRule;
-  end?: string;
-  start?: string;
-};
+  timePeriod: TimePeriodType;
+}
 
-class RelatedTransactions extends React.Component<Props> {
-  render() {
-    const {rule, projects, filter, location, organization, start, end} = this.props;
-    const aggregateAlias = getAggregateAlias(rule.aggregate);
+function RelatedTransactions({
+  rule,
+  projects,
+  filter,
+  location,
+  organization,
+  timePeriod,
+}: Props) {
+  const aggregateAlias = getAggregateAlias(rule.aggregate);
 
-    const eventQuery: NewQuery = {
-      id: undefined,
-      name: 'Transactions',
-      fields: [
-        'transaction',
-        'project',
-        `${rule.aggregate}`,
-        'count_unique(user)',
-        `user_misery(${DEFAULT_PROJECT_THRESHOLD})`,
-      ],
-      orderby: `-${aggregateAlias}`,
+  const timePeriodFields = timePeriod.usingPeriod
+    ? {range: timePeriod.period}
+    : {start: timePeriod.start, end: timePeriod.end};
 
-      query: `${rule.query}`,
-      version: 2,
-      projects: projects.map(project => Number(project.id)),
-      start,
-      end,
-    };
-
-    const eventView = EventView.fromSavedQuery(eventQuery);
-
-    return (
-      <Table
-        eventView={eventView}
-        projects={projects}
-        organization={organization}
-        location={location}
-        summaryConditions={`${rule.query} ${filter}`}
-      />
-    );
+  if (timePeriodFields.range && timePeriodFields.range === TimePeriod.SEVEN_DAYS) {
+    timePeriodFields.range = '7d';
   }
+
+  const eventQuery: NewQuery = {
+    id: undefined,
+    name: 'Transactions',
+    fields: [
+      'transaction',
+      'project',
+      `${rule.aggregate}`,
+      'count_unique(user)',
+      `user_misery(${DEFAULT_PROJECT_THRESHOLD})`,
+    ],
+    orderby: `-${aggregateAlias}`,
+
+    query: `${rule.query}`,
+    version: 2,
+    projects: projects.map(project => Number(project.id)),
+    environment: rule.environment ? [rule.environment] : undefined,
+    ...timePeriodFields,
+  };
+
+  const eventView = EventView.fromSavedQuery(eventQuery);
+
+  return (
+    <Table
+      eventView={eventView}
+      projects={projects}
+      organization={organization}
+      location={location}
+      summaryConditions={`${rule.query} ${filter}`}
+    />
+  );
 }
 
 export default RelatedTransactions;

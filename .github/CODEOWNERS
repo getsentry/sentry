@@ -204,13 +204,8 @@ build-utils/        @getsentry/owners-js-build
 
 
 ### Ecosystem ###
-
-/src/sentry/api/endpoints/organization_integration_details.py           @getsentry/ecosystem
+/src/sentry/api/endpoints/integrations/                                 @getsentry/ecosystem
 /src/sentry/api/endpoints/organization_integration_repos.py             @getsentry/ecosystem
-/src/sentry/api/endpoints/organization_integration_request.py           @getsentry/ecosystem
-/src/sentry/api/endpoints/organization_integrations.py                  @getsentry/ecosystem
-/src/sentry/api/endpoints/organization_plugins_configs.py               @getsentry/ecosystem
-/src/sentry/api/endpoints/organization_plugins.py                       @getsentry/ecosystem
 /src/sentry/api/endpoints/organization_release_previous_commits.py      @getsentry/ecosystem
 /src/sentry/api/endpoints/sentry_app/                                   @getsentry/ecosystem
 
@@ -223,6 +218,7 @@ build-utils/        @getsentry/owners-js-build
 /src/sentry/mail/                             @getsentry/ecosystem
 /src/sentry/mediators/                        @getsentry/ecosystem
 /src/sentry/notifications/                    @getsentry/ecosystem @getsentry/growth
+/src/sentry/pipeline/                         @getsentry/ecosystem
 /src/sentry/plugins/                          @getsentry/ecosystem
 /src/sentry/ratelimits/                       @getsentry/ecosystem
 /src/sentry/shared_integrations/              @getsentry/ecosystem
@@ -356,3 +352,9 @@ build-utils/        @getsentry/owners-js-build
 /tests/sentry/snuba/metrics/                                          @getsentry/metrics
 
 ### End of Metrics ###
+
+### Growth ###
+
+/src/sentry/api/endpoints/client_state.py       @getsentry/growth
+
+### End of Growth ###

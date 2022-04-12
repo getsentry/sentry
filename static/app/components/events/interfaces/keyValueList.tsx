@@ -68,7 +68,7 @@ const KeyValueList = ({
             }
 
             return (
-              <tr key={key}>
+              <tr key={`${key}.${value}`}>
                 <TableSubject className="key" wide={longKeys}>
                   {subject}
                 </TableSubject>

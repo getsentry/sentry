@@ -68,7 +68,6 @@ import {
   getTabs,
   getTabsWithCounts,
   isForReviewQuery,
-  IssueDisplayOptions,
   IssueSortOptions,
   Query,
   QueryCounts,
@@ -77,7 +76,6 @@ import {
 
 const MAX_ITEMS = 25;
 const DEFAULT_SORT = IssueSortOptions.DATE;
-const DEFAULT_DISPLAY = IssueDisplayOptions.EVENTS;
 // the default period for the graph in each issue row
 const DEFAULT_GRAPH_STATS_PERIOD = '24h';
 // the allowed period choices for graph in each issue row
@@ -134,7 +132,6 @@ type EndpointParams = Partial<PageFilters['datetime']> & {
   environment: string[];
   project: number[];
   cursor?: string;
-  display?: string;
   groupStatsPeriod?: string | null;
   page?: number | string;
   query?: string;
@@ -213,12 +210,6 @@ class IssueListOverview extends React.Component<Props, State> {
     if (!isEqual(prevProps.selection.projects, this.props.selection.projects)) {
       this.fetchMemberList();
       this.fetchTags();
-      // Reset display when selecting multiple projects
-      const projects = this.props.selection.projects ?? [];
-      const hasMultipleProjects = projects.length !== 1 || projects[0] === -1;
-      if (hasMultipleProjects && this.getDisplay() !== DEFAULT_DISPLAY) {
-        this.transitionTo({display: undefined});
-      }
     }
 
     // TODO(Kelly): remove once issue-list-removal-action feature is stable
@@ -317,21 +308,6 @@ class IssueListOverview extends React.Component<Props, State> {
     return DEFAULT_SORT;
   }
 
-  getDisplay(): IssueDisplayOptions {
-    const {organization, location} = this.props;
-
-    if (organization.features.includes('issue-percent-display')) {
-      if (
-        location.query.display &&
-        Object.values(IssueDisplayOptions).includes(location.query.display)
-      ) {
-        return location.query.display as IssueDisplayOptions;
-      }
-    }
-
-    return DEFAULT_DISPLAY;
-  }
-
   getGroupStatsPeriod(): string {
     let currentPeriod: string;
     if (typeof this.props.location.query?.groupStatsPeriod === 'string') {
@@ -372,11 +348,6 @@ class IssueListOverview extends React.Component<Props, State> {
     const sort = this.getSort();
     if (sort !== DEFAULT_SORT) {
       params.sort = sort;
-    }
-
-    const display = this.getDisplay();
-    if (display !== DEFAULT_DISPLAY) {
-      params.display = display;
     }
 
     const groupStatsPeriod = this.getGroupStatsPeriod();
@@ -424,9 +395,6 @@ class IssueListOverview extends React.Component<Props, State> {
     // If no stats period values are set, use default
     if (!requestParams.statsPeriod && !requestParams.start) {
       requestParams.statsPeriod = DEFAULT_STATS_PERIOD;
-    }
-    if (this.props.organization.features.includes('issue-percent-display')) {
-      requestParams.expand = 'sessions';
     }
 
     this._lastStatsRequest = this.props.api.request(this.getGroupStatsEndpoint(), {
@@ -850,13 +818,6 @@ class IssueListOverview extends React.Component<Props, State> {
     this.transitionTo({sort});
   };
 
-  onDisplayChange = (display: string) => {
-    this.transitionTo({display});
-    trackAdvancedAnalyticsEvent('search.display_changed', {
-      organization: this.props.organization,
-    });
-  };
-
   onCursorChange: CursorHandler = (nextCursor, _path, _query, delta) => {
     const queryPageInt = parseInt(this.props.location.query.page, 10);
     let nextPage: number | undefined = isNaN(queryPageInt) ? delta : queryPageInt + delta;
@@ -989,7 +950,6 @@ class IssueListOverview extends React.Component<Props, State> {
           displayReprocessingLayout={displayReprocessingLayout}
           useFilteredStats
           showInboxTime={showInboxTime}
-          display={this.getDisplay()}
         />
       );
     });
@@ -1293,15 +1253,12 @@ class IssueListOverview extends React.Component<Props, State> {
                 queryCount={queryCount}
                 savedSearch={savedSearch}
                 sort={this.getSort()}
-                display={this.getDisplay()}
-                onDisplayChange={this.onDisplayChange}
                 onSortChange={this.onSortChange}
                 onSearch={this.onSearch}
                 onSidebarToggle={this.onSidebarToggle}
                 isSearchDisabled={isSidebarVisible}
                 tagValueLoader={this.tagValueLoader}
                 tags={tags}
-                selectedProjects={selection.projects}
               />
 
               <Panel>

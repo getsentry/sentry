@@ -44,6 +44,9 @@ def _get_rate_limit_stats_dict(request: Request) -> dict[str, str]:
         "rate_limit_type": "DNE",
         "concurrent_limit": str(None),
         "concurrent_requests": str(None),
+        "reset_time": str(None),
+        "limit": str(None),
+        "remaining": str(None),
     }
 
     rate_limit_metadata = getattr(request, "rate_limit_metadata", None)
