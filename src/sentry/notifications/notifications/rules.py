@@ -6,6 +6,7 @@ from typing import Any, Iterable, Mapping, MutableMapping
 import pytz
 
 from sentry import features
+from sentry.db.models import Model
 from sentry.models import Team, User, UserOption
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import ActionTargetType, NotificationSettingTypes
@@ -31,6 +32,7 @@ class AlertRuleNotification(ProjectNotification):
     notification_setting_type = NotificationSettingTypes.ISSUE_ALERTS
     metrics_key = "issue_alert"
     referrer_base = "alert-rule"
+    template_path = "sentry/emails/error"
 
     def __init__(
         self,
@@ -56,16 +58,14 @@ class AlertRuleNotification(ProjectNotification):
             event=self.event,
         )
 
-    def get_filename(self) -> str:
-        return "error"
-
     def get_category(self) -> str:
         return "issue_alert_email"
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         return str(self.event.get_email_subject())
 
-    def get_reference(self) -> Any:
+    @property
+    def reference(self) -> Model | None:
         return self.group
 
     def get_recipient_context(

@@ -105,6 +105,11 @@ def _symbolicate(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
     for i in profile["debug_meta"]["images"]:
         i["debug_id"] = i["uuid"]
 
+    for s in profile["sampled_profile"]["samples"]:
+        for f in s["frames"]:
+            # https://github.com/dotnet/runtime/pull/40435/files/af4db134ddd9deea10e75d3f732cc35d3b61119e#r479544995
+            f["instruction_addr"] = hex(int(f["instruction_addr"], 16) & 0x7FFFFFFFFFFF)
+
     modules = profile["debug_meta"]["images"]
     stacktraces = [
         {

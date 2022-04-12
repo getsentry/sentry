@@ -27,6 +27,7 @@ class MetricsDatasetConfig(DatasetConfig):
             constants.PROJECT_NAME_ALIAS: self._project_slug_filter_converter,
             constants.EVENT_TYPE_ALIAS: self._event_type_converter,
             constants.TEAM_KEY_TRANSACTION_ALIAS: self._key_transaction_filter_converter,
+            "transaction.duration": self._duration_filter_converter,
         }
 
     @property
@@ -387,6 +388,16 @@ class MetricsDatasetConfig(DatasetConfig):
 
     def _release_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         return filter_aliases.release_filter_converter(self.builder, search_filter)
+
+    def _duration_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        if (
+            self.builder.dry_run
+            and search_filter.value.raw_value == 900000
+            and search_filter.operator == "<"
+        ):
+            return None
+
+        return self.builder._default_filter_converter(search_filter)
 
     # Query Functions
     def _resolve_count_if(
