@@ -1,6 +1,7 @@
 import type {Route, RouteComponentProps} from 'react-router';
 
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
+import type {Guide} from 'sentry/components/assistant/types';
 import type DateRange from 'sentry/components/organizations/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/organizations/timeRangeSelector/selectorItems';
 import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
@@ -32,7 +33,8 @@ export type Hooks = {_: any} & RouteHooks &
   FeatureDisabledHooks &
   InterfaceChromeHooks &
   OnboardingHooks &
-  SettingsHooks;
+  SettingsHooks &
+  CallbackHooks;
 
 export type HookName = keyof Hooks;
 
@@ -82,6 +84,11 @@ type FirstPartyIntegrationAlertProps = {
 type FirstPartyIntegrationAdditionalCTAProps = {
   integrations: Integration[];
 };
+
+type GuideUpdateCallback = (
+  nextGuide: Guide | null,
+  opts?: {dismissed?: boolean}
+) => void;
 
 /**
  * Component wrapping hooks
@@ -201,6 +208,13 @@ export type SettingsHooks = {
   'settings:api-navigation-config': SettingsItemsHook;
   'settings:organization-navigation': OrganizationSettingsHook;
   'settings:organization-navigation-config': SettingsConfigHook;
+};
+
+/**
+ * Callback hooks
+ */
+type CallbackHooks = {
+  'callback:on-guide-update': GuideUpdateCallback;
 };
 
 /**
