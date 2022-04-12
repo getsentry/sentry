@@ -37,11 +37,13 @@ from sentry.snuba.metrics import (
     resolve_tags,
 )
 from sentry.snuba.metrics.fields.snql import (
+    abnormal_sessions,
+    addition,
     all_sessions,
     crashed_sessions,
     errored_preaggr_sessions,
     percentage,
-    sessions_errored_set,
+    uniq_aggregation_on_metric,
 )
 from sentry.snuba.metrics.naming_layer.mapping import get_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
@@ -319,6 +321,7 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2, monkeypatch):
     assert fields_in_entities == {
         "metrics_counters": [
             (None, SessionMRI.ERRORED_PREAGGREGATED.value),
+            (None, SessionMRI.CRASHED_AND_ABNORMAL.value),
             (None, SessionMRI.CRASH_FREE_RATE.value),
             (None, SessionMRI.ALL.value),
         ],
@@ -337,6 +340,19 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2, monkeypatch):
                         org_id,
                         metric_ids=[resolve_weak(org_id, SessionMRI.SESSION.value)],
                         alias=SessionMRI.ERRORED_PREAGGREGATED.value,
+                    ),
+                    addition(
+                        crashed_sessions(
+                            org_id,
+                            metric_ids=[resolve_weak(org_id, SessionMRI.SESSION.value)],
+                            alias=SessionMRI.CRASHED.value,
+                        ),
+                        abnormal_sessions(
+                            org_id,
+                            metric_ids=[resolve_weak(org_id, SessionMRI.SESSION.value)],
+                            alias=SessionMRI.ABNORMAL.value,
+                        ),
+                        alias=SessionMRI.CRASHED_AND_ABNORMAL.value,
                     ),
                     percentage(
                         crashed_sessions(
@@ -383,7 +399,7 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2, monkeypatch):
                 dataset="metrics",
                 match=Entity("metrics_sets"),
                 select=[
-                    sessions_errored_set(
+                    uniq_aggregation_on_metric(
                         metric_ids=[resolve_weak(org_id, SessionMRI.ERROR.value)],
                         alias=SessionMRI.ERRORED_SET.value,
                     ),
@@ -771,6 +787,7 @@ def test_translate_results_derived_metrics(_1, _2, monkeypatch):
     fields_in_entities = {
         "metrics_counters": [
             (None, SessionMRI.ERRORED_PREAGGREGATED.value),
+            (None, SessionMRI.CRASHED_AND_ABNORMAL.value),
             (None, SessionMRI.CRASH_FREE_RATE.value),
             (None, SessionMRI.ALL.value),
         ],
@@ -788,6 +805,7 @@ def test_translate_results_derived_metrics(_1, _2, monkeypatch):
                         SessionMRI.CRASH_FREE_RATE.value: 0.5,
                         SessionMRI.ALL.value: 8.0,
                         SessionMRI.ERRORED_PREAGGREGATED.value: 3,
+                        SessionMRI.CRASHED_AND_ABNORMAL.value: 0,
                     }
                 ],
             },
@@ -798,12 +816,14 @@ def test_translate_results_derived_metrics(_1, _2, monkeypatch):
                         SessionMRI.CRASH_FREE_RATE.value: 0.5,
                         SessionMRI.ALL.value: 4,
                         SessionMRI.ERRORED_PREAGGREGATED.value: 1,
+                        SessionMRI.CRASHED_AND_ABNORMAL.value: 0,
                     },
                     {
                         "bucketed_time": "2021-08-25T00:00Z",
                         SessionMRI.CRASH_FREE_RATE.value: 0.5,
                         SessionMRI.ALL.value: 4,
                         SessionMRI.ERRORED_PREAGGREGATED.value: 2,
+                        SessionMRI.CRASHED_AND_ABNORMAL.value: 0,
                     },
                 ],
             },

@@ -32,6 +32,7 @@ class AlertRuleNotification(ProjectNotification):
     notification_setting_type = NotificationSettingTypes.ISSUE_ALERTS
     metrics_key = "issue_alert"
     referrer_base = "alert-rule"
+    template_path = "sentry/emails/error"
 
     def __init__(
         self,
@@ -56,9 +57,6 @@ class AlertRuleNotification(ProjectNotification):
             target_identifier=self.target_identifier,
             event=self.event,
         )
-
-    def get_filename(self) -> str:
-        return "error"
 
     def get_category(self) -> str:
         return "issue_alert_email"

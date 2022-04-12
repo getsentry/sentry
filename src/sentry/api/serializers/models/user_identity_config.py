@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
@@ -41,7 +43,7 @@ class UserIdentityProvider:
     name: str
 
     @classmethod
-    def adapt(cls, provider: Provider) -> "UserIdentityProvider":
+    def adapt(cls, provider: Provider) -> UserIdentityProvider:
         return cls(provider.key, provider.name)
 
 
@@ -59,7 +61,7 @@ class UserIdentityConfig:
     date_synced: Optional[datetime] = None
 
     @classmethod
-    def wrap(cls, identity: IdentityType, status: Status) -> "UserIdentityConfig":
+    def wrap(cls, identity: IdentityType, status: Status) -> UserIdentityConfig:
         def base(**kwargs):
             return cls(
                 category=_IDENTITY_CATEGORY_KEYS[type(identity)],
@@ -108,7 +110,7 @@ class UserIdentityConfig:
 
 @register(UserIdentityConfig)
 class UserIdentityConfigSerializer(Serializer):
-    def serialize(self, obj: UserIdentityConfig, attrs, user):
+    def serialize(self, obj: UserIdentityConfig, attrs, user, **kwargs):
         return {
             "category": obj.category,
             "id": str(obj.id),
