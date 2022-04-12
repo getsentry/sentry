@@ -1,11 +1,11 @@
 import logging
-from typing import Mapping, Union
+from typing import TypedDict
 from urllib.parse import urlparse, urlunparse
 from uuid import uuid4
 
 from requests import RequestException
+from rest_framework.response import Response
 
-from sentry.http import safe_urlread
 from sentry.mediators import Mediator, Param
 from sentry.mediators.external_requests.util import send_and_save_sentry_app_request
 from sentry.utils import json
@@ -15,6 +15,11 @@ logger = logging.getLogger("sentry.mediators.external-requests")
 
 DEFAULT_SUCCESS_MESSAGE = "Success!"
 DEFAULT_ERROR_MESSAGE = "Something went wrong!"
+
+
+class AlertRuleActionRequesterResult(TypedDict):
+    success: bool
+    message: str
 
 
 class AlertRuleActionRequester(Mediator):
@@ -36,9 +41,20 @@ class AlertRuleActionRequester(Mediator):
         urlparts[2] = self.uri
         return urlunparse(urlparts)
 
-    def _make_request(self) -> Mapping[str, Union[bool, str]]:
+    def _get_error_message(self, response: Response) -> str:
+        """
+        Returns the error message from the response body, if in the expected location.
+        The location should be coordinated with the docs on Alert Rule Action UI Components.
+        """
         try:
-            request = send_and_save_sentry_app_request(
+            error_message = response.json().get("message", DEFAULT_ERROR_MESSAGE)
+        except Exception:
+            error_message = DEFAULT_ERROR_MESSAGE
+        return error_message
+
+    def _make_request(self) -> AlertRuleActionRequesterResult:
+        try:
+            send_and_save_sentry_app_request(
                 self._build_url(),
                 self.sentry_app,
                 self.install.organization_id,
@@ -57,16 +73,11 @@ class AlertRuleActionRequester(Mediator):
                     "error_message": str(e),
                 },
             )
-            # NOTE: bool(e.response) is always False because non-2xx responses are Falsey.
-            text = e.response.text if e.response is not None else None
-            message = f"{self.sentry_app.name}: {text or DEFAULT_ERROR_MESSAGE}"
+            message = f"{self.sentry_app.name} Error: {self._get_error_message(e.response)}"
             # Bubble up error message from Sentry App to the UI for the user.
-            return {"success": False, "message": message}
-
-        body_raw = safe_urlread(request)
-        body = body_raw.decode() if body_raw else None
-        message = f"{self.sentry_app.name}: {body or DEFAULT_SUCCESS_MESSAGE}"
-        return {"success": True, "message": message}
+            return AlertRuleActionRequesterResult(success=False, message=message)
+        # No messages are bubbled up from successful responses.
+        return AlertRuleActionRequesterResult(success=True, message=DEFAULT_SUCCESS_MESSAGE)
 
     def _build_headers(self):
         request_uuid = uuid4().hex
