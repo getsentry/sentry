@@ -811,7 +811,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
 
     if (this.props.showEmbeddedChildren) {
       const embeddedWarningText = t(
-        'All child spans have been adjusted to account for server and client time differences.'
+        'All child span timestamps have been adjusted to account for mismatched client and server clocks.'
       );
 
       warningText = warningText
