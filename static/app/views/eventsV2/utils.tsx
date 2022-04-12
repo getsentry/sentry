@@ -3,7 +3,10 @@ import {urlEncode} from '@sentry/utils';
 import {Location, Query} from 'history';
 import * as Papa from 'papaparse';
 
-import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
+import {
+  openAddDashboardWidgetModal,
+  openAddToDashboardModal,
+} from 'sentry/actionCreators/modal';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
@@ -602,6 +605,29 @@ export function handleAddQueryToDashboard({
     displayType,
     yAxis,
   });
+
+  if (organization.features.includes('new-widget-builder-experience-design')) {
+    openAddToDashboardModal({
+      organization,
+      selection: {
+        projects: eventView.project,
+        environments: eventView.environment,
+        datetime: {
+          start: eventView.start,
+          end: eventView.end,
+          period: eventView.statsPeriod,
+          utc: eventView.utc,
+        },
+      },
+      widget: {
+        title: query?.name ?? eventView?.name ?? '',
+        displayType,
+        queries: [defaultWidgetQuery],
+        interval: eventView.interval,
+      },
+    });
+    return;
+  }
 
   openAddDashboardWidgetModal({
     organization,

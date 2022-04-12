@@ -251,6 +251,13 @@ export async function openWidgetBuilderOverwriteModal(
   openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
 }
 
+export async function openAddToDashboardModal(options) {
+  const mod = await import('sentry/components/modals/widgetBuilder/addToDashboardModal');
+  const {default: Modal, modalCss} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
+}
+
 export async function openReprocessEventModal({
   onClose,
   ...options

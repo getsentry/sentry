@@ -347,7 +347,8 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       <Button
         key="add-dashboard-widget-from-discover"
         data-test-id="add-dashboard-widget-from-discover"
-        {...(organization.features.includes('new-widget-builder-experience')
+        {...(organization.features.includes('new-widget-builder-experience') &&
+        !organization.features.includes('new-widget-builder-experience-design')
           ? {
               to: constructAddQueryToDashboardLink({
                 organization,
