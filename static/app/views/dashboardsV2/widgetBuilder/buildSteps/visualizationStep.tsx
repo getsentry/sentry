@@ -42,7 +42,7 @@ export function VisualizationStep({
   const [debouncedWidget, setDebouncedWidget] = useState(widget);
   const previousWidget = usePrevious(widget);
 
-  const debouceWidget = useCallback(
+  const debounceWidget = useCallback(
     debounce((value: Widget) => {
       setDebouncedWidget(value);
     }, DEFAULT_DEBOUNCE_DURATION),
