@@ -1,6 +1,5 @@
 import {createStore} from 'reflux';
 
-import MetricsMetaActions from 'sentry/actions/metricsMetaActions';
 import {MetricsMeta, MetricsMetaCollection} from 'sentry/types';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
@@ -15,7 +14,7 @@ type State = {
 };
 
 interface MetricsMetaStoreDefinition extends CommonStoreDefinition<State> {
-  onLoadSuccess(data: MetricsMeta[]): void;
+  loadSuccess(data: MetricsMeta[]): void;
   reset(): void;
 }
 
@@ -24,12 +23,6 @@ const storeConfig: MetricsMetaStoreDefinition = {
   state: {
     metricsMeta: {},
     loaded: false,
-  },
-
-  init() {
-    this.unsubscribeListeners.push(
-      this.listenTo(MetricsMetaActions.loadMetricsMetaSuccess, this.onLoadSuccess)
-    );
   },
 
   reset() {
@@ -44,7 +37,7 @@ const storeConfig: MetricsMetaStoreDefinition = {
     return this.state;
   },
 
-  onLoadSuccess(data) {
+  loadSuccess(data) {
     const newFields = data.reduce<MetricsMetaCollection>((acc, field) => {
       acc[field.name] = {
         ...field,

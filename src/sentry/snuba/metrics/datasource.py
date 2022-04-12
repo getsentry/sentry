@@ -7,7 +7,7 @@ efficient, we only look at the past 24 hours.
 """
 
 __all__ = ("get_metrics", "get_tags", "get_tag_values", "get_series", "get_single_metric_info")
-
+import logging
 from collections import defaultdict, deque
 from copy import copy
 from operator import itemgetter
@@ -22,13 +22,13 @@ from sentry.sentry_metrics.utils import resolve_tag_key, reverse_resolve
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics.fields import run_metrics_query
 from sentry.snuba.metrics.fields.base import get_derived_metrics, org_id_from_projects
+from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
 from sentry.snuba.metrics.query_builder import (
     ALLOWED_GROUPBY_COLUMNS,
     QueryDefinition,
     SnubaQueryBuilder,
     SnubaResultConverter,
     get_intervals,
-    parse_field,
 )
 from sentry.snuba.metrics.utils import (
     AVAILABLE_OPERATIONS,
@@ -43,7 +43,10 @@ from sentry.snuba.metrics.utils import (
     Tag,
     TagValue,
 )
+from sentry.snuba.sessions_v2 import InvalidField
 from sentry.utils.snuba import raw_snql_query
+
+logger = logging.getLogger(__name__)
 
 
 def _get_metrics_for_entity(entity_key: EntityKey, projects, org_id) -> Mapping[str, Any]:
@@ -78,31 +81,31 @@ def get_available_derived_metrics(
     # private but might have private constituent metrics
     all_derived_metrics = get_derived_metrics(exclude_private=False)
 
-    for derived_metric_name, derived_metric_obj in all_derived_metrics.items():
+    for derived_metric_mri, derived_metric_obj in all_derived_metrics.items():
         try:
             derived_metric_obj_ids = derived_metric_obj.generate_metric_ids(projects)
         except NotSupportedOverCompositeEntityException:
             # If we encounter a derived metric composed of constituents spanning multiple
             # entities then we store it in this set
-            composite_entity_derived_metrics.add(derived_metric_obj.metric_name)
+            composite_entity_derived_metrics.add(derived_metric_obj.metric_mri)
             continue
 
         for ids_per_entity in supported_metric_ids_in_entities.values():
             if derived_metric_obj_ids.intersection(ids_per_entity) == derived_metric_obj_ids:
-                found_derived_metrics.add(derived_metric_name)
+                found_derived_metrics.add(derived_metric_mri)
                 # If we find a match in ids in one entity, then skip checks across entities
                 break
 
-    for composite_derived_metric_name in composite_entity_derived_metrics:
+    for composite_derived_metric_mri in composite_entity_derived_metrics:
         # We naively loop over singular entity derived metric constituents of a composite entity
         # derived metric and check if they have already been found and if that is the case,
         # then we add that instance of composite metric to the found derived metric.
-        composite_derived_metric_obj = all_derived_metrics[composite_derived_metric_name]
+        composite_derived_metric_obj = all_derived_metrics[composite_derived_metric_mri]
         single_entity_constituents = (
             composite_derived_metric_obj.naively_generate_singular_entity_constituents()
         )
         if single_entity_constituents.issubset(found_derived_metrics):
-            found_derived_metrics.add(composite_derived_metric_obj.metric_name)
+            found_derived_metrics.add(composite_derived_metric_obj.metric_mri)
 
     public_derived_metrics = set(get_derived_metrics(exclude_private=True).keys())
     return found_derived_metrics.intersection(public_derived_metrics)
@@ -121,14 +124,20 @@ def get_metrics(projects: Sequence[Project]) -> Sequence[MetricMeta]:
             projects=projects,
             org_id=projects[0].organization_id,
         ):
-            metrics_meta.append(
-                MetricMeta(
-                    name=reverse_resolve(row["metric_id"]),
-                    type=metric_type,
-                    operations=AVAILABLE_OPERATIONS[METRIC_TYPE_TO_ENTITY[metric_type].value],
-                    unit=None,  # snuba does not know the unit
+            try:
+                metrics_meta.append(
+                    MetricMeta(
+                        name=get_public_name_from_mri(reverse_resolve(row["metric_id"])),
+                        type=metric_type,
+                        operations=AVAILABLE_OPERATIONS[METRIC_TYPE_TO_ENTITY[metric_type].value],
+                        unit=None,  # snuba does not know the unit
+                    )
                 )
-            )
+            except InvalidField:
+                # An instance of `InvalidField` exception is raised here when there is no reverse
+                # mapping from MRI to public name because of the naming change
+                logger.error("datasource.get_metrics.get_public_name_from_mri.error", exc_info=True)
+                continue
             metric_ids_in_entities[metric_type].add(row["metric_id"])
 
     # In the previous loop, we find all available metric ids per entity with respect to the
@@ -140,11 +149,11 @@ def get_metrics(projects: Sequence[Project]) -> Sequence[MetricMeta]:
     found_derived_metrics = get_available_derived_metrics(projects, metric_ids_in_entities)
     public_derived_metrics = get_derived_metrics(exclude_private=True)
 
-    for derived_metric_name in found_derived_metrics:
-        derived_metric_obj = public_derived_metrics[derived_metric_name]
+    for derived_metric_mri in found_derived_metrics:
+        derived_metric_obj = public_derived_metrics[derived_metric_mri]
         metrics_meta.append(
             MetricMeta(
-                name=derived_metric_obj.metric_name,
+                name=get_public_name_from_mri(derived_metric_obj.metric_mri),
                 type=derived_metric_obj.result_type,
                 operations=derived_metric_obj.generate_available_operations(),
                 unit=derived_metric_obj.unit,
@@ -153,34 +162,34 @@ def get_metrics(projects: Sequence[Project]) -> Sequence[MetricMeta]:
     return sorted(metrics_meta, key=itemgetter("name"))
 
 
-def _get_metrics_filter_ids(projects: Sequence[Project], metric_names: Sequence[str]) -> Set[int]:
+def _get_metrics_filter_ids(projects: Sequence[Project], metric_mris: Sequence[str]) -> Set[int]:
     """
     Returns a set of metric_ids that map to input metric names and raises an exception if
     metric cannot be resolved in the indexer
     """
-    if not metric_names:
+    if not metric_mris:
         return set()
 
     metric_ids = set()
     org_id = org_id_from_projects(projects)
 
-    metric_names_deque = deque(metric_names)
+    metric_mris_deque = deque(metric_mris)
     all_derived_metrics = get_derived_metrics(exclude_private=False)
 
-    while metric_names_deque:
-        name = metric_names_deque.popleft()
-        if name not in all_derived_metrics:
-            metric_ids.add(indexer.resolve(org_id, name))
+    while metric_mris_deque:
+        mri = metric_mris_deque.popleft()
+        if mri not in all_derived_metrics:
+            metric_ids.add(indexer.resolve(org_id, mri))
         else:
-            derived_metric_obj = all_derived_metrics[name]
+            derived_metric_obj = all_derived_metrics[mri]
             try:
                 metric_ids |= derived_metric_obj.generate_metric_ids(projects)
             except NotSupportedOverCompositeEntityException:
                 single_entity_constituents = (
                     derived_metric_obj.naively_generate_singular_entity_constituents()
                 )
-                metric_names_deque.extend(single_entity_constituents)
-    if None in metric_ids:
+                metric_mris_deque.extend(single_entity_constituents)
+    if None in metric_ids or -1 in metric_ids:
         # We are looking for tags that appear in all given metrics.
         # A tag cannot appear in a metric if the metric is not even indexed.
         raise MetricDoesNotExistInIndexer()
@@ -189,11 +198,11 @@ def _get_metrics_filter_ids(projects: Sequence[Project], metric_names: Sequence[
 
 def _validate_requested_derived_metrics_in_input_metrics(
     projects: Sequence[Project],
-    metric_names: Sequence[str],
+    metric_mris: Sequence[str],
     supported_metric_ids_in_entities: Dict[MetricType, Sequence[int]],
 ) -> None:
     """
-    Function that takes metric_names list and a mapping of entity to its metric ids, and ensures
+    Function that takes metric_mris list and a mapping of entity to its metric ids, and ensures
     that all the derived metrics in the metric names list have constituent metric ids that are in
     the same entity. Otherwise, it raises an exception as that indicates that an instance of
     SingleEntityDerivedMetric was incorrectly setup with constituent metrics that span multiple
@@ -201,7 +210,7 @@ def _validate_requested_derived_metrics_in_input_metrics(
     """
     public_derived_metrics = get_derived_metrics(exclude_private=True)
     requested_derived_metrics = {
-        metric_name for metric_name in metric_names if metric_name in public_derived_metrics
+        metric_mri for metric_mri in metric_mris if metric_mri in public_derived_metrics
     }
     found_derived_metrics = get_available_derived_metrics(
         projects, supported_metric_ids_in_entities
@@ -228,15 +237,20 @@ def _fetch_tags_or_values_per_ids(
     metric_names, then the type (i.e. mapping to the entity) is also returned
     """
     assert len({p.organization_id for p in projects}) == 1
+
+    metric_mris = None
     if metric_names is not None:
+        metric_mris = [get_mri(metric_name) for metric_name in metric_names]
+
+        # ToDo(ahmed): Hack out private derived metrics logic
         private_derived_metrics = set(get_derived_metrics(exclude_private=False).keys()) - set(
             get_derived_metrics(exclude_private=True).keys()
         )
-        if set(metric_names).intersection(private_derived_metrics) != set():
+        if set(metric_mris).intersection(private_derived_metrics) != set():
             raise InvalidParams(f"Metric names {metric_names} do not exist")
 
     try:
-        metric_ids = _get_metrics_filter_ids(projects=projects, metric_names=metric_names)
+        metric_ids = _get_metrics_filter_ids(projects=projects, metric_mris=metric_mris)
     except MetricDoesNotExistInIndexer:
         raise InvalidParams(
             f"Some or all of the metric names in {metric_names} do not exist in the indexer"
@@ -299,7 +313,7 @@ def _fetch_tags_or_values_per_ids(
         # SingularEntityDerivedMetric actually span a single entity
         _validate_requested_derived_metrics_in_input_metrics(
             projects,
-            metric_names=metric_names,
+            metric_mris=metric_mris,
             supported_metric_ids_in_entities=supported_metric_ids_in_entities,
         )
 
@@ -339,6 +353,7 @@ def get_single_metric_info(projects: Sequence[Project], metric_name: str) -> Met
         referrer="snuba.metrics.meta.get_single_metric",
     )
     entity_key = METRIC_TYPE_TO_ENTITY[metric_type]
+
     response_dict = {
         "name": metric_name,
         "type": metric_type,
@@ -347,9 +362,10 @@ def get_single_metric_info(projects: Sequence[Project], metric_name: str) -> Met
         "tags": tags,
     }
 
+    metric_mri = get_mri(metric_name)
     public_derived_metrics = get_derived_metrics(exclude_private=True)
-    if metric_name in public_derived_metrics:
-        derived_metric = public_derived_metrics[metric_name]
+    if metric_mri in public_derived_metrics:
+        derived_metric = public_derived_metrics[metric_mri]
         response_dict.update(
             {
                 "operations": derived_metric.generate_available_operations(),
@@ -433,8 +449,10 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
 
         # The initial query has to contain only one field which is the same as the order by
         # field
-        orderby_field = [key for key, value in query.fields.items() if value == query.orderby[0]][0]
-        query.fields = {orderby_field: parse_field(orderby_field)}
+        orderby_expr, orderby_parsed = [
+            (key, value) for key, value in query.fields.items() if value == query.orderby[0]
+        ][0]
+        query.fields = {orderby_expr: orderby_parsed}
 
         snuba_queries, _ = SnubaQueryBuilder(projects, query).get_snuba_queries()
         if len(snuba_queries) > 1:

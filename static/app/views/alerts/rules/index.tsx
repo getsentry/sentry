@@ -6,14 +6,13 @@ import flatten from 'lodash/flatten';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconArrow} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {Organization, PageFilters, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import Projects from 'sentry/utils/projects';
@@ -22,12 +21,10 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 
 import FilterBar from '../filterBar';
 import AlertHeader from '../list/header';
-import {CombinedMetricIssueAlerts} from '../types';
+import {AlertRuleType, CombinedMetricIssueAlerts} from '../types';
 import {getTeamParams, isIssueAlert} from '../utils';
 
 import RuleListRow from './row';
-
-const DOCS_URL = 'https://docs.sentry.io/product/alerts-notifications/metric-alerts/';
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
   organization: Organization;
@@ -218,20 +215,15 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
                 isLoading={loading || !loadedTeams}
                 isEmpty={ruleList?.length === 0}
                 emptyMessage={t('No alert rules found for the current query.')}
-                emptyAction={
-                  <EmptyStateAction>
-                    {tct('Learn more about [link:Alerts]', {
-                      link: <ExternalLink href={DOCS_URL} />,
-                    })}
-                  </EmptyStateAction>
-                }
               >
                 <Projects orgId={orgId} slugs={Array.from(allProjectsFromIncidents)}>
                   {({initiallyLoaded, projects}) =>
                     ruleList.map(rule => (
                       <RuleListRow
                         // Metric and issue alerts can have the same id
-                        key={`${isIssueAlert(rule) ? 'metric' : 'issue'}-${rule.id}`}
+                        key={`${
+                          isIssueAlert(rule) ? AlertRuleType.METRIC : AlertRuleType.ISSUE
+                        }-${rule.id}`}
                         projectsLoaded={initiallyLoaded}
                         projects={projects as Project[]}
                         rule={rule}
@@ -334,8 +326,4 @@ const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: 4fr auto 140px 60px 110px auto;
   white-space: nowrap;
   font-size: ${p => p.theme.fontSizeMedium};
-`;
-
-const EmptyStateAction = styled('p')`
-  font-size: ${p => p.theme.fontSizeLarge};
 `;

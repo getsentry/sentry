@@ -16,7 +16,6 @@ import isEqual from 'lodash/isEqual';
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
-import {fetchMetricsFields, fetchMetricsTags} from 'sentry/actionCreators/metrics';
 import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
@@ -95,7 +94,7 @@ type State = {
 };
 
 class Dashboard extends Component<Props, State> {
-  constructor(props) {
+  constructor(props: Props) {
     super(props);
     const {dashboard, organization} = props;
     const isUsingGrid = organization.features.includes('dashboard-grid-layout');
@@ -141,19 +140,13 @@ class Dashboard extends Component<Props, State> {
   }
 
   async componentDidMount() {
-    const {isEditing, organization, api, selection, newWidget} = this.props;
+    const {organization, newWidget} = this.props;
     if (organization.features.includes('dashboard-grid-layout')) {
       window.addEventListener('resize', this.debouncedHandleResize);
     }
 
-    if (organization.features.includes('dashboards-metrics')) {
-      fetchMetricsFields(api, organization.slug, selection.projects);
-      fetchMetricsTags(api, organization.slug, selection.projects);
-    }
-    // Load organization tags when in edit mode.
-    if (isEditing) {
-      this.fetchTags();
-    }
+    // Always load organization tags on dashboards
+    this.fetchTags();
 
     if (newWidget) {
       this.addNewWidget();
@@ -164,23 +157,13 @@ class Dashboard extends Component<Props, State> {
   }
 
   async componentDidUpdate(prevProps: Props) {
-    const {api, organization, selection, isEditing, newWidget} = this.props;
+    const {selection, newWidget} = this.props;
 
-    // Load organization tags when going into edit mode.
-    // We use tags on the add widget modal.
-    if (prevProps.isEditing !== isEditing && isEditing) {
-      this.fetchTags();
-    }
     if (newWidget && newWidget !== prevProps.newWidget) {
       this.addNewWidget();
     }
     if (!isEqual(prevProps.selection.projects, selection.projects)) {
       this.fetchMemberList();
-
-      if (organization.features.includes('dashboards-metrics')) {
-        fetchMetricsFields(api, organization.slug, selection.projects);
-        fetchMetricsTags(api, organization.slug, selection.projects);
-      }
     }
   }
 
@@ -326,6 +309,7 @@ class Dashboard extends Component<Props, State> {
     nextList = generateWidgetsAfterCompaction(nextList);
 
     onUpdate(nextList);
+
     if (!!!isEditing) {
       handleUpdateWidgetList(nextList);
     }
@@ -357,11 +341,13 @@ class Dashboard extends Component<Props, State> {
       location,
       paramDashboardId,
       handleAddCustomWidget,
+      isEditing,
     } = this.props;
 
     if (
       organization.features.includes('new-widget-builder-experience') &&
-      !organization.features.includes('new-widget-builder-experience-modal-access')
+      (!organization.features.includes('new-widget-builder-experience-modal-access') ||
+        isEditing)
     ) {
       if (paramDashboardId) {
         router.push({

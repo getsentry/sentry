@@ -5,6 +5,7 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Sequence
 
 from sentry import features
+from sentry.db.models import Model
 from sentry.digests import Digest
 from sentry.digests.utils import (
     get_digest_as_context,
@@ -39,6 +40,7 @@ logger = logging.getLogger(__name__)
 class DigestNotification(ProjectNotification):
     message_builder = "DigestNotificationMessageBuilder"
     referrer_base = "digest"
+    template_path = "sentry/emails/digests/body"
 
     def __init__(
         self,
@@ -51,9 +53,6 @@ class DigestNotification(ProjectNotification):
         self.digest = digest
         self.target_type = target_type
         self.target_identifier = target_identifier
-
-    def get_filename(self) -> str:
-        return "digests/body"
 
     def get_category(self) -> str:
         return "digest_email"
@@ -80,7 +79,8 @@ class DigestNotification(ProjectNotification):
     def build_attachment_title(self, recipient: Team | User) -> str:
         return ""
 
-    def get_reference(self) -> Any:
+    @property
+    def reference(self) -> Model | None:
         return self.project
 
     def get_context(self) -> MutableMapping[str, Any]:
@@ -128,9 +128,6 @@ class DigestNotification(ProjectNotification):
         }
 
     def send(self) -> None:
-        if not self.should_email():
-            return
-
         # Only calculate shared context once.
         shared_context = self.get_context()
 

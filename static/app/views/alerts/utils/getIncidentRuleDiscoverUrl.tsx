@@ -17,13 +17,24 @@ export function getIncidentRuleDiscoverUrl(opts: {
   orgSlug: string;
   projects: Project[];
   end?: string;
+  environment?: string | null;
   eventType?: string;
   extraQueryParams?: Partial<NewQuery>;
   fields?: string[];
   rule?: IncidentRule;
   start?: string;
 }) {
-  const {orgSlug, projects, rule, eventType, start, end, extraQueryParams, fields} = opts;
+  const {
+    orgSlug,
+    projects,
+    rule,
+    eventType,
+    start,
+    end,
+    extraQueryParams,
+    fields,
+    environment,
+  } = opts;
   const eventTypeTagFilter = eventType && rule?.query ? eventType : '';
 
   if (!projects || !projects.length || !rule || (!start && !end)) {
@@ -41,6 +52,7 @@ export function getIncidentRuleDiscoverUrl(opts: {
     projects: projects
       .filter(({slug}) => rule.projects.includes(slug))
       .map(({id}) => Number(id)),
+    environment: environment ? [environment] : undefined,
     version: 2,
     fields: fields
       ? fields

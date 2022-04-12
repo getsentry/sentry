@@ -4,13 +4,13 @@ import styled from '@emotion/styled';
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
-import Link from 'sentry/components/links/link';
+import type {LinkProps} from 'sentry/components/links/link';
 import {Panel} from 'sentry/components/panels';
 
-type Props = {
+interface Props {
   buttonText: string;
-  buttonTo: React.ComponentProps<typeof Link>['to'];
-};
+  buttonTo: LinkProps['to'];
+}
 
 export const RELATED_ISSUES_BOOLEAN_QUERY_ERROR =
   'Error parsing search query: Boolean statements containing "OR" or "AND" are not supported in this search';
