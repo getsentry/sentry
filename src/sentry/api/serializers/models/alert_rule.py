@@ -1,6 +1,6 @@
 from collections import defaultdict
 
-from django.db.models import prefetch_related_objects
+from django.db.models import Max, prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.rule import RuleSerializer
@@ -122,7 +122,10 @@ class AlertRuleSerializer(Serializer):
             incident_map = {}
             if "latestIncident" in self.expand:
                 for incident in Incident.objects.filter(
-                    id__in=[x.incident_id for x in alert_rules.values()]
+                    id__in=Incident.objects.filter(alert_rule__in=alert_rules)
+                    .values("alert_rule_id")
+                    .annotate(incident_id=Max("id"))
+                    .values("incident_id")
                 ):
                     incident_map[incident.id] = serialize(incident, user=user)
             for alert_rule in alert_rules.values():
