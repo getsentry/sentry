@@ -127,7 +127,7 @@ function BoundTooltip({
 }
 
 const Tooltip = styled('div')`
-  background: #fff;
+  background: ${p => p.theme.background};
   position: absolute;
   white-space: nowrap;
   text-overflow: ellipsis;
