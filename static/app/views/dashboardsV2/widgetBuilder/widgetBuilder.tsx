@@ -35,6 +35,7 @@ import {
   getColumnsAndAggregates,
   getColumnsAndAggregatesAsStrings,
   QueryFieldValue,
+  stripDerivedMetricsPrefix,
 } from 'sentry/utils/discover/fields';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import {SessionMetric} from 'sentry/utils/metrics/fields';
@@ -526,7 +527,7 @@ function WidgetBuilder({
     const fieldStrings = newFields.map(generateFieldAsString);
     const aggregateAliasFieldStrings =
       state.dataSet === DataSet.RELEASE
-        ? fieldStrings
+        ? fieldStrings.map(stripDerivedMetricsPrefix)
         : fieldStrings.map(getAggregateAlias);
 
     const columnsAndAggregates = isColumn
@@ -539,7 +540,9 @@ function WidgetBuilder({
       const isDescending = query.orderby.startsWith('-');
       const orderbyAggregateAliasField = query.orderby.replace('-', '');
       const prevAggregateAliasFieldStrings = query.aggregates.map(aggregate =>
-        state.dataSet === DataSet.RELEASE ? aggregate : getAggregateAlias(aggregate)
+        state.dataSet === DataSet.RELEASE
+          ? stripDerivedMetricsPrefix(aggregate)
+          : getAggregateAlias(aggregate)
       );
       const newQuery = cloneDeep(query);
 

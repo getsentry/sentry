@@ -54,7 +54,7 @@ import {
   WidgetType,
 } from 'sentry/views/dashboardsV2/types';
 import {generateIssueWidgetFieldOptions} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/utils';
-import {generateMetricsWidgetFieldOptions} from 'sentry/views/dashboardsV2/widgetBuilder/metricWidget/fields';
+import {generateReleaseWidgetFieldOptions} from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
 import {
   getMetricFields,
   mapErrors,
@@ -614,7 +614,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
 
   renderWidgetQueryForm(
     querySelection: PageFilters,
-    metricsWidgetFieldOptions: ReturnType<typeof generateMetricsWidgetFieldOptions>
+    releaseWidgetFieldOptions: ReturnType<typeof generateReleaseWidgetFieldOptions>
   ) {
     const {organization, tags} = this.props;
     const state = this.state;
@@ -672,7 +672,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
               widgetType={state.widgetType}
               queries={state.queries}
               errors={errors?.queries}
-              fieldOptions={metricsWidgetFieldOptions}
+              fieldOptions={releaseWidgetFieldOptions}
               onChange={(queryIndex: number, widgetQuery: WidgetQuery) =>
                 this.handleQueryChange(widgetQuery, queryIndex)
               }
@@ -886,7 +886,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
             skipLoad={!organization.features.includes('dashboards-metrics')}
           >
             {({metas: metricsMeta, tags: metricsTags}) => {
-              const metricsWidgetFieldOptions = generateMetricsWidgetFieldOptions(
+              const metricsWidgetFieldOptions = generateReleaseWidgetFieldOptions(
                 Object.values(metricsMeta),
                 Object.values(metricsTags).map(({key}) => key)
               );
