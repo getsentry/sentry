@@ -83,7 +83,7 @@ class KeyResult:
 
     @classmethod
     def from_string(cls: Type[KR], key: str, id: int) -> KR:
-        org_id, string = key.split(":")
+        org_id, string = key.split(":", 1)
         return cls(int(org_id), string, id)
 
 
