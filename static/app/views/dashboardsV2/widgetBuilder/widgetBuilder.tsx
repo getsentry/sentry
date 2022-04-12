@@ -9,6 +9,7 @@ import set from 'lodash/set';
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
+import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesForm';
 import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
@@ -25,7 +26,7 @@ import {
   SelectValue,
   TagCollection,
 } from 'sentry/types';
-import {defined} from 'sentry/utils';
+import {defined, objectIsEmpty} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {
   explodeField,
@@ -34,6 +35,7 @@ import {
   getColumnsAndAggregates,
   getColumnsAndAggregatesAsStrings,
   QueryFieldValue,
+  stripDerivedMetricsPrefix,
 } from 'sentry/utils/discover/fields';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import {SessionMetric} from 'sentry/utils/metrics/fields';
@@ -76,12 +78,10 @@ import {
   getMetricFields,
   getParsedDefaultWidgetQuery,
   mapErrors,
+  NEW_DASHBOARD_ID,
   normalizeQueries,
 } from './utils';
 import {WidgetLibrary} from './widgetLibrary';
-
-// Both dashboards and widgets use the 'new' keyword when creating
-const NEW_DASHBOARD_ID = 'new';
 
 function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, WidgetQuery> {
   return {
@@ -186,6 +186,12 @@ function WidgetBuilder({
     location.query.defaultWidgetQuery
   );
 
+  useEffect(() => {
+    if (objectIsEmpty(tags)) {
+      loadOrganizationTags(api, organization.slug, selection);
+    }
+  }, []);
+
   const isEditing = defined(widgetIndex);
   const widgetIndexNum = Number(widgetIndex);
   const isValidWidgetIndex =
@@ -286,6 +292,16 @@ function WidgetBuilder({
   useEffect(() => {
     if (notDashboardsOrigin) {
       fetchDashboards();
+    }
+
+    if (widgetBuilderNewDesign) {
+      setState(prevState => ({
+        ...prevState,
+        selectedDashboard: {
+          label: dashboard.title,
+          value: dashboard.id || NEW_DASHBOARD_ID,
+        },
+      }));
     }
   }, [source]);
 
@@ -511,7 +527,7 @@ function WidgetBuilder({
     const fieldStrings = newFields.map(generateFieldAsString);
     const aggregateAliasFieldStrings =
       state.dataSet === DataSet.RELEASE
-        ? fieldStrings
+        ? fieldStrings.map(stripDerivedMetricsPrefix)
         : fieldStrings.map(getAggregateAlias);
 
     const columnsAndAggregates = isColumn
@@ -524,7 +540,9 @@ function WidgetBuilder({
       const isDescending = query.orderby.startsWith('-');
       const orderbyAggregateAliasField = query.orderby.replace('-', '');
       const prevAggregateAliasFieldStrings = query.aggregates.map(aggregate =>
-        state.dataSet === DataSet.RELEASE ? aggregate : getAggregateAlias(aggregate)
+        state.dataSet === DataSet.RELEASE
+          ? stripDerivedMetricsPrefix(aggregate)
+          : getAggregateAlias(aggregate)
       );
       const newQuery = cloneDeep(query);
 
@@ -769,12 +787,12 @@ function WidgetBuilder({
 
     try {
       const dashboards = await promise;
-      setState({...state, dashboards, loading: false});
+      setState(prevState => ({...prevState, dashboards, loading: false}));
     } catch (error) {
       const errorMessage = t('Unable to fetch dashboards');
       addErrorMessage(errorMessage);
       handleXhrErrorResponse(errorMessage)(error);
-      setState({...state, loading: false});
+      setState(prevState => ({...prevState, loading: false}));
     }
   }
 
@@ -1004,7 +1022,7 @@ function WidgetBuilder({
                         widgetType={widgetType}
                       />
                     )}
-                    {notDashboardsOrigin && (
+                    {notDashboardsOrigin && !widgetBuilderNewDesign && (
                       <DashboardStep
                         error={state.errors?.dashboard}
                         dashboards={state.dashboards}

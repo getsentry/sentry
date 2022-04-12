@@ -8,6 +8,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import * as modals from 'sentry/actionCreators/modal';
+import TagStore from 'sentry/stores/tagStore';
 import {TOP_N} from 'sentry/utils/discover/types';
 import {SessionMetric} from 'sentry/utils/metrics/fields';
 import {
@@ -109,6 +110,7 @@ describe('WidgetBuilder', function () {
   let eventsStatsMock: jest.Mock | undefined;
   let eventsv2Mock: jest.Mock | undefined;
   let metricsDataMock: jest.Mock | undefined;
+  let tagsMock: jest.Mock | undefined;
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
@@ -225,6 +227,13 @@ describe('WidgetBuilder', function () {
         field: `sum(${SessionMetric.SESSION})`,
       }),
     });
+
+    tagsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/',
+      method: 'GET',
+      body: TestStubs.Tags(),
+    });
+    TagStore.reset();
   });
 
   afterEach(function () {
@@ -350,7 +359,7 @@ describe('WidgetBuilder', function () {
     expect(
       screen.getByRole('heading', {name: 'Choose your data set'})
     ).toBeInTheDocument();
-    expect(screen.getByLabelText('Select Events (Errors, transactions)')).toBeChecked();
+    expect(screen.getByLabelText('Select Errors and Transactions')).toBeChecked();
 
     // Content - Step 2
     expect(
@@ -420,7 +429,7 @@ describe('WidgetBuilder', function () {
     expect(
       screen.getByRole('heading', {name: 'Choose your data set'})
     ).toBeInTheDocument();
-    expect(screen.getByLabelText('Select Events (Errors, transactions)')).toBeChecked();
+    expect(screen.getByLabelText('Select Errors and Transactions')).toBeChecked();
 
     // Content - Step 2
     expect(
@@ -1319,6 +1328,17 @@ describe('WidgetBuilder', function () {
     });
   });
 
+  it('fetches tags when tag store is empty', function () {
+    renderTestComponent();
+    expect(tagsMock).toHaveBeenCalled();
+  });
+
+  it('does not fetch tags when tag store is not empty', function () {
+    TagStore.loadTagsSuccess(TestStubs.Tags());
+    renderTestComponent();
+    expect(tagsMock).not.toHaveBeenCalled();
+  });
+
   describe('Sort by selectors', function () {
     it('renders', async function () {
       renderTestComponent({
@@ -1490,11 +1510,6 @@ describe('WidgetBuilder', function () {
       // Selector "sortBy"
       expect(screen.getAllByText('title')).toHaveLength(2);
 
-      await selectEvent.select(
-        screen.getByText('Select a dashboard'),
-        '+ Create New Dashboard'
-      );
-
       // Saves the widget
       userEvent.click(screen.getByText('Add Widget'));
 
@@ -1622,7 +1637,7 @@ describe('WidgetBuilder', function () {
 
       renderTestComponent({onSave: handleSave});
 
-      userEvent.click(await screen.findByText('Issues (Status, assignee, etc.)'));
+      userEvent.click(await screen.findByText('Issues (States, Assignment, Time, etc.)'));
       userEvent.click(screen.getByLabelText('Add Widget'));
 
       await waitFor(() => {
@@ -1661,12 +1676,12 @@ describe('WidgetBuilder', function () {
       userEvent.click(screen.getByText('Line Chart'));
       expect(
         screen.getByRole('radio', {
-          name: 'Select Events (Errors, transactions)',
+          name: 'Select Errors and Transactions',
         })
       ).toBeEnabled();
       expect(
         screen.getByRole('radio', {
-          name: 'Select Issues (Status, assignee, etc.)',
+          name: 'Select Issues (States, Assignment, Time, etc.)',
         })
       ).toBeDisabled();
     });
@@ -1674,7 +1689,7 @@ describe('WidgetBuilder', function () {
     it('disables moving and deleting issue column', async function () {
       renderTestComponent();
 
-      userEvent.click(await screen.findByText('Issues (Status, assignee, etc.)'));
+      userEvent.click(await screen.findByText('Issues (States, Assignment, Time, etc.)'));
       expect(screen.getByText('issue')).toBeInTheDocument();
       expect(screen.getByText('assignee')).toBeInTheDocument();
       expect(screen.getByText('title')).toBeInTheDocument();
@@ -1705,7 +1720,7 @@ describe('WidgetBuilder', function () {
 
     it('renders with an issues search bar when selected in dataset selection', async function () {
       renderTestComponent();
-      userEvent.click(screen.getByText('Issues (Status, assignee, etc.)'));
+      userEvent.click(screen.getByText('Issues (States, Assignment, Time, etc.)'));
       userEvent.paste(
         screen.getByPlaceholderText('Search for events, users, tags, and more'),
         'is:',
@@ -1728,7 +1743,7 @@ describe('WidgetBuilder', function () {
 
       await screen.findByText('Table');
 
-      userEvent.click(screen.getByText('Issues (Status, assignee, etc.)'));
+      userEvent.click(screen.getByText('Issues (States, Assignment, Time, etc.)'));
 
       await screen.findAllByPlaceholderText('Alias');
 
@@ -1981,12 +1996,12 @@ describe('WidgetBuilder', function () {
 
       expect(
         screen.getByRole('radio', {
-          name: 'Select Events (Errors, transactions)',
+          name: 'Select Errors and Transactions',
         })
       ).toBeEnabled();
       expect(
         screen.getByRole('radio', {
-          name: 'Select Issues (Status, assignee, etc.)',
+          name: 'Select Issues (States, Assignment, Time, etc.)',
         })
       ).toBeDisabled();
     });

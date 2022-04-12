@@ -18,7 +18,7 @@ import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingM
 import {getSeriesSelection, processTableResults} from 'sentry/components/charts/utils';
 import {WorldMapChart} from 'sentry/components/charts/worldMapChart';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Placeholder from 'sentry/components/placeholder';
+import Placeholder, {PlaceholderProps} from 'sentry/components/placeholder';
 import Tooltip from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
@@ -123,9 +123,9 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
       );
     }
 
-    if (typeof tableResults === 'undefined' || loading) {
+    if (typeof tableResults === 'undefined') {
       // Align height to other charts.
-      return <LoadingPlaceholder height="200px" />;
+      return <LoadingPlaceholder />;
     }
 
     return tableResults.map((result, i) => {
@@ -147,6 +147,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
           fields={fields}
           title={tableResults.length > 1 ? result.title : ''}
           loading={loading}
+          loader={<LoadingPlaceholder />}
           metadata={result.meta}
           data={result.data}
           organization={organization}
@@ -471,7 +472,10 @@ const LoadingScreen = ({loading}: {loading: boolean}) => {
     </StyledTransparentLoadingMask>
   );
 };
-const LoadingPlaceholder = styled(Placeholder)`
+
+const LoadingPlaceholder = styled(({className}: PlaceholderProps) => (
+  <Placeholder height="200px" className={className} />
+))`
   background-color: ${p => p.theme.surface200};
 `;
 

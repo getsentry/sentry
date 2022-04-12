@@ -7,6 +7,7 @@ from urllib.parse import urlparse, urlunparse
 from django.utils.html import escape
 from django.utils.safestring import SafeString, mark_safe
 
+from sentry.db.models import Model
 from sentry.notifications.helpers import get_reason_context
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import NotificationSettingTypes
@@ -21,6 +22,7 @@ if TYPE_CHECKING:
 
 class ActivityNotification(ProjectNotification, abc.ABC):
     notification_setting_type = NotificationSettingTypes.WORKFLOW
+    template_path = "sentry/emails/activity/generic"
     metrics_key = "activity"
 
     def __init__(self, activity: Activity) -> None:
@@ -29,9 +31,6 @@ class ActivityNotification(ProjectNotification, abc.ABC):
 
     def get_title(self) -> str:
         raise NotImplementedError
-
-    def get_filename(self) -> str:
-        return "activity/generic"
 
     def get_base_context(self) -> MutableMapping[str, Any]:
         """The most basic context shared by every notification type."""
@@ -50,7 +49,8 @@ class ActivityNotification(ProjectNotification, abc.ABC):
         context = super().get_recipient_context(recipient, extra_context)
         return {**context, **get_reason_context(context)}
 
-    def get_reference(self) -> Any:
+    @property
+    def reference(self) -> Model | None:
         return self.activity
 
     def get_type(self) -> str:
@@ -100,9 +100,6 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
     ) -> Mapping[ExternalProviders, Mapping[Team | User, int]]:
         """This is overridden by the activity subclasses."""
         return get_participants_for_group(self.group, self.activity.user)
-
-    def get_reply_reference(self) -> Any | None:
-        return self.group
 
     def get_unsubscribe_key(self) -> tuple[str, int, str | None] | None:
         return "issue", self.group.id, None
