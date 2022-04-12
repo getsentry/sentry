@@ -3,6 +3,7 @@ import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import FeatureBadge from 'sentry/components/featureBadge';
+import UserBadge from 'sentry/components/idBadge/userBadge';
 import Link from 'sentry/components/links/link';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import PageHeading from 'sentry/components/pageHeading';
@@ -35,7 +36,16 @@ class Replays extends React.Component<Props> {
       id: '',
       name: '',
       version: 2,
-      fields: ['eventID', 'timestamp', 'replayId', 'user'],
+      fields: [
+        'eventID',
+        'timestamp',
+        'replayId',
+        'user.display',
+        'user.id',
+        'user.ip',
+        'user.email',
+        'user.username',
+      ],
       orderby: '-timestamp',
       environment: selection.environments,
       projects: selection.projects,
@@ -56,6 +66,19 @@ class Replays extends React.Component<Props> {
     const {organization} = this.props;
     return replayList?.map(replay => (
       <React.Fragment key={replay.id}>
+        <div>
+          <UserBadge
+            displayName={replay['user.display']}
+            user={{
+              username: replay['user.username'],
+              id: replay['user.id'],
+              ip_address: replay['user.ip'],
+              name: replay['user.display'],
+              email: replay['user.email'],
+            }}
+            displayEmail="example.com/app" // this is where the tag needs to go
+          />
+        </div>
         <Link
           to={`/organizations/${organization.slug}/replays/${generateEventSlug({
             project: replay['project.name'],
@@ -64,9 +87,6 @@ class Replays extends React.Component<Props> {
         >
           {replay.replayId}
         </Link>
-        <div>
-          <span>{replay.user}</span>
-        </div>
         <div>
           <FieldDateTime date={replay.timestamp} />
         </div>
@@ -100,7 +120,7 @@ class Replays extends React.Component<Props> {
                 <PanelTable
                   isLoading={data.isLoading}
                   isEmpty={data.tableData?.data.length === 0}
-                  headers={['Replay ID', 'User', 'Timestamp']}
+                  headers={['Session', 'Replay ID', 'Timestamp']}
                 >
                   {data.tableData
                     ? this.renderTable(data.tableData.data as Replay[])
