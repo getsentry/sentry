@@ -4,14 +4,16 @@ import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
 import {
+  DefaultPersistedStore,
   PersistedStoreProvider,
   usePersistedStoreCategory,
 } from 'sentry/stores/persistedStore';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 describe('PersistedStore', function () {
-  it('provides, sets and deletes the persisted data category from client-state API', async function () {
-    const org = TestStubs.Organization();
+  let org, wrapper;
+  beforeEach(() => {
+    org = TestStubs.Organization();
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/client-state/`,
       body: {
@@ -21,36 +23,45 @@ describe('PersistedStore', function () {
       },
     });
     OrganizationStore.onUpdate(org);
-    const wrapper = ({children}) => (
+    wrapper = ({children}) => (
       <PersistedStoreProvider>
         <OrganizationContext.Provider value={org}>
           {children}
         </OrganizationContext.Provider>
       </PersistedStoreProvider>
     );
-
+  });
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+  });
+  it('provides the persisted data category from client-state API', async function () {
     const {result, waitForNextUpdate} = reactHooks.renderHook(
       () => usePersistedStoreCategory('onboarding'),
       {wrapper}
     );
     await waitForNextUpdate();
-    const [state, setState] = result.current;
+    const [state] = result.current;
 
     expect(state).toMatchObject({
       test: 1,
     });
-
-    // Set
+  });
+  it('sets the persisted data category from client-state API', async function () {
+    const {result, waitForNextUpdate} = reactHooks.renderHook(
+      () => usePersistedStoreCategory('onboarding'),
+      {wrapper}
+    );
+    await waitForNextUpdate();
+    const [_, setState] = result.current;
     const clientStateUpdate = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/client-state/onboarding/`,
       method: 'PUT',
     });
-
     act(() => {
       setState({test: 2});
     });
 
-    const [state2, setState2] = result.current;
+    const [state2] = result.current;
     expect(state2).toMatchObject({
       test: 2,
     });
@@ -63,69 +74,42 @@ describe('PersistedStore', function () {
         },
       })
     );
+  });
+  it('deletes the persisted data category on set to null', async function () {
+    const {result, waitForNextUpdate} = reactHooks.renderHook(
+      () => usePersistedStoreCategory('onboarding'),
+      {wrapper}
+    );
+    await waitForNextUpdate();
+    const [_, setState] = result.current;
 
-    // Delete
     const clientStateDelete = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/client-state/onboarding/`,
       method: 'DELETE',
     });
     act(() => {
-      setState2(null);
+      setState(null);
     });
-    const [state3, _] = result.current;
-    expect(state3).toBe(null);
+    const [state2] = result.current;
+    expect(state2).toBe(DefaultPersistedStore.onboarding);
     expect(clientStateDelete).toHaveBeenCalledWith(
       `/organizations/${org.slug}/client-state/onboarding/`,
       expect.objectContaining({
         method: 'DELETE',
       })
     );
-    MockApiClient.clearMockResponses();
   });
-  it('behaves nicely when state not loaded', async function () {
-    const org = TestStubs.Organization();
+  it('returns default when state fails to load', async function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/client-state/`,
       status: 500,
     });
-    OrganizationStore.onUpdate(org);
-    const wrapper = ({children}) => (
-      <PersistedStoreProvider>
-        <OrganizationContext.Provider value={org}>
-          {children}
-        </OrganizationContext.Provider>
-      </PersistedStoreProvider>
-    );
-
     const {result, waitForNextUpdate} = reactHooks.renderHook(
       () => usePersistedStoreCategory('onboarding'),
       {wrapper}
     );
     await waitForNextUpdate();
-    const [state, setState] = result.current;
-    expect(state).toBe(null);
-
-    const clientStateUpdate = MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/client-state/onboarding/`,
-      method: 'PUT',
-    });
-
-    act(() => {
-      setState({test: 2});
-    });
-
-    const [state2, _] = result.current;
-    expect(state2).toMatchObject({
-      test: 2,
-    });
-    expect(clientStateUpdate).toHaveBeenCalledWith(
-      `/organizations/${org.slug}/client-state/onboarding/`,
-      expect.objectContaining({
-        data: {
-          test: 2,
-        },
-      })
-    );
-    MockApiClient.clearMockResponses();
+    const [state] = result.current;
+    expect(state).toBe(DefaultPersistedStore.onboarding);
   });
 });

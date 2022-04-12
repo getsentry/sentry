@@ -18,7 +18,7 @@ type PersistedStore = Readonly<{
   onboarding: Partial<OnboardingState> | null;
 }>;
 
-const DefaultPersistedStore: PersistedStore = {
+export const DefaultPersistedStore: PersistedStore = {
   onboarding: null,
 };
 
