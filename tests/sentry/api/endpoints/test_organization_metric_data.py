@@ -2130,7 +2130,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         )
         assert len(response.data["groups"]) == 1
         assert response.data["groups"][0]["totals"] == {
-            "transaction.user_misery": 0.06807638364440609
+            "transaction.user_misery": 0.06478439425051336
         }
 
     def test_session_duration_derived_alias(self):

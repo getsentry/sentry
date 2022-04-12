@@ -971,7 +971,9 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             metrics=[TransactionMRI.MISERABLE_USER.value, TransactionMRI.ALL_USER.value],
             unit="percentage",
             snql=lambda miserable_user, user, org_id, metric_ids, alias=None: division_float(
-                addition(miserable_user, MISERY_ALPHA), addition(user, MISERY_BETA), alias
+                addition(miserable_user, MISERY_ALPHA),
+                addition(user, MISERY_ALPHA + MISERY_BETA),
+                alias,
             ),
         ),
     ]
