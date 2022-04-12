@@ -162,6 +162,8 @@ const getMargin = ({size}: {size: Size}) => {
 
 const Title = styled('div')<{hasGroupingTreeUI: boolean; size: Size}>`
   line-height: 1;
+  display: flex;
+  align-items: center;
   ${getMargin};
   & em {
     font-size: ${p => p.theme.fontSizeMedium};
@@ -215,8 +217,7 @@ const Message = styled('div')`
 
 const IconWrapper = styled('span')`
   position: relative;
-  top: 2px;
-
+  display: flex;
   margin-right: 5px;
 `;
 
