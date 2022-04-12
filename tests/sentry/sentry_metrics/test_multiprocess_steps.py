@@ -249,9 +249,6 @@ def test_process_messages(mock_indexer) -> None:
         )
         for i, m in enumerate(message_batch)
     ]
-
-    print(new_batch)
-    print(expected_new_batch)
     assert new_batch == expected_new_batch
 
 
