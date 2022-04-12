@@ -1,10 +1,8 @@
 from copy import deepcopy
-from datetime import datetime
 
 import responses
 from django.conf import settings
 from exam import fixture
-from pytz import UTC
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import DetailedAlertRuleSerializer
@@ -103,12 +101,9 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase, APITestCase):
     def test_expand_latest_incident(self):
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
-        now = datetime.now().replace(tzinfo=UTC)
         incident = self.create_incident(
             organization=self.organization,
             title="Incident #1",
-            date_started=now,
-            date_detected=now,
             projects=[self.project],
             alert_rule=self.alert_rule,
             status=IncidentStatus.CRITICAL.value,
@@ -119,7 +114,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase, APITestCase):
             )
             no_expand_resp = self.get_valid_response(self.organization.slug, self.alert_rule.id)
 
-        assert "latestIncident" in resp.data
+        assert resp.data["latestIncident"] is not None
         assert resp.data["latestIncident"]["id"] == str(incident.id)
         assert "latestIncident" not in no_expand_resp.data
 
