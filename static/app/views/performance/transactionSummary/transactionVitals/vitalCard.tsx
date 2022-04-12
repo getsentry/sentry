@@ -336,6 +336,7 @@ class VitalCard extends Component<Props, State> {
                 showBar={false}
                 showStates={false}
                 showVitalPercentNames={false}
+                showVitalThresholds={false}
                 showDurationDetail={false}
               />
             </PercentContainer>

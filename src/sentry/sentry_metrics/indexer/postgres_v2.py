@@ -17,10 +17,11 @@ from typing import (
 
 from django.db.models import Q
 
+from sentry.sentry_metrics.indexer.base import StringIndexer
 from sentry.sentry_metrics.indexer.cache import indexer_cache
 from sentry.sentry_metrics.indexer.models import StringIndexer as StringIndexerTable
+from sentry.sentry_metrics.indexer.strings import REVERSE_SHARED_STRINGS, SHARED_STRINGS
 from sentry.utils import metrics
-from sentry.utils.services import Service
 
 _INDEXER_CACHE_METRIC = "sentry_metrics.indexer.memcache"
 _INDEXER_DB_METRIC = "sentry_metrics.indexer.postgres"
@@ -82,7 +83,7 @@ class KeyResult:
 
     @classmethod
     def from_string(cls: Type[KR], key: str, id: int) -> KR:
-        org_id, string = key.split(":")
+        org_id, string = key.split(":", 1)
         return cls(int(org_id), string, id)
 
 
@@ -90,11 +91,14 @@ class KeyResults:
     def __init__(self) -> None:
         self.results: MutableMapping[int, MutableMapping[str, int]] = defaultdict(dict)
 
+    def add_key_result(self, key_result: KeyResult) -> None:
+        self.results[key_result.org_id].update({key_result.string: key_result.id})
+
     def add_key_results(self, key_results: Sequence[KeyResult]) -> None:
         for key_result in key_results:
             self.results[key_result.org_id].update({key_result.string: key_result.id})
 
-    def get_mapped_results(self) -> MutableMapping[int, MutableMapping[str, int]]:
+    def get_mapped_results(self) -> Mapping[int, Mapping[str, int]]:
         """
         Only return results that have org_ids with string/int mappings.
         """
@@ -135,13 +139,21 @@ class KeyResults:
         return cache_key_results
 
 
-class PGStringIndexerV2(Service):
+def merge_results(
+    result_mappings: Sequence[Mapping[int, Mapping[str, int]]],
+) -> Mapping[int, Mapping[str, int]]:
+    new_results: MutableMapping[int, MutableMapping[str, int]] = defaultdict(dict)
+    for result_map in result_mappings:
+        for org_id, strings in result_map.items():
+            new_results[org_id].update(strings)
+    return new_results
+
+
+class PGStringIndexerV2(StringIndexer):
     """
     Provides integer IDs for metric names, tag keys and tag values
     and the corresponding reverse lookup.
     """
-
-    __all__ = ("record", "resolve", "reverse_resolve", "bulk_record")
 
     def _get_db_records(self, db_keys: KeyCollection) -> Any:
         conditions = []
@@ -153,9 +165,7 @@ class PGStringIndexerV2(Service):
 
         return StringIndexerTable.objects.filter(query_statement)
 
-    def bulk_record(
-        self, org_strings: MutableMapping[int, Set[str]]
-    ) -> MutableMapping[int, MutableMapping[str, int]]:
+    def bulk_record(self, org_strings: Mapping[int, Set[str]]) -> Mapping[int, Mapping[str, int]]:
         """
         Takes in a mapping with org_ids to sets of strings.
 
@@ -207,11 +217,11 @@ class PGStringIndexerV2(Service):
             [KeyResult.from_string(k, v) for k, v in cache_results.items() if v is not None]
         )
 
-        mapped_results = cache_key_results.get_mapped_results()
+        mapped_cache_results = cache_key_results.get_mapped_results()
         db_read_keys = cache_key_results.get_unmapped_keys(cache_keys)
 
         if db_read_keys.size == 0:
-            return mapped_results
+            return mapped_cache_results
 
         db_read_key_results = KeyResults()
         db_read_key_results.add_key_results(
@@ -222,7 +232,7 @@ class PGStringIndexerV2(Service):
         )
         new_results_to_cache = db_read_key_results.get_mapped_key_strings_to_ints()
 
-        mapped_results.update(db_read_key_results.get_mapped_results())
+        mapped_db_read_results = db_read_key_results.get_mapped_results()
         db_write_keys = db_read_key_results.get_unmapped_keys(db_read_keys)
 
         metrics.incr(
@@ -238,7 +248,7 @@ class PGStringIndexerV2(Service):
 
         if db_write_keys.size == 0:
             indexer_cache.set_many(new_results_to_cache)
-            return mapped_results
+            return merge_results([mapped_cache_results, mapped_db_read_results])
 
         new_records = []
         for write_pair in db_write_keys.as_tuples():
@@ -264,9 +274,11 @@ class PGStringIndexerV2(Service):
         new_results_to_cache.update(db_write_key_results.get_mapped_key_strings_to_ints())
         indexer_cache.set_many(new_results_to_cache)
 
-        mapped_results.update(db_write_key_results.get_mapped_results())
+        mapped_db_write_results = db_write_key_results.get_mapped_results()
 
-        return mapped_results
+        return merge_results(
+            [mapped_cache_results, mapped_db_read_results, mapped_db_write_results]
+        )
 
     def record(self, org_id: int, string: str) -> int:
         """Store a string and return the integer ID generated for it"""
@@ -305,3 +317,48 @@ class PGStringIndexerV2(Service):
             return None
 
         return string
+
+
+class StaticStringsIndexerDecorator(StringIndexer):
+    """
+    Wrapper for static strings
+    """
+
+    def __init__(self) -> None:
+        self.indexer = PGStringIndexerV2()
+
+    def _get_db_records(self, db_keys: KeyCollection) -> Any:
+        return self.indexer._get_db_records(db_keys)
+
+    def bulk_record(self, org_strings: Mapping[int, Set[str]]) -> Mapping[int, Mapping[str, int]]:
+        static_keys = KeyCollection(org_strings)
+        static_key_results = KeyResults()
+        for org_id, string in static_keys.as_tuples():
+            if string in SHARED_STRINGS:
+                id = SHARED_STRINGS[string]
+                static_key_results.add_key_result(KeyResult(org_id, string, id))
+
+        static_string_results = static_key_results.get_mapped_results()
+        org_strings_left = static_key_results.get_unmapped_keys(static_keys)
+
+        if org_strings_left.size == 0:
+            return static_string_results
+
+        indexer_results = self.indexer.bulk_record(org_strings_left.mapping)
+
+        return merge_results([static_string_results, indexer_results])
+
+    def record(self, org_id: int, string: str) -> int:
+        if string in SHARED_STRINGS:
+            return SHARED_STRINGS[string]
+        return self.indexer.record(org_id, string)
+
+    def resolve(self, org_id: int, string: str) -> Optional[int]:
+        if string in SHARED_STRINGS:
+            return SHARED_STRINGS[string]
+        return self.indexer.resolve(org_id, string)
+
+    def reverse_resolve(self, id: int) -> Optional[str]:
+        if id in REVERSE_SHARED_STRINGS:
+            return REVERSE_SHARED_STRINGS[id]
+        return self.indexer.reverse_resolve(id)

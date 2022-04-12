@@ -1,6 +1,10 @@
 import * as React from 'react';
 import {Fragment} from 'react';
+import {InjectedRouter} from 'react-router';
+import {components} from 'react-select';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 import pick from 'lodash/pick';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -10,15 +14,17 @@ import SearchBar from 'sentry/components/events/searchBar';
 import FormField from 'sentry/components/forms/formField';
 import SelectControl from 'sentry/components/forms/selectControl';
 import SelectField from 'sentry/components/forms/selectField';
+import IdBadge from 'sentry/components/idBadge';
 import ListItem from 'sentry/components/list/listItem';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import Tooltip from 'sentry/components/tooltip';
 import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Environment, Organization, SelectValue} from 'sentry/types';
+import {Environment, Organization, Project, SelectValue} from 'sentry/types';
 import {MobileVital, WebVital} from 'sentry/utils/discover/fields';
 import {getDisplayName} from 'sentry/utils/environment';
+import withProjects from 'sentry/utils/withProjects';
 import WizardField from 'sentry/views/alerts/incidentRules/wizardField';
 import {
   convertDatasetEventTypesToSource,
@@ -55,15 +61,19 @@ type Props = {
   dataset: Dataset;
   disabled: boolean;
   hasAlertWizardV3: boolean;
+  location: Location;
   onComparisonDeltaChange: (value: number) => void;
   onFilterSearch: (query: string) => void;
   onTimeWindowChange: (value: number) => void;
   organization: Organization;
-  projectSlug: string;
+  project: Project;
+  projects: Project[];
+  router: InjectedRouter;
   thresholdChart: React.ReactNode;
   timeWindow: number;
   allowChangeEventTypes?: boolean;
   comparisonDelta?: number;
+  loadingProjects?: boolean;
 };
 
 type State = {
@@ -85,11 +95,11 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
   };
 
   async fetchData() {
-    const {api, organization, projectSlug} = this.props;
+    const {api, organization, project} = this.props;
 
     try {
       const environments = await api.requestPromise(
-        `/projects/${organization.slug}/${projectSlug}/environments/`,
+        `/projects/${organization.slug}/${project.slug}/environments/`,
         {
           query: {
             visibility: 'visible',
@@ -234,6 +244,57 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
     );
   }
 
+  renderProjectSelector() {
+    const {project: selectedProject, location, router, projects, disabled} = this.props;
+
+    return (
+      <SelectControl
+        isDisabled={disabled}
+        value={selectedProject.id}
+        styles={{
+          container: (provided: {[x: string]: string | number | boolean}) => ({
+            ...provided,
+            margin: `${space(0.5)}`,
+          }),
+        }}
+        options={projects.map(project => ({
+          label: project.slug,
+          value: project.id,
+          leadingItems: (
+            <IdBadge
+              project={project}
+              avatarProps={{consistentWidth: true}}
+              avatarSize={18}
+              disableLink
+              hideName
+            />
+          ),
+        }))}
+        onChange={({label}: {label: Project['slug']}) =>
+          router.replace({
+            ...location,
+            query: {
+              ...location.query,
+              project: label,
+            },
+          })
+        }
+        components={{
+          SingleValue: containerProps => (
+            <components.ValueContainer {...containerProps}>
+              <IdBadge
+                project={selectedProject}
+                avatarProps={{consistentWidth: true}}
+                avatarSize={18}
+                disableLink
+              />
+            </components.ValueContainer>
+          ),
+        }}
+      />
+    );
+  }
+
   renderInterval() {
     const {
       organization,
@@ -275,8 +336,6 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
               disabled={disabled}
               style={{
                 ...this.formElemBaseStyle,
-                padding: 0,
-                marginRight: space(1),
                 flex: 1,
               }}
               inline={false}
@@ -311,6 +370,10 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
                 ...provided,
                 minWidth: hasAlertWizardV3 ? 200 : 130,
                 maxWidth: 300,
+              }),
+              container: (provided: {[x: string]: string | number | boolean}) => ({
+                ...provided,
+                margin: hasAlertWizardV3 ? `${space(0.5)}` : 0,
               }),
             }}
             options={this.timeWindowOptions}
@@ -369,16 +432,14 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
     } = this.props;
     const {environments} = this.state;
 
-    const environmentOptions: SelectValue<string | null>[] =
-      environments?.map((env: Environment) => ({
-        value: env.name,
-        label: getDisplayName(env),
-      })) ?? [];
-
-    environmentOptions.unshift({
-      value: null,
-      label: t('All'),
-    });
+    const environmentOptions: SelectValue<string | null>[] = [
+      {
+        value: null,
+        label: t('All Environments'),
+      },
+      ...(environments?.map(env => ({value: env.name, label: getDisplayName(env)})) ??
+        []),
+    ];
 
     const transactionTags = [
       'transaction',
@@ -396,11 +457,15 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
           <StyledPanelBody>{this.props.thresholdChart}</StyledPanelBody>
         </ChartPanel>
         {hasAlertWizardV3 && this.renderInterval()}
-        <StyledListItem>{t('Filter environments')}</StyledListItem>
-        <FormRow noMargin>
+        <StyledListItem>{t('Filter events')}</StyledListItem>
+        <FormRow
+          noMargin
+          columns={1 + (allowChangeEventTypes ? 1 : 0) + (hasAlertWizardV3 ? 1 : 0)}
+        >
+          {hasAlertWizardV3 && this.renderProjectSelector()}
           <SelectField
             name="environment"
-            placeholder={t('All')}
+            placeholder={t('All Environments')}
             style={{
               ...this.formElemBaseStyle,
               minWidth: 230,
@@ -419,7 +484,6 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
             isClearable
             inline={false}
             flexibleControlStateSize
-            inFieldLabel={t('Environment: ')}
           />
           {allowChangeEventTypes && this.renderEventTypeFilter()}
         </FormRow>
@@ -520,12 +584,18 @@ const StyledListItem = styled(ListItem)`
   line-height: 1.3;
 `;
 
-const FormRow = styled('div')<{noMargin?: boolean}>`
+const FormRow = styled('div')<{columns?: number; noMargin?: boolean}>`
   display: flex;
   flex-direction: row;
   align-items: center;
   flex-wrap: wrap;
   margin-bottom: ${p => (p.noMargin ? 0 : space(4))};
+  ${p =>
+    p.columns !== undefined &&
+    css`
+      display: grid;
+      grid-template-columns: repeat(${p.columns}, auto);
+    `}
 `;
 
 const FormRowText = styled('div')`
@@ -539,4 +609,4 @@ const ComparisonContainer = styled('div')`
   align-items: center;
 `;
 
-export default RuleConditionsForm;
+export default withProjects(RuleConditionsForm);

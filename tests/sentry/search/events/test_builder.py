@@ -651,6 +651,11 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
             Condition(Column("org_id"), Op.EQ, self.organization.id),
         ]
 
+        for string in self.METRIC_STRINGS:
+            indexer.record(self.organization.id, string)
+
+        indexer.record(self.organization.id, "transaction")
+
     def setup_orderby_data(self):
         self.store_metric(
             100,
@@ -723,6 +728,66 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 _metric_percentile_definition(self.organization.id, "90", "measurements.fcp"),
                 _metric_percentile_definition(self.organization.id, "95", "measurements.cls"),
                 _metric_percentile_definition(self.organization.id, "99", "measurements.fid"),
+            ],
+        )
+
+    def test_custom_percentile_throws_error(self):
+        with self.assertRaises(IncompatibleMetricsQuery):
+            MetricsQueryBuilder(
+                self.params,
+                "",
+                selected_columns=[
+                    "percentile(transaction.duration, 0.11)",
+                ],
+            )
+
+    def test_percentile_function(self):
+        self.maxDiff = None
+        query = MetricsQueryBuilder(
+            self.params,
+            "",
+            selected_columns=[
+                "percentile(transaction.duration, 0.75)",
+            ],
+        )
+        self.assertCountEqual(
+            query.where,
+            [
+                *self.default_conditions,
+                *_metric_conditions(
+                    self.organization.id,
+                    [
+                        "transaction.duration",
+                    ],
+                ),
+            ],
+        )
+        self.assertCountEqual(
+            query.distributions,
+            [
+                Function(
+                    "arrayElement",
+                    [
+                        Function(
+                            "quantilesIf(0.75)",
+                            [
+                                Column("value"),
+                                Function(
+                                    "equals",
+                                    [
+                                        Column("metric_id"),
+                                        indexer.resolve(
+                                            self.organization.id,
+                                            constants.METRICS_MAP["transaction.duration"],
+                                        ),
+                                    ],
+                                ),
+                            ],
+                        ),
+                        1,
+                    ],
+                    "percentile_transaction_duration_0_75",
+                )
             ],
         )
 
@@ -1201,6 +1266,48 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         # Check the values are correct
         assert data["tpm"] == 5 / ((self.end - self.start).total_seconds() / 60)
         assert data["tpm"] / 60 == data["tps"]
+
+    def test_count(self):
+        for _ in range(3):
+            self.store_metric(
+                150,
+                timestamp=self.start + datetime.timedelta(minutes=5),
+            )
+            self.store_metric(
+                50,
+                timestamp=self.start + datetime.timedelta(minutes=5),
+            )
+        query = MetricsQueryBuilder(
+            self.params,
+            "",
+            selected_columns=[
+                "count()",
+            ],
+        )
+        result = query.run_query("test_query")
+        data = result["data"][0]
+        assert data["count"] == 6
+
+    def test_avg(self):
+        for _ in range(3):
+            self.store_metric(
+                150,
+                timestamp=self.start + datetime.timedelta(minutes=5),
+            )
+            self.store_metric(
+                50,
+                timestamp=self.start + datetime.timedelta(minutes=5),
+            )
+        query = MetricsQueryBuilder(
+            self.params,
+            "",
+            selected_columns=[
+                "avg()",
+            ],
+        )
+        result = query.run_query("test_query")
+        data = result["data"][0]
+        assert data["avg"] == 100
 
     def test_failure_rate(self):
         for _ in range(3):
