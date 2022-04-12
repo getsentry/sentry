@@ -59,6 +59,7 @@ import {
   renderDiscoverGridHeaderCell,
   renderGridBodyCell,
   renderIssueGridHeaderCell,
+  renderMetricsGridHeaderCell,
 } from './widgetViewerModal/widgetViewerTableCell';
 
 export type WidgetViewerModalOptions = {
@@ -729,7 +730,7 @@ function WidgetViewerModal(props: Props) {
                       columnOrder={columnOrder}
                       columnSortBy={columnSortBy}
                       grid={{
-                        renderHeadCell: renderDiscoverGridHeaderCell({
+                        renderHeadCell: renderMetricsGridHeaderCell({
                           ...props,
                           widget: tableWidget,
                           tableData: tableResults?.[0],
