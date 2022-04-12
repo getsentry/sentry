@@ -995,9 +995,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             self.organization.id, TransactionTagsKey.TRANSACTION_SATISFACTION.value
         )
         self.tx_user_metric = indexer.record(self.organization.id, TransactionMRI.USER.value)
-        self.tx_satisfaction = indexer.record(
-            self.organization.id, TransactionTagsKey.TRANSACTION_SATISFACTION.value
-        )
 
     @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
     @patch("sentry.snuba.metrics.fields.base.get_public_name_from_mri")
@@ -1143,7 +1140,30 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "timestamp": (user_ts // 60 - 4) * 60,
                     "tags": {
                         self.session_status_tag: indexer.record(org_id, "errored_preaggr"),
-                        self.release_tag: indexer.record(org_id, "foo"),
+                    },
+                    "type": "c",
+                    "value": 10,
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_metric,
+                    "timestamp": (user_ts // 60 - 4) * 60,
+                    "tags": {
+                        self.session_status_tag: indexer.record(org_id, "crashed"),
+                    },
+                    "type": "c",
+                    "value": 2,
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_metric,
+                    "timestamp": (user_ts // 60 - 4) * 60,
+                    "tags": {
+                        self.session_status_tag: indexer.record(org_id, "abnormal"),
                     },
                     "type": "c",
                     "value": 4,
@@ -1156,10 +1176,9 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "timestamp": user_ts,
                     "tags": {
                         self.session_status_tag: indexer.record(org_id, "init"),
-                        self.release_tag: indexer.record(org_id, "foo"),
                     },
                     "type": "c",
-                    "value": 10,
+                    "value": 15,
                     "retention_days": 90,
                 },
             ],

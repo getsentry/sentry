@@ -34,6 +34,8 @@ class SessionMRI(Enum):
     ERRORED = "e:sessions/errored@none"
     ERRORED_PREAGGREGATED = "e:sessions/error.preaggr@none"
     ERRORED_SET = "e:sessions/error.unique@none"
+    ERRORED_ALL = "e:sessions/all_errored@none"
+    CRASHED_AND_ABNORMAL = "e:sessions/crashed_abnormal@none"
     CRASHED = "e:sessions/crashed@none"
     ABNORMAL = "e:sessions/abnormal@none"
     CRASH_FREE_RATE = "e:sessions/crash_free_rate@ratio"

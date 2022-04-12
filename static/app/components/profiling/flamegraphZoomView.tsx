@@ -63,21 +63,33 @@ function FlamegraphZoomView({
           {draw_border: true}
         );
 
-        if (flamegraph.inverted) {
-          canvasPoolManager.dispatch('setConfigView', [
-            renderer.configView.translateY(
-              renderer.configSpace.height - renderer.configView.height + 1
-            ),
-          ]);
+        if (previousRenderer?.flamegraph.profile === renderer.flamegraph.profile) {
+          if (previousRenderer.flamegraph.inverted !== renderer.flamegraph.inverted) {
+            // Preserve the position where the user just was before they toggled
+            // inverted. This means that the horizontal position is unchanged
+            // while the vertical position needs to determined based on the
+            // current position.
+            renderer.setConfigView(
+              previousRenderer.configView.translateY(
+                previousRenderer.configSpace.height -
+                  previousRenderer.configView.height -
+                  previousRenderer.configView.y -
+                  (renderer.flamegraph.inverted ? 1 : 0)
+              )
+            );
+          } else if (
+            previousRenderer.flamegraph.leftHeavy !== renderer.flamegraph.leftHeavy
+          ) {
+            /*
+             * When the user toggles left heavy, the entire flamegraph will take
+             * on a different shape. In this case, there's no obvious position
+             * that can be carried over.
+             */
+          } else {
+            renderer.setConfigView(previousRenderer.configView);
+          }
         }
 
-        // If the flamegraph name is the same as before, then the user probably changed the way they want
-        // to visualize the flamegraph. In those cases we want preserve the previous config view so
-        // that users dont lose their state. E.g. clicking on invert flamegraph still shows you the same
-        // flamegraph you were looking at before, just inverted instead of zooming out completely
-        if (previousRenderer?.flamegraph.name === renderer.flamegraph.name) {
-          renderer.setConfigView(previousRenderer.configView);
-        }
         return renderer;
       }
       // If we have no renderer, then the canvas is not initialize yet and we cannot initialize the renderer
@@ -123,19 +135,6 @@ function FlamegraphZoomView({
     }
     return flamegraphRenderer.getHoveredNode(configSpaceCursor);
   }, [configSpaceCursor, flamegraphRenderer]);
-
-  /**
-   * Whenever the flamegraph changes, the reference to the selected node
-   * may no longer be valid/correct. So clear it when that happens.
-   *
-   * The flamegraph may for reasons like
-   * - inverted/leftHeavy changed
-   * - thread changed
-   * - import happened
-   */
-  useEffect(() => {
-    setSelectedNode(null);
-  }, [flamegraph]);
 
   useEffect(() => {
     scheduler.draw();

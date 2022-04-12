@@ -232,7 +232,7 @@ describe('Dashboards > DashboardList', function () {
 
     card = wrapper.find('DashboardCard').last();
     const dashboardDelete = card.find(`MenuItemWrap[data-test-id="dashboard-delete"]`);
-    expect(dashboardDelete.prop('isDisabled')).toBe(true);
+    expect(dashboardDelete.prop('aria-disabled')).toBe(true);
   });
 
   it('can duplicate dashboards', async function () {

@@ -7,10 +7,12 @@ import NotFound from 'sentry/components/errors/notFound';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventEntry from 'sentry/components/events/eventEntry';
 import EventMessage from 'sentry/components/events/eventMessage';
-import BaseRRWebReplayer from 'sentry/components/events/rrwebReplayer/baseRRWebReplayer';
 import FeatureBadge from 'sentry/components/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
+import ReplayController from 'sentry/components/replays/replayController';
+import ReplayPlayer from 'sentry/components/replays/replayPlayer';
 import TagsTable from 'sentry/components/tagsTable';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
@@ -136,7 +138,10 @@ function ReplayLoader(props: ReplayLoaderProps) {
 
     return (
       <React.Fragment>
-        <BaseRRWebReplayer events={rrwebEvents} />
+        <ReplayContextProvider events={rrwebEvents || []}>
+          <ReplayPlayer />
+          <ReplayController />
+        </ReplayContextProvider>
 
         {breadcrumbEntry && (
           <EventEntry
