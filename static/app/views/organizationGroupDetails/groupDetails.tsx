@@ -1,5 +1,6 @@
 import {cloneElement, Component, Fragment, isValidElement} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
+import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import * as PropTypes from 'prop-types';
 
@@ -12,6 +13,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import SentryTypes from 'sentry/sentryTypes';
 import GroupStore from 'sentry/stores/groupStore';
+import space from 'sentry/styles/space';
 import {AvatarProject, Group, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -476,7 +478,9 @@ class GroupDetails extends Component<Props, State> {
     switch (this.state.errorType) {
       case ERROR_TYPES.GROUP_NOT_FOUND:
         return (
-          <LoadingError message={t('The issue you were looking for was not found.')} />
+          <StyledLoadingError
+            message={t('The issue you were looking for was not found.')}
+          />
         );
 
       case ERROR_TYPES.MISSING_MEMBERSHIP:
@@ -487,7 +491,7 @@ class GroupDetails extends Component<Props, State> {
           />
         );
       default:
-        return <LoadingError onRetry={this.remountComponent} />;
+        return <StyledLoadingError onRetry={this.remountComponent} />;
     }
   }
 
@@ -557,7 +561,7 @@ class GroupDetails extends Component<Props, State> {
         {({projects, initiallyLoaded, fetchError}) =>
           initiallyLoaded ? (
             fetchError ? (
-              <LoadingError message={t('Error loading the specified project')} />
+              <StyledLoadingError message={t('Error loading the specified project')} />
             ) : (
               // TODO(ts): Update renderContent function to deal with empty group
               this.renderContent(projects[0], group!)
@@ -599,3 +603,7 @@ class GroupDetails extends Component<Props, State> {
 }
 
 export default withApi(Sentry.withProfiler(GroupDetails));
+
+const StyledLoadingError = styled(LoadingError)`
+  margin: ${space(2)};
+`;

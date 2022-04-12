@@ -40,6 +40,7 @@ logger = logging.getLogger(__name__)
 class DigestNotification(ProjectNotification):
     message_builder = "DigestNotificationMessageBuilder"
     referrer_base = "digest"
+    template_path = "sentry/emails/digests/body"
 
     def __init__(
         self,
@@ -52,9 +53,6 @@ class DigestNotification(ProjectNotification):
         self.digest = digest
         self.target_type = target_type
         self.target_identifier = target_identifier
-
-    def get_filename(self) -> str:
-        return "digests/body"
 
     def get_category(self) -> str:
         return "digest_email"
