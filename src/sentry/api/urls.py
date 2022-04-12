@@ -91,7 +91,7 @@ from .endpoints.broadcast_index import BroadcastIndexEndpoint
 from .endpoints.builtin_symbol_sources import BuiltinSymbolSourcesEndpoint
 from .endpoints.catchall import CatchallEndpoint
 from .endpoints.chunk import ChunkUploadEndpoint
-from .endpoints.client_state import ClientStateEndpoint
+from .endpoints.client_state import ClientStateEndpoint, ClientStateListEndpoint
 from .endpoints.codeowners import (
     ExternalTeamDetailsEndpoint,
     ExternalTeamEndpoint,
@@ -1587,6 +1587,11 @@ urlpatterns = [
                             ),
                         ],
                     ),
+                ),
+                url(
+                    r"^(?P<organization_slug>[^/]+)/client-state/$",
+                    ClientStateListEndpoint.as_view(),
+                    name="sentry-api-0-organization-client-state-list",
                 ),
                 url(
                     r"^(?P<organization_slug>[^/]+)/client-state/(?P<category>[^\/]+)/$",
