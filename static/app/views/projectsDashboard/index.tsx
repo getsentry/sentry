@@ -10,6 +10,7 @@ import uniqBy from 'lodash/uniqBy';
 import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
 import IdBadge from 'sentry/components/idBadge';
+import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -131,97 +132,104 @@ function Dashboard({
       {projects.length > 0 && (
         <Fragment>
           <ProjectsHeader>
-            <PageHeading>{t('Projects')}</PageHeading>
-            <ButtonContainer>
-              {hasProjectRedesign && (
+            <Title>
+              <PageHeading>{t('Projects')}</PageHeading>
+            </Title>
+            <Layout.HeaderActions>
+              <ButtonContainer>
+                {hasProjectRedesign && (
+                  <Button
+                    icon={<IconUser size="xs" />}
+                    title={
+                      canJoinTeam
+                        ? undefined
+                        : t('You do not have permission to join a team.')
+                    }
+                    disabled={!canJoinTeam}
+                    to={`/settings/${organization.slug}/teams/`}
+                    data-test-id="join-team"
+                  >
+                    {t('Join a Team')}
+                  </Button>
+                )}
                 <Button
-                  icon={<IconUser size="xs" />}
+                  priority={hasProjectRedesign ? 'primary' : 'default'}
+                  disabled={!canCreateProjects}
                   title={
-                    canJoinTeam
-                      ? undefined
-                      : t('You do not have permission to join a team.')
+                    !canCreateProjects
+                      ? t('You do not have permission to create projects')
+                      : undefined
                   }
-                  disabled={!canJoinTeam}
-                  to={`/settings/${organization.slug}/teams/`}
-                  data-test-id="join-team"
+                  to={`/organizations/${organization.slug}/projects/new/`}
+                  icon={<IconAdd size="xs" isCircled />}
+                  data-test-id="create-project"
                 >
-                  {t('Join a Team')}
+                  {t('Create Project')}
                 </Button>
-              )}
-              <Button
-                priority={hasProjectRedesign ? 'primary' : 'default'}
-                disabled={!canCreateProjects}
-                title={
-                  !canCreateProjects
-                    ? t('You do not have permission to create projects')
-                    : undefined
-                }
-                to={`/organizations/${organization.slug}/projects/new/`}
-                icon={<IconAdd size="xs" isCircled />}
-                data-test-id="create-project"
-              >
-                {t('Create Project')}
-              </Button>
-            </ButtonContainer>
+              </ButtonContainer>
+            </Layout.HeaderActions>
           </ProjectsHeader>
-          {hasProjectRedesign && (
-            <SearchAndSelectorWrapper>
-              <StyledTeamFilter
-                selectedTeams={selectedTeams}
-                handleChangeFilter={handleChangeFilter}
-                showIsMemberTeams
-                showMyTeamsAndUnassigned={false}
-                showMyTeamsDescription
-              />
-              <StyledSearchBar
-                defaultQuery=""
-                placeholder={t('Search for projects by name')}
-                onChange={debouncedSearchQuery}
-                query={projectQuery}
-              />
-            </SearchAndSelectorWrapper>
-          )}
+          <Body hasProjectRedesign={hasProjectRedesign}>
+            <Layout.Main fullWidth>
+              {hasProjectRedesign && (
+                <SearchAndSelectorWrapper>
+                  <TeamFilter
+                    selectedTeams={selectedTeams}
+                    handleChangeFilter={handleChangeFilter}
+                    showIsMemberTeams
+                    showMyTeamsAndUnassigned={false}
+                    showMyTeamsDescription
+                  />
+                  <StyledSearchBar
+                    defaultQuery=""
+                    placeholder={t('Search for projects by name')}
+                    onChange={debouncedSearchQuery}
+                    query={projectQuery}
+                  />
+                </SearchAndSelectorWrapper>
+              )}
+              {hasProjectRedesign ? (
+                <LazyLoad once debounce={50} height={300} offset={300}>
+                  <ProjectCards>
+                    {filteredProjects.map(project => (
+                      <ProjectCard
+                        data-test-id={project.slug}
+                        key={project.slug}
+                        project={project}
+                        hasProjectAccess={hasProjectAccess}
+                      />
+                    ))}
+                  </ProjectCards>
+                </LazyLoad>
+              ) : (
+                filteredTeams.map((team, index) => (
+                  <LazyLoad key={team.slug} once debounce={50} height={300} offset={300}>
+                    <TeamSection
+                      orgId={params.orgId}
+                      team={team}
+                      showBorder={index !== teams.length - 1}
+                      title={
+                        hasTeamAdminAccess ? (
+                          <TeamLink
+                            to={`/settings/${organization.slug}/teams/${team.slug}/`}
+                          >
+                            <IdBadge team={team} avatarSize={22} />
+                          </TeamLink>
+                        ) : (
+                          <IdBadge team={team} avatarSize={22} />
+                        )
+                      }
+                      projects={sortProjects(team.projects)}
+                      access={new Set(organization.access)}
+                    />
+                  </LazyLoad>
+                ))
+              )}
+              {showResources && <Resources organization={organization} />}
+            </Layout.Main>
+          </Body>
         </Fragment>
       )}
-
-      {hasProjectRedesign ? (
-        <LazyLoad once debounce={50} height={300} offset={300}>
-          <ProjectCardsContainer>
-            <ProjectCards>
-              {filteredProjects.map(project => (
-                <ProjectCard
-                  data-test-id={project.slug}
-                  key={project.slug}
-                  project={project}
-                  hasProjectAccess={hasProjectAccess}
-                />
-              ))}
-            </ProjectCards>
-          </ProjectCardsContainer>
-        </LazyLoad>
-      ) : (
-        filteredTeams.map((team, index) => (
-          <LazyLoad key={team.slug} once debounce={50} height={300} offset={300}>
-            <TeamSection
-              orgId={params.orgId}
-              team={team}
-              showBorder={index !== teams.length - 1}
-              title={
-                hasTeamAdminAccess ? (
-                  <TeamLink to={`/settings/${organization.slug}/teams/${team.slug}/`}>
-                    <IdBadge team={team} avatarSize={22} />
-                  </TeamLink>
-                ) : (
-                  <IdBadge team={team} avatarSize={22} />
-                )
-              }
-              projects={sortProjects(team.projects)}
-              access={new Set(organization.access)}
-            />
-          </LazyLoad>
-        ))
-      )}
-      {showResources && <Resources organization={organization} />}
     </Fragment>
   );
 }
@@ -237,36 +245,54 @@ const TeamLink = styled(Link)`
   align-items: center;
 `;
 
-const ProjectsHeader = styled('div')`
-  padding: ${space(3)} ${space(4)} 0 ${space(4)};
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+const ProjectsHeader = styled(Layout.Header)`
+  border-bottom: none;
+`;
+
+const Title = styled(Layout.HeaderContent)`
+  margin-bottom: 0;
+  padding-top: ${space(0.5)};
 `;
 
 const ButtonContainer = styled('div')`
   display: inline-flex;
   gap: ${space(1)};
+  padding-top: ${space(0.5)};
 `;
 
 const SearchAndSelectorWrapper = styled('div')`
-  margin: ${space(2)} 30px 0 30px;
   display: flex;
-  gap: 16px;
+  gap: ${space(2)};
   justify-content: flex-end;
   align-items: flex-end;
+  margin-bottom: ${space(2)};
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: block;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    display: flex;
+  }
 `;
 
 const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    margin-top: ${space(1)};
+  }
 `;
 
-const StyledTeamFilter = styled(TeamFilter)`
-  margin: ${space(2)} 30px 0 0;
-`;
+const Body = styled(Layout.Body)<{hasProjectRedesign: boolean}>`
+  padding-top: ${space(2)} !important;
+  background-color: ${p => p.theme.surface100};
 
-const ProjectCardsContainer = styled('div')`
-  padding: ${space(2)} 30px ${space(2)} 30px;
+  ${p =>
+    !p.hasProjectRedesign &&
+    `
+    padding: 0 !important;
+  `}
 `;
 
 const ProjectCards = styled('div')`
