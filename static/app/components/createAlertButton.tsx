@@ -353,9 +353,10 @@ const CreateAlertButton = withRouter(
     ...buttonProps
   }: Props) => {
     const api = useApi();
-
     const createAlertUrl = (providedProj: string) => {
-      const alertsBaseUrl = `/organizations/${organization.slug}/alerts/${providedProj}`;
+      const alertsBaseUrl = organization.features.includes('alert-wizard-v3')
+        ? `/organizations/${organization.slug}/alerts`
+        : `/organizations/${organization.slug}/alerts/${providedProj}`;
       return `${alertsBaseUrl}/wizard/${referrer ? `?referrer=${referrer}` : ''}`;
     };
 
