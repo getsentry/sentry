@@ -18,10 +18,8 @@ import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {TypeScriptProfile} from 'sentry/utils/profiling/profile/formats/chromeTraceProfile';
-import {
-  importDroppedFile,
-  ProfileGroup,
-} from 'sentry/utils/profiling/profile/importProfile';
+import {importDroppedFile} from 'sentry/utils/profiling/profile/importDroppedFile';
+import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 
 interface FlamegraphProps {
   profiles: ProfileGroup;

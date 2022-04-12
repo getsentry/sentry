@@ -1,91 +1,19 @@
 import {getTypeFlags} from './helpers';
 
-function getChildrenTypesToVisit(node: TypeScript.TypeDescriptor): number[] {
-  return node?.unionTypes ?? node?.intersectionTypes ?? node.typeArguments ?? [];
-}
-
-function getTypeName(node: TypeScript.TypeDescriptor): string | undefined {
-  return node.display || node.intrinsicName || node.symbolName;
-}
-
-function hasTypeArguments(descriptor: TypeScript.TypeDescriptor): boolean {
-  return (descriptor?.typeArguments?.length ?? 0) > 0;
-}
-
-export function getResolvedTypescriptTypeName(
-  resolvedTree: TypeScript.ResolvedTree,
-  tree: TypeScript.TypeTree
+// The order is based off running cat types.json | grep name | wc -l.
+// I've looked at the output and tried reasoning about the order, in general it seems that
+// if we have a displayName, then that is the full display name of the type (same as what you)
+// would see if you hover over a type in your editor. But there are some cases where the
+// display is not present - see comment in https://github.com/microsoft/TypeScript/blob/main/src/compiler/tracing.ts#L209-L218
+export function getTypeName(
+  typeDescriptor: TypeScript.TypeDescriptor
 ): string | undefined {
-  if (resolvedTree.type === undefined) {
-    throw new Error('Resolved node does not belong to type declaration');
+  if (typeDescriptor.display) {
+    return typeDescriptor.display;
   }
 
-  function visit(child: TypeScript.ResolvedTree): string | undefined {
-    if (!child.type) {
-      throw new Error('Resolved node does not belong to type declaration');
-    }
-
-    const name = getTypeName(child.type);
-
-    if (name !== undefined) {
-      const typeArguments =
-        child.type.typeArguments?.map(id => {
-          const node = tree.queryByTypeId(id);
-          return node ? getTypeName(node) : undefined;
-        }) ?? [];
-
-      return typeArguments?.length > 0 ? `${name}<${typeArguments.join(', ')}>` : name;
-    }
-
-    const typestring: string[] = [];
-
-    for (let i = 0; i < child.children.length; i++) {
-      const names = visit(child.children[i]);
-
-      if (names) {
-        typestring.push(names);
-      }
-    }
-
-    if (!typestring.length) {
-      return undefined;
-    }
-
-    return `(${
-      child.type.flags
-        ? typestring.join(` ${TS_SYMBOLS[child.type.flags[0]]} `)
-        : typestring.join(' ')
-    })`;
-  }
-
-  const name = getTypeName(resolvedTree.type);
-
-  if (name !== undefined) {
-    const typeArguments =
-      resolvedTree.type.typeArguments?.map(id => {
-        const node = tree.queryByTypeId(id);
-        return node ? getTypeName(node) : undefined;
-      }) ?? [];
-
-    return typeArguments.length > 0 ? `${name}<${typeArguments.join(', ')}>` : name;
-  }
-
-  const typestring: string[] = [];
-
-  for (let i = 0; i < resolvedTree.children.length; i++) {
-    const names = visit(resolvedTree.children[i]);
-    if (names) {
-      typestring.push(names);
-    }
-  }
-
-  if (!typestring.length) {
-    return undefined;
-  }
-
-  return resolvedTree.type.flags
-    ? typestring.join(` ${TS_SYMBOLS[resolvedTree.type.flags[0]]} `)
-    : typestring.join(' ');
+  // XXX: we need to resolve our own type tree here. For now just fallback to other properties.
+  return typeDescriptor.symbolName || typeDescriptor.intrinsicName;
 }
 
 export const TS_SYMBOLS: Partial<Record<TypeScript.TypeFlag, string>> = {
@@ -95,39 +23,12 @@ export const TS_SYMBOLS: Partial<Record<TypeScript.TypeFlag, string>> = {
 class TypeTree implements TypeScript.TypeTree {
   tree = {};
 
+  // XXX: in most cases, it is helpful to show the entire type tree for a constructed type
+  // to do that, we need to recursively resolve children types based off the type descriptor flags.
   resolveTypeTreeForId(
-    rootId: TypeScript.TypeDescriptor['id']
-  ): TypeScript.ResolvedTree | null {
-    const rootNode: TypeScript.ResolvedTree = {
-      type: this.queryByTypeId(rootId),
-      children: [],
-    };
-
-    const visit = (
-      parent: TypeScript.ResolvedTree,
-      typeId: TypeScript.TypeDescriptor['id']
-    ) => {
-      const node: TypeScript.ResolvedTree = {
-        type: this.queryByTypeId(typeId),
-        children: [],
-      };
-
-      if (node.type) {
-        getChildrenTypesToVisit(node.type).forEach(child => {
-          visit(node, child);
-        });
-      }
-
-      parent.children.push(node);
-    };
-
-    if (rootNode.type) {
-      getChildrenTypesToVisit(rootNode.type).forEach(child => {
-        visit(rootNode, child);
-      });
-    }
-
-    return rootNode;
+    _rootId: TypeScript.TypeDescriptor['id']
+  ): TypeScript.TreeNode | null {
+    return null;
   }
 
   queryByTypeId(id: number): TypeScript.TypeDescriptor | undefined {
@@ -140,7 +41,7 @@ class TypeTree implements TypeScript.TypeTree {
   }
 }
 
-export function importTypeScriptJSON(
+export function importTypeScriptTypesJSON(
   input: TypeScript.TypeDescriptor[]
 ): TypeScript.TypeTree {
   const tree = new TypeTree();

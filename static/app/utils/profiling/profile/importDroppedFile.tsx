@@ -1,4 +1,4 @@
-import {importTypeScriptJSON} from 'sentry/utils/profiling/profile/formats/typescript/importTypeScriptJSON';
+import {importTypeScriptTypesJSON} from 'sentry/utils/profiling/profile/formats/typescript/importTypeScriptTypesJSON';
 import {importProfile, ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 
 const tryParseInputString: JSONParser = input => {
@@ -57,7 +57,7 @@ export async function importDroppedFile(
       }
 
       try {
-        return importTypeScriptJSON(json);
+        return importTypeScriptTypesJSON(json);
       } catch (e) {
         // Fallthrough
       }

@@ -88,14 +88,14 @@ namespace TypeScript {
     evolvingArrayFinalType?: number;
   }
 
-  interface ResolvedTree {
-    children: ResolvedTree[];
+  interface TreeNode {
+    children: TreeNode[];
     type: TypeScript.TypeDescriptor;
   }
   interface TypeTree {
     tree: Record<TypeDescriptor['id'], TypeScript.TypeDescriptor>;
     indexType(type: TypeScript.TypeDescriptor): TypeScript.TypeDescriptor;
-    resolveTypeTreeForId(id: number): ResolvedTree | null;
     queryByTypeId(id: number): TypeScript.TypeDescriptor | undefined;
+    resolveTypeTreeForId(id: number): TreeNode | null;
   }
 }

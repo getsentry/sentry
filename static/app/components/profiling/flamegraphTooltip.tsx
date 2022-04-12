@@ -5,7 +5,7 @@ import {t} from 'sentry/locale';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {TypeScriptProfile} from 'sentry/utils/profiling/profile/formats/chromeTraceProfile';
-import {getResolvedTypescriptTypeName} from 'sentry/utils/profiling/profile/formats/typescript/importTypeScriptJSON';
+import {getTypeName} from 'sentry/utils/profiling/profile/formats/typescript/importTypeScriptTypesJSON';
 
 interface TypeScriptTooltipProps {
   frame: FlamegraphFrame;
@@ -50,10 +50,8 @@ function TypeScriptTooltip(props: TypeScriptTooltipProps) {
     );
   }
 
-  const sourceTree = props.tree.resolveTypeTreeForId(props.frame.frame.meta.sourceId);
-  const sourceTypeName = sourceTree
-    ? getResolvedTypescriptTypeName(sourceTree, props.tree)
-    : t('Unknown type');
+  const sourceType = props.tree.resolveTypeTreeForId(props.frame.frame.meta.sourceId);
+  const sourceTypeName = sourceType ? getTypeName(sourceType.type) : t('Unknown type');
 
   return (
     <Fragment>
