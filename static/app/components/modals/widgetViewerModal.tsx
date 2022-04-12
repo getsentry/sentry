@@ -364,10 +364,8 @@ function WidgetViewerModal(props: Props) {
     loading,
     pageLinks,
   }) => {
-    const isFirstPage = pageLinks
-      ? parseLinkHeader(pageLinks).previous.results === false
-      : false;
     const links = parseLinkHeader(pageLinks ?? null);
+    const isFirstPage = links.previous?.results === false;
     return (
       <React.Fragment>
         <GridEditable

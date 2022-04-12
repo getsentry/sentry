@@ -790,7 +790,6 @@ describe('Modals -> WidgetViewerModal', function () {
   });
 
   describe('Table Widget', function () {
-    let eventsv2Mock;
     const mockQuery = {
       conditions: 'title:/organizations/:orgId/performance/summary/',
       fields: ['title', 'count()'],
@@ -807,8 +806,8 @@ describe('Modals -> WidgetViewerModal', function () {
       queries: [mockQuery],
       WidgetType: WidgetType.DISCOVER,
     };
-    beforeEach(function () {
-      eventsv2Mock = MockApiClient.addMockResponse({
+    function mockEventsv2() {
+      const eventsv2Mock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/eventsv2/',
         body: {
           data: [
@@ -826,9 +825,11 @@ describe('Modals -> WidgetViewerModal', function () {
           },
         },
       });
-    });
+      return eventsv2Mock;
+    }
 
     it('uses provided tableData and does not make an eventsv2 requests', async function () {
+      const eventsv2Mock = mockEventsv2();
       await renderModal({
         initialData,
         widget: mockWidget,
@@ -838,6 +839,7 @@ describe('Modals -> WidgetViewerModal', function () {
     });
 
     it('makes eventsv2 requests when table is paginated', async function () {
+      const eventsv2Mock = mockEventsv2();
       await renderModal({
         initialData,
         widget: mockWidget,
