@@ -379,7 +379,7 @@ export type PlatformExternalIssue = {
 export type IssueConfigField = Field & {
   name: string;
   choices?: Choices;
-  default?: string | number;
+  default?: string | number | Array<string | number>;
   multiple?: boolean;
   url?: string;
 };

@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import * as qs from 'query-string';
 
@@ -9,6 +10,7 @@ import Form from 'sentry/components/forms/form';
 import FormModel, {FieldValue} from 'sentry/components/forms/model';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {
   Choices,
   IntegrationIssueConfig,
@@ -318,7 +320,7 @@ export default class AbstractExternalIssueForm<
       : this.renderBody();
   }
 
-  renderForm = (formFields?: IssueConfigField[]) => {
+  renderForm = (formFields?: IssueConfigField[], errors: string[] = []) => {
     const initialData: {[key: string]: any} = (formFields || []).reduce(
       (accumulator, field: FormField) => {
         accumulator[field.name] =
@@ -348,17 +350,26 @@ export default class AbstractExternalIssueForm<
                     ...fields,
                     noOptionsMessage: () => 'No options. Type to search.',
                   }))
-                  .map(field => (
-                    <FieldFromConfig
-                      disabled={this.state.reloading}
-                      field={field}
-                      flexibleControlStateSize
-                      inline={false}
-                      key={`${field.name}-${field.default}-${field.required}`}
-                      stacked
-                      {...this.getFieldProps(field)}
-                    />
-                  ))}
+                  .map(field => {
+                    return (
+                      <Fragment key={`${field.name}`}>
+                        <FieldFromConfig
+                          disabled={this.state.reloading}
+                          field={field}
+                          flexibleControlStateSize
+                          inline={false}
+                          key={`${field.name}-${field.default}-${field.required}`}
+                          stacked
+                          {...this.getFieldProps(field)}
+                        />
+                        {errors.find(e => e === field.name) ? (
+                          <FieldErrorLabel
+                            key={`${field.name}-error`}
+                          >{`Could not fetch saved option for ${field.label}. Please reselect.`}</FieldErrorLabel>
+                        ) : null}
+                      </Fragment>
+                    );
+                  })}
               </Form>
             </Fragment>
           )}
@@ -367,3 +378,8 @@ export default class AbstractExternalIssueForm<
     );
   };
 }
+
+const FieldErrorLabel = styled('label')`
+  padding-bottom: ${space(2)};
+  color: ${p => p.theme.errorText};
+`;

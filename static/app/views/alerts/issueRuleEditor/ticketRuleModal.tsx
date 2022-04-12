@@ -173,6 +173,26 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
     );
   };
 
+  getErrors() {
+    const errors = [] as string[];
+    for (const field of this.cleanFields()) {
+      if (field.type === 'select' && field.default) {
+        let found;
+        if (Array.isArray(field.default)) {
+          found = (field.choices || []).find(([value, _]) =>
+            ((field.default as Array<string | number>) || []).includes(value)
+          );
+        } else {
+          found = (field.choices || []).find(([value, _]) => value === field.default);
+        }
+        if (!found) {
+          errors.push(field.name);
+        }
+      }
+    }
+    return errors;
+  }
+
   renderBodyText = () => {
     // `ticketType` already includes indefinite article.
     const {ticketType, link} = this.props;
@@ -192,7 +212,7 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
   };
 
   render() {
-    return this.renderForm(this.cleanFields());
+    return this.renderForm(this.cleanFields(), this.getErrors());
   }
 }
 

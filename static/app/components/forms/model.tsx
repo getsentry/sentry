@@ -11,7 +11,7 @@ import {defined} from 'sentry/utils';
 type Snapshot = Map<string, FieldValue>;
 type SaveSnapshot = (() => number) | null;
 
-export type FieldValue = string | number | boolean | undefined; // is undefined valid here?
+export type FieldValue = string | number | boolean | undefined | Array<string | number>; // is undefined valid here?
 
 export type FormOptions = {
   allowUndo?: boolean;
