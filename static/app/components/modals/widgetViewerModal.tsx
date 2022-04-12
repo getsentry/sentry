@@ -719,8 +719,11 @@ function WidgetViewerModal(props: Props) {
                 ? FULL_TABLE_ITEM_LIMIT
                 : HALF_TABLE_ITEM_LIMIT
             }
+            includeAllArgs
+            cursor={cursor}
           >
-            {({tableResults, loading}) => {
+            {({tableResults, loading, pageLinks}) => {
+              const links = parseLinkHeader(pageLinks ?? null);
               return (
                 <React.Fragment>
                   <GridEditable
@@ -746,6 +749,28 @@ function WidgetViewerModal(props: Props) {
                     }}
                     location={location}
                   />
+                  {(links?.previous?.results || links?.next?.results) && (
+                    <Pagination
+                      pageLinks={pageLinks}
+                      onCursor={newCursor => {
+                        router.replace({
+                          pathname: location.pathname,
+                          query: {
+                            ...location.query,
+                            [WidgetViewerQueryField.CURSOR]: newCursor,
+                          },
+                        });
+                        trackAdvancedAnalyticsEvent(
+                          'dashboards_views.widget_viewer.paginate',
+                          {
+                            organization,
+                            widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                            display_type: widget.displayType,
+                          }
+                        );
+                      }}
+                    />
+                  )}
                 </React.Fragment>
               );
             }}
