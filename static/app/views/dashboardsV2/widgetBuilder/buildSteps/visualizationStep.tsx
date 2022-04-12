@@ -51,7 +51,7 @@ export function VisualizationStep({
 
   useEffect(() => {
     if (!isEqual(previousWidget, widget)) {
-      debouceWidget(widget);
+      debounceWidget(widget);
     }
   }, [widget, previousWidget]);
 
