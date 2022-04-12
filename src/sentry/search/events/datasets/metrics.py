@@ -26,6 +26,7 @@ class MetricsDatasetConfig(DatasetConfig):
             constants.PROJECT_NAME_ALIAS: self._project_slug_filter_converter,
             constants.EVENT_TYPE_ALIAS: self._event_type_converter,
             constants.TEAM_KEY_TRANSACTION_ALIAS: self._key_transaction_filter_converter,
+            "transaction.duration": self._duration_filter_converter,
         }
 
     @property
@@ -74,6 +75,24 @@ class MetricsDatasetConfig(DatasetConfig):
                     optional_args=[],
                     snql_distribution=self._resolve_apdex_function,
                     default_result_type="number",
+                ),
+                fields.MetricsFunction(
+                    "avg",
+                    snql_distribution=lambda args, alias: Function(
+                        "avgIf",
+                        [
+                            Column("value"),
+                            Function(
+                                "equals",
+                                [
+                                    Column("metric_id"),
+                                    self.resolve_metric("transaction.duration"),
+                                ],
+                            ),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="integer",
                 ),
                 fields.MetricsFunction(
                     "count_miserable",
@@ -180,14 +199,22 @@ class MetricsDatasetConfig(DatasetConfig):
                         ),
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_distribution=lambda args, alias: Function(
-                        "maxIf",
-                        [
-                            Column("value"),
-                            Function("equals", [Column("metric_id"), args["metric_id"]]),
-                        ],
-                        alias,
-                    ),
+                    snql_distribution=lambda args, alias: self._resolve_percentile(args, alias, 1),
+                    default_result_type="duration",
+                ),
+                fields.MetricsFunction(
+                    "percentile",
+                    required_args=[
+                        fields.with_default(
+                            "transaction.duration",
+                            fields.MetricArg(
+                                "column", allowed_columns=constants.METRIC_DURATION_COLUMNS
+                            ),
+                        ),
+                        fields.NumberRange("percentile", 0, 1),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_distribution=self._resolve_percentile,
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
@@ -199,6 +226,24 @@ class MetricsDatasetConfig(DatasetConfig):
                         [
                             Column("value"),
                             Function("equals", [Column("metric_id"), args["metric_id"]]),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
+                fields.MetricsFunction(
+                    "count",
+                    snql_distribution=lambda args, alias: Function(
+                        "countIf",
+                        [
+                            Column("value"),
+                            Function(
+                                "equals",
+                                [
+                                    Column("metric_id"),
+                                    self.resolve_metric("transaction.duration"),
+                                ],
+                            ),
                         ],
                         alias,
                     ),
@@ -342,6 +387,16 @@ class MetricsDatasetConfig(DatasetConfig):
 
     def _release_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         return filter_aliases.release_filter_converter(self.builder, search_filter)
+
+    def _duration_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        if (
+            self.builder.dry_run
+            and search_filter.value.raw_value == 900000
+            and search_filter.operator == "<"
+        ):
+            return None
+
+        return self.builder._default_filter_converter(search_filter)
 
     # Query Functions
     def _resolve_count_if(
@@ -503,21 +558,36 @@ class MetricsDatasetConfig(DatasetConfig):
         self,
         args: Mapping[str, Union[str, Column, SelectType, int, float]],
         alias: str,
-        fixed_percentile: float,
+        fixed_percentile: Optional[float] = None,
     ) -> SelectType:
-        return Function(
-            "arrayElement",
-            [
-                Function(
-                    f"quantilesIf({fixed_percentile})",
-                    [
-                        Column("value"),
-                        Function("equals", [Column("metric_id"), args["metric_id"]]),
-                    ],
-                ),
-                1,
-            ],
-            alias,
+        if fixed_percentile is None:
+            fixed_percentile = args["percentile"]
+        if fixed_percentile not in constants.METRIC_PERCENTILES:
+            raise IncompatibleMetricsQuery("Custom quantile incompatible with metrics")
+        return (
+            Function(
+                "maxIf",
+                [
+                    Column("value"),
+                    Function("equals", [Column("metric_id"), args["metric_id"]]),
+                ],
+                alias,
+            )
+            if fixed_percentile == 1
+            else Function(
+                "arrayElement",
+                [
+                    Function(
+                        f"quantilesIf({fixed_percentile})",
+                        [
+                            Column("value"),
+                            Function("equals", [Column("metric_id"), args["metric_id"]]),
+                        ],
+                    ),
+                    1,
+                ],
+                alias,
+            )
         )
 
     def _key_transaction_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
