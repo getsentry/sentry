@@ -12,7 +12,7 @@ import {BuildStep} from './buildStep';
 
 const DATASET_CHOICES: [DataSet, string][] = [
   [DataSet.EVENTS, t('Events (Errors, transactions)')],
-  [DataSet.ISSUES, t('Issues (Status, Assignment, Time, etc.)')],
+  [DataSet.ISSUES, t('Issues (States, Assignment, Time, etc.)')],
 ];
 
 interface Props {
