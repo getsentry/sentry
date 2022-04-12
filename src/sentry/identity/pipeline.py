@@ -7,6 +7,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry.models import Identity, IdentityProvider
 from sentry.pipeline import Pipeline
+from sentry.utils import metrics
 
 from . import default_manager
 
@@ -52,6 +53,13 @@ class IdentityProviderPipeline(Pipeline):
             self.request,
             messages.SUCCESS,
             IDENTITY_LINKED.format(identity_provider=self.provider.name),
+        )
+        metrics.incr(
+            "identity_provider_pipeline.finish_pipeline",
+            tags={
+                "provider": self.provider.key,
+            },
+            skip_internal=False,
         )
 
         self.state.clear()
