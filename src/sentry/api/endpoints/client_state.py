@@ -18,6 +18,16 @@ STATE_CATEGORIES = {
 }
 
 
+def get_client_state_key(organization, category, user):
+    if category not in STATE_CATEGORIES:
+        raise NotFound(detail="Category not found")
+    scope = STATE_CATEGORIES[category]["scope"]
+    if scope == "member":
+        return f"client-state:{category}:{organization}:{user.id}"
+    elif scope == "org":
+        return f"client-state:{category}:{organization}"
+
+
 class ClientStateListEndpoint(OrganizationEndpoint):
     private = True
 
@@ -26,18 +36,10 @@ class ClientStateListEndpoint(OrganizationEndpoint):
         self.client = redis.redis_clusters.get(cluster_key)
         super().__init__(**options)
 
-    def get_key(self, organization, category, user):
-        scope = STATE_CATEGORIES[category]["scope"]
-        if scope == "member":
-            return f"client-state:{category}:{organization}:{user.id}"
-        elif scope == "org":
-            return f"client-state:{category}:{organization}"
-
     def get(self, request: Request, organization) -> Response:
         result = {}
-
         for category in STATE_CATEGORIES:
-            key = self.get_key(organization.slug, category, request.user)
+            key = get_client_state_key(organization.slug, category, request.user)
             value = self.client.get(key)
             if value:
                 result[category] = json.loads(value)
@@ -52,17 +54,8 @@ class ClientStateEndpoint(OrganizationEndpoint):
         self.client = redis.redis_clusters.get(cluster_key)
         super().__init__(**options)
 
-    def get_key(self, organization, category, user):
-        if category not in STATE_CATEGORIES:
-            raise NotFound(detail="Category not found")
-        scope = STATE_CATEGORIES[category]["scope"]
-        if scope == "member":
-            return f"client-state:{category}:{organization}:{user.id}"
-        elif scope == "org":
-            return f"client-state:{category}:{organization}"
-
     def get(self, request: Request, organization, category) -> Response:
-        key = self.get_key(organization.slug, category, request.user)
+        key = get_client_state_key(organization.slug, category, request.user)
         value = self.client.get(key)
         if value:
             response = HttpResponse(value)
