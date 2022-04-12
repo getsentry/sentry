@@ -3,7 +3,7 @@ import {defined} from 'sentry/utils';
 import {METRICS_OPERATIONS} from 'sentry/utils/metrics/fields';
 import {FieldValue, FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
-export function generateMetricsWidgetFieldOptions(
+export function generateReleaseWidgetFieldOptions(
   fields: MetricsMeta[] = [],
   tagKeys?: string[]
 ) {

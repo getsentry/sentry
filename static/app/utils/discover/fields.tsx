@@ -906,6 +906,7 @@ export function isLegalEquationColumn(column: Column): boolean {
   if (column.kind === 'function' && column.function[0] === 'any') {
     return false;
   }
+
   const columnType = getColumnType(column);
   return columnType === 'number' || columnType === 'integer' || columnType === 'duration';
 }
@@ -955,7 +956,7 @@ export function explodeFieldString(field: string, alias?: string): Column {
   }
 
   if (isDerivedMetric(field)) {
-    return {kind: 'calculatedField', field: stripDerivedMetricsPrefix(field)};
+    return {kind: 'calculatedField', field: stripDerivedMetricsPrefix(field), alias};
   }
 
   const results = parseFunction(field);
