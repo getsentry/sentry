@@ -1,3 +1,5 @@
+from django.db.models import OuterRef, Subquery, Value
+from django.db.models.functions import Coalesce
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 
@@ -5,7 +7,7 @@ from sentry import features
 from sentry.api.bases.organization import OrganizationAlertRulePermission, OrganizationEndpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.incidents.models import AlertRule, AlertRuleTrigger, AlertRuleTriggerAction
+from sentry.incidents.models import AlertRule, AlertRuleTrigger, AlertRuleTriggerAction, Incident
 
 
 class ProjectAlertRuleEndpoint(ProjectEndpoint):
@@ -41,10 +43,21 @@ class OrganizationAlertRuleEndpoint(OrganizationEndpoint):
         if not features.has("organizations:incidents", organization, actor=request.user):
             raise ResourceDoesNotExist
 
+        expand = request.GET.getlist("expand", [])
         try:
-            kwargs["alert_rule"] = AlertRule.objects.get(
-                organization=organization, id=alert_rule_id
-            )
+            alert_rule_query = AlertRule.objects.all()
+            if "latestIncident" in expand:
+                alert_rule_query = alert_rule_query.annotate(
+                    incident_id=Coalesce(
+                        Subquery(
+                            Incident.objects.filter(alert_rule=OuterRef("pk"))
+                            .order_by("-date_started")
+                            .values("id")[:1]
+                        ),
+                        Value("-1"),
+                    )
+                )
+            kwargs["alert_rule"] = alert_rule_query.get(organization=organization, id=alert_rule_id)
         except AlertRule.DoesNotExist:
             raise ResourceDoesNotExist
 

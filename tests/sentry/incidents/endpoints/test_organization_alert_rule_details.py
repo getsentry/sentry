@@ -100,11 +100,11 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase, APITestCase):
 
         assert resp.data == serialize(self.alert_rule, serializer=DetailedAlertRuleSerializer())
 
-    def test_expand_last_triggered(self):
+    def test_expand_latest_incident(self):
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
         now = datetime.now().replace(tzinfo=UTC)
-        self.create_incident(
+        incident = self.create_incident(
             organization=self.organization,
             title="Incident #1",
             date_started=now,
@@ -115,12 +115,13 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase, APITestCase):
         )
         with self.feature("organizations:incidents"):
             resp = self.get_valid_response(
-                self.organization.slug, self.alert_rule.id, expand=["lastTriggered"]
+                self.organization.slug, self.alert_rule.id, expand=["latestIncident"]
             )
             no_expand_resp = self.get_valid_response(self.organization.slug, self.alert_rule.id)
 
-        assert resp.data["lastTriggered"] == now
-        assert "lastTriggered" not in no_expand_resp.data
+        assert "latestIncident" in resp.data
+        assert resp.data["latestIncident"]["id"] == str(incident.id)
+        assert "latestIncident" not in no_expand_resp.data
 
     @responses.activate
     def test_with_unresponsive_sentryapp(self):

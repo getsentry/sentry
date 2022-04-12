@@ -1,6 +1,6 @@
 from collections import defaultdict
 
-from django.db.models import Max, prefetch_related_objects
+from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.rule import RuleSerializer
@@ -118,15 +118,15 @@ class AlertRuleSerializer(Serializer):
                     "originalAlertRuleId"
                 ] = activity.previous_alert_rule_id
 
-        if "lastTriggered" in self.expand:
-            last_triggered_lookup = {
-                inc["alert_rule_id"]: inc["date_started"]
-                for inc in Incident.objects.filter(alert_rule__in=item_list)
-                .values("alert_rule_id")
-                .annotate(date_started=Max("date_started"))
-            }
+        if "latestIncident" in self.expand:
+            incident_map = {}
+            if "latestIncident" in self.expand:
+                for incident in Incident.objects.filter(
+                    id__in=[x.incident_id for x in alert_rules.values()]
+                ):
+                    incident_map[incident.id] = serialize(incident, user=user)
             for alert_rule in alert_rules.values():
-                result[alert_rule]["lastTriggered"] = last_triggered_lookup.get(alert_rule.id, None)
+                result[alert_rule]["latestIncident"] = incident_map.get(alert_rule.id, None)
 
         return result
 
@@ -160,8 +160,8 @@ class AlertRuleSerializer(Serializer):
             "dateCreated": obj.date_added,
             "createdBy": attrs.get("created_by", None),
         }
-        if "lastTriggered" in self.expand:
-            data["lastTriggered"] = attrs.get("lastTriggered", None)
+        if "latestIncident" in self.expand:
+            data["latestIncident"] = attrs.get("latestIncident", None)
 
         return data
 
