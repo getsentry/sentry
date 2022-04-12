@@ -100,6 +100,7 @@ class IssueWidgetQueries extends React.Component<Props, State> {
       !isSelectionEqual(selection, prevProps.selection) ||
       cursor !== prevProps.cursor
     ) {
+      console.log('PRISCILA');
       this.fetchData();
       return;
     }

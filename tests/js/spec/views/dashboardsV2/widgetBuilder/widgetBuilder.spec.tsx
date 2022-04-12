@@ -8,6 +8,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import * as modals from 'sentry/actionCreators/modal';
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import TagStore from 'sentry/stores/tagStore';
 import {TOP_N} from 'sentry/utils/discover/types';
 import {SessionMetric} from 'sentry/utils/metrics/fields';
@@ -1636,7 +1637,7 @@ describe('WidgetBuilder', function () {
     });
   });
 
-  describe('Issue Widgets', function () {
+  describe.only('Issue Widgets', function () {
     it('sets widgetType to issues', async function () {
       const handleSave = jest.fn();
 
@@ -1738,7 +1739,8 @@ describe('WidgetBuilder', function () {
 
     // Disabling for CI, but should run locally when making changes
     // eslint-disable-next-line jest/no-disabled-tests
-    it.skip('Update table header values (field alias)', async function () {
+    it.only('Update table header values (field alias)', async function () {
+      jest.useFakeTimers();
       const handleSave = jest.fn();
 
       renderTestComponent({
@@ -1753,10 +1755,13 @@ describe('WidgetBuilder', function () {
       await screen.findAllByPlaceholderText('Alias');
 
       userEvent.type(screen.getAllByPlaceholderText('Alias')[0], 'First Alias{enter}');
+      jest.advanceTimersByTime(DEFAULT_DEBOUNCE_DURATION + 1);
 
       userEvent.type(screen.getAllByPlaceholderText('Alias')[1], 'Second Alias{enter}');
+      jest.advanceTimersByTime(DEFAULT_DEBOUNCE_DURATION + 1);
 
       userEvent.type(screen.getAllByPlaceholderText('Alias')[2], 'Third Alias{enter}');
+      jest.advanceTimersByTime(DEFAULT_DEBOUNCE_DURATION + 1);
 
       userEvent.click(screen.getByText('Add Widget'));
 
