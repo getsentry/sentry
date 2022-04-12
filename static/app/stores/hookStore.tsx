@@ -4,14 +4,16 @@ import {createStore, StoreDefinition} from 'reflux';
 import {HookName, Hooks} from 'sentry/types/hooks';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
-interface HookStoreDefinition extends StoreDefinition {
-  add<H extends HookName>(hookName: H, callback: Hooks[H]): void;
-
-  get<H extends HookName>(hookName: H): Array<Hooks[H]>;
+interface Internals {
   // XXX(epurkhiser): We could type this as {[H in HookName]?:
   // Array<Hooks[H]>}, however this causes typescript to produce a complex
   // union that it complains is 'too complex'
   hooks: any;
+}
+
+interface HookStoreDefinition extends StoreDefinition, Internals {
+  add<H extends HookName>(hookName: H, callback: Hooks[H]): void;
+  get<H extends HookName>(hookName: H): Array<Hooks[H]>;
   remove<H extends HookName>(hookName: H, callback: Hooks[H]): void;
 }
 

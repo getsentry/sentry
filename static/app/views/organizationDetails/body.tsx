@@ -1,12 +1,12 @@
 import {Fragment, useState} from 'react';
 
-import AlertActions from 'sentry/actions/alertActions';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Footer from 'sentry/components/footer';
 import {Body, Main} from 'sentry/components/layouts/thirds';
 import {t, tct} from 'sentry/locale';
+import AlertStore from 'sentry/stores/alertStore';
 import {Organization} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -48,7 +48,7 @@ function DeletionPending({organization}: Props) {
       window.location.reload();
     } catch {
       setIsRestoring(false);
-      AlertActions.addAlert({
+      AlertStore.addAlert({
         message:
           'We were unable to restore this organization. Please try again or contact support.',
         type: 'error',

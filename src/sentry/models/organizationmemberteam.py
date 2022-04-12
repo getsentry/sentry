@@ -16,6 +16,7 @@ class OrganizationMemberTeam(BaseModel):
     # an inactive membership simply removes the team from the default list
     # but still allows them to re-join without request
     is_active = models.BooleanField(default=True)
+    role = models.CharField(max_length=32, null=True, blank=True)
 
     class Meta:
         app_label = "sentry"

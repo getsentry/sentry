@@ -7,21 +7,22 @@ import NotFound from 'sentry/components/errors/notFound';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventEntry from 'sentry/components/events/eventEntry';
 import EventMessage from 'sentry/components/events/eventMessage';
-import BaseRRWebReplayer from 'sentry/components/events/rrwebReplayer/baseRRWebReplayer';
 import FeatureBadge from 'sentry/components/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
+import ReplayController from 'sentry/components/replays/replayController';
+import ReplayPlayer from 'sentry/components/replays/replayPlayer';
 import TagsTable from 'sentry/components/tagsTable';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {Entry, EntryType, Event} from 'sentry/types/event';
+import {Event} from 'sentry/types/event';
 import {getMessage} from 'sentry/utils/events';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 
-import mergeBreadcrumbsEntries from './utils/mergeBreadcrumbsEntries';
 import useReplayEvent from './utils/useReplayEvent';
 
 type Props = AsyncView['props'] &
@@ -104,23 +105,28 @@ function getProjectSlug(event: Event) {
   return event.projectSlug || event['project.name']; // seems janky
 }
 
-function isReplayEventEntity(entry: Entry) {
-  // Starting with an allowlist, might be better to block only a few types (like Tags)
-  switch (entry.type) {
-    case EntryType.SPANS:
-      return true;
-    default:
-      return false;
-  }
-}
-
 function ReplayLoader(props: ReplayLoaderProps) {
   const orgSlug = props.orgId;
 
-  const {fetchError, fetching, event, replayEvents, rrwebEvents} = useReplayEvent(props);
+  const {
+    fetchError,
+    fetching,
+    breadcrumbEntry,
+    event,
+    replayEvents,
+    rrwebEvents,
+    mergedReplayEvent,
+  } = useReplayEvent(props);
 
   /* eslint-disable-next-line no-console */
-  console.log({fetchError, fetching, event, replayEvents, rrwebEvents});
+  console.log({
+    fetchError,
+    fetching,
+    event,
+    replayEvents,
+    rrwebEvents,
+    mergedReplayEvent,
+  });
 
   const renderMain = () => {
     if (fetching) {
@@ -130,39 +136,37 @@ function ReplayLoader(props: ReplayLoaderProps) {
       return <NotFound />;
     }
 
-    const breadcrumbs = mergeBreadcrumbsEntries(replayEvents || []);
-
     return (
       <React.Fragment>
-        <BaseRRWebReplayer events={rrwebEvents} />
+        <ReplayContextProvider events={rrwebEvents || []}>
+          <ReplayPlayer />
+          <ReplayController />
+        </ReplayContextProvider>
 
-        <EventEntry
-          projectSlug={getProjectSlug(event)}
-          // group={group}
-          organization={props.organization}
-          event={event}
-          entry={breadcrumbs}
-          route={props.route}
-          router={props.router}
-        />
+        {breadcrumbEntry && (
+          <EventEntry
+            projectSlug={getProjectSlug(event)}
+            // group={group}
+            organization={props.organization}
+            event={event}
+            entry={breadcrumbEntry}
+            route={props.route}
+            router={props.router}
+          />
+        )}
 
-        {replayEvents?.map(replayEvent => (
-          <React.Fragment key={replayEvent.id}>
-            <TitleWrapper>ReplayEvent: {replayEvent.id}</TitleWrapper>
-            {replayEvent.entries.filter(isReplayEventEntity).map(entry => (
-              <EventEntry
-                key={`${replayEvent.id}+${entry.type}`}
-                projectSlug={getProjectSlug(replayEvent)}
-                // group={group}
-                organization={props.organization}
-                event={replayEvent}
-                entry={entry}
-                route={props.route}
-                router={props.router}
-              />
-            ))}
-          </React.Fragment>
-        ))}
+        {mergedReplayEvent && (
+          <EventEntry
+            key={`${mergedReplayEvent.id}`}
+            projectSlug={getProjectSlug(mergedReplayEvent)}
+            // group={group}
+            organization={props.organization}
+            event={mergedReplayEvent}
+            entry={mergedReplayEvent.entries[0]}
+            route={props.route}
+            router={props.router}
+          />
+        )}
       </React.Fragment>
     );
   };

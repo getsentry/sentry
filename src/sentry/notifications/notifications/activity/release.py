@@ -34,6 +34,7 @@ from .base import ActivityNotification
 class ReleaseActivityNotification(ActivityNotification):
     referrer_base = "release-activity"
     notification_setting_type = NotificationSettingTypes.DEPLOY
+    template_path = "sentry/emails/activity/release"
 
     def __init__(self, activity: Activity) -> None:
         super().__init__(activity)
@@ -62,9 +63,6 @@ class ReleaseActivityNotification(ActivityNotification):
 
         self.version = self.release.version
         self.version_parsed = parse_release(self.version)["description"]
-
-    def should_email(self) -> bool:
-        return bool(self.release and self.deploy)
 
     def get_participants_with_group_subscription_reason(
         self,
@@ -143,9 +141,6 @@ class ReleaseActivityNotification(ActivityNotification):
             projects_text = " for these projects"
         return f"Release {self.version_parsed} was deployed to {self.environment}{projects_text}"
 
-    def get_filename(self) -> str:
-        return "activity/release"
-
     def get_category(self) -> str:
         return "release_activity_email"
 
@@ -178,3 +173,8 @@ class ReleaseActivityNotification(ActivityNotification):
         if self.release:
             return f"{self.release.projects.all()[0].slug} | <{settings_url}|Notification Settings>"
         return f"<{settings_url}|Notification Settings>"
+
+    def send(self) -> None:
+        # Don't create a message when the Activity doesn't have a release and deploy.
+        if bool(self.release and self.deploy):
+            return super().send()

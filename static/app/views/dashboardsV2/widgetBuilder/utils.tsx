@@ -4,9 +4,11 @@ import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesFo
 import {t} from 'sentry/locale';
 import {Organization, TagCollection} from 'sentry/types';
 import {
+  aggregateFunctionOutputType,
   aggregateOutputType,
   getAggregateAlias,
   isLegalYAxisType,
+  stripDerivedMetricsPrefix,
 } from 'sentry/utils/discover/fields';
 import {MeasurementCollection} from 'sentry/utils/measurements/measurements';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
@@ -16,8 +18,12 @@ import {
   WidgetQuery,
   WidgetType,
 } from 'sentry/views/dashboardsV2/types';
+import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
+import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
+
+import {FlatValidationError, ValidationError} from '../utils';
 
 // Used in the widget builder to limit the number of lines plotted in the chart
 export const DEFAULT_RESULTS_LIMIT = 5;
@@ -47,14 +53,6 @@ export const displayTypes = {
   [DisplayType.WORLD_MAP]: t('World Map'),
   [DisplayType.BIG_NUMBER]: t('Big Number'),
   [DisplayType.TOP_N]: t('Top 5 Events'),
-};
-
-type ValidationError = {
-  [key: string]: string | string[] | ValidationError[] | ValidationError;
-};
-
-export type FlatValidationError = {
-  [key: string]: string | FlatValidationError[] | FlatValidationError;
 };
 
 export function mapErrors(
@@ -125,15 +123,13 @@ export function normalizeQueries({
         query.fields = fields.filter(field => !columns.includes(field));
       }
 
-      if (!!query.orderby) {
-        return {
-          ...query,
-          orderby: getAggregateAlias(query.orderby),
-        };
-      }
+      const queryOrderBy =
+        widgetType === WidgetType.METRICS
+          ? stripDerivedMetricsPrefix(queries[0].orderby)
+          : queries[0].orderby;
 
       const orderBy =
-        getAggregateAlias(queries[0].orderby) ||
+        getAggregateAlias(queryOrderBy) ||
         (widgetType === WidgetType.ISSUE
           ? IssueSortOptions.DATE
           : generateOrderOptions({
@@ -145,7 +141,9 @@ export function normalizeQueries({
 
       // Issues data set doesn't support order by descending
       query.orderby =
-        widgetType === WidgetType.DISCOVER ? `-${String(orderBy)}` : String(orderBy);
+        widgetType === WidgetType.DISCOVER && !orderBy.startsWith('-')
+          ? `-${String(orderBy)}`
+          : String(orderBy);
 
       return query;
     });
@@ -271,4 +269,63 @@ export function getAmendedFieldOptions({
     measurementKeys: Object.values(measurements).map(({key}) => key),
     spanOperationBreakdownKeys: SPAN_OP_BREAKDOWN_FIELDS,
   });
+}
+
+// Extract metric names from aggregation functions present in the widget queries
+export function getMetricFields(queries: WidgetQuery[]) {
+  return queries.reduce((acc, query) => {
+    for (const field of [...query.aggregates, ...query.columns]) {
+      const fieldParameter = /\(([^)]*)\)/.exec(field)?.[1];
+      if (fieldParameter && !acc.includes(fieldParameter)) {
+        acc.push(fieldParameter);
+      }
+    }
+
+    return acc;
+  }, [] as string[]);
+}
+
+// Any function/field choice for Big Number widgets is legal since the
+// data source is from an endpoint that is not timeseries-based.
+// The function/field choice for World Map widget will need to be numeric-like.
+// Column builder for Table widget is already handled above.
+export function doNotValidateYAxis(displayType: DisplayType) {
+  return displayType === DisplayType.BIG_NUMBER;
+}
+
+export function filterPrimaryOptions({
+  option,
+  widgetType,
+  displayType,
+}: {
+  displayType: DisplayType;
+  option: FieldValueOption;
+  widgetType?: WidgetType;
+}) {
+  if (widgetType === WidgetType.METRICS) {
+    if (displayType === DisplayType.TABLE) {
+      return [
+        FieldValueKind.FUNCTION,
+        FieldValueKind.TAG,
+        FieldValueKind.NUMERIC_METRICS,
+      ].includes(option.value.kind);
+    }
+    if (displayType === DisplayType.TOP_N) {
+      return option.value.kind === FieldValueKind.TAG;
+    }
+  }
+
+  // Only validate function names for timeseries widgets and
+  // world map widgets.
+  if (!doNotValidateYAxis(displayType) && option.value.kind === FieldValueKind.FUNCTION) {
+    const primaryOutput = aggregateFunctionOutputType(option.value.meta.name, undefined);
+    if (primaryOutput) {
+      // If a function returns a specific type, then validate it.
+      return isLegalYAxisType(primaryOutput);
+    }
+  }
+
+  return [FieldValueKind.FUNCTION, FieldValueKind.NUMERIC_METRICS].includes(
+    option.value.kind
+  );
 }

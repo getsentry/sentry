@@ -1,26 +1,32 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment, useCallback, useEffect, useState} from 'react';
 import LazyLoad from 'react-lazyload';
 import {RouteComponentProps} from 'react-router';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
+import debounce from 'lodash/debounce';
 import flatten from 'lodash/flatten';
 import uniqBy from 'lodash/uniqBy';
 
 import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
+import TeamSelector from 'sentry/components/forms/teamSelector';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageHeading from 'sentry/components/pageHeading';
+import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconAdd, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
 import space from 'sentry/styles/space';
 import {Organization, TeamWithProjects} from 'sentry/types';
 import {sortProjects} from 'sentry/utils';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withTeamsForUser from 'sentry/utils/withTeamsForUser';
@@ -43,6 +49,12 @@ function Dashboard({teams, params, organization, loadingTeams, error}: Props) {
       ProjectsStatsStore.reset();
     };
   }, []);
+  const [projectQuery, setProjectQuery] = useState('');
+  const [currentTeam, setCurrentTeam] = useState('');
+  const debouncedSearchQuery = useCallback(
+    debounce(handleSearch, DEFAULT_DEBOUNCE_DURATION),
+    []
+  );
 
   if (loadingTeams) {
     return <LoadingIndicator />;
@@ -52,10 +64,17 @@ function Dashboard({teams, params, organization, loadingTeams, error}: Props) {
     return <LoadingError message={t('An error occurred while fetching your projects')} />;
   }
 
+  const theme = useTheme();
+  const isSuperuser = isActiveSuperuser();
+
   const filteredTeams = teams.filter(team => team.projects.length);
   filteredTeams.sort((team1, team2) => team1.slug.localeCompare(team2.slug));
 
   const projects = uniqBy(flatten(teams.map(teamObj => teamObj.projects)), 'id');
+  const currentProjects = filteredTeams.find(team => team.id === currentTeam)?.projects;
+  const filteredProjects = (currentProjects ?? projects).filter(project =>
+    project.slug.includes(projectQuery)
+  );
   const favorites = projects.filter(project => project.isBookmarked);
 
   const canCreateProjects = organization.access.includes('project:admin');
@@ -66,6 +85,15 @@ function Dashboard({teams, params, organization, loadingTeams, error}: Props) {
 
   const showEmptyMessage = projects.length === 0 && favorites.length === 0;
   const showResources = projects.length === 1 && !projects[0].firstEvent;
+
+  function handleSearch(searchQuery: string) {
+    setProjectQuery(searchQuery);
+  }
+
+  function handleChange(newValue) {
+    const updatedTeam = newValue ? newValue.actor.id : '';
+    setCurrentTeam(updatedTeam);
+  }
 
   if (showEmptyMessage) {
     return (
@@ -114,6 +142,68 @@ function Dashboard({teams, params, organization, loadingTeams, error}: Props) {
               </Button>
             </ButtonContainer>
           </ProjectsHeader>
+          {hasProjectRedesign && (
+            <SearchAndSelectorWrapper>
+              <StyledSearchBar
+                defaultQuery=""
+                placeholder={t('Search for projects by name')}
+                onChange={debouncedSearchQuery}
+                query={projectQuery}
+              />
+              <StyledTeamSelector
+                name="select-team"
+                aria-label="select-team"
+                inFieldLabel={t('Team: ')}
+                placeholder={t('My Teams')}
+                value={currentTeam}
+                onChange={choice => handleChange(choice)}
+                teamFilter={isSuperuser ? undefined : filterTeam => filterTeam.isMember}
+                useId
+                clearable
+                styles={{
+                  placeholder: (provided: any) => ({
+                    ...provided,
+                    paddingLeft: space(0.5),
+                    ':before': {
+                      ...provided[':before'],
+                      color: theme.textColor,
+                    },
+                  }),
+                  singleValue(provided: any) {
+                    const custom = {
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      fontSize: theme.fontSizeMedium,
+                      ':before': {
+                        ...provided[':before'],
+                        color: theme.textColor,
+                        marginRight: space(1.5),
+                        marginLeft: space(0.5),
+                      },
+                    };
+                    return {...provided, ...custom};
+                  },
+                  input: (provided: any, state: any) => ({
+                    ...provided,
+                    display: 'grid',
+                    gridTemplateColumns: 'max-content 1fr',
+                    alignItems: 'center',
+                    marginRight: space(0.25),
+                    gridGap: space(1.5),
+                    ':before': {
+                      backgroundColor: state.theme.backgroundSecondary,
+                      height: 24,
+                      width: 38,
+                      borderRadius: 3,
+                      content: '""',
+                      display: 'block',
+                    },
+                  }),
+                }}
+              />
+            </SearchAndSelectorWrapper>
+          )}
         </Fragment>
       )}
 
@@ -121,7 +211,7 @@ function Dashboard({teams, params, organization, loadingTeams, error}: Props) {
         <LazyLoad once debounce={50} height={300} offset={300}>
           <ProjectCardsContainer>
             <ProjectCards>
-              {projects.map(project => (
+              {filteredProjects.map(project => (
                 <ProjectCard
                   data-test-id={project.slug}
                   key={project.slug}
@@ -182,8 +272,25 @@ const ButtonContainer = styled('div')`
   gap: ${space(1)};
 `;
 
+const SearchAndSelectorWrapper = styled('div')`
+  display: flex;
+  gap: 16px;
+  justify-content: flex-end;
+  align-items: flex-end;
+`;
+
+const StyledSearchBar = styled(SearchBar)`
+  margin-left: 30px;
+  flex-grow: 1;
+`;
+
+const StyledTeamSelector = styled(TeamSelector)`
+  margin: ${space(2)} 30px 0 0;
+  width: 300px;
+`;
+
 const ProjectCardsContainer = styled('div')`
-  padding: 20px 30px 0 30px;
+  padding: ${space(2)} 30px ${space(2)} 30px;
 `;
 
 const ProjectCards = styled('div')`

@@ -25,7 +25,6 @@ import Pagination from 'sentry/components/pagination';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
-import Tooltip from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters, SelectValue} from 'sentry/types';
@@ -394,7 +393,7 @@ function WidgetViewerModal(props: Props) {
           location={location}
         />
         {(links?.previous?.results || links?.next?.results) && (
-          <StyledPagination
+          <Pagination
             pageLinks={pageLinks}
             onCursor={newCursor => {
               router.replace({
@@ -459,7 +458,7 @@ function WidgetViewerModal(props: Props) {
           location={location}
         />
         {(links?.previous?.results || links?.next?.results) && (
-          <StyledPagination
+          <Pagination
             pageLinks={pageLinks}
             onCursor={(nextCursor, _path, _query, delta) => {
               let nextPage = isNaN(page) ? delta : page + delta;
@@ -602,15 +601,15 @@ function WidgetViewerModal(props: Props) {
           </Container>
         )}
         {widget.queries.length > 1 && (
-          <StyledAlert type="info" showIcon>
+          <Alert type="info" showIcon>
             {t(
-              'This widget was built with multiple queries. Table data can only be displayed for one query at a time.'
+              'This widget was built with multiple queries. Table data can only be displayed for one query at a time. To edit any of the queries, edit the widget.'
             )}
-          </StyledAlert>
+          </Alert>
         )}
         {(widget.queries.length > 1 || widget.queries[0].conditions) && (
-          <StyledSelectControlRowContainer>
-            <StyledSelectControl
+          <QueryContainer>
+            <SelectControl
               value={selectedQueryIndex}
               options={queryOptions}
               onChange={(option: SelectValue<number>) => {
@@ -686,46 +685,25 @@ function WidgetViewerModal(props: Props) {
               isSearchable={false}
               isDisabled={widget.queries.length < 2}
             />
-            <StyledQuestionTooltip
-              title={t('Widget queries can be edited by clicking "Edit Widget".')}
-              size="sm"
-            />
-          </StyledSelectControlRowContainer>
+            {widget.queries.length === 1 && (
+              <StyledQuestionTooltip
+                title={t('To edit this query, you must edit the widget.')}
+                size="sm"
+              />
+            )}
+          </QueryContainer>
         )}
-        <TableContainer>
-          {widget.widgetType === WidgetType.ISSUE ? (
-            issuesData && chartUnmodified ? (
-              renderIssuesTable({
-                transformedResults: issuesData,
-                loading: false,
-                errorMessage: undefined,
-                pageLinks: defaultPageLinks,
-                totalCount: totalIssuesCount,
-              })
-            ) : (
-              <IssueWidgetQueries
-                api={api}
-                organization={organization}
-                widget={tableWidget}
-                selection={modalSelection}
-                limit={
-                  widget.displayType === DisplayType.TABLE
-                    ? FULL_TABLE_ITEM_LIMIT
-                    : HALF_TABLE_ITEM_LIMIT
-                }
-                cursor={cursor}
-              >
-                {renderIssuesTable}
-              </IssueWidgetQueries>
-            )
-          ) : tableData && chartUnmodified && widget.displayType === DisplayType.TABLE ? (
-            renderDiscoverTable({
-              tableResults: tableData,
+        {widget.widgetType === WidgetType.ISSUE ? (
+          issuesData && chartUnmodified ? (
+            renderIssuesTable({
+              transformedResults: issuesData,
               loading: false,
+              errorMessage: undefined,
               pageLinks: defaultPageLinks,
+              totalCount: totalIssuesCount,
             })
           ) : (
-            <WidgetQueries
+            <IssueWidgetQueries
               api={api}
               organization={organization}
               widget={tableWidget}
@@ -737,20 +715,34 @@ function WidgetViewerModal(props: Props) {
               }
               cursor={cursor}
             >
-              {renderDiscoverTable}
-            </WidgetQueries>
-          )}
-        </TableContainer>
+              {renderIssuesTable}
+            </IssueWidgetQueries>
+          )
+        ) : tableData && chartUnmodified && widget.displayType === DisplayType.TABLE ? (
+          renderDiscoverTable({
+            tableResults: tableData,
+            loading: false,
+            pageLinks: defaultPageLinks,
+          })
+        ) : (
+          <WidgetQueries
+            api={api}
+            organization={organization}
+            widget={tableWidget}
+            selection={modalSelection}
+            limit={
+              widget.displayType === DisplayType.TABLE
+                ? FULL_TABLE_ITEM_LIMIT
+                : HALF_TABLE_ITEM_LIMIT
+            }
+            cursor={cursor}
+          >
+            {renderDiscoverTable}
+          </WidgetQueries>
+        )}
       </React.Fragment>
     );
   }
-
-  const StyledHeader = styled(Header)`
-    ${headerCss}
-  `;
-  const StyledFooter = styled(Footer)`
-    ${footerCss}
-  `;
 
   let openLabel: string;
   let path: string;
@@ -769,16 +761,15 @@ function WidgetViewerModal(props: Props) {
       );
       break;
   }
+
   return (
     <React.Fragment>
-      <StyledHeader closeButton>
-        <Tooltip title={widget.title} showOnlyOnOverflow>
-          <WidgetTitle>{widget.title}</WidgetTitle>
-        </Tooltip>
-      </StyledHeader>
+      <Header closeButton>
+        <h3>{widget.title}</h3>
+      </Header>
       <Body>{renderWidgetViewer()}</Body>
-      <StyledFooter>
-        <TotalResultsContainer>
+      <Footer>
+        <ResultsContainer>
           {totalResults &&
             (widget.widgetType === WidgetType.ISSUE ? (
               <span>
@@ -795,9 +786,7 @@ function WidgetViewerModal(props: Props) {
                 })}
               </span>
             ))}
-        </TotalResultsContainer>
-        <ButtonBarContainer>
-          <StyledButtonBar gap={1}>
+          <ButtonBar gap={1}>
             {onEdit && widget.id && (
               <Button
                 type="button"
@@ -831,118 +820,57 @@ function WidgetViewerModal(props: Props) {
             >
               {openLabel}
             </Button>
-          </StyledButtonBar>
-        </ButtonBarContainer>
-      </StyledFooter>
+          </ButtonBar>
+        </ResultsContainer>
+      </Footer>
     </React.Fragment>
   );
 }
 
 export const modalCss = css`
   width: 100%;
-  max-width: 1400px;
-`;
-
-const headerCss = css`
-  margin: -${space(4)} -${space(4)} 0px -${space(4)};
-  line-height: normal;
-  display: flex;
-`;
-const footerCss = css`
-  margin: 0px -${space(4)} -${space(4)};
-  flex-wrap: wrap;
+  max-width: 1200px;
 `;
 
 const Container = styled('div')<{height?: number | null}>`
   height: ${p => (p.height ? `${p.height}px` : 'auto')};
   max-height: ${HALF_CONTAINER_HEIGHT}px;
   position: relative;
-
-  & > div {
-    padding: ${space(1.5)} 0px;
-  }
-`;
-const StyledAlert = styled(Alert)`
-  margin: ${space(1)} 0 0 0;
 `;
 
-const StyledSelectControl = styled(SelectControl)`
-  display: flex;
-  & > div {
-    width: 100%;
-  }
-  & input {
-    height: 0;
-  }
-  flex: 1;
-`;
-
-// Table Container allows Table display to work around parent padding and fill full modal width
-const TableContainer = styled('div')`
-  max-width: 1400px;
+const QueryContainer = styled('div')`
+  margin-bottom: ${space(2)};
   position: relative;
-  margin: ${space(2)} 0;
-  & > div {
-    margin: 0;
-  }
-
-  & td:first-child {
-    padding: ${space(1)} ${space(2)};
-  }
-
-  & table {
-    overflow-y: hidden;
-  }
 `;
 
-const WidgetTitle = styled('h4')`
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
-`;
-
-const StyledPagination = styled(Pagination)`
-  padding-top: ${space(2)};
+const StyledQuestionTooltip = styled(QuestionTooltip)`
+  position: absolute;
+  top: ${space(1.5)};
+  right: ${space(2)};
 `;
 
 const HighlightContainer = styled('span')<{display?: 'block' | 'flex'}>`
-  flex: 1;
   display: ${p => p.display};
   gap: ${space(1)};
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${space(1.5)};
-  line-height: 2;
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-const TotalResultsContainer = styled('span')`
-  margin-top: auto;
-  margin-bottom: ${space(1)};
-  font-size: 0.875rem;
-  text-align: right;
-`;
-
-const ButtonBarContainer = styled('span')`
+const ResultsContainer = styled('div')`
   display: flex;
   flex-grow: 1;
-  flex-direction: row-reverse;
-`;
+  flex-direction: column;
+  gap: ${space(1)};
 
-const StyledButtonBar = styled(ButtonBar)`
-  width: fit-content;
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    align-items: center;
+    flex-direction: row;
+    justify-content: space-between;
+  }
 `;
 
 const EmptyQueryContainer = styled('span')`
   color: ${p => p.theme.disabled};
-`;
-
-const StyledSelectControlRowContainer = styled('span')`
-  display: flex;
-  margin-top: ${space(2)};
-`;
-
-const StyledQuestionTooltip = styled(QuestionTooltip)`
-  padding-left: ${space(1)};
-  margin: auto;
 `;
 
 export default withRouter(withPageFilters(WidgetViewerModal));

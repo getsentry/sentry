@@ -5,6 +5,7 @@ import pick from 'lodash/pick';
 import {updateDashboardVisit} from 'sentry/actionCreators/dashboards';
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import NotFound from 'sentry/components/errors/notFound';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -50,7 +51,7 @@ function ViewEditDashboard(props: Props) {
         query: pick(location.query, ALLOWED_PARAMS),
       });
     }
-  }, [api, orgSlug, dashboardId]);
+  }, [api, orgSlug, dashboardId, location.query]);
 
   return (
     <DashboardBasicFeature organization={organization}>
@@ -64,15 +65,17 @@ function ViewEditDashboard(props: Props) {
           return error ? (
             <NotFound />
           ) : dashboard ? (
-            <DashboardDetail
-              {...props}
-              initialState={newWidget ? DashboardState.EDIT : DashboardState.VIEW}
-              dashboard={dashboard}
-              dashboards={dashboards}
-              onDashboardUpdate={onDashboardUpdate}
-              newWidget={newWidget}
-              onSetNewWidget={() => setNewWidget(undefined)}
-            />
+            <ErrorBoundary>
+              <DashboardDetail
+                {...props}
+                initialState={newWidget ? DashboardState.EDIT : DashboardState.VIEW}
+                dashboard={dashboard}
+                dashboards={dashboards}
+                onDashboardUpdate={onDashboardUpdate}
+                newWidget={newWidget}
+                onSetNewWidget={() => setNewWidget(undefined)}
+              />
+            </ErrorBoundary>
           ) : (
             <LoadingIndicator />
           );

@@ -232,7 +232,7 @@ describe('Modals -> WidgetViewerModal', function () {
       await renderModal({initialData, widget: mockWidget});
       expect(
         screen.getByText(
-          'This widget was built with multiple queries. Table data can only be displayed for one query at a time.'
+          'This widget was built with multiple queries. Table data can only be displayed for one query at a time. To edit any of the queries, edit the widget.'
         )
       ).toBeInTheDocument();
       expect(screen.getByText('Query Name')).toBeInTheDocument();
