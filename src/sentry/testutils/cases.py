@@ -113,7 +113,6 @@ from sentry.search.events.constants import (
     METRICS_MAP,
 )
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.indexer.postgres import PGStringIndexer
 from sentry.tagstore.snuba import SnubaTagStorage
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.helpers.slack import install_slack
@@ -1117,18 +1116,20 @@ class SessionMetricsTestCase(SnubaTestCase):
 
     @classmethod
     def _push_metric(cls, session, type, key: SessionMRI, tags, value):
+        org_id = session["org_id"]
+
         def metric_id(key: SessionMRI):
-            res = indexer.record(1, key.value)
+            res = indexer.record(org_id, key.value)
             assert res is not None, key
             return res
 
         def tag_key(name):
-            res = indexer.record(1, name)
+            res = indexer.record(org_id, name)
             assert res is not None, name
             return res
 
         def tag_value(name):
-            res = indexer.record(1, name)
+            res = indexer.record(org_id, name)
             assert res is not None, name
             return res
 
@@ -1212,7 +1213,7 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
             *list(METRICS_MAP.values()),
         ]
         org_strings = {self.organization.id: set(strings)}
-        PGStringIndexer().bulk_record(org_strings=org_strings)
+        indexer.bulk_record(org_strings=org_strings)
 
     def store_metric(
         self,
@@ -1224,11 +1225,13 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
     ):
         internal_metric = METRICS_MAP[metric]
         entity = self.ENTITY_MAP[metric]
+        org_id = self.organization.id
+
         if tags is None:
             tags = {}
         else:
             tags = {
-                indexer.resolve(self.organization.id, key): indexer.resolve(
+                indexer.record(self.organization.id, key): indexer.record(
                     self.organization.id, value
                 )
                 for key, value in tags.items()
@@ -1248,9 +1251,9 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
         self._send_buckets(
             [
                 {
-                    "org_id": self.organization.id,
+                    "org_id": org_id,
                     "project_id": project,
-                    "metric_id": indexer.resolve(self.organization.id, internal_metric),
+                    "metric_id": indexer.resolve(org_id, internal_metric),
                     "timestamp": metric_timestamp,
                     "tags": tags,
                     "type": self.TYPE_MAP[entity],
