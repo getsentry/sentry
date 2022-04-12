@@ -313,6 +313,12 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
                     "operations": ["count_unique"],
                     "unit": None,
                 },
+                {
+                    "name": "transaction.user_misery",
+                    "operations": [],
+                    "type": "numeric",
+                    "unit": "percentage",
+                },
             ],
             key=itemgetter("name"),
         )

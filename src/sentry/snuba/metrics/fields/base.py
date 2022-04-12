@@ -1001,6 +1001,7 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             snql=lambda *_, org_id, metric_ids, alias=None: uniq_aggregation_on_metric(
                 metric_ids, alias=alias
             ),
+            is_private=True,
         ),
         SingularEntityDerivedMetric(
             metric_mri=TransactionMRI.USER_MISERY.value,
