@@ -34,7 +34,7 @@ export type OnboardingState = {
   selectedPlatforms: PlatformKey[];
 };
 
-export function useOnboardingState(): [
+export function usePersistedOnboardingState(): [
   OnboardingState | null,
   (next: OnboardingState | null) => void
 ] {

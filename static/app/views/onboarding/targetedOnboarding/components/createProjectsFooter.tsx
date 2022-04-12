@@ -42,7 +42,7 @@ export default function CreateProjectsFooter({
 }: Props) {
   const api = useApi();
   const {teams} = useTeams();
-  const [clientState, setClientState] = useOnboardingState();
+  const [persistedOnboardingState, setPersistedOnboardingState] = usePersistedOnboardingState();
 
   const createProjects = async () => {
     if (!clientState) {

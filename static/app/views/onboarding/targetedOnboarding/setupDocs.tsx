@@ -41,7 +41,7 @@ type Props = {
 
 function SetupDocs({organization, projects, search}: Props) {
   const api = useApi();
-  const [clientState, _] = useOnboardingState();
+  const [clientState] = useOnboardingState();
   const selectedProjectsSet = new Set(
     clientState?.selectedPlatforms.map(
       platform => clientState.platformToProjectIdMap[platform]

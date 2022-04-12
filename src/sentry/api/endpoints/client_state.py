@@ -82,4 +82,4 @@ class ClientStateEndpoint(OrganizationEndpoint):
     def delete(self, request: Request, organization, category):
         key = self.get_key(organization.slug, category, request.user)
         self.client.delete(key)
-        return Response(status=200)
+        return Response(status=204)
