@@ -24,6 +24,7 @@ from sentry.signals import alert_rule_created
 from sentry.web.decorators import transaction_start
 
 
+# TODO(Leander): Move this method into a relevant abstract base class
 def trigger_alert_rule_action_creators(
     actions: Sequence[Mapping[str, str]],
 ) -> Optional[str]:
