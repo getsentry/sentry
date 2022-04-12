@@ -130,9 +130,12 @@ jobs:
           set -o pipefail
           yarn tsc -p config/tsconfig.build.json --diagnostics --generateTrace /tmp/trace | tee /tmp/typescript-monitor.log
 
-      - name: profile
+      - name: monitor-tsc
         continue-on-error: true
         if: steps.tsc.outcome == 'success'
+        env:
+          GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          GITHUB_PR_REF: ${{ github.event.pull_request.head.ref || github.ref }}
         run: yarn run ts-node .github/workflows/scripts/monitor-typescript.ts
 
       - name: storybook

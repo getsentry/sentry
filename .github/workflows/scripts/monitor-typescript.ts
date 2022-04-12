@@ -69,13 +69,13 @@ function parseContentsToKeyValue(
           acc: Record<string, {unit: string | undefined; value: number}>,
           line: string
         ) => {
-          const match = line.match(/Done in ([0-9]+\.[0-9]+)s/);
+          const match = line.match(/Done in ([0-9]+(\.[0-9]*)?)s/);
           if (match) {
             // The total time from the diagnostics does not include the
             // time spent generating the trace, so we take the duration
             // of the yarn command.
             const parsedValue = parseFloat(match[1]);
-            acc['User Time'] = {
+            acc['Real Time'] = {
               value: parsedValue,
               unit: 's',
             };
@@ -128,7 +128,7 @@ if (parsedDiagnostics === null) {
   process.exit(0);
 }
 
-const userTime = parsedDiagnostics['User Time'] || {value: 0};
+const realTime = parsedDiagnostics['Real Time'] || {value: 0};
 const bindTime = parsedDiagnostics['Bind time'] || {value: 0};
 const checkTime = parsedDiagnostics['Check time'] || {value: 0};
 const parseTime = parsedDiagnostics['Parse time'] || {value: 0};
@@ -136,7 +136,7 @@ const totalTime = parsedDiagnostics['Total time'] || {value: 0};
 const memoryUsage = parsedDiagnostics['Memory used'] || {value: 0};
 
 if (
-  !userTime.value &&
+  !realTime.value &&
   !bindTime.value &&
   !checkTime.value &&
   !parseTime.value &&
@@ -154,7 +154,7 @@ const transaction = Sentry.startTransaction({
 });
 
 // set the start timestamp of the transaction to roughly when it should be
-transaction.startTimestamp = timestampWithMs() - userTime.value;
+transaction.startTimestamp = timestampWithMs() - realTime.value;
 
 transaction.setName('typescript.compile');
 
@@ -167,6 +167,14 @@ transaction.setMeasurements({
   'typescript.time.total': {value: totalTime.value},
   'typescript.memory.used': {value: memoryUsage.value},
 });
+
+transaction.setTag('branch', process.env.GITHUB_PR_REF);
+transaction.setTag('commit', process.env.GITHUB_PR_SHA);
+transaction.setTag('github_run_attempt', process.env.GITHUB_RUN_ATTEMPT);
+transaction.setTag(
+  'github_actions_run',
+  `https://github.com/getsentry/sentry/actions/runs/${process.env.GITHUB_RUN_ID}`
+);
 
 const transactionId = transaction.finish();
 const traceId = transaction.traceId;
@@ -189,7 +197,7 @@ if (fs.existsSync(traceFile)) {
     transaction_name: 'typescript.compile',
     version_code: '1',
     version_name: '0.1',
-    duration_ns: `${userTime.value * 1e9}`,
+    duration_ns: `${realTime.value * 1e9}`,
     trace_id: traceId,
     transaction_id: transactionId,
   };
