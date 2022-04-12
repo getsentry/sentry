@@ -2,6 +2,8 @@ from sentry.notifications.notifications.base import BaseNotification
 
 
 class DummyNotification(BaseNotification):
+    template_path = ""
+
     def build_attachment_title(self, *args):
         return "My Title"
 
