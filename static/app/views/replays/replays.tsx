@@ -67,7 +67,12 @@ class Replays extends React.Component<Props> {
     const {organization} = this.props;
     return replayList?.map(replay => (
       <React.Fragment key={replay.id}>
-        <div>
+        <Link
+          to={`/organizations/${organization.slug}/replays/${generateEventSlug({
+            project: replay['project.name'],
+            id: replay.id,
+          })}/`}
+        >
           <UserBadgeWrapper>
             <UserBadge
               avatarSize={32}
@@ -83,14 +88,6 @@ class Replays extends React.Component<Props> {
               displayEmail={replay.url?.split('?')[0] || ''}
             />
           </UserBadgeWrapper>
-        </div>
-        <Link
-          to={`/organizations/${organization.slug}/replays/${generateEventSlug({
-            project: replay['project.name'],
-            id: replay.id,
-          })}/`}
-        >
-          {replay.replayId}
         </Link>
         <div>
           <FieldDateTime date={replay.timestamp} />
@@ -125,7 +122,7 @@ class Replays extends React.Component<Props> {
                 <PanelTable
                   isLoading={data.isLoading}
                   isEmpty={data.tableData?.data.length === 0}
-                  headers={['Session', 'Replay ID', 'Timestamp']}
+                  headers={['Session', 'Timestamp']}
                 >
                   {data.tableData
                     ? this.renderTable(data.tableData.data as Replay[])
