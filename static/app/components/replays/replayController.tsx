@@ -46,6 +46,8 @@ const ReplayControls = ({
   togglePlayPause,
   toggleSkipInactive,
 }: ControlsProps) => {
+  const {isFullscreen, exit: exitFullscreen} = useFullscreen();
+
   return (
     <React.Fragment>
       <TimelineRange
@@ -116,10 +118,11 @@ const ReplayControls = ({
         <Button
           data-test-id="replay-fullscreen"
           size="xsmall"
-          title={t('View in full screen')}
+          title={isFullscreen ? t('Exit full screen') : t('View in full screen')}
+          aria-label={isFullscreen ? t('Exit full screen') : t('View in full screen')}
           icon={<IconResize size="sm" />}
-          onClick={onFullscreen}
-          aria-label={t('View in full screen')}
+          priority={isFullscreen ? 'primary' : undefined}
+          onClick={isFullscreen ? exitFullscreen : onFullscreen}
         />
       </ButtonGrid>
     </React.Fragment>
