@@ -122,14 +122,17 @@ def get_entity_of_metric_mocked(_, metric_name):
                 ),
             ],
         ),
-        ('transaction:"/bar/:orgId/"', [Condition(Column(name="tags[10002]"), Op.EQ, rhs=10003)]),
+        (
+            'transaction:"/bar/:orgId/"',
+            [Condition(Column(name=resolve_tag_key(ORG_ID, "transaction")), Op.EQ, rhs=10002)],
+        ),
     ],
 )
 def test_parse_query(monkeypatch, query_string, expected):
     org_id = ORG_ID
     local_indexer = MockIndexer()
-    for s in ("", "myapp@2.0.0", "transaction", "/bar/:orgId/"):
-        # will be values 10000, 10001, 10002, 10003 respectively
+    for s in ("", "myapp@2.0.0", "/bar/:orgId/"):
+        # will be values 10000, 10001, 10002 respectively
         local_indexer.record(org_id, s)
     monkeypatch.setattr("sentry.sentry_metrics.indexer.resolve", local_indexer.resolve)
     parsed = resolve_tags(org_id, parse_query(query_string))

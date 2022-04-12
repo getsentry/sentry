@@ -79,15 +79,23 @@ SHARED_TAG_STRINGS = {
     # transactions
     "transaction": PREFIX + 212,
     "transaction.status": PREFIX + 213,
-    "satisfaction": PREFIX + 214,
-    "ok": PREFIX + 215,
-    "cancelled": PREFIX + 216,
-    "unknown": PREFIX + 217,
-    "aborted": PREFIX + 218,
-    "satisfied": PREFIX + 219,
-    "tolerated": PREFIX + 220,
-    "frustrated": PREFIX + 221,
-    "internal_error": PREFIX + 222,
+    "transaction.op": PREFIX + 214,
+    "http.method": PREFIX + 215,
+    "browser.name": PREFIX + 216,
+    "os.name": PREFIX + 217,
+    "satisfaction": PREFIX + 218,
+    "ok": PREFIX + 219,
+    "cancelled": PREFIX + 220,
+    "unknown": PREFIX + 221,
+    "aborted": PREFIX + 222,
+    "satisfied": PREFIX + 223,
+    "tolerated": PREFIX + 224,
+    "frustrated": PREFIX + 225,
+    "internal_error": PREFIX + 226,
+    # outlier
+    "histogram_outlier": PREFIX + 227,
+    "outlier": PREFIX + 228,
+    "inlier": PREFIX + 229,
 }
 SHARED_STRINGS = {**SESSION_METRIC_NAMES, **TRANSACTION_METRICS_NAMES, **SHARED_TAG_STRINGS}
 REVERSE_SHARED_STRINGS = {v: k for k, v in SHARED_STRINGS.items()}
