@@ -196,9 +196,15 @@ class AuthIndexEndpoint(Endpoint):
         try:
             # Must use the httprequest object instead of request
             auth.login(request._request, request.user)
-            metrics.incr("sudo_modal.success")
+            metrics.incr(
+                "sudo_modal.success",
+                sample_rate=1.0,
+            )
         except auth.AuthUserPasswordExpired:
-            metrics.incr("sudo_modal.failure")
+            metrics.incr(
+                "sudo_modal.failure",
+                sample_rate=1.0,
+            )
             return Response(
                 {
                     "code": "password-expired",
@@ -208,9 +214,15 @@ class AuthIndexEndpoint(Endpoint):
             )
 
         if request.user.is_superuser and request.data.get("isSuperuserModal"):
-            metrics.incr("superuser_modal.attempt")
+            metrics.incr(
+                "superuser_modal.attempt",
+                sample_rate=1.0,
+            )
             request.superuser.set_logged_in(request.user)
-            metrics.incr("superuser_modal.success")
+            metrics.incr(
+                "superuser_modal.success",
+                sample_rate=1.0,
+            )
 
         request.user = request._request.user
 
