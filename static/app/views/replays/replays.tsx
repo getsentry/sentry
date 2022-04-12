@@ -45,6 +45,7 @@ class Replays extends React.Component<Props> {
         'user.ip',
         'user.email',
         'user.username',
+        'url',
       ],
       orderby: '-timestamp',
       environment: selection.environments,
@@ -67,17 +68,21 @@ class Replays extends React.Component<Props> {
     return replayList?.map(replay => (
       <React.Fragment key={replay.id}>
         <div>
-          <UserBadge
-            displayName={replay['user.display']}
-            user={{
-              username: replay['user.username'],
-              id: replay['user.id'],
-              ip_address: replay['user.ip'],
-              name: replay['user.display'],
-              email: replay['user.email'],
-            }}
-            displayEmail="example.com/app" // this is where the tag needs to go
-          />
+          <UserBadgeWrapper>
+            <UserBadge
+              avatarSize={32}
+              displayName={replay['user.display']}
+              user={{
+                username: replay['user.username'],
+                id: replay['user.id'],
+                ip_address: replay['user.ip'],
+                name: replay['user.display'],
+                email: replay['user.email'],
+              }}
+              // this is the subheading for the avatar, so displayEmail in this case is a misnomer
+              displayEmail={replay.url?.split('?')[0] || ''}
+            />
+          </UserBadgeWrapper>
         </div>
         <Link
           to={`/organizations/${organization.slug}/replays/${generateEventSlug({
@@ -140,6 +145,11 @@ const HeaderTitle = styled(PageHeading)`
   align-items: center;
   justify-content: space-between;
   flex: 1;
+`;
+
+const UserBadgeWrapper = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.linkColor};
 `;
 
 export default withRouter(withPageFilters(withOrganization(Replays)));
