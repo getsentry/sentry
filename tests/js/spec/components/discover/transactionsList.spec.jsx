@@ -10,7 +10,7 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 
 const WrapperComponent = props => {
   return (
-    <OrganizationContext.Provider organization={props.organization}>
+    <OrganizationContext.Provider value={props.organization}>
       <MEPSettingProvider _isMEPEnabled={false}>
         <TransactionsList {...props} />
       </MEPSettingProvider>
