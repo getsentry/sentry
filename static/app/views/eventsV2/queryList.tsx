@@ -134,7 +134,7 @@ class QueryList extends React.Component<Props> {
   }
 
   renderPrebuiltQueries() {
-    const {location, organization, savedQuerySearchQuery} = this.props;
+    const {location, organization, savedQuerySearchQuery, router} = this.props;
     const views = getPrebuiltQueries(organization);
 
     const hasSearchQuery =
@@ -184,6 +184,7 @@ class QueryList extends React.Component<Props> {
                     query: view,
                     organization,
                     yAxis: view?.yAxis,
+                    router,
                   }),
               }),
         },
@@ -228,7 +229,7 @@ class QueryList extends React.Component<Props> {
   }
 
   renderSavedQueries() {
-    const {savedQueries, location, organization} = this.props;
+    const {savedQueries, location, organization, router} = this.props;
 
     if (!savedQueries || !Array.isArray(savedQueries) || savedQueries.length === 0) {
       return [];
@@ -259,7 +260,7 @@ class QueryList extends React.Component<Props> {
                         eventView,
                         query: savedQuery,
                         organization,
-                        yAxis: savedQuery?.yAxis,
+                        yAxis: savedQuery?.yAxis ?? eventView.yAxis,
                         location,
                       }),
                     }
@@ -269,7 +270,8 @@ class QueryList extends React.Component<Props> {
                           eventView,
                           query: savedQuery,
                           organization,
-                          yAxis: savedQuery?.yAxis,
+                          yAxis: savedQuery?.yAxis ?? eventView.yAxis,
+                          router,
                         }),
                     }),
               },

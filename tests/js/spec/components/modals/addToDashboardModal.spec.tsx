@@ -1,13 +1,27 @@
 import selectEvent from 'react-select-event';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import AddToDashboardModal from 'sentry/components/modals/widgetBuilder/addToDashboardModal';
-import {DashboardDetails, DisplayType} from 'sentry/views/dashboardsV2/types';
+import {
+  DashboardDetails,
+  DashboardWidgetSource,
+  DisplayType,
+} from 'sentry/views/dashboardsV2/types';
 
 const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</div>;
+
+const mockWidgetAsQueryParams = {
+  defaultTableColumns: ['field1', 'field2'],
+  defaultTitle: 'Default title',
+  defaultWidgetQuery: '',
+  displayType: DisplayType.LINE,
+  environment: [],
+  project: [],
+  source: DashboardWidgetSource.DISCOVERV2,
+};
 
 describe('add to dashboard modal', () => {
   let eventsStatsMock;
@@ -75,6 +89,8 @@ describe('add to dashboard modal', () => {
         organization={initialData.organization}
         widget={widget}
         selection={defaultSelection}
+        router={initialData.router}
+        widgetAsQueryParams={mockWidgetAsQueryParams}
       />
     );
 
@@ -104,6 +120,8 @@ describe('add to dashboard modal', () => {
         organization={initialData.organization}
         widget={widget}
         selection={defaultSelection}
+        router={initialData.router}
+        widgetAsQueryParams={mockWidgetAsQueryParams}
       />
     );
 
@@ -131,6 +149,8 @@ describe('add to dashboard modal', () => {
         organization={initialData.organization}
         widget={widget}
         selection={defaultSelection}
+        router={initialData.router}
+        widgetAsQueryParams={mockWidgetAsQueryParams}
       />
     );
 
@@ -154,6 +174,8 @@ describe('add to dashboard modal', () => {
         organization={initialData.organization}
         widget={widget}
         selection={defaultSelection}
+        router={initialData.router}
+        widgetAsQueryParams={mockWidgetAsQueryParams}
       />
     );
 
@@ -174,5 +196,76 @@ describe('add to dashboard modal', () => {
         }),
       })
     );
+  });
+
+  it('navigates to the widget builder when clicking Open in Widget Builder', async () => {
+    render(
+      <AddToDashboardModal
+        Header={stubEl}
+        Footer={stubEl as ModalRenderProps['Footer']}
+        Body={stubEl as ModalRenderProps['Body']}
+        CloseButton={stubEl}
+        closeModal={() => undefined}
+        organization={initialData.organization}
+        widget={widget}
+        selection={defaultSelection}
+        router={initialData.router}
+        widgetAsQueryParams={mockWidgetAsQueryParams}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Select Dashboard')).toBeEnabled();
+    });
+    await selectEvent.select(screen.getByText('Select Dashboard'), 'Test Dashboard');
+
+    userEvent.click(screen.getByText('Open in Widget Builder'));
+    expect(initialData.router.push).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/dashboard/1/widget/new/',
+      query: mockWidgetAsQueryParams,
+    });
+  });
+
+  it('updates the selected dashboard with the widget when clicking Add + Stay in Discover', async () => {
+    const dashboardDetailGetMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/1/',
+      body: {id: '1', widgets: []},
+    });
+    const dashboardDetailPutMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/1/',
+      method: 'PUT',
+      body: {},
+    });
+    render(
+      <AddToDashboardModal
+        Header={stubEl}
+        Footer={stubEl as ModalRenderProps['Footer']}
+        Body={stubEl as ModalRenderProps['Body']}
+        CloseButton={stubEl}
+        closeModal={() => undefined}
+        organization={initialData.organization}
+        widget={widget}
+        selection={defaultSelection}
+        router={initialData.router}
+        widgetAsQueryParams={mockWidgetAsQueryParams}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Select Dashboard')).toBeEnabled();
+    });
+    await selectEvent.select(screen.getByText('Select Dashboard'), 'Test Dashboard');
+
+    userEvent.click(screen.getByText('Add + Stay in Discover'));
+    expect(dashboardDetailGetMock).toHaveBeenCalled();
+
+    // mocked widgets response is an empty array, assert this new widget
+    // is sent as an update to the dashboard
+    await waitFor(() => {
+      expect(dashboardDetailPutMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/dashboards/1/',
+        expect.objectContaining({data: expect.objectContaining({widgets: [widget]})})
+      );
+    });
   });
 });

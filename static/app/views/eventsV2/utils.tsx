@@ -1,4 +1,4 @@
-import {browserHistory} from 'react-router';
+import {browserHistory, InjectedRouter} from 'react-router';
 import {urlEncode} from '@sentry/utils';
 import {Location, Query} from 'history';
 import * as Papa from 'papaparse';
@@ -565,38 +565,48 @@ function eventViewToWidgetQuery({
 }: {
   displayType: DisplayType;
   eventView: EventView;
-  yAxis?: string[];
+  yAxis?: string | string[];
 }) {
   const fields = eventView.fields.map(({field}) => field);
   const {columns, aggregates} = getColumnsAndAggregates(fields);
   const sort = eventView.sorts[0];
+  const queryYAxis = typeof yAxis === 'string' ? [yAxis] : yAxis ?? ['count()'];
+
+  let orderby = '';
+  // The orderby should only be set to sort.field if it is a Top N query
+  // since the query uses all of the fields, or if the ordering is used in the y-axis
+  if (
+    sort &&
+    (displayType === DisplayType.TOP_N ||
+      new Set(queryYAxis.map(getAggregateAlias)).has(sort.field))
+  ) {
+    orderby = `${sort.kind === 'desc' ? '-' : ''}${sort.field}`;
+  }
   const widgetQuery: WidgetQuery = {
     name: '',
-    aggregates: [
-      ...(displayType === DisplayType.TOP_N ? aggregates : []),
-      ...(typeof yAxis === 'string' ? [yAxis] : yAxis ?? ['count()']),
-    ],
+    aggregates: [...(displayType === DisplayType.TOP_N ? aggregates : []), ...queryYAxis],
     columns: [...(displayType === DisplayType.TOP_N ? columns : [])],
-    fields: [
-      ...(displayType === DisplayType.TOP_N ? fields : []),
-      ...(typeof yAxis === 'string' ? [yAxis] : yAxis ?? ['count()']),
-    ],
+    fields: [...(displayType === DisplayType.TOP_N ? fields : []), ...queryYAxis],
     conditions: eventView.query,
-    orderby: sort ? `${sort.kind === 'desc' ? '-' : ''}${sort.field}` : '',
+    orderby,
   };
   return widgetQuery;
 }
 
 export function handleAddQueryToDashboard({
   eventView,
+  location,
   query,
   organization,
+  router,
   yAxis,
 }: {
   eventView: EventView;
   organization: Organization;
+  router: InjectedRouter;
+  location?: Location;
   query?: NewQuery;
-  yAxis?: string[];
+  yAxis?: string | string[];
 }) {
   const displayType = displayModeToDisplayType(eventView.display as DisplayModes);
   const defaultTableFields = eventView.fields.map(({field}) => field);
@@ -607,6 +617,13 @@ export function handleAddQueryToDashboard({
   });
 
   if (organization.features.includes('new-widget-builder-experience-design')) {
+    const {query: widgetAsQueryParams} = constructAddQueryToDashboardLink({
+      eventView,
+      query,
+      organization,
+      yAxis,
+      location,
+    });
     openAddToDashboardModal({
       organization,
       selection: {
@@ -620,11 +637,13 @@ export function handleAddQueryToDashboard({
         },
       },
       widget: {
-        title: query?.name ?? eventView?.name ?? '',
+        title: query?.name ?? eventView.name,
         displayType,
         queries: [defaultWidgetQuery],
         interval: eventView.interval,
       },
+      router,
+      widgetAsQueryParams,
     });
     return;
   }
@@ -658,7 +677,7 @@ export function constructAddQueryToDashboardLink({
   organization: Organization;
   location?: Location;
   query?: NewQuery;
-  yAxis?: string[];
+  yAxis?: string | string[];
 }) {
   const displayType = displayModeToDisplayType(eventView.display as DisplayModes);
   const defaultTableFields = eventView.fields.map(({field}) => field);

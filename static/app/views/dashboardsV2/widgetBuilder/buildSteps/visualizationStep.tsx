@@ -31,13 +31,8 @@ export function VisualizationStep({
   displayType,
   error,
   onChange,
-  widgetBuilderNewDesign,
   widget,
 }: Props) {
-  const options = widgetBuilderNewDesign
-    ? Object.keys(displayTypes).filter(key => key !== DisplayType.TOP_N)
-    : Object.keys(displayTypes);
-
   return (
     <BuildStep
       title={t('Choose your visualization')}
@@ -48,7 +43,7 @@ export function VisualizationStep({
       <Field error={error} inline={false} flexibleControlStateSize stacked>
         <SelectControl
           name="displayType"
-          options={options.map(value => ({
+          options={Object.keys(displayTypes).map(value => ({
             label: displayTypes[value],
             value,
           }))}

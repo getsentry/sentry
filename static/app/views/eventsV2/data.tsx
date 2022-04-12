@@ -50,6 +50,7 @@ export const WEB_VITALS_VIEWS: Readonly<Array<NewQuery>> = [
     projects: [],
     version: 2,
     range: '24h',
+    yAxis: ['epm()'],
   },
 ];
 
