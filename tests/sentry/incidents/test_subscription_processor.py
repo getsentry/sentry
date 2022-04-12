@@ -2102,7 +2102,10 @@ class MetricsCrashRateAlertProcessUpdateTest(
         processor.process_update(
             {
                 "subscription_id": subscription.subscription_id,
-                "values": {"data": []},
+                "values": {
+                    # 1001 is a random int that doesn't map to anything in the indexer
+                    "data": [{resolve_tag_key(self.organization.id, "session.status"): 1001}]
+                },
                 "timestamp": timezone.now(),
                 "interval": 1,
                 "partition": 1,

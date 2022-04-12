@@ -17,10 +17,11 @@ from typing import (
 
 from django.db.models import Q
 
+from sentry.sentry_metrics.indexer.base import StringIndexer
 from sentry.sentry_metrics.indexer.cache import indexer_cache
 from sentry.sentry_metrics.indexer.models import StringIndexer as StringIndexerTable
+from sentry.sentry_metrics.indexer.strings import REVERSE_SHARED_STRINGS, SHARED_STRINGS
 from sentry.utils import metrics
-from sentry.utils.services import Service
 
 _INDEXER_CACHE_METRIC = "sentry_metrics.indexer.memcache"
 _INDEXER_DB_METRIC = "sentry_metrics.indexer.postgres"
@@ -90,6 +91,9 @@ class KeyResults:
     def __init__(self) -> None:
         self.results: MutableMapping[int, MutableMapping[str, int]] = defaultdict(dict)
 
+    def add_key_result(self, key_result: KeyResult) -> None:
+        self.results[key_result.org_id].update({key_result.string: key_result.id})
+
     def add_key_results(self, key_results: Sequence[KeyResult]) -> None:
         for key_result in key_results:
             self.results[key_result.org_id].update({key_result.string: key_result.id})
@@ -145,13 +149,11 @@ def merge_results(
     return new_results
 
 
-class PGStringIndexerV2(Service):
+class PGStringIndexerV2(StringIndexer):
     """
     Provides integer IDs for metric names, tag keys and tag values
     and the corresponding reverse lookup.
     """
-
-    __all__ = ("record", "resolve", "reverse_resolve", "bulk_record")
 
     def _get_db_records(self, db_keys: KeyCollection) -> Any:
         conditions = []
@@ -163,9 +165,7 @@ class PGStringIndexerV2(Service):
 
         return StringIndexerTable.objects.filter(query_statement)
 
-    def bulk_record(
-        self, org_strings: MutableMapping[int, Set[str]]
-    ) -> Mapping[int, Mapping[str, int]]:
+    def bulk_record(self, org_strings: Mapping[int, Set[str]]) -> Mapping[int, Mapping[str, int]]:
         """
         Takes in a mapping with org_ids to sets of strings.
 
@@ -317,3 +317,48 @@ class PGStringIndexerV2(Service):
             return None
 
         return string
+
+
+class StaticStringsIndexerDecorator(StringIndexer):
+    """
+    Wrapper for static strings
+    """
+
+    def __init__(self) -> None:
+        self.indexer = PGStringIndexerV2()
+
+    def _get_db_records(self, db_keys: KeyCollection) -> Any:
+        return self.indexer._get_db_records(db_keys)
+
+    def bulk_record(self, org_strings: Mapping[int, Set[str]]) -> Mapping[int, Mapping[str, int]]:
+        static_keys = KeyCollection(org_strings)
+        static_key_results = KeyResults()
+        for org_id, string in static_keys.as_tuples():
+            if string in SHARED_STRINGS:
+                id = SHARED_STRINGS[string]
+                static_key_results.add_key_result(KeyResult(org_id, string, id))
+
+        static_string_results = static_key_results.get_mapped_results()
+        org_strings_left = static_key_results.get_unmapped_keys(static_keys)
+
+        if org_strings_left.size == 0:
+            return static_string_results
+
+        indexer_results = self.indexer.bulk_record(org_strings_left.mapping)
+
+        return merge_results([static_string_results, indexer_results])
+
+    def record(self, org_id: int, string: str) -> int:
+        if string in SHARED_STRINGS:
+            return SHARED_STRINGS[string]
+        return self.indexer.record(org_id, string)
+
+    def resolve(self, org_id: int, string: str) -> Optional[int]:
+        if string in SHARED_STRINGS:
+            return SHARED_STRINGS[string]
+        return self.indexer.resolve(org_id, string)
+
+    def reverse_resolve(self, id: int) -> Optional[str]:
+        if id in REVERSE_SHARED_STRINGS:
+            return REVERSE_SHARED_STRINGS[id]
+        return self.indexer.reverse_resolve(id)
