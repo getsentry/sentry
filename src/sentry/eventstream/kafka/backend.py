@@ -130,12 +130,16 @@ class KafkaEventStream(SnubaProtocolEventStream):
         self.producer.poll(0.0)
 
         assert isinstance(extra_data, tuple)
-        key = str(project_id)
+        key = (
+            str(project_id).encode("utf-8")
+            if project_id in options.get("kafka.send-project-events-to-random-partitions")
+            else None
+        )
 
         try:
             self.producer.produce(
                 topic=self.topic,
-                key=key.encode("utf-8"),
+                key=key,
                 value=json.dumps((self.EVENT_PROTOCOL_VERSION, _type) + extra_data),
                 on_delivery=self.delivery_callback,
                 headers=[(k, v.encode("utf-8")) for k, v in headers.items()],
