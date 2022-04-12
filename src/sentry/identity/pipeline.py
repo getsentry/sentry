@@ -55,7 +55,7 @@ class IdentityProviderPipeline(Pipeline):
             IDENTITY_LINKED.format(identity_provider=self.provider.name),
         )
         metrics.incr(
-            "identity-provider-pipeline.finish_pipeline",
+            "identity_provider_pipeline.finish_pipeline",
             tags={
                 "provider": self.provider_model.key,
             },
