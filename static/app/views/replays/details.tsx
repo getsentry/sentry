@@ -106,12 +106,16 @@ function getProjectSlug(event: Event) {
   return event.projectSlug || event['project.name']; // seems janky
 }
 
+// TODO: investigate the `:fullscreen` CSS selector
+// https://caniuse.com/?search=%3Afullscreen
 const FullscreenWrapper = styled('div')<{isFullscreen: boolean}>`
-  :fullscreen {
+  ${p =>
+    p.isFullscreen
+      ? `
     display: grid;
     grid-template-rows: auto max-content;
-    background: ${p => p.theme.gray500};
-  }
+    background: ${p.theme.gray500};`
+      : ''}
 `;
 
 function ReplayLoader(props: ReplayLoaderProps) {
