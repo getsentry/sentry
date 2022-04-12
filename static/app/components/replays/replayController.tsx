@@ -5,8 +5,9 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import BooleanField from 'sentry/components/forms/booleanField';
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
-import {Panel, PanelBody} from 'sentry/components/panels';
+import {Panel as _Panel, PanelBody as _PanelBody} from 'sentry/components/panels';
 import {Consumer as ReplayContextProvider} from 'sentry/components/replays/replayContext';
+import useFullscreen from 'sentry/components/replays/useFullscreen';
 import {IconPause, IconPlay, IconRefresh, IconResize} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -46,7 +47,7 @@ const ReplayControls = ({
   toggleSkipInactive,
 }: ControlsProps) => {
   return (
-    <Column>
+    <React.Fragment>
       <TimelineRange
         data-test-id="replay-timeline-range"
         name="replay-timeline"
@@ -121,11 +122,16 @@ const ReplayControls = ({
           aria-label={t('View in full screen')}
         />
       </ButtonGrid>
-    </Column>
+    </React.Fragment>
   );
 };
 
-const Column = styled('div')`
+const Panel = styled(_Panel)<{isFullscreen: boolean}>`
+  width: 100%;
+  ${p => (p.isFullscreen ? 'margin-bottom: 0;' : '')}
+`;
+
+const PanelBody = styled(_PanelBody)`
   display: grid;
   flex-direction: column;
 `;
@@ -162,6 +168,8 @@ export default function ReplayController({
   onFullscreen = () => {},
   speedOptions = [0.5, 1, 2, 4],
 }: ReplayControllerProps) {
+  const {isFullscreen} = useFullscreen();
+
   return (
     <ReplayContextProvider>
       {({
@@ -175,7 +183,7 @@ export default function ReplayController({
         togglePlayPause,
         toggleSkipInactive,
       }) => (
-        <Panel>
+        <Panel isFullscreen={isFullscreen}>
           <PanelBody withPadding>
             <ReplayControls
               currentTime={currentTime}

@@ -2,8 +2,9 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 
-import {Panel} from 'sentry/components/panels';
+import {Panel as _Panel} from 'sentry/components/panels';
 import {Consumer as ReplayContextProvider} from 'sentry/components/replays/replayContext';
+import useFullscreen from 'sentry/components/replays/useFullscreen';
 
 interface Props {
   className?: string;
@@ -50,8 +51,13 @@ function BasePlayerRoot({className, initRoot, videoDimensions}: RootProps) {
   // Update the scale of the view whenever dimensions have changed.
   useEffect(() => {
     if (viewEl.current) {
-      const scale = Math.min((windowDimensions?.width || 0) / videoDimensions.width, 1);
+      const scale = Math.min(
+        (windowDimensions?.width || 0) / videoDimensions.width,
+        (windowDimensions?.height || 0) / videoDimensions.height,
+        1
+      );
       if (scale) {
+        viewEl.current.style['transform-origin'] = 'top left';
         viewEl.current.style.transform = `scale(${scale})`;
         viewEl.current.style.width = `${videoDimensions.width * scale}px`;
         viewEl.current.style.height = `${videoDimensions.height * scale}px`;
@@ -60,17 +66,39 @@ function BasePlayerRoot({className, initRoot, videoDimensions}: RootProps) {
   }, [windowDimensions, videoDimensions]);
 
   return (
-    <div ref={windowEl} data-test-id="replay-window">
+    <Centered ref={windowEl} data-test-id="replay-window">
       <div ref={viewEl} data-test-id="replay-view" className={className} />
-    </div>
+    </Centered>
   );
 }
 
-// Base styles, to make the player work
-const PlayerRoot = styled(BasePlayerRoot)`
-  /* Make sure the replayer fits inside it's container */
-  transform-origin: top left;
+const Panel = styled(_Panel)<{isFullscreen: boolean}>`
+  /*
+  Disable the <Panel> styles when in fullscreen mode.
+  If we add/remove DOM nodes then the Replayer instance will have a stale iframe ref
+  */
+  ${p => (p.isFullscreen ? 'border: none; background: transparent;' : '')}
 
+  iframe {
+    /* Match the iframe corners to the <Panel> */
+    border-radius: ${p => p.theme.borderRadius};
+  }
+`;
+
+// Center the viewEl inside the windowEl.
+// This is useful when the window is inside a container that has large fixed
+// dimensions, like when in fullscreen mode.
+const Centered = styled('div')`
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+// Base styles, to make the Replayer instance work
+const PlayerRoot = styled(BasePlayerRoot)`
   /* Fix the replayer layout so layers are stacked properly */
   .replayer-wrapper > .replayer-mouse-tail {
     position: absolute;
@@ -80,12 +108,6 @@ const PlayerRoot = styled(BasePlayerRoot)`
   /* Override default user-agent styles */
   .replayer-wrapper > iframe {
     border: none;
-  }
-`;
-
-const PlayerPanel = styled(Panel)`
-  iframe {
-    border-radius: ${p => p.theme.borderRadius};
   }
 `;
 
@@ -169,16 +191,18 @@ const SentryPlayerRoot = styled(PlayerRoot)`
 `;
 
 export default function ReplayPlayer({className}: Props) {
+  const {isFullscreen} = useFullscreen();
+
   return (
     <ReplayContextProvider>
       {({initRoot, dimensions}) => (
-        <PlayerPanel>
+        <Panel isFullscreen={isFullscreen}>
           <SentryPlayerRoot
             className={className}
             initRoot={initRoot}
             videoDimensions={dimensions}
           />
-        </PlayerPanel>
+        </Panel>
       )}
     </ReplayContextProvider>
   );

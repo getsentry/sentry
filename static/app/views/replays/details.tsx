@@ -13,6 +13,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayController from 'sentry/components/replays/replayController';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
+import useFullscreen from 'sentry/components/replays/useFullscreen';
 import TagsTable from 'sentry/components/tagsTable';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
@@ -105,9 +106,17 @@ function getProjectSlug(event: Event) {
   return event.projectSlug || event['project.name']; // seems janky
 }
 
+const FullScreenWrapper = styled('div')<{isFullscreen: boolean}>`
+  :fullscreen {
+    display: grid;
+    grid-template-rows: auto max-content;
+    background: ${p => p.theme.gray500};
+  }
+`;
+
 function ReplayLoader(props: ReplayLoaderProps) {
   const orgSlug = props.orgId;
-
+  const {ref: fullscreenRef, enter: enterFullscreen, isFullscreen} = useFullscreen();
   const {
     fetchError,
     fetching,
@@ -139,8 +148,10 @@ function ReplayLoader(props: ReplayLoaderProps) {
     return (
       <React.Fragment>
         <ReplayContextProvider events={rrwebEvents || []}>
-          <ReplayPlayer />
-          <ReplayController />
+          <FullScreenWrapper isFullscreen={isFullscreen} ref={fullscreenRef}>
+            <ReplayPlayer />
+            <ReplayController onFullscreen={enterFullscreen} />
+          </FullScreenWrapper>
         </ReplayContextProvider>
 
         {breadcrumbEntry && (
