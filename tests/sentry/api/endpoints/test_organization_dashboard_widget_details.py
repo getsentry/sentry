@@ -272,3 +272,24 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert response.status_code == 400, response.data
         assert "queries" in response.data, response.data
         assert response.data["queries"][0]["conditions"], response.data
+
+    def test_timestamp_query_with_timezone(self):
+        data = {
+            "title": "Timestamp filter",
+            "displayType": "table",
+            "widgetType": "discover",
+            "queries": [
+                {
+                    "name": "timestamp filter",
+                    "conditions": f"timestamp.to_day:<{iso_format(before_now(hours=1))}",
+                    "fields": [],
+                }
+            ],
+            "statsPeriod": "24h",
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 200, response.data

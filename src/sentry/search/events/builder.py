@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Any, Callable, Dict, List, Mapping, Match, Optional, Set, Tuple, Union, cast
 
 import sentry_sdk
+from django.utils import timezone
 from django.utils.functional import cached_property
 from parsimonious.exceptions import ParseError  # type: ignore
 from snuba_sdk.aliased_expression import AliasedExpression
@@ -105,7 +106,16 @@ class QueryBuilder:
         equation_config: Optional[Dict[str, bool]] = None,
     ):
         self.dataset = dataset
+
         self.params = params
+        # start/end are required so that we can run a query in a reasonable amount of time
+        # Has to be done early, so we can strip timezone, which are ignored and assumed UTC
+        # to match filtering
+        if "start" not in self.params or "end" not in self.params:
+            raise InvalidSearchQuery("Cannot query without a valid date range")
+        self.params["start"] = self.params["start"].replace(tzinfo=timezone.utc)
+        self.params["end"] = self.params["end"].replace(tzinfo=timezone.utc)
+
         self.organization_id = params.get("organization_id")
         self.auto_fields = auto_fields
         self.functions_acl = set() if functions_acl is None else functions_acl
@@ -352,10 +362,6 @@ class QueryBuilder:
         from the query string.
         """
         conditions = []
-
-        # start/end are required so that we can run a query in a reasonable amount of time
-        if "start" not in self.params or "end" not in self.params:
-            raise InvalidSearchQuery("Cannot query without a valid date range")
 
         start: datetime
         end: datetime
