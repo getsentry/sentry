@@ -65,7 +65,7 @@ class ClientStateEndpoint(OrganizationEndpoint):
             return Response({})
 
     def put(self, request: Request, organization, category):
-        key = self.get_key(organization.slug, category, request.user)
+        key = get_client_state_key(organization.slug, category, request.user)
         data_to_write = json.dumps(request.data)
         if len(data_to_write) > STATE_CATEGORIES[category]["max_payload_size"]:
             return Response(status=413)
@@ -73,6 +73,6 @@ class ClientStateEndpoint(OrganizationEndpoint):
         return Response(status=201)
 
     def delete(self, request: Request, organization, category):
-        key = self.get_key(organization.slug, category, request.user)
+        key = get_client_state_key(organization.slug, category, request.user)
         self.client.delete(key)
         return Response(status=204)
