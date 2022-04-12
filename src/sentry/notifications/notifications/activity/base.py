@@ -22,6 +22,7 @@ if TYPE_CHECKING:
 
 class ActivityNotification(ProjectNotification, abc.ABC):
     notification_setting_type = NotificationSettingTypes.WORKFLOW
+    template_path = "sentry/emails/activity/generic"
     metrics_key = "activity"
 
     def __init__(self, activity: Activity) -> None:
@@ -30,9 +31,6 @@ class ActivityNotification(ProjectNotification, abc.ABC):
 
     def get_title(self) -> str:
         raise NotImplementedError
-
-    def get_filename(self) -> str:
-        return "activity/generic"
 
     def get_base_context(self) -> MutableMapping[str, Any]:
         """The most basic context shared by every notification type."""
