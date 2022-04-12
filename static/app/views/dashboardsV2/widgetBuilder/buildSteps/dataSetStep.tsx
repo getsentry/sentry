@@ -11,7 +11,7 @@ import {DataSet} from '../utils';
 import {BuildStep} from './buildStep';
 
 const DATASET_CHOICES: [DataSet, string][] = [
-  [DataSet.EVENTS, t('Events (Errors, transactions)')],
+  [DataSet.EVENTS, t('Errors and Transactions')],
   [DataSet.ISSUES, t('Issues (States, Assignment, Time, etc.)')],
 ];
 

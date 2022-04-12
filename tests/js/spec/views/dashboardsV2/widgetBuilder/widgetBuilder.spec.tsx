@@ -359,7 +359,7 @@ describe('WidgetBuilder', function () {
     expect(
       screen.getByRole('heading', {name: 'Choose your data set'})
     ).toBeInTheDocument();
-    expect(screen.getByLabelText('Select Events (Errors, transactions)')).toBeChecked();
+    expect(screen.getByLabelText('Select Errors and Transactions')).toBeChecked();
 
     // Content - Step 2
     expect(
@@ -429,7 +429,7 @@ describe('WidgetBuilder', function () {
     expect(
       screen.getByRole('heading', {name: 'Choose your data set'})
     ).toBeInTheDocument();
-    expect(screen.getByLabelText('Select Events (Errors, transactions)')).toBeChecked();
+    expect(screen.getByLabelText('Select Errors and Transactions')).toBeChecked();
 
     // Content - Step 2
     expect(
@@ -1681,7 +1681,7 @@ describe('WidgetBuilder', function () {
       userEvent.click(screen.getByText('Line Chart'));
       expect(
         screen.getByRole('radio', {
-          name: 'Select Events (Errors, transactions)',
+          name: 'Select Errors and Transactions',
         })
       ).toBeEnabled();
       expect(
@@ -2001,7 +2001,7 @@ describe('WidgetBuilder', function () {
 
       expect(
         screen.getByRole('radio', {
-          name: 'Select Events (Errors, transactions)',
+          name: 'Select Errors and Transactions',
         })
       ).toBeEnabled();
       expect(
