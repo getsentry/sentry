@@ -1,9 +1,16 @@
 import {Fragment, useEffect, useState} from 'react';
+import {InjectedRouter} from 'react-router';
 import {OptionProps} from 'react-select';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {Query} from 'history';
 
-import {fetchDashboards} from 'sentry/actionCreators/dashboards';
+import {
+  fetchDashboard,
+  fetchDashboards,
+  updateDashboard,
+} from 'sentry/actionCreators/dashboards';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -12,15 +19,37 @@ import SelectOption from 'sentry/components/forms/selectOption';
 import Tooltip from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, PageFilters, SelectValue} from 'sentry/types';
+import {DateString, Organization, PageFilters, SelectValue} from 'sentry/types';
+import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
-import {DashboardListItem, MAX_WIDGETS, Widget} from 'sentry/views/dashboardsV2/types';
+import {
+  DashboardListItem,
+  DisplayType,
+  MAX_WIDGETS,
+  Widget,
+} from 'sentry/views/dashboardsV2/types';
+import {NEW_DASHBOARD_ID} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
+
+type WidgetAsQueryParams = Query & {
+  defaultTableColumns: string[];
+  defaultTitle: string;
+  defaultWidgetQuery: string;
+  displayType: DisplayType;
+  environment: string[];
+  project: number[];
+  source: string;
+  end?: DateString;
+  start?: DateString;
+  statsPeriod?: string | null;
+};
 
 export type AddToDashboardModalProps = {
   organization: Organization;
+  router: InjectedRouter;
   selection: PageFilters;
   widget: Widget;
+  widgetAsQueryParams: WidgetAsQueryParams;
 };
 
 type Props = ModalRenderProps & AddToDashboardModalProps;
@@ -31,8 +60,10 @@ function AddToDashboardModal({
   Footer,
   closeModal,
   organization,
+  router,
   selection,
   widget,
+  widgetAsQueryParams,
 }: Props) {
   const api = useApi();
   const [dashboards, setDashboards] = useState<DashboardListItem[] | null>(null);
@@ -43,13 +74,42 @@ function AddToDashboardModal({
   }, []);
 
   function handleGoToBuilder() {
+    const pathname =
+      selectedDashboardId === NEW_DASHBOARD_ID
+        ? `/organizations/${organization.slug}/dashboards/new/widget/new/`
+        : `/organizations/${organization.slug}/dashboard/${selectedDashboardId}/widget/new/`;
+
+    router.push({
+      pathname,
+      query: widgetAsQueryParams,
+    });
     closeModal();
-    return;
   }
 
-  function handleAddAndStayInDiscover() {
-    closeModal();
-    return;
+  async function handleAddAndStayInDiscover() {
+    if (selectedDashboardId === null) {
+      return;
+    }
+
+    try {
+      const dashboard = await fetchDashboard(api, organization.slug, selectedDashboardId);
+      const newDashboard = {
+        ...dashboard,
+        widgets: [
+          ...dashboard.widgets,
+          {...widget, title: widget.title === '' ? t('All Events') : widget.title},
+        ],
+      };
+
+      await updateDashboard(api, organization.slug, newDashboard);
+
+      closeModal();
+      addSuccessMessage(t('Successfully added widget to dashboard'));
+    } catch (e) {
+      const errorMessage = t('Unable to add widget to dashboard');
+      handleXhrErrorResponse(errorMessage)(e);
+      addErrorMessage(errorMessage);
+    }
   }
 
   const canSubmit = selectedDashboardId !== null;
