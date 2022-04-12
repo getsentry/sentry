@@ -56,14 +56,24 @@ backend: &backend
   - 'migrations_lockfile.txt'
   - 'config/**/*'
 
-plugins:
+acceptance: &acceptance
+  - *backend
+  - *frontend
+
+plugins: &plugins
   - *backend
   - 'src/sentry_plugins/**/*.html'
 
-api_docs:
+api_docs: &api_docs
   - *backend
   - 'api-docs/**'
   - 'tests/apidocs/**'
+
+# This is the ultimate controller for backend.yml
+backend_any_type: &backend_any_type
+  - *backend
+  - *api_docs
+  - *plugins
 
 migrations_added:
   - added: 'src/sentry/migrations/*'
