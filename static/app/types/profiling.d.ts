@@ -56,6 +56,7 @@ namespace Profiling {
   type Schema = {
     name: string;
     activeProfileIndex?: number;
+    duration_ns: number;
     profiles: ReadonlyArray<ProfileTypes>;
     shared: {
       frames: ReadonlyArray<Omit<FrameInfo, 'key'>>;

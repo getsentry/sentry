@@ -7,28 +7,26 @@ import {createFrameIndex} from './utils';
 
 export class SampledProfile extends Profile {
   static FromProfile(
-    sampled: Profiling.SampledProfile,
+    sampledProfile: Profiling.SampledProfile,
     frameIndex: ReturnType<typeof createFrameIndex>
   ): Profile {
-    const {startValue, endValue, samples, weights} = sampled;
-
     const profile = new SampledProfile(
-      endValue - startValue,
-      startValue,
-      endValue,
-      sampled.name,
-      sampled.unit
+      sampledProfile.endValue - sampledProfile.startValue,
+      0,
+      sampledProfile.endValue,
+      sampledProfile.name,
+      sampledProfile.unit
     );
 
-    if (samples.length !== weights.length) {
+    if (sampledProfile.samples.length !== sampledProfile.weights.length) {
       throw new Error(
-        `Expected samples.length (${samples.length}) to equal weights.length (${weights.length})`
+        `Expected samples.length (${sampledProfile.samples.length}) to equal weights.length (${sampledProfile.weights.length})`
       );
     }
 
-    for (let i = 0; i < samples.length; i++) {
-      const stack = samples[i];
-      const weight = weights[i];
+    for (let i = 0; i < sampledProfile.samples.length; i++) {
+      const stack = sampledProfile.samples[i];
+      const weight = sampledProfile.weights[i];
 
       profile.appendSampleWithWeight(
         stack.map(n => {
@@ -114,6 +112,7 @@ export class SampledProfile extends Profile {
       this.duration,
       this.weights.reduce((a, b) => a + b, 0)
     );
+    this.endedAt = this.duration;
 
     // We had no frames with duration > 0, so set min duration to timeline duration
     // which effectively disables any zooming on the flamegraphs

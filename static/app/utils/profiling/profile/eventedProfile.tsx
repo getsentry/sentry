@@ -15,19 +15,21 @@ export class EventedProfile extends Profile {
     eventedProfile: Profiling.EventedProfile,
     frameIndex: ReturnType<typeof createFrameIndex>
   ): EventedProfile {
-    const {startValue, endValue, name, unit} = eventedProfile;
-
     const profile = new EventedProfile(
-      endValue - startValue,
-      startValue,
-      endValue,
-      name,
-      unit
+      eventedProfile.endValue - eventedProfile.startValue,
+      0,
+      eventedProfile.endValue,
+      eventedProfile.name,
+      eventedProfile.unit
     );
 
     // If frames are offset, we need to set lastValue to profile start, so that delta between
     // samples is correctly offset by the start value.
-    profile.lastValue = startValue;
+    profile.lastValue = 0;
+
+    if (eventedProfile.startValue > 0) {
+      profile.lastValue = eventedProfile.startValue;
+    }
 
     for (const event of eventedProfile.events) {
       const frame = frameIndex[event.frame];
@@ -171,6 +173,7 @@ export class EventedProfile extends Profile {
       this.duration,
       this.weights.reduce((a, b) => a + b, 0)
     );
+    this.endedAt = this.duration;
 
     // We had no frames with duration > 0, so set min duration to timeline duration
     // which effectively disables any zooming on the flamegraphs

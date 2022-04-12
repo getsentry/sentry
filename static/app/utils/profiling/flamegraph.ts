@@ -50,7 +50,7 @@ export class Flamegraph {
     this.formatter = makeFormatter(profile.unit);
 
     if (this.duration) {
-      this.configSpace = new Rect(this.startedAt, 0, this.duration, this.depth);
+      this.configSpace = new Rect(0, 0, this.duration, this.depth);
     } else {
       // If the profile duration is 0, set the flamegraph duration
       // to 1 second so we can render a placeholder grid
