@@ -505,7 +505,7 @@ class ReleasesList extends AsyncView<Props, State> {
             <ReleasesPageFilterBar>
               <ProjectPageFilter />
               <EnvironmentPageFilter />
-              <DatePageFilter />
+              <DatePageFilter alignDropdown="left" />
             </ReleasesPageFilterBar>
 
             <SortAndFilterWrapper>
