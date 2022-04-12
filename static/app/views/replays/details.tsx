@@ -106,7 +106,7 @@ function getProjectSlug(event: Event) {
   return event.projectSlug || event['project.name']; // seems janky
 }
 
-const FullScreenWrapper = styled('div')<{isFullscreen: boolean}>`
+const FullscreenWrapper = styled('div')<{isFullscreen: boolean}>`
   :fullscreen {
     display: grid;
     grid-template-rows: auto max-content;
@@ -148,10 +148,10 @@ function ReplayLoader(props: ReplayLoaderProps) {
     return (
       <React.Fragment>
         <ReplayContextProvider events={rrwebEvents || []}>
-          <FullScreenWrapper isFullscreen={isFullscreen} ref={fullscreenRef}>
+          <FullscreenWrapper isFullscreen={isFullscreen} ref={fullscreenRef}>
             <ReplayPlayer />
             <ReplayController onFullscreen={enterFullscreen} />
-          </FullScreenWrapper>
+          </FullscreenWrapper>
         </ReplayContextProvider>
 
         {breadcrumbEntry && (
