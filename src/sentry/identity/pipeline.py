@@ -7,6 +7,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry.models import Identity, IdentityProvider
 from sentry.pipeline import Pipeline
+from sentry.utils import metrics
 
 from . import default_manager
 
@@ -52,6 +53,14 @@ class IdentityProviderPipeline(Pipeline):
             self.request,
             messages.SUCCESS,
             IDENTITY_LINKED.format(identity_provider=self.provider.name),
+        )
+        metrics.incr(
+            "social_auth.login-success",
+            tags={
+                "provider": self.provider_model.key,
+            },
+            skip_internal=False,
+            sample_rate=1.0,
         )
 
         self.state.clear()
