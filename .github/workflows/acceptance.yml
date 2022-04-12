@@ -14,7 +14,26 @@ on:
   pull_request:
 
 jobs:
+  files-changed:
+    name: detect what files changed
+    runs-on: ubuntu-20.04
+    timeout-minutes: 3
+    # Map a step output to a job output
+    outputs:
+      acceptance: ${{ steps.changes.outputs.acceptance }}
+      backend: ${{ steps.changes.outputs.backend }}
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Check for backend file changes
+        uses: getsentry/paths-filter@v2
+        id: changes
+        with:
+          token: ${{ github.token }}
+          filters: .github/file-filters.yml
+
   frontend:
+    needs: files-changed
     name: frontend tests
     runs-on: ubuntu-20.04
     timeout-minutes: 20
@@ -93,6 +112,7 @@ jobs:
           type: frontend
 
   webpack:
+    needs: files-changed
     name: create frontend bundle
     runs-on: ubuntu-20.04
     timeout-minutes: 10
@@ -150,6 +170,7 @@ jobs:
           path: dist.tar.gz
 
   acceptance:
+    needs: files-changed
     name: acceptance
     runs-on: ubuntu-20.04
     timeout-minutes: 20
@@ -212,19 +233,12 @@ jobs:
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
 
-      # We use the below to determine the flag to use in codecov
-      - name: Check for python file changes
-        uses: getsentry/paths-filter@v2
-        id: changes
-        with:
-          token: ${{ github.token }}
-          filters: .github/file-filters.yml
-
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
-        if: ${{ steps.changes.outputs.backend == 'true' }}
+        if: ${{ needs.files-changed.outputs.backend == 'true' }}
 
   chartcuterie:
+    needs: files-changed
     name: chartcuterie integration
     runs-on: ubuntu-20.04
     timeout-minutes: 30
@@ -284,17 +298,9 @@ jobs:
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
 
-      # We use the below to determine the flag to use in codecov (only upload on backend changes)
-      - name: Check for python file changes
-        uses: getsentry/paths-filter@v2
-        id: changes
-        with:
-          token: ${{ github.token }}
-          filters: .github/file-filters.yml
-
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
-        if: ${{ steps.changes.outputs.backend == 'true' }}
+        if: ${{ needs.files-changed.outputs.backend == 'true' }}
 
   visual-diff:
     # This guarantees that we will only schedule Visual Snapshots if all
