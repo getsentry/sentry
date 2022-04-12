@@ -149,7 +149,7 @@ class FlamegraphRenderer {
     );
   }
 
-  get configToPhysicalSpace(): mat3 {
+  get configViewToPhysicalSpace(): mat3 {
     return mat3.fromValues(
       this.physicalSpace.width / this.configView.width,
       0,
@@ -498,7 +498,7 @@ class FlamegraphRenderer {
 
   getConfigSpaceCursor(
     logicalSpaceCursor: vec2,
-    configToPhysicalSpace: mat3 = this.configToPhysicalSpace
+    configViewToPhysicalSpace: mat3 = this.configViewToPhysicalSpace
   ): vec2 {
     const physicalSpaceCursor = vec2.transformMat3(
       vec2.create(),
@@ -506,7 +506,7 @@ class FlamegraphRenderer {
       this.logicalToPhysicalSpace
     );
 
-    const physicalToConfig = mat3.invert(mat3.create(), configToPhysicalSpace);
+    const physicalToConfig = mat3.invert(mat3.create(), configViewToPhysicalSpace);
     return vec2.transformMat3(vec2.create(), physicalSpaceCursor, physicalToConfig);
   }
 
@@ -554,7 +554,7 @@ class FlamegraphRenderer {
 
   draw(
     searchResults: Record<FlamegraphFrame['frame']['key'], FlamegraphFrame> | null,
-    configToPhysicalSpace = this.configToPhysicalSpace
+    configViewToPhysicalSpace = this.configViewToPhysicalSpace
   ): void {
     if (!this.gl) {
       throw new Error('Uninitialized WebGL context');
@@ -579,7 +579,7 @@ class FlamegraphRenderer {
     this.gl.uniformMatrix3fv(this.uniforms.u_projection, false, projectionMatrix);
 
     // Model to projection
-    this.gl.uniformMatrix3fv(this.uniforms.u_model, false, configToPhysicalSpace);
+    this.gl.uniformMatrix3fv(this.uniforms.u_model, false, configViewToPhysicalSpace);
 
     // Check if we should draw border
     this.gl.uniform1i(this.uniforms.u_draw_border, this.options.draw_border ? 1 : 0);
@@ -588,7 +588,7 @@ class FlamegraphRenderer {
     this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
 
     const physicalSpacePixel = new Rect(0, 0, 1, 1);
-    const physicalToConfig = mat3.invert(mat3.create(), configToPhysicalSpace);
+    const physicalToConfig = mat3.invert(mat3.create(), configViewToPhysicalSpace);
     const configSpacePixel = physicalSpacePixel.transformRect(physicalToConfig);
 
     this.gl.uniform2f(

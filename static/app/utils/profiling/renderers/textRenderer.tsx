@@ -58,7 +58,7 @@ class TextRenderer {
     return this.textCache[text];
   }
 
-  draw(configViewSpace: Rect, configSpace: Rect, configToPhysicalSpace: mat3): void {
+  draw(configViewSpace: Rect, configSpace: Rect, configViewToPhysicalSpace: mat3): void {
     this.context.font = `${this.theme.SIZES.BAR_FONT_SIZE * window.devicePixelRatio}px ${
       this.theme.FONTS.FRAME_FONT
     }`;
@@ -106,7 +106,7 @@ class TextRenderer {
       );
 
       // Transform frame to physical space coordinates
-      const frameInPhysicalSpace = offsetFrame.transformRect(configToPhysicalSpace);
+      const frameInPhysicalSpace = offsetFrame.transformRect(configViewToPhysicalSpace);
 
       // Since the text is not exactly aligned to the left/right bounds of the frame, we need to subtract the padding
       // from the total width, so that we can truncate the center of the text accurately.
