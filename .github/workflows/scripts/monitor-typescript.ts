@@ -11,12 +11,10 @@ import {Event} from '@sentry/types';
 import {timestampWithMs} from '@sentry/utils';
 
 Sentry.init({
-  // jest project under Sentry organization (dev productivity team)
-  // dsn: 'https://3fe1dce93e3a4267979ebad67f3de327@o1.ingest.sentry.io/4857230',
+  // typescript-compiler project under sentry-test organization (dev productivity team)
+  dsn: 'https://ca215f623d6f456aa1d09ebc1efad79d@o19635.ingest.sentry.io/6326775',
   // setting a tunnel implicitly sends the event as an envelope instead of json
-  // tunnel: 'https://01.ingest.sentry.io/api/4857230/envelope/',
-  dsn: 'https://3e28828639ff4360baed0f350b8010bd@o1137848.ingest.sentry.io/6326615',
-  tunnel: 'https://o1137848.ingest.sentry.io/api/6326615/envelope/',
+  tunnel: 'https://o19635.ingest.sentry.io/api/6326775/envelope/',
   tracesSampleRate: 1.0,
   environment: 'ci',
   beforeSend: (event: any) => {
