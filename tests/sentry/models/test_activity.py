@@ -6,6 +6,16 @@ from sentry.types.activity import ActivityType
 
 
 class ActivityTest(TestCase):
+    def test_get_activities_for_group_none(self):
+        project = self.create_project(name="test_activities_group")
+        group = self.create_group(project)
+
+        act_for_group: Sequence[Activity] = Activity.objects.get_activities_for_group(
+            group=group, num=100
+        )
+        assert len(act_for_group) == 1
+        assert act_for_group[0].type == ActivityType.FIRST_SEEN.value
+
     def test_get_activities_for_group_simple(self):
         project = self.create_project(name="test_activities_group")
         group = self.create_group(project)
@@ -134,3 +144,108 @@ class ActivityTest(TestCase):
         assert act_for_group[4] == activities[1]
         assert act_for_group[5] == activities[0]
         assert act_for_group[-1].type == ActivityType.FIRST_SEEN.value
+
+    def test_get_activities_for_group_flip_flop(self):
+        project = self.create_project(name="test_activities_group")
+        group = self.create_group(project)
+        user1 = self.create_user()
+        user2 = self.create_user()
+        user3 = self.create_user()
+
+        activities = [
+            Activity.objects.create_group_activity(
+                group=group,
+                type=ActivityType.SET_UNRESOLVED,
+                user=user1,
+                data=None,
+                send_notification=False,
+            ),
+            Activity.objects.create_group_activity(
+                group=group,
+                type=ActivityType.SET_IGNORED,
+                user=user1,
+                data=None,
+                send_notification=False,
+            ),
+            Activity.objects.create_group_activity(
+                group=group,
+                type=ActivityType.SET_UNRESOLVED,
+                user=user2,
+                data=None,
+                send_notification=False,
+            ),
+            Activity.objects.create_group_activity(
+                group=group,
+                type=ActivityType.SET_IGNORED,
+                user=user2,
+                data=None,
+                send_notification=False,
+            ),
+            Activity.objects.create_group_activity(
+                group=group,
+                type=ActivityType.SET_UNRESOLVED,
+                user=user3,
+                data=None,
+                send_notification=False,
+            ),
+            Activity.objects.create_group_activity(
+                group=group,
+                type=ActivityType.SET_IGNORED,
+                user=user3,
+                data=None,
+                send_notification=False,
+            ),
+            Activity.objects.create_group_activity(
+                group=group,
+                type=ActivityType.SET_UNRESOLVED,
+                user=user1,
+                data=None,
+                send_notification=False,
+            ),
+            Activity.objects.create_group_activity(
+                group=group,
+                type=ActivityType.SET_IGNORED,
+                user=user1,
+                data=None,
+                send_notification=False,
+            ),
+            Activity.objects.create_group_activity(
+                group=group,
+                type=ActivityType.SET_UNRESOLVED,
+                user=user1,
+                data=None,
+                send_notification=False,
+            ),
+            Activity.objects.create_group_activity(
+                group=group,
+                type=ActivityType.SET_IGNORED,
+                user=user1,
+                data=None,
+                send_notification=False,
+            ),
+            Activity.objects.create_group_activity(
+                group=group,
+                type=ActivityType.SET_UNRESOLVED,
+                user=user1,
+                data=None,
+                send_notification=False,
+            ),
+            Activity.objects.create_group_activity(
+                group=group,
+                type=ActivityType.SET_IGNORED,
+                user=user1,
+                data=None,
+                send_notification=False,
+            ),
+        ]
+
+        act_for_group: Sequence[Activity] = Activity.objects.get_activities_for_group(
+            group=group, num=100
+        )
+
+        assert len(act_for_group) == len(activities) + 1
+        assert act_for_group[-1].type == ActivityType.FIRST_SEEN.value
+
+        for pair in zip(act_for_group[0:-2:2], act_for_group[1:-2:2]):
+            assert pair[0].type == ActivityType.SET_IGNORED.value
+            assert pair[1].type == ActivityType.SET_UNRESOLVED.value
