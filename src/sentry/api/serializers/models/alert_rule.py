@@ -126,7 +126,7 @@ class AlertRuleSerializer(Serializer):
                 .annotate(incident_id=Max("id"))
                 .values("incident_id")
             ):
-                incident_map[incident.id] = serialize(incident, user=user)
+                incident_map[incident.alert_rule_id] = serialize(incident, user=user)
             for alert_rule in alert_rules.values():
                 result[alert_rule]["latestIncident"] = incident_map.get(alert_rule.id, None)
 
