@@ -58,6 +58,7 @@ import {generateReleaseWidgetFieldOptions} from 'sentry/views/dashboardsV2/widge
 import {
   getMetricFields,
   mapErrors,
+  NEW_DASHBOARD_ID,
   normalizeQueries,
 } from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
@@ -284,7 +285,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       !(
         dashboards.find(({title, id}) => {
           return title === selectedDashboard?.label && id === selectedDashboard?.value;
-        }) || selectedDashboard.value === 'new'
+        }) || selectedDashboard.value === NEW_DASHBOARD_ID
       )
     ) {
       errors.dashboard = t('This field may not be blank');
@@ -326,7 +327,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         organization,
       });
 
-      if (selectedDashboard.value === 'new') {
+      if (selectedDashboard.value === NEW_DASHBOARD_ID) {
         browserHistory.push({
           pathname: `/organizations/${organization.slug}/dashboards/new/`,
           query: pathQuery,

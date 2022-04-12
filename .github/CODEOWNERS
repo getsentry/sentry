@@ -197,6 +197,7 @@ build-utils/        @getsentry/owners-js-build
 
 ###### Replays #######
 /static/app/views/replays/        @getsentry/emerging-technology
+/static/app/components/replays/   @getsentry/emerging-technology
 /tests/js/spec/views/replays/     @getsentry/emerging-technology
 ###### End of Replays #######
 
