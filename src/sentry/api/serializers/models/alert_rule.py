@@ -120,14 +120,13 @@ class AlertRuleSerializer(Serializer):
 
         if "latestIncident" in self.expand:
             incident_map = {}
-            if "latestIncident" in self.expand:
-                for incident in Incident.objects.filter(
-                    id__in=Incident.objects.filter(alert_rule__in=alert_rules)
-                    .values("alert_rule_id")
-                    .annotate(incident_id=Max("id"))
-                    .values("incident_id")
-                ):
-                    incident_map[incident.id] = serialize(incident, user=user)
+            for incident in Incident.objects.filter(
+                id__in=Incident.objects.filter(alert_rule__in=alert_rules)
+                .values("alert_rule_id")
+                .annotate(incident_id=Max("id"))
+                .values("incident_id")
+            ):
+                incident_map[incident.id] = serialize(incident, user=user)
             for alert_rule in alert_rules.values():
                 result[alert_rule]["latestIncident"] = incident_map.get(alert_rule.id, None)
 
