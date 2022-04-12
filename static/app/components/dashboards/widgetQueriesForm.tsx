@@ -261,9 +261,11 @@ class WidgetQueriesForm extends React.Component<Props> {
           onChange={fields => {
             const {aggregates, columns} = getColumnsAndAggregatesAsStrings(fields);
             const fieldStrings = fields.map(field => generateFieldAsString(field));
+
             const aggregateAliasFieldStrings = isMetrics
               ? fieldStrings
               : fieldStrings.map(field => getAggregateAlias(field));
+
             queries.forEach((widgetQuery, queryIndex) => {
               const newQuery = cloneDeep(widgetQuery);
               newQuery.fields = fieldStrings;
