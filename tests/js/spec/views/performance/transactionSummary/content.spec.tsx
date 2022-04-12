@@ -52,11 +52,11 @@ const WrappedComponent = ({
   ...props
 }: React.ComponentProps<typeof SummaryContent>) => {
   return (
-    <MEPSettingProvider>
-      <OrganizationContext.Provider value={organization}>
+    <OrganizationContext.Provider value={organization}>
+      <MEPSettingProvider>
         <SummaryContent organization={organization} {...props} />
-      </OrganizationContext.Provider>
-    </MEPSettingProvider>
+      </MEPSettingProvider>
+    </OrganizationContext.Provider>
   );
 };
 

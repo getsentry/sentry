@@ -10,6 +10,7 @@ import {
 import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 import SuspectSpans from 'sentry/views/performance/transactionSummary/transactionOverview/suspectSpans';
 
 function initializeData({query} = {query: {}}) {
@@ -56,16 +57,18 @@ describe('SuspectSpans', function () {
     it('renders basic UI elements', async function () {
       const initialData = initializeData();
       render(
-        <MEPSettingProvider>
-          <SuspectSpans
-            organization={initialData.organization}
-            location={initialData.router.location}
-            eventView={initialData.eventView}
-            projectId="1"
-            transactionName="Test Transaction"
-            totals={{count: 1}}
-          />
-        </MEPSettingProvider>
+        <OrganizationContext.Provider value={initialData.organization}>
+          <MEPSettingProvider>
+            <SuspectSpans
+              organization={initialData.organization}
+              location={initialData.router.location}
+              eventView={initialData.eventView}
+              projectId="1"
+              transactionName="Test Transaction"
+              totals={{count: 1}}
+            />
+          </MEPSettingProvider>
+        </OrganizationContext.Provider>
       );
 
       expect(await screen.findByText('Suspect Spans')).toBeInTheDocument();

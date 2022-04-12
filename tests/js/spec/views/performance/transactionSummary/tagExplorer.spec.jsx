@@ -7,14 +7,17 @@ import {Client} from 'sentry/api';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import {TagExplorer} from 'sentry/views/performance/transactionSummary/transactionOverview/tagExplorer';
 
 const WrapperComponent = props => {
   return (
-    <MEPSettingProvider _isMEPEnabled={false}>
-      <TagExplorer {...props} />
-    </MEPSettingProvider>
+    <OrganizationContext.Provider value={props.organization}>
+      <MEPSettingProvider _isMEPEnabled={false}>
+        <TagExplorer {...props} />
+      </MEPSettingProvider>
+    </OrganizationContext.Provider>
   );
 };
 

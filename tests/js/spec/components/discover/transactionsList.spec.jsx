@@ -6,12 +6,15 @@ import TransactionsList from 'sentry/components/discover/transactionsList';
 import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 const WrapperComponent = props => {
   return (
-    <MEPSettingProvider _isMEPEnabled={false}>
-      <TransactionsList {...props} />
-    </MEPSettingProvider>
+    <OrganizationContext.Provider organization={props.organization}>
+      <MEPSettingProvider _isMEPEnabled={false}>
+        <TransactionsList {...props} />
+      </MEPSettingProvider>
+    </OrganizationContext.Provider>
   );
 };
 

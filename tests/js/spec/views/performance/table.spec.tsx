@@ -6,17 +6,18 @@ import {initializeData as _initializeData} from 'sentry-test/performance/initial
 import EventView from 'sentry/utils/discover/eventView';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 import Table from 'sentry/views/performance/table';
 
 const FEATURES = ['performance-view'];
 
-const initializeData = (settings = {}) => {
+const initializeData = (settings = {}, features: string[] = []) => {
   const projects = [
     TestStubs.Project({id: '1', slug: '1'}),
     TestStubs.Project({id: '2', slug: '2'}),
   ];
   return _initializeData({
-    features: FEATURES,
+    features: [...FEATURES, ...features],
     projects,
     project: projects[0],
     ...settings,
@@ -25,16 +26,18 @@ const initializeData = (settings = {}) => {
 
 const WrappedComponent = ({data, ...rest}) => {
   return (
-    <MEPSettingProvider>
-      <Table
-        organization={data.organization}
-        location={data.router.location}
-        setError={jest.fn()}
-        summaryConditions=""
-        {...data}
-        {...rest}
-      />
-    </MEPSettingProvider>
+    <OrganizationContext.Provider value={data.organization}>
+      <MEPSettingProvider>
+        <Table
+          organization={data.organization}
+          location={data.router.location}
+          setError={jest.fn()}
+          summaryConditions=""
+          {...data}
+          {...rest}
+        />
+      </MEPSettingProvider>
+    </OrganizationContext.Provider>
   );
 };
 
@@ -232,9 +235,12 @@ describe('Performance > Table', function () {
   });
 
   it('sends MEP param when setting enabled', async function () {
-    const data = initializeData({
-      query: 'event.type:transaction transaction:/api*',
-    });
+    const data = initializeData(
+      {
+        query: 'event.type:transaction transaction:/api*',
+      },
+      ['performance-use-metrics']
+    );
 
     const wrapper = mountWithTheme(
       <WrappedComponent
