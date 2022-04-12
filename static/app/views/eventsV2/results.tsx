@@ -15,11 +15,15 @@ import Alert from 'sentry/components/alert';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Confirm from 'sentry/components/confirm';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
+import DatePageFilter from 'sentry/components/datePageFilter';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
@@ -483,6 +487,8 @@ class Results extends React.Component<Props, State> {
     const title = this.getDocumentTitle();
     const yAxisArray = getYAxis(location, eventView, savedQuery);
 
+    const hasPageFilters = organization.features.includes('selection-filters-v2');
+
     return (
       <SentryDocumentTitle title={title} orgSlug={organization.slug}>
         <StyledPageContent>
@@ -500,15 +506,24 @@ class Results extends React.Component<Props, State> {
               {incompatibleAlertNotice && <Top fullWidth>{incompatibleAlertNotice}</Top>}
               <Top fullWidth>
                 {this.renderError(error)}
-                <StyledSearchBar
-                  searchSource="eventsv2"
-                  organization={organization}
-                  projectIds={eventView.project}
-                  query={query}
-                  fields={fields}
-                  onSearch={this.handleSearch}
-                  maxQueryLength={MAX_QUERY_LENGTH}
-                />
+                <FilterSection>
+                  {hasPageFilters && (
+                    <StyledPageFilterBar>
+                      <ProjectPageFilter />
+                      <EnvironmentPageFilter />
+                      <DatePageFilter />
+                    </StyledPageFilterBar>
+                  )}
+                  <StyledSearchBar
+                    searchSource="eventsv2"
+                    organization={organization}
+                    projectIds={eventView.project}
+                    query={query}
+                    fields={fields}
+                    onSearch={this.handleSearch}
+                    maxQueryLength={MAX_QUERY_LENGTH}
+                  />
+                </FilterSection>
                 <ResultsChart
                   router={router}
                   organization={organization}
@@ -571,8 +586,23 @@ const StyledPageContent = styled(PageContent)`
   padding: 0;
 `;
 
+const FilterSection = styled('div')`
+  display: flex;
+  flex-wrap: wrap;
+  margin-bottom: ${space(1)};
+`;
+
+const StyledPageFilterBar = styled(PageFilterBar)`
+  max-width: 100%;
+  width: max-content;
+  margin-right: ${space(1)};
+  margin-bottom: ${space(1)};
+`;
+
 const StyledSearchBar = styled(SearchBar)`
-  margin-bottom: ${space(2)};
+  flex: 1;
+  flex-basis: 600px;
+  margin-bottom: ${space(1)};
 `;
 
 const Top = styled(Layout.Main)`
@@ -619,9 +649,12 @@ function ResultsContainer(props: Props) {
    * the desired behavior because saved queries can contain a project filter.
    */
 
+  const hasPageFilters = props.organization.features.includes('selection-filters-v2');
+
   return (
     <PageFiltersContainer
       skipLoadLastUsed={props.organization.features.includes('global-views')}
+      hideGlobalHeader={hasPageFilters}
     >
       <SavedQueryAPI {...props} />
     </PageFiltersContainer>
