@@ -23,8 +23,8 @@ const DefaultPersistedStore: PersistedStore = {
 };
 
 type PersistedStoreContextValue = [
-  PersistedStore | null,
-  React.Dispatch<React.SetStateAction<PersistedStore | null>>
+  PersistedStore,
+  React.Dispatch<React.SetStateAction<PersistedStore>>
 ];
 
 export const PersistedStoreContext = createContext<PersistedStoreContextValue | null>(
@@ -43,7 +43,7 @@ function usePersistedStore(): PersistedStoreContextValue {
 
 // Client-only state with TTL persisted on the server side in a redis store.
 export function PersistedStoreProvider(props: {children: React.ReactNode}) {
-  const [state, setState] = useState<PersistedStore | null>(null);
+  const [state, setState] = useState<PersistedStore>(DefaultPersistedStore);
 
   const api = useApi();
   const {organization} = useLegacyStore(OrganizationStore);
@@ -108,8 +108,8 @@ export function usePersistedStoreCategory<C extends keyof PersistedStore>(
   );
 
   const stableState: UsePersistedCategory<PersistedStore[C]> = useMemo(() => {
-    return [state?.[category] ?? null, setCategoryState];
-  }, [state?.[category], setCategoryState]);
+    return [state[category] ?? null, setCategoryState];
+  }, [state[category], setCategoryState]);
 
   return stableState;
 }
