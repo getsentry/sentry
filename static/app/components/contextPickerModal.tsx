@@ -295,7 +295,6 @@ class ContextPickerModal extends Component<Props> {
   renderProjectSelectOrMessage() {
     const {organization, projects, comingFromProjectId} = this.props;
     const [memberProjects, nonMemberProjects] = this.getMemberProjects();
-    const {isSuperuser} = ConfigStore.get('user') || {};
 
     const projectOptions = [
       {
@@ -311,7 +310,6 @@ class ContextPickerModal extends Component<Props> {
         options: nonMemberProjects.map(p => ({
           value: p.slug,
           label: t(`${p.slug}`),
-          isDisabled: isSuperuser ? false : true,
         })),
       },
     ];
@@ -365,7 +363,7 @@ class ContextPickerModal extends Component<Props> {
               <span>{config.domainName}</span>
             </StyledIntegrationItem>
           ),
-          isDisabled: isSuperuser ? false : true,
+          isDisabled: !isSuperuser,
         })),
       },
     ];
