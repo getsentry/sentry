@@ -109,6 +109,8 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
         return;
       }
 
+      PerformanceInteraction.startInteraction('SpanTreeHandleDrag');
+
       // prevent the user from selecting things outside the minimap when dragging
       // the mouse cursor outside the minimap
 
@@ -190,6 +192,8 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
     ) {
       return;
     }
+
+    PerformanceInteraction.finishInteraction();
 
     // remove listeners that were attached in onDragStart
 
