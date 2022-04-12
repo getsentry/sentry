@@ -2,23 +2,15 @@ import {useCallback, useEffect, useState} from 'react';
 import type {eventWithTime} from 'rrweb/typings/types';
 
 import {IssueAttachment} from 'sentry/types';
-import {Entry, EntryType, Event} from 'sentry/types/event';
+import {Entry, Event} from 'sentry/types/event';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 
 import mergeBreadcrumbsEntries from './mergeBreadcrumbsEntries';
+import mergeEventsWithSpans from './mergeEventsWithSpans';
 
-function isReplayEventEntity(entry: Entry) {
-  // Starting with an allowlist, might be better to block only a few types (like Tags)
-  switch (entry.type) {
-    case EntryType.SPANS:
-      return true;
-    default:
-      return false;
-  }
-}
 type State = {
   /**
    * List of breadcrumbs
@@ -160,52 +152,26 @@ function useReplayEvent({eventSlug, location, orgId}: Options): Result {
       rrwebEvents: undefined,
       mergedReplayEvent: undefined,
     });
-    try {
-      const [event, rrwebEvents, replayEvents] = await Promise.all([
-        fetchEvent(),
-        fetchRRWebEvents(),
-        fetchReplayEvents(),
-      ]);
 
-      const breadcrumbEntry = mergeBreadcrumbsEntries(replayEvents || []);
+    const [event, rrwebEvents, replayEvents] = await Promise.all([
+      fetchEvent(),
+      fetchRRWebEvents(),
+      fetchReplayEvents(),
+    ]);
 
-      // Get a merged list of all spans from all replay events
-      const spans = replayEvents.flatMap(
-        replayEvent => replayEvent.entries.find(isReplayEventEntity).data
-      );
+    const breadcrumbEntry = mergeBreadcrumbsEntries(replayEvents || []);
+    const mergedReplayEvent = mergeEventsWithSpans(replayEvents || []);
 
-      // Create a merged spans entry on the first replay event and fake the
-      // endTimestamp by using the timestamp of the final span
-      const mergedReplayEvent = {
-        ...replayEvents[0],
-        breakdowns: null,
-        entries: [{type: EntryType.SPANS, data: spans}],
-        // This is probably better than taking the end timestamp of the last `replayEvent`
-        endTimestamp: spans[spans.length - 1]?.timestamp,
-      };
-
-      setState({
-        ...state,
-        fetchError: undefined,
-        fetching: false,
-        event,
-        mergedReplayEvent,
-        replayEvents,
-        rrwebEvents,
-        breadcrumbEntry,
-      });
-    } catch (error) {
-      setState({
-        fetchError: error,
-        fetching: false,
-
-        breadcrumbEntry: undefined,
-        event: undefined,
-        replayEvents: undefined,
-        rrwebEvents: undefined,
-        mergedReplayEvent: undefined,
-      });
-    }
+    setState({
+      ...state,
+      fetchError: undefined,
+      fetching: false,
+      event,
+      mergedReplayEvent,
+      replayEvents,
+      rrwebEvents,
+      breadcrumbEntry,
+    });
   }
 
   useEffect(() => void loadEvents(), [orgId, eventSlug, retry]);
