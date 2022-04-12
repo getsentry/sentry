@@ -22,7 +22,7 @@ describe('PersistedStore', function () {
         },
       },
     });
-    OrganizationStore.onUpdate(org);
+    OrganizationStore.onUpdate(org, {replace: true});
     wrapper = ({children}) => (
       <PersistedStoreProvider>
         <OrganizationContext.Provider value={org}>
@@ -58,7 +58,7 @@ describe('PersistedStore', function () {
       method: 'PUT',
     });
     act(() => {
-      setState({test: 2});
+      setState({test: 2} as any);
     });
 
     const [state2] = result.current;
