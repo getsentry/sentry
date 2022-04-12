@@ -29,7 +29,7 @@ class ClientStateListEndpoint(OrganizationEndpoint):
     def get_key(self, organization, category, user):
         scope = STATE_CATEGORIES[category]["scope"]
         if scope == "member":
-            return f"client-state:{category}:{organization}:{user}"
+            return f"client-state:{category}:{organization}:{user.id}"
         elif scope == "org":
             return f"client-state:{category}:{organization}"
 
@@ -57,7 +57,7 @@ class ClientStateEndpoint(OrganizationEndpoint):
             raise NotFound(detail="Category not found")
         scope = STATE_CATEGORIES[category]["scope"]
         if scope == "member":
-            return f"client-state:{category}:{organization}:{user}"
+            return f"client-state:{category}:{organization}:{user.id}"
         elif scope == "org":
             return f"client-state:{category}:{organization}"
 
