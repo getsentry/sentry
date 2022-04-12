@@ -148,7 +148,7 @@ function buildProfile(
     0,
     0,
     `${processName}: ${threadName}`,
-    'milliseconds'
+    'microseconds' // the trace event format provides timestamps in microseconds
   );
 
   const stack: ChromeTrace.Event[] = [];
