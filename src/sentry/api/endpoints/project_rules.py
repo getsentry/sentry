@@ -9,6 +9,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import RuleSerializer
 from sentry.integrations.slack import tasks
 from sentry.mediators import alert_rule_actions, project_rules
+from sentry.mediators.external_requests.alert_rule_action_requester import AlertRuleActionResult
 from sentry.models import (
     AuditLogEntryEvent,
     Rule,
@@ -33,15 +34,13 @@ def trigger_alert_rule_action_creators(
             continue
 
         install = SentryAppInstallation.objects.get(uuid=action.get("sentryAppInstallationUuid"))
-        result = alert_rule_actions.AlertRuleActionCreator.run(
+        result: AlertRuleActionResult = alert_rule_actions.AlertRuleActionCreator.run(
             install=install,
             fields=action.get("settings"),
         )
         # Bubble up errors from Sentry App to the UI
         if not result["success"]:
-            raise serializers.ValidationError(
-                {"sentry_app": f'{install.sentry_app.name}: {result["message"]}'}
-            )
+            raise serializers.ValidationError({"actions": [result["message"]]})
         created = "alert-rule-action"
     return created
 

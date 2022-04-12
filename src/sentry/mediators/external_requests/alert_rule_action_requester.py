@@ -17,7 +17,7 @@ DEFAULT_SUCCESS_MESSAGE = "Success!"
 DEFAULT_ERROR_MESSAGE = "Something went wrong!"
 
 
-class AlertRuleActionRequesterResult(TypedDict):
+class AlertRuleActionResult(TypedDict):
     success: bool
     message: str
 
@@ -52,7 +52,7 @@ class AlertRuleActionRequester(Mediator):
             error_message = DEFAULT_ERROR_MESSAGE
         return error_message
 
-    def _make_request(self) -> AlertRuleActionRequesterResult:
+    def _make_request(self) -> AlertRuleActionResult:
         try:
             send_and_save_sentry_app_request(
                 self._build_url(),
@@ -75,9 +75,9 @@ class AlertRuleActionRequester(Mediator):
             )
             message = f"{self.sentry_app.name} Error: {self._get_error_message(e.response)}"
             # Bubble up error message from Sentry App to the UI for the user.
-            return AlertRuleActionRequesterResult(success=False, message=message)
+            return AlertRuleActionResult(success=False, message=message)
         # No messages are bubbled up from successful responses.
-        return AlertRuleActionRequesterResult(success=True, message=DEFAULT_SUCCESS_MESSAGE)
+        return AlertRuleActionResult(success=True, message=DEFAULT_SUCCESS_MESSAGE)
 
     def _build_headers(self):
         request_uuid = uuid4().hex
