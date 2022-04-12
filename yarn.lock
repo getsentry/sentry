@@ -4543,10 +4543,10 @@
     "@types/webpack" "^4"
     http-proxy-middleware "^1.0.0"
 
-"@types/webpack-env@^1.16.0":
-  version "1.16.0"
-  resolved "https://registry.yarnpkg.com/@types/webpack-env/-/webpack-env-1.16.0.tgz#8c0a9435dfa7b3b1be76562f3070efb3f92637b4"
-  integrity sha512-Fx+NpfOO0CpeYX2g9bkvX8O5qh9wrU1sOF4g8sft4Mu7z+qfe387YlyY8w8daDyDsKY5vUxM0yxkAYnbkRbZEw==
+"@types/webpack-env@^1.16.0", "@types/webpack-env@^1.16.3":
+  version "1.16.3"
+  resolved "https://registry.yarnpkg.com/@types/webpack-env/-/webpack-env-1.16.3.tgz#b776327a73e561b71e7881d0cd6d34a1424db86a"
+  integrity sha512-9gtOPPkfyNoEqCQgx4qJKkuNm/x0R2hKR7fdl7zvTJyHnIisuE/LfvXOsYWL0o3qq6uiBnKZNNNzi3l0y/X+xw==
 
 "@types/webpack-sources@*":
   version "0.1.6"
@@ -4866,9 +4866,9 @@
     prop-types "^15.7.0"
 
 "@xstate/fsm@^1.4.0":
-  version "1.6.1"
-  resolved "https://registry.yarnpkg.com/@xstate/fsm/-/fsm-1.6.1.tgz#c92972b835540c4e3c5e14277f40dbcbdaee9571"
-  integrity sha512-xYKDNuPR36/fUK+jmhM+oauBmbdUAfuJKnDjg3/7NbN+Pj03TX7e94LXnzkwGgAR+U/HWoMqM5UPTuGIYfIx9g==
+  version "1.6.5"
+  resolved "https://registry.yarnpkg.com/@xstate/fsm/-/fsm-1.6.5.tgz#f599e301997ad7e3c572a0b1ff0696898081bea5"
+  integrity sha512-b5o1I6aLNeYlU/3CPlj/Z91ybk1gUsKT+5NAJI+2W4UjvS5KLG28K9v5UvNoFVjHV8PajVZ00RH3vnjyQO7ZAw==
 
 "@xtuc/ieee754@^1.2.0":
   version "1.2.0"
@@ -7597,40 +7597,40 @@ eslint-config-prettier@8.5.0:
   resolved "https://registry.yarnpkg.com/eslint-config-prettier/-/eslint-config-prettier-8.5.0.tgz#5a81680ec934beca02c7b1a61cf8ca34b66feab1"
   integrity sha512-obmWKLUNCnhtQRKc+tmnYuQl0pFU1ibYJQ5BGhTVB08bHe9wC8qUeG7c08dj9XX+AuPj1YSGSQIHl1pnDHZR0Q==
 
-eslint-config-sentry-app@^1.91.0:
-  version "1.91.0"
-  resolved "https://registry.yarnpkg.com/eslint-config-sentry-app/-/eslint-config-sentry-app-1.91.0.tgz#803a1059a4a13f2361a99e3aa39ba6ad10126dc0"
-  integrity sha512-0MFZRDOmTdRE3MiGcuVc9oNbakVi8nhTwl2OR/xmm0D1aQTrS8Q0ikIViqsDfvdhvAxDIzIqCoJdG2pFLV8YWg==
+eslint-config-sentry-app@^1.92.0:
+  version "1.92.0"
+  resolved "https://registry.yarnpkg.com/eslint-config-sentry-app/-/eslint-config-sentry-app-1.92.0.tgz#b34185909dd45ec7bd0d8ea1ea8a53c1c41026ae"
+  integrity sha512-P8LA4lyPvm2dmRdna3pr5Q8Xvwo5l/4oAXPRia1aLBvI7g3epAI2Mp+xG6mm+p3w8KIKOZXlZKcO9kajPpFhnA==
   dependencies:
     "@emotion/eslint-plugin" "^11.7.0"
     "@typescript-eslint/eslint-plugin" "^5.17.0"
     "@typescript-eslint/parser" "^5.17.0"
     eslint-config-prettier "8.5.0"
-    eslint-config-sentry "^1.91.0"
-    eslint-config-sentry-react "^1.91.0"
+    eslint-config-sentry "^1.92.0"
+    eslint-config-sentry-react "^1.92.0"
     eslint-import-resolver-typescript "^2.7.1"
     eslint-import-resolver-webpack "^0.13.2"
     eslint-plugin-import "^2.25.4"
     eslint-plugin-jest "26.1.3"
     eslint-plugin-prettier "4.0.0"
     eslint-plugin-react "7.29.4"
-    eslint-plugin-sentry "^1.91.0"
+    eslint-plugin-sentry "^1.92.0"
     eslint-plugin-simple-import-sort "^7.0.0"
 
-eslint-config-sentry-react@^1.91.0:
-  version "1.91.0"
-  resolved "https://registry.yarnpkg.com/eslint-config-sentry-react/-/eslint-config-sentry-react-1.91.0.tgz#5454bb40f8413e8016937bd25044e36d77a20d1d"
-  integrity sha512-2rQJJFTwuX0BZZIvj6QN+yFVGKfnwyRdtJOr84M9Sgc3U5+l9gvdkXvL+lq+ueRpW6fj5uq1SizGknQBSbPj3A==
+eslint-config-sentry-react@^1.92.0:
+  version "1.92.0"
+  resolved "https://registry.yarnpkg.com/eslint-config-sentry-react/-/eslint-config-sentry-react-1.92.0.tgz#4bbf6d34208cc9ebcf768d2de7b491cef97c2756"
+  integrity sha512-xcjsldJpSrCZIrzguoLZwBrNJMXc1nqZVRW/E4hVtedpp7qgcK0GlgawC43bwQo/2x38pgba4W4/+A4QfhjEXw==
   dependencies:
-    eslint-config-sentry "^1.91.0"
+    eslint-config-sentry "^1.92.0"
     eslint-plugin-jest-dom "^4.0.1"
     eslint-plugin-testing-library "^5.0.3"
     eslint-plugin-typescript-sort-keys "^2.1.0"
 
-eslint-config-sentry@^1.91.0:
-  version "1.91.0"
-  resolved "https://registry.yarnpkg.com/eslint-config-sentry/-/eslint-config-sentry-1.91.0.tgz#a90e4e86d46f3b10875d4aa3c26db3cd472b8d34"
-  integrity sha512-qd7AfHk9E1DMrbk+syfcvPNKCVUArsaGoPbOOusTjsoW1Vp8b5GfjTE5TdF6n2GwBBYvZ5AQGfg+yliP7KxtYg==
+eslint-config-sentry@^1.92.0:
+  version "1.92.0"
+  resolved "https://registry.yarnpkg.com/eslint-config-sentry/-/eslint-config-sentry-1.92.0.tgz#04637d25e9b52679dbbeb74970f9eef1b481cff4"
+  integrity sha512-jLMMw2RnMIxyNngN2IYjjJBsOlnTt2LxeHIX4NreNXA+TDnOzz8qE8FFxyYPiUJrJAS9CGOXlbl9viVEYb9KDg==
 
 eslint-import-resolver-node@^0.3.6:
   version "0.3.6"
@@ -7738,10 +7738,10 @@ eslint-plugin-react@7.29.4:
     semver "^6.3.0"
     string.prototype.matchall "^4.0.6"
 
-eslint-plugin-sentry@^1.91.0:
-  version "1.91.0"
-  resolved "https://registry.yarnpkg.com/eslint-plugin-sentry/-/eslint-plugin-sentry-1.91.0.tgz#4eb64adeb0ff299bbd59b4b18612123efc5a4ca6"
-  integrity sha512-pGeOY/uOQ08eb94tDcMpBKIO/boLR0NsVUIhuOxWRVYEBxAUP0Gtf3zz1OTUjpIBtSJoeiCVcMV19Qz+oOBmgw==
+eslint-plugin-sentry@^1.92.0:
+  version "1.92.0"
+  resolved "https://registry.yarnpkg.com/eslint-plugin-sentry/-/eslint-plugin-sentry-1.92.0.tgz#0e75a16423311742eb6857e229dd12f4e636d838"
+  integrity sha512-6AJOHlhg5RL31XYSRBnwDfwX66sFuxdObFYIX3B1c6JJX0XKHxbfRQeY5tepsRmJ2kFGoxULsGDL8iSKp8UeGA==
   dependencies:
     requireindex "~1.1.0"
 
@@ -13713,29 +13713,29 @@ ripemd160@^2.0.0, ripemd160@^2.0.1:
     inherits "^2.0.1"
 
 rrweb-player@^0.7.13:
-  version "0.7.13"
-  resolved "https://registry.yarnpkg.com/rrweb-player/-/rrweb-player-0.7.13.tgz#f78c31568aa2cb673a8e713b86989bda118e25fa"
-  integrity sha512-xdBpUNj0Q4LkYSlhLcOTNbpuCS/7lQon57DVqblZdJyDJl+h3OovvK2D0KWBCVkrnzXibxfWA1cDmRAVU+g3Ww==
+  version "0.7.14"
+  resolved "https://registry.yarnpkg.com/rrweb-player/-/rrweb-player-0.7.14.tgz#582840551cde5652dcadb7e41f957e652835287c"
+  integrity sha512-ehHgBWhWNVT8R5g6mWYdiT7rRVis5hCqEX7s8pzDeyUyfiBOyfXHIqsNFUL7875lryxkmuBQDCXfHhKtCYmbYg==
   dependencies:
     "@tsconfig/svelte" "^1.0.0"
-    rrweb "^1.1.2"
+    rrweb "^1.1.3"
 
-rrweb-snapshot@^1.1.13:
-  version "1.1.13"
-  resolved "https://registry.yarnpkg.com/rrweb-snapshot/-/rrweb-snapshot-1.1.13.tgz#fc15adb7eb6354c859c8d594f57b09e1f5bccdd8"
-  integrity sha512-lv4vBSJ5orBcRoJnjLvtly6cSsctC+TNm5orVzYRL9SH3LmtSpQ+wI4bw7eh4AcyKoUf0x4pe1Bn632GggmKWQ==
+rrweb-snapshot@^1.1.14:
+  version "1.1.14"
+  resolved "https://registry.yarnpkg.com/rrweb-snapshot/-/rrweb-snapshot-1.1.14.tgz#9d4d9be54a28a893373428ee4393ec7e5bd83fcc"
+  integrity sha512-eP5pirNjP5+GewQfcOQY4uBiDnpqxNRc65yKPW0eSoU1XamDfc4M8oqpXGMyUyvLyxFDB0q0+DChuxxiU2FXBQ==
 
-rrweb@^1.1.2:
-  version "1.1.2"
-  resolved "https://registry.yarnpkg.com/rrweb/-/rrweb-1.1.2.tgz#65279c8528dcfff7158bb31ed21323d3f26a741f"
-  integrity sha512-D1r3MdfYshY7rA8lN3R0cXqeY6fTtgHlkLQM4lxkU+TdKi023/hNQz6tvDJbXGX3HWGa4mRAmQs3S2uGho6Nsw==
+rrweb@^1.1.3:
+  version "1.1.3"
+  resolved "https://registry.yarnpkg.com/rrweb/-/rrweb-1.1.3.tgz#4fbb3d473d71c79b6c30a54e585e5a01c8ac08bb"
+  integrity sha512-F2qp8LteJLyycsv+lCVJqtVpery63L3U+/ogqMA0da8R7Jx57o6gT+HpjrzdeeGMIBZR7kKNaKyJwDupTTu5KA==
   dependencies:
     "@types/css-font-loading-module" "0.0.7"
     "@xstate/fsm" "^1.4.0"
     base64-arraybuffer "^1.0.1"
     fflate "^0.4.4"
     mitt "^1.1.3"
-    rrweb-snapshot "^1.1.13"
+    rrweb-snapshot "^1.1.14"
 
 rst-selector-parser@^2.2.3:
   version "2.2.3"

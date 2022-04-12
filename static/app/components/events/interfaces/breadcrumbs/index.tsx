@@ -100,7 +100,7 @@ function BreadcrumbsContainer({
 
     setState({
       ...state,
-      relativeTime: transformedCrumbs[transformedCrumbs.length - 1].timestamp,
+      relativeTime: transformedCrumbs[transformedCrumbs.length - 1]?.timestamp,
       breadcrumbs: transformedCrumbs,
       filteredByFilter: transformedCrumbs,
       filteredBySearch: transformedCrumbs,

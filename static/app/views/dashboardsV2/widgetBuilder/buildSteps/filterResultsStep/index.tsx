@@ -51,27 +51,30 @@ export function FilterResultsStep({
     };
   }, []);
 
-  const handleSearch = useCallback((queryIndex: number) => {
-    return (field: string) => {
-      // SearchBar will call handlers for both onSearch and onBlur
-      // when selecting a value from the autocomplete dropdown. This can
-      // cause state issues for the search bar in our use case. To prevent
-      // this, we set a timer in our onSearch handler to block our onBlur
-      // handler from firing if it is within 200ms, ie from clicking an
-      // autocomplete value.
-      window.clearTimeout(blurTimeoutRef.current);
-      blurTimeoutRef.current = window.setTimeout(() => {
-        blurTimeoutRef.current = undefined;
-      }, 200);
+  const handleSearch = useCallback(
+    (queryIndex: number) => {
+      return (field: string) => {
+        // SearchBar will call handlers for both onSearch and onBlur
+        // when selecting a value from the autocomplete dropdown. This can
+        // cause state issues for the search bar in our use case. To prevent
+        // this, we set a timer in our onSearch handler to block our onBlur
+        // handler from firing if it is within 200ms, ie from clicking an
+        // autocomplete value.
+        window.clearTimeout(blurTimeoutRef.current);
+        blurTimeoutRef.current = window.setTimeout(() => {
+          blurTimeoutRef.current = undefined;
+        }, 200);
 
-      const newQuery: WidgetQuery = {
-        ...queries[queryIndex],
-        conditions: field,
+        const newQuery: WidgetQuery = {
+          ...queries[queryIndex],
+          conditions: field,
+        };
+
+        onQueryChange(queryIndex, newQuery);
       };
-
-      onQueryChange(queryIndex, newQuery);
-    };
-  }, []);
+    },
+    [queries]
+  );
 
   const handleBlur = useCallback(
     (queryIndex: number) => {
@@ -112,12 +115,12 @@ export function FilterResultsStep({
               <SearchConditionsWrapper>
                 {widgetType === WidgetType.ISSUE ? (
                   <IssuesSearchBar
+                    searchSource="widget_builder"
                     organization={organization}
                     query={query}
                     onBlur={handleBlur(queryIndex)}
                     onSearch={handleSearch(queryIndex)}
                     selection={selection}
-                    searchSource="widget_builder"
                   />
                 ) : widgetType === WidgetType.DISCOVER ? (
                   <EventsSearchBar
@@ -129,7 +132,7 @@ export function FilterResultsStep({
                   />
                 ) : (
                   <ReleaseSearchBar
-                    organization={organization}
+                    orgSlug={organization.slug}
                     query={query}
                     projectIds={projectIds}
                     onBlur={handleBlur(queryIndex)}

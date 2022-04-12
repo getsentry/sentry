@@ -30,6 +30,14 @@ import {
   WidgetType,
 } from 'sentry/views/dashboardsV2/types';
 
+export type ValidationError = {
+  [key: string]: string | string[] | ValidationError[] | ValidationError;
+};
+
+export type FlatValidationError = {
+  [key: string]: string | FlatValidationError[] | FlatValidationError;
+};
+
 export function cloneDashboard(dashboard: DashboardDetails): DashboardDetails {
   return cloneDeep(dashboard);
 }
@@ -253,4 +261,28 @@ export function getWidgetIssueUrl(
     ...datetime,
   })}`;
   return issuesLocation;
+}
+
+export function flattenErrors(
+  data: ValidationError,
+  update: FlatValidationError
+): FlatValidationError {
+  Object.keys(data).forEach((key: string) => {
+    const value = data[key];
+    if (typeof value === 'string') {
+      update[key] = value;
+      return;
+    }
+    // Recurse into nested objects.
+    if (Array.isArray(value) && typeof value[0] === 'string') {
+      update[key] = value[0];
+      return;
+    }
+    if (Array.isArray(value) && typeof value[0] === 'object') {
+      (value as ValidationError[]).map(item => flattenErrors(item, update));
+    } else {
+      flattenErrors(value as ValidationError, update);
+    }
+  });
+  return update;
 }

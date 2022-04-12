@@ -1,3 +1,4 @@
+import {Client} from 'sentry/api';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {Organization} from 'sentry/types';
 
@@ -8,14 +9,10 @@ export type StepData = {
 // Not sure if we need platform info to be passed down
 export type StepProps = {
   active: boolean;
-  addPlatform: (platform: PlatformKey) => void;
-  clearPlatforms: () => void;
   genSkipOnboardingLink: () => React.ReactNode;
   onComplete: () => void;
   orgId: string;
   organization: Organization;
-  platforms: PlatformKey[];
-  removePlatform: (platform: PlatformKey) => void;
   search: string;
   stepIndex: number;
 };
@@ -27,3 +24,23 @@ export type StepDescriptor = {
   title: string;
   hasFooter?: boolean;
 };
+
+export type ClientState = {
+  // map from platform id to project id. Contains projects ever created by onboarding.
+  platformToProjectIdMap: {[key in PlatformKey]?: string};
+
+  // Contains platforms currently selected. This is different from `platforms` because
+  // a project created by onboarding could be unselected by the user in the future.
+  selectedPlatforms: PlatformKey[];
+};
+
+export function fetchClientState(api: Client, orgSlug: string): Promise<ClientState> {
+  return api
+    .requestPromise(`/organizations/${orgSlug}/client-state/onboarding/`)
+    .then(lastState => {
+      // Set default values
+      lastState.platformToProjectIdMap = lastState.platformToProjectIdMap || {};
+      lastState.selectedPlatforms = lastState.selectedPlatforms || [];
+      return lastState;
+    });
+}
