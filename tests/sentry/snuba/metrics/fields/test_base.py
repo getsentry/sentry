@@ -27,8 +27,8 @@ from sentry.snuba.metrics.fields.snql import (
     errored_all_users,
     errored_preaggr_sessions,
     percentage,
-    sessions_errored_set,
     subtraction,
+    uniq_aggregation_on_metric,
 )
 from sentry.snuba.metrics.naming_layer import SessionMRI, TransactionMRI, get_public_name_from_mri
 from sentry.testutils import TestCase
@@ -153,7 +153,7 @@ class SingleEntityDerivedMetricTestCase(TestCase):
         assert DERIVED_METRICS[SessionMRI.ERRORED_SET.value].generate_select_statements(
             [self.project]
         ) == [
-            sessions_errored_set(
+            uniq_aggregation_on_metric(
                 metric_ids=session_error_metric_ids,
                 alias=SessionMRI.ERRORED_SET.value,
             ),
