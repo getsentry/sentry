@@ -60,7 +60,7 @@ export function VisualizationStep({
       widgetBuilderNewDesign
         ? Object.keys(displayTypes).filter(key => key !== DisplayType.TOP_N)
         : Object.keys(displayTypes),
-    []
+    [widgetBuilderNewDesign]
   );
 
   return (
