@@ -342,12 +342,13 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
   }
 
   renderButtonAddToDashboard() {
-    const {organization, location, eventView, savedQuery, yAxis} = this.props;
+    const {organization, location, eventView, savedQuery, yAxis, router} = this.props;
     return (
       <Button
         key="add-dashboard-widget-from-discover"
         data-test-id="add-dashboard-widget-from-discover"
-        {...(organization.features.includes('new-widget-builder-experience')
+        {...(organization.features.includes('new-widget-builder-experience') &&
+        !organization.features.includes('new-widget-builder-experience-design')
           ? {
               to: constructAddQueryToDashboardLink({
                 organization,
@@ -364,6 +365,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
                   eventView,
                   query: savedQuery,
                   yAxis,
+                  router,
                 }),
             })}
       >

@@ -36,6 +36,7 @@ function ViewEditDashboard(props: Props) {
   const dashboardId = params.dashboardId;
   const orgSlug = organization.slug;
   const [newWidget, setNewWidget] = useState<Widget | undefined>();
+  const [dashboardInitialState, setDashboardInitialState] = useState(DashboardState.VIEW);
 
   useEffect(() => {
     if (dashboardId && dashboardId !== 'default-overview') {
@@ -46,12 +47,13 @@ function ViewEditDashboard(props: Props) {
     setNewWidget(constructedWidget);
     // Clean up url after constructing widget from query string, only allow GHS params
     if (constructedWidget) {
+      setDashboardInitialState(DashboardState.EDIT);
       browserHistory.replace({
         pathname: location.pathname,
         query: pick(location.query, ALLOWED_PARAMS),
       });
     }
-  }, [api, orgSlug, dashboardId]);
+  }, [api, orgSlug, dashboardId, location.pathname]);
 
   return (
     <DashboardBasicFeature organization={organization}>
@@ -68,7 +70,7 @@ function ViewEditDashboard(props: Props) {
             <ErrorBoundary>
               <DashboardDetail
                 {...props}
-                initialState={newWidget ? DashboardState.EDIT : DashboardState.VIEW}
+                initialState={dashboardInitialState}
                 dashboard={dashboard}
                 dashboards={dashboards}
                 onDashboardUpdate={onDashboardUpdate}
