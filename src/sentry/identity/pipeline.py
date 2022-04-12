@@ -57,7 +57,7 @@ class IdentityProviderPipeline(Pipeline):
         metrics.incr(
             "identity_provider_pipeline.finish_pipeline",
             tags={
-                "provider": self.provider_model.key,
+                "provider": self.provider.key,
             },
             skip_internal=False,
             sample_rate=1.0,
