@@ -79,7 +79,7 @@ const ReplayControls = ({
             data-test-id="replay-forward-10s"
             size="xsmall"
             title={t('Go forward 10 seconds')}
-            icon={<IconRefresh color="gray500" size="sm" />}
+            icon={<IconClockwise color="gray500" size="sm" />}
             onClick={() => setCurrentTime(currentTime + 10 * SECOND)}
             aria-label={t('Go forward 10 seconds')}
           />
@@ -128,6 +128,10 @@ const ReplayControls = ({
 const Column = styled('div')`
   display: grid;
   flex-direction: column;
+`;
+
+const IconClockwise = styled(IconRefresh)`
+  transform: scaleX(-1);
 `;
 
 const ButtonGrid = styled('div')`
