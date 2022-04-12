@@ -4,7 +4,7 @@ import memoize from 'lodash/memoize';
 
 import {SearchBarProps} from 'sentry/components/events/searchBar';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
-import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
+import {MAX_QUERY_LENGTH, NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
 import {MetricsTagValue, Organization, Tag} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import {useMetricsContext} from 'sentry/utils/useMetricsContext';
@@ -74,6 +74,7 @@ export function ReleaseSearchBar({orgSlug, query, projectIds, onSearch, onBlur}:
           `}
           onSearch={onSearch}
           onBlur={onBlur}
+          maxQueryLength={MAX_QUERY_LENGTH}
           maxSearchItems={MAX_SEARCH_ITEMS}
           searchSource="widget_builder"
           query={query.conditions}
