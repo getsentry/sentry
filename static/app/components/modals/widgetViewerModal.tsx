@@ -814,13 +814,15 @@ function WidgetViewerModal(props: Props) {
                   total: totalResults === '1000' ? '1000+' : totalResults,
                 })}
               </span>
-            ) : (
+            ) : widget.widgetType === WidgetType.DISCOVER ? (
               <span>
                 {tct('[description:Total Events:] [total]', {
                   description: <strong />,
                   total: totalResults,
                 })}
               </span>
+            ) : (
+              <span />
             ))}
           <ButtonBar gap={1}>
             {onEdit && widget.id && (
@@ -839,23 +841,26 @@ function WidgetViewerModal(props: Props) {
                 {t('Edit Widget')}
               </Button>
             )}
-            <Button
-              to={path}
-              priority="primary"
-              type="button"
-              onClick={() => {
-                trackAdvancedAnalyticsEvent(
-                  'dashboards_views.widget_viewer.open_source',
-                  {
-                    organization,
-                    widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                    display_type: widget.displayType,
-                  }
-                );
-              }}
-            >
-              {openLabel}
-            </Button>
+            {widget.widgetType &&
+              [WidgetType.DISCOVER, WidgetType.ISSUE].includes(widget.widgetType) && (
+                <Button
+                  to={path}
+                  priority="primary"
+                  type="button"
+                  onClick={() => {
+                    trackAdvancedAnalyticsEvent(
+                      'dashboards_views.widget_viewer.open_source',
+                      {
+                        organization,
+                        widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                        display_type: widget.displayType,
+                      }
+                    );
+                  }}
+                >
+                  {openLabel}
+                </Button>
+              )}
           </ButtonBar>
         </ResultsContainer>
       </Footer>
