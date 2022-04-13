@@ -7,7 +7,6 @@ import Access from 'sentry/components/acl/access';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import FeatureBadge from 'sentry/components/featureBadge';
 import {Hovercard} from 'sentry/components/hovercard';
 import {Panel} from 'sentry/components/panels';
 import {IconClose, IconQuestion} from 'sentry/icons';
@@ -62,7 +61,6 @@ const OwnershipRules = ({
     <Container dashedBorder>
       <HeaderContainer>
         <Header>{t('Codeowners sync')}</Header>{' '}
-        <FeatureBadge style={{top: -3}} type="new" noTooltip />
         <DismissButton
           icon={<IconClose size="xs" />}
           priority="link"
