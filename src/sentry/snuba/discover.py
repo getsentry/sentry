@@ -347,8 +347,11 @@ def prepare_discover_query(
             snuba_filter.having = []
 
     with sentry_sdk.start_span(op="discover.discover", description="query.field_translations"):
+        resolved_columns = selected_columns
         if equations is not None:
-            resolved_equations, _, _ = resolve_equation_list(equations, selected_columns)
+            resolved_equations, resolved_columns, _ = resolve_equation_list(
+                equations, selected_columns, auto_add=True
+            )
         else:
             resolved_equations = []
 
@@ -357,7 +360,7 @@ def prepare_discover_query(
             snuba_filter.orderby = [get_function_alias(o) for o in orderby]
 
         resolved_fields = resolve_field_list(
-            selected_columns,
+            resolved_columns,
             snuba_filter,
             auto_fields=auto_fields,
             auto_aggregations=auto_aggregations,

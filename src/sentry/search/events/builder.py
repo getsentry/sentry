@@ -415,8 +415,11 @@ class QueryBuilder:
 
         sentry_sdk.set_tag("query.has_equations", equations is not None and len(equations) > 0)
         if equations:
-            _, _, parsed_equations = resolve_equation_list(
-                equations, stripped_columns, use_snql=True, **self.equation_config
+            _, stripped_columns, parsed_equations = resolve_equation_list(
+                equations,
+                stripped_columns,
+                use_snql=True,
+                **{**self.equation_config, "auto_add": True},
             )
             for index, parsed_equation in enumerate(parsed_equations):
                 resolved_equation = self.resolve_equation(
