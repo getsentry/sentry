@@ -2241,6 +2241,57 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             }
         ]
 
+    def test_histogram_zooming(self):
+        # Record some strings
+        org_id = self.organization.id
+        tag1 = indexer.record(org_id, "tag1")
+        value1 = indexer.record(org_id, "value1")
+        value2 = indexer.record(org_id, "value2")
+
+        self._send_buckets(
+            [
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.transaction_lcp_metric,
+                    "timestamp": int(time.time()),
+                    "type": "d",
+                    "value": numbers,
+                    "tags": {tag: value},
+                    "retention_days": 90,
+                }
+                for tag, value, numbers in (
+                    (tag1, value1, [1, 2, 3]),
+                    (tag1, value2, [10, 100, 1000]),
+                )
+            ],
+            entity="metrics_distributions",
+        )
+
+        # Note: everything is a string here on purpose to ensure we parse ints properly
+        response = self.get_success_response(
+            self.organization.slug,
+            field=f"histogram({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+            statsPeriod="1h",
+            interval="1h",
+            includeSeries="0",
+            histogramBuckets="2",
+            histogramTo="9",
+        )
+
+        # if zoom_histogram were not called, the variable-width
+        # HdrHistogram buckets returned from clickhouse would be so
+        # inaccurate that we would accidentally return something
+        # else: (5.0, 9.0, 1)
+        hist = [(1.0, 5.0, 3), (5.0, 9.0, 0)]
+
+        assert response.data["groups"] == [
+            {
+                "by": {},
+                "totals": {f"histogram({TransactionMetricKey.MEASUREMENTS_LCP.value})": hist},
+            }
+        ]
+
     def test_histogram_session_duration(self):
         # Record some strings
         org_id = self.organization.id
