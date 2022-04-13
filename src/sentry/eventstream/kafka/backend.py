@@ -21,6 +21,7 @@ from sentry.eventstream.kafka.protocol import (
     get_task_kwargs_for_message_from_headers,
 )
 from sentry.eventstream.snuba import SnubaProtocolEventStream
+from sentry.killswitches import killswitch_matches_context
 from sentry.utils import json, kafka, metrics
 from sentry.utils.batching_kafka_consumer import BatchingKafkaConsumer
 
@@ -130,18 +131,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         self.producer.poll(0.0)
 
         assert isinstance(extra_data, tuple)
-        key = (
-            None
-            if (
-                project_id in options.get("kafka.send-project-transactions-to-random-partitions")
-                and extra_data["type"] == "transaction"
-            )
-            or (
-                project_id in options.get("kafka.send-project-errors-to-random-partitions")
-                and extra_data["type"] == "error"
-            )
-            else str(project_id).encode("utf-8")
-        )
+        key = self._key(extra_data, project_id)
 
         try:
             self.producer.produce(
@@ -158,6 +148,16 @@ class KafkaEventStream(SnubaProtocolEventStream):
         if not asynchronous:
             # flush() is a convenience method that calls poll() until len() is zero
             self.producer.flush()
+
+    @staticmethod
+    def _key(extra_data, project_id) -> Optional[str]:
+        if killswitch_matches_context(
+            "kafka.send-project-events-to-random-partitions",
+            {"project_id": project_id, "message_type": extra_data["type"]},
+        ):
+            return None
+        else:
+            return str(project_id).encode("utf-8")
 
     def requires_post_process_forwarder(self):
         return True
