@@ -5,7 +5,7 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import BooleanField from 'sentry/components/forms/booleanField';
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
-import {Panel as _Panel, PanelBody as _PanelBody} from 'sentry/components/panels';
+import {Panel as BasePanel, PanelBody as BasePanelBody} from 'sentry/components/panels';
 import {Consumer as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import useFullscreen from 'sentry/components/replays/useFullscreen';
 import {IconPause, IconPlay, IconRefresh, IconResize} from 'sentry/icons';
@@ -129,12 +129,12 @@ const ReplayControls = ({
   );
 };
 
-const Panel = styled(_Panel)<{isFullscreen: boolean}>`
+const Panel = styled(BasePanel)<{isFullscreen: boolean}>`
   width: 100%;
   ${p => (p.isFullscreen ? 'margin-bottom: 0;' : '')}
 `;
 
-const PanelBody = styled(_PanelBody)`
+const PanelBody = styled(BasePanelBody)`
   display: grid;
   flex-direction: column;
 `;
