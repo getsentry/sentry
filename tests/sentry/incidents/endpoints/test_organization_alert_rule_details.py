@@ -98,6 +98,26 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase, APITestCase):
 
         assert resp.data == serialize(self.alert_rule, serializer=DetailedAlertRuleSerializer())
 
+    def test_expand_latest_incident(self):
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+        incident = self.create_incident(
+            organization=self.organization,
+            title="Incident #1",
+            projects=[self.project],
+            alert_rule=self.alert_rule,
+            status=IncidentStatus.CRITICAL.value,
+        )
+        with self.feature("organizations:incidents"):
+            resp = self.get_valid_response(
+                self.organization.slug, self.alert_rule.id, expand=["latestIncident"]
+            )
+            no_expand_resp = self.get_valid_response(self.organization.slug, self.alert_rule.id)
+
+        assert resp.data["latestIncident"] is not None
+        assert resp.data["latestIncident"]["id"] == str(incident.id)
+        assert "latestIncident" not in no_expand_resp.data
+
     @responses.activate
     def test_with_unresponsive_sentryapp(self):
         self.superuser = self.create_user("admin@localhost", is_superuser=True)
