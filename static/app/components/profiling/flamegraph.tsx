@@ -14,10 +14,12 @@ import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
+import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 
 interface FlamegraphProps {
   profiles: ProfileGroup;
+  transaction?: Rect;
 }
 
 function Flamegraph(props: FlamegraphProps): ReactElement {
@@ -35,11 +37,31 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
     // if the activeProfileIndex is null, use the activeProfileIndex from the profile group
     const profileIndex = activeProfileIndex ?? profiles.activeProfileIndex;
 
-    return new FlamegraphModel(profiles.profiles[profileIndex], profileIndex, {
-      inverted: view === 'bottom up',
-      leftHeavy: sorting === 'left heavy',
-    });
-  }, [profiles, activeProfileIndex, sorting, view]);
+    const flamegraphModel = new FlamegraphModel(
+      profiles.profiles[profileIndex],
+      profileIndex,
+      {
+        inverted: view === 'bottom up',
+        leftHeavy: sorting === 'left heavy',
+      }
+    );
+
+    // if (
+    //   props.transaction &&
+    //   props.transaction.containsRect(flamegraphModel.configSpace)
+    // ) {
+    //   flamegraphModel.setConfigSpace(
+    //     new Rect(
+    //       props.transaction.x,
+    //       flamegraphModel.configSpace.y,
+    //       props.transaction.width,
+    //       flamegraphModel.configSpace.height
+    //     )
+    //   );
+    // }
+
+    return flamegraphModel;
+  }, [profiles, activeProfileIndex, sorting, view, props.transaction]);
 
   const onImport = useCallback((profile: ProfileGroup) => {
     setActiveProfileIndex(null);

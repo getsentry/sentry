@@ -50,7 +50,9 @@ function FlamegraphZoomViewMinimap({
         },
       });
 
-      if (previousRenderer?.flamegraph.name === renderer.flamegraph.name) {
+      if (
+        previousRenderer?.flamegraph.profile.name === renderer.flamegraph.profile.name
+      ) {
         renderer.setConfigView(previousRenderer.configView);
       }
 

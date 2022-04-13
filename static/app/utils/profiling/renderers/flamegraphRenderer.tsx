@@ -133,38 +133,6 @@ class FlamegraphRenderer {
     this.physicalToLogicalSpace = mat3.invert(mat3.create(), this.logicalToPhysicalSpace);
   }
 
-  get configSpaceToPhysicalSpace(): mat3 {
-    return mat3.fromValues(
-      this.physicalSpace.width / this.configSpace.width,
-      0,
-      0,
-      0,
-      this.theme.SIZES.BAR_HEIGHT * window.devicePixelRatio,
-      0,
-      -((this.configSpace.x * this.physicalSpace.width) / this.configSpace.width) +
-        this.origin[0],
-      -(this.configSpace.y * this.theme.SIZES.BAR_HEIGHT * window.devicePixelRatio) +
-        this.origin[1],
-      1
-    );
-  }
-
-  get configViewToPhysicalSpace(): mat3 {
-    return mat3.fromValues(
-      this.physicalSpace.width / this.configView.width,
-      0,
-      0,
-      0,
-      this.theme.SIZES.BAR_HEIGHT * window.devicePixelRatio,
-      0,
-      -((this.configView.x * this.physicalSpace.width) / this.configView.width) +
-        this.origin[0],
-      -(this.configView.y * this.theme.SIZES.BAR_HEIGHT * window.devicePixelRatio) +
-        this.origin[1],
-      1
-    );
-  }
-
   initConfigSpace(): void {
     const BAR_HEIGHT = this.theme.SIZES.BAR_HEIGHT * window.devicePixelRatio;
 
@@ -206,6 +174,38 @@ class FlamegraphRenderer {
 
     this.configView = Rect.From(this.configView).withHeight(
       this.physicalSpace.height / BAR_HEIGHT
+    );
+  }
+
+  get configSpaceToPhysicalSpace(): mat3 {
+    return mat3.fromValues(
+      this.physicalSpace.width / this.configSpace.width,
+      0,
+      0,
+      0,
+      this.theme.SIZES.BAR_HEIGHT * window.devicePixelRatio,
+      0,
+      -((this.configSpace.x * this.physicalSpace.width) / this.configSpace.width) +
+        this.origin[0],
+      -(this.configSpace.y * this.theme.SIZES.BAR_HEIGHT * window.devicePixelRatio) +
+        this.origin[1],
+      1
+    );
+  }
+
+  get configViewToPhysicalSpace(): mat3 {
+    return mat3.fromValues(
+      this.physicalSpace.width / this.configView.width,
+      0,
+      0,
+      0,
+      this.theme.SIZES.BAR_HEIGHT * window.devicePixelRatio,
+      0,
+      -((this.configView.x * this.physicalSpace.width) / this.configView.width) +
+        this.origin[0],
+      -(this.configView.y * this.theme.SIZES.BAR_HEIGHT * window.devicePixelRatio) +
+        this.origin[1],
+      1
     );
   }
 
@@ -461,12 +461,14 @@ class FlamegraphRenderer {
     this.configView = computeClampedConfigView(
       configView,
       {
-        min: this.flamegraph.profile.minFrameDuration,
-        max: this.configSpace.width,
-      },
-      {
-        min: 0,
-        max: this.configSpace.height,
+        width: {
+          min: this.flamegraph.profile.minFrameDuration,
+          max: this.configSpace.width,
+        },
+        height: {
+          min: 0,
+          max: this.configSpace.height,
+        },
       },
       !!this.flamegraph.inverted
     );
@@ -474,17 +476,19 @@ class FlamegraphRenderer {
   }
 
   transformConfigView(transformation: mat3): Rect {
-    const newConfigViewSpace = this.configView.transformRect(transformation);
+    const newConfigView = this.configView.transformRect(transformation);
 
     this.configView = computeClampedConfigView(
-      newConfigViewSpace,
+      newConfigView,
       {
-        min: this.flamegraph.profile.minFrameDuration,
-        max: this.configSpace.width,
-      },
-      {
-        min: 0,
-        max: this.configSpace.height,
+        width: {
+          min: this.flamegraph.profile.minFrameDuration,
+          max: this.configSpace.width,
+        },
+        height: {
+          min: 0,
+          max: this.configSpace.height,
+        },
       },
       !!this.flamegraph.inverted
     );

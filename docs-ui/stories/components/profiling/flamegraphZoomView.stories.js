@@ -2,6 +2,7 @@ import {Flamegraph} from 'sentry/components/profiling/flamegraph';
 import {FullScreenFlamegraphContainer} from 'sentry/components/profiling/fullScreenFlamegraphContainer';
 import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
+import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {importProfile} from 'sentry/utils/profiling/profile/importProfile';
 
 export default {
@@ -16,6 +17,22 @@ export const EventedTrace = () => {
       <FlamegraphThemeProvider>
         <FullScreenFlamegraphContainer>
           <Flamegraph profiles={eventedProfiles} />
+        </FullScreenFlamegraphContainer>
+      </FlamegraphThemeProvider>
+    </FlamegraphStateProvider>
+  );
+};
+
+export const EventedTraceOnTransactionAxis = () => {
+  const max = Math.max(eventedProfiles.profiles.map(p => p.duration));
+  const min = Math.max(eventedProfiles.profiles.map(p => p.startedAt));
+  const transaction = new Rect(min, 0, max, 0);
+
+  return (
+    <FlamegraphStateProvider>
+      <FlamegraphThemeProvider>
+        <FullScreenFlamegraphContainer>
+          <Flamegraph profiles={eventedProfiles} transaction={transaction} />
         </FullScreenFlamegraphContainer>
       </FlamegraphThemeProvider>
     </FlamegraphStateProvider>
