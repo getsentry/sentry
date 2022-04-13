@@ -1182,7 +1182,6 @@ class IssueListOverview extends React.Component<Props, State> {
               <IssueListFilters
                 organization={organization}
                 query={query}
-                queryCount={queryCount}
                 savedSearch={savedSearch}
                 sort={this.getSort()}
                 onSortChange={this.onSortChange}
@@ -1208,6 +1207,8 @@ class IssueListOverview extends React.Component<Props, State> {
                   groupIds={groupIds}
                   allResultsVisible={this.allResultsVisible()}
                   displayReprocessingActions={displayReprocessingActions}
+                  sort={this.getSort()}
+                  onSortChange={this.onSortChange}
                 />
                 <PanelBody>
                   <ProcessingIssueList
