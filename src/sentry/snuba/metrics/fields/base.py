@@ -31,7 +31,11 @@ from sentry.search.events.constants import MISERY_ALPHA, MISERY_BETA
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.utils import resolve_weak
 from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.metrics.fields.histogram import ClickhouseHistogram, rebucket_histogram
+from sentry.snuba.metrics.fields.histogram import (
+    ClickhouseHistogram,
+    rebucket_histogram,
+    zoom_histogram,
+)
 from sentry.snuba.metrics.fields.snql import (
     abnormal_sessions,
     abnormal_users,
@@ -233,12 +237,19 @@ class MetricOperation(MetricOperationDefinition, ABC):
     ) -> SnubaDataType:
         raise NotImplementedError
 
+    @abstractmethod
+    def generate_filter_snql_conditions(
+        self, org_id: int, query_definition: QueryDefinition
+    ) -> Optional[Function]:
+        raise NotImplementedError
+
 
 @dataclass
 class DerivedOpDefinition(MetricOperationDefinition):
     can_orderby: bool
     query_definition_args: Optional[List[str]] = None
     post_query_func: Callable[..., PostQueryFuncReturnType] = lambda *args: args
+    filter_conditions_func: Callable[[int], Optional[Function]] = lambda _: None
 
 
 class RawOp(MetricOperation):
@@ -253,6 +264,11 @@ class RawOp(MetricOperation):
         idx: Optional[int] = None,
     ) -> SnubaDataType:
         return data
+
+    def generate_filter_snql_conditions(
+        self, org_id: int, query_definition: QueryDefinition
+    ) -> None:
+        return
 
 
 class DerivedOp(DerivedOpDefinition, MetricOperation):
@@ -288,6 +304,16 @@ class DerivedOp(DerivedOpDefinition, MetricOperation):
             data[key][idx] = subdata
         return data
 
+    def generate_filter_snql_conditions(
+        self, org_id: int, query_definition: QueryDefinition
+    ) -> Optional[Function]:
+        kwargs = {"org_id": org_id}
+        if self.query_definition_args is not None:
+            for field in self.query_definition_args:
+                kwargs[field] = getattr(query_definition, field)
+
+        return self.filter_conditions_func(**kwargs)
+
 
 class MetricExpressionBase(ABC):
     @abstractmethod
@@ -310,7 +336,9 @@ class MetricExpressionBase(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def generate_select_statements(self, projects: Sequence[Project]) -> List[Function]:
+    def generate_select_statements(
+        self, projects: Sequence[Project], query_definition: QueryDefinition
+    ) -> List[Function]:
         """
         Method that generates a list of SnQL functions required to query an instance of
         MetricsFieldBase
@@ -319,9 +347,7 @@ class MetricExpressionBase(ABC):
 
     @abstractmethod
     def generate_orderby_clause(
-        self,
-        direction: Direction,
-        projects: Sequence[Project],
+        self, direction: Direction, projects: Sequence[Project], query_definition: QueryDefinition
     ) -> List[OrderBy]:
         """
         Method that generates a list of SnQL OrderBy clauses based on an instance of
@@ -414,19 +440,23 @@ class MetricExpression(MetricExpressionDefinition, MetricExpressionBase):
     def get_entity(self, projects: Sequence[Project]) -> MetricEntity:
         return OPERATIONS_TO_ENTITY[self.metric_operation.op]
 
-    def generate_select_statements(self, projects: Sequence[Project]) -> List[Function]:
+    def generate_select_statements(
+        self, projects: Sequence[Project], query_definition: QueryDefinition
+    ) -> List[Function]:
         org_id = org_id_from_projects(projects)
         return [
-            self.build_conditional_aggregate_for_metric(org_id, entity=self.get_entity(projects))
+            self.build_conditional_aggregate_for_metric(
+                org_id, entity=self.get_entity(projects), query_definition=query_definition
+            )
         ]
 
     def generate_orderby_clause(
-        self, direction: Direction, projects: Sequence[Project]
+        self, direction: Direction, projects: Sequence[Project], query_definition: QueryDefinition
     ) -> List[OrderBy]:
         self.metric_operation.validate_can_orderby()
         return [
             OrderBy(
-                self.generate_select_statements(projects)[0],
+                self.generate_select_statements(projects, query_definition=query_definition)[0],
                 direction,
             )
         ]
@@ -457,12 +487,22 @@ class MetricExpression(MetricExpressionDefinition, MetricExpressionBase):
     ) -> Iterable[Tuple[MetricOperationType, str]]:
         return [(self.metric_operation.op, self.metric_object.metric_mri)]
 
-    def build_conditional_aggregate_for_metric(self, org_id: int, entity: MetricEntity) -> Function:
+    def build_conditional_aggregate_for_metric(
+        self, org_id: int, entity: MetricEntity, query_definition: QueryDefinition
+    ) -> Function:
         snuba_function = OP_TO_SNUBA_FUNCTION[entity][self.metric_operation.op]
+        rv = self.metric_object.generate_filter_snql_conditions(org_id=org_id)
+
+        operation_based_filter = self.metric_operation.generate_filter_snql_conditions(
+            org_id=org_id, query_definition=query_definition
+        )
+        if operation_based_filter is not None:
+            rv = Function("and", [rv, operation_based_filter])
+
         return Function(
             snuba_function,
-            [Column("value"), self.metric_object.generate_filter_snql_conditions(org_id=org_id)],
-            alias=f"{self.metric_operation.op}({self.metric_object.metric_mri})",
+            [Column("value"), rv],
+            f"{self.metric_operation.op}({self.metric_object.metric_mri})",
         )
 
 
@@ -589,7 +629,9 @@ class SingularEntityDerivedMetric(DerivedMetricExpression):
             )
         ]
 
-    def generate_select_statements(self, projects: Sequence[Project]) -> List[Function]:
+    def generate_select_statements(
+        self, projects: Sequence[Project], query_definition: QueryDefinition
+    ) -> List[Function]:
         # Before, we are able to generate the relevant SnQL for a derived metric, we need to
         # validate that this instance of SingularEntityDerivedMetric is built from constituent
         # metrics that span a single entity
@@ -600,14 +642,16 @@ class SingularEntityDerivedMetric(DerivedMetricExpression):
         return self.__recursively_generate_select_snql(org_id, derived_metric_mri=self.metric_mri)
 
     def generate_orderby_clause(
-        self, direction: Direction, projects: Sequence[Project]
+        self, direction: Direction, projects: Sequence[Project], query_definition: QueryDefinition
     ) -> List[OrderBy]:
         if not projects:
             self._raise_entity_validation_exception("generate_orderby_clause")
         self.get_entity(projects=projects)
         return [
             OrderBy(
-                self.generate_select_statements(projects=projects)[0],
+                self.generate_select_statements(
+                    projects=projects, query_definition=query_definition
+                )[0],
                 direction,
             )
         ]
@@ -646,13 +690,16 @@ class CompositeEntityDerivedMetric(DerivedMetricExpression):
     def generate_metric_ids(self, projects: Sequence[Project]) -> Set[Any]:
         raise NotSupportedOverCompositeEntityException()
 
-    def generate_select_statements(self, projects: Sequence[Project]) -> List[Function]:
+    def generate_select_statements(
+        self, projects: Sequence[Project], query_definition: QueryDefinition
+    ) -> List[Function]:
         raise NotSupportedOverCompositeEntityException()
 
     def generate_orderby_clause(
         self,
         direction: Direction,
         projects: Sequence[Project],
+        query_definition: QueryDefinition,
     ) -> List[OrderBy]:
         raise NotSupportedOverCompositeEntityException(
             f"It is not possible to orderBy field "
@@ -1025,6 +1072,7 @@ DERIVED_OPS: Mapping[str, DerivedOp] = {
             can_orderby=False,
             query_definition_args=["histogram_from", "histogram_to", "histogram_buckets"],
             post_query_func=rebucket_histogram,
+            filter_conditions_func=zoom_histogram,
         )
     ]
 }
