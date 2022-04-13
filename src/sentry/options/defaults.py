@@ -386,4 +386,5 @@ register("store.save-transactions-ingest-consumer-rate", default=0.0)
 register("reprocessing2.drop-delete-old-primary-hash", default=[])
 
 # Send specific project IDs to random partitions in Kafka
-register("kafka.send-project-events-to-random-partitions", default={})
+register("kafka.send-project-transactions-to-random-partitions", default={})
+register("kafka.send-project-errors-to-random-partitions", default={})
