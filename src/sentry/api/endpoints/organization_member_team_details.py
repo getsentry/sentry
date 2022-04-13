@@ -1,11 +1,14 @@
+from typing import Any, Mapping, MutableMapping
+
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features, roles
 from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.serializers import serialize
+from sentry.api.serializers import Serializer, serialize
 from sentry.api.serializers.models.team import TeamWithProjectsSerializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
@@ -16,12 +19,26 @@ from sentry.models import (
     OrganizationMemberTeam,
     Team,
 )
+from sentry.roles import team_roles
+from sentry.roles.manager import TeamRole
+from sentry.utils.json import JSONData
 
 ERR_INSUFFICIENT_ROLE = "You do not have permission to edit that user's membership."
 
 
 class OrganizationMemberTeamSerializer(serializers.Serializer):
     isActive = serializers.BooleanField()
+    role = serializers.CharField(allow_null=True, allow_blank=True)
+
+
+class OrganizationMemberTeamDetailsSerializer(Serializer):
+    def serialize(
+        self, obj: OrganizationMemberTeam, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
+    ) -> MutableMapping[str, JSONData]:
+        return {
+            "isActive": obj.is_active,
+            "role": obj.role,
+        }
 
 
 class RelaxedOrganizationPermission(OrganizationPermission):
@@ -85,9 +102,25 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         return False
 
     def _can_admin_team(self, request: Request, team: Team) -> bool:
-        return request.access.has_scope("org:write") or (
-            team in request.access.teams and request.access.has_team_scope(team, "team:write")
-        )
+        if request.access.has_scope("org:write"):
+            return True
+        if not request.access.has_team_membership(team):
+            return False
+        return request.access.has_team_scope(team, "team:write")
+
+    def _can_set_team_role(self, request: Request, team: Team, new_role: TeamRole) -> bool:
+        if not self._can_admin_team(request, team):
+            return False
+
+        org_role = request.access.get_organization_role()
+        if org_role and org_role.can_manage_team_role(new_role):
+            return True
+
+        team_role = request.access.get_team_role(team)
+        if team_role and team_role.can_manage(new_role):
+            return True
+
+        return False
 
     def _create_access_request(
         self, request: Request, team: Team, member: OrganizationMember
@@ -102,6 +135,27 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
             omt.update(requester=requester)
 
         omt.send_request_email()
+
+    def get(
+        self,
+        request: Request,
+        organization: Organization,
+        member: OrganizationMember,
+        team_slug: str,
+    ) -> Response:
+        try:
+            team = Team.objects.get(organization=organization, slug=team_slug)
+        except Team.DoesNotExist:
+            raise ResourceDoesNotExist
+
+        try:
+            omt = OrganizationMemberTeam.objects.filter(team=team, organizationmember=member).get()
+        except OrganizationMemberTeam.DoesNotExist:
+            raise ResourceDoesNotExist
+
+        return Response(
+            serialize(omt, request.user, OrganizationMemberTeamDetailsSerializer()), status=200
+        )
 
     def post(
         self,
@@ -150,6 +204,60 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
 
         return Response(serialize(team, request.user, TeamWithProjectsSerializer()), status=201)
 
+    def put(
+        self,
+        request: Request,
+        organization: Organization,
+        member: OrganizationMember,
+        team_slug: str,
+    ) -> Response:
+        try:
+            team = Team.objects.get(organization=organization, slug=team_slug)
+        except Team.DoesNotExist:
+            raise ResourceDoesNotExist
+
+        try:
+            omt = OrganizationMemberTeam.objects.get(team=team, organizationmember=member)
+        except OrganizationMemberTeam.DoesNotExist:
+            raise ResourceDoesNotExist
+
+        serializer = OrganizationMemberTeamSerializer(data=request.data, partial=True)
+        if not serializer.is_valid():
+            return Response(status=400)
+        result = serializer.validated_data
+
+        if "role" in result and features.has("organizations:team-roles", organization):
+            new_role_id = result["role"]
+            try:
+                new_role = team_roles.get(new_role_id)
+            except KeyError:
+                return Response(status=400)
+
+            if not self._can_set_team_role(request, team, new_role):
+                return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)
+
+            self._change_team_member_role(omt, new_role)
+
+        return Response(
+            serialize(omt, request.user, OrganizationMemberTeamDetailsSerializer()), status=200
+        )
+
+    @staticmethod
+    def _change_team_member_role(
+        team_membership: OrganizationMemberTeam, team_role: TeamRole
+    ) -> None:
+        """Modify a member's team-level role."""
+        minimum_team_role = roles.get_minimum_team_role(team_membership.organizationmember.role)
+        if team_role.priority > minimum_team_role.priority:
+            team_membership.update(role=team_role.id)
+        else:
+            # The new team role is redundant to the role that this member would
+            # receive as their minimum team role anyway. This makes it effectively
+            # invisible in the UI, and it would be surprising if it were suddenly
+            # left over after the user's org-level role is demoted. So, write a null
+            # value to the database and let the minimum team role take over.
+            team_membership.update(role=None)
+
     def delete(
         self,
         request: Request,
@@ -183,4 +291,4 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
             )
             omt.delete()
 
-        return Response(serialize(team, request.user, TeamWithProjectsSerializer()), status=200)
+        return Response(status=200)

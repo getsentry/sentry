@@ -37,6 +37,7 @@ from sentry.models import (
     TeamStatus,
     UserOption,
 )
+from sentry.roles import team_roles
 from sentry.utils import metrics
 
 from . import get_allowed_roles
@@ -250,7 +251,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             if member.user == request.user and (result["role"] != member.role):
                 return Response({"detail": "You cannot make changes to your own role."}, status=400)
 
-            member.update(role=result["role"])
+            self._change_org_member_role(member, result["role"])
 
         self.create_audit_entry(
             request=request,
@@ -264,6 +265,25 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         context = self._serialize_member(member, request, allowed_roles)
 
         return Response(context)
+
+    @staticmethod
+    def _change_org_member_role(member: OrganizationMember, role: str) -> None:
+        new_minimum_team_role = roles.get_minimum_team_role(role)
+        lesser_team_roles = [
+            r.id for r in team_roles.get_all() if r.priority <= new_minimum_team_role.priority
+        ]
+
+        with transaction.atomic():
+            # If the member has any existing team roles that are less than or equal
+            # to their new minimum role, overwrite the redundant team roles with
+            # null. We do this because such a team role would be effectively
+            # invisible in the UI, and would be surprising if it were left behind
+            # after the user's org role is lowered again.
+            OrganizationMemberTeam.objects.filter(
+                organizationmember=member, role__in=lesser_team_roles
+            ).update(role=None)
+
+            member.update(role=role)
 
     @extend_schema(
         operation_id="Delete an Organization Member",
