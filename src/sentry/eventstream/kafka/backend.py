@@ -131,9 +131,16 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
         assert isinstance(extra_data, tuple)
         key = (
-            str(project_id).encode("utf-8")
-            if project_id not in options.get("kafka.send-project-events-to-random-partitions")
-            else None
+            None
+            if (
+                project_id in options.get("kafka.send-project-transactions-to-random-partitions")
+                and extra_data["type"] == "transaction"
+            )
+            or (
+                project_id in options.get("kafka.send-project-errors-to-random-partitions")
+                and extra_data["type"] == "error"
+            )
+            else str(project_id).encode("utf-8")
         )
 
         try:
