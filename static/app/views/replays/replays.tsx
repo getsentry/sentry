@@ -36,17 +36,7 @@ class Replays extends React.Component<Props> {
       id: '',
       name: '',
       version: 2,
-      fields: [
-        'eventID',
-        'timestamp',
-        'replayId',
-        'user.display',
-        'user.id',
-        'user.ip',
-        'user.email',
-        'user.username',
-        'url',
-      ],
+      fields: ['eventID', 'timestamp', 'replayId', 'user.display', 'url'],
       orderby: '-timestamp',
       environment: selection.environments,
       projects: selection.projects,
@@ -73,21 +63,19 @@ class Replays extends React.Component<Props> {
             id: replay.id,
           })}/`}
         >
-          <UserBadgeWrapper>
-            <UserBadge
-              avatarSize={32}
-              displayName={replay['user.display']}
-              user={{
-                username: replay['user.username'],
-                id: replay['user.id'],
-                ip_address: replay['user.ip'],
-                name: replay['user.display'],
-                email: replay['user.email'],
-              }}
-              // this is the subheading for the avatar, so displayEmail in this case is a misnomer
-              displayEmail={replay.url?.split('?')[0] || ''}
-            />
-          </UserBadgeWrapper>
+          <ReplayUserBadge
+            avatarSize={32}
+            displayName={replay['user.display']}
+            user={{
+              username: replay['user.display'],
+              id: replay['user.display'],
+              ip_address: replay['user.display'],
+              name: replay['user.display'],
+              email: replay['user.display'],
+            }}
+            // this is the subheading for the avatar, so displayEmail in this case is a misnomer
+            displayEmail={replay.url?.split('?')[0] || ''}
+          />
         </Link>
         <div>
           <FieldDateTime date={replay.timestamp} />
@@ -144,7 +132,7 @@ const HeaderTitle = styled(PageHeading)`
   flex: 1;
 `;
 
-const UserBadgeWrapper = styled('div')`
+const ReplayUserBadge = styled(UserBadge)`
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.linkColor};
 `;
