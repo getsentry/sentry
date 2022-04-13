@@ -5,6 +5,8 @@ import TraceView from 'sentry/components/events/interfaces/spans/traceView';
 import WaterfallModel from 'sentry/components/events/interfaces/spans/waterfallModel';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {EntryType, EventTransaction} from 'sentry/types';
+import * as QuickTraceContext from 'sentry/utils/performance/quickTrace/quickTraceContext';
+import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
 
 function initializeData(settings) {
   const data = _initializeData(settings);
@@ -59,11 +61,7 @@ function generateSampleSpan(
     tags: {
       'http.status_code': '200',
     },
-    data: {
-      method: 'GET',
-      type: 'fetch',
-      url: '/api/0/organizations/?member=1',
-    },
+    data: {},
   };
 
   event.entries[0].data.push(span);
@@ -71,6 +69,10 @@ function generateSampleSpan(
 }
 
 describe('TraceView', () => {
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+  });
+
   it('should render siblings with the same op and description as a grouped span in the minimap and span tree', async () => {
     const data = initializeData({
       features: ['performance-autogroup-sibling-spans'],
@@ -222,5 +224,100 @@ describe('TraceView', () => {
     const secondRegroup = await screen.findByText('Regroup');
     userEvent.click(secondRegroup);
     expect(await screen.findAllByText('group me')).toHaveLength(2);
+  });
+
+  it('should allow expanding of embedded transactions, and properly adjust timestamps within', async () => {
+    const {organization, project, location} = initializeData({
+      features: ['unified-span-view'],
+    });
+
+    const event = generateSampleEvent();
+    const waterfallModel = new WaterfallModel(event);
+
+    const eventsTraceMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-trace/${event.contexts.trace?.trace_id}/`,
+      method: 'GET',
+      statusCode: 200,
+      body: [
+        {
+          errors: [],
+          event_id: '998d7e2c304c45729545e4434e2967cb',
+          generation: 1,
+          parent_event_id: '2b658a829a21496b87fd1f14a61abf65',
+          parent_span_id: 'a000000000000000',
+          project_id: project.id,
+          project_slug: project.slug,
+          span_id: '8596e2795f88471d',
+          transaction:
+            '/api/0/organizations/{organization_slug}/events/{project_slug}:{event_id}/',
+          'transaction.duration': 159,
+          'transaction.op': 'http.server',
+        },
+      ],
+    });
+
+    const eventsTraceLightMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-trace-light/${event.contexts.trace?.trace_id}/`,
+      method: 'GET',
+      statusCode: 200,
+      body: [
+        {
+          errors: [],
+          event_id: '998d7e2c304c45729545e4434e2967cb',
+          generation: 1,
+          parent_event_id: '2b658a829a21496b87fd1f14a61abf65',
+          parent_span_id: 'a000000000000000',
+          project_id: project.id,
+          project_slug: project.slug,
+          span_id: '8596e2795f88471d',
+          transaction:
+            '/api/0/organizations/{organization_slug}/events/{project_slug}:{event_id}/',
+          'transaction.duration': 159,
+          'transaction.op': 'http.server',
+        },
+      ],
+    });
+
+    const embeddedEvent = {
+      ...generateSampleEvent(),
+      id: '998d7e2c304c45729545e4434e2967cb',
+      eventID: '998d7e2c304c45729545e4434e2967cb',
+    };
+    embeddedEvent.contexts.trace!.span_id = 'a111111111111111';
+    generateSampleSpan(
+      'http',
+      'i am embedded :)',
+      'b111111111111111',
+      'a111111111111111',
+      event
+    );
+
+    const fetchEmbeddedTransactionMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/project-slug:998d7e2c304c45729545e4434e2967cb/`,
+      method: 'GET',
+      statusCode: 200,
+      body: embeddedEvent,
+    });
+
+    render(
+      <QuickTraceQuery event={event} location={location} orgSlug={organization.slug}>
+        {results => (
+          <QuickTraceContext.Provider value={results}>
+            <TraceView organization={organization} waterfallModel={waterfallModel} />
+          </QuickTraceContext.Provider>
+        )}
+      </QuickTraceQuery>
+    );
+
+    expect(eventsTraceMock).toHaveBeenCalled();
+    expect(eventsTraceLightMock).toHaveBeenCalled();
+
+    const embeddedTransactionBadge = await screen.findByTestId(
+      'embedded-transaction-badge'
+    );
+    expect(embeddedTransactionBadge).toBeInTheDocument();
+    userEvent.click(embeddedTransactionBadge);
+    expect(fetchEmbeddedTransactionMock).toHaveBeenCalled();
+    expect(await screen.findByText(/i am embedded :\)/i)).toBeInTheDocument();
   });
 });
