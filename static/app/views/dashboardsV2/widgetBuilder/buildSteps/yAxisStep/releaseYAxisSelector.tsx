@@ -3,8 +3,8 @@ import {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {
   generateReleaseWidgetFieldOptions,
-  SESSION_FIELDS,
-  SESSION_TAGS,
+  SESSIONS_FIELDS,
+  SESSIONS_TAGS,
 } from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
 
 import {YAxisSelector} from './yAxisSelector';
@@ -32,8 +32,8 @@ export function ReleaseYAxisSelector({
       onChange={onChange}
       errors={errors}
       fieldOptions={generateReleaseWidgetFieldOptions(
-        Object.keys(SESSION_FIELDS).map(key => SESSION_FIELDS[key]),
-        SESSION_TAGS
+        Object.keys(SESSIONS_FIELDS).map(key => SESSIONS_FIELDS[key]),
+        SESSIONS_TAGS
       )}
       noFieldsMessage={t('There are no metrics for this project.')}
     />

@@ -1,10 +1,10 @@
 import {
   generateReleaseWidgetFieldOptions,
-  SESSION_FIELDS,
+  SESSIONS_FIELDS,
 } from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
 
 describe('generateReleaseWidgetFieldOptions', function () {
-  const fields = Object.keys(SESSION_FIELDS).map(key => SESSION_FIELDS[key]);
+  const fields = Object.keys(SESSIONS_FIELDS).map(key => SESSIONS_FIELDS[key]);
   const tagKeys = ['release', 'environment'];
 
   it('generates correct field options', function () {

@@ -4,7 +4,7 @@ import {RELEASE_ADOPTION_STAGES} from 'sentry/constants';
 import {MetricsType, Organization, SelectValue} from 'sentry/types';
 import {assert} from 'sentry/types/utils';
 import {
-  SESSION_FIELDS,
+  SESSIONS_FIELDS,
   SESSIONS_OPERATIONS,
 } from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
 
@@ -1137,8 +1137,8 @@ export function aggregateFunctionOutputType(
     }
   }
 
-  if (firstArg && SESSION_FIELDS.hasOwnProperty(firstArg)) {
-    return SESSION_FIELDS[firstArg].type as AggregationOutputType;
+  if (firstArg && SESSIONS_FIELDS.hasOwnProperty(firstArg)) {
+    return SESSIONS_FIELDS[firstArg].type as AggregationOutputType;
   }
 
   // If the function is an inherit type it will have a field as

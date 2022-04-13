@@ -1,5 +1,5 @@
 import {MetricsApiResponse, SessionApiResponse} from 'sentry/types';
-import {SESSION_TAGS} from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
+import {SESSIONS_TAGS} from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
 
 import {TableData} from '../discover/discoverQuery';
 import {aggregateOutputType} from '../discover/fields';
@@ -8,7 +8,7 @@ function changeObjectValuesToTypes(
   obj: Record<string, number | string | null> | undefined
 ) {
   return Object.keys(obj ?? {}).reduce((acc, key) => {
-    acc[key] = SESSION_TAGS.includes(key) ? 'string' : aggregateOutputType(key);
+    acc[key] = SESSIONS_TAGS.includes(key) ? 'string' : aggregateOutputType(key);
     return acc;
   }, {});
 }

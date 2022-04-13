@@ -4,8 +4,8 @@ import {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {
   generateReleaseWidgetFieldOptions,
-  SESSION_FIELDS,
-  SESSION_TAGS,
+  SESSIONS_FIELDS,
+  SESSIONS_TAGS,
 } from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
 import {filterPrimaryOptions} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 
@@ -36,8 +36,8 @@ export function ReleaseColumnFields({
       fields={explodedFields}
       errors={queryErrors?.[0] ? [queryErrors?.[0]] : undefined}
       fieldOptions={generateReleaseWidgetFieldOptions(
-        Object.keys(SESSION_FIELDS).map(key => SESSION_FIELDS[key]),
-        SESSION_TAGS
+        Object.keys(SESSIONS_FIELDS).map(key => SESSIONS_FIELDS[key]),
+        SESSIONS_TAGS
       )}
       filterPrimaryOptions={option =>
         filterPrimaryOptions({

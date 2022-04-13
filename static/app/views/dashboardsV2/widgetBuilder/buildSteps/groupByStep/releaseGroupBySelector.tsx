@@ -1,7 +1,7 @@
 import {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
-import {SESSION_TAGS} from '../../releaseWidget/fields';
+import {SESSIONS_TAGS} from '../../releaseWidget/fields';
 
 import {GroupBySelector} from './groupBySelector';
 
@@ -11,7 +11,7 @@ interface Props {
 }
 
 export function ReleaseGroupBySelector({columns, onChange}: Props) {
-  const tags = SESSION_TAGS;
+  const tags = SESSIONS_TAGS;
 
   // Tags are sorted alphabetically to make it easier to find the correct option
   // and are converted to fieldOptions format

@@ -54,8 +54,8 @@ import {
 import {generateIssueWidgetFieldOptions} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/utils';
 import {
   generateReleaseWidgetFieldOptions,
-  SESSION_FIELDS,
-  SESSION_TAGS,
+  SESSIONS_FIELDS,
+  SESSIONS_TAGS,
 } from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
 import {
   mapErrors,
@@ -803,8 +803,8 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       : selection;
 
     const metricsWidgetFieldOptions = generateReleaseWidgetFieldOptions(
-      Object.keys(SESSION_FIELDS).map(key => SESSION_FIELDS[key]),
-      SESSION_TAGS
+      Object.keys(SESSIONS_FIELDS).map(key => SESSIONS_FIELDS[key]),
+      SESSIONS_TAGS
     );
 
     return (

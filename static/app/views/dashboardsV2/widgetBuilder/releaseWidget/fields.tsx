@@ -7,7 +7,7 @@ import {
 import {defined} from 'sentry/utils';
 import {FieldValue, FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
-export const SESSION_FIELDS: Record<string, SessionsMeta> = {
+export const SESSIONS_FIELDS: Record<string, SessionsMeta> = {
   session: {
     name: 'session',
     operations: ['sum'],
@@ -70,10 +70,10 @@ export const SESSIONS_OPERATIONS: Readonly<
   },
 };
 
-export const SESSION_TAGS = ['environment', 'project', 'release', 'session.status'];
+export const SESSIONS_TAGS = ['environment', 'project', 'release', 'session.status'];
 
 export function generateReleaseWidgetFieldOptions(
-  fields: SessionsMeta[] = Object.keys(SESSION_FIELDS).map(key => SESSION_FIELDS[key]),
+  fields: SessionsMeta[] = Object.keys(SESSIONS_FIELDS).map(key => SESSIONS_FIELDS[key]),
   tagKeys?: string[]
 ) {
   const fieldOptions: Record<string, SelectValue<FieldValue>> = {};

@@ -4,7 +4,7 @@ import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
 import {Organization} from 'sentry/types';
 
-import {SESSION_TAGS} from './fields';
+import {SESSIONS_TAGS} from './fields';
 
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,
@@ -35,7 +35,7 @@ function MetricsSearchBar({
     return query.replace(SEARCH_SPECIAL_CHARS_REGEXP, '');
   }
 
-  const supportedTags = Object.values(SESSION_TAGS).reduce((acc, key) => {
+  const supportedTags = Object.values(SESSIONS_TAGS).reduce((acc, key) => {
     acc[key] = {key, name: key};
     return acc;
   }, {});
