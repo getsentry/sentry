@@ -7,6 +7,7 @@ import UserBadge from 'sentry/components/idBadge/userBadge';
 import Link from 'sentry/components/links/link';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import PageHeading from 'sentry/components/pageHeading';
+import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar} from 'sentry/icons';
@@ -33,7 +34,6 @@ type Props = AsyncView['props'] &
 class Replays extends React.Component<Props> {
   getEventView() {
     const {location, selection} = this.props;
-
     const eventQueryParams: NewQuery = {
       id: '',
       name: '',
@@ -112,15 +112,18 @@ class Replays extends React.Component<Props> {
           >
             {data => {
               return (
-                <PanelTable
-                  isLoading={data.isLoading}
-                  isEmpty={data.tableData?.data.length === 0}
-                  headers={['Session', 'Timestamp']}
-                >
-                  {data.tableData
-                    ? this.renderTable(data.tableData.data as Replay[])
-                    : null}
-                </PanelTable>
+                <React.Fragment>
+                  <PanelTable
+                    isLoading={data.isLoading}
+                    isEmpty={data.tableData?.data.length === 0}
+                    headers={['Replay ID', 'User', 'Timestamp']}
+                  >
+                    {data.tableData
+                      ? this.renderTable(data.tableData.data as Replay[])
+                      : null}
+                  </PanelTable>
+                  <Pagination pageLinks={data.pageLinks} />
+                </React.Fragment>
               );
             }}
           </DiscoverQuery>
