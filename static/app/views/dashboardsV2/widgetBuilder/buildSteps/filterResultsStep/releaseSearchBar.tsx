@@ -2,17 +2,19 @@ import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
 
+import {fetchTagValues} from 'sentry/actionCreators/tags';
 import {SearchBarProps} from 'sentry/components/events/searchBar';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH, NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
-import {MetricsTagValue, Organization, Tag} from 'sentry/types';
+import {Organization, Tag, TagValue} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
-import {useMetricsContext} from 'sentry/utils/useMetricsContext';
 import {WidgetQuery} from 'sentry/views/dashboardsV2/types';
 import {
   MAX_MENU_HEIGHT,
   MAX_SEARCH_ITEMS,
 } from 'sentry/views/dashboardsV2/widgetBuilder/utils';
+
+import {SESSIONS_TAGS} from '../../releaseWidget/fields';
 
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,
@@ -28,7 +30,7 @@ interface Props {
 
 export function ReleaseSearchBar({orgSlug, query, projectIds, onSearch, onBlur}: Props) {
   const api = useApi();
-  const {tags} = useMetricsContext();
+  const tags = SESSIONS_TAGS;
 
   /**
    * Prepare query string (e.g. strip special characters like negation operator)
@@ -37,22 +39,17 @@ export function ReleaseSearchBar({orgSlug, query, projectIds, onSearch, onBlur}:
     return searchQuery.replace(SEARCH_SPECIAL_CHARS_REGEXP, '');
   }
 
-  function fetchTagValues(tagKey: string) {
-    return api.requestPromise(`/organizations/${orgSlug}/metrics/tags/${tagKey}/`, {
-      query: {project: projectIds},
-    });
-  }
-
   function getTagValues(tag: Tag, _query: string): Promise<string[]> {
-    return fetchTagValues(tag.key).then(
-      tagValues => (tagValues as MetricsTagValue[]).map(({value}) => value),
+    const projectIdStrings = projectIds?.map(String);
+    return fetchTagValues(api, orgSlug, tag.key, null, projectIdStrings).then(
+      tagValues => (tagValues as TagValue[]).map(({value}) => value),
       () => {
         throw new Error('Unable to fetch tag values');
       }
     );
   }
 
-  const supportedTags = Object.values(tags).reduce((acc, {key}) => {
+  const supportedTags = Object.values(tags).reduce((acc, key) => {
     acc[key] = {key, name: key};
     return acc;
   }, {});
