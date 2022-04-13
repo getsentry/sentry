@@ -14,7 +14,7 @@ import {
   MAX_SEARCH_ITEMS,
 } from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 
-import {SESSIONS_STATUSES, SESSIONS_TAGS} from '../../releaseWidget/fields';
+import {SESSION_STATUSES, SESSIONS_TAGS} from '../../releaseWidget/fields';
 
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,
@@ -41,7 +41,7 @@ export function ReleaseSearchBar({orgSlug, query, projectIds, onSearch, onBlur}:
 
   function getTagValues(tag: Tag, searchQuery: string): Promise<string[]> {
     if (tag.name === 'session.status') {
-      return Promise.resolve(SESSIONS_STATUSES);
+      return Promise.resolve(SESSION_STATUSES);
     }
     const projectIdStrings = projectIds?.map(String);
     return fetchTagValues(api, orgSlug, tag.key, searchQuery, projectIdStrings).then(
