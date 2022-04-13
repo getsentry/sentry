@@ -78,7 +78,6 @@ jobs:
         env:
           GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           GITHUB_PR_REF: ${{ github.event.pull_request.head.ref || github.ref }}
-          SENTRY_RELEASE: ci@${{ github.event.pull_request.head.sha || github.sha }}
           # XXX: CI_NODE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
           #      Otherwise, if there are other things in the matrix, using strategy.job-total
           #      wouldn't be correct.
@@ -155,7 +154,6 @@ jobs:
           SENTRY_INSTRUMENTATION: 1
           # this is fine to not have for forks, it shouldn't fail
           SENTRY_WEBPACK_WEBHOOK_SECRET: ${{ secrets.SENTRY_WEBPACK_WEBHOOK_SECRET }}
-          SENTRY_RELEASE: ci@${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           yarn build-acceptance
 
