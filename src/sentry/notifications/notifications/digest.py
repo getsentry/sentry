@@ -4,7 +4,6 @@ import logging
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Sequence
 
-from sentry import features
 from sentry.db.models import Model
 from sentry.digests import Digest
 from sentry.digests.utils import (
@@ -40,6 +39,7 @@ logger = logging.getLogger(__name__)
 class DigestNotification(ProjectNotification):
     message_builder = "DigestNotificationMessageBuilder"
     referrer_base = "digest"
+    template_path = "sentry/emails/digests/body"
 
     def __init__(
         self,
@@ -52,9 +52,6 @@ class DigestNotification(ProjectNotification):
         self.digest = digest
         self.target_type = target_type
         self.target_identifier = target_identifier
-
-    def get_filename(self) -> str:
-        return "digests/body"
 
     def get_category(self) -> str:
         return "digest_email"
@@ -106,9 +103,6 @@ class DigestNotification(ProjectNotification):
             "has_alert_integration": has_alert_integration(project),
             "project": project,
             "slack_link": get_integration_link(organization, "slack"),
-            "alert_status_page_enabled": features.has(
-                "organizations:alert-rule-status-page", project.organization
-            ),
             "rules_details": {rule.id: rule for rule in rule_details},
             "link_params_for_rule": get_email_link_extra_params(
                 "digest_email", None, rule_details, alert_timestamp

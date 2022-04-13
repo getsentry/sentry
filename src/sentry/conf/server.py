@@ -930,8 +930,6 @@ SENTRY_FEATURES = {
     "organizations:advanced-search": True,
     # Use metrics as the dataset for crash free metric alerts
     "organizations:alert-crash-free-metrics": False,
-    # Enable issue alert status page
-    "organizations:alert-rule-status-page": True,
     # Alert wizard redesign version 3
     "organizations:alert-wizard-v3": False,
     "organizations:api-keys": False,
@@ -1078,6 +1076,8 @@ SENTRY_FEATURES = {
     "organizations:performance-span-histogram-view": False,
     # Enable autogrouping of sibling spans
     "organizations:performance-autogroup-sibling-spans": False,
+    # Enable performance on-boarding checklist
+    "organizations:performance-onboarding-checklist": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
@@ -1406,7 +1406,7 @@ SENTRY_METRICS_PREFIX = "sentry."
 SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefixes.
 
 # Metrics product
-SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.postgres.PGStringIndexer"
+SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.postgres_v2.StaticStringsIndexerDecorator"
 SENTRY_METRICS_INDEXER_OPTIONS = {}
 SENTRY_METRICS_INDEXER_CACHE_TTL = 3600 * 2
 
@@ -2536,4 +2536,4 @@ DEVSERVER_LOGS_ALLOWLIST = None
 
 LOG_API_ACCESS = not IS_DEV or os.environ.get("SENTRY_LOG_API_ACCESS")
 
-VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = False
+VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = True

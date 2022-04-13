@@ -16,11 +16,11 @@ from datetime import datetime, timedelta
 
 from django.conf import settings
 from django.core.signing import BadSignature
+from django.http import RawPostDataException
 from django.utils import timezone
 from django.utils.crypto import constant_time_compare, get_random_string
-from rest_framework import serializers, status
+from rest_framework import serializers
 
-from sentry.api.exceptions import SentryAPIException
 from sentry.auth.system import is_system_auth
 from sentry.utils import json
 from sentry.utils.auth import has_completed_sso
@@ -43,6 +43,11 @@ COOKIE_HTTPONLY = getattr(settings, "SUPERUSER_COOKIE_HTTPONLY", True)
 
 # the maximum time the session can stay alive
 MAX_AGE = getattr(settings, "SUPERUSER_MAX_AGE", timedelta(hours=4))
+
+# the maximum time the session can stay alive when accessing different orgs
+MAX_AGE_PRIVILEGED_ORG_ACCESS = getattr(
+    settings, "MAX_AGE_PRIVILEGED_ORG_ACCESS", timedelta(hours=1)
+)
 
 # the maximum time the session can stay alive without making another request
 IDLE_MAX_AGE = getattr(settings, "SUPERUSER_IDLE_MAX_AGE", timedelta(minutes=15))
@@ -68,16 +73,23 @@ class SuperuserAccessSerializer(serializers.Serializer):
     superuserReason = serializers.CharField(min_length=4, max_length=128)
 
 
-class SuperuserAccessFormInvalidJson(SentryAPIException):
-    status_code = status.HTTP_400_BAD_REQUEST
-    code = "invalid-superuser-access-json"
-    message = "The request contains invalid json"
-
-
 class Superuser:
     allowed_ips = [ipaddress.ip_network(str(v), strict=False) for v in ALLOWED_IPS]
 
     org_id = ORG_ID
+
+    def _check_expired_on_org_change(self):
+        if self.expires is not None:
+            session_start_time = self.expires - MAX_AGE
+            current_datetime = timezone.now()
+            if current_datetime - session_start_time > MAX_AGE_PRIVILEGED_ORG_ACCESS:
+                logger.warning(
+                    "superuser.privileged_org_access_expired",
+                    extra={"superuser_token": self.token},
+                )
+                self.set_logged_out()
+                return False
+        return self._is_active
 
     def __init__(self, request, allowed_ips=UNSET, org_id=UNSET, current_datetime=None):
         self.request = request
@@ -95,6 +107,9 @@ class Superuser:
 
     @property
     def is_active(self):
+        org = getattr(self.request, "organization", None)
+        if org and org.id != self.org_id:
+            return self._check_expired_on_org_change()
         # if we've been logged out
         if not self.request.user.is_authenticated:
             return False
@@ -318,9 +333,7 @@ class Superuser:
         try:
             # need to use json loads as the data is no longer in request.data
             su_access_json = json.loads(request.body)
-        except json.JSONDecodeError:
-            raise SuperuserAccessFormInvalidJson()
-        except AttributeError:
+        except (AttributeError, json.JSONDecodeError, RawPostDataException):
             su_access_json = {}
 
         if "superuserAccessCategory" in su_access_json:
