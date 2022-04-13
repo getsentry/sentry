@@ -2,7 +2,6 @@ import {Flamegraph} from 'sentry/components/profiling/flamegraph';
 import {FullScreenFlamegraphContainer} from 'sentry/components/profiling/fullScreenFlamegraphContainer';
 import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
-import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {importProfile} from 'sentry/utils/profiling/profile/importProfile';
 
 export default {
@@ -23,21 +22,6 @@ export const EventedTrace = () => {
   );
 };
 
-export const EventedTraceOnTransactionAxis = () => {
-  const max = Math.max(...eventedProfiles.profiles.map(p => p.duration));
-  const configSpace = new Rect(0, 0, max, 0);
-
-  return (
-    <FlamegraphStateProvider>
-      <FlamegraphThemeProvider>
-        <FullScreenFlamegraphContainer>
-          <Flamegraph profiles={eventedProfiles} configSpace={configSpace} />
-        </FullScreenFlamegraphContainer>
-      </FlamegraphThemeProvider>
-    </FlamegraphStateProvider>
-  );
-};
-
 const sampledTrace = importProfile(require('./SampledTrace.json'));
 
 export const SampledTrace = () => {
@@ -46,21 +30,6 @@ export const SampledTrace = () => {
       <FlamegraphThemeProvider>
         <FullScreenFlamegraphContainer>
           <Flamegraph profiles={sampledTrace} />
-        </FullScreenFlamegraphContainer>
-      </FlamegraphThemeProvider>
-    </FlamegraphStateProvider>
-  );
-};
-
-export const SampledTraceOnTransactionAxis = () => {
-  const max = Math.max(...sampledTrace.profiles.map(p => p.duration));
-  const configSpace = new Rect(0, 0, max, 0);
-
-  return (
-    <FlamegraphStateProvider>
-      <FlamegraphThemeProvider>
-        <FullScreenFlamegraphContainer>
-          <Flamegraph profiles={sampledTrace} configSpace={configSpace} />
         </FullScreenFlamegraphContainer>
       </FlamegraphThemeProvider>
     </FlamegraphStateProvider>

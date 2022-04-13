@@ -66,7 +66,12 @@ export class Flamegraph {
     );
 
     if (this.profile.duration) {
-      this.configSpace = new Rect(0, 0, this.profile.duration, this.depth);
+      this.configSpace = new Rect(
+        0,
+        0,
+        configSpace ? configSpace.right : this.profile.endedAt,
+        this.depth
+      );
     }
   }
 

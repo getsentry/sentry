@@ -1,6 +1,7 @@
 import {Fragment, ReactElement, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import Checkbox from 'sentry/components/checkbox';
 import {FlamegraphOptionsMenu} from 'sentry/components/profiling/flamegraphOptionsMenu';
 import {FlamegraphSearch} from 'sentry/components/profiling/flamegraphSearch';
 import {FlamegraphToolbar} from 'sentry/components/profiling/flamegraphToolbar';
@@ -16,15 +17,19 @@ import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/useFla
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import {Profile} from 'sentry/utils/profiling/profile/profile';
 
+function getTransactionConfigSpace(profiles: Profile[]): Rect {
+  return new Rect(0, 0, Math.max(...profiles.map(p => p.endedAt)), 0);
+}
 interface FlamegraphProps {
   profiles: ProfileGroup;
-  configSpace?: Rect;
 }
 
 function Flamegraph(props: FlamegraphProps): ReactElement {
   const flamegraphTheme = useFlamegraphTheme();
-  const [{sorting, view}, dispatch] = useFlamegraphPreferences();
+  const [{sorting, view, synchronizeXAxisWithTransaction}, dispatch] =
+    useFlamegraphPreferences();
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
 
   const [activeProfileIndex, setActiveProfileIndex] = useState<number | null>(null);
@@ -44,16 +49,28 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
         inverted: view === 'bottom up',
         leftHeavy: sorting === 'left heavy',
       },
-      props.configSpace
+      synchronizeXAxisWithTransaction
+        ? getTransactionConfigSpace(profiles.profiles)
+        : undefined
     );
 
     return flamegraphModel;
-  }, [profiles, activeProfileIndex, sorting, view, props.configSpace]);
+  }, [profiles, activeProfileIndex, sorting, synchronizeXAxisWithTransaction, view]);
 
   const onImport = useCallback((profile: ProfileGroup) => {
     setActiveProfileIndex(null);
     setImportedProfiles(profile);
   }, []);
+
+  const handleSynchronizeXAxisWithTransactionChange = useCallback(
+    (event: React.MouseEvent<HTMLInputElement>) => {
+      dispatch({
+        type: 'set synchronizeXAxisWithTransaction',
+        payload: event.currentTarget.checked,
+      });
+    },
+    []
+  );
 
   return (
     <Fragment>
@@ -74,6 +91,11 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
           onProfileIndexChange={setActiveProfileIndex}
         />
         <FlamegraphOptionsMenu canvasPoolManager={canvasPoolManager} />
+        <Checkbox
+          checked={synchronizeXAxisWithTransaction}
+          onClick={handleSynchronizeXAxisWithTransactionChange}
+        />
+        Synchronize X axis with Transaction
       </FlamegraphToolbar>
 
       <FlamegraphZoomViewMinimapContainer height={flamegraphTheme.SIZES.MINIMAP_HEIGHT}>

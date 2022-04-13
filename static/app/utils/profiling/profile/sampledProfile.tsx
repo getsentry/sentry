@@ -112,7 +112,6 @@ export class SampledProfile extends Profile {
       this.duration,
       this.weights.reduce((a, b) => a + b, 0)
     );
-    this.endedAt = this.duration;
 
     // We had no frames with duration > 0, so set min duration to timeline duration
     // which effectively disables any zooming on the flamegraphs
