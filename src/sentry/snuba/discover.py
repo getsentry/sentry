@@ -209,6 +209,7 @@ def query(
     referrer=None,
     auto_fields=False,
     auto_aggregations=False,
+    auto_equation_fields=False,
     allow_metric_aggregates=False,
     use_aggregate_conditions=False,
     conditions=None,
@@ -237,6 +238,8 @@ def query(
     auto_fields (bool) Set to true to have project + eventid fields automatically added.
     auto_aggregations (bool) Whether aggregates should be added automatically if they're used
                     in conditions, and there's at least one aggregate already.
+    auto_equation_fields (bool) Whether fields should be added automatically if they're used in
+                    equations
     allow_metric_aggregates (bool) Ignored here, only used in metric enhanced performance
     use_aggregate_conditions (bool) Set to true if aggregates conditions should be used at all.
     conditions (Sequence[any]) List of conditions that are passed directly to snuba without
@@ -265,6 +268,7 @@ def query(
             functions_acl=functions_acl,
             limit=limit,
             offset=offset,
+            equation_config={"auto_add": auto_equation_fields},
         )
         if extra_snql_condition is not None:
             builder.add_conditions(extra_snql_condition)
@@ -287,6 +291,7 @@ def query(
         orderby,
         auto_fields,
         auto_aggregations,
+        auto_equation_fields,
         use_aggregate_conditions,
         conditions,
         functions_acl,
@@ -330,6 +335,7 @@ def prepare_discover_query(
     orderby=None,
     auto_fields=False,
     auto_aggregations=False,
+    auto_equation_fields=False,
     use_aggregate_conditions=False,
     conditions=None,
     functions_acl=None,
@@ -350,7 +356,7 @@ def prepare_discover_query(
         resolved_columns = selected_columns
         if equations is not None:
             resolved_equations, resolved_columns, _ = resolve_equation_list(
-                equations, selected_columns, auto_add=True
+                equations, selected_columns, auto_add=auto_equation_fields
             )
         else:
             resolved_equations = []
@@ -729,6 +735,7 @@ def top_events_timeseries(
                 auto_aggregations=True,
                 use_aggregate_conditions=True,
                 use_snql=use_snql,
+                auto_equation_fields=True,
             )
 
     if use_snql:

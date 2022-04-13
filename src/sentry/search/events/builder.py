@@ -419,7 +419,7 @@ class QueryBuilder:
                 equations,
                 stripped_columns,
                 use_snql=True,
-                **{**self.equation_config, "auto_add": True},
+                **self.equation_config,
             )
             for index, parsed_equation in enumerate(parsed_equations):
                 resolved_equation = self.resolve_equation(
