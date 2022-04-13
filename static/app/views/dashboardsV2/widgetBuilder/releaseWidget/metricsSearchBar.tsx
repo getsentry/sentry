@@ -1,10 +1,13 @@
 import {ClassNames} from '@emotion/react';
+import memoize from 'lodash/memoize';
 
+import {fetchTagValues} from 'sentry/actionCreators/tags';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
-import {Organization} from 'sentry/types';
+import {Organization, Tag, TagValue} from 'sentry/types';
+import useApi from 'sentry/utils/useApi';
 
-import {SESSIONS_TAGS} from './fields';
+import {SESSION_STATUSES, SESSIONS_TAGS} from './fields';
 
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,
@@ -21,21 +24,39 @@ type Props = Pick<
 };
 
 function MetricsSearchBar({
+  orgSlug,
   onSearch,
   onBlur,
   maxQueryLength,
   searchSource,
+  projectIds,
   className,
   ...props
 }: Props) {
+  const api = useApi();
+  const tags = SESSIONS_TAGS;
+
   /**
    * Prepare query string (e.g. strip special characters like negation operator)
    */
-  function prepareQuery(query: string) {
-    return query.replace(SEARCH_SPECIAL_CHARS_REGEXP, '');
+  function prepareQuery(searchQuery: string) {
+    return searchQuery.replace(SEARCH_SPECIAL_CHARS_REGEXP, '');
   }
 
-  const supportedTags = Object.values(SESSIONS_TAGS).reduce((acc, key) => {
+  function getTagValues(tag: Tag, searchQuery: string): Promise<string[]> {
+    if (tag.name === 'session.status') {
+      return Promise.resolve(SESSION_STATUSES);
+    }
+    const projectIdStrings = projectIds?.map(String);
+    return fetchTagValues(api, orgSlug, tag.key, searchQuery, projectIdStrings).then(
+      tagValues => (tagValues as TagValue[]).map(({value}) => value),
+      () => {
+        throw new Error('Unable to fetch tag values');
+      }
+    );
+  }
+
+  const supportedTags = Object.values(tags).reduce((acc, key) => {
     acc[key] = {key, name: key};
     return acc;
   }, {});
@@ -44,6 +65,7 @@ function MetricsSearchBar({
     <ClassNames>
       {({css}) => (
         <SmartSearchBar
+          onGetTagValues={memoize(getTagValues, ({key}, query) => `${key}-${query}`)}
           supportedTags={supportedTags}
           prepareQuery={prepareQuery}
           excludeEnvironment
