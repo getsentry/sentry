@@ -150,9 +150,9 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
     @staticmethod
     def _key(extra_data, project_id) -> Optional[str]:
-        # We don't explicitly require extra_data to have these fields, but we need to only
-        # apply this kill switch for the event type that's only accessible
-        # from inside the message
+        # We don't explicitly require extra_data to have these fields, but this
+        # kill switch is message_type specific and that metadata is not available
+        # elsewhere.
         if (
             len(extra_data) == 1
             and "data" in extra_data[0]
