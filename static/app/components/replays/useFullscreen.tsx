@@ -33,12 +33,12 @@ interface FullscreenHook {
    * The element that this instance of `enter()` will use to go fullscreen.
    * Calling `useFullscreen()` a second time will create a different instance of `ref` and `enter.
    */
-  ref: MutableRefObject<null | HTMLElement>;
+  ref: MutableRefObject<null | HTMLDivElement>;
 }
 
 // TODO(replay): move into app/utils/*
 export default function useFullscreen(): FullscreenHook {
-  const ref = useRef(null);
+  const ref = useRef(null) as MutableRefObject<null | HTMLDivElement>;
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const enter = useCallback(
