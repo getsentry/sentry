@@ -171,7 +171,7 @@ function makeScatterChartOptions({
       {
         label: t('Duration'),
         value: defined(dataPoint?.trace_duration_ms)
-          ? getDuration(dataPoint?.trace_duration_ms, 2, true)
+          ? getDuration(dataPoint?.trace_duration_ms / 1000, 2, true)
           : null,
       },
       {label: t('Transaction'), value: dataPoint?.transaction_name},
