@@ -129,6 +129,8 @@ class FromUserTest(TestCase):
             assert result.has_project_access(project)
             assert result.has_projects_access([project])
             assert result.has_project_scope(project, "project:read")
+            assert result.has_any_project_scope(project, ["project:read", "project:admin"])
+
             # owners should have access but not membership
             assert result.has_project_membership(project) is False
 
@@ -153,6 +155,7 @@ class FromUserTest(TestCase):
             assert not result.has_project_access(project)
             assert not result.has_projects_access([project])
             assert not result.has_project_scope(project, "project:read")
+            assert not result.has_any_project_scope(project, ["project:read", "project:admin"])
             assert not result.has_project_membership(project)
 
     def test_member_no_teams_open_membership(self):
@@ -176,6 +179,9 @@ class FromUserTest(TestCase):
             assert result.has_project_access(project)
             assert result.has_projects_access([project])
             assert result.has_project_scope(project, "project:read")
+            assert not result.has_project_scope(project, "project:write")
+            assert result.has_any_project_scope(project, ["project:read", "project:write"])
+            assert not result.has_any_project_scope(project, ["project:write", "project:admin"])
             assert not result.has_project_membership(project)
 
     def test_team_restricted_org_member_access(self):
@@ -196,6 +202,9 @@ class FromUserTest(TestCase):
             assert result.has_project_access(project)
             assert result.has_projects_access([project])
             assert result.has_project_scope(project, "project:read")
+            assert not result.has_project_scope(project, "project:write")
+            assert result.has_any_project_scope(project, ["project:read", "project:write"])
+            assert not result.has_any_project_scope(project, ["project:write", "project:admin"])
             assert result.has_project_membership(project)
 
     @with_feature("organizations:team-roles")
