@@ -30,7 +30,7 @@ class ProjectPermission(OrganizationPermission):
             return result
 
         allowed_scopes = set(self.scope_map.get(request.method, []))
-        return any(request.access.has_project_scope(project, s) for s in allowed_scopes)
+        return request.access.has_any_project_scope(project, allowed_scopes)
 
 
 class StrictProjectPermission(ProjectPermission):

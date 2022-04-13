@@ -261,14 +261,14 @@ class Factories:
         return om
 
     @staticmethod
-    def create_team_membership(team, member=None, user=None):
+    def create_team_membership(team, member=None, user=None, role=None):
         if member is None:
             member, _ = OrganizationMember.objects.get_or_create(
                 user=user, organization=team.organization, defaults={"role": "member"}
             )
 
         return OrganizationMemberTeam.objects.create(
-            team=team, organizationmember=member, is_active=True
+            team=team, organizationmember=member, is_active=True, role=role
         )
 
     @staticmethod
