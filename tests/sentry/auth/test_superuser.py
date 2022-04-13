@@ -1,10 +1,11 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from unittest import mock
 from unittest.mock import Mock, patch
 
 from django.contrib.auth.models import AnonymousUser
 from django.core import signing
 from django.utils import timezone
+from freezegun import freeze_time
 
 from sentry.auth.superuser import (
     COOKIE_DOMAIN,
@@ -31,7 +32,16 @@ from sentry.utils.auth import mark_sso_complete
 
 UNSET = object()
 
+BASETIME = datetime(2022, 3, 21, 0, 0, tzinfo=timezone.utc)
 
+EXPIRE_TIME = timedelta(hours=4, minutes=1)
+
+INSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME = timedelta(minutes=14)
+
+IDLE_EXPIRE_TIME = OUTSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME = timedelta(hours=2)
+
+
+@freeze_time(BASETIME)
 class SuperuserTestCase(TestCase):
     def setUp(self):
         super().setUp()
@@ -59,7 +69,7 @@ class SuperuserTestCase(TestCase):
         if session_data:
             request.session[SESSION_KEY] = {
                 "exp": (
-                    current_datetime + timedelta(hours=6) if expires is UNSET else expires
+                    current_datetime + timedelta(hours=4) if expires is UNSET else expires
                 ).strftime("%s"),
                 "idl": (
                     current_datetime + timedelta(minutes=15)
@@ -137,11 +147,13 @@ class SuperuserTestCase(TestCase):
         superuser = Superuser(request, allowed_ips=())
         assert superuser.is_active is False
 
+    @freeze_time(BASETIME + EXPIRE_TIME)
     def test_expired(self):
         request = self.build_request(expires=self.current_datetime)
         superuser = Superuser(request, allowed_ips=())
         assert superuser.is_active is False
 
+    @freeze_time(BASETIME + IDLE_EXPIRE_TIME)
     def test_idle_expired(self):
         request = self.build_request(idle_expires=self.current_datetime)
         superuser = Superuser(request, allowed_ips=())
@@ -183,6 +195,40 @@ class SuperuserTestCase(TestCase):
             with self.assertRaises(EmptySuperuserAccessForm):
                 superuser.set_logged_in(request.user)
                 assert superuser.is_active is False
+
+    @freeze_time(BASETIME + OUTSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME)
+    def test_not_expired_check_org_in_request(self):
+        request = self.build_request()
+        request.session[SESSION_KEY]["idl"] = (
+            self.current_datetime + OUTSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME + timedelta(minutes=15)
+        ).strftime("%s")
+        superuser = Superuser(request, allowed_ips=())
+        assert superuser.is_active is True
+        assert not getattr(request, "organization", None)
+
+    @freeze_time(BASETIME + INSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME)
+    def test_max_time_org_change_within_time(self):
+        request = self.build_request()
+        request.organization = self.create_organization(name="not_our_org")
+        superuser = Superuser(request, allowed_ips=())
+
+        assert superuser.is_active is True
+
+    @freeze_time(BASETIME + OUTSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME)
+    @mock.patch("sentry.auth.superuser.logger")
+    def test_max_time_org_change_time_expired(self, logger):
+        request = self.build_request()
+        request.session[SESSION_KEY]["idl"] = (
+            self.current_datetime + OUTSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME + timedelta(minutes=15)
+        ).strftime("%s")
+        request.organization = self.create_organization(name="not_our_org")
+        superuser = Superuser(request, allowed_ips=())
+
+        assert superuser.is_active is False
+        logger.warning.assert_any_call(
+            "superuser.privileged_org_access_expired",
+            extra={"superuser_token": "abcdefghjiklmnog"},
+        )
 
     @mock.patch("sentry.auth.superuser.logger")
     def test_su_access_no_request_user_missing_info(self, logger):
