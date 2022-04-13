@@ -16,8 +16,9 @@ class AuditLogEvent:
 
 
 class AuditLogEventManager:
-    _event_registry = {}
-    _event_id_lookup = {}
+    def __init__(self) -> None:
+        self._event_registry = {}
+        self._event_id_lookup = {}
 
     def add(self, audit_log_event: AuditLogEvent):
         if (

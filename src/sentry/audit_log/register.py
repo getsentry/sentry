@@ -5,10 +5,14 @@ from .manager import AuditLogEvent, AuditLogEventManager
 
 default_manager = AuditLogEventManager()
 
+# Cannot use the following as an event_id:
+# 90, 91, 92, 93, 150, 151, and 152
+# These were used for `AuditLogEvent` instances moved to getsentry.
+
 # Render functions for AuditLogEvent objects take an AuditLogEntry and
 # return a string of the expected audit log message.
 # Use a lambda function in `default_amanger.add()` if only a single string
-# with set variables is necessary.
+# with variables is necessary.
 
 
 def render_member_add(audit_log_entry: AuditLogEntry):
@@ -162,7 +166,7 @@ default_manager.add(
         event_id=1,
         name="member_invite",
         api_name="member.invite",
-        render=lambda audit_log_entry: "invited member{email}".format(**audit_log_entry.data),
+        render=lambda audit_log_entry: "invited member {email}".format(**audit_log_entry.data),
     )
 )
 default_manager.add(

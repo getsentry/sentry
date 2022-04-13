@@ -1,31 +1,36 @@
 from django.utils import timezone
 
-from sentry.audit_log import AuditLogEvent, audit_log_manager
+from sentry.audit_log import AuditLogEvent, AuditLogEventManager
 from sentry.models import AuditLogEntry, AuditLogEntryEvent
 from sentry.testutils import TestCase
 
 
 class AuditLogEventManagerTest(TestCase):
     def test_audit_log_manager(self):
-        log_event = AuditLogEvent(
-            event_id=1,
-            name="member_invite",
-            api_name="member.invite",
-            render=lambda audit_log_entry: "invited member {email}".format(**audit_log_entry.data),
+        test_manager = AuditLogEventManager()
+
+        test_manager.add(
+            AuditLogEvent(
+                event_id=500,
+                name="test_log_entry",
+                api_name="test-log.entry",
+                render=lambda audit_log_event: "test member {email} is {role}".format(
+                    **audit_log_event.data
+                ),
+            )
         )
+
+        log_event = test_manager.get(event_id=500)
 
         log_entry = AuditLogEntry.objects.create(
             organization=self.organization,
             event=AuditLogEntryEvent.MEMBER_INVITE,
             actor=self.user,
             datetime=timezone.now(),
-            data={"email": "my_email@mail.com"},
+            data={"email": "my_email@mail.com", "role": "admin"},
         )
 
-        audit_log_manager.add(log_event)
+        assert test_manager.get_event_id(name="test_log_entry") == 500
+        assert "test-log.entry" in test_manager.get_api_names()
 
-        assert audit_log_manager.get(event_id=1) == log_event
-        assert audit_log_manager.get_event_id(name="member_invite") == 1
-        assert audit_log_manager.get_api_names() == ["member.invite"]
-
-        assert log_event.render(log_entry) == "invited member my_email@mail.com"
+        assert log_event.render(log_entry) == "test member my_email@mail.com is admin"
