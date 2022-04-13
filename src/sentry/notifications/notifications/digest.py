@@ -4,7 +4,6 @@ import logging
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Sequence
 
-from sentry import features
 from sentry.db.models import Model
 from sentry.digests import Digest
 from sentry.digests.utils import (
@@ -104,9 +103,6 @@ class DigestNotification(ProjectNotification):
             "has_alert_integration": has_alert_integration(project),
             "project": project,
             "slack_link": get_integration_link(organization, "slack"),
-            "alert_status_page_enabled": features.has(
-                "organizations:alert-rule-status-page", project.organization
-            ),
             "rules_details": {rule.id: rule for rule in rule_details},
             "link_params_for_rule": get_email_link_extra_params(
                 "digest_email", None, rule_details, alert_timestamp
