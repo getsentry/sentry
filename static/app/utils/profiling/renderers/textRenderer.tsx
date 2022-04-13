@@ -12,17 +12,10 @@ import {
   trimTextCenter,
 } from '../gl/utils';
 
-export function isOutsideView(frame: Rect, view: Rect, inverted: boolean): boolean {
+export function isOutsideView(frame: Rect, view: Rect): boolean {
   // Frame is outside of the view on the left
   if (frame.overlaps(view)) {
     return false;
-  }
-
-  // @TODO check if we still need this
-  if (inverted) {
-    if (frame.top - 1 >= view.bottom) {
-      return true;
-    }
   }
 
   return true;
@@ -81,15 +74,13 @@ class TextRenderer {
       // This rect gets discarded after each render which is wasteful
       const frameInConfigSpace = new Rect(
         frame.start,
-        this.flamegraph.inverted ? configSpace.height - frame.depth + 1 : frame.depth + 1,
+        this.flamegraph.inverted ? configSpace.height - frame.depth - 1 : frame.depth,
         frame.end - frame.start,
         1
       );
 
       // Check if our rect overlaps with the current viewport and skip it
-      if (
-        isOutsideView(frameInConfigSpace, configViewSpace, !!this.flamegraph.inverted)
-      ) {
+      if (isOutsideView(frameInConfigSpace, configViewSpace)) {
         continue;
       }
 
@@ -116,8 +107,9 @@ class TextRenderer {
 
       // We want to draw the text in the vertical center of the frame, so we substract half the height of the text
       const y =
-        frameInPhysicalSpace.y -
-        (this.theme.SIZES.BAR_FONT_SIZE / 2) * window.devicePixelRatio;
+        frameInPhysicalSpace.y +
+        (this.theme.SIZES.BAR_HEIGHT - this.theme.SIZES.BAR_FONT_SIZE / 2) *
+          window.devicePixelRatio;
 
       // Offset x by 1x the padding
       const x =
