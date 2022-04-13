@@ -113,8 +113,6 @@ from sentry.search.events.constants import (
     METRICS_MAP,
 )
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.indexer.postgres import PGStringIndexer
-from sentry.sentry_metrics.sessions import SessionMetricKey
 from sentry.tagstore.snuba import SnubaTagStorage
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.helpers.slack import install_slack
@@ -125,6 +123,7 @@ from sentry.utils.pytest.selenium import Browser
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snuba import _snuba_pool
 
+from ..snuba.metrics.naming_layer.mri import SessionMRI
 from . import assert_status_code
 from .factories import Factories
 from .fixtures import Fixtures
@@ -1079,40 +1078,34 @@ class SessionMetricsTestCase(SnubaTestCase):
         # to seq=0 in Relay.
         if session["seq"] == 0:  # init
             self._push_metric(
-                session, "counter", SessionMetricKey.SESSION, {"session.status": "init"}, +1
+                session, "counter", SessionMRI.SESSION, {"session.status": "init"}, +1
             )
             if not user_is_nil:
-                self._push_metric(
-                    session, "set", SessionMetricKey.USER, {"session.status": "init"}, user
-                )
+                self._push_metric(session, "set", SessionMRI.USER, {"session.status": "init"}, user)
 
         status = session["status"]
 
         # Mark the session as errored, which includes fatal sessions.
         if session.get("errors", 0) > 0 or status not in ("ok", "exited"):
-            self._push_metric(
-                session, "set", SessionMetricKey.SESSION_ERROR, {}, session["session_id"]
-            )
+            self._push_metric(session, "set", SessionMRI.ERROR, {}, session["session_id"])
             if not user_is_nil:
                 self._push_metric(
-                    session, "set", SessionMetricKey.USER, {"session.status": "errored"}, user
+                    session, "set", SessionMRI.USER, {"session.status": "errored"}, user
                 )
 
         if status in ("abnormal", "crashed"):  # fatal
             self._push_metric(
-                session, "counter", SessionMetricKey.SESSION, {"session.status": status}, +1
+                session, "counter", SessionMRI.SESSION, {"session.status": status}, +1
             )
             if not user_is_nil:
-                self._push_metric(
-                    session, "set", SessionMetricKey.USER, {"session.status": status}, user
-                )
+                self._push_metric(session, "set", SessionMRI.USER, {"session.status": status}, user)
 
         if status != "ok":  # terminal
             if session["duration"] is not None:
                 self._push_metric(
                     session,
                     "distribution",
-                    SessionMetricKey.SESSION_DURATION,
+                    SessionMRI.RAW_DURATION,
                     {"session.status": status},
                     session["duration"],
                 )
@@ -1122,19 +1115,21 @@ class SessionMetricsTestCase(SnubaTestCase):
             self.store_session(session)
 
     @classmethod
-    def _push_metric(cls, session, type, key: SessionMetricKey, tags, value):
-        def metric_id(key: SessionMetricKey):
-            res = indexer.record(1, key.value)
+    def _push_metric(cls, session, type, key: SessionMRI, tags, value):
+        org_id = session["org_id"]
+
+        def metric_id(key: SessionMRI):
+            res = indexer.record(org_id, key.value)
             assert res is not None, key
             return res
 
         def tag_key(name):
-            res = indexer.record(1, name)
+            res = indexer.record(org_id, name)
             assert res is not None, name
             return res
 
         def tag_value(name):
-            res = indexer.record(1, name)
+            res = indexer.record(org_id, name)
             assert res is not None, name
             return res
 
@@ -1217,7 +1212,7 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
             *list(METRICS_MAP.values()),
         ]
         org_strings = {self.organization.id: set(strings)}
-        PGStringIndexer().bulk_record(org_strings=org_strings)
+        indexer.bulk_record(org_strings=org_strings)
 
     def store_metric(
         self,
@@ -1229,11 +1224,13 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
     ):
         internal_metric = METRICS_MAP[metric]
         entity = self.ENTITY_MAP[metric]
+        org_id = self.organization.id
+
         if tags is None:
             tags = {}
         else:
             tags = {
-                indexer.resolve(self.organization.id, key): indexer.resolve(
+                indexer.record(self.organization.id, key): indexer.record(
                     self.organization.id, value
                 )
                 for key, value in tags.items()
@@ -1253,9 +1250,9 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
         self._send_buckets(
             [
                 {
-                    "org_id": self.organization.id,
+                    "org_id": org_id,
                     "project_id": project,
-                    "metric_id": indexer.resolve(self.organization.id, internal_metric),
+                    "metric_id": indexer.resolve(org_id, internal_metric),
                     "timestamp": metric_timestamp,
                     "tags": tags,
                     "type": self.TYPE_MAP[entity],

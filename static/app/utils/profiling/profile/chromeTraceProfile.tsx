@@ -12,7 +12,7 @@ import {Profile} from 'sentry/utils/profiling/profile/profile';
 import {wrapWithSpan} from 'sentry/utils/profiling/profile/utils';
 
 import {EventedProfile} from './eventedProfile';
-import {ProfileGroup} from './importProfile';
+import {ImportOptions, ProfileGroup} from './importProfile';
 
 export class ChromeTraceProfile extends EventedProfile {}
 
@@ -148,7 +148,7 @@ function buildProfile(
     0,
     0,
     `${processName}: ${threadName}`,
-    'milliseconds'
+    'microseconds' // the trace event format provides timestamps in microseconds
   );
 
   const stack: ChromeTrace.Event[] = [];
@@ -248,7 +248,8 @@ function createFrameInfoFromEvent(event: ChromeTrace.Event) {
 
 export function parseChromeTraceArrayFormat(
   input: ChromeTrace.ArrayFormat,
-  traceID: string
+  traceID: string,
+  options?: ImportOptions
 ): ProfileGroup {
   const profiles: Profile[] = [];
   const eventsByProcessAndThreadID = splitEventsByProcessAndTraceId(input);
@@ -256,6 +257,7 @@ export function parseChromeTraceArrayFormat(
   for (const processId in eventsByProcessAndThreadID) {
     for (const threadId in eventsByProcessAndThreadID[processId]) {
       wrapWithSpan(
+        options?.transaction,
         () =>
           profiles.push(
             buildProfile(

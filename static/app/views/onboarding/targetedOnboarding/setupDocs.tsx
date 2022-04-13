@@ -15,6 +15,7 @@ import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {Theme} from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
@@ -23,7 +24,7 @@ import withProjects from 'sentry/utils/withProjects';
 import FirstEventFooter from './components/firstEventFooter';
 import FullIntroduction from './components/fullIntroduction';
 import TargetedOnboardingSidebar from './components/sidebar';
-import {ClientState, fetchClientState, StepProps} from './types';
+import {StepProps, usePersistedOnboardingState} from './types';
 
 /**
  * The documentation will include the following string should it be missing the
@@ -40,15 +41,12 @@ type Props = {
 
 function SetupDocs({organization, projects, search}: Props) {
   const api = useApi();
-  const [clientState, setClientState] = useState<ClientState | null>(null);
+  const [clientState] = usePersistedOnboardingState();
   const selectedProjectsSet = new Set(
     clientState?.selectedPlatforms.map(
       platform => clientState.platformToProjectIdMap[platform]
     ) || []
   );
-  useEffect(() => {
-    fetchClientState(api, organization.slug).then(setClientState);
-  }, []);
 
   const [hasError, setHasError] = useState(false);
   const [platformDocs, setPlatformDocs] = useState<PlatformDoc | null>(null);
@@ -122,6 +120,15 @@ function SetupDocs({organization, projects, search}: Props) {
     browserHistory.push(`${window.location.pathname}?${searchParams}`);
   };
 
+  const selectProject = (newProjectId: string) => {
+    const matchedProject = projects.find(p => p.id === newProjectId);
+    trackAdvancedAnalyticsEvent('growth.onboarding_clicked_project_in_sidebar', {
+      organization,
+      platform: matchedProject?.platform || 'unknown',
+    });
+    setNewProject(newProjectId);
+  };
+
   const missingExampleWarning = () => {
     const missingExample =
       platformDocs && platformDocs.html.includes(INCOMPLETE_DOC_FLAG);
@@ -182,7 +189,7 @@ function SetupDocs({organization, projects, search}: Props) {
               : {}
           }
           activeProject={project}
-          {...{checkProjectHasFirstEvent, setNewProject}}
+          {...{checkProjectHasFirstEvent, selectProject}}
         />
         <MainContent>
           <FullIntroduction currentPlatform={currentPlatform} />
@@ -200,7 +207,14 @@ function SetupDocs({organization, projects, search}: Props) {
           isLast={projectIndex === projects.length - 1}
           hasFirstEvent={checkProjectHasFirstEvent(project)}
           onClickSetupLater={() => {
-            // TODO: analytics
+            trackAdvancedAnalyticsEvent(
+              'growth.onboarding_clicked_setup_platform_later',
+              {
+                organization,
+                platform: currentPlatform,
+                project_index: projectIndex,
+              }
+            );
             const nextProject = projects.find(
               (p, index) => !p.firstEvent && index > projectIndex
             );

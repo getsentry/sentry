@@ -6,7 +6,9 @@ from sentry.sentry_metrics.indexer.postgres_v2 import (
     KeyResult,
     KeyResults,
     PGStringIndexerV2,
+    StaticStringsIndexerDecorator,
 )
+from sentry.sentry_metrics.indexer.strings import SHARED_STRINGS
 from sentry.testutils.cases import TestCase
 from sentry.utils.cache import cache
 
@@ -38,6 +40,38 @@ class PostgresIndexerTest(TestCase):
         assert PGStringIndexer().reverse_resolve(1234) is None
 
 
+class StaticStringsIndexerTest(TestCase):
+    def setUp(self) -> None:
+        self.indexer = StaticStringsIndexerDecorator()
+
+    def test_static_strings_only(self) -> None:
+        org_strings = {2: {"release"}, 3: {"production", "environment", "release"}}
+        results = self.indexer.bulk_record(org_strings=org_strings)
+
+        assert results[2]["release"] == SHARED_STRINGS["release"]
+        assert results[3]["production"] == SHARED_STRINGS["production"]
+        assert results[3]["environment"] == SHARED_STRINGS["environment"]
+        assert results[3]["release"] == SHARED_STRINGS["release"]
+
+    def test_static_and_non_static_strings(self):
+        org_strings = {
+            2: {"release", "1.0.0"},
+            3: {"production", "environment", "release", "2.0.0"},
+        }
+        results = self.indexer.bulk_record(org_strings=org_strings)
+
+        v1 = StringIndexer.objects.get(organization_id=2, string="1.0.0")
+        v2 = StringIndexer.objects.get(organization_id=3, string="2.0.0")
+
+        assert results[2]["release"] == SHARED_STRINGS["release"]
+        assert results[3]["production"] == SHARED_STRINGS["production"]
+        assert results[3]["environment"] == SHARED_STRINGS["environment"]
+        assert results[3]["release"] == SHARED_STRINGS["release"]
+
+        assert results[2]["1.0.0"] == v1.id
+        assert results[3]["2.0.0"] == v2.id
+
+
 class PostgresIndexerV2Test(TestCase):
     def setUp(self) -> None:
         self.strings = {"hello", "hey", "hi"}
@@ -59,7 +93,7 @@ class PostgresIndexerV2Test(TestCase):
             indexer_cache.get_many([f"{org1_id}:{string}" for string in self.strings]).values()
         ) == [None, None, None]
 
-        results = PGStringIndexerV2().bulk_record(org_strings=org_strings)
+        results = self.indexer.bulk_record(org_strings=org_strings)
 
         org1_string_ids = list(
             StringIndexer.objects.filter(
@@ -84,18 +118,82 @@ class PostgresIndexerV2Test(TestCase):
         # we should have no results for org_id 999
         assert not results.get(999)
 
+    def test_resolve_and_reverse_resolve(self) -> None:
+        """
+        Test `resolve` and `reverse_resolve` methods
+        """
+        org1_id = self.organization.id
+        org_strings = {org1_id: self.strings}
+        PGStringIndexerV2().bulk_record(org_strings=org_strings)
+
         # test resolve and reverse_resolve
         obj = StringIndexer.objects.get(string="hello")
-        assert PGStringIndexerV2().resolve(org1_id, "hello") == obj.id
-        assert PGStringIndexerV2().reverse_resolve(obj.id) == obj.string
+        assert self.indexer.resolve(org1_id, "hello") == obj.id
+        assert self.indexer.reverse_resolve(obj.id) == obj.string
 
         # test record on a string that already exists
-        PGStringIndexerV2().record(org1_id, "hello")
-        assert PGStringIndexerV2().resolve(org1_id, "hello") == obj.id
+        self.indexer.record(org1_id, "hello")
+        assert self.indexer.resolve(org1_id, "hello") == obj.id
 
         # test invalid values
-        assert PGStringIndexerV2().resolve(org1_id, "beep") is None
-        assert PGStringIndexerV2().reverse_resolve(1234) is None
+        assert self.indexer.resolve(org1_id, "beep") is None
+        assert self.indexer.reverse_resolve(1234) is None
+
+    def test_already_created_plus_written_results(self) -> None:
+        """
+        Test that we correctly combine db read results with db write results
+        for the same organization.
+        """
+        org_id = 1234
+        v0 = StringIndexer.objects.create(organization_id=org_id, string="v1.2.0")
+        v1 = StringIndexer.objects.create(organization_id=org_id, string="v1.2.1")
+        v2 = StringIndexer.objects.create(organization_id=org_id, string="v1.2.2")
+
+        expected_mapping = {"v1.2.0": v0.id, "v1.2.1": v1.id, "v1.2.2": v2.id}
+
+        results = PGStringIndexerV2().bulk_record(
+            org_strings={org_id: {"v1.2.0", "v1.2.1", "v1.2.2"}}
+        )
+        assert len(results[org_id]) == len(expected_mapping) == 3
+
+        for string, id in results[org_id].items():
+            assert expected_mapping[string] == id
+
+        results = PGStringIndexerV2().bulk_record(
+            org_strings={org_id: {"v1.2.0", "v1.2.1", "v1.2.2", "v1.2.3"}}
+        )
+
+        v3 = StringIndexer.objects.get(organization_id=org_id, string="v1.2.3")
+        expected_mapping["v1.2.3"] = v3.id
+
+        assert len(results[org_id]) == len(expected_mapping) == 4
+
+        for string, id in results[org_id].items():
+            assert expected_mapping[string] == id
+
+    def test_already_cached_plus_read_results(self) -> None:
+        """
+        Test that we correctly combine cached results with read results
+        for the same organization.
+        """
+        org_id = 8
+        cached = {f"{org_id}:beep": 10, f"{org_id}:boop": 11}
+        indexer_cache.set_many(cached)
+
+        results = PGStringIndexerV2().bulk_record(org_strings={org_id: {"beep", "boop"}})
+        assert len(results[org_id]) == 2
+        assert results[org_id]["beep"] == 10
+        assert results[org_id]["boop"] == 11
+
+        # confirm we did not write to the db if results were already cached
+        assert not StringIndexer.objects.filter(organization_id=org_id, string__in=["beep", "boop"])
+
+        bam = StringIndexer.objects.create(organization_id=org_id, string="bam")
+        results = PGStringIndexerV2().bulk_record(org_strings={org_id: {"beep", "boop", "bam"}})
+        assert len(results[org_id]) == 3
+        assert results[org_id]["beep"] == 10
+        assert results[org_id]["boop"] == 11
+        assert results[org_id]["bam"] == bam.id
 
     def test_get_db_records(self):
         """
@@ -108,7 +206,7 @@ class PostgresIndexerV2Test(TestCase):
         assert indexer_cache.get(key) is None
         assert indexer_cache.get(string.id) is None
 
-        PGStringIndexerV2()._get_db_records(collection)
+        self.indexer._get_db_records(collection)
 
         assert indexer_cache.get(string.id) is None
         assert indexer_cache.get(key) is None

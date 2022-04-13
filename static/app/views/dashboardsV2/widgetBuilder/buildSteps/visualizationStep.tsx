@@ -1,5 +1,7 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {TableCell} from 'sentry/components/charts/simpleTableChart';
 import Field from 'sentry/components/forms/field';
 import SelectControl from 'sentry/components/forms/selectControl';
 import {PanelAlert} from 'sentry/components/panels';
@@ -29,13 +31,8 @@ export function VisualizationStep({
   displayType,
   error,
   onChange,
-  widgetBuilderNewDesign,
   widget,
 }: Props) {
-  const options = widgetBuilderNewDesign
-    ? Object.keys(displayTypes).filter(key => key !== DisplayType.TOP_N)
-    : Object.keys(displayTypes);
-
   return (
     <BuildStep
       title={t('Choose your visualization')}
@@ -46,7 +43,7 @@ export function VisualizationStep({
       <Field error={error} inline={false} flexibleControlStateSize stacked>
         <SelectControl
           name="displayType"
-          options={options.map(value => ({
+          options={Object.keys(displayTypes).map(value => ({
             label: displayTypes[value],
             value,
           }))}
@@ -78,6 +75,16 @@ export function VisualizationStep({
 }
 
 const VisualizationWrapper = styled('div')<{displayType: DisplayType}>`
-  overflow: ${p => (p.displayType === DisplayType.TABLE ? 'hidden' : 'visible')};
   padding-right: ${space(2)};
+  ${p =>
+    p.displayType === DisplayType.TABLE &&
+    css`
+      ${TableCell} {
+        /* 24px ActorContainer height + 16px top and bottom padding + 1px border = 41px */
+        height: 41px;
+      }
+      /* total size of a table, if it would display 5 rows of content */
+      height: 300px;
+      overflow: hidden;
+    `};
 `;

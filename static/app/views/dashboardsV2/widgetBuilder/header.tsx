@@ -5,14 +5,14 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import EditableText from 'sentry/components/editableText';
 import * as Layout from 'sentry/components/layouts/thirds';
-import Link from 'sentry/components/links/link';
+import type {LinkProps} from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 
 import {DashboardDetails} from '../types';
 
 interface Props {
   dashboardTitle: DashboardDetails['title'];
-  goBackLocation: React.ComponentProps<typeof Link>['to'];
+  goBackLocation: LinkProps['to'];
   onChangeTitle: (title: string) => void;
   orgSlug: string;
   title: string;
