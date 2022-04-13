@@ -135,7 +135,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         try:
             self.producer.produce(
                 topic=self.topic,
-                key=self._key(extra_data, project_id),
+                key=self._key(headers, project_id),
                 value=json.dumps((self.EVENT_PROTOCOL_VERSION, _type) + extra_data),
                 on_delivery=self.delivery_callback,
                 headers=[(k, v.encode("utf-8")) for k, v in headers.items()],
@@ -149,22 +149,16 @@ class KafkaEventStream(SnubaProtocolEventStream):
             self.producer.flush()
 
     @staticmethod
-    def _key(extra_data, project_id) -> Optional[str]:
-        # We don't explicitly require extra_data to have these fields, but this
-        # kill switch is message_type specific and that metadata is not available
-        # elsewhere.
-        if (
-            len(extra_data) == 1
-            and "data" in extra_data[0]
-            and "type" in extra_data[0]["data"]
-            and killswitch_matches_context(
+    def _key(headers: Optional[Mapping[str, str]], project_id: str) -> Optional[str]:
+        if "transaction_forwarder" in headers:
+            message_type = "transaction" if headers["transaction_forwarder"] == "0" else "error"
+            if killswitch_matches_context(
                 "kafka.send-project-events-to-random-partitions",
-                {"project_id": project_id, "message_type": extra_data[0]["data"]["type"]},
-            )
-        ):
-            return None
-        else:
-            return str(project_id).encode("utf-8")
+                {"project_id": project_id, "message_type": message_type},
+            ):
+                return None
+
+        return str(project_id).encode("utf-8")
 
     def requires_post_process_forwarder(self):
         return True
