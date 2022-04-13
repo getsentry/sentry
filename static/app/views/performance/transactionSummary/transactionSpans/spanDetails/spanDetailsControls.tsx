@@ -11,7 +11,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 import {decodeScalar} from 'sentry/utils/queryString';
 
-import {ZOOM_KEYS} from './utils';
+import {ZoomKeys} from './utils';
 
 interface SpanDetailsControlsProps {
   eventView: EventView;
@@ -40,11 +40,11 @@ export default function SpanDetailsControls({
   const handleResetView = () => {
     browserHistory.push({
       pathname: location.pathname,
-      query: removeHistogramQueryStrings(location, ZOOM_KEYS),
+      query: removeHistogramQueryStrings(location, Object.values(ZoomKeys)),
     });
   };
 
-  const isZoomed = () => ZOOM_KEYS.find(key => location.query[key]);
+  const isZoomed = () => Object.values(ZoomKeys).some(key => location.query[key]);
 
   return (
     <StyledActions>

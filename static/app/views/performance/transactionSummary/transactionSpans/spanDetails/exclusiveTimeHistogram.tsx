@@ -25,7 +25,7 @@ import {
 } from 'sentry/utils/performance/histogram/utils';
 import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 
-import {MAX, MIN} from './utils';
+import {ZoomKeys} from './utils';
 
 const NUM_BUCKETS = 50;
 const PRECISION = 0;
@@ -40,8 +40,8 @@ type Props = WithRouterProps & {
 export default function ExclusiveTimeHistogram(props: Props) {
   const {location, organization, eventView, spanSlug} = props;
 
-  const start = location.query[MIN];
-  const end = location.query[MAX];
+  const start = location.query[ZoomKeys.MIN];
+  const end = location.query[ZoomKeys.MAX];
 
   return (
     <Fragment>
@@ -81,8 +81,8 @@ export default function ExclusiveTimeHistogram(props: Props) {
               <BarChartZoom
                 minZoomWidth={1}
                 location={location}
-                paramStart={MIN}
-                paramEnd={MAX}
+                paramStart={ZoomKeys.MIN}
+                paramEnd={ZoomKeys.MAX}
                 xAxisIndex={[0]}
                 buckets={histogram ? computeBuckets(histogram) : []}
               >
