@@ -2,8 +2,6 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
-import {CALCULATED_FIELD_PREFIX} from 'sentry/utils/discover/fields';
-import {SessionMetric} from 'sentry/utils/metrics/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
 import MetricsWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/metricsWidgetQueries';
 
@@ -19,16 +17,16 @@ describe('Dashboards > MetricsWidgetQueries', function () {
     queries: [
       {
         conditions: '',
-        fields: [`sum(${SessionMetric.SESSION})`],
-        aggregates: [`sum(${SessionMetric.SESSION})`],
+        fields: [`sum(sessions)`],
+        aggregates: [`sum(sessions)`],
         columns: [],
         name: 'sessions',
         orderby: '',
       },
       {
         conditions: 'environment:prod',
-        fields: [`sum(${SessionMetric.SESSION})`],
-        aggregates: [`sum(${SessionMetric.SESSION})`],
+        fields: [`sum(sessions)`],
+        aggregates: [`sum(sessions)`],
         columns: [],
         name: 'users',
         orderby: '',
@@ -43,24 +41,8 @@ describe('Dashboards > MetricsWidgetQueries', function () {
     queries: [
       {
         conditions: '',
-        fields: [`count_unique(${SessionMetric.USER})`],
-        aggregates: [`count_unique(${SessionMetric.USER})`],
-        columns: [],
-        name: 'sessions',
-        orderby: '',
-      },
-    ],
-    widgetType: WidgetType.METRICS,
-  };
-  const derivedMetricQueryWidget = {
-    title: 'Crash Free Rate',
-    interval: '5m',
-    displayType: DisplayType.LINE,
-    queries: [
-      {
-        conditions: '',
-        fields: [`${CALCULATED_FIELD_PREFIX}session.crash_free_rate`],
-        aggregates: [`${CALCULATED_FIELD_PREFIX}session.crash_free_rate`],
+        fields: [`count_unique(user)`],
+        aggregates: [`count_unique(user)`],
         columns: [],
         name: 'sessions',
         orderby: '',
@@ -87,9 +69,9 @@ describe('Dashboards > MetricsWidgetQueries', function () {
 
   it('can send chart requests', async function () {
     const mock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/metrics/data/',
-      body: TestStubs.MetricsField({
-        field: `sum(${SessionMetric.SESSION})`,
+      url: '/organizations/org-slug/sessions/',
+      body: TestStubs.SessionsField({
+        field: `sum(sessions)`,
       }),
     });
     const children = jest.fn(() => <div />);
@@ -110,18 +92,16 @@ describe('Dashboards > MetricsWidgetQueries', function () {
     await waitFor(() =>
       expect(children).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          errorMessage: undefined,
-          loading: false,
           tableResults: [],
           timeseriesResults: [
             {
               data: expect.arrayContaining([
-                {name: '2021-12-01T16:15:00Z', value: 443.6200417187068},
-                {name: '2021-12-01T16:30:00Z', value: 471.7512262596214},
-                {name: '2021-12-02T15:45:00Z', value: 485.26355742991586},
-                {name: '2021-12-02T16:00:00Z', value: 460.14344601636975},
+                {name: '2021-03-15T00:00:00Z', value: 0},
+                {name: '2021-03-16T00:00:00Z', value: 0},
+                {name: '2021-03-17T00:00:00Z', value: 2},
+                {name: '2021-03-18T00:00:00Z', value: 490},
               ]),
-              seriesName: 'sessions: sum(sentry.sessions.session)',
+              seriesName: 'sessions: sum(sessions)',
             },
           ],
         })
@@ -131,8 +111,8 @@ describe('Dashboards > MetricsWidgetQueries', function () {
 
   it('can send table requests', async function () {
     const mock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/metrics/data/',
-      body: TestStubs.MetricsSessionUserCountByStatusByRelease(),
+      url: '/organizations/org-slug/sessions/',
+      body: TestStubs.SessionUserStatusCountByReleaseInPeriod(),
     });
     const children = jest.fn(() => <div />);
 
@@ -157,67 +137,76 @@ describe('Dashboards > MetricsWidgetQueries', function () {
             {
               data: [
                 {
-                  'count_unique(sentry.sessions.user)': 1,
+                  'count_unique(user)': 92,
                   id: '0',
-                  release: '1',
+                  project: 123,
+                  release: '7a82c130be9143361f20bc77252df783cf91e4fc',
                   'session.status': 'crashed',
-                  'sum(sentry.sessions.session)': 34,
+                  'sum(session)': 492,
                 },
                 {
-                  'count_unique(sentry.sessions.user)': 1,
+                  'count_unique(user)': 760,
                   id: '1',
-                  release: '1',
-                  'session.status': 'abnormal',
-                  'sum(sentry.sessions.session)': 1,
+                  project: 123,
+                  release: 'e102abb2c46e7fe8686441091005c12aed90da99',
+                  'session.status': 'healthy',
+                  'sum(session)': 6260,
                 },
                 {
-                  'count_unique(sentry.sessions.user)': 2,
+                  'count_unique(user)': 0,
                   id: '2',
-                  release: '1',
-                  'session.status': 'errored',
-                  'sum(sentry.sessions.session)': 451,
-                },
-                {
-                  'count_unique(sentry.sessions.user)': 3,
-                  id: '3',
-                  release: '1',
-                  'session.status': 'healthy',
-                  'sum(sentry.sessions.session)': 5058,
-                },
-                {
-                  'count_unique(sentry.sessions.user)': 2,
-                  id: '4',
-                  release: '2',
-                  'session.status': 'crashed',
-                  'sum(sentry.sessions.session)': 35,
-                },
-                {
-                  'count_unique(sentry.sessions.user)': 1,
-                  id: '5',
-                  release: '2',
+                  project: 123,
+                  release: 'e102abb2c46e7fe8686441091005c12aed90da99',
                   'session.status': 'abnormal',
-                  'sum(sentry.sessions.session)': 1,
+                  'sum(session)': 0,
                 },
                 {
-                  'count_unique(sentry.sessions.user)': 1,
-                  id: '6',
-                  release: '2',
+                  'count_unique(user)': 1,
+                  id: '3',
+                  project: 123,
+                  release: 'e102abb2c46e7fe8686441091005c12aed90da99',
+                  'session.status': 'crashed',
+                  'sum(session)': 5,
+                },
+                {
+                  'count_unique(user)': 0,
+                  id: '4',
+                  project: 123,
+                  release: '7a82c130be9143361f20bc77252df783cf91e4fc',
+                  'session.status': 'abnormal',
+                  'sum(session)': 0,
+                },
+                {
+                  'count_unique(user)': 9,
+                  id: '5',
+                  project: 123,
+                  release: 'e102abb2c46e7fe8686441091005c12aed90da99',
                   'session.status': 'errored',
-                  'sum(sentry.sessions.session)': 452,
+                  'sum(session)': 59,
                 },
                 {
-                  'count_unique(sentry.sessions.user)': 10,
-                  id: '7',
-                  release: '2',
+                  'count_unique(user)': 99136,
+                  id: '6',
+                  project: 123,
+                  release: '7a82c130be9143361f20bc77252df783cf91e4fc',
                   'session.status': 'healthy',
-                  'sum(sentry.sessions.session)': 5059,
+                  'sum(session)': 202136,
+                },
+                {
+                  'count_unique(user)': 915,
+                  id: '7',
+                  project: 123,
+                  release: '7a82c130be9143361f20bc77252df783cf91e4fc',
+                  'session.status': 'errored',
+                  'sum(session)': 1954,
                 },
               ],
               meta: {
-                'count_unique(sentry.sessions.user)': 'integer',
+                'count_unique(user)': 'integer',
+                project: 'string',
                 release: 'string',
                 'session.status': 'string',
-                'sum(sentry.sessions.session)': 'integer',
+                'sum(session)': 'integer',
               },
               title: 'sessions',
             },
@@ -230,9 +219,9 @@ describe('Dashboards > MetricsWidgetQueries', function () {
 
   it('can send big number requests', async function () {
     const mock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/metrics/data/',
-      body: TestStubs.MetricsField({
-        field: `count_unique(${SessionMetric.USER})`,
+      url: '/organizations/org-slug/sessions/',
+      body: TestStubs.SessionsField({
+        field: `count_unique(user)`,
       }),
     });
     const children = jest.fn(() => <div />);
@@ -253,8 +242,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          per_page: 1,
-          orderBy: `count_unique(${SessionMetric.USER})`,
+          field: ['count_unique(user)'],
         }),
       })
     );
@@ -265,8 +253,8 @@ describe('Dashboards > MetricsWidgetQueries', function () {
           loading: false,
           tableResults: [
             {
-              data: [{id: '0', 'count_unique(sentry.sessions.user)': 51292.95404741901}],
-              meta: {'count_unique(sentry.sessions.user)': 'integer'},
+              data: [{id: '0', 'count_unique(user)': 492}],
+              meta: {'count_unique(user)': 'integer'},
               title: 'sessions',
             },
           ],
@@ -277,13 +265,13 @@ describe('Dashboards > MetricsWidgetQueries', function () {
 
   it('can send multiple API requests', function () {
     const sessionMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/metrics/data/',
-      body: TestStubs.MetricsField({
-        field: `sum(${SessionMetric.SESSION})`,
+      url: '/organizations/org-slug/sessions/',
+      body: TestStubs.SessionsField({
+        field: `sum(sessions)`,
       }),
       match: [
         MockApiClient.matchQuery({
-          field: [`sum(${SessionMetric.SESSION})`],
+          field: [`sum(sessions)`],
         }),
       ],
     });
@@ -302,34 +290,30 @@ describe('Dashboards > MetricsWidgetQueries', function () {
     expect(sessionMock).toHaveBeenCalledTimes(2);
     expect(sessionMock).toHaveBeenNthCalledWith(
       1,
-      '/organizations/org-slug/metrics/data/',
+      '/organizations/org-slug/sessions/',
       expect.objectContaining({
         query: {
           environment: ['prod'],
-          field: ['sum(sentry.sessions.session)'],
-          interval: '30m',
+          field: ['sum(sessions)'],
+          groupBy: [],
+          interval: '1h',
           project: [1],
           statsPeriod: '14d',
-          groupBy: [],
-          per_page: 20,
-          orderBy: 'sum(sentry.sessions.session)',
         },
       })
     );
     expect(sessionMock).toHaveBeenNthCalledWith(
       2,
-      '/organizations/org-slug/metrics/data/',
+      '/organizations/org-slug/sessions/',
       expect.objectContaining({
         query: {
           environment: ['prod'],
-          field: ['sum(sentry.sessions.session)'],
-          interval: '30m',
-          project: [1],
-          statsPeriod: '14d',
-          query: 'environment:prod',
+          field: ['sum(sessions)'],
           groupBy: [],
-          per_page: 20,
-          orderBy: 'sum(sentry.sessions.session)',
+          interval: '1h',
+          project: [1],
+          query: 'environment:prod',
+          statsPeriod: '14d',
         },
       })
     );
@@ -337,12 +321,12 @@ describe('Dashboards > MetricsWidgetQueries', function () {
 
   it('sets errorMessage when the first request fails', async function () {
     const failMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/metrics/data/',
+      url: '/organizations/org-slug/sessions/',
       statusCode: 400,
       body: {detail: badMessage},
       match: [
         MockApiClient.matchQuery({
-          field: [`sum(${SessionMetric.SESSION})`],
+          field: [`sum(sessions)`],
         }),
       ],
     });
@@ -371,9 +355,9 @@ describe('Dashboards > MetricsWidgetQueries', function () {
 
   it('adjusts interval based on date window', function () {
     const mock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/metrics/data/',
-      body: TestStubs.MetricsField({
-        field: `sum(${SessionMetric.SESSION})`,
+      url: '/organizations/org-slug/sessions/',
+      body: TestStubs.SessionsField({
+        field: `sum(sessions)`,
       }),
     });
 
@@ -394,7 +378,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          interval: '4h',
+          interval: '1d',
           statsPeriod: '90d',
           environment: ['prod'],
           project: [1],
@@ -405,9 +389,9 @@ describe('Dashboards > MetricsWidgetQueries', function () {
 
   it('does not re-fetch when renaming legend alias / adding falsy fields', () => {
     const mock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/metrics/data/',
-      body: TestStubs.MetricsField({
-        field: `sum(${SessionMetric.SESSION})`,
+      url: '/organizations/org-slug/sessions/',
+      body: TestStubs.SessionsField({
+        field: `sum(sessions)`,
       }),
     });
     const children = jest.fn(() => <div />);
@@ -447,52 +431,5 @@ describe('Dashboards > MetricsWidgetQueries', function () {
 
     // no additional request has been sent, the total count of requests is still 1
     expect(mock).toHaveBeenCalledTimes(1);
-  });
-
-  it('requests derived metrics without calculated metrics prefix', async function () {
-    const mock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/metrics/data/',
-      body: TestStubs.MetricsField({
-        field: ['session.crash_free_rate'],
-      }),
-    });
-    const children = jest.fn(() => <div />);
-
-    render(
-      <MetricsWidgetQueries
-        api={api}
-        widget={{...derivedMetricQueryWidget, displayType: DisplayType.BIG_NUMBER}}
-        organization={organization}
-        selection={selection}
-      >
-        {children}
-      </MetricsWidgetQueries>
-    );
-
-    expect(mock).toHaveBeenCalledTimes(1);
-    expect(mock).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({
-          per_page: 1,
-          orderBy: 'session.crash_free_rate',
-        }),
-      })
-    );
-
-    await waitFor(() =>
-      expect(children).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          loading: false,
-          tableResults: [
-            {
-              data: [{id: '0', 'session.crash_free_rate': 51292.95404741901}],
-              meta: {'session.crash_free_rate': 'percentage'},
-              title: 'sessions',
-            },
-          ],
-        })
-      )
-    );
   });
 });

@@ -3,8 +3,10 @@ import isEqual from 'lodash/isEqual';
 import {RELEASE_ADOPTION_STAGES} from 'sentry/constants';
 import {MetricsType, Organization, SelectValue} from 'sentry/types';
 import {assert} from 'sentry/types/utils';
-
-import {METRIC_TO_COLUMN_TYPE} from '../metrics/fields';
+import {
+  SESSION_FIELDS,
+  SESSIONS_OPERATIONS,
+} from 'sentry/views/dashboardsV2/widgetBuilder/metricWidget/fields';
 
 export type Sort = {
   field: string;
@@ -145,7 +147,7 @@ export const AGGREGATIONS = {
         required: true,
       },
     ],
-    outputType: 'number',
+    outputType: 'integer',
     isSortable: true,
     multiPlotType: 'line',
   },
@@ -1118,7 +1120,8 @@ export function aggregateFunctionOutputType(
   funcName: string,
   firstArg: string | undefined
 ): AggregationOutputType | null {
-  const aggregate = AGGREGATIONS[ALIASES[funcName] || funcName];
+  const aggregate =
+    AGGREGATIONS[ALIASES[funcName] || funcName] ?? SESSIONS_OPERATIONS[funcName];
 
   // Attempt to use the function's outputType.
   if (aggregate?.outputType) {
@@ -1133,8 +1136,8 @@ export function aggregateFunctionOutputType(
     }
   }
 
-  if (firstArg && METRIC_TO_COLUMN_TYPE.hasOwnProperty(firstArg)) {
-    return METRIC_TO_COLUMN_TYPE[firstArg];
+  if (firstArg && SESSION_FIELDS.hasOwnProperty(firstArg)) {
+    return SESSION_FIELDS[firstArg].type as AggregationOutputType;
   }
 
   // If the function is an inherit type it will have a field as

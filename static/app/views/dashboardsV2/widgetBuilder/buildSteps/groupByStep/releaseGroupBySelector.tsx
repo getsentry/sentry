@@ -1,6 +1,7 @@
 import {QueryFieldValue} from 'sentry/utils/discover/fields';
-import {useMetricsContext} from 'sentry/utils/useMetricsContext';
 import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
+
+import {SESSION_TAGS} from '../../metricWidget/fields';
 
 import {GroupBySelector} from './groupBySelector';
 
@@ -10,12 +11,11 @@ interface Props {
 }
 
 export function ReleaseGroupBySelector({columns, onChange}: Props) {
-  const {tags} = useMetricsContext();
+  const tags = SESSION_TAGS;
 
   // Tags are sorted alphabetically to make it easier to find the correct option
   // and are converted to fieldOptions format
   const fieldOptions = Object.values(tags)
-    .map(({key}) => key)
     .sort((a, b) => a.localeCompare(b))
     .reduce((acc, tagKey) => {
       acc[`tag:${tagKey}`] = {

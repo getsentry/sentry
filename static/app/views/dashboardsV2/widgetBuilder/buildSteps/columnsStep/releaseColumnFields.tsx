@@ -5,9 +5,12 @@ import {
   isLegalYAxisType,
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
-import {useMetricsContext} from 'sentry/utils/useMetricsContext';
 import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
-import {generateMetricsWidgetFieldOptions} from 'sentry/views/dashboardsV2/widgetBuilder/metricWidget/fields';
+import {
+  generateMetricsWidgetFieldOptions,
+  SESSION_FIELDS,
+  SESSION_TAGS,
+} from 'sentry/views/dashboardsV2/widgetBuilder/metricWidget/fields';
 import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
@@ -30,7 +33,6 @@ export function ReleaseColumnFields({
   queryErrors,
   onYAxisOrColumnFieldChange,
 }: Props) {
-  const {metas, tags} = useMetricsContext();
   // Any function/field choice for Big Number widgets is legal since the
   // data source is from an endpoint that is not timeseries-based.
   // The function/field choice for World Map widget will need to be numeric-like.
@@ -66,8 +68,8 @@ export function ReleaseColumnFields({
       fields={explodedFields}
       errors={queryErrors?.[0] ? [queryErrors?.[0]] : undefined}
       fieldOptions={generateMetricsWidgetFieldOptions(
-        Object.values(metas),
-        Object.values(tags).map(({key}) => key)
+        Object.keys(SESSION_FIELDS).map(key => SESSION_FIELDS[key]),
+        SESSION_TAGS
       )}
       filterPrimaryOptions={filterPrimaryOptions}
       onChange={onYAxisOrColumnFieldChange}

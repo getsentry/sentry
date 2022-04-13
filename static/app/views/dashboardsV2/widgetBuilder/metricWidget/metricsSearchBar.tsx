@@ -1,11 +1,10 @@
 import {ClassNames} from '@emotion/react';
-import memoize from 'lodash/memoize';
 
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
-import {MetricsTagValue, Organization, Tag} from 'sentry/types';
-import useApi from 'sentry/utils/useApi';
-import {useMetricsContext} from 'sentry/utils/useMetricsContext';
+import {Organization} from 'sentry/types';
+
+import {SESSION_TAGS} from './fields';
 
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,
@@ -22,17 +21,14 @@ type Props = Pick<
 };
 
 function MetricsSearchBar({
-  orgSlug,
   onSearch,
   onBlur,
   maxQueryLength,
   searchSource,
-  projectIds,
   className,
   ...props
 }: Props) {
-  const api = useApi();
-  const {tags} = useMetricsContext();
+  const tags = SESSION_TAGS;
 
   /**
    * Prepare query string (e.g. strip special characters like negation operator)
@@ -41,22 +37,7 @@ function MetricsSearchBar({
     return query.replace(SEARCH_SPECIAL_CHARS_REGEXP, '');
   }
 
-  function fetchTagValues(tagKey: string) {
-    return api.requestPromise(`/organizations/${orgSlug}/metrics/tags/${tagKey}/`, {
-      query: {project: projectIds},
-    });
-  }
-
-  function getTagValues(tag: Tag, _query: string): Promise<string[]> {
-    return fetchTagValues(tag.key).then(
-      tagValues => (tagValues as MetricsTagValue[]).map(({value}) => value),
-      () => {
-        throw new Error('Unable to fetch tag values');
-      }
-    );
-  }
-
-  const supportedTags = Object.values(tags).reduce((acc, {key}) => {
+  const supportedTags = Object.values(tags).reduce((acc, key) => {
     acc[key] = {key, name: key};
     return acc;
   }, {});
@@ -65,7 +46,6 @@ function MetricsSearchBar({
     <ClassNames>
       {({css}) => (
         <SmartSearchBar
-          onGetTagValues={memoize(getTagValues, ({key}, query) => `${key}-${query}`)}
           supportedTags={supportedTags}
           prepareQuery={prepareQuery}
           excludeEnvironment

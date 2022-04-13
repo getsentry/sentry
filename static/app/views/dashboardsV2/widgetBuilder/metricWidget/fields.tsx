@@ -1,18 +1,86 @@
-import {MetricsMeta, MetricsOperation, SelectValue} from 'sentry/types';
+import {
+  SelectValue,
+  SessionAggregationColumn,
+  SessionsMeta,
+  SessionsOperation,
+} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {METRICS_OPERATIONS} from 'sentry/utils/metrics/fields';
 import {FieldValue, FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
+export const SESSION_FIELDS: Record<string, SessionsMeta> = {
+  session: {
+    name: 'session',
+    operations: ['sum'],
+    type: 'integer',
+  },
+  user: {
+    name: 'user',
+    operations: ['count_unique'],
+    type: 'string',
+  },
+  'session.duration': {
+    name: 'session.duration',
+    operations: ['avg', 'p50', 'p75', 'p95', 'p99', 'max'],
+    type: 'duration',
+  },
+};
+
+export const SESSIONS_OPERATIONS: Readonly<
+  Record<SessionsOperation, SessionAggregationColumn>
+> = {
+  sum: {
+    columnTypes: ['integer'],
+    defaultValue: 'session',
+    outputType: 'number',
+  },
+  count_unique: {
+    columnTypes: ['string'],
+    defaultValue: 'user',
+    outputType: 'number',
+  },
+  avg: {
+    columnTypes: ['duration'],
+    defaultValue: 'session.duration',
+    outputType: null,
+  },
+  max: {
+    columnTypes: ['duration'],
+    defaultValue: 'session.duration',
+    outputType: null,
+  },
+  p50: {
+    columnTypes: ['duration'],
+    defaultValue: 'session.duration',
+    outputType: null,
+  },
+  p75: {
+    columnTypes: ['duration'],
+    defaultValue: 'session.duration',
+    outputType: null,
+  },
+  p95: {
+    columnTypes: ['duration'],
+    defaultValue: 'session.duration',
+    outputType: null,
+  },
+  p99: {
+    columnTypes: ['duration'],
+    defaultValue: 'session.duration',
+    outputType: null,
+  },
+};
+
+export const SESSION_TAGS = ['environment', 'project', 'release', 'session.status'];
+
 export function generateMetricsWidgetFieldOptions(
-  fields: MetricsMeta[] = [],
+  fields: SessionsMeta[] = Object.keys(SESSION_FIELDS).map(key => SESSION_FIELDS[key]),
   tagKeys?: string[]
 ) {
   const fieldOptions: Record<string, SelectValue<FieldValue>> = {};
 
   const fieldNames: string[] = [];
-  const operations = new Set<MetricsOperation>();
-  const knownOperations = Object.keys(METRICS_OPERATIONS);
-  const numericFields: MetricsMeta[] = [];
+  const operations = new Set<SessionsOperation>();
+  const knownOperations = Object.keys(SESSIONS_OPERATIONS);
 
   // If there are no fields, we do not want to render aggregations, nor tags
   // Metrics API needs at least one field to be able to return data
@@ -25,10 +93,6 @@ export function generateMetricsWidgetFieldOptions(
     .forEach(field => {
       field.operations.forEach(operation => operations.add(operation));
       fieldNames.push(field.name);
-      if (field.type === 'numeric') {
-        numericFields.push(field);
-        return;
-      }
 
       fieldOptions[`field:${field.name}`] = {
         label: field.name,
@@ -46,7 +110,7 @@ export function generateMetricsWidgetFieldOptions(
     .filter(operation => knownOperations.includes(operation))
     .sort((a, b) => a.localeCompare(b))
     .forEach(operation => {
-      const defaultField = METRICS_OPERATIONS[operation].defaultValue;
+      const defaultField = SESSIONS_OPERATIONS[operation].defaultValue;
 
       fieldOptions[`function:${operation}`] = {
         label: `${operation}(${'\u2026'})`,
@@ -57,7 +121,7 @@ export function generateMetricsWidgetFieldOptions(
             parameters: [
               {
                 kind: 'column',
-                columnTypes: METRICS_OPERATIONS[operation].metricsTypes,
+                columnTypes: SESSIONS_OPERATIONS[operation].columnTypes,
                 required: true,
                 defaultValue: fieldNames.includes(defaultField)
                   ? defaultField
@@ -69,19 +133,6 @@ export function generateMetricsWidgetFieldOptions(
         },
       };
     });
-
-  numericFields.forEach(field => {
-    fieldOptions[`field:${field.name}`] = {
-      label: `${field.name}()`,
-      value: {
-        kind: FieldValueKind.NUMERIC_METRICS,
-        meta: {
-          name: field.name,
-          dataType: 'numeric',
-        },
-      },
-    };
-  });
 
   if (defined(tagKeys)) {
     tagKeys

@@ -1296,7 +1296,9 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     });
   });
 
-  describe('Metrics Widgets', function () {
+  // Disabling since the modal is going to be removed soon
+  // eslint-disable-next-line jest/no-disabled-tests
+  describe.skip('Metrics Widgets', function () {
     it('renders the dataset selector', async function () {
       initialData.organization.features = [
         'performance-view',

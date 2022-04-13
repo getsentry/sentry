@@ -1,128 +1,41 @@
-import {generateMetricsWidgetFieldOptions} from 'sentry/views/dashboardsV2/widgetBuilder/metricWidget/fields';
+import {
+  generateMetricsWidgetFieldOptions,
+  SESSION_FIELDS,
+} from 'sentry/views/dashboardsV2/widgetBuilder/metricWidget/fields';
 
 describe('generateMetricsWidgetFieldOptions', function () {
-  const fields = TestStubs.MetricsMeta();
+  const fields = Object.keys(SESSION_FIELDS).map(key => SESSION_FIELDS[key]);
   const tagKeys = ['release', 'environment'];
 
   it('generates correct field options', function () {
     expect(generateMetricsWidgetFieldOptions(fields, tagKeys)).toEqual({
-      'field:sentry.sessions.session': {
-        label: 'sentry.sessions.session',
+      'field:session': {
+        label: 'session',
         value: {
           kind: 'metric',
           meta: {
-            dataType: 'counter',
-            name: 'sentry.sessions.session',
+            dataType: 'integer',
+            name: 'session',
           },
         },
       },
-      'field:sentry.sessions.session.error': {
-        label: 'sentry.sessions.session.error',
+      'field:session.duration': {
+        label: 'session.duration',
         value: {
           kind: 'metric',
           meta: {
-            dataType: 'set',
-            name: 'sentry.sessions.session.error',
+            dataType: 'duration',
+            name: 'session.duration',
           },
         },
       },
-      'field:sentry.sessions.user': {
-        label: 'sentry.sessions.user',
+      'field:user': {
+        label: 'user',
         value: {
           kind: 'metric',
           meta: {
-            dataType: 'set',
-            name: 'sentry.sessions.user',
-          },
-        },
-      },
-      'field:sentry.transactions.measurements.fcp': {
-        label: 'sentry.transactions.measurements.fcp',
-        value: {
-          kind: 'metric',
-          meta: {
-            dataType: 'distribution',
-            name: 'sentry.transactions.measurements.fcp',
-          },
-        },
-      },
-      'field:sentry.transactions.measurements.fid': {
-        label: 'sentry.transactions.measurements.fid',
-        value: {
-          kind: 'metric',
-          meta: {
-            dataType: 'distribution',
-            name: 'sentry.transactions.measurements.fid',
-          },
-        },
-      },
-      'field:sentry.transactions.measurements.fp': {
-        label: 'sentry.transactions.measurements.fp',
-        value: {
-          kind: 'metric',
-          meta: {
-            dataType: 'distribution',
-            name: 'sentry.transactions.measurements.fp',
-          },
-        },
-      },
-      'field:sentry.transactions.measurements.lcp': {
-        label: 'sentry.transactions.measurements.lcp',
-        value: {
-          kind: 'metric',
-          meta: {
-            dataType: 'distribution',
-            name: 'sentry.transactions.measurements.lcp',
-          },
-        },
-      },
-      'field:sentry.transactions.measurements.ttfb': {
-        label: 'sentry.transactions.measurements.ttfb',
-        value: {
-          kind: 'metric',
-          meta: {
-            dataType: 'distribution',
-            name: 'sentry.transactions.measurements.ttfb',
-          },
-        },
-      },
-      'field:sentry.transactions.measurements.ttfb.requesttime': {
-        label: 'sentry.transactions.measurements.ttfb.requesttime',
-        value: {
-          kind: 'metric',
-          meta: {
-            dataType: 'distribution',
-            name: 'sentry.transactions.measurements.ttfb.requesttime',
-          },
-        },
-      },
-      'field:sentry.transactions.transaction.duration': {
-        label: 'sentry.transactions.transaction.duration',
-        value: {
-          kind: 'metric',
-          meta: {
-            dataType: 'distribution',
-            name: 'sentry.transactions.transaction.duration',
-          },
-        },
-      },
-      'field:sentry.transactions.user': {
-        label: 'sentry.transactions.user',
-        value: {
-          kind: 'metric',
-          meta: {
-            dataType: 'set',
-            name: 'sentry.transactions.user',
-          },
-        },
-      },
-      'field:session.crash_free_rate': {
-        label: 'session.crash_free_rate()',
-        value: {
-          kind: 'numeric_metric',
-          meta: {
-            dataType: 'numeric',
-            name: 'session.crash_free_rate',
+            dataType: 'string',
+            name: 'user',
           },
         },
       },
@@ -134,25 +47,8 @@ describe('generateMetricsWidgetFieldOptions', function () {
             name: 'avg',
             parameters: [
               {
-                columnTypes: ['distribution'],
-                defaultValue: 'sentry.transactions.transaction.duration',
-                kind: 'column',
-                required: true,
-              },
-            ],
-          },
-        },
-      },
-      'function:count': {
-        label: 'count(…)',
-        value: {
-          kind: 'function',
-          meta: {
-            name: 'count',
-            parameters: [
-              {
-                columnTypes: ['distribution'],
-                defaultValue: 'sentry.transactions.transaction.duration',
+                columnTypes: ['duration'],
+                defaultValue: 'session.duration',
                 kind: 'column',
                 required: true,
               },
@@ -168,8 +64,8 @@ describe('generateMetricsWidgetFieldOptions', function () {
             name: 'count_unique',
             parameters: [
               {
-                columnTypes: ['set'],
-                defaultValue: 'sentry.sessions.user',
+                columnTypes: ['string'],
+                defaultValue: 'user',
                 kind: 'column',
                 required: true,
               },
@@ -185,8 +81,8 @@ describe('generateMetricsWidgetFieldOptions', function () {
             name: 'max',
             parameters: [
               {
-                columnTypes: ['distribution'],
-                defaultValue: 'sentry.transactions.transaction.duration',
+                columnTypes: ['duration'],
+                defaultValue: 'session.duration',
                 kind: 'column',
                 required: true,
               },
@@ -202,8 +98,8 @@ describe('generateMetricsWidgetFieldOptions', function () {
             name: 'p50',
             parameters: [
               {
-                columnTypes: ['distribution'],
-                defaultValue: 'sentry.transactions.transaction.duration',
+                columnTypes: ['duration'],
+                defaultValue: 'session.duration',
                 kind: 'column',
                 required: true,
               },
@@ -219,8 +115,8 @@ describe('generateMetricsWidgetFieldOptions', function () {
             name: 'p75',
             parameters: [
               {
-                columnTypes: ['distribution'],
-                defaultValue: 'sentry.transactions.transaction.duration',
+                columnTypes: ['duration'],
+                defaultValue: 'session.duration',
                 kind: 'column',
                 required: true,
               },
@@ -236,8 +132,8 @@ describe('generateMetricsWidgetFieldOptions', function () {
             name: 'p95',
             parameters: [
               {
-                columnTypes: ['distribution'],
-                defaultValue: 'sentry.transactions.transaction.duration',
+                columnTypes: ['duration'],
+                defaultValue: 'session.duration',
                 kind: 'column',
                 required: true,
               },
@@ -253,8 +149,8 @@ describe('generateMetricsWidgetFieldOptions', function () {
             name: 'p99',
             parameters: [
               {
-                columnTypes: ['distribution'],
-                defaultValue: 'sentry.transactions.transaction.duration',
+                columnTypes: ['duration'],
+                defaultValue: 'session.duration',
                 kind: 'column',
                 required: true,
               },
@@ -270,8 +166,8 @@ describe('generateMetricsWidgetFieldOptions', function () {
             name: 'sum',
             parameters: [
               {
-                columnTypes: ['counter'],
-                defaultValue: 'sentry.sessions.session',
+                columnTypes: ['integer'],
+                defaultValue: 'session',
                 kind: 'column',
                 required: true,
               },

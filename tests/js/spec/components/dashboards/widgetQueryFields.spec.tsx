@@ -185,21 +185,21 @@ describe('WidgetQueryFields', function () {
               label: 'sentry.sessions.session',
               value: {
                 kind: FieldValueKind.METRICS,
-                meta: {name: 'sentry.sessions.session', dataType: 'counter'},
+                meta: {name: 'sentry.sessions.session', dataType: 'integer'},
               },
             },
             'field:sentry.sessions.session.error': {
               label: 'sentry.sessions.session.error',
               value: {
                 kind: FieldValueKind.METRICS,
-                meta: {name: 'sentry.sessions.session.error', dataType: 'set'},
+                meta: {name: 'sentry.sessions.session.error', dataType: 'integer'},
               },
             },
             'field:sentry.sessions.user': {
               label: 'sentry.sessions.user',
               value: {
                 kind: FieldValueKind.METRICS,
-                meta: {name: 'sentry.sessions.user', dataType: 'set'},
+                meta: {name: 'sentry.sessions.user', dataType: 'string'},
               },
             },
             'function:count_unique': {
@@ -211,7 +211,7 @@ describe('WidgetQueryFields', function () {
                   parameters: [
                     {
                       kind: 'column',
-                      columnTypes: ['set'],
+                      columnTypes: ['string'],
                       required: true,
                       defaultValue: 'sentry.sessions.user',
                     },
@@ -228,7 +228,7 @@ describe('WidgetQueryFields', function () {
                   parameters: [
                     {
                       kind: 'column',
-                      columnTypes: ['counter'],
+                      columnTypes: ['integer'],
                       required: true,
                       defaultValue: 'sentry.sessions.session',
                     },

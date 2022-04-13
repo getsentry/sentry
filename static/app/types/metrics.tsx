@@ -1,3 +1,5 @@
+import {AggregationOutputType, ColumnType} from 'sentry/utils/discover/fields';
+
 export type MetricsType = 'set' | 'counter' | 'distribution' | 'numeric';
 
 export type MetricsOperation =
@@ -38,6 +40,28 @@ export type MetricsMeta = {
   name: string;
   operations: MetricsOperation[];
   type: MetricsType;
+};
+
+export type SessionsMeta = {
+  name: string;
+  operations: SessionsOperation[];
+  type: ColumnType;
+};
+
+export type SessionsOperation =
+  | 'sum'
+  | 'count_unique'
+  | 'avg'
+  | 'max'
+  | 'p50'
+  | 'p75'
+  | 'p95'
+  | 'p99';
+
+export type SessionAggregationColumn = {
+  columnTypes: string[];
+  defaultValue: SessionsMeta['name'];
+  outputType: AggregationOutputType | null;
 };
 
 export type MetricsMetaCollection = Record<string, MetricsMeta>;

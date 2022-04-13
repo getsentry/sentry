@@ -151,6 +151,9 @@ export function getWidgetInterval(
   // Bars charts are daily totals to aligned with discover. It also makes them
   // usefully different from line/area charts until we expose the interval control, or remove it.
   let interval = widget.displayType === 'bar' ? '1d' : widget.interval;
+  if (widget.widgetType === WidgetType.METRICS) {
+    interval = getInterval(datetimeObj, 'medium');
+  }
   if (!interval) {
     // Default to 5 minutes
     interval = '5m';

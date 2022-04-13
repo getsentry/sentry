@@ -3,11 +3,11 @@ import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
-import {doMetricsRequest} from 'sentry/actionCreators/metrics';
+import {doSessionsRequest} from 'sentry/actionCreators/sessions';
 import {Client} from 'sentry/api';
 import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
 import {t} from 'sentry/locale';
-import {MetricsApiResponse, OrganizationSummary, PageFilters} from 'sentry/types';
+import {OrganizationSummary, PageFilters, SessionApiResponse} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {stripDerivedMetricsPrefix} from 'sentry/utils/discover/fields';
@@ -33,7 +33,7 @@ type State = {
   loading: boolean;
   errorMessage?: string;
   queryFetchID?: symbol;
-  rawResults?: MetricsApiResponse[];
+  rawResults?: SessionApiResponse[];
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: Series[];
 };
@@ -172,14 +172,12 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
         environment: environments,
         groupBy: query.columns,
         interval,
-        limit: this.limit,
-        orderBy: query.orderby || (this.limit ? aggregates[0] : undefined),
         project: projects,
         query: query.conditions,
         start,
         statsPeriod: period,
       };
-      return doMetricsRequest(api, requestData);
+      return doSessionsRequest(api, requestData);
     });
 
     let completed = 0;
