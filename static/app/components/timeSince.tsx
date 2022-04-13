@@ -79,14 +79,13 @@ class TimeSince extends React.PureComponent<Props, State> {
   }
 
   componentWillUnmount() {
-    if (this.tickerTimeout) {
-      window.clearTimeout(this.tickerTimeout);
-    }
+    window.clearTimeout(this.tickerTimeout);
   }
 
-  tickerTimeout: number | null = null;
+  tickerTimeout: number | undefined = undefined;
 
   setRelativeDateTicker = () => {
+    window.clearTimeout(this.tickerTimeout);
     this.tickerTimeout = window.setTimeout(() => {
       this.setState({
         relative: getRelativeDate(
@@ -132,7 +131,7 @@ class TimeSince extends React.PureComponent<Props, State> {
           </div>
         }
       >
-        <time dateTime={dateObj.toISOString()} className={className} {...props}>
+        <time dateTime={dateObj?.toISOString()} className={className} {...props}>
           {this.state.relative}
         </time>
       </Tooltip>

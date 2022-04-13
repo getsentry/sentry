@@ -20,8 +20,8 @@ import {SpanSortOthers} from '../types';
 import {getTotalsView} from '../utils';
 
 import SpanChart from './chart';
+import SpanDetailsControls from './spanDetailsControls';
 import SpanDetailsHeader from './spanDetailsHeader';
-import SpanDetailsSearchBar from './spanDetailsSearchBar';
 import SpanTable from './spanDetailsTable';
 
 type Props = {
@@ -64,7 +64,8 @@ export default function SpanDetailsContentWrapper(props: Props) {
             noPagination
           >
             {({tableData}) => {
-              const totalCount: number = tableData?.data?.[0]?.count ?? null;
+              const totalCount: number | null =
+                (tableData?.data?.[0]?.count as number) ?? null;
 
               return (
                 <SuspectSpansQuery
@@ -148,7 +149,7 @@ function SpanDetailsContent(props: ContentProps) {
         suspectSpan={suspectSpan}
       />
       <Feature features={['performance-span-histogram-view']}>
-        <SpanDetailsSearchBar
+        <SpanDetailsControls
           organization={organization}
           location={location}
           eventView={eventView}

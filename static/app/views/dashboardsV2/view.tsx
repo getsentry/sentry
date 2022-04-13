@@ -5,6 +5,7 @@ import pick from 'lodash/pick';
 import {updateDashboardVisit} from 'sentry/actionCreators/dashboards';
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import NotFound from 'sentry/components/errors/notFound';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -35,6 +36,7 @@ function ViewEditDashboard(props: Props) {
   const dashboardId = params.dashboardId;
   const orgSlug = organization.slug;
   const [newWidget, setNewWidget] = useState<Widget | undefined>();
+  const [dashboardInitialState, setDashboardInitialState] = useState(DashboardState.VIEW);
 
   useEffect(() => {
     if (dashboardId && dashboardId !== 'default-overview') {
@@ -45,12 +47,13 @@ function ViewEditDashboard(props: Props) {
     setNewWidget(constructedWidget);
     // Clean up url after constructing widget from query string, only allow GHS params
     if (constructedWidget) {
+      setDashboardInitialState(DashboardState.EDIT);
       browserHistory.replace({
         pathname: location.pathname,
         query: pick(location.query, ALLOWED_PARAMS),
       });
     }
-  }, [api, orgSlug, dashboardId]);
+  }, [api, orgSlug, dashboardId, location.pathname]);
 
   return (
     <DashboardBasicFeature organization={organization}>
@@ -64,15 +67,17 @@ function ViewEditDashboard(props: Props) {
           return error ? (
             <NotFound />
           ) : dashboard ? (
-            <DashboardDetail
-              {...props}
-              initialState={newWidget ? DashboardState.EDIT : DashboardState.VIEW}
-              dashboard={dashboard}
-              dashboards={dashboards}
-              onDashboardUpdate={onDashboardUpdate}
-              newWidget={newWidget}
-              onSetNewWidget={() => setNewWidget(undefined)}
-            />
+            <ErrorBoundary>
+              <DashboardDetail
+                {...props}
+                initialState={dashboardInitialState}
+                dashboard={dashboard}
+                dashboards={dashboards}
+                onDashboardUpdate={onDashboardUpdate}
+                newWidget={newWidget}
+                onSetNewWidget={() => setNewWidget(undefined)}
+              />
+            </ErrorBoundary>
           ) : (
             <LoadingIndicator />
           );

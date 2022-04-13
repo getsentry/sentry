@@ -7,14 +7,18 @@ import pick from 'lodash/pick';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import Alert from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import DatePageFilter from 'sentry/components/datePageFilter';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {getRelativeSummary} from 'sentry/components/organizations/timeRangeSelector/utils';
 import PageHeading from 'sentry/components/pageHeading';
 import Pagination from 'sentry/components/pagination';
+import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {ItemType} from 'sentry/components/smartSearchBar/types';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
@@ -488,6 +492,7 @@ class ReleasesList extends AsyncView<Props, State> {
         timeRangeHint={t(
           'Changing this date range will recalculate the release metrics.'
         )}
+        hideGlobalHeader
       >
         <PageContent>
           <NoProjectMessage organization={organization}>
@@ -496,6 +501,12 @@ class ReleasesList extends AsyncView<Props, State> {
             </PageHeader>
 
             {this.renderHealthCta()}
+
+            <ReleasesPageFilterBar>
+              <ProjectPageFilter />
+              <EnvironmentPageFilter />
+              <DatePageFilter alignDropdown="left" />
+            </ReleasesPageFilterBar>
 
             <SortAndFilterWrapper>
               <GuideAnchor
@@ -572,6 +583,12 @@ const AlertText = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     flex-direction: row;
   }
+`;
+
+const ReleasesPageFilterBar = styled(PageFilterBar)`
+  width: max-content;
+  max-width: 100%;
+  margin-bottom: ${space(1)};
 `;
 
 const SortAndFilterWrapper = styled('div')`

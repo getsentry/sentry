@@ -1,6 +1,8 @@
 import functools
 from time import time
 
+import sentry_sdk
+
 from sentry.constants import DataCategory
 from sentry.quotas.base import NotRateLimited, Quota, QuotaConfig, QuotaScope, RateLimited
 from sentry.utils.compat import map, zip
@@ -44,14 +46,8 @@ class RedisQuota(Quota):
             return self.cluster.get_local_client_for_key(routing_key)
 
     def __get_redis_key(self, quota, timestamp, shift, organization_id):
-        if self.is_redis_cluster:
-            scope_id = quota.scope_id or "" if quota.scope != QuotaScope.ORGANIZATION else ""
-            # new style redis cluster format which always has the organization id in
-            local_key = f"{quota.id}{{{organization_id}}}{scope_id}"
-        else:
-            # legacy key format
-            local_key = f"{quota.id}:{quota.scope_id or organization_id}"
-
+        scope_id = quota.scope_id or "" if quota.scope != QuotaScope.ORGANIZATION else ""
+        local_key = f"{quota.id}{{{organization_id}}}{scope_id}"
         interval = quota.window
         return f"{self.namespace}:{local_key}:{int((timestamp - shift) // interval)}"
 
@@ -61,33 +57,37 @@ class RedisQuota(Quota):
 
         results = [*self.get_project_abuse_quotas(project.organization)]
 
-        pquota = self.get_project_quota(project)
-        if pquota[0] is not None:
-            results.append(
-                QuotaConfig(
-                    id="p",
-                    scope=QuotaScope.PROJECT,
-                    scope_id=project.id,
-                    categories=DataCategory.error_categories(),
-                    limit=pquota[0],
-                    window=pquota[1],
-                    reason_code="project_quota",
+        with sentry_sdk.start_span(op="redis.get_quotas.get_project_quota") as span:
+            span.set_tag("project.id", project.id)
+            pquota = self.get_project_quota(project)
+            if pquota[0] is not None:
+                results.append(
+                    QuotaConfig(
+                        id="p",
+                        scope=QuotaScope.PROJECT,
+                        scope_id=project.id,
+                        categories=DataCategory.error_categories(),
+                        limit=pquota[0],
+                        window=pquota[1],
+                        reason_code="project_quota",
+                    )
                 )
-            )
 
-        oquota = self.get_organization_quota(project.organization)
-        if oquota[0] is not None:
-            results.append(
-                QuotaConfig(
-                    id="o",
-                    scope=QuotaScope.ORGANIZATION,
-                    scope_id=project.organization.id,
-                    categories=DataCategory.error_categories(),
-                    limit=oquota[0],
-                    window=oquota[1],
-                    reason_code="org_quota",
+        with sentry_sdk.start_span(op="redis.get_quotas.get_organization_quota") as span:
+            span.set_tag("project.organization.id", project.organization.id)
+            oquota = self.get_organization_quota(project.organization)
+            if oquota[0] is not None:
+                results.append(
+                    QuotaConfig(
+                        id="o",
+                        scope=QuotaScope.ORGANIZATION,
+                        scope_id=project.organization.id,
+                        categories=DataCategory.error_categories(),
+                        limit=oquota[0],
+                        window=oquota[1],
+                        reason_code="org_quota",
+                    )
                 )
-            )
 
         if key and not keys:
             keys = [key]
@@ -95,19 +95,21 @@ class RedisQuota(Quota):
             keys = []
 
         for key in keys:
-            kquota = self.get_key_quota(key)
-            if kquota[0] is not None:
-                results.append(
-                    QuotaConfig(
-                        id="k",
-                        scope=QuotaScope.KEY,
-                        scope_id=key.id,
-                        categories=DataCategory.error_categories(),
-                        limit=kquota[0],
-                        window=kquota[1],
-                        reason_code="key_quota",
+            with sentry_sdk.start_span(op="redis.get_quotas.get_key_quota") as span:
+                span.set_tag("key.id", key.id)
+                kquota = self.get_key_quota(key)
+                if kquota[0] is not None:
+                    results.append(
+                        QuotaConfig(
+                            id="k",
+                            scope=QuotaScope.KEY,
+                            scope_id=key.id,
+                            categories=DataCategory.error_categories(),
+                            limit=kquota[0],
+                            window=kquota[1],
+                            reason_code="key_quota",
+                        )
                     )
-                )
 
         return results
 

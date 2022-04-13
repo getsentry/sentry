@@ -33,6 +33,7 @@ from confluent_kafka import Producer
 from django.conf import settings
 
 from sentry.utils import json, kafka_config
+from sentry.utils.batching_kafka_consumer import create_topics
 
 DEFAULT_QUEUED_MAX_MESSAGE_KBYTES = 50000
 DEFAULT_QUEUED_MIN_MESSAGES = 100000
@@ -388,16 +389,19 @@ def process_messages(
             new_payload_value = deepcopy(parsed_payload_value)
 
             metric_name = parsed_payload_value["name"]
+            org_id = parsed_payload_value["org_id"]
             tags = parsed_payload_value.get("tags", {})
 
             try:
-                new_tags: Mapping[int, int] = {mapping[k]: mapping[v] for k, v in tags.items()}
+                new_tags: Mapping[int, int] = {
+                    mapping[org_id][k]: mapping[org_id][v] for k, v in tags.items()
+                }
             except KeyError:
                 logger.error("process_messages.key_error", extra={"tags": tags}, exc_info=True)
                 continue
 
             new_payload_value["tags"] = new_tags
-            new_payload_value["metric_id"] = mapping[metric_name]
+            new_payload_value["metric_id"] = mapping[org_id][metric_name]
             new_payload_value["retention_days"] = 90
 
             del new_payload_value["name"]
@@ -694,6 +698,8 @@ def get_streaming_metrics_consumer(
             commit_max_batch_size=commit_max_batch_size,
             commit_max_batch_time=commit_max_batch_time,
         )
+
+    create_topics([topic])
 
     return StreamProcessor(
         KafkaConsumer(get_config(topic, group_id, auto_offset_reset)),

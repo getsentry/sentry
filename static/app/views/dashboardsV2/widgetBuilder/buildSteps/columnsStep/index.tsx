@@ -16,6 +16,7 @@ import {DataSet, getAmendedFieldOptions} from '../../utils';
 import {BuildStep} from '../buildStep';
 
 import {ColumnFields} from './columnFields';
+import {ReleaseColumnFields} from './releaseColumnFields';
 
 interface Props {
   dataSet: DataSet;
@@ -46,22 +47,22 @@ export function ColumnsStep({
     <BuildStep
       title={t('Choose your columns')}
       description={
-        dataSet !== DataSet.ISSUES
+        dataSet === DataSet.ISSUES
           ? tct(
-              'To group events, add [functionLink: functions] f(x) that may take in additional parameters. [tagFieldLink: Tag and field] columns will help you view more details about the events (i.e. title).',
+              '[fieldTagLink: Field and tag] columns will help you view more details about the issues (e.g., title).',
               {
-                functionLink: (
-                  <ExternalLink href="https://docs.sentry.io/product/discover-queries/query-builder/#filter-by-table-columns" />
-                ),
-                tagFieldLink: (
+                fieldTagLink: (
                   <ExternalLink href="https://docs.sentry.io/product/sentry-basics/search/searchable-properties/#event-properties" />
                 ),
               }
             )
           : tct(
-              '[tagFieldLink: Tag and field] columns will help you view more details about the issues (i.e. title).',
+              'To stack events, add [functionLink: functions] f(x) that may take in additional parameters. [fieldTagLink: Field and tag] columns will help you view more details about the events (e.g., title).',
               {
-                tagFieldLink: (
+                functionLink: (
+                  <ExternalLink href="https://docs.sentry.io/product/discover-queries/query-builder/#filter-by-table-columns" />
+                ),
+                fieldTagLink: (
                   <ExternalLink href="https://docs.sentry.io/product/sentry-basics/search/searchable-properties/#event-properties" />
                 ),
               }
@@ -82,7 +83,7 @@ export function ColumnsStep({
             />
           )}
         </Measurements>
-      ) : (
+      ) : dataSet === DataSet.ISSUES ? (
         <ColumnFields
           displayType={displayType}
           organization={organization}
@@ -100,6 +101,15 @@ export function ColumnsStep({
             newQuery.fieldAliases = splitFields.fieldAliases;
             onQueryChange(0, newQuery);
           }}
+        />
+      ) : (
+        <ReleaseColumnFields
+          displayType={displayType}
+          organization={organization}
+          widgetType={widgetType}
+          explodedFields={explodedFields}
+          queryErrors={queryErrors}
+          onYAxisOrColumnFieldChange={onYAxisOrColumnFieldChange}
         />
       )}
     </BuildStep>

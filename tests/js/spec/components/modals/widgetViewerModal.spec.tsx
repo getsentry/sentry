@@ -7,6 +7,8 @@ import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import WidgetViewerModal from 'sentry/components/modals/widgetViewerModal';
 import MemberListStore from 'sentry/stores/memberListStore';
 import space from 'sentry/styles/space';
+import {Series} from 'sentry/types/echarts';
+import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
 
 jest.mock('echarts-for-react/lib/core', () => {
@@ -31,7 +33,17 @@ const waitForMetaToHaveBeenCalled = async () => {
   });
 };
 
-async function renderModal({initialData: {organization, routerContext}, widget}) {
+async function renderModal({
+  initialData: {organization, routerContext},
+  widget,
+  seriesData,
+  tableData,
+}: {
+  initialData: any;
+  widget: any;
+  seriesData?: Series[];
+  tableData?: TableDataWithTitle[];
+}) {
   const rendered = render(
     <div style={{padding: space(4)}}>
       <WidgetViewerModal
@@ -43,6 +55,8 @@ async function renderModal({initialData: {organization, routerContext}, widget})
         organization={organization}
         widget={widget}
         onEdit={() => undefined}
+        seriesData={seriesData}
+        tableData={tableData}
       />
     </div>,
     {
@@ -212,7 +226,7 @@ describe('Modals -> WidgetViewerModal', function () {
       await renderModal({initialData, widget: mockWidget});
       expect(
         screen.getByText(
-          'This widget was built with multiple queries. Table data can only be displayed for one query at a time.'
+          'This widget was built with multiple queries. Table data can only be displayed for one query at a time. To edit any of the queries, edit the widget.'
         )
       ).toBeInTheDocument();
       expect(screen.getByText('Query Name')).toBeInTheDocument();
@@ -468,10 +482,27 @@ describe('Modals -> WidgetViewerModal', function () {
       await waitForMetaToHaveBeenCalled();
       expect(await screen.findByText('Next Page Test Error')).toBeInTheDocument();
     });
+
+    it('uses provided seriesData and does not make an events-stats requests', async function () {
+      await renderModal({initialData, widget: mockWidget, seriesData: []});
+      expect(eventsStatsMock).not.toHaveBeenCalled();
+    });
+
+    it('makes events-stats requests when table is sorted', async function () {
+      await renderModal({
+        initialData,
+        widget: mockWidget,
+        seriesData: [],
+      });
+      expect(eventsStatsMock).not.toHaveBeenCalled();
+      userEvent.click(screen.getByText('count()'));
+      await waitForMetaToHaveBeenCalled();
+      expect(eventsStatsMock).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('Discover World Map Chart Widget', function () {
-    let eventsMock;
+    let eventsMock, eventsGeoMock;
     const mockQuery = {
       conditions: 'title:/organizations/:orgId/performance/summary/',
       fields: ['p75(measurements.lcp)'],
@@ -513,7 +544,7 @@ describe('Modals -> WidgetViewerModal', function () {
         url: '/organizations/org-slug/eventsv2/',
         body: eventsBody,
       });
-      MockApiClient.addMockResponse({
+      eventsGeoMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-geo/',
         body: eventsBody,
       });
@@ -535,6 +566,11 @@ describe('Modals -> WidgetViewerModal', function () {
     it('renders Discover topn chart widget viewer', async function () {
       const {container} = await renderModal({initialData, widget: mockWidget});
       expect(container).toSnapshot();
+    });
+
+    it('uses provided tableData and does not make an eventsv2 requests', async function () {
+      await renderModal({initialData, widget: mockWidget, tableData: []});
+      expect(eventsGeoMock).not.toHaveBeenCalled();
     });
   });
 
@@ -674,7 +710,6 @@ describe('Modals -> WidgetViewerModal', function () {
         expect.objectContaining({
           data: {
             cursor: undefined,
-            display: 'events',
             environment: [],
             expand: ['owners'],
             limit: 20,

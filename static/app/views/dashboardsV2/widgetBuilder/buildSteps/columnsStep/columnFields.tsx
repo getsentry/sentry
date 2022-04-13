@@ -6,6 +6,7 @@ import {Organization} from 'sentry/types';
 import {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
 import ColumnEditCollection from 'sentry/views/eventsV2/table/columnEditCollection';
+import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 
 interface Props {
@@ -16,6 +17,8 @@ interface Props {
   organization: Organization;
   widgetType: WidgetType;
   errors?: Record<string, string>[];
+  filterPrimaryOptions?: (option: FieldValueOption) => boolean;
+  noFieldsMessage?: string;
 }
 
 export function ColumnFields({
@@ -26,6 +29,8 @@ export function ColumnFields({
   organization,
   errors,
   onChange,
+  filterPrimaryOptions,
+  noFieldsMessage,
 }: Props) {
   return (
     <Field
@@ -44,6 +49,8 @@ export function ColumnFields({
           showAliasField={organization.features.includes(
             'new-widget-builder-experience-design'
           )}
+          filterPrimaryOptions={filterPrimaryOptions}
+          noFieldsMessage={noFieldsMessage}
         />
       ) : (
         // The only other display type this component
@@ -57,6 +64,8 @@ export function ColumnFields({
           fieldOptions={fieldOptions}
           organization={organization}
           source={widgetType}
+          filterPrimaryOptions={filterPrimaryOptions}
+          noFieldsMessage={noFieldsMessage}
         />
       )}
     </Field>

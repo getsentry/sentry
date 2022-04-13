@@ -75,21 +75,22 @@ class OnboardingWizardSidebar extends Component<Props> {
     this.markTasksAsSeen();
   }
 
-  markCompletionTimeout: number | null = null;
-  markCompletionSeenTimeout: number | null = null;
+  componentWillUnmount() {
+    window.clearTimeout(this.markCompletionTimeout);
+    window.clearTimeout(this.markCompletionSeenTimeout);
+  }
+
+  markCompletionTimeout: number | undefined = undefined;
+  markCompletionSeenTimeout: number | undefined = undefined;
 
   markCompletion(time: number): Promise<void> {
-    if (this.markCompletionTimeout) {
-      window.clearTimeout(this.markCompletionTimeout);
-    }
+    window.clearTimeout(this.markCompletionTimeout);
     return new Promise(resolve => {
       this.markCompletionTimeout = window.setTimeout(resolve, time);
     });
   }
   markCompletionSeen(time: number): Promise<void> {
-    if (this.markCompletionSeenTimeout) {
-      window.clearTimeout(this.markCompletionSeenTimeout);
-    }
+    window.clearTimeout(this.markCompletionSeenTimeout);
     return new Promise(resolve => {
       this.markCompletionSeenTimeout = window.setTimeout(resolve, time);
     });

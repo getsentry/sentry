@@ -58,9 +58,15 @@ type Props = {
   dropdownSections: DropdownSection[];
   header: React.ReactElement;
   onFilterChange: (section: string, filterSelection: Set<string>) => void;
+  showMyTeamsDescription?: boolean;
 };
 
-function Filter({onFilterChange, header, dropdownSections}: Props) {
+function Filter({
+  onFilterChange,
+  header,
+  dropdownSections,
+  showMyTeamsDescription,
+}: Props) {
   function toggleFilter(sectionId: string, value: string) {
     const section = dropdownSections.find(
       dropdownSection => dropdownSection.id === sectionId
@@ -99,7 +105,7 @@ function Filter({onFilterChange, header, dropdownSections}: Props) {
 
   const activeFilters = getActiveFilters();
 
-  let filterDescription = t('All Teams');
+  let filterDescription = showMyTeamsDescription ? t('My Teams') : t('All Teams');
   if (activeFilters.length > 0) {
     filterDescription = activeFilters[0].label;
   }
@@ -173,6 +179,7 @@ const Header = styled('div')`
 const StyledDropdownButton = styled(DropdownButton)`
   white-space: nowrap;
   max-width: 200px;
+  min-width: 180px;
 
   z-index: ${p => p.theme.zIndex.dropdown};
 `;

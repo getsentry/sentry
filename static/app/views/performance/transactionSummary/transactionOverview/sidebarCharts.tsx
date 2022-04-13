@@ -23,6 +23,7 @@ import {Organization} from 'sentry/types';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {tooltipFormatter} from 'sentry/utils/discover/charts';
 import EventView from 'sentry/utils/discover/eventView';
+import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {
   formatAbbreviatedNumber,
   formatFloat,
@@ -41,7 +42,7 @@ import {
 } from '../transactionAnomalies/utils';
 
 type ContainerProps = WithRouterProps & {
-  error: string | null;
+  error: QueryError | null;
   eventView: EventView;
   isLoading: boolean;
   location: Location;
@@ -52,7 +53,7 @@ type ContainerProps = WithRouterProps & {
 
 type Props = Pick<ContainerProps, 'organization' | 'isLoading' | 'error' | 'totals'> & {
   chartData: {
-    chartOptions: Record<string, any>;
+    chartOptions: Omit<LineChartProps, 'series'>;
     errored: boolean;
     loading: boolean;
     reloading: boolean;
@@ -251,7 +252,7 @@ function SidebarChartsContainer({
     },
   };
 
-  const chartOptions = {
+  const chartOptions: Omit<LineChartProps, 'series'> = {
     height: 480,
     grid: [
       {
@@ -279,7 +280,7 @@ function SidebarChartsContainer({
     },
     xAxes: Array.from(new Array(3)).map((_i, index) => ({
       gridIndex: index,
-      type: 'time' as const,
+      type: 'time',
       show: false,
     })),
     yAxes: [
@@ -288,7 +289,7 @@ function SidebarChartsContainer({
         gridIndex: 0,
         interval: 0.2,
         axisLabel: {
-          formatter: (value: number) => formatFloat(value, 1),
+          formatter: (value: number) => `${formatFloat(value, 1)}`,
           color: theme.chartLabel,
         },
         ...axisLineConfig,
@@ -319,9 +320,9 @@ function SidebarChartsContainer({
     utc,
     isGroupedByDate: true,
     showTimeInTooltip: true,
-    colors: [colors[0], colors[1], colors[2]] as string[],
+    colors: [colors[0], colors[1], colors[2]],
     tooltip: {
-      trigger: 'axis' as const,
+      trigger: 'axis',
       truncate: 80,
       valueFormatter: tooltipFormatter,
       nameFormatter(value: string) {
@@ -393,7 +394,7 @@ function SidebarChartsContainer({
 
 type ChartValueProps = {
   'data-test-id': string;
-  error: string | null;
+  error: QueryError | null;
   isLoading: boolean;
   value: React.ReactNode;
 };

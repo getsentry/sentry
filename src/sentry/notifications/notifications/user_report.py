@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, Mapping, MutableMapping
 
 from django.utils.encoding import force_text
 
+from sentry.db.models import Model
 from sentry.models import Group, GroupSubscription
 from sentry.notifications.helpers import get_reason_context
 from sentry.notifications.notifications.base import ProjectNotification
@@ -20,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 class UserReportNotification(ProjectNotification):
     referrer_base = "user-report"
+    template_path = "sentry/emails/activity/new-user-feedback"
 
     def __init__(self, project: Project, report: Mapping[str, Any]) -> None:
         super().__init__(project)
@@ -35,9 +37,6 @@ class UserReportNotification(ProjectNotification):
             for provider, data in data_by_provider.items()
             if provider in [ExternalProviders.EMAIL]
         }
-
-    def get_filename(self) -> str:
-        return "activity/new-user-feedback"
 
     def get_category(self) -> str:
         return "user_report_email"
@@ -55,7 +54,8 @@ class UserReportNotification(ProjectNotification):
         # This shouldn't be possible but adding a message just in case.
         return self.get_subject()
 
-    def get_reference(self) -> Any:
+    @property
+    def reference(self) -> Model | None:
         return self.project
 
     def get_context(self) -> MutableMapping[str, Any]:
