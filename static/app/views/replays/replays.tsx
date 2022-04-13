@@ -71,9 +71,7 @@ class Replays extends React.Component<Props> {
         </div>
         <div>
           <TimeSinceWrapper>
-            <StyledIconCalendarWrapper>
-              <IconCalendar color="gray500" size="sm" />
-            </StyledIconCalendarWrapper>
+            <StyledIconCalendarWrapper color="gray500" size="sm" />
             <TimeSince date={replay.timestamp} />
           </TimeSinceWrapper>
         </div>
@@ -130,13 +128,13 @@ const HeaderTitle = styled(PageHeading)`
 `;
 
 const TimeSinceWrapper = styled('div')`
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(auto, max-content));
   align-items: center;
+  gap: ${space(1.5)};
 `;
 
-const StyledIconCalendarWrapper = styled('span')`
-  display: flex;
-  margin-right: ${space(1.5)};
+const StyledIconCalendarWrapper = styled(IconCalendar)`
   position: relative;
   top: -1px;
 `;
