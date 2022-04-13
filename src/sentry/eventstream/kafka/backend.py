@@ -150,9 +150,17 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
     @staticmethod
     def _key(extra_data, project_id) -> Optional[str]:
-        if killswitch_matches_context(
-            "kafka.send-project-events-to-random-partitions",
-            {"project_id": project_id, "message_type": extra_data["type"]},
+        # We don't explicitly require extra_data to have these fields, but we need to only
+        # apply this kill switch for the event type that's only accessible
+        # from inside the message
+        if (
+            len(extra_data) == 1
+            and "data" in extra_data[0]
+            and "type" in extra_data[0]["data"]
+            and killswitch_matches_context(
+                "kafka.send-project-events-to-random-partitions",
+                {"project_id": project_id, "message_type": extra_data[0]["data"]["type"]},
+            )
         ):
             return None
         else:
