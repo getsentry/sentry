@@ -14,12 +14,18 @@ type Dimensions = {height: number; width: number};
 type RootElem = null | HTMLDivElement;
 
 type RootProps = {
+  flexibleHeight: boolean;
   initRoot: (root: RootElem) => void;
   videoDimensions: Dimensions;
   className?: string;
 };
 
-function BasePlayerRoot({className, initRoot, videoDimensions}: RootProps) {
+function BasePlayerRoot({
+  className,
+  flexibleHeight,
+  initRoot,
+  videoDimensions,
+}: RootProps) {
   const windowEl = useRef<HTMLDivElement>(null);
   const viewEl = useRef<HTMLDivElement>(null);
 
@@ -51,11 +57,13 @@ function BasePlayerRoot({className, initRoot, videoDimensions}: RootProps) {
   // Update the scale of the view whenever dimensions have changed.
   useEffect(() => {
     if (viewEl.current) {
-      const scale = Math.min(
-        (windowDimensions?.width || 0) / videoDimensions.width,
-        (windowDimensions?.height || 0) / videoDimensions.height,
-        1
-      );
+      const scale = flexibleHeight
+        ? Math.min((windowDimensions?.width || 0) / videoDimensions.width, 1)
+        : Math.min(
+            (windowDimensions?.width || 0) / videoDimensions.width,
+            (windowDimensions?.height || 0) / videoDimensions.height,
+            1
+          );
       if (scale) {
         viewEl.current.style['transform-origin'] = 'top left';
         viewEl.current.style.transform = `scale(${scale})`;
@@ -198,6 +206,7 @@ export default function ReplayPlayer({className}: Props) {
         <Panel isFullscreen={isFullscreen}>
           <SentryPlayerRoot
             className={className}
+            flexibleHeight={!isFullscreen}
             initRoot={initRoot}
             videoDimensions={dimensions}
           />
