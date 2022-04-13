@@ -2,7 +2,7 @@ import {t} from 'sentry/locale';
 import {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {useMetricsContext} from 'sentry/utils/useMetricsContext';
 import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
-import {generateMetricsWidgetFieldOptions} from 'sentry/views/dashboardsV2/widgetBuilder/metricWidget/fields';
+import {generateReleaseWidgetFieldOptions} from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
 
 import {YAxisSelector} from './yAxisSelector';
 
@@ -30,7 +30,7 @@ export function ReleaseYAxisSelector({
       aggregates={aggregates}
       onChange={onChange}
       errors={errors}
-      fieldOptions={generateMetricsWidgetFieldOptions(
+      fieldOptions={generateReleaseWidgetFieldOptions(
         Object.values(metas),
         Object.values(tags).map(({key}) => key)
       )}

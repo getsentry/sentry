@@ -1,12 +1,18 @@
-import {browserHistory} from 'react-router';
+import {browserHistory, InjectedRouter} from 'react-router';
+import {urlEncode} from '@sentry/utils';
 import {Location, Query} from 'history';
 import * as Papa from 'papaparse';
 
+import {
+  openAddDashboardWidgetModal,
+  openAddToDashboardModal,
+} from 'sentry/actionCreators/modal';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import {Organization, SelectValue} from 'sentry/types';
+import {NewQuery, Organization, SelectValue} from 'sentry/types';
 import {Event} from 'sentry/types/event';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -20,6 +26,7 @@ import {
   Field,
   FIELDS,
   getAggregateAlias,
+  getColumnsAndAggregates,
   getEquation,
   isAggregateEquation,
   isEquation,
@@ -28,10 +35,14 @@ import {
   measurementType,
   TRACING_FIELDS,
 } from 'sentry/utils/discover/fields';
+import {DisplayModes} from 'sentry/utils/discover/types';
 import {getTitle} from 'sentry/utils/events';
 import localStorage from 'sentry/utils/localStorage';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
+import {DashboardWidgetSource, DisplayType, WidgetQuery} from '../dashboardsV2/types';
+
+import {displayModeToDisplayType} from './savedQuery/utils';
 import {FieldValue, FieldValueKind, TableColumn} from './table/types';
 import {ALL_VIEWS, TRANSACTION_VIEWS, WEB_VITALS_VIEWS} from './data';
 
@@ -542,6 +553,154 @@ export function shouldRenderPrebuilt(): boolean {
   const shouldRender = localStorage.getItem(RENDER_PREBUILT_KEY);
   return shouldRender === 'true' || shouldRender === null;
 }
+
 export function setRenderPrebuilt(value: boolean) {
   localStorage.setItem(RENDER_PREBUILT_KEY, value ? 'true' : 'false');
+}
+
+function eventViewToWidgetQuery({
+  eventView,
+  yAxis,
+  displayType,
+}: {
+  displayType: DisplayType;
+  eventView: EventView;
+  yAxis?: string | string[];
+}) {
+  const fields = eventView.fields.map(({field}) => field);
+  const {columns, aggregates} = getColumnsAndAggregates(fields);
+  const sort = eventView.sorts[0];
+  const queryYAxis = typeof yAxis === 'string' ? [yAxis] : yAxis ?? ['count()'];
+
+  let orderby = '';
+  // The orderby should only be set to sort.field if it is a Top N query
+  // since the query uses all of the fields, or if the ordering is used in the y-axis
+  if (
+    sort &&
+    (displayType === DisplayType.TOP_N ||
+      new Set(queryYAxis.map(getAggregateAlias)).has(sort.field))
+  ) {
+    orderby = `${sort.kind === 'desc' ? '-' : ''}${sort.field}`;
+  }
+  const widgetQuery: WidgetQuery = {
+    name: '',
+    aggregates: [...(displayType === DisplayType.TOP_N ? aggregates : []), ...queryYAxis],
+    columns: [...(displayType === DisplayType.TOP_N ? columns : [])],
+    fields: [...(displayType === DisplayType.TOP_N ? fields : []), ...queryYAxis],
+    conditions: eventView.query,
+    orderby,
+  };
+  return widgetQuery;
+}
+
+export function handleAddQueryToDashboard({
+  eventView,
+  location,
+  query,
+  organization,
+  router,
+  yAxis,
+}: {
+  eventView: EventView;
+  organization: Organization;
+  router: InjectedRouter;
+  location?: Location;
+  query?: NewQuery;
+  yAxis?: string | string[];
+}) {
+  const displayType = displayModeToDisplayType(eventView.display as DisplayModes);
+  const defaultTableFields = eventView.fields.map(({field}) => field);
+  const defaultWidgetQuery = eventViewToWidgetQuery({
+    eventView,
+    displayType,
+    yAxis,
+  });
+
+  if (organization.features.includes('new-widget-builder-experience-design')) {
+    const {query: widgetAsQueryParams} = constructAddQueryToDashboardLink({
+      eventView,
+      query,
+      organization,
+      yAxis,
+      location,
+    });
+    openAddToDashboardModal({
+      organization,
+      selection: {
+        projects: eventView.project,
+        environments: eventView.environment,
+        datetime: {
+          start: eventView.start,
+          end: eventView.end,
+          period: eventView.statsPeriod,
+          utc: eventView.utc,
+        },
+      },
+      widget: {
+        title: query?.name ?? eventView.name,
+        displayType,
+        queries: [defaultWidgetQuery],
+        interval: eventView.interval,
+      },
+      router,
+      widgetAsQueryParams,
+    });
+    return;
+  }
+
+  openAddDashboardWidgetModal({
+    organization,
+    start: eventView.start,
+    end: eventView.end,
+    statsPeriod: eventView.statsPeriod,
+    source: DashboardWidgetSource.DISCOVERV2,
+    defaultWidgetQuery,
+    defaultTableColumns: defaultTableFields,
+    defaultTitle:
+      query?.name ?? (eventView.name !== 'All Events' ? eventView.name : undefined),
+    displayType,
+  });
+  trackAdvancedAnalyticsEvent('discover_views.add_to_dashboard.modal_open', {
+    organization,
+    saved_query: !!query,
+  });
+}
+
+export function constructAddQueryToDashboardLink({
+  eventView,
+  query,
+  organization,
+  yAxis,
+  location,
+}: {
+  eventView: EventView;
+  organization: Organization;
+  location?: Location;
+  query?: NewQuery;
+  yAxis?: string | string[];
+}) {
+  const displayType = displayModeToDisplayType(eventView.display as DisplayModes);
+  const defaultTableFields = eventView.fields.map(({field}) => field);
+  const defaultWidgetQuery = eventViewToWidgetQuery({
+    eventView,
+    displayType,
+    yAxis,
+  });
+  const defaultTitle =
+    query?.name ?? (eventView.name !== 'All Events' ? eventView.name : undefined);
+
+  return {
+    pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
+    query: {
+      ...location?.query,
+      source: DashboardWidgetSource.DISCOVERV2,
+      start: eventView.start,
+      end: eventView.end,
+      statsPeriod: eventView.statsPeriod,
+      defaultWidgetQuery: urlEncode(defaultWidgetQuery),
+      defaultTableColumns: defaultTableFields,
+      defaultTitle,
+      displayType,
+    },
+  };
 }

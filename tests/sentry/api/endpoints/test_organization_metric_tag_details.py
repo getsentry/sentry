@@ -152,11 +152,11 @@ class OrganizationMetricsTagDetailsIntegrationTest(OrganizationMetricMetaIntegra
     def test_tag_not_available_in_the_indexer(self):
         response = self.get_response(
             self.organization.slug,
-            "release",
-            metric=["random_foo_metric"],
+            "random_foo_tag",
+            metric=[SessionMetricKey.HEALTHY.value],
         )
         assert response.status_code == 400
-        assert response.json()["detail"] == "Tag release is not available in the indexer"
+        assert response.json()["detail"] == "Tag random_foo_tag is not available in the indexer"
 
     @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
     @patch("sentry.snuba.metrics.datasource.get_mri")
