@@ -9,11 +9,7 @@ import RuleDetailsContainer from 'sentry/views/alerts/details/index';
 import AlertRuleDetails from 'sentry/views/alerts/details/ruleDetails';
 
 describe('AlertRuleDetails', () => {
-  const context = initializeOrg({
-    organization: {
-      features: ['alert-rule-status-page'],
-    },
-  });
+  const context = initializeOrg();
   const organization = context.organization;
   const project = TestStubs.Project();
   const rule = TestStubs.ProjectAlertRule({
