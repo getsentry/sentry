@@ -3,12 +3,11 @@ import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import BooleanField from 'sentry/components/forms/booleanField';
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
 import {Panel as BasePanel, PanelBody as BasePanelBody} from 'sentry/components/panels';
 import {Consumer as ReplayContextConsumer} from 'sentry/components/replays/replayContext';
 import useFullscreen from 'sentry/components/replays/useFullscreen';
-import {IconPause, IconPlay, IconRefresh, IconResize} from 'sentry/icons';
+import {IconArrow, IconPause, IconPlay, IconRefresh, IconResize} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
@@ -67,7 +66,7 @@ const ReplayControls = ({
             data-test-id="replay-back-10s"
             size="xsmall"
             title={t('Go back 10 seconds')}
-            icon={<IconRefresh color="gray500" size="sm" />}
+            icon={<IconRefresh size="sm" />}
             onClick={() => setCurrentTime(currentTime - 10 * SECOND)}
             aria-label={t('Go back 10 seconds')}
           />
@@ -83,7 +82,7 @@ const ReplayControls = ({
             data-test-id="replay-forward-10s"
             size="xsmall"
             title={t('Go forward 10 seconds')}
-            icon={<IconClockwise color="gray500" size="sm" />}
+            icon={<IconClockwise size="sm" />}
             onClick={() => setCurrentTime(currentTime + 10 * SECOND)}
             aria-label={t('Go forward 10 seconds')}
           />
@@ -92,15 +91,15 @@ const ReplayControls = ({
           {formatTime(currentTime)} / {duration ? formatTime(duration) : '??:??'}
         </span>
 
-        <RightLeftBooleanField
-          data-test-id="replay-skip-inactive"
-          name="skip-inactive"
-          label={t('Skip to events')}
-          onChange={() => toggleSkipInactive(!isSkippingInactive)}
-          inline={false}
-          stacked
-          hideControlState
-          value={isSkippingInactive}
+        {/* TODO(replay): Need a better icon for the FastForward toggle */}
+        <Button
+          data-test-id="replay-fast-forward"
+          size="xsmall"
+          title={t('Fast Forward idle moments')}
+          aria-label={t('Fast Forward idle moments')}
+          icon={<IconArrow size="sm" direction="right" />}
+          priority={isSkippingInactive ? 'primary' : undefined}
+          onClick={() => toggleSkipInactive(!isSkippingInactive)}
         />
         <ButtonBar active={String(speed)} merged>
           {speedOptions.map(opt => (
@@ -154,18 +153,6 @@ const ButtonGrid = styled('div')`
 const TimelineRange = styled(RangeSlider)`
   flex-grow: 1;
   margin-top: ${space(1)};
-`;
-
-const RightLeftBooleanField = styled(BooleanField)`
-  flex-direction: row;
-  column-gap: ${space(0.5)};
-  align-items: center;
-  padding-bottom: 0;
-
-  label {
-    /* Align the label with the center of the checkbox */
-    margin-bottom: 0;
-  }
 `;
 
 export default function ReplayController({

@@ -18,6 +18,7 @@ type ReplayPlayerContextProps = {
   dimensions: Dimensions;
   duration: undefined | number;
   events: eventWithTime[];
+  fastForwardSpeed: number;
   initRoot: (root: RootElem) => void;
   isPlaying: boolean;
   setCurrentTime: (time: number) => void;
@@ -33,6 +34,7 @@ const ReplayPlayerContext = React.createContext<ReplayPlayerContextProps>({
   dimensions: {height: 0, width: 0},
   duration: undefined,
   events: [],
+  fastForwardSpeed: 0,
   initRoot: _root => {},
   isPlaying: false,
   setCurrentTime: () => {},
@@ -61,12 +63,20 @@ export function Provider({children, events}: React.PropsWithChildren<Props>) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [skipInactive, setSkipInactive] = useState(false);
   const [speed, setSpeedState] = useState(1);
+  const [fastForwardSpeed, setFFSpeed] = useState(0);
 
   const forceDimensions = dimension => {
     setDimensions(dimension as Dimensions);
   };
   const setPlayingFalse = () => {
     setIsPlaying(false);
+  };
+  const onFastForwardStart = (e: unknown) => {
+    // @ts-expect-error: rrweb has poor types for event handlers
+    setFFSpeed(e.speed);
+  };
+  const onFastForwardEnd = () => {
+    setFFSpeed(0);
   };
 
   const initRoot = (root: RootElem) => {
@@ -109,6 +119,8 @@ export function Provider({children, events}: React.PropsWithChildren<Props>) {
 
     inst.on(ReplayerEvents.Resize, forceDimensions);
     inst.on(ReplayerEvents.Finish, setPlayingFalse);
+    inst.on(ReplayerEvents.SkipStart, onFastForwardStart);
+    inst.on(ReplayerEvents.SkipEnd, onFastForwardEnd);
 
     // `.current` is marked as readonly, but it's safe to set the value from
     // inside a `useEffect` hook.
@@ -207,6 +219,7 @@ export function Provider({children, events}: React.PropsWithChildren<Props>) {
         dimensions,
         duration: replayerRef.current?.getMetaData().totalTime,
         events,
+        fastForwardSpeed,
         initRoot,
         isPlaying,
         setCurrentTime,
