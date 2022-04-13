@@ -63,4 +63,4 @@ class AuditLogEventRegisterTest(TestCase):
             "alertrule.remove",
         ]
 
-        assert audit_log.get_api_names() == audit_log_api_name_list
+        assert set(audit_log.get_api_names()) == set(audit_log_api_name_list)
