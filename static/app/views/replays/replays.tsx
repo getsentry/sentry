@@ -7,12 +7,12 @@ import Link from 'sentry/components/links/link';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import PageHeading from 'sentry/components/pageHeading';
 import {PanelTable} from 'sentry/components/panels';
+import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {PageContent, PageHeader} from 'sentry/styles/organization';
 import {NewQuery, Organization, PageFilters} from 'sentry/types';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
-import {FieldDateTime} from 'sentry/utils/discover/styles';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -68,7 +68,7 @@ class Replays extends React.Component<Props> {
           <span>{replay.user}</span>
         </div>
         <div>
-          <FieldDateTime date={replay.timestamp} />
+          <TimeSince date={replay.timestamp} />
         </div>
       </React.Fragment>
     ));
