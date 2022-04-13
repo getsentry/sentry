@@ -1078,6 +1078,8 @@ SENTRY_FEATURES = {
     "organizations:performance-span-histogram-view": False,
     # Enable autogrouping of sibling spans
     "organizations:performance-autogroup-sibling-spans": False,
+    # Enable performance on-boarding checklist
+    "organizations:performance-onboarding-checklist": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
@@ -2536,4 +2538,4 @@ DEVSERVER_LOGS_ALLOWLIST = None
 
 LOG_API_ACCESS = not IS_DEV or os.environ.get("SENTRY_LOG_API_ACCESS")
 
-VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = False
+VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = True
