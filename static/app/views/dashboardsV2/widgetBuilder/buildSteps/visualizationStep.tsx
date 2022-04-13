@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
@@ -26,7 +26,6 @@ interface Props {
   organization: Organization;
   pageFilters: PageFilters;
   widget: Widget;
-  widgetBuilderNewDesign: boolean;
   error?: string;
 }
 
@@ -36,7 +35,6 @@ export function VisualizationStep({
   displayType,
   error,
   onChange,
-  widgetBuilderNewDesign,
   widget,
 }: Props) {
   const [debouncedWidget, setDebouncedWidget] = useState(widget);
@@ -55,14 +53,6 @@ export function VisualizationStep({
     }
   }, [widget, previousWidget]);
 
-  const options = useMemo(
-    () =>
-      widgetBuilderNewDesign
-        ? Object.keys(displayTypes).filter(key => key !== DisplayType.TOP_N)
-        : Object.keys(displayTypes),
-    [widgetBuilderNewDesign]
-  );
-
   return (
     <BuildStep
       title={t('Choose your visualization')}
@@ -73,7 +63,7 @@ export function VisualizationStep({
       <Field error={error} inline={false} flexibleControlStateSize stacked>
         <SelectControl
           name="displayType"
-          options={options.map(value => ({
+          options={Object.keys(displayTypes).map(value => ({
             label: displayTypes[value],
             value,
           }))}
