@@ -384,3 +384,7 @@ register("store.save-transactions-ingest-consumer-rate", default=0.0)
 
 # Drop delete_old_primary_hash messages for a particular project.
 register("reprocessing2.drop-delete-old-primary-hash", default=[])
+
+# Send event messages for specific project IDs to random partitions in Kafka
+register("kafka.send-project-transactions-to-random-partitions", default={})
+register("kafka.send-project-errors-to-random-partitions", default={})
