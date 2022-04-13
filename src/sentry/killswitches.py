@@ -120,20 +120,13 @@ ALL_KILLSWITCH_OPTIONS = {
         """,
         fields={"project_id": "A project ID to filter those messages by."},
     ),
-    "kafka.send-project-errors-to-random-partitions": KillswitchInfo(
+    "kafka.send-project-events-to-random-partitions": KillswitchInfo(
         description="""
         Send error messages from a project to random partitions, to avoid overloading a single partition
         """,
         fields={
-            "project_ids": "A set of project IDs to randomly assign partitions for event messages"
-        },
-    ),
-    "kafka.send-project-transactions-to-random-partitions": KillswitchInfo(
-        description="""
-        Send transactions messages from a project to random partitions, to avoid overloading a single partition
-        """,
-        fields={
-            "project_ids": "A set of project IDs to randomly assign partitions for event messages"
+            "project_id": "project ID to randomly assign partitions for event messages",
+            "message_type": "message type to randomly partition",
         },
     ),
 }
