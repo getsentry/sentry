@@ -11,7 +11,12 @@ import WidgetTable from 'sentry-images/dashboard/widget-table.svg';
 import WidgetWorldMap from 'sentry-images/dashboard/widget-world-map.svg';
 
 import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
-import {getDiffInMinutes, getInterval} from 'sentry/components/charts/utils';
+import {
+  getDiffInMinutes,
+  getInterval,
+  SIX_HOURS,
+  TWENTY_FOUR_HOURS,
+} from 'sentry/components/charts/utils';
 import {Organization, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getUtcDateString, parsePeriodToHours} from 'sentry/utils/dates';
@@ -151,15 +156,21 @@ export function getWidgetInterval(
   // Bars charts are daily totals to aligned with discover. It also makes them
   // usefully different from line/area charts until we expose the interval control, or remove it.
   let interval = widget.displayType === 'bar' ? '1d' : widget.interval;
-  if (widget.widgetType === WidgetType.METRICS) {
-    interval = getInterval(datetimeObj, 'medium');
-  }
   if (!interval) {
     // Default to 5 minutes
     interval = '5m';
   }
   const desiredPeriod = parsePeriodToHours(interval);
   const selectedRange = getDiffInMinutes(datetimeObj);
+
+  if (widget.widgetType === WidgetType.METRICS) {
+    // Lower fidelity for Release Health widgets because of what
+    // the sessions endpoint can currently support.
+    interval = getInterval(datetimeObj, 'medium');
+    if (selectedRange > SIX_HOURS && selectedRange <= TWENTY_FOUR_HOURS) {
+      interval = '1h';
+    }
+  }
 
   // selectedRange is in minutes, desiredPeriod is in hours
   // convert desiredPeriod to minutes

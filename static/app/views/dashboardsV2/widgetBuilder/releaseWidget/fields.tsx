@@ -31,12 +31,12 @@ export const SESSIONS_OPERATIONS: Readonly<
   sum: {
     columnTypes: ['integer'],
     defaultValue: 'session',
-    outputType: 'number',
+    outputType: 'integer',
   },
   count_unique: {
     columnTypes: ['string'],
     defaultValue: 'user',
-    outputType: 'number',
+    outputType: 'integer',
   },
   avg: {
     columnTypes: ['duration'],

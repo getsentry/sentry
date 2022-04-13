@@ -1,7 +1,7 @@
 import {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
-import {SESSION_TAGS} from '../../metricWidget/fields';
+import {SESSION_TAGS} from '../../releaseWidget/fields';
 
 import {GroupBySelector} from './groupBySelector';
 

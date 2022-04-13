@@ -1,5 +1,5 @@
 import {MetricsApiResponse, SessionApiResponse} from 'sentry/types';
-import {SESSION_TAGS} from 'sentry/views/dashboardsV2/widgetBuilder/metricWidget/fields';
+import {SESSION_TAGS} from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
 
 import {TableData} from '../discover/discoverQuery';
 import {aggregateOutputType} from '../discover/fields';

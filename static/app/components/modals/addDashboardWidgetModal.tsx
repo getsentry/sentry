@@ -802,7 +802,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       ? {...selection, datetime: {start, end, period: null, utc: null}}
       : selection;
 
-    const metricsWidgetFieldOptions = generateMetricsWidgetFieldOptions(
+    const metricsWidgetFieldOptions = generateReleaseWidgetFieldOptions(
       Object.keys(SESSION_FIELDS).map(key => SESSION_FIELDS[key]),
       SESSION_TAGS
     );
