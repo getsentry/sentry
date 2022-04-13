@@ -28,8 +28,6 @@ function MetricsSearchBar({
   className,
   ...props
 }: Props) {
-  const tags = SESSION_TAGS;
-
   /**
    * Prepare query string (e.g. strip special characters like negation operator)
    */
@@ -37,7 +35,7 @@ function MetricsSearchBar({
     return query.replace(SEARCH_SPECIAL_CHARS_REGEXP, '');
   }
 
-  const supportedTags = Object.values(tags).reduce((acc, key) => {
+  const supportedTags = Object.values(SESSION_TAGS).reduce((acc, key) => {
     acc[key] = {key, name: key};
     return acc;
   }, {});
