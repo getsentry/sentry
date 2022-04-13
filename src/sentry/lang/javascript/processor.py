@@ -246,7 +246,10 @@ def fetch_and_cache_artifact(filename, fetch_fn, cache_key, cache_key_meta, head
             if z_body_size and z_body_size > CACHE_MAX_VALUE_SIZE:
                 return None, fp.read()
             else:
-                return compress_fn(fp)
+                with sentry_sdk.start_span(
+                    op="JavaScriptStacktraceProcessor.fetch_and_cache_artifact.compress"
+                ):
+                    return compress_fn(fp)
 
     try:
         with metrics.timer("sourcemaps.release_file_read"):
@@ -362,14 +365,17 @@ def fetch_release_file(filename, release, dist=None):
                 release.id,
             )
 
-            result = fetch_and_cache_artifact(
-                filename,
-                lambda: ReleaseFile.cache.getfile(releasefile),
-                cache_key,
-                cache_key_meta,
-                releasefile.file.headers,
-                compress_file,
-            )
+            with sentry_sdk.start_span(
+                op="JavaScriptStacktraceProcessor.fetch_release_file.fetch_and_cache"
+            ):
+                result = fetch_and_cache_artifact(
+                    filename,
+                    lambda: ReleaseFile.cache.getfile(releasefile),
+                    cache_key,
+                    cache_key_meta,
+                    releasefile.file.headers,
+                    compress_file,
+                )
 
     # in the cache as an unsuccessful attempt
     elif result == -1:
@@ -532,7 +538,10 @@ def fetch_release_artifact(url, release, dist):
         return result_from_cache(url, result)
 
     start = time.monotonic()
-    archive_file = fetch_release_archive_for_url(release, dist, url)
+    with sentry_sdk.start_span(
+        op="JavaScriptStacktraceProcessor.fetch_release_artifact.fetch_release_archive_for_url"
+    ):
+        archive_file = fetch_release_archive_for_url(release, dist, url)
     if archive_file is not None:
         try:
             archive = ReleaseArchive(archive_file)
@@ -581,7 +590,10 @@ def fetch_release_artifact(url, release, dist):
 
     # Fall back to maintain compatibility with old releases and versions of
     # sentry-cli which upload files individually
-    result = fetch_release_file(url, release, dist)
+    with sentry_sdk.start_span(
+        op="JavaScriptStacktraceProcessor.fetch_release_artifact.fetch_release_file"
+    ):
+        result = fetch_release_file(url, release, dist)
 
     return result
 
@@ -602,7 +614,10 @@ def fetch_file(url, project=None, release=None, dist=None, allow_scraping=True):
 
     # if we've got a release to look on, try that first (incl associated cache)
     if release:
-        result = fetch_release_artifact(url, release, dist)
+        with sentry_sdk.start_span(
+            op="JavaScriptStacktraceProcessor.fetch_file.fetch_release_artifact"
+        ):
+            result = fetch_release_artifact(url, release, dist)
     else:
         result = None
 
@@ -641,8 +656,12 @@ def fetch_file(url, project=None, release=None, dist=None, allow_scraping=True):
                 headers[token_header] = token
 
         with metrics.timer("sourcemaps.fetch"):
-            result = http.fetch_file(url, headers=headers, verify_ssl=verify_ssl)
-            z_body = zlib.compress(result.body)
+            with sentry_sdk.start_span(op="JavaScriptStacktraceProcessor.fetch_file.http"):
+                result = http.fetch_file(url, headers=headers, verify_ssl=verify_ssl)
+            with sentry_sdk.start_span(
+                op="JavaScriptStacktraceProcessor.fetch_file.compress_for_cache"
+            ):
+                z_body = zlib.compress(result.body)
             cache.set(
                 cache_key,
                 (url, result.headers, z_body, result.status, result.encoding),
@@ -731,16 +750,23 @@ def fetch_sourcemap(url, project=None, release=None, dist=None, allow_scraping=T
             raise UnparseableSourcemap({"url": "<base64>", "reason": str(e)})
     else:
         # look in the database and, if not found, optionally try to scrape the web
-        result = fetch_file(
-            url,
-            project=project,
-            release=release,
-            dist=dist,
-            allow_scraping=allow_scraping,
-        )
+        with sentry_sdk.start_span(
+            op="JavaScriptStacktraceProcessor.fetch_sourcemap.fetch_file"
+        ) as span:
+            span.set_data("url", url)
+            result = fetch_file(
+                url,
+                project=project,
+                release=release,
+                dist=dist,
+                allow_scraping=allow_scraping,
+            )
         body = result.body
     try:
-        return SourceMapView.from_json_bytes(body)
+        with sentry_sdk.start_span(
+            op="JavaScriptStacktraceProcessor.fetch_sourcemap.SourceMapView.from_json_bytes"
+        ):
+            return SourceMapView.from_json_bytes(body)
     except Exception as exc:
         # This is in debug because the product shows an error already.
         logger.debug(str(exc), exc_info=True)
@@ -1191,13 +1217,18 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             cache.add_error(filename, exc.data)
             return
 
-        sourcemaps.add(sourcemap_url, sourcemap_view)
+        with sentry_sdk.start_span(
+            op="JavaScriptStacktraceProcessor.cache_source.cache_sourcemap_view"
+        ) as span:
+            span.set_data("source_count", sourcemap_view.source_count)
 
-        # cache any inlined sources
-        for src_id, source_name in sourcemap_view.iter_sources():
-            source_view = sourcemap_view.get_sourceview(src_id)
-            if source_view is not None:
-                self.cache.add(non_standard_url_join(sourcemap_url, source_name), source_view)
+            sourcemaps.add(sourcemap_url, sourcemap_view)
+
+            # cache any inlined sources
+            for src_id, source_name in sourcemap_view.iter_sources():
+                source_view = sourcemap_view.get_sourceview(src_id)
+                if source_view is not None:
+                    self.cache.add(non_standard_url_join(sourcemap_url, source_name), source_view)
 
     def populate_source_cache(self, frames):
         """
