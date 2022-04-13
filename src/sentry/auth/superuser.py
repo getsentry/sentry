@@ -345,10 +345,9 @@ class Superuser:
                     "reason_for_su": su_access_info.validated_data["superuserReason"],
                 },
             )
+            enable_and_log_superuser_access()
         except AttributeError:
             logger.error("superuser.superuser_access.missing_user_info")
-
-        enable_and_log_superuser_access()
 
     def set_logged_out(self):
         """
