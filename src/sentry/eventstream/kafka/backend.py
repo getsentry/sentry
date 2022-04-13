@@ -131,12 +131,11 @@ class KafkaEventStream(SnubaProtocolEventStream):
         self.producer.poll(0.0)
 
         assert isinstance(extra_data, tuple)
-        key = self._key(extra_data, project_id)
 
         try:
             self.producer.produce(
                 topic=self.topic,
-                key=key,
+                key=self._key(extra_data, project_id),
                 value=json.dumps((self.EVENT_PROTOCOL_VERSION, _type) + extra_data),
                 on_delivery=self.delivery_callback,
                 headers=[(k, v.encode("utf-8")) for k, v in headers.items()],
