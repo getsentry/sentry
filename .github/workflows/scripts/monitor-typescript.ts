@@ -11,7 +11,7 @@ import {Event} from '@sentry/types';
 import {timestampWithMs} from '@sentry/utils';
 
 Sentry.init({
-  // typescript-compiler project under sentry-test organization (dev productivity team)
+  // typescript-compiler project under sentry-test organization (developer productivity team)
   dsn: 'https://ca215f623d6f456aa1d09ebc1efad79d@o19635.ingest.sentry.io/6326775',
   // setting a tunnel implicitly sends the event as an envelope instead of json
   tunnel: 'https://o19635.ingest.sentry.io/api/6326775/envelope/',
