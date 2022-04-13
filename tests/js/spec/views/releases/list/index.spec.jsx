@@ -3,6 +3,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 import ReleasesList from 'sentry/views/releases/list/';
 import {ReleasesDisplayOption} from 'sentry/views/releases/list/releasesDisplayOptions';
 import {ReleasesSortOption} from 'sentry/views/releases/list/releasesSortOptions';
@@ -36,6 +37,15 @@ describe('ReleasesList', function () {
   };
   let wrapper, endpointMock, sessionApiMock;
 
+  function createWrapper(releaseList, context) {
+    return mountWithTheme(
+      <OrganizationContext.Provider value={organization}>
+        {releaseList}
+      </OrganizationContext.Provider>,
+      context
+    );
+  }
+
   beforeEach(async function () {
     ProjectsStore.loadInitialData(organization.projects);
     endpointMock = MockApiClient.addMockResponse({
@@ -67,7 +77,7 @@ describe('ReleasesList', function () {
       body: [],
     });
 
-    wrapper = mountWithTheme(<ReleasesList {...props} />, routerContext);
+    wrapper = createWrapper(<ReleasesList {...props} />, routerContext);
     await tick();
     wrapper.update();
   });
@@ -98,7 +108,7 @@ describe('ReleasesList', function () {
     });
 
     location = {query: {}};
-    wrapper = mountWithTheme(
+    wrapper = createWrapper(
       <ReleasesList {...props} location={location} />,
       routerContext
     );
@@ -106,7 +116,7 @@ describe('ReleasesList', function () {
     expect(wrapper.find('ReleasesPromo').text()).toContain('Demystify Releases');
 
     location = {query: {statsPeriod: '30d'}};
-    wrapper = mountWithTheme(
+    wrapper = createWrapper(
       <ReleasesList {...props} location={location} />,
       routerContext
     );
@@ -114,7 +124,7 @@ describe('ReleasesList', function () {
     expect(wrapper.find('ReleasesPromo').text()).toContain('Demystify Releases');
 
     location = {query: {query: 'abc'}};
-    wrapper = mountWithTheme(
+    wrapper = createWrapper(
       <ReleasesList {...props} location={location} />,
       routerContext
     );
@@ -123,7 +133,7 @@ describe('ReleasesList', function () {
     );
 
     location = {query: {sort: ReleasesSortOption.SESSIONS, statsPeriod: '7d'}};
-    wrapper = mountWithTheme(
+    wrapper = createWrapper(
       <ReleasesList {...props} location={location} />,
       routerContext
     );
@@ -132,7 +142,7 @@ describe('ReleasesList', function () {
     );
 
     location = {query: {sort: ReleasesSortOption.USERS_24_HOURS, statsPeriod: '7d'}};
-    wrapper = mountWithTheme(
+    wrapper = createWrapper(
       <ReleasesList {...props} location={location} />,
       routerContext
     );
@@ -141,7 +151,7 @@ describe('ReleasesList', function () {
     );
 
     location = {query: {sort: ReleasesSortOption.SESSIONS_24_HOURS, statsPeriod: '7d'}};
-    wrapper = mountWithTheme(
+    wrapper = createWrapper(
       <ReleasesList {...props} location={location} />,
       routerContext
     );
@@ -150,7 +160,7 @@ describe('ReleasesList', function () {
     );
 
     location = {query: {sort: ReleasesSortOption.BUILD}};
-    wrapper = mountWithTheme(
+    wrapper = createWrapper(
       <ReleasesList {...props} location={location} />,
       routerContext
     );
@@ -169,7 +179,7 @@ describe('ReleasesList', function () {
       statusCode: 400,
     });
 
-    wrapper = mountWithTheme(<ReleasesList {...props} />, routerContext);
+    wrapper = createWrapper(<ReleasesList {...props} />, routerContext);
     expect(wrapper.find('LoadingError').text()).toBe(errorMessage);
 
     // we want release header to be visible despite the error message
@@ -236,7 +246,7 @@ describe('ReleasesList', function () {
       ...props,
       organization,
     };
-    wrapper = mountWithTheme(
+    wrapper = createWrapper(
       <ReleasesList
         {...adoptionProps}
         location={{query: {sort: ReleasesSortOption.ADOPTION}}}
@@ -275,7 +285,7 @@ describe('ReleasesList', function () {
   });
 
   it('displays archived releases', function () {
-    const archivedWrapper = mountWithTheme(
+    const archivedWrapper = createWrapper(
       <ReleasesList
         {...props}
         location={{query: {status: ReleasesStatusOption.ARCHIVED}}}
@@ -400,7 +410,7 @@ describe('ReleasesList', function () {
         },
       ],
     });
-    const healthSection = mountWithTheme(
+    const healthSection = createWrapper(
       <ReleasesList {...props} selection={{...props.selection, projects: [2]}} />,
       routerContext
     ).find('ReleaseProjects');
@@ -420,7 +430,7 @@ describe('ReleasesList', function () {
       url: '/organizations/org-slug/releases/',
       body: [TestStubs.Release({version: '2.0.0'})],
     });
-    const healthSection = mountWithTheme(
+    const healthSection = createWrapper(
       <ReleasesList {...props} selection={{...props.selection, projects: [-1]}} />,
       routerContext
     ).find('ReleaseProjects');

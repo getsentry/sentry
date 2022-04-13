@@ -2,7 +2,7 @@ import {browserHistory} from 'react-router';
 import moment from 'moment';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import RuleDetailsContainer from 'sentry/views/alerts/details/index';
@@ -75,17 +75,19 @@ describe('AlertRuleDetails', () => {
       body: [project],
     });
 
-    act(() => ProjectsStore.loadInitialData([project]));
+    ProjectsStore.init();
+    ProjectsStore.loadInitialData([project]);
   });
 
   afterEach(() => {
-    act(() => ProjectsStore.reset());
+    ProjectsStore.reset();
+    ProjectsStore.teardown();
     MockApiClient.clearMockResponses();
   });
 
   it('displays alert rule with list of issues', async () => {
     createWrapper();
-    expect(await screen.findByText('My alert rule')).toBeInTheDocument();
+    expect(await screen.findAllByText('My alert rule')).toHaveLength(2);
     expect(screen.getByText('RequestError:')).toBeInTheDocument();
     expect(screen.getByText('Apr 11, 2019 1:08:59 AM UTC')).toBeInTheDocument();
   });

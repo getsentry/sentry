@@ -7,53 +7,45 @@ from django import forms
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.models import Integration
-from sentry.rules.actions.base import TicketEventAction
+from sentry.rules.actions.base import IntegrationNotifyServiceForm, TicketEventAction
 from sentry.utils.http import absolute_uri
-from sentry.web.decorators import transaction_start
 
 logger = logging.getLogger("sentry.rules")
+
+
+class JiraNotifyServiceForm(IntegrationNotifyServiceForm):
+    def clean(self) -> dict[str, Any] | None:
+        cleaned_data = super().clean()
+
+        integration = cleaned_data.get("integration")
+        try:
+            Integration.objects.get(id=integration)
+        except Integration.DoesNotExist:
+            raise forms.ValidationError(_("Jira integration is a required field."), code="invalid")
+        return cleaned_data
 
 
 class JiraCreateTicketAction(TicketEventAction):
     id = "sentry.integrations.jira.notify_action.JiraCreateTicketAction"
     label = "Create a Jira issue in {integration} with these "
     ticket_type = "a Jira issue"
-    link = "https://docs.sentry.io/product/integrations/project-mgmt/jira/#issue-sync"
+    link = "https://docs.sentry.io/product/integrations/issue-tracking/jira/#issue-sync"
     provider = "jira"
-    integration_key = "integration"
+    form_cls = JiraNotifyServiceForm
 
-    def clean(self) -> dict[str, Any] | None:
-        cleaned_data = super().clean()
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
 
-        integration = cleaned_data.get(self.integration_key)
-        try:
-            Integration.objects.get(id=integration)
-        except Integration.DoesNotExist:
-            raise forms.ValidationError(
-                _(
-                    "Jira integration is a required field.",
-                ),
-                code="invalid",
-            )
+        fix_versions = self.data.get("fixVersions")
+        if fix_versions and not isinstance(fix_versions, list):
+            self.data["fixVersions"] = [fix_versions]
 
-    def generate_footer(self, rule_url):
+    def generate_footer(self, rule_url: str) -> str:
         return "This ticket was automatically created by Sentry via [{}|{}]".format(
             self.rule.label,
             absolute_uri(rule_url),
         )
 
-    def fix_data_for_issue(self):
-        # HACK to get fixVersion in the correct format
-        if self.data.get("fixVersions"):
-            if not isinstance(self.data["fixVersions"], list):
-                self.data["fixVersions"] = [self.data["fixVersions"]]
-        return self.data
-
-    def translate_integration(self, integration):
+    def translate_integration(self, integration: Integration) -> str:
         name = integration.metadata.get("domain_name", integration.name)
         return name.replace(".atlassian.net", "")
-
-    @transaction_start("JiraCreateTicketAction.after")
-    def after(self, event, state):
-        self.fix_data_for_issue()
-        yield super().after(event, state)  # type: ignore

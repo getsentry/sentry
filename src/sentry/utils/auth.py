@@ -2,10 +2,13 @@ import logging
 from datetime import datetime, timedelta, timezone
 from time import time
 from typing import Container, Optional
+from urllib.parse import urlencode
 
 from django.conf import settings
+from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.contrib.auth import login as _login
 from django.contrib.auth.backends import ModelBackend
+from django.http.request import HttpRequest
 from django.urls import resolve, reverse
 from django.utils.http import is_safe_url
 from rest_framework.request import Request
@@ -16,12 +19,18 @@ from sentry.utils import metrics
 logger = logging.getLogger("sentry.auth")
 
 _LOGIN_URL = None
-
 from typing import Any, Dict, Mapping
 
 MFA_SESSION_KEY = "mfa"
 
-SSO_EXPIRY_TIME = timedelta(hours=20)
+
+def _sso_expiry_from_env(seconds):
+    if seconds is None:
+        return None
+    return timedelta(seconds=int(seconds))
+
+
+SSO_EXPIRY_TIME = _sso_expiry_from_env(settings.SENTRY_SSO_EXPIRY_SECONDS) or timedelta(hours=20)
 
 
 class SsoSession:
@@ -236,7 +245,9 @@ def find_users(username, with_valid_password=True, is_active=None):
     return []
 
 
-def login(request, user, passed_2fa=None, after_2fa=None, organization_id=None, source=None):
+def login(
+    request: HttpRequest, user, passed_2fa=None, after_2fa=None, organization_id=None, source=None
+):
     """
     This logs a user in for the session and current request.
 
@@ -367,3 +378,13 @@ class EmailAuthBackend(ModelBackend):
 
     def user_can_authenticate(self, user):
         return True
+
+
+def make_login_link_with_redirect(path, redirect):
+    """
+    append an after login redirect to a path.
+    note: this function assumes that the redirect has been validated
+    """
+    query_string = urlencode({REDIRECT_FIELD_NAME: redirect})
+    redirect_uri = f"{path}?{query_string}"
+    return redirect_uri

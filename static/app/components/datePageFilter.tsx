@@ -53,6 +53,8 @@ function DatePageFilter({router, resetParamsOnChange, ...props}: Props) {
 
     return (
       <PageFilterDropdownButton
+        detached
+        hideBottomBorder={false}
         isOpen={isOpen}
         icon={<IconCalendar />}
         highlighted={desyncedFilters.has('datetime')}
@@ -86,7 +88,6 @@ const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
   flex-shrink: 0;
   flex-basis: fit-content;
   position: relative;
-  width: 100%;
   height: 100%;
   background: ${p => p.theme.background};
   border: none;

@@ -12,10 +12,11 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
-import {EChartDataZoomHandler, EChartEventHandler} from 'sentry/types/echarts';
+import {EChartDataZoomHandler, EChartEventHandler, Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import {eventViewFromWidget} from 'sentry/views/dashboardsV2/utils';
 
 import {Widget, WidgetType} from '../types';
 import {
@@ -37,8 +38,10 @@ type Props = WithRouterProps & {
   organization: Organization;
   selection: PageFilters;
   widget: Widget;
+  expandNumbers?: boolean;
   isMobile?: boolean;
   legendOptions?: LegendComponentOption;
+  onDataFetched?: (results: {timeseriesResults?: Series[]}) => void;
   onLegendSelectChanged?: EChartEventHandler<{
     name: string;
     selected: Record<string, boolean>;
@@ -64,6 +67,8 @@ export function WidgetCardChartContainer({
   onZoom,
   onLegendSelectChanged,
   legendOptions,
+  expandNumbers,
+  onDataFetched,
 }: Props) {
   function issueTableResultComponent({
     loading,
@@ -87,12 +92,21 @@ export function WidgetCardChartContainer({
     const queryFields = defined(query.fields)
       ? query.fields
       : [...query.columns, ...query.aggregates];
+    const fieldAliases = query.fieldAliases ?? [];
+    const eventView = eventViewFromWidget(
+      widget.title,
+      widget.queries[0],
+      selection,
+      widget.displayType
+    );
 
     return (
       <StyledSimpleTableChart
         location={location}
         title=""
+        eventView={eventView}
         fields={queryFields}
+        fieldAliases={fieldAliases}
         loading={loading}
         metadata={ISSUE_FIELDS}
         data={transformedResults}
@@ -139,7 +153,7 @@ export function WidgetCardChartContainer({
         organization={organization}
         widget={widget}
         selection={selection}
-        limit={tableItemLimit}
+        limit={widget.limit ?? tableItemLimit}
       >
         {({tableResults, timeseriesResults, errorMessage, loading}) => {
           return (
@@ -175,6 +189,7 @@ export function WidgetCardChartContainer({
         widget={widget}
         selection={selection}
         limit={tableItemLimit}
+        onDataFetched={onDataFetched}
       >
         {({tableResults, timeseriesResults, errorMessage, loading}) => {
           return (
@@ -197,6 +212,7 @@ export function WidgetCardChartContainer({
                 onZoom={onZoom}
                 onLegendSelectChanged={onLegendSelectChanged}
                 legendOptions={legendOptions}
+                expandNumbers={expandNumbers}
               />
             </React.Fragment>
           );

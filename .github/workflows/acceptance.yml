@@ -14,11 +14,33 @@ on:
   pull_request:
 
 jobs:
+  files-changed:
+    name: detect what files changed
+    runs-on: ubuntu-20.04
+    timeout-minutes: 3
+    # Map a step output to a job output
+    outputs:
+      acceptance: ${{ steps.changes.outputs.acceptance }}
+      backend: ${{ steps.changes.outputs.backend }}
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Check for backend file changes
+        uses: getsentry/paths-filter@v2
+        id: changes
+        with:
+          token: ${{ github.token }}
+          filters: .github/file-filters.yml
+
   frontend:
+    needs: files-changed
     name: frontend tests
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     timeout-minutes: 20
     strategy:
+      # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
+      # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
+      fail-fast: false
       matrix:
         # XXX: When updating this, make sure you also update CI_NODE_TOTAL.
         instance: [0, 1, 2, 3]
@@ -85,10 +107,14 @@ jobs:
 
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
+        with:
+          files: .artifacts/coverage/*
+          type: frontend
 
   webpack:
+    needs: files-changed
     name: create frontend bundle
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     timeout-minutes: 10
     outputs:
       dist-path: ${{ steps.config.outputs.dist-path }}
@@ -144,10 +170,14 @@ jobs:
           path: dist.tar.gz
 
   acceptance:
+    needs: files-changed
     name: acceptance
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     timeout-minutes: 20
     strategy:
+      # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
+      # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
+      fail-fast: false
       matrix:
         python-version: [3.8.12]
         # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
@@ -205,12 +235,17 @@ jobs:
 
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
+        if: ${{ needs.files-changed.outputs.backend == 'true' }}
 
   chartcuterie:
+    needs: files-changed
     name: chartcuterie integration
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     timeout-minutes: 30
     strategy:
+      # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
+      # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
+      fail-fast: false
       matrix:
         python-version: [3.8.12]
         # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
@@ -265,3 +300,23 @@ jobs:
 
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
+        if: ${{ needs.files-changed.outputs.backend == 'true' }}
+
+  visual-diff:
+    # This guarantees that we will only schedule Visual Snapshots if all
+    # workflows that generate artifacts succeed
+    needs: [acceptance, frontend, chartcuterie]
+    name: triggers visual snapshot
+    # Do not execute on forks or on master
+    if: github.repository == 'getsentry/sentry' && github.ref != 'refs/heads/master'
+    runs-on: ubuntu-20.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Diff snapshots
+        id: visual-snapshots-diff
+        uses: getsentry/action-visual-snapshot@v2
+        with:
+          api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
+          gcs-bucket: 'sentry-visual-snapshots'
+          gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}

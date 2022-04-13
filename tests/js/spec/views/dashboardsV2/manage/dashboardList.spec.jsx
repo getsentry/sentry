@@ -232,7 +232,7 @@ describe('Dashboards > DashboardList', function () {
 
     card = wrapper.find('DashboardCard').last();
     const dashboardDelete = card.find(`MenuItemWrap[data-test-id="dashboard-delete"]`);
-    expect(dashboardDelete.prop('isDisabled')).toBe(true);
+    expect(dashboardDelete.prop('aria-disabled')).toBe(true);
   });
 
   it('can duplicate dashboards', async function () {
@@ -256,5 +256,34 @@ describe('Dashboards > DashboardList', function () {
 
     expect(createMock).toHaveBeenCalled();
     expect(dashboardUpdateMock).toHaveBeenCalled();
+  });
+
+  it('does not throw an error if the POST fails during duplication', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      method: 'POST',
+      statusCode: 404,
+    });
+
+    const wrapper = mountWithTheme(
+      <DashboardList
+        organization={organization}
+        dashboards={dashboards}
+        pageLinks=""
+        location={{query: {}}}
+        onDashboardsChange={dashboardUpdateMock}
+      />
+    );
+    const card = wrapper.find('DashboardCard').last();
+    expect(card.find('Title').text()).toEqual(dashboards[1].title);
+
+    await selectDropdownMenuItem({
+      wrapper,
+      specifiers: {prefix: 'DashboardCard', last: true},
+      itemKey: 'dashboard-duplicate',
+    });
+
+    // Should not update, and not throw error
+    expect(dashboardUpdateMock).not.toHaveBeenCalled();
   });
 });

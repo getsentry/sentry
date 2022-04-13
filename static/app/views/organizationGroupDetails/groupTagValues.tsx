@@ -11,6 +11,7 @@ import {DeviceName} from 'sentry/components/deviceName';
 import DropdownLink from 'sentry/components/dropdownLink';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import UserBadge from 'sentry/components/idBadge/userBadge';
+import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
@@ -226,50 +227,52 @@ class GroupTagValues extends AsyncComponent<
     );
 
     return (
-      <Fragment>
-        <TitleWrapper>
-          <Title>{t('Tag Details')}</Title>
-          <ButtonBar gap={1}>
-            <Button
-              size="small"
-              priority="default"
-              href={`/${orgId}/${group.project.slug}/issues/${group.id}/tags/${tagKey}/export/`}
-            >
-              {t('Export Page to CSV')}
-            </Button>
-            <DataExport
-              payload={{
-                queryType: ExportQueryType.IssuesByTag,
-                queryInfo: {
-                  project: group.project.id,
-                  group: group.id,
-                  key: tagKey,
-                },
-              }}
-            />
-          </ButtonBar>
-        </TitleWrapper>
-        <StyledPanelTable
-          isLoading={loading}
-          isEmpty={tagValueList?.length === 0}
-          headers={[
-            title,
-            <PercentColumnHeader key="percent">{t('Percent')}</PercentColumnHeader>,
-            countColumnHeader,
-            lastSeenColumnHeader,
-            '',
-          ]}
-          emptyMessage={t('Sorry, the tags for this issue could not be found.')}
-          emptyAction={
-            !!environments?.length
-              ? t('No tags were found for the currently selected environments')
-              : null
-          }
-        >
-          {tagValueList && tag && this.renderResults()}
-        </StyledPanelTable>
-        <StyledPagination pageLinks={tagValueListPageLinks} />
-      </Fragment>
+      <Layout.Body>
+        <Layout.Main fullWidth>
+          <TitleWrapper>
+            <Title>{t('Tag Details')}</Title>
+            <ButtonBar gap={1}>
+              <Button
+                size="small"
+                priority="default"
+                href={`/${orgId}/${group.project.slug}/issues/${group.id}/tags/${tagKey}/export/`}
+              >
+                {t('Export Page to CSV')}
+              </Button>
+              <DataExport
+                payload={{
+                  queryType: ExportQueryType.IssuesByTag,
+                  queryInfo: {
+                    project: group.project.id,
+                    group: group.id,
+                    key: tagKey,
+                  },
+                }}
+              />
+            </ButtonBar>
+          </TitleWrapper>
+          <StyledPanelTable
+            isLoading={loading}
+            isEmpty={tagValueList?.length === 0}
+            headers={[
+              title,
+              <PercentColumnHeader key="percent">{t('Percent')}</PercentColumnHeader>,
+              countColumnHeader,
+              lastSeenColumnHeader,
+              '',
+            ]}
+            emptyMessage={t('Sorry, the tags for this issue could not be found.')}
+            emptyAction={
+              !!environments?.length
+                ? t('No tags were found for the currently selected environments')
+                : null
+            }
+          >
+            {tagValueList && tag && this.renderResults()}
+          </StyledPanelTable>
+          <StyledPagination pageLinks={tagValueListPageLinks} />
+        </Layout.Main>
+      </Layout.Body>
     );
   }
 }

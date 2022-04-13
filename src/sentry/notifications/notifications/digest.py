@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Mapping, MutableMapping
+from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Sequence
 
 from sentry import features
+from sentry.db.models import Model
 from sentry.digests import Digest
 from sentry.digests.utils import (
     get_digest_as_context,
@@ -16,7 +17,13 @@ from sentry.eventstore.models import Event
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.notify import notify
 from sentry.notifications.types import ActionTargetType
-from sentry.notifications.utils import get_integration_link, get_rules, has_alert_integration
+from sentry.notifications.utils import (
+    NotificationRuleDetails,
+    get_email_link_extra_params,
+    get_integration_link,
+    get_rules,
+    has_alert_integration,
+)
 from sentry.notifications.utils.digest import (
     get_digest_subject,
     send_as_alert_notification,
@@ -25,8 +32,7 @@ from sentry.notifications.utils.digest import (
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
-    from sentry.models import Project, Team, User
-
+    from sentry.models import Organization, Project, Team, User
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +40,7 @@ logger = logging.getLogger(__name__)
 class DigestNotification(ProjectNotification):
     message_builder = "DigestNotificationMessageBuilder"
     referrer_base = "digest"
+    template_path = "sentry/emails/digests/body"
 
     def __init__(
         self,
@@ -46,9 +53,6 @@ class DigestNotification(ProjectNotification):
         self.digest = digest
         self.target_type = target_type
         self.target_identifier = target_identifier
-
-    def get_filename(self) -> str:
-        return "digests/body"
 
     def get_category(self) -> str:
         return "digest_email"
@@ -75,24 +79,38 @@ class DigestNotification(ProjectNotification):
     def build_attachment_title(self, recipient: Team | User) -> str:
         return ""
 
-    def get_reference(self) -> Any:
+    @property
+    def reference(self) -> Model | None:
         return self.project
 
     def get_context(self) -> MutableMapping[str, Any]:
-        alert_status_page_enabled = features.has(
-            "organizations:alert-rule-status-page", self.project.organization
+        return DigestNotification.build_context(
+            self.digest,
+            self.project,
+            self.project.organization,
+            get_rules(list(self.digest.keys()), self.project.organization, self.project),
         )
-        rules_details = {
-            rule.id: rule
-            for rule in get_rules(list(self.digest.keys()), self.project.organization, self.project)
-        }
+
+    @staticmethod
+    def build_context(
+        digest: Digest,
+        project: Project,
+        organization: Organization,
+        rule_details: Sequence[NotificationRuleDetails],
+        alert_timestamp: int | None = None,
+    ) -> MutableMapping[str, Any]:
         return {
-            **get_digest_as_context(self.digest),
-            "has_alert_integration": has_alert_integration(self.project),
-            "project": self.project,
-            "slack_link": get_integration_link(self.organization, "slack"),
-            "alert_status_page_enabled": alert_status_page_enabled,
-            "rules_details": rules_details,
+            **get_digest_as_context(digest),
+            "has_alert_integration": has_alert_integration(project),
+            "project": project,
+            "slack_link": get_integration_link(organization, "slack"),
+            "alert_status_page_enabled": features.has(
+                "organizations:alert-rule-status-page", project.organization
+            ),
+            "rules_details": {rule.id: rule for rule in rule_details},
+            "link_params_for_rule": get_email_link_extra_params(
+                "digest_email", None, rule_details, alert_timestamp
+            ),
         }
 
     def get_extra_context(
@@ -110,9 +128,6 @@ class DigestNotification(ProjectNotification):
         }
 
     def send(self) -> None:
-        if not self.should_email():
-            return
-
         # Only calculate shared context once.
         shared_context = self.get_context()
 

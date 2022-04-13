@@ -5,7 +5,7 @@ __all__ = (
     "TS_COL_GROUP",
     "FIELD_REGEX",
     "TAG_REGEX",
-    "MetricOperation",
+    "MetricOperationType",
     "MetricUnit",
     "MetricType",
     "OP_TO_SNUBA_FUNCTION",
@@ -18,16 +18,37 @@ __all__ = (
     "MetricMeta",
     "MetricMetaWithTagKeys",
     "OPERATIONS",
+    "OPERATIONS_PERCENTILES",
     "DEFAULT_AGGREGATES",
     "UNIT_TO_TYPE",
+    "DerivedMetricException",
     "DerivedMetricParseException",
+    "MetricDoesNotExistException",
+    "MetricDoesNotExistInIndexer",
+    "NotSupportedOverCompositeEntityException",
     "TimeRange",
+    "MetricEntity",
+    "UNALLOWED_TAGS",
+    "combine_dictionary_of_list_values",
 )
 
 
 import re
+from abc import ABC
 from datetime import datetime
-from typing import Collection, Literal, Mapping, Optional, Protocol, Sequence, TypedDict
+from typing import (
+    Collection,
+    Dict,
+    List,
+    Literal,
+    Mapping,
+    Optional,
+    Protocol,
+    Sequence,
+    Tuple,
+    TypedDict,
+    Union,
+)
 
 from sentry.snuba.dataset import EntityKey
 
@@ -38,16 +59,18 @@ TS_COL_GROUP = "bucketed_time"
 
 #: Max number of data points per time series:
 # ToDo modify this regex to only support the operations provided
-FIELD_REGEX = re.compile(r"^(\w+)\(((\w|\.|_)+)\)$")
+FIELD_REGEX = re.compile(r"^(\w+)\(((\w|\.|_|\:|\/|\@)+)\)$")
 TAG_REGEX = re.compile(r"^(\w|\.|_)+$")
 
 #: A function that can be applied to a metric
-MetricOperation = Literal["avg", "count", "max", "min", "p50", "p75", "p90", "p95", "p99"]
+MetricOperationType = Literal[
+    "avg", "count", "max", "min", "p50", "p75", "p90", "p95", "p99", "histogram"
+]
 MetricUnit = Literal["seconds"]
 #: The type of metric, which determines the snuba entity to query
 MetricType = Literal["counter", "set", "distribution", "numeric"]
 
-MetricEntity = Literal["metrics_counters", "metrics_sets", "metrics_distribution"]
+MetricEntity = Literal["metrics_counters", "metrics_sets", "metrics_distributions"]
 
 OP_TO_SNUBA_FUNCTION = {
     "metrics_counters": {"sum": "sumIf"},
@@ -62,6 +85,7 @@ OP_TO_SNUBA_FUNCTION = {
         "p90": "quantilesIf(0.90)",
         "p95": "quantilesIf(0.95)",
         "p99": "quantilesIf(0.99)",
+        "histogram": "histogramIf(250)",
     },
     "metrics_sets": {"count_unique": "uniqIf"},
 }
@@ -96,7 +120,7 @@ class TagValue(TypedDict):
 class MetricMeta(TypedDict):
     name: str
     type: MetricType
-    operations: Collection[MetricOperation]
+    operations: Collection[MetricOperationType]
     unit: Optional[MetricUnit]
 
 
@@ -104,7 +128,7 @@ class MetricMetaWithTagKeys(MetricMeta):
     tags: Sequence[Tag]
 
 
-_OPERATIONS_PERCENTILES = (
+OPERATIONS_PERCENTILES = (
     "p50",
     "p75",
     "p90",
@@ -119,9 +143,10 @@ OPERATIONS = (
     "count",
     "max",
     "sum",
-) + _OPERATIONS_PERCENTILES
+    "histogram",
+) + OPERATIONS_PERCENTILES
 
-DEFAULT_AGGREGATES = {
+DEFAULT_AGGREGATES: Dict[MetricOperationType, Optional[Union[int, List[Tuple[float]]]]] = {
     "avg": None,
     "count_unique": 0,
     "count": 0,
@@ -133,12 +158,27 @@ DEFAULT_AGGREGATES = {
     "p99": None,
     "sum": 0,
     "percentage": None,
+    "histogram": [],
 }
-UNIT_TO_TYPE = {"sessions": "count", "percentage": "percentage"}
+UNIT_TO_TYPE = {"sessions": "count", "percentage": "percentage", "users": "count"}
+UNALLOWED_TAGS = {"session.status"}
 
 
-class DerivedMetricParseException(Exception):
-    ...
+def combine_dictionary_of_list_values(main_dict, other_dict):
+    """
+    Function that combines dictionary of lists. For instance, let's say we have
+    Dict A -> {"a": [1,2], "b": [3]} and Dict B -> {"a": [6], "c": [4]}
+    Calling this function would result in {"a": [1, 2, 6], "b": [3], "c": [4]}
+    """
+    if not isinstance(main_dict, dict) or not isinstance(other_dict, dict):
+        raise TypeError()
+    for key, value in other_dict.items():
+        main_dict.setdefault(key, [])
+        if not isinstance(value, list) or not isinstance(main_dict[key], list):
+            raise TypeError()
+        main_dict[key] += value
+        main_dict[key] = list(set(main_dict[key]))
+    return main_dict
 
 
 class MetricDoesNotExistException(Exception):
@@ -146,6 +186,18 @@ class MetricDoesNotExistException(Exception):
 
 
 class MetricDoesNotExistInIndexer(Exception):
+    ...
+
+
+class DerivedMetricException(Exception, ABC):
+    ...
+
+
+class DerivedMetricParseException(DerivedMetricException):
+    ...
+
+
+class NotSupportedOverCompositeEntityException(DerivedMetricException):
     ...
 
 

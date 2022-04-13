@@ -9,7 +9,7 @@ import space from 'sentry/styles/space';
 
 import Panel from './panel';
 
-type Props = {
+export type PanelTableProps = {
   /**
    * Headers of the table.
    */
@@ -84,7 +84,7 @@ const PanelTable = ({
   loader,
   stickyHeaders = false,
   ...props
-}: Props) => {
+}: PanelTableProps) => {
   const shouldShowLoading = isLoading === true;
   const shouldShowEmptyMessage = !shouldShowLoading && isEmpty;
   const shouldShowContent = !shouldShowLoading && !shouldShowEmptyMessage;
@@ -119,7 +119,7 @@ const PanelTable = ({
   );
 };
 
-function getContent(children: Props['children']) {
+function getContent(children: PanelTableProps['children']) {
   if (typeof children === 'function') {
     return children();
   }
@@ -132,7 +132,7 @@ type WrapperProps = {
    * The number of columns the table will have, this is derived from the headers list
    */
   columns: number;
-  disablePadding: Props['disablePadding'];
+  disablePadding: PanelTableProps['disablePadding'];
   hasRows: boolean;
 };
 

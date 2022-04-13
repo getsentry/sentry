@@ -1,6 +1,7 @@
 import {Fragment, memo} from 'react';
 import styled from '@emotion/styled';
 
+import AlertLink from 'sentry/components/alertLink';
 import GroupReleaseChart from 'sentry/components/group/releaseChart';
 import SeenInfo from 'sentry/components/group/seenInfo';
 import Placeholder from 'sentry/components/placeholder';
@@ -30,10 +31,11 @@ const GroupReleaseStats = ({
   group,
   currentRelease,
 }: Props) => {
-  const environmentLabel =
+  const environment =
     environments.length > 0
       ? environments.map(env => env.displayName).join(', ')
-      : t('All Environments');
+      : undefined;
+  const environmentLabel = environment ? environment : t('All Environments');
 
   const shortEnvironmentLabel =
     environments.length > 1
@@ -56,7 +58,8 @@ const GroupReleaseStats = ({
           <GraphContainer>
             <GroupReleaseChart
               group={allEnvironments}
-              environment={environmentLabel}
+              environment={environment}
+              environmentLabel={environmentLabel}
               environmentStats={group.stats}
               release={currentRelease?.release}
               releaseStats={currentRelease?.stats}
@@ -69,7 +72,8 @@ const GroupReleaseStats = ({
           <GraphContainer>
             <GroupReleaseChart
               group={allEnvironments}
-              environment={environmentLabel}
+              environment={environment}
+              environmentLabel={environmentLabel}
               environmentStats={group.stats}
               release={currentRelease?.release}
               releaseStats={currentRelease?.stats}
@@ -145,9 +149,10 @@ const GroupReleaseStats = ({
             />
           </SidebarSection>
           {!hasRelease ? (
-            <SidebarSection secondary title={t('Releases not configured')}>
-              <a href={releaseTrackingUrl}>{t('Setup Releases')}</a>{' '}
-              {t(' to make issues easier to fix.')}
+            <SidebarSection secondary title={t('Releases')}>
+              <AlertLink priority="muted" size="small" to={releaseTrackingUrl}>
+                {t('See which release caused this issue ')}
+              </AlertLink>
             </SidebarSection>
           ) : null}
         </Fragment>

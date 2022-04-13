@@ -3,7 +3,13 @@ import isEqual from 'lodash/isEqual';
 import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesForm';
 import {t} from 'sentry/locale';
 import {Organization, TagCollection} from 'sentry/types';
-import {aggregateOutputType, isLegalYAxisType} from 'sentry/utils/discover/fields';
+import {
+  aggregateFunctionOutputType,
+  aggregateOutputType,
+  getAggregateAlias,
+  isLegalYAxisType,
+  stripDerivedMetricsPrefix,
+} from 'sentry/utils/discover/fields';
 import {MeasurementCollection} from 'sentry/utils/measurements/measurements';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
 import {
@@ -12,13 +18,24 @@ import {
   WidgetQuery,
   WidgetType,
 } from 'sentry/views/dashboardsV2/types';
+import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
+import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
+
+import {FlatValidationError, ValidationError} from '../utils';
+
+// Used in the widget builder to limit the number of lines plotted in the chart
+export const DEFAULT_RESULTS_LIMIT = 5;
+export const RESULTS_LIMIT = 10;
+
+// Both dashboards and widgets use the 'new' keyword when creating
+export const NEW_DASHBOARD_ID = 'new';
 
 export enum DataSet {
   EVENTS = 'events',
   ISSUES = 'issues',
-  METRICS = 'metrics',
+  RELEASE = 'release',
 }
 
 export enum SortDirection {
@@ -39,14 +56,6 @@ export const displayTypes = {
   [DisplayType.WORLD_MAP]: t('World Map'),
   [DisplayType.BIG_NUMBER]: t('Big Number'),
   [DisplayType.TOP_N]: t('Top 5 Events'),
-};
-
-type ValidationError = {
-  [key: string]: string | string[] | ValidationError[] | ValidationError;
-};
-
-export type FlatValidationError = {
-  [key: string]: string | FlatValidationError[] | FlatValidationError;
 };
 
 export function mapErrors(
@@ -91,6 +100,8 @@ export function normalizeQueries({
     DisplayType.BAR,
   ].includes(displayType);
 
+  const isTabularChart = [DisplayType.TABLE, DisplayType.TOP_N].includes(displayType);
+
   if (
     [DisplayType.TABLE, DisplayType.WORLD_MAP, DisplayType.BIG_NUMBER].includes(
       displayType
@@ -103,21 +114,45 @@ export function normalizeQueries({
     queries = queries.slice(0, 3);
   }
 
-  if ([DisplayType.TABLE, DisplayType.TOP_N].includes(displayType)) {
-    if (!queries[0].orderby && widgetBuilderNewDesign) {
-      const orderBy = (
-        widgetType === WidgetType.DISCOVER
-          ? generateOrderOptions({
-              widgetType,
+  if (widgetBuilderNewDesign) {
+    queries = queries.map(query => {
+      const {fields = [], columns} = query;
+
+      if (isTabularChart) {
+        // If the groupBy field has values, port everything over to the columnEditCollect field.
+        query.fields = [...new Set([...fields, ...columns])];
+      } else {
+        // If columnEditCollect has field values , port everything over to the groupBy field.
+        query.fields = fields.filter(field => !columns.includes(field));
+      }
+
+      const queryOrderBy =
+        widgetType === WidgetType.METRICS
+          ? stripDerivedMetricsPrefix(queries[0].orderby)
+          : queries[0].orderby;
+
+      const orderBy =
+        getAggregateAlias(queryOrderBy) ||
+        (widgetType === WidgetType.ISSUE
+          ? IssueSortOptions.DATE
+          : generateOrderOptions({
+              widgetType: widgetType ?? WidgetType.DISCOVER,
               widgetBuilderNewDesign,
               columns: queries[0].columns,
               aggregates: queries[0].aggregates,
-            })[0].value
-          : IssueSortOptions.DATE
-      ) as string;
-      queries[0].orderby = orderBy;
-    }
+            })[0].value);
 
+      // Issues data set doesn't support order by descending
+      query.orderby =
+        widgetType === WidgetType.DISCOVER && !orderBy.startsWith('-')
+          ? `-${String(orderBy)}`
+          : String(orderBy);
+
+      return query;
+    });
+  }
+
+  if (isTabularChart) {
     return queries;
   }
 
@@ -187,6 +222,8 @@ export function normalizeQueries({
         ...query,
         fields: query.aggregates.slice(0, 1),
         aggregates: query.aggregates.slice(0, 1),
+        orderby: '',
+        columns: [],
       };
     });
   }
@@ -235,4 +272,63 @@ export function getAmendedFieldOptions({
     measurementKeys: Object.values(measurements).map(({key}) => key),
     spanOperationBreakdownKeys: SPAN_OP_BREAKDOWN_FIELDS,
   });
+}
+
+// Extract metric names from aggregation functions present in the widget queries
+export function getMetricFields(queries: WidgetQuery[]) {
+  return queries.reduce((acc, query) => {
+    for (const field of [...query.aggregates, ...query.columns]) {
+      const fieldParameter = /\(([^)]*)\)/.exec(field)?.[1];
+      if (fieldParameter && !acc.includes(fieldParameter)) {
+        acc.push(fieldParameter);
+      }
+    }
+
+    return acc;
+  }, [] as string[]);
+}
+
+// Any function/field choice for Big Number widgets is legal since the
+// data source is from an endpoint that is not timeseries-based.
+// The function/field choice for World Map widget will need to be numeric-like.
+// Column builder for Table widget is already handled above.
+export function doNotValidateYAxis(displayType: DisplayType) {
+  return displayType === DisplayType.BIG_NUMBER;
+}
+
+export function filterPrimaryOptions({
+  option,
+  widgetType,
+  displayType,
+}: {
+  displayType: DisplayType;
+  option: FieldValueOption;
+  widgetType?: WidgetType;
+}) {
+  if (widgetType === WidgetType.METRICS) {
+    if (displayType === DisplayType.TABLE) {
+      return [
+        FieldValueKind.FUNCTION,
+        FieldValueKind.TAG,
+        FieldValueKind.NUMERIC_METRICS,
+      ].includes(option.value.kind);
+    }
+    if (displayType === DisplayType.TOP_N) {
+      return option.value.kind === FieldValueKind.TAG;
+    }
+  }
+
+  // Only validate function names for timeseries widgets and
+  // world map widgets.
+  if (!doNotValidateYAxis(displayType) && option.value.kind === FieldValueKind.FUNCTION) {
+    const primaryOutput = aggregateFunctionOutputType(option.value.meta.name, undefined);
+    if (primaryOutput) {
+      // If a function returns a specific type, then validate it.
+      return isLegalYAxisType(primaryOutput);
+    }
+  }
+
+  return [FieldValueKind.FUNCTION, FieldValueKind.NUMERIC_METRICS].includes(
+    option.value.kind
+  );
 }

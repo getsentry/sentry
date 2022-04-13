@@ -4,12 +4,10 @@ import styled from '@emotion/styled';
 import CheckboxFancy from 'sentry/components/checkboxFancy/checkboxFancy';
 import DropdownButton from 'sentry/components/dropdownButton';
 import DropdownControl, {Content} from 'sentry/components/dropdownControl';
-import {IconFilter} from 'sentry/icons';
-import {t, tn} from 'sentry/locale';
+import {IconUser} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
-
-type DropdownButtonProps = React.ComponentProps<typeof DropdownButton>;
 
 type DropdownSection = {
   id: string;
@@ -60,9 +58,15 @@ type Props = {
   dropdownSections: DropdownSection[];
   header: React.ReactElement;
   onFilterChange: (section: string, filterSelection: Set<string>) => void;
+  showMyTeamsDescription?: boolean;
 };
 
-function Filter({onFilterChange, header, dropdownSections}: Props) {
+function Filter({
+  onFilterChange,
+  header,
+  dropdownSections,
+  showMyTeamsDescription,
+}: Props) {
   function toggleFilter(sectionId: string, value: string) {
     const section = dropdownSections.find(
       dropdownSection => dropdownSection.id === sectionId
@@ -92,30 +96,21 @@ function Filter({onFilterChange, header, dropdownSections}: Props) {
     onFilterChange(sectionId, newSelection);
   }
 
-  function getNumberOfActiveFilters() {
+  function getActiveFilters() {
     return dropdownSections
       .map(section => section.items)
       .flat()
-      .filter(item => item.checked).length;
+      .filter(item => item.checked);
   }
 
-  const checkedQuantity = getNumberOfActiveFilters();
+  const activeFilters = getActiveFilters();
 
-  const dropDownButtonProps: Pick<DropdownButtonProps, 'children' | 'priority'> & {
-    hasDarkBorderBottomColor: boolean;
-  } = {
-    children: t('Filter'),
-    priority: 'default',
-    hasDarkBorderBottomColor: false,
-  };
-
-  if (checkedQuantity > 0) {
-    dropDownButtonProps.children = tn(
-      '%s Active Filter',
-      '%s Active Filters',
-      checkedQuantity
-    );
-    dropDownButtonProps.hasDarkBorderBottomColor = true;
+  let filterDescription = showMyTeamsDescription ? t('My Teams') : t('All Teams');
+  if (activeFilters.length > 0) {
+    filterDescription = activeFilters[0].label;
+  }
+  if (activeFilters.length > 1) {
+    filterDescription = `${activeFilters[0].label} + ${activeFilters.length - 1}`;
   }
 
   return (
@@ -126,14 +121,12 @@ function Filter({onFilterChange, header, dropdownSections}: Props) {
       button={({isOpen, getActorProps}) => (
         <StyledDropdownButton
           {...getActorProps()}
-          showChevron={false}
           isOpen={isOpen}
-          icon={<IconFilter />}
-          hasDarkBorderBottomColor={dropDownButtonProps.hasDarkBorderBottomColor}
-          priority={dropDownButtonProps.priority as DropdownButtonProps['priority']}
+          icon={<IconUser />}
+          priority="default"
           data-test-id="filter-button"
         >
-          {dropDownButtonProps.children}
+          <DropdownButtonText>{filterDescription}</DropdownButtonText>
         </StyledDropdownButton>
       )}
     >
@@ -144,6 +137,7 @@ function Filter({onFilterChange, header, dropdownSections}: Props) {
           blendCorner
           alignMenu="left"
           width="240px"
+          detached
         >
           <List>
             {header}
@@ -182,11 +176,19 @@ const Header = styled('div')`
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 
-const StyledDropdownButton = styled(DropdownButton)<{hasDarkBorderBottomColor?: boolean}>`
+const StyledDropdownButton = styled(DropdownButton)`
   white-space: nowrap;
   max-width: 200px;
+  min-width: 180px;
 
   z-index: ${p => p.theme.zIndex.dropdown};
+`;
+
+const DropdownButtonText = styled('span')`
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  flex: 1;
 `;
 
 const List = styled('ul')`

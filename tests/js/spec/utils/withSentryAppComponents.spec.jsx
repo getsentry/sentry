@@ -8,6 +8,10 @@ describe('withSentryAppComponents HoC', function () {
     SentryAppComponentsStore.init();
   });
 
+  afterEach(() => {
+    SentryAppComponentsStore.teardown();
+  });
+
   it('handles components without a type', function () {
     const MyComponent = () => null;
     const Container = withSentryAppComponents(MyComponent);
@@ -15,7 +19,7 @@ describe('withSentryAppComponents HoC', function () {
 
     expect(wrapper.find('MyComponent').prop('components')).toEqual([]);
 
-    SentryAppComponentsStore.onLoadComponents([
+    SentryAppComponentsStore.loadComponents([
       {type: 'some-type'},
       {type: 'another-type'},
     ]);
@@ -34,7 +38,7 @@ describe('withSentryAppComponents HoC', function () {
 
     expect(wrapper.find('MyComponent').prop('components')).toEqual([]);
 
-    SentryAppComponentsStore.onLoadComponents([
+    SentryAppComponentsStore.loadComponents([
       {type: 'some-type'},
       {type: 'another-type'},
     ]);

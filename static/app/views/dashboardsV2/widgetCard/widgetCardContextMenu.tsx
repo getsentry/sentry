@@ -1,28 +1,41 @@
+import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
 import {openDashboardWidgetQuerySelectorModal} from 'sentry/actionCreators/modal';
+import Button from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
 import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
-import {IconEllipsis} from 'sentry/icons';
+import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
+import {IconEllipsis, IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {getWidgetDiscoverUrl, getWidgetIssueUrl} from 'sentry/views/dashboardsV2/utils';
 
 import {Widget, WidgetType} from '../types';
+import {WidgetViewerContext} from '../widgetViewer/widgetViewerContext';
 
 type Props = {
+  location: Location;
   organization: Organization;
+  router: InjectedRouter;
   selection: PageFilters;
   widget: Widget;
   widgetLimitReached: boolean;
+  index?: string;
   isPreview?: boolean;
   onDelete?: () => void;
   onDuplicate?: () => void;
   onEdit?: () => void;
+  seriesData?: Series[];
   showContextMenu?: boolean;
+  showWidgetViewerButton?: boolean;
+  tableData?: TableDataWithTitle[];
 };
 
 function WidgetCardContextMenu({
@@ -35,6 +48,12 @@ function WidgetCardContextMenu({
   onEdit,
   showContextMenu,
   isPreview,
+  showWidgetViewerButton,
+  router,
+  location,
+  index,
+  seriesData,
+  tableData,
 }: Props) {
   if (!showContextMenu) {
     return null;
@@ -43,27 +62,56 @@ function WidgetCardContextMenu({
   const menuOptions: MenuItemProps[] = [];
   const disabledKeys: string[] = [];
 
+  const openWidgetViewerPath = (id: string | undefined) => {
+    if (!isWidgetViewerPath(location.pathname)) {
+      router.push({
+        pathname: `${location.pathname}${
+          location.pathname.endsWith('/') ? '' : '/'
+        }widget/${id}/`,
+        query: location.query,
+      });
+    }
+  };
+
   if (isPreview) {
     return (
-      <ContextWrapper>
-        <StyledDropdownMenuControlV2
-          items={[
-            {
-              key: 'preview',
-              label: t('This is a preview only. To edit, you must add this dashboard.'),
-            },
-          ]}
-          triggerProps={{
-            'aria-label': t('Widget actions'),
-            size: 'xsmall',
-            borderless: true,
-            showChevron: false,
-            icon: <IconEllipsis direction="down" size="sm" />,
-          }}
-          placement="bottom right"
-          disabledKeys={['preview']}
-        />
-      </ContextWrapper>
+      <WidgetViewerContext.Consumer>
+        {({setData}) => (
+          <ContextWrapper>
+            <StyledDropdownMenuControlV2
+              items={[
+                {
+                  key: 'preview',
+                  label: t(
+                    'This is a preview only. To edit, you must add this dashboard.'
+                  ),
+                },
+              ]}
+              triggerProps={{
+                'aria-label': t('Widget actions'),
+                size: 'xsmall',
+                borderless: true,
+                showChevron: false,
+                icon: <IconEllipsis direction="down" size="sm" />,
+              }}
+              placement="bottom right"
+              disabledKeys={['preview']}
+            />
+            {showWidgetViewerButton && (
+              <OpenWidgetViewerButton
+                aria-label={t('Open Widget Viewer')}
+                priority="link"
+                size="zero"
+                icon={<IconExpand size="xs" />}
+                onClick={() => {
+                  (seriesData || tableData) && setData({seriesData, tableData});
+                  openWidgetViewerPath(index);
+                }}
+              />
+            )}
+          </ContextWrapper>
+        )}
+      </WidgetViewerContext.Consumer>
     );
   }
 
@@ -140,20 +188,36 @@ function WidgetCardContextMenu({
   }
 
   return (
-    <ContextWrapper>
-      <StyledDropdownMenuControlV2
-        items={menuOptions}
-        triggerProps={{
-          'aria-label': t('Widget actions'),
-          size: 'xsmall',
-          borderless: true,
-          showChevron: false,
-          icon: <IconEllipsis direction="down" size="sm" />,
-        }}
-        placement="bottom right"
-        disabledKeys={disabledKeys}
-      />
-    </ContextWrapper>
+    <WidgetViewerContext.Consumer>
+      {({setData}) => (
+        <ContextWrapper>
+          <StyledDropdownMenuControlV2
+            items={menuOptions}
+            triggerProps={{
+              'aria-label': t('Widget actions'),
+              size: 'xsmall',
+              borderless: true,
+              showChevron: false,
+              icon: <IconEllipsis direction="down" size="sm" />,
+            }}
+            placement="bottom right"
+            disabledKeys={disabledKeys}
+          />
+          {showWidgetViewerButton && (
+            <OpenWidgetViewerButton
+              aria-label={t('Open Widget Viewer')}
+              priority="link"
+              size="zero"
+              icon={<IconExpand size="xs" />}
+              onClick={() => {
+                (seriesData || tableData) && setData({seriesData, tableData});
+                openWidgetViewerPath(widget.id ?? index);
+              }}
+            />
+          )}
+        </ContextWrapper>
+      )}
+    </WidgetViewerContext.Consumer>
   );
 }
 
@@ -169,5 +233,15 @@ const ContextWrapper = styled('div')`
 const StyledDropdownMenuControlV2 = styled(DropdownMenuControlV2)`
   & > button {
     z-index: auto;
+  }
+`;
+
+const OpenWidgetViewerButton = styled(Button)`
+  padding: ${space(0.75)} ${space(1)};
+  color: ${p => p.theme.textColor};
+  &:hover {
+    color: ${p => p.theme.textColor};
+    background: ${p => p.theme.surface400};
+    border-color: transparent;
   }
 `;

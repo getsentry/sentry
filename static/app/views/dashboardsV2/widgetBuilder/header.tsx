@@ -5,14 +5,14 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import EditableText from 'sentry/components/editableText';
 import * as Layout from 'sentry/components/layouts/thirds';
-import Link from 'sentry/components/links/link';
+import type {LinkProps} from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 
 import {DashboardDetails} from '../types';
 
 interface Props {
   dashboardTitle: DashboardDetails['title'];
-  goBackLocation: React.ComponentProps<typeof Link>['to'];
+  goBackLocation: LinkProps['to'];
   onChangeTitle: (title: string) => void;
   orgSlug: string;
   title: string;
@@ -55,10 +55,11 @@ export function Header({
       <Layout.HeaderActions>
         <ButtonBar gap={1}>
           <Button
+            external
             title={t(
-              'How do you like the new widget builder? Send us feedback via email.'
+              'How do you like the new widget builder? Submit feedback on GitHub.'
             )}
-            href="mailto:new-widget-builder-experience@sentry.io?subject=New Widget Builder Experience Feedback"
+            href="https://github.com/getsentry/sentry/issues/new/choose"
           >
             {t('Give Feedback')}
           </Button>

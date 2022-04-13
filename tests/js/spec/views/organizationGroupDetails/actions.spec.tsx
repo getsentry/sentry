@@ -1,4 +1,5 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ModalActions from 'sentry/actions/modalActions';
 import ConfigStore from 'sentry/stores/configStore';
@@ -37,7 +38,12 @@ function renderComponent(event?: Event) {
 
 describe('GroupActions', function () {
   beforeEach(function () {
+    ConfigStore.init();
     jest.spyOn(ConfigStore, 'get').mockImplementation(() => []);
+  });
+
+  afterEach(() => {
+    ConfigStore.teardown();
   });
 
   describe('render()', function () {
@@ -73,6 +79,7 @@ describe('GroupActions', function () {
 
   describe('bookmarking', function () {
     let issuesApi: any;
+
     beforeEach(function () {
       issuesApi = MockApiClient.addMockResponse({
         url: '/projects/org/project/issues/',
@@ -81,10 +88,20 @@ describe('GroupActions', function () {
       });
     });
 
-    it('can bookmark', function () {
-      const wrapper = renderComponent();
-      const btn = wrapper.find('button[aria-label="Bookmark"]');
-      btn.simulate('click');
+    it('can bookmark', async function () {
+      render(
+        <GroupActions
+          group={group}
+          project={project}
+          organization={organization}
+          disabled={false}
+        />
+      );
+
+      userEvent.click(screen.getByLabelText('More Actions'));
+
+      const bookmark = await screen.findByTestId('bookmark');
+      userEvent.click(bookmark);
 
       expect(issuesApi).toHaveBeenCalledWith(
         expect.anything(),
@@ -96,11 +113,25 @@ describe('GroupActions', function () {
   });
 
   describe('reprocessing', function () {
-    it('renders ReprocessAction component if org has feature flag reprocessing-v2', function () {
-      const wrapper = renderComponent();
+    it('renders ReprocessAction component if org has feature flag reprocessing-v2 and native exception event', async function () {
+      const event = TestStubs.EventStacktraceException({
+        platform: 'native',
+      });
 
-      const reprocessActionButton = wrapper.find('ReprocessAction button');
-      expect(reprocessActionButton).toBeTruthy();
+      render(
+        <GroupActions
+          group={group}
+          project={project}
+          organization={organization}
+          event={event}
+          disabled={false}
+        />
+      );
+
+      userEvent.click(screen.getByLabelText('More Actions'));
+
+      const reprocessActionButton = await screen.findByTestId('reprocess');
+      expect(reprocessActionButton).toBeInTheDocument();
     });
 
     it('open dialog by clicking on the ReprocessAction component', async function () {
@@ -108,18 +139,24 @@ describe('GroupActions', function () {
         platform: 'native',
       });
 
+      render(
+        <GroupActions
+          group={group}
+          project={project}
+          organization={organization}
+          event={event}
+          disabled={false}
+        />
+      );
+
       const onReprocessEventFunc = jest.spyOn(ModalActions, 'openModal');
 
-      const wrapper = renderComponent(event);
+      userEvent.click(screen.getByLabelText('More Actions'));
 
-      const reprocessActionButton = wrapper.find('ReprocessAction button');
-      expect(reprocessActionButton).toBeTruthy();
-
-      reprocessActionButton.simulate('click');
-
-      await tick();
-
-      expect(onReprocessEventFunc).toHaveBeenCalled();
+      const reprocessActionButton = await screen.findByTestId('reprocess');
+      expect(reprocessActionButton).toBeInTheDocument();
+      userEvent.click(reprocessActionButton);
+      await waitFor(() => expect(onReprocessEventFunc).toHaveBeenCalled());
     });
   });
 });

@@ -7,10 +7,10 @@ from freezegun import freeze_time
 
 from sentry.api.serializers import serialize
 from sentry.incidents.models import AlertRule, AlertRuleTrigger, AlertRuleTriggerAction
-from sentry.models import Integration
+from sentry.models import AuditLogEntry, AuditLogEntryEvent, Integration
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.sessions import SessionMetricKey
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import QueryDatasets
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -123,6 +123,11 @@ class AlertRuleCreateEndpointTest(APITestCase):
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         assert resp.data == serialize(alert_rule, self.user)
+
+        audit_log_entry = AuditLogEntry.objects.filter(
+            event=AuditLogEntryEvent.ALERT_RULE_ADD, target_object=alert_rule.id
+        )
+        assert len(audit_log_entry) == 1
 
     def test_no_feature(self):
         self.create_member(
@@ -706,10 +711,10 @@ class MetricsCrashRateAlertCreationTest(AlertRuleCreateEndpointTestCrashRateAler
         super().setUp()
         self.valid_alert_rule["dataset"] = Dataset.Metrics.value
         for tag in [
-            SessionMetricKey.SESSION.value,
-            SessionMetricKey.USER.value,
+            SessionMRI.SESSION.value,
+            SessionMRI.USER.value,
             "session.status",
             "init",
             "crashed",
         ]:
-            indexer.record(tag)
+            indexer.record(self.organization.id, tag)

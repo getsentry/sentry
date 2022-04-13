@@ -41,10 +41,10 @@ from sentry.notifications.utils.digest import get_digest_subject
 from sentry.ownership import grammar
 from sentry.ownership.grammar import Matcher, Owner, dump_schema
 from sentry.plugins.base import Notification
-from sentry.rules import RuleFuture
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.types.integrations import ExternalProviders
+from sentry.types.rules import RuleFuture
 from sentry.utils.email import MessageBuilder, get_email_addresses
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 from tests.sentry.mail import make_event_data, send_notification
@@ -196,7 +196,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         )
 
         self.assertEqual(notification.project, self.project)
-        self.assertEqual(notification.get_reference(), group)
+        self.assertEqual(notification.reference, group)
         assert notification.get_subject() == "BAR-1 - hello world"
 
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)

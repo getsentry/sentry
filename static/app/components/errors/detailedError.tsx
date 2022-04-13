@@ -41,8 +41,14 @@ class DetailedError extends React.Component<Props> {
 
   componentDidMount() {
     // XXX(epurkhiser): Why is this here?
-    setTimeout(() => this.forceUpdate(), 100);
+    this.forceUpdateTimeout = window.setTimeout(() => this.forceUpdate(), 100);
   }
+
+  componentWillUnmount() {
+    window.clearTimeout(this.forceUpdateTimeout);
+  }
+
+  forceUpdateTimeout: number | undefined = undefined;
 
   render() {
     const {className, heading, message, onRetry, hideSupportLinks} = this.props;

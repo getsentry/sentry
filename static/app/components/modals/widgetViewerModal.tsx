@@ -1,30 +1,39 @@
 import * as React from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
+import {components} from 'react-select';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import {truncate} from '@sentry/utils';
+import {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import moment from 'moment';
 
+import {fetchTotalCount} from 'sentry/actionCreators/events';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import FeatureBadge from 'sentry/components/featureBadge';
 import SelectControl from 'sentry/components/forms/selectControl';
+import Option from 'sentry/components/forms/selectOption';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnOrder,
 } from 'sentry/components/gridEditable';
 import Pagination from 'sentry/components/pagination';
-import Tooltip from 'sentry/components/tooltip';
-import {IconInfo} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import {parseSearch} from 'sentry/components/searchSyntax/parser';
+import HighlightQuery from 'sentry/components/searchSyntax/renderer';
+import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters, SelectValue} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import EventView from 'sentry/utils/discover/eventView';
 import {getAggregateAlias, isAggregateField} from 'sentry/utils/discover/fields';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeInteger, decodeList, decodeScalar} from 'sentry/utils/queryString';
@@ -37,9 +46,11 @@ import {
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
 } from 'sentry/views/dashboardsV2/utils';
+import WidgetCardChart from 'sentry/views/dashboardsV2/widgetCard/chart';
 import IssueWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/issueWidgetQueries';
 import {WidgetCardChartContainer} from 'sentry/views/dashboardsV2/widgetCard/widgetCardChartContainer';
 import WidgetQueries from 'sentry/views/dashboardsV2/widgetCard/widgetQueries';
+import {decodeColumnOrder} from 'sentry/views/eventsV2/utils';
 
 import {WidgetViewerQueryField} from './widgetViewerModal/utils';
 import {
@@ -52,6 +63,8 @@ export type WidgetViewerModalOptions = {
   organization: Organization;
   widget: Widget;
   onEdit?: () => void;
+  seriesData?: Series[];
+  tableData?: TableDataWithTitle[];
 };
 
 type Props = ModalRenderProps &
@@ -64,13 +77,15 @@ type Props = ModalRenderProps &
 const FULL_TABLE_ITEM_LIMIT = 20;
 const HALF_TABLE_ITEM_LIMIT = 10;
 const GEO_COUNTRY_CODE = 'geo.country_code';
+const HALF_CONTAINER_HEIGHT = 300;
+const EMPTY_QUERY_NAME = '(Empty Query Condition)';
 
 // WidgetCardChartContainer rerenders if selection was changed.
 // This is required because we want to prevent ECharts interactions from
 // causing unnecessary rerenders which can break persistent legends functionality.
 const MemoizedWidgetCardChartContainer = React.memo(
   WidgetCardChartContainer,
-  (props, prevProps) => {
+  (prevProps, props) => {
     return (
       props.selection === prevProps.selection &&
       props.location.query[WidgetViewerQueryField.QUERY] ===
@@ -82,6 +97,41 @@ const MemoizedWidgetCardChartContainer = React.memo(
     );
   }
 );
+
+const MemoizedWidgetCardChart = React.memo(WidgetCardChart, (prevProps, props) => {
+  return (
+    props.selection === prevProps.selection &&
+    props.location.query[WidgetViewerQueryField.QUERY] ===
+      prevProps.location.query[WidgetViewerQueryField.QUERY] &&
+    props.location.query[WidgetViewerQueryField.SORT] ===
+      prevProps.location.query[WidgetViewerQueryField.SORT] &&
+    props.location.query[WidgetViewerQueryField.WIDTH] ===
+      prevProps.location.query[WidgetViewerQueryField.WIDTH]
+  );
+});
+
+async function fetchDiscoverTotal(
+  api: Client,
+  organization: Organization,
+  location: Location,
+  eventView: EventView
+): Promise<string | undefined> {
+  if (!eventView.isValid()) {
+    return undefined;
+  }
+
+  try {
+    const total = await fetchTotalCount(
+      api,
+      organization.slug,
+      eventView.getEventsAPIPayload(location)
+    );
+    return total.toLocaleString();
+  } catch (err) {
+    Sentry.captureException(err);
+    return undefined;
+  }
+}
 
 function WidgetViewerModal(props: Props) {
   const {
@@ -97,21 +147,48 @@ function WidgetViewerModal(props: Props) {
     router,
     routes,
     params,
+    seriesData,
+    tableData,
   } = props;
+  // Get widget zoom from location
+  // We use the start and end query params for just the initial state
+  const start = decodeScalar(location.query[WidgetViewerQueryField.START]);
+  const end = decodeScalar(location.query[WidgetViewerQueryField.END]);
   const isTableWidget = widget.displayType === DisplayType.TABLE;
-  const [modalSelection, setModalSelection] = React.useState<PageFilters>(selection);
+  const locationPageFilter =
+    start && end
+      ? {
+          ...selection,
+          datetime: {start, end, period: null, utc: null},
+        }
+      : selection;
+
+  const [chartUnmodified, setChartUnmodified] = React.useState<boolean>(true);
+
+  const [modalSelection, setModalSelection] =
+    React.useState<PageFilters>(locationPageFilter);
+
+  // Detect when a user clicks back and set the PageFilter state to match the location
+  // We need to use useEffect to prevent infinite looping rerenders due to the setModalSelection call
+  React.useEffect(() => {
+    if (location.action === 'POP') {
+      setModalSelection(locationPageFilter);
+    }
+  }, [location]);
+
+  // Get legends toggle settings from location
+  // We use the legend query params for just the initial state
+  const [disabledLegends, setDisabledLegends] = React.useState<{[key: string]: boolean}>(
+    decodeList(location.query[WidgetViewerQueryField.LEGEND]).reduce((acc, legend) => {
+      acc[legend] = false;
+      return acc;
+    }, {})
+  );
+  const [totalResults, setTotalResults] = React.useState<string | undefined>();
 
   // Get query selection settings from location
   const selectedQueryIndex =
     decodeInteger(location.query[WidgetViewerQueryField.QUERY]) ?? 0;
-
-  // Get legends toggle settings from location
-  const disabledLegends = decodeList(
-    location.query[WidgetViewerQueryField.LEGEND]
-  ).reduce((acc, legend) => {
-    acc[legend] = false;
-    return acc;
-  }, {});
 
   // Get pagination settings from location
   const page = decodeInteger(location.query[WidgetViewerQueryField.PAGE]) ?? 0;
@@ -160,20 +237,13 @@ function WidgetViewerModal(props: Props) {
     DisplayType.BAR,
   ].includes(widget.displayType);
 
-  if (shouldReplaceTableColumns) {
-    if (fields.length === 1) {
-      tableWidget.queries[0].orderby =
-        tableWidget.queries[0].orderby || `-${getAggregateAlias(fields[0])}`;
-    }
-    fields.unshift('title');
-    columns.unshift('title');
-  }
-
+  let equationFieldsCount = 0;
+  // Updates fields by adding any individual terms from equation fields as a column
   if (!isTableWidget) {
-    // Updates fields by adding any individual terms from equation fields as a column
     const equationFields = getFieldsFromEquations(fields);
     equationFields.forEach(term => {
       if (Array.isArray(fields) && !fields.includes(term)) {
+        equationFieldsCount++;
         fields.unshift(term);
       }
       if (isAggregateField(term) && !aggregates.includes(term)) {
@@ -185,6 +255,15 @@ function WidgetViewerModal(props: Props) {
     });
   }
 
+  if (shouldReplaceTableColumns) {
+    if (fields.length === 1) {
+      tableWidget.queries[0].orderby =
+        tableWidget.queries[0].orderby || `-${getAggregateAlias(fields[0])}`;
+    }
+    fields.unshift('title');
+    columns.unshift('title');
+  }
+
   const eventView = eventViewFromWidget(
     tableWidget.title,
     tableWidget.queries[0],
@@ -192,20 +271,42 @@ function WidgetViewerModal(props: Props) {
     tableWidget.displayType
   );
 
-  // Update field widths
-  widths.forEach((width, index) => {
-    if (eventView.fields[index]) {
-      eventView.fields[index].width = parseInt(width, 10);
-    }
-  });
-
-  const columnOrder = eventView.getColumns();
+  let columnOrder = decodeColumnOrder(
+    tableWidget.queries[0].fields?.map(field => ({
+      field,
+    })) ?? []
+  );
   const columnSortBy = eventView.getSorts();
-
-  const queryOptions = sortedQueries.map(({name, conditions}, index) => ({
-    label: truncate(name || conditions, 120),
-    value: index,
+  // Filter out equation terms from columnOrder so we don't clutter the table
+  if (shouldReplaceTableColumns && equationFieldsCount) {
+    columnOrder = columnOrder.filter(
+      (_, index) => index === 0 || index > equationFieldsCount
+    );
+  }
+  columnOrder = columnOrder.map((column, index) => ({
+    ...column,
+    width: parseInt(widths[index], 10) || -1,
   }));
+
+  const queryOptions = sortedQueries.map(({name, conditions}, index) => {
+    // Creates the highlighted query elements to be used in the Query Select
+    const parsedQuery = !!!name && !!conditions ? parseSearch(conditions) : null;
+    const getHighlightedQuery = (
+      highlightedContainerProps: React.ComponentProps<typeof HighlightContainer>
+    ) => {
+      return parsedQuery !== null ? (
+        <HighlightContainer {...highlightedContainerProps}>
+          <HighlightQuery parsedQuery={parsedQuery} />
+        </HighlightContainer>
+      ) : undefined;
+    };
+
+    return {
+      label: truncate(name || conditions, 120),
+      value: index,
+      getHighlightedQuery,
+    };
+  });
 
   const onResizeColumn = (columnIndex: number, nextColumn: GridColumnOrder) => {
     const newWidth = nextColumn.width ? Number(nextColumn.width) : COL_WIDTH_UNDEFINED;
@@ -223,68 +324,151 @@ function WidgetViewerModal(props: Props) {
     });
   };
 
+  // Get discover result totals
+  React.useEffect(() => {
+    const getDiscoverTotals = async () => {
+      if (widget.widgetType !== WidgetType.ISSUE) {
+        setTotalResults(await fetchDiscoverTotal(api, organization, location, eventView));
+      }
+    };
+    getDiscoverTotals();
+  }, [selectedQueryIndex]);
+
+  function onLegendSelectChanged({selected}: {selected: Record<string, boolean>}) {
+    setDisabledLegends(selected);
+    router.replace({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        [WidgetViewerQueryField.LEGEND]: Object.keys(selected).filter(
+          key => !selected[key]
+        ),
+      },
+    });
+    trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.toggle_legend', {
+      organization,
+      widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+      display_type: widget.displayType,
+    });
+  }
+
+  function onZoom(_evt, chart) {
+    // @ts-ignore getModel() is private but we need this to retrieve datetime values of zoomed in region
+    const model = chart.getModel();
+    const {startValue, endValue} = model._payload.batch[0];
+    const newStart = getUtcDateString(moment.utc(startValue));
+    const newEnd = getUtcDateString(moment.utc(endValue));
+    setModalSelection({
+      ...modalSelection,
+      datetime: {
+        ...modalSelection.datetime,
+        start: newStart,
+        end: newEnd,
+        period: null,
+      },
+    });
+    router.push({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        [WidgetViewerQueryField.START]: newStart,
+        [WidgetViewerQueryField.END]: newEnd,
+      },
+    });
+    trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.zoom', {
+      organization,
+      widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+      display_type: widget.displayType,
+    });
+  }
+
+  const shouldUseDataFromProps = (!!seriesData || !!tableData) && chartUnmodified;
+
   function renderWidgetViewer() {
     return (
       <React.Fragment>
         {widget.displayType !== DisplayType.TABLE && (
-          <Container>
-            <MemoizedWidgetCardChartContainer
-              location={location}
-              router={router}
-              routes={routes}
-              params={params}
-              api={api}
-              organization={organization}
-              selection={modalSelection}
-              // Top N charts rely on the orderby of the table
-              widget={primaryWidget}
-              onZoom={(_evt, chart) => {
-                // @ts-ignore getModel() is private but we need this to retrieve datetime values of zoomed in region
-                const model = chart.getModel();
-                const {startValue, endValue} = model._payload.batch[0];
-                const start = getUtcDateString(moment.utc(startValue));
-                const end = getUtcDateString(moment.utc(endValue));
-                setModalSelection({
-                  ...modalSelection,
-                  datetime: {...modalSelection.datetime, start, end, period: null},
-                });
-                trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.zoom', {
-                  organization,
-                  widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                  display_type: widget.displayType,
-                });
-              }}
-              onLegendSelectChanged={({selected}) => {
-                router.replace({
-                  pathname: location.pathname,
-                  query: {
-                    ...location.query,
-                    [WidgetViewerQueryField.LEGEND]: Object.keys(selected).filter(
-                      key => !selected[key]
-                    ),
-                  },
-                });
-                trackAdvancedAnalyticsEvent(
-                  'dashboards_views.widget_viewer.toggle_legend',
-                  {
+          <Container
+            height={
+              widget.displayType !== DisplayType.BIG_NUMBER ? HALF_CONTAINER_HEIGHT : null
+            }
+          >
+            {shouldUseDataFromProps ? (
+              <MemoizedWidgetCardChart
+                timeseriesResults={seriesData}
+                tableResults={tableData}
+                errorMessage={undefined}
+                loading={false}
+                location={location}
+                widget={widget}
+                selection={selection}
+                router={router}
+                organization={organization}
+                onZoom={(_evt, chart) => {
+                  onZoom(_evt, chart);
+                  setChartUnmodified(false);
+                }}
+                onLegendSelectChanged={onLegendSelectChanged}
+                legendOptions={{selected: disabledLegends}}
+                expandNumbers
+              />
+            ) : (
+              <MemoizedWidgetCardChartContainer
+                location={location}
+                router={router}
+                routes={routes}
+                params={params}
+                api={api}
+                organization={organization}
+                selection={modalSelection}
+                // Top N charts rely on the orderby of the table
+                widget={primaryWidget}
+                onZoom={(_evt, chart) => {
+                  // @ts-ignore getModel() is private but we need this to retrieve datetime values of zoomed in region
+                  const model = chart.getModel();
+                  const {startValue, endValue} = model._payload.batch[0];
+                  const newStart = getUtcDateString(moment.utc(startValue));
+                  const newEnd = getUtcDateString(moment.utc(endValue));
+                  setModalSelection({
+                    ...modalSelection,
+                    datetime: {
+                      ...modalSelection.datetime,
+                      start: newStart,
+                      end: newEnd,
+                      period: null,
+                    },
+                  });
+                  router.push({
+                    pathname: location.pathname,
+                    query: {
+                      ...location.query,
+                      [WidgetViewerQueryField.START]: newStart,
+                      [WidgetViewerQueryField.END]: newEnd,
+                    },
+                  });
+                  trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.zoom', {
                     organization,
                     widget_type: widget.widgetType ?? WidgetType.DISCOVER,
                     display_type: widget.displayType,
-                  }
-                );
-              }}
-              legendOptions={{selected: disabledLegends}}
-            />
+                  });
+                }}
+                onLegendSelectChanged={onLegendSelectChanged}
+                legendOptions={{selected: disabledLegends}}
+                expandNumbers
+              />
+            )}
           </Container>
         )}
         {widget.queries.length > 1 && (
-          <React.Fragment>
-            <Alert type="info" icon={<IconInfo />}>
-              {t(
-                'This widget was built with multiple queries. Table data can only be displayed for one query at a time.'
-              )}
-            </Alert>
-            <StyledSelectControl
+          <Alert type="info" showIcon>
+            {t(
+              'This widget was built with multiple queries. Table data can only be displayed for one query at a time. To edit any of the queries, edit the widget.'
+            )}
+          </Alert>
+        )}
+        {(widget.queries.length > 1 || widget.queries[0].conditions) && (
+          <QueryContainer>
+            <SelectControl
               value={selectedQueryIndex}
               options={queryOptions}
               onChange={(option: SelectValue<number>) => {
@@ -307,48 +491,114 @@ function WidgetViewerModal(props: Props) {
                   }
                 );
               }}
-            />
-          </React.Fragment>
-        )}
-        <TableContainer>
-          {widget.widgetType === WidgetType.ISSUE ? (
-            <IssueWidgetQueries
-              api={api}
-              organization={organization}
-              widget={tableWidget}
-              selection={modalSelection}
-              limit={
-                widget.displayType === DisplayType.TABLE
-                  ? FULL_TABLE_ITEM_LIMIT
-                  : HALF_TABLE_ITEM_LIMIT
-              }
-              cursor={cursor}
-            >
-              {({transformedResults, loading, pageLinks}) => {
-                return (
-                  <React.Fragment>
-                    <GridEditable
-                      isLoading={loading}
-                      data={transformedResults}
-                      columnOrder={columnOrder}
-                      columnSortBy={columnSortBy}
-                      grid={{
-                        renderHeadCell: renderIssueGridHeaderCell({
-                          ...props,
-                          widget: tableWidget,
-                        }) as (
-                          column: GridColumnOrder,
-                          columnIndex: number
-                        ) => React.ReactNode,
-                        renderBodyCell: renderGridBodyCell({
-                          ...props,
-                          widget: tableWidget,
-                        }),
-                        onResizeColumn,
-                      }}
-                      location={location}
+              components={{
+                // Replaces the displayed selected value
+                SingleValue: containerProps => {
+                  return (
+                    <components.SingleValue
+                      {...containerProps}
+                      // Overwrites some of the default styling that interferes with highlighted query text
+                      getStyles={() => ({
+                        wordBreak: 'break-word',
+                        flex: 1,
+                        display: 'flex',
+                      })}
+                    >
+                      {queryOptions[selectedQueryIndex].getHighlightedQuery({
+                        display: 'block',
+                      }) ??
+                        (queryOptions[selectedQueryIndex].label || (
+                          <EmptyQueryContainer>{EMPTY_QUERY_NAME}</EmptyQueryContainer>
+                        ))}
+                    </components.SingleValue>
+                  );
+                },
+                // Replaces the dropdown options
+                Option: containerProps => {
+                  const highlightedQuery = containerProps.data.getHighlightedQuery({
+                    display: 'flex',
+                  });
+                  return (
+                    <Option
+                      {...(highlightedQuery
+                        ? {
+                            ...containerProps,
+                            label: highlightedQuery,
+                          }
+                        : containerProps.label
+                        ? containerProps
+                        : {
+                            ...containerProps,
+                            label: (
+                              <EmptyQueryContainer>
+                                {EMPTY_QUERY_NAME}
+                              </EmptyQueryContainer>
+                            ),
+                          })}
                     />
-                    <StyledPagination
+                  );
+                },
+                // Hide the dropdown indicator if there is only one option
+                ...(widget.queries.length < 2 ? {IndicatorsContainer: _ => null} : {}),
+              }}
+              isSearchable={false}
+              isDisabled={widget.queries.length < 2}
+            />
+            {widget.queries.length === 1 && (
+              <StyledQuestionTooltip
+                title={t('To edit this query, you must edit the widget.')}
+                size="sm"
+              />
+            )}
+          </QueryContainer>
+        )}
+        {widget.widgetType === WidgetType.ISSUE ? (
+          <IssueWidgetQueries
+            api={api}
+            organization={organization}
+            widget={tableWidget}
+            selection={modalSelection}
+            limit={
+              widget.displayType === DisplayType.TABLE
+                ? FULL_TABLE_ITEM_LIMIT
+                : HALF_TABLE_ITEM_LIMIT
+            }
+            cursor={cursor}
+          >
+            {({transformedResults, loading, pageLinks, totalCount}) => {
+              if (totalResults === undefined) {
+                setTotalResults(totalCount);
+              }
+              const links = parseLinkHeader(pageLinks ?? null);
+              return (
+                <React.Fragment>
+                  <GridEditable
+                    isLoading={loading}
+                    data={transformedResults}
+                    columnOrder={columnOrder}
+                    columnSortBy={columnSortBy}
+                    grid={{
+                      renderHeadCell: renderIssueGridHeaderCell({
+                        location,
+                        organization,
+                        selection,
+                        widget: tableWidget,
+                      }) as (
+                        column: GridColumnOrder,
+                        columnIndex: number
+                      ) => React.ReactNode,
+                      renderBodyCell: renderGridBodyCell({
+                        location,
+                        organization,
+                        selection,
+                        widget: tableWidget,
+                      }),
+                      onResizeColumn,
+                    }}
+                    location={location}
+                  />
+                  {(links?.previous?.results || links?.next?.results) && (
+                    <Pagination
                       pageLinks={pageLinks}
                       onCursor={(nextCursor, _path, _query, delta) => {
                         let nextPage = isNaN(page) ? delta : page + delta;
@@ -379,54 +629,58 @@ function WidgetViewerModal(props: Props) {
                         );
                       }}
                     />
-                  </React.Fragment>
-                );
-              }}
-            </IssueWidgetQueries>
-          ) : (
-            <WidgetQueries
-              api={api}
-              organization={organization}
-              widget={tableWidget}
-              selection={modalSelection}
-              limit={
-                widget.displayType === DisplayType.TABLE
-                  ? FULL_TABLE_ITEM_LIMIT
-                  : HALF_TABLE_ITEM_LIMIT
-              }
-              pagination
-              cursor={cursor}
-            >
-              {({tableResults, loading, pageLinks}) => {
-                const isFirstPage = pageLinks
-                  ? parseLinkHeader(pageLinks).previous.results === false
-                  : false;
-                return (
-                  <React.Fragment>
-                    <GridEditable
-                      isLoading={loading}
-                      data={tableResults?.[0]?.data ?? []}
-                      columnOrder={columnOrder}
-                      columnSortBy={columnSortBy}
-                      grid={{
-                        renderHeadCell: renderDiscoverGridHeaderCell({
-                          ...props,
-                          widget: tableWidget,
-                          tableData: tableResults?.[0],
-                        }) as (
-                          column: GridColumnOrder,
-                          columnIndex: number
-                        ) => React.ReactNode,
-                        renderBodyCell: renderGridBodyCell({
-                          ...props,
-                          tableData: tableResults?.[0],
-                          isFirstPage,
-                        }),
-                        onResizeColumn,
-                      }}
-                      location={location}
-                    />
-                    <StyledPagination
+                  )}
+                </React.Fragment>
+              );
+            }}
+          </IssueWidgetQueries>
+        ) : (
+          <WidgetQueries
+            api={api}
+            organization={organization}
+            widget={tableWidget}
+            selection={modalSelection}
+            limit={
+              widget.displayType === DisplayType.TABLE
+                ? FULL_TABLE_ITEM_LIMIT
+                : HALF_TABLE_ITEM_LIMIT
+            }
+            pagination
+            cursor={cursor}
+          >
+            {({tableResults, loading, pageLinks}) => {
+              const isFirstPage = pageLinks
+                ? parseLinkHeader(pageLinks).previous.results === false
+                : false;
+              const links = parseLinkHeader(pageLinks ?? null);
+              return (
+                <React.Fragment>
+                  <GridEditable
+                    isLoading={loading}
+                    data={tableResults?.[0]?.data ?? []}
+                    columnOrder={columnOrder}
+                    columnSortBy={columnSortBy}
+                    grid={{
+                      renderHeadCell: renderDiscoverGridHeaderCell({
+                        ...props,
+                        widget: tableWidget,
+                        tableData: tableResults?.[0],
+                        onHeaderClick: () => setChartUnmodified(false),
+                      }) as (
+                        column: GridColumnOrder,
+                        columnIndex: number
+                      ) => React.ReactNode,
+                      renderBodyCell: renderGridBodyCell({
+                        ...props,
+                        tableData: tableResults?.[0],
+                        isFirstPage,
+                      }),
+                      onResizeColumn,
+                    }}
+                    location={location}
+                  />
+                  {(links?.previous?.results || links?.next?.results) && (
+                    <Pagination
                       pageLinks={pageLinks}
                       onCursor={newCursor => {
                         router.replace({
@@ -447,22 +701,15 @@ function WidgetViewerModal(props: Props) {
                         );
                       }}
                     />
-                  </React.Fragment>
-                );
-              }}
-            </WidgetQueries>
-          )}
-        </TableContainer>
+                  )}
+                </React.Fragment>
+              );
+            }}
+          </WidgetQueries>
+        )}
       </React.Fragment>
     );
   }
-
-  const StyledHeader = styled(Header)`
-    ${headerCss}
-  `;
-  const StyledFooter = styled(Footer)`
-    ${footerCss}
-  `;
 
   let openLabel: string;
   let path: string;
@@ -475,114 +722,122 @@ function WidgetViewerModal(props: Props) {
     default:
       openLabel = t('Open in Discover');
       path = getWidgetDiscoverUrl(
-        {...primaryWidget, queries: tableWidget.queries},
+        {...primaryWidget, queries: [primaryWidget.queries[selectedQueryIndex]]},
         modalSelection,
         organization
       );
       break;
   }
+
   return (
     <React.Fragment>
-      <StyledHeader closeButton>
-        <Tooltip title={widget.title} showOnlyOnOverflow>
-          <WidgetTitle>{widget.title}</WidgetTitle>
-        </Tooltip>
-        <FeatureBadge type="beta" />
-      </StyledHeader>
+      <Header closeButton>
+        <h3>{widget.title}</h3>
+      </Header>
       <Body>{renderWidgetViewer()}</Body>
-      <StyledFooter>
-        <ButtonBar gap={1}>
-          {onEdit && widget.id && (
+      <Footer>
+        <ResultsContainer>
+          {totalResults &&
+            (widget.widgetType === WidgetType.ISSUE ? (
+              <span>
+                {tct('[description:Total Issues:] [total]', {
+                  description: <strong />,
+                  total: totalResults === '1000' ? '1000+' : totalResults,
+                })}
+              </span>
+            ) : (
+              <span>
+                {tct('[description:Total Events:] [total]', {
+                  description: <strong />,
+                  total: totalResults,
+                })}
+              </span>
+            ))}
+          <ButtonBar gap={1}>
+            {onEdit && widget.id && (
+              <Button
+                type="button"
+                onClick={() => {
+                  closeModal();
+                  onEdit();
+                  trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.edit', {
+                    organization,
+                    widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                    display_type: widget.displayType,
+                  });
+                }}
+              >
+                {t('Edit Widget')}
+              </Button>
+            )}
             <Button
+              to={path}
+              priority="primary"
               type="button"
               onClick={() => {
-                closeModal();
-                onEdit();
-                trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.edit', {
-                  organization,
-                  widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                  display_type: widget.displayType,
-                });
+                trackAdvancedAnalyticsEvent(
+                  'dashboards_views.widget_viewer.open_source',
+                  {
+                    organization,
+                    widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                    display_type: widget.displayType,
+                  }
+                );
               }}
             >
-              {t('Edit Widget')}
+              {openLabel}
             </Button>
-          )}
-          <Button
-            to={path}
-            priority="primary"
-            type="button"
-            onClick={() => {
-              trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.open_source', {
-                organization,
-                widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                display_type: widget.displayType,
-              });
-            }}
-          >
-            {openLabel}
-          </Button>
-        </ButtonBar>
-      </StyledFooter>
+          </ButtonBar>
+        </ResultsContainer>
+      </Footer>
     </React.Fragment>
   );
 }
 
 export const modalCss = css`
   width: 100%;
-  max-width: 1400px;
+  max-width: 1200px;
 `;
 
-const headerCss = css`
-  margin: -${space(4)} -${space(4)} 0px -${space(4)};
-  line-height: normal;
-  display: flex;
-`;
-const footerCss = css`
-  margin: 0px -${space(4)} -${space(4)};
-`;
-
-const Container = styled('div')`
-  height: 300px;
-  max-height: 300px;
+const Container = styled('div')<{height?: number | null}>`
+  height: ${p => (p.height ? `${p.height}px` : 'auto')};
+  max-height: ${HALF_CONTAINER_HEIGHT}px;
   position: relative;
-
-  & > div {
-    padding: ${space(1.5)} 0px;
-  }
 `;
 
-const StyledSelectControl = styled(SelectControl)`
-  padding-top: 10px ${space(1.5)};
-  max-height: 40px;
-  display: flex;
-  & > div {
-    width: 100%;
-  }
-`;
-
-// Table Container allows Table display to work around parent padding and fill full modal width
-const TableContainer = styled('div')`
-  max-width: 1400px;
+const QueryContainer = styled('div')`
+  margin-bottom: ${space(2)};
   position: relative;
-  margin: ${space(2)} 0;
-  & > div {
-    margin: 0;
-  }
+`;
 
-  & td:first-child {
-    padding: ${space(1)} ${space(2)};
+const StyledQuestionTooltip = styled(QuestionTooltip)`
+  position: absolute;
+  top: ${space(1.5)};
+  right: ${space(2)};
+`;
+
+const HighlightContainer = styled('span')<{display?: 'block' | 'flex'}>`
+  display: ${p => p.display};
+  gap: ${space(1)};
+  font-family: ${p => p.theme.text.familyMono};
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const ResultsContainer = styled('div')`
+  display: flex;
+  flex-grow: 1;
+  flex-direction: column;
+  gap: ${space(1)};
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    align-items: center;
+    flex-direction: row;
+    justify-content: space-between;
   }
 `;
 
-const WidgetTitle = styled('h4')`
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
-`;
-
-const StyledPagination = styled(Pagination)`
-  padding-top: ${space(2)};
+const EmptyQueryContainer = styled('span')`
+  color: ${p => p.theme.disabled};
 `;
 
 export default withRouter(withPageFilters(WidgetViewerModal));

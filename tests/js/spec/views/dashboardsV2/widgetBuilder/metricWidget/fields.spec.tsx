@@ -1,11 +1,11 @@
-import {generateMetricsWidgetFieldOptions} from 'sentry/views/dashboardsV2/widgetBuilder/metricWidget/fields';
+import {generateReleaseWidgetFieldOptions} from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
 
-describe('generateMetricsWidgetFieldOptions', function () {
+describe('generateReleaseWidgetFieldOptions', function () {
   const fields = TestStubs.MetricsMeta();
   const tagKeys = ['release', 'environment'];
 
   it('generates correct field options', function () {
-    expect(generateMetricsWidgetFieldOptions(fields, tagKeys)).toEqual({
+    expect(generateReleaseWidgetFieldOptions(fields, tagKeys)).toEqual({
       'field:sentry.sessions.session': {
         label: 'sentry.sessions.session',
         value: {
@@ -113,6 +113,16 @@ describe('generateMetricsWidgetFieldOptions', function () {
           meta: {
             dataType: 'set',
             name: 'sentry.transactions.user',
+          },
+        },
+      },
+      'field:session.crash_free_rate': {
+        label: 'session.crash_free_rate()',
+        value: {
+          kind: 'numeric_metric',
+          meta: {
+            dataType: 'numeric',
+            name: 'session.crash_free_rate',
           },
         },
       },
@@ -293,6 +303,6 @@ describe('generateMetricsWidgetFieldOptions', function () {
   });
 
   it('ignores tags+aggregates if there are no fields', function () {
-    expect(generateMetricsWidgetFieldOptions([], tagKeys)).toEqual({});
+    expect(generateReleaseWidgetFieldOptions([], tagKeys)).toEqual({});
   });
 });

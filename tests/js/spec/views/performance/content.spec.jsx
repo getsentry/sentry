@@ -34,6 +34,7 @@ function initializeData(projects, query, features = FEATURES) {
     organization,
     router: {
       location: {
+        pathname: '/test',
         query: query || {},
       },
     },
@@ -63,6 +64,7 @@ function initializeTrendsData(query, addDefaultQuery = true) {
     organization,
     router: {
       location: {
+        pathname: '/test',
         query: {
           ...otherTrendsQuery,
           ...query,

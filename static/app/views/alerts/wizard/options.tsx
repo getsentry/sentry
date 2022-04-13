@@ -35,7 +35,7 @@ export type AlertType =
   | 'crash_free_sessions'
   | 'crash_free_users';
 
-export const WebVitalAlertTypes = new Set(['lcp', 'fid', 'cls', 'fcp']);
+export type MetricAlertType = Exclude<AlertType, 'issues'>;
 
 export const AlertWizardAlertNames: Record<AlertType, string> = {
   issues: t('Issues'),
@@ -228,8 +228,8 @@ export type WizardRuleTemplate = {
 };
 
 export const AlertWizardRuleTemplates: Record<
-  Exclude<AlertType, 'issues'>,
-  WizardRuleTemplate
+  MetricAlertType,
+  Readonly<WizardRuleTemplate>
 > = {
   num_errors: {
     aggregate: 'count()',
@@ -283,15 +283,19 @@ export const AlertWizardRuleTemplates: Record<
   },
   crash_free_sessions: {
     aggregate: SessionsAggregate.CRASH_FREE_SESSIONS,
+    // TODO(scttcper): Use Dataset.Metric on GA of alert-crash-free-metrics
     dataset: Dataset.SESSIONS,
     eventTypes: EventTypes.SESSION,
   },
   crash_free_users: {
     aggregate: SessionsAggregate.CRASH_FREE_USERS,
+    // TODO(scttcper): Use Dataset.Metric on GA of alert-crash-free-metrics
     dataset: Dataset.SESSIONS,
     eventTypes: EventTypes.USER,
   },
 };
+
+export const DEFAULT_WIZARD_TEMPLATE = AlertWizardRuleTemplates.num_errors;
 
 export const hidePrimarySelectorSet = new Set<AlertType>([
   'num_errors',

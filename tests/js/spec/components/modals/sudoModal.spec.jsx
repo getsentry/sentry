@@ -18,7 +18,7 @@ describe('Sudo Modal', function () {
       },
     });
     Client.addMockResponse({
-      url: '/assistant/?v2',
+      url: '/assistant/',
       body: [],
     });
     Client.addMockResponse({
@@ -102,9 +102,7 @@ describe('Sudo Modal', function () {
       '/auth/',
       expect.objectContaining({
         method: 'PUT',
-        data: {
-          password: 'password',
-        },
+        data: {isSuperuserModal: false, password: 'password'},
       })
     );
 

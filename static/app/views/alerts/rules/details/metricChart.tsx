@@ -10,7 +10,7 @@ import momentTimezone from 'moment-timezone';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
-import AreaChart, {AreaChartSeries} from 'sentry/components/charts/areaChart';
+import {AreaChart, AreaChartSeries} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import MarkArea from 'sentry/components/charts/components/markArea';
 import MarkLine from 'sentry/components/charts/components/markLine';
@@ -54,10 +54,12 @@ import {
   AlertRuleTriggerType,
   Dataset,
   IncidentRule,
+  TimePeriod,
 } from 'sentry/views/alerts/incidentRules/types';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
+import {isCrashFreeAlert} from '../../incidentRules/utils/isCrashFreeAlert';
 import {Incident, IncidentActivityType, IncidentStatus} from '../../types';
 import {
   ALERT_CHART_MIN_MAX_BUFFER,
@@ -273,6 +275,7 @@ class MetricChart extends React.PureComponent<Props, State> {
         type: 'line',
         markLine: MarkLine({
           silent: true,
+          animation: false,
           lineStyle: {color: theme.gray200, type: 'solid', width: 1},
           data: [{xAxis: ruleChanged}],
           label: {
@@ -297,6 +300,9 @@ class MetricChart extends React.PureComponent<Props, State> {
     warningDuration: number
   ) {
     const {rule, orgId, project, timePeriod, query} = this.props;
+    const transactionFields = ['title', 'count()', 'count_unique(user)'];
+    const errorFields = ['issue', 'title', 'count()', 'count_unique(user)'];
+
     const ctaOpts = {
       orgSlug: orgId,
       projects: [project],
@@ -304,7 +310,7 @@ class MetricChart extends React.PureComponent<Props, State> {
       eventType: query,
       start: timePeriod.start,
       end: timePeriod.end,
-      fields: ['issue', 'title', 'count()', 'count_unique(user)'],
+      fields: rule.dataset === 'transactions' ? transactionFields : errorFields,
     };
 
     const {buttonText, ...props} = makeDefaultCta(ctaOpts);
@@ -376,7 +382,7 @@ class MetricChart extends React.PureComponent<Props, State> {
     );
 
     const series: AreaChartSeries[] = [...timeseriesData];
-    const areaSeries: any[] = [];
+    const areaSeries: AreaChartSeries[] = [];
     // Ensure series data appears below incident/mark lines
     series[0].z = 1;
     series[0].color = CHART_PALETTE[0][0];
@@ -520,6 +526,7 @@ class MetricChart extends React.PureComponent<Props, State> {
               incidentColor === theme.yellow300 ? theme.yellow100 : theme.red100;
 
             areaSeries.push({
+              seriesName: '',
               type: 'line',
               markArea: MarkArea({
                 silent: true,
@@ -766,6 +773,19 @@ class MetricChart extends React.PureComponent<Props, State> {
     const {api, rule, organization, timePeriod, project, interval, query} = this.props;
     const {aggregate, timeWindow, environment, dataset} = rule;
 
+    // Fix for 7 days * 1m interval being over the max number of results from events api
+    // 10k events is the current max
+    if (
+      timePeriod.usingPeriod &&
+      timePeriod.period === TimePeriod.SEVEN_DAYS &&
+      interval === '1m'
+    ) {
+      timePeriod.start = getUtcDateString(
+        // -5 minutes provides a small cushion for rounding up minutes. This might be able to be smaller
+        moment(moment.utc(timePeriod.end).subtract(10000 - 5, 'minutes'))
+      );
+    }
+
     // If the chart duration isn't as long as the rollup duration the events-stats
     // endpoint will return an invalid timeseriesData data set
     const viableStartDate = getUtcDateString(
@@ -779,7 +799,7 @@ class MetricChart extends React.PureComponent<Props, State> {
       moment.utc(timePeriod.end).add(timeWindow, 'minutes')
     );
 
-    return dataset === Dataset.SESSIONS ? (
+    return isCrashFreeAlert(dataset) ? (
       <SessionsRequest
         api={api}
         organization={organization}

@@ -443,6 +443,7 @@ Are you sure you want to continue?"""
         abort=True,
     )
 
+    volume_to_service = {}
     for service_name, container_options in containers.items():
         try:
             container = ctx.obj["client"].containers.get(container_options["name"])
@@ -458,12 +459,15 @@ Are you sure you want to continue?"""
         container.stop()
         click.secho("> Removing '%s' container" % container_options["name"], err=True, fg="red")
         container.remove()
+        for volume in container_options.get("volumes") or ():
+            volume_to_service[volume] = service_name
 
     prefix = project + "_"
 
     for volume in ctx.obj["client"].volumes.list():
         if volume.name.startswith(prefix):
-            if not services or volume.name[len(prefix) :] in services:
+            local_name = volume.name[len(prefix) :]
+            if not services or volume_to_service.get(local_name) in services:
                 click.secho("> Removing '%s' volume" % volume.name, err=True, fg="red")
                 volume.remove()
 

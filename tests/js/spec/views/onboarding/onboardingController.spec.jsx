@@ -1,15 +1,17 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import OrganizationStore from 'sentry/stores/organizationStore';
+import {PersistedStoreProvider} from 'sentry/stores/persistedStore';
 import OnboardingController from 'sentry/views/onboarding/onboardingController';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-describe('Onboarding', function () {
+describe('OnboardingController', function () {
   it('Shows targeted onboarding with experiment active', function () {
     const {organization, router, routerContext} = initializeOrg({
       organization: {
         experiments: {
-          TargetedOnboardingWelcomePageExperiment: 1,
+          TargetedOnboardingWelcomePageExperimentV2: 1,
         },
       },
       router: {
@@ -34,7 +36,7 @@ describe('Onboarding', function () {
     const {organization, router, routerContext} = initializeOrg({
       organization: {
         experiments: {
-          TargetedOnboardingWelcomePageExperiment: 0,
+          TargetedOnboardingWelcomePageExperimentV2: 0,
         },
       },
       router: {
@@ -58,7 +60,7 @@ describe('Onboarding', function () {
     const {organization, router, routerContext} = initializeOrg({
       organization: {
         experiments: {
-          TargetedOnboardingWelcomePageExperiment: 1,
+          TargetedOnboardingWelcomePageExperimentV2: 1,
         },
       },
       router: {
@@ -77,5 +79,33 @@ describe('Onboarding', function () {
       }
     );
     expect(screen.queryByTestId('targeted-onboarding')).not.toBeInTheDocument();
+  });
+  it('Shows targeted onboarding with multi-select experiment active', function () {
+    const {organization, router, routerContext} = initializeOrg({
+      organization: {
+        experiments: {
+          TargetedOnboardingMultiSelectExperiment: 1,
+        },
+      },
+      router: {
+        params: {
+          step: 'setup-docs',
+        },
+      },
+    });
+
+    OrganizationStore.onUpdate(organization);
+    const {container} = render(
+      <OrganizationContext.Provider value={organization}>
+        <PersistedStoreProvider>
+          <OnboardingController {...router} />
+        </PersistedStoreProvider>
+      </OrganizationContext.Provider>,
+      {
+        context: routerContext,
+      }
+    );
+    expect(screen.getByTestId('targeted-onboarding')).toBeInTheDocument();
+    expect(container).toSnapshot();
   });
 });

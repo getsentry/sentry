@@ -10,14 +10,17 @@ import {Organization} from 'sentry/types';
 import {DragManagerChildrenProps} from './dragManager';
 import {ScrollbarManagerChildrenProps, withScrollbarManager} from './scrollbarManager';
 import SpanBar from './spanBar';
-import SpanGroupBar from './spanGroupBar';
+import {SpanDescendantGroupBar} from './spanDescendantGroupBar';
+import SpanSiblingGroupBar from './spanSiblingGroupBar';
 import {
   EnhancedProcessedSpanType,
   EnhancedSpan,
   FilterSpans,
+  GroupType,
   ParsedTraceType,
+  SpanType,
 } from './types';
-import {getSpanID, getSpanOperation} from './utils';
+import {getSpanID, getSpanOperation, setSpansOnTransaction} from './utils';
 import WaterfallModel from './waterfallModel';
 
 type PropType = ScrollbarManagerChildrenProps & {
@@ -30,6 +33,10 @@ type PropType = ScrollbarManagerChildrenProps & {
 };
 
 class SpanTree extends React.Component<PropType> {
+  componentDidMount() {
+    setSpansOnTransaction(this.props.spans.length);
+  }
+
   shouldComponentUpdate(nextProps: PropType) {
     if (
       this.props.dragProps.isDragging !== nextProps.dragProps.isDragging ||
@@ -206,7 +213,7 @@ class SpanTree extends React.Component<PropType> {
 
         if (payload.type === 'span_group_chain') {
           acc.spanTree.push(
-            <SpanGroupBar
+            <SpanDescendantGroupBar
               key={`${spanNumber}-span-group`}
               event={waterfallModel.event}
               span={span}
@@ -216,6 +223,26 @@ class SpanTree extends React.Component<PropType> {
               spanNumber={spanNumber}
               spanGrouping={payload.spanNestedGrouping as EnhancedSpan[]}
               toggleSpanGroup={payload.toggleNestedSpanGroup as () => void}
+            />
+          );
+          acc.spanNumber = spanNumber + 1;
+          return acc;
+        }
+
+        if (payload.type === 'span_group_siblings') {
+          acc.spanTree.push(
+            <SpanSiblingGroupBar
+              key={`${spanNumber}-span-sibling`}
+              event={waterfallModel.event}
+              span={span}
+              generateBounds={generateBounds}
+              treeDepth={treeDepth}
+              continuingTreeDepths={continuingTreeDepths}
+              spanNumber={spanNumber}
+              spanGrouping={payload.spanSiblingGrouping as EnhancedSpan[]}
+              toggleSiblingSpanGroup={payload.toggleSiblingSpanGroup}
+              isLastSibling={payload.isLastSibling ?? false}
+              occurrence={payload.occurrence}
             />
           );
           acc.spanNumber = spanNumber + 1;
@@ -234,6 +261,20 @@ class SpanTree extends React.Component<PropType> {
         let toggleSpanGroup: (() => void) | undefined = undefined;
         if (payload.type === 'span') {
           toggleSpanGroup = payload.toggleNestedSpanGroup;
+        }
+
+        let toggleSiblingSpanGroup:
+          | ((span: SpanType, occurrence: number) => void)
+          | undefined = undefined;
+        if (payload.type === 'span' && payload.isFirstSiblingOfGroup) {
+          toggleSiblingSpanGroup = payload.toggleSiblingSpanGroup;
+        }
+
+        let groupType;
+        if (toggleSpanGroup) {
+          groupType = GroupType.DESCENDANTS;
+        } else if (toggleSiblingSpanGroup) {
+          groupType = GroupType.SIBLINGS;
         }
 
         acc.spanTree.push(
@@ -256,9 +297,12 @@ class SpanTree extends React.Component<PropType> {
             isRoot={isRoot}
             showEmbeddedChildren={payload.showEmbeddedChildren}
             toggleEmbeddedChildren={payload.toggleEmbeddedChildren}
+            toggleSiblingSpanGroup={toggleSiblingSpanGroup}
             fetchEmbeddedChildrenState={payload.fetchEmbeddedChildrenState}
             toggleSpanGroup={toggleSpanGroup}
             numOfSpans={numOfSpans}
+            groupType={groupType}
+            groupOccurrence={payload.groupOccurrence}
           />
         );
 

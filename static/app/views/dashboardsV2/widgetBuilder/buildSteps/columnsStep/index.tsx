@@ -16,12 +16,11 @@ import {DataSet, getAmendedFieldOptions} from '../../utils';
 import {BuildStep} from '../buildStep';
 
 import {ColumnFields} from './columnFields';
+import {ReleaseColumnFields} from './releaseColumnFields';
 
 interface Props {
   dataSet: DataSet;
   displayType: DisplayType;
-  explodedAggregates: QueryFieldValue[];
-  explodedColumns: QueryFieldValue[];
   explodedFields: QueryFieldValue[];
   onQueryChange: (queryIndex: number, newQuery: WidgetQuery) => void;
   onYAxisOrColumnFieldChange: (newFields: QueryFieldValue[]) => void;
@@ -42,30 +41,28 @@ export function ColumnsStep({
   onYAxisOrColumnFieldChange,
   queryErrors,
   explodedFields,
-  explodedColumns,
-  explodedAggregates,
   tags,
 }: Props) {
   return (
     <BuildStep
       title={t('Choose your columns')}
       description={
-        dataSet !== DataSet.ISSUES
+        dataSet === DataSet.ISSUES
           ? tct(
-              'To group events, add [functionLink: functions] f(x) that may take in additional parameters. [tagFieldLink: Tag and field] columns will help you view more details about the events (i.e. title).',
+              '[fieldTagLink: Field and tag] columns will help you view more details about the issues (e.g., title).',
               {
-                functionLink: (
-                  <ExternalLink href="https://docs.sentry.io/product/discover-queries/query-builder/#filter-by-table-columns" />
-                ),
-                tagFieldLink: (
+                fieldTagLink: (
                   <ExternalLink href="https://docs.sentry.io/product/sentry-basics/search/searchable-properties/#event-properties" />
                 ),
               }
             )
           : tct(
-              '[tagFieldLink: Tag and field] columns will help you view more details about the issues (i.e. title).',
+              'To stack events, add [functionLink: functions] f(x) that may take in additional parameters. [fieldTagLink: Field and tag] columns will help you view more details about the events (e.g., title).',
               {
-                tagFieldLink: (
+                functionLink: (
+                  <ExternalLink href="https://docs.sentry.io/product/discover-queries/query-builder/#filter-by-table-columns" />
+                ),
+                fieldTagLink: (
                   <ExternalLink href="https://docs.sentry.io/product/sentry-basics/search/searchable-properties/#event-properties" />
                 ),
               }
@@ -79,8 +76,6 @@ export function ColumnsStep({
               displayType={displayType}
               organization={organization}
               widgetType={widgetType}
-              columns={explodedColumns}
-              aggregates={explodedAggregates}
               fields={explodedFields}
               errors={queryErrors}
               fieldOptions={getAmendedFieldOptions({measurements, organization, tags})}
@@ -88,13 +83,11 @@ export function ColumnsStep({
             />
           )}
         </Measurements>
-      ) : (
+      ) : dataSet === DataSet.ISSUES ? (
         <ColumnFields
           displayType={displayType}
           organization={organization}
           widgetType={widgetType}
-          columns={explodedColumns}
-          aggregates={explodedAggregates}
           fields={explodedFields}
           errors={queryErrors?.[0] ? [queryErrors?.[0]] : undefined}
           fieldOptions={generateIssueWidgetFieldOptions()}
@@ -105,8 +98,18 @@ export function ColumnsStep({
             newQuery.fields = fieldStrings;
             newQuery.aggregates = splitFields.aggregates;
             newQuery.columns = splitFields.columns;
+            newQuery.fieldAliases = splitFields.fieldAliases;
             onQueryChange(0, newQuery);
           }}
+        />
+      ) : (
+        <ReleaseColumnFields
+          displayType={displayType}
+          organization={organization}
+          widgetType={widgetType}
+          explodedFields={explodedFields}
+          queryErrors={queryErrors}
+          onYAxisOrColumnFieldChange={onYAxisOrColumnFieldChange}
         />
       )}
     </BuildStep>

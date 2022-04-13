@@ -1,15 +1,26 @@
+import * as Sentry from '@sentry/react';
+import {Transaction} from '@sentry/types';
+
 import {
+  isChromeTraceArrayFormat,
+  isChromeTraceFormat,
+  isChromeTraceObjectFormat,
   isEventedProfile,
   isJSProfile,
   isSampledProfile,
   isSchema,
 } from '../guards/profile';
 
+import {parseChromeTraceArrayFormat} from './chromeTraceProfile';
 import {EventedProfile} from './eventedProfile';
 import {JSSelfProfile} from './jsSelfProfile';
 import {Profile} from './profile';
 import {SampledProfile} from './sampledProfile';
-import {createFrameIndex} from './utils';
+import {createFrameIndex, wrapWithSpan} from './utils';
+
+export interface ImportOptions {
+  transaction: Transaction;
+}
 
 export interface ProfileGroup {
   activeProfileIndex: number;
@@ -18,25 +29,44 @@ export interface ProfileGroup {
   traceID: string;
 }
 
-function importSingleProfile(
-  profile: Profiling.ProfileTypes,
-  frameIndex: ReturnType<typeof createFrameIndex>
-): Profile {
-  if (isEventedProfile(profile)) {
-    return EventedProfile.FromProfile(profile, frameIndex);
+export function importProfile(
+  input: Profiling.Schema | JSSelfProfiling.Trace | ChromeTrace.ProfileType,
+  traceID: string
+): ProfileGroup {
+  const transaction = Sentry.startTransaction({
+    op: 'import',
+    name: 'profiles.import',
+  });
+
+  try {
+    if (isJSProfile(input)) {
+      transaction.setTag('profile.type', 'js-self-profile');
+      return importJSSelfProfile(input, traceID, {transaction});
+    }
+
+    if (isChromeTraceFormat(input)) {
+      transaction.setTag('profile.type', 'chrometrace');
+      return importChromeTrace(input, traceID, {transaction});
+    }
+
+    if (isSchema(input)) {
+      transaction.setTag('profile.type', 'schema');
+      return importSchema(input, traceID, {transaction});
+    }
+
+    throw new Error('Unsupported trace format');
+  } catch (error) {
+    transaction.setStatus('internal_error');
+    throw error;
+  } finally {
+    transaction.finish();
   }
-  if (isSampledProfile(profile)) {
-    return SampledProfile.FromProfile(profile, frameIndex);
-  }
-  if (isJSProfile(profile)) {
-    return JSSelfProfile.FromProfile(profile, createFrameIndex(profile.frames));
-  }
-  throw new Error('Unrecognized trace format');
 }
 
 function importJSSelfProfile(
   input: JSSelfProfiling.Trace,
-  traceID: string
+  traceID: string,
+  options: ImportOptions
 ): ProfileGroup {
   const frameIndex = createFrameIndex(input.frames);
 
@@ -44,31 +74,95 @@ function importJSSelfProfile(
     traceID,
     name: traceID,
     activeProfileIndex: 0,
-    profiles: [importSingleProfile(input, frameIndex)],
+    profiles: [importSingleProfile(input, frameIndex, options)],
   };
 }
 
-export function importProfile(
-  input: Profiling.Schema | JSSelfProfiling.Trace,
-  traceID: string
+function importChromeTrace(
+  input: ChromeTrace.ProfileType,
+  traceID: string,
+  options: ImportOptions
 ): ProfileGroup {
-  if (isJSProfile(input)) {
-    return importJSSelfProfile(input, traceID);
+  if (isChromeTraceObjectFormat(input)) {
+    throw new Error('Chrometrace object format is not yet supported');
   }
 
-  if (isSchema(input)) {
-    const frameIndex = createFrameIndex(input.shared.frames);
-
-    return {
-      traceID,
-      name: input.name,
-      activeProfileIndex: input.activeProfileIndex ?? 0,
-      profiles: input.profiles.map(profile => importSingleProfile(profile, frameIndex)),
-    };
+  if (isChromeTraceArrayFormat(input)) {
+    return parseChromeTraceArrayFormat(input, traceID, options);
   }
 
-  throw new Error('Unsupported trace format');
+  throw new Error('Failed to parse trace input format');
 }
+
+function importSchema(
+  input: Profiling.Schema,
+  traceID: string,
+  options: ImportOptions
+): ProfileGroup {
+  const frameIndex = createFrameIndex(input.shared.frames);
+
+  return {
+    traceID,
+    name: input.name,
+    activeProfileIndex: input.activeProfileIndex ?? 0,
+    profiles: input.profiles.map(profile =>
+      importSingleProfile(profile, frameIndex, options)
+    ),
+  };
+}
+
+function importSingleProfile(
+  profile: Profiling.ProfileTypes,
+  frameIndex: ReturnType<typeof createFrameIndex>,
+  {transaction}: ImportOptions
+): Profile {
+  if (isEventedProfile(profile)) {
+    return wrapWithSpan(
+      transaction,
+      () => EventedProfile.FromProfile(profile, frameIndex),
+      {
+        op: 'profile.import',
+        description: 'evented',
+      }
+    );
+  }
+  if (isSampledProfile(profile)) {
+    return wrapWithSpan(
+      transaction,
+      () => SampledProfile.FromProfile(profile, frameIndex),
+      {
+        op: 'profile.import',
+        description: 'sampled',
+      }
+    );
+  }
+  if (isJSProfile(profile)) {
+    return wrapWithSpan(
+      transaction,
+      () => JSSelfProfile.FromProfile(profile, createFrameIndex(profile.frames)),
+      {
+        op: 'profile.import',
+        description: 'js-self-profile',
+      }
+    );
+  }
+  throw new Error('Unrecognized trace format');
+}
+
+const tryParseInputString: JSONParser = input => {
+  try {
+    return [JSON.parse(input), null];
+  } catch (e) {
+    return [null, e];
+  }
+};
+
+type JSONParser = (input: string) => [any, null] | [null, Error];
+
+const TRACE_JSON_PARSERS: ((string) => ReturnType<JSONParser>)[] = [
+  (input: string) => tryParseInputString(input),
+  (input: string) => tryParseInputString(input + ']'),
+];
 
 function readFileAsString(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -91,26 +185,23 @@ function readFileAsString(file: File): Promise<string> {
   });
 }
 
-export async function importDroppedProfile(file: File): Promise<ProfileGroup> {
-  try {
-    return await readFileAsString(file)
-      .then(fileContents => JSON.parse(fileContents))
-      .then(json => {
-        if (typeof json !== 'object' || json === null) {
-          throw new TypeError('Input JSON is not an object');
-        }
+export async function importDroppedProfile(
+  file: File,
+  parsers: JSONParser[] = TRACE_JSON_PARSERS
+): Promise<ProfileGroup> {
+  const fileContents = await readFileAsString(file);
 
-        if (isSchema(json)) {
-          return importProfile(json, file.name);
-        }
+  for (const parser of parsers) {
+    const [json] = parser(fileContents);
 
-        if (isJSProfile(json)) {
-          return importJSSelfProfile(json, file.name);
-        }
+    if (json) {
+      if (typeof json !== 'object' || json === null) {
+        throw new TypeError('Input JSON is not an object');
+      }
 
-        throw new Error('Unsupported JSON format');
-      });
-  } catch (e) {
-    throw e;
+      return importProfile(json, file.name);
+    }
   }
+
+  throw new Error('Failed to parse input JSON');
 }
