@@ -45,6 +45,7 @@ function AppStoreConnect({
   onSubmit,
   appStoreConnectStatusData,
 }: Props) {
+  console.log({initialData});
   const {credentials} = appStoreConnectStatusData ?? {};
 
   const [isLoading, setIsLoading] = useState(false);

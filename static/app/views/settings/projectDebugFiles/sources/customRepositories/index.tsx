@@ -21,6 +21,7 @@ import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {CustomRepo, CustomRepoType} from 'sentry/types/debugFiles';
 import {defined} from 'sentry/utils';
+import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 
 import Repository from './repository';
 import {dropDownItems, expandKeys, getRequestMessages} from './utils';
@@ -175,6 +176,21 @@ function CustomRepositories({
     });
   }
 
+  async function handleSyncRepositoryNow(repoId: CustomRepo['id']) {
+    try {
+      await api.requestPromise(
+        `/projects/${orgSlug}/${projSlug}/appstoreconnect/${repoId}/refresh/`,
+        {
+          method: 'POST',
+        }
+      );
+    } catch (error) {
+      const errorMessage = t('Unable to refresh repository. Try again in a few minutes.');
+      addErrorMessage(errorMessage);
+      handleXhrErrorResponse(errorMessage)(error);
+    }
+  }
+
   return (
     <Feature features={['custom-symbol-sources']} organization={organization}>
       {({hasFeature}) => (
@@ -250,6 +266,7 @@ function CustomRepositories({
                         hasAccess={hasAccess}
                         onDelete={handleDeleteRepository}
                         onEdit={handleEditRepository}
+                        onSyncNow={handleSyncRepositoryNow}
                       />
                     ))
                   )}
