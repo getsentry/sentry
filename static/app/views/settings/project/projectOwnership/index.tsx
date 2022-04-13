@@ -16,7 +16,6 @@ import Button from 'sentry/components/button';
 import FeatureBadge from 'sentry/components/featureBadge';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -47,11 +46,6 @@ type State = {
   ownership: null | any;
   codeowners?: CodeOwner[];
 } & AsyncView['state'];
-
-const CodeOwnersHeader = HookOrDefault({
-  hookName: 'component:codeowners-header',
-  defaultComponent: () => <Fragment />,
-});
 
 class ProjectOwnership extends AsyncView<Props, State> {
   getTitle() {
@@ -332,10 +326,6 @@ tags.sku_class:enterprise #enterprise`;
           }
         />
         <IssueOwnerDetails>{this.getDetail()}</IssueOwnerDetails>
-        <CodeOwnersHeader
-          addCodeOwner={this.handleAddCodeOwner}
-          handleRequest={this.handleAddCodeOwnerRequest}
-        />
 
         <PermissionAlert />
         <FeedbackAlert />

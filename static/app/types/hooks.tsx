@@ -70,11 +70,6 @@ type DisabledMemberTooltipProps = {children: React.ReactNode};
 
 type DashboardHeadersProps = {organization: Organization};
 
-type CodeOwnersHeaderProps = {
-  addCodeOwner: () => void;
-  handleRequest: () => void;
-};
-
 type FirstPartyIntegrationAlertProps = {
   integrations: Integration[];
   hideCTA?: boolean;
@@ -91,7 +86,6 @@ type GuideUpdateCallback = (nextGuide: Guide | null, opts: {dismissed?: boolean}
  * Component wrapping hooks
  */
 export type ComponentHooks = {
-  'component:codeowners-header': () => React.ComponentType<CodeOwnersHeaderProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
   'component:disabled-app-store-connect-multiple': () => React.ComponentType<DisabledAppStoreConnectMultiple>;
   'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
