@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useState} from 'react';
+import * as Sentry from '@sentry/react';
 import type {eventWithTime} from 'rrweb/typings/types';
 
 import {IssueAttachment} from 'sentry/types';
@@ -152,26 +153,39 @@ function useReplayEvent({eventSlug, location, orgId}: Options): Result {
       rrwebEvents: undefined,
       mergedReplayEvent: undefined,
     });
+    try {
+      const [event, rrwebEvents, replayEvents] = await Promise.all([
+        fetchEvent(),
+        fetchRRWebEvents(),
+        fetchReplayEvents(),
+      ]);
 
-    const [event, rrwebEvents, replayEvents] = await Promise.all([
-      fetchEvent(),
-      fetchRRWebEvents(),
-      fetchReplayEvents(),
-    ]);
+      const breadcrumbEntry = mergeBreadcrumbsEntries(replayEvents || []);
+      const mergedReplayEvent = mergeEventsWithSpans(replayEvents || []);
 
-    const breadcrumbEntry = mergeBreadcrumbsEntries(replayEvents || []);
-    const mergedReplayEvent = mergeEventsWithSpans(replayEvents || []);
+      setState({
+        ...state,
+        fetchError: undefined,
+        fetching: false,
+        event,
+        mergedReplayEvent,
+        replayEvents,
+        rrwebEvents,
+        breadcrumbEntry,
+      });
+    } catch (error) {
+      Sentry.captureException(error);
+      setState({
+        fetchError: error,
+        fetching: false,
 
-    setState({
-      ...state,
-      fetchError: undefined,
-      fetching: false,
-      event,
-      mergedReplayEvent,
-      replayEvents,
-      rrwebEvents,
-      breadcrumbEntry,
-    });
+        breadcrumbEntry: undefined,
+        event: undefined,
+        replayEvents: undefined,
+        rrwebEvents: undefined,
+        mergedReplayEvent: undefined,
+      });
+    }
   }
 
   useEffect(() => void loadEvents(), [orgId, eventSlug, retry]);
