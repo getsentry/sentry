@@ -197,6 +197,7 @@ build-utils/        @getsentry/owners-js-build
 
 ###### Replays #######
 /static/app/views/replays/        @getsentry/emerging-technology
+/static/app/components/replays/   @getsentry/emerging-technology
 /tests/js/spec/views/replays/     @getsentry/emerging-technology
 ###### End of Replays #######
 
@@ -335,7 +336,7 @@ build-utils/        @getsentry/owners-js-build
 
 ### SDK ###
 
-/src/sentry/utils/sdk.py            @getsentry/team-web-backend
+/src/sentry/utils/sdk.py            @getsentry/team-web-sdk-backend
 
 ## End of SDK ##
 

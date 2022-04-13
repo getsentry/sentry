@@ -1,6 +1,8 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import OrganizationStore from 'sentry/stores/organizationStore';
+import {PersistedStoreProvider} from 'sentry/stores/persistedStore';
 import OnboardingController from 'sentry/views/onboarding/onboardingController';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
@@ -92,9 +94,12 @@ describe('OnboardingController', function () {
       },
     });
 
+    OrganizationStore.onUpdate(organization);
     const {container} = render(
       <OrganizationContext.Provider value={organization}>
-        <OnboardingController {...router} />
+        <PersistedStoreProvider>
+          <OnboardingController {...router} />
+        </PersistedStoreProvider>
       </OrganizationContext.Provider>,
       {
         context: routerContext,
