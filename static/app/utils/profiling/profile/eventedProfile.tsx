@@ -17,7 +17,7 @@ export class EventedProfile extends Profile {
   ): EventedProfile {
     const profile = new EventedProfile(
       eventedProfile.endValue - eventedProfile.startValue,
-      0,
+      eventedProfile.startValue,
       eventedProfile.endValue,
       eventedProfile.name,
       eventedProfile.unit

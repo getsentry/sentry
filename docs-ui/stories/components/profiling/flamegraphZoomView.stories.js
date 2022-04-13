@@ -24,15 +24,14 @@ export const EventedTrace = () => {
 };
 
 export const EventedTraceOnTransactionAxis = () => {
-  const max = Math.max(eventedProfiles.profiles.map(p => p.duration));
-  const min = Math.max(eventedProfiles.profiles.map(p => p.startedAt));
-  const transaction = new Rect(min, 0, max, 0);
+  const max = Math.max(...eventedProfiles.profiles.map(p => p.duration));
+  const configSpace = new Rect(0, 0, max, 0);
 
   return (
     <FlamegraphStateProvider>
       <FlamegraphThemeProvider>
         <FullScreenFlamegraphContainer>
-          <Flamegraph profiles={eventedProfiles} transaction={transaction} />
+          <Flamegraph profiles={eventedProfiles} configSpace={configSpace} />
         </FullScreenFlamegraphContainer>
       </FlamegraphThemeProvider>
     </FlamegraphStateProvider>
@@ -47,6 +46,21 @@ export const SampledTrace = () => {
       <FlamegraphThemeProvider>
         <FullScreenFlamegraphContainer>
           <Flamegraph profiles={sampledTrace} />
+        </FullScreenFlamegraphContainer>
+      </FlamegraphThemeProvider>
+    </FlamegraphStateProvider>
+  );
+};
+
+export const SampledTraceOnTransactionAxis = () => {
+  const max = Math.max(...sampledTrace.profiles.map(p => p.duration));
+  const configSpace = new Rect(0, 0, max, 0);
+
+  return (
+    <FlamegraphStateProvider>
+      <FlamegraphThemeProvider>
+        <FullScreenFlamegraphContainer>
+          <Flamegraph profiles={sampledTrace} configSpace={configSpace} />
         </FullScreenFlamegraphContainer>
       </FlamegraphThemeProvider>
     </FlamegraphStateProvider>

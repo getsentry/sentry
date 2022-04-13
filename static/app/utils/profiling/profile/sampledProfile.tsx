@@ -12,7 +12,7 @@ export class SampledProfile extends Profile {
   ): Profile {
     const profile = new SampledProfile(
       sampledProfile.endValue - sampledProfile.startValue,
-      0,
+      sampledProfile.startValue,
       sampledProfile.endValue,
       sampledProfile.name,
       sampledProfile.unit

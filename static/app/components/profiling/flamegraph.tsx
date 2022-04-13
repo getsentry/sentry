@@ -19,7 +19,7 @@ import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 
 interface FlamegraphProps {
   profiles: ProfileGroup;
-  transaction?: Rect;
+  configSpace?: Rect;
 }
 
 function Flamegraph(props: FlamegraphProps): ReactElement {
@@ -46,22 +46,21 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       }
     );
 
-    // if (
-    //   props.transaction &&
-    //   props.transaction.containsRect(flamegraphModel.configSpace)
-    // ) {
-    //   flamegraphModel.setConfigSpace(
-    //     new Rect(
-    //       props.transaction.x,
-    //       flamegraphModel.configSpace.y,
-    //       props.transaction.width,
-    //       flamegraphModel.configSpace.height
-    //     )
-    //   );
-    // }
+    if (props.configSpace) {
+      flamegraphModel.setConfigSpace(
+        new Rect(
+          props.configSpace.x,
+          flamegraphModel.configSpace.y,
+          props.configSpace.width,
+          flamegraphModel.configSpace.height
+        )
+      );
+
+      flamegraphModel.translateFrames(profiles.profiles[profileIndex].startedAt);
+    }
 
     return flamegraphModel;
-  }, [profiles, activeProfileIndex, sorting, view, props.transaction]);
+  }, [profiles, activeProfileIndex, sorting, view, props.configSpace]);
 
   const onImport = useCallback((profile: ProfileGroup) => {
     setActiveProfileIndex(null);

@@ -16,7 +16,6 @@ export class Flamegraph {
   leftHeavy?: boolean = false;
 
   depth = 0;
-  duration = 0;
   configSpace: Rect = new Rect(0, 0, 0, 0);
 
   formatter: (value: number) => string;
@@ -64,8 +63,8 @@ export class Flamegraph {
       this.depth
     );
 
-    if (this.duration) {
-      this.configSpace = new Rect(0, 0, this.duration, this.depth);
+    if (this.profile.duration) {
+      this.configSpace = new Rect(0, 0, this.profile.duration, this.depth);
     }
   }
 
@@ -191,20 +190,16 @@ export class Flamegraph {
     return frames;
   }
 
-  withOffset(offset: number): Flamegraph {
-    const mutateFrame = (frame: FlamegraphFrame) => {
+  translateFrames(offset: number): Flamegraph {
+    const offsetFrame = (frame: FlamegraphFrame) => {
       frame.start = offset + frame.start;
       frame.end = offset + frame.end;
-
-      return frame;
     };
 
-    const visit = (frame: FlamegraphFrame): void => {
-      mutateFrame(frame);
-    };
+    const visit = (frame: FlamegraphFrame): void => offsetFrame(frame);
 
-    for (const frame of this.frames) {
-      visit(frame);
+    for (let i = 0; i < this.frames.length; i++) {
+      visit(this.frames[i]);
     }
 
     return this;
