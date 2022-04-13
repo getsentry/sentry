@@ -284,6 +284,7 @@ type StyledHovercardProps = {
 };
 
 const StyledHovercard = styled('div')<StyledHovercardProps>`
+  position: relative;
   border-radius: ${p => p.theme.borderRadius};
   text-align: left;
   padding: 0;
@@ -335,10 +336,10 @@ const HovercardArrow = styled('span')<HovercardArrowProps>`
   position: absolute;
   width: 20px;
   height: 20px;
-  right: ${p => (p.placement === 'left' ? '-3px' : 'auto')};
-  left: ${p => (p.placement === 'right' ? '-3px' : 'auto')};
-  bottom: ${p => (p.placement === 'top' ? '-3px' : 'auto')};
-  top: ${p => (p.placement === 'bottom' ? '-3px' : 'auto')};
+  right: ${p => (p.placement === 'left' ? '-20px' : 'auto')};
+  left: ${p => (p.placement === 'right' ? '-20px' : 'auto')};
+  bottom: ${p => (p.placement === 'top' ? '-20px' : 'auto')};
+  top: ${p => (p.placement === 'bottom' ? '-20px' : 'auto')};
 
   &::before,
   &::after {
