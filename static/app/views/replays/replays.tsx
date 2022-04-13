@@ -8,8 +8,10 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import PageHeading from 'sentry/components/pageHeading';
 import {PanelTable} from 'sentry/components/panels';
 import TimeSince from 'sentry/components/timeSince';
+import {IconCalendar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageContent, PageHeader} from 'sentry/styles/organization';
+import space from 'sentry/styles/space';
 import {NewQuery, Organization, PageFilters} from 'sentry/types';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -68,7 +70,12 @@ class Replays extends React.Component<Props> {
           <span>{replay.user}</span>
         </div>
         <div>
-          <TimeSince date={replay.timestamp} />
+          <TimeSinceWrapper>
+            <StyledIconCalendarWrapper>
+              <IconCalendar color="gray500" size="sm" />
+            </StyledIconCalendarWrapper>
+            <TimeSince date={replay.timestamp} />
+          </TimeSinceWrapper>
         </div>
       </React.Fragment>
     ));
@@ -120,6 +127,18 @@ const HeaderTitle = styled(PageHeading)`
   align-items: center;
   justify-content: space-between;
   flex: 1;
+`;
+
+const TimeSinceWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
+const StyledIconCalendarWrapper = styled('span')`
+  display: flex;
+  margin-right: ${space(1.5)};
+  position: relative;
+  top: -1px;
 `;
 
 export default withRouter(withPageFilters(withOrganization(Replays)));
