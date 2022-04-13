@@ -4,9 +4,11 @@ import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesFo
 import {t} from 'sentry/locale';
 import {Organization, TagCollection} from 'sentry/types';
 import {
+  aggregateFunctionOutputType,
   aggregateOutputType,
   getAggregateAlias,
   isLegalYAxisType,
+  stripDerivedMetricsPrefix,
 } from 'sentry/utils/discover/fields';
 import {MeasurementCollection} from 'sentry/utils/measurements/measurements';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
@@ -16,6 +18,8 @@ import {
   WidgetQuery,
   WidgetType,
 } from 'sentry/views/dashboardsV2/types';
+import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
+import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
@@ -24,6 +28,9 @@ import {FlatValidationError, ValidationError} from '../utils';
 // Used in the widget builder to limit the number of lines plotted in the chart
 export const DEFAULT_RESULTS_LIMIT = 5;
 export const RESULTS_LIMIT = 10;
+
+// Both dashboards and widgets use the 'new' keyword when creating
+export const NEW_DASHBOARD_ID = 'new';
 
 export enum DataSet {
   EVENTS = 'events',
@@ -119,8 +126,13 @@ export function normalizeQueries({
         query.fields = fields.filter(field => !columns.includes(field));
       }
 
+      const queryOrderBy =
+        widgetType === WidgetType.METRICS
+          ? stripDerivedMetricsPrefix(queries[0].orderby)
+          : queries[0].orderby;
+
       const orderBy =
-        getAggregateAlias(queries[0].orderby) ||
+        getAggregateAlias(queryOrderBy) ||
         (widgetType === WidgetType.ISSUE
           ? IssueSortOptions.DATE
           : generateOrderOptions({
@@ -281,3 +293,48 @@ export const MAX_SEARCH_ITEMS = 5;
 
 // Used to set the max height of the smartSearchBar menu
 export const MAX_MENU_HEIGHT = 250;
+
+// Any function/field choice for Big Number widgets is legal since the
+// data source is from an endpoint that is not timeseries-based.
+// The function/field choice for World Map widget will need to be numeric-like.
+// Column builder for Table widget is already handled above.
+export function doNotValidateYAxis(displayType: DisplayType) {
+  return displayType === DisplayType.BIG_NUMBER;
+}
+
+export function filterPrimaryOptions({
+  option,
+  widgetType,
+  displayType,
+}: {
+  displayType: DisplayType;
+  option: FieldValueOption;
+  widgetType?: WidgetType;
+}) {
+  if (widgetType === WidgetType.METRICS) {
+    if (displayType === DisplayType.TABLE) {
+      return [
+        FieldValueKind.FUNCTION,
+        FieldValueKind.TAG,
+        FieldValueKind.NUMERIC_METRICS,
+      ].includes(option.value.kind);
+    }
+    if (displayType === DisplayType.TOP_N) {
+      return option.value.kind === FieldValueKind.TAG;
+    }
+  }
+
+  // Only validate function names for timeseries widgets and
+  // world map widgets.
+  if (!doNotValidateYAxis(displayType) && option.value.kind === FieldValueKind.FUNCTION) {
+    const primaryOutput = aggregateFunctionOutputType(option.value.meta.name, undefined);
+    if (primaryOutput) {
+      // If a function returns a specific type, then validate it.
+      return isLegalYAxisType(primaryOutput);
+    }
+  }
+
+  return [FieldValueKind.FUNCTION, FieldValueKind.NUMERIC_METRICS].includes(
+    option.value.kind
+  );
+}

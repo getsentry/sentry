@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import type {eventWithTime} from 'rrweb/typings/types';
 
 import {IssueAttachment} from 'sentry/types';
@@ -71,7 +71,9 @@ type Options = {
   orgId: string;
 };
 
-interface Result extends State {}
+interface Result extends State {
+  onRetry: () => void;
+}
 
 const IS_RRWEB_ATTACHMENT_FILENAME = /rrweb-[0-9]{13}.json/;
 function isRRWebEventAttachment(attachment: IssueAttachment) {
@@ -82,6 +84,7 @@ function useReplayEvent({eventSlug, location, orgId}: Options): Result {
   const [projectId, eventId] = eventSlug.split(':');
 
   const api = useApi();
+  const [retry, setRetry] = useState(false);
   const [state, setState] = useState<State>({
     fetchError: undefined,
     fetching: true,
@@ -146,6 +149,7 @@ function useReplayEvent({eventSlug, location, orgId}: Options): Result {
   }
 
   async function loadEvents() {
+    setRetry(false);
     setState({
       fetchError: undefined,
       fetching: true,
@@ -204,11 +208,16 @@ function useReplayEvent({eventSlug, location, orgId}: Options): Result {
     }
   }
 
-  useEffect(() => void loadEvents(), [orgId, eventSlug]);
+  useEffect(() => void loadEvents(), [orgId, eventSlug, retry]);
+
+  const onRetry = useCallback(() => {
+    setRetry(true);
+  }, []);
 
   return {
     fetchError: state.fetchError,
     fetching: state.fetching,
+    onRetry,
 
     breadcrumbEntry: state.breadcrumbEntry,
     event: state.event,
