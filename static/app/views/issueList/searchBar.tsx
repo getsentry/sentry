@@ -55,6 +55,10 @@ type Props = React.ComponentProps<typeof SmartSearchBar> & {
   organization: Organization;
   sort: string;
   tagValueLoader: TagValueLoader;
+  /**
+   * Used to define the max height of the menu in px.
+   */
+  maxMenuHeight?: number;
   projectIds?: string[];
   savedSearch?: SavedSearch;
 };
