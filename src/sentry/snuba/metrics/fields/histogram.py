@@ -1,3 +1,4 @@
+import math
 from typing import List, Optional, Tuple
 
 import sentry_sdk
@@ -59,7 +60,7 @@ def rebucket_histogram(
                 rv_height = overlap_perc * height
                 rv[lower_target, upper_target] += rv_height
 
-    return [(lower, upper, height) for (lower, upper), height in rv.items()]
+    return [(lower, upper, math.ceil(height)) for (lower, upper), height in rv.items()]
 
 
 def zoom_histogram(

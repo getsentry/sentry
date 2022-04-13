@@ -2232,7 +2232,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             histogramFrom="2",
         )
 
-        hist = [(2.0, 4.0, 2.0), (4.0, 6.0, 2.5)]
+        hist = [(2.0, 4.0, 2), (4.0, 6.0, 3)]
 
         assert response.data["groups"] == [
             {
@@ -2291,7 +2291,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             histogramBuckets="2",
             histogramFrom="2",
         )
-        hist = [(2.0, 5.5, 3.5), (5.5, 9.0, 4.0)]
+        hist = [(2.0, 5.5, 4), (5.5, 9.0, 4)]
         assert response.data["groups"] == [
             {
                 "by": {},
@@ -2309,7 +2309,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             histogramBuckets="2",
             histogramFrom="2",
         )
-        hist = [(2.0, 4.0, 2.0), (4.0, 6.0, 2.5)]
+        hist = [(2.0, 4.0, 2), (4.0, 6.0, 3)]
         assert response.data["groups"] == [
             {
                 "by": {},
