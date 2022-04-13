@@ -9,7 +9,6 @@ export const SELECTOR_RELATIVE_PERIODS = {
   [TimePeriod.ONE_DAY]: t('Last 24 hours'),
   [TimePeriod.THREE_DAYS]: t('Last 3 days'),
   [TimePeriod.SEVEN_DAYS]: t('Last 7 days'),
-  [TimePeriod.FOURTEEN_DAYS]: t('Last 14 days'),
 };
 
 export const TIME_OPTIONS: SelectValue<string>[] = [

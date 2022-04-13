@@ -154,6 +154,10 @@ export default class DetailsBody extends React.Component<Props> {
     const {query, dataset} = rule;
 
     const queryWithTypeFilter = `${query} ${extractEventTypeFilterFromRule(rule)}`.trim();
+    const relativeOptions = {
+      ...SELECTOR_RELATIVE_PERIODS,
+      ...(rule.timeWindow > 1 ? {[TimePeriod.FOURTEEN_DAYS]: t('Last 14 days')} : {}),
+    };
 
     return (
       <React.Fragment>
@@ -176,8 +180,8 @@ export default class DetailsBody extends React.Component<Props> {
               end={(timePeriod.custom && timePeriod.end) || null}
               utc={null}
               onUpdate={this.handleTimePeriodChange}
-              relativeOptions={SELECTOR_RELATIVE_PERIODS}
-              hideUTCPicker
+              relativeOptions={relativeOptions}
+              showAbsolute={false}
             />
 
             <MetricChart
