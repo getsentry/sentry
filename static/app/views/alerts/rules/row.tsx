@@ -18,7 +18,7 @@ import {IconArrow, IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
-import {Actor, Organization, Project} from 'sentry/types';
+import {Actor, Project} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import type {Color} from 'sentry/utils/theme';
 import {
@@ -32,7 +32,6 @@ import {isIssueAlert} from '../utils';
 type Props = {
   onDelete: (projectId: string, rule: CombinedMetricIssueAlerts) => void;
   orgId: string;
-  organization: Organization;
   projects: Project[];
   projectsLoaded: boolean;
   rule: CombinedMetricIssueAlerts;
@@ -49,7 +48,6 @@ const getProject = memoize((slug: string, projects: Project[]) =>
 
 function RuleListRow({
   rule,
-  organization,
   projectsLoaded,
   projects,
   orgId,
@@ -154,18 +152,12 @@ function RuleListRow({
     : null;
 
   const canEdit = ownerId ? userTeams.has(ownerId) : true;
-  const hasAlertRuleStatusPage = organization.features.includes('alert-rule-status-page');
-  // TODO(workflow): Refactor when removing alert-rule-status-page flag
   const alertLink = isIssueAlert(rule) ? (
-    hasAlertRuleStatusPage ? (
-      <Link
-        to={`/organizations/${orgId}/alerts/rules/${rule.projects[0]}/${rule.id}/details/`}
-      >
-        {rule.name}
-      </Link>
-    ) : (
-      rule.name
-    )
+    <Link
+      to={`/organizations/${orgId}/alerts/rules/${rule.projects[0]}/${rule.id}/details/`}
+    >
+      {rule.name}
+    </Link>
   ) : (
     <TitleLink to={isIssueAlert(rule) ? editLink : detailsLink}>{rule.name}</TitleLink>
   );

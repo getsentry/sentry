@@ -18,7 +18,7 @@ from django.views.generic import View
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import eventstore, features
+from sentry import eventstore
 from sentry.app import tsdb
 from sentry.constants import LOG_LEVELS
 from sentry.digests import Record
@@ -293,7 +293,6 @@ def alert(request):
             "interfaces": interface_list,
             "tags": event.tags,
             "project_label": project.slug,
-            "alert_status_page_enabled": features.has("organizations:alert-rule-status-page", org),
             "commits": [
                 {
                     # TODO(dcramer): change to use serializer
