@@ -763,7 +763,10 @@ def fetch_sourcemap(url, project=None, release=None, dist=None, allow_scraping=T
             )
         body = result.body
     try:
-        return SourceMapView.from_json_bytes(body)
+        with sentry_sdk.start_span(
+            op="JavaScriptStacktraceProcessor.fetch_sourcemap.SourceMapView.from_json_bytes"
+        ):
+            return SourceMapView.from_json_bytes(body)
     except Exception as exc:
         # This is in debug because the product shows an error already.
         logger.debug(str(exc), exc_info=True)
@@ -1214,13 +1217,18 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             cache.add_error(filename, exc.data)
             return
 
-        sourcemaps.add(sourcemap_url, sourcemap_view)
+        with sentry_sdk.start_span(
+            op="JavaScriptStacktraceProcessor.cache_source.cache_sourcemap_view"
+        ) as span:
+            span.set_data("source_count", sourcemap_view.source_count)
 
-        # cache any inlined sources
-        for src_id, source_name in sourcemap_view.iter_sources():
-            source_view = sourcemap_view.get_sourceview(src_id)
-            if source_view is not None:
-                self.cache.add(non_standard_url_join(sourcemap_url, source_name), source_view)
+            sourcemaps.add(sourcemap_url, sourcemap_view)
+
+            # cache any inlined sources
+            for src_id, source_name in sourcemap_view.iter_sources():
+                source_view = sourcemap_view.get_sourceview(src_id)
+                if source_view is not None:
+                    self.cache.add(non_standard_url_join(sourcemap_url, source_name), source_view)
 
     def populate_source_cache(self, frames):
         """
