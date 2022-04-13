@@ -13,6 +13,10 @@ const COMPONENT_MAP = {
     import(/* webpackChunkName: "SetupWizard" */ 'sentry/views/setupWizard'),
   [SentryInitRenderReactComponent.U2F_SIGN]: () =>
     import(/* webpackChunkName: "U2fSign" */ 'sentry/components/u2f/u2fsign'),
+  [SentryInitRenderReactComponent.SU_ACCESS_FORM]: () =>
+    import(
+      /* webpackChunkName: "SuperuserAccessForm" */ 'sentry/components/superuserAccessForm'
+    ),
 };
 
 async function processItem(initConfig: OnSentryInitConfiguration) {
