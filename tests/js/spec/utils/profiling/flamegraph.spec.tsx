@@ -85,10 +85,6 @@ describe('flamegraph', () => {
 
     expect(flamegraph.duration).toBe(1000);
     expect(flamegraph.profileIndex).toBe(10);
-    expect(flamegraph.name).toBe('profile');
-
-    expect(flamegraph.startedAt).toBe(0);
-    expect(flamegraph.endedAt).toBe(1000);
   });
 
   it('creates a call order graph', () => {

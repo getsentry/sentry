@@ -21,6 +21,7 @@ describe('importProfile', () => {
       {
         name: 'profile',
         activeProfileIndex: 0,
+        duration_ns: 0,
         profiles: [eventedProfile],
         shared: {
           frames: [],
@@ -46,6 +47,7 @@ describe('importProfile', () => {
       {
         name: 'profile',
         activeProfileIndex: 0,
+        duration_ns: 0,
         profiles: [sampledProfile],
         shared: {
           frames: [],
@@ -80,6 +82,7 @@ describe('importProfile', () => {
       {
         name: 'profile',
         activeProfileIndex: 0,
+        duration_ns: 0,
         profiles: [jsSelfProfile],
         shared: {
           frames: [],
@@ -179,6 +182,7 @@ describe('importDroppedProfile', () => {
     const schema: Profiling.Schema = {
       name: 'profile',
       activeProfileIndex: 0,
+      duration_ns: 0,
       profiles: [
         {
           name: 'profile',

@@ -10,10 +10,7 @@ export class Flamegraph {
   profile: Profile;
   frames: FlamegraphFrame[] = [];
 
-  name: string;
   profileIndex: number;
-  startedAt: number;
-  endedAt: number;
 
   inverted?: boolean = false;
   leftHeavy?: boolean = false;
@@ -25,6 +22,17 @@ export class Flamegraph {
   formatter: (value: number) => string;
   frameIndex: Record<string, FlamegraphFrame> = {};
 
+  static Empty(): Flamegraph {
+    return new Flamegraph(Profile.Empty(), 0, {
+      inverted: false,
+      leftHeavy: false,
+    });
+  }
+
+  static From(from: Flamegraph, {inverted = false, leftHeavy = false}): Flamegraph {
+    return new Flamegraph(from.profile, from.profileIndex, {inverted, leftHeavy});
+  }
+
   constructor(
     profile: Profile,
     profileIndex: number,
@@ -35,13 +43,7 @@ export class Flamegraph {
 
     // @TODO check if we can not keep a reference to the profile
     this.profile = profile;
-
-    this.duration = profile.duration;
     this.profileIndex = profileIndex;
-    this.name = profile.name;
-
-    this.startedAt = profile.startedAt;
-    this.endedAt = profile.endedAt;
 
     this.frames = leftHeavy
       ? this.buildLeftHeavyGraph(profile)
@@ -49,33 +51,22 @@ export class Flamegraph {
 
     this.formatter = makeFormatter(profile.unit);
 
+    // If the profile duration is 0, set the flamegraph duration
+    // to 1 second so we can render a placeholder grid
+    this.configSpace = new Rect(
+      0,
+      0,
+      this.profile.unit === 'microseconds'
+        ? 1e6
+        : this.profile.unit === 'milliseconds'
+        ? 1e3
+        : 1,
+      this.depth
+    );
+
     if (this.duration) {
       this.configSpace = new Rect(0, 0, this.duration, this.depth);
-    } else {
-      // If the profile duration is 0, set the flamegraph duration
-      // to 1 second so we can render a placeholder grid
-      this.configSpace = new Rect(
-        this.startedAt,
-        0,
-        this.profile.unit === 'microseconds'
-          ? 1e6
-          : this.profile.unit === 'milliseconds'
-          ? 1e3
-          : 1,
-        this.depth
-      );
     }
-  }
-
-  static Empty(): Flamegraph {
-    return new Flamegraph(Profile.Empty(), 0, {
-      inverted: false,
-      leftHeavy: false,
-    });
-  }
-
-  static From(from: Flamegraph, {inverted = false, leftHeavy = false}): Flamegraph {
-    return new Flamegraph(from.profile, from.profileIndex, {inverted, leftHeavy});
   }
 
   buildCallOrderGraph(profile: Profile): FlamegraphFrame[] {
