@@ -506,24 +506,22 @@ class Results extends React.Component<Props, State> {
               {incompatibleAlertNotice && <Top fullWidth>{incompatibleAlertNotice}</Top>}
               <Top fullWidth>
                 {this.renderError(error)}
-                <FilterSection>
-                  {hasPageFilters && (
-                    <StyledPageFilterBar>
-                      <ProjectPageFilter />
-                      <EnvironmentPageFilter />
-                      <DatePageFilter />
-                    </StyledPageFilterBar>
-                  )}
-                  <StyledSearchBar
-                    searchSource="eventsv2"
-                    organization={organization}
-                    projectIds={eventView.project}
-                    query={query}
-                    fields={fields}
-                    onSearch={this.handleSearch}
-                    maxQueryLength={MAX_QUERY_LENGTH}
-                  />
-                </FilterSection>
+                {hasPageFilters && (
+                  <StyledPageFilterBar>
+                    <ProjectPageFilter />
+                    <EnvironmentPageFilter />
+                    <DatePageFilter />
+                  </StyledPageFilterBar>
+                )}
+                <StyledSearchBar
+                  searchSource="eventsv2"
+                  organization={organization}
+                  projectIds={eventView.project}
+                  query={query}
+                  fields={fields}
+                  onSearch={this.handleSearch}
+                  maxQueryLength={MAX_QUERY_LENGTH}
+                />
                 <ResultsChart
                   router={router}
                   organization={organization}
@@ -586,23 +584,14 @@ const StyledPageContent = styled(PageContent)`
   padding: 0;
 `;
 
-const FilterSection = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  margin-bottom: ${space(1)};
-`;
-
 const StyledPageFilterBar = styled(PageFilterBar)`
   max-width: 100%;
   width: max-content;
-  margin-right: ${space(1)};
   margin-bottom: ${space(1)};
 `;
 
 const StyledSearchBar = styled(SearchBar)`
-  flex: 1;
-  flex-basis: 600px;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${space(2)};
 `;
 
 const Top = styled(Layout.Main)`
