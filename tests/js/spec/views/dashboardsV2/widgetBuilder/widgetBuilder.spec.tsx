@@ -1574,6 +1574,30 @@ describe('WidgetBuilder', function () {
         );
       });
     });
+
+    it.only('allows for sorting by a custom equation', async function () {
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        query: {
+          source: DashboardWidgetSource.DASHBOARDS,
+          displayType: DisplayType.LINE,
+        },
+      });
+
+      expect(await screen.findByText('Sort by a y-axis')).toBeInTheDocument();
+
+      expect(await screen.findAllByText('count()')).toHaveLength(2);
+
+      await selectEvent.select(screen.getAllByText('count()')[1], 'Custom Equation');
+
+      expect(screen.getByText('Enter Equation')).toBeInTheDocument();
+
+      userEvent.paste(screen.getByText('Enter Equation'), 'count_unique(user) * 2');
+
+      await waitFor(() => {
+        expect(eventsStatsMock).toHaveBeenCalledWith();
+      });
+    });
   });
 
   describe('Widget creation coming from other verticals', function () {
