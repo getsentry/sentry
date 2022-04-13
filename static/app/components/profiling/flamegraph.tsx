@@ -43,21 +43,9 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       {
         inverted: view === 'bottom up',
         leftHeavy: sorting === 'left heavy',
-      }
+      },
+      props.configSpace
     );
-
-    if (props.configSpace) {
-      flamegraphModel.setConfigSpace(
-        new Rect(
-          props.configSpace.x,
-          flamegraphModel.configSpace.y,
-          props.configSpace.width,
-          flamegraphModel.configSpace.height
-        )
-      );
-
-      flamegraphModel.translateFrames(profiles.profiles[profileIndex].startedAt);
-    }
 
     return flamegraphModel;
   }, [profiles, activeProfileIndex, sorting, view, props.configSpace]);

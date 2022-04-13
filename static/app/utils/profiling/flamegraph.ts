@@ -35,7 +35,8 @@ export class Flamegraph {
   constructor(
     profile: Profile,
     profileIndex: number,
-    {inverted = false, leftHeavy = false}: {inverted?: boolean; leftHeavy?: boolean} = {}
+    {inverted = false, leftHeavy = false}: {inverted?: boolean; leftHeavy?: boolean} = {},
+    configSpace?: Rect
   ) {
     this.inverted = inverted;
     this.leftHeavy = leftHeavy;
@@ -44,9 +45,10 @@ export class Flamegraph {
     this.profile = profile;
     this.profileIndex = profileIndex;
 
+    // If a custom config space is provided, use it and draw the chart in it
     this.frames = leftHeavy
-      ? this.buildLeftHeavyGraph(profile)
-      : this.buildCallOrderGraph(profile);
+      ? this.buildLeftHeavyGraph(profile, configSpace ? this.profile.startedAt : 0)
+      : this.buildCallOrderGraph(profile, configSpace ? this.profile.startedAt : 0);
 
     this.formatter = makeFormatter(profile.unit);
 
@@ -68,7 +70,7 @@ export class Flamegraph {
     }
   }
 
-  buildCallOrderGraph(profile: Profile): FlamegraphFrame[] {
+  buildCallOrderGraph(profile: Profile, offset: number): FlamegraphFrame[] {
     const frames: FlamegraphFrame[] = [];
     const stack: FlamegraphFrame[] = [];
 
@@ -84,8 +86,8 @@ export class Flamegraph {
         parent,
         children: [],
         depth: 0,
-        start: value,
-        end: value,
+        start: offset + value,
+        end: offset + value,
       };
 
       if (parent) {
@@ -104,7 +106,7 @@ export class Flamegraph {
         throw new Error('Unbalanced stack');
       }
 
-      stackTop.end = value;
+      stackTop.end = offset + value;
       stackTop.depth = stack.length;
 
       if (stackTop.end - stackTop.start === 0) {
@@ -119,7 +121,7 @@ export class Flamegraph {
     return frames;
   }
 
-  buildLeftHeavyGraph(profile: Profile): FlamegraphFrame[] {
+  buildLeftHeavyGraph(profile: Profile, offset: number): FlamegraphFrame[] {
     const frames: FlamegraphFrame[] = [];
     const stack: FlamegraphFrame[] = [];
 
@@ -140,8 +142,8 @@ export class Flamegraph {
         parent,
         children: [],
         depth: 0,
-        start: value,
-        end: value,
+        start: offset + value,
+        end: offset + value,
       };
 
       if (parent) {
@@ -159,7 +161,7 @@ export class Flamegraph {
         throw new Error('Unbalanced stack');
       }
 
-      stackTop.end = value;
+      stackTop.end = offset + value;
       stackTop.depth = stack.length;
 
       // Dont draw 0 width frames
@@ -188,21 +190,6 @@ export class Flamegraph {
     }
     visit(profile.appendOrderTree, 0);
     return frames;
-  }
-
-  translateFrames(offset: number): Flamegraph {
-    const offsetFrame = (frame: FlamegraphFrame) => {
-      frame.start = offset + frame.start;
-      frame.end = offset + frame.end;
-    };
-
-    const visit = (frame: FlamegraphFrame): void => offsetFrame(frame);
-
-    for (let i = 0; i < this.frames.length; i++) {
-      visit(this.frames[i]);
-    }
-
-    return this;
   }
 
   setConfigSpace(configSpace: Rect): Flamegraph {
