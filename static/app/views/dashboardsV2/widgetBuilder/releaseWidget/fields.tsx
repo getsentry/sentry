@@ -71,6 +71,7 @@ export const SESSIONS_OPERATIONS: Readonly<
 };
 
 export const SESSIONS_TAGS = ['environment', 'project', 'release', 'session.status'];
+export const SESSIONS_STATUSES = ['all', 'healthy', 'abnormal', 'crashed', 'errored'];
 
 export function generateReleaseWidgetFieldOptions(
   fields: SessionsMeta[] = Object.keys(SESSIONS_FIELDS).map(key => SESSIONS_FIELDS[key]),
