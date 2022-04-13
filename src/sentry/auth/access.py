@@ -26,8 +26,7 @@ from sentry.models import (
     UserPermission,
     UserRole,
 )
-from sentry.roles import organization_roles
-from sentry.roles.manager import OrganizationRole, TeamRole
+from sentry.roles.manager import TeamRole
 from sentry.utils.request_cache import request_cache
 
 
@@ -154,9 +153,6 @@ class Access(abc.ABC):
         >>> access.has_project('org:read')
         """
         return scope in self.scopes
-
-    def get_organization_role(self) -> Optional[OrganizationRole]:
-        return self.role and organization_roles.get(self.role)
 
     def has_team(self, team: Team) -> bool:
         warnings.warn("has_team() is deprecated in favor of has_team_access", DeprecationWarning)
