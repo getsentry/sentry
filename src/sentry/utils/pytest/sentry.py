@@ -156,6 +156,8 @@ def pytest_configure(config):
         }
     )
 
+    settings.VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = False
+
     # Plugin-related settings
     settings.ASANA_CLIENT_ID = "abc"
     settings.ASANA_CLIENT_SECRET = "123"
