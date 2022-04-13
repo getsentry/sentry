@@ -12,11 +12,12 @@ import {Series} from 'sentry/types/echarts';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {stripDerivedMetricsPrefix} from 'sentry/utils/discover/fields';
 import {TOP_N} from 'sentry/utils/discover/types';
-import {transformMetricsResponseToSeries} from 'sentry/utils/metrics/transformMetricsResponseToSeries';
-import {transformMetricsResponseToTable} from 'sentry/utils/metrics/transformMetricsResponseToTable';
 
 import {DEFAULT_TABLE_LIMIT, DisplayType, Widget} from '../types';
 import {getWidgetInterval} from '../utils';
+
+import {transformSessionsResponseToSeries} from './transformMetricsResponseToSeries';
+import {transformSessionsResponseToTable} from './transformMetricsResponseToTable';
 
 type Props = {
   api: Client;
@@ -113,7 +114,7 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
         return {
           ...prevState,
           timeseriesResults: prevState.rawResults?.flatMap((rawResult, index) =>
-            transformMetricsResponseToSeries(rawResult, widget.queries[index].name)
+            transformSessionsResponseToSeries(rawResult, widget.queries[index].name)
           ),
         };
       });
@@ -195,7 +196,7 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
 
           // Transform to fit the table format
           if ([DisplayType.TABLE, DisplayType.BIG_NUMBER].includes(widget.displayType)) {
-            const tableData = transformMetricsResponseToTable(
+            const tableData = transformSessionsResponseToTable(
               response
             ) as TableDataWithTitle; // Cast so we can add the title.
             tableData.title = widget.queries[requestIndex]?.name ?? '';
@@ -208,7 +209,7 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
 
           // Transform to fit the chart format
           const timeseriesResults = [...(prevState.timeseriesResults ?? [])];
-          const transformedResult = transformMetricsResponseToSeries(
+          const transformedResult = transformSessionsResponseToSeries(
             response,
             widget.queries[requestIndex].name
           );

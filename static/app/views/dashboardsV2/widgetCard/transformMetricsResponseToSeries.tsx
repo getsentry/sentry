@@ -1,8 +1,8 @@
-import {MetricsApiResponse} from 'sentry/types';
+import {SessionApiResponse} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 
-export function transformMetricsResponseToSeries(
-  response: MetricsApiResponse | null,
+export function transformSessionsResponseToSeries(
+  response: SessionApiResponse | null,
   queryAlias?: string
 ): Series[] {
   return (

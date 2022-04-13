@@ -1,21 +1,19 @@
-import {MetricsApiResponse} from 'sentry/types';
-
-import {TableData} from '../discover/discoverQuery';
-import {getAggregateArg} from '../discover/fields';
-
-import {METRIC_TO_COLUMN_TYPE} from './fields';
+import {SessionApiResponse} from 'sentry/types';
+import {TableData} from 'sentry/utils/discover/discoverQuery';
+import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import {SESSIONS_TAGS} from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
 
 function changeObjectValuesToTypes(
   obj: Record<string, number | string | null> | undefined
 ) {
   return Object.keys(obj ?? {}).reduce((acc, key) => {
-    acc[key] = METRIC_TO_COLUMN_TYPE[getAggregateArg(key) ?? key] ?? 'string';
+    acc[key] = SESSIONS_TAGS.includes(key) ? 'string' : aggregateOutputType(key);
     return acc;
   }, {});
 }
 
-export function transformMetricsResponseToTable(
-  response: MetricsApiResponse | null
+export function transformSessionsResponseToTable(
+  response: SessionApiResponse | null
 ): TableData {
   const data =
     response?.groups.map((group, index) => ({
