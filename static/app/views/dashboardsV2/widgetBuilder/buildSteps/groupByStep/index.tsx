@@ -27,9 +27,7 @@ export function GroupByStep({
   return (
     <BuildStep
       title={t('Group your results')}
-      description={t(
-        'This is how you can group your data result by tag or field. For a full list, read the docs.'
-      )}
+      description={t('This is how you can group your data result by field or tag.')}
     >
       {dataSet === DataSet.RELEASE ? (
         <ReleaseGroupBySelector columns={columns} onChange={onGroupByChange} />

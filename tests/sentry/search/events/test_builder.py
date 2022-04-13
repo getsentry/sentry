@@ -651,6 +651,11 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
             Condition(Column("org_id"), Op.EQ, self.organization.id),
         ]
 
+        for string in self.METRIC_STRINGS:
+            indexer.record(self.organization.id, string)
+
+        indexer.record(self.organization.id, "transaction")
+
     def setup_orderby_data(self):
         self.store_metric(
             100,
