@@ -28,14 +28,11 @@ function getSuspectSpanPayload(props: RequestProps) {
   const {spanOp, spanGroup} = props;
   const span =
     defined(spanOp) && defined(spanGroup) ? `${spanOp}:${spanGroup}` : undefined;
-  const payload = {span};
-  if (!defined(payload.span)) {
-    delete payload.span;
-  }
+  const payload = defined(span) ? {span} : {};
   const additionalPayload = omit(props.eventView.getEventsAPIPayload(props.location), [
     'field',
   ]);
-  return Object.assign(payload, additionalPayload);
+  return {...payload, ...additionalPayload};
 }
 
 function SuspectSpansQuery(props: Props) {
