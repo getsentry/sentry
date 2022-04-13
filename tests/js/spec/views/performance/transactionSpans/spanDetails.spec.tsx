@@ -414,8 +414,9 @@ describe('Performance > Transaction Spans > Span Summary', function () {
           name: /reset view/i,
         });
         resetButton.click();
-        expect(browserHistory.push).not.toHaveProperty('min');
-        expect(browserHistory.push).not.toHaveProperty('max');
+        expect(browserHistory.push).toHaveBeenCalledWith(
+          expect.not.objectContaining({min: expect.any(Number), max: expect.any(Number)})
+        );
       });
 
       it('does not add aggregate filters to the query', async function () {
