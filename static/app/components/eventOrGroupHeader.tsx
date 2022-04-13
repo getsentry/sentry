@@ -215,8 +215,7 @@ const Message = styled('div')`
 
 const IconWrapper = styled('span')`
   position: relative;
-  top: 2px;
-
+  display: flex;
   margin-right: 5px;
 `;
 

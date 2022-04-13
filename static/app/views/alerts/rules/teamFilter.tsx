@@ -7,6 +7,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import useTeams from 'sentry/utils/useTeams';
 
 import Filter from './filter';
@@ -15,6 +16,18 @@ type Props = {
   handleChangeFilter: (sectionId: string, activeFilters: Set<string>) => void;
   selectedTeams: Set<string>;
   selectedStatus?: Set<string>;
+  /**
+   * only show teams user is a member of
+   */
+  showIsMemberTeams?: boolean;
+  /**
+   * show My Teams and Unassigned options
+   */
+  showMyTeamsAndUnassigned?: boolean;
+  /**
+   * show My Teams as the default dropdown description
+   */
+  showMyTeamsDescription?: boolean;
   showStatus?: boolean;
 };
 
@@ -23,10 +36,14 @@ function TeamFilter({
   showStatus = false,
   selectedStatus = new Set(),
   handleChangeFilter,
+  showIsMemberTeams = false,
+  showMyTeamsAndUnassigned = true,
+  showMyTeamsDescription = false,
 }: Props) {
   const {teams, onSearch, fetching} = useTeams();
   const debouncedSearch = debounce(onSearch, DEFAULT_DEBOUNCE_DURATION);
   const [teamFilterSearch, setTeamFilterSearch] = useState<string | undefined>();
+  const isSuperuser = isActiveSuperuser();
 
   const statusOptions = [
     {
@@ -57,17 +74,21 @@ function TeamFilter({
       filtered: false,
     },
   ];
-  const teamItems = teams.map(({id, slug}) => ({
-    label: slug,
-    value: id,
-    filtered: teamFilterSearch
-      ? !slug.toLowerCase().includes(teamFilterSearch.toLowerCase())
-      : false,
-    checked: selectedTeams.has(id),
-  }));
+  const isMemberTeams = teams.filter(team => team.isMember);
+  const teamItems = (isSuperuser ? teams : showIsMemberTeams ? isMemberTeams : teams).map(
+    ({id, slug}) => ({
+      label: slug,
+      value: id,
+      filtered: teamFilterSearch
+        ? !slug.toLowerCase().includes(teamFilterSearch.toLowerCase())
+        : false,
+      checked: selectedTeams.has(id),
+    })
+  );
 
   return (
     <Filter
+      showMyTeamsDescription={showMyTeamsDescription}
       header={
         <InputWrapper>
           <StyledInput
@@ -100,7 +121,9 @@ function TeamFilter({
         {
           id: 'teams',
           label: t('Teams'),
-          items: [...additionalOptions, ...teamItems],
+          items: showMyTeamsAndUnassigned
+            ? [...additionalOptions, ...teamItems]
+            : [...teamItems],
         },
       ]}
     />
