@@ -46,7 +46,7 @@ MAX_AGE = getattr(settings, "SUPERUSER_MAX_AGE", timedelta(hours=4))
 
 # the maximum time the session can stay alive when accessing different orgs
 MAX_AGE_PRIVILEGED_ORG_ACCESS = getattr(
-    settings, "MAX_AGE_PRIVILEGED_ORG_ACCESS", timedelta(minutes=15)
+    settings, "MAX_AGE_PRIVILEGED_ORG_ACCESS", timedelta(hours=1)
 )
 
 # the maximum time the session can stay alive without making another request
