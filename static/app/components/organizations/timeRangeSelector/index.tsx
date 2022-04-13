@@ -131,11 +131,6 @@ type Props = WithRouterProps & {
   detached?: boolean;
 
   /**
-   * Option to hide UTC option
-   */
-  hideUTCPicker?: boolean;
-
-  /**
    * Small info icon with tooltip hint text
    */
   hint?: string;
@@ -400,7 +395,6 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
       detached,
       alignDropdown,
       showPin,
-      hideUTCPicker,
     } = this.props;
     const {start, end, relative} = this.state;
 
@@ -460,7 +454,6 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
                         end={end ?? null}
                         organization={organization}
                         showTimePicker
-                        hideUTCPicker={hideUTCPicker}
                         utc={this.state.utc}
                         onChange={this.handleSelectDateRange}
                         onChangeUtc={this.handleUseUtc}

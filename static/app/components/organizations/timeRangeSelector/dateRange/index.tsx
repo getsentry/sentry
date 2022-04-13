@@ -73,10 +73,6 @@ type Props = WithRouterProps & {
   theme: Theme;
 
   className?: string;
-  /**
-   * Should we have the option to hide UTC?
-   */
-  hideUTCPicker?: boolean;
 
   /**
    * Should we have a time selector?
@@ -182,15 +178,8 @@ class BaseDateRange extends React.Component<Props, State> {
   };
 
   render() {
-    const {
-      className,
-      maxPickableDays,
-      utc,
-      showTimePicker,
-      hideUTCPicker,
-      onChangeUtc,
-      theme,
-    } = this.props;
+    const {className, maxPickableDays, utc, showTimePicker, onChangeUtc, theme} =
+      this.props;
     const start = this.props.start ?? '';
     const end = this.props.end ?? '';
 
@@ -241,18 +230,16 @@ class BaseDateRange extends React.Component<Props, State> {
               onChangeStart={this.handleChangeStart}
               onChangeEnd={this.handleChangeEnd}
             />
-            {!hideUTCPicker && (
-              <UtcPicker>
-                {t('Use UTC')}
-                <Checkbox
-                  onChange={onChangeUtc}
-                  checked={utc || false}
-                  style={{
-                    margin: '0 0 0 0.5em',
-                  }}
-                />
-              </UtcPicker>
-            )}
+            <UtcPicker>
+              {t('Use UTC')}
+              <Checkbox
+                onChange={onChangeUtc}
+                checked={utc || false}
+                style={{
+                  margin: '0 0 0 0.5em',
+                }}
+              />
+            </UtcPicker>
           </TimeAndUtcPicker>
         )}
       </div>
