@@ -183,7 +183,7 @@ export const MENU_CLOSE_DELAY = 200;
 
 export const MAX_PICKABLE_DAYS = 90;
 
-export const DEFAULT_STATS_PERIOD = '7d';
+export const DEFAULT_STATS_PERIOD = '14d';
 
 export const DEFAULT_QUERY = 'is:unresolved';
 
