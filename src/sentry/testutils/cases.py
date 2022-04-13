@@ -1187,6 +1187,7 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
         "measurements.fcp": "metrics_distributions",
         "measurements.fid": "metrics_distributions",
         "measurements.cls": "metrics_distributions",
+        "spans.http": "metrics_distributions",
         "user": "metrics_sets",
     }
     METRIC_STRINGS = []

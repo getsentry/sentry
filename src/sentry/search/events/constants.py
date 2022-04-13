@@ -163,13 +163,25 @@ FUNCTION_ALIASES = {
 
 # Mapping of public aliases back to the metrics identifier
 METRICS_MAP = {
-    "measurements.fp": "d:transactions/measurements.fp@millisecond",
-    "measurements.fcp": "d:transactions/measurements.fcp@millisecond",
-    "measurements.lcp": "d:transactions/measurements.lcp@millisecond",
-    "measurements.fid": "d:transactions/measurements.fid@millisecond",
+    "measurements.app_start_cold": "d:transactions/measurements.app_start_cold@millisecond",
+    "measurements.app_start_warm": "d:transactions/measurements.app_start_warm@millisecond",
     "measurements.cls": "d:transactions/measurements.cls@millisecond",
+    "measurements.fcp": "d:transactions/measurements.fcp@millisecond",
+    "measurements.fid": "d:transactions/measurements.fid@millisecond",
+    "measurements.fp": "d:transactions/measurements.fp@millisecond",
+    "measurements.frames_frozen": "d:transactions/measurements.frames_frozen@none",
+    "measurements.frames_slow": "d:transactions/measurements.frames_slow@none",
+    "measurements.frames_total": "d:transactions/measurements.frames_total@none",
+    "measurements.lcp": "d:transactions/measurements.lcp@millisecond",
+    "measurements.stall_count": "d:transactions/measurements.stall_count@none",
+    "measurements.stall_stall_longest_time": "d:transactions/measurements.stall_longest_time@millisecond",
+    "measurements.stall_stall_total_time": "d:transactions/measurements.stall_total_time@millisecond",
     "measurements.ttfb": "d:transactions/measurements.ttfb@millisecond",
     "measurements.ttfb.requesttime": "d:transactions/measurements.ttfb.requesttime@millisecond",
+    "spans.browser": "d:transactions/breakdowns.span_ops.browser@millisecond",
+    "spans.db": "d:transactions/breakdowns.span_ops.db@millisecond",
+    "spans.http": "d:transactions/breakdowns.span_ops.http@millisecond",
+    "spans.resource": "d:transactions/breakdowns.span_ops.resource@millisecond",
     "transaction.duration": "d:transactions/duration@millisecond",
     "user": "s:transactions/user@none",
 }
@@ -181,16 +193,12 @@ METRIC_SATISFIED_TAG_KEY = "is_satisfied"
 METRIC_MISERABLE_TAG_KEY = "is_user_miserable"
 METRIC_TRUE_TAG_VALUE = "true"
 METRIC_FALSE_TAG_VALUE = "false"
-METRIC_DURATION_COLUMNS = [
-    "measurements.fp",
-    "measurements.fcp",
-    "measurements.lcp",
-    "measurements.fid",
-    "measurements.cls",
-    "measurements.ttfb",
-    "measurements.ttfb.requesttime",
-    "transaction.duration",
-]
+# Only the metrics that are on the distributions & are in milliseconds
+METRIC_DURATION_COLUMNS = {
+    key
+    for key, value in METRICS_MAP.items()
+    if value.endswith("@millisecond") and value.startswith("d:")
+}
 # So we can dry run some queries to see how often they'd be compatible
 DRY_RUN_COLUMNS = {
     METRIC_TOLERATED_TAG_KEY,
