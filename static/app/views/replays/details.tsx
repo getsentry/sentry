@@ -107,7 +107,7 @@ function getProjectSlug(event: Event) {
   return event.projectSlug || event['project.name']; // seems janky
 }
 
-// TODO: investigate the `:fullscreen` CSS selector
+// TODO(replay): investigate the `:fullscreen` CSS selector
 // https://caniuse.com/?search=%3Afullscreen
 const FullscreenWrapper = styled('div')<{isFullscreen: boolean}>`
   ${p =>
@@ -226,7 +226,7 @@ function ReplayLoader(props: ReplayLoaderProps) {
                 to: `/organizations/${orgSlug}/replays/`,
                 label: t('Replays'),
               },
-              {label: t('Replay Details')}, // TODO: put replay ID or something here
+              {label: t('Replay Details')}, // TODO(replay): put replay ID or something here
             ]}
           />
           {event ? <EventHeader event={event} /> : null}
