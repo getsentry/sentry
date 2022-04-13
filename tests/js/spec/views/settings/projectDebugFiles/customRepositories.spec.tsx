@@ -341,7 +341,7 @@ describe('Custom Repositories', function () {
       await waitFor(() => expect(refreshMockSuccess).toHaveBeenCalledTimes(1));
 
       expect(indicators.addSuccessMessage).toHaveBeenCalledWith(
-        'Request to sync repository sent.'
+        'Repository sync started.'
       );
 
       // Request Fails
