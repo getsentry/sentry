@@ -349,7 +349,7 @@ def build_group_descr(group):
 def build_rule_url(rule, group, project):
     org_slug = group.organization.slug
     project_slug = project.slug
-    rule_url = f"/organizations/{org_slug}/alerts/rules/{project_slug}/{rule.id}/"
+    rule_url = f"/organizations/{org_slug}/alerts/rules/{project_slug}/{rule.id}/details/"
     return absolute_uri(rule_url)
 
 

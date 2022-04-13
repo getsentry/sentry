@@ -119,7 +119,7 @@ def build_action_text(identity: Identity, action: MessageAction) -> str | None:
 def build_rule_url(rule: Any, group: Group, project: Project) -> str:
     org_slug = group.organization.slug
     project_slug = project.slug
-    rule_url = f"/organizations/{org_slug}/alerts/rules/{project_slug}/{rule.id}/"
+    rule_url = f"/organizations/{org_slug}/alerts/rules/{project_slug}/{rule.id}/details/"
 
     # Explicitly typing to satisfy mypy.
     url: str = absolute_uri(rule_url)
