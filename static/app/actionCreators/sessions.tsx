@@ -4,7 +4,7 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {DateString, Organization, SessionApiResponse} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
-export type DoMetricsRequestOptions = {
+export type DoSessionsRequestOptions = {
   field: string[];
   orgSlug: Organization['slug'];
   cursor?: string;
@@ -35,7 +35,7 @@ export const doSessionsRequest = (
     statsPeriodStart,
     statsPeriodEnd,
     ...dateTime
-  }: DoMetricsRequestOptions
+  }: DoSessionsRequestOptions
 ): Promise<SessionApiResponse> => {
   const {start, end, statsPeriod} = normalizeDateTimeParams(dateTime, {
     allowEmptyPeriod: true,
