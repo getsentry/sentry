@@ -36,7 +36,7 @@ EXPIRE_TIME = timedelta(hours=4, minutes=1)
 
 INSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME = timedelta(minutes=14)
 
-IDLE_EXPIRE_TIME = OUTSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME = timedelta(minutes=16)
+IDLE_EXPIRE_TIME = OUTSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME = timedelta(hours=2)
 
 
 @freeze_time(BASETIME)
