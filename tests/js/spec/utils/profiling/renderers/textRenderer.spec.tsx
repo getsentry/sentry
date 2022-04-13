@@ -37,10 +37,10 @@ describe('TextRenderer', () => {
     const frameAboveView = new Rect(0, -1.1, 1, 1);
     const frameBelowView = new Rect(0, 1.1, 1, 1);
 
-    expect(isOutsideView(frameLeftOutsideOfView, view, false)).toBe(true);
-    expect(isOutsideView(frameRightOutsideOfView, view, false)).toBe(true);
-    expect(isOutsideView(frameAboveView, view, false)).toBe(true);
-    expect(isOutsideView(frameBelowView, view, false)).toBe(true);
+    expect(isOutsideView(frameLeftOutsideOfView, view)).toBe(true);
+    expect(isOutsideView(frameRightOutsideOfView, view)).toBe(true);
+    expect(isOutsideView(frameAboveView, view)).toBe(true);
+    expect(isOutsideView(frameBelowView, view)).toBe(true);
   });
   it('caches measure text', () => {
     const context: Partial<CanvasRenderingContext2D> = {
