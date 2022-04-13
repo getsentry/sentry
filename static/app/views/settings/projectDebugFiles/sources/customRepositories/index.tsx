@@ -184,7 +184,7 @@ function CustomRepositories({
           method: 'POST',
         }
       );
-      addSuccessMessage(t('Request to sync repository sent.'));
+      addSuccessMessage(t('Repository sync started.'));
     } catch (error) {
       const errorMessage = t(
         'Rate limit for refreshing repository exceeded. Try again in a few minutes.'
