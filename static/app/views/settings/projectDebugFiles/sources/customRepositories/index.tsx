@@ -184,8 +184,11 @@ function CustomRepositories({
           method: 'POST',
         }
       );
+      addSuccessMessage('Request to sync repository sent.');
     } catch (error) {
-      const errorMessage = t('Unable to refresh repository. Try again in a few minutes.');
+      const errorMessage = t(
+        'Rate limit for refreshing repository exceeded. Try again in a few minutes.'
+      );
       addErrorMessage(errorMessage);
       handleXhrErrorResponse(errorMessage)(error);
     }
