@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import EventWaiter from 'sentry/utils/eventWaiter';
 
@@ -20,7 +20,7 @@ describe('EventWaiter', function () {
 
     const child = jest.fn().mockReturnValue(null);
 
-    mountWithTheme(
+    render(
       <EventWaiter
         api={new MockApiClient()}
         organization={org}
@@ -31,7 +31,6 @@ describe('EventWaiter', function () {
         {child}
       </EventWaiter>
     );
-
     expect(child).toHaveBeenCalledWith({firstIssue: null});
 
     // Add the first events and associated responses and tick the timer
@@ -47,7 +46,6 @@ describe('EventWaiter', function () {
         firstSeen: null,
       },
     ];
-
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/issues/`,
       method: 'GET',
@@ -94,7 +92,7 @@ describe('EventWaiter', function () {
 
     const child = jest.fn().mockReturnValue(null);
 
-    mountWithTheme(
+    render(
       <EventWaiter
         api={new MockApiClient()}
         organization={org}
@@ -133,7 +131,7 @@ describe('EventWaiter', function () {
 
     const child = jest.fn().mockReturnValue(null);
 
-    mountWithTheme(
+    render(
       <EventWaiter
         api={new MockApiClient()}
         organization={org}
