@@ -9,6 +9,10 @@ import {MetricsTagValue, Organization, Tag} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import {useMetricsContext} from 'sentry/utils/useMetricsContext';
 import {WidgetQuery} from 'sentry/views/dashboardsV2/types';
+import {
+  MAX_MENU_HEIGHT,
+  MAX_SEARCH_ITEMS,
+} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,
@@ -65,12 +69,13 @@ export function ReleaseSearchBar({orgSlug, query, projectIds, onSearch, onBlur}:
           prepareQuery={prepareQuery}
           excludeEnvironment
           dropdownClassName={css`
-            max-height: 300px;
+            max-height: ${MAX_MENU_HEIGHT ?? 300}px;
             overflow-y: auto;
           `}
           onSearch={onSearch}
           onBlur={onBlur}
           maxQueryLength={MAX_QUERY_LENGTH}
+          maxSearchItems={MAX_SEARCH_ITEMS}
           searchSource="widget_builder"
           query={query.conditions}
           hasRecentSearches
