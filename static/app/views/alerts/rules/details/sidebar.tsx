@@ -131,7 +131,7 @@ export default class Sidebar extends PureComponent<Props> {
     const status = latestIncident ? latestIncident.status : IncidentStatus.CLOSED;
     // The date at which the alert was triggered or resolved
     const activityDate =
-      latestIncident?.dateStarted ?? latestIncident?.dateClosed ?? null;
+      latestIncident?.dateClosed ?? latestIncident?.dateStarted ?? null;
 
     const criticalTrigger = rule?.triggers.find(
       ({label}) => label === AlertRuleTriggerType.CRITICAL
