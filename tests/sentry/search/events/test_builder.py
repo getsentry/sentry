@@ -1308,7 +1308,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         data = result["data"][0]
         assert data["count"] == 6
 
-    def test_avg(self):
+    def test_avg_duration(self):
         for _ in range(3):
             self.store_metric(
                 150,
@@ -1322,12 +1322,35 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             self.params,
             "",
             selected_columns=[
-                "avg()",
+                "avg(transaction.duration)",
             ],
         )
         result = query.run_query("test_query")
         data = result["data"][0]
-        assert data["avg"] == 100
+        assert data["avg_transaction_duration"] == 100
+
+    def test_avg_span_http(self):
+        for _ in range(3):
+            self.store_metric(
+                150,
+                metric="spans.http",
+                timestamp=self.start + datetime.timedelta(minutes=5),
+            )
+            self.store_metric(
+                50,
+                metric="spans.http",
+                timestamp=self.start + datetime.timedelta(minutes=5),
+            )
+        query = MetricsQueryBuilder(
+            self.params,
+            "",
+            selected_columns=[
+                "avg(spans.http)",
+            ],
+        )
+        result = query.run_query("test_query")
+        data = result["data"][0]
+        assert data["avg_spans_http"] == 100
 
     def test_failure_rate(self):
         for _ in range(3):
