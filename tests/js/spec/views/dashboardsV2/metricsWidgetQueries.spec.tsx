@@ -17,16 +17,16 @@ describe('Dashboards > MetricsWidgetQueries', function () {
     queries: [
       {
         conditions: '',
-        fields: [`sum(sessions)`],
-        aggregates: [`sum(sessions)`],
+        fields: [`sum(session)`],
+        aggregates: [`sum(session)`],
         columns: [],
         name: 'sessions',
         orderby: '',
       },
       {
         conditions: 'environment:prod',
-        fields: [`sum(sessions)`],
-        aggregates: [`sum(sessions)`],
+        fields: [`sum(session)`],
+        aggregates: [`sum(session)`],
         columns: [],
         name: 'users',
         orderby: '',
@@ -71,7 +71,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sessions/',
       body: TestStubs.SessionsField({
-        field: `sum(sessions)`,
+        field: `sum(session)`,
       }),
     });
     const children = jest.fn(() => <div />);
@@ -101,7 +101,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
                 {name: '2021-03-17T00:00:00Z', value: 2},
                 {name: '2021-03-18T00:00:00Z', value: 490},
               ]),
-              seriesName: 'sessions: sum(sessions)',
+              seriesName: 'sessions: sum(session)',
             },
           ],
         })
@@ -267,11 +267,11 @@ describe('Dashboards > MetricsWidgetQueries', function () {
     const sessionMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sessions/',
       body: TestStubs.SessionsField({
-        field: `sum(sessions)`,
+        field: `sum(session)`,
       }),
       match: [
         MockApiClient.matchQuery({
-          field: [`sum(sessions)`],
+          field: [`sum(session)`],
         }),
       ],
     });
@@ -294,7 +294,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
       expect.objectContaining({
         query: {
           environment: ['prod'],
-          field: ['sum(sessions)'],
+          field: ['sum(session)'],
           groupBy: [],
           interval: '1h',
           project: [1],
@@ -308,7 +308,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
       expect.objectContaining({
         query: {
           environment: ['prod'],
-          field: ['sum(sessions)'],
+          field: ['sum(session)'],
           groupBy: [],
           interval: '1h',
           project: [1],
@@ -326,7 +326,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
       body: {detail: badMessage},
       match: [
         MockApiClient.matchQuery({
-          field: [`sum(sessions)`],
+          field: [`sum(session)`],
         }),
       ],
     });
@@ -357,7 +357,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sessions/',
       body: TestStubs.SessionsField({
-        field: `sum(sessions)`,
+        field: `sum(session)`,
       }),
     });
 
@@ -391,7 +391,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sessions/',
       body: TestStubs.SessionsField({
-        field: `sum(sessions)`,
+        field: `sum(session)`,
       }),
     });
     const children = jest.fn(() => <div />);
