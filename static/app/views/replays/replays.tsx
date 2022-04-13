@@ -116,7 +116,7 @@ class Replays extends React.Component<Props> {
                   <PanelTable
                     isLoading={data.isLoading}
                     isEmpty={data.tableData?.data.length === 0}
-                    headers={['Replay ID', 'User', 'Timestamp']}
+                    headers={[t('Session'), t('Timestamp')]}
                   >
                     {data.tableData
                       ? this.renderTable(data.tableData.data as Replay[])
