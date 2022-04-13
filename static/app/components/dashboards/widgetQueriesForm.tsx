@@ -23,7 +23,7 @@ import {
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {Widget, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
-import MetricsSearchBar from 'sentry/views/dashboardsV2/widgetBuilder/metricWidget/metricsSearchBar';
+import {ReleaseSearchBar} from 'sentry/views/dashboardsV2/widgetBuilder/buildSteps/filterResultsStep/releaseSearchBar';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 
 import WidgetQueryFields from './widgetQueryFields';
@@ -122,10 +122,9 @@ class WidgetQueriesForm extends React.Component<Props> {
     const {organization, selection, widgetType} = this.props;
 
     return widgetType === WidgetType.METRICS ? (
-      <StyledMetricsSearchBar
-        searchSource="widget_builder"
+      <ReleaseSearchBar
         orgSlug={organization.slug}
-        query={widgetQuery.conditions}
+        query={widgetQuery}
         onSearch={field => {
           // SearchBar will call handlers for both onSearch and onBlur
           // when selecting a value from the autocomplete dropdown. This can
@@ -139,7 +138,6 @@ class WidgetQueriesForm extends React.Component<Props> {
           }, 200);
           return this.handleFieldChange(queryIndex, 'conditions')(field);
         }}
-        maxQueryLength={MAX_QUERY_LENGTH}
         projectIds={selection.projects}
       />
     ) : (
@@ -263,9 +261,11 @@ class WidgetQueriesForm extends React.Component<Props> {
           onChange={fields => {
             const {aggregates, columns} = getColumnsAndAggregatesAsStrings(fields);
             const fieldStrings = fields.map(field => generateFieldAsString(field));
+
             const aggregateAliasFieldStrings = isMetrics
               ? fieldStrings
               : fieldStrings.map(field => getAggregateAlias(field));
+
             queries.forEach((widgetQuery, queryIndex) => {
               const newQuery = cloneDeep(widgetQuery);
               newQuery.fields = fieldStrings;
@@ -342,10 +342,6 @@ export const SearchConditionsWrapper = styled('div')`
 `;
 
 const StyledSearchBar = styled(SearchBar)`
-  flex-grow: 1;
-`;
-
-const StyledMetricsSearchBar = styled(MetricsSearchBar)`
   flex-grow: 1;
 `;
 

@@ -72,7 +72,7 @@ export const SESSIONS_OPERATIONS: Readonly<
 
 export const SESSION_TAGS = ['environment', 'project', 'release', 'session.status'];
 
-export function generateMetricsWidgetFieldOptions(
+export function generateReleaseWidgetFieldOptions(
   fields: SessionsMeta[] = Object.keys(SESSION_FIELDS).map(key => SESSION_FIELDS[key]),
   tagKeys?: string[]
 ) {

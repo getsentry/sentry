@@ -97,7 +97,7 @@ export function FilterResultsStep({
       description={
         canAddSearchConditions
           ? t(
-              'This is how you filter down your search. You can add multiple queries to compare data.'
+              'This is how you filter down your search. You can add multiple queries to compare data for each overlay.'
             )
           : t('This is how you filter down your search.')
       }
@@ -132,7 +132,7 @@ export function FilterResultsStep({
                   />
                 ) : (
                   <ReleaseSearchBar
-                    organization={organization}
+                    orgSlug={organization.slug}
                     query={query}
                     projectIds={projectIds}
                     onBlur={handleBlur(queryIndex)}

@@ -1078,6 +1078,8 @@ SENTRY_FEATURES = {
     "organizations:performance-span-histogram-view": False,
     # Enable autogrouping of sibling spans
     "organizations:performance-autogroup-sibling-spans": False,
+    # Enable performance on-boarding checklist
+    "organizations:performance-onboarding-checklist": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
@@ -1406,7 +1408,7 @@ SENTRY_METRICS_PREFIX = "sentry."
 SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefixes.
 
 # Metrics product
-SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.postgres.PGStringIndexer"
+SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.postgres_v2.StaticStringsIndexerDecorator"
 SENTRY_METRICS_INDEXER_OPTIONS = {}
 SENTRY_METRICS_INDEXER_CACHE_TTL = 3600 * 2
 
@@ -1704,6 +1706,9 @@ SENTRY_USE_METRICS_DEV = False
 # This flags activates the Change Data Capture backend in the development environment
 SENTRY_USE_CDC_DEV = False
 
+# This flag activates profiling backend in the development environment
+SENTRY_USE_PROFILING = False
+
 # SENTRY_DEVSERVICES = {
 #     "service-name": lambda settings, options: (
 #         {
@@ -1862,6 +1867,7 @@ SENTRY_DEVSERVICES = {
                 "REDIS_PORT": "6379",
                 "REDIS_DB": "1",
                 "ENABLE_SENTRY_METRICS_DEV": "1" if settings.SENTRY_USE_METRICS_DEV else "",
+                "ENABLE_PROFILES_CONSUMER": "1" if settings.SENTRY_USE_PROFILING else "",
             },
             "only_if": "snuba" in settings.SENTRY_EVENTSTREAM
             or "kafka" in settings.SENTRY_EVENTSTREAM,
@@ -2532,4 +2538,4 @@ DEVSERVER_LOGS_ALLOWLIST = None
 
 LOG_API_ACCESS = not IS_DEV or os.environ.get("SENTRY_LOG_API_ACCESS")
 
-VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = False
+VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = True

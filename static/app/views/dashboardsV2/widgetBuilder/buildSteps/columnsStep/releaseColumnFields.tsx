@@ -1,18 +1,13 @@
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
-import {
-  aggregateFunctionOutputType,
-  isLegalYAxisType,
-  QueryFieldValue,
-} from 'sentry/utils/discover/fields';
+import {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {
-  generateMetricsWidgetFieldOptions,
+  generateReleaseWidgetFieldOptions,
   SESSION_FIELDS,
   SESSION_TAGS,
-} from 'sentry/views/dashboardsV2/widgetBuilder/metricWidget/fields';
-import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
-import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
+} from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
+import {filterPrimaryOptions} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 
 import {ColumnFields} from './columnFields';
 
@@ -33,33 +28,6 @@ export function ReleaseColumnFields({
   queryErrors,
   onYAxisOrColumnFieldChange,
 }: Props) {
-  // Any function/field choice for Big Number widgets is legal since the
-  // data source is from an endpoint that is not timeseries-based.
-  // The function/field choice for World Map widget will need to be numeric-like.
-  // Column builder for Table widget is already handled above.
-  const doNotValidateYAxis = displayType === DisplayType.BIG_NUMBER;
-
-  function filterPrimaryOptions(option: FieldValueOption) {
-    if (displayType === DisplayType.TABLE) {
-      return [FieldValueKind.FUNCTION, FieldValueKind.TAG].includes(option.value.kind);
-    }
-
-    // Only validate function names for timeseries widgets and
-    // world map widgets.
-    if (!doNotValidateYAxis && option.value.kind === FieldValueKind.FUNCTION) {
-      const primaryOutput = aggregateFunctionOutputType(
-        option.value.meta.name,
-        undefined
-      );
-      if (primaryOutput) {
-        // If a function returns a specific type, then validate it.
-        return isLegalYAxisType(primaryOutput);
-      }
-    }
-
-    return option.value.kind === FieldValueKind.FUNCTION;
-  }
-
   return (
     <ColumnFields
       displayType={displayType}
@@ -67,11 +35,17 @@ export function ReleaseColumnFields({
       widgetType={widgetType}
       fields={explodedFields}
       errors={queryErrors?.[0] ? [queryErrors?.[0]] : undefined}
-      fieldOptions={generateMetricsWidgetFieldOptions(
+      fieldOptions={generateReleaseWidgetFieldOptions(
         Object.keys(SESSION_FIELDS).map(key => SESSION_FIELDS[key]),
         SESSION_TAGS
       )}
-      filterPrimaryOptions={filterPrimaryOptions}
+      filterPrimaryOptions={option =>
+        filterPrimaryOptions({
+          option,
+          widgetType,
+          displayType,
+        })
+      }
       onChange={onYAxisOrColumnFieldChange}
       noFieldsMessage={t('There are no metrics for this project.')}
     />

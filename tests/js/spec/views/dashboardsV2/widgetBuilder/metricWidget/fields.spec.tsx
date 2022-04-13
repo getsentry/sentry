@@ -1,14 +1,14 @@
 import {
-  generateMetricsWidgetFieldOptions,
+  generateReleaseWidgetFieldOptions,
   SESSION_FIELDS,
-} from 'sentry/views/dashboardsV2/widgetBuilder/metricWidget/fields';
+} from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
 
-describe('generateMetricsWidgetFieldOptions', function () {
+describe('generateReleaseWidgetFieldOptions', function () {
   const fields = Object.keys(SESSION_FIELDS).map(key => SESSION_FIELDS[key]);
   const tagKeys = ['release', 'environment'];
 
   it('generates correct field options', function () {
-    expect(generateMetricsWidgetFieldOptions(fields, tagKeys)).toEqual({
+    expect(generateReleaseWidgetFieldOptions(fields, tagKeys)).toEqual({
       'field:session': {
         label: 'session',
         value: {
@@ -199,6 +199,6 @@ describe('generateMetricsWidgetFieldOptions', function () {
   });
 
   it('ignores tags+aggregates if there are no fields', function () {
-    expect(generateMetricsWidgetFieldOptions([], tagKeys)).toEqual({});
+    expect(generateReleaseWidgetFieldOptions([], tagKeys)).toEqual({});
   });
 });

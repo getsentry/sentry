@@ -2,10 +2,10 @@ import {t} from 'sentry/locale';
 import {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {
-  generateMetricsWidgetFieldOptions,
+  generateReleaseWidgetFieldOptions,
   SESSION_FIELDS,
   SESSION_TAGS,
-} from 'sentry/views/dashboardsV2/widgetBuilder/metricWidget/fields';
+} from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
 
 import {YAxisSelector} from './yAxisSelector';
 
@@ -31,7 +31,7 @@ export function ReleaseYAxisSelector({
       aggregates={aggregates}
       onChange={onChange}
       errors={errors}
-      fieldOptions={generateMetricsWidgetFieldOptions(
+      fieldOptions={generateReleaseWidgetFieldOptions(
         Object.keys(SESSION_FIELDS).map(key => SESSION_FIELDS[key]),
         SESSION_TAGS
       )}

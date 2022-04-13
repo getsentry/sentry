@@ -53,11 +53,15 @@ import {
 } from 'sentry/views/dashboardsV2/types';
 import {generateIssueWidgetFieldOptions} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/utils';
 import {
-  generateMetricsWidgetFieldOptions,
+  generateReleaseWidgetFieldOptions,
   SESSION_FIELDS,
   SESSION_TAGS,
-} from 'sentry/views/dashboardsV2/widgetBuilder/metricWidget/fields';
-import {mapErrors, normalizeQueries} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
+} from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
+import {
+  mapErrors,
+  NEW_DASHBOARD_ID,
+  normalizeQueries,
+} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 import {WidgetTemplate} from 'sentry/views/dashboardsV2/widgetLibrary/data';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
@@ -282,7 +286,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       !(
         dashboards.find(({title, id}) => {
           return title === selectedDashboard?.label && id === selectedDashboard?.value;
-        }) || selectedDashboard.value === 'new'
+        }) || selectedDashboard.value === NEW_DASHBOARD_ID
       )
     ) {
       errors.dashboard = t('This field may not be blank');
@@ -324,7 +328,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         organization,
       });
 
-      if (selectedDashboard.value === 'new') {
+      if (selectedDashboard.value === NEW_DASHBOARD_ID) {
         browserHistory.push({
           pathname: `/organizations/${organization.slug}/dashboards/new/`,
           query: pathQuery,
@@ -611,7 +615,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
 
   renderWidgetQueryForm(
     querySelection: PageFilters,
-    metricsWidgetFieldOptions: ReturnType<typeof generateMetricsWidgetFieldOptions>
+    releaseWidgetFieldOptions: ReturnType<typeof generateReleaseWidgetFieldOptions>
   ) {
     const {organization, tags} = this.props;
     const state = this.state;
@@ -669,7 +673,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
               widgetType={state.widgetType}
               queries={state.queries}
               errors={errors?.queries}
-              fieldOptions={metricsWidgetFieldOptions}
+              fieldOptions={releaseWidgetFieldOptions}
               onChange={(queryIndex: number, widgetQuery: WidgetQuery) =>
                 this.handleQueryChange(widgetQuery, queryIndex)
               }
