@@ -203,6 +203,7 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
             tableData.title = widget.queries[requestIndex]?.name ?? '';
             return {
               ...prevState,
+              errorMessage: undefined,
               tableResults: [...(prevState.tableResults ?? []), tableData],
             };
           }
@@ -229,6 +230,7 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
 
           return {
             ...prevState,
+            errorMessage: undefined,
             timeseriesResults,
             rawResults: rawResultsClone,
           };
