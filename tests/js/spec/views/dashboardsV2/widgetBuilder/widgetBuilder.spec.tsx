@@ -1423,7 +1423,7 @@ describe('WidgetBuilder', function () {
     userEvent.click(screen.getByText('Add Overlay'));
     userEvent.click(screen.getByText('Add Overlay'));
 
-    screen.getByText('Limit to 1 result');
+    await screen.findByText('Limit to 1 result');
 
     // MetricsProvider triggers an async update that causes a
     // console.error
