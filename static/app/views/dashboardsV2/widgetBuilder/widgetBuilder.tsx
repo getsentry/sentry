@@ -932,7 +932,6 @@ function WidgetBuilder({
                     onChange={newDisplayType => {
                       handleDisplayTypeOrTitleChange('displayType', newDisplayType);
                     }}
-                    widgetBuilderNewDesign={widgetBuilderNewDesign}
                   />
                   <DataSetStep
                     dataSet={state.dataSet}

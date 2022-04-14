@@ -157,6 +157,7 @@ describe('WidgetBuilder', function () {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
+      method: 'GET',
       body: [],
     });
 
@@ -1673,6 +1674,7 @@ describe('WidgetBuilder', function () {
 
     it('issue query does not work on default search bar', async function () {
       renderTestComponent();
+
       userEvent.paste(
         await screen.findByPlaceholderText('Search for events, users, tags, and more'),
         'is:',
@@ -1685,7 +1687,8 @@ describe('WidgetBuilder', function () {
 
     it('renders with an issues search bar when selected in dataset selection', async function () {
       renderTestComponent();
-      userEvent.click(screen.getByText('Issues (States, Assignment, Time, etc.)'));
+
+      userEvent.click(await screen.findByText('Issues (States, Assignment, Time, etc.)'));
       userEvent.paste(
         screen.getByPlaceholderText('Search for events, users, tags, and more'),
         'is:',
@@ -1709,8 +1712,6 @@ describe('WidgetBuilder', function () {
       await screen.findByText('Table');
 
       userEvent.click(screen.getByText('Issues (States, Assignment, Time, etc.)'));
-
-      await screen.findAllByPlaceholderText('Alias');
 
       userEvent.type(screen.getAllByPlaceholderText('Alias')[0], 'First Alias{enter}');
 

@@ -209,18 +209,18 @@ jobs:
     steps:
       - name: Checkout sentry
         uses: actions/checkout@v2
-        if: needs.files-changed.outputs.changed == 'true'
+        if: needs.files-changed.outputs.migration_lockfile == 'true'
 
       - name: Setup sentry env (python ${{ matrix.python-version }})
         uses: ./.github/actions/setup-sentry
-        if: needs.files-changed.outputs.changed == 'true'
+        if: needs.files-changed.outputs.migration_lockfile == 'true'
         id: setup
         with:
           python-version: ${{ matrix.python-version }}
           pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
 
       - name: Migration & lockfile checks
-        if: needs.files-changed.outputs.changed == 'true'
+        if: needs.files-changed.outputs.migration_lockfile == 'true'
         env:
           SENTRY_LOG_LEVEL: ERROR
           PGPASSWORD: postgres
