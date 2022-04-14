@@ -34,6 +34,12 @@ interface FullscreenHook {
    * Calling `useFullscreen()` a second time will create a different instance of `ref` and `enter.
    */
   ref: MutableRefObject<null | HTMLDivElement>;
+
+  /**
+   * Toggle fullscreen mode on and off, for the `ref` that this instance relates to.
+   *
+   */
+  toggle: () => void;
 }
 
 // TODO(replay): move into app/utils/*
@@ -50,11 +56,16 @@ export default function useFullscreen(): FullscreenHook {
     [ref.current]
   );
 
-  const exit = async () => {
+  const exit = useCallback(async () => {
     if (screenfull.isEnabled) {
       await screenfull.exit();
     }
-  };
+  }, []);
+
+  const toggle = useCallback(
+    () => (isFullscreen ? exit() : enter()),
+    [enter, exit, isFullscreen]
+  );
 
   const onChange = () => {
     setIsFullscreen(screenfull.isFullscreen);
@@ -71,5 +82,6 @@ export default function useFullscreen(): FullscreenHook {
     isEnabled: screenfull.isEnabled,
     isFullscreen,
     ref,
+    toggle,
   };
 }

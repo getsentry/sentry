@@ -121,7 +121,7 @@ const FullscreenWrapper = styled('div')<{isFullscreen: boolean}>`
 
 function ReplayLoader(props: ReplayLoaderProps) {
   const orgSlug = props.orgId;
-  const {ref: fullscreenRef, enter: enterFullscreen, isFullscreen} = useFullscreen();
+  const {ref: fullscreenRef, isFullscreen, toggle: toggleFullscreen} = useFullscreen();
   const {
     fetchError,
     fetching,
@@ -177,7 +177,7 @@ function ReplayLoader(props: ReplayLoaderProps) {
         <ReplayContextProvider events={rrwebEvents}>
           <FullscreenWrapper isFullscreen={isFullscreen} ref={fullscreenRef}>
             <ReplayPlayer />
-            <ReplayController onFullscreen={enterFullscreen} />
+            <ReplayController toggleFullscreen={toggleFullscreen} />
           </FullscreenWrapper>
         </ReplayContextProvider>
 
