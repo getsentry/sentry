@@ -1,7 +1,7 @@
 import {mat3} from 'gl-matrix';
 
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {LightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import {LightFlamegraphTheme as Theme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {Rect, trimTextCenter} from 'sentry/utils/profiling/gl/utils';
 import {EventedProfile} from 'sentry/utils/profiling/profile/eventedProfile';
 import {createFrameIndex} from 'sentry/utils/profiling/profile/utils';
@@ -54,7 +54,7 @@ describe('TextRenderer', () => {
     const textRenderer = new TextRenderer(
       canvas as HTMLCanvasElement,
       makeBaseFlamegraph(),
-      LightFlamegraphTheme
+      Theme
     );
     textRenderer.measureText(context as CanvasRenderingContext2D, 'text');
     textRenderer.measureText(context as CanvasRenderingContext2D, 'text');
@@ -94,14 +94,10 @@ describe('TextRenderer', () => {
       getContext: jest.fn().mockReturnValue(context),
     };
 
-    const textRenderer = new TextRenderer(
-      canvas as HTMLCanvasElement,
-      flamegraph,
-      LightFlamegraphTheme
-    );
+    const textRenderer = new TextRenderer(canvas as HTMLCanvasElement, flamegraph, Theme);
 
     textRenderer.draw(
-      new Rect(0, 2.1, 200, 2),
+      new Rect(0, 1.1, 200, 2),
       flamegraph.configSpace,
       mat3.identity(mat3.create())
     );
@@ -109,9 +105,9 @@ describe('TextRenderer', () => {
     expect(context.fillText).toHaveBeenCalledTimes(1);
     expect(context.fillText).toHaveBeenCalledWith(
       'f1',
-      100 + LightFlamegraphTheme.SIZES.BAR_PADDING,
+      100 + Theme.SIZES.BAR_PADDING,
       // depth + 1 - half font size
-      1 + 1 - LightFlamegraphTheme.SIZES.BAR_FONT_SIZE / 2 // center text vertically inside the rect
+      1 + Theme.SIZES.BAR_HEIGHT - Theme.SIZES.BAR_FONT_SIZE / 2 // center text vertically inside the rect
     );
   });
   it("trims output text if it doesn't fit", () => {
@@ -145,11 +141,7 @@ describe('TextRenderer', () => {
       getContext: jest.fn().mockReturnValue(context),
     };
 
-    const textRenderer = new TextRenderer(
-      canvas as HTMLCanvasElement,
-      flamegraph,
-      LightFlamegraphTheme
-    );
+    const textRenderer = new TextRenderer(canvas as HTMLCanvasElement, flamegraph, Theme);
 
     textRenderer.draw(
       new Rect(0, 0, Math.floor(longFrameName.length / 2), 10),
@@ -161,10 +153,10 @@ describe('TextRenderer', () => {
     expect(context.fillText).toHaveBeenCalledWith(
       trimTextCenter(
         longFrameName,
-        Math.floor(longFrameName.length / 2) - LightFlamegraphTheme.SIZES.BAR_PADDING * 2
+        Math.floor(longFrameName.length / 2) - Theme.SIZES.BAR_PADDING * 2
       ),
-      LightFlamegraphTheme.SIZES.BAR_PADDING,
-      1 - LightFlamegraphTheme.SIZES.BAR_FONT_SIZE / 2 // center text vertically inside the rect
+      Theme.SIZES.BAR_PADDING,
+      Theme.SIZES.BAR_HEIGHT - Theme.SIZES.BAR_FONT_SIZE / 2 // center text vertically inside the rect
     );
   });
   it('pins text to left and respects right boundary', () => {
@@ -198,11 +190,7 @@ describe('TextRenderer', () => {
       getContext: jest.fn().mockReturnValue(context),
     };
 
-    const textRenderer = new TextRenderer(
-      canvas as HTMLCanvasElement,
-      flamegraph,
-      LightFlamegraphTheme
-    );
+    const textRenderer = new TextRenderer(canvas as HTMLCanvasElement, flamegraph, Theme);
 
     textRenderer.draw(
       new Rect(
@@ -219,11 +207,10 @@ describe('TextRenderer', () => {
     expect(context.fillText).toHaveBeenCalledWith(
       trimTextCenter(
         longFrameName,
-        Math.floor(longFrameName.length / 2 / 2) -
-          LightFlamegraphTheme.SIZES.BAR_PADDING * 2
+        Math.floor(longFrameName.length / 2 / 2) - Theme.SIZES.BAR_PADDING * 2
       ),
-      Math.floor(longFrameName.length / 2) + LightFlamegraphTheme.SIZES.BAR_PADDING,
-      1 - LightFlamegraphTheme.SIZES.BAR_FONT_SIZE / 2 // center text vertically inside the rect
+      Math.floor(longFrameName.length / 2) + Theme.SIZES.BAR_PADDING,
+      Theme.SIZES.BAR_HEIGHT - Theme.SIZES.BAR_FONT_SIZE / 2 // center text vertically inside the rect
     );
   });
 });
