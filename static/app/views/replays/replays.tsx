@@ -22,6 +22,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import AsyncView from 'sentry/views/asyncView';
 
+import ReplaysFilters from './filters';
 import {Replay} from './types';
 
 type Props = AsyncView['props'] &
@@ -92,10 +93,7 @@ class Replays extends React.Component<Props> {
   render() {
     const {organization} = this.props;
     return (
-      <PageFiltersContainer
-        showEnvironmentSelector={false}
-        resetParamsOnChange={['cursor']}
-      >
+      <PageFiltersContainer hideGlobalHeader resetParamsOnChange={['cursor']}>
         <PageContent>
           <PageHeader>
             <HeaderTitle>
@@ -113,6 +111,7 @@ class Replays extends React.Component<Props> {
             {data => {
               return (
                 <React.Fragment>
+                  <ReplaysFilters />
                   <PanelTable
                     isLoading={data.isLoading}
                     isEmpty={data.tableData?.data.length === 0}
