@@ -1,3 +1,4 @@
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesForm';
@@ -10,7 +11,7 @@ import {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/ty
 import {generateIssueWidgetOrderOptions} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/utils';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
-import {DataSet, RESULTS_LIMIT, SortDirection} from '../../utils';
+import {DataSet, getResultsLimit, SortDirection} from '../../utils';
 import {BuildStep} from '../buildStep';
 
 import {SortBySelectors} from './sortBySelectors';
@@ -42,6 +43,16 @@ export function SortByStep({
 }: Props) {
   const orderBy = queries[0].orderby;
 
+  useEffect(() => {
+    if (!limit) {
+      return;
+    }
+    const newLimit = getResultsLimit(queries.length, queries[0].aggregates.length);
+    if (limit > newLimit) {
+      onLimitChange(newLimit);
+    }
+  }, [queries.length, queries[0].aggregates.length]);
+
   if (widgetBuilderNewDesign) {
     return (
       <BuildStep
@@ -62,7 +73,11 @@ export function SortByStep({
               <ResultsLimitSelector
                 name="resultsLimit"
                 menuPlacement="auto"
-                options={[...Array(RESULTS_LIMIT).keys()].map(resultLimit => {
+                options={[
+                  ...Array(
+                    getResultsLimit(queries.length, queries[0].aggregates.length)
+                  ).keys(),
+                ].map(resultLimit => {
                   const value = resultLimit + 1;
                   return {
                     label: tn('Limit to %s result', 'Limit to %s results', value),

@@ -1409,6 +1409,29 @@ describe('WidgetBuilder', function () {
     });
   });
 
+  it('decreases the limit when more y-axes and queries are added', async function () {
+    renderTestComponent({
+      orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      query: {
+        displayType: DisplayType.LINE,
+      },
+    });
+
+    await selectEvent.select(await screen.findByText('Select group'), 'project');
+
+    screen.getByText('Limit to 5 results');
+
+    userEvent.click(screen.getByText('Add Query'));
+    userEvent.click(screen.getByText('Add Query'));
+
+    screen.getByText('Limit to 3 results');
+
+    userEvent.click(screen.getByText('Add Overlay'));
+    userEvent.click(screen.getByText('Add Overlay'));
+
+    screen.getByText('Limit to 1 result');
+  });
+
   describe('Sort by selectors', function () {
     it('renders', async function () {
       renderTestComponent({
