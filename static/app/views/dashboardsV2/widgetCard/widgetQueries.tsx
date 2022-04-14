@@ -420,8 +420,8 @@ class WidgetQueries extends React.Component<Props, State> {
 
           // The "Other" series is only included when there is one
           // y-axis and one query
-          requestData.includeOther =
-            query.aggregates.length === 1 && widget.queries.length === 1;
+          requestData.excludeOther =
+            query.aggregates.length !== 1 || widget.queries.length !== 1;
         }
       }
       return doEventsRequest(api, requestData);

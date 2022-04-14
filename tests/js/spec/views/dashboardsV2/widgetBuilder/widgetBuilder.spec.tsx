@@ -1360,7 +1360,7 @@ describe('WidgetBuilder', function () {
       expect(eventsStatsMock).toBeCalledWith(
         '/organizations/org-slug/events-stats/',
         expect.objectContaining({
-          query: expect.objectContaining({includeOther: '0'}),
+          query: expect.objectContaining({excludeOther: '1'}),
         })
       );
     });
@@ -1382,7 +1382,7 @@ describe('WidgetBuilder', function () {
       expect(eventsStatsMock).toBeCalledWith(
         '/organizations/org-slug/events-stats/',
         expect.objectContaining({
-          query: expect.objectContaining({includeOther: '0'}),
+          query: expect.objectContaining({excludeOther: '1'}),
         })
       );
     });
@@ -1403,7 +1403,7 @@ describe('WidgetBuilder', function () {
       expect(eventsStatsMock).toBeCalledWith(
         '/organizations/org-slug/events-stats/',
         expect.objectContaining({
-          query: expect.objectContaining({includeOther: '1'}),
+          query: expect.not.objectContaining({excludeOther: '1'}),
         })
       );
     });
