@@ -19,6 +19,7 @@ import {NewQuery, Organization, PageFilters} from 'sentry/types';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
+import Projects from 'sentry/utils/projects';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import AsyncView from 'sentry/views/asyncView';
@@ -39,7 +40,15 @@ class Replays extends React.Component<Props> {
       id: '',
       name: '',
       version: 2,
-      fields: ['eventID', 'project', 'replayId', 'timestamp', 'user.display', 'url'],
+      fields: [
+        'eventID',
+        'platform',
+        'project',
+        'replayId',
+        'timestamp',
+        'user.display',
+        'url',
+      ],
       orderby: '-timestamp',
       environment: selection.environments,
       projects: selection.projects,
@@ -62,7 +71,7 @@ class Replays extends React.Component<Props> {
       <React.Fragment key={replay.id}>
         <Link
           to={`/organizations/${organization.slug}/replays/${generateEventSlug({
-            project: replay['project.name'],
+            project: replay.project,
             id: replay.id,
           })}/`}
         >
@@ -80,15 +89,18 @@ class Replays extends React.Component<Props> {
             displayEmail={replay.url?.split('?')[0] || ''}
           />
         </Link>
-        <div>
-          <ProjectBadge
-            project={{
-              slug: replay.project,
-            }}
-            avatarSize={16}
-            displayName={replay.project}
-          />
-        </div>
+        <Projects orgId={organization.slug} slugs={[replay.project]}>
+          {({projects}) => {
+            const project = projects.find(p => p.slug === replay.project);
+            return (
+              <ProjectBadge
+                project={project ? project : {slug: replay.project}}
+                avatarSize={16}
+              />
+            );
+          }}
+        </Projects>
+
         <div>
           <TimeSinceWrapper>
             <StyledIconCalendarWrapper color="gray500" size="sm" />
