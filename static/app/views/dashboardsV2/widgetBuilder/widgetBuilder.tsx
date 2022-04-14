@@ -1081,24 +1081,20 @@ const BuildSteps = styled(List)`
 `;
 
 const Body = styled(Layout.Body)`
-  grid-template-rows: 1fr;
   && {
     gap: 0;
     padding: 0;
   }
 
-  @media (max-width: ${p => p.theme.breakpoints[3]}) {
-    grid-template-columns: 1fr;
-  }
+  grid-template-rows: 1fr;
 
   @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    /* 325px + 16px + 16px to match Side component width, padding-left and padding-right */
-    grid-template-columns: minmax(100px, auto) calc(325px + ${space(2) + space(2)});
+    /* 368px + 16px + 16px = 400px to match Side component width, padding-left and padding-right */
+    grid-template-columns: minmax(100px, auto) calc(368px + ${space(2)} + ${space(2)});
   }
 
   @media (min-width: ${p => p.theme.breakpoints[3]}) {
-    /* 325px + 16px + 30px to match Side component width, padding-left and padding-right */
-    grid-template-columns: minmax(100px, auto) calc(325px + ${space(2) + space(4)});
+    grid-template-columns: 1fr;
   }
 `;
 
@@ -1125,15 +1121,24 @@ const Side = styled(Layout.Side)`
 
   @media (max-width: ${p => p.theme.breakpoints[3]}) {
     border-top: 1px solid ${p => p.theme.gray200};
+    grid-row: 2/2;
+    grid-column: 1/-1;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+    max-width: calc(368px + ${space(2)} + ${space(2)});
   }
 
   @media (max-width: ${p => p.theme.breakpoints[3]}) {
-    grid-row: 2/2;
-    grid-column: 1/1;
+    max-width: 100%;
   }
 `;
 
 const MainWrapper = styled('div')`
   display: flex;
   flex-direction: column;
+
+  @media (max-width: ${p => p.theme.breakpoints[3]}) {
+    grid-column: 1/-1;
+  }
 `;

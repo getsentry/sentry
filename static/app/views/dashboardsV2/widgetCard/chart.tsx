@@ -117,9 +117,9 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
     const {location, widget, organization, selection} = this.props;
     if (errorMessage) {
       return (
-        <ErrorPanel>
+        <StyledErrorPanel>
           <IconWarning color="gray500" size="lg" />
-        </ErrorPanel>
+        </StyledErrorPanel>
       );
     }
 
@@ -167,9 +167,9 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
   }: TableResultProps): React.ReactNode {
     if (errorMessage) {
       return (
-        <ErrorPanel>
+        <StyledErrorPanel>
           <IconWarning color="gray500" size="lg" />
-        </ErrorPanel>
+        </StyledErrorPanel>
       );
     }
 
@@ -301,9 +301,9 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
 
     if (errorMessage) {
       return (
-        <ErrorPanel>
+        <StyledErrorPanel>
           <IconWarning color="gray500" size="lg" />
-        </ErrorPanel>
+        </StyledErrorPanel>
       );
     }
 
@@ -391,9 +391,9 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
         {zoomRenderProps => {
           if (errorMessage) {
             return (
-              <ErrorPanel>
+              <StyledErrorPanel>
                 <IconWarning color="gray500" size="lg" />
-              </ErrorPanel>
+              </StyledErrorPanel>
             );
           }
 
@@ -452,6 +452,8 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
     );
   }
 }
+
+export default withTheme(WidgetCardChart);
 
 const StyledTransparentLoadingMask = styled(props => (
   <TransparentLoadingMask {...props} maskBackgroundColor="transparent" />
@@ -512,4 +514,6 @@ const StyledSimpleTableChart = styled(SimpleTableChart)`
   box-shadow: none;
 `;
 
-export default withTheme(WidgetCardChart);
+const StyledErrorPanel = styled(ErrorPanel)`
+  padding: ${space(2)};
+`;
