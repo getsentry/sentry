@@ -134,7 +134,7 @@ class GridRenderer {
       context.lineWidth = this.theme.SIZES.GRID_LINE_WIDTH;
       context.strokeRect(
         physicalIntervalPosition - LINE_WIDTH / 2,
-        0,
+        physicalViewRect.y,
         LINE_WIDTH / 2,
         physicalViewRect.height
       );
