@@ -40,7 +40,7 @@ class Replays extends React.Component<Props> {
       id: '',
       name: '',
       version: 2,
-      fields: ['eventID', 'project', 'replayId', 'timestamp', 'user.display', 'url'],
+      fields: ['eventID', 'project', 'timestamp', 'user.display', 'url'],
       orderby: '-timestamp',
       environment: selection.environments,
       projects: selection.projects,
