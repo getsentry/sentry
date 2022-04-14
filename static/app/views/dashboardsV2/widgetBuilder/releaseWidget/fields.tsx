@@ -1,12 +1,12 @@
 import {
   SelectValue,
   SessionAggregationColumn,
+  SessionMetric,
   SessionsMeta,
   SessionsOperation,
   SessionStatus,
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {SessionMetric} from 'sentry/utils/metrics/fields';
 import {FieldValue, FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
 export const SESSIONS_FIELDS: Readonly<Partial<Record<SessionMetric, SessionsMeta>>> = {

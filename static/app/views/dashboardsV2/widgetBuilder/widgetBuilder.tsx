@@ -24,6 +24,7 @@ import {
   Organization,
   PageFilters,
   SelectValue,
+  SessionMetric,
   TagCollection,
 } from 'sentry/types';
 import {defined, objectIsEmpty} from 'sentry/utils';
@@ -38,7 +39,6 @@ import {
   stripDerivedMetricsPrefix,
 } from 'sentry/utils/discover/fields';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
-import {SessionMetric} from 'sentry/utils/metrics/fields';
 import useApi from 'sentry/utils/useApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withTags from 'sentry/utils/withTags';
