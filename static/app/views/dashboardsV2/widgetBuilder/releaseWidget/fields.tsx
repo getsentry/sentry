@@ -6,20 +6,21 @@ import {
   SessionStatus,
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
+import {SessionMetric} from 'sentry/utils/metrics/fields';
 import {FieldValue, FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
-export const SESSIONS_FIELDS: Record<string, SessionsMeta> = {
-  session: {
+export const SESSIONS_FIELDS: Readonly<Partial<Record<SessionMetric, SessionsMeta>>> = {
+  [SessionMetric.SESSION]: {
     name: 'session',
     operations: ['sum'],
     type: 'integer',
   },
-  user: {
+  [SessionMetric.USER]: {
     name: 'user',
     operations: ['count_unique'],
     type: 'string',
   },
-  'session.duration': {
+  [SessionMetric.SESSION_DURATION]: {
     name: 'session.duration',
     operations: ['avg', 'p50', 'p75', 'p95', 'p99', 'max'],
     type: 'duration',
@@ -31,42 +32,42 @@ export const SESSIONS_OPERATIONS: Readonly<
 > = {
   sum: {
     columnTypes: ['integer'],
-    defaultValue: 'session',
+    defaultValue: SessionMetric.SESSION,
     outputType: 'integer',
   },
   count_unique: {
     columnTypes: ['string'],
-    defaultValue: 'user',
+    defaultValue: SessionMetric.USER,
     outputType: 'integer',
   },
   avg: {
     columnTypes: ['duration'],
-    defaultValue: 'session.duration',
+    defaultValue: SessionMetric.SESSION_DURATION,
     outputType: null,
   },
   max: {
     columnTypes: ['duration'],
-    defaultValue: 'session.duration',
+    defaultValue: SessionMetric.SESSION_DURATION,
     outputType: null,
   },
   p50: {
     columnTypes: ['duration'],
-    defaultValue: 'session.duration',
+    defaultValue: SessionMetric.SESSION_DURATION,
     outputType: null,
   },
   p75: {
     columnTypes: ['duration'],
-    defaultValue: 'session.duration',
+    defaultValue: SessionMetric.SESSION_DURATION,
     outputType: null,
   },
   p95: {
     columnTypes: ['duration'],
-    defaultValue: 'session.duration',
+    defaultValue: SessionMetric.SESSION_DURATION,
     outputType: null,
   },
   p99: {
     columnTypes: ['duration'],
-    defaultValue: 'session.duration',
+    defaultValue: SessionMetric.SESSION_DURATION,
     outputType: null,
   },
 };
@@ -75,7 +76,7 @@ export const SESSIONS_TAGS = ['environment', 'project', 'release', 'session.stat
 export const SESSION_STATUSES = Object.values(SessionStatus);
 
 export function generateReleaseWidgetFieldOptions(
-  fields: SessionsMeta[] = Object.keys(SESSIONS_FIELDS).map(key => SESSIONS_FIELDS[key]),
+  fields: SessionsMeta[] = Object.values(SESSIONS_FIELDS),
   tagKeys?: string[]
 ) {
   const fieldOptions: Record<string, SelectValue<FieldValue>> = {};

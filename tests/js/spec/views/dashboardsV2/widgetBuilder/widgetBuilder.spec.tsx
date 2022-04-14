@@ -10,7 +10,6 @@ import * as indicators from 'sentry/actionCreators/indicator';
 import * as modals from 'sentry/actionCreators/modal';
 import TagStore from 'sentry/stores/tagStore';
 import {TOP_N} from 'sentry/utils/discover/types';
-import {SessionMetric} from 'sentry/utils/metrics/fields';
 import {
   DashboardDetails,
   DashboardWidgetSource,
@@ -184,40 +183,6 @@ describe('WidgetBuilder', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/metrics/tags/`,
       body: [{key: 'environment'}, {key: 'release'}, {key: 'session.status'}],
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/metrics/tags/session.status/`,
-      body: [
-        {
-          key: 'session.status',
-          value: 'crashed',
-        },
-      ],
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/metrics/meta/`,
-      body: [
-        {
-          name: SessionMetric.SESSION,
-          type: 'counter',
-          operations: ['sum'],
-          unit: null,
-        },
-        {
-          name: SessionMetric.SESSION_ERROR,
-          type: 'set',
-          operations: ['count_unique'],
-          unit: null,
-        },
-        {
-          name: 'user',
-          type: 'set',
-          operations: ['count_unique'],
-          unit: null,
-        },
-      ],
     });
 
     metricsDataMock = MockApiClient.addMockResponse({
