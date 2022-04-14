@@ -1339,6 +1339,76 @@ describe('WidgetBuilder', function () {
     expect(tagsMock).not.toHaveBeenCalled();
   });
 
+  it('excludes the Other series when grouping and using multiple y-axes', async function () {
+    const defaultWidgetQuery = {
+      conditions: '',
+      fields: [''],
+      aggregates: ['count()', 'count_unique(user)'],
+      columns: ['project'],
+      orderby: 'count',
+      name: '',
+    };
+    renderTestComponent({
+      query: {
+        source: DashboardWidgetSource.DASHBOARDS,
+        defaultWidgetQuery: urlEncode(defaultWidgetQuery),
+        displayType: DisplayType.LINE,
+      },
+    });
+
+    await waitFor(() => {
+      expect(eventsStatsMock).toBeCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({includeOther: '0'}),
+        })
+      );
+    });
+  });
+
+  it('excludes the Other series when grouping and using multiple queries', async function () {
+    renderTestComponent({
+      orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      query: {
+        displayType: DisplayType.LINE,
+      },
+    });
+
+    await screen.findByText('Select group');
+    await selectEvent.select(screen.getByText('Select group'), 'project');
+    userEvent.click(screen.getByText('Add Query'));
+
+    await waitFor(() => {
+      expect(eventsStatsMock).toBeCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({includeOther: '0'}),
+        })
+      );
+    });
+  });
+
+  it('includes Other series when there is only one query and one y-axis', async function () {
+    renderTestComponent({
+      orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      query: {
+        displayType: DisplayType.LINE,
+      },
+    });
+
+    await screen.findByText('Select group');
+    await selectEvent.select(screen.getByText('Select group'), 'project');
+
+    await waitFor(() => {
+      expect(eventsStatsMock).toBeCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({includeOther: '1'}),
+        })
+      );
+    });
+  });
+
   describe('Sort by selectors', function () {
     it('renders', async function () {
       renderTestComponent({

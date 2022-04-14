@@ -417,6 +417,11 @@ class WidgetQueries extends React.Component<Props, State> {
           requestData.topEvents = widget.limit ?? TOP_N;
           // Aggregates need to be in fields as well
           requestData.field = [...query.columns, ...query.aggregates];
+
+          // The "Other" series is only included when there is one
+          // y-axis and one query
+          requestData.includeOther =
+            query.aggregates.length === 1 && widget.queries.length === 1;
         }
       }
       return doEventsRequest(api, requestData);

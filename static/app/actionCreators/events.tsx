@@ -22,6 +22,7 @@ type Options = {
   environment?: Readonly<string[]>;
   field?: string[];
   generatePathname?: (org: OrganizationSummary) => string;
+  includeOther?: boolean;
   includePrevious?: boolean;
   interval?: string;
   limit?: number;
@@ -82,6 +83,7 @@ export const doEventsRequest = (
     queryBatching,
     generatePathname,
     queryExtras,
+    includeOther,
   }: Options
 ): Promise<EventsStats | MultiSeriesEventsStats> => {
   const shouldDoublePeriod = canIncludePreviousPeriod(includePrevious, period);
@@ -100,6 +102,7 @@ export const doEventsRequest = (
       partial: partial ? '1' : undefined,
       withoutZerofill: withoutZerofill ? '1' : undefined,
       referrer: referrer ? referrer : 'api.organization-event-stats',
+      includeOther: includeOther ? '1' : '0',
     }).filter(([, value]) => typeof value !== 'undefined')
   );
 
