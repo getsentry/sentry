@@ -166,6 +166,7 @@ class SuperuserTestCase(TestCase):
                 {
                     "superuserAccessCategory": "for_unit_test",
                     "superuserReason": "Edit organization settings",
+                    "isSuperuserModal": True,
                 }
             )
 

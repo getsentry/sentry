@@ -336,7 +336,7 @@ class Superuser:
         except (AttributeError, json.JSONDecodeError, RawPostDataException):
             su_access_json = {}
 
-        if "superuserAccessCategory" in su_access_json:
+        if su_access_json.get("isSuperuserModal"):
 
             su_access_info = SuperuserAccessSerializer(data=su_access_json)
 
