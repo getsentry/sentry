@@ -1340,21 +1340,17 @@ describe('WidgetBuilder', function () {
   });
 
   it('excludes the Other series when grouping and using multiple y-axes', async function () {
-    const defaultWidgetQuery = {
-      conditions: '',
-      fields: [''],
-      aggregates: ['count()', 'count_unique(user)'],
-      columns: ['project'],
-      orderby: 'count',
-      name: '',
-    };
     renderTestComponent({
+      orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
       query: {
-        source: DashboardWidgetSource.DASHBOARDS,
-        defaultWidgetQuery: urlEncode(defaultWidgetQuery),
         displayType: DisplayType.LINE,
       },
     });
+
+    await selectEvent.select(await screen.findByText('Select group'), 'project');
+
+    userEvent.click(screen.getByText('Add Overlay'));
+    await selectEvent.select(screen.getByText('(Required)'), /count_unique/);
 
     await waitFor(() => {
       expect(eventsStatsMock).toBeCalledWith(
@@ -1374,8 +1370,7 @@ describe('WidgetBuilder', function () {
       },
     });
 
-    await screen.findByText('Select group');
-    await selectEvent.select(screen.getByText('Select group'), 'project');
+    await selectEvent.select(await screen.findByText('Select group'), 'project');
     userEvent.click(screen.getByText('Add Query'));
 
     await waitFor(() => {
@@ -1396,8 +1391,7 @@ describe('WidgetBuilder', function () {
       },
     });
 
-    await screen.findByText('Select group');
-    await selectEvent.select(screen.getByText('Select group'), 'project');
+    await selectEvent.select(await screen.findByText('Select group'), 'project');
 
     await waitFor(() => {
       expect(eventsStatsMock).toBeCalledWith(
