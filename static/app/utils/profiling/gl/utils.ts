@@ -161,6 +161,7 @@ export const Transform = {
   betweenRect(from: Rect, to: Rect): Rect {
     return new Rect(to.x, to.y, to.width / from.width, to.height / from.height);
   },
+
   transformMatrixBetweenRect(from: Rect, to: Rect): mat3 {
     return mat3.fromValues(
       to.width / from.width,
@@ -169,8 +170,8 @@ export const Transform = {
       0,
       to.height / from.height,
       0,
-      -((from.x * to.width) / from.width),
-      -((from.y * to.height) / from.height),
+      to.x - from.x * (to.width / from.width),
+      to.y - from.y * (to.height / from.height),
       1
     );
   },
@@ -465,8 +466,7 @@ export function trimTextCenter(text: string, low: number) {
 export function computeClampedConfigView(
   newConfigView: Rect,
   width: {max: number; min: number},
-  height: {max: number; min: number},
-  inverted: boolean
+  height: {max: number; min: number}
 ) {
   if (!newConfigView.isValid()) {
     throw new Error(newConfigView.toString());
@@ -475,10 +475,7 @@ export function computeClampedConfigView(
   const clampedHeight = clamp(newConfigView.height, height.min, height.max);
 
   const maxX = width.max - clampedWidth;
-  const maxY =
-    clampedHeight >= height.max + (inverted ? 1 : 0)
-      ? 0
-      : height.max - clampedHeight + (inverted ? 1 : 0);
+  const maxY = clampedHeight >= height.max ? 0 : height.max - clampedHeight;
 
   const clampedX = clamp(newConfigView.x, 0, maxX);
   const clampedY = clamp(newConfigView.y, 0, maxY);
