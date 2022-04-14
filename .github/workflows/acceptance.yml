@@ -15,7 +15,6 @@ on:
 
 jobs:
   files-changed:
-    if: github.head_repository.full_name == 'getsentry/sentry'
     name: detect what files changed
     runs-on: ubuntu-20.04
     timeout-minutes: 3
