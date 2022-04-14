@@ -1,6 +1,4 @@
-from typing import Mapping, Optional, Sequence
-
-from rest_framework import serializers, status
+from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -8,42 +6,19 @@ from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import RuleSerializer
 from sentry.integrations.slack import tasks
-from sentry.mediators import alert_rule_actions, project_rules
-from sentry.mediators.external_requests.alert_rule_action_requester import AlertRuleActionResult
+from sentry.mediators import project_rules
 from sentry.models import (
     AuditLogEntryEvent,
     Rule,
     RuleActivity,
     RuleActivityType,
     RuleStatus,
-    SentryAppInstallation,
     Team,
     User,
 )
+from sentry.rules.actions.base import trigger_alert_rule_action_creators
 from sentry.signals import alert_rule_created
 from sentry.web.decorators import transaction_start
-
-
-# TODO(Leander): Move this method into a relevant abstract base class
-def trigger_alert_rule_action_creators(
-    actions: Sequence[Mapping[str, str]],
-) -> Optional[str]:
-    created = None
-    for action in actions:
-        # Only call creator for Sentry Apps with UI Components for alert rules.
-        if not action.get("hasSchemaFormConfig"):
-            continue
-
-        install = SentryAppInstallation.objects.get(uuid=action.get("sentryAppInstallationUuid"))
-        result: AlertRuleActionResult = alert_rule_actions.AlertRuleActionCreator.run(
-            install=install,
-            fields=action.get("settings"),
-        )
-        # Bubble up errors from Sentry App to the UI
-        if not result["success"]:
-            raise serializers.ValidationError({"actions": [result["message"]]})
-        created = "alert-rule-action"
-    return created
 
 
 class ProjectRulesEndpoint(ProjectEndpoint):

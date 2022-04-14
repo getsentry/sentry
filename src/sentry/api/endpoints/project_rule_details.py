@@ -3,7 +3,6 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.rule import RuleEndpoint
-from sentry.api.endpoints.project_rules import trigger_alert_rule_action_creators
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.rule import RuleSerializer
 from sentry.api.serializers.rest_framework.rule import RuleSerializer as DrfRuleSerializer
@@ -19,6 +18,7 @@ from sentry.models import (
     Team,
     User,
 )
+from sentry.rules.actions.base import trigger_alert_rule_action_creators
 from sentry.signals import alert_rule_edited
 from sentry.web.decorators import transaction_start
 

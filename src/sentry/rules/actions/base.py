@@ -6,12 +6,15 @@ from typing import Any, Callable, Generator, Mapping, Sequence
 
 from django import forms
 from django.db.models import QuerySet
+from rest_framework import serializers
 from rest_framework.response import Response
 
-from sentry.constants import ObjectStatus
+from sentry.constants import SENTRY_APP_ACTIONS, ObjectStatus
 from sentry.eventstore.models import Event
 from sentry.integrations import IntegrationInstallation
-from sentry.models import ExternalIssue, GroupLink, Integration
+from sentry.mediators import alert_rule_actions
+from sentry.mediators.external_requests.alert_rule_action_requester import AlertRuleActionResult
+from sentry.models import ExternalIssue, GroupLink, Integration, Project, SentryAppInstallation
 from sentry.rules.base import CallbackFuture, EventState, RuleBase
 from sentry.types.rules import RuleFuture
 
@@ -58,6 +61,37 @@ class EventAction(RuleBase, abc.ABC):
         >>>         print(future)
         """
         pass
+
+
+class SentryAppEventAction(EventAction, abc.ABC):
+    """Abstract class to ensure that actions in SENTRY_APP_ACTIONS have all required methods"""
+
+    @abc.abstractmethod
+    def get_custom_actions(self, project: Project) -> Sequence[Mapping[str, Any]]:
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def self_validate(self) -> None:
+        raise NotImplementedError()
+
+
+def trigger_alert_rule_action_creators(actions: Sequence[Mapping[str, str]]):
+    created = None
+    for action in actions:
+        # Only call creator for Sentry Apps with UI Components for alert rules.
+        if not action.get("id") in SENTRY_APP_ACTIONS:
+            continue
+
+        install = SentryAppInstallation.objects.get(uuid=action.get("sentryAppInstallationUuid"))
+        result: AlertRuleActionResult = alert_rule_actions.AlertRuleActionCreator.run(
+            install=install,
+            fields=action.get("settings"),
+        )
+        # Bubble up errors from Sentry App to the UI
+        if not result["success"]:
+            raise serializers.ValidationError({"actions": [result["message"]]})
+        created = "alert-rule-action"
+    return created
 
 
 class IntegrationEventAction(EventAction, abc.ABC):
