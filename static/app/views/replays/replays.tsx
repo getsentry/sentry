@@ -3,6 +3,7 @@ import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import FeatureBadge from 'sentry/components/featureBadge';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import Link from 'sentry/components/links/link';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -38,7 +39,7 @@ class Replays extends React.Component<Props> {
       id: '',
       name: '',
       version: 2,
-      fields: ['eventID', 'timestamp', 'replayId', 'user.display', 'url'],
+      fields: ['eventID', 'project', 'replayId', 'timestamp', 'user.display', 'url'],
       orderby: '-timestamp',
       environment: selection.environments,
       projects: selection.projects,
@@ -80,6 +81,15 @@ class Replays extends React.Component<Props> {
           />
         </Link>
         <div>
+          <ProjectBadge
+            project={{
+              slug: replay.project,
+            }}
+            avatarSize={16}
+            displayName={replay.project}
+          />
+        </div>
+        <div>
           <TimeSinceWrapper>
             <StyledIconCalendarWrapper color="gray500" size="sm" />
             <TimeSince date={replay.timestamp} />
@@ -116,7 +126,7 @@ class Replays extends React.Component<Props> {
                   <PanelTable
                     isLoading={data.isLoading}
                     isEmpty={data.tableData?.data.length === 0}
-                    headers={[t('Session'), t('Timestamp')]}
+                    headers={[t('Session'), t('Project'), t('Timestamp')]}
                   >
                     {data.tableData
                       ? this.renderTable(data.tableData.data as Replay[])
