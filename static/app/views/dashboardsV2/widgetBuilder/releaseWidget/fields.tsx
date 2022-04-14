@@ -3,6 +3,7 @@ import {
   SessionAggregationColumn,
   SessionsMeta,
   SessionsOperation,
+  SessionStatus,
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {FieldValue, FieldValueKind} from 'sentry/views/eventsV2/table/types';
@@ -71,7 +72,7 @@ export const SESSIONS_OPERATIONS: Readonly<
 };
 
 export const SESSIONS_TAGS = ['environment', 'project', 'release', 'session.status'];
-export const SESSION_STATUSES = ['all', 'healthy', 'abnormal', 'crashed', 'errored'];
+export const SESSION_STATUSES = Object.values(SessionStatus);
 
 export function generateReleaseWidgetFieldOptions(
   fields: SessionsMeta[] = Object.keys(SESSIONS_FIELDS).map(key => SESSIONS_FIELDS[key]),

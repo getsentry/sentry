@@ -3,11 +3,11 @@ import {MetricsOperation, MetricsType} from 'sentry/types';
 import {ColumnType} from '../discover/fields';
 
 export enum SessionMetric {
-  SESSION = 'sentry.sessions.session',
-  SESSION_DURATION = 'sentry.sessions.session.duration',
+  SESSION = 'session',
+  SESSION_DURATION = 'session.duration',
   SESSION_ERROR = 'sentry.sessions.session.error',
   SESSION_CRASH_FREE_RATE = 'session.crash_free_rate',
-  USER = 'sentry.sessions.user',
+  USER = 'user',
 }
 
 export enum TransactionMetric {

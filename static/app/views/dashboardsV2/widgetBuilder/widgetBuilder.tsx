@@ -38,6 +38,7 @@ import {
   stripDerivedMetricsPrefix,
 } from 'sentry/utils/discover/fields';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
+import {SessionMetric} from 'sentry/utils/metrics/fields';
 import {MetricsProvider} from 'sentry/utils/metrics/metricsProvider';
 import useApi from 'sentry/utils/useApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -104,12 +105,12 @@ function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, Widge
     },
     [DataSet.RELEASE]: {
       name: '',
-      fields: [`sum(session)`],
+      fields: [`sum(${SessionMetric.SESSION})`],
       columns: [],
       fieldAliases: [],
-      aggregates: [`sum(session)`],
+      aggregates: [`sum(${SessionMetric.SESSION})`],
       conditions: '',
-      orderby: widgetBuilderNewDesign ? `-sum(session)` : '',
+      orderby: widgetBuilderNewDesign ? `-sum(${SessionMetric.SESSION})` : '',
     },
   };
 }
