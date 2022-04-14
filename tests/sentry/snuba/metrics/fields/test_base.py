@@ -27,8 +27,8 @@ from sentry.snuba.metrics.fields.snql import (
     errored_all_users,
     errored_preaggr_sessions,
     percentage,
-    sessions_errored_set,
     subtraction,
+    uniq_aggregation_on_metric,
 )
 from sentry.snuba.metrics.naming_layer import SessionMRI, TransactionMRI, get_public_name_from_mri
 from sentry.testutils import TestCase
@@ -153,7 +153,7 @@ class SingleEntityDerivedMetricTestCase(TestCase):
         assert DERIVED_METRICS[SessionMRI.ERRORED_SET.value].generate_select_statements(
             [self.project]
         ) == [
-            sessions_errored_set(
+            uniq_aggregation_on_metric(
                 metric_ids=session_error_metric_ids,
                 alias=SessionMRI.ERRORED_SET.value,
             ),
@@ -367,12 +367,16 @@ class CompositeEntityDerivedMetricTestCase(TestCase):
     )
     def test_get_entity_and_validate_dependency_tree_of_single_entity_constituents(self):
         assert self.sessions_errored.get_entity(projects=[1]) == {
-            "metrics_counters": [SessionMRI.ERRORED_PREAGGREGATED.value],
+            "metrics_counters": [
+                SessionMRI.ERRORED_PREAGGREGATED.value,
+                SessionMRI.CRASHED_AND_ABNORMAL.value,
+            ],
             "metrics_sets": [SessionMRI.ERRORED_SET.value],
         }
         component_entities = DERIVED_METRICS[SessionMRI.HEALTHY.value].get_entity(projects=[1])
         assert sorted(component_entities["metrics_counters"]) == [
             SessionMRI.ALL.value,
+            SessionMRI.CRASHED_AND_ABNORMAL.value,
             SessionMRI.ERRORED_PREAGGREGATED.value,
         ]
         assert sorted(component_entities["metrics_sets"]) == [SessionMRI.ERRORED_SET.value]
@@ -397,6 +401,8 @@ class CompositeEntityDerivedMetricTestCase(TestCase):
         assert list(self.sessions_errored.generate_bottom_up_derived_metrics_dependencies()) == [
             (None, SessionMRI.ERRORED_SET.value),
             (None, SessionMRI.ERRORED_PREAGGREGATED.value),
+            (None, SessionMRI.CRASHED_AND_ABNORMAL.value),
+            (None, SessionMRI.ERRORED_ALL.value),
             (None, SessionMRI.ERRORED.value),
         ]
 
@@ -407,6 +413,8 @@ class CompositeEntityDerivedMetricTestCase(TestCase):
         ) == [
             (None, SessionMRI.ERRORED_SET.value),
             (None, SessionMRI.ERRORED_PREAGGREGATED.value),
+            (None, SessionMRI.CRASHED_AND_ABNORMAL.value),
+            (None, SessionMRI.ERRORED_ALL.value),
             (None, SessionMRI.ERRORED.value),
             (None, "random_composite"),
         ]
@@ -416,12 +424,16 @@ class CompositeEntityDerivedMetricTestCase(TestCase):
         totals = {
             SessionMRI.ERRORED_SET.value: 3,
             SessionMRI.ERRORED_PREAGGREGATED.value: 4.0,
+            SessionMRI.CRASHED_AND_ABNORMAL.value: 0,
             SessionMRI.ERRORED.value: 0,
+            SessionMRI.ERRORED_ALL.value: 7,
         }
         series = {
             SessionMRI.ERRORED_SET.value: [0, 0, 0, 0, 3, 0],
             SessionMRI.ERRORED.value: [0, 0, 0, 0, 0, 0],
             SessionMRI.ERRORED_PREAGGREGATED.value: [4.0, 0, 0, 0, 0, 0],
+            SessionMRI.CRASHED_AND_ABNORMAL.value: [0, 0, 0, 0, 0, 0],
+            SessionMRI.ERRORED_ALL.value: [4.0, 0, 0, 0, 3, 0],
         }
         assert (
             self.sessions_errored.run_post_query_function(totals, query_definition=query_definition)

@@ -995,9 +995,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             self.organization.id, TransactionTagsKey.TRANSACTION_SATISFACTION.value
         )
         self.tx_user_metric = indexer.record(self.organization.id, TransactionMRI.USER.value)
-        self.tx_satisfaction = indexer.record(
-            self.organization.id, TransactionTagsKey.TRANSACTION_SATISFACTION.value
-        )
 
     @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
     @patch("sentry.snuba.metrics.fields.base.get_public_name_from_mri")
@@ -1143,7 +1140,30 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "timestamp": (user_ts // 60 - 4) * 60,
                     "tags": {
                         self.session_status_tag: indexer.record(org_id, "errored_preaggr"),
-                        self.release_tag: indexer.record(org_id, "foo"),
+                    },
+                    "type": "c",
+                    "value": 10,
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_metric,
+                    "timestamp": (user_ts // 60 - 4) * 60,
+                    "tags": {
+                        self.session_status_tag: indexer.record(org_id, "crashed"),
+                    },
+                    "type": "c",
+                    "value": 2,
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_metric,
+                    "timestamp": (user_ts // 60 - 4) * 60,
+                    "tags": {
+                        self.session_status_tag: indexer.record(org_id, "abnormal"),
                     },
                     "type": "c",
                     "value": 4,
@@ -1156,10 +1176,9 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "timestamp": user_ts,
                     "tags": {
                         self.session_status_tag: indexer.record(org_id, "init"),
-                        self.release_tag: indexer.record(org_id, "foo"),
                     },
                     "type": "c",
-                    "value": 10,
+                    "value": 15,
                     "retention_days": 90,
                 },
             ],
@@ -2085,6 +2104,53 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
 
         assert len(response.data["groups"]) == 1
         assert response.data["groups"][0]["totals"] == {"transaction.miserable_user": 2}
+
+    def test_user_misery(self):
+        user_ts = time.time()
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.tx_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.tx_satisfaction: indexer.record(
+                            self.organization.id, TransactionSatisfactionTagValue.FRUSTRATED.value
+                        ),
+                    },
+                    "type": "s",
+                    "value": [3, 4],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.tx_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.tx_satisfaction: indexer.record(
+                            self.organization.id, TransactionSatisfactionTagValue.SATISFIED.value
+                        ),
+                    },
+                    "type": "s",
+                    "value": [5, 6],
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_sets",
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["transaction.user_misery"],
+            statsPeriod="1m",
+            interval="1m",
+        )
+        assert len(response.data["groups"]) == 1
+        assert response.data["groups"][0]["totals"] == {
+            "transaction.user_misery": 0.06478439425051336
+        }
 
     def test_session_duration_derived_alias(self):
         org_id = self.organization.id

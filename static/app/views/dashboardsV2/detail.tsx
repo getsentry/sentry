@@ -110,8 +110,13 @@ class DashboardDetail extends Component<Props, State> {
     this.checkIfShouldMountWidgetViewerModal();
   }
 
-  componentDidUpdate() {
+  componentDidUpdate(prevProps: Props) {
     this.checkIfShouldMountWidgetViewerModal();
+
+    if (prevProps.initialState !== this.props.initialState) {
+      // Widget builder can toggle Edit state when saving
+      this.setState({dashboardState: this.props.initialState});
+    }
   }
 
   componentWillUnmount() {
@@ -571,8 +576,8 @@ class DashboardDetail extends Component<Props, State> {
     }));
   };
 
-  renderWidgetBuilder(dashboard: DashboardDetails) {
-    const {children} = this.props;
+  renderWidgetBuilder() {
+    const {children, dashboard} = this.props;
     const {modifiedDashboard} = this.state;
 
     return isValidElement(children)
@@ -625,8 +630,8 @@ class DashboardDetail extends Component<Props, State> {
             </StyledPageHeader>
             <DashboardPageFilterBar>
               <ProjectPageFilter />
-              <EnvironmentPageFilter alignDropdown="right" />
-              <DatePageFilter alignDropdown="right" />
+              <EnvironmentPageFilter alignDropdown="left" />
+              <DatePageFilter alignDropdown="left" />
             </DashboardPageFilterBar>
             <HookHeader organization={organization} />
             <Dashboard
@@ -730,8 +735,8 @@ class DashboardDetail extends Component<Props, State> {
                 <Layout.Main fullWidth>
                   <DashboardPageFilterBar>
                     <ProjectPageFilter />
-                    <EnvironmentPageFilter alignDropdown="right" />
-                    <DatePageFilter alignDropdown="right" />
+                    <EnvironmentPageFilter alignDropdown="left" />
+                    <DatePageFilter alignDropdown="left" />
                   </DashboardPageFilterBar>
                   <WidgetViewerContext.Provider value={{seriesData, setData}}>
                     <Dashboard
@@ -760,10 +765,10 @@ class DashboardDetail extends Component<Props, State> {
   }
 
   render() {
-    const {organization, dashboard} = this.props;
+    const {organization} = this.props;
 
     if (this.isWidgetBuilderRouter) {
-      return this.renderWidgetBuilder(dashboard);
+      return this.renderWidgetBuilder();
     }
 
     if (organization.features.includes('dashboards-edit')) {

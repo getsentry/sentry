@@ -27,6 +27,7 @@ from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.api.utils import InvalidParams
 from sentry.models import Project
+from sentry.search.events.constants import MISERY_ALPHA, MISERY_BETA
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.utils import resolve_weak
 from sentry.snuba.dataset import Dataset, EntityKey
@@ -49,9 +50,9 @@ from sentry.snuba.metrics.fields.snql import (
     percentage,
     satisfaction_count_transaction,
     session_duration_filters,
-    sessions_errored_set,
     subtraction,
     tolerated_count_transaction,
+    uniq_aggregation_on_metric,
 )
 from sentry.snuba.metrics.naming_layer.mapping import get_public_name_from_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
@@ -82,6 +83,8 @@ __all__ = (
     "SingularEntityDerivedMetric",
     "DERIVED_METRICS",
     "generate_bottom_up_dependency_tree_for_metrics",
+    "get_derived_metrics",
+    "org_id_from_projects",
 )
 
 SnubaDataType = Dict[str, Any]
@@ -471,6 +474,10 @@ class DerivedMetricExpressionDefinition:
     op: Optional[str] = None
     result_type: Optional[MetricType] = None
     # TODO: better typing
+    # snql attribute is a function that takes optional args that map to strings that are MRIs for
+    # the derived metric, org_id, metric_ids required to generate the snql and a string alias,
+    # and in return, return snql that snuba can understand and represents how to query for the
+    # derived metric
     snql: Optional[Callable[..., Function]] = None
     post_query_func: Any = lambda *args: args
     is_private: bool = False
@@ -693,6 +700,9 @@ class CompositeEntityDerivedMetric(DerivedMetricExpression):
                 entities_and_metric_mris.setdefault(entity, []).append(
                     constituent_metric_obj.metric_mri
                 )
+                # We do not care about the components of a SingularEntityDerivedMetric
+                continue
+
             # This is necessary because we don't want to override entity lists but rather append
             # to them
             entities_and_metric_mris = combine_dictionary_of_list_values(
@@ -720,6 +730,11 @@ class CompositeEntityDerivedMetric(DerivedMetricExpression):
             node = metric_nodes.popleft()
             if node.metric_mri in DERIVED_METRICS:
                 results.append((None, node.metric_mri))
+                # We do not really care about getting the components of an instance of
+                # SingularEntityDerivedMetric because there is a direct mapping to the response
+                # returned by the dataset anyways
+                if isinstance(node, SingularEntityDerivedMetric):
+                    continue
             for metric in node.metrics:
                 if metric in DERIVED_METRICS:
                     metric_nodes.append(DERIVED_METRICS[metric])
@@ -826,19 +841,41 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             metric_mri=SessionMRI.ERRORED_SET.value,
             metrics=[SessionMRI.ERROR.value],
             unit="sessions",
-            snql=lambda *_, org_id, metric_ids, alias=None: sessions_errored_set(
+            snql=lambda *_, org_id, metric_ids, alias=None: uniq_aggregation_on_metric(
                 metric_ids, alias=alias
             ),
             is_private=True,
         ),
+        SingularEntityDerivedMetric(
+            metric_mri=SessionMRI.CRASHED_AND_ABNORMAL.value,
+            metrics=[
+                SessionMRI.CRASHED.value,
+                SessionMRI.ABNORMAL.value,
+            ],
+            unit="sessions",
+            snql=lambda *args, org_id, metric_ids, alias=None: addition(*args, alias=alias),
+            is_private=True,
+        ),
         CompositeEntityDerivedMetric(
-            metric_mri=SessionMRI.ERRORED.value,
+            metric_mri=SessionMRI.ERRORED_ALL.value,
             metrics=[
                 SessionMRI.ERRORED_PREAGGREGATED.value,
                 SessionMRI.ERRORED_SET.value,
             ],
             unit="sessions",
             post_query_func=lambda *args: sum([*args]),
+            is_private=True,
+        ),
+        CompositeEntityDerivedMetric(
+            metric_mri=SessionMRI.ERRORED.value,
+            metrics=[
+                SessionMRI.ERRORED_ALL.value,
+                SessionMRI.CRASHED_AND_ABNORMAL.value,
+            ],
+            unit="sessions",
+            post_query_func=lambda errored_all, crashed_abnormal: max(
+                0, errored_all - crashed_abnormal
+            ),
         ),
         SingularEntityDerivedMetric(
             metric_mri=SessionMRI.ERRORED_USER_ALL.value,
@@ -895,6 +932,7 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             snql=lambda *_, org_id, metric_ids, alias=None: all_transactions(
                 org_id, metric_ids=metric_ids, alias=alias
             ),
+            is_private=True,
         ),
         SingularEntityDerivedMetric(
             metric_mri=TransactionMRI.FAILURE_COUNT.value,
@@ -903,6 +941,7 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             snql=lambda *_, org_id, metric_ids, alias=None: failure_count_transaction(
                 org_id, metric_ids=metric_ids, alias=alias
             ),
+            is_private=True,
         ),
         SingularEntityDerivedMetric(
             metric_mri=TransactionMRI.FAILURE_RATE.value,
@@ -922,6 +961,7 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             snql=lambda *_, org_id, metric_ids, alias=None: satisfaction_count_transaction(
                 org_id=org_id, metric_ids=metric_ids, alias=alias
             ),
+            is_private=True,
         ),
         SingularEntityDerivedMetric(
             metric_mri=TransactionMRI.TOLERATED.value,
@@ -930,6 +970,7 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             snql=lambda *_, org_id, metric_ids, alias=None: tolerated_count_transaction(
                 org_id=org_id, metric_ids=metric_ids, alias=alias
             ),
+            is_private=True,
         ),
         SingularEntityDerivedMetric(
             metric_mri=TransactionMRI.APDEX.value,
@@ -951,6 +992,25 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             unit="users",
             snql=lambda *_, org_id, metric_ids, alias=None: miserable_users(
                 org_id=org_id, metric_ids=metric_ids, alias=alias
+            ),
+        ),
+        SingularEntityDerivedMetric(
+            metric_mri=TransactionMRI.ALL_USER.value,
+            metrics=[TransactionMRI.USER.value],
+            unit="percentage",
+            snql=lambda *_, org_id, metric_ids, alias=None: uniq_aggregation_on_metric(
+                metric_ids, alias=alias
+            ),
+            is_private=True,
+        ),
+        SingularEntityDerivedMetric(
+            metric_mri=TransactionMRI.USER_MISERY.value,
+            metrics=[TransactionMRI.MISERABLE_USER.value, TransactionMRI.ALL_USER.value],
+            unit="percentage",
+            snql=lambda miserable_user, user, org_id, metric_ids, alias=None: division_float(
+                addition(miserable_user, MISERY_ALPHA),
+                addition(user, MISERY_ALPHA + MISERY_BETA),
+                alias,
             ),
         ),
     ]
@@ -1022,6 +1082,8 @@ def generate_bottom_up_dependency_tree_for_metrics(
 
 
 def get_derived_metrics(exclude_private: bool = True) -> Mapping[str, DerivedMetricExpression]:
+    # ToDo(ahmed): Modify the behaviour here to determine whether a metric is private or not
+    #  based on whether it is added to the public naming layer or not
     return (
         {key: value for (key, value) in DERIVED_METRICS.items() if not value.is_private}
         if exclude_private

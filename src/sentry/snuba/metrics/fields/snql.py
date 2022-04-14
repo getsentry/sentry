@@ -189,7 +189,7 @@ def errored_all_users(org_id: int, metric_ids, alias=None):
     )
 
 
-def sessions_errored_set(metric_ids, alias=None):
+def uniq_aggregation_on_metric(metric_ids, alias=None):
     return Function(
         "uniqIf",
         [

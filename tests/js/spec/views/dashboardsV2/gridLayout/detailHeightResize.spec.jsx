@@ -68,6 +68,11 @@ describe('Dashboards > Detail', function () {
         method: 'GET',
         body: [],
       });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/tags/',
+        method: 'GET',
+        body: [],
+      });
     });
 
     afterEach(function () {
