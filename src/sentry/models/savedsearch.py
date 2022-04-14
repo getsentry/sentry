@@ -63,7 +63,7 @@ class SavedSearch(Model):
         constraints = [
             UniqueConstraint(
                 fields=["organization", "name", "type"],
-                condition=Q(owner=None),
+                condition=Q(owner__isnull=True),
                 name="sentry_savedsearch_is_global_6793a2f9e1b59b95",
             ),
             UniqueConstraint(
