@@ -91,4 +91,70 @@ describe('DiscoverQuery', function () {
       })
     );
   });
+
+  it('parses string errors correctly', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/test-org/eventsv2/',
+      body: {
+        detail: 'Error Message',
+      },
+      statusCode: 400,
+    });
+
+    let errorValue;
+    render(
+      <DiscoverQuery
+        orgSlug="test-org"
+        api={api}
+        location={location}
+        eventView={eventView}
+        setError={e => (errorValue = e)}
+      >
+        {({isLoading}) => {
+          if (isLoading) {
+            return 'loading';
+          }
+          return null;
+        }}
+      </DiscoverQuery>
+    );
+    await tick();
+
+    expect(errorValue.message).toEqual('Error Message');
+  });
+
+  it('parses object errors correctly', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/test-org/eventsv2/',
+      body: {
+        detail: {
+          code: '?',
+          message: 'Object Error',
+          extra: {},
+        },
+      },
+      statusCode: 400,
+    });
+
+    let errorValue;
+    render(
+      <DiscoverQuery
+        orgSlug="test-org"
+        api={api}
+        location={location}
+        eventView={eventView}
+        setError={e => (errorValue = e)}
+      >
+        {({isLoading}) => {
+          if (isLoading) {
+            return 'loading';
+          }
+          return null;
+        }}
+      </DiscoverQuery>
+    );
+    await tick();
+
+    expect(errorValue.message).toEqual('Object Error');
+  });
 });
