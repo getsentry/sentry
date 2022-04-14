@@ -5,8 +5,6 @@ import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
-import QueryCount from 'sentry/components/queryCount';
-import {tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, SavedSearch} from 'sentry/types';
 
@@ -22,9 +20,7 @@ type Props = {
   onSidebarToggle: (event: React.MouseEvent) => void;
   onSortChange: (sort: string) => void;
   organization: Organization;
-
   query: string;
-  queryCount: number;
   savedSearch: SavedSearch;
   sort: string;
   tagValueLoader: TagValueLoader;
@@ -35,7 +31,6 @@ function IssueListFilters({
   organization,
   savedSearch,
   query,
-  queryCount,
   isSearchDisabled,
   sort,
   onSidebarToggle,
@@ -74,24 +69,6 @@ function IssueListFilters({
           </DropdownsWrapper>
         )}
       </SearchContainer>
-      {hasPageFilters && (
-        <ResultsRow>
-          <QueryCountText>
-            {queryCount > 0 &&
-              tct('[queryCount] results found', {
-                queryCount: <QueryCount hideParens count={queryCount} max={1000} />,
-              })}
-          </QueryCountText>
-          <DisplayOptionsBar>
-            <IssueListSortOptions
-              sort={sort}
-              query={query}
-              onSelect={onSortChange}
-              hasPageFilters
-            />
-          </DisplayOptionsBar>
-        </ResultsRow>
-      )}
     </FilterContainer>
   );
 }
@@ -133,32 +110,6 @@ const DropdownsWrapper = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-columns: 1fr;
   }
-`;
-
-const QueryCountText = styled('p')`
-  font-size: ${p => p.theme.fontSizeLarge};
-  font-weight: 600;
-  color: ${p => p.theme.headingColor};
-  margin-bottom: 0;
-`;
-
-const DisplayOptionsBar = styled(PageFilterBar)`
-  height: auto;
-
-  /* make sure the border is on top of the trigger buttons */
-  &::after {
-    z-index: ${p => p.theme.zIndex.issuesList.displayOptions + 1};
-  }
-
-  button[aria-haspopup='listbox'] {
-    font-weight: 600;
-  }
-`;
-
-const ResultsRow = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
 `;
 
 export default IssueListFilters;
