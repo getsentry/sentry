@@ -249,7 +249,7 @@ class DerivedOpDefinition(MetricOperationDefinition):
     can_orderby: bool
     query_definition_args: Optional[List[str]] = None
     post_query_func: Callable[..., PostQueryFuncReturnType] = lambda *args: args
-    filter_conditions_func: Callable[[int], Optional[Function]] = lambda _: None
+    filter_conditions_func: Callable[..., Optional[Function]] = lambda _: None
 
 
 class RawOp(MetricOperation):
