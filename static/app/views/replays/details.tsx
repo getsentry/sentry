@@ -14,6 +14,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayController from 'sentry/components/replays/replayController';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
+import useFullscreen from 'sentry/components/replays/useFullscreen';
 import TagsTable from 'sentry/components/tagsTable';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
@@ -106,9 +107,21 @@ function getProjectSlug(event: Event) {
   return event.projectSlug || event['project.name']; // seems janky
 }
 
+// TODO(replay): investigate the `:fullscreen` CSS selector
+// https://caniuse.com/?search=%3Afullscreen
+const FullscreenWrapper = styled('div')<{isFullscreen: boolean}>`
+  ${p =>
+    p.isFullscreen
+      ? `
+    display: grid;
+    grid-template-rows: auto max-content;
+    background: ${p.theme.gray500};`
+      : ''}
+`;
+
 function ReplayLoader(props: ReplayLoaderProps) {
   const orgSlug = props.orgId;
-
+  const {ref: fullscreenRef, isFullscreen, toggle: toggleFullscreen} = useFullscreen();
   const {
     fetchError,
     fetching,
@@ -162,8 +175,10 @@ function ReplayLoader(props: ReplayLoaderProps) {
     return (
       <React.Fragment>
         <ReplayContextProvider events={rrwebEvents}>
-          <ReplayPlayer />
-          <ReplayController />
+          <FullscreenWrapper isFullscreen={isFullscreen} ref={fullscreenRef}>
+            <ReplayPlayer />
+            <ReplayController toggleFullscreen={toggleFullscreen} />
+          </FullscreenWrapper>
         </ReplayContextProvider>
 
         {breadcrumbEntry && (
@@ -211,7 +226,7 @@ function ReplayLoader(props: ReplayLoaderProps) {
                 to: `/organizations/${orgSlug}/replays/`,
                 label: t('Replays'),
               },
-              {label: t('Replay Details')}, // TODO: put replay ID or something here
+              {label: t('Replay Details')}, // TODO(replay): put replay ID or something here
             ]}
           />
           {event ? <EventHeader event={event} /> : null}
