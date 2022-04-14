@@ -92,6 +92,13 @@ runs:
         echo "PYTEST_SENTRY_DSN=https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079" >> $GITHUB_ENV
         echo "PYTEST_ADDOPTS=--reruns 5" >> $GITHUB_ENV
 
+        # Configure a different release version, otherwise it defaults to the
+        # commit sha which will conflict with our actual prod releases. This is a
+        # confusing experience because it looks like these are "empty" releases
+        # because no commits are attached and associates the release with our
+        # javascript + sentry projects.
+        echo "SENTRY_RELEASE=ci@$GITHUB_SHA" >> $GITHUB_ENV
+
         # this handles pytest test sharding
         if [ "$MATRIX_INSTANCE" ]; then
           if ! [ "$MATRIX_INSTANCE_TOTAL" ]; then
