@@ -51,9 +51,6 @@ class BaseNotification(abc.ABC):
     def from_email(self) -> str | None:
         return None
 
-    def get_filename(self) -> str:
-        raise NotImplementedError
-
     def get_category(self) -> str:
         raise NotImplementedError
 
@@ -75,11 +72,19 @@ class BaseNotification(abc.ABC):
         """
         raise NotImplementedError
 
-    def get_template(self) -> str:
-        return f"sentry/emails/{self.get_filename()}.txt"
-
-    def get_html_template(self) -> str:
-        return f"sentry/emails/{self.get_filename()}.html"
+    @property
+    @abc.abstractmethod
+    def template_path(self) -> str:
+        """
+        Specify the location of the email notification templates, rooted at
+        `src/sentry/templates/`. The HTML and text-only email templates MUST be
+        in the same directory and have identical filenames, differing only by file
+        extension. For example, if the templates are:
+         - src/sentry/templates/path/to/example.html
+         - src/sentry/templates/path/to/example.txt
+        then set `template_path` for the notification to `path/to/example`.
+        """
+        pass
 
     def get_recipient_context(
         self, recipient: Team | User, extra_context: Mapping[str, Any]

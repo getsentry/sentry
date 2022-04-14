@@ -16,8 +16,8 @@ from sentry.snuba.metrics import (
     errored_preaggr_sessions,
     percentage,
     session_duration_filters,
-    sessions_errored_set,
     subtraction,
+    uniq_aggregation_on_metric,
 )
 from sentry.snuba.metrics.fields.snql import (
     division_float,
@@ -119,7 +119,7 @@ class DerivedMetricSnQLTestCase(TestCase):
 
     def test_set_sum_aggregation_for_errored_sessions(self):
         alias = "whatever"
-        assert sessions_errored_set(self.metric_ids, alias) == Function(
+        assert uniq_aggregation_on_metric(self.metric_ids, alias) == Function(
             "uniqIf",
             [
                 Column("value"),

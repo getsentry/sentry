@@ -105,6 +105,11 @@ def _symbolicate(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
     for i in profile["debug_meta"]["images"]:
         i["debug_id"] = i["uuid"]
 
+    for s in profile["sampled_profile"]["samples"]:
+        for f in s["frames"]:
+            # https://github.com/microsoft/plcrashreporter/blob/748087386cfc517936315c107f722b146b0ad1ab/Source/PLCrashAsyncThread_arm.c#L84
+            f["instruction_addr"] = hex(int(f["instruction_addr"], 16) & 0x0000000FFFFFFFFF)
+
     modules = profile["debug_meta"]["images"]
     stacktraces = [
         {
