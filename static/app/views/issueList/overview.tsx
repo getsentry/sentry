@@ -1121,9 +1121,9 @@ class IssueListOverview extends React.Component<Props, State> {
   };
 
   onActionTaken = (itemIds: string[]) => {
-    const actionTakenGroupData = itemIds.map(id => GroupStore.get(id));
+    const actionTakenGroupData = itemIds.map(id => GroupStore.get(id) as Group);
     this.setState({
-      actionTakenGroupData: actionTakenGroupData as Group[],
+      actionTakenGroupData,
     });
   };
 
