@@ -84,35 +84,35 @@ class AuthIndexEndpoint(Endpoint):
     def _validate_superuser(self, validator, request):
         """
         For a superuser, they need to be validated before we can grant an active superuser session.
-        If the user has a password or u2f device, authenticate the password/challenge that was sent is valid.
-        If the user doesn't have a password or u2f device, we say they're authenticated if they have a
-        valid SSO session.
+        We say they're authenticated if they have a valid SSO session.
 
         By nature of granting an active superuser session, we want to make sure that the user has completed
         SSO and if they do not, we redirect them back to the SSO login.
 
         """
         # TODO Look at AuthVerifyValidator
-        validator.is_valid()
-        authenticated = None
+        # validator.is_valid()
+        # authenticated = None
 
-        if (
-            request.user.has_usable_password()
-            or Authenticator.objects.filter(user_id=request.user.id, type=3).exists()
-        ):
-            authenticated = self._verify_user_via_inputs(validator, request)
+        # if (
+        #     request.user.has_usable_password()
+        #     or Authenticator.objects.filter(user_id=request.user.id, type=3).exists()
+        # ):
+        #     authenticated = self._verify_user_via_inputs(validator, request)
 
         if Superuser.org_id:
             if not has_completed_sso(request, Superuser.org_id):
                 self._reauthenticate_with_sso(request, Superuser.org_id)
-            # below is a special case if the user is a superuser but doesn't have a password or
-            # u2f device set up, the only way to authenticate this case is to see if they have a
-            # valid sso session.
-            authenticated = True if authenticated is None else authenticated
-        elif authenticated is None:
-            return False
 
-        return authenticated
+        return True
+        # below is a special case if the user is a superuser but doesn't have a password or
+        # u2f device set up, the only way to authenticate this case is to see if they have a
+        # valid sso session.
+        #     authenticated = True if authenticated is None else authenticated
+        # elif authenticated is None:
+        #     return False
+
+        # return authenticated
 
     def get(self, request: Request) -> Response:
         if not request.user.is_authenticated:
