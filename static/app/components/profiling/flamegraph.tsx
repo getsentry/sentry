@@ -47,10 +47,10 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       {
         inverted: view === 'bottom up',
         leftHeavy: sorting === 'left heavy',
-      },
-      synchronizeXAxisWithTransaction
-        ? getTransactionConfigSpace(profiles.profiles)
-        : undefined
+        configSpace: synchronizeXAxisWithTransaction
+          ? getTransactionConfigSpace(profiles.profiles)
+          : undefined,
+      }
     );
 
     return flamegraphModel;

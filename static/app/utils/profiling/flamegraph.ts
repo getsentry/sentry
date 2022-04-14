@@ -35,8 +35,11 @@ export class Flamegraph {
   constructor(
     profile: Profile,
     profileIndex: number,
-    {inverted = false, leftHeavy = false}: {inverted?: boolean; leftHeavy?: boolean} = {},
-    configSpace?: Rect
+    {
+      inverted = false,
+      leftHeavy = false,
+      configSpace,
+    }: {configSpace?: Rect; inverted?: boolean; leftHeavy?: boolean} = {}
   ) {
     this.inverted = inverted;
     this.leftHeavy = leftHeavy;
@@ -69,7 +72,7 @@ export class Flamegraph {
       this.configSpace = new Rect(
         0,
         0,
-        configSpace ? configSpace.right : this.profile.endedAt,
+        configSpace ? configSpace.width : this.profile.endedAt,
         this.depth
       );
     }
