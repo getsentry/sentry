@@ -126,7 +126,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
             # the start of the bucket does not align with the rollup.
             allow_partial_buckets = request.GET.get("partial") == "1"
 
-            include_other = request.GET.get("includeOther") != "0"
+            include_other = request.GET.get("excludeOther") != "1"
 
             referrer = request.GET.get("referrer")
             referrer = (

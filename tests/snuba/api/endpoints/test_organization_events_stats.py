@@ -2382,7 +2382,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "orderby": ["count()"],
                     "field": ["count()", "message"],
                     "topEvents": 5,
-                    "includeOther": "0",
+                    "excludeOther": "1",
                 },
                 format="json",
             )
