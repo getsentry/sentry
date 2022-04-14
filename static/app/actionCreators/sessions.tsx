@@ -58,7 +58,5 @@ export const doSessionsRequest = (
     }).filter(([, value]) => defined(value) && value !== '')
   );
 
-  const pathname = `/organizations/${orgSlug}/sessions/`;
-
-  return api.requestPromise(pathname, {query: urlQuery});
+  return api.requestPromise(`/organizations/${orgSlug}/sessions/`, {query: urlQuery});
 };

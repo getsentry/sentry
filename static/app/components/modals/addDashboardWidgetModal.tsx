@@ -803,7 +803,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       : selection;
 
     const metricsWidgetFieldOptions = generateReleaseWidgetFieldOptions(
-      Object.keys(SESSIONS_FIELDS).map(key => SESSIONS_FIELDS[key]),
+      Object.values(SESSIONS_FIELDS),
       SESSIONS_TAGS
     );
 

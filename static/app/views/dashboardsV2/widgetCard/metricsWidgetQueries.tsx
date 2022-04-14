@@ -16,8 +16,8 @@ import {TOP_N} from 'sentry/utils/discover/types';
 import {DEFAULT_TABLE_LIMIT, DisplayType, Widget} from '../types';
 import {getWidgetInterval} from '../utils';
 
-import {transformSessionsResponseToSeries} from './transformMetricsResponseToSeries';
-import {transformSessionsResponseToTable} from './transformMetricsResponseToTable';
+import {transformSessionsResponseToSeries} from './transformSessionsResponseToSeries';
+import {transformSessionsResponseToTable} from './transformSessionsResponseToTable';
 
 type Props = {
   api: Client;

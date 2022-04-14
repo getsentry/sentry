@@ -30,7 +30,6 @@ interface Props {
 
 export function ReleaseSearchBar({orgSlug, query, projectIds, onSearch, onBlur}: Props) {
   const api = useApi();
-  const tags = SESSIONS_TAGS;
 
   /**
    * Prepare query string (e.g. strip special characters like negation operator)
@@ -52,7 +51,7 @@ export function ReleaseSearchBar({orgSlug, query, projectIds, onSearch, onBlur}:
     );
   }
 
-  const supportedTags = Object.values(tags).reduce((acc, key) => {
+  const supportedTags = Object.values(SESSIONS_TAGS).reduce((acc, key) => {
     acc[key] = {key, name: key};
     return acc;
   }, {});

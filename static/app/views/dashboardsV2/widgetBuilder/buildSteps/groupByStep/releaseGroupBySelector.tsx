@@ -11,11 +11,9 @@ interface Props {
 }
 
 export function ReleaseGroupBySelector({columns, onChange}: Props) {
-  const tags = SESSIONS_TAGS;
-
   // Tags are sorted alphabetically to make it easier to find the correct option
   // and are converted to fieldOptions format
-  const fieldOptions = Object.values(tags)
+  const fieldOptions = Object.values(SESSIONS_TAGS)
     .sort((a, b) => a.localeCompare(b))
     .reduce((acc, tagKey) => {
       acc[`tag:${tagKey}`] = {

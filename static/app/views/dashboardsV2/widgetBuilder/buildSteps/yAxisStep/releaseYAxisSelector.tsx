@@ -32,7 +32,7 @@ export function ReleaseYAxisSelector({
       onChange={onChange}
       errors={errors}
       fieldOptions={generateReleaseWidgetFieldOptions(
-        Object.keys(SESSIONS_FIELDS).map(key => SESSIONS_FIELDS[key]),
+        Object.values(SESSIONS_FIELDS),
         SESSIONS_TAGS
       )}
       noFieldsMessage={t('There are no metrics for this project.')}
