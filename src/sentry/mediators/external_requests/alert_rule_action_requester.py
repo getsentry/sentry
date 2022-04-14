@@ -73,7 +73,7 @@ class AlertRuleActionRequester(Mediator):
                     "error_message": str(e),
                 },
             )
-            message = f"{self.sentry_app.name} Error: {self._get_error_message(e.response)}"
+            message = f"{self.sentry_app.name}: {self._get_error_message(e.response)}"
             # Bubble up error message from Sentry App to the UI for the user.
             return AlertRuleActionResult(success=False, message=message)
         # No messages are bubbled up from successful responses.

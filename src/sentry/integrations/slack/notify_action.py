@@ -57,8 +57,8 @@ class SlackNotifyServiceForm(forms.Form):  # type: ignore
         # in the task (integrations/slack/tasks.py) if the channel_id is found.
         self._pending_save = False
 
-    def _format_error_message(self, message: str) -> str:
-        return _(f"Slack Error: {message}")
+    def _format_error_message(self, message: str) -> Any:
+        return _(f"Slack: {message}")
 
     def clean(self) -> dict[str, Any] | None:
         channel_id = (
