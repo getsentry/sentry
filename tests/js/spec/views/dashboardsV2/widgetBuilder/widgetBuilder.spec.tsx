@@ -1746,7 +1746,7 @@ describe('WidgetBuilder', function () {
 
       await screen.findByText('Table');
 
-      userEvent.click(screen.getByText('Issues (Status, assignee, etc.)'));
+      userEvent.click(screen.getByText('Issues (States, Assignment, Time, etc.)'));
 
       userEvent.type(screen.getAllByPlaceholderText('Alias')[0], 'First Alias{enter}');
 
