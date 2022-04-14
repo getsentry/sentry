@@ -32,12 +32,13 @@ import RadioPanelGroup from './radioPanelGroup';
 
 type RouteParams = {
   orgId: string;
-  projectId: string;
+  projectId?: string;
 };
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
   project: Project;
+  projectId: string;
 };
 
 type State = {
@@ -70,12 +71,9 @@ class AlertWizard extends Component<Props, State> {
   };
 
   renderCreateAlertButton() {
-    const {
-      organization,
-      location,
-      params: {projectId},
-    } = this.props;
+    const {organization, location, params, projectId: _projectId} = this.props;
     const {alertOption} = this.state;
+    const projectId = params.projectId ?? _projectId;
     let metricRuleTemplate: Readonly<WizardRuleTemplate> | undefined =
       AlertWizardRuleTemplates[alertOption];
     const isMetricAlert = !!metricRuleTemplate;
@@ -90,25 +88,26 @@ class AlertWizard extends Component<Props, State> {
       metricRuleTemplate = {...metricRuleTemplate, dataset: Dataset.METRICS};
     }
 
-    const to = {
-      pathname: hasAlertWizardV3
-        ? `/organizations/${organization.slug}/alerts/new/${
+    const to = hasAlertWizardV3
+      ? {
+          pathname: `/organizations/${organization.slug}/alerts/new/${
             isMetricAlert ? AlertRuleType.METRIC : AlertRuleType.ISSUE
-          }/`
-        : `/organizations/${organization.slug}/alerts/${projectId}/new/`,
-      query: hasAlertWizardV3
-        ? {
+          }/`,
+          query: {
             ...(metricRuleTemplate ? metricRuleTemplate : {}),
             project: projectId,
             createFromV3: true,
             referrer: location?.query?.referrer,
-          }
-        : {
+          },
+        }
+      : {
+          pathname: `/organizations/${organization.slug}/alerts/${projectId}/new/`,
+          query: {
             ...(metricRuleTemplate ? metricRuleTemplate : {}),
             createFromWizard: true,
             referrer: location?.query?.referrer,
           },
-    };
+        };
 
     const noFeatureMessage = t('Requires incidents feature.');
     const renderNoAccess = p => (
@@ -166,13 +165,9 @@ class AlertWizard extends Component<Props, State> {
   }
 
   render() {
-    const {
-      organization,
-      params: {projectId},
-      routes,
-      location,
-    } = this.props;
+    const {organization, params, projectId: _projectId, routes, location} = this.props;
     const {alertOption} = this.state;
+    const projectId = params.projectId ?? _projectId;
     const title = t('Alert Creation Wizard');
     const panelContent = AlertWizardPanelContent[alertOption];
     return (
