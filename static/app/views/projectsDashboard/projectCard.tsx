@@ -302,6 +302,7 @@ const ChartContainer = styled('div')`
 
 const CardHeader = styled('div')`
   margin: ${space(2)} 13px;
+  height: 32px;
 `;
 
 const StyledBookmarkStar = styled(BookmarkStar)`

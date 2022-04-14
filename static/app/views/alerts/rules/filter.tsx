@@ -130,7 +130,9 @@ function Filter({
           data-test-id="filter-button"
           fullWidth={fullWidth}
         >
-          <DropdownButtonText>{filterDescription}</DropdownButtonText>
+          <DropdownButtonText fullWidth={fullWidth}>
+            {filterDescription}
+          </DropdownButtonText>
         </StyledDropdownButton>
       )}
     >
@@ -194,14 +196,14 @@ const StyledDropdownButton = styled(DropdownButton)<{fullWidth: boolean}>`
       : `max-width: 200px`}
 `;
 
-const DropdownButtonText = styled('span')`
+const DropdownButtonText = styled('span')<{fullWidth: boolean}>`
   white-space: nowrap;
   text-overflow: ellipsis;
   overflow: hidden;
   flex: 1;
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    text-align: start;
+    text-align: ${p => p.fullWidth && 'start'};
   }
 `;
 
