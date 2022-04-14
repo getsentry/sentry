@@ -42,7 +42,9 @@ function ViewEditDashboard(props: Props) {
     if (dashboardId && dashboardId !== 'default-overview') {
       updateDashboardVisit(api, orgSlug, dashboardId);
     }
+  }, [api, orgSlug, dashboardId]);
 
+  useEffect(() => {
     const constructedWidget = constructWidgetFromQuery(location.query);
     setNewWidget(constructedWidget);
     // Clean up url after constructing widget from query string, only allow GHS params
@@ -53,7 +55,7 @@ function ViewEditDashboard(props: Props) {
         query: pick(location.query, ALLOWED_PARAMS),
       });
     }
-  }, [api, orgSlug, dashboardId, location.pathname]);
+  }, [location.pathname]);
 
   return (
     <DashboardBasicFeature organization={organization}>
