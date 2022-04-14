@@ -102,7 +102,7 @@ describe('Sudo Modal', function () {
       '/auth/',
       expect.objectContaining({
         method: 'PUT',
-        data: {isSuperuserModal: false, password: 'password'},
+        data: {password: 'password'},
       })
     );
 
