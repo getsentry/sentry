@@ -1424,6 +1424,12 @@ describe('WidgetBuilder', function () {
     userEvent.click(screen.getByText('Add Overlay'));
 
     screen.getByText('Limit to 1 result');
+
+    // MetricsProvider triggers an async update that causes a
+    // console.error
+    await act(async () => {
+      await tick();
+    });
   });
 
   describe('Sort by selectors', function () {

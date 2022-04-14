@@ -42,16 +42,16 @@ export function SortByStep({
   onLimitChange,
 }: Props) {
   const orderBy = queries[0].orderby;
+  const maxLimit = getResultsLimit(queries.length, queries[0].aggregates.length);
 
   useEffect(() => {
     if (!limit) {
       return;
     }
-    const newLimit = getResultsLimit(queries.length, queries[0].aggregates.length);
-    if (limit > newLimit) {
-      onLimitChange(newLimit);
+    if (limit > maxLimit) {
+      onLimitChange(maxLimit);
     }
-  }, [queries.length, queries[0].aggregates.length]);
+  }, [limit, maxLimit]);
 
   if (widgetBuilderNewDesign) {
     return (
@@ -73,11 +73,7 @@ export function SortByStep({
               <ResultsLimitSelector
                 name="resultsLimit"
                 menuPlacement="auto"
-                options={[
-                  ...Array(
-                    getResultsLimit(queries.length, queries[0].aggregates.length)
-                  ).keys(),
-                ].map(resultLimit => {
+                options={[...Array(maxLimit).keys()].map(resultLimit => {
                   const value = resultLimit + 1;
                   return {
                     label: tn('Limit to %s result', 'Limit to %s results', value),
