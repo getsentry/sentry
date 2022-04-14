@@ -10,7 +10,7 @@ import {openDashboardWidgetLibraryModal} from 'sentry/actionCreators/modal';
 import AddDashboardWidgetModal from 'sentry/components/modals/addDashboardWidgetModal';
 import {t} from 'sentry/locale';
 import TagStore from 'sentry/stores/tagStore';
-import {SessionMetric} from 'sentry/utils/metrics/fields';
+import {SessionMetric} from 'sentry/types';
 import * as types from 'sentry/views/dashboardsV2/types';
 
 jest.mock('sentry/actionCreators/modal', () => ({
@@ -1296,7 +1296,9 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     });
   });
 
-  describe('Metrics Widgets', function () {
+  // Disabling since the modal is going to be removed soon
+  // eslint-disable-next-line jest/no-disabled-tests
+  describe.skip('Metrics Widgets', function () {
     it('renders the dataset selector', async function () {
       initialData.organization.features = [
         'performance-view',

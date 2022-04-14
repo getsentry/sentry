@@ -29,14 +29,13 @@ import {
   Organization,
   PageFilters,
   SelectValue,
+  SessionMetric,
   TagCollection,
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getColumnsAndAggregates} from 'sentry/utils/discover/fields';
 import Measurements from 'sentry/utils/measurements/measurements';
-import {SessionMetric} from 'sentry/utils/metrics/fields';
-import {MetricsProvider} from 'sentry/utils/metrics/metricsProvider';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
 import withApi from 'sentry/utils/withApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -54,9 +53,12 @@ import {
   WidgetType,
 } from 'sentry/views/dashboardsV2/types';
 import {generateIssueWidgetFieldOptions} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/utils';
-import {generateReleaseWidgetFieldOptions} from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
 import {
-  getMetricFields,
+  generateReleaseWidgetFieldOptions,
+  SESSIONS_FIELDS,
+  SESSIONS_TAGS,
+} from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
+import {
   mapErrors,
   NEW_DASHBOARD_ID,
   normalizeQueries,
@@ -801,6 +803,11 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       ? {...selection, datetime: {start, end, period: null, utc: null}}
       : selection;
 
+    const metricsWidgetFieldOptions = generateReleaseWidgetFieldOptions(
+      Object.values(SESSIONS_FIELDS),
+      SESSIONS_TAGS
+    );
+
     return (
       <React.Fragment>
         <Header closeButton>
@@ -879,23 +886,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
               />
             </React.Fragment>
           )}
-          <MetricsProvider
-            projects={querySelection.projects}
-            fields={getMetricFields(state.queries)}
-            organization={organization}
-            skipLoad={!organization.features.includes('dashboards-metrics')}
-          >
-            {({metas: metricsMeta, tags: metricsTags}) => {
-              const metricsWidgetFieldOptions = generateReleaseWidgetFieldOptions(
-                Object.values(metricsMeta),
-                Object.values(metricsTags).map(({key}) => key)
-              );
-              return this.renderWidgetQueryForm(
-                querySelection,
-                metricsWidgetFieldOptions
-              );
-            }}
-          </MetricsProvider>
+          {this.renderWidgetQueryForm(querySelection, metricsWidgetFieldOptions)}
         </Body>
         <Footer>
           <ButtonBar gap={1}>

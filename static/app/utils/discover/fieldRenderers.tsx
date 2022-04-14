@@ -356,7 +356,7 @@ const SPECIAL_FIELDS: SpecialFields = {
   'count_unique(user)': {
     sortField: 'count_unique(user)',
     renderFunc: data => {
-      const count = data.count_unique_user;
+      const count = data.count_unique_user ?? data['count_unique(user)'];
       if (typeof count === 'number') {
         return (
           <FlexContainer>

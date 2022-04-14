@@ -1,9 +1,12 @@
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {QueryFieldValue} from 'sentry/utils/discover/fields';
-import {useMetricsContext} from 'sentry/utils/useMetricsContext';
 import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
-import {generateReleaseWidgetFieldOptions} from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
+import {
+  generateReleaseWidgetFieldOptions,
+  SESSIONS_FIELDS,
+  SESSIONS_TAGS,
+} from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
 import {filterPrimaryOptions} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 
 import {ColumnFields} from './columnFields';
@@ -25,8 +28,6 @@ export function ReleaseColumnFields({
   queryErrors,
   onYAxisOrColumnFieldChange,
 }: Props) {
-  const {metas, tags} = useMetricsContext();
-
   return (
     <ColumnFields
       displayType={displayType}
@@ -35,8 +36,8 @@ export function ReleaseColumnFields({
       fields={explodedFields}
       errors={queryErrors?.[0] ? [queryErrors?.[0]] : undefined}
       fieldOptions={generateReleaseWidgetFieldOptions(
-        Object.values(metas),
-        Object.values(tags).map(({key}) => key)
+        Object.values(SESSIONS_FIELDS),
+        SESSIONS_TAGS
       )}
       filterPrimaryOptions={option =>
         filterPrimaryOptions({
