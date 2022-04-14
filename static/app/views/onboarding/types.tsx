@@ -10,9 +10,9 @@ export type StepProps = {
   onComplete: (data: StepData) => void;
   onUpdate: (data: StepData) => void;
   orgId: string;
+  organization: Organization;
   platform: PlatformKey | null;
   project: Project | null;
-  organization?: Organization;
 };
 
 export type StepDescriptor = {
