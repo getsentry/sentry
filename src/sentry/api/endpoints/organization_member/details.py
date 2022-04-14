@@ -12,7 +12,8 @@ from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.serializers import (
     DetailedUserSerializer,
     OrganizationMemberWithTeamsSerializer,
-    RoleSerializer,
+    OrganizationRoleSerializer,
+    TeamRoleSerializer,
     serialize,
 )
 from sentry.api.serializers.rest_framework import ListField
@@ -122,8 +123,12 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             role for role in organization_roles.get_all() if not is_retired_role_hidden(role)
         ]
         context["roles"] = serialize(
-            organization_role_list, serializer=RoleSerializer(), allowed_roles=allowed_roles
+            organization_role_list,
+            serializer=OrganizationRoleSerializer(),
+            allowed_roles=allowed_roles,
         )
+
+        context["teamRoles"] = serialize(team_roles.get_all(), serializer=TeamRoleSerializer())
 
         return context
 

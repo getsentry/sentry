@@ -116,6 +116,12 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
         role_ids = [role["id"] for role in response.data["roles"]]
         assert role_ids == ["member", "manager", "owner"]
 
+    def test_lists_team_roles(self):
+        response = self.get_success_response(self.organization.slug, "me")
+
+        role_ids = [role["id"] for role in response.data["teamRoles"]]
+        assert role_ids == ["contributor", "admin"]
+
 
 class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
     method = "put"
