@@ -10,6 +10,7 @@ import {t, tct} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import withProjects from 'sentry/utils/withProjects';
 import {usePersistedOnboardingState} from 'sentry/views/onboarding/targetedOnboarding/types';
 
@@ -44,6 +45,12 @@ function OnboardingViewTask({
             <OnboardingTaskProjectListItem
               key={p.id}
               to={`/onboarding/${org.slug}/setup-docs/?project_id=${p.id}`}
+              onClick={() => {
+                trackAdvancedAnalyticsEvent('growth.onboarding_quick_start_cta', {
+                  platform: p.platform,
+                  organization: org,
+                });
+              }}
             >
               <OnboardingTaskProjectListItemInner>
                 <PlatformIcon platform={p.platform || 'default'} />
@@ -55,7 +62,14 @@ function OnboardingViewTask({
             </OnboardingTaskProjectListItem>
           ))}
           {projects.length > MAX_PROJECT_COUNT && (
-            <OnboardingTaskProjectListItem to={`/onboarding/${org.slug}/setup-docs/`}>
+            <OnboardingTaskProjectListItem
+              to={`/onboarding/${org.slug}/setup-docs/`}
+              onClick={() => {
+                trackAdvancedAnalyticsEvent('growth.onboarding_quick_start_cta', {
+                  organization: org,
+                });
+              }}
+            >
               <OnboardingTaskProjectListItemInner>
                 <IconEllipsis />
                 {tct('and [num] more', {num: projects.length - MAX_PROJECT_COUNT})}
