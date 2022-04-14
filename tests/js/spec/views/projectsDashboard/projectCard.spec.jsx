@@ -101,7 +101,7 @@ describe('ProjectCard', function () {
 
     const total = wrapper.find('a[data-test-id="project-errors"]');
     expect(total).toHaveLength(1);
-    expect(total.text()).toContain('errors: 6');
+    expect(total.text()).toContain('Errors: 6');
 
     // No transacions as the feature isn't set.
     const transactions = wrapper.find('a[data-test-id="project-transactions"]');
@@ -132,7 +132,7 @@ describe('ProjectCard', function () {
 
     const transactions = wrapper.find('a[data-test-id="project-transactions"]');
     expect(transactions).toHaveLength(1);
-    expect(transactions.text()).toContain('transactions: 8');
+    expect(transactions.text()).toContain('Transactions: 8');
   });
 
   it('renders loading placeholder card if there are no stats', function () {
