@@ -32,7 +32,14 @@ from sentry.incidents.models import (
     IncidentTrigger,
     TriggerStatus,
 )
-from sentry.models import AuditLogEntryEvent, Integration, PagerDutyService, Project, SentryApp
+from sentry.models import (
+    AuditLogEntryEvent,
+    Integration,
+    PagerDutyService,
+    Project,
+    SentryApp,
+    SentryAppInstallation,
+)
 from sentry.search.events.fields import resolve_field
 from sentry.search.events.filter import get_filter
 from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
@@ -1382,30 +1389,47 @@ def translate_aggregate_field(aggregate, reverse=False):
     return aggregate
 
 
+def tell_sentry_apps(data):
+    from rest_framework import serializers
+
+    from sentry.mediators import alert_rule_actions
+
+    sentry_app_actions = get_filtered_actions(
+        validated_alert_rule_data=data, action_type=AlertRuleTriggerAction.Type.SENTRY_APP
+    )
+    for action in sentry_app_actions:
+        install = SentryAppInstallation.objects.get(uuid=action.get("sentry_app_installation_uuid"))
+        result = alert_rule_actions.AlertRuleActionCreator.run(
+            install=install,
+            fields=action.get("sentry_app_config"),
+        )
+
+        if not result["success"]:
+            raise serializers.ValidationError({"sentry_app": result["message"]})
+
+
 def get_slack_actions_with_async_lookups(organization, user, data):
     try:
         from sentry.incidents.serializers import AlertRuleTriggerActionSerializer
 
-        slack_actions = []
-        for trigger in data["triggers"]:
-            for action in trigger["actions"]:
-                action = rewrite_trigger_action_fields(action)
-                a_s = AlertRuleTriggerActionSerializer(
-                    context={
-                        "organization": organization,
-                        "access": SystemAccess(),
-                        "user": user,
-                        "input_channel_id": action.get("inputChannelId"),
-                    },
-                    data=action,
-                )
-                if a_s.is_valid():
-                    if (
-                        a_s.validated_data["type"].value == AlertRuleTriggerAction.Type.SLACK.value
-                        and not a_s.validated_data["input_channel_id"]
-                    ):
-                        slack_actions.append(a_s.validated_data)
-        return slack_actions
+        slack_actions = get_filtered_actions(
+            validated_alert_rule_data=data, action_type=AlertRuleTriggerAction.Type.SLACK
+        )
+        validated_slack_actions = []
+        for action in slack_actions:
+            serializer = AlertRuleTriggerActionSerializer(
+                context={
+                    "organization": organization,
+                    "access": SystemAccess(),
+                    "user": user,
+                    "input_channel_id": action.get("inputChannelId"),
+                },
+                data=action,
+            )
+            if serializer.is_valid():
+                if not not serializer.validated_data["input_channel_id"]:
+                    validated_slack_actions.append(serializer.validated_data)
+        return validated_slack_actions
     except KeyError:
         # If we have any KeyErrors reading the data, we can just return nothing
         # This will cause the endpoint to try creating the rule synchronously
@@ -1446,3 +1470,14 @@ def rewrite_trigger_action_fields(action_data):
     if "settings" in action_data:
         action_data["sentry_app_config"] = action_data.pop("settings")
     return action_data
+
+
+def get_filtered_actions(validated_alert_rule_data, action_type: AlertRuleTriggerAction.Type):
+    from sentry.incidents.serializers import STRING_TO_ACTION_TYPE
+
+    filtered_actions = []
+    for trigger in validated_alert_rule_data["triggers"]:
+        for action in trigger["actions"]:
+            if STRING_TO_ACTION_TYPE[action["type"]] == action_type:
+                filtered_actions.append(rewrite_trigger_action_fields(action))
+    return filtered_actions
