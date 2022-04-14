@@ -432,16 +432,14 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
     } = this.props;
     const {environments} = this.state;
 
-    const environmentOptions: SelectValue<string | null>[] =
-      environments?.map((env: Environment) => ({
-        value: env.name,
-        label: getDisplayName(env),
-      })) ?? [];
-
-    environmentOptions.unshift({
-      value: null,
-      label: t('All'),
-    });
+    const environmentOptions: SelectValue<string | null>[] = [
+      {
+        value: null,
+        label: t('All Environments'),
+      },
+      ...(environments?.map(env => ({value: env.name, label: getDisplayName(env)})) ??
+        []),
+    ];
 
     const transactionTags = [
       'transaction',
@@ -467,7 +465,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
           {hasAlertWizardV3 && this.renderProjectSelector()}
           <SelectField
             name="environment"
-            placeholder={t('All')}
+            placeholder={t('All Environments')}
             style={{
               ...this.formElemBaseStyle,
               minWidth: 230,
@@ -486,7 +484,6 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
             isClearable
             inline={false}
             flexibleControlStateSize
-            inFieldLabel={t('Environment: ')}
           />
           {allowChangeEventTypes && this.renderEventTypeFilter()}
         </FormRow>

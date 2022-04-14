@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import Badge from 'sentry/components/badge';
 import CheckboxFancy from 'sentry/components/checkboxFancy/checkboxFancy';
 import DropdownButton from 'sentry/components/dropdownButton';
 import DropdownControl, {Content} from 'sentry/components/dropdownControl';
@@ -58,9 +59,17 @@ type Props = {
   dropdownSections: DropdownSection[];
   header: React.ReactElement;
   onFilterChange: (section: string, filterSelection: Set<string>) => void;
+  fullWidth?: boolean;
+  showMyTeamsDescription?: boolean;
 };
 
-function Filter({onFilterChange, header, dropdownSections}: Props) {
+function Filter({
+  onFilterChange,
+  header,
+  dropdownSections,
+  showMyTeamsDescription,
+  fullWidth = false,
+}: Props) {
   function toggleFilter(sectionId: string, value: string) {
     const section = dropdownSections.find(
       dropdownSection => dropdownSection.id === sectionId
@@ -99,17 +108,15 @@ function Filter({onFilterChange, header, dropdownSections}: Props) {
 
   const activeFilters = getActiveFilters();
 
-  let filterDescription = t('All Teams');
+  let filterDescription = showMyTeamsDescription ? t('My Teams') : t('All Teams');
   if (activeFilters.length > 0) {
     filterDescription = activeFilters[0].label;
-  }
-  if (activeFilters.length > 1) {
-    filterDescription = `${activeFilters[0].label} + ${activeFilters.length - 1}`;
   }
 
   return (
     <DropdownControl
       menuWidth="240px"
+      fullWidth={fullWidth}
       blendWithActor
       alwaysRenderMenu={false}
       button={({isOpen, getActorProps}) => (
@@ -119,8 +126,14 @@ function Filter({onFilterChange, header, dropdownSections}: Props) {
           icon={<IconUser />}
           priority="default"
           data-test-id="filter-button"
+          fullWidth={fullWidth}
         >
-          <DropdownButtonText>{filterDescription}</DropdownButtonText>
+          <DropdownButtonText fullWidth={fullWidth}>
+            {filterDescription}
+          </DropdownButtonText>
+          {activeFilters.length > 1 && (
+            <StyledBadge text={`+${activeFilters.length - 1}`} />
+          )}
         </StyledDropdownButton>
       )}
     >
@@ -170,19 +183,34 @@ const Header = styled('div')`
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 
-const StyledDropdownButton = styled(DropdownButton)`
+const StyledDropdownButton = styled(DropdownButton)<{fullWidth: boolean}>`
   white-space: nowrap;
-  max-width: 200px;
-  min-width: 180px;
+  display: flex;
+  align-items: center;
 
   z-index: ${p => p.theme.zIndex.dropdown};
+
+  ${p =>
+    p.fullWidth
+      ? `
+      width: 100%
+  `
+      : `max-width: 200px`}
 `;
 
-const DropdownButtonText = styled('span')`
+const DropdownButtonText = styled('span')<{fullWidth: boolean}>`
   white-space: nowrap;
   text-overflow: ellipsis;
   overflow: hidden;
   flex: 1;
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    text-align: ${p => p.fullWidth && 'start'};
+  }
+`;
+
+const StyledBadge = styled(Badge)`
+  flex-shrink: 0;
 `;
 
 const List = styled('ul')`

@@ -4,6 +4,7 @@ import abc
 import logging
 from typing import TYPE_CHECKING, Any, Iterable, MutableMapping, Type
 
+from sentry.db.models import Model
 from sentry.models import Team
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.strategies.role_based_recipient_strategy import (
@@ -28,7 +29,8 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
         self.requester = requester
         self.role_based_recipient_strategy = self.RoleBasedRecipientStrategyClass(organization)
 
-    def get_reference(self) -> Any:
+    @property
+    def reference(self) -> Model | None:
         return self.organization
 
     def get_context(self) -> MutableMapping[str, Any]:
