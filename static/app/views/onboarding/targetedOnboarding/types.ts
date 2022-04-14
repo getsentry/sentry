@@ -1,3 +1,5 @@
+import {useMemo} from 'react';
+
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {usePersistedStoreCategory} from 'sentry/stores/persistedStore';
 import {Organization} from 'sentry/types';
@@ -39,11 +41,15 @@ export function usePersistedOnboardingState(): [
   (next: OnboardingState | null) => void
 ] {
   const [state, setState] = usePersistedStoreCategory('onboarding');
-  const onboardingState = state
-    ? {
-        platformToProjectIdMap: state.platformToProjectIdMap || {},
-        selectedPlatforms: state.selectedPlatforms || [],
-      }
-    : null;
-  return [onboardingState, setState];
+  const stableState: [OnboardingState | null, (next: OnboardingState | null) => void] =
+    useMemo(() => {
+      const onboardingState = state
+        ? {
+            platformToProjectIdMap: state.platformToProjectIdMap || {},
+            selectedPlatforms: state.selectedPlatforms || [],
+          }
+        : null;
+      return [onboardingState, setState];
+    }, [state, setState]);
+  return stableState;
 }
