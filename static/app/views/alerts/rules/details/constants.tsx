@@ -11,6 +11,8 @@ export const SELECTOR_RELATIVE_PERIODS = {
   [TimePeriod.SEVEN_DAYS]: t('Last 7 days'),
 };
 
+export const ALERT_DEFAULT_CHART_PERIOD = '7d';
+
 export const TIME_OPTIONS: SelectValue<string>[] = [
   {label: t('Last 6 hours'), value: TimePeriod.SIX_HOURS},
   {label: t('Last 24 hours'), value: TimePeriod.ONE_DAY},

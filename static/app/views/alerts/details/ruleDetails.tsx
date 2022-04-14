@@ -16,13 +16,13 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
 import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {DateString, Organization, Project} from 'sentry/types';
 import {IssueAlertRule} from 'sentry/types/alerts';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {ALERT_DEFAULT_CHART_PERIOD} from 'sentry/views/alerts/rules/details/constants';
 
 import AlertChart from './alertChart';
 import AlertRuleIssuesList from './issuesList';
@@ -102,7 +102,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
     });
 
     if (!statsPeriod && !start && !end) {
-      return {period: DEFAULT_STATS_PERIOD};
+      return {period: ALERT_DEFAULT_CHART_PERIOD};
     }
 
     // Following getParams, statsPeriod will take priority over start/end
@@ -125,7 +125,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
           };
     }
 
-    return {period: DEFAULT_STATS_PERIOD};
+    return {period: ALERT_DEFAULT_CHART_PERIOD};
   }
 
   setStateOnUrl(nextState: {
