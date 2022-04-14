@@ -124,6 +124,7 @@ type SpanBarProps = {
   treeDepth: number;
   groupOccurrence?: number;
   groupType?: GroupType;
+  isEmbeddedTransactionTimeAdjusted?: boolean;
   isLast?: boolean;
   isRoot?: boolean;
   spanBarColor?: string;
@@ -809,7 +810,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   renderWarningText() {
     let warningText = this.getBounds().warning;
 
-    if (this.props.showEmbeddedChildren) {
+    if (this.props.isEmbeddedTransactionTimeAdjusted) {
       const embeddedWarningText = t(
         'All child span timestamps have been adjusted to account for mismatched client and server clocks.'
       );

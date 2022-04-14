@@ -45,6 +45,7 @@ class SpanTreeModel {
   fetchEmbeddedChildrenState: FetchEmbeddedChildrenState = 'idle';
   showEmbeddedChildren: boolean = false;
   embeddedChildren: Array<SpanTreeModel> = [];
+  isEmbeddedTransactionTimeAdjusted: boolean = false;
   // This controls if a chain of nested spans that are the only sibling to be visually grouped together or not.
   // On initial render, they're visually grouped together.
   isNestedSpanGroupExpanded: boolean = false;
@@ -292,6 +293,7 @@ class SpanTreeModel {
           ? this.toggleNestedSpanGroup
           : undefined,
       toggleSiblingSpanGroup: undefined,
+      isEmbeddedTransactionTimeAdjusted: this.isEmbeddedTransactionTimeAdjusted,
     };
 
     if (wrappedSpan.type === 'root_span') {
@@ -466,6 +468,8 @@ class SpanTreeModel {
                   toggleNestedSpanGroup: undefined,
                   toggleSiblingSpanGroup:
                     index === 0 ? this.toggleSiblingSpanGroup : undefined,
+                  isEmbeddedTransactionTimeAdjusted:
+                    spanModel.isEmbeddedTransactionTimeAdjusted,
                 };
 
                 acc.previousSiblingEndTimestamp = spanModel.span.timestamp;
@@ -526,6 +530,8 @@ class SpanTreeModel {
               toggleNestedSpanGroup: undefined,
               toggleSiblingSpanGroup:
                 index === 0 ? this.toggleSiblingSpanGroup : undefined,
+              isEmbeddedTransactionTimeAdjusted:
+                spanModel.isEmbeddedTransactionTimeAdjusted,
             };
 
             return enhancedSibling;
@@ -773,9 +779,16 @@ class SpanTreeModel {
             false
           );
 
-          const startTimeDelta =
-            this.span.start_timestamp - parsedRootSpan.span.start_timestamp;
-          adjustEmbeddedTransactionTimestamps(parsedRootSpan, startTimeDelta);
+          // We need to adjust the timestamps for this embedded transaction only if it is not within the bounds of its parent span
+          if (
+            parsedRootSpan.span.start_timestamp < this.span.start_timestamp ||
+            parsedRootSpan.span.timestamp > this.span.timestamp
+          ) {
+            const startTimeDelta =
+              this.span.start_timestamp - parsedRootSpan.span.start_timestamp;
+            adjustEmbeddedTransactionTimestamps(parsedRootSpan, startTimeDelta);
+            this.isEmbeddedTransactionTimeAdjusted = true;
+          }
 
           this.embeddedChildren = [parsedRootSpan];
           this.fetchEmbeddedChildrenState = 'idle';

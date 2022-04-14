@@ -84,6 +84,7 @@ type CommonEnhancedProcessedSpanType = {
     | undefined;
   treeDepth: number;
   groupOccurrence?: number;
+  isEmbeddedTransactionTimeAdjusted?: boolean;
   isFirstSiblingOfGroup?: boolean;
 };
 
