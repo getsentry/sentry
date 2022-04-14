@@ -294,6 +294,7 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
           description: t(
             "Want to keep the same filters between searches and sessions? Click this button. Don't want to? Don't click this button."
           ),
+          nextText: t('Got It'),
         },
       ],
     },
