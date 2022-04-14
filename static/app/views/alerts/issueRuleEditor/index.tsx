@@ -612,6 +612,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     return (
       <StyledField
         hasAlertWizardV3={hasAlertWizardV3}
+        extraMargin
         label={hasAlertWizardV3 ? null : t('Team')}
         help={hasAlertWizardV3 ? null : t('The team that can edit this alert.')}
         disabled={!hasAccess || !canEdit}
@@ -1145,7 +1146,7 @@ const SettingsContainer = styled('div')`
   gap: ${space(1)};
 `;
 
-const StyledField = styled(Field)<{hasAlertWizardV3?: boolean}>`
+const StyledField = styled(Field)<{extraMargin?: boolean; hasAlertWizardV3?: boolean}>`
   :last-child {
     padding-bottom: ${space(2)};
   }
@@ -1161,7 +1162,7 @@ const StyledField = styled(Field)<{hasAlertWizardV3?: boolean}>`
       width: 100%;
     }
 
-    margin-bottom: ${space(1)};
+    margin-bottom: ${p.extraMargin ? '60px' : space(1)};
   `}
 `;
 

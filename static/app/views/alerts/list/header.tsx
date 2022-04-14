@@ -16,10 +16,11 @@ import {Organization} from 'sentry/types';
 type Props = {
   activeTab: 'stream' | 'rules';
   organization: Organization;
+  projectSlugs: string[];
   router: InjectedRouter;
 };
 
-const AlertHeader = ({router, organization, activeTab}: Props) => {
+const AlertHeader = ({router, organization, activeTab, projectSlugs}: Props) => {
   /**
    * Incidents list is currently at the organization level, but the link needs to
    * go down to a specific project scope.
@@ -50,6 +51,7 @@ const AlertHeader = ({router, organization, activeTab}: Props) => {
             priority="primary"
             referrer="alert_stream"
             showPermissionGuide
+            projectSlug={projectSlugs.length === 1 ? projectSlugs[0] : undefined}
           >
             {t('Create Alert')}
           </CreateAlertButton>

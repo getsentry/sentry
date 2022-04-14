@@ -1,7 +1,6 @@
 import {Component, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import flatten from 'lodash/flatten';
 
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import Feature from 'sentry/components/acl/feature';
@@ -123,6 +122,12 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     this.setState({hasAlertRule, firstVisitShown, loading: false});
   }
 
+  get projectsFromIncidents() {
+    const {incidentList} = this.state;
+
+    return [...new Set(incidentList?.map(({projects}) => projects).flat())];
+  }
+
   handleChangeSearch = (title: string) => {
     const {router, location} = this.props;
     const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
@@ -199,13 +204,8 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
       organization,
     } = this.props;
 
-    const allProjectsFromIncidents = new Set(
-      flatten(incidentList?.map(({projects}) => projects))
-    );
     const checkingForAlertRules =
-      incidentList && incidentList.length === 0 && hasAlertRule === undefined
-        ? true
-        : false;
+      incidentList?.length === 0 && hasAlertRule === undefined;
     const showLoadingIndicator = loading || checkingForAlertRules;
 
     return (
@@ -231,7 +231,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
               t('Team'),
             ]}
           >
-            <Projects orgId={orgId} slugs={Array.from(allProjectsFromIncidents)}>
+            <Projects orgId={orgId} slugs={this.projectsFromIncidents}>
               {({initiallyLoaded, projects}) =>
                 incidentList.map(incident => (
                   <AlertListRow
@@ -263,7 +263,12 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
           showDateSelector={false}
           hideGlobalHeader
         >
-          <AlertHeader organization={organization} router={router} activeTab="stream" />
+          <AlertHeader
+            organization={organization}
+            router={router}
+            activeTab="stream"
+            projectSlugs={this.projectsFromIncidents}
+          />
           <Layout.Body>
             <Layout.Main fullWidth>
               {!this.tryRenderOnboarding() && (

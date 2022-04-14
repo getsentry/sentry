@@ -72,7 +72,7 @@ function IncompatibleQueryAlert({
   const {hasProjectError, hasEnvironmentError, hasEventTypeError, hasYAxisError} =
     incompatibleQuery;
 
-  const totalErrors = Object.values(incompatibleQuery).filter(val => val === true).length;
+  const totalErrors = Object.values(incompatibleQuery).filter(val => val).length;
 
   const eventTypeError = eventView.clone();
   eventTypeError.query += ' event.type:error';
@@ -360,7 +360,11 @@ const CreateAlertButton = withRouter(
         : `/organizations/${organization.slug}/alerts/${providedProj}`;
       const alertsArgs = [
         `${referrer ? `referrer=${referrer}` : ''}`,
-        `${hasAlertWizardV3 && providedProj ? `project=${providedProj}` : ''}`,
+        `${
+          hasAlertWizardV3 && providedProj && providedProj !== ':projectId'
+            ? `project=${providedProj}`
+            : ''
+        }`,
       ].filter(item => item !== '');
 
       return `${alertsBaseUrl}/wizard/${alertsArgs.length ? '?' : ''}${alertsArgs.join(

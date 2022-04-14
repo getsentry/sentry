@@ -35,6 +35,7 @@ export default function RuleNameOwnerForm({disabled, project, hasAlertWizardV3}:
   const renderTeamSelect = () => (
     <StyledFormField
       hasAlertWizardV3={hasAlertWizardV3}
+      extraMargin
       name="owner"
       label={hasAlertWizardV3 ? null : t('Team')}
       help={hasAlertWizardV3 ? null : t('The team that can edit this alert.')}
@@ -102,7 +103,10 @@ const StyledTextField = styled(TextField)<{hasAlertWizardV3: boolean}>`
   `}
 `;
 
-const StyledFormField = styled(FormField)<{hasAlertWizardV3: boolean}>`
+const StyledFormField = styled(FormField)<{
+  hasAlertWizardV3: boolean;
+  extraMargin?: boolean;
+}>`
   ${p =>
     p.hasAlertWizardV3 &&
     `
@@ -113,6 +117,6 @@ const StyledFormField = styled(FormField)<{hasAlertWizardV3: boolean}>`
       width: 100%;
     }
 
-    margin-bottom: ${space(1)};
+    margin-bottom: ${p.extraMargin ? '60px' : space(1)};
   `}
 `;
