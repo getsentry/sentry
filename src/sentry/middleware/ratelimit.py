@@ -76,8 +76,8 @@ class RatelimitMiddleware:
                         return HttpResponse(
                             json.dumps(
                                 DEFAULT_ERROR_MESSAGE.format(
-                                    limit=1,
-                                    window=5,
+                                    limit=request.rate_limit_metadata.limit,
+                                    window=request.rate_limit_metadata.window,
                                 )
                             ),
                             status=429,
