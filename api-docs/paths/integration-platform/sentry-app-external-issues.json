@@ -36,15 +36,15 @@
               "identifier": {
                 "type": "string",
                 "description": "A unique identifier of the external issue."
-              },
+              }
             }
           },
           "example": {
             "issueId": 1,
             "webUrl": "https://somerandom.io/project/issue-id",
             "project": "ExternalProj",
-            "identifier": "issue-1",
-          },
+            "identifier": "issue-1"
+          }
         }
       },
       "required": true

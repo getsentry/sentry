@@ -68,8 +68,6 @@
                   "user": null
                 },
                 "context": {
-                  "emptyList": [],
-                  "emptyMap": {},
                   "length": 10837790,
                   "results": [1, 2, 3, 4, 5],
                   "session": {
