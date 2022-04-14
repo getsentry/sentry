@@ -637,7 +637,76 @@ function WidgetViewerModal(props: Props) {
               );
             }}
           </IssueWidgetQueries>
-        ) : widget.widgetType === WidgetType.DISCOVER ? (
+        ) : widget.widgetType === WidgetType.METRICS ? (
+          <MetricsWidgetQueries
+            api={api}
+            organization={organization}
+            widget={tableWidget}
+            selection={modalSelection}
+            limit={
+              widget.displayType === DisplayType.TABLE
+                ? FULL_TABLE_ITEM_LIMIT
+                : HALF_TABLE_ITEM_LIMIT
+            }
+            includeAllArgs
+            cursor={cursor}
+          >
+            {({tableResults, loading, pageLinks}) => {
+              const links = parseLinkHeader(pageLinks ?? null);
+              const isFirstPage = links.previous?.results === false;
+              return (
+                <React.Fragment>
+                  <GridEditable
+                    isLoading={loading}
+                    data={tableResults?.[0]?.data ?? []}
+                    columnOrder={columnOrder}
+                    columnSortBy={columnSortBy}
+                    grid={{
+                      renderHeadCell: renderMetricsGridHeaderCell({
+                        ...props,
+                        widget: tableWidget,
+                        tableData: tableResults?.[0],
+                        onHeaderClick: () => setChartUnmodified(false),
+                      }) as (
+                        column: GridColumnOrder,
+                        columnIndex: number
+                      ) => React.ReactNode,
+                      renderBodyCell: renderGridBodyCell({
+                        ...props,
+                        tableData: tableResults?.[0],
+                        isFirstPage,
+                      }),
+                      onResizeColumn,
+                    }}
+                    location={location}
+                  />
+                  {(links?.previous?.results || links?.next?.results) && (
+                    <Pagination
+                      pageLinks={pageLinks}
+                      onCursor={newCursor => {
+                        router.replace({
+                          pathname: location.pathname,
+                          query: {
+                            ...location.query,
+                            [WidgetViewerQueryField.CURSOR]: newCursor,
+                          },
+                        });
+                        trackAdvancedAnalyticsEvent(
+                          'dashboards_views.widget_viewer.paginate',
+                          {
+                            organization,
+                            widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                            display_type: widget.displayType,
+                          }
+                        );
+                      }}
+                    />
+                  )}
+                </React.Fragment>
+              );
+            }}
+          </MetricsWidgetQueries>
+        ) : (
           <WidgetQueries
             api={api}
             organization={organization}
@@ -708,73 +777,6 @@ function WidgetViewerModal(props: Props) {
               );
             }}
           </WidgetQueries>
-        ) : (
-          <MetricsWidgetQueries
-            api={api}
-            organization={organization}
-            widget={tableWidget}
-            selection={modalSelection}
-            limit={
-              widget.displayType === DisplayType.TABLE
-                ? FULL_TABLE_ITEM_LIMIT
-                : HALF_TABLE_ITEM_LIMIT
-            }
-            includeAllArgs
-            cursor={cursor}
-          >
-            {({tableResults, loading, pageLinks}) => {
-              const links = parseLinkHeader(pageLinks ?? null);
-              return (
-                <React.Fragment>
-                  <GridEditable
-                    isLoading={loading}
-                    data={tableResults?.[0]?.data ?? []}
-                    columnOrder={columnOrder}
-                    columnSortBy={columnSortBy}
-                    grid={{
-                      renderHeadCell: renderMetricsGridHeaderCell({
-                        ...props,
-                        widget: tableWidget,
-                        tableData: tableResults?.[0],
-                        onHeaderClick: () => setChartUnmodified(false),
-                      }) as (
-                        column: GridColumnOrder,
-                        columnIndex: number
-                      ) => React.ReactNode,
-                      renderBodyCell: renderGridBodyCell({
-                        ...props,
-                        tableData: tableResults?.[0],
-                      }),
-                      onResizeColumn,
-                    }}
-                    location={location}
-                  />
-                  {(links?.previous?.results || links?.next?.results) && (
-                    <Pagination
-                      pageLinks={pageLinks}
-                      onCursor={newCursor => {
-                        router.replace({
-                          pathname: location.pathname,
-                          query: {
-                            ...location.query,
-                            [WidgetViewerQueryField.CURSOR]: newCursor,
-                          },
-                        });
-                        trackAdvancedAnalyticsEvent(
-                          'dashboards_views.widget_viewer.paginate',
-                          {
-                            organization,
-                            widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                            display_type: widget.displayType,
-                          }
-                        );
-                      }}
-                    />
-                  )}
-                </React.Fragment>
-              );
-            }}
-          </MetricsWidgetQueries>
         )}
       </React.Fragment>
     );
@@ -895,6 +897,7 @@ const HighlightContainer = styled('span')<{display?: 'block' | 'flex'}>`
   gap: ${space(1)};
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
+  line-height: 2;
 `;
 
 const ResultsContainer = styled('div')`
