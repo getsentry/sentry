@@ -3,9 +3,11 @@ import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import FeatureBadge from 'sentry/components/featureBadge';
+import UserBadge from 'sentry/components/idBadge/userBadge';
 import Link from 'sentry/components/links/link';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import PageHeading from 'sentry/components/pageHeading';
+import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar} from 'sentry/icons';
@@ -32,12 +34,11 @@ type Props = AsyncView['props'] &
 class Replays extends React.Component<Props> {
   getEventView() {
     const {location, selection} = this.props;
-
     const eventQueryParams: NewQuery = {
       id: '',
       name: '',
       version: 2,
-      fields: ['eventID', 'timestamp', 'replayId', 'user'],
+      fields: ['eventID', 'timestamp', 'replayId', 'user.display', 'url'],
       orderby: '-timestamp',
       environment: selection.environments,
       projects: selection.projects,
@@ -64,11 +65,20 @@ class Replays extends React.Component<Props> {
             id: replay.id,
           })}/`}
         >
-          {replay.replayId}
+          <ReplayUserBadge
+            avatarSize={32}
+            displayName={replay['user.display']}
+            user={{
+              username: replay['user.display'],
+              id: replay['user.display'],
+              ip_address: replay['user.display'],
+              name: replay['user.display'],
+              email: replay['user.display'],
+            }}
+            // this is the subheading for the avatar, so displayEmail in this case is a misnomer
+            displayEmail={replay.url?.split('?')[0] || ''}
+          />
         </Link>
-        <div>
-          <span>{replay.user}</span>
-        </div>
         <div>
           <TimeSinceWrapper>
             <StyledIconCalendarWrapper color="gray500" size="sm" />
@@ -102,15 +112,18 @@ class Replays extends React.Component<Props> {
           >
             {data => {
               return (
-                <PanelTable
-                  isLoading={data.isLoading}
-                  isEmpty={data.tableData?.data.length === 0}
-                  headers={['Replay ID', 'User', 'Timestamp']}
-                >
-                  {data.tableData
-                    ? this.renderTable(data.tableData.data as Replay[])
-                    : null}
-                </PanelTable>
+                <React.Fragment>
+                  <PanelTable
+                    isLoading={data.isLoading}
+                    isEmpty={data.tableData?.data.length === 0}
+                    headers={[t('Session'), t('Timestamp')]}
+                  >
+                    {data.tableData
+                      ? this.renderTable(data.tableData.data as Replay[])
+                      : null}
+                  </PanelTable>
+                  <Pagination pageLinks={data.pageLinks} />
+                </React.Fragment>
               );
             }}
           </DiscoverQuery>
@@ -125,6 +138,11 @@ const HeaderTitle = styled(PageHeading)`
   align-items: center;
   justify-content: space-between;
   flex: 1;
+`;
+
+const ReplayUserBadge = styled(UserBadge)`
+  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.linkColor};
 `;
 
 const TimeSinceWrapper = styled('div')`
