@@ -2932,10 +2932,10 @@
   resolved "https://registry.yarnpkg.com/@sentry/release-parser/-/release-parser-1.3.0.tgz#8175b835bede83346728e329bf226d80c1063653"
   integrity sha512-m6yuQTI8XiT+L7ELbCzqPRhBvSQ5Go3YTPzj2socm9Aekp3Jcze0ZlNJIqvuPPmuysmF+SOM849WYN47kM9ERg==
 
-"@sentry/rrweb@^0.3.1":
-  version "0.3.1"
-  resolved "https://registry.yarnpkg.com/@sentry/rrweb/-/rrweb-0.3.1.tgz#a0f7496e086a30679d7af227d62ab76cfd5ed934"
-  integrity sha512-AJIy2yqjtgpcow3L1gyxxr6x+rqLN9HXMlsNNmLeUKlPBxaSMP47lM6aexI3V+XkKnRmOW05H21cLimyuM+59Q==
+"@sentry/replay@0.2.0-5":
+  version "0.2.0-5"
+  resolved "https://registry.yarnpkg.com/@sentry/replay/-/replay-0.2.0-5.tgz#f6dbd6074477625684067418953c6bb7ce9dff40"
+  integrity sha512-5gA9Gk/rIUqNxBsS5xHcghPNx5kbPsYk4CCBsfFDItokmmqKBMRulqjeA+FuuQtFINjmK1v1fbQwqbV8dcvNmw==
 
 "@sentry/tracing@6.18.1-beta.0":
   version "6.18.1-beta.0"

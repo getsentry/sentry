@@ -1,7 +1,7 @@
 import {browserHistory, createRoutes, match} from 'react-router';
 import {ExtraErrorData} from '@sentry/integrations';
 import * as Sentry from '@sentry/react';
-import SentryRRWeb from '@sentry/rrweb';
+import {SentryReplay} from '@sentry/replay';
 import {Integrations} from '@sentry/tracing';
 import {_browserPerformanceTimeOriginMode} from '@sentry/utils';
 
@@ -21,6 +21,8 @@ function getSentryIntegrations(hasReplays: boolean = false, routes?: Function) {
       // 6 is arbitrary, seems like a nice number
       depth: 6,
     }),
+    new SentryReplay({stickySession: true}),
+
     new Integrations.BrowserTracing({
       ...(typeof routes === 'function'
         ? {
@@ -40,15 +42,6 @@ function getSentryIntegrations(hasReplays: boolean = false, routes?: Function) {
   if (hasReplays) {
     // eslint-disable-next-line no-console
     console.log('[sentry] Instrumenting session with rrweb');
-
-    // TODO(ts): The type returned by SentryRRWeb seems to be somewhat
-    // incompatible. It's a newer plugin, so this can be expected, but we
-    // should fix.
-    integrations.push(
-      new SentryRRWeb({
-        checkoutEveryNms: 60 * 1000, // 60 seconds
-      }) as any
-    );
   }
   return integrations;
 }
@@ -75,7 +68,7 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
      * For SPA mode, we need a way to overwrite the default DSN from backend
      * as well as `whitelistUrls`
      */
-    dsn: SPA_DSN || sentryConfig?.dsn,
+    dsn: 'https://6991720ac36e4ddd9f8dc3331187628f@o1176005.ingest.sentry.io/6326737',
     /**
      * Frontend can be built with a `SENTRY_RELEASE_VERSION` environment variable for release string, useful if frontend is
      * deployed separately from backend.
