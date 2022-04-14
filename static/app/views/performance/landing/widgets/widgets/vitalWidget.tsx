@@ -86,7 +86,7 @@ export function transformFieldsWithStops(props: {
 }
 
 export function VitalWidget(props: PerformanceWidgetProps) {
-  const {isMEPEnabled} = useMEPSettingContext();
+  const mepSetting = useMEPSettingContext();
   const {ContainerActions, eventView, organization, location} = props;
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const field = props.fields[0];
@@ -127,13 +127,13 @@ export function VitalWidget(props: PerformanceWidgetProps) {
               limit={3}
               cursor="0:0:1"
               noPagination
-              queryExtras={getMEPQueryParams(isMEPEnabled)}
+              queryExtras={getMEPQueryParams(mepSetting)}
             />
           );
         },
         transform: transformDiscoverToList,
       }),
-      [props.eventView, fieldsList, props.organization.slug]
+      [props.eventView, fieldsList, props.organization.slug, mepSetting.memoizationKey]
     ),
     chart: useMemo<QueryDefinition<DataType, WidgetDataResult>>(
       () => ({
@@ -167,13 +167,13 @@ export function VitalWidget(props: PerformanceWidgetProps) {
               )}
               hideError
               onError={pageError.setPageError}
-              queryExtras={getMEPQueryParams(isMEPEnabled)}
+              queryExtras={getMEPQueryParams(mepSetting)}
             />
           );
         },
         transform: transformEventsRequestToVitals,
       }),
-      [props.chartSetting, selectedListIndex]
+      [props.chartSetting, selectedListIndex, mepSetting.memoizationKey]
     ),
   };
 

@@ -16,7 +16,7 @@ type AreaDataType = {
 };
 
 export function HistogramWidget(props: PerformanceWidgetProps) {
-  const {isMEPEnabled} = useMEPSettingContext();
+  const mepSetting = useMEPSettingContext();
   const {ContainerActions, location} = props;
   const globalSelection = props.eventView.getPageFilters();
 
@@ -31,13 +31,13 @@ export function HistogramWidget(props: PerformanceWidgetProps) {
             location={props.location}
             numBuckets={20}
             dataFilter="exclude_outliers"
-            queryExtras={getMEPQueryParams(isMEPEnabled)}
+            queryExtras={getMEPQueryParams(mepSetting)}
           />
         ),
         transform: transformHistogramQuery,
       },
     };
-  }, [props.chartSetting]);
+  }, [props.chartSetting, mepSetting.memoizationKey]);
 
   const onFilterChange = () => {};
 

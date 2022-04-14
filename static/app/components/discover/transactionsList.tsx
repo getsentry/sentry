@@ -121,7 +121,7 @@ type Props = {
   trendView?: TrendView;
 };
 
-class TransactionsList extends React.Component<Props> {
+class _TransactionsList extends React.Component<Props> {
   static defaultProps = {
     cursorName: 'transactionCursor',
     limit: DEFAULT_TRANSACTION_LIMIT,
@@ -379,5 +379,14 @@ const StyledDropdownButton = styled(DropdownButton)`
 const StyledPagination = styled(Pagination)`
   margin: 0 0 0 ${space(1)};
 `;
+
+const TransactionsList = (
+  props: Omit<Props, 'cursorName' | 'limit'> & {
+    cursorName?: Props['cursorName'];
+    limit?: Props['limit'];
+  }
+) => {
+  return <_TransactionsList {...props} />;
+};
 
 export default TransactionsList;

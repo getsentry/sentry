@@ -6,8 +6,20 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {Client} from 'sentry/api';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
+import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import {TagExplorer} from 'sentry/views/performance/transactionSummary/transactionOverview/tagExplorer';
+
+const WrapperComponent = props => {
+  return (
+    <OrganizationContext.Provider value={props.organization}>
+      <MEPSettingProvider _isMEPEnabled={false}>
+        <TagExplorer {...props} />
+      </MEPSettingProvider>
+    </OrganizationContext.Provider>
+  );
+};
 
 function initialize(projects, query, additionalFeatures = []) {
   const features = ['transaction-event', 'performance-view', ...additionalFeatures];
@@ -42,7 +54,7 @@ function initialize(projects, query, additionalFeatures = []) {
   };
 }
 
-describe('TagExplorer', function () {
+describe('WrapperComponent', function () {
   const facetUrl = '/organizations/org-slug/events-facets-performance/';
   let facetApiMock;
   beforeEach(function () {
@@ -100,7 +112,7 @@ describe('TagExplorer', function () {
     } = initialize(projects, {});
 
     const wrapper = mountWithTheme(
-      <TagExplorer
+      <WrapperComponent
         api={api}
         location={location}
         organization={organization}
@@ -132,7 +144,7 @@ describe('TagExplorer', function () {
     });
 
     const wrapper = mountWithTheme(
-      <TagExplorer
+      <WrapperComponent
         api={api}
         location={location}
         organization={organization}
@@ -177,7 +189,7 @@ describe('TagExplorer', function () {
     );
 
     const wrapper = mountWithTheme(
-      <TagExplorer
+      <WrapperComponent
         api={api}
         location={location}
         organization={organization}
@@ -216,7 +228,7 @@ describe('TagExplorer', function () {
     );
 
     const wrapper = mountWithTheme(
-      <TagExplorer
+      <WrapperComponent
         api={api}
         location={location}
         organization={organization}
@@ -255,7 +267,7 @@ describe('TagExplorer', function () {
     } = initialize(projects, {});
 
     const wrapper = mountWithTheme(
-      <TagExplorer
+      <WrapperComponent
         api={api}
         location={location}
         organization={organization}

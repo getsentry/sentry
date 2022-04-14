@@ -1,7 +1,7 @@
 import {Fragment, useEffect} from 'react';
 
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
-import {useMEPDataContext} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceContext';
+import {useMEPDataContext} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 
 import {QueryDefinitionWithKey, QueryHandlerProps, WidgetDataConstraint} from '../types';
 import {PerformanceWidgetSetting} from '../widgetDefinitions';

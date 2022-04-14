@@ -407,7 +407,7 @@ class _Table extends React.Component<Props, State> {
               referrer="api.performance.landing-table"
               transactionName={transaction}
               transactionThreshold={transactionThreshold}
-              queryExtras={getMEPQueryParams(value.isMEPEnabled)}
+              queryExtras={getMEPQueryParams(value)}
             >
               {({pageLinks, isLoading, tableData}) => (
                 <React.Fragment>

@@ -31,7 +31,7 @@ import SelectableList, {
 import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
 import {transformEventsRequestToArea} from '../transforms/transformEventsToArea';
 import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
-import {eventsRequestQueryProps, getMEPQueryParams} from '../utils';
+import {eventsRequestQueryProps, getMEPParamsIfApplicable} from '../utils';
 import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
 type DataType = {
@@ -53,7 +53,7 @@ const framesList = [
 ];
 
 export function LineChartListWidget(props: PerformanceWidgetProps) {
-  const {isMEPEnabled} = useMEPSettingContext();
+  const mepSetting = useMEPSettingContext();
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const {ContainerActions} = props;
   const pageError = usePageError();
@@ -113,13 +113,13 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             limit={3}
             cursor="0:0:1"
             noPagination
-            queryExtras={getMEPQueryParams(isMEPEnabled)}
+            queryExtras={getMEPParamsIfApplicable(mepSetting, props.chartSetting)}
           />
         );
       },
       transform: transformDiscoverToList,
     }),
-    [props.chartSetting]
+    [props.chartSetting, mepSetting.memoizationKey]
   );
 
   const chartQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(() => {
@@ -178,13 +178,13 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             )}
             hideError
             onError={pageError.setPageError}
-            queryExtras={getMEPQueryParams(isMEPEnabled)}
+            queryExtras={getMEPParamsIfApplicable(mepSetting, props.chartSetting)}
           />
         );
       },
       transform: transformEventsRequestToArea,
     };
-  }, [props.chartSetting, selectedListIndex]);
+  }, [props.chartSetting, selectedListIndex, mepSetting.memoizationKey]);
 
   const Queries = {
     list: listQuery,

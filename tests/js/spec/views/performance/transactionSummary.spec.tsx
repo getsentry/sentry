@@ -6,6 +6,10 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {Project} from 'sentry/types';
+import {
+  MEPSetting,
+  MEPState,
+} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import TransactionSummary from 'sentry/views/performance/transactionSummary/transactionOverview';
 
 const teams = [
@@ -266,6 +270,8 @@ describe('Performance > TransactionSummary', function () {
       url: '/organizations/org-slug/events-has-measurements/',
       body: {measurements: false},
     });
+
+    jest.spyOn(MEPSetting, 'get').mockImplementation(() => MEPState.auto);
   });
 
   afterEach(function () {

@@ -4,7 +4,7 @@ import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import TextOverflow from 'sentry/components/textOverflow';
 import space from 'sentry/styles/space';
-import {MEPTag} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceContext';
+import {MEPTag} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 
 import {
   GenericPerformanceWidgetProps,
