@@ -1035,10 +1035,7 @@ class IssueListOverview extends React.Component<Props, State> {
 
     const groupIds = actionTakenGroupData.map(data => data.id);
     const projectIds = selection?.projects?.map(p => p.toString());
-    const isMarkedReviewed = actionTakenGroupData.every(data => data.inbox);
     const endpoint = `/organizations/${organization.slug}/issues/`;
-    // if action taken on Ignored tab, revert back to ignored instead of unresolved
-    const status = query.includes('is:ignored') ? 'ignored' : 'unresolved';
 
     if (this._lastRequest) {
       this._lastRequest.cancel();
@@ -1053,8 +1050,7 @@ class IssueListOverview extends React.Component<Props, State> {
     this.props.api.request(endpoint, {
       method: 'PUT',
       data: {
-        ...(isMarkedReviewed && {inbox: true}),
-        status,
+        status: 'unresolved',
       },
       query: {
         project: projectIds,
@@ -1064,7 +1060,12 @@ class IssueListOverview extends React.Component<Props, State> {
         if (!response) {
           return;
         }
-        GroupStore.add(actionTakenGroupData);
+        // If on the Ignore or For Review tab, adding back to the GroupStore will make the issue show up
+        // on this page for a second and then be removed (will show up on All Unresolved). This is to
+        // stop this from happening and avoid confusion.
+        if (!query.includes('is:ignored') && !isForReviewQuery(query)) {
+          GroupStore.add(actionTakenGroupData);
+        }
         this.setState({undo: true});
       },
       error: err => {
@@ -1089,16 +1090,10 @@ class IssueListOverview extends React.Component<Props, State> {
 
     if (!isForReviewQuery(query)) {
       if (itemIds.length > 1) {
-        addMessage(t(`Reviewed ${itemIds.length} Issues`), 'success', {
-          duration: 4000,
-          ...(hasIssueListRemovalAction && {undo: this.onUndo}),
-        });
+        addMessage(t(`Reviewed ${itemIds.length} Issues`), 'success', {duration: 4000});
       } else {
         const shortId = itemIds.map(item => GroupStore.get(item)?.shortId).toString();
-        addMessage(t(`Reviewed ${shortId}`), 'success', {
-          duration: 4000,
-          ...(hasIssueListRemovalAction && {undo: this.onUndo}),
-        });
+        addMessage(t(`Reviewed ${shortId}`), 'success', {duration: 4000});
       }
       return;
     }
@@ -1136,13 +1131,13 @@ class IssueListOverview extends React.Component<Props, State> {
     if (itemIds.length > 1) {
       addMessage(t(`${actionType} ${itemIds.length} Issues`), 'success', {
         duration: 4000,
-        undo: this.onUndo,
+        ...(actionType !== 'Reviewed' && {undo: this.onUndo}),
       });
     } else {
       const shortId = itemIds.map(item => GroupStore.get(item)?.shortId).toString();
       addMessage(t(`${actionType} ${shortId}`), 'success', {
         duration: 4000,
-        undo: this.onUndo,
+        ...(actionType !== 'Reviewed' && {undo: this.onUndo}),
       });
     }
 
