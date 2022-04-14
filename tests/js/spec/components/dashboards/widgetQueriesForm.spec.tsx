@@ -137,8 +137,8 @@ describe('WidgetQueriesForm', function () {
       </MetricsProvider>,
       {organization}
     );
-    userEvent.click(screen.getByText('sum(sentry.sessions.session) asc'));
-    expect(screen.getByText('sum(sentry.sessions.session) desc')).toBeInTheDocument();
+    userEvent.click(screen.getByText('sum(session) asc'));
+    expect(screen.getByText('sum(session) desc')).toBeInTheDocument();
     expect(screen.queryByText('release asc')).not.toBeInTheDocument();
   });
 });
