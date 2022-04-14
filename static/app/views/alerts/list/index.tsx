@@ -1,7 +1,6 @@
 import {Component, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import flatten from 'lodash/flatten';
 
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import Feature from 'sentry/components/acl/feature';
@@ -126,7 +125,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
   get projectsFromIncidents() {
     const {incidentList} = this.state;
 
-    return Array.from(new Set(flatten(incidentList?.map(({projects}) => projects))));
+    return [...new Set(incidentList?.map(({projects}) => projects).flat())];
   }
 
   handleChangeSearch = (title: string) => {

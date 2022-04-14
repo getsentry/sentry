@@ -1,7 +1,6 @@
 import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import flatten from 'lodash/flatten';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import AsyncComponent from 'sentry/components/asyncComponent';
@@ -62,7 +61,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
   get projectsFromIncidents() {
     const {ruleList = []} = this.state;
 
-    return Array.from(new Set(flatten(ruleList?.map(({projects}) => projects))));
+    return [...new Set(ruleList?.map(({projects}) => projects).flat())];
   }
 
   handleChangeFilter = (_sectionId: string, activeFilters: Set<string>) => {
