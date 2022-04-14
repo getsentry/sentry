@@ -15,6 +15,7 @@ import Filter from './filter';
 type Props = {
   handleChangeFilter: (sectionId: string, activeFilters: Set<string>) => void;
   selectedTeams: Set<string>;
+  fullWidth?: boolean;
   selectedStatus?: Set<string>;
   /**
    * only show teams user is a member of
@@ -36,6 +37,7 @@ function TeamFilter({
   showStatus = false,
   selectedStatus = new Set(),
   handleChangeFilter,
+  fullWidth = false,
   showIsMemberTeams = false,
   showMyTeamsAndUnassigned = true,
   showMyTeamsDescription = false,
@@ -88,6 +90,7 @@ function TeamFilter({
 
   return (
     <Filter
+      fullWidth={fullWidth}
       showMyTeamsDescription={showMyTeamsDescription}
       header={
         <InputWrapper>
