@@ -63,6 +63,10 @@ function FlamegraphZoomView({
           {draw_border: true}
         );
 
+        if (!previousRenderer?.configSpace.equals(renderer.configSpace)) {
+          return renderer;
+        }
+
         if (previousRenderer?.flamegraph.profile === renderer.flamegraph.profile) {
           if (previousRenderer.flamegraph.inverted !== renderer.flamegraph.inverted) {
             // Preserve the position where the user just was before they toggled

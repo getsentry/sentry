@@ -1,7 +1,6 @@
 import {Fragment, ReactElement, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import Checkbox from 'sentry/components/checkbox';
 import {FlamegraphOptionsMenu} from 'sentry/components/profiling/flamegraphOptionsMenu';
 import {FlamegraphSearch} from 'sentry/components/profiling/flamegraphSearch';
 import {FlamegraphToolbar} from 'sentry/components/profiling/flamegraphToolbar';
@@ -62,16 +61,6 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
     setImportedProfiles(profile);
   }, []);
 
-  const handleSynchronizeXAxisWithTransactionChange = useCallback(
-    (event: React.MouseEvent<HTMLInputElement>) => {
-      dispatch({
-        type: 'set synchronizeXAxisWithTransaction',
-        payload: event.currentTarget.checked,
-      });
-    },
-    []
-  );
-
   return (
     <Fragment>
       <FlamegraphToolbar>
@@ -91,11 +80,6 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
           onProfileIndexChange={setActiveProfileIndex}
         />
         <FlamegraphOptionsMenu canvasPoolManager={canvasPoolManager} />
-        <Checkbox
-          checked={synchronizeXAxisWithTransaction}
-          onClick={handleSynchronizeXAxisWithTransactionChange}
-        />
-        Synchronize X axis with Transaction
       </FlamegraphToolbar>
 
       <FlamegraphZoomViewMinimapContainer height={flamegraphTheme.SIZES.MINIMAP_HEIGHT}>
