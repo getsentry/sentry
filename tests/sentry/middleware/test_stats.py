@@ -23,7 +23,12 @@ class RequestTimingMiddlewareTest(TestCase):
         incr.assert_called_with(
             "view.response",
             instance=request._view_path,
-            tags={"method": "GET", "status_code": 200, "ui_request": False},
+            tags={
+                "method": "GET",
+                "status_code": 200,
+                "ui_request": False,
+                "rate_limit_type": None,
+            },
             skip_internal=False,
         )
 
@@ -39,7 +44,7 @@ class RequestTimingMiddlewareTest(TestCase):
         incr.assert_called_with(
             "view.response",
             instance=request._view_path,
-            tags={"method": "GET", "status_code": 200, "ui_request": True},
+            tags={"method": "GET", "status_code": 200, "ui_request": True, "rate_limit_type": None},
             skip_internal=False,
         )
 
@@ -56,7 +61,13 @@ class RequestTimingMiddlewareTest(TestCase):
         incr.assert_called_with(
             "view.response",
             instance=request._view_path,
-            tags={"method": "GET", "status_code": 200, "ui_request": False, "a": "b"},
+            tags={
+                "method": "GET",
+                "status_code": 200,
+                "ui_request": False,
+                "a": "b",
+                "rate_limit_type": None,
+            },
             skip_internal=False,
         )
 
@@ -74,6 +85,12 @@ class RequestTimingMiddlewareTest(TestCase):
         incr.assert_called_with(
             "view.response",
             instance=request._view_path,
-            tags={"method": "GET", "status_code": 200, "ui_request": False, "foo": "bar"},
+            tags={
+                "method": "GET",
+                "status_code": 200,
+                "ui_request": False,
+                "foo": "bar",
+                "rate_limit_type": None,
+            },
             skip_internal=False,
         )
