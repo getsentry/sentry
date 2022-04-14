@@ -24,12 +24,11 @@ import {
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
-import {Incident, IncidentStatus} from '../../types';
+import {IncidentStatus} from '../../types';
 
-type Props = {
+interface Props {
   rule: IncidentRule;
-  incidents?: Incident[];
-};
+}
 
 export default class Sidebar extends PureComponent<Props> {
   getTimeWindow(): ReactNode {
@@ -125,19 +124,14 @@ export default class Sidebar extends PureComponent<Props> {
   }
 
   render() {
-    const {incidents, rule} = this.props;
+    const {rule} = this.props;
 
     // get current status
-    const activeIncident = incidents?.find(({dateClosed}) => !dateClosed);
-    const status = activeIncident ? activeIncident.status : IncidentStatus.CLOSED;
-
-    const latestIncident = incidents?.length ? incidents[0] : null;
+    const latestIncident = rule.latestIncident;
+    const status = latestIncident ? latestIncident.status : IncidentStatus.CLOSED;
     // The date at which the alert was triggered or resolved
-    const activityDate = activeIncident
-      ? activeIncident.dateStarted
-      : latestIncident
-      ? latestIncident.dateClosed
-      : null;
+    const activityDate =
+      latestIncident?.dateClosed ?? latestIncident?.dateStarted ?? null;
 
     const criticalTrigger = rule?.triggers.find(
       ({label}) => label === AlertRuleTriggerType.CRITICAL
