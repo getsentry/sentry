@@ -9,13 +9,23 @@ import {IconChevron, IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import space from 'sentry/styles/space';
-import {Project} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import withProjects from 'sentry/utils/withProjects';
 import {usePersistedOnboardingState} from 'sentry/views/onboarding/targetedOnboarding/types';
 
 const MAX_PROJECT_COUNT = 3;
 
-function OnboardingViewTask(props: {orgSlug: string; projects: Project[]}) {
+function OnboardingViewTask({
+  org,
+  projects: allProjects,
+}: {
+  org: Organization;
+  projects: Project[];
+}) {
+  if (!org?.experiments.TargetedOnboardingMultiSelectExperiment) {
+    return null;
+  }
+
   const [onboardingState] = usePersistedOnboardingState();
   if (!onboardingState) {
     return null;
@@ -23,7 +33,7 @@ function OnboardingViewTask(props: {orgSlug: string; projects: Project[]}) {
   // Projects selected during onboarding but not received first event
   const projects = onboardingState.selectedPlatforms
     .map(platform => onboardingState.platformToProjectIdMap[platform])
-    .map(projectId => props.projects.find(p => p.slug === projectId))
+    .map(projectId => allProjects.find(p => p.slug === projectId))
     .filter(project => project && !project.firstEvent) as Project[];
   return projects.length > 0 ? (
     <Fragment>
@@ -33,7 +43,7 @@ function OnboardingViewTask(props: {orgSlug: string; projects: Project[]}) {
           {projects.slice(0, MAX_PROJECT_COUNT).map(p => (
             <OnboardingTaskProjectListItem
               key={p.id}
-              to={`/onboarding/${props.orgSlug}/setup-docs/?project_id=${p.id}`}
+              to={`/onboarding/${org.slug}/setup-docs/?project_id=${p.id}`}
             >
               <OnboardingTaskProjectListItemInner>
                 <PlatformIcon platform={p.platform || 'default'} />
@@ -45,9 +55,7 @@ function OnboardingViewTask(props: {orgSlug: string; projects: Project[]}) {
             </OnboardingTaskProjectListItem>
           ))}
           {projects.length > MAX_PROJECT_COUNT && (
-            <OnboardingTaskProjectListItem
-              to={`/onboarding/${props.orgSlug}/setup-docs/`}
-            >
+            <OnboardingTaskProjectListItem to={`/onboarding/${org.slug}/setup-docs/`}>
               <OnboardingTaskProjectListItemInner>
                 <IconEllipsis />
                 {tct('and [num] more', {num: projects.length - MAX_PROJECT_COUNT})}

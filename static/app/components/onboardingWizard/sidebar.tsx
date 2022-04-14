@@ -168,7 +168,7 @@ class OnboardingWizardSidebar extends Component<Props> {
         <TopRight src={HighlightTopRight} />
         <ProgressHeader allTasks={all} completedTasks={complete} />
         <TaskList>
-          <OnboardingViewTask orgSlug={this.props.organization.slug} />
+          <OnboardingViewTask org={this.props.organization} />
           <AnimatePresence initial={false}>{items}</AnimatePresence>
         </TaskList>
       </TaskSidebarPanel>
