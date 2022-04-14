@@ -53,7 +53,7 @@ class RequestTimingMiddlewareTest(TestCase):
         test_endpoint = RateLimitedEndpoint.as_view()
         request = self.factory.get("/")
         request._view_path = "/"
-        response = Mock(status_code=200)
+        response = Mock(status_code=429)
 
         rate_limit_middleware.process_view(request, test_endpoint, [], {})
         self.middleware.process_response(request, response)
@@ -63,7 +63,7 @@ class RequestTimingMiddlewareTest(TestCase):
             instance=request._view_path,
             tags={
                 "method": "GET",
-                "status_code": 200,
+                "status_code": 429,
                 "ui_request": False,
                 "rate_limit_type": "fixed_window",
             },
