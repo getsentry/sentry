@@ -226,7 +226,7 @@ describe('TraceView', () => {
     expect(await screen.findAllByText('group me')).toHaveLength(2);
   });
 
-  it('should allow expanding of embedded transactions, and properly adjust timestamps within', async () => {
+  it('should allow expanding of embedded transactions', async () => {
     const {organization, project, location} = initializeData({
       features: ['unified-span-view'],
     });
