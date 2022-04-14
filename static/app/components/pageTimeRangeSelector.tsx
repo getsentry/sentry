@@ -64,7 +64,7 @@ const DropdownDate = styled(Panel)<{hasCustomButton: boolean; isCalendarOpen: bo
     /* Menu that dropdowns from TimeRangeSelector */
     > div > div:last-child:not(:first-child) {
       /* Remove awkward 1px width difference on dropdown due to border */
-      width: calc(100% + 2px);
+      min-width: calc(100% + 2px);
       transform: translateX(-1px);
       right: auto;
     }

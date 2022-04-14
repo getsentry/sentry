@@ -110,7 +110,6 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     const {
       params: {orgId},
       location,
-      organization,
       router,
     } = this.props;
     const {loading, ruleList = [], ruleListPageLinks} = this.state;
@@ -229,7 +228,6 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
                         rule={rule}
                         orgId={orgId}
                         onDelete={this.handleDeleteRule}
-                        organization={organization}
                         userTeams={new Set(teams.map(team => team.id))}
                       />
                     ))
