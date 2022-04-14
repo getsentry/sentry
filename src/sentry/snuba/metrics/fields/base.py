@@ -491,18 +491,18 @@ class MetricExpression(MetricExpressionDefinition, MetricExpressionBase):
         self, org_id: int, entity: MetricEntity, query_definition: QueryDefinition
     ) -> Function:
         snuba_function = OP_TO_SNUBA_FUNCTION[entity][self.metric_operation.op]
-        rv = self.metric_object.generate_filter_snql_conditions(org_id=org_id)
+        conditions = self.metric_object.generate_filter_snql_conditions(org_id=org_id)
 
         operation_based_filter = self.metric_operation.generate_filter_snql_conditions(
             org_id=org_id, query_definition=query_definition
         )
         if operation_based_filter is not None:
-            rv = Function("and", [rv, operation_based_filter])
+            conditions = Function("and", [conditions, operation_based_filter])
 
         return Function(
             snuba_function,
-            [Column("value"), rv],
-            f"{self.metric_operation.op}({self.metric_object.metric_mri})",
+            [Column("value"), conditions],
+            alias=f"{self.metric_operation.op}({self.metric_object.metric_mri})",
         )
 
 
