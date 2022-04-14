@@ -8,7 +8,6 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import * as modals from 'sentry/actionCreators/modal';
-import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import TagStore from 'sentry/stores/tagStore';
 import {TOP_N} from 'sentry/utils/discover/types';
 import {SessionMetric} from 'sentry/utils/metrics/fields';
@@ -110,7 +109,6 @@ describe('WidgetBuilder', function () {
 
   let eventsStatsMock: jest.Mock | undefined;
   let eventsv2Mock: jest.Mock | undefined;
-  let issuesMock: jest.Mock | undefined;
   let metricsDataMock: jest.Mock | undefined;
   let tagsMock: jest.Mock | undefined;
 
@@ -158,7 +156,7 @@ describe('WidgetBuilder', function () {
       body: [],
     });
 
-    issuesMock = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
       method: 'GET',
       body: [],
