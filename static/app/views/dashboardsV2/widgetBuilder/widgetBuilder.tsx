@@ -78,12 +78,10 @@ import {
   getMetricFields,
   getParsedDefaultWidgetQuery,
   mapErrors,
+  NEW_DASHBOARD_ID,
   normalizeQueries,
 } from './utils';
 import {WidgetLibrary} from './widgetLibrary';
-
-// Both dashboards and widgets use the 'new' keyword when creating
-const NEW_DASHBOARD_ID = 'new';
 
 function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, WidgetQuery> {
   return {
@@ -294,6 +292,16 @@ function WidgetBuilder({
   useEffect(() => {
     if (notDashboardsOrigin) {
       fetchDashboards();
+    }
+
+    if (widgetBuilderNewDesign) {
+      setState(prevState => ({
+        ...prevState,
+        selectedDashboard: {
+          label: dashboard.title,
+          value: dashboard.id || NEW_DASHBOARD_ID,
+        },
+      }));
     }
   }, [source]);
 
@@ -779,12 +787,12 @@ function WidgetBuilder({
 
     try {
       const dashboards = await promise;
-      setState({...state, dashboards, loading: false});
+      setState(prevState => ({...prevState, dashboards, loading: false}));
     } catch (error) {
       const errorMessage = t('Unable to fetch dashboards');
       addErrorMessage(errorMessage);
       handleXhrErrorResponse(errorMessage)(error);
-      setState({...state, loading: false});
+      setState(prevState => ({...prevState, loading: false}));
     }
   }
 
@@ -936,7 +944,6 @@ function WidgetBuilder({
                       onChange={newDisplayType => {
                         handleDisplayTypeOrTitleChange('displayType', newDisplayType);
                       }}
-                      widgetBuilderNewDesign={widgetBuilderNewDesign}
                     />
                     <DataSetStep
                       dataSet={state.dataSet}
@@ -1014,7 +1021,7 @@ function WidgetBuilder({
                         widgetType={widgetType}
                       />
                     )}
-                    {notDashboardsOrigin && (
+                    {notDashboardsOrigin && !widgetBuilderNewDesign && (
                       <DashboardStep
                         error={state.errors?.dashboard}
                         dashboards={state.dashboards}

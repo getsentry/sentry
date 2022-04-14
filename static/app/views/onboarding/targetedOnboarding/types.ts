@@ -1,5 +1,5 @@
-import {Client} from 'sentry/api';
 import {PlatformKey} from 'sentry/data/platformCategories';
+import {usePersistedStoreCategory} from 'sentry/stores/persistedStore';
 import {Organization} from 'sentry/types';
 
 export type StepData = {
@@ -25,7 +25,7 @@ export type StepDescriptor = {
   hasFooter?: boolean;
 };
 
-export type ClientState = {
+export type OnboardingState = {
   // map from platform id to project id. Contains projects ever created by onboarding.
   platformToProjectIdMap: {[key in PlatformKey]?: string};
 
@@ -34,13 +34,16 @@ export type ClientState = {
   selectedPlatforms: PlatformKey[];
 };
 
-export function fetchClientState(api: Client, orgSlug: string): Promise<ClientState> {
-  return api
-    .requestPromise(`/organizations/${orgSlug}/client-state/onboarding/`)
-    .then(lastState => {
-      // Set default values
-      lastState.platformToProjectIdMap = lastState.platformToProjectIdMap || {};
-      lastState.selectedPlatforms = lastState.selectedPlatforms || [];
-      return lastState;
-    });
+export function usePersistedOnboardingState(): [
+  OnboardingState | null,
+  (next: OnboardingState | null) => void
+] {
+  const [state, setState] = usePersistedStoreCategory('onboarding');
+  const onboardingState = state
+    ? {
+        platformToProjectIdMap: state.platformToProjectIdMap || {},
+        selectedPlatforms: state.selectedPlatforms || [],
+      }
+    : null;
+  return [onboardingState, setState];
 }

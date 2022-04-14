@@ -73,6 +73,7 @@ type Props = WithRouterProps & {
   theme: Theme;
 
   className?: string;
+
   /**
    * Should we have a time selector?
    */

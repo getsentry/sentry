@@ -29,6 +29,9 @@ import {FlatValidationError, ValidationError} from '../utils';
 export const DEFAULT_RESULTS_LIMIT = 5;
 export const RESULTS_LIMIT = 10;
 
+// Both dashboards and widgets use the 'new' keyword when creating
+export const NEW_DASHBOARD_ID = 'new';
+
 export enum DataSet {
   EVENTS = 'events',
   ISSUES = 'issues',
@@ -284,6 +287,12 @@ export function getMetricFields(queries: WidgetQuery[]) {
     return acc;
   }, [] as string[]);
 }
+
+// Used to limit the number of results of the "filter your results" fields dropdown
+export const MAX_SEARCH_ITEMS = 5;
+
+// Used to set the max height of the smartSearchBar menu
+export const MAX_MENU_HEIGHT = 250;
 
 // Any function/field choice for Big Number widgets is legal since the
 // data source is from an endpoint that is not timeseries-based.
