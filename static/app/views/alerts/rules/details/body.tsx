@@ -236,7 +236,7 @@ export default class DetailsBody extends React.Component<Props> {
             </DetailWrapper>
           </Layout.Main>
           <Layout.Side>
-            <Sidebar incidents={incidents} rule={rule} />
+            <Sidebar rule={rule} />
           </Layout.Side>
         </Layout.Body>
       </React.Fragment>
