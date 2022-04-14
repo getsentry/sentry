@@ -1,7 +1,6 @@
 export type Replay = {
   eventID: string;
   id: string;
-  platform: string;
   project: string;
   projectID: string;
   replayId: string;
