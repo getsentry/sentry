@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import Badge from 'sentry/components/badge';
 import CheckboxFancy from 'sentry/components/checkboxFancy/checkboxFancy';
 import DropdownButton from 'sentry/components/dropdownButton';
 import DropdownControl, {Content} from 'sentry/components/dropdownControl';
@@ -111,9 +112,6 @@ function Filter({
   if (activeFilters.length > 0) {
     filterDescription = activeFilters[0].label;
   }
-  if (activeFilters.length > 1) {
-    filterDescription = `${activeFilters[0].label} + ${activeFilters.length - 1}`;
-  }
 
   return (
     <DropdownControl
@@ -130,9 +128,10 @@ function Filter({
           data-test-id="filter-button"
           fullWidth={fullWidth}
         >
-          <DropdownButtonText fullWidth={fullWidth}>
-            {filterDescription}
-          </DropdownButtonText>
+          <DropdownButtonText fullWidth={fullWidth}>{filterDescription}</DropdownButtonText>
+          {activeFilters.length > 1 && (
+            <StyledBadge text={`+${activeFilters.length - 1}`} />
+          )}
         </StyledDropdownButton>
       )}
     >
@@ -185,6 +184,8 @@ const Header = styled('div')`
 const StyledDropdownButton = styled(DropdownButton)<{fullWidth: boolean}>`
   white-space: nowrap;
   min-width: 180px;
+  display: flex;
+  align-items: center;
 
   z-index: ${p => p.theme.zIndex.dropdown};
 
@@ -205,6 +206,10 @@ const DropdownButtonText = styled('span')<{fullWidth: boolean}>`
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     text-align: ${p => p.fullWidth && 'start'};
   }
+`;
+
+const StyledBadge = styled(Badge)`
+  flex-shrink: 0;
 `;
 
 const List = styled('ul')`
