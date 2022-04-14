@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 import moment from 'moment';
 
+import Alert from 'sentry/components/alert';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import Button from 'sentry/components/button';
@@ -188,6 +189,14 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
 
     if (!rule) {
       return <LoadingError message={t('There was an error loading the alert rule.')} />;
+    }
+
+    if (!project) {
+      return (
+        <Alert type="warning">
+          {t('The project you were looking for was not found.')}
+        </Alert>
+      );
     }
 
     return (
