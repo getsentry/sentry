@@ -13,8 +13,8 @@ import space from 'sentry/styles/space';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import testableTransition from 'sentry/utils/testableTransition';
 import FallingError from 'sentry/views/onboarding/components/fallingError';
+import WelcomeBackground from 'sentry/views/onboarding/components/welcomeBackground';
 
-import WelcomeBackground from './components/welcomeBackground';
 import {StepProps} from './types';
 
 const fadeAway: MotionProps = {
