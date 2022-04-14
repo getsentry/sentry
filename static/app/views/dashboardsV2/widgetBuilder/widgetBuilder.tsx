@@ -1089,8 +1089,7 @@ const Body = styled(Layout.Body)`
   grid-template-rows: 1fr;
 
   @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    /* 368px + 16px + 16px = 400px to match Side component width, padding-left and padding-right */
-    grid-template-columns: minmax(100px, auto) calc(368px + ${space(2)} + ${space(2)});
+    grid-template-columns: minmax(100px, auto) 400px;
   }
 
   @media (min-width: ${p => p.theme.breakpoints[3]}) {
@@ -1126,7 +1125,7 @@ const Side = styled(Layout.Side)`
   }
 
   @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    max-width: calc(368px + ${space(2)} + ${space(2)});
+    max-width: 400px;
   }
 
   @media (max-width: ${p => p.theme.breakpoints[3]}) {
