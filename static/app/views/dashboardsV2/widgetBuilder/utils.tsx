@@ -288,6 +288,12 @@ export function getMetricFields(queries: WidgetQuery[]) {
   }, [] as string[]);
 }
 
+// Used to limit the number of results of the "filter your results" fields dropdown
+export const MAX_SEARCH_ITEMS = 5;
+
+// Used to set the max height of the smartSearchBar menu
+export const MAX_MENU_HEIGHT = 250;
+
 // Any function/field choice for Big Number widgets is legal since the
 // data source is from an endpoint that is not timeseries-based.
 // The function/field choice for World Map widget will need to be numeric-like.

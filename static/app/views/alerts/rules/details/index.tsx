@@ -146,7 +146,7 @@ class MetricAlertDetails extends Component<Props, State> {
     const rulePromise =
       ruleId === this.state.rule?.id
         ? Promise.resolve(this.state.rule)
-        : fetchAlertRule(orgId, ruleId);
+        : fetchAlertRule(orgId, ruleId, {expand: 'latestIncident'});
 
     // Fetch selected incident, if it exists. We need this to set the selected date range
     let selectedIncident: Incident | null = null;

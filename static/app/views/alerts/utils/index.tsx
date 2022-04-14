@@ -21,9 +21,14 @@ import {AlertRuleStatus, Incident, IncidentStats} from '../types';
 // Use this api for requests that are getting cancelled
 const uncancellableApi = new Client();
 
-export function fetchAlertRule(orgId: string, ruleId: string): Promise<IncidentRule> {
+export function fetchAlertRule(
+  orgId: string,
+  ruleId: string,
+  query?: Record<string, string>
+): Promise<IncidentRule> {
   return uncancellableApi.requestPromise(
-    `/organizations/${orgId}/alert-rules/${ruleId}/`
+    `/organizations/${orgId}/alert-rules/${ruleId}/`,
+    {query}
   );
 }
 

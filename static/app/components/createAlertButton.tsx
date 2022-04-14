@@ -353,10 +353,19 @@ const CreateAlertButton = withRouter(
     ...buttonProps
   }: Props) => {
     const api = useApi();
-
     const createAlertUrl = (providedProj: string) => {
-      const alertsBaseUrl = `/organizations/${organization.slug}/alerts/${providedProj}`;
-      return `${alertsBaseUrl}/wizard/${referrer ? `?referrer=${referrer}` : ''}`;
+      const hasAlertWizardV3 = organization.features.includes('alert-wizard-v3');
+      const alertsBaseUrl = hasAlertWizardV3
+        ? `/organizations/${organization.slug}/alerts`
+        : `/organizations/${organization.slug}/alerts/${providedProj}`;
+      const alertsArgs = [
+        `${referrer ? `referrer=${referrer}` : ''}`,
+        `${hasAlertWizardV3 && providedProj ? `project=${providedProj}` : ''}`,
+      ].filter(item => item !== '');
+
+      return `${alertsBaseUrl}/wizard/${alertsArgs.length ? '?' : ''}${alertsArgs.join(
+        '&'
+      )}`;
     };
 
     function handleClickWithoutProject(event: React.MouseEvent) {
