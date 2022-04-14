@@ -81,7 +81,6 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
 
         external_issue = ExternalIssue.objects.get(key="309")
         assert external_issue
-        forced_error = 1 / 0  # noqa: F841
 
     @responses.activate
     def test_doesnt_create_issue(self):
