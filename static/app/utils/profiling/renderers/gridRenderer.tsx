@@ -131,6 +131,7 @@ class GridRenderer {
 
       // Draw the vertical grid line
       context.strokeStyle = this.theme.COLORS.GRID_LINE_COLOR;
+      context.lineWidth = this.theme.SIZES.GRID_LINE_WIDTH;
       context.strokeRect(
         physicalIntervalPosition - LINE_WIDTH / 2,
         0,

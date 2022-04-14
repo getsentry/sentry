@@ -130,7 +130,6 @@ class ReleaseTestCase(ActivityTestCase):
         )
 
         assert email.release is None
-        assert not email.should_email()
 
     def test_no_committers(self):
         release, deploy = self.another_release("b")

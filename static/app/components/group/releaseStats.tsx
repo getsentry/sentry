@@ -31,10 +31,11 @@ const GroupReleaseStats = ({
   group,
   currentRelease,
 }: Props) => {
-  const environmentLabel =
+  const environment =
     environments.length > 0
       ? environments.map(env => env.displayName).join(', ')
-      : t('All Environments');
+      : undefined;
+  const environmentLabel = environment ? environment : t('All Environments');
 
   const shortEnvironmentLabel =
     environments.length > 1
@@ -57,7 +58,8 @@ const GroupReleaseStats = ({
           <GraphContainer>
             <GroupReleaseChart
               group={allEnvironments}
-              environment={environmentLabel}
+              environment={environment}
+              environmentLabel={environmentLabel}
               environmentStats={group.stats}
               release={currentRelease?.release}
               releaseStats={currentRelease?.stats}
@@ -70,7 +72,8 @@ const GroupReleaseStats = ({
           <GraphContainer>
             <GroupReleaseChart
               group={allEnvironments}
-              environment={environmentLabel}
+              environment={environment}
+              environmentLabel={environmentLabel}
               environmentStats={group.stats}
               release={currentRelease?.release}
               releaseStats={currentRelease?.stats}

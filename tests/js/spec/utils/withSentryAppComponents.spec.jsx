@@ -19,7 +19,7 @@ describe('withSentryAppComponents HoC', function () {
 
     expect(wrapper.find('MyComponent').prop('components')).toEqual([]);
 
-    SentryAppComponentsStore.onLoadComponents([
+    SentryAppComponentsStore.loadComponents([
       {type: 'some-type'},
       {type: 'another-type'},
     ]);
@@ -38,7 +38,7 @@ describe('withSentryAppComponents HoC', function () {
 
     expect(wrapper.find('MyComponent').prop('components')).toEqual([]);
 
-    SentryAppComponentsStore.onLoadComponents([
+    SentryAppComponentsStore.loadComponents([
       {type: 'some-type'},
       {type: 'another-type'},
     ]);

@@ -68,6 +68,11 @@ describe('Dashboards > Detail', function () {
         method: 'GET',
         body: [],
       });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/tags/',
+        method: 'GET',
+        body: [],
+      });
     });
 
     afterEach(function () {
@@ -109,7 +114,7 @@ describe('Dashboards > Detail', function () {
           router={initialData.router}
           location={initialData.router.location}
         />,
-        {context: initialData.routerContext}
+        {context: initialData.routerContext, organization: initialData.organization}
       );
       await act(async () => {
         await tick();

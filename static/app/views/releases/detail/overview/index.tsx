@@ -360,8 +360,6 @@ class ReleaseOverview extends AsyncView<Props> {
     const {organization, selection, location, api} = this.props;
     const {start, end, period, utc} = this.pageDateTime;
 
-    const hasPageFilters = organization.features.includes('selection-filters-v2');
-
     return (
       <ReleaseContext.Consumer>
         {({
@@ -454,8 +452,8 @@ class ReleaseOverview extends AsyncView<Props> {
                               onRestore={() => this.handleRestore(project, refetchData)}
                             />
                           )}
-                          <ReleaseDetailsPageFilters hasPageFilters={hasPageFilters}>
-                            {hasPageFilters && <EnvironmentPageFilter />}
+                          <ReleaseDetailsPageFilters>
+                            <EnvironmentPageFilter />
                             <StyledPageTimeRangeSelector
                               organization={organization}
                               relative={period ?? ''}
@@ -715,10 +713,9 @@ function getTransactionsListSort(location: Location): {
   return {selectedSort, sortOptions};
 }
 
-const ReleaseDetailsPageFilters = styled('div')<{hasPageFilters?: boolean}>`
+const ReleaseDetailsPageFilters = styled('div')`
   display: grid;
-  grid-template-columns: ${p =>
-    p.hasPageFilters ? 'minmax(0, max-content) minmax(0, max-content)' : '1fr'};
+  grid-template-columns: minmax(0, max-content) minmax(0, max-content);
   gap: ${space(1)};
   margin-bottom: ${space(1.5)};
 `;

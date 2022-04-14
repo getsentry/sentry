@@ -46,7 +46,7 @@ describe('Docs Search Modal', function () {
       },
     });
     MockApiClient.addMockResponse({
-      url: '/assistant/?v2',
+      url: '/assistant/',
       body: [],
     });
   });

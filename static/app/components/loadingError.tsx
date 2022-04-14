@@ -11,6 +11,7 @@ type DefaultProps = {
 };
 
 type Props = DefaultProps & {
+  className?: string;
   onRetry?: () => void;
 };
 
@@ -27,11 +28,12 @@ class LoadingError extends React.Component<Props> {
   }
 
   render() {
-    const {message, onRetry} = this.props;
+    const {message, onRetry, className} = this.props;
     return (
       <StyledAlert
         type="error"
         showIcon
+        className={className}
         trailingItems={
           onRetry && (
             <Button onClick={onRetry} type="button" priority="default" size="small">

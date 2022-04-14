@@ -191,7 +191,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                 "organizations:discover-basic": False,
             },
         )
-        assert response.status_code == 200
+        assert response.status_code == 200, response.content
 
     def test_aggregate_function_apdex(self):
         project1 = self.create_project()

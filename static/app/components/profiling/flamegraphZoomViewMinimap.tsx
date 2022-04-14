@@ -28,9 +28,7 @@ function FlamegraphZoomViewMinimap({
     useState<HTMLCanvasElement | null>(null);
   const [flamegraphMiniMapOverlayCanvasRef, setFlamegraphMiniMapOverlayCanvasRef] =
     useState<HTMLCanvasElement | null>(null);
-  const [configSpaceCursor, setConfigSpaceCursor] = useState<[number, number] | null>(
-    null
-  );
+  const [configSpaceCursor, setConfigSpaceCursor] = useState<vec2 | null>(null);
 
   const scheduler = useMemo(() => new CanvasScheduler(), []);
 
@@ -292,7 +290,7 @@ function FlamegraphZoomViewMinimap({
         flamegraphMiniMapRenderer.configSpaceToPhysicalSpace
       );
 
-      setConfigSpaceCursor([configSpaceMouse[0], configSpaceMouse[1]]);
+      setConfigSpaceCursor(configSpaceMouse);
 
       if (lastDragVector) {
         onMouseDrag(evt);
@@ -403,11 +401,7 @@ function FlamegraphZoomViewMinimap({
         window.devicePixelRatio
       );
 
-      if (
-        flamegraphMiniMapRenderer.configView.contains(
-          vec2.fromValues(...configSpaceCursor)
-        )
-      ) {
+      if (flamegraphMiniMapRenderer.configView.contains(configSpaceCursor)) {
         setLastDragVector(physicalMousePos);
       } else {
         const startConfigSpaceCursor = flamegraphMiniMapRenderer.getConfigSpaceCursor(
@@ -456,9 +450,7 @@ function FlamegraphZoomViewMinimap({
         onMouseLeave={onMinimapCanvasMouseUp}
         cursor={
           configSpaceCursor &&
-          flamegraphMiniMapRenderer?.configView.contains(
-            vec2.fromValues(...configSpaceCursor)
-          )
+          flamegraphMiniMapRenderer?.configView.contains(configSpaceCursor)
             ? 'grab'
             : 'col-resize'
         }

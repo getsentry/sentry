@@ -182,6 +182,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
     // Find the equations in the list of columns
     for (let i = 0; i < newColumns.length; i++) {
       const newColumn = newColumns[i];
+
       if (newColumn.kind === 'equation') {
         const result = parseArithmetic(newColumn.field);
         let newEquation = '';

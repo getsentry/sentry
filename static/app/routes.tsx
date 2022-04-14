@@ -1082,6 +1082,30 @@ function buildRoutes() {
         </Route>
       </Route>
       <Route
+        path="wizard/"
+        name={t('Alert Creation Wizard')}
+        component={SafeLazyLoad}
+        componentPromise={() => import('sentry/views/alerts/builder/projectProvider')}
+      >
+        <IndexRoute
+          component={SafeLazyLoad}
+          componentPromise={() => import('sentry/views/alerts/wizard')}
+        />
+      </Route>
+      <Route
+        path="new/"
+        name={t('New Alert Rule')}
+        component={SafeLazyLoad}
+        componentPromise={() => import('sentry/views/alerts/builder/projectProvider')}
+      >
+        <IndexRedirect to="/organizations/:orgId/alerts/wizard/" />
+        <Route
+          path=":alertType/"
+          component={SafeLazyLoad}
+          componentPromise={() => import('sentry/views/alerts/create')}
+        />
+      </Route>
+      <Route
         path=":alertId/"
         componentPromise={() => import('sentry/views/alerts/incidentRedirect')}
         component={SafeLazyLoad}

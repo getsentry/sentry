@@ -33,8 +33,8 @@ interface ProfilingContentProps {
 function ProfilingContent({location, selection}: ProfilingContentProps) {
   const organization = useOrganization();
   const cursor = decodeScalar(location.query.cursor);
-  const profileFilters = useProfileFilters();
   const query = decodeScalar(location.query.query, '');
+  const profileFilters = useProfileFilters(selection);
   const [requestState, traces, pageLinks] = useProfiles({cursor, query, selection});
 
   const handleSearch: SmartSearchBarProps['onSearch'] = useCallback(

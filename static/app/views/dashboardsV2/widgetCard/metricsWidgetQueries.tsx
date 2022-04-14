@@ -137,7 +137,7 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
       case DisplayType.BIG_NUMBER:
         return 1;
       default:
-        return 20; // TODO(dam): Can be changed to undefined once [INGEST-1079] is resolved
+        return limit ?? 20; // TODO(dam): Can be changed to undefined once [INGEST-1079] is resolved
     }
   }
 
@@ -203,6 +203,7 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
             tableData.title = widget.queries[requestIndex]?.name ?? '';
             return {
               ...prevState,
+              errorMessage: undefined,
               tableResults: [...(prevState.tableResults ?? []), tableData],
             };
           }
@@ -229,6 +230,7 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
 
           return {
             ...prevState,
+            errorMessage: undefined,
             timeseriesResults,
             rawResults: rawResultsClone,
           };

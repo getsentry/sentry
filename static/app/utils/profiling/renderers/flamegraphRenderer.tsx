@@ -207,12 +207,6 @@ class FlamegraphRenderer {
     this.configView = Rect.From(this.configView).withHeight(
       this.physicalSpace.height / BAR_HEIGHT
     );
-
-    if (this.flamegraph.inverted) {
-      this.configView = this.configView.translateY(
-        this.configSpace.height - this.configView.height + 1
-      );
-    }
   }
 
   initVertices(): void {

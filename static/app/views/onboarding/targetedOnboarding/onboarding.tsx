@@ -8,7 +8,6 @@ import Hook from 'sentry/components/hook';
 import Link from 'sentry/components/links/link';
 import LogoSentry from 'sentry/components/logoSentry';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -90,7 +89,6 @@ function Onboarding(props: Props) {
   };
 
   useEffect(updateCornerVariant, []);
-  const [platforms, setPlatforms] = useState<PlatformKey[]>([]);
 
   const [containerHasFooter, setContainerHasFooter] = useState<boolean>(false);
   const updateAnimationState = () => {
@@ -99,17 +97,6 @@ function Onboarding(props: Props) {
   };
 
   useEffect(updateAnimationState, []);
-
-  const addPlatform = (platform: PlatformKey) => {
-    setPlatforms([...platforms, platform]);
-  };
-
-  const removePlatform = (platform: PlatformKey) => {
-    setPlatforms(platforms.filter(p => p !== platform));
-  };
-  useEffect(updateCornerVariant, []);
-
-  const clearPlatforms = () => setPlatforms([]);
 
   const goToStep = (step: StepDescriptor) => {
     if (step.cornerVariant !== stepObj.cornerVariant) {
@@ -188,11 +175,7 @@ function Onboarding(props: Props) {
                 organization={props.organization}
                 search={props.location.search}
                 {...{
-                  platforms,
-                  addPlatform,
-                  removePlatform,
                   genSkipOnboardingLink,
-                  clearPlatforms,
                 }}
               />
             )}
