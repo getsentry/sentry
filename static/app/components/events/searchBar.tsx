@@ -33,6 +33,10 @@ export type SearchBarProps = Omit<React.ComponentProps<typeof SmartSearchBar>, '
   tags: TagCollection;
   fields?: Readonly<Field[]>;
   includeSessionTagsValues?: boolean;
+  /**
+   * Used to define the max height of the menu in px.
+   */
+  maxMenuHeight?: number;
   maxSearchItems?: React.ComponentProps<typeof SmartSearchBar>['maxSearchItems'];
   omitTags?: string[];
   projectIds?: number[] | Readonly<number[]>;
@@ -47,6 +51,7 @@ function SearchBar(props: SearchBarProps) {
     fields,
     projectIds,
     includeSessionTagsValues,
+    maxMenuHeight,
   } = props;
 
   const api = useApi();
@@ -140,7 +145,7 @@ function SearchBar(props: SearchBarProps) {
               maxSearchItems={maxSearchItems}
               excludeEnvironment
               dropdownClassName={css`
-                max-height: 300px;
+                max-height: ${maxMenuHeight ?? 300}px;
                 overflow-y: auto;
               `}
               {...props}
