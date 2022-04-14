@@ -232,6 +232,13 @@ describe('TraceView', () => {
     });
 
     const event = generateSampleEvent();
+    const parentSpan = generateSampleSpan(
+      'parent span',
+      'db',
+      'b000000000000000',
+      'a000000000000000',
+      event
+    );
     const waterfallModel = new WaterfallModel(event);
 
     const eventsTraceMock = MockApiClient.addMockResponse({
@@ -239,12 +246,13 @@ describe('TraceView', () => {
       method: 'GET',
       statusCode: 200,
       body: [
+        event,
         {
           errors: [],
           event_id: '998d7e2c304c45729545e4434e2967cb',
           generation: 1,
           parent_event_id: '2b658a829a21496b87fd1f14a61abf65',
-          parent_span_id: 'a000000000000000',
+          parent_span_id: 'b000000000000000',
           project_id: project.id,
           project_slug: project.slug,
           span_id: '8596e2795f88471d',
@@ -261,12 +269,13 @@ describe('TraceView', () => {
       method: 'GET',
       statusCode: 200,
       body: [
+        event,
         {
           errors: [],
           event_id: '998d7e2c304c45729545e4434e2967cb',
           generation: 1,
           parent_event_id: '2b658a829a21496b87fd1f14a61abf65',
-          parent_span_id: 'a000000000000000',
+          parent_span_id: 'b000000000000000',
           project_id: project.id,
           project_slug: project.slug,
           span_id: '8596e2795f88471d',
@@ -284,16 +293,23 @@ describe('TraceView', () => {
       eventID: '998d7e2c304c45729545e4434e2967cb',
     };
     embeddedEvent.contexts.trace!.span_id = 'a111111111111111';
-    generateSampleSpan(
-      'http',
+
+    const embeddedSpan = generateSampleSpan(
       'i am embedded :)',
+      'test',
       'b111111111111111',
-      'a111111111111111',
-      event
+      'b000000000000000',
+      embeddedEvent
     );
+    embeddedSpan.trace_id = '8cbbc19c0f54447ab702f00263262726';
+
+    // Shift this embedded span so it is outside its parent's bounds
+    // This is to test the behaviour where the embedded transaction timestamps automatically get adjusted
+    embeddedSpan.start_timestamp = parentSpan.timestamp + 50;
+    embeddedSpan.timestamp += 50;
 
     const fetchEmbeddedTransactionMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/project-slug:998d7e2c304c45729545e4434e2967cb/`,
+      url: `/organizations/${organization.slug}/events/${project.slug}:998d7e2c304c45729545e4434e2967cb/`,
       method: 'GET',
       statusCode: 200,
       body: embeddedEvent,
