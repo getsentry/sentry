@@ -128,7 +128,9 @@ function Filter({
           data-test-id="filter-button"
           fullWidth={fullWidth}
         >
-          <DropdownButtonText fullWidth={fullWidth}>{filterDescription}</DropdownButtonText>
+          <DropdownButtonText fullWidth={fullWidth}>
+            {filterDescription}
+          </DropdownButtonText>
           {activeFilters.length > 1 && (
             <StyledBadge text={`+${activeFilters.length - 1}`} />
           )}
@@ -183,7 +185,6 @@ const Header = styled('div')`
 
 const StyledDropdownButton = styled(DropdownButton)<{fullWidth: boolean}>`
   white-space: nowrap;
-  min-width: 180px;
   display: flex;
   align-items: center;
 
