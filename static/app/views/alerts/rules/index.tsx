@@ -59,6 +59,12 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     ];
   }
 
+  get projectsFromIncidents() {
+    const {ruleList = []} = this.state;
+
+    return Array.from(new Set(flatten(ruleList?.map(({projects}) => projects))));
+  }
+
   handleChangeFilter = (_sectionId: string, activeFilters: Set<string>) => {
     const {router, location} = this.props;
     const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
@@ -114,10 +120,6 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     } = this.props;
     const {loading, ruleList = [], ruleListPageLinks} = this.state;
     const {query} = location;
-
-    const allProjectsFromIncidents = new Set(
-      flatten(ruleList?.map(({projects}) => projects))
-    );
 
     const sort: {
       asc: boolean;
@@ -215,7 +217,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
                 isEmpty={ruleList?.length === 0}
                 emptyMessage={t('No alert rules found for the current query.')}
               >
-                <Projects orgId={orgId} slugs={Array.from(allProjectsFromIncidents)}>
+                <Projects orgId={orgId} slugs={this.projectsFromIncidents}>
                   {({initiallyLoaded, projects}) =>
                     ruleList.map(rule => (
                       <RuleListRow
@@ -268,7 +270,12 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
           showEnvironmentSelector={false}
           hideGlobalHeader
         >
-          <AlertHeader organization={organization} router={router} activeTab="rules" />
+          <AlertHeader
+            organization={organization}
+            router={router}
+            activeTab="rules"
+            projectSlugs={this.projectsFromIncidents}
+          />
           {this.renderList()}
         </PageFiltersContainer>
       </SentryDocumentTitle>
