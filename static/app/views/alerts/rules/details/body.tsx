@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import moment from 'moment';
@@ -7,15 +7,15 @@ import moment from 'moment';
 import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import {getInterval} from 'sentry/components/charts/utils';
-import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
 import Duration from 'sentry/components/duration';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
+import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import {Dataset, IncidentRule, TimePeriod} from 'sentry/views/alerts/incidentRules/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/incidentRules/utils/getEventTypeFilter';
 import MetricHistory from 'sentry/views/alerts/rules/details/metricHistory';
@@ -25,7 +25,7 @@ import {AlertRuleStatus, Incident} from '../../types';
 
 import {
   API_INTERVAL_POINTS_LIMIT,
-  TIME_OPTIONS,
+  SELECTOR_RELATIVE_PERIODS,
   TIME_WINDOWS,
   TimePeriodType,
 } from './constants';
@@ -92,16 +92,26 @@ export default class DetailsBody extends React.Component<Props> {
     const eventType = isCrashFreeAlert(dataset)
       ? null
       : extractEventTypeFilterFromRule(rule);
-    const queryWithEventType = [eventType, query].join(' ').split(' ');
-
-    return queryWithEventType;
+    return [eventType, query].join(' ').split(' ');
   }
 
-  handleTimePeriodChange = (value: string) => {
-    browserHistory.push({
-      pathname: this.props.location.pathname,
+  handleTimePeriodChange = (datetime: ChangeData) => {
+    const {start, end, relative} = datetime;
+
+    if (start && end) {
+      return this.props.router.push({
+        ...this.props.location,
+        query: {
+          start: moment(start).utc().format(),
+          end: moment(end).utc().format(),
+        },
+      });
+    }
+
+    return this.props.router.push({
+      ...this.props.location,
       query: {
-        period: value,
+        period: relative,
       },
     });
   };
@@ -144,6 +154,10 @@ export default class DetailsBody extends React.Component<Props> {
     const {query, dataset} = rule;
 
     const queryWithTypeFilter = `${query} ${extractEventTypeFilterFromRule(rule)}`.trim();
+    const relativeOptions = {
+      ...SELECTOR_RELATIVE_PERIODS,
+      ...(rule.timeWindow > 1 ? {[TimePeriod.FOURTEEN_DAYS]: t('Last 14 days')} : {}),
+    };
 
     return (
       <React.Fragment>
@@ -159,35 +173,16 @@ export default class DetailsBody extends React.Component<Props> {
           )}
         <Layout.Body>
           <Layout.Main>
-            <DateContainer>
-              <StyledDropdownControl
-                label={getDynamicText({
-                  fixed: (
-                    <div>
-                      {t('Date Range')}:{' '}
-                      <DropdownLabel>Oct 14, 2:56 PM — Oct 14, 4:55 PM</DropdownLabel>
-                    </div>
-                  ),
-                  value: (
-                    <div>
-                      {t('Date Range')}:{' '}
-                      <DropdownLabel>{timePeriod.display}</DropdownLabel>
-                    </div>
-                  ),
-                })}
-              >
-                {TIME_OPTIONS.map(({label, value}) => (
-                  <DropdownItem
-                    key={value}
-                    eventKey={value}
-                    isActive={!timePeriod.custom && timePeriod.period === value}
-                    onSelect={this.handleTimePeriodChange}
-                  >
-                    {label}
-                  </DropdownItem>
-                ))}
-              </StyledDropdownControl>
-            </DateContainer>
+            <StyledPageTimeRangeSelector
+              organization={organization}
+              relative={timePeriod.period ?? ''}
+              start={(timePeriod.custom && timePeriod.start) || null}
+              end={(timePeriod.custom && timePeriod.end) || null}
+              utc={null}
+              onUpdate={this.handleTimePeriodChange}
+              relativeOptions={relativeOptions}
+              showAbsolute={false}
+            />
 
             <MetricChart
               api={api}
@@ -236,7 +231,7 @@ export default class DetailsBody extends React.Component<Props> {
             </DetailWrapper>
           </Layout.Main>
           <Layout.Side>
-            <Sidebar incidents={incidents} rule={rule} />
+            <Sidebar rule={rule} />
           </Layout.Side>
         </Layout.Body>
       </React.Fragment>
@@ -250,25 +245,6 @@ const DetailWrapper = styled('div')`
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     flex-direction: column-reverse;
-  }
-`;
-
-const DateContainer = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
-const DropdownLabel = styled('span')`
-  font-weight: 400;
-`;
-
-const StyledDropdownControl = styled(DropdownControl)`
-  width: 100%;
-  button {
-    width: 100%;
-    span {
-      justify-content: space-between;
-    }
   }
 `;
 
@@ -293,4 +269,8 @@ const ActivityWrapper = styled('div')`
 
 const ChartPanel = styled(Panel)`
   margin-top: ${space(2)};
+`;
+
+const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
+  margin-bottom: ${space(2)};
 `;
