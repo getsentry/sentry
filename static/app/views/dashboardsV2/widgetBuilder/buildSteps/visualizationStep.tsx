@@ -38,19 +38,29 @@ export function VisualizationStep({
   widget,
 }: Props) {
   const [debouncedWidget, setDebouncedWidget] = useState(widget);
+
   const previousWidget = usePrevious(widget);
 
   const debounceWidget = useCallback(
-    debounce((value: Widget) => {
+    debounce((value: Widget, shouldCancelUpdates: boolean) => {
+      if (shouldCancelUpdates) {
+        return;
+      }
       setDebouncedWidget(value);
     }, DEFAULT_DEBOUNCE_DURATION),
     []
   );
 
   useEffect(() => {
+    let shouldCancelUpdates = false;
+
     if (!isEqual(previousWidget, widget)) {
-      debounceWidget(widget);
+      debounceWidget(widget, shouldCancelUpdates);
     }
+
+    return () => {
+      shouldCancelUpdates = true;
+    };
   }, [widget, previousWidget]);
 
   return (

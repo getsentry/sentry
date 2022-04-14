@@ -29,8 +29,6 @@ const defaultOrgFeatures = [
   'global-views',
 ];
 
-jest.unmock('lodash/debounce');
-
 // Mocking worldMapChart to avoid act warnings
 jest.mock('sentry/components/charts/worldMapChart');
 
@@ -1608,7 +1606,6 @@ describe('WidgetBuilder', function () {
   // Disabling for CI, but should run locally when making changes
   // eslint-disable-next-line jest/no-disabled-tests
   it.skip('Update table header values (field alias)', async function () {
-    jest.useFakeTimers();
     const handleSave = jest.fn();
 
     renderTestComponent({
@@ -1619,18 +1616,10 @@ describe('WidgetBuilder', function () {
     await screen.findByText('Table');
 
     userEvent.type(screen.getByPlaceholderText('Alias'), 'First Alias{enter}');
-    act(() => {
-      jest.advanceTimersByTime(DEFAULT_DEBOUNCE_DURATION + 1);
-    });
 
     userEvent.click(screen.getByLabelText('Add a Column'));
 
     userEvent.type(screen.getAllByPlaceholderText('Alias')[1], 'Second Alias{enter}');
-    act(() => {
-      jest.advanceTimersByTime(DEFAULT_DEBOUNCE_DURATION + 1);
-    });
-
-    expect(eventsv2Mock).toHaveBeenCalledTimes(3);
 
     userEvent.click(screen.getByText('Add Widget'));
 
@@ -1748,7 +1737,6 @@ describe('WidgetBuilder', function () {
     // Disabling for CI, but should run locally when making changes
     // eslint-disable-next-line jest/no-disabled-tests
     it.skip('Update table header values (field alias)', async function () {
-      jest.useFakeTimers();
       const handleSave = jest.fn();
 
       renderTestComponent({
@@ -1758,26 +1746,13 @@ describe('WidgetBuilder', function () {
 
       await screen.findByText('Table');
 
-      expect(eventsv2Mock).toHaveBeenCalledTimes(1);
-
       userEvent.click(screen.getByText('Issues (Status, assignee, etc.)'));
 
       userEvent.type(screen.getAllByPlaceholderText('Alias')[0], 'First Alias{enter}');
-      act(() => {
-        jest.advanceTimersByTime(DEFAULT_DEBOUNCE_DURATION + 1);
-      });
 
       userEvent.type(screen.getAllByPlaceholderText('Alias')[1], 'Second Alias{enter}');
-      act(() => {
-        jest.advanceTimersByTime(DEFAULT_DEBOUNCE_DURATION + 1);
-      });
 
       userEvent.type(screen.getAllByPlaceholderText('Alias')[2], 'Third Alias{enter}');
-      act(() => {
-        jest.advanceTimersByTime(DEFAULT_DEBOUNCE_DURATION + 1);
-      });
-
-      expect(issuesMock).toHaveBeenCalledTimes(3);
 
       userEvent.click(screen.getByText('Add Widget'));
 
