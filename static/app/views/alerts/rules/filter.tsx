@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import Badge from 'sentry/components/badge';
 import CheckboxFancy from 'sentry/components/checkboxFancy/checkboxFancy';
 import DropdownButton from 'sentry/components/dropdownButton';
 import DropdownControl, {Content} from 'sentry/components/dropdownControl';
@@ -109,9 +110,6 @@ function Filter({
   if (activeFilters.length > 0) {
     filterDescription = activeFilters[0].label;
   }
-  if (activeFilters.length > 1) {
-    filterDescription = `${activeFilters[0].label} + ${activeFilters.length - 1}`;
-  }
 
   return (
     <DropdownControl
@@ -127,6 +125,9 @@ function Filter({
           data-test-id="filter-button"
         >
           <DropdownButtonText>{filterDescription}</DropdownButtonText>
+          {activeFilters.length > 1 && (
+            <StyledBadge text={`+${activeFilters.length - 1}`} />
+          )}
         </StyledDropdownButton>
       )}
     >
@@ -177,9 +178,10 @@ const Header = styled('div')`
 `;
 
 const StyledDropdownButton = styled(DropdownButton)`
+  display: flex;
+  align-items: center;
   white-space: nowrap;
   max-width: 200px;
-  min-width: 180px;
 
   z-index: ${p => p.theme.zIndex.dropdown};
 `;
@@ -189,6 +191,10 @@ const DropdownButtonText = styled('span')`
   text-overflow: ellipsis;
   overflow: hidden;
   flex: 1;
+`;
+
+const StyledBadge = styled(Badge)`
+  flex-shrink: 0;
 `;
 
 const List = styled('ul')`
