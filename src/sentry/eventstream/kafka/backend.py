@@ -151,7 +151,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
     @staticmethod
     def _key(headers: Optional[Mapping[str, str]], project_id: str) -> Optional[str]:
         if "transaction_forwarder" in headers:
-            message_type = "transaction" if headers["transaction_forwarder"] == "0" else "error"
+            message_type = "error" if headers["transaction_forwarder"] == "0" else "transaction"
             if killswitch_matches_context(
                 "kafka.send-project-events-to-random-partitions",
                 {"project_id": project_id, "message_type": message_type},
