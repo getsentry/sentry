@@ -57,7 +57,7 @@ function EnvironmentPageFilter({
         : value.slice(0, 1);
     const summary = value.length
       ? environmentsToShow.map(env => trimSlug(env, maxTitleLength)).join(', ')
-      : t('All Environments');
+      : t('All Env');
 
     return (
       <PageFilterDropdownButton
