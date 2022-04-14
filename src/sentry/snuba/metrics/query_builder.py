@@ -358,7 +358,7 @@ class SnubaQueryBuilder:
         (op, metric_mri), direction = self._query_definition.orderby
         metric_field_obj = metric_object_factory(op, metric_mri)
         return metric_field_obj.generate_orderby_clause(
-            projects=self._projects, direction=direction
+            projects=self._projects, direction=direction, query_definition=self._query_definition
         )
 
     def __build_totals_and_series_queries(
@@ -467,7 +467,9 @@ class SnubaQueryBuilder:
             metric_ids_set = set()
             for op, name in fields:
                 metric_field_obj = metric_mri_to_obj_dict[(op, name)]
-                select += metric_field_obj.generate_select_statements(projects=self._projects)
+                select += metric_field_obj.generate_select_statements(
+                    projects=self._projects, query_definition=self._query_definition
+                )
                 metric_ids_set |= metric_field_obj.generate_metric_ids(self._projects)
 
             where_for_entity = [
