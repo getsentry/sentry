@@ -176,6 +176,7 @@ function Dashboard({
                   <TeamFilter
                     selectedTeams={selectedTeams}
                     handleChangeFilter={handleChangeFilter}
+                    fullWidth
                     showIsMemberTeams
                     showMyTeamsAndUnassigned={false}
                     showMyTeamsDescription
@@ -191,7 +192,7 @@ function Dashboard({
               {hasProjectRedesign ? (
                 <LazyLoad once debounce={50} height={300} offset={300}>
                   <ProjectCards>
-                    {filteredProjects.map(project => (
+                    {sortProjects(filteredProjects).map(project => (
                       <ProjectCard
                         data-test-id={project.slug}
                         key={project.slug}

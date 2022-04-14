@@ -58,6 +58,7 @@ type Props = {
   dropdownSections: DropdownSection[];
   header: React.ReactElement;
   onFilterChange: (section: string, filterSelection: Set<string>) => void;
+  fullWidth?: boolean;
   showMyTeamsDescription?: boolean;
 };
 
@@ -66,6 +67,7 @@ function Filter({
   header,
   dropdownSections,
   showMyTeamsDescription,
+  fullWidth = false,
 }: Props) {
   function toggleFilter(sectionId: string, value: string) {
     const section = dropdownSections.find(
@@ -116,6 +118,7 @@ function Filter({
   return (
     <DropdownControl
       menuWidth="240px"
+      fullWidth={fullWidth}
       blendWithActor
       alwaysRenderMenu={false}
       button={({isOpen, getActorProps}) => (
@@ -125,6 +128,7 @@ function Filter({
           icon={<IconUser />}
           priority="default"
           data-test-id="filter-button"
+          fullWidth={fullWidth}
         >
           <DropdownButtonText>{filterDescription}</DropdownButtonText>
         </StyledDropdownButton>
@@ -176,12 +180,18 @@ const Header = styled('div')`
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 
-const StyledDropdownButton = styled(DropdownButton)`
+const StyledDropdownButton = styled(DropdownButton)<{fullWidth: boolean}>`
   white-space: nowrap;
-  max-width: 200px;
   min-width: 180px;
 
   z-index: ${p => p.theme.zIndex.dropdown};
+
+  ${p =>
+    p.fullWidth
+      ? `
+      width: 100%
+  `
+      : `max-width: 200px`}
 `;
 
 const DropdownButtonText = styled('span')`
@@ -189,6 +199,10 @@ const DropdownButtonText = styled('span')`
   text-overflow: ellipsis;
   overflow: hidden;
   flex: 1;
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    text-align: start;
+  }
 `;
 
 const List = styled('ul')`
