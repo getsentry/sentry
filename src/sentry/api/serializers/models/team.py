@@ -47,18 +47,16 @@ if TYPE_CHECKING:
     )
 
 
-def _get_team_memberships(
-    team_list: Sequence[Team], user: User
-) -> Mapping[int, OrganizationMemberTeam]:
+def _get_team_memberships(team_list: Sequence[Team], user: User) -> Mapping[int, str | None]:
     """Get memberships the user has in the provided team list"""
     if not user.is_authenticated:
         return {}
 
     return {
-        omt.team.id: omt
-        for omt in OrganizationMemberTeam.objects.filter(
+        team_id: role
+        for (team_id, role) in OrganizationMemberTeam.objects.filter(
             organizationmember__user=user, team__in=team_list
-        )
+        ).values_list("team__id", "role")
     }
 
 
@@ -158,15 +156,17 @@ class TeamSerializer(Serializer):  # type: ignore
         result: MutableMapping[Team, MutableMapping[str, Any]] = {}
 
         for team in item_list:
-            team_membership: OrganizationMemberTeam = team_memberships.get(team.id)
-            if team_membership is None:
+            org_role = org_roles.get(team.organization_id)
+
+            if team.id in team_memberships:
+                is_member = True
+                role = team_memberships[team.id]
+                if role is None:
+                    role = roles.get_minimum_team_role(org_role).id
+            else:
                 is_member = False
                 role = None
-            else:
-                is_member = True
-                role = team_membership.get_team_role().id
 
-            org_role = org_roles.get(team.organization_id)
             if is_member:
                 has_access = True
             elif is_superuser:
