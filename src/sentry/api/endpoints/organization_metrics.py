@@ -15,6 +15,7 @@ from sentry.snuba.metrics import (
     get_tag_values,
     get_tags,
 )
+from sentry.snuba.metrics.query_builder import QueryDefinitionXXX
 from sentry.snuba.metrics.utils import DerivedMetricException, DerivedMetricParseException
 from sentry.snuba.sessions_v2 import InvalidField
 from sentry.utils.cursors import Cursor, CursorResult
@@ -117,8 +118,8 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
 
         def data_fn(offset: int, limit: int):
             try:
-                query = QueryDefinition(
-                    request.GET, paginator_kwargs={"limit": limit, "offset": offset}
+                query = QueryDefinitionXXX(
+                    projects, request.GET, paginator_kwargs={"limit": limit, "offset": offset}
                 )
                 data = get_series(projects, query)
             except (

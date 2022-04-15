@@ -5,7 +5,11 @@ from enum import Enum
 from typing import Dict, Union, cast
 
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
-from sentry.snuba.metrics.naming_layer.public import SessionMetricKey, TransactionMetricKey
+from sentry.snuba.metrics.naming_layer.public import (
+    MetricKey,
+    SessionMetricKey,
+    TransactionMetricKey,
+)
 from sentry.snuba.sessions_v2 import InvalidField
 
 

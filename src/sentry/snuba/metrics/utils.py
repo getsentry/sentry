@@ -51,6 +51,7 @@ from typing import (
 )
 
 from sentry.snuba.dataset import EntityKey
+from sentry.snuba.metrics.query import Aggregation
 
 MAX_POINTS = 10000
 GRANULARITY = 24 * 60 * 60
@@ -73,26 +74,22 @@ MetricType = Literal["counter", "set", "distribution", "numeric"]
 MetricEntity = Literal["metrics_counters", "metrics_sets", "metrics_distributions"]
 
 OP_TO_SNUBA_FUNCTION = {
-    "metrics_counters": {"sum": "sumIf"},
+    "metrics_counters": {Aggregation.SUM: "sumIf"},
     "metrics_distributions": {
-        "avg": "avgIf",
-        "count": "countIf",
-        "max": "maxIf",
-        "min": "minIf",
-        # TODO: Would be nice to use `quantile(0.50)` (singular) here, but snuba responds with an error
-        "p50": "quantilesIf(0.50)",
-        "p75": "quantilesIf(0.75)",
-        "p90": "quantilesIf(0.90)",
-        "p95": "quantilesIf(0.95)",
-        "p99": "quantilesIf(0.99)",
-        "histogram": "histogramIf(250)",
+        Aggregation.AVG: "avgIf",
+        Aggregation.COUNT: "countIf",
+        Aggregation.MAX: "maxIf",
+        Aggregation.MIN: "minIf",
+        Aggregation.PERCENTILE: "quantilesIf(0.50, 0.75, 0.90, 0.95, 0.99)",
+        Aggregation.HISTOGRAM: "histogramIf(250)",
     },
-    "metrics_sets": {"count_unique": "uniqIf"},
+    "metrics_sets": {Aggregation.UNIQ: "uniqIf"},
 }
 
 
 AVAILABLE_OPERATIONS = {
-    type_: sorted(mapping.keys()) for type_, mapping in OP_TO_SNUBA_FUNCTION.items()
+    type_: sorted(mapping.keys(), key=lambda x: x.value)
+    for type_, mapping in OP_TO_SNUBA_FUNCTION.items()
 }
 OPERATIONS_TO_ENTITY = {
     op: entity for entity, operations in AVAILABLE_OPERATIONS.items() for op in operations

@@ -3,12 +3,22 @@ from datetime import datetime
 from enum import Enum, Flag, auto
 from typing import Literal, Optional, Sequence, Union
 
+from attr import field
 from snuba_sdk import Direction, Granularity, Limit, Offset
 from snuba_sdk.conditions import ConditionGroup
 
+# TODO: Add __all__ to be consistent with sibling modules
+
 
 class Aggregation(Enum):
+    AVG = "avg"
+    COUNT = "count"
+    MAX = "max"
+    MIN = "min"
     SUM = "sum"
+    UNIQ = "uniq"
+    PERCENTILE = "percentile"
+    HISTOGRAM = "histogram"
 
 
 @dataclass(frozen=True)
@@ -22,12 +32,16 @@ class Sum(AggregatedMetric):
         super().__init__(Aggregation.SUM, metric_name)
 
 
-@dataclass(frozen=True)
-class DerivedMetric:
-    metric_name: str
+class Uniq(AggregatedMetric):
+    def __init__(self, metric_name: str):
+        super().__init__(Aggregation.UNIQ, metric_name)
 
 
-Sortable = Union[AggregatedMetric, DerivedMetric]
+class Percentile(AggregatedMetric):
+    # TODO: Is this still hashable, etc.?
+    def __init__(self, metric_name: str, percentile: int):
+        super().__init__(Aggregation.PERCENTILE, metric_name)
+        self.percentile = percentile
 
 
 @dataclass(frozen=True)
@@ -36,6 +50,16 @@ class Histogram:
     buckets: int = 100
     from_: Optional[float] = None
     to: Optional[float] = None
+    aggregation: Aggregation = field(init=False, default=Aggregation.HISTOGRAM)
+
+
+@dataclass(frozen=True)
+class DerivedMetric:
+    metric_name: str
+    aggregation: Optional[Aggregation] = field(init=False, default=None)
+
+
+Sortable = Union[AggregatedMetric, DerivedMetric]
 
 
 Selectable = Union[Sortable, Histogram]
@@ -62,13 +86,13 @@ class MetricsQuery:
 
     org_id: int
     project_ids: Sequence[int]
-    type: QueryType
     select: Sequence[Selectable]
     start: datetime
     end: datetime
-    where: Optional[ConditionGroup]  # TODO: Should restrict
-    groupby: Optional[Sequence[Groupable]]
-    orderby: Optional[OrderBy]
-    limit: Optional[Limit]
-    offset: Optional[Offset]
-    granularity: Optional[Granularity]
+    granularity: Granularity
+    where: Optional[ConditionGroup] = None  # TODO: Should restrict
+    groupby: Optional[Sequence[Groupable]] = None
+    orderby: Optional[OrderBy] = None
+    limit: Optional[Limit] = None
+    offset: Optional[Offset] = None
+    type: QueryType = QueryType.BOTH

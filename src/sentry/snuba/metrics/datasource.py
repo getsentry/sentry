@@ -23,9 +23,9 @@ from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics.fields import run_metrics_query
 from sentry.snuba.metrics.fields.base import get_derived_metrics, org_id_from_projects
 from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
+from sentry.snuba.metrics.query import MetricsQuery
 from sentry.snuba.metrics.query_builder import (
     ALLOWED_GROUPBY_COLUMNS,
-    QueryDefinition,
     SnubaQueryBuilder,
     SnubaResultConverter,
     get_intervals,
@@ -419,7 +419,7 @@ def get_tag_values(
     return tags
 
 
-def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
+def get_series(query: MetricsQuery) -> dict:
     """Get time series for the given query"""
     intervals = list(get_intervals(query))
     results = {}

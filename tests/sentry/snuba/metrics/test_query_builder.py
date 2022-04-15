@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from unittest import mock
 
 import pytest
@@ -28,7 +28,7 @@ from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics import (
     MAX_POINTS,
     OP_TO_SNUBA_FUNCTION,
-    QueryDefinition,
+    MetricsQuery,
     SnubaQueryBuilder,
     SnubaResultConverter,
     get_date_range,
@@ -47,6 +47,7 @@ from sentry.snuba.metrics.fields.snql import (
 )
 from sentry.snuba.metrics.naming_layer.mapping import get_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
+from sentry.snuba.metrics.query import Aggregation, Percentile, Sum, Uniq
 
 
 @dataclass
@@ -224,23 +225,21 @@ def test_timestamps():
 def test_build_snuba_query(mock_now, mock_now2, monkeypatch):
     monkeypatch.setattr("sentry.sentry_metrics.indexer.resolve", MockIndexer().resolve)
     # Your typical release health query querying everything
-    query_params = MultiValueDict(
-        {
-            "query": [
-                "release:staging"
-            ],  # weird release but we need a string exising in mock indexer
-            "groupBy": ["environment"],
-            "field": [
-                "sum(sentry.sessions.session)",
-                "count_unique(sentry.sessions.user)",
-                "p95(sentry.sessions.session.duration)",
-            ],
-        }
+    metrics_query = MetricsQuery(
+        org_id=1,
+        project_ids=[1],
+        select=[
+            Sum("sentry.sessions.session"),
+            Uniq("sentry.sessions.user"),
+            Percentile("sentry.sessions.session.duration", 95),
+        ],
+        start=MOCK_NOW - timedelta(days=1),
+        end=MOCK_NOW,
+        granularity=Granularity(3600),
+        where=[Condition(Column("release"), Op.EQ, "staging")],
+        groupby=["environment"],
     )
-    query_definition = QueryDefinition(query_params)
-    snuba_queries, _ = SnubaQueryBuilder(
-        [PseudoProject(1, 1)], query_definition
-    ).get_snuba_queries()
+    snuba_queries, _ = SnubaQueryBuilder([PseudoProject(1, 1)], metrics_query).get_snuba_queries()
 
     org_id = 1
 
@@ -279,7 +278,7 @@ def test_build_snuba_query(mock_now, mock_now2, monkeypatch):
         )
 
     assert snuba_queries["metrics_counters"]["totals"] == expected_query(
-        "metrics_counters", ("sum", "value", "sum"), [], "sentry.sessions.session"
+        "metrics_counters", (Aggregation.SUM, "value", "sum"), [], "sentry.sessions.session"
     )
 
     expected_percentile_select = ("quantiles(0.95)", "value", "p95")
