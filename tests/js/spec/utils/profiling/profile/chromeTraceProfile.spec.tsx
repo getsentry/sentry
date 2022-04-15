@@ -340,25 +340,3 @@ describe('parseChromeTraceArrayFormat', () => {
     expect(trace.profiles[0].duration).toBe(100);
   });
 });
-
-// import trace from './samples/chrometrace/typescript/trace.json';
-
-// // Keeping the benchmark around
-// // eslint-disable-next-line
-// describe.skip('Benchmark', () => {
-//   it('imports profile', () => {
-//     const measures: number[] = [];
-//     // eslint-disable-next-line
-//     const avg = (arr: number[]) => arr.reduce((a, b) => a + b) / arr.length;
-
-//     for (let i = 0; i < 10; i++) {
-//       const start = performance.now();
-
-//       importChromeTrace(trace as ChromeTrace.ProfileType);
-//       measures.push(performance.now() - start);
-//     }
-
-//     avg(measures);
-//     expect(true).toBe(true);
-//   });
-// });
