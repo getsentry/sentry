@@ -55,7 +55,7 @@ Heading.defaultProps = {
   transition: testableTransition(),
 };
 
-const completeNowHeading = <Heading key="now">{t('The Basics')}</Heading>;
+const completeNowHeading = <Heading key="now">{t('Next Steps')}</Heading>;
 const upcomingTasksHeading = (
   <Heading key="upcoming">
     <Tooltip
