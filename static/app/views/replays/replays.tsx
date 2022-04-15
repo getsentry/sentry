@@ -24,6 +24,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import AsyncView from 'sentry/views/asyncView';
 
+import ReplaysFilters from './filters';
 import {Replay} from './types';
 
 type Props = AsyncView['props'] &
@@ -106,46 +107,56 @@ class Replays extends React.Component<Props> {
   render() {
     const {organization} = this.props;
     return (
-      <PageFiltersContainer
-        showEnvironmentSelector={false}
-        resetParamsOnChange={['cursor']}
-      >
-        <PageContent>
-          <PageHeader>
-            <HeaderTitle>
-              <div>
-                {t('Replays')} <FeatureBadge type="alpha" />
-              </div>
-            </HeaderTitle>
-          </PageHeader>
-
-          <DiscoverQuery
-            eventView={this.getEventView()}
-            location={this.props.location}
-            orgSlug={organization.slug}
-          >
-            {data => {
-              return (
-                <React.Fragment>
-                  <PanelTable
-                    isLoading={data.isLoading}
-                    isEmpty={data.tableData?.data.length === 0}
-                    headers={[t('Session'), t('Project'), t('Timestamp')]}
-                  >
-                    {data.tableData
-                      ? this.renderTable(data.tableData.data as Replay[])
-                      : null}
-                  </PanelTable>
-                  <Pagination pageLinks={data.pageLinks} />
-                </React.Fragment>
-              );
-            }}
-          </DiscoverQuery>
-        </PageContent>
-      </PageFiltersContainer>
+      <React.Fragment>
+        <StyledPageHeader>
+          <HeaderTitle>
+            <div>
+              {t('Replays')} <FeatureBadge type="alpha" />
+            </div>
+          </HeaderTitle>
+        </StyledPageHeader>
+        <PageFiltersContainer hideGlobalHeader resetParamsOnChange={['cursor']}>
+          <StyledPageContent>
+            <DiscoverQuery
+              eventView={this.getEventView()}
+              location={this.props.location}
+              orgSlug={organization.slug}
+            >
+              {data => {
+                return (
+                  <React.Fragment>
+                    <ReplaysFilters />
+                    <PanelTable
+                      isLoading={data.isLoading}
+                      isEmpty={data.tableData?.data.length === 0}
+                      headers={[t('Session'), t('Project'), t('Timestamp')]}
+                    >
+                      {data.tableData
+                        ? this.renderTable(data.tableData.data as Replay[])
+                        : null}
+                    </PanelTable>
+                    <Pagination pageLinks={data.pageLinks} />
+                  </React.Fragment>
+                );
+              }}
+            </DiscoverQuery>
+          </StyledPageContent>
+        </PageFiltersContainer>
+      </React.Fragment>
     );
   }
 }
+
+const StyledPageHeader = styled(PageHeader)`
+  background-color: ${p => p.theme.surface100};
+  margin-top: ${space(1.5)};
+  margin-left: ${space(4)};
+`;
+
+const StyledPageContent = styled(PageContent)`
+  box-shadow: 0px 0px 1px ${p => p.theme.gray200};
+  background-color: ${p => p.theme.white};
+`;
 
 const HeaderTitle = styled(PageHeading)`
   display: flex;
