@@ -11,7 +11,7 @@ import PageHeading from 'sentry/components/pageHeading';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
 import TimeSince from 'sentry/components/timeSince';
-import {IconCalendar} from 'sentry/icons';
+import {IconArrow, IconCalendar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageContent, PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
@@ -37,12 +37,19 @@ type Props = AsyncView['props'] &
 class Replays extends React.Component<Props> {
   getEventView() {
     const {location, selection} = this.props;
+    const {query} = location;
+
+    let sort = '-timestamp';
+    if (query.sort) {
+      sort = query.asc ? query.sort : `-${query.sort}`;
+    }
+
     const eventQueryParams: NewQuery = {
       id: '',
       name: '',
       version: 2,
-      fields: ['eventID', 'project', 'timestamp', 'user.display', 'url'],
-      orderby: '-timestamp',
+      fields: ['eventID', 'timestamp', 'replayId', 'user.display', 'url'],
+      orderby: sort,
       environment: selection.environments,
       projects: selection.projects,
       query: 'transaction:sentry-replay', // future: change to replay event
@@ -105,7 +112,22 @@ class Replays extends React.Component<Props> {
   }
 
   render() {
-    const {organization} = this.props;
+    const {organization, location} = this.props;
+    const {query} = location;
+    const {cursor: _cursor, page: _page, ...currentQuery} = query;
+
+    const sort: {
+      asc: boolean;
+      field: 'timestamp';
+    } = {
+      asc: query.asc === '1',
+      field: query.sort || 'timestamp',
+    };
+
+    const sortArrow = (
+      <IconArrow color="gray300" size="xs" direction={sort.asc ? 'up' : 'down'} />
+    );
+
     return (
       <React.Fragment>
         <StyledPageHeader>
@@ -129,7 +151,33 @@ class Replays extends React.Component<Props> {
                     <PanelTable
                       isLoading={data.isLoading}
                       isEmpty={data.tableData?.data.length === 0}
-                      headers={[t('Session'), t('Project'), t('Timestamp')]}
+                      headers={[
+                        t('Session'),
+                        t('Project'),
+                        <StyledSortLink
+                          key="timestamp"
+                          role="columnheader"
+                          aria-sort={
+                            sort.field !== 'timestamp'
+                              ? 'none'
+                              : sort.asc
+                              ? 'ascending'
+                              : 'descending'
+                          }
+                          to={{
+                            pathname: location.pathname,
+                            query: {
+                              ...currentQuery,
+                              // sort by timestamp should start by ascending on first click
+                              asc:
+                                sort.field === 'timestamp' && sort.asc ? undefined : '1',
+                              sort: 'timestamp',
+                            },
+                          }}
+                        >
+                          {t('TimeStamp')} {sort.field === 'timestamp' && sortArrow}
+                        </StyledSortLink>,
+                      ]}
                     >
                       {data.tableData
                         ? this.renderTable(data.tableData.data as Replay[])
@@ -180,6 +228,18 @@ const TimeSinceWrapper = styled('div')`
 const StyledIconCalendarWrapper = styled(IconCalendar)`
   position: relative;
   top: -1px;
+`;
+
+const StyledSortLink = styled(Link)`
+  color: inherit;
+
+  :hover {
+    color: inherit;
+  }
+
+  svg {
+    vertical-align: top;
+  }
 `;
 
 export default withRouter(withPageFilters(withOrganization(Replays)));
