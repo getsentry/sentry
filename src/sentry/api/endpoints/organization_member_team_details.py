@@ -28,7 +28,7 @@ ERR_INSUFFICIENT_ROLE = "You do not have permission to edit that user's membersh
 
 class OrganizationMemberTeamSerializer(serializers.Serializer):
     isActive = serializers.BooleanField()
-    role = serializers.CharField(allow_null=True, allow_blank=True)
+    teamRole = serializers.CharField(allow_null=True, allow_blank=True)
 
 
 class OrganizationMemberTeamDetailsSerializer(Serializer):
@@ -37,7 +37,7 @@ class OrganizationMemberTeamDetailsSerializer(Serializer):
     ) -> MutableMapping[str, JSONData]:
         return {
             "isActive": obj.is_active,
-            "role": obj.role,
+            "teamRole": obj.role,
         }
 
 
@@ -223,8 +223,8 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
             return Response(status=400)
         result = serializer.validated_data
 
-        if "role" in result and features.has("organizations:team-roles", organization):
-            new_role_id = result["role"]
+        if "teamRole" in result and features.has("organizations:team-roles", organization):
+            new_role_id = result["teamRole"]
             try:
                 new_role = team_roles.get(new_role_id)
             except KeyError:

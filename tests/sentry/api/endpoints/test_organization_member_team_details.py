@@ -457,7 +457,7 @@ class ReadOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
 
         resp = self.get_success_response(self.org.slug, self.team_admin.id, self.team.slug)
         assert resp.data["isActive"] is True
-        assert resp.data["role"] == "admin"
+        assert resp.data["teamRole"] == "admin"
 
     def test_not_found(self):
         self.login_as(self.owner.user)
@@ -479,7 +479,7 @@ class UpdateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         self.login_as(self.owner.user)
 
         resp = self.get_response(
-            self.org.slug, self.member_on_team.id, self.team.slug, role="poobah"
+            self.org.slug, self.member_on_team.id, self.team.slug, teamRole="poobah"
         )
         assert resp.status_code == 400
 
@@ -487,7 +487,7 @@ class UpdateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     def test_cannot_promote_nonmember(self):
         self.login_as(self.owner.user)
 
-        resp = self.get_response(self.org.slug, self.member.id, self.team.slug, role="admin")
+        resp = self.get_response(self.org.slug, self.member.id, self.team.slug, teamRole="admin")
         assert resp.status_code == 404
 
     @with_feature("organizations:team-roles")
@@ -495,7 +495,7 @@ class UpdateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         self.login_as(self.owner.user)
 
         resp = self.get_response(
-            self.org.slug, self.member_on_team.id, self.team.slug, role="admin"
+            self.org.slug, self.member_on_team.id, self.team.slug, teamRole="admin"
         )
         assert resp.status_code == 200
 
@@ -509,7 +509,7 @@ class UpdateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         self.login_as(self.team_admin.user)
 
         resp = self.get_response(
-            self.org.slug, self.member_on_team.id, self.team.slug, role="admin"
+            self.org.slug, self.member_on_team.id, self.team.slug, teamRole="admin"
         )
         assert resp.status_code == 200
 
@@ -525,7 +525,7 @@ class UpdateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
             organization=self.org, user=self.create_user(), role="member", teams=[self.team]
         )
 
-        resp = self.get_response(self.org.slug, other_member.id, self.team.slug, role="admin")
+        resp = self.get_response(self.org.slug, other_member.id, self.team.slug, teamRole="admin")
         assert resp.status_code == 400
 
         target_omt = OrganizationMemberTeam.objects.get(
