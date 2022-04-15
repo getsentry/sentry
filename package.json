@@ -98,7 +98,7 @@
     "mobx": "^6.3.6",
     "mobx-react": "~7.2.0",
     "mockdate": "3.0.5",
-    "moment": "2.29.1",
+    "moment": "2.29.2",
     "moment-timezone": "0.5.33",
     "papaparse": "^5.3.2",
     "pegjs": "^0.10.0",
