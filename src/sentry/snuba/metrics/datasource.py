@@ -189,7 +189,7 @@ def _get_metrics_filter_ids(projects: Sequence[Project], metric_mris: Sequence[s
                     derived_metric_obj.naively_generate_singular_entity_constituents()
                 )
                 metric_mris_deque.extend(single_entity_constituents)
-    if None in metric_ids:
+    if None in metric_ids or -1 in metric_ids:
         # We are looking for tags that appear in all given metrics.
         # A tag cannot appear in a metric if the metric is not even indexed.
         raise MetricDoesNotExistInIndexer()

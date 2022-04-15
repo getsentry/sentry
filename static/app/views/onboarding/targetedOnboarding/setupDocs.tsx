@@ -24,7 +24,7 @@ import withProjects from 'sentry/utils/withProjects';
 import FirstEventFooter from './components/firstEventFooter';
 import FullIntroduction from './components/fullIntroduction';
 import TargetedOnboardingSidebar from './components/sidebar';
-import {ClientState, fetchClientState, StepProps} from './types';
+import {StepProps, usePersistedOnboardingState} from './types';
 
 /**
  * The documentation will include the following string should it be missing the
@@ -41,15 +41,12 @@ type Props = {
 
 function SetupDocs({organization, projects, search}: Props) {
   const api = useApi();
-  const [clientState, setClientState] = useState<ClientState | null>(null);
+  const [clientState] = usePersistedOnboardingState();
   const selectedProjectsSet = new Set(
     clientState?.selectedPlatforms.map(
       platform => clientState.platformToProjectIdMap[platform]
     ) || []
   );
-  useEffect(() => {
-    fetchClientState(api, organization.slug).then(setClientState);
-  }, []);
 
   const [hasError, setHasError] = useState(false);
   const [platformDocs, setPlatformDocs] = useState<PlatformDoc | null>(null);
