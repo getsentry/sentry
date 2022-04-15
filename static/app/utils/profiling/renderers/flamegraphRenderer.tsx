@@ -446,38 +446,32 @@ class FlamegraphRenderer {
   }
 
   setConfigView(configView: Rect): Rect {
-    this.configView = computeClampedConfigView(
-      configView,
-      {
-        width: {
-          min: this.flamegraph.profile.minFrameDuration,
-          max: this.configSpace.width,
-        },
-        height: {
-          min: 0,
-          max: this.configSpace.height,
-        },
+    this.configView = computeClampedConfigView(configView, {
+      width: {
+        min: this.flamegraph.profile.minFrameDuration,
+        max: this.configSpace.width,
       },
-    );
+      height: {
+        min: 0,
+        max: this.configSpace.height,
+      },
+    });
     return this.configView;
   }
 
   transformConfigView(transformation: mat3): Rect {
     const newConfigView = this.configView.transformRect(transformation);
 
-    this.configView = computeClampedConfigView(
-      newConfigView,
-      {
-        width: {
-          min: this.flamegraph.profile.minFrameDuration,
-          max: this.configSpace.width,
-        },
-        height: {
-          min: 0,
-          max: this.configSpace.height,
-        },
+    this.configView = computeClampedConfigView(newConfigView, {
+      width: {
+        min: this.flamegraph.profile.minFrameDuration,
+        max: this.configSpace.width,
       },
-    );
+      height: {
+        min: 0,
+        max: this.configSpace.height,
+      },
+    });
 
     return this.configView;
   }
