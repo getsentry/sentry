@@ -15,6 +15,10 @@ interface DropdownButtonProps extends Omit<ButtonProps, 'prefix'> {
    */
   forwardedRef?: React.Ref<typeof Button>;
   /**
+   * If button is the full width of container
+   */
+  fullWidth?: boolean;
+  /**
    * Should the bottom border become transparent when open?
    */
   hideBottomBorder?: boolean;
@@ -46,6 +50,7 @@ const DropdownButton = ({
   detached = false,
   disabled = false,
   priority = 'form',
+  fullWidth = false,
   ...props
 }: DropdownButtonProps) => {
   return (
@@ -62,7 +67,13 @@ const DropdownButton = ({
     >
       {prefix && <LabelText>{prefix}</LabelText>}
       {children}
-      {showChevron && <StyledChevron size="xs" direction={isOpen ? 'up' : 'down'} />}
+      {showChevron && (
+        <StyledChevron
+          fullWidth={fullWidth}
+          size="xs"
+          direction={isOpen ? 'up' : 'down'}
+        />
+      )}
     </StyledButton>
   );
 };
@@ -71,13 +82,17 @@ DropdownButton.defaultProps = {
   showChevron: true,
 };
 
-const StyledChevron = styled(IconChevron)`
+const StyledChevron = styled(IconChevron)<{fullWidth: boolean}>`
   margin-left: 0.33em;
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    position: absolute;
-    right: ${space(2)};
-  }
+  ${p =>
+    p.fullWidth &&
+    `
+      @media (max-width: ${p.theme.breakpoints[0]}) {
+        position: absolute;
+        right: ${space(2)};
+      }
+  `}
 `;
 
 const StyledButton = styled(Button)<

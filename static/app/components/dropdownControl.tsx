@@ -85,8 +85,15 @@ class DropdownControl extends React.Component<Props> {
   };
 
   renderButton(isOpen: boolean, getActorProps: GetActorPropsFn) {
-    const {label, button, buttonProps, buttonTooltipTitle, priority, detached} =
-      this.props;
+    const {
+      label,
+      button,
+      buttonProps,
+      buttonTooltipTitle,
+      priority,
+      detached,
+      fullWidth,
+    } = this.props;
 
     if (button) {
       return button({isOpen, getActorProps});
@@ -102,6 +109,7 @@ class DropdownControl extends React.Component<Props> {
             data-test-id="dropdown-control-button"
             detached={detached}
             hideBottomBorder={!detached}
+            fullWidth={fullWidth}
           >
             {label}
           </StyledDropdownButton>
