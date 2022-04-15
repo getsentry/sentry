@@ -9,28 +9,18 @@ import space from 'sentry/styles/space';
 
 function ReplaysFilters() {
   return (
-    <FilterContainer>
-      <PageFilterBar>
-        <ProjectPageFilter />
-        <EnvironmentPageFilter alignDropdown="left" />
-        <DatePageFilter alignDropdown="left" />
-      </PageFilterBar>
-    </FilterContainer>
+    <StyledPageFilterBar>
+      <ProjectPageFilter />
+      <EnvironmentPageFilter />
+      <DatePageFilter />
+    </StyledPageFilterBar>
   );
 }
 
-const FilterContainer = styled('div')`
+const StyledPageFilterBar = styled(PageFilterBar)`
   width: max-content;
   max-width: 100%;
   margin-bottom: ${space(1)};
-
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: 1fr auto;
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: minmax(0, 1fr);
-  }
 `;
 
 export default ReplaysFilters;

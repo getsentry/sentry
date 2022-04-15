@@ -135,8 +135,8 @@ class Replays extends React.Component<Props> {
 
 const StyledPageHeader = styled(PageHeader)`
   background-color: ${p => p.theme.surface100};
-  margin-top: 10px;
-  margin-left: 30px;
+  margin-top: ${space(1.5)};
+  margin-left: ${space(4)};
 `;
 
 const StyledPageContent = styled(PageContent)`
