@@ -1,7 +1,7 @@
 import {transformSessionsResponseToTable} from 'sentry/views/dashboardsV2/widgetCard/transformSessionsResponseToTable';
 
-describe('transformMetricsResponseToTable', function () {
-  it('transforms metrics into table', () => {
+describe('transformSessionsResponseToTable', function () {
+  it('transforms sessions into table', () => {
     expect(
       transformSessionsResponseToTable(TestStubs.SessionUserCountByStatusByRelease())
     ).toEqual({

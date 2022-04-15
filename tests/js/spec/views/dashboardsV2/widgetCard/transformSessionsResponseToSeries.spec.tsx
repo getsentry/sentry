@@ -1,7 +1,7 @@
 import {transformSessionsResponseToSeries} from 'sentry/views/dashboardsV2/widgetCard/transformSessionsResponseToSeries';
 
-describe('transformMetricsResponseToSeries', function () {
-  it('transforms metrics into series', () => {
+describe('transformSessionsResponseToSeries', function () {
+  it('transforms sessions into series', () => {
     expect(
       transformSessionsResponseToSeries(
         TestStubs.MetricsSessionUserCountByStatusByRelease()
