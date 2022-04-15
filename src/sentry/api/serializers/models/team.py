@@ -53,8 +53,8 @@ def _get_team_memberships(team_list: Sequence[Team], user: User) -> Mapping[int,
         return {}
 
     return {
-        team_id: role
-        for (team_id, role) in OrganizationMemberTeam.objects.filter(
+        team_id: team_role
+        for (team_id, team_role) in OrganizationMemberTeam.objects.filter(
             organizationmember__user=user, team__in=team_list
         ).values_list("team__id", "role")
     }
@@ -160,12 +160,12 @@ class TeamSerializer(Serializer):  # type: ignore
 
             if team.id in team_memberships:
                 is_member = True
-                role = team_memberships[team.id]
-                if role is None:
-                    role = roles.get_minimum_team_role(org_role).id
+                team_role = team_memberships[team.id]
+                if team_role is None:
+                    team_role = roles.get_minimum_team_role(org_role).id
             else:
                 is_member = False
-                role = None
+                team_role = None
 
             if is_member:
                 has_access = True
@@ -180,7 +180,7 @@ class TeamSerializer(Serializer):  # type: ignore
             result[team] = {
                 "pending_request": team.id in access_requests,
                 "is_member": is_member,
-                "role": role,
+                "team_role": team_role,
                 "has_access": has_access,
                 "avatar": avatars.get(team.id),
                 "member_count": member_totals.get(team.id, 0),
@@ -232,7 +232,7 @@ class TeamSerializer(Serializer):  # type: ignore
             "name": obj.name,
             "dateCreated": obj.date_added,
             "isMember": attrs["is_member"],
-            "role": attrs["role"],
+            "teamRole": attrs["team_role"],
             "hasAccess": attrs["has_access"],
             "isPending": attrs["pending_request"],
             "memberCount": attrs["member_count"],
