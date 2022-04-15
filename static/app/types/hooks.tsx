@@ -82,10 +82,17 @@ type FirstPartyIntegrationAdditionalCTAProps = {
 
 type GuideUpdateCallback = (nextGuide: Guide | null, opts: {dismissed?: boolean}) => void;
 
+type CodeOwnersCTAProps = {
+  organization: Organization;
+  project: Project;
+  addCodeOwner?: () => void;
+  handleRequest?: () => void;
+};
 /**
  * Component wrapping hooks
  */
 export type ComponentHooks = {
+  'component:codeowners-cta': () => React.ComponentType<CodeOwnersCTAProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
   'component:disabled-app-store-connect-multiple': () => React.ComponentType<DisabledAppStoreConnectMultiple>;
   'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
