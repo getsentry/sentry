@@ -77,7 +77,8 @@ class AlertRuleActionRequester(Mediator):
             # Bubble up error message from Sentry App to the UI for the user.
             return AlertRuleActionResult(success=False, message=message)
         # No messages are bubbled up from successful responses.
-        return AlertRuleActionResult(success=True, message=DEFAULT_SUCCESS_MESSAGE)
+        message = f"{self.sentry_app.name}: {DEFAULT_SUCCESS_MESSAGE}"
+        return AlertRuleActionResult(success=True, message=message)
 
     def _build_headers(self):
         request_uuid = uuid4().hex

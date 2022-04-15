@@ -1,6 +1,7 @@
 import responses
 
 from sentry.mediators.external_requests import AlertRuleActionRequester
+from sentry.mediators.external_requests.alert_rule_action_requester import DEFAULT_SUCCESS_MESSAGE
 from sentry.testutils import TestCase
 from sentry.utils import json
 from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
@@ -41,7 +42,6 @@ class TestAlertRuleActionRequester(TestCase):
             method=responses.POST,
             url="https://example.com/sentry/alert-rule",
             status=200,
-            json="Saved information",
         )
 
         result = AlertRuleActionRequester.run(
@@ -50,7 +50,7 @@ class TestAlertRuleActionRequester(TestCase):
             fields=self.fields,
         )
         assert result["success"]
-        assert result["message"] == 'foo: "Saved information"'
+        assert result["message"] == f"foo: {DEFAULT_SUCCESS_MESSAGE}"
         request = responses.calls[0].request
 
         data = {
@@ -85,7 +85,7 @@ class TestAlertRuleActionRequester(TestCase):
             method=responses.POST,
             url="https://example.com/sentry/alert-rule",
             status=401,
-            json="Channel not found!",
+            json={"message": "Channel not found!"},
         )
 
         result = AlertRuleActionRequester.run(
@@ -94,7 +94,7 @@ class TestAlertRuleActionRequester(TestCase):
             fields=self.fields,
         )
         assert not result["success"]
-        assert result["message"] == 'foo: "Channel not found!"'
+        assert result["message"] == "foo: Channel not found!"
         request = responses.calls[0].request
 
         data = {
