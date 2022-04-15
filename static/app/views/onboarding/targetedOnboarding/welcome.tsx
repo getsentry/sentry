@@ -80,7 +80,7 @@ function TargetedOnboardingWelcome({organization, ...props}: StepProps) {
             <InnerAction
               title={t('Install Sentry')}
               subText={t(
-                'Select your lanaguages or frameworks and install the SDKs to start tracking issues'
+                'Select your languages or frameworks and install the SDKs to start tracking issues'
               )}
               src={OnboardingInstall}
               cta={
