@@ -442,6 +442,34 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         ).exists()
 
 
+class ReadOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
+    endpoint = "sentry-api-0-organization-member-team-details"
+    method = "get"
+
+    def test_get(self):
+        self.login_as(self.owner.user)
+
+        resp = self.get_success_response(self.org.slug, self.member_on_team.id, self.team.slug)
+        assert resp.data["isActive"] is True
+
+    def test_get_role(self):
+        self.login_as(self.owner.user)
+
+        resp = self.get_success_response(self.org.slug, self.team_admin.id, self.team.slug)
+        assert resp.data["isActive"] is True
+        assert resp.data["role"] == "admin"
+
+    def test_not_found(self):
+        self.login_as(self.owner.user)
+
+        self.get_error_response(
+            "bad_slug", self.team_admin.id, self.team.slug, status_code=status.HTTP_404_NOT_FOUND
+        )
+        self.get_error_response(
+            self.org.slug, self.team_admin.id, "bad_team", status_code=status.HTTP_404_NOT_FOUND
+        )
+
+
 class UpdateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     endpoint = "sentry-api-0-organization-member-team-details"
     method = "put"

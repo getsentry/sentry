@@ -144,12 +144,9 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         team_slug: str,
     ) -> Response:
         try:
-            team = Team.objects.get(organization=organization, slug=team_slug)
-        except Team.DoesNotExist:
-            raise ResourceDoesNotExist
-
-        try:
-            omt = OrganizationMemberTeam.objects.filter(team=team, organizationmember=member).get()
+            omt = OrganizationMemberTeam.objects.get(
+                team__slug=team_slug, organizationmember=member
+            )
         except OrganizationMemberTeam.DoesNotExist:
             raise ResourceDoesNotExist
 
