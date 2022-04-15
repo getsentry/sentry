@@ -53,7 +53,8 @@ class RatelimitMiddleware:
                 request.rate_limit_category = None
                 request.rate_limit_uid = uuid.uuid4().hex
                 view_class = getattr(view_func, "view_class", None)
-                rate_limit_config = get_rate_limit_config(view_class)
+                if view_class:
+                    rate_limit_config = get_rate_limit_config(view_class)
                 request.rate_limit_group = (
                     rate_limit_config.group if rate_limit_config else RateLimitConfig().group
                 )
