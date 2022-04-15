@@ -28,6 +28,7 @@ type Props = WithRouterProps &
      * User is a superuser without an active su session
      */
     isSuperuser?: boolean;
+    needsReload?: boolean;
     /**
      * expects a function that returns a Promise
      */
@@ -79,7 +80,8 @@ class SudoModal extends React.Component<Props, State> {
   };
 
   handleSuccess = () => {
-    const {closeModal, isSuperuser, location, router, retryRequest} = this.props;
+    const {closeModal, isSuperuser, location, needsReload, router, retryRequest} =
+      this.props;
 
     if (!retryRequest) {
       closeModal();
@@ -88,6 +90,9 @@ class SudoModal extends React.Component<Props, State> {
 
     if (isSuperuser) {
       router.replace({pathname: location.pathname, state: {forceUpdate: new Date()}});
+      if (needsReload) {
+        window.location.reload();
+      }
       return;
     }
 
