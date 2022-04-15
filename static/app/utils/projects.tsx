@@ -114,15 +114,7 @@ type Props = {
   slugs?: string[];
 } & DefaultProps;
 
-/**
- * This is a utility component that should be used to fetch an organization's projects (summary).
- * It can either fetch explicit projects (e.g. via slug) or a paginated list of projects.
- * These will be passed down to the render prop (`children`).
- *
- * The legacy way of handling this is that `ProjectSummary[]` is expected to be included in an
- * `Organization` as well as being saved to `ProjectsStore`.
- */
-class Projects extends React.Component<Props, State> {
+class BaseProjects extends React.Component<Props, State> {
   static defaultProps: DefaultProps = {
     passthroughPlaceholderProject: true,
   };
@@ -407,7 +399,19 @@ class Projects extends React.Component<Props, State> {
   }
 }
 
-export default withProjects(withApi(Projects));
+/**
+ * @deprecated consider using useProjects if possible.
+ *
+ * This is a utility component that should be used to fetch an organization's projects (summary).
+ * It can either fetch explicit projects (e.g. via slug) or a paginated list of projects.
+ * These will be passed down to the render prop (`children`).
+ *
+ * The legacy way of handling this is that `ProjectSummary[]` is expected to be included in an
+ * `Organization` as well as being saved to `ProjectsStore`.
+ */
+const Projects = withProjects(withApi(BaseProjects));
+
+export default Projects;
 
 type FetchProjectsOptions = {
   cursor?: State['nextCursor'];
