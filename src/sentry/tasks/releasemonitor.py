@@ -82,9 +82,8 @@ def monitor_release_adoption(**kwargs):
                 break
 
         else:
-            logger.info(
+            logger.error(
                 "monitor_release_adoption.loop_timeout",
-                sample_rate=1.0,
                 extra={"offset": offset},
             )
     with metrics.timer(
@@ -180,7 +179,7 @@ def sum_sessions_and_releases(org_id, project_ids):
             if not more_results:
                 break
         else:
-            logger.info(
+            logger.error(
                 "process_projects_with_sessions.loop_timeout",
                 extra={"org_id": org_id, "project_ids": project_ids},
             )
