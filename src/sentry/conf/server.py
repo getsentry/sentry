@@ -337,6 +337,7 @@ INSTALLED_APPS = (
     "sentry.discover",
     "sentry.analytics.events",
     "sentry.nodestore",
+    "sentry.release_health",
     "sentry.search",
     "sentry.sentry_metrics.indexer",
     "sentry.snuba",
