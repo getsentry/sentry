@@ -86,6 +86,7 @@ class TeamSerializerTest(TestCase):
         # after giving them access to team
         assert result["hasAccess"] is True
         assert result["isMember"] is True
+        assert result["teamRole"] == "contributor"
 
     def test_admin_access(self):
         user = self.create_user(username="foo")
@@ -98,6 +99,7 @@ class TeamSerializerTest(TestCase):
 
         assert result["hasAccess"] is True
         assert result["isMember"] is False
+        assert result["teamRole"] is None
 
         organization.flags.allow_joinleave = False
         organization.save()
@@ -105,12 +107,14 @@ class TeamSerializerTest(TestCase):
         # after changing to allow_joinleave=False
         assert result["hasAccess"] is False
         assert result["isMember"] is False
+        assert result["teamRole"] is None
 
         self.create_team_membership(user=user, team=team)
         result = serialize(team, user)
         # after giving them access to team
         assert result["hasAccess"] is True
         assert result["isMember"] is True
+        assert result["teamRole"] == "admin"
 
     def test_manager_access(self):
         user = self.create_user(username="foo")
@@ -123,6 +127,7 @@ class TeamSerializerTest(TestCase):
 
         assert result["hasAccess"] is True
         assert result["isMember"] is False
+        assert result["teamRole"] is None
 
         organization.flags.allow_joinleave = False
         organization.save()
@@ -130,12 +135,14 @@ class TeamSerializerTest(TestCase):
         # after changing to allow_joinleave=False
         assert result["hasAccess"] is True
         assert result["isMember"] is False
+        assert result["teamRole"] is None
 
         self.create_team_membership(user=user, team=team)
         result = serialize(team, user)
         # after giving them access to team
         assert result["hasAccess"] is True
         assert result["isMember"] is True
+        assert result["teamRole"] == "admin"
 
     def test_owner_access(self):
         user = self.create_user(username="foo")
@@ -148,6 +155,7 @@ class TeamSerializerTest(TestCase):
 
         assert result["hasAccess"] is True
         assert result["isMember"] is False
+        assert result["teamRole"] is None
 
         organization.flags.allow_joinleave = False
         organization.save()
@@ -155,12 +163,14 @@ class TeamSerializerTest(TestCase):
         # after changing to allow_joinleave=False
         assert result["hasAccess"] is True
         assert result["isMember"] is False
+        assert result["teamRole"] is None
 
         self.create_team_membership(user=user, team=team)
         result = serialize(team, user)
         # after giving them access to team
         assert result["hasAccess"] is True
         assert result["isMember"] is True
+        assert result["teamRole"] == "admin"
 
 
 class TeamWithProjectsSerializerTest(TestCase):
