@@ -8,7 +8,11 @@ import space from 'sentry/styles/space';
 import {Event} from 'sentry/types/event';
 import {getMessage} from 'sentry/utils/events';
 
-const ReplayHeader = ({event}: {event: Event}) => {
+type Props = {
+  event: Event;
+};
+
+const ReplayHeader = ({event}: Props) => {
   const message = getMessage(event);
   return (
     <EventHeaderContainer data-test-id="event-header">
