@@ -71,9 +71,7 @@ class IncidentRulesDetails extends AsyncView<Props, State> {
     if (notFound) {
       return (
         <Alert type="error" showIcon>
-          {notFound.status === 404
-            ? t('This alert rule could not be found.')
-            : t('An error occurred while fetching the alert rule.')}
+          {t('This alert rule could not be found.')}
         </Alert>
       );
     }
