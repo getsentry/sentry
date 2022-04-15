@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from sentry.api.base import Endpoint
-from sentry.ratelimits import get_rate_limit_value
+from sentry.ratelimits import get_rate_limit_config, get_rate_limit_value
 from sentry.ratelimits.config import RateLimitConfig, get_default_rate_limits_for_group
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -13,14 +13,17 @@ class TestGetRateLimitValue(TestCase):
         class TestEndpoint(Endpoint):
             pass
 
+        _test_endpoint = TestEndpoint.as_view()
+        rate_limit_config = get_rate_limit_config(_test_endpoint.view_class)
+
         assert get_rate_limit_value(
-            "GET", TestEndpoint, RateLimitCategory.IP
+            "GET", TestEndpoint, RateLimitCategory.IP, rate_limit_config
         ) == get_default_rate_limits_for_group("default", RateLimitCategory.IP)
         assert get_rate_limit_value(
-            "POST", TestEndpoint, RateLimitCategory.ORGANIZATION
+            "POST", TestEndpoint, RateLimitCategory.ORGANIZATION, rate_limit_config
         ) == get_default_rate_limits_for_group("default", RateLimitCategory.ORGANIZATION)
         assert get_rate_limit_value(
-            "DELETE", TestEndpoint, RateLimitCategory.USER
+            "DELETE", TestEndpoint, RateLimitCategory.USER, rate_limit_config
         ) == get_default_rate_limits_for_group("default", RateLimitCategory.USER)
 
     def test_override_rate_limit(self):
@@ -32,16 +35,21 @@ class TestGetRateLimitValue(TestCase):
                 "POST": {RateLimitCategory.USER: RateLimit(20, 4)},
             }
 
-        assert get_rate_limit_value("GET", TestEndpoint, RateLimitCategory.IP) == RateLimit(100, 5)
+        _test_endpoint = TestEndpoint.as_view()
+        rate_limit_config = get_rate_limit_config(_test_endpoint.view_class)
+
         assert get_rate_limit_value(
-            "GET", TestEndpoint, RateLimitCategory.USER
+            "GET", TestEndpoint, RateLimitCategory.IP, rate_limit_config
+        ) == RateLimit(100, 5)
+        assert get_rate_limit_value(
+            "GET", TestEndpoint, RateLimitCategory.USER, rate_limit_config
         ) == get_default_rate_limits_for_group("default", RateLimitCategory.USER)
         assert get_rate_limit_value(
-            "POST", TestEndpoint, RateLimitCategory.IP
+            "POST", TestEndpoint, RateLimitCategory.IP, rate_limit_config
         ) == get_default_rate_limits_for_group("default", RateLimitCategory.IP)
-        assert get_rate_limit_value("POST", TestEndpoint, RateLimitCategory.USER) == RateLimit(
-            20, 4
-        )
+        assert get_rate_limit_value(
+            "POST", TestEndpoint, RateLimitCategory.USER, rate_limit_config
+        ) == RateLimit(20, 4)
 
     def test_inherit(self):
         class ParentEndpoint(Endpoint):
@@ -52,8 +60,11 @@ class TestGetRateLimitValue(TestCase):
         class ChildEndpoint(ParentEndpoint):
             rate_limits = RateLimitConfig(group="foo", limit_overrides={"GET": {}})
 
+        _child_endpoint = ChildEndpoint.as_view()
+        rate_limit_config = get_rate_limit_config(_child_endpoint.view_class)
+
         assert get_rate_limit_value(
-            "GET", ChildEndpoint, RateLimitCategory.IP
+            "GET", ChildEndpoint, RateLimitCategory.IP, rate_limit_config
         ) == get_default_rate_limits_for_group("foo", RateLimitCategory.IP)
 
     def test_multiple_inheritance(self):
@@ -66,10 +77,18 @@ class TestGetRateLimitValue(TestCase):
         class ChildEndpoint(ParentEndpoint, Mixin):
             pass
 
+        _child_endpoint = ChildEndpoint.as_view()
+        rate_limit_config = get_rate_limit_config(_child_endpoint.view_class)
+
         class ChildEndpointReverse(Mixin, ParentEndpoint):
             pass
 
-        assert get_rate_limit_value("GET", ChildEndpoint, RateLimitCategory.IP) == RateLimit(100, 5)
-        assert get_rate_limit_value("GET", ChildEndpointReverse, RateLimitCategory.IP) == RateLimit(
-            2, 4
-        )
+        _child_endpoint_reverse = ChildEndpointReverse.as_view()
+        rate_limit_config_reverse = get_rate_limit_config(_child_endpoint_reverse.view_class)
+
+        assert get_rate_limit_value(
+            "GET", ChildEndpoint, RateLimitCategory.IP, rate_limit_config
+        ) == RateLimit(100, 5)
+        assert get_rate_limit_value(
+            "GET", ChildEndpointReverse, RateLimitCategory.IP, rate_limit_config_reverse
+        ) == RateLimit(2, 4)

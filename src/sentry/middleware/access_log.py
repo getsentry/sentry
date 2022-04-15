@@ -10,6 +10,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.utils import metrics
+from sentry.ratelimits.config import RateLimitConfig
 
 from . import is_frontend_request
 
@@ -76,7 +77,7 @@ def _create_api_access_log(
         user_id = getattr(request_user, "id", None)
         is_app = getattr(request_user, "is_sentry_app", None)
         org_id = getattr(getattr(request, "organization", None), "id", None)
-
+        rate_limit_group = getattr(request, "rate_limit_group", RateLimitConfig().group)
         request_auth = _get_request_auth(request)
         auth_id = getattr(request_auth, "id", None)
         status_code = getattr(response, "status_code", 500)
@@ -94,6 +95,7 @@ def _create_api_access_log(
             caller_ip=str(request.META.get("REMOTE_ADDR")),
             user_agent=str(request.META.get("HTTP_USER_AGENT")),
             rate_limited=str(getattr(request, "will_be_rate_limited", False)),
+            rate_limit_group=str(rate_limit_group),
             rate_limit_category=str(getattr(request, "rate_limit_category", None)),
             request_duration_seconds=access_log_metadata.get_request_duration(),
             **_get_rate_limit_stats_dict(request),

@@ -16,6 +16,7 @@ from sentry.api.base import Endpoint
 from sentry.api.endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from sentry.middleware.ratelimit import (
     RatelimitMiddleware,
+    get_rate_limit_config,
     get_rate_limit_key,
     get_rate_limit_value,
 )
@@ -154,21 +155,22 @@ class RatelimitMiddlewareTest(TestCase):
         # Import an endpoint
 
         view = OrganizationGroupIndexEndpoint.as_view()
+        rate_limit_config = get_rate_limit_config(view.view_class)
 
         # Test for default IP
         request = self.factory.get("/")
         assert (
-            get_rate_limit_key(view, request)
+            get_rate_limit_key(view, request, rate_limit_config)
             == "ip:default:OrganizationGroupIndexEndpoint:GET:127.0.0.1"
         )
         # Test when IP address is missing
         request.META["REMOTE_ADDR"] = None
-        assert get_rate_limit_key(view, request) is None
+        assert get_rate_limit_key(view, request, rate_limit_config) is None
 
         # Test when IP addess is IPv6
         request.META["REMOTE_ADDR"] = "684D:1111:222:3333:4444:5555:6:77"
         assert (
-            get_rate_limit_key(view, request)
+            get_rate_limit_key(view, request, rate_limit_config)
             == "ip:default:OrganizationGroupIndexEndpoint:GET:684D:1111:222:3333:4444:5555:6:77"
         )
 
@@ -176,7 +178,7 @@ class RatelimitMiddlewareTest(TestCase):
         request.session = {}
         request.user = self.user
         assert (
-            get_rate_limit_key(view, request)
+            get_rate_limit_key(view, request, rate_limit_config)
             == f"user:default:OrganizationGroupIndexEndpoint:GET:{self.user.id}"
         )
 
@@ -185,14 +187,14 @@ class RatelimitMiddlewareTest(TestCase):
         request.auth = token
         request.user = self.user
         assert (
-            get_rate_limit_key(view, request)
+            get_rate_limit_key(view, request, rate_limit_config)
             == f"user:default:OrganizationGroupIndexEndpoint:GET:{self.user.id}"
         )
 
         # Test for sentryapp auth tokens:
         self.populate_sentry_app_request(request)
         assert (
-            get_rate_limit_key(view, request)
+            get_rate_limit_key(view, request, rate_limit_config)
             == f"org:default:OrganizationGroupIndexEndpoint:GET:{self.organization.id}"
         )
 
@@ -203,7 +205,7 @@ class RatelimitMiddlewareTest(TestCase):
         request.user = AnonymousUser()
         request.auth = api_key
         assert (
-            get_rate_limit_key(view, request)
+            get_rate_limit_key(view, request, rate_limit_config)
             == "ip:default:OrganizationGroupIndexEndpoint:GET:684D:1111:222:3333:4444:5555:6:77"
         )
 
@@ -216,14 +218,17 @@ class TestGetRateLimitValue(TestCase):
         class TestEndpoint(Endpoint):
             pass
 
-        assert get_rate_limit_value("GET", TestEndpoint, "ip") == get_default_rate_limits_for_group(
-            "default", RateLimitCategory.IP
-        )
+        view = TestEndpoint.as_view()
+        rate_limit_config = get_rate_limit_config(view.view_class)
+
         assert get_rate_limit_value(
-            "POST", TestEndpoint, "org"
+            "GET", TestEndpoint, "ip", rate_limit_config
+        ) == get_default_rate_limits_for_group("default", RateLimitCategory.IP)
+        assert get_rate_limit_value(
+            "POST", TestEndpoint, "org", rate_limit_config
         ) == get_default_rate_limits_for_group("default", RateLimitCategory.ORGANIZATION)
         assert get_rate_limit_value(
-            "DELETE", TestEndpoint, "user"
+            "DELETE", TestEndpoint, "user", rate_limit_config
         ) == get_default_rate_limits_for_group("default", RateLimitCategory.USER)
 
     def test_override_rate_limit(self):
@@ -235,16 +240,23 @@ class TestGetRateLimitValue(TestCase):
                 "POST": {RateLimitCategory.USER: RateLimit(20, 4)},
             }
 
-        assert get_rate_limit_value("GET", TestEndpoint, "ip") == RateLimit(100, 5)
+        view = TestEndpoint.as_view()
+        rate_limit_config = get_rate_limit_config(view.view_class)
+
+        assert get_rate_limit_value("GET", TestEndpoint, "ip", rate_limit_config) == RateLimit(
+            100, 5
+        )
         # get is not overriddent for user, hence we use the default
         assert get_rate_limit_value(
-            "GET", TestEndpoint, "user"
+            "GET", TestEndpoint, "user", rate_limit_config
         ) == get_default_rate_limits_for_group("default", category=RateLimitCategory.USER)
         # get is not overriddent for IP, hence we use the default
         assert get_rate_limit_value(
-            "POST", TestEndpoint, "ip"
+            "POST", TestEndpoint, "ip", rate_limit_config
         ) == get_default_rate_limits_for_group("default", category=RateLimitCategory.IP)
-        assert get_rate_limit_value("POST", TestEndpoint, "user") == RateLimit(20, 4)
+        assert get_rate_limit_value("POST", TestEndpoint, "user", rate_limit_config) == RateLimit(
+            20, 4
+        )
 
 
 class RateLimitHeaderTestEndpoint(Endpoint):
