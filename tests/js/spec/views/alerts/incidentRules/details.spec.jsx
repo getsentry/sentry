@@ -259,10 +259,6 @@ describe('Incident Rules Details', function () {
   it('renders 404', function () {
     const {organization, project} = initializeOrg();
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/members/',
-      body: [TestStubs.Member()],
-    });
-    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/alert-rules/1234/`,
       statusCode: 404,
       body: {},
