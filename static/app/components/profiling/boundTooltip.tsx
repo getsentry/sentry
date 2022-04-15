@@ -32,14 +32,14 @@ const useCachedMeasure = (string: string, font: string): Rect => {
 
 interface BoundTooltipProps {
   bounds: Rect;
-  configToPhysicalSpace: mat3;
+  configViewToPhysicalSpace: mat3;
   cursor: vec2 | null;
   children?: React.ReactNode;
 }
 
 function BoundTooltip({
   bounds,
-  configToPhysicalSpace,
+  configViewToPhysicalSpace,
   cursor,
   children,
 }: BoundTooltipProps): React.ReactElement | null {
@@ -88,7 +88,7 @@ function BoundTooltip({
     vec2.create(),
     vec2.fromValues(cursor[0], cursor[1]),
 
-    configToPhysicalSpace
+    configViewToPhysicalSpace
   );
 
   const logicalSpaceCursor = vec2.transformMat3(

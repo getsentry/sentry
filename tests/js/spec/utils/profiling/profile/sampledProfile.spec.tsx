@@ -23,25 +23,6 @@ describe('SampledProfile', () => {
     expect(profile.endedAt).toBe(1000);
   });
 
-  it('handles offset start', () => {
-    const trace: Profiling.SampledProfile = {
-      name: 'profile',
-      startValue: 500,
-      endValue: 1000,
-      unit: 'milliseconds',
-      type: 'sampled',
-      weights: [500],
-      samples: [[0]],
-    };
-
-    const profile = SampledProfile.FromProfile(trace, createFrameIndex([{name: 'f0'}]));
-
-    expect(profile.duration).toBe(500);
-    expect(profile.name).toBe(trace.name);
-    expect(profile.startedAt).toBe(500);
-    expect(profile.endedAt).toBe(1000);
-  });
-
   it('rebuilds the stack', () => {
     const trace: Profiling.SampledProfile = {
       name: 'profile',
