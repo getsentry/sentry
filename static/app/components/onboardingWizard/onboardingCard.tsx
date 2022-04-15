@@ -60,7 +60,7 @@ function OnboardingViewTask({org}: Props) {
                 }}
               >
                 <OnboardingTaskProjectListItemInner>
-                  <PlatformIcon platform={p.platform || 'default'} />
+                  <StyledPlatformIcon platform={p.platform || 'default'} />
                   {p.slug}
                   <PulsingIndicator />
                   <PulsingIndicatorText>{t('Waiting for event')}</PulsingIndicatorText>
@@ -78,7 +78,7 @@ function OnboardingViewTask({org}: Props) {
                 }}
               >
                 <OnboardingTaskProjectListItemInner>
-                  <IconEllipsis />
+                  <StyledAndMoreIcon />
                   {tct('and [num] more', {num: projects.length - MAX_PROJECT_COUNT})}
                 </OnboardingTaskProjectListItemInner>
               </OnboardingTaskProjectListItem>
@@ -147,7 +147,6 @@ const OnboardingTaskProjectListItemInner = styled('div')`
 
   display: flex;
   align-items: center;
-  gap: ${space(1)};
 `;
 const OnboardingTaskProjectListItem = styled(Link)`
   :hover {
@@ -170,12 +169,21 @@ const PulsingIndicator = styled('div')`
 const PulsingIndicatorText = styled('span')`
   color: ${p => p.theme.pink300};
   font-size: ${p => p.theme.fontSizeMedium};
+  margin: 0 ${space(1)};
 `;
 const StyledIconClose = styled(IconClose)`
   position: absolute;
   right: ${space(1.5)};
   top: ${space(1.5)};
   color: ${p => p.theme.gray300};
+`;
+
+const StyledPlatformIcon = styled(PlatformIcon)`
+  margin-right: ${space(1)};
+`;
+
+const StyledAndMoreIcon = styled(IconEllipsis)`
+  margin-right: ${space(1)};
 `;
 
 export default OnboardingViewTask;
