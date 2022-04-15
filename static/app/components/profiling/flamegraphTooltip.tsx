@@ -5,11 +5,10 @@ import {t} from 'sentry/locale';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {TypeScriptProfile} from 'sentry/utils/profiling/profile/formats/chromeTraceProfile';
-import {getTypeName} from 'sentry/utils/profiling/profile/formats/typescript/importTypeScriptTypesJSON';
 
 interface TypeScriptTooltipProps {
   frame: FlamegraphFrame;
-  tree: TypeScript.TypeTree | undefined;
+  tree: TypeScript.TypeTree;
   flamegraph?: Flamegraph;
 }
 
@@ -33,30 +32,19 @@ function getFramePath(frame: FlamegraphFrame): string | undefined {
 }
 
 function TypeScriptTooltip(props: TypeScriptTooltipProps) {
-  if (
-    (props.frame.frame?.meta?.sourceId === undefined &&
-      props.frame.frame?.meta?.targetId === undefined) ||
-    props.tree === undefined ||
-    !props.flamegraph
-  ) {
-    return (
-      <Fragment>
-        <p>
-          {props.flamegraph?.formatter(props.frame.node.totalWeight)}{' '}
-          {props.frame.frame.name ?? t('Unknown Symbol')}
-        </p>
-        <p>{getFramePath(props.frame)}</p>
-      </Fragment>
-    );
-  }
-
-  const sourceType = props.tree.resolveTypeTreeForId(props.frame.frame.meta.sourceId);
-  const sourceTypeName = sourceType ? getTypeName(sourceType.type) : t('Unknown type');
+  const typeName =
+    typeof props?.frame?.frame?.meta?.sourceId === 'number'
+      ? props.tree.resolveTypeName(props?.frame?.frame?.meta?.sourceId) ??
+        t('Unknown type')
+      : t('Unknown type');
 
   return (
     <Fragment>
       <p>
-        {props.flamegraph.formatter(props.frame.node.totalWeight)} {sourceTypeName}
+        {props.flamegraph
+          ? props.flamegraph.formatter(props.frame.node.totalWeight)
+          : null}{' '}
+        {typeName}
       </p>
       <p>{getFramePath(props.frame)}</p>
     </Fragment>

@@ -20,15 +20,19 @@ export const TS_SYMBOLS: Partial<Record<TypeScript.TypeFlag, string>> = {
   Union: '|',
   Intersection: '&',
 };
-class TypeTree implements TypeScript.TypeTree {
+export class TypeScriptTypeTree implements TypeScript.TypeTree {
   tree = {};
 
   // XXX: in most cases, it is helpful to show the entire type tree for a constructed type
   // to do that, we need to recursively resolve children types based off the type descriptor flags.
-  resolveTypeTreeForId(
-    _rootId: TypeScript.TypeDescriptor['id']
-  ): TypeScript.TreeNode | null {
-    return null;
+  resolveTypeName(typeId: TypeScript.TypeDescriptor['id']): string | null {
+    const type = this.queryByTypeId(typeId);
+
+    if (!type) {
+      return null;
+    }
+
+    return getTypeName(type) ?? null;
   }
 
   queryByTypeId(id: number): TypeScript.TypeDescriptor | undefined {
@@ -44,7 +48,7 @@ class TypeTree implements TypeScript.TypeTree {
 export function importTypeScriptTypesJSON(
   input: TypeScript.TypeDescriptor[]
 ): TypeScript.TypeTree {
-  const tree = new TypeTree();
+  const tree = new TypeScriptTypeTree();
 
   while (input.length > 0) {
     const type = input.pop();

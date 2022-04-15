@@ -14,6 +14,7 @@ import {wrapWithSpan} from 'sentry/utils/profiling/profile/utils';
 import {isChromeTraceArrayFormat, isChromeTraceObjectFormat} from '../guards';
 import {ImportOptions, ProfileGroup} from '../importProfile';
 
+import {TypeScriptTypeTree} from './typescript/importTypeScriptTypesJSON';
 import {EventedProfile} from './eventedProfile';
 
 export class ChromeTraceProfile extends EventedProfile {
@@ -29,7 +30,7 @@ export class ChromeTraceProfile extends EventedProfile {
   }
 }
 export class TypeScriptProfile extends ChromeTraceProfile {
-  typeScriptTypeTree?: TypeScript.TypeTree;
+  typeScriptTypeTree = new TypeScriptTypeTree();
 
   setTypeScriptTypeTree(tree: TypeScript.TypeTree) {
     this.typeScriptTypeTree = tree;

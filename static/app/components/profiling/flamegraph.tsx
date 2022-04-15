@@ -21,6 +21,8 @@ import {TypeScriptProfile} from 'sentry/utils/profiling/profile/formats/chromeTr
 import {importDroppedFile} from 'sentry/utils/profiling/profile/importDroppedFile';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 
+import {isTypeScriptTypeTree} from '../../utils/profiling/profile/guards';
+
 interface FlamegraphProps {
   profiles: ProfileGroup;
 }
@@ -46,17 +48,23 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
     });
   }, [props.profiles, sorting, view, importedProfiles, activeProfileIndex]);
 
-  const onImport: ProfileImportProps['onImport'] = useCallback(file => {
-    setActiveProfileIndex(null);
+  const onImport: ProfileImportProps['onImport'] = useCallback(
+    file => {
+      setActiveProfileIndex(null);
 
-    return importDroppedFile(file).then(profileOrTypes => {
-      if ('profiles' in profileOrTypes) {
-        setImportedProfiles(profileOrTypes);
-      } else if (flamegraph.profile instanceof TypeScriptProfile) {
-        flamegraph.profile.setTypeScriptTypeTree(profileOrTypes);
-      }
-    });
-  }, []);
+      return importDroppedFile(file).then(profileOrTypes => {
+        if ('profiles' in profileOrTypes) {
+          setImportedProfiles(profileOrTypes);
+        } else if (
+          isTypeScriptTypeTree(profileOrTypes) &&
+          flamegraph.profile instanceof TypeScriptProfile
+        ) {
+          flamegraph.profile.setTypeScriptTypeTree(profileOrTypes);
+        }
+      });
+    },
+    [flamegraph.profile]
+  );
 
   return (
     <Fragment>

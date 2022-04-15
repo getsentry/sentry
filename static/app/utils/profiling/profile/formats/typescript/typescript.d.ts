@@ -96,6 +96,6 @@ namespace TypeScript {
     tree: Record<TypeDescriptor['id'], TypeScript.TypeDescriptor>;
     indexType(type: TypeScript.TypeDescriptor): TypeScript.TypeDescriptor;
     queryByTypeId(id: number): TypeScript.TypeDescriptor | undefined;
-    resolveTypeTreeForId(id: number): TreeNode | null;
+    resolveTypeName(id: number): string | null;
   }
 }
