@@ -70,7 +70,7 @@ function OnboardingViewTask({org}: Props) {
             ))}
             {projects.length > MAX_PROJECT_COUNT && (
               <OnboardingTaskProjectListItem
-                to={`/onbzoarding/${org.slug}/setup-docs/`}
+                to={`/onboarding/${org.slug}/setup-docs/`}
                 onClick={() => {
                   trackAdvancedAnalyticsEvent('growth.onboarding_quick_start_cta', {
                     organization: org,
