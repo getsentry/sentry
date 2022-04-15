@@ -39,7 +39,6 @@ type State = {
   busy: boolean;
   error: boolean;
   errorType: string;
-  showAccessForms: boolean;
   superuserAccessCategory: string;
   superuserReason: string;
 };
@@ -49,7 +48,6 @@ class SudoModal extends React.Component<Props, State> {
     error: false,
     errorType: '',
     busy: false,
-    showAccessForms: true,
     superuserAccessCategory: '',
     superuserReason: '',
     authenticators: [],
@@ -58,25 +56,6 @@ class SudoModal extends React.Component<Props, State> {
   componentDidMount() {
     this.getAuthenticators();
   }
-
-  handleSubmit = async data => {
-    const {api, isSuperuser} = this.props;
-
-    if (this.state.showAccessForms && isSuperuser) {
-      this.setState({
-        showAccessForms: false,
-        superuserAccessCategory: data.superuserAccessCategory,
-        superuserReason: data.superuserReason,
-      });
-    } else {
-      try {
-        await api.requestPromise('/auth/', {method: 'PUT', data});
-        this.handleSuccess();
-      } catch (err) {
-        this.handleError(err);
-      }
-    }
-  };
 
   handleSuccess = () => {
     const {closeModal, isSuperuser, location, router, retryRequest} = this.props;
@@ -91,7 +70,7 @@ class SudoModal extends React.Component<Props, State> {
       return;
     }
 
-    this.setState({busy: true, showAccessForms: true}, () => {
+    this.setState({busy: true}, () => {
       retryRequest().then(() => {
         this.setState({busy: false}, closeModal);
       });
@@ -112,7 +91,6 @@ class SudoModal extends React.Component<Props, State> {
     this.setState({
       busy: false,
       error: true,
-      showAccessForms: true,
       errorType,
     });
   };
@@ -148,11 +126,14 @@ class SudoModal extends React.Component<Props, State> {
 
   renderBodyContent() {
     const {isSuperuser} = this.props;
-    const {authenticators, error, showAccessForms, errorType} = this.state;
+    const {authenticators, error, errorType} = this.state;
     const user = ConfigStore.get('user');
     const isSelfHosted = ConfigStore.get('isSelfHosted');
 
-    if (!user.hasPasswordAuth && authenticators.length === 0) {
+    if (
+      (!user.hasPasswordAuth && authenticators.length === 0) ||
+      (isSuperuser && !isSelfHosted)
+    ) {
       return (
         <React.Fragment>
           <StyledTextBlock>
@@ -177,7 +158,7 @@ class SudoModal extends React.Component<Props, State> {
               initialData={{isSuperuserModal: isSuperuser}}
               resetOnError
             >
-              {!isSelfHosted && showAccessForms && isSuperuser && (
+              {!isSelfHosted && isSuperuser && (
                 <Hook name="component:superuser-access-category" />
               )}
             </Form>
@@ -212,35 +193,29 @@ class SudoModal extends React.Component<Props, State> {
         <Form
           apiMethod="PUT"
           apiEndpoint="/auth/"
-          submitLabel={showAccessForms ? t('Continue') : t('Confirm Password')}
-          onSubmit={this.handleSubmit}
+          submitLabel={t('Confirm Password')}
           onSubmitSuccess={this.handleSuccess}
           onSubmitError={this.handleError}
           hideFooter={!user.hasPasswordAuth && authenticators.length === 0}
           initialData={{isSuperuserModal: isSuperuser}}
           resetOnError
         >
-          {!isSelfHosted && showAccessForms && isSuperuser && (
-            <Hook name="component:superuser-access-category" />
-          )}
-          {((!showAccessForms && isSuperuser) || !isSuperuser || isSelfHosted) &&
-            user.hasPasswordAuth && (
-              <StyledInputField
-                type="password"
-                inline={false}
-                label={t('Password')}
-                name="password"
-                autoFocus
-                flexibleControlStateSize
-              />
-            )}
-          {((!showAccessForms && isSuperuser) || !isSuperuser || isSelfHosted) && (
-            <U2fContainer
-              authenticators={authenticators}
-              displayMode="sudo"
-              onTap={this.handleU2fTap}
+          {user.hasPasswordAuth && (
+            <StyledInputField
+              type="password"
+              inline={false}
+              label={t('Password')}
+              name="password"
+              autoFocus
+              flexibleControlStateSize
             />
           )}
+
+          <U2fContainer
+            authenticators={authenticators}
+            displayMode="sudo"
+            onTap={this.handleU2fTap}
+          />
         </Form>
       </React.Fragment>
     );
