@@ -10,23 +10,22 @@ import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import withProjects from 'sentry/utils/withProjects';
+import useProjects from 'sentry/utils/useProjects';
 import {usePersistedOnboardingState} from 'sentry/views/onboarding/targetedOnboarding/types';
 
 import SkipConfirm from './skipConfirm';
 
 const MAX_PROJECT_COUNT = 3;
 
-function OnboardingViewTask({
-  org,
-  projects: allProjects,
-}: {
+type Props = {
   org: Organization;
-  projects: Project[];
-}) {
+};
+
+function OnboardingViewTask({org}: Props) {
   if (!org?.experiments.TargetedOnboardingMultiSelectExperiment) {
     return null;
   }
+  const {projects: allProjects} = useProjects({orgId: org.id});
   const [onboardingState, setOnboardingState] = usePersistedOnboardingState();
   if (!onboardingState) {
     return null;
@@ -179,4 +178,4 @@ const StyledIconClose = styled(IconClose)`
   color: ${p => p.theme.gray300};
 `;
 
-export default withProjects(OnboardingViewTask);
+export default OnboardingViewTask;
