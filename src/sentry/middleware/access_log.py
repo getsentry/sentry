@@ -9,6 +9,8 @@ from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.utils import metrics
+
 from . import is_frontend_request
 
 api_access_logger = logging.getLogger("sentry.access.api")
@@ -97,6 +99,7 @@ def _create_api_access_log(
             **_get_rate_limit_stats_dict(request),
         )
         api_access_logger.info("api.access", extra=log_metrics)
+        metrics.incr("middleware.access_log.created")
     except Exception:
         api_access_logger.exception("api.access: Error capturing API access logs")
 
