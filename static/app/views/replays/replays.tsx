@@ -93,44 +93,56 @@ class Replays extends React.Component<Props> {
   render() {
     const {organization} = this.props;
     return (
-      <PageFiltersContainer hideGlobalHeader resetParamsOnChange={['cursor']}>
-        <PageContent>
-          <PageHeader>
-            <HeaderTitle>
-              <div>
-                {t('Replays')} <FeatureBadge type="alpha" />
-              </div>
-            </HeaderTitle>
-          </PageHeader>
-
-          <DiscoverQuery
-            eventView={this.getEventView()}
-            location={this.props.location}
-            orgSlug={organization.slug}
-          >
-            {data => {
-              return (
-                <React.Fragment>
-                  <ReplaysFilters />
-                  <PanelTable
-                    isLoading={data.isLoading}
-                    isEmpty={data.tableData?.data.length === 0}
-                    headers={[t('Session'), t('Timestamp')]}
-                  >
-                    {data.tableData
-                      ? this.renderTable(data.tableData.data as Replay[])
-                      : null}
-                  </PanelTable>
-                  <Pagination pageLinks={data.pageLinks} />
-                </React.Fragment>
-              );
-            }}
-          </DiscoverQuery>
-        </PageContent>
-      </PageFiltersContainer>
+      <React.Fragment>
+        <StyledPageHeader>
+          <HeaderTitle>
+            <div>
+              {t('Replays')} <FeatureBadge type="alpha" />
+            </div>
+          </HeaderTitle>
+        </StyledPageHeader>
+        <PageFiltersContainer hideGlobalHeader resetParamsOnChange={['cursor']}>
+          <StyledPageContent>
+            <DiscoverQuery
+              eventView={this.getEventView()}
+              location={this.props.location}
+              orgSlug={organization.slug}
+            >
+              {data => {
+                return (
+                  <React.Fragment>
+                    <ReplaysFilters />
+                    <PanelTable
+                      isLoading={data.isLoading}
+                      isEmpty={data.tableData?.data.length === 0}
+                      headers={[t('Session'), t('Timestamp')]}
+                    >
+                      {data.tableData
+                        ? this.renderTable(data.tableData.data as Replay[])
+                        : null}
+                    </PanelTable>
+                    <Pagination pageLinks={data.pageLinks} />
+                  </React.Fragment>
+                );
+              }}
+            </DiscoverQuery>
+          </StyledPageContent>
+        </PageFiltersContainer>
+      </React.Fragment>
     );
   }
 }
+
+const StyledPageHeader = styled(PageHeader)`
+  background-color: ${p => p.theme.surface100};
+  margin-top: 10px;
+  margin-left: 30px;
+`;
+
+const StyledPageContent = styled(PageContent)`
+  box-shadow: 0px 0px 1px ${p => p.theme.gray200};
+  background-color: ${p => p.theme.white};
+`;
 
 const HeaderTitle = styled(PageHeading)`
   display: flex;
