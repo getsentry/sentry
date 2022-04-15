@@ -104,7 +104,6 @@ const Heading = styled(motion.div)`
 `;
 Heading.defaultProps = {
   exit: 'exit',
-  layout: true,
   variants: {
     exit: {
       height: 0,
@@ -128,10 +127,10 @@ const TaskCard = styled(motion(Card))`
 `;
 TaskCard.defaultProps = {
   exit: 'exit',
-  layout: true,
   variants: {
     exit: {
       height: 0,
+      overflow: 'hidden',
       transition: {duration: 0.3},
     },
   },
