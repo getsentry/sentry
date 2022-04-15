@@ -112,7 +112,7 @@ class TeamSerializerResponse(_TeamSerializerResponseOptional):
     name: str
     dateCreated: datetime
     isMember: bool
-    role: str
+    teamRole: str
     hasAccess: bool
     isPending: bool
     memberCount: int
