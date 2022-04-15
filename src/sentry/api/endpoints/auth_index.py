@@ -18,6 +18,7 @@ from sentry.models import Authenticator, Organization
 from sentry.utils import auth, json, metrics
 from sentry.utils.auth import has_completed_sso, initiate_login
 from sentry.utils.functional import extract_lazy_object
+from sentry.utils.settings import is_self_hosted
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -96,7 +97,7 @@ class AuthIndexEndpoint(Endpoint):
         validator.is_valid()
         authenticated = None
 
-        if (
+        if is_self_hosted() and (
             request.user.has_usable_password()
             or Authenticator.objects.filter(user_id=request.user.id, type=3).exists()
         ):
