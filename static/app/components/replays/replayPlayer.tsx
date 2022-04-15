@@ -101,7 +101,7 @@ const FastForwardBadge = styled('div')`
   background: ${p => p.theme.purple100};
   opacity: 0.75;
   color: ${p => p.theme.textColor};
-  padding: ${space(0.5)};
+  padding: ${space(0.5)} ${space(1)};
   border-bottom-left-radius: ${p => p.theme.borderRadius};
   border-top-right-radius: ${p => p.theme.borderRadius};
 `;
