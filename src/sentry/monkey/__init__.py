@@ -2,7 +2,7 @@ from .pickle import patch_pickle_loaders
 
 
 def register_scheme(name):
-    from urllib import parse as urlparse  # NOQA
+    from urllib import parse as urlparse
 
     uses = urlparse.uses_netloc, urlparse.uses_query, urlparse.uses_relative, urlparse.uses_fragment
     for use in uses:
