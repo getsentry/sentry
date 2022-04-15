@@ -281,19 +281,20 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
       dateThreshold: new Date('2022-04-05'),
       steps: [
         {
-          title: t('Selection Filters have moved!'),
+          title: t('Selection filters here now!'),
           target: 'new_page_filter_button',
           description: t(
-            'Selection filters have teleported from the top of the page to live closer to the content they are filtering on!'
+            "Selection filters were at the top of the page. Now they're here. Because this is what's getting filtered. Obvi."
           ),
-          nextText: t('Tell me more'),
+          nextText: t('Sounds Good'),
         },
         {
-          title: t('Explicit memory'),
+          title: t('Pin your filters'),
           target: 'new_page_filter_pin',
           description: t(
-            'Selection filters will no longer be implicitly be remembered between sessions. You can now "Pin" a filter to remember it'
+            "Want to keep the same filters between searches and sessions? Click this button. Don't want to? Don't click this button."
           ),
+          nextText: t('Got It'),
         },
       ],
     },
