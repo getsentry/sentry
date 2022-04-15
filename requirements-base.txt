@@ -36,7 +36,7 @@ parsimonious==0.8.0
 petname==2.6
 phonenumberslite==8.12.0
 Pillow==9.0.1
-progressbar2==3.32.0
+progressbar2==3.41.0
 python-rapidjson==1.4
 psycopg2-binary==2.8.6
 PyJWT==2.1.0
