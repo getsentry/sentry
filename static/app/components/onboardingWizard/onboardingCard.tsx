@@ -11,7 +11,7 @@ import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useProjects from 'sentry/utils/useProjects';
-import {usePersistedOnboardingState} from 'sentry/views/onboarding/targetedOnboarding/types';
+import {usePersistedOnboardingState} from 'sentry/views/onboarding/targetedOnboarding/utils';
 
 import SkipConfirm from './skipConfirm';
 

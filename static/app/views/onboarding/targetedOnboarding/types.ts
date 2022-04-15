@@ -1,7 +1,4 @@
-import {useMemo} from 'react';
-
 import {PlatformKey} from 'sentry/data/platformCategories';
-import {usePersistedStoreCategory} from 'sentry/stores/persistedStore';
 import {Organization} from 'sentry/types';
 
 export type StepData = {
@@ -35,21 +32,3 @@ export type OnboardingState = {
   // a project created by onboarding could be unselected by the user in the future.
   selectedPlatforms: PlatformKey[];
 };
-
-export function usePersistedOnboardingState(): [
-  OnboardingState | null,
-  (next: OnboardingState | null) => void
-] {
-  const [state, setState] = usePersistedStoreCategory('onboarding');
-  const stableState: [OnboardingState | null, (next: OnboardingState | null) => void] =
-    useMemo(() => {
-      const onboardingState = state
-        ? {
-            platformToProjectIdMap: state.platformToProjectIdMap || {},
-            selectedPlatforms: state.selectedPlatforms || [],
-          }
-        : null;
-      return [onboardingState, setState];
-    }, [state, setState]);
-  return stableState;
-}

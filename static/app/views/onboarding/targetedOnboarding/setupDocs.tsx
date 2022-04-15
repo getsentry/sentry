@@ -24,7 +24,8 @@ import withProjects from 'sentry/utils/withProjects';
 import FirstEventFooter from './components/firstEventFooter';
 import FullIntroduction from './components/fullIntroduction';
 import TargetedOnboardingSidebar from './components/sidebar';
-import {StepProps, usePersistedOnboardingState} from './types';
+import {StepProps} from './types';
+import {usePersistedOnboardingState} from './utils';
 
 /**
  * The documentation will include the following string should it be missing the
