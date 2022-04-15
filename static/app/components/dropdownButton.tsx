@@ -73,6 +73,11 @@ DropdownButton.defaultProps = {
 
 const StyledChevron = styled(IconChevron)`
   margin-left: 0.33em;
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    position: absolute;
+    right: ${space(2)};
+  }
 `;
 
 const StyledButton = styled(Button)<
