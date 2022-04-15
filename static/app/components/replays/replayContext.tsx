@@ -47,6 +47,7 @@ const ReplayPlayerContext = React.createContext<ReplayPlayerContextProps>({
 
 type Props = {
   events: eventWithTime[];
+  value?: Partial<ReplayPlayerContextProps>;
 };
 
 function useCurrentTime(callback: () => number) {
@@ -55,7 +56,7 @@ function useCurrentTime(callback: () => number) {
   return currentTime;
 }
 
-export function Provider({children, events}: React.PropsWithChildren<Props>) {
+export function Provider({children, events, value = {}}: React.PropsWithChildren<Props>) {
   const theme = useTheme();
   const oldEvents = usePrevious(events);
   const replayerRef = useRef<Replayer>(null);
@@ -71,9 +72,8 @@ export function Provider({children, events}: React.PropsWithChildren<Props>) {
   const setPlayingFalse = () => {
     setIsPlaying(false);
   };
-  const onFastForwardStart = (e: unknown) => {
-    // @ts-expect-error: rrweb has poor types for event handlers
-    setFFSpeed(e.speed);
+  const onFastForwardStart = e => {
+    setFFSpeed((e as {speed: number}).speed);
   };
   const onFastForwardEnd = () => {
     setFFSpeed(0);
@@ -228,6 +228,7 @@ export function Provider({children, events}: React.PropsWithChildren<Props>) {
         speed,
         togglePlayPause,
         toggleSkipInactive,
+        ...value,
       }}
     >
       {children}

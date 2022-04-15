@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 
 import {Panel as _Panel} from 'sentry/components/panels';
-import {Consumer as ReplayContextProvider} from 'sentry/components/replays/replayContext';
+import {Consumer as ReplayContextConsumer} from 'sentry/components/replays/replayContext';
 import useFullscreen from 'sentry/components/replays/useFullscreen';
 import Tooltip from 'sentry/components/tooltip';
 import {IconArrow} from 'sentry/icons';
@@ -84,10 +84,10 @@ function BasePlayerRoot({
       <div ref={viewEl} data-test-id="replay-view" className={className} />
       {fastForwardSpeed ? (
         <FastForwardBadge>
-          <Tooltip title={t('Fast forwarding')}>
+          <FastForwardTooltip title={t('Fast forwarding')}>
             <IconArrow size="sm" direction="right" />
             {fastForwardSpeed}x
-          </Tooltip>
+          </FastForwardTooltip>
         </FastForwardBadge>
       ) : null}
     </Centered>
@@ -104,6 +104,13 @@ const FastForwardBadge = styled('div')`
   padding: ${space(0.5)};
   border-bottom-left-radius: ${p => p.theme.borderRadius};
   border-top-right-radius: ${p => p.theme.borderRadius};
+`;
+
+const FastForwardTooltip = styled(Tooltip)`
+  display: grid;
+  grid-template-columns: max-content max-content;
+  gap: ${space(0.5)};
+  align-items: center;
 `;
 
 const Panel = styled(_Panel)<{isFullscreen: boolean}>`
@@ -227,7 +234,7 @@ export default function ReplayPlayer({className}: Props) {
   const {isFullscreen} = useFullscreen();
 
   return (
-    <ReplayContextProvider>
+    <ReplayContextConsumer>
       {({initRoot, dimensions, fastForwardSpeed}) => (
         <Panel isFullscreen={isFullscreen}>
           <SentryPlayerRoot
@@ -239,6 +246,6 @@ export default function ReplayPlayer({className}: Props) {
           />
         </Panel>
       )}
-    </ReplayContextProvider>
+    </ReplayContextConsumer>
   );
 }
