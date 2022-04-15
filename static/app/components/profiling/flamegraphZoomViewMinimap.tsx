@@ -64,8 +64,7 @@ function FlamegraphZoomViewMinimap({
             previousRenderer.configView.translateY(
               previousRenderer.configSpace.height -
                 previousRenderer.configView.height -
-                previousRenderer.configView.y -
-                (renderer.flamegraph.inverted ? 1 : 0)
+                previousRenderer.configView.y
             )
           );
         } else if (
