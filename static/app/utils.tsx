@@ -310,12 +310,6 @@ export function deepFreeze<T>(object: T) {
   return Object.freeze(object);
 }
 
-export type OmitHtmlDivProps<P extends object> = Omit<
-  React.HTMLProps<HTMLDivElement>,
-  keyof P
-> &
-  P;
-
 export function generateQueryWithTag(prevQuery: Query, tag: EventTag): Query {
   const query = {...prevQuery};
 

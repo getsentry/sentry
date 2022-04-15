@@ -17,7 +17,7 @@ from rest_framework.response import Response
 
 from sentry import roles
 from sentry.api.bases.organizationmember import OrganizationMemberEndpoint
-from sentry.api.endpoints.organization_member_index import OrganizationMemberSerializer
+from sentry.api.endpoints.organization_member.index import OrganizationMemberSerializer
 from sentry.api.exceptions import ConflictError
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize

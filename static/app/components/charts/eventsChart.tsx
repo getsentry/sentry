@@ -11,11 +11,11 @@ import {Query} from 'history';
 import isEqual from 'lodash/isEqual';
 
 import {Client} from 'sentry/api';
-import AreaChart from 'sentry/components/charts/areaChart';
-import BarChart from 'sentry/components/charts/barChart';
+import {AreaChart, AreaChartProps} from 'sentry/components/charts/areaChart';
+import {BarChart, BarChartProps} from 'sentry/components/charts/barChart';
 import ChartZoom, {ZoomRenderProps} from 'sentry/components/charts/chartZoom';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
-import LineChart from 'sentry/components/charts/lineChart';
+import {LineChart, LineChartProps} from 'sentry/components/charts/lineChart';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
@@ -24,7 +24,7 @@ import {
   processTableResults,
   RELEASE_LINES_THRESHOLD,
 } from 'sentry/components/charts/utils';
-import WorldMapChart from 'sentry/components/charts/worldMapChart';
+import {WorldMapChart, WorldMapChartProps} from 'sentry/components/charts/worldMapChart';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DateString, OrganizationSummary} from 'sentry/types';
@@ -44,10 +44,10 @@ import EventsGeoRequest from './eventsGeoRequest';
 import EventsRequest from './eventsRequest';
 
 type ChartComponent =
-  | React.ComponentType<BarChart['props']>
-  | React.ComponentType<AreaChart['props']>
-  | React.ComponentType<React.ComponentProps<typeof LineChart>>
-  | React.ComponentType<React.ComponentProps<typeof WorldMapChart>>;
+  | React.ComponentType<BarChartProps>
+  | React.ComponentType<AreaChartProps>
+  | React.ComponentType<LineChartProps>
+  | React.ComponentType<WorldMapChartProps>;
 
 type ChartProps = {
   currentSeriesNames: string[];
@@ -129,6 +129,7 @@ class Chart extends React.Component<ChartProps, State> {
 
   getChartComponent(): ChartComponent {
     const {showDaily, timeseriesData, yAxis, chartComponent} = this.props;
+
     if (defined(chartComponent)) {
       return chartComponent;
     }
@@ -136,6 +137,7 @@ class Chart extends React.Component<ChartProps, State> {
     if (showDaily) {
       return BarChart;
     }
+
     if (timeseriesData.length > 1) {
       switch (aggregateMultiPlotType(yAxis)) {
         case 'line':
@@ -146,6 +148,7 @@ class Chart extends React.Component<ChartProps, State> {
           throw new Error(`Unknown multi plot type for ${yAxis}`);
       }
     }
+
     return AreaChart;
   }
 
@@ -168,18 +171,6 @@ class Chart extends React.Component<ChartProps, State> {
     );
   };
 
-  renderWorldMap() {
-    const {tableData, fromDiscover} = this.props;
-    const {data, title} = processTableResults(tableData);
-    const tableSeries = [
-      {
-        seriesName: title,
-        data,
-      },
-    ];
-    return <WorldMapChart series={tableSeries} fromDiscover={fromDiscover} />;
-  }
-
   render() {
     const {
       theme,
@@ -201,18 +192,28 @@ class Chart extends React.Component<ChartProps, State> {
       height,
       timeframe,
       topEvents,
+      tableData,
+      fromDiscover,
       ...props
     } = this.props;
     const {seriesSelection} = this.state;
 
     let Component = this.getChartComponent();
 
-    if (typeof Component === typeof WorldMapChart) {
-      return this.renderWorldMap();
+    if (Component === WorldMapChart) {
+      const {data, title} = processTableResults(tableData);
+      const tableSeries = [
+        {
+          seriesName: title,
+          data,
+        },
+      ];
+      return <WorldMapChart series={tableSeries} fromDiscover={fromDiscover} />;
     }
+
     Component = Component as Exclude<
       ChartComponent,
-      React.ComponentType<React.ComponentProps<typeof WorldMapChart>>
+      React.ComponentType<WorldMapChartProps>
     >;
 
     const data = [

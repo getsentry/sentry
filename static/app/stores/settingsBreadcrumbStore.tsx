@@ -1,60 +1,57 @@
 import {PlainRoute} from 'react-router';
-import Reflux from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
-import SettingsBreadcrumbActions from 'sentry/actions/settingsBreadcrumbActions';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 type UpdateData = {
   routes: PlainRoute<any>[];
   title: string;
 };
 
-type SettingsBreadcrumbStoreInterface = {
+interface SettingsBreadcrumbStoreDefinition extends StoreDefinition {
   getPathMap(): Internals['pathMap'];
   init(): void;
-  onTrimMappings(routes: PlainRoute<any>[]): void;
-  onUpdateRouteMap(update: UpdateData): void;
   reset(): void;
-};
+  trimMappings(routes: PlainRoute<any>[]): void;
+  updateRouteMap(update: UpdateData): void;
+}
 
 type Internals = {
   pathMap: Record<string, string>;
 };
 
-const storeConfig: Reflux.StoreDefinition & Internals & SettingsBreadcrumbStoreInterface =
-  {
-    pathMap: {},
-    init() {
-      this.reset();
-      this.listenTo(SettingsBreadcrumbActions.mapTitle, this.onUpdateRouteMap);
-      this.listenTo(SettingsBreadcrumbActions.trimMappings, this.onTrimMappings);
-    },
+const storeConfig: SettingsBreadcrumbStoreDefinition = {
+  pathMap: {},
+  unsubscribeListeners: [],
 
-    reset() {
-      this.pathMap = {};
-    },
+  init() {
+    this.reset();
+  },
 
-    getPathMap() {
-      return this.pathMap;
-    },
+  reset() {
+    this.pathMap = {};
+  },
 
-    onUpdateRouteMap({routes, title}) {
-      this.pathMap[getRouteStringFromRoutes(routes)] = title;
-      this.trigger(this.pathMap);
-    },
+  getPathMap() {
+    return this.pathMap;
+  },
 
-    onTrimMappings(routes) {
-      const routePath = getRouteStringFromRoutes(routes);
-      for (const fullPath in this.pathMap) {
-        if (!routePath.startsWith(fullPath)) {
-          delete this.pathMap[fullPath];
-        }
+  updateRouteMap({routes, title}) {
+    this.pathMap[getRouteStringFromRoutes(routes)] = title;
+    this.trigger(this.pathMap);
+  },
+
+  trimMappings(routes) {
+    const routePath = getRouteStringFromRoutes(routes);
+    for (const fullPath in this.pathMap) {
+      if (!routePath.startsWith(fullPath)) {
+        delete this.pathMap[fullPath];
       }
-      this.trigger(this.pathMap);
-    },
-  };
+    }
+    this.trigger(this.pathMap);
+  },
+};
 
-const SettingsBreadcrumbStore = Reflux.createStore(storeConfig) as Reflux.Store &
-  SettingsBreadcrumbStoreInterface;
-
+const SettingsBreadcrumbStore = createStore(makeSafeRefluxStore(storeConfig));
 export default SettingsBreadcrumbStore;

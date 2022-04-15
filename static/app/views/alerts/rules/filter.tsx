@@ -1,15 +1,14 @@
-import {Component, Fragment} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import Badge from 'sentry/components/badge';
 import CheckboxFancy from 'sentry/components/checkboxFancy/checkboxFancy';
 import DropdownButton from 'sentry/components/dropdownButton';
 import DropdownControl, {Content} from 'sentry/components/dropdownControl';
-import {IconFilter} from 'sentry/icons';
-import {t, tn} from 'sentry/locale';
+import {IconUser} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
-
-type DropdownButtonProps = React.ComponentProps<typeof DropdownButton>;
 
 type DropdownSection = {
   id: string;
@@ -60,11 +59,18 @@ type Props = {
   dropdownSections: DropdownSection[];
   header: React.ReactElement;
   onFilterChange: (section: string, filterSelection: Set<string>) => void;
+  fullWidth?: boolean;
+  showMyTeamsDescription?: boolean;
 };
 
-class Filter extends Component<Props> {
-  toggleFilter = (sectionId: string, value: string) => {
-    const {onFilterChange, dropdownSections} = this.props;
+function Filter({
+  onFilterChange,
+  header,
+  dropdownSections,
+  showMyTeamsDescription,
+  fullWidth = false,
+}: Props) {
+  function toggleFilter(sectionId: string, value: string) {
     const section = dropdownSections.find(
       dropdownSection => dropdownSection.id === sectionId
     )!;
@@ -77,11 +83,10 @@ class Filter extends Component<Props> {
       newSelection.add(value);
     }
     onFilterChange(sectionId, newSelection);
-  };
+  }
 
-  toggleSection = (sectionId: string) => {
-    const {onFilterChange} = this.props;
-    const section = this.props.dropdownSections.find(
+  function toggleSection(sectionId: string) {
+    const section = dropdownSections.find(
       dropdownSection => dropdownSection.id === sectionId
     )!;
     const activeItems = section.items.filter(item => item.checked);
@@ -92,79 +97,70 @@ class Filter extends Component<Props> {
         : new Set(section.items.map(item => item.value));
 
     onFilterChange(sectionId, newSelection);
-  };
+  }
 
-  getNumberOfActiveFilters = (): number => {
-    return this.props.dropdownSections
+  function getActiveFilters() {
+    return dropdownSections
       .map(section => section.items)
       .flat()
-      .filter(item => item.checked).length;
-  };
-
-  render() {
-    const {dropdownSections: dropdownItems, header} = this.props;
-    const checkedQuantity = this.getNumberOfActiveFilters();
-
-    const dropDownButtonProps: Pick<DropdownButtonProps, 'children' | 'priority'> & {
-      hasDarkBorderBottomColor: boolean;
-    } = {
-      children: t('Filter'),
-      priority: 'default',
-      hasDarkBorderBottomColor: false,
-    };
-
-    if (checkedQuantity > 0) {
-      dropDownButtonProps.children = tn(
-        '%s Active Filter',
-        '%s Active Filters',
-        checkedQuantity
-      );
-      dropDownButtonProps.hasDarkBorderBottomColor = true;
-    }
-
-    return (
-      <DropdownControl
-        menuWidth="240px"
-        blendWithActor
-        alwaysRenderMenu={false}
-        button={({isOpen, getActorProps}) => (
-          <StyledDropdownButton
-            {...getActorProps()}
-            showChevron={false}
-            isOpen={isOpen}
-            icon={<IconFilter />}
-            hasDarkBorderBottomColor={dropDownButtonProps.hasDarkBorderBottomColor}
-            priority={dropDownButtonProps.priority as DropdownButtonProps['priority']}
-            data-test-id="filter-button"
-          >
-            {dropDownButtonProps.children}
-          </StyledDropdownButton>
-        )}
-      >
-        {({isOpen, getMenuProps}) => (
-          <MenuContent
-            {...getMenuProps()}
-            isOpen={isOpen}
-            blendCorner
-            alignMenu="left"
-            width="240px"
-          >
-            <List>
-              {header}
-              {dropdownItems.map(section => (
-                <FilterSection
-                  key={section.id}
-                  {...section}
-                  toggleSection={this.toggleSection}
-                  toggleFilter={this.toggleFilter}
-                />
-              ))}
-            </List>
-          </MenuContent>
-        )}
-      </DropdownControl>
-    );
+      .filter(item => item.checked);
   }
+
+  const activeFilters = getActiveFilters();
+
+  let filterDescription = showMyTeamsDescription ? t('My Teams') : t('All Teams');
+  if (activeFilters.length > 0) {
+    filterDescription = activeFilters[0].label;
+  }
+
+  return (
+    <DropdownControl
+      menuWidth="240px"
+      fullWidth={fullWidth}
+      blendWithActor
+      alwaysRenderMenu={false}
+      button={({isOpen, getActorProps}) => (
+        <StyledDropdownButton
+          {...getActorProps()}
+          isOpen={isOpen}
+          icon={<IconUser />}
+          priority="default"
+          data-test-id="filter-button"
+          fullWidth={fullWidth}
+        >
+          <DropdownButtonText fullWidth={fullWidth}>
+            {filterDescription}
+          </DropdownButtonText>
+          {activeFilters.length > 1 && (
+            <StyledBadge text={`+${activeFilters.length - 1}`} />
+          )}
+        </StyledDropdownButton>
+      )}
+    >
+      {({isOpen, getMenuProps}) => (
+        <MenuContent
+          {...getMenuProps()}
+          isOpen={isOpen}
+          blendCorner
+          alignMenu="left"
+          width="240px"
+          detached
+        >
+          <List>
+            {header}
+            {dropdownSections.map(section => (
+              <FilterSection
+                key={section.id}
+                {...section}
+                toggleSection={toggleSection}
+                toggleFilter={toggleFilter}
+              />
+            ))}
+          </List>
+        </MenuContent>
+      )}
+    </DropdownControl>
+  );
 }
 
 const MenuContent = styled(Content)`
@@ -187,11 +183,34 @@ const Header = styled('div')`
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 
-const StyledDropdownButton = styled(DropdownButton)<{hasDarkBorderBottomColor?: boolean}>`
+const StyledDropdownButton = styled(DropdownButton)<{fullWidth: boolean}>`
   white-space: nowrap;
-  max-width: 200px;
+  display: flex;
+  align-items: center;
 
   z-index: ${p => p.theme.zIndex.dropdown};
+
+  ${p =>
+    p.fullWidth
+      ? `
+      width: 100%
+  `
+      : `max-width: 200px`}
+`;
+
+const DropdownButtonText = styled('span')<{fullWidth: boolean}>`
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  flex: 1;
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    text-align: ${p => p.fullWidth && 'start'};
+  }
+`;
+
+const StyledBadge = styled(Badge)`
+  flex-shrink: 0;
 `;
 
 const List = styled('ul')`

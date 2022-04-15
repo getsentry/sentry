@@ -1,9 +1,9 @@
 from datetime import timedelta
-from distutils.version import LooseVersion
 from itertools import chain, groupby
 
 import sentry_sdk
 from django.utils import timezone
+from packaging import version
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -30,7 +30,7 @@ def serialize(data, projects):
             {
                 "projectId": str(project_id),
                 "sdkName": sdk_name,
-                "sdkVersion": max((s["sdk.version"] for s in sdks), key=LooseVersion),
+                "sdkVersion": max((s["sdk.version"] for s in sdks), key=version.parse),
             }
             for sdk_name, sdks in groupby(sorted(sdks_used, key=by_sdk_name), key=by_sdk_name)
         ]

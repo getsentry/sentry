@@ -46,15 +46,14 @@ export const HeaderButtonContainer = styled('div')`
   }
 `;
 
-const PanelWithProtectedBorder = styled(Panel)`
+export const Body = styled(({children, ...props}) => (
+  <Panel {...props}>
+    <PanelBody>{children}</PanelBody>
+  </Panel>
+))`
   overflow: hidden;
   z-index: ${Z_INDEX_PANEL};
 `;
-export const Body = props => (
-  <PanelWithProtectedBorder>
-    <PanelBody>{props.children}</PanelBody>
-  </PanelWithProtectedBorder>
-);
 
 /**
  * Grid is the parent element for the tableResizable component.

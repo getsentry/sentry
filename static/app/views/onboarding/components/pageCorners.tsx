@@ -91,6 +91,7 @@ const TopLeft = styled(motion.svg)`
 TopLeft.defaultProps = {
   initial: {x: '-40px', opacity: 0, originX: 0, originY: 0, scale: 'var(--corner-scale)'},
   variants: {
+    none: {x: '-40px', opacity: 0},
     'top-right': {x: '-40px', opacity: 0},
     'top-left': {x: 0, opacity: 1},
   },
@@ -112,6 +113,7 @@ TopRight.defaultProps = {
     scale: 'var(--corner-scale)',
   },
   variants: {
+    none: {x: '40px', opacity: 0},
     'top-left': {x: '40px', opacity: 0},
     'top-right': {x: 0, opacity: 1},
   },
@@ -133,6 +135,7 @@ BottomLeft.defaultProps = {
     scale: 'var(--corner-scale)',
   },
   variants: {
+    none: {x: '-40px', opacity: 0},
     'top-left': {x: '-40px', opacity: 0},
     'top-right': {x: 0, opacity: 1},
   },
@@ -154,6 +157,7 @@ BottomRight.defaultProps = {
     scale: 'var(--corner-scale)',
   },
   variants: {
+    none: {x: '40px', opacity: 0},
     'top-right': {x: '40px', opacity: 0},
     'top-left': {x: 0, opacity: 1},
   },

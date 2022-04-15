@@ -136,17 +136,13 @@ function StackTracePreview(props: StackTracePreviewProps): React.ReactElement {
   const [status, setStatus] = React.useState<'loading' | 'loaded' | 'error'>('loading');
   const [event, setEvent] = React.useState<Event | null>(null);
 
-  const delayTimeout = React.useRef<number | null>(null);
-  const loaderTimeout = React.useRef<number | null>(null);
+  const delayTimeoutRef = React.useRef<number | undefined>(undefined);
+  const loaderTimeoutRef = React.useRef<number | undefined>(undefined);
 
   React.useEffect(() => {
     return () => {
-      if (loaderTimeout.current !== null) {
-        window.clearTimeout(loaderTimeout.current);
-      }
-      if (delayTimeout.current !== null) {
-        window.clearTimeout(delayTimeout.current);
-      }
+      window.clearTimeout(loaderTimeoutRef.current);
+      window.clearTimeout(delayTimeoutRef.current);
     };
   }, []);
 
@@ -161,7 +157,7 @@ function StackTracePreview(props: StackTracePreviewProps): React.ReactElement {
       return;
     }
 
-    loaderTimeout.current = window.setTimeout(() => {
+    loaderTimeoutRef.current = window.setTimeout(() => {
       setLoadingVisible(true);
     }, HOVERCARD_DELAY);
 
@@ -171,12 +167,12 @@ function StackTracePreview(props: StackTracePreviewProps): React.ReactElement {
           ? `/projects/${props.organization.slug}/${props.projectSlug}/events/${props.eventId}/`
           : `/issues/${props.issueId}/events/latest/?collapse=stacktraceOnly`
       );
-      clearTimeout(loaderTimeout.current);
+      window.clearTimeout(loaderTimeoutRef.current);
       setEvent(evt);
       setStatus('loaded');
       setLoadingVisible(false);
     } catch {
-      clearTimeout(loaderTimeout.current);
+      window.clearTimeout(loaderTimeoutRef.current);
       setEvent(null);
       setStatus('error');
       setLoadingVisible(false);
@@ -191,14 +187,13 @@ function StackTracePreview(props: StackTracePreviewProps): React.ReactElement {
   ]);
 
   const handleMouseEnter = React.useCallback(() => {
-    delayTimeout.current = window.setTimeout(fetchData, REQUEST_DELAY);
+    window.clearTimeout(delayTimeoutRef.current);
+    delayTimeoutRef.current = window.setTimeout(fetchData, REQUEST_DELAY);
   }, [fetchData]);
 
   const handleMouseLeave = React.useCallback(() => {
-    if (delayTimeout.current) {
-      window.clearTimeout(delayTimeout.current);
-      delayTimeout.current = null;
-    }
+    window.clearTimeout(delayTimeoutRef.current);
+    delayTimeoutRef.current = undefined;
   }, []);
 
   // Not sure why we need to stop propagation, maybe to to prevent the hovercard from closing?

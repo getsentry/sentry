@@ -141,6 +141,12 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
         assert not EventAttachment.objects.filter(event_id=event.event_id)
 
     def test_reprocessing(self):
+        # NOTE:
+        # When running this test against a local symbolicator instance,
+        # make sure that instance has its caches disabled. This test assumes
+        # that a symbol upload has immediate effect, whereas in reality the
+        # negative cache needs to expire first.
+
         self.project.update_option("sentry:store_crash_reports", STORE_CRASH_REPORTS_ALL)
 
         features = dict(self._FEATURES)

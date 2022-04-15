@@ -2,42 +2,35 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
-import {fetchTagValues} from 'sentry/actionCreators/tags';
-import {Client} from 'sentry/api';
 import Field from 'sentry/components/forms/field';
 import SelectControl from 'sentry/components/forms/selectControl';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, PageFilters, SelectValue, TagCollection} from 'sentry/types';
-import {getUtcDateString} from 'sentry/utils/dates';
+import {Organization, PageFilters, SelectValue} from 'sentry/types';
 import {
   explodeField,
   generateFieldAsString,
   getColumnsAndAggregates,
 } from 'sentry/utils/discover/fields';
-import withApi from 'sentry/utils/withApi';
-import withIssueTags from 'sentry/utils/withIssueTags';
 import {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
+import {IssuesSearchBar} from 'sentry/views/dashboardsV2/widgetBuilder/buildSteps/filterResultsStep/issuesSearchBar';
 import {generateIssueWidgetOrderOptions} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/utils';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
-import IssueListSearchBar from 'sentry/views/issueList/searchBar';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 import WidgetQueryFields from './widgetQueryFields';
 
 type Props = {
-  api: Client;
   fieldOptions: ReturnType<typeof generateFieldOptions>;
   onChange: (widgetQuery: WidgetQuery) => void;
   organization: Organization;
   query: WidgetQuery;
   selection: PageFilters;
-  tags: TagCollection;
   error?: Record<string, any>;
 };
 
 type State = {
-  blurTimeout?: ReturnType<typeof setTimeout>;
+  blurTimeout?: number | null;
 };
 
 /**
@@ -51,6 +44,13 @@ class IssueWidgetQueriesForm extends React.Component<Props, State> {
       blurTimeout: undefined,
     };
   }
+
+  componentWillUnmount() {
+    if (this.state.blurTimeout) {
+      window.clearTimeout(this.state.blurTimeout);
+    }
+  }
+
   // Handle scalar field values changing.
   handleFieldChange = (field: string) => {
     const {query, onChange} = this.props;
@@ -62,25 +62,11 @@ class IssueWidgetQueriesForm extends React.Component<Props, State> {
     };
   };
 
-  tagValueLoader = (key: string, search: string) => {
-    const {organization, selection, api} = this.props;
-    const orgId = organization.slug;
-    const projectIds = selection.projects.map(id => id.toString());
-    const endpointParams = {
-      start: getUtcDateString(selection.datetime.start),
-      end: getUtcDateString(selection.datetime.end),
-      statsPeriod: selection.datetime.period,
-    };
-
-    return fetchTagValues(api, orgId, key, search, projectIds, endpointParams);
-  };
-
   render() {
-    const {organization, error, query, tags, fieldOptions, onChange} = this.props;
+    const {organization, error, query, selection, fieldOptions, onChange} = this.props;
     const explodedFields = (query.fields ?? [...query.columns, ...query.aggregates]).map(
       field => explodeField({field})
     );
-    const {blurTimeout} = this.state;
 
     return (
       <QueryWrapper>
@@ -93,10 +79,10 @@ class IssueWidgetQueriesForm extends React.Component<Props, State> {
           error={error?.conditions}
         >
           <SearchConditionsWrapper>
-            <StyledIssueListSearchBar
+            <IssuesSearchBar
+              query={query}
+              selection={selection}
               organization={organization}
-              query={query.conditions || ''}
-              sort=""
               onSearch={field => {
                 // IssueListSearchBar will call handlers for both onSearch and onBlur
                 // when selecting a value from the autocomplete dropdown. This can
@@ -104,22 +90,21 @@ class IssueWidgetQueriesForm extends React.Component<Props, State> {
                 // this, we set a timer in our onSearch handler to block our onBlur
                 // handler from firing if it is within 200ms, ie from clicking an
                 // autocomplete value.
+                if (this.state.blurTimeout) {
+                  window.clearTimeout(this.state.blurTimeout);
+                }
                 this.setState({
-                  blurTimeout: setTimeout(() => {
+                  blurTimeout: window.setTimeout(() => {
                     this.setState({blurTimeout: undefined});
                   }, 200),
                 });
                 return this.handleFieldChange('conditions')(field);
               }}
               onBlur={field => {
-                if (!blurTimeout) {
+                if (!this.state.blurTimeout) {
                   this.handleFieldChange('conditions')(field);
                 }
               }}
-              excludeEnvironment
-              supportedTags={tags}
-              tagValueLoader={this.tagValueLoader}
-              onSidebarToggle={() => undefined}
             />
           </SearchConditionsWrapper>
         </Field>
@@ -179,11 +164,4 @@ export const SearchConditionsWrapper = styled('div')`
   }
 `;
 
-const StyledIssueListSearchBar = styled(IssueListSearchBar)`
-  flex-grow: 1;
-  button:not([aria-label='Clear search']) {
-    display: none;
-  }
-`;
-
-export default withApi(withIssueTags(IssueWidgetQueriesForm));
+export default IssueWidgetQueriesForm;

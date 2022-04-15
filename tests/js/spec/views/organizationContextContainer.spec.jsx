@@ -62,16 +62,8 @@ describe('OrganizationContextContainer', function () {
   });
 
   afterEach(async function () {
-    // Ugh these stores are a pain
-    // It's possible that a test still has an update action in flight
-    // and caues store to update *AFTER* we reset. Attempt to flush out updates
-    await tick();
-    await tick();
     wrapper.unmount();
     OrganizationStore.reset();
-    // await for store change to finish propagating
-    await tick();
-    await tick();
 
     TeamActions.loadTeams.mockRestore();
     ProjectActions.loadProjects.mockRestore();

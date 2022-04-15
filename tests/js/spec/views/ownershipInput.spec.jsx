@@ -23,13 +23,14 @@ describe('Project Ownership Input', function () {
       method: 'PUT',
       body: {raw: 'url:src @dummy@example.com'},
     });
+    MemberListStore.init();
     MemberListStore.loadInitialData([
       TestStubs.User({id: '1', email: 'bob@example.com'}),
     ]);
   });
 
-  afterEach(function () {
-    MemberListStore.init();
+  afterEach(() => {
+    MemberListStore.teardown();
   });
 
   it('renders', function () {

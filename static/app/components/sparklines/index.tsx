@@ -1,5 +1,5 @@
 import {Sparklines} from 'react-sparklines';
-import PropTypes from 'prop-types';
+import * as PropTypes from 'prop-types';
 
 /**
  * This is required because:

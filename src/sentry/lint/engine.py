@@ -155,7 +155,7 @@ def yarn_check(file_list):
             "\033[33m"
             + """Warning: package.json modified without accompanying yarn.lock modifications.
 
-If you updated a dependency/devDependency in package.json, you must run `yarn install` to update the lockfile.
+If you updated a dependency/devDependencies in package.json, you must run `yarn install` to update the lockfile.
 
 To skip this check, run `SKIP_YARN_CHECK=1 git commit [options]`"""
             + "\033[0m"
@@ -177,11 +177,15 @@ def is_prettier_valid(project_root, prettier_path):
     package_version = None
     package_json_path = os.path.join(project_root, "package.json")
     with open(package_json_path) as package_json:
-        try:
-            package_version = json.load(package_json)["devDependencies"]["prettier"]
-        except KeyError:
-            sys.stderr.write("!! Prettier missing from package.json\n")
-            return False
+        # Check devDependency and dependencies for prettier, we've moved it
+        # around before, but it will run either way
+        package_json_dict = json.load(package_json)
+        package_version = package_json_dict["devDependencies"].get("prettier")
+        package_version = package_version or package_json_dict["dependencies"].get("prettier")
+
+    if package_version is None:
+        sys.stderr.write("!! Prettier missing from package.json\n")
+        return False
 
     prettier_version = subprocess.check_output([prettier_path, "--version"]).decode("utf8").rstrip()
     if prettier_version != package_version:

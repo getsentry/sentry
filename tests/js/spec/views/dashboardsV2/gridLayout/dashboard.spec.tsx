@@ -54,7 +54,7 @@ describe('Dashboards > Dashboard', () => {
     ],
   };
 
-  let initialData;
+  let initialData, tagsMock;
 
   beforeEach(() => {
     initialData = initializeOrg({organization, router: {}, project: 1, projects: []});
@@ -105,15 +105,35 @@ describe('Dashboards > Dashboard', () => {
         },
       ],
     });
-    MockApiClient.addMockResponse({
+    tagsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       method: 'GET',
       body: TestStubs.Tags(),
     });
   });
 
+  it('fetches tags', () => {
+    mountWithTheme(
+      <Dashboard
+        paramDashboardId="1"
+        dashboard={mockDashboard}
+        organization={initialData.organization}
+        onUpdate={() => undefined}
+        handleUpdateWidgetList={() => undefined}
+        handleAddCustomWidget={() => undefined}
+        router={initialData.router}
+        location={initialData.location}
+        widgetLimitReached={false}
+        isEditing={false}
+      />,
+      initialData.routerContext
+    );
+    expect(tagsMock).toHaveBeenCalled();
+  });
+
   it('dashboard adds new widget if component is mounted with newWidget prop', async () => {
     const mockHandleAddCustomWidget = jest.fn();
+    const mockCallbackToUnsetNewWidget = jest.fn();
     const wrapper = mountWithTheme(
       <Dashboard
         paramDashboardId="1"
@@ -123,21 +143,23 @@ describe('Dashboards > Dashboard', () => {
         onUpdate={() => undefined}
         handleUpdateWidgetList={() => undefined}
         handleAddCustomWidget={mockHandleAddCustomWidget}
-        onSetWidgetToBeUpdated={() => undefined}
         router={initialData.router}
         location={initialData.location}
         newWidget={newWidget}
         widgetLimitReached={false}
+        onSetNewWidget={mockCallbackToUnsetNewWidget}
       />,
       initialData.routerContext
     );
     await tick();
     wrapper.update();
     expect(mockHandleAddCustomWidget).toHaveBeenCalled();
+    expect(mockCallbackToUnsetNewWidget).toHaveBeenCalled();
   });
 
   it('dashboard adds new widget if component updated with newWidget prop', async () => {
     const mockHandleAddCustomWidget = jest.fn();
+    const mockCallbackToUnsetNewWidget = jest.fn();
     const wrapper = mountWithTheme(
       <Dashboard
         paramDashboardId="1"
@@ -147,24 +169,53 @@ describe('Dashboards > Dashboard', () => {
         onUpdate={() => undefined}
         handleUpdateWidgetList={() => undefined}
         handleAddCustomWidget={mockHandleAddCustomWidget}
-        onSetWidgetToBeUpdated={() => undefined}
         router={initialData.router}
         location={initialData.location}
         widgetLimitReached={false}
+        onSetNewWidget={mockCallbackToUnsetNewWidget}
       />,
       initialData.routerContext
     );
     expect(mockHandleAddCustomWidget).not.toHaveBeenCalled();
+    expect(mockCallbackToUnsetNewWidget).not.toHaveBeenCalled();
     wrapper.setProps({newWidget});
     await tick();
     wrapper.update();
     expect(mockHandleAddCustomWidget).toHaveBeenCalled();
+    expect(mockCallbackToUnsetNewWidget).toHaveBeenCalled();
+  });
+
+  it('dashboard does not try to add new widget if no newWidget', async () => {
+    const mockHandleAddCustomWidget = jest.fn();
+    const mockCallbackToUnsetNewWidget = jest.fn();
+    const wrapper = mountWithTheme(
+      <Dashboard
+        paramDashboardId="1"
+        dashboard={mockDashboard}
+        organization={initialData.organization}
+        isEditing={false}
+        onUpdate={() => undefined}
+        handleUpdateWidgetList={() => undefined}
+        handleAddCustomWidget={mockHandleAddCustomWidget}
+        router={initialData.router}
+        location={initialData.location}
+        widgetLimitReached={false}
+        onSetNewWidget={mockCallbackToUnsetNewWidget}
+      />,
+      initialData.routerContext
+    );
+    await tick();
+    wrapper.update();
+    expect(mockHandleAddCustomWidget).not.toHaveBeenCalled();
+    expect(mockCallbackToUnsetNewWidget).not.toHaveBeenCalled();
   });
 
   describe('Issue Widgets', () => {
-    afterEach(() => {
-      // @ts-ignore
+    beforeEach(() => {
       MemberListStore.init();
+    });
+    afterEach(() => {
+      MemberListStore.teardown();
     });
     const mount = (dashboard, mockedOrg = initialData.organization) => {
       render(
@@ -176,7 +227,6 @@ describe('Dashboards > Dashboard', () => {
           onUpdate={() => undefined}
           handleUpdateWidgetList={() => undefined}
           handleAddCustomWidget={() => undefined}
-          onSetWidgetToBeUpdated={() => undefined}
           router={initialData.router}
           location={initialData.location}
           widgetLimitReached={false}
@@ -210,21 +260,25 @@ describe('Dashboards > Dashboard', () => {
 
   describe('Edit mode', () => {
     let widgets: Widget[];
-    const mount = dashboard => {
+    const mount = (
+      dashboard,
+      mockedOrg = initialData.organization,
+      mockedRouter = initialData.router,
+      mockedLocation = initialData.location
+    ) => {
       const getDashboardComponent = () => (
         <Dashboard
           paramDashboardId="1"
           dashboard={dashboard}
-          organization={initialData.organization}
+          organization={mockedOrg}
           isEditing
           onUpdate={newWidgets => {
             widgets.splice(0, widgets.length, ...newWidgets);
           }}
           handleUpdateWidgetList={() => undefined}
           handleAddCustomWidget={() => undefined}
-          onSetWidgetToBeUpdated={() => undefined}
-          router={initialData.router}
-          location={initialData.location}
+          router={mockedRouter}
+          location={mockedLocation}
           widgetLimitReached={false}
         />
       );
@@ -248,6 +302,40 @@ describe('Dashboards > Dashboard', () => {
       userEvent.click(screen.getByLabelText('Duplicate Widget'));
       rerender();
       expect(screen.getAllByText('Test Discover Widget')).toHaveLength(2);
+    });
+
+    it('opens the widget builder when editing with the modal access flag', function () {
+      const testData = initializeOrg({
+        ...initializeOrg(),
+        organization: {
+          features: [
+            'dashboards-basic',
+            'dashboards-edit',
+            'dashboard-grid-layout',
+            'new-widget-builder-experience',
+            'new-widget-builder-experience-design',
+          ],
+        },
+      });
+      const dashboardWithOneWidget = {
+        ...mockDashboard,
+        widgets: [newWidget],
+      };
+
+      mount(
+        dashboardWithOneWidget,
+        testData.organization,
+        testData.router,
+        testData.router.location
+      );
+
+      userEvent.click(screen.getByLabelText('Edit Widget'));
+
+      expect(testData.router.push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pathname: '/organizations/org-slug/dashboard/1/widget/0/edit/',
+        })
+      );
     });
   });
 });

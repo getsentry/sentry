@@ -1,3 +1,4 @@
+import unittest
 from unittest.mock import patch
 
 from django.http import Http404
@@ -115,7 +116,7 @@ class SentryAppInstallationBaseEndpointTest(TestCase):
             self.endpoint.convert_args(self.request, "1234")
 
 
-class AddIntegrationPlatformMetricTagTest(TestCase):
+class AddIntegrationPlatformMetricTagTest(unittest.TestCase):
     @patch("sentry.api.bases.sentryapps.add_request_metric_tags")
     def test_record_platform_integration_metric(self, add_request_metric_tags):
         @add_integration_platform_metric_tag

@@ -3,7 +3,7 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject} from 'history';
 
-import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import GridEditable, {
@@ -22,6 +22,7 @@ import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import EventView, {fromSorts, isFieldSortable} from 'sentry/utils/discover/eventView';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {formatPercentage} from 'sentry/utils/formatters';
+import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import SegmentExplorerQuery, {
   TableData,
   TableDataRow,
@@ -554,4 +555,12 @@ const StyledPagination = styled(Pagination)`
   margin: 0 0 0 ${space(1)};
 `;
 
-export const TagExplorer = _TagExplorer;
+export const TagExplorer = (props: Props) => {
+  const {hideSinceMetricsOnly} = useMEPSettingContext();
+
+  if (hideSinceMetricsOnly) {
+    return null;
+  }
+
+  return <_TagExplorer {...props} />;
+};

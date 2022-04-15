@@ -1,4 +1,4 @@
-import {AvatarUser} from './user';
+import type {AvatarUser} from './user';
 
 export enum OnboardingTaskKey {
   FIRST_PROJECT = 'create_project',

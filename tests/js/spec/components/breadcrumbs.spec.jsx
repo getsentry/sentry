@@ -4,6 +4,7 @@ import Breadcrumbs from 'sentry/components/breadcrumbs';
 
 describe('Breadcrumbs', () => {
   const routerContext = TestStubs.routerContext();
+
   afterEach(() => {
     jest.resetAllMocks();
   });

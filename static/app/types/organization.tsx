@@ -1,9 +1,9 @@
-import {Actor, Avatar, Scope} from './core';
-import {OrgExperiments} from './experiments';
-import {ExternalTeam} from './integrations';
-import {OnboardingTaskStatus} from './onboarding';
-import {Relay} from './relay';
-import {User} from './user';
+import type {Actor, Avatar, ObjectStatus, Scope} from './core';
+import type {OrgExperiments} from './experiments';
+import type {ExternalTeam} from './integrations';
+import type {OnboardingTaskStatus} from './onboarding';
+import type {Relay} from './relay';
+import type {User} from './user';
 
 /**
  * Organization summaries are sent when you request a
@@ -19,8 +19,7 @@ export type OrganizationSummary = {
   require2FA: boolean;
   slug: string;
   status: {
-    // TODO(ts): Are these fields == `ObjectStatus`?
-    id: string;
+    id: ObjectStatus;
     name: string;
   };
 };
@@ -167,6 +166,7 @@ export type NewQuery = {
 
   teams?: Readonly<('myteams' | number)[]>;
   topEvents?: string;
+  utc?: boolean | string;
   widths?: Readonly<string[]>;
 
   // Graph

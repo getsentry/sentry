@@ -3,7 +3,7 @@
 // eslint-disable-next-line no-restricted-imports
 import get from 'lodash/get';
 
-import {Fuse} from 'sentry/utils/fuzzySearch';
+import type {Fuse} from 'sentry/utils/fuzzySearch';
 
 /**
  * A value getter for fuse that will ensure the result is a string.

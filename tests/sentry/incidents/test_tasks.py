@@ -1,3 +1,4 @@
+from datetime import timedelta
 from unittest.mock import Mock, call, patch
 
 import pytz
@@ -21,12 +22,16 @@ from sentry.incidents.models import (
     IncidentSubscription,
 )
 from sentry.incidents.tasks import (
+    SUBSCRIPTION_METRICS_LOGGER,
     build_activity_context,
     generate_incident_activity_email,
     handle_subscription_metrics_logger,
     handle_trigger_action,
     send_subscriber_notifications,
 )
+from sentry.sentry_metrics.utils import resolve, resolve_tag_key
+from sentry.snuba.models import QueryDatasets
+from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils import TestCase
 from sentry.utils.http import absolute_uri
 
@@ -197,16 +202,26 @@ class HandleTriggerActionTest(TestCase):
 
 class TestHandleSubscriptionMetricsLogger(TestCase):
     @fixture
-    def rule(self):
-        return self.create_alert_rule()
-
-    @fixture
     def subscription(self):
-        return self.rule.snuba_query.subscriptions.get()
+        snuba_query = create_snuba_query(
+            QueryDatasets.METRICS,
+            "hello",
+            "count()",
+            timedelta(minutes=1),
+            timedelta(minutes=1),
+            None,
+        )
+        return create_snuba_subscription(self.project, SUBSCRIPTION_METRICS_LOGGER, snuba_query)
 
     def build_subscription_update(self):
         timestamp = timezone.now().replace(tzinfo=pytz.utc, microsecond=0)
-        data = {"count": 100}
+        data = {
+            "count": 100,
+            resolve_tag_key(self.organization.id, "session.status"): resolve(
+                self.organization.id, "healthy"
+            ),
+            "value": 2.0,
+        }
         values = {"data": [data]}
         return {
             "subscription_id": self.subscription.subscription_id,
@@ -218,18 +233,18 @@ class TestHandleSubscriptionMetricsLogger(TestCase):
         }
 
     def test(self):
-        with patch("sentry.incidents.tasks.metrics") as metrics:
-            handle_subscription_metrics_logger(self.build_subscription_update(), self.subscription)
-            assert metrics.incr.call_args_list == [
+        with patch("sentry.incidents.tasks.logger") as logger:
+            subscription_update = self.build_subscription_update()
+            handle_subscription_metrics_logger(subscription_update, self.subscription)
+            assert logger.info.call_args_list == [
                 call(
-                    "subscriptions.result.value",
-                    100,
-                    tags={
-                        "project_id": self.project.id,
-                        "project_slug": self.project.slug,
+                    "handle_subscription_metrics_logger.message",
+                    extra={
                         "subscription_id": self.subscription.id,
-                        "time_window": 600,
+                        "dataset": self.subscription.snuba_query.dataset,
+                        "snuba_subscription_id": self.subscription.subscription_id,
+                        "result": subscription_update,
+                        "aggregation_value": None,
                     },
-                    sample_rate=1.0,
                 )
             ]

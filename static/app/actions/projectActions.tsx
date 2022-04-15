@@ -1,6 +1,6 @@
-import Reflux from 'reflux';
+import {createActions} from 'reflux';
 
-const ProjectActions = Reflux.createActions([
+const ProjectActions = createActions([
   'addTeam',
   'addTeamError',
   'addTeamSuccess',

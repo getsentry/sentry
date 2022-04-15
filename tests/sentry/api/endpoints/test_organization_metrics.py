@@ -6,8 +6,16 @@ from unittest.mock import patch
 from django.urls import reverse
 
 from sentry.models import ApiToken
-from sentry.snuba.metrics.fields import DERIVED_METRICS, SingularEntityDerivedMetric
+from sentry.sentry_metrics import indexer
+from sentry.snuba.metrics import TransactionStatusTagValue, TransactionTagsKey
+from sentry.snuba.metrics.fields import (
+    DERIVED_METRICS,
+    SingularEntityDerivedMetric,
+    TransactionSatisfactionTagValue,
+)
 from sentry.snuba.metrics.fields.snql import percentage
+from sentry.snuba.metrics.naming_layer.mapping import get_public_name_from_mri
+from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
 from sentry.testutils import APITestCase
 from sentry.testutils.cases import OrganizationMetricMetaIntegrationTestCase
 
@@ -15,8 +23,11 @@ MOCKED_DERIVED_METRICS = copy.deepcopy(DERIVED_METRICS)
 MOCKED_DERIVED_METRICS.update(
     {
         "crash_free_fake": SingularEntityDerivedMetric(
-            metric_name="crash_free_fake",
-            metrics=["session.crashed", "session.errored_set"],
+            metric_mri="crash_free_fake",
+            metrics=[
+                SessionMRI.CRASHED.value,
+                SessionMRI.ERRORED_SET.value,
+            ],
             unit="percentage",
             snql=lambda *args, entity, metric_ids, alias=None: percentage(
                 *args, entity, metric_ids, alias="crash_free_fake"
@@ -24,6 +35,10 @@ MOCKED_DERIVED_METRICS.update(
         )
     }
 )
+
+
+def mocked_mri_resolver(metric_names, mri_func):
+    return lambda x: x if x in metric_names else mri_func(x)
 
 
 class OrganizationMetricsPermissionTest(APITestCase):
@@ -69,6 +84,7 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
     def setUp(self):
         super().setUp()
         self.proj2 = self.create_project(organization=self.organization)
+        self.transaction_proj = self.create_project(organization=self.organization)
         self.session_metrics_meta = [
             {
                 "name": "sentry.sessions.session",
@@ -82,22 +98,42 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
                 "operations": ["count_unique"],
                 "unit": None,
             },
+            {"name": "session.abnormal", "operations": [], "type": "numeric", "unit": "sessions"},
+            {"name": "session.abnormal_user", "operations": [], "type": "numeric", "unit": "users"},
+            {"name": "session.all", "type": "numeric", "operations": [], "unit": "sessions"},
+            {"name": "session.all_user", "type": "numeric", "operations": [], "unit": "users"},
             {
                 "name": "session.crash_free_rate",
                 "type": "numeric",
                 "operations": [],
                 "unit": "percentage",
             },
-            {"name": "session.crashed", "type": "numeric", "operations": [], "unit": "sessions"},
             {
-                "name": "session.errored_preaggregated",
+                "name": "session.crash_free_user_rate",
                 "type": "numeric",
                 "operations": [],
-                "unit": "sessions",
+                "unit": "percentage",
             },
-            {"name": "session.init", "type": "numeric", "operations": [], "unit": "sessions"},
+            {"name": "session.crashed", "type": "numeric", "operations": [], "unit": "sessions"},
+            {"name": "session.crashed_user", "type": "numeric", "operations": [], "unit": "users"},
+            {
+                "name": "session.errored_user",
+                "type": "numeric",
+                "operations": [],
+                "unit": "users",
+            },
+            {
+                "name": "session.healthy_user",
+                "type": "numeric",
+                "operations": [],
+                "unit": "users",
+            },
         ]
 
+    @patch(
+        "sentry.snuba.metrics.datasource.get_public_name_from_mri",
+        mocked_mri_resolver(["metric1", "metric2", "metric3"], get_public_name_from_mri),
+    )
     def test_metrics_index(self):
         """
 
@@ -125,7 +161,7 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
         assert response.data == self.session_metrics_meta
 
     @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
-    def test_metrics_index_invalid_derived_metric(self):
+    def test_metrics_index_derived_metrics_and_invalid_derived_metric(self):
         for errors, minute in [(0, 0), (2, 1)]:
             self.store_session(
                 self.build_session(
@@ -148,10 +184,140 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
                     "unit": None,
                 },
                 {
-                    "name": "session.errored_set",
+                    "name": "session.errored",
                     "type": "numeric",
                     "operations": [],
                     "unit": "sessions",
+                },
+                {
+                    "name": "session.healthy",
+                    "type": "numeric",
+                    "operations": [],
+                    "unit": "sessions",
+                },
+            ],
+            key=itemgetter("name"),
+        )
+
+    def test_metrics_index_transaction_derived_metrics(self):
+        user_ts = time.time()
+        org_id = self.organization.id
+        tx_metric = indexer.record(org_id, TransactionMRI.DURATION.value)
+        tx_status = indexer.record(org_id, TransactionTagsKey.TRANSACTION_STATUS.value)
+        tx_satisfaction = indexer.record(
+            self.organization.id, TransactionTagsKey.TRANSACTION_SATISFACTION.value
+        )
+        tx_user_metric = indexer.record(self.organization.id, TransactionMRI.USER.value)
+
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.transaction_proj.id,
+                    "metric_id": tx_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        tx_satisfaction: indexer.record(
+                            self.organization.id, TransactionSatisfactionTagValue.FRUSTRATED.value
+                        ),
+                    },
+                    "type": "s",
+                    "value": [1, 2],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.transaction_proj.id,
+                    "metric_id": tx_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        tx_satisfaction: indexer.record(
+                            self.organization.id, TransactionSatisfactionTagValue.SATISFIED.value
+                        ),
+                        tx_status: indexer.record(
+                            self.organization.id, TransactionStatusTagValue.CANCELLED.value
+                        ),
+                    },
+                    "type": "s",
+                    "value": [1, 3],  # user 1 had mixed transactions, user 3 only satisfied
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_sets",
+        )
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.transaction_proj.id,
+                    "metric_id": tx_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        tx_satisfaction: indexer.record(
+                            self.organization.id, TransactionSatisfactionTagValue.TOLERATED.value
+                        ),
+                        tx_status: indexer.record(
+                            self.organization.id, TransactionStatusTagValue.OK.value
+                        ),
+                    },
+                    "type": "d",
+                    "value": [0.3],
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_distributions",
+        )
+        response = self.get_success_response(
+            self.organization.slug, project=[self.transaction_proj.id]
+        )
+        assert response.data == sorted(
+            [
+                {
+                    "name": "transaction.apdex",
+                    "type": "numeric",
+                    "operations": [],
+                    "unit": "percentage",
+                },
+                {
+                    "name": "transaction.duration",
+                    "type": "distribution",
+                    "operations": [
+                        "avg",
+                        "count",
+                        "histogram",
+                        "max",
+                        "min",
+                        "p50",
+                        "p75",
+                        "p90",
+                        "p95",
+                        "p99",
+                    ],
+                    "unit": None,
+                },
+                {
+                    "name": "transaction.failure_rate",
+                    "type": "numeric",
+                    "operations": [],
+                    "unit": "transactions",
+                },
+                {
+                    "name": "transaction.miserable_user",
+                    "type": "numeric",
+                    "operations": [],
+                    "unit": "users",
+                },
+                {
+                    "name": "transaction.user",
+                    "type": "set",
+                    "operations": ["count_unique"],
+                    "unit": None,
+                },
+                {
+                    "name": "transaction.user_misery",
+                    "operations": [],
+                    "type": "numeric",
+                    "unit": "percentage",
                 },
             ],
             key=itemgetter("name"),

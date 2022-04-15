@@ -3,19 +3,21 @@ import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
-import {doMetricsRequest} from 'sentry/actionCreators/metrics';
+import {doSessionsRequest} from 'sentry/actionCreators/sessions';
 import {Client} from 'sentry/api';
 import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
 import {t} from 'sentry/locale';
-import {MetricsApiResponse, OrganizationSummary, PageFilters} from 'sentry/types';
+import {OrganizationSummary, PageFilters, SessionApiResponse} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {stripDerivedMetricsPrefix} from 'sentry/utils/discover/fields';
 import {TOP_N} from 'sentry/utils/discover/types';
-import {transformMetricsResponseToSeries} from 'sentry/utils/metrics/transformMetricsResponseToSeries';
-import {transformMetricsResponseToTable} from 'sentry/utils/metrics/transformMetricsResponseToTable';
 
 import {DEFAULT_TABLE_LIMIT, DisplayType, Widget} from '../types';
 import {getWidgetInterval} from '../utils';
+
+import {transformSessionsResponseToSeries} from './transformSessionsResponseToSeries';
+import {transformSessionsResponseToTable} from './transformSessionsResponseToTable';
 
 type Props = {
   api: Client;
@@ -32,7 +34,7 @@ type State = {
   loading: boolean;
   errorMessage?: string;
   queryFetchID?: symbol;
-  rawResults?: MetricsApiResponse[];
+  rawResults?: SessionApiResponse[];
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: Series[];
 };
@@ -112,7 +114,7 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
         return {
           ...prevState,
           timeseriesResults: prevState.rawResults?.flatMap((rawResult, index) =>
-            transformMetricsResponseToSeries(rawResult, widget.queries[index].name)
+            transformSessionsResponseToSeries(rawResult, widget.queries[index].name)
           ),
         };
       });
@@ -136,7 +138,7 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
       case DisplayType.BIG_NUMBER:
         return 1;
       default:
-        return 20; // TODO(dam): Can be changed to undefined once [INGEST-1079] is resolved
+        return limit ?? 20; // TODO(dam): Can be changed to undefined once [INGEST-1079] is resolved
     }
   }
 
@@ -163,21 +165,20 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
     const interval = getWidgetInterval(widget, {start, end, period});
 
     const promises = widget.queries.map(query => {
+      const aggregates = query.aggregates.map(stripDerivedMetricsPrefix);
       const requestData = {
-        field: query.aggregates,
+        field: aggregates,
         orgSlug: organization.slug,
         end,
         environment: environments,
         groupBy: query.columns,
         interval,
-        limit: this.limit,
-        orderBy: query.orderby || (this.limit ? query.aggregates[0] : undefined),
         project: projects,
         query: query.conditions,
         start,
         statsPeriod: period,
       };
-      return doMetricsRequest(api, requestData);
+      return doSessionsRequest(api, requestData);
     });
 
     let completed = 0;
@@ -195,19 +196,20 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
 
           // Transform to fit the table format
           if ([DisplayType.TABLE, DisplayType.BIG_NUMBER].includes(widget.displayType)) {
-            const tableData = transformMetricsResponseToTable(
+            const tableData = transformSessionsResponseToTable(
               response
             ) as TableDataWithTitle; // Cast so we can add the title.
             tableData.title = widget.queries[requestIndex]?.name ?? '';
             return {
               ...prevState,
+              errorMessage: undefined,
               tableResults: [...(prevState.tableResults ?? []), tableData],
             };
           }
 
           // Transform to fit the chart format
           const timeseriesResults = [...(prevState.timeseriesResults ?? [])];
-          const transformedResult = transformMetricsResponseToSeries(
+          const transformedResult = transformSessionsResponseToSeries(
             response,
             widget.queries[requestIndex].name
           );
@@ -227,6 +229,7 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
 
           return {
             ...prevState,
+            errorMessage: undefined,
             timeseriesResults,
             rawResults: rawResultsClone,
           };

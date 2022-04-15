@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -37,7 +37,7 @@ function OverwriteWidgetModal({
   }
 
   return (
-    <React.Fragment>
+    <Fragment>
       <Header closeButton>
         <h4>{t('Overwrite Widget')}</h4>
       </Header>
@@ -55,7 +55,7 @@ function OverwriteWidgetModal({
           </Button>
         </ButtonBar>
       </Footer>
-    </React.Fragment>
+    </Fragment>
   );
 }
 

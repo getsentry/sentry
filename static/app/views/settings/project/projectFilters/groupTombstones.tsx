@@ -4,11 +4,11 @@ import styled from '@emotion/styled';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Avatar from 'sentry/components/avatar';
+import Button from 'sentry/components/button';
+import Confirm from 'sentry/components/confirm';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
-import LinkWithConfirmation from 'sentry/components/links/linkWithConfirmation';
 import Pagination from 'sentry/components/pagination';
 import {Panel, PanelItem} from 'sentry/components/panels';
-import Tooltip from 'sentry/components/tooltip';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -44,24 +44,23 @@ function GroupTombstoneRow({data, onUndiscard}: RowProps) {
         )}
       </AvatarContainer>
       <ActionContainer>
-        <Tooltip title={t('Undiscard')}>
-          <LinkWithConfirmation
+        <Confirm
+          message={t(
+            'Undiscarding this issue means that ' +
+              'incoming events that match this will no longer be discarded. ' +
+              'New incoming events will count toward your event quota ' +
+              'and will display on your issues dashboard. ' +
+              'Are you sure you wish to continue?'
+          )}
+          onConfirm={() => onUndiscard(data.id)}
+        >
+          <Button
+            aria-label={t('Undiscard')}
             title={t('Undiscard')}
-            className="group-remove btn btn-default btn-sm"
-            message={t(
-              'Undiscarding this issue means that ' +
-                'incoming events that match this will no longer be discarded. ' +
-                'New incoming events will count toward your event quota ' +
-                'and will display on your issues dashboard. ' +
-                'Are you sure you wish to continue?'
-            )}
-            onConfirm={() => {
-              onUndiscard(data.id);
-            }}
-          >
-            <IconDelete className="undiscard" />
-          </LinkWithConfirmation>
-        </Tooltip>
+            size="xsmall"
+            icon={<IconDelete size="xs" />}
+          />
+        </Confirm>
       </ActionContainer>
     </PanelItem>
   );
@@ -139,12 +138,14 @@ const StyledBox = styled('div')`
 `;
 
 const AvatarContainer = styled('div')`
-  margin: 0 ${space(4)};
-  width: ${space(3)};
+  margin: 0 ${space(3)};
+  flex-shrink: 1;
+  align-items: center;
 `;
 
 const ActionContainer = styled('div')`
-  width: ${space(4)};
+  flex-shrink: 1;
+  align-items: center;
 `;
 
 export default GroupTombstones;

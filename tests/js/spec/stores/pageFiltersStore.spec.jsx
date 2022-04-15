@@ -12,8 +12,12 @@ jest.mock('sentry/utils/localStorage', () => ({
 }));
 
 describe('PageFiltersStore', function () {
+  beforeEach(() => {
+    PageFiltersStore.init();
+  });
   afterEach(function () {
     PageFiltersStore.reset();
+    PageFiltersStore.teardown();
   });
 
   it('getState()', function () {

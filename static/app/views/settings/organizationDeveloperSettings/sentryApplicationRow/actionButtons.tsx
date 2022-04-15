@@ -32,7 +32,7 @@ const ActionButtons = ({
 }: Props) => {
   const appDashboardButton = (
     <StyledButton
-      size="small"
+      size="xsmall"
       icon={<IconStats />}
       to={`/settings/${org.slug}/developer-settings/${app.slug}/dashboard/`}
     >
@@ -45,7 +45,7 @@ const ActionButtons = ({
       disabled={!!disablePublishReason}
       title={disablePublishReason}
       icon={<IconUpgrade />}
-      size="small"
+      size="xsmall"
       onClick={onPublish}
     >
       {t('Publish')}
@@ -61,7 +61,7 @@ const ActionButtons = ({
       <StyledButton
         disabled
         title={disableDeleteReason}
-        size="small"
+        size="xsmall"
         icon={<IconDelete />}
         aria-label="Delete"
       />
@@ -73,7 +73,7 @@ const ActionButtons = ({
           priority="danger"
           onConfirm={() => onDelete(app)}
         >
-          <StyledButton size="small" icon={<IconDelete />} aria-label="Delete" />
+          <StyledButton size="xsmall" icon={<IconDelete />} aria-label="Delete" />
         </ConfirmDelete>
       )
     )

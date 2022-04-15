@@ -26,7 +26,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 class RatelimitMiddlewareTest(TestCase):
-    middleware = fixture(RatelimitMiddleware)
+    middleware = RatelimitMiddleware(None)
     factory = fixture(RequestFactory)
 
     class TestEndpoint(Endpoint):
@@ -66,6 +66,18 @@ class RatelimitMiddlewareTest(TestCase):
         with freeze_time("2000-01-01"):
             default_rate_limit_mock.return_value = RateLimit(0, 100)
             self.middleware.process_view(request, self._test_endpoint, [], {})
+
+    def test_process_response_fails_open(self):
+        request = self.factory.get("/")
+        bad_response = object()
+        assert self.middleware.process_response(request, bad_response) is bad_response
+
+        class BadRequest:
+            def __getattr__(self, attr):
+                raise Exception("nope")
+
+        bad_request = BadRequest()
+        assert self.middleware.process_response(bad_request, bad_response) is bad_response
 
     @patch("sentry.middleware.ratelimit.get_rate_limit_value")
     def test_positive_rate_limit_check(self, default_rate_limit_mock):

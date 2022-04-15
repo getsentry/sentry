@@ -3,6 +3,7 @@ import {RouteComponentProps} from 'react-router';
 import isEqual from 'lodash/isEqual';
 
 import EventUserFeedback from 'sentry/components/events/userFeedback';
+import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
@@ -93,8 +94,8 @@ class GroupUserFeedback extends Component<Props, State> {
 
     if (reportList.length) {
       return (
-        <div className="row">
-          <div className="col-md-9">
+        <Layout.Body>
+          <Layout.Main>
             {reportList.map((item, idx) => (
               <EventUserFeedback
                 key={idx}
@@ -104,12 +105,18 @@ class GroupUserFeedback extends Component<Props, State> {
               />
             ))}
             <Pagination pageLinks={this.state.pageLinks} {...this.props} />
-          </div>
-        </div>
+          </Layout.Main>
+        </Layout.Body>
       );
     }
 
-    return <UserFeedbackEmpty projectIds={[group.project.id]} />;
+    return (
+      <Layout.Body>
+        <Layout.Main fullWidth>
+          <UserFeedbackEmpty projectIds={[group.project.id]} />
+        </Layout.Main>
+      </Layout.Body>
+    );
   }
 }
 

@@ -1,4 +1,6 @@
-import {Fuse} from 'sentry/utils/fuzzySearch';
+import type {Fuse} from 'sentry/utils/fuzzySearch';
+
+import SpanTreeModel from './spanTreeModel';
 
 export type GapSpanType = {
   isOrphan: boolean;
@@ -58,9 +60,17 @@ export type FetchEmbeddedChildrenState =
   | 'error_fetching_embedded_transactions';
 
 export type SpanGroupProps = {
-  showSpanGroup: boolean;
-  spanGrouping: EnhancedSpan[] | undefined;
-  toggleSpanGroup: (() => void) | undefined;
+  isNestedSpanGroupExpanded: boolean;
+  spanNestedGrouping: EnhancedSpan[] | undefined;
+  toggleNestedSpanGroup: (() => void) | undefined;
+  toggleSiblingSpanGroup: ((span: SpanType) => void) | undefined;
+};
+
+export type SpanSiblingGroupProps = {
+  isLastSibling: boolean;
+  occurrence: number;
+  spanSiblingGrouping: EnhancedSpan[] | undefined;
+  toggleSiblingSpanGroup: (span: SpanType, occurrence: number) => void;
 };
 
 type CommonEnhancedProcessedSpanType = {
@@ -73,6 +83,8 @@ type CommonEnhancedProcessedSpanType = {
     | ((props: {eventSlug: string; orgSlug: string}) => void)
     | undefined;
   treeDepth: number;
+  groupOccurrence?: number;
+  isFirstSiblingOfGroup?: boolean;
 };
 
 export type EnhancedSpan =
@@ -82,7 +94,8 @@ export type EnhancedSpan =
     } & CommonEnhancedProcessedSpanType)
   | ({
       span: SpanType;
-      toggleSpanGroup: (() => void) | undefined;
+      toggleNestedSpanGroup: (() => void) | undefined;
+      toggleSiblingSpanGroup: ((span: SpanType, occurrence: number) => void) | undefined;
       type: 'span';
     } & CommonEnhancedProcessedSpanType);
 
@@ -106,7 +119,13 @@ export type EnhancedProcessedSpanType =
       span: SpanType;
       treeDepth: number;
       type: 'span_group_chain';
-    } & SpanGroupProps);
+    } & SpanGroupProps)
+  | ({
+      continuingTreeDepths: Array<TreeDepthType>;
+      span: SpanType;
+      treeDepth: number;
+      type: 'span_group_siblings';
+    } & SpanSiblingGroupProps);
 
 export type SpanEntry = {
   data: Array<RawSpanType>;
@@ -177,3 +196,13 @@ export type TraceBound = {
   traceEndTimestamp: number;
   traceStartTimestamp: number;
 };
+
+export type DescendantGroup = {
+  group: SpanTreeModel[];
+  occurrence?: number;
+};
+
+export enum GroupType {
+  DESCENDANTS,
+  SIBLINGS,
+}

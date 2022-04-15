@@ -12,7 +12,6 @@ import SelectControl from 'sentry/components/forms/selectControl';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NarrowLayout from 'sentry/components/narrowLayout';
-import {IconFlag} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {Integration, IntegrationProvider, Organization} from 'sentry/types';
 import {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrationAnalyticsEvents';
@@ -257,7 +256,7 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
     return (
       <Fragment>
         {selectedOrgSlug && organization && !this.hasAccess() && (
-          <Alert type="error" icon={<IconFlag size="md" />}>
+          <Alert type="error" showIcon>
             <p>
               {tct(
                 `You do not have permission to install integrations in

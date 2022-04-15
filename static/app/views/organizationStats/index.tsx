@@ -389,8 +389,6 @@ const DropdownLabel = styled('span')`
 `;
 
 const Body = styled(Layout.Body)`
-  margin-bottom: -20px;
-
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     display: block;
   }

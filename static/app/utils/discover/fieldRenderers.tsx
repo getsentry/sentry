@@ -89,7 +89,19 @@ export type FieldTypes = keyof FieldFormatters;
 const EmptyValueContainer = styled('span')`
   color: ${p => p.theme.gray300};
 `;
-const emptyValue = <EmptyValueContainer>{t('n/a')}</EmptyValueContainer>;
+const emptyValue = <EmptyValueContainer>{t('(no value)')}</EmptyValueContainer>;
+const emptyStringValue = <EmptyValueContainer>{t('(empty string)')}</EmptyValueContainer>;
+
+export function nullableValue(value: string | null): string | React.ReactElement {
+  switch (value) {
+    case null:
+      return emptyValue;
+    case '':
+      return emptyStringValue;
+    default:
+      return value;
+  }
+}
 
 /**
  * A mapping of field types to their rendering function.
@@ -173,7 +185,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
           </Container>
         );
       }
-      return <Container>{value}</Container>;
+      return <Container>{nullableValue(value)}</Container>;
     },
   },
   array: {
@@ -344,7 +356,7 @@ const SPECIAL_FIELDS: SpecialFields = {
   'count_unique(user)': {
     sortField: 'count_unique(user)',
     renderFunc: data => {
-      const count = data.count_unique_user;
+      const count = data.count_unique_user ?? data['count_unique(user)'];
       if (typeof count === 'number') {
         return (
           <FlexContainer>
@@ -378,8 +390,12 @@ const SPECIAL_FIELDS: SpecialFields = {
       if (values === null || values?.length === 0) {
         return <Container>{emptyValue}</Container>;
       }
-      const value = Array.isArray(values) ? values.slice(-1)[0] : values;
-      return <Container>{[1, null].includes(value) ? 'true' : 'false'}</Container>;
+      const value = Array.isArray(values) ? values : [values];
+      return (
+        <Container>
+          {value.every(v => [1, null].includes(v)) ? 'true' : 'false'}
+        </Container>
+      );
     },
   },
   team_key_transaction: {

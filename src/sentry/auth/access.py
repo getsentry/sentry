@@ -4,12 +4,12 @@ import abc
 import warnings
 from dataclasses import dataclass
 from functools import cached_property
-from typing import FrozenSet, Iterable, Mapping, Optional, Tuple
+from typing import Collection, FrozenSet, Iterable, Mapping, Optional, Tuple
 
 import sentry_sdk
 from django.conf import settings
 
-from sentry import roles
+from sentry import features, roles
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.models import (
@@ -17,6 +17,7 @@ from sentry.models import (
     AuthProvider,
     Organization,
     OrganizationMember,
+    OrganizationMemberTeam,
     Project,
     ProjectStatus,
     SentryApp,
@@ -25,6 +26,7 @@ from sentry.models import (
     UserPermission,
     UserRole,
 )
+from sentry.roles.manager import TeamRole
 from sentry.utils.request_cache import request_cache
 
 
@@ -96,17 +98,45 @@ class Access(abc.ABC):
 
     scopes: FrozenSet[str] = frozenset()
     permissions: FrozenSet[str] = frozenset()
-    role: Optional[str] = None
+
+    member: Optional[OrganizationMember] = None
 
     @property
-    @abc.abstractmethod
+    def role(self) -> Optional[str]:
+        return self.member.role if self.member else None
+
+    @cached_property
+    def _team_memberships(self) -> Mapping[Team, OrganizationMemberTeam]:
+        if self.member is None:
+            return {}
+        return {
+            omt.team: omt
+            for omt in OrganizationMemberTeam.objects.filter(
+                organizationmember=self.member, is_active=True, team__status=TeamStatus.VISIBLE
+            ).select_related("team")
+        }
+
+    @cached_property
     def teams(self) -> FrozenSet[Team]:
-        raise NotImplementedError
+        """Return the set of teams in which the user has actual membership."""
+        return frozenset(self._team_memberships.keys())
 
-    @property
-    @abc.abstractmethod
+    @cached_property
     def projects(self) -> FrozenSet[Project]:
-        raise NotImplementedError
+        """Return the set of projects to which the user has access via actual team membership."""
+
+        teams = self.teams
+        if not teams:
+            return frozenset()
+
+        with sentry_sdk.start_span(op="get_project_access_in_teams") as span:
+            projects = frozenset(
+                Project.objects.filter(status=ProjectStatus.VISIBLE, teams__in=teams).distinct()
+            )
+            span.set_data("Project Count", len(projects))
+            span.set_data("Team Count", len(teams))
+
+        return projects
 
     def has_permission(self, permission: str) -> bool:
         """
@@ -144,7 +174,19 @@ class Access(abc.ABC):
 
         >>> access.has_team_scope(team, 'team:read')
         """
-        return self.has_team_access(team) and self.has_scope(scope)
+        if not self.has_team_access(team):
+            return False
+        if self.has_scope(scope):
+            return True
+        membership = self._team_memberships.get(team)
+        return membership is not None and scope in membership.get_scopes()
+
+    def has_team_membership(self, team: Team) -> bool:
+        return team in self.teams
+
+    def get_team_role(self, team: Team) -> Optional[TeamRole]:
+        team_member = self._team_memberships.get(team)
+        return team_member and team_member.get_team_role()
 
     @abc.abstractmethod
     def has_project_access(self, project: Project) -> bool:
@@ -176,7 +218,27 @@ class Access(abc.ABC):
 
         >>> access.has_project_scope(project, 'project:read')
         """
-        return self.has_project_access(project) and self.has_scope(scope)
+        return self.has_any_project_scope(project, [scope])
+
+    def has_any_project_scope(self, project: Project, scopes: Collection[str]) -> bool:
+        """
+        Represent if a user should have access with any one of the given scopes to
+        information for the given project.
+
+        For performance's sake, prefer this over multiple calls to `has_project_scope`.
+        """
+        if not self.has_project_access(project):
+            return False
+        if any(self.has_scope(scope) for scope in scopes):
+            return True
+
+        if self.member and features.has("organizations:team-roles", self.member.organization):
+            for team in project.teams.all():
+                if team in self._team_memberships:
+                    team_scopes = self._team_memberships[team].get_scopes()
+                    if any(scope in team_scopes for scope in scopes):
+                        return True
+        return False
 
     def to_django_context(self) -> Mapping[str, bool]:
         return {s.replace(":", "_"): self.has_scope(s) for s in settings.SENTRY_SCOPES}
@@ -186,73 +248,42 @@ class OrganizationMemberAccess(Access):
     def __init__(
         self, member: OrganizationMember, scopes: Iterable[str], permissions: Iterable[str]
     ) -> None:
-        self._member = member
-
         requires_sso, sso_is_valid = _sso_params(member)
         has_global_access = (
             bool(member.organization.flags.allow_joinleave) or roles.get(member.role).is_global
         )
 
         super().__init__(
+            member=member,
             sso_is_valid=sso_is_valid,
             requires_sso=requires_sso,
             has_global_access=has_global_access,
             scopes=frozenset(scopes),
             permissions=frozenset(permissions),
-            role=member.role,
         )
-
-    @cached_property
-    def teams(self) -> FrozenSet[Team]:
-        return frozenset(self._member.get_teams())
-
-    @cached_property
-    def projects(self) -> FrozenSet[Project]:
-        teams = self.teams
-
-        with sentry_sdk.start_span(op="get_project_access_in_teams") as span:
-            projects = frozenset(
-                Project.objects.filter(status=ProjectStatus.VISIBLE, teams__in=teams).distinct()
-            )
-            span.set_data("Project Count", len(projects))
-            span.set_data("Team Count", len(teams))
-
-        return projects
 
     def has_team_access(self, team: Team) -> bool:
         if team.status != TeamStatus.VISIBLE:
             return False
-        if self.has_global_access and self._member.organization.id == team.organization_id:
+        if self.has_global_access and self.member.organization.id == team.organization_id:
             return True
         return team in self.teams
 
     def has_project_access(self, project: Project) -> bool:
         if project.status != ProjectStatus.VISIBLE:
             return False
-        if self.has_global_access and self._member.organization.id == project.organization_id:
+        if self.has_global_access and self.member.organization.id == project.organization_id:
             return True
         return project in self.projects
 
 
 class OrganizationGlobalAccess(Access):
+    """Access to all an organization's teams and projects."""
+
     def __init__(self, organization: Organization, scopes: Iterable[str], **kwargs):
         self._organization = organization
 
         super().__init__(has_global_access=True, scopes=frozenset(scopes), **kwargs)
-
-    @cached_property
-    def teams(self) -> FrozenSet[Team]:
-        return frozenset(
-            Team.objects.filter(organization=self._organization, status=TeamStatus.VISIBLE)
-        )
-
-    @cached_property
-    def projects(self) -> FrozenSet[Project]:
-        # TODO: Ensure correct behavior by has_project_membership
-
-        return frozenset(
-            Project.objects.filter(organization=self._organization, status=ProjectStatus.VISIBLE)
-        )
 
     def has_team_access(self, team: Team) -> bool:
         return team.organization_id == self._organization.id and team.status == TeamStatus.VISIBLE
@@ -264,15 +295,29 @@ class OrganizationGlobalAccess(Access):
         )
 
 
-class OrganizationlessAccess(Access):
-    @property
+class OrganizationGlobalMembership(OrganizationGlobalAccess):
+    """Access to all an organization's teams and projects with simulated membership."""
+
+    @cached_property
     def teams(self) -> FrozenSet[Team]:
-        return frozenset()
+        return frozenset(
+            Team.objects.filter(organization=self._organization, status=TeamStatus.VISIBLE)
+        )
 
-    @property
+    @cached_property
     def projects(self) -> FrozenSet[Project]:
-        return frozenset()
+        return frozenset(
+            Project.objects.filter(organization=self._organization, status=ProjectStatus.VISIBLE)
+        )
 
+    def has_team_membership(self, team: Team) -> bool:
+        return self.has_team_access(team)
+
+    def has_project_membership(self, project: Project) -> bool:
+        return self.has_project_access(project)
+
+
+class OrganizationlessAccess(Access):
     def has_team_access(self, team: Team) -> bool:
         return False
 
@@ -282,15 +327,7 @@ class OrganizationlessAccess(Access):
 
 class SystemAccess(Access):
     def __init__(self) -> None:
-        super().__init__()
-
-    @property
-    def teams(self) -> FrozenSet[Team]:
-        return frozenset()
-
-    @property
-    def projects(self) -> FrozenSet[Project]:
-        return frozenset()
+        super().__init__(has_global_access=True)
 
     def has_permission(self, permission: str) -> bool:
         return True
@@ -302,9 +339,6 @@ class SystemAccess(Access):
         return True
 
     def has_project_access(self, project: Project) -> bool:
-        return True
-
-    def has_project_membership(self, project: Project) -> bool:
         return True
 
 
@@ -327,7 +361,7 @@ def from_request(
         return _from_sentry_app(request.user, organization=organization)
 
     if is_superuser:
-        role = None
+        member = None
         # we special case superuser so that if they're a member of the org
         # they must still follow SSO checks, but they gain global access
         try:
@@ -336,15 +370,14 @@ def from_request(
             requires_sso, sso_is_valid = False, True
         else:
             requires_sso, sso_is_valid = _sso_params(member)
-            role = member.role
 
         return OrganizationGlobalAccess(
             organization=organization,
+            member=member,
             scopes=scopes if scopes is not None else settings.SENTRY_SCOPES,
             sso_is_valid=sso_is_valid,
             requires_sso=requires_sso,
             permissions=get_permissions_for_user(request.user.id),
-            role=role,
         )
 
     # TODO: from_auth does not take scopes as a parameter so this fails for anon user
@@ -364,7 +397,7 @@ def _from_sentry_app(user, organization: Optional[Organization] = None) -> Acces
     if not sentry_app.is_installed_on(organization):
         return NoAccess()
 
-    return OrganizationGlobalAccess(organization, sentry_app.scope_list, sso_is_valid=True)
+    return OrganizationGlobalMembership(organization, sentry_app.scope_list, sso_is_valid=True)
 
 
 def from_user(

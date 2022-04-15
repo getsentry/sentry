@@ -1,7 +1,8 @@
-import Reflux from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
 import {ModalOptions, ModalRenderProps} from 'sentry/actionCreators/modal';
 import ModalActions from 'sentry/actions/modalActions';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 type Renderer = (renderProps: ModalRenderProps) => React.ReactNode;
 
@@ -10,19 +11,25 @@ type ModalStoreState = {
   renderer: Renderer | null;
 };
 
-type ModalStoreInterface = {
+interface ModalStoreDefinition extends StoreDefinition {
   get(): ModalStoreState;
   init(): void;
   onCloseModal(): void;
   onOpenModal(renderer: Renderer, options: ModalOptions): void;
   reset(): void;
-};
+}
 
-const storeConfig: Reflux.StoreDefinition & ModalStoreInterface = {
+const storeConfig: ModalStoreDefinition = {
+  unsubscribeListeners: [],
+
   init() {
     this.reset();
-    this.listenTo(ModalActions.closeModal, this.onCloseModal);
-    this.listenTo(ModalActions.openModal, this.onOpenModal);
+    this.unsubscribeListeners.push(
+      this.listenTo(ModalActions.closeModal, this.onCloseModal)
+    );
+    this.unsubscribeListeners.push(
+      this.listenTo(ModalActions.openModal, this.onOpenModal)
+    );
   },
 
   get() {
@@ -47,6 +54,5 @@ const storeConfig: Reflux.StoreDefinition & ModalStoreInterface = {
   },
 };
 
-const ModalStore = Reflux.createStore(storeConfig) as Reflux.Store & ModalStoreInterface;
-
+const ModalStore = createStore(makeSafeRefluxStore(storeConfig));
 export default ModalStore;

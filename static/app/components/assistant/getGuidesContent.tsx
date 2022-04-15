@@ -123,20 +123,6 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
       ],
     },
     {
-      guide: 'stack_trace_preview',
-      requiredTargets: ['issue_stream_title'],
-      dateThreshold: new Date(2021, 2, 15),
-      steps: [
-        {
-          title: t('Stack Trace Preview'),
-          target: 'issue_stream_title',
-          description: t(
-            `Hover over the issue title to see the stack trace of the latest event.`
-          ),
-        },
-      ],
-    },
-    {
       guide: 'trace_view',
       requiredTargets: ['trace_view_guide_row', 'trace_view_guide_row_details'],
       steps: [
@@ -247,28 +233,9 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
       ],
     },
     {
-      guide: 'percentage_based_alerts',
-      requiredTargets: ['percentage_based_alerts'],
-      steps: [
-        {
-          title: t('Percentage Based Alerts'),
-          target: 'percentage_based_alerts',
-          description: tct(
-            'View the event count as a percentage of sessions and alert on this number to adapt to changes in traffic patterns. [link:View the docs] to learn more.',
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/product/alerts/create-alerts/issue-alert-config/#when-conditions-triggers" />
-              ),
-            }
-          ),
-          nextText: t('Got it'),
-        },
-      ],
-    },
-    {
       guide: 'semver',
       requiredTargets: ['releases_search'],
-      dateThreshold: new Date(2021, 6, 1),
+      dateThreshold: new Date('2021-05-01'),
       steps: [
         {
           title: t('Filter by Semver'),
@@ -289,7 +256,7 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
     {
       guide: 'release_stages',
       requiredTargets: ['release_stages'],
-      dateThreshold: new Date(2021, 6, 1),
+      dateThreshold: new Date('2021-05-01'),
       steps: [
         {
           title: t('Adoption Filter'),
@@ -304,6 +271,29 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
             }
           ),
           nextText: t('Got it'),
+        },
+      ],
+    },
+    {
+      guide: 'new_page_filters',
+      requiredTargets: ['new_page_filter_button'],
+      expectedTargets: ['new_page_filter_pin'],
+      dateThreshold: new Date('2022-04-05'),
+      steps: [
+        {
+          title: t('Selection Filters have moved!'),
+          target: 'new_page_filter_button',
+          description: t(
+            'Selection filters have teleported from the top of the page to live closer to the content they are filtering on!'
+          ),
+          nextText: t('Tell me more'),
+        },
+        {
+          title: t('Explicit memory'),
+          target: 'new_page_filter_pin',
+          description: t(
+            'Selection filters will no longer be implicitly be remembered between sessions. You can now "Pin" a filter to remember it'
+          ),
         },
       ],
     },

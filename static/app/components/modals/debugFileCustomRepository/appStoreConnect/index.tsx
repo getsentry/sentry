@@ -8,7 +8,6 @@ import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
@@ -215,7 +214,7 @@ function AppStoreConnect({
         );
       default:
         return (
-          <Alert type="error" icon={<IconWarning />}>
+          <Alert type="error" showIcon>
             {t('This step could not be found.')}
           </Alert>
         );
@@ -231,7 +230,7 @@ function AppStoreConnect({
 
     if (credentials?.status === 'invalid') {
       alerts.push(
-        <StyledAlert type="warning" icon={<IconWarning />}>
+        <StyledAlert type="warning" showIcon>
           {credentials.code === 'app-connect-forbidden-error'
             ? t(
                 'Your App Store Connect credentials have insufficient permissions. To reconnect, update your credentials.'

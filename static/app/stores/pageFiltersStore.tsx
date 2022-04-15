@@ -1,12 +1,13 @@
 import isEqual from 'lodash/isEqual';
-import Reflux from 'reflux';
+import {createStore} from 'reflux';
 
 import PageFiltersActions from 'sentry/actions/pageFiltersActions';
 import {getDefaultSelection} from 'sentry/components/organizations/pageFilters/utils';
 import {PageFilters, PinnedPageFilter} from 'sentry/types';
 import {isEqualWithDates} from 'sentry/utils/isEqualWithDates';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
-import {CommonStoreInterface} from './types';
+import {CommonStoreDefinition} from './types';
 
 type State = {
   desyncedFilters: Set<PinnedPageFilter>;
@@ -15,7 +16,7 @@ type State = {
   selection: PageFilters;
 };
 
-type Internals = {
+type InternalDefinition = {
   /**
    * The set of page filters which have been pinned but do not match the current
    * URL state.
@@ -35,7 +36,10 @@ type Internals = {
   selection: PageFilters;
 };
 
-type PageFiltersStoreInterface = CommonStoreInterface<State> & {
+interface PageFiltersStoreDefinition
+  extends InternalDefinition,
+    CommonStoreDefinition<State> {
+  init(): void;
   onInitializeUrlState(newSelection: PageFilters, pinned: Set<PinnedPageFilter>): void;
   onReset(): void;
   pin(filter: PinnedPageFilter, pin: boolean): void;
@@ -44,23 +48,35 @@ type PageFiltersStoreInterface = CommonStoreInterface<State> & {
   updateDesyncedFilters(filters: Set<PinnedPageFilter>): void;
   updateEnvironments(environments: string[]): void;
   updateProjects(projects: PageFilters['projects'], environments: null | string[]): void;
-};
+}
 
-const storeConfig: Reflux.StoreDefinition & Internals & PageFiltersStoreInterface = {
+const storeConfig: PageFiltersStoreDefinition = {
   selection: getDefaultSelection(),
   pinnedFilters: new Set(),
   desyncedFilters: new Set(),
   hasInitialState: false,
+  unsubscribeListeners: [],
 
   init() {
     this.reset(this.selection);
-    this.listenTo(PageFiltersActions.reset, this.onReset);
-    this.listenTo(PageFiltersActions.initializeUrlState, this.onInitializeUrlState);
-    this.listenTo(PageFiltersActions.updateProjects, this.updateProjects);
-    this.listenTo(PageFiltersActions.updateDateTime, this.updateDateTime);
-    this.listenTo(PageFiltersActions.updateEnvironments, this.updateEnvironments);
-    this.listenTo(PageFiltersActions.updateDesyncedFilters, this.updateDesyncedFilters);
-    this.listenTo(PageFiltersActions.pin, this.pin);
+
+    this.unsubscribeListeners.push(this.listenTo(PageFiltersActions.reset, this.onReset));
+    this.unsubscribeListeners.push(
+      this.listenTo(PageFiltersActions.initializeUrlState, this.onInitializeUrlState)
+    );
+    this.unsubscribeListeners.push(
+      this.listenTo(PageFiltersActions.updateProjects, this.updateProjects)
+    );
+    this.unsubscribeListeners.push(
+      this.listenTo(PageFiltersActions.updateDateTime, this.updateDateTime)
+    );
+    this.unsubscribeListeners.push(
+      this.listenTo(PageFiltersActions.updateEnvironments, this.updateEnvironments)
+    );
+    this.unsubscribeListeners.push(
+      this.listenTo(PageFiltersActions.updateDesyncedFilters, this.updateDesyncedFilters)
+    );
+    this.unsubscribeListeners.push(this.listenTo(PageFiltersActions.pin, this.pin));
   },
 
   reset(selection) {
@@ -81,10 +97,12 @@ const storeConfig: Reflux.StoreDefinition & Internals & PageFiltersStoreInterfac
   },
 
   getState() {
-    const isReady = this._hasInitialState;
-    const {selection, pinnedFilters, desyncedFilters} = this;
-
-    return {selection, pinnedFilters, desyncedFilters, isReady};
+    return {
+      selection: this.selection,
+      pinnedFilters: this.pinnedFilters,
+      desyncedFilters: this.desyncedFilters,
+      isReady: this._hasInitialState,
+    };
   },
 
   onReset() {
@@ -145,7 +163,6 @@ const storeConfig: Reflux.StoreDefinition & Internals & PageFiltersStoreInterfac
   },
 };
 
-const PageFiltersStore = Reflux.createStore(storeConfig) as Reflux.Store &
-  PageFiltersStoreInterface;
+const PageFiltersStore = createStore(makeSafeRefluxStore(storeConfig));
 
 export default PageFiltersStore;

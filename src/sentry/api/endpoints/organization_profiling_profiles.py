@@ -6,22 +6,13 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Organization
-from sentry.utils.profiling import get_from_profiling_service, proxy_profiling_service
-
-PROFILE_FILTERS = [
-    "android_api_level",
-    "device_classification",
-    "device_locale",
-    "device_manufacturer",
-    "device_model",
-    "device_os_build_number",
-    "device_os_name",
-    "device_os_version",
-    "error_code",
-    "transaction_name",
-    "version",
-]
+from sentry.utils.profiling import (
+    get_from_profiling_service,
+    parse_profile_filters,
+    proxy_profiling_service,
+)
 
 
 class OrganizationProfilingProfilesEndpoint(OrganizationEndpoint):
@@ -29,12 +20,17 @@ class OrganizationProfilingProfilesEndpoint(OrganizationEndpoint):
         if not features.has("organizations:profiling", organization, actor=request.user):
             return Response(status=404)
 
-        params = {
-            p: request.query_params.getlist(p) for p in PROFILE_FILTERS if p in request.query_params
-        }
-        params.update(self.get_filter_params(request, organization))
-        for p in ["start", "end"]:
-            params[p] = params[p].isoformat()
+        try:
+            params = parse_profile_filters(request.query_params.get("query", ""))
+        except InvalidSearchQuery as err:
+            return Response(str(err), status=400)
+
+        params.update(
+            {
+                key: value.isoformat() if key in {"start", "end"} else value
+                for key, value in self.get_filter_params(request, organization).items()
+            }
+        )
 
         def data_fn(offset: int, limit: int) -> Any:
             params["offset"] = offset
@@ -57,11 +53,17 @@ class OrganizationProfilingFiltersEndpoint(OrganizationEndpoint):
         if not features.has("organizations:profiling", organization, actor=request.user):
             return Response(status=404)
 
-        params = {}
-        projects = self.get_projects(request, organization)
+        try:
+            params = parse_profile_filters(request.query_params.get("query", ""))
+        except InvalidSearchQuery as err:
+            return Response(str(err), status=400)
 
-        if len(projects) > 0:
-            params["project"] = [p.id for p in projects]
+        params.update(
+            {
+                key: value.isoformat() if key in {"start", "end"} else value
+                for key, value in self.get_filter_params(request, organization).items()
+            }
+        )
 
         return proxy_profiling_service(
             "GET", f"/organizations/{organization.id}/filters", params=params

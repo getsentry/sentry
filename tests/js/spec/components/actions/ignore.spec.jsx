@@ -52,7 +52,7 @@ describe('IgnoreActions', function () {
     });
 
     it('calls spy with ignore details when clicked', function () {
-      const button = component.find('IgnoreButton').first();
+      const button = component.find('IgnoreButton button').first();
       button.simulate('click');
       expect(spy).toHaveBeenCalledTimes(1);
       expect(spy).toHaveBeenCalledWith({status: 'ignored'});
@@ -67,7 +67,7 @@ describe('IgnoreActions', function () {
       component = mountWithTheme(
         <IgnoreActions onUpdate={spy} shouldConfirm confirmMessage="confirm me" />
       );
-      button = component.find('IgnoreButton');
+      button = component.find('IgnoreButton button');
     });
 
     it('displays confirmation modal with message provided', async function () {
@@ -77,7 +77,7 @@ describe('IgnoreActions', function () {
 
       expect(modal.text()).toContain('confirm me');
       expect(spy).not.toHaveBeenCalled();
-      modal.find('Button[priority="primary"]').simulate('click');
+      modal.find('Button[priority="primary"] button').simulate('click');
 
       expect(spy).toHaveBeenCalled();
     });

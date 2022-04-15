@@ -6,8 +6,8 @@ import space from 'sentry/styles/space';
 type BoxContent = {
   text: string;
   img?: {
-    src: string;
     alt: string;
+    src: string;
   };
 };
 type BoxProps = BoxContent & {

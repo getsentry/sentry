@@ -4,7 +4,7 @@ import type {TooltipComponentFormatterCallbackParams} from 'echarts';
 import debounce from 'lodash/debounce';
 import flatten from 'lodash/flatten';
 
-import AreaChart, {AreaChartSeries} from 'sentry/components/charts/areaChart';
+import {AreaChart, AreaChartSeries} from 'sentry/components/charts/areaChart';
 import Graphic from 'sentry/components/charts/components/graphic';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import {LineChartSeries} from 'sentry/components/charts/lineChart';

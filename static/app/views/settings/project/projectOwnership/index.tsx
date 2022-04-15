@@ -18,7 +18,6 @@ import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
@@ -263,7 +262,7 @@ tags.sku_class:enterprise #enterprise`;
           <Alert
             key={id}
             type="error"
-            icon={<IconWarning size="md" />}
+            showIcon
             expand={[
               <AlertContentContainer key="container">
                 {Object.entries(errors)

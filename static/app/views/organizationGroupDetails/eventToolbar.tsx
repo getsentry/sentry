@@ -4,6 +4,7 @@ import {Location} from 'history';
 import moment from 'moment-timezone';
 
 import DateTime from 'sentry/components/dateTime';
+import {DataSection} from 'sentry/components/events/styles';
 import FileSize from 'sentry/components/fileSize';
 import GlobalAppStoreConnectUpdateAlert from 'sentry/components/globalAppStoreConnectUpdateAlert';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -116,7 +117,7 @@ class GroupEventToolbar extends Component<Props> {
       Math.abs(+moment(evt.dateReceived) - +moment(evt.dateCreated)) > latencyThreshold;
 
     return (
-      <Wrapper>
+      <StyledDataSection>
         <StyledNavigationButtonGroup
           hasPrevious={!!evt.previousEventID}
           hasNext={!!evt.nextEventID}
@@ -158,18 +159,18 @@ class GroupEventToolbar extends Component<Props> {
           organization={organization}
           location={location}
         />
-      </Wrapper>
+      </StyledDataSection>
     );
   }
 }
 
-const Wrapper = styled('div')`
+const StyledDataSection = styled(DataSection)`
   position: relative;
-  margin-bottom: -5px;
+  display: block;
+  border-top: 0;
   /* z-index seems unnecessary, but increasing (instead of removing) just in case(billy) */
   /* Fixes tooltips in toolbar having lower z-index than .btn-group .btn.active */
   z-index: 3;
-  padding: 20px 30px 20px 40px;
 
   @media (max-width: 767px) {
     display: none;

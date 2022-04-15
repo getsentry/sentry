@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import moment from 'moment';
@@ -7,23 +7,28 @@ import moment from 'moment';
 import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import {getInterval} from 'sentry/components/charts/utils';
-import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
 import Duration from 'sentry/components/duration';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
+import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
-import {IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import getDynamicText from 'sentry/utils/getDynamicText';
-import {Dataset, IncidentRule} from 'sentry/views/alerts/incidentRules/types';
+import {Dataset, IncidentRule, TimePeriod} from 'sentry/views/alerts/incidentRules/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/incidentRules/utils/getEventTypeFilter';
 import MetricHistory from 'sentry/views/alerts/rules/details/metricHistory';
 
+import {isCrashFreeAlert} from '../../incidentRules/utils/isCrashFreeAlert';
 import {AlertRuleStatus, Incident} from '../../types';
 
-import {API_INTERVAL_POINTS_LIMIT, TIME_OPTIONS, TimePeriodType} from './constants';
+import {
+  API_INTERVAL_POINTS_LIMIT,
+  SELECTOR_RELATIVE_PERIODS,
+  TIME_WINDOWS,
+  TimePeriodType,
+} from './constants';
 import MetricChart from './metricChart';
 import RelatedIssues from './relatedIssues';
 import RelatedTransactions from './relatedTransactions';
@@ -63,10 +68,13 @@ export default class DetailsBody extends React.Component<Props> {
     const startDate = moment.utc(start);
     const endDate = moment.utc(end);
     const timeWindow = rule?.timeWindow;
+    const startEndDifferenceMs = endDate.diff(startDate);
 
     if (
       timeWindow &&
-      endDate.diff(startDate) < API_INTERVAL_POINTS_LIMIT * timeWindow * 60 * 1000
+      (startEndDifferenceMs < API_INTERVAL_POINTS_LIMIT * timeWindow * 60 * 1000 ||
+        // Special case 7 days * 1m interval over the api limit
+        startEndDifferenceMs === TIME_WINDOWS[TimePeriod.SEVEN_DAYS])
     ) {
       return `${timeWindow}m`;
     }
@@ -81,18 +89,29 @@ export default class DetailsBody extends React.Component<Props> {
       return null;
     }
 
-    const eventType =
-      dataset === Dataset.SESSIONS ? null : extractEventTypeFilterFromRule(rule);
-    const queryWithEventType = [eventType, query].join(' ').split(' ');
-
-    return queryWithEventType;
+    const eventType = isCrashFreeAlert(dataset)
+      ? null
+      : extractEventTypeFilterFromRule(rule);
+    return [eventType, query].join(' ').split(' ');
   }
 
-  handleTimePeriodChange = (value: string) => {
-    browserHistory.push({
-      pathname: this.props.location.pathname,
+  handleTimePeriodChange = (datetime: ChangeData) => {
+    const {start, end, relative} = datetime;
+
+    if (start && end) {
+      return this.props.router.push({
+        ...this.props.location,
+        query: {
+          start: moment(start).utc().format(),
+          end: moment(end).utc().format(),
+        },
+      });
+    }
+
+    return this.props.router.push({
+      ...this.props.location,
       query: {
-        period: value,
+        period: relative,
       },
     });
   };
@@ -135,50 +154,35 @@ export default class DetailsBody extends React.Component<Props> {
     const {query, dataset} = rule;
 
     const queryWithTypeFilter = `${query} ${extractEventTypeFilterFromRule(rule)}`.trim();
+    const relativeOptions = {
+      ...SELECTOR_RELATIVE_PERIODS,
+      ...(rule.timeWindow > 1 ? {[TimePeriod.FOURTEEN_DAYS]: t('Last 14 days')} : {}),
+    };
 
     return (
       <React.Fragment>
         {selectedIncident &&
           selectedIncident.alertRule.status === AlertRuleStatus.SNAPSHOT && (
             <StyledLayoutBody>
-              <StyledAlert type="warning" icon={<IconInfo size="md" />}>
+              <StyledAlert type="warning" showIcon>
                 {t(
                   'Alert Rule settings have been updated since this alert was triggered.'
                 )}
               </StyledAlert>
             </StyledLayoutBody>
           )}
-        <StyledLayoutBodyWrapper>
+        <Layout.Body>
           <Layout.Main>
-            <DateContainer>
-              <StyledDropdownControl
-                label={getDynamicText({
-                  fixed: (
-                    <div>
-                      {t('Date Range')}:{' '}
-                      <DropdownLabel>Oct 14, 2:56 PM — Oct 14, 4:55 PM</DropdownLabel>
-                    </div>
-                  ),
-                  value: (
-                    <div>
-                      {t('Date Range')}:{' '}
-                      <DropdownLabel>{timePeriod.display}</DropdownLabel>
-                    </div>
-                  ),
-                })}
-              >
-                {TIME_OPTIONS.map(({label, value}) => (
-                  <DropdownItem
-                    key={value}
-                    eventKey={value}
-                    isActive={!timePeriod.custom && timePeriod.period === value}
-                    onSelect={this.handleTimePeriodChange}
-                  >
-                    {label}
-                  </DropdownItem>
-                ))}
-              </StyledDropdownControl>
-            </DateContainer>
+            <StyledPageTimeRangeSelector
+              organization={organization}
+              relative={timePeriod.period ?? ''}
+              start={(timePeriod.custom && timePeriod.start) || null}
+              end={(timePeriod.custom && timePeriod.end) || null}
+              utc={null}
+              onUpdate={this.handleTimePeriodChange}
+              relativeOptions={relativeOptions}
+              showAbsolute={false}
+            />
 
             <MetricChart
               api={api}
@@ -189,14 +193,16 @@ export default class DetailsBody extends React.Component<Props> {
               organization={organization}
               project={project}
               interval={this.getInterval()}
-              query={dataset === Dataset.SESSIONS ? query : queryWithTypeFilter}
+              query={isCrashFreeAlert(dataset) ? query : queryWithTypeFilter}
               filter={this.getFilter()}
               orgId={orgId}
             />
             <DetailWrapper>
               <ActivityWrapper>
                 <MetricHistory organization={organization} incidents={incidents} />
-                {[Dataset.SESSIONS, Dataset.ERRORS].includes(dataset) && (
+                {[Dataset.METRICS, Dataset.SESSIONS, Dataset.ERRORS].includes(
+                  dataset
+                ) && (
                   <RelatedIssues
                     organization={organization}
                     rule={rule}
@@ -205,7 +211,7 @@ export default class DetailsBody extends React.Component<Props> {
                     query={
                       dataset === Dataset.ERRORS
                         ? queryWithTypeFilter
-                        : dataset === Dataset.SESSIONS
+                        : isCrashFreeAlert(dataset)
                         ? `${query} error.unhandled:true`
                         : undefined
                     }
@@ -217,8 +223,7 @@ export default class DetailsBody extends React.Component<Props> {
                     location={location}
                     rule={rule}
                     projects={[project]}
-                    start={timePeriod.start}
-                    end={timePeriod.end}
+                    timePeriod={timePeriod}
                     filter={extractEventTypeFilterFromRule(rule)}
                   />
                 )}
@@ -226,9 +231,9 @@ export default class DetailsBody extends React.Component<Props> {
             </DetailWrapper>
           </Layout.Main>
           <Layout.Side>
-            <Sidebar incidents={incidents} rule={rule} />
+            <Sidebar rule={rule} />
           </Layout.Side>
-        </StyledLayoutBodyWrapper>
+        </Layout.Body>
       </React.Fragment>
     );
   }
@@ -243,35 +248,12 @@ const DetailWrapper = styled('div')`
   }
 `;
 
-const DateContainer = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
-const DropdownLabel = styled('span')`
-  font-weight: 400;
-`;
-
-const StyledDropdownControl = styled(DropdownControl)`
-  width: 100%;
-  button {
-    width: 100%;
-    span {
-      justify-content: space-between;
-    }
-  }
-`;
-
 const StyledLayoutBody = styled(Layout.Body)`
   flex-grow: 0;
   padding-bottom: 0 !important;
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     grid-template-columns: auto;
   }
-`;
-
-const StyledLayoutBodyWrapper = styled(Layout.Body)`
-  margin-bottom: -${space(3)};
 `;
 
 const StyledAlert = styled(Alert)`
@@ -287,4 +269,8 @@ const ActivityWrapper = styled('div')`
 
 const ChartPanel = styled(Panel)`
   margin-top: ${space(2)};
+`;
+
+const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
+  margin-bottom: ${space(2)};
 `;

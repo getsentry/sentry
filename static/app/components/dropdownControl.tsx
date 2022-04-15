@@ -63,6 +63,7 @@ type Props = DefaultProps & {
   buttonTooltipTitle?: string | null;
   className?: string;
   detached?: boolean;
+  fullWidth?: boolean;
 
   /**
    * String or element for the button contents.
@@ -84,7 +85,8 @@ class DropdownControl extends React.Component<Props> {
   };
 
   renderButton(isOpen: boolean, getActorProps: GetActorPropsFn) {
-    const {label, button, buttonProps, buttonTooltipTitle, priority} = this.props;
+    const {label, button, buttonProps, buttonTooltipTitle, priority, detached} =
+      this.props;
 
     if (button) {
       return button({isOpen, getActorProps});
@@ -97,6 +99,9 @@ class DropdownControl extends React.Component<Props> {
             priority={priority}
             {...getActorProps(buttonProps)}
             isOpen={isOpen}
+            data-test-id="dropdown-control-button"
+            detached={detached}
+            hideBottomBorder={!detached}
           >
             {label}
           </StyledDropdownButton>
@@ -109,6 +114,9 @@ class DropdownControl extends React.Component<Props> {
         priority={priority}
         {...getActorProps(buttonProps)}
         isOpen={isOpen}
+        data-test-id="dropdown-control-button"
+        detached={detached}
+        hideBottomBorder={!detached}
       >
         {label}
       </StyledDropdownButton>
@@ -135,6 +143,7 @@ class DropdownControl extends React.Component<Props> {
         blendWithActor={blendWithActor}
         detached={detached}
         blendCorner
+        data-test-id="dropdown-control"
       >
         {children}
       </Content>
@@ -142,10 +151,10 @@ class DropdownControl extends React.Component<Props> {
   }
 
   render() {
-    const {alwaysRenderMenu, className} = this.props;
+    const {alwaysRenderMenu, className, fullWidth} = this.props;
 
     return (
-      <Container className={className}>
+      <Container className={className} fullWidth={fullWidth ?? false}>
         <DropdownMenu alwaysRenderMenu={alwaysRenderMenu}>
           {({isOpen, getMenuProps, getActorProps}) => (
             <React.Fragment>
@@ -159,9 +168,13 @@ class DropdownControl extends React.Component<Props> {
   }
 }
 
-const Container = styled('div')`
+const Container = styled('div')<{fullWidth: boolean}>`
   display: inline-block;
   position: relative;
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    width: ${p => p.fullWidth && '100%'};
+  }
 `;
 
 const StyledDropdownButton = styled(DropdownButton)`

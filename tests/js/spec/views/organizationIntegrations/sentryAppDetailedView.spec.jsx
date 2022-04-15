@@ -133,7 +133,7 @@ describe('SentryAppDetailedView', function () {
       expect(wrapper.find('InstallButton').props().children).toEqual('Accept & Install');
     });
 
-    describe('onClick: ', function () {
+    describe('onClick:', function () {
       let wrapperState;
 
       it('installs app', async function () {

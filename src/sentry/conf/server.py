@@ -587,6 +587,8 @@ CELERY_IMPORTS = (
     "sentry.tasks.unmerge",
     "sentry.tasks.update_user_reports",
     "sentry.tasks.user_report",
+    "sentry.profiles.task",
+    "sentry.release_health.duplex",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -653,6 +655,8 @@ CELERY_QUEUES = [
     ),
     Queue("unmerge", routing_key="unmerge"),
     Queue("update", routing_key="update"),
+    Queue("profiles.process", routing_key="profiles.process"),
+    Queue("release_health.duplex", routing_key="release_health.duplex"),
 ]
 
 for queue in CELERY_QUEUES:
@@ -924,8 +928,8 @@ SENTRY_FEATURES = {
     "auth:register": True,
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
-    # Enable issue alert status page
-    "organizations:alert-rule-status-page": False,
+    # Use metrics as the dataset for crash free metric alerts
+    "organizations:alert-crash-free-metrics": False,
     # Alert wizard redesign version 3
     "organizations:alert-wizard-v3": False,
     "organizations:api-keys": False,
@@ -962,6 +966,8 @@ SENTRY_FEATURES = {
     "organizations:performance-view": True,
     # Enable profiling
     "organizations:profiling": False,
+    # Enable projects page redesign
+    "organizations:projects-page-redesign": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
@@ -990,6 +996,8 @@ SENTRY_FEATURES = {
     "organizations:new-widget-builder-experience": False,
     # Enable the new widget builder experience "design" on Dashboards
     "organizations:new-widget-builder-experience-design": False,
+    # Enable access to the Add to Dashboard modal for metrics work
+    "organizations:new-widget-builder-experience-modal-access": False,
     # Automatically extract metrics during ingestion.
     #
     # XXX(ja): DO NOT ENABLE UNTIL THIS NOTICE IS GONE. Relay experiences
@@ -1002,6 +1010,8 @@ SENTRY_FEATURES = {
     "organizations:release-health-check-metrics": False,
     # True if differences between the metrics and sessions backend should be reported
     "organizations:release-health-check-metrics-report": False,
+    # True if the metrics data should be returned as API response (if possible with current data)
+    "organizations:release-health-return-metrics": False,
     # Enable threshold period in metric alert rule builder
     "organizations:metric-alert-threshold-period": False,
     # Enable integration functionality to create and link groups to issues on
@@ -1037,6 +1047,8 @@ SENTRY_FEATURES = {
     "organizations:dashboards-edit": True,
     # Enable dashboard widget library
     "organizations:widget-library": False,
+    # Enable metrics enhanced performance in dashboards
+    "organizations:dashboards-mep": False,
     # Enable metrics in dashboards
     "organizations:dashboards-metrics": False,
     # Enable widget viewer modal in dashboards
@@ -1054,8 +1066,6 @@ SENTRY_FEATURES = {
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
-    # Display a global dashboard notification for this org
-    "organizations:prompt-dashboards": False,
     # Enable views for ops breakdown
     "organizations:performance-ops-breakdown": False,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
@@ -1068,6 +1078,8 @@ SENTRY_FEATURES = {
     "organizations:performance-span-histogram-view": False,
     # Enable autogrouping of sibling spans
     "organizations:performance-autogroup-sibling-spans": False,
+    # Enable performance on-boarding checklist
+    "organizations:performance-onboarding-checklist": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
@@ -1102,10 +1114,10 @@ SENTRY_FEATURES = {
     "organizations:mobile-screenshots": False,
     # Enable the release details performance section
     "organizations:release-comparison-performance": False,
-    # Enable percent displays in issue stream
-    "organizations:issue-percent-display": False,
     # Enable team insights page
     "organizations:team-insights": True,
+    # Enable setting team-level roles and receiving permissions from them
+    "organizations:team-roles": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -1398,7 +1410,7 @@ SENTRY_METRICS_PREFIX = "sentry."
 SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefixes.
 
 # Metrics product
-SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.postgres.PGStringIndexer"
+SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.postgres_v2.StaticStringsIndexerDecorator"
 SENTRY_METRICS_INDEXER_OPTIONS = {}
 SENTRY_METRICS_INDEXER_CACHE_TTL = 3600 * 2
 
@@ -1544,9 +1556,16 @@ SENTRY_ROLES = (
     {
         "id": "admin",
         "name": "Admin",
-        "desc": "Admin privileges on any teams of which they're a member. They can create new teams and projects, "
-        "as well as remove teams and projects on which they already hold membership (or all teams, if open membership is enabled). "
-        "Additionally, they can manage memberships of teams that they are members of. They cannot invite members to the organization.",
+        "desc": (
+            """
+            Admin privileges on any teams of which they're a member. They can
+            create new teams and projects, as well as remove teams and projects
+            on which they already hold membership (or all teams, if open
+            membership is enabled). Additionally, they can manage memberships of
+            teams that they are members of. They cannot invite members to the
+            organization.
+            """
+        ),
         "scopes": {
             "event:read",
             "event:write",
@@ -1594,8 +1613,13 @@ SENTRY_ROLES = (
     {
         "id": "owner",
         "name": "Owner",
-        "desc": "Unrestricted access to the organization, its data, and its settings. Can add, modify, and delete "
-        "projects and members, as well as make billing and plan changes.",
+        "desc": (
+            """
+            Unrestricted access to the organization, its data, and its settings.
+            Can add, modify, and delete projects and members, as well as make
+            billing and plan changes.
+            """
+        ),
         "is_global": True,
         "scopes": {
             "org:read",
@@ -1618,6 +1642,56 @@ SENTRY_ROLES = (
             "alerts:read",
             "alerts:write",
         },
+    },
+)
+
+SENTRY_TEAM_ROLES = (
+    {
+        "id": "contributor",
+        "name": "Contributor",
+        "desc": "Contributors can view and act on events, as well as view most other data within the team's projects.",
+        "scopes": {
+            "event:read",
+            "event:write",
+            "event:admin",
+            "project:releases",
+            "project:read",
+            "org:read",
+            "member:read",
+            "team:read",
+            "alerts:read",
+            "alerts:write",
+        },
+    },
+    {
+        "id": "admin",
+        "name": "Team Admin",
+        "desc": (
+            # TODO: Editing pass
+            """
+            Admin privileges on the team. They can create and remove projects,
+            and can manage the team's memberships. They cannot invite members to
+            the organization.
+            """
+        ),
+        "scopes": {
+            "event:read",
+            "event:write",
+            "event:admin",
+            "org:read",
+            "member:read",
+            "project:read",
+            "project:write",
+            "project:admin",
+            "project:releases",
+            "team:read",
+            "team:write",
+            "team:admin",
+            "org:integrations",
+            "alerts:read",
+            "alerts:write",
+        },
+        "is_minimum_role_for": "admin",
     },
 )
 
@@ -1696,6 +1770,9 @@ SENTRY_USE_METRICS_DEV = False
 # This flags activates the Change Data Capture backend in the development environment
 SENTRY_USE_CDC_DEV = False
 
+# This flag activates profiling backend in the development environment
+SENTRY_USE_PROFILING = False
+
 # SENTRY_DEVSERVICES = {
 #     "service-name": lambda settings, options: (
 #         {
@@ -1753,7 +1830,7 @@ SENTRY_DEVSERVICES = {
     ),
     "postgres": lambda settings, options: (
         {
-            "image": "postgres:9.6-alpine",
+            "image": f"postgres:{os.getenv('PG_VERSION') or '9.6'}-alpine",
             "pull": True,
             "ports": {"5432/tcp": 5432},
             "environment": {"POSTGRES_DB": "sentry", "POSTGRES_HOST_AUTH_METHOD": "trust"},
@@ -1854,6 +1931,7 @@ SENTRY_DEVSERVICES = {
                 "REDIS_PORT": "6379",
                 "REDIS_DB": "1",
                 "ENABLE_SENTRY_METRICS_DEV": "1" if settings.SENTRY_USE_METRICS_DEV else "",
+                "ENABLE_PROFILES_CONSUMER": "1" if settings.SENTRY_USE_PROFILING else "",
             },
             "only_if": "snuba" in settings.SENTRY_EVENTSTREAM
             or "kafka" in settings.SENTRY_EVENTSTREAM,
@@ -2228,6 +2306,7 @@ KAFKA_INGEST_ATTACHMENTS = "ingest-attachments"
 KAFKA_INGEST_TRANSACTIONS = "ingest-transactions"
 KAFKA_INGEST_METRICS = "ingest-metrics"
 KAFKA_SNUBA_METRICS = "snuba-metrics"
+KAFKA_PROFILES = "profiles"
 
 KAFKA_TOPICS = {
     KAFKA_EVENTS: {"cluster": "default", "topic": KAFKA_EVENTS},
@@ -2261,6 +2340,8 @@ KAFKA_TOPICS = {
     KAFKA_INGEST_METRICS: {"cluster": "default", "topic": KAFKA_INGEST_METRICS},
     # Topic for indexer translated metrics
     KAFKA_SNUBA_METRICS: {"cluster": "default", "topic": KAFKA_SNUBA_METRICS},
+    # Topic for receiving profiles from Relay
+    KAFKA_PROFILES: {"cluster": "default", "topic": KAFKA_PROFILES},
 }
 
 # If True, consumers will create the topics if they don't exist
@@ -2512,5 +2593,13 @@ SENTRY_PROFILING_SERVICE_URL = "http://localhost:8085"
 SENTRY_ISSUE_ALERT_HISTORY = "sentry.rules.history.backends.postgres.PostgresRuleHistoryBackend"
 SENTRY_ISSUE_ALERT_HISTORY_OPTIONS = {}
 
+# This is useful for testing SSO expiry flows
+SENTRY_SSO_EXPIRY_SECONDS = os.environ.get("SENTRY_SSO_EXPIRY_SECONDS", None)
+
+# Set to an iterable of strings matching services so only logs from those services show up
+# eg. DEVSERVER_LOGS_ALLOWLIST = {"server", "webpack", "worker"}
+DEVSERVER_LOGS_ALLOWLIST = None
 
 LOG_API_ACCESS = not IS_DEV or os.environ.get("SENTRY_LOG_API_ACCESS")
+
+VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = True

@@ -33,7 +33,7 @@ const ACTIONS: Action[] = [
     requiresSuperuser: true,
     action: () =>
       openSudo({
-        superuser: true,
+        isSuperuser: true,
       }),
   },
 

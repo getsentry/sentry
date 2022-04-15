@@ -2,18 +2,14 @@ import {browserHistory} from 'react-router';
 import moment from 'moment';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import RuleDetailsContainer from 'sentry/views/alerts/details/index';
 import AlertRuleDetails from 'sentry/views/alerts/details/ruleDetails';
 
 describe('AlertRuleDetails', () => {
-  const context = initializeOrg({
-    organization: {
-      features: ['alert-rule-status-page'],
-    },
-  });
+  const context = initializeOrg();
   const organization = context.organization;
   const project = TestStubs.Project();
   const rule = TestStubs.ProjectAlertRule({
@@ -75,17 +71,19 @@ describe('AlertRuleDetails', () => {
       body: [project],
     });
 
-    act(() => ProjectsStore.loadInitialData([project]));
+    ProjectsStore.init();
+    ProjectsStore.loadInitialData([project]);
   });
 
   afterEach(() => {
-    act(() => ProjectsStore.reset());
+    ProjectsStore.reset();
+    ProjectsStore.teardown();
     MockApiClient.clearMockResponses();
   });
 
   it('displays alert rule with list of issues', async () => {
     createWrapper();
-    expect(await screen.findByText('My alert rule')).toBeInTheDocument();
+    expect(await screen.findAllByText('My alert rule')).toHaveLength(2);
     expect(screen.getByText('RequestError:')).toBeInTheDocument();
     expect(screen.getByText('Apr 11, 2019 1:08:59 AM UTC')).toBeInTheDocument();
   });
@@ -107,8 +105,8 @@ describe('AlertRuleDetails', () => {
   it('should reset pagination cursor on date change', async () => {
     createWrapper();
 
-    expect(await screen.findByText('Last 14 days')).toBeInTheDocument();
-    userEvent.click(screen.getByText('Last 14 days'));
+    expect(await screen.findByText('Last 7 days')).toBeInTheDocument();
+    userEvent.click(screen.getByText('Last 7 days'));
     userEvent.click(screen.getByText('Last 24 hours'));
 
     expect(context.router.push).toHaveBeenCalledWith({

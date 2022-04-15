@@ -11,16 +11,11 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {queryToObj} from 'sentry/utils/stream';
-import {
-  DISCOVER_EXCLUSION_FIELDS,
-  IssueDisplayOptions,
-  IssueSortOptions,
-} from 'sentry/views/issueList/utils';
+import {DISCOVER_EXCLUSION_FIELDS, IssueSortOptions} from 'sentry/views/issueList/utils';
 
 import {DEFAULT_TABLE_LIMIT, Widget, WidgetQuery} from '../types';
 
 const DEFAULT_SORT = IssueSortOptions.DATE;
-const DEFAULT_DISPLAY = IssueDisplayOptions.EVENTS;
 const DEFAULT_EXPAND = ['owners'];
 
 type EndpointParams = Partial<PageFilters['datetime']> & {
@@ -28,7 +23,6 @@ type EndpointParams = Partial<PageFilters['datetime']> & {
   project: number[];
   collapse?: string[];
   cursor?: string;
-  display?: string;
   expand?: string[];
   groupStatsPeriod?: string | null;
   limit?: number;
@@ -45,6 +39,7 @@ type Props = {
     loading: boolean;
     transformedResults: TableDataRow[];
     pageLinks?: null | string;
+    totalCount?: string;
   }) => React.ReactNode;
   organization: OrganizationSummary;
   selection: PageFilters;
@@ -101,7 +96,6 @@ class IssueWidgetQueries extends React.Component<Props, State> {
       !isEqual(widget.displayType, prevProps.widget.displayType) ||
       !isEqual(widget.interval, prevProps.widget.interval) ||
       !isEqual(widgetQueries, prevWidgetQueries) ||
-      !isEqual(widget.displayType, prevProps.widget.displayType) ||
       !isSelectionEqual(selection, prevProps.selection) ||
       cursor !== prevProps.cursor
     ) {
@@ -215,7 +209,6 @@ class IssueWidgetQueries extends React.Component<Props, State> {
       environment: selection.environments,
       query: query.conditions,
       sort: query.orderby || DEFAULT_SORT,
-      display: DEFAULT_DISPLAY,
       expand: DEFAULT_EXPAND,
       limit: limit ?? DEFAULT_TABLE_LIMIT,
       cursor,
@@ -266,7 +259,8 @@ class IssueWidgetQueries extends React.Component<Props, State> {
 
   render() {
     const {children} = this.props;
-    const {loading, errorMessage, memberListStoreLoaded, pageLinks} = this.state;
+    const {loading, errorMessage, memberListStoreLoaded, pageLinks, totalCount} =
+      this.state;
     const transformedResults = this.transformTableResults();
     return getDynamicText({
       value: children({
@@ -274,6 +268,7 @@ class IssueWidgetQueries extends React.Component<Props, State> {
         transformedResults,
         errorMessage,
         pageLinks,
+        totalCount: totalCount ?? undefined,
       }),
       fixed: <div />,
     });

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import ReactDOM from 'react-dom';
+import {findDOMNode} from 'react-dom';
 import styled from '@emotion/styled';
 import color from 'color';
 
@@ -42,7 +42,7 @@ class ClippedBox extends React.PureComponent<Props, State> {
 
   componentDidMount() {
     // eslint-disable-next-line react/no-find-dom-node
-    const renderedHeight = (ReactDOM.findDOMNode(this) as HTMLElement).offsetHeight;
+    const renderedHeight = (findDOMNode(this) as HTMLElement).offsetHeight;
     this.calcHeight(renderedHeight);
   }
 
@@ -61,7 +61,7 @@ class ClippedBox extends React.PureComponent<Props, State> {
 
     if (!this.props.renderedHeight) {
       // eslint-disable-next-line react/no-find-dom-node
-      const renderedHeight = (ReactDOM.findDOMNode(this) as HTMLElement).offsetHeight;
+      const renderedHeight = (findDOMNode(this) as HTMLElement).offsetHeight;
 
       if (renderedHeight < this.props.clipHeight) {
         this.reveal();

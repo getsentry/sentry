@@ -43,7 +43,7 @@ describe('CreateProject', function () {
       TestStubs.routerContext([{organization: {id: '1', slug: 'testOrg'}}])
     );
 
-    wrapper.find('TeamSelectInput Button').simulate('click');
+    wrapper.find('TeamSelectInput Button button').simulate('click');
     expect(openCreateTeamModal).toHaveBeenCalled();
   });
 
@@ -163,7 +163,7 @@ describe('CreateProject', function () {
       wrapper
         .find('SelectControl[data-test-id="metric-select-control"]')
         .closest('RadioLineItem')
-        .find('Radio')
+        .find('Radio input')
         .simulate('change');
       expectSubmitButtonToBeDisabled(true);
 
@@ -194,7 +194,7 @@ describe('CreateProject', function () {
         .simulate('change', {target: {value: ''}});
       expectSubmitButtonToBeDisabled(true);
 
-      wrapper.find('Radio').first().simulate('change');
+      wrapper.find('Radio input').first().simulate('change');
       expectSubmitButtonToBeDisabled(false);
     });
   });

@@ -1,34 +1,29 @@
 import {useContext} from 'react';
 
 import {
-  FlamegraphPreferences,
-  FlamegraphPreferencesAction,
-  FlamegraphPreferencesContext,
-} from './flamegraphPreferencesProvider';
+  FlamegraphStateContext,
+  FlamegraphStateContextValue,
+} from './flamegraphStateProvider';
 
 export function useFlamegraphPreferences(): [
-  FlamegraphPreferences,
-  React.Dispatch<FlamegraphPreferencesAction>
+  FlamegraphStateContextValue[0]['preferences'],
+  FlamegraphStateContextValue[1]
 ] {
-  const context = useContext(FlamegraphPreferencesContext);
+  const context = useContext(FlamegraphStateContext);
 
   if (context === null) {
-    throw new Error(
-      'useFlamegraphPreferences called outside of FlamegraphPreferencesProvider'
-    );
+    throw new Error('useFlamegraphPreferences called outside of FlamegraphStateProvider');
   }
 
-  return context;
+  return [context[0].preferences, context[1]];
 }
 
-export function useFlamegraphPreferencesValue(): FlamegraphPreferences {
-  const context = useContext(FlamegraphPreferencesContext);
+export function useFlamegraphPreferencesValue(): FlamegraphStateContextValue[0]['preferences'] {
+  const context = useContext(FlamegraphStateContext);
 
   if (context === null) {
-    throw new Error(
-      'useFlamegraphPreferences called outside of FlamegraphPreferencesProvider'
-    );
+    throw new Error('useFlamegraphPreferences called outside of FlamegraphStateProvider');
   }
 
-  return context[0];
+  return context[0].preferences;
 }

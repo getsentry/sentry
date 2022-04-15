@@ -191,7 +191,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                 "organizations:discover-basic": False,
             },
         )
-        assert response.status_code == 200
+        assert response.status_code == 200, response.content
 
     def test_aggregate_function_apdex(self):
         project1 = self.create_project()
@@ -1155,6 +1155,22 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         assert get_mep(
             "event.type:transaction OR transaction:foo_transaction"
         ), "boolean with mep filter"
+
+    def test_having_condition_with_preventing_aggregates(self):
+        response = self.do_request(
+            data={
+                "project": self.project.id,
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "query": "p95():<5s",
+                "yAxis": ["epm()"],
+                "metricsEnhanced": "1",
+                "preventMetricAggregates": "1",
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert not response.data["isMetricsData"]
 
     def test_explicit_not_mep(self):
         response = self.do_request(
@@ -2353,6 +2369,29 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         other = data["Other"]
         assert other["order"] == 5
         assert [{"count": 4}] in [attrs for _, attrs in other["data"]]
+
+    def test_top_events_can_exclude_other_series(self):
+        with self.feature(self.enabled_features):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["count()"],
+                    "field": ["count()", "message"],
+                    "topEvents": 5,
+                    "excludeOther": "1",
+                },
+                format="json",
+            )
+
+        data = response.data
+        assert response.status_code == 200, response.content
+        assert len(data) == 5
+
+        assert "Other" not in response.data
 
 
 class OrganizationEventsStatsTopNEventsWithSnql(OrganizationEventsStatsTopNEvents):

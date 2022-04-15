@@ -1,6 +1,6 @@
 import {CSSProperties} from 'react';
 import * as React from 'react';
-import ReactDOM from 'react-dom';
+import {findDOMNode} from 'react-dom';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -79,7 +79,7 @@ class TextCopyInput extends React.Component<Props> {
 
     // We use findDOMNode here because `this.textRef` is not a dom node,
     // it's a ref to AutoSelectText
-    const node = ReactDOM.findDOMNode(this.textRef.current); // eslint-disable-line react/no-find-dom-node
+    const node = findDOMNode(this.textRef.current); // eslint-disable-line react/no-find-dom-node
     if (!node || !(node instanceof HTMLElement)) {
       return;
     }

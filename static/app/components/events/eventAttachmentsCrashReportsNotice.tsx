@@ -1,6 +1,5 @@
 import {Location} from 'history';
 
-import {IconInfo} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import {crashReportTypes} from 'sentry/views/organizationGroupDetails/groupEventAttachments/groupEventAttachmentsFilter';
 
@@ -27,7 +26,7 @@ const EventAttachmentsCrashReportsNotice = ({
   };
 
   return (
-    <Alert type="info" icon={<IconInfo size="md" />}>
+    <Alert type="info" showIcon>
       {tct(
         'Your limit of stored crash reports has been reached for this issue. [attachmentsLink: View crashes] or [settingsLink: configure limit].',
         {

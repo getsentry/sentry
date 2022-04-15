@@ -32,6 +32,9 @@ export type WidgetQuery = {
   conditions: string;
   name: string;
   orderby: string;
+  // Table column alias.
+  // We may want to have alias for y-axis in the future too
+  fieldAliases?: string[];
   // Fields is replaced with aggregates + columns. It
   // is currently used to track column order on table
   // widgets.
@@ -45,6 +48,8 @@ export type Widget = {
   title: string;
   id?: string;
   layout?: WidgetLayout | null;
+  // Used to define 'topEvents' when fetching time-series data for a widget
+  limit?: number;
   tempId?: string;
   widgetType?: WidgetType;
 };

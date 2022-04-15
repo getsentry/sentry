@@ -1,3 +1,4 @@
+import unittest
 from base64 import b64encode
 from io import BytesIO
 
@@ -5,11 +6,10 @@ import pytest
 from rest_framework import serializers
 
 from sentry.api.fields.serializedfile import FileUpload, SerializedFileField
-from sentry.testutils import TestCase
 
 
 # XXX: ideally we'd have an integration test covering this field, but at the time of writing its unused in this codebase
-class SerializedFileFieldTest(TestCase):
+class SerializedFileFieldTest(unittest.TestCase):
     def test_to_representation(self):
         field = SerializedFileField()
 

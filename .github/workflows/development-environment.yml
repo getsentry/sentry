@@ -4,14 +4,15 @@ on:
     paths:
       - '.pre-commit-config.yaml'
       - 'Makefile'
-      - '.github/actions/setup-python'
       - '.github/workflows/development-environment.yml'
+      - 'requirements-*.txt'
+      - '.python-version'
+      - '.github/actions/setup-python'
       - '.envrc'
       - 'Brewfile'
       - 'scripts/*'
       - 'src/sentry/runner/commands/devserver.py'
       - 'src/sentry/runner/commands/devservices.py'
-      - 'requirements-*.txt'
       - 'bin/load-mocks'
 
 jobs:
@@ -29,7 +30,7 @@ jobs:
       - name: Checkout sentry
         uses: actions/checkout@v2
 
-      - name: Set variables for caches
+      - name: Set up
         id: info
         run: |
           echo "::set-output name=yarn-cache-dir::$(yarn cache dir)"
@@ -54,6 +55,10 @@ jobs:
       # This handles Python's cache
       - name: Setup Python & cache
         uses: ./.github/actions/setup-python
+        # Remove this block when 3.8.13 becomes available in:
+        # https://raw.githubusercontent.com/actions/python-versions/main/versions-manifest.json
+        with:
+          python-version: 3.8.12
 
       - name: Cache (yarn)
         uses: actions/cache@v1 # We are explicitly using v1 due to perf reasons
@@ -75,7 +80,7 @@ jobs:
   pyenv-setup:
     name: pyenv set up
     runs-on: macos-11
-    timeout-minutes: 15
+    timeout-minutes: 25
     env:
       # This is to support this code https://github.com/getsentry/sentry/blob/47b837a69c38e190a7555de81e6d7d216498b854/scripts/pyenv_setup.sh#L17-L40
       SHELL: /bin/zsh
@@ -84,9 +89,10 @@ jobs:
       - name: Checkout sentry
         uses: actions/checkout@v2
 
+      # We update brew because we need a newer version of pyenv which has access to 3.8.13
       - name: Install pyenv
         run: |
-          HOMEBREW_NO_AUTO_UPDATE=1 brew install pyenv
+          brew update && brew install pyenv
 
       # Only after we source ~/.zprofile that the right Python will be selected
       - name: Set up pyenv

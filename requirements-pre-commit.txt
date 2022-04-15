@@ -4,3 +4,4 @@ sentry-flake8==2.0.0
 pyupgrade==2.29.0
 isort==5.9.3
 requirements-parser>=0.2.0
+click==8.0.4

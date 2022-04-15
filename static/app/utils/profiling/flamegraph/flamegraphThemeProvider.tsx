@@ -14,7 +14,7 @@ import {
   FlamegraphTheme,
   LightFlamegraphTheme,
 } from './flamegraphTheme';
-import {useFlamegraphPreferences} from './useFlamegraphPreferences';
+import {useFlamegraphPreferencesValue} from './useFlamegraphPreferences';
 
 export const FlamegraphThemeContext = createContext<FlamegraphTheme | null>(null);
 
@@ -26,7 +26,7 @@ function FlamegraphThemeProvider(
   props: FlamegraphThemeProviderProps
 ): React.ReactElement {
   const {theme} = useLegacyStore(ConfigStore);
-  const [flamegraphPreferences] = useFlamegraphPreferences();
+  const flamegraphPreferences = useFlamegraphPreferencesValue();
 
   const activeFlamegraphTheme = useMemo((): FlamegraphTheme => {
     const base = theme === 'light' ? LightFlamegraphTheme : DarkFlamegraphTheme;

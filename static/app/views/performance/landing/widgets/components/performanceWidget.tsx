@@ -8,7 +8,8 @@ import {IconWarning} from 'sentry/icons/iconWarning';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {MEPDataProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceContext';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import {MEPDataProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import useApi from 'sentry/utils/useApi';
 import getPerformanceWidgetContainer from 'sentry/views/performance/landing/widgets/components/performanceWidgetContainer';
 
@@ -66,7 +67,7 @@ export function GenericPerformanceWidget<T extends WidgetDataConstraint>(
 
   return (
     <Fragment>
-      <MEPDataProvider>
+      <MEPDataProvider chartSetting={props.chartSetting}>
         <QueryHandler
           eventView={props.eventView}
           widgetData={widgetData}
@@ -129,12 +130,17 @@ function _DataDisplay<T extends WidgetDataConstraint>(
               trackDataComponentClicks(props.chartSetting, props.organization)
             }
           >
-            <Visualization.component
-              grid={defaultGrid}
-              queryFields={Visualization.fields}
-              widgetData={props.widgetData}
-              height={chartHeight}
-            />
+            {getDynamicText({
+              value: (
+                <Visualization.component
+                  grid={defaultGrid}
+                  queryFields={Visualization.fields}
+                  widgetData={props.widgetData}
+                  height={chartHeight}
+                />
+              ),
+              fixed: <Placeholder height={`${chartHeight}px`} />,
+            })}
           </ContentContainer>
         ))}
         loadingComponent={<PerformanceWidgetPlaceholder height={`${totalHeight}px`} />}

@@ -17,11 +17,11 @@ const FEATURES = ['performance-view'];
 
 function WrappedComponent({organization, isMEPEnabled = false, location}) {
   return (
-    <MEPSettingProvider _isMEPEnabled={isMEPEnabled}>
-      <OrganizationContext.Provider value={organization}>
+    <OrganizationContext.Provider value={organization}>
+      <MEPSettingProvider _isMEPEnabled={isMEPEnabled}>
         <PerformanceContent organization={organization} location={location} />
-      </OrganizationContext.Provider>
-    </MEPSettingProvider>
+      </MEPSettingProvider>
+    </OrganizationContext.Provider>
   );
 }
 
@@ -34,6 +34,7 @@ function initializeData(projects, query, features = FEATURES) {
     organization,
     router: {
       location: {
+        pathname: '/test',
         query: query || {},
       },
     },
@@ -63,6 +64,7 @@ function initializeTrendsData(query, addDefaultQuery = true) {
     organization,
     router: {
       location: {
+        pathname: '/test',
         query: {
           ...otherTrendsQuery,
           ...query,

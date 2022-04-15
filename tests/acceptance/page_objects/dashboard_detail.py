@@ -2,7 +2,7 @@ from .base import BasePage
 
 EDIT_WIDGET_BUTTON = '[data-test-id="widget-edit"]'
 WIDGET_DRAG_HANDLE = ".widget-drag"
-WIDGET_RESIZE_HANDLE = ".react-resizable-handle"
+WIDGET_RESIZE_HANDLE = ".widget-resize"
 WIDGET_TITLE_FIELD = 'input[data-test-id="widget-title-input"]'
 
 
@@ -17,6 +17,7 @@ class DashboardDetailPage(BasePage):
         self.browser.wait_until_not('[data-test-id="events-request-loading"]')
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
+        self.browser.wait_until_not(".loading")
 
     def visit_default_overview(self):
         self.browser.get(f"/organizations/{self.organization.slug}/dashboard/default-overview/")

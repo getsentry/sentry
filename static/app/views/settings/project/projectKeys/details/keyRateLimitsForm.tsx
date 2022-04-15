@@ -10,7 +10,6 @@ import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
 import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
-import {IconFlag} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -115,7 +114,7 @@ function KeyRateLimitsForm({data, disabled, params}: Props) {
             <PanelHeader>{t('Rate Limits')}</PanelHeader>
 
             <PanelBody>
-              <PanelAlert type="info" icon={<IconFlag size="md" />}>
+              <PanelAlert type="info" showIcon>
                 {t(
                   `Rate limits provide a flexible way to manage your error
                     volume. If you have a noisy project or environment you

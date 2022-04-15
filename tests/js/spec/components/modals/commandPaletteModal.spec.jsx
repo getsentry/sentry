@@ -12,7 +12,7 @@ describe('Command Palette Modal', function () {
   let orgsMock;
 
   beforeEach(function () {
-    FormSearchStore.onLoadSearchMap([]);
+    FormSearchStore.loadSearchMap([]);
 
     MockApiClient.clearMockResponses();
 
@@ -62,7 +62,7 @@ describe('Command Palette Modal', function () {
       },
     });
     MockApiClient.addMockResponse({
-      url: '/assistant/?v2',
+      url: '/assistant/',
       body: [],
     });
   });

@@ -19,7 +19,7 @@ describe('SmartSearchBar', function () {
 
   beforeEach(function () {
     TagStore.reset();
-    TagStore.onLoadTagsSuccess(TestStubs.Tags());
+    TagStore.loadTagsSuccess(TestStubs.Tags());
     tagValuesMock.mockClear();
     supportedTags = TagStore.getAllTags();
     supportedTags.firstRelease = {

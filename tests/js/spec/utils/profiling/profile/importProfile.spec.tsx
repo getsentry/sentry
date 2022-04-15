@@ -21,6 +21,7 @@ describe('importProfile', () => {
       {
         name: 'profile',
         activeProfileIndex: 0,
+        duration_ns: 0,
         profiles: [eventedProfile],
         shared: {
           frames: [],
@@ -46,6 +47,7 @@ describe('importProfile', () => {
       {
         name: 'profile',
         activeProfileIndex: 0,
+        duration_ns: 0,
         profiles: [sampledProfile],
         shared: {
           frames: [],
@@ -80,6 +82,7 @@ describe('importProfile', () => {
       {
         name: 'profile',
         activeProfileIndex: 0,
+        duration_ns: 0,
         profiles: [jsSelfProfile],
         shared: {
           frames: [],
@@ -172,13 +175,14 @@ describe('importDroppedProfile', () => {
 
   it('throws if contents are not valid JSON', async () => {
     const file = new File(['{"json": true'], 'test.tsx');
-    await expect(importDroppedProfile(file)).rejects.toBeInstanceOf(SyntaxError);
+    await expect(importDroppedProfile(file)).rejects.toBeInstanceOf(Error);
   });
 
   it('imports schema file', async () => {
     const schema: Profiling.Schema = {
       name: 'profile',
       activeProfileIndex: 0,
+      duration_ns: 0,
       profiles: [
         {
           name: 'profile',

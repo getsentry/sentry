@@ -90,7 +90,7 @@ class BaseGroupSidebar extends React.Component<Props, State> {
     const {group, api} = this.props;
 
     try {
-      const currentRelease = await api.requestPromise(
+      const {currentRelease} = await api.requestPromise(
         `/issues/${group.id}/current-release/`
       );
       this.setState({currentRelease});

@@ -11,7 +11,6 @@ import Placeholder from 'sentry/components/placeholder';
 import SeenByList from 'sentry/components/seenByList';
 import ShortId from 'sentry/components/shortId';
 import GroupChart from 'sentry/components/stream/groupChart';
-import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Group} from 'sentry/types';
@@ -45,7 +44,7 @@ class LinkedIssue extends AsyncComponent<
     const hasNotFound = Object.values(errors).find(resp => resp && resp.status === 404);
     if (hasNotFound) {
       return (
-        <Alert type="warning" icon={<IconWarning size="md" />}>
+        <Alert type="warning" showIcon>
           {t('The linked issue cannot be found. It may have been deleted, or merged.')}
         </Alert>
       );

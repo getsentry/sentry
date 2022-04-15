@@ -1,11 +1,11 @@
 import {action} from '@storybook/addon-actions';
 
-import FileField from 'app/components/forms/fileField';
 import NewBooleanField from 'sentry/components/forms/booleanField';
 import CheckboxField from 'sentry/components/forms/checkboxField';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
 import DatePickerField from 'sentry/components/forms/datePickerField';
+import FileField from 'sentry/components/forms/fileField';
 import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
 import RadioBooleanField from 'sentry/components/forms/radioBooleanField';

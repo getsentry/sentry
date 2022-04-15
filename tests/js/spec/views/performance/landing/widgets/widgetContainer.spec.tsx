@@ -1,4 +1,7 @@
-import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
+import {
+  initializeData as _initializeData,
+  initializeDataSettings,
+} from 'sentry-test/performance/initializePerformanceData';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -12,7 +15,7 @@ import WidgetContainer from 'sentry/views/performance/landing/widgets/components
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {PROJECT_PERFORMANCE_TYPE} from 'sentry/views/performance/utils';
 
-const initializeData = (query = {}, rest = {}) => {
+const initializeData = (query = {}, rest: initializeDataSettings = {}) => {
   const data = _initializeData({
     query: {statsPeriod: '7d', environment: ['prod'], project: [-42], ...query},
     ...rest,
@@ -23,11 +26,13 @@ const initializeData = (query = {}, rest = {}) => {
   return data;
 };
 
-const WrappedComponent = ({data, isMEPEnabled = false, ...rest}) => {
+const WrappedComponent = ({data, ...rest}) => {
   return (
-    <MEPSettingProvider _isMEPEnabled={isMEPEnabled}>
-      <PerformanceDisplayProvider value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}>
-        <OrganizationContext.Provider value={data.organization}>
+    <OrganizationContext.Provider value={data.organization}>
+      <MEPSettingProvider>
+        <PerformanceDisplayProvider
+          value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}
+        >
           <WidgetContainer
             allowedCharts={[
               PerformanceWidgetSetting.TPM_AREA,
@@ -40,9 +45,9 @@ const WrappedComponent = ({data, isMEPEnabled = false, ...rest}) => {
             {...data}
             {...rest}
           />
-        </OrganizationContext.Provider>
-      </PerformanceDisplayProvider>
-    </MEPSettingProvider>
+        </PerformanceDisplayProvider>
+      </MEPSettingProvider>
+    </OrganizationContext.Provider>
   );
 };
 
@@ -331,7 +336,6 @@ describe('Performance > Widgets > WidgetContainer', function () {
     wrapper = render(
       <WrappedComponent
         data={data}
-        isMEPEnabled
         defaultChartSetting={PerformanceWidgetSetting.FAILURE_RATE_AREA}
       />
     );
@@ -343,6 +347,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           metricsEnhanced: '1',
+          preventMetricAggregates: '1',
         }),
       })
     );
@@ -369,7 +374,6 @@ describe('Performance > Widgets > WidgetContainer', function () {
     wrapper = render(
       <WrappedComponent
         data={data}
-        isMEPEnabled
         defaultChartSetting={PerformanceWidgetSetting.FAILURE_RATE_AREA}
       />
     );
@@ -382,6 +386,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           metricsEnhanced: '1',
+          preventMetricAggregates: '1',
         }),
       })
     );
@@ -407,7 +412,6 @@ describe('Performance > Widgets > WidgetContainer', function () {
     wrapper = render(
       <WrappedComponent
         data={data}
-        isMEPEnabled
         defaultChartSetting={PerformanceWidgetSetting.FAILURE_RATE_AREA}
       />
     );
@@ -419,6 +423,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           metricsEnhanced: '1',
+          preventMetricAggregates: '1',
         }),
       })
     );
@@ -497,13 +502,17 @@ describe('Performance > Widgets > WidgetContainer', function () {
   });
 
   it('Worst LCP widget - MEP', async function () {
-    const data = initializeData();
+    const data = initializeData(
+      {},
+      {
+        features: ['performance-use-metrics'],
+      }
+    );
 
     wrapper = render(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.WORST_LCP_VITALS}
-        isMEPEnabled
       />
     );
 
@@ -533,6 +542,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           sort: '-count_web_vitals(measurements.lcp, poor)',
           statsPeriod: '7d',
           metricsEnhanced: '1',
+          preventMetricAggregates: '1',
         }),
       })
     );
@@ -851,13 +861,17 @@ describe('Performance > Widgets > WidgetContainer', function () {
   });
 
   it('Most slow frames widget - MEP', async function () {
-    const data = initializeData();
+    const data = initializeData(
+      {},
+      {
+        features: ['performance-use-metrics'],
+      }
+    );
 
     wrapper = render(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.MOST_SLOW_FRAMES}
-        isMEPEnabled
       />
     );
 
@@ -881,6 +895,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           sort: '-avg(measurements.frames_slow)',
           statsPeriod: '7d',
           metricsEnhanced: '1',
+          preventMetricAggregates: '1',
         }),
       })
     );

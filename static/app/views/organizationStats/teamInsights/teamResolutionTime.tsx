@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
-import BarChart from 'sentry/components/charts/barChart';
+import {BarChart} from 'sentry/components/charts/barChart';
 import {DateTimeObject} from 'sentry/components/charts/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';

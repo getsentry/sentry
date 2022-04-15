@@ -3,7 +3,7 @@ import {withRouter, WithRouterProps} from 'react-router';
 import {withTheme} from '@emotion/react';
 import round from 'lodash/round';
 
-import AreaChart from 'sentry/components/charts/areaChart';
+import {AreaChart, AreaChartProps} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import StackedAreaChart from 'sentry/components/charts/stackedAreaChart';
 import {HeaderTitleLegend, HeaderValue} from 'sentry/components/charts/styles';
@@ -137,7 +137,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
 
   getChart():
     | React.ComponentType<StackedAreaChart['props']>
-    | React.ComponentType<AreaChart['props']> {
+    | React.ComponentType<AreaChartProps> {
     const {chartType} = this.props;
     switch (chartType) {
       case ReleaseComparisonChartType.CRASH_FREE_SESSIONS:

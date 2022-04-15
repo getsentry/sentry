@@ -47,13 +47,13 @@ function renderProfilingTableCell(
 const COLUMN_ORDER: TableColumnKey[] = [
   'failed',
   'id',
-  'app_id',
-  'app_version_name',
-  'interaction_name',
-  'start_time_unix',
+  'project_id',
+  'version_name',
+  'transaction_name',
+  'timestamp',
   'trace_duration_ms',
   'device_model',
-  'device_class',
+  'device_classification',
 ];
 
 const COLUMNS: TableColumnOrders = {
@@ -62,8 +62,8 @@ const COLUMNS: TableColumnOrders = {
     name: t('Profile ID'),
     width: COL_WIDTH_UNDEFINED,
   },
-  app_id: {
-    key: 'app_id',
+  project_id: {
+    key: 'project_id',
     name: t('Project'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -72,18 +72,18 @@ const COLUMNS: TableColumnOrders = {
     name: t('Status'),
     width: 14, // make this as small as possible
   },
-  app_version_name: {
-    key: 'app_version_name',
+  version_name: {
+    key: 'version_name',
     name: t('Version'),
     width: COL_WIDTH_UNDEFINED,
   },
-  interaction_name: {
-    key: 'interaction_name',
-    name: t('Interaction Name'),
+  transaction_name: {
+    key: 'transaction_name',
+    name: t('Transaction Name'),
     width: COL_WIDTH_UNDEFINED,
   },
-  start_time_unix: {
-    key: 'start_time_unix',
+  timestamp: {
+    key: 'timestamp',
     name: t('Timestamp'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -97,9 +97,9 @@ const COLUMNS: TableColumnOrders = {
     name: t('Device Model'),
     width: COL_WIDTH_UNDEFINED,
   },
-  device_class: {
-    key: 'device_class',
-    name: t('Device Class'),
+  device_classification: {
+    key: 'device_classification',
+    name: t('Device Classification'),
     width: COL_WIDTH_UNDEFINED,
   },
 };

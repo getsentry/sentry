@@ -540,8 +540,6 @@ function generateMobilePerformanceEventView(
     'project',
     'transaction.op',
     'tpm()',
-    'p75(measurements.app_start_cold)',
-    'p75(measurements.app_start_warm)',
     'p75(measurements.frames_slow_rate)',
     'p75(measurements.frames_frozen_rate)',
   ];
@@ -558,10 +556,6 @@ function generateMobilePerformanceEventView(
       selectedProjects.length > 0 &&
       selectedProjects.every(project => project.platform === 'react-native')
     ) {
-      // TODO(tonyx): remove these once the SDKs are ready
-      fields.pop();
-      fields.pop();
-
       fields.push('p75(measurements.stall_percentage)');
     }
   }

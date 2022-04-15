@@ -40,6 +40,9 @@ export type PerformanceEventParameters = {
   'performance_views.overview.view': {
     show_onboarding: boolean;
   };
+  'performance_views.span_summary.change_chart': {
+    change_to_display: string;
+  };
   'performance_views.spans.change_op': {
     operation_name?: string;
   };
@@ -70,6 +73,8 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
   'performance_views.landingv3.batch_queries':
     'Performance Views: Landing Query Batching',
   'performance_views.landingv3.display_change': 'Performance Views: Switch Landing Tabs',
+  'performance_views.span_summary.change_chart':
+    'Performance Views: Span Summary displayed chart changed',
   'performance_views.spans.change_op': 'Performance Views: Change span operation name',
   'performance_views.spans.change_sort': 'Performance Views: Change span sort column',
   'performance_views.overview.view': 'Performance Views: Transaction overview view',

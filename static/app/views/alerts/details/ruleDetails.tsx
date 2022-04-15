@@ -1,15 +1,14 @@
 import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import type {LocationDescriptorObject} from 'history';
 import pick from 'lodash/pick';
 import moment from 'moment';
 
+import Alert from 'sentry/components/alert';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
-import FeatureBadge from 'sentry/components/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -18,13 +17,13 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
 import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {DateString, Organization, Project} from 'sentry/types';
 import {IssueAlertRule} from 'sentry/types/alerts';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {ALERT_DEFAULT_CHART_PERIOD} from 'sentry/views/alerts/rules/details/constants';
 
 import AlertChart from './alertChart';
 import AlertRuleIssuesList from './issuesList';
@@ -104,7 +103,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
     });
 
     if (!statsPeriod && !start && !end) {
-      return {period: DEFAULT_STATS_PERIOD};
+      return {period: ALERT_DEFAULT_CHART_PERIOD};
     }
 
     // Following getParams, statsPeriod will take priority over start/end
@@ -127,7 +126,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
           };
     }
 
-    return {period: DEFAULT_STATS_PERIOD};
+    return {period: ALERT_DEFAULT_CHART_PERIOD};
   }
 
   setStateOnUrl(nextState: {
@@ -137,24 +136,17 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
     pageStatsPeriod?: string | null;
     pageUtc?: boolean | null;
     team?: string;
-  }): LocationDescriptorObject {
-    const {location, router} = this.props;
-    const nextQueryParams = pick(nextState, PAGE_QUERY_PARAMS);
-
-    const nextLocation = {
-      ...location,
+  }) {
+    return this.props.router.push({
+      ...this.props.location,
       query: {
-        ...location.query,
-        ...nextQueryParams,
+        ...this.props.location.query,
+        ...pick(nextState, PAGE_QUERY_PARAMS),
       },
-    };
-
-    router.push(nextLocation);
-
-    return nextLocation;
+    });
   }
 
-  handleUpdateDatetime = (datetime: ChangeData): LocationDescriptorObject => {
+  handleUpdateDatetime = (datetime: ChangeData) => {
     const {start, end, relative, utc} = datetime;
 
     if (start && end) {
@@ -180,11 +172,11 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
 
   renderLoading() {
     return (
-      <StyledLayoutBody>
+      <Layout.Body>
         <Layout.Main fullWidth>
           <LoadingIndicator />
         </Layout.Main>
-      </StyledLayoutBody>
+      </Layout.Body>
     );
   }
 
@@ -199,14 +191,23 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
       return <LoadingError message={t('There was an error loading the alert rule.')} />;
     }
 
+    if (!project) {
+      return (
+        <Alert type="warning">
+          {t('The project you were looking for was not found.')}
+        </Alert>
+      );
+    }
+
     return (
       <PageFiltersContainer
+        skipInitializeUrlParams
+        skipLoadLastUsed
         shouldForceProject
         forceProject={project}
         forceEnvironment={rule.environment ?? ''}
         lockedMessageSubject={t('alert rule')}
         showDateSelector={false}
-        skipLoadLastUsed
       >
         <SentryDocumentTitle title={rule.name} orgSlug={orgId} projectSlug={projectId} />
 
@@ -216,12 +217,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
               crumbs={[
                 {label: t('Alerts'), to: `/organizations/${orgId}/alerts/rules/`},
                 {
-                  label: (
-                    <div>
-                      {t('Alert Rule')}
-                      <FeatureBadge type="beta" />
-                    </div>
-                  ),
+                  label: rule.name,
                   to: null,
                 },
               ]}
@@ -251,7 +247,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
             </ButtonBar>
           </Layout.HeaderActions>
         </Layout.Header>
-        <StyledLayoutBody>
+        <Layout.Body>
           <Layout.Main>
             <StyledPageTimeRangeSelector
               organization={organization}
@@ -285,17 +281,13 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
           <Layout.Side>
             <Sidebar rule={rule} />
           </Layout.Side>
-        </StyledLayoutBody>
+        </Layout.Body>
       </PageFiltersContainer>
     );
   }
 }
 
 export default AlertRuleDetails;
-
-const StyledLayoutBody = styled(Layout.Body)`
-  margin-bottom: -20px;
-`;
 
 const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
   margin-bottom: ${space(2)};

@@ -193,7 +193,10 @@ class Onboarding extends React.Component<Props, State> {
           <LogoSvg />
           <HeaderRight>
             {this.renderProgressBar()}
-            <Hook name="onboarding:extra-chrome" />
+            <Hook
+              name="onboarding:targeted-onboarding-header"
+              source="simple-onboarding"
+            />
           </HeaderRight>
         </Header>
         <this.Contents />

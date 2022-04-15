@@ -53,7 +53,7 @@ describe('SmartSearchBarActions', () => {
         />,
         options
       );
-      wrapper.find('ActionButton').simulate('click');
+      wrapper.find('ActionButton button').simulate('click');
       wrapper.update();
 
       expect(pinRequest).not.toHaveBeenCalled();
@@ -72,7 +72,7 @@ describe('SmartSearchBarActions', () => {
         />,
         options
       );
-      wrapper.find('ActionButton').simulate('click');
+      wrapper.find('ActionButton button').simulate('click');
       wrapper.update();
 
       expect(pinRequest).toHaveBeenCalled();
@@ -94,7 +94,7 @@ describe('SmartSearchBarActions', () => {
         options
       );
 
-      wrapper.find('ActionButton').simulate('click');
+      wrapper.find('ActionButton button').simulate('click');
       wrapper.update();
 
       expect(pinRequest).not.toHaveBeenCalled();

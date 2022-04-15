@@ -70,7 +70,9 @@ function StatusBreakdown({eventView, location, organization}: Props) {
               const query = new MutableSearch(eventView.query);
               query
                 .removeFilter('!transaction.status')
-                .setFilterValues('transaction.status', [row['transaction.status']]);
+                .setFilterValues('transaction.status', [
+                  row['transaction.status'] as string,
+                ]);
               browserHistory.push({
                 pathname: location.pathname,
                 query: {

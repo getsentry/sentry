@@ -2,9 +2,9 @@ import * as React from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-type Props = {
+interface Props extends React.HTMLAttributes<HTMLDivElement> {
   highlighted?: boolean;
-} & React.HTMLProps<HTMLDivElement>;
+}
 
 const SearchResultWrapper = styled(({highlighted, ...props}: Props) => (
   <div

@@ -305,7 +305,7 @@ export class Client {
 
     if (isSudoRequired) {
       openSudo({
-        superuser: code === SUPERUSER_REQUIRED,
+        isSuperuser: code === SUPERUSER_REQUIRED,
         sudo: code === SUDO_REQUIRED,
         retryRequest: async () => {
           try {

@@ -1,6 +1,8 @@
 import {t} from 'sentry/locale';
 import type {SchemaFormConfig} from 'sentry/views/organizationIntegrations/sentryAppExternalForm';
 
+import type {Incident} from '../types';
+
 export enum AlertRuleThresholdType {
   ABOVE,
   BELOW,
@@ -21,6 +23,8 @@ export enum Dataset {
   ERRORS = 'events',
   TRANSACTIONS = 'transactions',
   SESSIONS = 'sessions',
+  /** Also used for crash free alerts */
+  METRICS = 'metrics',
 }
 
 export enum EventTypes {
@@ -89,7 +93,7 @@ export type UnsavedIncidentRule = {
   owner?: string | null;
 };
 
-export type SavedIncidentRule = UnsavedIncidentRule & {
+export interface SavedIncidentRule extends UnsavedIncidentRule {
   dateCreated: string;
   dateModified: string;
   id: string;
@@ -97,8 +101,12 @@ export type SavedIncidentRule = UnsavedIncidentRule & {
   status: number;
   createdBy?: {email: string; id: number; name: string} | null;
   errors?: {detail: string}[];
+  /**
+   * Returned with the expand=latestIncident query parameter
+   */
+  latestIncident?: Incident | null;
   originalAlertRuleId?: number | null;
-};
+}
 
 export type IncidentRule = Partial<SavedIncidentRule> & UnsavedIncidentRule;
 
@@ -215,8 +223,6 @@ export type MetricActionTemplate = {
  * This is the user's configured action
  */
 export type Action = UnsavedAction & Partial<SavedActionFields>;
-export type SavedAction = Omit<UnsavedAction, 'unsavedDateCreated' | 'unsavedId'> &
-  SavedActionFields;
 
 type SavedActionFields = {
   /**

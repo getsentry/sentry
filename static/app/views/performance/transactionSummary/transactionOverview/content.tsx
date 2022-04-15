@@ -25,6 +25,7 @@ import {
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
+import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withProjects from 'sentry/utils/withProjects';
 import {Actions, updateQuery} from 'sentry/views/eventsV2/table/cellAction';
@@ -50,6 +51,7 @@ import {
   TransactionFilterOptions,
 } from '../utils';
 
+import {MetricsEventsDropdown} from './metricEvents/metricsEventsDropdown';
 import TransactionSummaryCharts from './charts';
 import RelatedIssues from './relatedIssues';
 import SidebarCharts from './sidebarCharts';
@@ -59,7 +61,7 @@ import {TagExplorer} from './tagExplorer';
 import UserStats from './userStats';
 
 type Props = {
-  error: string | null;
+  error: QueryError | null;
   eventView: EventView;
   isLoading: boolean;
   location: Location;
@@ -278,6 +280,7 @@ function SummaryContent({
               maxQueryLength={MAX_QUERY_LENGTH}
             />
           </SearchBarContainer>
+          <MetricsEventsDropdown />
         </Search>
         <TransactionSummaryCharts
           organization={organization}

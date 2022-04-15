@@ -19,7 +19,6 @@ import {
   PlatformKey,
 } from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
-import {IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
@@ -116,7 +115,7 @@ class ProjectInstallPlatform extends Component<Props, State> {
         </StyledPageHeader>
 
         <div>
-          <Alert type="info" icon={<IconInfo />}>
+          <Alert type="info" showIcon>
             {tct(
               `
              This is a quick getting started guide. For in-depth instructions
@@ -174,7 +173,7 @@ class ProjectInstallPlatform extends Component<Props, State> {
                             return null;
                           }
                           return (
-                            <StyledAlert type="info" icon={<IconInfo />}>
+                            <StyledAlert type="info" showIcon>
                               {t(
                                 `Your selected platform supports performance, but your organization does not have performance enabled.`
                               )}

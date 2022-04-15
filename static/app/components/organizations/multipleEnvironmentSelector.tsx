@@ -8,7 +8,7 @@ import sortBy from 'lodash/sortBy';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import {MenuFooterChildProps} from 'sentry/components/dropdownAutoComplete/menu';
 import {Item} from 'sentry/components/dropdownAutoComplete/types';
-import {GetActorPropsFn} from 'sentry/components/dropdownMenu';
+import {MenuActions} from 'sentry/components/dropdownMenu';
 import Highlight from 'sentry/components/highlight';
 import HeaderItem from 'sentry/components/organizations/headerItem';
 import MultipleSelectorSubmitRow from 'sentry/components/organizations/multipleSelectorSubmitRow';
@@ -42,13 +42,17 @@ type Props = WithRouterProps & {
    */
   alignDropdown?: 'left' | 'right';
   customDropdownButton?: (config: {
-    getActorProps: GetActorPropsFn;
+    actions: MenuActions;
     isOpen: boolean;
-    summary: string;
+    value: string[];
   }) => React.ReactElement;
   customLoadingIndicator?: React.ReactNode;
   detached?: boolean;
   forceEnvironment?: string;
+  /**
+   * Show the pin button in the dropdown's header actions
+   */
+  showPin?: boolean;
 };
 
 /**
@@ -69,6 +73,7 @@ function MultipleEnvironmentSelector({
   detached,
   forceEnvironment,
   router,
+  showPin,
 }: Props) {
   const [selectedEnvs, setSelectedEnvs] = useState(value);
   const hasChanges = !isEqual(selectedEnvs, value);
@@ -186,8 +191,6 @@ function MultipleEnvironmentSelector({
     env,
   ]);
 
-  const hasNewPageFilters = organization.features.includes('selection-filters-v2');
-
   const validatedValue = value.filter(env => environments.includes(env));
   const summary = validatedValue.length
     ? `${validatedValue.join(', ')}`
@@ -249,9 +252,7 @@ function MultipleEnvironmentSelector({
           virtualizedHeight={theme.headerSelectorRowHeight}
           emptyHidesInput
           inputActions={
-            hasNewPageFilters ? (
-              <StyledPinButton size="xsmall" filter="environments" />
-            ) : undefined
+            showPin ? <StyledPinButton size="xsmall" filter="environments" /> : undefined
           }
           menuFooter={({actions}) =>
             hasChanges ? (
@@ -275,9 +276,9 @@ function MultipleEnvironmentSelector({
             ),
           }))}
         >
-          {({isOpen, getActorProps}) =>
+          {({isOpen, actions}) =>
             customDropdownButton ? (
-              customDropdownButton({isOpen, getActorProps, summary})
+              customDropdownButton({isOpen, actions, value: validatedValue})
             ) : (
               <StyledHeaderItem
                 data-test-id="global-header-environment-selector"
@@ -288,7 +289,6 @@ function MultipleEnvironmentSelector({
                 hasChanges={false}
                 locked={false}
                 loading={false}
-                {...getActorProps()}
               >
                 {summary}
               </StyledHeaderItem>

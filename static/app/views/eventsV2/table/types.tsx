@@ -1,5 +1,4 @@
 import {GridColumnOrder, GridColumnSortBy} from 'sentry/components/gridEditable';
-import {MetricsType} from 'sentry/types';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {
   AggregateParameter,
@@ -37,6 +36,7 @@ export enum FieldValueKind {
   FUNCTION = 'function',
   EQUATION = 'equation',
   METRICS = 'metric',
+  NUMERIC_METRICS = 'numeric_metric',
 }
 
 export type FieldValueColumns =
@@ -73,7 +73,14 @@ export type FieldValueColumns =
   | {
       kind: FieldValueKind.METRICS;
       meta: {
-        dataType: MetricsType;
+        dataType: ColumnType;
+        name: string;
+      };
+    }
+  | {
+      kind: FieldValueKind.NUMERIC_METRICS;
+      meta: {
+        dataType: 'numeric';
         name: string;
       };
     };

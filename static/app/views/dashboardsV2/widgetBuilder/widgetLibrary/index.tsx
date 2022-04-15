@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -6,19 +6,27 @@ import {openWidgetBuilderOverwriteModal} from 'sentry/actionCreators/modal';
 import {OverwriteWidgetModalProps} from 'sentry/components/modals/widgetBuilder/overwriteWidgetModal';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {DisplayType} from 'sentry/views/dashboardsV2/types';
 import {
   DEFAULT_WIDGETS,
   WidgetTemplate,
 } from 'sentry/views/dashboardsV2/widgetLibrary/data';
+
+import {normalizeQueries} from '../utils';
 
 import {Card} from './card';
 
 interface Props {
   bypassOverwriteModal: boolean;
   onWidgetSelect: (widget: WidgetTemplate) => void;
+  widgetBuilderNewDesign: boolean;
 }
 
-export function WidgetLibrary({bypassOverwriteModal, onWidgetSelect}: Props) {
+export function WidgetLibrary({
+  bypassOverwriteModal,
+  onWidgetSelect,
+  widgetBuilderNewDesign,
+}: Props) {
   const theme = useTheme();
 
   function getLibrarySelectionHandler(
@@ -40,24 +48,43 @@ export function WidgetLibrary({bypassOverwriteModal, onWidgetSelect}: Props) {
   }
 
   return (
-    <React.Fragment>
+    <Fragment>
       <Header>{t('Widget Library')}</Header>
       <WidgetLibraryWrapper>
         {DEFAULT_WIDGETS.map((widget, index) => {
           const iconColor = theme.charts.getColorPalette(DEFAULT_WIDGETS.length - 2)[
             index
           ];
+
+          const displayType =
+            widgetBuilderNewDesign && widget.displayType === DisplayType.TOP_N
+              ? DisplayType.TABLE
+              : widget.displayType;
+
+          const normalizedQueries = normalizeQueries({
+            displayType,
+            queries: widget.queries,
+            widgetBuilderNewDesign,
+            widgetType: widget.widgetType,
+          });
+
+          const newWidget = {
+            ...widget,
+            displayType,
+            queries: normalizedQueries,
+          };
+
           return (
             <CardHoverWrapper
               key={widget.title}
-              onClick={getLibrarySelectionHandler(widget, iconColor)}
+              onClick={getLibrarySelectionHandler(newWidget, iconColor)}
             >
-              <Card widget={widget} iconColor={iconColor} />
+              <Card widget={newWidget} iconColor={iconColor} />
             </CardHoverWrapper>
           );
         })}
       </WidgetLibraryWrapper>
-    </React.Fragment>
+    </Fragment>
   );
 }
 

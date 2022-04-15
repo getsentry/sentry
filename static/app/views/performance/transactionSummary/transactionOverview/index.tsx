@@ -14,6 +14,7 @@ import {
   QueryFieldValue,
   WebVital,
 } from 'sentry/utils/discover/fields';
+import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -60,15 +61,17 @@ function TransactionOverview(props: Props) {
   }, [selection]);
 
   return (
-    <PageLayout
-      location={location}
-      organization={organization}
-      projects={projects}
-      tab={Tab.TransactionSummary}
-      getDocumentTitle={getDocumentTitle}
-      generateEventView={generateEventView}
-      childComponent={OverviewContentWrapper}
-    />
+    <MEPSettingProvider>
+      <PageLayout
+        location={location}
+        organization={organization}
+        projects={projects}
+        tab={Tab.TransactionSummary}
+        getDocumentTitle={getDocumentTitle}
+        generateEventView={generateEventView}
+        childComponent={OverviewContentWrapper}
+      />
+    </MEPSettingProvider>
   );
 }
 
@@ -120,7 +123,8 @@ function OverviewContentWrapper(props: ChildProps) {
       referrer="api.performance.transaction-summary"
     >
       {({isLoading, error, tableData}) => {
-        const totals: TotalValues | null = tableData?.data?.[0] ?? null;
+        const totals: TotalValues | null =
+          (tableData?.data?.[0] as {[k: string]: number}) ?? null;
         return (
           <SummaryContent
             location={location}

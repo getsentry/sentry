@@ -7,7 +7,7 @@ import isEqual from 'lodash/isEqual';
 import {Client} from 'sentry/api';
 import ChartZoom, {ZoomRenderProps} from 'sentry/components/charts/chartZoom';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
-import LineChart from 'sentry/components/charts/lineChart';
+import {LineChart, LineChartProps} from 'sentry/components/charts/lineChart';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 import StackedAreaChart from 'sentry/components/charts/stackedAreaChart';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
@@ -261,14 +261,14 @@ class Chart extends Component<ChartProps, ChartState> {
     };
   }
 
-  get chartOptions() {
+  get chartOptions(): Omit<LineChartProps, 'series'> {
     return {
       grid: {left: '10px', right: '10px', top: '40px', bottom: '0px'},
       seriesOptions: {
         showSymbol: false,
       },
       tooltip: {
-        trigger: 'axis' as const,
+        trigger: 'axis',
         truncate: 80,
         valueFormatter: (value: number | null) => {
           if (value === null) {

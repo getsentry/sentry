@@ -780,6 +780,64 @@ class DiscoverDatasetConfig(DatasetConfig):
                     default_result_type="number",
                     private=True,
                 ),
+                SnQLFunction(
+                    "fn_span_exclusive_time",
+                    required_args=[
+                        SnQLStringArg("spans_op", True, True),
+                        SnQLStringArg("spans_group"),
+                        SnQLStringArg("fn"),
+                    ],
+                    snql_column=lambda args, alias: Function(
+                        args["fn"],
+                        [
+                            Function(
+                                "arrayJoin",
+                                [
+                                    Function(
+                                        "arrayFilter",
+                                        [
+                                            Lambda(
+                                                [
+                                                    "x",
+                                                    "y",
+                                                    "z",
+                                                ],
+                                                Function(
+                                                    "and",
+                                                    [
+                                                        Function(
+                                                            "equals",
+                                                            [
+                                                                Identifier("y"),
+                                                                args["spans_op"],
+                                                            ],
+                                                        ),
+                                                        Function(
+                                                            "equals",
+                                                            [
+                                                                Identifier(
+                                                                    "z",
+                                                                ),
+                                                                args["spans_group"],
+                                                            ],
+                                                        ),
+                                                    ],
+                                                ),
+                                            ),
+                                            Column("spans.exclusive_time"),
+                                            Column("spans.op"),
+                                            Column("spans.group"),
+                                        ],
+                                    )
+                                ],
+                                "exclusive_time",
+                            )
+                        ],
+                        alias,
+                    ),
+                    default_result_type="number",
+                    private=True,
+                ),
             ]
         }
 

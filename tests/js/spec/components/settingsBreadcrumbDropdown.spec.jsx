@@ -29,52 +29,52 @@ describe('Settings Breadcrumb Dropdown', function () {
     wrapper.find('Crumb').simulate('mouseEnter');
     jest.runAllTimers();
     wrapper.update();
-    expect(wrapper.find('BubbleWithMinWidth')).toHaveLength(1);
+    expect(wrapper.find('StyledDropdownBubble')).toHaveLength(1);
 
     wrapper.find('Crumb').simulate('mouseLeave');
     jest.advanceTimersByTime(10);
     wrapper.update();
-    expect(wrapper.find('BubbleWithMinWidth')).toHaveLength(0);
+    expect(wrapper.find('StyledDropdownBubble')).toHaveLength(0);
   });
 
   it('closes immediately after selecting an item', function () {
     wrapper.find('Crumb').simulate('mouseEnter');
     jest.runAllTimers();
     wrapper.update();
-    expect(wrapper.find('BubbleWithMinWidth')).toHaveLength(1);
+    expect(wrapper.find('StyledDropdownBubble')).toHaveLength(1);
 
     wrapper.find('AutoCompleteItem').first().simulate('click');
-    expect(wrapper.find('BubbleWithMinWidth')).toHaveLength(0);
+    expect(wrapper.find('StyledDropdownBubble')).toHaveLength(0);
   });
 
   it('stays open when hovered over crumb and then into dropdown menu', function () {
     wrapper.find('Crumb').simulate('mouseEnter');
     jest.runAllTimers();
     wrapper.update();
-    expect(wrapper.find('BubbleWithMinWidth')).toHaveLength(1);
+    expect(wrapper.find('StyledDropdownBubble')).toHaveLength(1);
 
     wrapper.find('Crumb').simulate('mouseLeave');
-    wrapper.find('BubbleWithMinWidth').simulate('mouseEnter');
+    wrapper.find('StyledDropdownBubble').simulate('mouseEnter');
     jest.runAllTimers();
     wrapper.update();
-    expect(wrapper.find('BubbleWithMinWidth')).toHaveLength(1);
+    expect(wrapper.find('StyledDropdownBubble')).toHaveLength(1);
   });
 
   it('closes after entering dropdown and then leaving dropdown', function () {
     wrapper.find('Crumb').simulate('mouseEnter');
     jest.runAllTimers();
     wrapper.update();
-    expect(wrapper.find('BubbleWithMinWidth')).toHaveLength(1);
+    expect(wrapper.find('StyledDropdownBubble')).toHaveLength(1);
 
     wrapper.find('Crumb').simulate('mouseLeave');
-    wrapper.find('BubbleWithMinWidth').simulate('mouseEnter');
+    wrapper.find('StyledDropdownBubble').simulate('mouseEnter');
     jest.runAllTimers();
     wrapper.update();
-    expect(wrapper.find('BubbleWithMinWidth')).toHaveLength(1);
+    expect(wrapper.find('StyledDropdownBubble')).toHaveLength(1);
 
-    wrapper.find('BubbleWithMinWidth').simulate('mouseLeave');
+    wrapper.find('StyledDropdownBubble').simulate('mouseLeave');
     jest.runAllTimers();
     wrapper.update();
-    expect(wrapper.find('BubbleWithMinWidth')).toHaveLength(0);
+    expect(wrapper.find('StyledDropdownBubble')).toHaveLength(0);
   });
 });

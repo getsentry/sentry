@@ -876,6 +876,51 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             {"by": {}, "series": {"sum(session)": [1]}, "totals": {"sum(session)": 1}}
         ]
 
+    @freeze_time(MOCK_DATETIME)
+    def test_sessions_without_users(self):
+        # The first field defines by which groups additional queries are filtered
+        # But if the first field is the user count, the series should still
+        # contain the session counts even if the project does not track users
+        response = self.do_request(
+            {
+                "project": self.project.id,  # project without users
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["count_unique(user)", "sum(session)"],
+                "groupBy": "release",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert result_sorted(response.data)["groups"] == [
+            {
+                "by": {"release": "foo@1.0.0"},
+                "series": {"count_unique(user)": [0], "sum(session)": [3]},
+                "totals": {"count_unique(user)": 0, "sum(session)": 3},
+            },
+            {
+                "by": {"release": "foo@1.1.0"},
+                "series": {"count_unique(user)": [0], "sum(session)": [1]},
+                "totals": {"count_unique(user)": 0, "sum(session)": 1},
+            },
+        ]
+
+    @freeze_time(MOCK_DATETIME + datetime.timedelta(days=2))
+    def test_groupby_no_data(self):
+        # Empty results for everything
+        response = self.do_request(
+            {
+                "project": self.project.id,  # project without users
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["count_unique(user)", "sum(session)"],
+                "groupBy": "release",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert result_sorted(response.data)["groups"] == []
+
 
 @patch("sentry.api.endpoints.organization_sessions.release_health", MetricsReleaseHealthBackend())
 class OrganizationSessionsEndpointMetricsTest(

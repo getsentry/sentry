@@ -2045,6 +2045,7 @@ class MetricsCrashRateAlertProcessUpdateTest(
         snuba_query.save()
 
     def send_crash_rate_alert_update(self, rule, value, subscription, time_delta=None, count=EMPTY):
+        org_id = self.organization.id
         self.email_action_handler.reset_mock()
         if time_delta is None:
             time_delta = timedelta()
@@ -2067,9 +2068,9 @@ class MetricsCrashRateAlertProcessUpdateTest(
                 else:
                     denominator = count
                     numerator = int(value * denominator)
-            session_status = resolve_tag_key("session.status")
-            tag_value_init = resolve_weak("init")
-            tag_value_crashed = resolve_weak("crashed")
+            session_status = resolve_tag_key(org_id, "session.status")
+            tag_value_init = resolve_weak(org_id, "init")
+            tag_value_crashed = resolve_weak(org_id, "crashed")
             processor.process_update(
                 {
                     "subscription_id": subscription.subscription_id
@@ -2101,7 +2102,10 @@ class MetricsCrashRateAlertProcessUpdateTest(
         processor.process_update(
             {
                 "subscription_id": subscription.subscription_id,
-                "values": {"data": []},
+                "values": {
+                    # 1001 is a random int that doesn't map to anything in the indexer
+                    "data": [{resolve_tag_key(self.organization.id, "session.status"): 1001}]
+                },
                 "timestamp": timezone.now(),
                 "interval": 1,
                 "partition": 1,

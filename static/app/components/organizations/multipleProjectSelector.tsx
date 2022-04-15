@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
-import {GetActorPropsFn} from 'sentry/components/dropdownMenu';
+import {MenuActions} from 'sentry/components/dropdownMenu';
 import Link from 'sentry/components/links/link';
 import HeaderItem from 'sentry/components/organizations/headerItem';
 import PlatformList from 'sentry/components/platformList';
@@ -29,7 +29,7 @@ type Props = WithRouterProps & {
   organization: Organization;
   value: number[];
   customDropdownButton?: (config: {
-    getActorProps: GetActorPropsFn;
+    actions: MenuActions;
     isOpen: boolean;
     selectedProjects: Project[];
   }) => React.ReactElement;
@@ -42,6 +42,7 @@ type Props = WithRouterProps & {
   lockedMessageSubject?: React.ReactNode;
   shouldForceProject?: boolean;
   showIssueStreamLink?: boolean;
+  showPin?: boolean;
   showProjectSettingsLink?: boolean;
 };
 
@@ -295,9 +296,9 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
               />
             )}
           >
-            {({getActorProps, selectedProjects, isOpen}) => {
+            {({actions, selectedProjects, isOpen}) => {
               if (customDropdownButton) {
-                return customDropdownButton({getActorProps, selectedProjects, isOpen});
+                return customDropdownButton({actions, selectedProjects, isOpen});
               }
               const hasSelected = !!selectedProjects.length;
               const title = hasSelected
@@ -328,7 +329,6 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
                       ? `/settings/${organization.slug}/projects/${selected[0]?.slug}/`
                       : ''
                   }
-                  {...getActorProps()}
                 >
                   {title}
                 </StyledHeaderItem>
@@ -459,11 +459,11 @@ const FooterMessage = styled('div')`
 const StyledProjectSelector = styled(ProjectSelector)`
   background-color: ${p => p.theme.background};
   color: ${p => p.theme.textColor};
-  width: 100%;
 
   ${p =>
     !p.detached &&
     `
+    width: 100%;
     margin: 1px 0 0 -1px;
     border-radius: ${p.theme.borderRadiusBottom};
   `}

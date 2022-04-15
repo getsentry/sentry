@@ -9,6 +9,7 @@ import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/incidentRules/constants';
 
+import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
 import {AlertRuleComparisonType, Dataset} from './types';
 
 type Props = {
@@ -32,7 +33,7 @@ const ThresholdTypeForm = ({
   hasAlertWizardV3,
   comparisonDelta,
 }: Props) =>
-  dataset === Dataset.SESSIONS ? null : (
+  isCrashFreeAlert(dataset) ? null : (
     <Feature features={['organizations:change-alerts']} organization={organization}>
       {!hasAlertWizardV3 && <StyledListItem>{t('Select threshold type')}</StyledListItem>}
       <FormRow hasAlertWizardV3={hasAlertWizardV3}>

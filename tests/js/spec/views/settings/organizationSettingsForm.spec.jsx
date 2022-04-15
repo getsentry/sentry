@@ -19,7 +19,7 @@ describe('OrganizationSettingsForm', function () {
     onSave.mockReset();
   });
 
-  it('can change a form field', function (done) {
+  it('can change a form field', async function () {
     putMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
       method: 'PUT',
@@ -54,12 +54,12 @@ describe('OrganizationSettingsForm', function () {
       })
     );
 
-    saveOnBlurUndoMessage.mockImplementationOnce(async function (
-      change,
-      model,
-      fieldName
-    ) {
-      try {
+    await new Promise(resolve => {
+      saveOnBlurUndoMessage.mockImplementationOnce(async function (
+        change,
+        model,
+        fieldName
+      ) {
         expect(fieldName).toBe('name');
         expect(change.old).toBe('Organization Name');
         expect(change.new).toBe('New Name');
@@ -79,10 +79,8 @@ describe('OrganizationSettingsForm', function () {
         // Blurring the name field again should NOT trigger a save
         input.simulate('blur');
         expect(putMock).not.toHaveBeenCalled();
-        done();
-      } catch (err) {
-        done(err);
-      }
+        resolve();
+      });
     });
   });
 

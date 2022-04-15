@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import * as React from 'react';
 import {Link} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -11,7 +10,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NotAvailable from 'sentry/components/notAvailable';
 import {PanelItem} from 'sentry/components/panels';
 import PanelTable from 'sentry/components/panels/panelTable';
-import {IconArrow, IconWarning} from 'sentry/icons';
+import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
@@ -639,7 +638,7 @@ function PerformanceCardTable({
         {platformPerformanceRender[performanceType].title}
       </HeadCellContainer>
       {isUnknownPlatform && (
-        <StyledAlert type="warning" icon={<IconWarning size="md" />} system>
+        <StyledAlert type="warning" showIcon system>
           {tct(
             'For more performance metrics, specify which platform this project is using in [link]',
             {

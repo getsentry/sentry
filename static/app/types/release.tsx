@@ -1,8 +1,8 @@
-import {PlatformKey} from 'sentry/data/platformCategories';
+import type {PlatformKey} from 'sentry/data/platformCategories';
 
-import {TimeseriesValue} from './core';
-import {Commit} from './integrations';
-import {User} from './user';
+import type {TimeseriesValue} from './core';
+import type {Commit} from './integrations';
+import type {User} from './user';
 
 export enum ReleaseStatus {
   Active = 'open',

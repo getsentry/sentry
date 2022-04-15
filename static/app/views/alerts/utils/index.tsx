@@ -16,14 +16,19 @@ import {
   SessionsAggregate,
 } from 'sentry/views/alerts/incidentRules/types';
 
-import {AlertRuleStatus, Incident, IncidentStats, IncidentStatus} from '../types';
+import {AlertRuleStatus, Incident, IncidentStats} from '../types';
 
 // Use this api for requests that are getting cancelled
 const uncancellableApi = new Client();
 
-export function fetchAlertRule(orgId: string, ruleId: string): Promise<IncidentRule> {
+export function fetchAlertRule(
+  orgId: string,
+  ruleId: string,
+  query?: Record<string, string>
+): Promise<IncidentRule> {
   return uncancellableApi.requestPromise(
-    `/organizations/${orgId}/alert-rules/${ruleId}/`
+    `/organizations/${orgId}/alert-rules/${ruleId}/`,
+    {query}
   );
 }
 
@@ -35,6 +40,7 @@ export function fetchIncidentsForRule(
 ): Promise<Incident[]> {
   return uncancellableApi.requestPromise(`/organizations/${orgId}/incidents/`, {
     query: {
+      project: '-1',
       alertRule,
       includeSnapshots: true,
       start,
@@ -50,35 +56,6 @@ export function fetchIncident(
   alertId: string
 ): Promise<Incident> {
   return api.requestPromise(`/organizations/${orgId}/incidents/${alertId}/`);
-}
-
-export function updateSubscription(
-  api: Client,
-  orgId: string,
-  alertId: string,
-  isSubscribed?: boolean
-): Promise<Incident> {
-  const method = isSubscribed ? 'POST' : 'DELETE';
-  return api.requestPromise(
-    `/organizations/${orgId}/incidents/${alertId}/subscriptions/`,
-    {
-      method,
-    }
-  );
-}
-
-export function updateStatus(
-  api: Client,
-  orgId: string,
-  alertId: string,
-  status: IncidentStatus
-): Promise<Incident> {
-  return api.requestPromise(`/organizations/${orgId}/incidents/${alertId}/`, {
-    method: 'PUT',
-    data: {
-      status,
-    },
-  });
 }
 
 /**

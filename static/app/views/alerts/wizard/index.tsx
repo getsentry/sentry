@@ -18,6 +18,7 @@ import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
 import {Dataset} from 'sentry/views/alerts/incidentRules/types';
+import {AlertRuleType} from 'sentry/views/alerts/types';
 
 import {
   AlertType,
@@ -25,17 +26,19 @@ import {
   AlertWizardPanelContent,
   AlertWizardRuleTemplates,
   getAlertWizardCategories,
+  WizardRuleTemplate,
 } from './options';
 import RadioPanelGroup from './radioPanelGroup';
 
 type RouteParams = {
   orgId: string;
-  projectId: string;
+  projectId?: string;
 };
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
   project: Project;
+  projectId: string;
 };
 
 type State = {
@@ -68,24 +71,43 @@ class AlertWizard extends Component<Props, State> {
   };
 
   renderCreateAlertButton() {
-    const {
-      organization,
-      location,
-      params: {projectId},
-    } = this.props;
+    const {organization, location, params, projectId: _projectId} = this.props;
     const {alertOption} = this.state;
-    const metricRuleTemplate = AlertWizardRuleTemplates[alertOption];
+    const projectId = params.projectId ?? _projectId;
+    let metricRuleTemplate: Readonly<WizardRuleTemplate> | undefined =
+      AlertWizardRuleTemplates[alertOption];
     const isMetricAlert = !!metricRuleTemplate;
     const isTransactionDataset = metricRuleTemplate?.dataset === Dataset.TRANSACTIONS;
 
-    const to = {
-      pathname: `/organizations/${organization.slug}/alerts/${projectId}/new/`,
-      query: {
-        ...(metricRuleTemplate && metricRuleTemplate),
-        createFromWizard: true,
-        referrer: location?.query?.referrer,
-      },
-    };
+    const hasAlertWizardV3 = organization.features.includes('alert-wizard-v3');
+
+    if (
+      organization.features.includes('alert-crash-free-metrics') &&
+      metricRuleTemplate?.dataset === Dataset.SESSIONS
+    ) {
+      metricRuleTemplate = {...metricRuleTemplate, dataset: Dataset.METRICS};
+    }
+
+    const to = hasAlertWizardV3
+      ? {
+          pathname: `/organizations/${organization.slug}/alerts/new/${
+            isMetricAlert ? AlertRuleType.METRIC : AlertRuleType.ISSUE
+          }/`,
+          query: {
+            ...(metricRuleTemplate ? metricRuleTemplate : {}),
+            project: projectId,
+            createFromV3: true,
+            referrer: location?.query?.referrer,
+          },
+        }
+      : {
+          pathname: `/organizations/${organization.slug}/alerts/${projectId}/new/`,
+          query: {
+            ...(metricRuleTemplate ? metricRuleTemplate : {}),
+            createFromWizard: true,
+            referrer: location?.query?.referrer,
+          },
+        };
 
     const noFeatureMessage = t('Requires incidents feature.');
     const renderNoAccess = p => (
@@ -143,13 +165,9 @@ class AlertWizard extends Component<Props, State> {
   }
 
   render() {
-    const {
-      organization,
-      params: {projectId},
-      routes,
-      location,
-    } = this.props;
+    const {organization, params, projectId: _projectId, routes, location} = this.props;
     const {alertOption} = this.state;
+    const projectId = params.projectId ?? _projectId;
     const title = t('Alert Creation Wizard');
     const panelContent = AlertWizardPanelContent[alertOption];
     return (
@@ -159,7 +177,7 @@ class AlertWizard extends Component<Props, State> {
         <Layout.Header>
           <StyledHeaderContent>
             <BuilderBreadCrumbs
-              orgSlug={organization.slug}
+              organization={organization}
               projectSlug={projectId}
               title={t('Select Alert')}
               routes={routes}
@@ -169,7 +187,7 @@ class AlertWizard extends Component<Props, State> {
             <Layout.Title>{t('Select Alert')}</Layout.Title>
           </StyledHeaderContent>
         </Layout.Header>
-        <StyledLayoutBody>
+        <Layout.Body>
           <Layout.Main fullWidth>
             <WizardBody>
               <WizardOptions>
@@ -217,15 +235,11 @@ class AlertWizard extends Component<Props, State> {
               </WizardPanel>
             </WizardBody>
           </Layout.Main>
-        </StyledLayoutBody>
+        </Layout.Body>
       </Fragment>
     );
   }
 }
-
-const StyledLayoutBody = styled(Layout.Body)`
-  margin-bottom: -${space(3)};
-`;
 
 const StyledHeaderContent = styled(Layout.HeaderContent)`
   overflow: visible;

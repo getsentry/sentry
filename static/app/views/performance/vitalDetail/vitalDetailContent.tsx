@@ -18,7 +18,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import {IconCheckmark, IconClose} from 'sentry/icons';
-import {IconFlag} from 'sentry/icons/iconFlag';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
@@ -189,7 +188,7 @@ class VitalDetailContent extends Component<Props, State> {
     }
 
     return (
-      <Alert type="error" icon={<IconFlag size="md" />}>
+      <Alert type="error" showIcon>
         {error}
       </Alert>
     );

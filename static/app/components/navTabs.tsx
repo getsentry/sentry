@@ -1,19 +1,20 @@
-import * as React from 'react';
+import styled from '@emotion/styled';
 import classnames from 'classnames';
 
-type Props = {
-  className?: string;
+interface NavProps extends React.HTMLAttributes<HTMLUListElement> {
   underlined?: boolean;
-};
-
-type NavProps = Omit<React.HTMLProps<HTMLUListElement>, keyof Props> & Props;
+}
 
 function NavTabs({underlined, className, ...tabProps}: NavProps) {
   const mergedClassName = classnames('nav nav-tabs', className, {
     'border-bottom': underlined,
   });
 
-  return <ul className={mergedClassName} {...tabProps} />;
+  return <Wrap className={mergedClassName} {...tabProps} />;
 }
 
 export default NavTabs;
+
+const Wrap = styled('ul')`
+  font-size: ${p => p.theme.fontSizeMedium};
+`;

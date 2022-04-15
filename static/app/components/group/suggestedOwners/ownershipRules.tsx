@@ -77,7 +77,7 @@ const OwnershipRules = ({
       </Content>
       <ButtonBar gap={1}>
         <SetupButton
-          size="small"
+          size="xsmall"
           priority="primary"
           to={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
           onClick={() =>
@@ -91,7 +91,7 @@ const OwnershipRules = ({
           {t('Setup')}
         </SetupButton>
         <Button
-          size="small"
+          size="xsmall"
           external
           href="https://docs.sentry.io/product/issues/issue-owners/#code-owners"
           onClick={() =>
@@ -193,6 +193,8 @@ const SetupButton = styled(Button)`
 `;
 
 const DismissButton = styled(Button)`
-  justify-self: flex-end;
+  position: absolute;
+  top: 0;
+  right: ${space(1)};
   color: ${p => p.theme.gray400};
 `;

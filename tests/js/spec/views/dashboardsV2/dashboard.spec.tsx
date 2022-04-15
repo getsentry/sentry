@@ -45,9 +45,15 @@ describe('Dashboards > Dashboard', () => {
       method: 'GET',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/',
+      method: 'GET',
+      body: TestStubs.Tags(),
+    });
   });
   it('dashboard adds new widget if component is mounted with newWidget prop', async () => {
     const mockHandleAddCustomWidget = jest.fn();
+    const mockCallbackToUnsetNewWidget = jest.fn();
     const wrapper = mountWithTheme(
       <Dashboard
         paramDashboardId="1"
@@ -57,21 +63,23 @@ describe('Dashboards > Dashboard', () => {
         onUpdate={() => undefined}
         handleUpdateWidgetList={() => undefined}
         handleAddCustomWidget={mockHandleAddCustomWidget}
-        onSetWidgetToBeUpdated={() => undefined}
         router={initialData.router}
         location={initialData.location}
         newWidget={newWidget}
         widgetLimitReached={false}
+        onSetNewWidget={mockCallbackToUnsetNewWidget}
       />,
       initialData.routerContext
     );
     await tick();
     wrapper.update();
     expect(mockHandleAddCustomWidget).toHaveBeenCalled();
+    expect(mockCallbackToUnsetNewWidget).toHaveBeenCalled();
   });
 
   it('dashboard adds new widget if component updated with newWidget prop', async () => {
     const mockHandleAddCustomWidget = jest.fn();
+    const mockCallbackToUnsetNewWidget = jest.fn();
     const wrapper = mountWithTheme(
       <Dashboard
         paramDashboardId="1"
@@ -81,18 +89,45 @@ describe('Dashboards > Dashboard', () => {
         onUpdate={() => undefined}
         handleUpdateWidgetList={() => undefined}
         handleAddCustomWidget={mockHandleAddCustomWidget}
-        onSetWidgetToBeUpdated={() => undefined}
         router={initialData.router}
         location={initialData.location}
         widgetLimitReached={false}
+        onSetNewWidget={mockCallbackToUnsetNewWidget}
       />,
       initialData.routerContext
     );
     expect(mockHandleAddCustomWidget).not.toHaveBeenCalled();
+    expect(mockCallbackToUnsetNewWidget).not.toHaveBeenCalled();
     wrapper.setProps({newWidget});
     await tick();
     wrapper.update();
     expect(mockHandleAddCustomWidget).toHaveBeenCalled();
+    expect(mockCallbackToUnsetNewWidget).toHaveBeenCalled();
+  });
+
+  it('dashboard does not try to add new widget if no newWidget', async () => {
+    const mockHandleAddCustomWidget = jest.fn();
+    const mockCallbackToUnsetNewWidget = jest.fn();
+    const wrapper = mountWithTheme(
+      <Dashboard
+        paramDashboardId="1"
+        dashboard={mockDashboard}
+        organization={initialData.organization}
+        isEditing={false}
+        onUpdate={() => undefined}
+        handleUpdateWidgetList={() => undefined}
+        handleAddCustomWidget={mockHandleAddCustomWidget}
+        router={initialData.router}
+        location={initialData.location}
+        widgetLimitReached={false}
+        onSetNewWidget={mockCallbackToUnsetNewWidget}
+      />,
+      initialData.routerContext
+    );
+    await tick();
+    wrapper.update();
+    expect(mockHandleAddCustomWidget).not.toHaveBeenCalled();
+    expect(mockCallbackToUnsetNewWidget).not.toHaveBeenCalled();
   });
 
   it('displays widgets with drag handle when in edit mode', () => {
@@ -103,7 +138,6 @@ describe('Dashboards > Dashboard', () => {
         dashboard={dashboardWithOneWidget}
         organization={initialData.organization}
         onUpdate={() => undefined}
-        onSetWidgetToBeUpdated={() => undefined}
         handleUpdateWidgetList={() => undefined}
         handleAddCustomWidget={() => undefined}
         router={initialData.router}
@@ -113,6 +147,6 @@ describe('Dashboards > Dashboard', () => {
       />,
       initialData.routerContext
     );
-    expect(wrapper.find('StyledIconGrabbable')).toHaveLength(1);
+    expect(wrapper.find('GrabbableButton')).toHaveLength(1);
   });
 });

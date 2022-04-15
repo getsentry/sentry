@@ -34,8 +34,13 @@ class BreadcrumbDropdown extends React.Component<BreadcrumbDropdownProps, State>
     isOpen: false,
   };
 
-  entering: number | null = null;
-  leaving: number | null = null;
+  componentWillUnmount() {
+    window.clearTimeout(this.enteringTimeout);
+    window.clearTimeout(this.leavingTimeout);
+  }
+
+  enteringTimeout: number | undefined = undefined;
+  leavingTimeout: number | undefined = undefined;
 
   open = () => {
     this.setState({isOpen: true});
@@ -49,30 +54,27 @@ class BreadcrumbDropdown extends React.Component<BreadcrumbDropdownProps, State>
 
   // Adds a delay when mouse hovers on actor (in this case the breadcrumb)
   handleMouseEnterActor = () => {
-    if (this.leaving) {
-      clearTimeout(this.leaving);
-    }
+    window.clearTimeout(this.leavingTimeout);
+    window.clearTimeout(this.enteringTimeout);
 
-    this.entering = window.setTimeout(() => this.open(), this.props.enterDelay ?? 0);
+    this.enteringTimeout = window.setTimeout(
+      () => this.open(),
+      this.props.enterDelay ?? 0
+    );
   };
 
   // handles mouseEnter event on actor and menu, should clear the leaving timeout and keep menu open
   handleMouseEnter = () => {
-    if (this.leaving) {
-      clearTimeout(this.leaving);
-    }
-
+    window.clearTimeout(this.leavingTimeout);
+    window.clearTimeout(this.enteringTimeout);
     this.open();
   };
 
   // handles mouseLeave event on actor and menu, adds a timeout before updating state to account for
   // mouseLeave into
   handleMouseLeave = () => {
-    if (this.entering) {
-      clearTimeout(this.entering);
-    }
-
-    this.leaving = window.setTimeout(() => this.close(), EXIT_DELAY);
+    window.clearTimeout(this.enteringTimeout);
+    this.leavingTimeout = window.setTimeout(() => this.close(), EXIT_DELAY);
   };
 
   // Close immediately when actor is clicked clicked
