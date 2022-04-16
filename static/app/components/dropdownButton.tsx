@@ -15,10 +15,6 @@ interface DropdownButtonProps extends Omit<ButtonProps, 'prefix'> {
    */
   forwardedRef?: React.Ref<typeof Button>;
   /**
-   * If button is the full width of container
-   */
-  fullWidth?: boolean;
-  /**
    * Should the bottom border become transparent when open?
    */
   hideBottomBorder?: boolean;
@@ -35,6 +31,10 @@ interface DropdownButtonProps extends Omit<ButtonProps, 'prefix'> {
    */
   priority?: 'default' | 'primary' | 'form';
   /**
+   * Align chevron to the right of dropdown button
+   */
+  rightAlignChevron?: boolean;
+  /**
    * Should a chevron icon be shown?
    */
   showChevron?: boolean;
@@ -50,7 +50,7 @@ const DropdownButton = ({
   detached = false,
   disabled = false,
   priority = 'form',
-  fullWidth = false,
+  rightAlignChevron = false,
   ...props
 }: DropdownButtonProps) => {
   return (
@@ -69,7 +69,7 @@ const DropdownButton = ({
       {children}
       {showChevron && (
         <StyledChevron
-          fullWidth={fullWidth}
+          rightAlignChevron={rightAlignChevron}
           size="xs"
           direction={isOpen ? 'up' : 'down'}
         />
@@ -82,17 +82,17 @@ DropdownButton.defaultProps = {
   showChevron: true,
 };
 
-const StyledChevron = styled(IconChevron)<{fullWidth: boolean}>`
+const StyledChevron = styled(IconChevron, {
+  shouldForwardProp: prop => prop !== 'rightAlignChevron',
+})<{
+  rightAlignChevron: boolean;
+}>`
   margin-left: 0.33em;
 
-  ${p =>
-    p.fullWidth &&
-    `
-      @media (max-width: ${p.theme.breakpoints[0]}) {
-        position: absolute;
-        right: ${space(2)};
-      }
-  `}
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    position: ${p => p.rightAlignChevron && 'absolute'};
+    right: ${p => p.rightAlignChevron && `${space(2)}`};
+  }
 `;
 
 const StyledButton = styled(Button)<

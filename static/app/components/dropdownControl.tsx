@@ -109,7 +109,7 @@ class DropdownControl extends React.Component<Props> {
             data-test-id="dropdown-control-button"
             detached={detached}
             hideBottomBorder={!detached}
-            fullWidth={fullWidth}
+            rightAlignChevron={fullWidth ?? false}
           >
             {label}
           </StyledDropdownButton>
@@ -125,6 +125,7 @@ class DropdownControl extends React.Component<Props> {
         data-test-id="dropdown-control-button"
         detached={detached}
         hideBottomBorder={!detached}
+        rightAlignChevron={fullWidth ?? false}
       >
         {label}
       </StyledDropdownButton>
