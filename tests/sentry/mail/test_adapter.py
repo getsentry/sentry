@@ -456,6 +456,22 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
 
 
 class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
+    def create_assert_delete_projectownership(
+        self,
+        proj: Project,
+        rules: Sequence[grammar.Rule],
+        data: Mapping,
+        asserted_emails_fired: Sequence[str],
+    ):
+        po = ProjectOwnership.objects.create(
+            project_id=proj.id, schema=dump_schema(rules), fallthrough=False
+        )
+        self.assert_notify(
+            self.store_event(data=data, project_id=proj.id),
+            asserted_emails_fired,
+        )
+        po.delete()
+
     def test_notify_with_path(self):
         user = self.create_user(email="foo@example.com", is_active=True)
         user2 = self.create_user(email="baz@example.com", is_active=True)
@@ -536,9 +552,9 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
             for u in [user3, user4, user5]
         ]
 
-        ProjectOwnership.objects.create(
-            project_id=project.id,
-            schema=dump_schema(
+        with self.feature("organizations:notification-all-recipients"):
+            self.create_assert_delete_projectownership(
+                project,
                 [
                     grammar.Rule(
                         Matcher("tags.release", "*"),
@@ -548,21 +564,26 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
                         Matcher("tags.release", "1"),
                         [Owner("user", user2.email)],
                     ),
+                ],
+                {"release": "1"},
+                [user.email, user2.email],
+            )
+
+            self.create_assert_delete_projectownership(
+                project,
+                [
+                    grammar.Rule(
+                        Matcher("tags.release", "*"),
+                        [Owner("user", user.email)],
+                    ),
                     grammar.Rule(
                         Matcher("tags.release", "2"),
                         [Owner("team", team2.slug)],
                     ),
-                ]
-            ),
-            fallthrough=False,
-        )
-        with self.feature("organizations:notification-all-recipients"):
-            event_all_users = self.store_event(data={"release": "1"}, project_id=project.id)
-            self.assert_notify(event_all_users, [user.email, user2.email])
-
-        with self.feature("organizations:notification-all-recipients"):
-            event_all_users = self.store_event(data={"release": "2"}, project_id=project.id)
-            self.assert_notify(event_all_users, [user.email, user3.email, user4.email, user5.email])
+                ],
+                {"release": "2"},
+                [user.email, user3.email, user4.email, user5.email],
+            )
 
     def test_notify_with_dist_tag(self):
         owner = self.create_user(email="theboss@example.com", is_active=True)
@@ -584,9 +605,9 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
             for u in [user3, user4, user5]
         ]
 
-        ProjectOwnership.objects.create(
-            project_id=project.id,
-            schema=dump_schema(
+        with self.feature("organizations:notification-all-recipients"):
+            self.create_assert_delete_projectownership(
+                project,
                 [
                     grammar.Rule(
                         Matcher("tags.dist", "*"),
@@ -596,25 +617,47 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
                         Matcher("tags.dist", "rc1"),
                         [Owner("user", user2.email)],
                     ),
+                ],
+                {"dist": "rc1", "release": "1"},
+                [user.email, user2.email],
+            )
+
+            self.create_assert_delete_projectownership(
+                project,
+                [
+                    grammar.Rule(
+                        Matcher("tags.dist", "*"),
+                        [Owner("user", user.email)],
+                    ),
                     grammar.Rule(
                         Matcher("tags.dist", "lenny"),
                         [Owner("team", team2.slug)],
                     ),
-                ]
-            ),
-            fallthrough=False,
-        )
-        with self.feature("organizations:notification-all-recipients"):
-            event_all_users = self.store_event(
-                data={"dist": "rc1", "release": "1"}, project_id=project.id
+                ],
+                {"dist": "lenny", "release": "1"},
+                [user.email, user3.email, user4.email, user5.email],
             )
-            self.assert_notify(event_all_users, [user.email, user2.email])
+
+    def test_dont_notify_with_dist_if_no_rule(self):
+        owner = self.create_user(email="theboss@example.com", is_active=True)
+        organization = self.create_organization(owner=owner)
+        team = self.create_team(organization=organization, name="awesome")
+        project = self.create_project(name="Test", teams=[team])
+        user = self.create_user(email="foo@example.com", is_active=True)
+        self.create_member(user=user, organization=organization, teams=[team])
 
         with self.feature("organizations:notification-all-recipients"):
-            event_all_users = self.store_event(
-                data={"dist": "lenny", "release": "1"}, project_id=project.id
+            self.create_assert_delete_projectownership(
+                project,
+                [
+                    grammar.Rule(
+                        Matcher("tags.abc", "hello"),
+                        [Owner("user", user.email)],
+                    ),
+                ],
+                {"dist": "hello", "release": "1"},
+                [],
             )
-            self.assert_notify(event_all_users, [user.email, user3.email, user4.email, user5.email])
 
     def test_notify_with_user_tag(self):
         owner = self.create_user(email="theboss@example.com", is_active=True)
@@ -640,56 +683,45 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
             ]
         ]
 
-        ProjectOwnership.objects.create(
-            project_id=project.id,
-            schema=dump_schema(
+        with self.feature("organizations:notification-all-recipients"):
+            self.create_assert_delete_projectownership(
+                project,
                 [
                     grammar.Rule(
-                        Matcher("tags.user:id", "unique_id"),
+                        Matcher("tags.user.id", "unique_id"),
                         [Owner("user", user_by_id.email)],
                     ),
                     grammar.Rule(
-                        Matcher("tags.user:username", "my_user"),
+                        Matcher("tags.user.username", "my_user"),
                         [Owner("user", user_by_username.email)],
                     ),
                     grammar.Rule(
-                        Matcher("tags.user:email", "foo@example.com"),
+                        Matcher("tags.user.email", "foo@example.com"),
                         [Owner("user", user_by_email.email)],
                     ),
                     grammar.Rule(
-                        Matcher("tags.user:ip_address", "127.0.0.1"),
+                        Matcher("tags.user.ip_address", "127.0.0.1"),
                         [Owner("user", user_by_ip.email)],
                     ),
                     grammar.Rule(
-                        Matcher("tags.user:subscription", "basic"),
+                        Matcher("tags.user.subscription", "basic"),
                         [Owner("user", user_by_sub.email)],
                     ),
                     grammar.Rule(
-                        Matcher("tags.user:extra", "detail"),
+                        Matcher("tags.user.extra", "detail"),
                         [Owner("user", user_by_extra.email)],
                     ),
-                ]
-            ),
-            fallthrough=False,
-        )
-
-        event_all_users = self.store_event(
-            data={
-                "user": {
-                    "id": "unique_id",
-                    "username": "my_user",
-                    "email": "foo@example.com",
-                    "ip_address": "127.0.0.1",
-                    "subscription": "basic",
-                    "extra": "detail",
-                }
-            },
-            project_id=project.id,
-        )
-
-        with self.feature("organizations:notification-all-recipients"):
-            self.assert_notify(
-                event_all_users,
+                ],
+                {
+                    "user": {
+                        "id": "unique_id",
+                        "username": "my_user",
+                        "email": "foo@example.com",
+                        "ip_address": "127.0.0.1",
+                        "subscription": "basic",
+                        "extra": "detail",
+                    }
+                },
                 [
                     user_by_id.email,
                     user_by_username.email,
@@ -717,20 +749,8 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
             for u in [user, user_star, user_username, user_username_star]
         ]
 
-        def create_test_delete_rule(
-            proj: Project, rule: grammar.Rule, data: Mapping, asserted_emails_fired: Sequence[str]
-        ):
-            po = ProjectOwnership.objects.create(
-                project_id=proj.id, schema=dump_schema([rule]), fallthrough=False
-            )
-            self.assert_notify(
-                self.store_event(data=data, project_id=proj.id),
-                asserted_emails_fired,
-            )
-            po.delete()
-
         """
-            tags.user:username:someemail@example.com sentryuser@example.com
+            tags.user.username:someemail@example.com sentryuser@example.com
             tags.user:someemail@example.com sentryuser@example.com
 
             tags.user:* sentryuser@example.com
@@ -742,53 +762,71 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
         """
         with self.feature("organizations:notification-all-recipients"):
             dat = {"user": {"username": "someemail@example.com"}}
-            create_test_delete_rule(
+            self.create_assert_delete_projectownership(
                 project,
-                grammar.Rule(
-                    Matcher("tags.user:username", "someemail@example.com"),
-                    [Owner("user", user_username.email)],
-                ),
+                [
+                    grammar.Rule(
+                        Matcher("tags.user.username", "someemail@example.com"),
+                        [Owner("user", user_username.email)],
+                    )
+                ],
                 dat,
                 [user_username.email],
             )
 
-            create_test_delete_rule(
+            self.create_assert_delete_projectownership(
                 project,
-                grammar.Rule(
-                    Matcher("tags.user", "someemail@example.com"), [Owner("user", user.email)]
-                ),
-                dat,
-                [user.email],
-            )
-
-            create_test_delete_rule(
-                project,
-                grammar.Rule(Matcher("tags.user", "*"), [Owner("user", user_star.email)]),
-                dat,
-                [user_star.email],
-            )
-
-            create_test_delete_rule(
-                project,
-                grammar.Rule(
-                    Matcher("tags.user.username", "*"), [Owner("user", user_username_star.email)]
-                ),
-                dat,
-                [user_username_star.email],
-            )
-
-            create_test_delete_rule(
-                project,
-                grammar.Rule(Matcher("tags.user", "username"), [Owner("user", user.email)]),
+                [
+                    grammar.Rule(
+                        Matcher("tags.user", "someemail@example.com"), [Owner("user", user.email)]
+                    )
+                ],
                 dat,
                 [],
             )
 
-            create_test_delete_rule(
+            self.create_assert_delete_projectownership(
                 project,
-                grammar.Rule(Matcher("tags.user", "*someemail*"), [Owner("team", team.slug)]),
+                [grammar.Rule(Matcher("tags.user", "*"), [Owner("user", user_star.email)])],
+                dat,
+                [user_star.email],
+            )
+
+            self.create_assert_delete_projectownership(
+                project,
+                [
+                    grammar.Rule(
+                        Matcher("tags.user.username", "*"),
+                        [Owner("user", user_username_star.email)],
+                    )
+                ],
+                dat,
+                [user_username_star.email],
+            )
+
+            self.create_assert_delete_projectownership(
+                project,
+                [grammar.Rule(Matcher("tags.user", "username"), [Owner("user", user.email)])],
+                dat,
+                [],
+            )
+
+            self.create_assert_delete_projectownership(
+                project,
+                [grammar.Rule(Matcher("tags.user", "*someemail*"), [Owner("team", team.slug)])],
                 dat,
                 [u.email for u in [user, user_star, user_username, user_username_star]],
+            )
+
+            self.create_assert_delete_projectownership(
+                project,
+                [
+                    grammar.Rule(
+                        Matcher("tags.user.email", "someemail*"), [Owner("team", team.slug)]
+                    )
+                ],
+                {"user": {"username": "someemail@example.com"}},
+                [],
             )
 
 

@@ -135,22 +135,26 @@ class Matcher(namedtuple("Matcher", "type pattern")):
         tag = self.type[5:]
 
         # inspect the event-payload User interface first before checking tags.user
-        if tag and tag.startswith("user"):
+        if tag and tag.startswith("user."):
             for k, v in (get_path(data, "user", filter=True) or {}).items():
-                if isinstance(v, str) and glob_match(v, self.pattern):
+                if isinstance(v, str) and tag.endswith("." + k) and glob_match(v, self.pattern):
                     return True
                 # user interface supports different fields in the payload, any other fields present gets put into the
                 # 'data' dict
                 # we look one more level deep to see if the pattern matches
                 elif k == "data":
                     for data_k, data_v in (v or {}).items():
-                        if isinstance(data_v, str) and glob_match(data_v, self.pattern):
+                        if (
+                            isinstance(data_v, str)
+                            and tag.endswith("." + data_k)
+                            and glob_match(data_v, self.pattern)
+                        ):
                             return True
 
         for k, v in get_path(data, "tags", filter=True) or ():
             if k == tag and glob_match(v, self.pattern):
                 return True
-            elif k in set(EventSubjectTemplateData.tag_aliases.values()) and glob_match(
+            elif k == EventSubjectTemplateData.tag_aliases.get(tag, tag) and glob_match(
                 v, self.pattern
             ):
                 return True
