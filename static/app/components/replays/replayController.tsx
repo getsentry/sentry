@@ -95,8 +95,8 @@ const ReplayControls = ({
         <Button
           data-test-id="replay-fast-forward"
           size="xsmall"
-          title={t('Fast Forward idle moments')}
-          aria-label={t('Fast Forward idle moments')}
+          title={t('Fast-forward idle moments')}
+          aria-label={t('Fast-forward idle moments')}
           icon={<IconArrow size="sm" direction="right" />}
           priority={isSkippingInactive ? 'primary' : undefined}
           onClick={() => toggleSkipInactive(!isSkippingInactive)}
