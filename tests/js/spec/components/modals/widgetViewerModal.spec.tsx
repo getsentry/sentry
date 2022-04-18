@@ -769,7 +769,7 @@ describe('Modals -> WidgetViewerModal', function () {
     });
   });
 
-  describe('Metrics Widgets', function () {
+  describe('Release Health Widgets', function () {
     let sessionsMock;
     const mockQuery = {
       conditions: '',
