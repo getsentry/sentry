@@ -108,7 +108,7 @@ export function usePersistedStoreCategory<C extends keyof PersistedStore>(
   );
 
   const stableState: UsePersistedCategory<PersistedStore[C]> = useMemo(() => {
-    return [state[category] ?? null, setCategoryState];
+    return [state[category] ?? {}, setCategoryState];
   }, [state[category], setCategoryState]);
 
   return stableState;
