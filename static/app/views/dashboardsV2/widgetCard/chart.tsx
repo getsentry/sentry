@@ -181,8 +181,8 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
     const {organization, widget, isMobile, expandNumbers} = this.props;
 
     return tableResults.map(result => {
-      const tableMeta = {...result.meta} ?? {};
-      const fields = Object.keys(tableMeta ?? {});
+      const tableMeta = {...result.meta};
+      const fields = Object.keys(tableMeta);
 
       const field = fields[0];
 

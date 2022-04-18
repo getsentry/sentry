@@ -76,12 +76,6 @@ export function WidgetCardChartContainer({
                 errorMessage={errorMessage}
                 widget={widget}
                 organization={organization}
-                isMobile={isMobile}
-                windowWidth={windowWidth}
-                onZoom={onZoom}
-                onLegendSelectChanged={onLegendSelectChanged}
-                legendOptions={legendOptions}
-                expandNumbers={expandNumbers}
                 location={location}
                 selection={selection}
               />

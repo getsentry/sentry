@@ -626,7 +626,7 @@ function WidgetViewerModal(props: Props) {
                           'dashboards_views.widget_viewer.paginate',
                           {
                             organization,
-                            widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                            widget_type: WidgetType.ISSUE,
                             display_type: widget.displayType,
                           }
                         );
@@ -695,7 +695,7 @@ function WidgetViewerModal(props: Props) {
                           'dashboards_views.widget_viewer.paginate',
                           {
                             organization,
-                            widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                            widget_type: WidgetType.METRICS,
                             display_type: widget.displayType,
                           }
                         );
@@ -766,7 +766,7 @@ function WidgetViewerModal(props: Props) {
                           'dashboards_views.widget_viewer.paginate',
                           {
                             organization,
-                            widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                            widget_type: WidgetType.DISCOVER,
                             display_type: widget.displayType,
                           }
                         );

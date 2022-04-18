@@ -74,7 +74,7 @@ export const renderIssueGridHeaderCell =
         onClick={() => {
           trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.sort', {
             organization,
-            widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+            widget_type: WidgetType.ISSUE,
             display_type: widget.displayType,
             column: column.name,
             order: 'desc',
@@ -132,7 +132,7 @@ export const renderDiscoverGridHeaderCell =
           onHeaderClick?.();
           trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.sort', {
             organization,
-            widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+            widget_type: WidgetType.DISCOVER,
             display_type: widget.displayType,
             column: column.name,
             order: currentSort?.kind === 'desc' ? 'asc' : 'desc',
@@ -255,7 +255,7 @@ export const renderMetricsGridHeaderCell =
     const canSort = isAggregateField(column.name);
     const titleText = column.name;
 
-    function generateSortLink(): LocationDescriptorObject | undefined {
+    function generateSortLink(): LocationDescriptorObject {
       const columnSort =
         column.name === sort.field
           ? {...sort, kind: sort.kind === 'desc' ? 'asc' : 'desc'}
@@ -284,7 +284,7 @@ export const renderMetricsGridHeaderCell =
           onHeaderClick?.();
           trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.sort', {
             organization,
-            widget_type: widget.widgetType ?? WidgetType.METRICS,
+            widget_type: WidgetType.METRICS,
             display_type: widget.displayType,
             column: column.name,
             order: sort?.kind === 'desc' ? 'asc' : 'desc',
