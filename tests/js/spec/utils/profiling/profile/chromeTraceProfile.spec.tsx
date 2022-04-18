@@ -122,7 +122,7 @@ describe('parseChromeTraceArrayFormat', () => {
       [
         {
           ph: 'B',
-          ts: 0,
+          ts: 1000,
           cat: 'program',
           pid: 0,
           tid: 0,
@@ -131,7 +131,7 @@ describe('parseChromeTraceArrayFormat', () => {
         },
         {
           ph: 'E',
-          ts: 1000,
+          ts: 2000,
           cat: 'program',
           pid: 0,
           tid: 0,
@@ -142,6 +142,8 @@ describe('parseChromeTraceArrayFormat', () => {
       ''
     );
 
+    expect(trace.profiles[0].startedAt).toBe(1000);
+    expect(trace.profiles[0].endedAt).toBe(2000);
     expect(trace.profiles[0].duration).toBe(1000);
     expect(trace.profiles[0].appendOrderTree.children[0].totalWeight).toBe(1000);
   });

@@ -50,8 +50,8 @@ export class Flamegraph {
 
     // If a custom config space is provided, use it and draw the chart in it
     this.frames = leftHeavy
-      ? this.buildLeftHeavyGraph(profile, configSpace ? this.profile.startedAt : 0)
-      : this.buildCallOrderGraph(profile, configSpace ? this.profile.startedAt : 0);
+      ? this.buildLeftHeavyGraph(profile, configSpace ? configSpace.x : 0)
+      : this.buildCallOrderGraph(profile, configSpace ? configSpace.x : 0);
 
     this.formatter = makeFormatter(profile.unit);
 
@@ -70,9 +70,9 @@ export class Flamegraph {
 
     if (this.profile.duration) {
       this.configSpace = new Rect(
+        configSpace ? configSpace.x : this.profile.startedAt,
         0,
-        0,
-        configSpace ? configSpace.width : this.profile.endedAt,
+        configSpace ? configSpace.width : this.profile.duration,
         this.depth
       );
     }
