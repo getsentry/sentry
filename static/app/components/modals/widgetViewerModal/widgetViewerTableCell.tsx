@@ -167,7 +167,7 @@ export const renderGridBodyCell =
         cell = getFieldRenderer(
           columnKey,
           tableData.meta,
-          widget.widgetType === WidgetType.METRICS ? false : true
+          widget.widgetType !== WidgetType.METRICS
         )(dataRow, {
           organization,
           location,

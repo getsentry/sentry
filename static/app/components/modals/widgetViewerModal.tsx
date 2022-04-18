@@ -808,24 +808,7 @@ function WidgetViewerModal(props: Props) {
       <Body>{renderWidgetViewer()}</Body>
       <Footer>
         <ResultsContainer>
-          {totalResults &&
-            (widget.widgetType === WidgetType.ISSUE ? (
-              <span>
-                {tct('[description:Total Issues:] [total]', {
-                  description: <strong />,
-                  total: totalResults === '1000' ? '1000+' : totalResults,
-                })}
-              </span>
-            ) : widget.widgetType === WidgetType.DISCOVER ? (
-              <span>
-                {tct('[description:Total Events:] [total]', {
-                  description: <strong />,
-                  total: totalResults,
-                })}
-              </span>
-            ) : (
-              <span />
-            ))}
+          {totalResults && renderTotalResults(totalResults, widget.widgetType)}
           <ButtonBar gap={1}>
             {onEdit && widget.id && (
               <Button
@@ -868,6 +851,31 @@ function WidgetViewerModal(props: Props) {
       </Footer>
     </React.Fragment>
   );
+}
+
+function renderTotalResults(totalResults: string, widgetType?: WidgetType) {
+  switch (widgetType) {
+    case WidgetType.ISSUE:
+      return (
+        <span>
+          {tct('[description:Total Issues:] [total]', {
+            description: <strong />,
+            total: totalResults === '1000' ? '1000+' : totalResults,
+          })}
+        </span>
+      );
+    case WidgetType.DISCOVER:
+      return (
+        <span>
+          {tct('[description:Total Events:] [total]', {
+            description: <strong />,
+            total: totalResults,
+          })}
+        </span>
+      );
+    default:
+      return <span />;
+  }
 }
 
 export const modalCss = css`
