@@ -19,7 +19,6 @@ from sentry.models import (
     ReleaseProjectEnvironment,
     ReleaseStatus,
 )
-from sentry.release_health import release_monitor
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics, snuba
 
@@ -37,11 +36,62 @@ logger = logging.getLogger("tasks.releasemonitor")
 )  # type: ignore
 def monitor_release_adoption(**kwargs) -> None:
     metrics.incr("sentry.tasks.monitor_release_adoption.start", sample_rate=1.0)
+    # 1. Query snuba for all project ids that have sessions.
+    with metrics.timer(
+        "sentry.tasks.monitor_release_adoption.aggregate_projects.loop", sample_rate=1.0
+    ):
+        aggregated_projects = defaultdict(list)
+        start_time = time.time()
+        offset = 0
+        while (time.time() - start_time) < MAX_SECONDS:
+            query = (
+                Query(
+                    dataset="sessions",
+                    match=Entity("org_sessions"),
+                    select=[
+                        Column("org_id"),
+                        Column("project_id"),
+                    ],
+                    groupby=[Column("org_id"), Column("project_id")],
+                    where=[
+                        Condition(
+                            Column("started"), Op.GTE, datetime.utcnow() - timedelta(hours=6)
+                        ),
+                        Condition(Column("started"), Op.LT, datetime.utcnow()),
+                    ],
+                    granularity=Granularity(3600),
+                    orderby=[
+                        OrderBy(Column("org_id"), Direction.ASC),
+                        OrderBy(Column("project_id"), Direction.ASC),
+                    ],
+                )
+                .set_limit(CHUNK_SIZE + 1)
+                .set_offset(offset)
+            )
+            data = snuba.raw_snql_query(query, referrer="tasks.monitor_release_adoption")["data"]
+            count = len(data)
+            more_results = count > CHUNK_SIZE
+            offset += CHUNK_SIZE
+
+            if more_results:
+                data = data[:-1]
+
+            for row in data:
+                aggregated_projects[row["org_id"]].append(row["project_id"])
+
+            if not more_results:
+                break
+
+        else:
+            logger.error(
+                "monitor_release_adoption.loop_timeout",
+                extra={"offset": offset},
+            )
     with metrics.timer(
         "sentry.tasks.monitor_release_adoption.process_projects_with_sessions", sample_rate=1.0
     ):
-        for org_id, project_ids in release_monitor.fetch_projects_with_recent_sessions().items():
-            process_projects_with_sessions.delay(org_id, project_ids)
+        for org_id in aggregated_projects:
+            process_projects_with_sessions.delay(org_id, aggregated_projects[org_id])
 
 
 @instrumented_task(
