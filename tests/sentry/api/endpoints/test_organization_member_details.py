@@ -15,6 +15,7 @@ from sentry.models import (
     UserOption,
 )
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers import with_feature
 
 
 class OrganizationMemberTestBase(APITestCase):
@@ -101,6 +102,19 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
 
         response = self.get_success_response(self.organization.slug, member_om.id)
         assert team.slug in response.data["teams"]
+
+    def test_lists_organization_roles(self):
+        response = self.get_success_response(self.organization.slug, "me")
+
+        role_ids = [role["id"] for role in response.data["roles"]]
+        assert role_ids == ["member", "admin", "manager", "owner"]
+
+    @with_feature("organizations:team-roles")
+    def test_hides_retired_organization_roles(self):
+        response = self.get_success_response(self.organization.slug, "me")
+
+        role_ids = [role["id"] for role in response.data["roles"]]
+        assert role_ids == ["member", "manager", "owner"]
 
 
 class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
