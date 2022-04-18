@@ -107,7 +107,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
     @staticmethod
     def _is_transaction_event(event):
-        return True if event.group_id is None else False
+        return event.group_id is None
 
     def insert(
         self,
