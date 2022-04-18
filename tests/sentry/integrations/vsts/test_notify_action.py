@@ -61,9 +61,6 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
         )
 
         debug_response_urls = [mock.url for mock in responses._default_mock._matches]  # noqa: F841
-        debug_response_bodies = [  # noqa: F841
-            mock.body for mock in responses._default_mock._matches
-        ]
 
         debug_state = self.get_state()
         after_res = azuredevops_rule.after(event=event, state=debug_state)
