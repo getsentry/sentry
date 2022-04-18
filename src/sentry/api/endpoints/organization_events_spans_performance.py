@@ -467,7 +467,6 @@ def query_suspect_span_groups(
     offset: int,
 ) -> List[SuspectSpan]:
     suspect_span_columns = SPAN_PERFORMANCE_COLUMNS[orderby]
-    # orderby = avgOccurence
 
     selected_columns: List[str] = [
         column
@@ -522,9 +521,6 @@ def query_suspect_span_groups(
 
     if extra_conditions:
         builder.add_conditions(extra_conditions)
-
-    # add min and max exclusive times as extra conditions?
-    # how to add min max filter as a condition
 
     snql_query = builder.get_snql_query()
     results = raw_snql_query(snql_query, "api.organization-events-spans-performance-suspects")
