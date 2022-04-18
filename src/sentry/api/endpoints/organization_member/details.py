@@ -243,12 +243,13 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                     [OrganizationMemberTeam(team=team, organizationmember=member) for team in teams]
                 )
 
-        if result.get("role"):
+        assigned_role = result.get("role")
+        if assigned_role:
             _, allowed_roles = get_allowed_roles(request, organization)
             allowed_role_ids = {r.id for r in allowed_roles}
 
             # A user cannot promote others above themselves
-            if result["role"] not in allowed_role_ids:
+            if assigned_role not in allowed_role_ids:
                 return Response(
                     {"role": "You do not have permission to assign the given role."}, status=403
                 )
@@ -260,18 +261,16 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                     status=403,
                 )
 
-            if member.user == request.user and (result["role"] != member.role):
+            if member.user == request.user and (assigned_role != member.role):
                 return Response({"detail": "You cannot make changes to your own role."}, status=400)
 
-            if organization_roles.get(result["role"]).is_retired and features.has(
+            if organization_roles.get(assigned_role).is_retired and features.has(
                 "organizations:team-roles", organization
             ):
-                message = (
-                    f"The role '{result['role']}' is deprecated and may no longer be assigned."
-                )
+                message = f"The role '{assigned_role}' is deprecated and may no longer be assigned."
                 return Response({"detail": message}, status=400)
 
-            self._change_org_member_role(member, result["role"])
+            self._change_org_member_role(member, assigned_role)
 
         self.create_audit_entry(
             request=request,
