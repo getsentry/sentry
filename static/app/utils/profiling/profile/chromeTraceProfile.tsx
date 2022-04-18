@@ -138,7 +138,7 @@ function buildProfile(
   }
 
   const firstTimestamp = beginQueue[beginQueue.length - 1].ts;
-  const lastTimestamp = endQueue[0].ts;
+  const lastTimestamp = endQueue[0]?.ts ?? beginQueue[0].ts;
 
   if (typeof firstTimestamp !== 'number') {
     throw new Error('First begin event contains no timestamp');
