@@ -22,6 +22,20 @@ export const EventedTrace = () => {
   );
 };
 
+const sampledTrace = importProfile(require('./SampledTrace.json'));
+
+export const SampledTrace = () => {
+  return (
+    <FlamegraphStateProvider>
+      <FlamegraphThemeProvider>
+        <FullScreenFlamegraphContainer>
+          <Flamegraph profiles={sampledTrace} />
+        </FullScreenFlamegraphContainer>
+      </FlamegraphThemeProvider>
+    </FlamegraphStateProvider>
+  );
+};
+
 const jsSelfProfile = importProfile(require('./JSSelfProfilingTrace.json'));
 
 export const JSSelfProfiling = () => {
