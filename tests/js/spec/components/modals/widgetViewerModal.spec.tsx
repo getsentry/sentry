@@ -796,7 +796,7 @@ describe('Modals -> WidgetViewerModal', function () {
         }),
       });
     });
-    it('does a metrics query', async function () {
+    it('does a sessions query', async function () {
       await renderModal({initialData, widget: mockWidget});
       expect(sessionsMock).toHaveBeenCalled();
     });
