@@ -16,7 +16,7 @@ type RootElem = null | HTMLDivElement;
 type ReplayPlayerContextProps = {
   /**
    * The current time of the video, in miliseconds
-   * The value is updated on every animation frame, ~16.6ms
+   * The value is updated on every animation frame, about every 16.6ms
    */
   currentTime: number;
 
@@ -26,17 +26,18 @@ type ReplayPlayerContextProps = {
   dimensions: Dimensions;
 
   /**
-   * Duraction of the video, in miliseconds
+   * Duration of the video, in miliseconds
    */
   duration: undefined | number;
 
   /**
    * Raw RRWeb events
    */
-  events: eventWithTime[];
+  events: ReadonlyArray<eventWithTime>;
 
   /**
    * The calculated speed of the player when fast-forwarding through idle moments in the video.
+   * The value is set to `0` when the video is not fast-forwarding.
    * The speed is automatically determined by the length of each idle period.
    */
   fastForwardSpeed: number;
