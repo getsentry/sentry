@@ -176,6 +176,7 @@ function Dashboard({
                   <TeamFilter
                     selectedTeams={selectedTeams}
                     handleChangeFilter={handleChangeFilter}
+                    fullWidth
                     showIsMemberTeams
                     showMyTeamsAndUnassigned={false}
                     showMyTeamsDescription
@@ -191,7 +192,7 @@ function Dashboard({
               {hasProjectRedesign ? (
                 <LazyLoad once debounce={50} height={300} offset={300}>
                   <ProjectCards>
-                    {filteredProjects.map(project => (
+                    {sortProjects(filteredProjects).map(project => (
                       <ProjectCard
                         data-test-id={project.slug}
                         key={project.slug}
@@ -247,17 +248,20 @@ const TeamLink = styled(Link)`
 
 const ProjectsHeader = styled(Layout.Header)`
   border-bottom: none;
+  align-items: end;
+
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    padding: 26px ${space(4)} 0 ${space(4)};
+  }
 `;
 
 const Title = styled(Layout.HeaderContent)`
   margin-bottom: 0;
-  padding-top: ${space(0.5)};
 `;
 
 const ButtonContainer = styled('div')`
   display: inline-flex;
   gap: ${space(1)};
-  padding-top: ${space(0.5)};
 `;
 
 const SearchAndSelectorWrapper = styled('div')`

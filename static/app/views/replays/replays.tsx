@@ -3,6 +3,7 @@ import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import FeatureBadge from 'sentry/components/featureBadge';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import Link from 'sentry/components/links/link';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -18,10 +19,12 @@ import {NewQuery, Organization, PageFilters} from 'sentry/types';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
+import Projects from 'sentry/utils/projects';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import AsyncView from 'sentry/views/asyncView';
 
+import ReplaysFilters from './filters';
 import {Replay} from './types';
 
 type Props = AsyncView['props'] &
@@ -38,7 +41,7 @@ class Replays extends React.Component<Props> {
       id: '',
       name: '',
       version: 2,
-      fields: ['eventID', 'timestamp', 'replayId', 'user.display', 'url'],
+      fields: ['eventID', 'project', 'timestamp', 'user.display', 'url'],
       orderby: '-timestamp',
       environment: selection.environments,
       projects: selection.projects,
@@ -61,7 +64,7 @@ class Replays extends React.Component<Props> {
       <React.Fragment key={replay.id}>
         <Link
           to={`/organizations/${organization.slug}/replays/${generateEventSlug({
-            project: replay['project.name'],
+            project: replay.project,
             id: replay.id,
           })}/`}
         >
@@ -79,6 +82,18 @@ class Replays extends React.Component<Props> {
             displayEmail={replay.url?.split('?')[0] || ''}
           />
         </Link>
+        <Projects orgId={organization.slug} slugs={[replay.project]}>
+          {({projects}) => {
+            const project = projects.find(p => p.slug === replay.project);
+            return (
+              <ProjectBadge
+                project={project ? project : {slug: replay.project}}
+                avatarSize={16}
+              />
+            );
+          }}
+        </Projects>
+
         <div>
           <TimeSinceWrapper>
             <StyledIconCalendarWrapper color="gray500" size="sm" />
@@ -92,46 +107,56 @@ class Replays extends React.Component<Props> {
   render() {
     const {organization} = this.props;
     return (
-      <PageFiltersContainer
-        showEnvironmentSelector={false}
-        resetParamsOnChange={['cursor']}
-      >
-        <PageContent>
-          <PageHeader>
-            <HeaderTitle>
-              <div>
-                {t('Replays')} <FeatureBadge type="alpha" />
-              </div>
-            </HeaderTitle>
-          </PageHeader>
-
-          <DiscoverQuery
-            eventView={this.getEventView()}
-            location={this.props.location}
-            orgSlug={organization.slug}
-          >
-            {data => {
-              return (
-                <React.Fragment>
-                  <PanelTable
-                    isLoading={data.isLoading}
-                    isEmpty={data.tableData?.data.length === 0}
-                    headers={[t('Session'), t('Timestamp')]}
-                  >
-                    {data.tableData
-                      ? this.renderTable(data.tableData.data as Replay[])
-                      : null}
-                  </PanelTable>
-                  <Pagination pageLinks={data.pageLinks} />
-                </React.Fragment>
-              );
-            }}
-          </DiscoverQuery>
-        </PageContent>
-      </PageFiltersContainer>
+      <React.Fragment>
+        <StyledPageHeader>
+          <HeaderTitle>
+            <div>
+              {t('Replays')} <FeatureBadge type="alpha" />
+            </div>
+          </HeaderTitle>
+        </StyledPageHeader>
+        <PageFiltersContainer hideGlobalHeader resetParamsOnChange={['cursor']}>
+          <StyledPageContent>
+            <DiscoverQuery
+              eventView={this.getEventView()}
+              location={this.props.location}
+              orgSlug={organization.slug}
+            >
+              {data => {
+                return (
+                  <React.Fragment>
+                    <ReplaysFilters />
+                    <PanelTable
+                      isLoading={data.isLoading}
+                      isEmpty={data.tableData?.data.length === 0}
+                      headers={[t('Session'), t('Project'), t('Timestamp')]}
+                    >
+                      {data.tableData
+                        ? this.renderTable(data.tableData.data as Replay[])
+                        : null}
+                    </PanelTable>
+                    <Pagination pageLinks={data.pageLinks} />
+                  </React.Fragment>
+                );
+              }}
+            </DiscoverQuery>
+          </StyledPageContent>
+        </PageFiltersContainer>
+      </React.Fragment>
     );
   }
 }
+
+const StyledPageHeader = styled(PageHeader)`
+  background-color: ${p => p.theme.surface100};
+  margin-top: ${space(1.5)};
+  margin-left: ${space(4)};
+`;
+
+const StyledPageContent = styled(PageContent)`
+  box-shadow: 0px 0px 1px ${p => p.theme.gray200};
+  background-color: ${p => p.theme.white};
+`;
 
 const HeaderTitle = styled(PageHeading)`
   display: flex;

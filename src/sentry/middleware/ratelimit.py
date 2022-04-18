@@ -16,7 +16,7 @@ from sentry.ratelimits import (
 )
 from sentry.ratelimits.config import ENFORCE_CONCURRENT_RATE_LIMITS
 from sentry.types.ratelimit import RateLimitCategory, RateLimitMeta, RateLimitType
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 
 DEFAULT_ERROR_MESSAGE = (
     "You are attempting to use this endpoint too frequently. Limit is "
@@ -74,12 +74,12 @@ class RatelimitMiddleware:
                     enforce_rate_limit = getattr(view_func.view_class, "enforce_rate_limit", False)
                     if enforce_rate_limit:
                         return HttpResponse(
-                            {
-                                "detail": DEFAULT_ERROR_MESSAGE.format(
+                            json.dumps(
+                                DEFAULT_ERROR_MESSAGE.format(
                                     limit=request.rate_limit_metadata.limit,
                                     window=request.rate_limit_metadata.window,
                                 )
-                            },
+                            ),
                             status=429,
                         )
             except Exception:
