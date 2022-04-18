@@ -232,7 +232,7 @@ describe('TraceView', () => {
     });
 
     const event = generateSampleEvent();
-    const parentSpan = generateSampleSpan(
+    generateSampleSpan(
       'parent span',
       'db',
       'b000000000000000',
@@ -302,11 +302,6 @@ describe('TraceView', () => {
       embeddedEvent
     );
     embeddedSpan.trace_id = '8cbbc19c0f54447ab702f00263262726';
-
-    // Shift this embedded span so it is outside its parent's bounds
-    // This is to test the behaviour where the embedded transaction timestamps automatically get adjusted
-    embeddedSpan.start_timestamp = parentSpan.timestamp + 50;
-    embeddedSpan.timestamp += 50;
 
     const fetchEmbeddedTransactionMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/${project.slug}:998d7e2c304c45729545e4434e2967cb/`,
