@@ -1,6 +1,8 @@
+import {useState} from 'react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
+import Input from 'sentry/components/forms/controls/input';
 import SelectControl from 'sentry/components/forms/selectControl';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
@@ -23,6 +25,7 @@ interface Props {
 }
 
 export function SortBySelectors({values, sortByOptions, widgetType, onChange}: Props) {
+  const [customEquation, setCustomEquation] = useState<Values | null>(null);
   return (
     <Wrapper>
       <Tooltip
@@ -54,15 +57,41 @@ export function SortBySelectors({values, sortByOptions, widgetType, onChange}: P
         name="sortBy"
         menuPlacement="auto"
         placeholder={`${t('Select a column')}\u{2026}`}
-        value={values.sortBy}
-        options={uniqBy(sortByOptions, ({value}) => value)}
+        value={customEquation ? 'custom-equation' : values.sortBy}
+        options={[
+          ...uniqBy(sortByOptions, ({value}) => value),
+          {value: 'custom-equation', label: t('Custom Equation')},
+        ]}
         onChange={(option: SelectValue<string>) => {
+          if (option.value === 'custom-equation') {
+            setCustomEquation({
+              sortBy: '',
+              sortDirection: values.sortDirection,
+            });
+            return;
+          }
+
           onChange({
             sortBy: option.value,
             sortDirection: values.sortDirection,
           });
+          setCustomEquation(null);
         }}
       />
+      {customEquation && (
+        <StyledInput
+          placeholder={t('Enter Equation')}
+          onChange={e => {
+            setCustomEquation({
+              sortBy: `equation|${e.target.value}`,
+              sortDirection: values.sortDirection,
+            });
+          }}
+          onBlur={() => {
+            onChange(customEquation);
+          }}
+        />
+      )}
     </Wrapper>
   );
 }
@@ -74,4 +103,8 @@ const Wrapper = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-columns: 200px 1fr;
   }
+`;
+
+const StyledInput = styled(Input)`
+  grid-column: 1/-1;
 `;
