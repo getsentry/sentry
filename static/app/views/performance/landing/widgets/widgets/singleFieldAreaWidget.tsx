@@ -25,7 +25,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
   const {ContainerActions} = props;
   const globalSelection = props.eventView.getPageFilters();
   const pageError = usePageError();
-  const {isMEPEnabled} = useMEPSettingContext();
+  const mepSetting = useMEPSettingContext();
 
   if (props.fields.length !== 1) {
     throw new Error(`Single field area can only accept a single field (${props.fields})`);
@@ -58,14 +58,14 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
               )}
               hideError
               onError={pageError.setPageError}
-              queryExtras={getMEPQueryParams(isMEPEnabled)}
+              queryExtras={getMEPQueryParams(mepSetting)}
             />
           )}
         </QueryBatchNode>
       ),
       transform: transformEventsRequestToArea,
     }),
-    [props.chartSetting]
+    [props.chartSetting, mepSetting.memoizationKey]
   );
 
   const Queries = {
