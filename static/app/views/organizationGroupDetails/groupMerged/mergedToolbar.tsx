@@ -30,6 +30,7 @@ class MergedToolbar extends React.Component<Props, State> {
   state: State = this.getInitialState();
 
   getInitialState() {
+    // @ts-ignore GroupingStore types are not correct, store.init dinamically sets these
     const {unmergeList, unmergeLastCollapsed, unmergeDisabled, enableFingerprintCompare} =
       GroupingStore;
 

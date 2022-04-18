@@ -66,7 +66,7 @@ async function renderModal({
   );
   // Need to wait since WidgetViewerModal will make a request to events-meta
   // for total events count on mount
-  if (widget.widgetType !== WidgetType.ISSUE) {
+  if (widget.widgetType === WidgetType.DISCOVER) {
     await waitForMetaToHaveBeenCalled();
   }
   return rendered;
@@ -128,6 +128,7 @@ describe('Modals -> WidgetViewerModal', function () {
       displayType: DisplayType.AREA,
       interval: '5m',
       queries: [mockQuery, additionalMockQuery],
+      widgetType: WidgetType.DISCOVER,
     };
 
     beforeEach(function () {
@@ -313,6 +314,7 @@ describe('Modals -> WidgetViewerModal', function () {
       displayType: DisplayType.TOP_N,
       interval: '5m',
       queries: [mockQuery],
+      widgetType: WidgetType.DISCOVER,
     };
 
     beforeEach(function () {
@@ -517,6 +519,7 @@ describe('Modals -> WidgetViewerModal', function () {
       displayType: DisplayType.WORLD_MAP,
       interval: '5m',
       queries: [mockQuery],
+      widgetType: WidgetType.DISCOVER,
     };
 
     beforeEach(function () {
