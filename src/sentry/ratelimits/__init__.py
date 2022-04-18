@@ -10,6 +10,7 @@ __all__ = (
     "get_rate_limit_value",
     "finish_request",
     "RateLimiter",
+    "RateLimitConfig",
 )
 
 from .base import RateLimiter
@@ -20,6 +21,7 @@ backend = LazyServiceWrapper(
 backend.expose(locals())
 
 from .utils import (
+    RateLimitConfig,
     above_rate_limit_check,
     finish_request,
     for_organization_member_invite,
