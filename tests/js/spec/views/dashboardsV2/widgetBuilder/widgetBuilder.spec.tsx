@@ -10,7 +10,6 @@ import * as indicators from 'sentry/actionCreators/indicator';
 import * as modals from 'sentry/actionCreators/modal';
 import TagStore from 'sentry/stores/tagStore';
 import {TOP_N} from 'sentry/utils/discover/types';
-import {SessionMetric} from 'sentry/utils/metrics/fields';
 import {
   DashboardDetails,
   DashboardWidgetSource,
@@ -158,6 +157,7 @@ describe('WidgetBuilder', function () {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
+      method: 'GET',
       body: [],
     });
 
@@ -186,45 +186,11 @@ describe('WidgetBuilder', function () {
       body: [{key: 'environment'}, {key: 'release'}, {key: 'session.status'}],
     });
 
-    MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/metrics/tags/session.status/`,
-      body: [
-        {
-          key: 'session.status',
-          value: 'crashed',
-        },
-      ],
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/metrics/meta/`,
-      body: [
-        {
-          name: SessionMetric.SESSION,
-          type: 'counter',
-          operations: ['sum'],
-          unit: null,
-        },
-        {
-          name: SessionMetric.SESSION_ERROR,
-          type: 'set',
-          operations: ['count_unique'],
-          unit: null,
-        },
-        {
-          name: SessionMetric.USER,
-          type: 'set',
-          operations: ['count_unique'],
-          unit: null,
-        },
-      ],
-    });
-
     metricsDataMock = MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/metrics/data/`,
+      url: `/organizations/org-slug/sessions/`,
       body: TestStubs.MetricsField({
-        field: `sum(${SessionMetric.SESSION})`,
+        field: `sum(session)`,
       }),
     });
 
@@ -359,7 +325,7 @@ describe('WidgetBuilder', function () {
     expect(
       screen.getByRole('heading', {name: 'Choose your data set'})
     ).toBeInTheDocument();
-    expect(screen.getByLabelText('Select Events (Errors, transactions)')).toBeChecked();
+    expect(screen.getByLabelText('Select Errors and Transactions')).toBeChecked();
 
     // Content - Step 2
     expect(
@@ -429,7 +395,7 @@ describe('WidgetBuilder', function () {
     expect(
       screen.getByRole('heading', {name: 'Choose your data set'})
     ).toBeInTheDocument();
-    expect(screen.getByLabelText('Select Events (Errors, transactions)')).toBeChecked();
+    expect(screen.getByLabelText('Select Errors and Transactions')).toBeChecked();
 
     // Content - Step 2
     expect(
@@ -1339,6 +1305,93 @@ describe('WidgetBuilder', function () {
     expect(tagsMock).not.toHaveBeenCalled();
   });
 
+  it('excludes the Other series when grouping and using multiple y-axes', async function () {
+    renderTestComponent({
+      orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      query: {
+        displayType: DisplayType.LINE,
+      },
+    });
+
+    await selectEvent.select(await screen.findByText('Select group'), 'project');
+
+    userEvent.click(screen.getByText('Add Overlay'));
+    await selectEvent.select(screen.getByText('(Required)'), /count_unique/);
+
+    await waitFor(() => {
+      expect(eventsStatsMock).toBeCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({excludeOther: '1'}),
+        })
+      );
+    });
+  });
+
+  it('excludes the Other series when grouping and using multiple queries', async function () {
+    renderTestComponent({
+      orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      query: {
+        displayType: DisplayType.LINE,
+      },
+    });
+
+    await selectEvent.select(await screen.findByText('Select group'), 'project');
+    userEvent.click(screen.getByText('Add Query'));
+
+    await waitFor(() => {
+      expect(eventsStatsMock).toBeCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({excludeOther: '1'}),
+        })
+      );
+    });
+  });
+
+  it('includes Other series when there is only one query and one y-axis', async function () {
+    renderTestComponent({
+      orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      query: {
+        displayType: DisplayType.LINE,
+      },
+    });
+
+    await selectEvent.select(await screen.findByText('Select group'), 'project');
+
+    await waitFor(() => {
+      expect(eventsStatsMock).toBeCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.not.objectContaining({excludeOther: '1'}),
+        })
+      );
+    });
+  });
+
+  it('decreases the limit when more y-axes and queries are added', async function () {
+    renderTestComponent({
+      orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      query: {
+        displayType: DisplayType.LINE,
+      },
+    });
+
+    await selectEvent.select(await screen.findByText('Select group'), 'project');
+
+    screen.getByText('Limit to 5 results');
+
+    userEvent.click(screen.getByText('Add Query'));
+    userEvent.click(screen.getByText('Add Query'));
+
+    screen.getByText('Limit to 3 results');
+
+    userEvent.click(screen.getByText('Add Overlay'));
+    userEvent.click(screen.getByText('Add Overlay'));
+
+    await screen.findByText('Limit to 1 result');
+  });
+
   describe('Sort by selectors', function () {
     it('renders', async function () {
       renderTestComponent({
@@ -1510,11 +1563,6 @@ describe('WidgetBuilder', function () {
       // Selector "sortBy"
       expect(screen.getAllByText('title')).toHaveLength(2);
 
-      await selectEvent.select(
-        screen.getByText('Select a dashboard'),
-        '+ Create New Dashboard'
-      );
-
       // Saves the widget
       userEvent.click(screen.getByText('Add Widget'));
 
@@ -1642,7 +1690,7 @@ describe('WidgetBuilder', function () {
 
       renderTestComponent({onSave: handleSave});
 
-      userEvent.click(await screen.findByText('Issues (Status, assignee, etc.)'));
+      userEvent.click(await screen.findByText('Issues (States, Assignment, Time, etc.)'));
       userEvent.click(screen.getByLabelText('Add Widget'));
 
       await waitFor(() => {
@@ -1681,12 +1729,12 @@ describe('WidgetBuilder', function () {
       userEvent.click(screen.getByText('Line Chart'));
       expect(
         screen.getByRole('radio', {
-          name: 'Select Events (Errors, transactions)',
+          name: 'Select Errors and Transactions',
         })
       ).toBeEnabled();
       expect(
         screen.getByRole('radio', {
-          name: 'Select Issues (Status, assignee, etc.)',
+          name: 'Select Issues (States, Assignment, Time, etc.)',
         })
       ).toBeDisabled();
     });
@@ -1694,7 +1742,7 @@ describe('WidgetBuilder', function () {
     it('disables moving and deleting issue column', async function () {
       renderTestComponent();
 
-      userEvent.click(await screen.findByText('Issues (Status, assignee, etc.)'));
+      userEvent.click(await screen.findByText('Issues (States, Assignment, Time, etc.)'));
       expect(screen.getByText('issue')).toBeInTheDocument();
       expect(screen.getByText('assignee')).toBeInTheDocument();
       expect(screen.getByText('title')).toBeInTheDocument();
@@ -1713,6 +1761,7 @@ describe('WidgetBuilder', function () {
 
     it('issue query does not work on default search bar', async function () {
       renderTestComponent();
+
       userEvent.paste(
         await screen.findByPlaceholderText('Search for events, users, tags, and more'),
         'is:',
@@ -1725,7 +1774,8 @@ describe('WidgetBuilder', function () {
 
     it('renders with an issues search bar when selected in dataset selection', async function () {
       renderTestComponent();
-      userEvent.click(screen.getByText('Issues (Status, assignee, etc.)'));
+
+      userEvent.click(await screen.findByText('Issues (States, Assignment, Time, etc.)'));
       userEvent.paste(
         screen.getByPlaceholderText('Search for events, users, tags, and more'),
         'is:',
@@ -1748,9 +1798,7 @@ describe('WidgetBuilder', function () {
 
       await screen.findByText('Table');
 
-      userEvent.click(screen.getByText('Issues (Status, assignee, etc.)'));
-
-      await screen.findAllByPlaceholderText('Alias');
+      userEvent.click(screen.getByText('Issues (States, Assignment, Time, etc.)'));
 
       userEvent.type(screen.getAllByPlaceholderText('Alias')[0], 'First Alias{enter}');
 
@@ -1805,7 +1853,7 @@ describe('WidgetBuilder', function () {
       userEvent.click(screen.getByLabelText(/releases/i));
 
       expect(await screen.findByText('sum(…)')).toBeInTheDocument();
-      expect(screen.getByText('sentry.sessions.session')).toBeInTheDocument();
+      expect(screen.getByText('session')).toBeInTheDocument();
 
       userEvent.click(screen.getByText('sum(…)'));
       expect(await screen.findByText('count_unique(…)')).toBeInTheDocument();
@@ -1815,37 +1863,7 @@ describe('WidgetBuilder', function () {
       expect(screen.getByText('session.status')).toBeInTheDocument();
 
       userEvent.click(screen.getByText('count_unique(…)'));
-      expect(await screen.findByText('sentry.sessions.user')).toBeInTheDocument();
-    });
-
-    it('displays no metrics message', async function () {
-      // ensure that we have no metrics fields
-      MockApiClient.addMockResponse({
-        url: `/organizations/org-slug/metrics/meta/`,
-        body: [],
-      });
-
-      renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
-      });
-
-      expect(
-        await screen.findByText('Releases (sessions, crash rates)')
-      ).toBeInTheDocument();
-
-      // change data set to metrics
-      userEvent.click(screen.getByLabelText(/releases/i));
-
-      // open visualization select
-      userEvent.click(screen.getByText('Table'));
-      // choose line chart
-      userEvent.click(screen.getByText('Line Chart'));
-
-      // open fields select
-      userEvent.click(screen.getByText(/required/i));
-
-      // there's correct empty message
-      expect(await screen.findByText(/no metrics/i)).toBeInTheDocument();
+      expect(await screen.findByText('user')).toBeInTheDocument();
     });
 
     it('makes the appropriate metrics call', async function () {
@@ -1864,17 +1882,15 @@ describe('WidgetBuilder', function () {
 
       await waitFor(() =>
         expect(metricsDataMock).toHaveBeenLastCalledWith(
-          `/organizations/org-slug/metrics/data/`,
+          `/organizations/org-slug/sessions/`,
           expect.objectContaining({
             query: {
               environment: [],
-              field: [`sum(${SessionMetric.SESSION})`],
+              field: [`sum(session)`],
               groupBy: [],
-              interval: '5m',
+              interval: '1h',
               project: [],
               statsPeriod: '24h',
-              per_page: 20,
-              orderBy: `-sum(${SessionMetric.SESSION})`,
             },
           })
         )
@@ -1897,13 +1913,13 @@ describe('WidgetBuilder', function () {
       userEvent.click(screen.getByText('Line Chart'));
 
       expect(await screen.findByText('sum(…)')).toBeInTheDocument();
-      expect(screen.getByText(`${SessionMetric.SESSION}`)).toBeInTheDocument();
+      expect(screen.getByText(`session`)).toBeInTheDocument();
 
       userEvent.click(screen.getByText('sum(…)'));
       expect(await screen.findByText('count_unique(…)')).toBeInTheDocument();
 
       userEvent.click(screen.getByText('count_unique(…)'));
-      expect(await screen.findByText(`${SessionMetric.USER}`)).toBeInTheDocument();
+      expect(await screen.findByText('user')).toBeInTheDocument();
     });
 
     it('sets widgetType to release', async function () {
@@ -1924,9 +1940,9 @@ describe('WidgetBuilder', function () {
             widgetType: WidgetType.METRICS,
             queries: [
               expect.objectContaining({
-                aggregates: [`sum(${SessionMetric.SESSION})`],
-                fields: [`sum(${SessionMetric.SESSION})`],
-                orderby: `-sum(${SessionMetric.SESSION})`,
+                aggregates: [`sum(session)`],
+                fields: [`sum(session)`],
+                orderby: `-sum(session)`,
               }),
             ],
           }),
@@ -2001,12 +2017,12 @@ describe('WidgetBuilder', function () {
 
       expect(
         screen.getByRole('radio', {
-          name: 'Select Events (Errors, transactions)',
+          name: 'Select Errors and Transactions',
         })
       ).toBeEnabled();
       expect(
         screen.getByRole('radio', {
-          name: 'Select Issues (Status, assignee, etc.)',
+          name: 'Select Issues (States, Assignment, Time, etc.)',
         })
       ).toBeDisabled();
     });

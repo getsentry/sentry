@@ -133,6 +133,14 @@ def _dist_count_aggregation_on_tx_satisfaction_factory(
     )
 
 
+def _set_count_aggregation_on_tx_satisfaction_factory(
+    org_id, satisfaction: str, metric_ids, alias=None
+):
+    return _aggregation_on_tx_satisfaction_func_factory("uniqIf")(
+        org_id=org_id, satisfaction_value=satisfaction, metric_ids=metric_ids, alias=alias
+    )
+
+
 def all_sessions(org_id: int, metric_ids, alias=None):
     return _counter_sum_aggregation_on_session_status_factory(
         org_id, session_status="init", metric_ids=metric_ids, alias=alias
@@ -181,7 +189,7 @@ def errored_all_users(org_id: int, metric_ids, alias=None):
     )
 
 
-def sessions_errored_set(metric_ids, alias=None):
+def uniq_aggregation_on_metric(metric_ids, alias=None):
     return Function(
         "uniqIf",
         [
@@ -237,6 +245,15 @@ def apdex(satifactory_snql, tolerable_snql, total_snql, alias=None):
     return division_float(
         arg1_snql=addition(satifactory_snql, division_float(tolerable_snql, 2)),
         arg2_snql=total_snql,
+        alias=alias,
+    )
+
+
+def miserable_users(org_id, metric_ids, alias=None):
+    return _set_count_aggregation_on_tx_satisfaction_factory(
+        org_id=org_id,
+        satisfaction=TransactionSatisfactionTagValue.FRUSTRATED.value,
+        metric_ids=metric_ids,
         alias=alias,
     )
 

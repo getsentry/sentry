@@ -34,6 +34,7 @@ from .base import ActivityNotification
 class ReleaseActivityNotification(ActivityNotification):
     referrer_base = "release-activity"
     notification_setting_type = NotificationSettingTypes.DEPLOY
+    template_path = "sentry/emails/activity/release"
 
     def __init__(self, activity: Activity) -> None:
         super().__init__(activity)
@@ -139,9 +140,6 @@ class ReleaseActivityNotification(ActivityNotification):
         elif len(self.projects) > 1:
             projects_text = " for these projects"
         return f"Release {self.version_parsed} was deployed to {self.environment}{projects_text}"
-
-    def get_filename(self) -> str:
-        return "activity/release"
 
     def get_category(self) -> str:
         return "release_activity_email"
