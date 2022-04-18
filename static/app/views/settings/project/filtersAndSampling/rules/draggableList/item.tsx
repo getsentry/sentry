@@ -22,7 +22,6 @@ export type ItemProps = {
   dragging?: boolean;
   forwardRef?: React.Ref<HTMLElement>;
   index?: number;
-  innerWrapperStyle?: React.CSSProperties;
   listeners?: DraggableSyntheticListeners;
   sorting?: boolean;
   transform?: Transform | null;
@@ -42,7 +41,6 @@ function Item({
   attributes,
   renderItem,
   wrapperStyle,
-  innerWrapperStyle,
 }: ItemProps) {
   return (
     <Wrapper
@@ -58,7 +56,7 @@ function Item({
         } as React.CSSProperties
       }
     >
-      <InnerWrapper style={innerWrapperStyle}>
+      <InnerWrapper>
         {renderItem({
           dragging: Boolean(dragging),
           sorting: Boolean(sorting),
