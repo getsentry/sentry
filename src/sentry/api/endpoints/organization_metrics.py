@@ -8,14 +8,13 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import InvalidParams
 from sentry.snuba.metrics import (
-    QueryDefinition,
+    QueryDefinitionXXX,
     get_metrics,
     get_series,
     get_single_metric_info,
     get_tag_values,
     get_tags,
 )
-from sentry.snuba.metrics.query_builder import QueryDefinitionXXX
 from sentry.snuba.metrics.utils import DerivedMetricException, DerivedMetricParseException
 from sentry.snuba.sessions_v2 import InvalidField
 from sentry.utils.cursors import Cursor, CursorResult
@@ -121,7 +120,8 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
                 query = QueryDefinitionXXX(
                     projects, request.GET, paginator_kwargs={"limit": limit, "offset": offset}
                 )
-                data = get_series(projects, query)
+                data = get_series(projects, query.to_metrics_query())
+                data["query"] = query.query
             except (
                 InvalidField,
                 InvalidParams,

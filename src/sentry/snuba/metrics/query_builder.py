@@ -35,7 +35,7 @@ from sentry.snuba.metrics.fields.base import (
     org_id_from_projects,
 )
 from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
-from sentry.snuba.metrics.query import DerivedMetric, Histogram, MetricField, MetricsQuery
+from sentry.snuba.metrics.query import DerivedMetric, MetricField, MetricsQuery
 from sentry.snuba.metrics.query import OrderBy as MetricsOrderBy
 from sentry.snuba.metrics.query import QueryType, Selectable, Tag
 from sentry.snuba.metrics.utils import (
@@ -89,21 +89,6 @@ def parse_field(field: str, query_params) -> Selectable:
     if operation not in OPERATIONS:
         raise InvalidField(
             f"Invalid operation '{operation}'. Must be one of {', '.join(OPERATIONS)}"
-        )
-
-    if operation == "histogram":
-        buckets = int(query_params.get("histogramBuckets", 100))
-        if buckets > 250:
-            raise InvalidField(
-                "We don't have more than 250 buckets stored for any given metric bucket."
-            )
-        from_ = query_params.get("histogramFrom", None)
-        to = query_params.get("histogramTo", None)
-        from_ = float(from_) if from_ is not None else None
-        to = float(to) if to is not None else None
-
-        return Histogram(
-            metric_name, histogram_buckets=buckets, histogram_from=from_, histogram_to=to
         )
 
     return MetricField(operation, metric_name)
@@ -203,8 +188,20 @@ class QueryDefinitionXXX:
         self.rollup = rollup
         self.start = start
         self.end = end
+        self.histogram_buckets = int(query_params.get("histogramBuckets", 100))
+        if self.histogram_buckets > 250:
+            raise InvalidField(
+                "We don't have more than 250 buckets stored for any given metric bucket."
+            )
+        histogram_from = query_params.get("histogramFrom", None)
+        histogram_to = query_params.get("histogramTo", None)
+        self.histogram_from = float(histogram_from) if histogram_from is not None else None
+        self.histogram_to = float(histogram_to) if histogram_to is not None else None
         self.include_series = query_params.get("includeSeries", "1") == "1"
         self.include_totals = query_params.get("includeTotals", "1") == "1"
+
+        if not (self.include_series or self.include_totals):
+            raise InvalidParams("Cannot omit both series and totals")
 
         # Validates that time series limit will not exceed the snuba limit of 10,000
         self._validate_series_limit(query_params)
@@ -230,6 +227,9 @@ class QueryDefinitionXXX:
             limit=self.limit,
             offset=self.offset,
             granularity=Granularity(self.rollup),
+            histogram_buckets=self.histogram_buckets,
+            histogram_from=self.histogram_from,
+            histogram_to=self.histogram_to,
         )
 
     def _parse_orderby(self, query_params):
@@ -397,7 +397,7 @@ class SnubaQueryBuilder:
         return metric_field_obj.generate_orderby_clause(
             projects=self._projects,
             direction=orderby.direction,
-            query_definition=self._metrics_query,
+            metrics_query=self._metrics_query,
         )
 
     def __build_totals_and_series_queries(
@@ -505,7 +505,7 @@ class SnubaQueryBuilder:
             for field in fields:
                 metric_field_obj = metric_mri_to_obj_dict[field]
                 select += metric_field_obj.generate_select_statements(
-                    projects=self._projects, query_definition=self._metrics_query
+                    projects=self._projects, metrics_query=self._metrics_query
                 )
                 metric_ids_set |= metric_field_obj.generate_metric_ids(self._projects)
 

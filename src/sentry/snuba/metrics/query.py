@@ -43,7 +43,7 @@ class DerivedMetric:
     metric_name: str
 
     @property
-    def op(self):
+    def op(self) -> None:
         return None
 
 
