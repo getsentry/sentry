@@ -35,13 +35,7 @@ from sentry.snuba.metrics.fields.base import (
     org_id_from_projects,
 )
 from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
-from sentry.snuba.metrics.query import (
-    AggregatedMetric,
-    Aggregation,
-    DerivedMetric,
-    Histogram,
-    MetricsQuery,
-)
+from sentry.snuba.metrics.query import DerivedMetric, Histogram, MetricField, MetricsQuery
 from sentry.snuba.metrics.query import OrderBy as MetricsOrderBy
 from sentry.snuba.metrics.query import QueryType, Selectable, Tag
 from sentry.snuba.metrics.utils import (
@@ -110,7 +104,7 @@ def parse_field(field: str, query_params) -> Selectable:
 
         return Histogram(metric_name, buckets=buckets, from_=from_, to=to)
 
-    return AggregatedMetric(Aggregation(operation), metric_name)
+    return MetricField(operation, metric_name)
 
 
 def resolve_tags(org_id: int, input_: Any) -> Any:
@@ -393,7 +387,7 @@ class SnubaQueryBuilder:
         if self._metrics_query.orderby is None:
             return None
         orderby = self._metrics_query.orderby
-        op = orderby.field.aggregation.value
+        op = orderby.field.op.value
         metric_mri = get_mri(orderby.field.metric_key)
         metric_field_obj = metric_object_factory(op, metric_mri)
         return metric_field_obj.generate_orderby_clause(

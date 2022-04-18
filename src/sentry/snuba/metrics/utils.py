@@ -51,7 +51,6 @@ from typing import (
 )
 
 from sentry.snuba.dataset import EntityKey
-from sentry.snuba.metrics.query import Aggregation
 
 MAX_POINTS = 10000
 GRANULARITY = 24 * 60 * 60
@@ -65,7 +64,18 @@ TAG_REGEX = re.compile(r"^(\w|\.|_)+$")
 
 #: A function that can be applied to a metric
 MetricOperationType = Literal[
-    "avg", "count", "max", "min", "p50", "p75", "p90", "p95", "p99", "histogram"
+    "avg",
+    "count",
+    "count_unique",
+    "sum",
+    "max",
+    "min",
+    "p50",
+    "p75",
+    "p90",
+    "p95",
+    "p99",
+    "histogram",
 ]
 MetricUnit = Literal["seconds"]
 #: The type of metric, which determines the snuba entity to query
@@ -73,23 +83,26 @@ MetricType = Literal["counter", "set", "distribution", "numeric"]
 
 MetricEntity = Literal["metrics_counters", "metrics_sets", "metrics_distributions"]
 
-OP_TO_SNUBA_FUNCTION = {
-    "metrics_counters": {Aggregation.SUM: "sumIf"},
+OP_TO_SNUBA_FUNCTION: Mapping[str, Mapping[MetricOperationType, str]] = {
+    "metrics_counters": {"sum": "sumIf"},
     "metrics_distributions": {
-        Aggregation.AVG: "avgIf",
-        Aggregation.COUNT: "countIf",
-        Aggregation.MAX: "maxIf",
-        Aggregation.MIN: "minIf",
-        Aggregation.PERCENTILE: "quantilesIf(0.50, 0.75, 0.90, 0.95, 0.99)",
-        Aggregation.HISTOGRAM: "histogramIf(250)",
+        "avg": "avgIf",
+        "count": "countIf",
+        "max": "maxIf",
+        "min": "minIf",
+        "p50": "quantilesIf(0.50)",  # TODO: Would be nice to use `quantile(0.50)` (singular) here, but snuba responds with an error
+        "p75": "quantilesIf(0.75)",
+        "p90": "quantilesIf(0.90)",
+        "p95": "quantilesIf(0.95)",
+        "p99": "quantilesIf(0.99)",
+        "histogram": "histogramIf(250)",
     },
-    "metrics_sets": {Aggregation.UNIQ: "uniqIf"},
+    "metrics_sets": {"count_unique": "uniqIf"},
 }
 
 
 AVAILABLE_OPERATIONS = {
-    type_: sorted(mapping.keys(), key=lambda x: x.value)
-    for type_, mapping in OP_TO_SNUBA_FUNCTION.items()
+    type_: sorted(mapping.keys()) for type_, mapping in OP_TO_SNUBA_FUNCTION.items()
 }
 OPERATIONS_TO_ENTITY = {
     op: entity for entity, operations in AVAILABLE_OPERATIONS.items() for op in operations

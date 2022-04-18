@@ -60,7 +60,7 @@ from sentry.snuba.metrics.fields.snql import (
 )
 from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
-from sentry.snuba.metrics.query import Aggregation, Selectable
+from sentry.snuba.metrics.query import Selectable
 from sentry.snuba.metrics.utils import (
     DEFAULT_AGGREGATES,
     GRANULARITY,
@@ -1094,7 +1094,7 @@ DERIVED_ALIASES: Mapping[str, AliasedDerivedMetric] = {
 def metric_object_factory(field: Selectable) -> MetricExpressionBase:
     """Returns an appropriate instance of MetricsFieldBase object"""
     metric_mri = get_mri(field.metric_name)
-    op = field.aggregation
+    op = field.op
     if op in DERIVED_OPS and metric_mri in DERIVED_METRICS:
         raise InvalidParams("derived ops cannot be used on derived metrics")
 

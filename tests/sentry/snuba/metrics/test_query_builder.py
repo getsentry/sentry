@@ -47,7 +47,7 @@ from sentry.snuba.metrics.fields.snql import (
 )
 from sentry.snuba.metrics.naming_layer.mapping import get_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
-from sentry.snuba.metrics.query import Aggregation, Percentile, Sum, Uniq
+from sentry.snuba.metrics.query import CountUnique, Percentile95, Sum
 
 
 @dataclass
@@ -230,10 +230,10 @@ def test_build_snuba_query(mock_now, mock_now2, monkeypatch):
         project_ids=[1],
         select=[
             Sum("sentry.sessions.session"),
-            Uniq("sentry.sessions.user"),
-            Percentile("sentry.sessions.session.duration", 95),
+            CountUnique("sentry.sessions.user"),
+            Percentile95("sentry.sessions.session.duration"),
         ],
-        start=MOCK_NOW - timedelta(days=1),
+        start=MOCK_NOW - timedelta(days=90),
         end=MOCK_NOW,
         granularity=Granularity(3600),
         where=[Condition(Column("release"), Op.EQ, "staging")],
@@ -265,20 +265,24 @@ def test_build_snuba_query(mock_now, mock_now2, monkeypatch):
             where=[
                 Condition(Column("org_id"), Op.EQ, 1),
                 Condition(Column("project_id"), Op.IN, [1]),
-                Condition(Column("timestamp"), Op.GTE, datetime(2021, 5, 28, 0, tzinfo=pytz.utc)),
-                Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
                 Condition(
-                    Column(resolve_tag_key(org_id, "release")), Op.IN, [resolve(org_id, "staging")]
+                    Column("timestamp"), Op.GTE, datetime(2021, 5, 27, 23, 59, tzinfo=pytz.utc)
+                ),
+                Condition(
+                    Column("timestamp"), Op.LT, datetime(2021, 8, 25, 23, 59, tzinfo=pytz.utc)
+                ),
+                Condition(
+                    Column(resolve_tag_key(org_id, "release")), Op.EQ, resolve(org_id, "staging")
                 ),
                 Condition(Column("metric_id"), Op.IN, [resolve_weak(org_id, get_mri(metric_name))]),
             ],
             limit=Limit(MAX_POINTS),
             offset=Offset(0),
-            granularity=Granularity(query_definition.rollup),
+            granularity=metrics_query.granularity,
         )
 
     assert snuba_queries["metrics_counters"]["totals"] == expected_query(
-        "metrics_counters", (Aggregation.SUM, "value", "sum"), [], "sentry.sessions.session"
+        "metrics_counters", ("sum", "value", "sum"), [], "sentry.sessions.session"
     )
 
     expected_percentile_select = ("quantiles(0.95)", "value", "p95")
