@@ -36,15 +36,15 @@ type ReplayPlayerContextProps = {
   events: ReadonlyArray<eventWithTime>;
 
   /**
-   * The calculated speed of the player when fast-forwarding through idle moments in the video.
-   * The value is set to `0` when the video is not fast-forwarding.
-   * The speed is automatically determined by the length of each idle period.
+   * The calculated speed of the player when fast-forwarding through idle moments in the video
+   * The value is set to `0` when the video is not fast-forwarding
+   * The speed is automatically determined by the length of each idle period
    */
   fastForwardSpeed: number;
 
   /**
-   * Required to be called with a <div> Ref.
-   * Represents the location in the DOM where the iframe video should be mounted.
+   * Required to be called with a <div> Ref
+   * Represents the location in the DOM where the iframe video should be mounted
    *
    * @param _root
    */
@@ -61,17 +61,17 @@ type ReplayPlayerContextProps = {
   setCurrentTime: (time: number) => void;
 
   /**
-   * Set requested speed of normal playback (non-fast-forward playback)
+   * Set speed for normal playback
    */
   setSpeed: (speed: number) => void;
 
   /**
-   * Whether fast-forward mode is enabled if RRWeb detects idle moments in the video.
+   * Whether fast-forward mode is enabled if RRWeb detects idle moments in the video
    */
   skipInactive: boolean;
 
   /**
-   * The Speed that was requested for normal playback.
+   * The speed for normal playback
    */
   speed: number;
 
@@ -83,7 +83,7 @@ type ReplayPlayerContextProps = {
   togglePlayPause: (play: boolean) => void;
 
   /**
-   * Allow RRWeb to use Fast-Forward mode for idle moments in the video.
+   * Allow RRWeb to use Fast-Forward mode for idle moments in the video
    *
    * @param skip
    */
