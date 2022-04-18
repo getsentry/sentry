@@ -525,7 +525,7 @@ describe('flamegraphRenderer', () => {
         vec2.fromValues(0, 0)
       );
 
-      renderer.draw(results, renderer.configToPhysicalSpace);
+      renderer.draw(results, renderer.configViewToPhysicalSpace);
       expect(context.uniform1i).toHaveBeenCalledTimes(3);
       expect(context.drawArrays).toHaveBeenCalledTimes(2);
     });
@@ -572,7 +572,7 @@ describe('flamegraphRenderer', () => {
         vec2.fromValues(0, 0)
       );
 
-      renderer.draw(null, renderer.configToPhysicalSpace);
+      renderer.draw(null, renderer.configViewToPhysicalSpace);
       expect(context.drawArrays).toHaveBeenCalledTimes(2);
     });
   });
