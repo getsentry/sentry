@@ -318,7 +318,7 @@ describe('transformSessionsResponseToSeries', function () {
 
   it('supports legend aliases', () => {
     expect(
-      transformMetricsResponseToSeries(
+      transformSessionsResponseToSeries(
         TestStubs.MetricsSessionUserCountByStatusByRelease(),
         'Lorem'
       )[0]
