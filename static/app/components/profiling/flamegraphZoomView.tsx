@@ -61,6 +61,10 @@ function FlamegraphZoomView({
           {draw_border: true}
         );
 
+        if (!previousRenderer?.configSpace.equals(renderer.configSpace)) {
+          return renderer;
+        }
+
         if (previousRenderer?.flamegraph.profile === renderer.flamegraph.profile) {
           if (previousRenderer.flamegraph.inverted !== renderer.flamegraph.inverted) {
             // Preserve the position where the user just was before they toggled
@@ -195,7 +199,7 @@ function FlamegraphZoomView({
             BORDER_WIDTH: flamegraphRenderer.theme.SIZES.FRAME_BORDER_WIDTH,
           },
           selectedFrameRenderer.context,
-          flamegraphRenderer.configToPhysicalSpace
+          flamegraphRenderer.configViewToPhysicalSpace
         );
       }
 
@@ -214,7 +218,7 @@ function FlamegraphZoomView({
             BORDER_WIDTH: flamegraphRenderer.theme.SIZES.HOVERED_FRAME_BORDER_WIDTH,
           },
           selectedFrameRenderer.context,
-          flamegraphRenderer.configToPhysicalSpace
+          flamegraphRenderer.configViewToPhysicalSpace
         );
       }
     };
@@ -223,7 +227,7 @@ function FlamegraphZoomView({
       textRenderer.draw(
         flamegraphRenderer.configView,
         flamegraphRenderer.configSpace,
-        flamegraphRenderer.configToPhysicalSpace
+        flamegraphRenderer.configViewToPhysicalSpace
       );
     };
 
@@ -231,7 +235,7 @@ function FlamegraphZoomView({
       gridRenderer.draw(
         flamegraphRenderer.configView,
         flamegraphRenderer.physicalSpace,
-        flamegraphRenderer.configToPhysicalSpace
+        flamegraphRenderer.configViewToPhysicalSpace
       );
     };
 
@@ -417,7 +421,7 @@ function FlamegraphZoomView({
 
       const physicalToConfig = mat3.invert(
         mat3.create(),
-        flamegraphRenderer.configToPhysicalSpace
+        flamegraphRenderer.configViewToPhysicalSpace
       );
       const [m00, m01, m02, m10, m11, m12] = physicalToConfig;
 
@@ -511,7 +515,7 @@ function FlamegraphZoomView({
       const physicalDelta = vec2.fromValues(evt.deltaX, evt.deltaY);
       const physicalToConfig = mat3.invert(
         mat3.create(),
-        flamegraphRenderer.configToPhysicalSpace
+        flamegraphRenderer.configViewToPhysicalSpace
       );
       const [m00, m01, m02, m10, m11, m12] = physicalToConfig;
 
@@ -580,7 +584,7 @@ function FlamegraphZoomView({
         <BoundTooltip
           bounds={canvasBounds}
           cursor={configSpaceCursor}
-          configToPhysicalSpace={flamegraphRenderer?.configToPhysicalSpace}
+          configViewToPhysicalSpace={flamegraphRenderer?.configViewToPhysicalSpace}
         >
           {hoveredNode?.frame?.name}
         </BoundTooltip>
