@@ -3,8 +3,12 @@ import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 
 import {Panel as _Panel} from 'sentry/components/panels';
-import {Consumer as ReplayContextProvider} from 'sentry/components/replays/replayContext';
+import {Consumer as ReplayContextConsumer} from 'sentry/components/replays/replayContext';
 import useFullscreen from 'sentry/components/replays/useFullscreen';
+import Tooltip from 'sentry/components/tooltip';
+import {IconArrow} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 
 interface Props {
   className?: string;
@@ -14,6 +18,7 @@ type Dimensions = {height: number; width: number};
 type RootElem = null | HTMLDivElement;
 
 type RootProps = {
+  fastForwardSpeed: number;
   flexibleHeight: boolean;
   initRoot: (root: RootElem) => void;
   videoDimensions: Dimensions;
@@ -22,6 +27,7 @@ type RootProps = {
 
 function BasePlayerRoot({
   className,
+  fastForwardSpeed,
   flexibleHeight,
   initRoot,
   videoDimensions,
@@ -76,9 +82,36 @@ function BasePlayerRoot({
   return (
     <Centered ref={windowEl} data-test-id="replay-window">
       <div ref={viewEl} data-test-id="replay-view" className={className} />
+      {fastForwardSpeed ? (
+        <FastForwardBadge>
+          <FastForwardTooltip title={t('Fast forwarding')}>
+            <IconArrow size="sm" direction="right" />
+            {fastForwardSpeed}x
+          </FastForwardTooltip>
+        </FastForwardBadge>
+      ) : null}
     </Centered>
   );
 }
+
+const FastForwardBadge = styled('div')`
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  background: ${p => p.theme.purple100};
+  opacity: 0.75;
+  color: ${p => p.theme.textColor};
+  padding: ${space(0.5)} ${space(1)};
+  border-bottom-left-radius: ${p => p.theme.borderRadius};
+  border-top-right-radius: ${p => p.theme.borderRadius};
+`;
+
+const FastForwardTooltip = styled(Tooltip)`
+  display: grid;
+  grid-template-columns: max-content max-content;
+  gap: ${space(0.5)};
+  align-items: center;
+`;
 
 const Panel = styled(_Panel)<{isFullscreen: boolean}>`
   /*
@@ -201,17 +234,18 @@ export default function ReplayPlayer({className}: Props) {
   const {isFullscreen} = useFullscreen();
 
   return (
-    <ReplayContextProvider>
-      {({initRoot, dimensions}) => (
+    <ReplayContextConsumer>
+      {({initRoot, dimensions, fastForwardSpeed}) => (
         <Panel isFullscreen={isFullscreen}>
           <SentryPlayerRoot
             className={className}
+            fastForwardSpeed={fastForwardSpeed}
             flexibleHeight={!isFullscreen}
             initRoot={initRoot}
             videoDimensions={dimensions}
           />
         </Panel>
       )}
-    </ReplayContextProvider>
+    </ReplayContextConsumer>
   );
 }

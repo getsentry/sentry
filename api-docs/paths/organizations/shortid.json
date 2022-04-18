@@ -88,7 +88,7 @@
                     },
                     "culprit": {
                       "type": "string",
-                      "nullable": true,
+                      "nullable": true
                     },
                     "title": {
                       "type": "string"

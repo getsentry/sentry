@@ -3,6 +3,7 @@ import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import FeatureBadge from 'sentry/components/featureBadge';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import Link from 'sentry/components/links/link';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -10,7 +11,7 @@ import PageHeading from 'sentry/components/pageHeading';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
 import TimeSince from 'sentry/components/timeSince';
-import {IconCalendar} from 'sentry/icons';
+import {IconArrow, IconCalendar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageContent, PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
@@ -58,8 +59,8 @@ function Replays(props: Props) {
       id: '',
       name: '',
       version: 2,
-      fields: ['eventID', 'timestamp', 'replayId', 'user.display', 'url'],
-      orderby: '-timestamp',
+      fields: ['eventID', 'project', 'timestamp', 'user.display', 'url'],
+      orderby: query.sort || '-timestamp',
       environment: selection.environments,
       projects: selection.projects,
       query: `transaction:sentry-replay ${searchQuery}`, // future: change to replay event
@@ -87,7 +88,7 @@ function Replays(props: Props) {
       <React.Fragment key={replay.id}>
         <Link
           to={`/organizations/${organization.slug}/replays/${generateEventSlug({
-            project: replay['project.name'],
+            project: replay.project,
             id: replay.id,
           })}/`}
         >
@@ -105,6 +106,18 @@ function Replays(props: Props) {
             displayEmail={replay.url?.split('?')[0] || ''}
           />
         </Link>
+        <Projects orgId={organization.slug} slugs={[replay.project]}>
+          {({projects}) => {
+            const project = projects.find(p => p.slug === replay.project);
+            return (
+              <ProjectBadge
+                project={project ? project : {slug: replay.project}}
+                avatarSize={16}
+              />
+            );
+          }}
+        </Projects>
+
         <div>
           <TimeSinceWrapper>
             <StyledIconCalendarWrapper color="gray500" size="sm" />
@@ -190,6 +203,18 @@ const TimeSinceWrapper = styled('div')`
 const StyledIconCalendarWrapper = styled(IconCalendar)`
   position: relative;
   top: -1px;
+`;
+
+const SortLink = styled(Link)`
+  color: inherit;
+
+  :hover {
+    color: inherit;
+  }
+
+  svg {
+    vertical-align: top;
+  }
 `;
 
 export default withRouter(withPageFilters(withOrganization(Replays)));
