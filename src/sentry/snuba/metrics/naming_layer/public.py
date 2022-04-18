@@ -14,6 +14,7 @@ __all__ = (
     "TransactionMetricKey",
     "TransactionTagsKey",
     "TransactionStatusTagValue",
+    "TransactionSatisfactionTagValue",
 )
 
 from enum import Enum
@@ -71,12 +72,18 @@ class TransactionMetricKey(Enum):
     BREAKDOWNS_BROWSER = "transaction.breakdowns.ops.browser"
     BREAKDOWNS_RESOURCE = "transaction.breakdowns.ops.resource"
     FAILURE_RATE = "transaction.failure_rate"
+    APDEX = "transaction.apdex"
+    MISERABLE_USER = "transaction.miserable_user"
+    USER_MISERY = "transaction.user_misery"
 
 
+# TODO: these tag keys and values below probably don't belong here, and should
+# be moved to another more private file.
 class TransactionTagsKey(Enum):
     """Identifier for a transaction-related tag."""
 
     TRANSACTION_STATUS = "transaction.status"
+    TRANSACTION_SATISFACTION = "satisfaction"
 
 
 class TransactionStatusTagValue(Enum):
@@ -90,3 +97,11 @@ class TransactionStatusTagValue(Enum):
     CANCELLED = "cancelled"
     UNKNOWN = "unknown"
     ABORTED = "aborted"
+
+
+class TransactionSatisfactionTagValue(Enum):
+    """Identifier value for the satisfaction of a transaction."""
+
+    SATISFIED = "satisfied"
+    TOLERATED = "tolerated"
+    FRUSTRATED = "frustrated"

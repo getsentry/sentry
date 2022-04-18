@@ -3,14 +3,18 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
+import DetailedError from 'sentry/components/errors/detailedError';
 import NotFound from 'sentry/components/errors/notFound';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventEntry from 'sentry/components/events/eventEntry';
 import EventMessage from 'sentry/components/events/eventMessage';
-import BaseRRWebReplayer from 'sentry/components/events/rrwebReplayer/baseRRWebReplayer';
 import FeatureBadge from 'sentry/components/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
+import ReplayController from 'sentry/components/replays/replayController';
+import ReplayPlayer from 'sentry/components/replays/replayPlayer';
+import useFullscreen from 'sentry/components/replays/useFullscreen';
 import TagsTable from 'sentry/components/tagsTable';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
@@ -103,12 +107,25 @@ function getProjectSlug(event: Event) {
   return event.projectSlug || event['project.name']; // seems janky
 }
 
+// TODO(replay): investigate the `:fullscreen` CSS selector
+// https://caniuse.com/?search=%3Afullscreen
+const FullscreenWrapper = styled('div')<{isFullscreen: boolean}>`
+  ${p =>
+    p.isFullscreen
+      ? `
+    display: grid;
+    grid-template-rows: auto max-content;
+    background: ${p.theme.gray500};`
+      : ''}
+`;
+
 function ReplayLoader(props: ReplayLoaderProps) {
   const orgSlug = props.orgId;
-
+  const {ref: fullscreenRef, isFullscreen, toggle: toggleFullscreen} = useFullscreen();
   const {
     fetchError,
     fetching,
+    onRetry,
     breadcrumbEntry,
     event,
     replayEvents,
@@ -120,6 +137,7 @@ function ReplayLoader(props: ReplayLoaderProps) {
   console.log({
     fetchError,
     fetching,
+    onRetry,
     event,
     replayEvents,
     rrwebEvents,
@@ -134,9 +152,34 @@ function ReplayLoader(props: ReplayLoaderProps) {
       return <NotFound />;
     }
 
+    if (!rrwebEvents || rrwebEvents.length < 2) {
+      return (
+        <DetailedError
+          onRetry={onRetry}
+          hideSupportLinks
+          heading={t('Expected two or more replay events')}
+          message={
+            <React.Fragment>
+              <p>{t('This Replay may not have captured any user actions.')}</p>
+              <p>
+                {t(
+                  'Or there may be an issue loading the actions from the server, click to try loading the Replay again.'
+                )}
+              </p>
+            </React.Fragment>
+          }
+        />
+      );
+    }
+
     return (
       <React.Fragment>
-        <BaseRRWebReplayer events={rrwebEvents} />
+        <ReplayContextProvider events={rrwebEvents}>
+          <FullscreenWrapper isFullscreen={isFullscreen} ref={fullscreenRef}>
+            <ReplayPlayer />
+            <ReplayController toggleFullscreen={toggleFullscreen} />
+          </FullscreenWrapper>
+        </ReplayContextProvider>
 
         {breadcrumbEntry && (
           <EventEntry
@@ -183,7 +226,7 @@ function ReplayLoader(props: ReplayLoaderProps) {
                 to: `/organizations/${orgSlug}/replays/`,
                 label: t('Replays'),
               },
-              {label: t('Replay Details')}, // TODO: put replay ID or something here
+              {label: t('Replay Details')}, // TODO(replay): put replay ID or something here
             ]}
           />
           {event ? <EventHeader event={event} /> : null}

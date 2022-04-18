@@ -41,6 +41,7 @@ type Props = {
   onChange: (columns: Column[]) => void;
   organization: Organization;
   className?: string;
+  filterAggregateParameters?: (option: FieldValueOption) => boolean;
   filterPrimaryOptions?: (option: FieldValueOption) => boolean;
   noFieldsMessage?: string;
   showAliasField?: boolean;
@@ -182,6 +183,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
     // Find the equations in the list of columns
     for (let i = 0; i < newColumns.length; i++) {
       const newColumn = newColumns[i];
+
       if (newColumn.kind === 'equation') {
         const result = parseArithmetic(newColumn.field);
         let newEquation = '';
@@ -414,8 +416,14 @@ class ColumnEditCollection extends React.Component<Props, State> {
       isGhost?: boolean;
     }
   ) {
-    const {columns, fieldOptions, filterPrimaryOptions, noFieldsMessage, showAliasField} =
-      this.props;
+    const {
+      columns,
+      fieldOptions,
+      filterAggregateParameters,
+      filterPrimaryOptions,
+      noFieldsMessage,
+      showAliasField,
+    } = this.props;
     const {isDragging, draggingTargetIndex, draggingIndex} = this.state;
 
     let placeholder: React.ReactNode = null;
@@ -471,6 +479,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
             shouldRenderTag
             disabled={disabled}
             filterPrimaryOptions={filterPrimaryOptions}
+            filterAggregateParameters={filterAggregateParameters}
             noFieldsMessage={noFieldsMessage}
             skipParameterPlaceholder={showAliasField}
           />

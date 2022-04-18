@@ -14,32 +14,47 @@ import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
+import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import {Profile} from 'sentry/utils/profiling/profile/profile';
 
+function getTransactionConfigSpace(profiles: Profile[]): Rect {
+  return new Rect(0, 0, Math.max(...profiles.map(p => p.endedAt)), 0);
+}
 interface FlamegraphProps {
   profiles: ProfileGroup;
 }
 
 function Flamegraph(props: FlamegraphProps): ReactElement {
   const flamegraphTheme = useFlamegraphTheme();
-  const [{sorting, view}, dispatch] = useFlamegraphPreferences();
+  const [{sorting, view, synchronizeXAxisWithTransaction}, dispatch] =
+    useFlamegraphPreferences();
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
 
   const [activeProfileIndex, setActiveProfileIndex] = useState<number | null>(null);
   const [importedProfiles, setImportedProfiles] = useState<ProfileGroup | null>(null);
 
-  const flamegraph = useMemo(() => {
-    // once an import occurs, it will always take precedence over the profile in the props
-    const profiles = importedProfiles ?? props.profiles;
+  // once an import occurs, it will always take precedence over the profile in the props
+  const profiles = importedProfiles ?? props.profiles;
 
+  const flamegraph = useMemo(() => {
     // if the activeProfileIndex is null, use the activeProfileIndex from the profile group
     const profileIndex = activeProfileIndex ?? profiles.activeProfileIndex;
 
-    return new FlamegraphModel(profiles.profiles[profileIndex], profileIndex, {
-      inverted: view === 'bottom up',
-      leftHeavy: sorting === 'left heavy',
-    });
-  }, [props.profiles, sorting, view, importedProfiles, activeProfileIndex]);
+    const flamegraphModel = new FlamegraphModel(
+      profiles.profiles[profileIndex],
+      profileIndex,
+      {
+        inverted: view === 'bottom up',
+        leftHeavy: sorting === 'left heavy',
+        configSpace: synchronizeXAxisWithTransaction
+          ? getTransactionConfigSpace(profiles.profiles)
+          : undefined,
+      }
+    );
+
+    return flamegraphModel;
+  }, [profiles, activeProfileIndex, sorting, synchronizeXAxisWithTransaction, view]);
 
   const onImport = useCallback((profile: ProfileGroup) => {
     setActiveProfileIndex(null);
@@ -76,6 +91,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       <FlamegraphZoomViewContainer>
         <ProfileDragDropImport onImport={onImport}>
           <FlamegraphZoomView
+            key={`${profiles.traceID}-${flamegraph.profileIndex}`}
             flamegraph={flamegraph}
             canvasPoolManager={canvasPoolManager}
           />

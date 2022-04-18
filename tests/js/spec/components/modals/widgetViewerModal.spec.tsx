@@ -66,7 +66,7 @@ async function renderModal({
   );
   // Need to wait since WidgetViewerModal will make a request to events-meta
   // for total events count on mount
-  if (widget.widgetType !== WidgetType.ISSUE) {
+  if (widget.widgetType === WidgetType.DISCOVER) {
     await waitForMetaToHaveBeenCalled();
   }
   return rendered;
@@ -128,6 +128,7 @@ describe('Modals -> WidgetViewerModal', function () {
       displayType: DisplayType.AREA,
       interval: '5m',
       queries: [mockQuery, additionalMockQuery],
+      widgetType: WidgetType.DISCOVER,
     };
 
     beforeEach(function () {
@@ -226,7 +227,7 @@ describe('Modals -> WidgetViewerModal', function () {
       await renderModal({initialData, widget: mockWidget});
       expect(
         screen.getByText(
-          'This widget was built with multiple queries. Table data can only be displayed for one query at a time.'
+          'This widget was built with multiple queries. Table data can only be displayed for one query at a time. To edit any of the queries, edit the widget.'
         )
       ).toBeInTheDocument();
       expect(screen.getByText('Query Name')).toBeInTheDocument();
@@ -313,6 +314,7 @@ describe('Modals -> WidgetViewerModal', function () {
       displayType: DisplayType.TOP_N,
       interval: '5m',
       queries: [mockQuery],
+      widgetType: WidgetType.DISCOVER,
     };
 
     beforeEach(function () {
@@ -517,6 +519,7 @@ describe('Modals -> WidgetViewerModal', function () {
       displayType: DisplayType.WORLD_MAP,
       interval: '5m',
       queries: [mockQuery],
+      widgetType: WidgetType.DISCOVER,
     };
 
     beforeEach(function () {

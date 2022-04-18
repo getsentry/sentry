@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -20,18 +20,16 @@ import {isSessionAggregate} from 'sentry/views/alerts/utils';
 
 import {TimePeriodType} from './constants';
 
-type Props = {
+interface Props {
   organization: OrganizationSummary;
   projects: Project[];
   rule: IncidentRule;
   timePeriod: TimePeriodType;
   query?: string;
-};
+}
 
-class RelatedIssues extends Component<Props> {
-  renderErrorMessage = ({detail}: {detail: string}, retry: () => void) => {
-    const {rule, organization, projects, query, timePeriod} = this.props;
-
+function RelatedIssues({rule, organization, projects, query, timePeriod}: Props) {
+  function renderErrorMessage({detail}: {detail: string}, retry: () => void) {
     if (
       detail === RELATED_ISSUES_BOOLEAN_QUERY_ERROR &&
       !isSessionAggregate(rule.aggregate)
@@ -50,9 +48,9 @@ class RelatedIssues extends Component<Props> {
     }
 
     return <LoadingError onRetry={retry} />;
-  };
+  }
 
-  renderEmptyMessage = () => {
+  function renderEmptyMessage() {
     return (
       <Panel>
         <PanelBody>
@@ -62,56 +60,53 @@ class RelatedIssues extends Component<Props> {
         </PanelBody>
       </Panel>
     );
+  }
+
+  const {start, end} = timePeriod;
+
+  const path = `/organizations/${organization.slug}/issues/`;
+  const queryParams = {
+    start,
+    end,
+    groupStatsPeriod: 'auto',
+    limit: 5,
+    ...(rule.environment ? {environment: rule.environment} : {}),
+    sort: rule.aggregate === 'count_unique(user)' ? 'user' : 'freq',
+    query,
+    project: projects.map(project => project.id),
+  };
+  const issueSearch = {
+    pathname: `/organizations/${organization.slug}/issues/`,
+    query: queryParams,
   };
 
-  render() {
-    const {rule, projects, organization, timePeriod, query} = this.props;
-    const {start, end} = timePeriod;
+  return (
+    <Fragment>
+      <ControlsWrapper>
+        <StyledSectionHeading>{t('Related Issues')}</StyledSectionHeading>
+        <Button data-test-id="issues-open" size="xsmall" to={issueSearch}>
+          {t('Open in Issues')}
+        </Button>
+      </ControlsWrapper>
 
-    const path = `/organizations/${organization.slug}/issues/`;
-    const queryParams = {
-      start,
-      end,
-      groupStatsPeriod: 'auto',
-      limit: 5,
-      ...(rule.environment ? {environment: rule.environment} : {}),
-      sort: rule.aggregate === 'count_unique(user)' ? 'user' : 'freq',
-      query,
-      project: projects.map(project => project.id),
-    };
-    const issueSearch = {
-      pathname: `/organizations/${organization.slug}/issues/`,
-      query: queryParams,
-    };
-
-    return (
-      <Fragment>
-        <ControlsWrapper>
-          <StyledSectionHeading>{t('Related Issues')}</StyledSectionHeading>
-          <Button data-test-id="issues-open" size="xsmall" to={issueSearch}>
-            {t('Open in Issues')}
-          </Button>
-        </ControlsWrapper>
-
-        <TableWrapper>
-          <GroupList
-            orgId={organization.slug}
-            endpointPath={path}
-            queryParams={queryParams}
-            query={`start=${start}&end=${end}&groupStatsPeriod=auto`}
-            canSelectGroups={false}
-            renderEmptyMessage={this.renderEmptyMessage}
-            renderErrorMessage={this.renderErrorMessage}
-            withChart
-            withPagination={false}
-            useFilteredStats
-            customStatsPeriod={timePeriod}
-            useTintRow={false}
-          />
-        </TableWrapper>
-      </Fragment>
-    );
-  }
+      <TableWrapper>
+        <GroupList
+          orgId={organization.slug}
+          endpointPath={path}
+          queryParams={queryParams}
+          query={`start=${start}&end=${end}&groupStatsPeriod=auto`}
+          canSelectGroups={false}
+          renderEmptyMessage={renderEmptyMessage}
+          renderErrorMessage={renderErrorMessage}
+          withChart
+          withPagination={false}
+          useFilteredStats
+          customStatsPeriod={timePeriod}
+          useTintRow={false}
+        />
+      </TableWrapper>
+    </Fragment>
+  );
 }
 
 const StyledSectionHeading = styled(SectionHeading)`

@@ -40,6 +40,13 @@ def test_ignore_patch_version():
     setup = SdkSetupState(
         sdk_name="sentry.python", sdk_version="0.9.0", integrations=[], modules={}
     )
+    assert len(list(get_suggested_updates(setup, PYTHON_INDEX_STATE))) == 0
+
+
+def test_ignore_patch_version_explicit():
+    setup = SdkSetupState(
+        sdk_name="sentry.python", sdk_version="0.9.0", integrations=[], modules={}
+    )
     assert (
         len(list(get_suggested_updates(setup, PYTHON_INDEX_STATE, ignore_patch_version=True))) == 0
     )

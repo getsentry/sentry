@@ -663,6 +663,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       project,
       userTeamIds,
       isCustomMetric,
+      router,
+      location,
     } = this.props;
     const {
       query,
@@ -813,8 +815,10 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
             <List symbol="colored-numeric">
               <RuleConditionsForm
                 api={this.api}
-                projectSlug={project.slug}
+                project={project}
                 organization={organization}
+                router={router}
+                location={location}
                 disabled={!hasAccess || !canEdit}
                 thresholdChart={wizardBuilderChart}
                 onFilterSearch={this.handleFilterUpdate}

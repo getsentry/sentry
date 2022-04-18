@@ -1,43 +1,19 @@
 import {Component} from 'react';
 
-import {Client} from 'sentry/api';
 import {Authenticator} from 'sentry/types';
-import withApi from 'sentry/utils/withApi';
 
 import U2fSign from './u2fsign';
 
 type Props = {
-  api: Client;
+  authenticators: Array<Authenticator>;
   onTap: U2fSign['props']['onTap'];
   className?: string;
   displayMode?: U2fSign['props']['displayMode'];
 };
-type State = {
-  authenticators: Array<Authenticator>;
-};
 
-class U2fContainer extends Component<Props, State> {
-  state: State = {
-    authenticators: [],
-  };
-  componentDidMount() {
-    this.getAuthenticators();
-  }
-
-  async getAuthenticators() {
-    const {api} = this.props;
-
-    try {
-      const authenticators = await api.requestPromise('/authenticators/');
-      this.setState({authenticators: authenticators ?? []});
-    } catch {
-      // ignore errors
-    }
-  }
-
+class U2fContainer extends Component<Props> {
   render() {
-    const {className} = this.props;
-    const {authenticators} = this.state;
+    const {className, authenticators} = this.props;
 
     if (!authenticators.length) {
       return null;
@@ -55,4 +31,4 @@ class U2fContainer extends Component<Props, State> {
   }
 }
 
-export default withApi(U2fContainer);
+export default U2fContainer;

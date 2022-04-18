@@ -1,6 +1,6 @@
 from snuba_sdk import Column, Function
 
-from sentry.sentry_metrics.utils import resolve_weak
+from sentry.sentry_metrics import indexer
 from sentry.snuba.metrics import (
     TransactionStatusTagValue,
     TransactionTagsKey,
@@ -16,26 +16,54 @@ from sentry.snuba.metrics import (
     errored_preaggr_sessions,
     percentage,
     session_duration_filters,
-    sessions_errored_set,
     subtraction,
+    uniq_aggregation_on_metric,
 )
-from sentry.snuba.metrics.fields.snql import failure_count_transaction, failure_rate_transaction
+from sentry.snuba.metrics.fields.snql import (
+    division_float,
+    failure_count_transaction,
+    miserable_users,
+    satisfaction_count_transaction,
+    tolerated_count_transaction,
+)
+from sentry.snuba.metrics.naming_layer.public import TransactionSatisfactionTagValue
 from sentry.testutils import TestCase
 
 
 class DerivedMetricSnQLTestCase(TestCase):
     def setUp(self):
+        self.org_id = 666
         self.metric_ids = [0, 1, 2]
+        indexer.bulk_record(
+            {
+                self.org_id: [
+                    "abnormal",
+                    "crashed",
+                    "errored_preaggr",
+                    "errored",
+                    "exited",
+                    "init",
+                    "session.status",
+                    TransactionSatisfactionTagValue.FRUSTRATED.value,
+                    TransactionSatisfactionTagValue.SATISFIED.value,
+                    TransactionSatisfactionTagValue.TOLERATED.value,
+                    TransactionStatusTagValue.CANCELLED.value,
+                    TransactionStatusTagValue.OK.value,
+                    TransactionStatusTagValue.UNKNOWN.value,
+                    TransactionTagsKey.TRANSACTION_SATISFACTION.value,
+                    TransactionTagsKey.TRANSACTION_STATUS.value,
+                ]
+            }
+        )
 
     def test_counter_sum_aggregation_on_session_status(self):
-        org_id = 0
         for status, func in [
             ("init", all_sessions),
             ("crashed", crashed_sessions),
             ("errored_preaggr", errored_preaggr_sessions),
             ("abnormal", abnormal_sessions),
         ]:
-            assert func(org_id, self.metric_ids, alias=status) == Function(
+            assert func(self.org_id, self.metric_ids, alias=status) == Function(
                 "sumIf",
                 [
                     Column("value"),
@@ -45,8 +73,10 @@ class DerivedMetricSnQLTestCase(TestCase):
                             Function(
                                 "equals",
                                 [
-                                    Column(f"tags[{resolve_weak(org_id, 'session.status')}]"),
-                                    resolve_weak(org_id, status),
+                                    Column(
+                                        f"tags[{indexer.resolve(self.org_id, 'session.status')}]"
+                                    ),
+                                    indexer.resolve(self.org_id, status),
                                 ],
                             ),
                             Function("in", [Column("metric_id"), list(self.metric_ids)]),
@@ -63,8 +93,8 @@ class DerivedMetricSnQLTestCase(TestCase):
             ("abnormal", abnormal_users),
             ("errored", errored_all_users),
         ]:
-            org_id = 666
-            assert func(org_id, self.metric_ids, alias=status) == Function(
+
+            assert func(self.org_id, self.metric_ids, alias=status) == Function(
                 "uniqIf",
                 [
                     Column("value"),
@@ -74,8 +104,10 @@ class DerivedMetricSnQLTestCase(TestCase):
                             Function(
                                 "equals",
                                 [
-                                    Column(f"tags[{resolve_weak(org_id, 'session.status')}]"),
-                                    resolve_weak(org_id, status),
+                                    Column(
+                                        f"tags[{indexer.resolve(self.org_id, 'session.status')}]"
+                                    ),
+                                    indexer.resolve(self.org_id, status),
                                 ],
                             ),
                             Function("in", [Column("metric_id"), list(self.metric_ids)]),
@@ -87,7 +119,7 @@ class DerivedMetricSnQLTestCase(TestCase):
 
     def test_set_sum_aggregation_for_errored_sessions(self):
         alias = "whatever"
-        assert sessions_errored_set(self.metric_ids, alias) == Function(
+        assert uniq_aggregation_on_metric(self.metric_ids, alias) == Function(
             "uniqIf",
             [
                 Column("value"),
@@ -103,8 +135,6 @@ class DerivedMetricSnQLTestCase(TestCase):
         )
 
     def test_dist_count_aggregation_on_tx_status(self):
-        org_id = 1985
-
         expected_all_txs = Function(
             "countIf",
             [
@@ -120,7 +150,9 @@ class DerivedMetricSnQLTestCase(TestCase):
             ],
             alias="transactions.all",
         )
-        assert all_transactions(org_id, self.metric_ids, "transactions.all") == expected_all_txs
+        assert (
+            all_transactions(self.org_id, self.metric_ids, "transactions.all") == expected_all_txs
+        )
 
         expected_failed_txs = Function(
             "countIf",
@@ -137,12 +169,18 @@ class DerivedMetricSnQLTestCase(TestCase):
                             "notIn",
                             [
                                 Column(
-                                    f"tags[{resolve_weak(org_id, TransactionTagsKey.TRANSACTION_STATUS.value)}]"
+                                    f"tags[{indexer.resolve(self.org_id, TransactionTagsKey.TRANSACTION_STATUS.value)}]"
                                 ),
                                 [
-                                    resolve_weak(org_id, TransactionStatusTagValue.OK.value),
-                                    resolve_weak(org_id, TransactionStatusTagValue.CANCELLED.value),
-                                    resolve_weak(org_id, TransactionStatusTagValue.UNKNOWN.value),
+                                    indexer.resolve(
+                                        self.org_id, TransactionStatusTagValue.OK.value
+                                    ),
+                                    indexer.resolve(
+                                        self.org_id, TransactionStatusTagValue.CANCELLED.value
+                                    ),
+                                    indexer.resolve(
+                                        self.org_id, TransactionStatusTagValue.UNKNOWN.value
+                                    ),
                                 ],
                             ],
                         ),
@@ -152,38 +190,126 @@ class DerivedMetricSnQLTestCase(TestCase):
             alias="transactions.failed",
         )
         assert (
-            failure_count_transaction(org_id, self.metric_ids, "transactions.failed")
+            failure_count_transaction(self.org_id, self.metric_ids, alias="transactions.failed")
             == expected_failed_txs
         )
 
-        assert failure_rate_transaction(
-            failure_count_transaction(org_id, self.metric_ids, "transactions.failed"),
-            all_transactions(org_id, self.metric_ids, "transactions.all"),
-            alias="transactions.failure_rate",
-        ) == Function(
-            "divide",
+    def test_set_count_aggregation_on_tx_satisfaction(self):
+        alias = "transaction.miserable_user"
+
+        assert miserable_users(self.org_id, self.metric_ids, alias) == Function(
+            "uniqIf",
             [
-                expected_failed_txs,
-                expected_all_txs,
+                Column("value"),
+                Function(
+                    "and",
+                    [
+                        Function(
+                            "equals",
+                            [
+                                Column(
+                                    f"tags[{indexer.resolve(self.org_id, TransactionTagsKey.TRANSACTION_SATISFACTION.value)}]"
+                                ),
+                                indexer.resolve(
+                                    self.org_id,
+                                    TransactionSatisfactionTagValue.FRUSTRATED.value,
+                                ),
+                            ],
+                        ),
+                        Function(
+                            "in",
+                            [
+                                Column("metric_id"),
+                                list(self.metric_ids),
+                            ],
+                        ),
+                    ],
+                ),
             ],
-            alias="transactions.failure_rate",
+            alias,
+        )
+
+    def test_dist_count_aggregation_on_tx_satisfaction(self):
+
+        assert satisfaction_count_transaction(
+            self.org_id, self.metric_ids, "transaction.satisfied"
+        ) == Function(
+            "countIf",
+            [
+                Column("value"),
+                Function(
+                    "and",
+                    [
+                        Function(
+                            "equals",
+                            [
+                                Column(
+                                    f"tags[{indexer.resolve(self.org_id, TransactionTagsKey.TRANSACTION_SATISFACTION.value)}]"
+                                ),
+                                indexer.resolve(
+                                    self.org_id, TransactionSatisfactionTagValue.SATISFIED.value
+                                ),
+                            ],
+                        ),
+                        Function(
+                            "in",
+                            [
+                                Column("metric_id"),
+                                list(self.metric_ids),
+                            ],
+                        ),
+                    ],
+                ),
+            ],
+            "transaction.satisfied",
+        )
+
+        assert tolerated_count_transaction(
+            self.org_id, self.metric_ids, alias="transaction.tolerated"
+        ) == Function(
+            "countIf",
+            [
+                Column("value"),
+                Function(
+                    "and",
+                    [
+                        Function(
+                            "equals",
+                            [
+                                Column(
+                                    f"tags[{indexer.resolve(self.org_id, TransactionTagsKey.TRANSACTION_SATISFACTION.value)}]"
+                                ),
+                                indexer.resolve(
+                                    self.org_id, TransactionSatisfactionTagValue.TOLERATED.value
+                                ),
+                            ],
+                        ),
+                        Function(
+                            "in",
+                            [
+                                Column("metric_id"),
+                                list(self.metric_ids),
+                            ],
+                        ),
+                    ],
+                ),
+            ],
+            alias="transaction.tolerated",
         )
 
     def test_percentage_in_snql(self):
-        org_id = 666
         alias = "foo.percentage"
-        init_session_snql = all_sessions(org_id, self.metric_ids, "init_sessions")
-        crashed_session_snql = crashed_sessions(org_id, self.metric_ids, "crashed_sessions")
+        init_session_snql = all_sessions(self.org_id, self.metric_ids, "init_sessions")
+        crashed_session_snql = crashed_sessions(self.org_id, self.metric_ids, "crashed_sessions")
 
         assert percentage(crashed_session_snql, init_session_snql, alias=alias) == Function(
             "minus", [1, Function("divide", [crashed_session_snql, init_session_snql])], alias
         )
 
     def test_addition_in_snql(self):
-        org_id = 666
         alias = "session.crashed_and_abnormal_user"
-        arg1_snql = crashed_users(org_id, self.metric_ids, alias="session.crashed_user")
-        arg2_snql = abnormal_users(org_id, self.metric_ids, alias="session.abnormal_user")
+        arg1_snql = crashed_users(self.org_id, self.metric_ids, alias="session.crashed_user")
+        arg2_snql = abnormal_users(self.org_id, self.metric_ids, alias="session.abnormal_user")
         assert (
             addition(
                 arg1_snql,
@@ -194,9 +320,10 @@ class DerivedMetricSnQLTestCase(TestCase):
         )
 
     def test_subtraction_in_snql(self):
-        org_id = 666
-        arg1_snql = all_users(org_id, self.metric_ids, alias="session.all_user")
-        arg2_snql = errored_all_users(org_id, self.metric_ids, alias="session.errored_user_all")
+        arg1_snql = all_users(self.org_id, self.metric_ids, alias="session.all_user")
+        arg2_snql = errored_all_users(
+            self.org_id, self.metric_ids, alias="session.errored_user_all"
+        )
 
         assert (
             subtraction(
@@ -207,14 +334,24 @@ class DerivedMetricSnQLTestCase(TestCase):
             == Function("minus", [arg1_snql, arg2_snql], alias="session.healthy_user")
         )
 
+    def test_division_in_snql(self):
+        alias = "transactions.failure_rate"
+        failed = failure_count_transaction(self.org_id, self.metric_ids, "transactions.failed")
+        all = all_transactions(self.org_id, self.metric_ids, "transactions.all")
+
+        assert division_float(failed, all, alias=alias) == Function(
+            "divide",
+            [failed, all],
+            alias=alias,
+        )
+
     def test_session_duration_filters(self):
-        org_id = 666
-        assert session_duration_filters(org_id) == [
+        assert session_duration_filters(self.org_id) == [
             Function(
                 "equals",
                 (
-                    Column(f"tags[{resolve_weak(org_id, 'session.status')}]"),
-                    resolve_weak(org_id, "exited"),
+                    Column(f"tags[{indexer.resolve(self.org_id, 'session.status')}]"),
+                    indexer.resolve(self.org_id, "exited"),
                 ),
             )
         ]

@@ -6,6 +6,7 @@ from django.urls import reverse
 from django.utils import timezone
 from pytz import utc
 from snuba_sdk.column import Column
+from snuba_sdk.conditions import InvalidConditionError
 from snuba_sdk.function import Function
 
 from sentry.discover.models import TeamKeyTransaction
@@ -5817,4 +5818,14 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             response = self.do_request(query)
             assert response.status_code == 200, response.content
             assert len(mock_builder.mock_calls) == 2
+            assert mock_builder.call_args.kwargs["dry_run"]
+
+            mock_builder.side_effect = InvalidConditionError("Something bad")
+            query = {
+                "field": ["count()"],
+                "project": [self.project.id],
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            assert len(mock_builder.mock_calls) == 3
             assert mock_builder.call_args.kwargs["dry_run"]

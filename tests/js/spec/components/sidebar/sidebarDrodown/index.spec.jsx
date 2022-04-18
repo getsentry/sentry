@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import SidebarDropdown from 'sentry/components/sidebar/sidebarDropdown';
 import ConfigStore from 'sentry/stores/configStore';
@@ -7,7 +7,7 @@ function renderDropdown(props) {
   const user = ConfigStore.get('user');
   const config = ConfigStore.get('config');
   const organization = TestStubs.Organization();
-  return mountWithTheme(
+  return render(
     <SidebarDropdown
       orientation="left"
       collapsed={false}
@@ -21,11 +21,11 @@ function renderDropdown(props) {
 
 describe('SidebarDropdown', function () {
   it('renders', function () {
-    const component = renderDropdown();
-    expect(component).toSnapshot();
+    const {container} = renderDropdown();
+    expect(container).toSnapshot();
   });
   it('renders without org links', function () {
-    const component = renderDropdown({hideOrgLinks: true});
-    expect(component).toSnapshot();
+    const {container} = renderDropdown({hideOrgLinks: true});
+    expect(container).toSnapshot();
   });
 });

@@ -1,5 +1,5 @@
-from .base import Pipeline
-from .provider import PipelineProvider
+from .provider import PipelineProvider  # isort:skip
+from .base import Pipeline  # isort:skip
 from .store import PipelineSessionStore
 from .types import PipelineAnalyticsEntry
 from .views.base import PipelineView

@@ -197,6 +197,7 @@ build-utils/        @getsentry/owners-js-build
 
 ###### Replays #######
 /static/app/views/replays/        @getsentry/emerging-technology
+/static/app/components/replays/   @getsentry/emerging-technology
 /tests/js/spec/views/replays/     @getsentry/emerging-technology
 ###### End of Replays #######
 
@@ -218,6 +219,7 @@ build-utils/        @getsentry/owners-js-build
 /src/sentry/mail/                             @getsentry/ecosystem
 /src/sentry/mediators/                        @getsentry/ecosystem
 /src/sentry/notifications/                    @getsentry/ecosystem @getsentry/growth
+/src/sentry/pipeline/                         @getsentry/ecosystem
 /src/sentry/plugins/                          @getsentry/ecosystem
 /src/sentry/ratelimits/                       @getsentry/ecosystem
 /src/sentry/shared_integrations/              @getsentry/ecosystem
@@ -334,7 +336,7 @@ build-utils/        @getsentry/owners-js-build
 
 ### SDK ###
 
-/src/sentry/utils/sdk.py            @getsentry/team-web-backend
+/src/sentry/utils/sdk.py            @getsentry/team-web-sdk-backend
 
 ## End of SDK ##
 

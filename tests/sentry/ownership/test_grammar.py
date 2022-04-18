@@ -31,7 +31,7 @@ codeowners:/src/components/  githubuser@sentry.io
 codeowners:frontend/*.ts     githubmod@sentry.io
 """
 
-codeowners_fixture_data = """
+codeowners_fixture_data = r"""
 # cool stuff comment
 *.js                    @getsentry/frontend @NisanthanNanthakumar
 # good comment
@@ -40,6 +40,7 @@ codeowners_fixture_data = """
   docs/*  @getsentry/docs @getsentry/ecosystem
 src/sentry/*       @AnotherUser
 api/*    nisanthan.nanthakumar@sentry.io
+tests/file\ with\ spaces/ @NisanthanNanthakumar
 """
 
 
@@ -83,6 +84,23 @@ def test_load_schema():
             }
         )
         == [Rule(Matcher("path", "*.js"), [Owner("team", "frontend")])]
+    )
+
+
+def test_load_tag_schema():
+    assert (
+        load_schema(
+            {
+                "$version": 1,
+                "rules": [
+                    {
+                        "matcher": {"type": "tags.release", "pattern": "*"},
+                        "owners": [{"type": "user", "identifier": "test@sentry.io"}],
+                    }
+                ],
+            }
+        )
+        == [Rule(Matcher("tags.release", "*"), [Owner("user", "test@sentry.io")])]
     )
 
 
@@ -563,7 +581,7 @@ def test_codeowners_match_fowardslash(path_details, expected):
 def test_parse_code_owners():
     assert parse_code_owners(codeowners_fixture_data) == (
         ["@getsentry/frontend", "@getsentry/docs", "@getsentry/ecosystem"],
-        ["@NisanthanNanthakumar", "@AnotherUser"],
+        ["@NisanthanNanthakumar", "@AnotherUser", "@NisanthanNanthakumar"],
         ["nisanthan.nanthakumar@sentry.io"],
     )
 
