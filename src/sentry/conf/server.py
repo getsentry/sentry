@@ -1583,6 +1583,7 @@ SENTRY_ROLES = (
             "alerts:read",
             "alerts:write",
         },
+        "is_retired": True,
     },
     {
         "id": "manager",
