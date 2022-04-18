@@ -770,7 +770,7 @@ describe('Modals -> WidgetViewerModal', function () {
   });
 
   describe('Metrics Widgets', function () {
-    let metricsMock;
+    let sessionsMock;
     const mockQuery = {
       conditions: '',
       fields: [`sum(${SessionMetric.SESSION})`],
@@ -789,16 +789,16 @@ describe('Modals -> WidgetViewerModal', function () {
       widgetType: WidgetType.METRICS,
     };
     beforeEach(function () {
-      metricsMock = MockApiClient.addMockResponse({
+      sessionsMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/sessions/',
-        body: TestStubs.MetricsField({
+        body: TestStubs.SessionsField({
           field: `sum(${SessionMetric.SESSION})`,
         }),
       });
     });
     it('does a metrics query', async function () {
       await renderModal({initialData, widget: mockWidget});
-      expect(metricsMock).toHaveBeenCalled();
+      expect(sessionsMock).toHaveBeenCalled();
     });
 
     it('renders widget title', async function () {
@@ -814,7 +814,7 @@ describe('Modals -> WidgetViewerModal', function () {
     it('renders table header and body', async function () {
       await renderModal({initialData, widget: mockWidget});
       expect(screen.getByText('sum(sentry.sessions.session)')).toBeInTheDocument();
-      expect(screen.getByText('51292.954')).toBeInTheDocument();
+      expect(screen.getByText('492')).toBeInTheDocument();
     });
 
     it('renders Metrics widget viewer', async function () {
