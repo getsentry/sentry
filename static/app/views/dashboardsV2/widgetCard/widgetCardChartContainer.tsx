@@ -119,6 +119,7 @@ export function WidgetCardChartContainer({
                 organization={organization}
                 isMobile={isMobile}
                 windowWidth={windowWidth}
+                expandNumbers={expandNumbers}
               />
             </Fragment>
           );
