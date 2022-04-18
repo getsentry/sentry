@@ -129,6 +129,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase, APITestCase):
             assert alert_rule.snuba_query.aggregate == "count_unique(tags[sentry:user])"
 
 
+# TODO(Leander): Test validate_sentry_app_trigger_actions on PUT
 class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
     method = "put"
 

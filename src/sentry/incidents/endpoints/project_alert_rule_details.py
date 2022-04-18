@@ -9,7 +9,7 @@ from sentry.incidents.logic import (
     AlreadyDeletedError,
     delete_alert_rule,
     get_slack_actions_with_async_lookups,
-    tell_sentry_apps,
+    validate_sentry_app_trigger_actions,
 )
 from sentry.incidents.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
 from sentry.integrations.slack import tasks
@@ -38,6 +38,7 @@ class ProjectAlertRuleDetailsEndpoint(ProjectAlertRuleEndpoint):
             partial=True,
         )
         if serializer.is_valid():
+            validate_sentry_app_trigger_actions(serializer.validated_data)
             if get_slack_actions_with_async_lookups(project.organization, request.user, data):
                 # need to kick off an async job for Slack
                 client = tasks.RedisRuleStatus()
@@ -51,7 +52,6 @@ class ProjectAlertRuleDetailsEndpoint(ProjectAlertRuleEndpoint):
                 tasks.find_channel_id_for_alert_rule.apply_async(kwargs=task_args)
                 return Response({"uuid": client.uuid}, status=202)
             else:
-                tell_sentry_apps(serializer.validated_data)
                 alert_rule = serializer.save()
                 return Response(serialize(alert_rule, request.user), status=status.HTTP_200_OK)
 

@@ -1389,13 +1389,14 @@ def translate_aggregate_field(aggregate, reverse=False):
     return aggregate
 
 
-def tell_sentry_apps(data):
+def validate_sentry_app_trigger_actions(validated_alert_rule_data):
     from rest_framework import serializers
 
     from sentry.mediators import alert_rule_actions
 
     sentry_app_actions = get_filtered_actions(
-        validated_alert_rule_data=data, action_type=AlertRuleTriggerAction.Type.SENTRY_APP
+        validated_alert_rule_data=validated_alert_rule_data,
+        action_type=AlertRuleTriggerAction.Type.SENTRY_APP,
     )
     for action in sentry_app_actions:
         install = SentryAppInstallation.objects.get(uuid=action.get("sentry_app_installation_uuid"))

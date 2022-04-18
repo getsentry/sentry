@@ -66,6 +66,7 @@ class AlertRuleListEndpointTest(APITestCase):
         assert resp.status_code == 404
 
 
+# TODO(Leander): Test validate_sentry_app_trigger_actions on POST
 @freeze_time()
 class AlertRuleCreateEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-alert-rules"
