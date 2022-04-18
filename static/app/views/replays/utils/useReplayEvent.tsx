@@ -160,7 +160,7 @@ function useReplayEvent({eventSlug, location, orgId}: Options): Result {
         fetchReplayEvents(),
       ]);
 
-      const breadcrumbEntry = mergeBreadcrumbsEntries(replayEvents || []);
+      const breadcrumbEntry = mergeBreadcrumbsEntries(replayEvents || [], event);
       const mergedReplayEvent = mergeEventsWithSpans(replayEvents || []);
 
       setState({
