@@ -30,9 +30,18 @@ configure-sentry-cli() {
     export SENTRY_CLI_NO_EXIT_TRAP=${SENTRY_CLI_NO_EXIT_TRAP-0}
     if [ -n "${SENTRY_DSN+x}" ] && [ -z "${SENTRY_DEVENV_NO_REPORT+x}" ]; then
         if ! require sentry-cli; then
-            curl -sL https://sentry.io/get-cli/ | bash
+            # XXX: Temporary install version 1.74.3 until we upgrade to version 2.x
+            curl -sL https://gist.githubusercontent.com/armenzg/96481b0b653ecf807900373f5af09816/raw/caf5695e0eb6c214ec84f9fc217965aec928acc0/get-cli.sh | bash
         fi
-        eval "$(sentry-cli bash-hook)"
+        sentry_cli_major_version="$(sentry-cli --version | awk '{print $2}' | sed 's/\([0-9]*\).*/\1/')"
+        # XXX: Until we support version 2.x
+        if [ $sentry_cli_major_version -lt 2 ]; then
+            eval "$(sentry-cli bash-hook)"
+        else
+            echo "You are using the latest major release of sentry-cli."
+            echo "${yellow}Please remove it and we will install the correct version: rm $(which sentry-cli)${reset}"
+            exit 1
+        fi
     fi
 }
 
@@ -204,7 +213,7 @@ apply-migrations() {
 
 create-user() {
     if [[ -n "${GITHUB_ACTIONS+x}" ]]; then
-        sentry createuser --superuser --email foo@tbd.com --no-password  --no-input
+        sentry createuser --superuser --email foo@tbd.com --no-password --no-input
     else
         sentry createuser --superuser
     fi
