@@ -13,6 +13,7 @@ from sentry.api.base import Endpoint
 from sentry.api.exceptions import SsoRequired
 from sentry.api.serializers import DetailedSelfUserSerializer, serialize
 from sentry.api.validators import AuthVerifyValidator
+from sentry.auth.authenticators.u2f import U2fInterface
 from sentry.auth.superuser import Superuser
 from sentry.models import Authenticator, Organization
 from sentry.utils import auth, json, metrics
@@ -46,6 +47,18 @@ class AuthIndexEndpoint(Endpoint):
             redirect = None
         initiate_login(request, redirect)
         raise SsoRequired(Organization.objects.get_from_cache(id=org_id))
+
+    @staticmethod
+    def _require_password_or_u2f_check(request):
+        """
+        We only need to check the user's password or u2f device for self-hosted customers.
+        """
+        return is_self_hosted() and (
+            request.user.has_usable_password()
+            or Authenticator.objects.filter(
+                user_id=request.user.id, type=U2fInterface.type
+            ).exists()
+        )
 
     @staticmethod
     def _verify_user_via_inputs(validator, request):
@@ -97,10 +110,7 @@ class AuthIndexEndpoint(Endpoint):
         validator.is_valid()
         authenticated = None
 
-        if is_self_hosted() and (
-            request.user.has_usable_password()
-            or Authenticator.objects.filter(user_id=request.user.id, type=3).exists()
-        ):
+        if self._require_password_or_u2f_check(request):
             authenticated = self._verify_user_via_inputs(validator, request)
 
         if Superuser.org_id:
