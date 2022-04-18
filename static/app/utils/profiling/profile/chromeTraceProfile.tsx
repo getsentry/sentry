@@ -138,15 +138,20 @@ function buildProfile(
   }
 
   const firstTimestamp = beginQueue[beginQueue.length - 1].ts;
+  const lastTimestamp = endQueue[0].ts;
 
   if (typeof firstTimestamp !== 'number') {
     throw new Error('First begin event contains no timestamp');
   }
 
+  if (typeof lastTimestamp !== 'number') {
+    throw new Error('Last end event contains no timestamp');
+  }
+
   const profile = new ChromeTraceProfile(
-    0,
-    0,
-    0,
+    lastTimestamp - firstTimestamp,
+    firstTimestamp,
+    lastTimestamp,
     `${processName}: ${threadName}`,
     'microseconds' // the trace event format provides timestamps in microseconds
   );
