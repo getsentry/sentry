@@ -21,7 +21,8 @@ import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useTeams from 'sentry/utils/useTeams';
 
-import {OnboardingState, usePersistedOnboardingState} from '../types';
+import {OnboardingState} from '../types';
+import {usePersistedOnboardingState} from '../utils';
 
 import GenericFooter from './genericFooter';
 

@@ -58,6 +58,7 @@ export type GrowthEventParameters = {
   };
   'growth.onboarding_clicked_skip': {source?: string};
   'growth.onboarding_load_choose_platform': {};
+  'growth.onboarding_quick_start_cta': SampleEventParam;
   'growth.onboarding_set_up_your_project': PlatformParam;
   'growth.onboarding_set_up_your_projects': {platforms: string};
   'growth.onboarding_start_onboarding': {
@@ -124,6 +125,7 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string> = {
   'growth.onboarding_clicked_instrument_app': 'Growth: Onboarding Clicked Instrument App',
   'growth.onboarding_clicked_setup_platform_later':
     'Growth: Onboarding Clicked Setup Platform Later',
+  'growth.onboarding_quick_start_cta': 'Growth: Quick Start Onboarding CTA',
   'invite_request.approved': 'Invite Request Approved',
   'invite_request.denied': 'Invite Request Denied',
   'growth.demo_modal_clicked_signup': 'Growth: Demo Modal Clicked Signup',

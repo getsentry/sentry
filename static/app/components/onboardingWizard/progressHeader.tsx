@@ -31,7 +31,7 @@ function ProgressHeader({allTasks, completedTasks}: Props) {
       />
       <HeaderTitle>{t('Quick Start')}</HeaderTitle>
       <Description>
-        {t("Take full advantage of Sentry's powerful monitoring features.")}
+        {t('Walk through this guide to get the most out of Sentry right away.')}
       </Description>
     </Container>
   );
