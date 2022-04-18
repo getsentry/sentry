@@ -323,6 +323,18 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
         member_om = OrganizationMember.objects.get(organization=self.organization, user=member)
         assert member_om.role == "member"
 
+    @with_feature("organizations:team-roles")
+    def test_cannot_update_with_retired_role(self):
+        member = self.create_user("baz@example.com")
+        member_om = self.create_member(
+            organization=self.organization, user=member, role="member", teams=[]
+        )
+
+        self.get_error_response(self.organization.slug, member_om.id, role="admin", status_code=400)
+
+        member_om = OrganizationMember.objects.get(organization=self.organization, user=member)
+        assert member_om.role == "member"
+
     @patch("sentry.models.OrganizationMember.send_sso_link_email")
     def test_cannot_reinvite_normal_member(self, mock_send_sso_link_email):
         member = self.create_user("bar@example.com")
