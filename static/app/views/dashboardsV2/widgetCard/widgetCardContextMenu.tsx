@@ -223,14 +223,13 @@ function WidgetCardContextMenu({
               size="zero"
               icon={<IconExpand size="xs" />}
               onClick={() => {
-                (seriesData || tableData || issuesData) &&
-                  setData({
-                    seriesData,
-                    tableData,
-                    issuesData,
-                    pageLinks,
-                    totalIssuesCount,
-                  });
+                setData({
+                  seriesData,
+                  tableData,
+                  issuesData,
+                  pageLinks,
+                  totalIssuesCount,
+                });
                 openWidgetViewerPath(widget.id ?? index);
               }}
             />

@@ -336,7 +336,7 @@ build-utils/        @getsentry/owners-js-build
 
 ### SDK ###
 
-/src/sentry/utils/sdk.py            @getsentry/team-web-backend
+/src/sentry/utils/sdk.py            @getsentry/team-web-sdk-backend
 
 ## End of SDK ##
 

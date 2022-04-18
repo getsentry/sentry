@@ -1,4 +1,4 @@
-name: migrations-pg14
+name: migrations
 on: pull_request
 
 jobs:
@@ -42,6 +42,8 @@ jobs:
     strategy:
       matrix:
         python-version: [3.8.12]
+        pg-version: ['9.6', '14']
+
     needs: did-migration-change
     if: ${{ needs.did-migration-change.outputs.added == 'true' }}
 
@@ -57,8 +59,27 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
-          pg-version: '14'
+          pg-version: ${{ matrix.pg-version }}
 
       - name: Apply migrations
         run: |
           sentry upgrade --noinput
+
+      # Checkout the current ref
+      - uses: actions/checkout@v1
+        with:
+          clean: false
+
+      - name: Get changed migration files
+        id: file
+        run: |
+          echo $(git diff --diff-filter=A --name-only origin/master HEAD)
+          echo "::set-output name=added::$(git diff --diff-filter=A --name-only origin/master HEAD | grep 'src/sentry/migrations/')"
+
+      - name: Generate SQL for migration
+        uses: getsentry/action-migrations@main
+        env:
+          SENTRY_LOG_LEVEL: ERROR
+        with:
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          migration: ${{ steps.file.outputs.added }}
