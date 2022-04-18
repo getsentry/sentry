@@ -158,9 +158,7 @@ class SudoModal extends React.Component<Props, State> {
               initialData={{isSuperuserModal: isSuperuser}}
               resetOnError
             >
-              {!isSelfHosted && isSuperuser && (
-                <Hook name="component:superuser-access-category" />
-              )}
+              {!isSelfHosted && <Hook name="component:superuser-access-category" />}
             </Form>
           ) : (
             <Button
