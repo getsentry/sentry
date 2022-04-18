@@ -1408,28 +1408,31 @@ def tell_sentry_apps(data):
             raise serializers.ValidationError({"sentry_app": result["message"]})
 
 
+# TODO(Ecosystem): Convert to using get_filtered_actions
 def get_slack_actions_with_async_lookups(organization, user, data):
     try:
         from sentry.incidents.serializers import AlertRuleTriggerActionSerializer
 
-        slack_actions = get_filtered_actions(
-            validated_alert_rule_data=data, action_type=AlertRuleTriggerAction.Type.SLACK
-        )
-        validated_slack_actions = []
-        for action in slack_actions:
-            serializer = AlertRuleTriggerActionSerializer(
-                context={
-                    "organization": organization,
-                    "access": SystemAccess(),
-                    "user": user,
-                    "input_channel_id": action.get("inputChannelId"),
-                },
-                data=action,
-            )
-            if serializer.is_valid():
-                if not not serializer.validated_data["input_channel_id"]:
-                    validated_slack_actions.append(serializer.validated_data)
-        return validated_slack_actions
+        slack_actions = []
+        for trigger in data["triggers"]:
+            for action in trigger["actions"]:
+                action = rewrite_trigger_action_fields(action)
+                a_s = AlertRuleTriggerActionSerializer(
+                    context={
+                        "organization": organization,
+                        "access": SystemAccess(),
+                        "user": user,
+                        "input_channel_id": action.get("inputChannelId"),
+                    },
+                    data=action,
+                )
+                if a_s.is_valid():
+                    if (
+                        a_s.validated_data["type"].value == AlertRuleTriggerAction.Type.SLACK.value
+                        and not a_s.validated_data["input_channel_id"]
+                    ):
+                        slack_actions.append(a_s.validated_data)
+        return slack_actions
     except KeyError:
         # If we have any KeyErrors reading the data, we can just return nothing
         # This will cause the endpoint to try creating the rule synchronously

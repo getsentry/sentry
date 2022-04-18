@@ -75,7 +75,7 @@ class SentryAppEventAction(EventAction, abc.ABC):
         raise NotImplementedError()
 
 
-def trigger_alert_rule_action_creators(actions: Sequence[Mapping[str, str]]):
+def trigger_alert_rule_action_creators(actions: Sequence[Mapping[str, str]]) -> str | None:
     created = None
     for action in actions:
         # Only call creator for Sentry Apps with UI Components for alert rules.
