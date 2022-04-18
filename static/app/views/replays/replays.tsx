@@ -21,6 +21,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import AsyncView from 'sentry/views/asyncView';
@@ -45,6 +46,8 @@ const sanitizeLocationQuery = query => {
 function Replays(props: Props) {
   const location = useLocation();
   const organization = useOrganization();
+  const {projects} = useProjects();
+
   const [searchQuery, setSearchQuery] = useState<string>(
     sanitizeLocationQuery(location.query.query)
   );
@@ -55,11 +58,13 @@ function Replays(props: Props) {
 
   const getEventView = () => {
     const {selection} = props;
+    const {query} = location;
     const eventQueryParams: NewQuery = {
       id: '',
       name: '',
       version: 2,
       fields: ['eventID', 'project', 'timestamp', 'user.display', 'url'],
+      // @ts-ignore
       orderby: query.sort || '-timestamp',
       environment: selection.environments,
       projects: selection.projects,
@@ -106,18 +111,12 @@ function Replays(props: Props) {
             displayEmail={replay.url?.split('?')[0] || ''}
           />
         </Link>
-        <Projects orgId={organization.slug} slugs={[replay.project]}>
-          {({projects}) => {
-            const project = projects.find(p => p.slug === replay.project);
-            return (
-              <ProjectBadge
-                project={project ? project : {slug: replay.project}}
-                avatarSize={16}
-              />
-            );
-          }}
-        </Projects>
-
+        <ProjectBadge
+          project={
+            projects.find(p => p.slug === replay.project) || {slug: replay.project}
+          }
+          avatarSize={16}
+        />
         <div>
           <TimeSinceWrapper>
             <StyledIconCalendarWrapper color="gray500" size="sm" />
@@ -127,6 +126,19 @@ function Replays(props: Props) {
       </React.Fragment>
     ));
   };
+
+  const {query} = location;
+  const {cursor: _cursor, page: _page, ...currentQuery} = query;
+
+  const sort: {
+    field: string;
+  } = {
+    // @ts-ignore
+    field: query.sort || '-timestamp',
+  };
+
+  const arrowDirection = sort.field.startsWith('-') ? 'down' : 'up';
+  const sortArrow = <IconArrow color="gray300" size="xs" direction={arrowDirection} />;
 
   return (
     <React.Fragment>
@@ -155,7 +167,32 @@ function Replays(props: Props) {
                   <PanelTable
                     isLoading={data.isLoading}
                     isEmpty={data.tableData?.data.length === 0}
-                    headers={[t('Session'), t('Timestamp')]}
+                    headers={[
+                      t('Session'),
+                      t('Project'),
+                      <SortLink
+                        key="timestamp"
+                        role="columnheader"
+                        aria-sort={
+                          !sort.field.endsWith('timestamp')
+                            ? 'none'
+                            : sort.field === '-timestamp'
+                            ? 'descending'
+                            : 'ascending'
+                        }
+                        to={{
+                          pathname: location.pathname,
+                          query: {
+                            ...currentQuery,
+                            // sort by timestamp should start by ascending on first click
+                            sort:
+                              sort.field === '-timestamp' ? 'timestamp' : '-timestamp',
+                          },
+                        }}
+                      >
+                        {t('Timestamp')} {sort.field.endsWith('timestamp') && sortArrow}
+                      </SortLink>,
+                    ]}
                   >
                     {data.tableData ? renderTable(data.tableData.data as Replay[]) : null}
                   </PanelTable>
