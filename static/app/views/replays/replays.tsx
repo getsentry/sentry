@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, {useEffect, useState} from 'react';
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -34,9 +34,23 @@ type Props = AsyncView['props'] &
     statsPeriod?: string | undefined; // revisit i'm sure i'm doing statsperiod wrong
   };
 
+const sanitizeLocationQuery = query => {
+  if (!query || Array.isArray(query)) {
+    return '';
+  }
+  return query;
+};
+
 function Replays(props: Props) {
   const location = useLocation();
   const organization = useOrganization();
+  const [searchQuery, setSearchQuery] = useState<string>(
+    sanitizeLocationQuery(location.query.query)
+  );
+
+  useEffect(() => {
+    setSearchQuery(sanitizeLocationQuery(location.query.query));
+  }, [location.query.query]);
 
   const getEventView = () => {
     const {selection} = props;
@@ -48,7 +62,7 @@ function Replays(props: Props) {
       orderby: '-timestamp',
       environment: selection.environments,
       projects: selection.projects,
-      query: `transaction:sentry-replay ${location.query.query}`, // future: change to replay event
+      query: `transaction:sentry-replay ${searchQuery}`, // future: change to replay event
     };
 
     if (selection.datetime.period) {
@@ -57,13 +71,13 @@ function Replays(props: Props) {
     return EventView.fromNewQueryWithLocation(eventQueryParams, location);
   };
 
-  const handleSearchQuery = (searchQuery: string) => {
+  const handleSearchQuery = (query: string) => {
     browserHistory.push({
       pathname: location.pathname,
       query: {
         ...location.query,
         cursor: undefined,
-        query: String(searchQuery).trim() || undefined,
+        query: String(query).trim() || undefined,
       },
     });
   };
@@ -121,6 +135,7 @@ function Replays(props: Props) {
               return (
                 <React.Fragment>
                   <ReplaysFilters
+                    query={searchQuery}
                     organization={organization}
                     handleSearchQuery={handleSearchQuery}
                   />

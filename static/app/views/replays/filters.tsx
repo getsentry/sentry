@@ -13,9 +13,10 @@ import {Organization} from 'sentry/types';
 type Props = {
   handleSearchQuery: (query: string) => void;
   organization: Organization;
+  query: string;
 };
 
-function ReplaysFilters({organization, handleSearchQuery}: Props) {
+function ReplaysFilters({organization, handleSearchQuery, query}: Props) {
   return (
     <FilterContainer>
       <SearchContainer>
@@ -27,6 +28,7 @@ function ReplaysFilters({organization, handleSearchQuery}: Props) {
         <SearchBar
           organization={organization}
           defaultQuery=""
+          query={query}
           placeholder={t('Search')}
           onSearch={handleSearchQuery}
         />
