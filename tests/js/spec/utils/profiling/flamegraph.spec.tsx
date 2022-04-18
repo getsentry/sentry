@@ -314,12 +314,4 @@ describe('flamegraph', () => {
   it('Empty', () => {
     expect(Flamegraph.Empty().configSpace.equals(new Rect(0, 0, 1_000, 0))).toBe(true);
   });
-
-  it('setConfigSpace', () => {
-    expect(
-      Flamegraph.Empty()
-        .setConfigSpace(new Rect(0, 0, 10, 5))
-        .configSpace.equals(new Rect(0, 0, 10, 5))
-    ).toBe(true);
-  });
 });

@@ -72,7 +72,7 @@ export class Flamegraph {
       this.configSpace = new Rect(
         0,
         0,
-        configSpace ? configSpace.width : this.profile.endedAt,
+        configSpace ? configSpace.width : this.profile.duration,
         this.depth
       );
     }
@@ -198,10 +198,5 @@ export class Flamegraph {
     }
     visit(profile.appendOrderTree, 0);
     return frames;
-  }
-
-  setConfigSpace(configSpace: Rect): Flamegraph {
-    this.configSpace = configSpace;
-    return this;
   }
 }
