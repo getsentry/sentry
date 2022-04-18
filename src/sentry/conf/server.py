@@ -1419,6 +1419,13 @@ SENTRY_METRICS_INDEXER_CACHE_TTL = 3600 * 2
 SENTRY_RELEASE_HEALTH = "sentry.release_health.sessions.SessionsReleaseHealthBackend"
 SENTRY_RELEASE_HEALTH_OPTIONS = {}
 
+# Release Monitor
+SENTRY_RELEASE_MONITOR = (
+    "sentry.release_health.release_monitor.sessions.SessionReleaseMonitorBackend"
+)
+SENTRY_RELEASE_MONITOR_OPTIONS = {}
+
+
 # Render charts on the backend. This uses the Chartcuterie external service.
 SENTRY_CHART_RENDERER = "sentry.charts.chartcuterie.Chartcuterie"
 SENTRY_CHART_RENDERER_OPTIONS = {}
