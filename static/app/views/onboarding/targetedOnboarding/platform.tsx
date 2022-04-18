@@ -33,7 +33,7 @@ function OnboardingPlatform(props: StepProps) {
   return (
     <Wrapper>
       <StepHeading step={props.stepIndex}>
-        {t('select the platforms you want to monitor')}
+        {t('Select the platforms you want to monitor')}
       </StepHeading>
       <motion.div
         transition={testableTransition()}
