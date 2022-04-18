@@ -1,13 +1,12 @@
+import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import {Entry, EntryType, Event} from 'sentry/types/event';
-
-function isSpanEntry(entry: Entry) {
-  return entry.type === EntryType.SPANS;
-}
 
 export default function mergeEventsWithSpans(events: Event[]): Event {
   // Get a merged list of all spans from all replay events
-  const spans = events.flatMap(
-    replayEvent => replayEvent.entries.find(isSpanEntry)?.data
+  const spans = events.flatMap(event =>
+    event.entries.flatMap((entry: Entry) =>
+      entry.type === EntryType.SPANS ? (entry.data as RawSpanType[]) : []
+    )
   );
 
   // Create a merged spans entry on the first replay event and fake the
