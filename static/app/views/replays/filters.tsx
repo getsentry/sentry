@@ -2,25 +2,32 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 
 import DatePageFilter from 'sentry/components/datePageFilter';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
 
-function ReplaysFilters({organization, query, handleSearchQuery}: any) {
+type Props = {
+  handleSearchQuery: (query: string) => void;
+  organization: Organization;
+};
+
+function ReplaysFilters({organization, handleSearchQuery}: Props) {
   return (
     <FilterContainer>
       <SearchContainer>
         <StyledPageFilterBar>
           <ProjectPageFilter />
+          <EnvironmentPageFilter />
           <DatePageFilter />
         </StyledPageFilterBar>
         <SearchBar
           organization={organization}
           defaultQuery=""
-          query={query}
-          placeholder={t('Search saved queries')}
+          placeholder={t('Search')}
           onSearch={handleSearchQuery}
         />
       </SearchContainer>
