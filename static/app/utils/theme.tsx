@@ -1,4 +1,4 @@
-import '@emotion/react';
+import {css} from '@emotion/react';
 
 import color from 'color';
 
@@ -564,6 +564,22 @@ const generateButtonTheme = (colors: BaseColors, alias: Aliases) => ({
   },
 });
 
+const generateUtils = (colors: BaseColors) => ({
+  linkUnderline: css({
+    textDecoration: `underline ${colors.translucentGray200}`,
+    textDecorationThickness: '1px',
+    textUnderlineOffset: '1px',
+    '&:hover': {
+      textDecorationColor: colors.gray300,
+    },
+  }),
+  tooltipUnderline: css({
+    textDecoration: `underline dotted ${colors.gray300}`,
+    textDecorationThickness: '0.75px',
+    textUnderlineOffset: '1.25px',
+  }),
+});
+
 const iconSizes = {
   xs: '12px',
   sm: '16px',
@@ -812,6 +828,7 @@ export const lightTheme = {
     ...darkColors,
     ...darkAliases,
   },
+  ...generateUtils(lightColors),
   alert: generateAlertTheme(lightColors, lightAliases),
   badge: generateBadgeTheme(lightColors),
   button: generateButtonTheme(lightColors, lightAliases),
@@ -834,6 +851,7 @@ export const darkTheme: Theme = {
     ...lightColors,
     ...lightAliases,
   },
+  ...generateUtils(darkColors),
   alert: generateAlertTheme(darkColors, darkAliases),
   badge: generateBadgeTheme(darkColors),
   button: generateButtonTheme(darkColors, darkAliases),
