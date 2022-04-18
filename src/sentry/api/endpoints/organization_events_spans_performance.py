@@ -183,6 +183,8 @@ class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsSpansEndpoint
 class SpanSerializer(serializers.Serializer):  # type: ignore
     query = serializers.CharField(required=False, allow_null=True)
     span = serializers.CharField(required=True, allow_null=False)
+    min_exclusive_time = serializers.CharField(required=False)
+    max_exclusive_time = serializers.CharField(required=False)
 
     def validate_span(self, span: str) -> Span:
         try:
@@ -208,12 +210,22 @@ class OrganizationEventsSpansExamplesEndpoint(OrganizationEventsSpansEndpointBas
 
         query = serialized.get("query")
         span = serialized["span"]
+        min_exclusive_time = serialized.get("min_exclusive_time")
+        max_exclusive_time = serialized.get("max_exclusive_time")
 
         direction, orderby_column = self.get_orderby_column(request)
 
         def data_fn(offset: int, limit: int) -> Any:
             example_transactions = query_example_transactions(
-                params, query, direction, orderby_column, span, limit, offset
+                params,
+                query,
+                direction,
+                orderby_column,
+                span,
+                limit,
+                offset,
+                min_exclusive_time,
+                max_exclusive_time,
             )
 
             return [
@@ -225,6 +237,8 @@ class OrganizationEventsSpansExamplesEndpoint(OrganizationEventsSpansEndpointBas
                             event,
                             span.op,
                             span.group,
+                            # min_exclusive_time,
+                            # max_exclusive_time,
                         ).serialize()
                         for event in example_transactions.get(span, [])
                     ],
@@ -442,6 +456,7 @@ def query_suspect_span_groups(
     offset: int,
 ) -> List[SuspectSpan]:
     suspect_span_columns = SPAN_PERFORMANCE_COLUMNS[orderby]
+    # orderby = avgOccurence
 
     selected_columns: List[str] = [
         column
@@ -497,6 +512,9 @@ def query_suspect_span_groups(
     if extra_conditions:
         builder.add_conditions(extra_conditions)
 
+    # add min and max exclusive times as extra conditions?
+    # how to add min max filter as a condition
+
     snql_query = builder.get_snql_query()
     results = raw_snql_query(snql_query, "api.organization-events-spans-performance-suspects")
 
@@ -523,9 +541,35 @@ def query_suspect_span_groups(
 
 
 class SpanQueryBuilder(QueryBuilder):  # type: ignore
-    def resolve_span_function(self, function: str, span: Span, alias: str):
+    def resolve_span_function(
+        self,
+        function: str,
+        span: Span,
+        alias: str,
+        min_exclusive_time: Optional[float] = None,
+        max_exclusive_time: Optional[float] = None,
+    ):
         op = span.op
         group = span.group
+
+        op_group_match_condition = Function(
+            "and",
+            [
+                Function("equals", [Identifier("x"), op]),
+                Function("equals", [Identifier("y"), group]),
+            ],
+        )
+        condition = op_group_match_condition
+
+        if min_exclusive_time is not None and max_exclusive_time is not None:
+            exclusive_time_bounds_condition = Function(
+                "and",
+                [
+                    Function("greater", [Identifier("z"), min_exclusive_time]),
+                    Function("less", [Identifier("z"), max_exclusive_time]),
+                ],
+            )
+            condition = Function("and", [op_group_match_condition, exclusive_time_bounds_condition])
 
         return Function(
             "arrayReduce",
@@ -536,17 +580,12 @@ class SpanQueryBuilder(QueryBuilder):  # type: ignore
                     "arrayMap",
                     [
                         Lambda(
-                            ["x", "y"],
-                            Function(
-                                "and",
-                                [
-                                    Function("equals", [Identifier("x"), op]),
-                                    Function("equals", [Identifier("y"), group]),
-                                ],
-                            ),
+                            ["x", "y", "z"],
+                            condition,
                         ),
                         self.column("spans_op"),
                         self.column("spans_group"),
+                        self.column("spans_exclusive_time"),
                     ],
                 ),
             ],
@@ -562,6 +601,8 @@ def query_example_transactions(
     span: Span,
     per_suspect: int = 5,
     offset: Optional[int] = None,
+    min_exclusive_time: Optional[float] = None,
+    max_exclusive_time: Optional[float] = None,
 ) -> Dict[Span, List[EventID]]:
     # there aren't any suspects, early return to save an empty query
     if per_suspect == 0:
@@ -584,10 +625,13 @@ def query_example_transactions(
 
     # Make sure to resolve the custom span functions and add it to the columns and order bys
     orderby_columns = [
-        builder.resolve_span_function(function, span, f"{function}_span_time")
+        builder.resolve_span_function(
+            function, span, f"{function}_span_time", min_exclusive_time, max_exclusive_time
+        )
         for function in SPAN_PERFORMANCE_COLUMNS[orderby].suspect_example_functions
     ]
     builder.columns += orderby_columns
+
     builder.orderby += [
         OrderBy(column, Direction.DESC if direction == "-" else Direction.ASC)
         for column in orderby_columns
