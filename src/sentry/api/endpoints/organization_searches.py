@@ -1,3 +1,4 @@
+from django.db import IntegrityError
 from django.db.models import Q
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -82,18 +83,29 @@ class OrganizationSearchesEndpoint(OrganizationEndpoint):
                     {"detail": "Query {} already exists".format(result["query"])}, status=400
                 )
 
-            saved_search = SavedSearch.objects.create(
-                organization=organization,
-                type=result["type"],
-                name=result["name"],
-                query=result["query"],
-                sort=result["sort"],
-            )
-            analytics.record(
-                "organization_saved_search.created",
-                search_type=SearchType(saved_search.type).name,
-                org_id=organization.id,
-                query=saved_search.query,
-            )
-            return Response(serialize(saved_search, request.user))
+            try:
+                saved_search = SavedSearch.objects.create(
+                    organization=organization,
+                    type=result["type"],
+                    name=result["name"],
+                    query=result["query"],
+                    sort=result["sort"],
+                )
+                analytics.record(
+                    "organization_saved_search.created",
+                    search_type=SearchType(saved_search.type).name,
+                    org_id=organization.id,
+                    query=saved_search.query,
+                )
+                return Response(serialize(saved_search, request.user))
+            except IntegrityError:
+                return Response(
+                    {
+                        "detail": "The combination ({}, {}, {}) for query {} already exists.".format(
+                            organization.id, result["name"], result["type"], result["query"]
+                        )
+                    },
+                    status=400,
+                )
+
         return Response(serializer.errors, status=400)
