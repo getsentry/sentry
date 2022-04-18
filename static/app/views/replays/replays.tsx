@@ -44,7 +44,7 @@ class Replays extends React.Component<Props> {
       name: '',
       version: 2,
       fields: ['eventID', 'timestamp', 'replayId', 'user.display', 'url'],
-      orderby: query.sort,
+      orderby: query.sort || '-timestamp',
       environment: selection.environments,
       projects: selection.projects,
       query: 'transaction:sentry-replay', // future: change to replay event
@@ -112,7 +112,7 @@ class Replays extends React.Component<Props> {
     const {cursor: _cursor, page: _page, ...currentQuery} = query;
 
     const sort: {
-      field: '-timestamp';
+      field: string;
     } = {
       field: query.sort || '-timestamp',
     };
@@ -150,7 +150,7 @@ class Replays extends React.Component<Props> {
                           key="timestamp"
                           role="columnheader"
                           aria-sort={
-                            !sort.field.includes('timestamp')
+                            !sort.field.endsWith('timestamp')
                               ? 'none'
                               : sort.field === '-timestamp'
                               ? 'descending'
@@ -166,7 +166,7 @@ class Replays extends React.Component<Props> {
                             },
                           }}
                         >
-                          {t('TimeStamp')} {sort.field.endsWith('timestamp') && sortArrow}
+                          {t('Timestamp')} {sort.field.endsWith('timestamp') && sortArrow}
                         </SortLink>,
                       ]}
                     >
