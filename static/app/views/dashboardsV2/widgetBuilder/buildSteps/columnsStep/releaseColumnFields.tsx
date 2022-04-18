@@ -8,6 +8,8 @@ import {
   SESSIONS_TAGS,
 } from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
 import {filterPrimaryOptions} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
+import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
+import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
 import {ColumnFields} from './columnFields';
 
@@ -28,6 +30,9 @@ export function ReleaseColumnFields({
   queryErrors,
   onYAxisOrColumnFieldChange,
 }: Props) {
+  const filterAggregateParameters = (option: FieldValueOption) => {
+    return option.value.kind === FieldValueKind.METRICS;
+  };
   return (
     <ColumnFields
       displayType={displayType}
@@ -39,6 +44,7 @@ export function ReleaseColumnFields({
         Object.values(SESSIONS_FIELDS),
         SESSIONS_TAGS
       )}
+      filterAggregateParameters={filterAggregateParameters}
       filterPrimaryOptions={option =>
         filterPrimaryOptions({
           option,
