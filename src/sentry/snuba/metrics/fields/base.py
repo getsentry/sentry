@@ -58,9 +58,9 @@ from sentry.snuba.metrics.fields.snql import (
     tolerated_count_transaction,
     uniq_aggregation_on_metric,
 )
-from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
+from sentry.snuba.metrics.naming_layer.mapping import get_public_name_from_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
-from sentry.snuba.metrics.query import Selectable
+from sentry.snuba.metrics.query import MetricsQuery
 from sentry.snuba.metrics.utils import (
     DEFAULT_AGGREGATES,
     GRANULARITY,
@@ -232,7 +232,7 @@ class MetricOperation(MetricOperationDefinition, ABC):
     def run_post_query_function(
         self,
         data: SnubaDataType,
-        query_definition: QueryDefinition,
+        metrics_query: MetricsQuery,
         metric_mri: str,
         idx: Optional[int] = None,
     ) -> SnubaDataType:
@@ -240,7 +240,7 @@ class MetricOperation(MetricOperationDefinition, ABC):
 
     @abstractmethod
     def generate_filter_snql_conditions(
-        self, org_id: int, query_definition: QueryDefinition
+        self, org_id: int, metrics_query: MetricsQuery
     ) -> Optional[Function]:
         raise NotImplementedError
 
@@ -248,7 +248,7 @@ class MetricOperation(MetricOperationDefinition, ABC):
 @dataclass
 class DerivedOpDefinition(MetricOperationDefinition):
     can_orderby: bool
-    query_definition_args: Optional[List[str]] = None
+    metrics_query_args: Optional[List[str]] = None
     post_query_func: Callable[..., PostQueryFuncReturnType] = lambda *args: args
     filter_conditions_func: Callable[..., Optional[Function]] = lambda _: None
 
@@ -260,7 +260,7 @@ class RawOp(MetricOperation):
     def run_post_query_function(
         self,
         data: SnubaDataType,
-        query_definition: QueryDefinition,
+        metrics_query: MetricsQuery,
         metric_mri: str,
         idx: Optional[int] = None,
     ) -> SnubaDataType:
@@ -282,7 +282,7 @@ class DerivedOp(DerivedOpDefinition, MetricOperation):
     def run_post_query_function(
         self,
         data: SnubaDataType,
-        query_definition: QueryDefinition,
+        metrics_query: MetricsQuery,
         metric_mri: str,
         idx: Optional[int] = None,
     ) -> SnubaDataType:
@@ -293,9 +293,9 @@ class DerivedOp(DerivedOpDefinition, MetricOperation):
             subdata = data[key][idx]
 
         compute_func_dict = {"data": subdata}
-        if self.query_definition_args is not None:
-            for field in self.query_definition_args:
-                compute_func_dict[field] = getattr(query_definition, field)
+        if self.metrics_query_args is not None:
+            for field in self.metrics_query_args:
+                compute_func_dict[field] = getattr(metrics_query, field)
 
         subdata = self.post_query_func(**compute_func_dict)
 
@@ -306,12 +306,12 @@ class DerivedOp(DerivedOpDefinition, MetricOperation):
         return data
 
     def generate_filter_snql_conditions(
-        self, org_id: int, query_definition: QueryDefinition
+        self, org_id: int, metrics_query: MetricsQuery
     ) -> Optional[Function]:
         kwargs = {"org_id": org_id}
-        if self.query_definition_args is not None:
-            for field in self.query_definition_args:
-                kwargs[field] = getattr(query_definition, field)
+        if self.metrics_query_args is not None:
+            for field in self.metrics_query_args:
+                kwargs[field] = getattr(metrics_query, field)
 
         return self.filter_conditions_func(**kwargs)
 
@@ -372,7 +372,7 @@ class MetricExpressionBase(ABC):
 
     @abstractmethod
     def run_post_query_function(
-        self, data: SnubaDataType, query_definition: QueryDefinition, idx: Optional[int] = None
+        self, data: SnubaDataType, metrics_query: MetricsQuery, idx: Optional[int] = None
     ) -> Any:
         """
         Method that runs functions on the values returned from the query
@@ -475,11 +475,11 @@ class MetricExpression(MetricExpressionDefinition, MetricExpressionBase):
         return self.metric_object.generate_metric_ids(projects)
 
     def run_post_query_function(
-        self, data: SnubaDataType, query_definition: QueryDefinition, idx: Optional[int] = None
+        self, data: SnubaDataType, metrics_query: MetricsQuery, idx: Optional[int] = None
     ) -> Any:
         key = f"{self.metric_operation.op}({self.metric_object.metric_mri})"
         data = self.metric_operation.run_post_query_function(
-            data, query_definition, self.metric_object.metric_mri, idx
+            data, metrics_query, self.metric_object.metric_mri, idx
         )
         return data[key][idx] if idx is not None else data[key]
 
@@ -669,7 +669,7 @@ class SingularEntityDerivedMetric(DerivedMetricExpression):
         return []
 
     def run_post_query_function(
-        self, data: SnubaDataType, query_definition: QueryDefinition, idx: Optional[int] = None
+        self, data: SnubaDataType, metrics_query: MetricsQuery, idx: Optional[int] = None
     ) -> Any:
         compute_func_args = [data[self.metric_mri] if idx is None else data[self.metric_mri][idx]]
         result = self.post_query_func(*compute_func_args)
@@ -700,7 +700,7 @@ class CompositeEntityDerivedMetric(DerivedMetricExpression):
         self,
         direction: Direction,
         projects: Sequence[Project],
-        query_definition: QueryDefinition,
+        metrics_query: MetricsQuery,
     ) -> List[OrderBy]:
         raise NotSupportedOverCompositeEntityException(
             f"It is not possible to orderBy field "
@@ -799,7 +799,7 @@ class CompositeEntityDerivedMetric(DerivedMetricExpression):
         return single_entity_constituents
 
     def run_post_query_function(
-        self, data: SnubaDataType, query_definition: QueryDefinition, idx: Optional[int] = None
+        self, data: SnubaDataType, metrics_query: MetricsQuery, idx: Optional[int] = None
     ) -> Any:
         compute_func_args = [
             data[constituent_metric_mri] if idx is None else data[constituent_metric_mri][idx]
@@ -1065,13 +1065,13 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
 }
 
 
-DERIVED_OPS: Mapping[Aggregation, DerivedOp] = {
+DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
     derived_op.op: derived_op
     for derived_op in [
         DerivedOp(
             op="histogram",
             can_orderby=False,
-            query_definition_args=["histogram_from", "histogram_to", "histogram_buckets"],
+            metrics_query_args=["histogram_from", "histogram_to", "histogram_buckets"],
             post_query_func=rebucket_histogram,
             filter_conditions_func=zoom_histogram,
         )
@@ -1091,10 +1091,10 @@ DERIVED_ALIASES: Mapping[str, AliasedDerivedMetric] = {
 }
 
 
-def metric_object_factory(field: Selectable) -> MetricExpressionBase:
+def metric_object_factory(
+    op: Optional[MetricOperationType], metric_mri: str
+) -> MetricExpressionBase:
     """Returns an appropriate instance of MetricsFieldBase object"""
-    metric_mri = get_mri(field.metric_name)
-    op = field.op
     if op in DERIVED_OPS and metric_mri in DERIVED_METRICS:
         raise InvalidParams("derived ops cannot be used on derived metrics")
 

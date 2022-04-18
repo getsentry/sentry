@@ -1,10 +1,9 @@
 """ Classes needed to build a metrics query. Inspired by snuba_sdk.query. """
 from dataclasses import dataclass
 from datetime import datetime
-from enum import Enum, Flag, auto
+from enum import Flag, auto
 from typing import Literal, Optional, Sequence, Union
 
-from attr import field
 from snuba_sdk import Direction, Granularity, Limit, Offset
 from snuba_sdk.conditions import ConditionGroup
 
@@ -34,19 +33,18 @@ class Percentile95(MetricField):
         super().__init__("p95", metric_name)
 
 
-@dataclass(frozen=True)
-class Histogram:
-    metric_name: str
-    buckets: int = 100
-    from_: Optional[float] = None
-    to: Optional[float] = None
-    op: MetricOperationType = field(init=False, default="histogram")
+class Histogram(MetricField):
+    def __init__(self, metric_name: str):
+        super().__init__("histogram", metric_name)
 
 
 @dataclass(frozen=True)
 class DerivedMetric:
     metric_name: str
-    op: Optional[MetricOperationType] = field(init=False, default=None)
+
+    @property
+    def op(self):
+        return None
 
 
 Sortable = Union[MetricField, DerivedMetric]
@@ -86,3 +84,8 @@ class MetricsQuery:
     limit: Optional[Limit] = None
     offset: Optional[Offset] = None
     type: QueryType = QueryType.BOTH
+
+    # TODO: These should be properaties of the Histogram field
+    histogram_buckets: int = 100
+    histogram_from: Optional[float] = None
+    histogram_to: Optional[float] = None

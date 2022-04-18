@@ -48,6 +48,7 @@ from sentry.snuba.metrics.fields.snql import (
 from sentry.snuba.metrics.naming_layer.mapping import get_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.metrics.query import CountUnique, Percentile95, Sum
+from sentry.snuba.metrics.query_builder import QueryDefinitionXXX
 
 
 @dataclass
@@ -347,8 +348,8 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2, monkeypatch):
             "statsPeriod": ["2d"],
         }
     )
-    query_definition = QueryDefinition(query_params)
-    query_builder = SnubaQueryBuilder([PseudoProject(1, 1)], query_definition)
+    query_definition = QueryDefinitionXXX([PseudoProject(1, 1)], query_params)
+    query_builder = SnubaQueryBuilder([PseudoProject(1, 1)], query_definition.to_metrics_query())
     snuba_queries, fields_in_entities = query_builder.get_snuba_queries()
     assert fields_in_entities == {
         "metrics_counters": [
@@ -475,9 +476,11 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, monkeypatch):
             "orderBy": ["-sum(sentry.sessions.session)"],
         }
     )
-    query_definition = QueryDefinition(query_params, paginator_kwargs={"limit": 3})
+    query_definition = QueryDefinitionXXX(
+        [PseudoProject(1, 1)], query_params, paginator_kwargs={"limit": 3}
+    )
     snuba_queries, _ = SnubaQueryBuilder(
-        [PseudoProject(1, 1)], query_definition
+        [PseudoProject(1, 1)], query_definition.to_metrics_query()
     ).get_snuba_queries()
 
     org_id = 1
@@ -560,9 +563,11 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2, monkeypatch):
             ],
         }
     )
-    query_definition = QueryDefinition(query_params, paginator_kwargs={"limit": 3})
+    query_definition = QueryDefinitionXXX(
+        [PseudoProject(1, 1)], query_params, paginator_kwargs={"limit": 3}
+    )
     snuba_queries, _ = SnubaQueryBuilder(
-        [PseudoProject(1, 1)], query_definition
+        [PseudoProject(1, 1)], query_definition.to_metrics_query()
     ).get_snuba_queries()
 
     org_id = 1
@@ -663,7 +668,7 @@ def test_translate_results(_1, _2, monkeypatch):
             "statsPeriod": ["2d"],
         }
     )
-    query_definition = QueryDefinition(query_params)
+    query_definition = QueryDefinitionXXX([PseudoProject(1, 1)], query_params)
     fields_in_entities = {
         "metrics_counters": [("sum", SessionMRI.SESSION.value)],
         "metrics_distributions": [
@@ -785,7 +790,7 @@ def test_translate_results(_1, _2, monkeypatch):
     }
 
     assert SnubaResultConverter(
-        org_id, query_definition, fields_in_entities, intervals, results
+        org_id, query_definition.to_metrics_query(), fields_in_entities, intervals, results
     ).translate_results() == [
         {
             "by": {"session.status": "healthy"},
@@ -839,7 +844,7 @@ def test_translate_results_derived_metrics(_1, _2, monkeypatch):
             "statsPeriod": ["2d"],
         }
     )
-    query_definition = QueryDefinition(query_params)
+    query_definition = QueryDefinitionXXX([PseudoProject(1, 1)], query_params)
     fields_in_entities = {
         "metrics_counters": [
             (None, SessionMRI.ERRORED_PREAGGREGATED.value),
@@ -902,7 +907,7 @@ def test_translate_results_derived_metrics(_1, _2, monkeypatch):
     }
 
     assert SnubaResultConverter(
-        1, query_definition, fields_in_entities, intervals, results
+        1, query_definition.to_metrics_query(), fields_in_entities, intervals, results
     ).translate_results() == [
         {
             "by": {},
@@ -936,7 +941,7 @@ def test_translate_results_missing_slots(_1, _2, monkeypatch):
             "statsPeriod": ["3d"],
         }
     )
-    query_definition = QueryDefinition(query_params)
+    query_definition = QueryDefinitionXXX([PseudoProject(1, 1)], query_params)
     fields_in_entities = {
         "metrics_counters": [
             ("sum", SessionMRI.SESSION.value),
@@ -973,7 +978,7 @@ def test_translate_results_missing_slots(_1, _2, monkeypatch):
 
     intervals = list(get_intervals(query_definition))
     assert SnubaResultConverter(
-        org_id, query_definition, fields_in_entities, intervals, results
+        org_id, query_definition.to_metrics_query(), fields_in_entities, intervals, results
     ).translate_results() == [
         {
             "by": {},

@@ -11,7 +11,7 @@ __all__ = (
 
 import math
 from datetime import datetime, timedelta
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 from snuba_sdk import Column, Condition, Entity, Function, Granularity, Limit, Offset, Op, Query
 from snuba_sdk.conditions import BooleanCondition
@@ -102,7 +102,9 @@ def parse_field(field: str, query_params) -> Selectable:
         from_ = float(from_) if from_ is not None else None
         to = float(to) if to is not None else None
 
-        return Histogram(metric_name, buckets=buckets, from_=from_, to=to)
+        return Histogram(
+            metric_name, histogram_buckets=buckets, histogram_from=from_, histogram_to=to
+        )
 
     return MetricField(operation, metric_name)
 
@@ -289,7 +291,9 @@ class QueryDefinitionXXX:
 def get_intervals(query: TimeRange):
     start = query.start
     end = query.end
-    delta = timedelta(seconds=getattr(query, "rollup", query.granularity.granularity))  # HACK
+    delta = timedelta(
+        seconds=getattr(query, "rollup", None) or query.granularity.granularity
+    )  # HACK
     while start < end:
         yield start
         start += delta
@@ -387,8 +391,8 @@ class SnubaQueryBuilder:
         if self._metrics_query.orderby is None:
             return None
         orderby = self._metrics_query.orderby
-        op = orderby.field.op.value
-        metric_mri = get_mri(orderby.field.metric_key)
+        op = orderby.field.op
+        metric_mri = get_mri(orderby.field.metric_name)
         metric_field_obj = metric_object_factory(op, metric_mri)
         return metric_field_obj.generate_orderby_clause(
             projects=self._projects,
@@ -450,7 +454,7 @@ class SnubaQueryBuilder:
 
         for field in self._metrics_query.select:
             metric_mri = get_mri(field.metric_name)
-            metric_field_obj = metric_object_factory(field)
+            metric_field_obj = metric_object_factory(field.op, metric_mri)
             # `get_entity` is called the first, to fetch the entities of constituent metrics,
             # and validate especially in the case of SingularEntityDerivedMetric that it is
             # actually composed of metrics that belong to the same entity
@@ -488,8 +492,8 @@ class SnubaQueryBuilder:
             if entity not in self._implemented_datasets:
                 raise NotImplementedError(f"Dataset not yet implemented: {entity}")
 
-            metric_mri_to_obj_dict[field] = metric_field_obj
-            fields_in_entities.setdefault(entity, []).append(field)
+            metric_mri_to_obj_dict[(field.op, metric_mri)] = metric_field_obj
+            fields_in_entities.setdefault(entity, []).append((field.op, metric_mri))
 
         where = self._build_where()
         groupby = self._build_groupby()
@@ -546,7 +550,9 @@ class SnubaResultConverter:
         self._metrics_query = metrics_query
 
         # This is a set of all the `(op, metric_mri)` combinations passed in the query_definition
-        self._query_definition_fields_set = set(metrics_query.select)
+        self._query_definition_fields_set = {
+            (field.op, get_mri(field.metric_name)) for field in metrics_query.select
+        }
         # This is a set of all queryable `(op, metric_mri)` combinations. Queryable can mean it
         # includes one of the following: AggregatedRawMetric (op, metric_mri), instance of
         # SingularEntityDerivedMetric or the instances of SingularEntityDerivedMetric that are
@@ -657,7 +663,7 @@ class SnubaResultConverter:
 
                 if totals is not None:
                     totals[grp_key] = metric_obj.run_post_query_function(
-                        totals, query_definition=self._query_definition
+                        totals, metrics_query=self._metrics_query
                     )
 
                 if series is not None:
@@ -668,7 +674,7 @@ class SnubaResultConverter:
                             [metric_obj.generate_default_null_values()] * len(self._intervals),
                         )
                         series[grp_key][idx] = metric_obj.run_post_query_function(
-                            series, query_definition=self._query_definition, idx=idx
+                            series, metrics_query=self._metrics_query, idx=idx
                         )
 
         # Remove the extra fields added due to the constituent metrics that were added
