@@ -54,17 +54,25 @@ export function PersistedStoreProvider(props: {children: React.ReactNode}) {
 
   useEffect(() => {
     if (!organization) {
-      return;
+      return undefined;
     }
 
+    let shouldCancelRequest = false;
     api
       .requestPromise(`/organizations/${organization.slug}/client-state/`)
       .then((response: PersistedStore) => {
+        if (shouldCancelRequest) {
+          return;
+        }
         setState({...DefaultLoadedPersistedStore, ...response});
       })
       .catch(() => {
         setState(DefaultPersistedStore);
       });
+
+    return () => {
+      shouldCancelRequest = true;
+    };
   }, [organization]);
 
   return (
