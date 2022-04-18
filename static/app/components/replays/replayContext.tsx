@@ -14,18 +14,78 @@ type RootElem = null | HTMLDivElement;
 // It has state that, when changed, will not trigger a react render.
 // Instead only expose methods that wrap `Replayer` and manage state.
 type ReplayPlayerContextProps = {
+  /**
+   * The current time of the video, in miliseconds
+   * The value is updated on every animation frame, ~16.6ms
+   */
   currentTime: number;
+
+  /**
+   * Original dimensions in pixels of the captured browser window
+   */
   dimensions: Dimensions;
+
+  /**
+   * Duraction of the video, in miliseconds
+   */
   duration: undefined | number;
+
+  /**
+   * Raw RRWeb events
+   */
   events: eventWithTime[];
+
+  /**
+   * The calculated speed of the player when fast-forwarding through idle moments in the video.
+   * The speed is automatically determined by the length of each idle period.
+   */
   fastForwardSpeed: number;
+
+  /**
+   * Required to be called with a <div> Ref.
+   * Represents the location in the DOM where the iframe video should be mounted.
+   *
+   * @param _root
+   */
   initRoot: (root: RootElem) => void;
+
+  /**
+   * Whether the video is currently playing
+   */
   isPlaying: boolean;
+
+  /**
+   * Jump the video to a specific time
+   */
   setCurrentTime: (time: number) => void;
+
+  /**
+   * Set requested speed of normal playback (non-fast-forward playback)
+   */
   setSpeed: (speed: number) => void;
+
+  /**
+   * Whether fast-forward mode is enabled if RRWeb detects idle moments in the video.
+   */
   skipInactive: boolean;
+
+  /**
+   * The Speed that was requested for normal playback.
+   */
   speed: number;
+
+  /**
+   * Start or stop playback
+   *
+   * @param play
+   */
   togglePlayPause: (play: boolean) => void;
+
+  /**
+   * Allow RRWeb to use Fast-Forward mode for idle moments in the video.
+   *
+   * @param skip
+   */
   toggleSkipInactive: (skip: boolean) => void;
 };
 
@@ -35,7 +95,7 @@ const ReplayPlayerContext = React.createContext<ReplayPlayerContextProps>({
   duration: undefined,
   events: [],
   fastForwardSpeed: 0,
-  initRoot: _root => {},
+  initRoot: () => {},
   isPlaying: false,
   setCurrentTime: () => {},
   setSpeed: () => {},
