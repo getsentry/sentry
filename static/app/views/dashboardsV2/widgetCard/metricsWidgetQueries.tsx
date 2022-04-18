@@ -3,8 +3,8 @@ import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
-import {Client, ResponseMeta} from 'sentry/api';
 import {doSessionsRequest} from 'sentry/actionCreators/sessions';
+import {Client, ResponseMeta} from 'sentry/api';
 import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
 import {t} from 'sentry/locale';
 import {OrganizationSummary, PageFilters, SessionApiResponse} from 'sentry/types';
