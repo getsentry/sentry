@@ -1305,6 +1305,93 @@ describe('WidgetBuilder', function () {
     expect(tagsMock).not.toHaveBeenCalled();
   });
 
+  it('excludes the Other series when grouping and using multiple y-axes', async function () {
+    renderTestComponent({
+      orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      query: {
+        displayType: DisplayType.LINE,
+      },
+    });
+
+    await selectEvent.select(await screen.findByText('Select group'), 'project');
+
+    userEvent.click(screen.getByText('Add Overlay'));
+    await selectEvent.select(screen.getByText('(Required)'), /count_unique/);
+
+    await waitFor(() => {
+      expect(eventsStatsMock).toBeCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({excludeOther: '1'}),
+        })
+      );
+    });
+  });
+
+  it('excludes the Other series when grouping and using multiple queries', async function () {
+    renderTestComponent({
+      orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      query: {
+        displayType: DisplayType.LINE,
+      },
+    });
+
+    await selectEvent.select(await screen.findByText('Select group'), 'project');
+    userEvent.click(screen.getByText('Add Query'));
+
+    await waitFor(() => {
+      expect(eventsStatsMock).toBeCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({excludeOther: '1'}),
+        })
+      );
+    });
+  });
+
+  it('includes Other series when there is only one query and one y-axis', async function () {
+    renderTestComponent({
+      orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      query: {
+        displayType: DisplayType.LINE,
+      },
+    });
+
+    await selectEvent.select(await screen.findByText('Select group'), 'project');
+
+    await waitFor(() => {
+      expect(eventsStatsMock).toBeCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.not.objectContaining({excludeOther: '1'}),
+        })
+      );
+    });
+  });
+
+  it('decreases the limit when more y-axes and queries are added', async function () {
+    renderTestComponent({
+      orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      query: {
+        displayType: DisplayType.LINE,
+      },
+    });
+
+    await selectEvent.select(await screen.findByText('Select group'), 'project');
+
+    screen.getByText('Limit to 5 results');
+
+    userEvent.click(screen.getByText('Add Query'));
+    userEvent.click(screen.getByText('Add Query'));
+
+    screen.getByText('Limit to 3 results');
+
+    userEvent.click(screen.getByText('Add Overlay'));
+    userEvent.click(screen.getByText('Add Overlay'));
+
+    await screen.findByText('Limit to 1 result');
+  });
+
   describe('Sort by selectors', function () {
     it('renders', async function () {
       renderTestComponent({

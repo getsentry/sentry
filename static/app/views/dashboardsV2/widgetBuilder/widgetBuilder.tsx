@@ -75,6 +75,7 @@ import {
   DataSet,
   DEFAULT_RESULTS_LIMIT,
   getParsedDefaultWidgetQuery,
+  getResultsLimit,
   mapErrors,
   NEW_DASHBOARD_ID,
   normalizeQueries,
@@ -504,16 +505,6 @@ function WidgetBuilder({
       const newState = cloneDeep(prevState);
       set(newState, `queries.${queryIndex}`, newQuery);
       set(newState, 'userHasModified', true);
-
-      if (widgetBuilderNewDesign && isTimeseriesChart && queryIndex === 0) {
-        const groupByFields = newQuery.columns.filter(field => !(field === 'equation|'));
-
-        if (groupByFields.length === 0) {
-          set(newState, 'limit', undefined);
-        } else {
-          set(newState, 'limit', newState.limit ?? DEFAULT_RESULTS_LIMIT);
-        }
-      }
       return {...newState, errors: undefined};
     });
   }
@@ -605,7 +596,14 @@ function WidgetBuilder({
       if (groupByFields.length === 0) {
         set(newState, 'limit', undefined);
       } else {
-        set(newState, 'limit', newState.limit ?? DEFAULT_RESULTS_LIMIT);
+        set(
+          newState,
+          'limit',
+          Math.min(
+            newState.limit ?? DEFAULT_RESULTS_LIMIT,
+            getResultsLimit(newQueries.length, newQueries[0].aggregates.length)
+          )
+        );
       }
     }
 
@@ -617,13 +615,14 @@ function WidgetBuilder({
 
     const newState = cloneDeep(state);
 
-    state.queries.forEach((query, index) => {
+    const newQueries = state.queries.map(query => {
       const newQuery = cloneDeep(query);
       newQuery.columns = fieldStrings;
-      set(newState, `queries.${index}`, newQuery);
+      return newQuery;
     });
 
     set(newState, 'userHasModified', true);
+    set(newState, 'queries', newQueries);
 
     if (widgetBuilderNewDesign && isTimeseriesChart) {
       const groupByFields = newState.queries[0].columns.filter(
@@ -632,7 +631,14 @@ function WidgetBuilder({
       if (groupByFields.length === 0) {
         set(newState, 'limit', undefined);
       } else {
-        set(newState, 'limit', newState.limit ?? DEFAULT_RESULTS_LIMIT);
+        set(
+          newState,
+          'limit',
+          Math.min(
+            newState.limit ?? DEFAULT_RESULTS_LIMIT,
+            getResultsLimit(newQueries.length, newQueries[0].aggregates.length)
+          )
+        );
       }
     }
 
@@ -640,7 +646,7 @@ function WidgetBuilder({
   }
 
   function handleLimitChange(newLimit: number) {
-    setState({...state, limit: newLimit});
+    setState(prevState => ({...prevState, limit: newLimit}));
   }
 
   function handleSortByChange(newSortBy: string) {

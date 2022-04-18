@@ -27,7 +27,7 @@ import {FlatValidationError, ValidationError} from '../utils';
 
 // Used in the widget builder to limit the number of lines plotted in the chart
 export const DEFAULT_RESULTS_LIMIT = 5;
-export const RESULTS_LIMIT = 10;
+const RESULTS_LIMIT = 10;
 
 // Both dashboards and widgets use the 'new' keyword when creating
 export const NEW_DASHBOARD_ID = 'new';
@@ -337,4 +337,8 @@ export function filterPrimaryOptions({
   return [FieldValueKind.FUNCTION, FieldValueKind.NUMERIC_METRICS].includes(
     option.value.kind
   );
+}
+
+export function getResultsLimit(numQueries, numYAxes) {
+  return Math.floor(RESULTS_LIMIT / (numQueries * numYAxes));
 }
