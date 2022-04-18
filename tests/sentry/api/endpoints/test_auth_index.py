@@ -172,7 +172,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
                 assert response.status_code == 200
                 assert COOKIE_NAME in response.cookies
 
-    def test_superuser_no_sso_saas_product(self):
+    def test_superuser_no_sso_user_has_password_saas_product(self):
         from sentry.auth.superuser import Superuser
 
         AuthProvider.objects.create(organization=self.organization, provider="dummy")
@@ -194,7 +194,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
             )
             assert response.status_code == 401
 
-    def test_superuser_no_sso_self_hosted(self):
+    def test_superuser_no_sso_user_has_password_self_hosted(self):
         from sentry.auth.superuser import Superuser
 
         AuthProvider.objects.create(organization=self.organization, provider="dummy")
