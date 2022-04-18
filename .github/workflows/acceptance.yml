@@ -33,6 +33,7 @@ jobs:
           filters: .github/file-filters.yml
 
   frontend:
+    if: ${{ needs.files-changed.outputs.acceptance == 'true' }}
     needs: files-changed
     name: frontend tests
     runs-on: ubuntu-20.04
@@ -112,6 +113,7 @@ jobs:
           type: frontend
 
   webpack:
+    if: ${{ needs.files-changed.outputs.acceptance == 'true' }}
     needs: files-changed
     name: create frontend bundle
     runs-on: ubuntu-20.04
@@ -170,6 +172,7 @@ jobs:
           path: dist.tar.gz
 
   acceptance:
+    if: ${{ needs.files-changed.outputs.acceptance == 'true' }}
     needs: files-changed
     name: acceptance
     runs-on: ubuntu-20.04
@@ -238,6 +241,7 @@ jobs:
         if: ${{ needs.files-changed.outputs.backend == 'true' }}
 
   chartcuterie:
+    if: ${{ needs.files-changed.outputs.acceptance == 'true' }}
     needs: files-changed
     name: chartcuterie integration
     runs-on: ubuntu-20.04
