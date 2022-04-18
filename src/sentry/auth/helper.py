@@ -85,6 +85,7 @@ class AuthHelperSessionStore(PipelineSessionStore):
 
 @dataclass
 class AuthIdentityHandler:
+    # SSO auth handler
 
     auth_provider: Optional[AuthProvider]
     provider: Provider
@@ -162,22 +163,31 @@ class AuthIdentityHandler:
 
         user = auth_identity.user
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
-
-        try:
-            self._login(user)
-        except self._NotCompletedSecurityChecks:
-            return HttpResponseRedirect(auth.get_login_redirect(self.request))
-
-        state.clear()
         metrics.incr(
-            "sso.login-success",
+            "sso.login_attempt",
             tags={
                 "provider": self.provider.key,
                 "organization_id": self.organization.id,
                 "user_id": user.id,
             },
             skip_internal=False,
-            sample_rate=1.0,
+        )
+
+        try:
+            self._login(user)
+        except self._NotCompletedSecurityChecks:
+            # Does not necessarily mean login flow has failed
+            return HttpResponseRedirect(auth.get_login_redirect(self.request))
+
+        state.clear()
+        metrics.incr(
+            "sso.login_success",
+            tags={
+                "provider": self.provider.key,
+                "organization_id": self.organization.id,
+                "user_id": user.id,
+            },
+            skip_internal=False,
         )
 
         if not is_active_superuser(self.request):
@@ -821,6 +831,8 @@ class AuthHelper(Pipeline):
                 "sentry-organization-auth-settings", args=[self.organization.slug]
             )
 
+        # NOTE: Does NOT indicated a login error.
+        # Could potentially be error with registering + logging in, or configuring the provider, etc
         metrics.incr(
             "sso.error",
             tags={
