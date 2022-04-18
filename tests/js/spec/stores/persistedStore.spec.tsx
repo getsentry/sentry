@@ -4,6 +4,7 @@ import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
 import {
+  DefaultLoadedPersistedStore,
   DefaultPersistedStore,
   PersistedStoreProvider,
   usePersistedStoreCategory,
@@ -99,16 +100,31 @@ describe('PersistedStore', function () {
       })
     );
   });
-  it('returns default when state fails to load', async function () {
+  it('returns default when state is empty', async function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/client-state/`,
-      status: 500,
+      body: {},
     });
     const {result, waitForNextUpdate} = reactHooks.renderHook(
       () => usePersistedStoreCategory('onboarding'),
       {wrapper}
     );
+    const [state] = result.current;
+    expect(state).toBe(DefaultPersistedStore.onboarding);
     await waitForNextUpdate();
+    const [state2] = result.current;
+    expect(state2).toBe(DefaultLoadedPersistedStore.onboarding);
+  });
+
+  it('returns default when state fails to load', async function () {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/client-state/`,
+      statusCode: 500,
+    });
+    const {result} = reactHooks.renderHook(
+      () => usePersistedStoreCategory('onboarding'),
+      {wrapper}
+    );
     const [state] = result.current;
     expect(state).toBe(DefaultPersistedStore.onboarding);
   });
