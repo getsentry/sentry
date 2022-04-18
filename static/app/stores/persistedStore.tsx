@@ -22,7 +22,7 @@ export const DefaultPersistedStore: PersistedStore = {
   onboarding: null,
 };
 
-const DefaultLoadedPersistedStore: PersistedStore = {
+export const DefaultLoadedPersistedStore: PersistedStore = {
   onboarding: {},
 };
 
@@ -61,6 +61,9 @@ export function PersistedStoreProvider(props: {children: React.ReactNode}) {
       .requestPromise(`/organizations/${organization.slug}/client-state/`)
       .then((response: PersistedStore) => {
         setState({...DefaultLoadedPersistedStore, ...response});
+      })
+      .catch(() => {
+        setState(DefaultPersistedStore);
       });
   }, [organization]);
 
