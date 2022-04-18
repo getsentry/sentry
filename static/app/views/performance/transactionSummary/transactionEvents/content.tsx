@@ -35,7 +35,7 @@ type Props = {
   webVital?: WebVital;
 };
 
-const transactionsListTitles = [
+const transactionsListTitles: Readonly<string[]> = [
   t('event id'),
   t('user'),
   t('operation duration'),
