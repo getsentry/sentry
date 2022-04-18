@@ -1852,21 +1852,41 @@ describe('WidgetBuilder', function () {
 
       userEvent.click(screen.getByLabelText(/releases/i));
 
-      expect(await screen.findByText('sum(…)')).toBeInTheDocument();
+      expect(screen.getByText('sum(…)')).toBeInTheDocument();
       expect(screen.getByText('session')).toBeInTheDocument();
 
       userEvent.click(screen.getByText('sum(…)'));
-      expect(await screen.findByText('count_unique(…)')).toBeInTheDocument();
+      expect(screen.getByText('count_unique(…)')).toBeInTheDocument();
 
       expect(screen.getByText('release')).toBeInTheDocument();
       expect(screen.getByText('environment')).toBeInTheDocument();
       expect(screen.getByText('session.status')).toBeInTheDocument();
 
       userEvent.click(screen.getByText('count_unique(…)'));
-      expect(await screen.findByText('user')).toBeInTheDocument();
+      expect(screen.getByText('user')).toBeInTheDocument();
     });
 
-    it('makes the appropriate metrics call', async function () {
+    it('does not display tags as params', async function () {
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      expect(
+        await screen.findByText('Releases (sessions, crash rates)')
+      ).toBeInTheDocument();
+
+      userEvent.click(screen.getByLabelText(/releases/i));
+
+      expect(screen.getByText('sum(…)')).toBeInTheDocument();
+      await selectEvent.select(screen.getByText('sum(…)'), 'count_unique(…)');
+
+      userEvent.click(screen.getByText('user'));
+      expect(screen.queryByText('release')).not.toBeInTheDocument();
+      expect(screen.queryByText('environment')).not.toBeInTheDocument();
+      expect(screen.queryByText('session.status')).not.toBeInTheDocument();
+    });
+
+    it('makes the appropriate sessions call', async function () {
       renderTestComponent({
         orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
       });
@@ -1912,14 +1932,14 @@ describe('WidgetBuilder', function () {
       userEvent.click(screen.getByText('Table'));
       userEvent.click(screen.getByText('Line Chart'));
 
-      expect(await screen.findByText('sum(…)')).toBeInTheDocument();
+      expect(screen.getByText('sum(…)')).toBeInTheDocument();
       expect(screen.getByText(`session`)).toBeInTheDocument();
 
       userEvent.click(screen.getByText('sum(…)'));
-      expect(await screen.findByText('count_unique(…)')).toBeInTheDocument();
+      expect(screen.getByText('count_unique(…)')).toBeInTheDocument();
 
       userEvent.click(screen.getByText('count_unique(…)'));
-      expect(await screen.findByText('user')).toBeInTheDocument();
+      expect(screen.getByText('user')).toBeInTheDocument();
     });
 
     it('sets widgetType to release', async function () {
@@ -2029,7 +2049,7 @@ describe('WidgetBuilder', function () {
 
     // Disabling for CI, but should run locally when making changes
     // eslint-disable-next-line jest/no-disabled-tests
-    it.skip('renders with an release search bar', async function () {
+    it.skip('renders with a release search bar', async function () {
       renderTestComponent({
         orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
       });
