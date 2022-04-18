@@ -35,7 +35,7 @@ type Props = {
   webVital?: WebVital;
 };
 
-const transactionsListTitles: Readonly<string[]> = [
+const TRANSACTIONS_LIST_TITLES: Readonly<string[]> = [
   t('event id'),
   t('user'),
   t('operation duration'),
@@ -56,6 +56,7 @@ function EventsContent(props: Props) {
   } = props;
 
   const eventView = originalEventView.clone();
+  const transactionsListTitles = TRANSACTIONS_LIST_TITLES.slice();
 
   if (webVital) {
     transactionsListTitles.splice(3, 0, t(webVital));
