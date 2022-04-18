@@ -127,14 +127,14 @@ export function Provider({children, events, value = {}}: React.PropsWithChildren
   const [speed, setSpeedState] = useState(1);
   const [fastForwardSpeed, setFFSpeed] = useState(0);
 
-  const forceDimensions = dimension => {
-    setDimensions(dimension as Dimensions);
+  const forceDimensions = (dimension: Dimensions) => {
+    setDimensions(dimension);
   };
   const setPlayingFalse = () => {
     setIsPlaying(false);
   };
-  const onFastForwardStart = e => {
-    setFFSpeed((e as {speed: number}).speed);
+  const onFastForwardStart = (e: {speed: number}) => {
+    setFFSpeed(e.speed);
   };
   const onFastForwardEnd = () => {
     setFFSpeed(0);
@@ -178,8 +178,10 @@ export function Provider({children, events, value = {}}: React.PropsWithChildren
       // plugins: [],
     });
 
+    // @ts-expect-error: rrweb types event handlers with `unknown` parameters
     inst.on(ReplayerEvents.Resize, forceDimensions);
     inst.on(ReplayerEvents.Finish, setPlayingFalse);
+    // @ts-expect-error: rrweb types event handlers with `unknown` parameters
     inst.on(ReplayerEvents.SkipStart, onFastForwardStart);
     inst.on(ReplayerEvents.SkipEnd, onFastForwardEnd);
 
