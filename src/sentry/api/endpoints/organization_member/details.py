@@ -266,7 +266,10 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             if organization_roles.get(result["role"]).is_retired and features.has(
                 "organizations:team-roles", organization
             ):
-                return Response({"detail": "This role is no longer in use."}, status=400)
+                message = (
+                    f"The role '{result['role']}' is deprecated and may no longer be assigned."
+                )
+                return Response({"detail": message}, status=400)
 
             self._change_org_member_role(member, result["role"])
 
