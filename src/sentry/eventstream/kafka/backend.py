@@ -72,7 +72,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
         # transaction_forwarder header is not sent if option "eventstream:kafka-headers"
         # is not set to avoid increasing consumer lag on shared events topic.
-        transaction_forwarder = True if event.group_id is None else False
+        transaction_forwarder = self._is_transaction_event(event)
 
         send_new_headers = options.get("eventstream:kafka-headers")
 
@@ -105,6 +105,38 @@ class KafkaEventStream(SnubaProtocolEventStream):
                 ),
             }
 
+    @staticmethod
+    def _is_transaction_event(event):
+        return True if event.group_id is None else False
+
+    def insert(
+        self,
+        group,
+        event,
+        is_new,
+        is_regression,
+        is_new_group_environment,
+        primary_hash,
+        received_timestamp,  # type: float
+        skip_consume=False,
+    ):
+        message_type = "transaction" if self._is_transaction_event(event) else "error"
+        assign_partitions_randomly = killswitch_matches_context(
+            "kafka.send-project-events-to-random-partitions",
+            {"project_id": event.project_id, "message_type": message_type},
+        )
+        return super().insert(
+            group,
+            event,
+            is_new,
+            is_regression,
+            is_new_group_environment,
+            primary_hash,
+            received_timestamp,
+            skip_consume,
+            assign_partitions_randomly,
+        )
+
     def _send(
         self,
         project_id: int,
@@ -112,6 +144,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         extra_data: Tuple[Any, ...] = (),
         asynchronous: bool = True,
         headers: Optional[Mapping[str, str]] = None,
+        assign_partition_randomly: bool = False,
     ):
         if headers is None:
             headers = {}
@@ -135,7 +168,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         try:
             self.producer.produce(
                 topic=self.topic,
-                key=self._key(headers, project_id),
+                key=str(project_id).encode("utf-8") if not assign_partition_randomly else None,
                 value=json.dumps((self.EVENT_PROTOCOL_VERSION, _type) + extra_data),
                 on_delivery=self.delivery_callback,
                 headers=[(k, v.encode("utf-8")) for k, v in headers.items()],
@@ -147,18 +180,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
         if not asynchronous:
             # flush() is a convenience method that calls poll() until len() is zero
             self.producer.flush()
-
-    @staticmethod
-    def _key(headers: Optional[Mapping[str, str]], project_id: str) -> Optional[str]:
-        if "transaction_forwarder" in headers:
-            message_type = "error" if headers["transaction_forwarder"] == "0" else "transaction"
-            if killswitch_matches_context(
-                "kafka.send-project-events-to-random-partitions",
-                {"project_id": project_id, "message_type": message_type},
-            ):
-                return None
-
-        return str(project_id).encode("utf-8")
 
     def requires_post_process_forwarder(self):
         return True

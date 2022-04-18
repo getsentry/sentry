@@ -97,6 +97,7 @@ class SnubaProtocolEventStream(EventStream):
         primary_hash,
         received_timestamp,  # type: float
         skip_consume=False,
+        assign_partitions_randomly=False,
     ):
         project = event.project
         set_current_event_project(project.id)
@@ -149,6 +150,7 @@ class SnubaProtocolEventStream(EventStream):
                 },
             ),
             headers=headers,
+            assign_partition_randomly=assign_partitions_randomly,
         )
 
     def start_delete_groups(self, project_id, group_ids):
@@ -306,6 +308,7 @@ class SnubaProtocolEventStream(EventStream):
         extra_data: Tuple[Any, ...] = (),
         asynchronous: bool = True,
         headers: Optional[Mapping[str, str]] = None,
+        assign_partition_randomly: bool = False,
     ):
         raise NotImplementedError
 
@@ -318,6 +321,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
         extra_data: Tuple[Any, ...] = (),
         asynchronous: bool = True,
         headers: Optional[Mapping[str, str]] = None,
+        assign_partition_randomly: bool = False,
     ):
         if headers is None:
             headers = {}
@@ -332,6 +336,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
         if get_path(extra_data, 0, "data", "type") == "transaction":
             datasets.append("transactions")
         try:
+            resp = None
             for dataset in datasets:
                 resp = snuba._snuba_pool.urlopen(
                     "POST",
