@@ -186,6 +186,17 @@ class SpanSerializer(serializers.Serializer):  # type: ignore
     min_exclusive_time = serializers.FloatField(required=False)
     max_exclusive_time = serializers.FloatField(required=False)
 
+    def validate(self, data):
+        if (
+            "min_exclusive_time" in data
+            and "max_exclusive_time" in data
+            and data["min_exclusive_time"] > data["max_exclusive_time"]
+        ):
+            raise serializers.ValidationError(
+                "min_exclusive_time cannot be greater than max_exclusive_time."
+            )
+        return data
+
     def validate_span(self, span: str) -> Span:
         try:
             return Span.from_str(span)
