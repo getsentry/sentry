@@ -119,6 +119,15 @@ class AuthIdentityHandler:
         pass
 
     def _login(self, user: Any) -> None:
+        metrics.incr(
+            "sso.login_attempt",
+            tags={
+                "provider": self.provider.key,
+                "organization_id": self.organization.id,
+                "user_id": user.id,
+            },
+            skip_internal=False,
+        )
         user_was_logged_in = auth.login(
             self.request,
             user,
@@ -127,6 +136,17 @@ class AuthIdentityHandler:
         )
         if not user_was_logged_in:
             raise self._NotCompletedSecurityChecks()
+
+        # This may trigger more attempts than successes as we redirect if security checks have not been completed
+        metrics.incr(
+            "sso.login_success",
+            tags={
+                "provider": self.provider.key,
+                "organization_id": self.organization.id,
+                "user_id": user.id,
+            },
+            skip_internal=False,
+        )
 
     @staticmethod
     def _set_linked_flag(member: OrganizationMember) -> None:
@@ -163,15 +183,6 @@ class AuthIdentityHandler:
 
         user = auth_identity.user
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
-        metrics.incr(
-            "sso.login_attempt",
-            tags={
-                "provider": self.provider.key,
-                "organization_id": self.organization.id,
-                "user_id": user.id,
-            },
-            skip_internal=False,
-        )
 
         try:
             self._login(user)
@@ -180,15 +191,6 @@ class AuthIdentityHandler:
             return HttpResponseRedirect(auth.get_login_redirect(self.request))
 
         state.clear()
-        metrics.incr(
-            "sso.login_success",
-            tags={
-                "provider": self.provider.key,
-                "organization_id": self.organization.id,
-                "user_id": user.id,
-            },
-            skip_internal=False,
-        )
 
         if not is_active_superuser(self.request):
             # set activeorg to ensure correct redirect upon logging in
