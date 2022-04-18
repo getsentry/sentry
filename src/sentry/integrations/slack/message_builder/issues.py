@@ -374,7 +374,7 @@ def build_group_attachment(
     identity: Identity | None = None,
     actions: Sequence[MessageAction] | None = None,
     rules: list[Rule] | None = None,
-    link_to_event: bool = False,
+    link_to_event: bool = True,
     issue_details: bool = False,
 ) -> SlackBody:
     """@deprecated"""
