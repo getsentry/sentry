@@ -2,6 +2,7 @@ import logging
 import time
 from collections import defaultdict
 from datetime import datetime, timedelta
+from typing import Dict, Sequence, TypedDict
 
 from django.db import IntegrityError
 from django.db.models import F, Q
@@ -28,12 +29,12 @@ logger = logging.getLogger("tasks.releasemonitor")
 
 
 @instrumented_task(
-    name="sentry.tasks.monitor_release_adoption",
+    name="sentry.release_health.tasks.monitor_release_adoption",
     queue="releasemonitor",
     default_retry_delay=5,
     max_retries=5,
-)
-def monitor_release_adoption(**kwargs):
+)  # type: ignore
+def monitor_release_adoption(**kwargs) -> None:
     metrics.incr("sentry.tasks.monitor_release_adoption.start", sample_rate=1.0)
     # 1. Query snuba for all project ids that have sessions.
     with metrics.timer(
@@ -98,8 +99,8 @@ def monitor_release_adoption(**kwargs):
     queue="releasemonitor",
     default_retry_delay=5,
     max_retries=5,
-)
-def process_projects_with_sessions(org_id, project_ids):
+)  # type: ignore
+def process_projects_with_sessions(org_id, project_ids) -> None:
     # Takes a single org id and a list of project ids
 
     with metrics.timer("sentry.tasks.monitor_release_adoption.process_projects_with_sessions.core"):
@@ -117,12 +118,20 @@ def process_projects_with_sessions(org_id, project_ids):
         cleanup_adopted_releases(project_ids, adopted_ids)
 
 
-def sum_sessions_and_releases(org_id, project_ids):
+class EnvironmentTotals(TypedDict):
+    total_sessions: int
+    releases: Dict[str, int]
+
+
+Totals = Dict[int, Dict[str, EnvironmentTotals]]
+
+
+def sum_sessions_and_releases(org_id: int, project_ids: Sequence[int]) -> Totals:
     # Takes a single org id and a list of project ids
     # returns counts of releases and sessions across all environments and passed project_ids for the last 6 hours
     start_time = time.time()
     offset = 0
-    totals = defaultdict(dict)
+    totals: Totals = defaultdict(dict)
     with metrics.timer("sentry.tasks.monitor_release_adoption.process_projects_with_sessions.loop"):
         while (time.time() - start_time) < MAX_SECONDS:
             with metrics.timer(
@@ -186,7 +195,7 @@ def sum_sessions_and_releases(org_id, project_ids):
     return totals
 
 
-def adopt_releases(org_id, totals):
+def adopt_releases(org_id: int, totals: Totals) -> Sequence[int]:
     # Using the totals calculated in sum_sessions_and_releases, mark any releases as adopted if they reach a threshold.
     adopted_ids = []
     with metrics.timer(
@@ -274,7 +283,7 @@ def adopt_releases(org_id, totals):
     return adopted_ids
 
 
-def cleanup_adopted_releases(project_ids, adopted_ids):
+def cleanup_adopted_releases(project_ids: Sequence[int], adopted_ids: Sequence[int]) -> None:
     # Cleanup; adopted releases need to be marked as unadopted if they are not in `adopted_ids`
     with metrics.timer(
         "sentry.tasks.monitor_release_adoption.process_projects_with_sessions.cleanup"
