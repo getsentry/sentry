@@ -33,6 +33,10 @@ type Props = {
   cursor?: string;
   includeAllArgs?: boolean;
   limit?: number;
+  onDataFetched?: (results: {
+    tableResults?: TableDataWithTitle[];
+    timeseriesResults?: Series[];
+  }) => void;
 };
 
 type State = {
@@ -150,7 +154,8 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
   }
 
   fetchData() {
-    const {selection, api, organization, widget, includeAllArgs, cursor} = this.props;
+    const {selection, api, organization, widget, includeAllArgs, cursor, onDataFetched} =
+      this.props;
 
     if (widget.displayType === DisplayType.WORLD_MAP) {
       this.setState({errorMessage: t('World Map is not supported by metrics.')});
@@ -217,10 +222,12 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
               data
             ) as TableDataWithTitle; // Cast so we can add the title.
             tableData.title = widget.queries[requestIndex]?.name ?? '';
+            const tableResults = [...(prevState.tableResults ?? []), tableData];
+            onDataFetched?.({tableResults});
             return {
               ...prevState,
               errorMessage: undefined,
-              tableResults: [...(prevState.tableResults ?? []), tableData],
+              tableResults,
               pageLinks: response?.getResponseHeader('link') ?? undefined,
             };
           }
@@ -244,6 +251,7 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
 
           const rawResultsClone = cloneDeep(prevState.rawResults ?? []);
           rawResultsClone[requestIndex] = data;
+          onDataFetched?.({timeseriesResults});
           return {
             ...prevState,
             errorMessage: undefined,

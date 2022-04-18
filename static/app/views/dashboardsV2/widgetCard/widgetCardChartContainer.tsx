@@ -94,6 +94,7 @@ export function WidgetCardChartContainer({
         widget={widget}
         selection={selection}
         limit={widget.limit ?? tableItemLimit}
+        onDataFetched={onDataFetched}
       >
         {({tableResults, timeseriesResults, errorMessage, loading}) => {
           return (
