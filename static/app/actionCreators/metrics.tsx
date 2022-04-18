@@ -1,4 +1,4 @@
-import {Client} from 'sentry/api';
+import {Client, ResponseMeta} from 'sentry/api';
 import {getInterval} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {DateString, MetricsApiResponse, Organization} from 'sentry/types';
@@ -41,7 +41,7 @@ export const doMetricsRequest = (
     statsPeriodEnd,
     ...dateTime
   }: DoMetricsRequestOptions
-): Promise<MetricsApiResponse> => {
+): Promise<MetricsApiResponse | [MetricsApiResponse, string, ResponseMeta]> => {
   const {start, end, statsPeriod} = normalizeDateTimeParams(dateTime, {
     allowEmptyPeriod: true,
   });

@@ -21,7 +21,9 @@ import {
   fieldAlignment,
   getAggregateAlias,
   getEquationAliasIndex,
+  isAggregateField,
   isEquationAlias,
+  Sort,
 } from 'sentry/utils/discover/fields';
 import {
   eventDetailsRouteWithEventView,
@@ -72,7 +74,7 @@ export const renderIssueGridHeaderCell =
         onClick={() => {
           trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.sort', {
             organization,
-            widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+            widget_type: WidgetType.ISSUE,
             display_type: widget.displayType,
             column: column.name,
             order: 'desc',
@@ -130,7 +132,7 @@ export const renderDiscoverGridHeaderCell =
           onHeaderClick?.();
           trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.sort', {
             organization,
-            widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+            widget_type: WidgetType.DISCOVER,
             display_type: widget.displayType,
             column: column.name,
             order: currentSort?.kind === 'desc' ? 'asc' : 'desc',
@@ -162,7 +164,11 @@ export const renderGridBodyCell =
         if (!tableData || !tableData.meta) {
           return dataRow[column.key];
         }
-        cell = getFieldRenderer(columnKey, tableData.meta)(dataRow, {
+        cell = getFieldRenderer(
+          columnKey,
+          tableData.meta,
+          widget.widgetType !== WidgetType.METRICS
+        )(dataRow, {
           organization,
           location,
         });
@@ -234,6 +240,58 @@ export const renderPrependColumns =
         </Link>
       </Tooltip>,
     ];
+  };
+
+export const renderMetricsGridHeaderCell =
+  ({location, widget, tableData, organization, onHeaderClick}: Props) =>
+  (column: TableColumn<keyof TableDataRow>, _columnIndex: number): React.ReactNode => {
+    const tableMeta = tableData?.meta;
+    const align = fieldAlignment(column.name, column.type, tableMeta);
+    const widgetOrderBy = widget.queries[0].orderby;
+    const sort: Sort = {
+      kind: widgetOrderBy.startsWith('-') ? 'desc' : 'asc',
+      field: widgetOrderBy.startsWith('-') ? widgetOrderBy.slice(1) : widgetOrderBy,
+    };
+    const canSort = isAggregateField(column.name);
+    const titleText = column.name;
+
+    function generateSortLink(): LocationDescriptorObject {
+      const columnSort =
+        column.name === sort.field
+          ? {...sort, kind: sort.kind === 'desc' ? 'asc' : 'desc'}
+          : {kind: 'desc', field: column.name};
+
+      return {
+        ...location,
+        query: {
+          ...location.query,
+          [WidgetViewerQueryField.SORT]:
+            columnSort.kind === 'desc' ? `-${columnSort.field}` : columnSort.field,
+          [WidgetViewerQueryField.PAGE]: undefined,
+          [WidgetViewerQueryField.CURSOR]: undefined,
+        },
+      };
+    }
+
+    return (
+      <SortLink
+        align={align}
+        title={<StyledTooltip title={titleText}>{titleText}</StyledTooltip>}
+        direction={sort.field === column.name ? sort.kind : undefined}
+        canSort={canSort}
+        generateSortLink={generateSortLink}
+        onClick={() => {
+          onHeaderClick?.();
+          trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.sort', {
+            organization,
+            widget_type: WidgetType.METRICS,
+            display_type: widget.displayType,
+            column: column.name,
+            order: sort?.kind === 'desc' ? 'asc' : 'desc',
+          });
+        }}
+      />
+    );
   };
 
 const StyledTooltip = styled(Tooltip)`
