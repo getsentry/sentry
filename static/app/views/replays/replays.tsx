@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {withRouter, WithRouterProps} from 'react-router';
+import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import FeatureBadge from 'sentry/components/featureBadge';
@@ -54,6 +54,18 @@ class Replays extends React.Component<Props> {
 
   getTitle() {
     return `Replays - ${this.props.params.orgId}`;
+  }
+
+  handleSearchQuery(searchQuery: string) {
+    const {location} = this.props;
+    browserHistory.push({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        cursor: undefined,
+        query: String(searchQuery).trim() || undefined,
+      },
+    });
   }
 
   renderTable(replayList: Array<Replay>) {
@@ -111,7 +123,7 @@ class Replays extends React.Component<Props> {
               {data => {
                 return (
                   <React.Fragment>
-                    <ReplaysFilters />
+                    <ReplaysFilters organization={organization} />
                     <PanelTable
                       isLoading={data.isLoading}
                       isEmpty={data.tableData?.data.length === 0}
