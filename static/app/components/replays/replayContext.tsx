@@ -69,11 +69,6 @@ export function Provider({children, events}: React.PropsWithChildren<Props>) {
     setIsPlaying(false);
   };
 
-  const cleanupListeners = () => {
-    replayerRef.current?.off(ReplayerEvents.Resize, forceDimensions);
-    replayerRef.current?.off(ReplayerEvents.Finish, setPlayingFalse);
-  };
-
   const initRoot = (root: RootElem) => {
     if (events === undefined) {
       return;
@@ -94,7 +89,6 @@ export function Provider({children, events}: React.PropsWithChildren<Props>) {
       while (root.firstChild) {
         root.removeChild(root.firstChild);
       }
-      cleanupListeners();
     }
 
     // eslint-disable-next-line no-new
@@ -127,7 +121,6 @@ export function Provider({children, events}: React.PropsWithChildren<Props>) {
     if (replayerRef.current && events) {
       initRoot(replayerRef.current.wrapper.parentElement as RootElem);
     }
-    return cleanupListeners;
   }, [replayerRef.current, events]);
 
   const getCurrentTime = useCallback(

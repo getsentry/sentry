@@ -1,3 +1,39 @@
+22.4.0
+------
+
+### Replays v0 (ongoing)
+
+By: @ryan953 (#33313)
+
+### Various fixes & improvements
+
+- debug(tests): Added some debugging for flakey ado test (#33632) by @AniketDas-Tekky
+- ref(rate limits): Tag DD metric w/ rate limit type (#33621) by @ceorourke
+- ref(access log): Add Datadog metrics (#33644) by @ceorourke
+- ref(reflux): remove index signature (#33407) by @JonasBa
+- feat(flamechart): allow rendering the chart on arbitrary x axis (#33577) by @JonasBa
+- fix(ui): typo on languages (#33628) by @23RoMax
+- fix(ui): Don't show project picker for alert wizard v3 (#33634) by @taylangocmen
+- JSON syntax and OpenAPI spec fixes, to silence (some) swagger/openapi codegen errors. (#28396) by @tesueret-msft
+- fix(alertStatus): Handle alert details page when no project (#33635) by @mikellykels
+- fix(rate limit): Format 429 response correctly (#33629) by @ceorourke
+- fix(workflow): Format metric date to number from query params (#33633) by @scttcper
+- fix(ui): Add % to crash free sessions tooltip (#33624) by @mikellykels
+- feat(replay): Implement the View in Fullscreen button (#33566) by @ryan953
+- feat(workflow): Tidy up projects page design (#33608) by @mikellykels
+- fix(sudo modal): no longer trying to log superuser access on sudo (#33622) by @maxiuyuan
+- feat(perf): Add MEP to transaction summary (#32773) by @k-fish
+- feat(dashboards): Update Release Health dataset to use sessions v2 (#33582) by @shruthilayaj
+- ref(alerts): Use Badge in team filter (#33596) by @vuluongj20
+- feat(onboarding): remove welcome page experiment and use new experience (#33616) by @scefali
+- feat(workflow): Add Undo to issue removal toast (#33249) by @mikellykels
+- ref(page-filters): All environments -> All env (#33568) by @davidenwang
+- ref(perf): Move long-tasks to app-wide (#33614) by @k-fish
+- fix(new-widget-builder-experience): Unnecessary dashboard visit requests (#33619) by @narsaynorath
+- ref(page-filters): Move issues sort options inside table (#33590) by @vuluongj20
+
+_Plus 771 more_
+
 22.3.0
 ------
 

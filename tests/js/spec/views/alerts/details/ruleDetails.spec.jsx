@@ -9,11 +9,7 @@ import RuleDetailsContainer from 'sentry/views/alerts/details/index';
 import AlertRuleDetails from 'sentry/views/alerts/details/ruleDetails';
 
 describe('AlertRuleDetails', () => {
-  const context = initializeOrg({
-    organization: {
-      features: ['alert-rule-status-page'],
-    },
-  });
+  const context = initializeOrg();
   const organization = context.organization;
   const project = TestStubs.Project();
   const rule = TestStubs.ProjectAlertRule({
@@ -109,8 +105,8 @@ describe('AlertRuleDetails', () => {
   it('should reset pagination cursor on date change', async () => {
     createWrapper();
 
-    expect(await screen.findByText('Last 14 days')).toBeInTheDocument();
-    userEvent.click(screen.getByText('Last 14 days'));
+    expect(await screen.findByText('Last 7 days')).toBeInTheDocument();
+    userEvent.click(screen.getByText('Last 7 days'));
     userEvent.click(screen.getByText('Last 24 hours'));
 
     expect(context.router.push).toHaveBeenCalledWith({

@@ -2370,6 +2370,29 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert other["order"] == 5
         assert [{"count": 4}] in [attrs for _, attrs in other["data"]]
 
+    def test_top_events_can_exclude_other_series(self):
+        with self.feature(self.enabled_features):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["count()"],
+                    "field": ["count()", "message"],
+                    "topEvents": 5,
+                    "excludeOther": "1",
+                },
+                format="json",
+            )
+
+        data = response.data
+        assert response.status_code == 200, response.content
+        assert len(data) == 5
+
+        assert "Other" not in response.data
+
     def test_top_events_with_equation_including_unselected_fields_passes_field_validation(self):
         with self.feature(self.enabled_features):
             response = self.client.get(
