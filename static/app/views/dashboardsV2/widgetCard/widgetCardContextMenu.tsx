@@ -210,7 +210,7 @@ function WidgetCardContextMenu({
               size="zero"
               icon={<IconExpand size="xs" />}
               onClick={() => {
-                (seriesData || tableData) && setData({seriesData, tableData});
+                setData({seriesData, tableData});
                 openWidgetViewerPath(widget.id ?? index);
               }}
             />
