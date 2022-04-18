@@ -127,6 +127,7 @@ function Filter({
           priority="default"
           data-test-id="filter-button"
           fullWidth={fullWidth}
+          rightAlignChevron={fullWidth}
         >
           <DropdownButtonText fullWidth={fullWidth}>
             {filterDescription}
