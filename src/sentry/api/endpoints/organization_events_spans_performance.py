@@ -183,8 +183,8 @@ class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsSpansEndpoint
 class SpanSerializer(serializers.Serializer):  # type: ignore
     query = serializers.CharField(required=False, allow_null=True)
     span = serializers.CharField(required=True, allow_null=False)
-    min_exclusive_time = serializers.CharField(required=False)
-    max_exclusive_time = serializers.CharField(required=False)
+    min_exclusive_time = serializers.FloatField(required=False)
+    max_exclusive_time = serializers.FloatField(required=False)
 
     def validate_span(self, span: str) -> Span:
         try:
@@ -237,8 +237,8 @@ class OrganizationEventsSpansExamplesEndpoint(OrganizationEventsSpansEndpointBas
                             event,
                             span.op,
                             span.group,
-                            # min_exclusive_time,
-                            # max_exclusive_time,
+                            min_exclusive_time,
+                            max_exclusive_time,
                         ).serialize()
                         for event in example_transactions.get(span, [])
                     ],
@@ -686,6 +686,8 @@ def get_example_transaction(
     event: EventID,
     span_op: str,
     span_group: str,
+    min_exclusive_time: Optional[float] = None,
+    max_exclusive_time: Optional[float] = None,
 ) -> ExampleTransaction:
     span_group_id = int(span_group, 16)
     nodestore_event = eventstore.get_event_by_id(event.project_id, event.event_id)
@@ -704,11 +706,21 @@ def get_example_transaction(
         "timestamp": data["timestamp"],
     }
 
-    matching_spans = [
-        span
-        for span in chain([root_span], data.get("spans", []))
-        if span["op"] == span_op and int(span["hash"], 16) == span_group_id
-    ]
+    if min_exclusive_time is None and max_exclusive_time is None:
+        matching_spans = [
+            span
+            for span in chain([root_span], data.get("spans", []))
+            if span["op"] == span_op and int(span["hash"], 16) == span_group_id
+        ]
+    else:
+        matching_spans = [
+            span
+            for span in chain([root_span], data.get("spans", []))
+            if span["op"] == span_op
+            and int(span["hash"], 16) == span_group_id
+            and span["exclusive_time"] > min_exclusive_time
+            and span["exclusive_time"] < max_exclusive_time
+        ]
 
     # get the first non-None description
     # use None if all descriptions are None
