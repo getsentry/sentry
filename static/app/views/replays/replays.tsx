@@ -39,17 +39,12 @@ class Replays extends React.Component<Props> {
     const {location, selection} = this.props;
     const {query} = location;
 
-    let sort = '-timestamp';
-    if (query.sort) {
-      sort = query.asc ? query.sort : `-${query.sort}`;
-    }
-
     const eventQueryParams: NewQuery = {
       id: '',
       name: '',
       version: 2,
       fields: ['eventID', 'timestamp', 'replayId', 'user.display', 'url'],
-      orderby: sort,
+      orderby: query.sort,
       environment: selection.environments,
       projects: selection.projects,
       query: 'transaction:sentry-replay', // future: change to replay event
@@ -117,16 +112,13 @@ class Replays extends React.Component<Props> {
     const {cursor: _cursor, page: _page, ...currentQuery} = query;
 
     const sort: {
-      asc: boolean;
-      field: 'timestamp';
+      field: '-timestamp';
     } = {
-      asc: query.asc === '1',
-      field: query.sort || 'timestamp',
+      field: query.sort || '-timestamp',
     };
 
-    const sortArrow = (
-      <IconArrow color="gray300" size="xs" direction={sort.asc ? 'up' : 'down'} />
-    );
+    const arrowDirection = sort.field.startsWith('-') ? 'down' : 'up';
+    const sortArrow = <IconArrow color="gray300" size="xs" direction={arrowDirection} />;
 
     return (
       <React.Fragment>
@@ -154,29 +146,28 @@ class Replays extends React.Component<Props> {
                       headers={[
                         t('Session'),
                         t('Project'),
-                        <StyledSortLink
+                        <SortLink
                           key="timestamp"
                           role="columnheader"
                           aria-sort={
-                            sort.field !== 'timestamp'
+                            !sort.field.includes('timestamp')
                               ? 'none'
-                              : sort.asc
-                              ? 'ascending'
-                              : 'descending'
+                              : sort.field === '-timestamp'
+                              ? 'descending'
+                              : 'ascending'
                           }
                           to={{
                             pathname: location.pathname,
                             query: {
                               ...currentQuery,
                               // sort by timestamp should start by ascending on first click
-                              asc:
-                                sort.field === 'timestamp' && sort.asc ? undefined : '1',
-                              sort: 'timestamp',
+                              sort:
+                                sort.field === '-timestamp' ? 'timestamp' : '-timestamp',
                             },
                           }}
                         >
-                          {t('TimeStamp')} {sort.field === 'timestamp' && sortArrow}
-                        </StyledSortLink>,
+                          {t('TimeStamp')} {sort.field.endsWith('timestamp') && sortArrow}
+                        </SortLink>,
                       ]}
                     >
                       {data.tableData
@@ -230,7 +221,7 @@ const StyledIconCalendarWrapper = styled(IconCalendar)`
   top: -1px;
 `;
 
-const StyledSortLink = styled(Link)`
+const SortLink = styled(Link)`
   color: inherit;
 
   :hover {
