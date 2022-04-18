@@ -18,6 +18,8 @@ import {NewQuery, Organization, PageFilters} from 'sentry/types';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import AsyncView from 'sentry/views/asyncView';
@@ -32,9 +34,12 @@ type Props = AsyncView['props'] &
     statsPeriod?: string | undefined; // revisit i'm sure i'm doing statsperiod wrong
   };
 
-class Replays extends React.Component<Props> {
-  getEventView() {
-    const {location, selection} = this.props;
+function Replays(props: Props) {
+  const location = useLocation();
+  const organization = useOrganization();
+
+  const getEventView = () => {
+    const {selection} = props;
     const eventQueryParams: NewQuery = {
       id: '',
       name: '',
@@ -43,21 +48,16 @@ class Replays extends React.Component<Props> {
       orderby: '-timestamp',
       environment: selection.environments,
       projects: selection.projects,
-      query: 'transaction:sentry-replay', // future: change to replay event
+      query: `transaction:sentry-replay ${location.query.query}`, // future: change to replay event
     };
 
     if (selection.datetime.period) {
       eventQueryParams.range = selection.datetime.period;
     }
     return EventView.fromNewQueryWithLocation(eventQueryParams, location);
-  }
+  };
 
-  getTitle() {
-    return `Replays - ${this.props.params.orgId}`;
-  }
-
-  handleSearchQuery(searchQuery: string) {
-    const {location} = this.props;
+  const handleSearchQuery = (searchQuery: string) => {
     browserHistory.push({
       pathname: location.pathname,
       query: {
@@ -66,10 +66,9 @@ class Replays extends React.Component<Props> {
         query: String(searchQuery).trim() || undefined,
       },
     });
-  }
+  };
 
-  renderTable(replayList: Array<Replay>) {
-    const {organization} = this.props;
+  const renderTable = (replayList: Array<Replay>) => {
     return replayList?.map(replay => (
       <React.Fragment key={replay.id}>
         <Link
@@ -100,49 +99,47 @@ class Replays extends React.Component<Props> {
         </div>
       </React.Fragment>
     ));
-  }
+  };
 
-  render() {
-    const {organization} = this.props;
-    return (
-      <React.Fragment>
-        <StyledPageHeader>
-          <HeaderTitle>
-            <div>
-              {t('Replays')} <FeatureBadge type="alpha" />
-            </div>
-          </HeaderTitle>
-        </StyledPageHeader>
-        <PageFiltersContainer hideGlobalHeader resetParamsOnChange={['cursor']}>
-          <StyledPageContent>
-            <DiscoverQuery
-              eventView={this.getEventView()}
-              location={this.props.location}
-              orgSlug={organization.slug}
-            >
-              {data => {
-                return (
-                  <React.Fragment>
-                    <ReplaysFilters organization={organization} />
-                    <PanelTable
-                      isLoading={data.isLoading}
-                      isEmpty={data.tableData?.data.length === 0}
-                      headers={[t('Session'), t('Timestamp')]}
-                    >
-                      {data.tableData
-                        ? this.renderTable(data.tableData.data as Replay[])
-                        : null}
-                    </PanelTable>
-                    <Pagination pageLinks={data.pageLinks} />
-                  </React.Fragment>
-                );
-              }}
-            </DiscoverQuery>
-          </StyledPageContent>
-        </PageFiltersContainer>
-      </React.Fragment>
-    );
-  }
+  return (
+    <React.Fragment>
+      <StyledPageHeader>
+        <HeaderTitle>
+          <div>
+            {t('Replays')} <FeatureBadge type="alpha" />
+          </div>
+        </HeaderTitle>
+      </StyledPageHeader>
+      <PageFiltersContainer hideGlobalHeader resetParamsOnChange={['cursor']}>
+        <StyledPageContent>
+          <DiscoverQuery
+            eventView={getEventView()}
+            location={props.location}
+            orgSlug={organization.slug}
+          >
+            {data => {
+              return (
+                <React.Fragment>
+                  <ReplaysFilters
+                    organization={organization}
+                    handleSearchQuery={handleSearchQuery}
+                  />
+                  <PanelTable
+                    isLoading={data.isLoading}
+                    isEmpty={data.tableData?.data.length === 0}
+                    headers={[t('Session'), t('Timestamp')]}
+                  >
+                    {data.tableData ? renderTable(data.tableData.data as Replay[]) : null}
+                  </PanelTable>
+                  <Pagination pageLinks={data.pageLinks} />
+                </React.Fragment>
+              );
+            }}
+          </DiscoverQuery>
+        </StyledPageContent>
+      </PageFiltersContainer>
+    </React.Fragment>
+  );
 }
 
 const StyledPageHeader = styled(PageHeader)`
