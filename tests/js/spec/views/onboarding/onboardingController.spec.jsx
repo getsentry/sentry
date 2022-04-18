@@ -7,65 +7,16 @@ import OnboardingController from 'sentry/views/onboarding/onboardingController';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 describe('OnboardingController', function () {
-  it('Shows targeted onboarding with experiment active', function () {
-    const {organization, router, routerContext} = initializeOrg({
-      organization: {
-        experiments: {
-          TargetedOnboardingWelcomePageExperimentV2: 1,
-        },
-      },
-      router: {
-        params: {
-          step: 'welcome',
-        },
-      },
-    });
-
-    const {container} = render(
-      <OrganizationContext.Provider value={organization}>
-        <OnboardingController {...router} />
-      </OrganizationContext.Provider>,
-      {
-        context: routerContext,
-      }
-    );
-    expect(screen.getByTestId('targeted-onboarding')).toBeInTheDocument();
-    expect(container).toSnapshot();
-  });
   it('Shows legacy onboarding without experiment', function () {
     const {organization, router, routerContext} = initializeOrg({
       organization: {
         experiments: {
-          TargetedOnboardingWelcomePageExperimentV2: 0,
+          TargetedOnboardingMultiSelectExperiment: 0,
         },
       },
       router: {
         params: {
           step: 'welcome',
-        },
-      },
-    });
-
-    render(
-      <OrganizationContext.Provider value={organization}>
-        <OnboardingController {...router} />
-      </OrganizationContext.Provider>,
-      {
-        context: routerContext,
-      }
-    );
-    expect(screen.queryByTestId('targeted-onboarding')).not.toBeInTheDocument();
-  });
-  it('Shows legacy onboarding for second step', function () {
-    const {organization, router, routerContext} = initializeOrg({
-      organization: {
-        experiments: {
-          TargetedOnboardingWelcomePageExperimentV2: 1,
-        },
-      },
-      router: {
-        params: {
-          step: 'select-platform',
         },
       },
     });

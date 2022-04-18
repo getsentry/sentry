@@ -37,8 +37,11 @@ describe('MetricAlertDetails', () => {
 
   it('renders', async () => {
     const {routerContext, organization, router} = initializeOrg();
-    const rule = TestStubs.IncidentRule({projects: [project.slug]});
     const incident = TestStubs.Incident();
+    const rule = TestStubs.IncidentRule({
+      projects: [project.slug],
+      latestIncident: incident,
+    });
 
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/alert-rules/${rule.id}/`,

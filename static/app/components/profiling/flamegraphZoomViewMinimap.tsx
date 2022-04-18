@@ -50,8 +50,34 @@ function FlamegraphZoomViewMinimap({
         },
       });
 
-      if (previousRenderer?.flamegraph.name === renderer.flamegraph.name) {
-        renderer.setConfigView(previousRenderer.configView);
+      if (!previousRenderer?.configSpace.equals(renderer.configSpace)) {
+        return renderer;
+      }
+
+      if (previousRenderer?.flamegraph.profile === renderer.flamegraph.profile) {
+        if (previousRenderer.flamegraph.inverted !== renderer.flamegraph.inverted) {
+          // Preserve the position where the user just was before they toggled
+          // inverted. This means that the horizontal position is unchanged
+          // while the vertical position needs to determined based on the
+          // current position.
+          renderer.setConfigView(
+            previousRenderer.configView.translateY(
+              previousRenderer.configSpace.height -
+                previousRenderer.configView.height -
+                previousRenderer.configView.y
+            )
+          );
+        } else if (
+          previousRenderer.flamegraph.leftHeavy !== renderer.flamegraph.leftHeavy
+        ) {
+          /*
+           * When the user toggles left heavy, the entire flamegraph will take
+           * on a different shape. In this case, there's no obvious position
+           * that can be carried over.
+           */
+        } else {
+          renderer.setConfigView(previousRenderer.configView);
+        }
       }
 
       return renderer;
@@ -142,6 +168,12 @@ function FlamegraphZoomViewMinimap({
       scheduler.draw();
     };
 
+    const onResetZoom = () => {
+      flamegraphMiniMapRenderer.resetConfigView();
+      setConfigSpaceCursor(null);
+      scheduler.draw();
+    };
+
     const onZoomIntoFrame = (frame: FlamegraphFrame) => {
       flamegraphMiniMapRenderer.setConfigView(
         new Rect(
@@ -161,35 +193,16 @@ function FlamegraphZoomViewMinimap({
       scheduler.draw();
     };
 
-    const onResetZoom = () => {
-      flamegraphMiniMapRenderer.setConfigView(
-        flamegraph.inverted
-          ? flamegraphMiniMapRenderer.configView
-              .translateY(
-                flamegraphMiniMapRenderer.configSpace.height -
-                  flamegraphMiniMapRenderer.configView.height +
-                  1
-              )
-              .translateX(0)
-              .withWidth(flamegraph.configSpace.width)
-          : flamegraphMiniMapRenderer.configView
-              .translate(0, 0)
-              .withWidth(flamegraph.configSpace.width)
-      );
-      setConfigSpaceCursor(null);
-      scheduler.draw();
-    };
-
     scheduler.on('setConfigView', onConfigViewChange);
     scheduler.on('transformConfigView', onTransformConfigView);
-    scheduler.on('zoomIntoFrame', onZoomIntoFrame);
     scheduler.on('resetZoom', onResetZoom);
+    scheduler.on('zoomIntoFrame', onZoomIntoFrame);
 
     return () => {
       scheduler.off('setConfigView', onConfigViewChange);
       scheduler.off('transformConfigView', onTransformConfigView);
-      scheduler.off('zoomIntoFrame', onZoomIntoFrame);
       scheduler.off('resetZoom', onResetZoom);
+      scheduler.off('zoomIntoFrame', onZoomIntoFrame);
     };
   }, [scheduler, flamegraphMiniMapRenderer]);
 
