@@ -293,7 +293,6 @@ class SpanTreeModel {
           ? this.toggleNestedSpanGroup
           : undefined,
       toggleSiblingSpanGroup: undefined,
-      isEmbeddedTransactionTimeAdjusted: this.isEmbeddedTransactionTimeAdjusted,
     };
 
     if (wrappedSpan.type === 'root_span') {
