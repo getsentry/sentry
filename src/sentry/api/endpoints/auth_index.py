@@ -49,18 +49,6 @@ class AuthIndexEndpoint(Endpoint):
         raise SsoRequired(Organization.objects.get_from_cache(id=org_id))
 
     @staticmethod
-    def _require_password_or_u2f_check(request):
-        """
-        We only need to check the user's password or u2f device for self-hosted customers.
-        """
-        return is_self_hosted() and (
-            request.user.has_usable_password()
-            or Authenticator.objects.filter(
-                user_id=request.user.id, type=U2fInterface.type
-            ).exists()
-        )
-
-    @staticmethod
     def _verify_user_via_inputs(validator, request):
         # See if we have a u2f challenge/response
         if "challenge" in validator.validated_data and "response" in validator.validated_data:
@@ -110,7 +98,18 @@ class AuthIndexEndpoint(Endpoint):
         validator.is_valid()
         authenticated = None
 
-        if self._require_password_or_u2f_check(request):
+        def _require_password_or_u2f_check():
+            if not is_self_hosted():
+                # Don't need to check as its only for self-hosted users
+                return False
+            if request.user.has_usable_password():
+                return True
+            if Authenticator.objects.filter(
+                user_id=request.user.id, type=U2fInterface.type
+            ).exists():
+                return True
+
+        if _require_password_or_u2f_check():
             authenticated = self._verify_user_via_inputs(validator, request)
 
         if Superuser.org_id:
