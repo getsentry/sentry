@@ -52,7 +52,7 @@
     "plugins": [{"name": "typescript-styled-plugin"}]
   },
   "include": ["../static", "../tests/js", "../tests/fixtures/js-stubs"],
-  "exclude": ["../node_modules"],
+  "exclude": ["../node_modules", "../**/*.benchmark.ts"],
   "ts-node": {
     "transpileOnly": true
   }
