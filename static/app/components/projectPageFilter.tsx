@@ -72,7 +72,7 @@ type Props = WithRouterProps & {
   specificProjectSlugs?: string[];
 };
 
-export function ProjectPageFilter({
+function ProjectPageFilter({
   router,
   specificProjectSlugs,
   maxTitleLength = 20,

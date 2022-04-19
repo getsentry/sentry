@@ -51,7 +51,7 @@ describe('Onboarding', function () {
       }
     );
     expect(
-      await screen.findByText('Select all your projects platform')
+      await screen.findByText('Select the platforms you want to monitor')
     ).toBeInTheDocument();
     MockApiClient.clearMockResponses();
   });
