@@ -506,7 +506,7 @@ class ReleasesList extends AsyncView<Props, State> {
 
             {this.renderHealthCta()}
 
-            <ReleasesPageFilterBar>
+            <ReleasesPageFilterBar condensed>
               <ProjectPageFilter />
               <EnvironmentPageFilter />
               <DatePageFilter alignDropdown="left" />
@@ -590,8 +590,6 @@ const AlertText = styled('div')`
 `;
 
 const ReleasesPageFilterBar = styled(PageFilterBar)`
-  width: max-content;
-  max-width: 100%;
   margin-bottom: ${space(1)};
 `;
 
