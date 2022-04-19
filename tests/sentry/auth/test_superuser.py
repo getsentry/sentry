@@ -362,17 +362,16 @@ class SuperuserTestCase(TestCase):
 
     @mock.patch("sentry.auth.superuser.logger")
     def test_superuser_session_doesnt_needs_validatation_superuser_prompts(self, logger):
-        with self.settings(VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=False):
-            user = User(is_superuser=True, id=10, email="test@sentry.io")
-            request = self.make_request(user=user, method="PUT")
-            superuser = Superuser(request, org_id=None)
-            superuser.set_logged_in(request.user)
-            assert superuser.is_active is True
-            assert logger.info.call_count == 1
-            logger.info.assert_any_call(
-                "superuser.logged-in",
-                extra={"ip_address": "127.0.0.1", "user_id": user.id},
-            )
+        user = User(is_superuser=True, id=10, email="test@sentry.io")
+        request = self.make_request(user=user, method="PUT")
+        superuser = Superuser(request, org_id=None)
+        superuser.set_logged_in(request.user)
+        assert superuser.is_active is True
+        assert logger.info.call_count == 1
+        logger.info.assert_any_call(
+            "superuser.logged-in",
+            extra={"ip_address": "127.0.0.1", "user_id": user.id},
+        )
 
     def test_superuser_invalid_serializer(self):
         serialized_data = SuperuserAccessSerializer(data={})
