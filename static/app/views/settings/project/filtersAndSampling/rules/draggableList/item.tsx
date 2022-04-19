@@ -20,9 +20,8 @@ export type ItemProps = {
   value: React.ReactNode;
   attributes?: UseSortableOutputProps['attributes'];
   dragging?: boolean;
-  forwardRef?: React.Ref<HTMLElement>;
+  forwardRef?: React.Ref<HTMLDivElement>;
   index?: number;
-  innerWrapperStyle?: React.CSSProperties;
   listeners?: DraggableSyntheticListeners;
   sorting?: boolean;
   transform?: Transform | null;
@@ -42,11 +41,10 @@ function Item({
   attributes,
   renderItem,
   wrapperStyle,
-  innerWrapperStyle,
 }: ItemProps) {
   return (
     <Wrapper
-      ref={forwardRef as React.Ref<HTMLDivElement> | undefined}
+      ref={forwardRef}
       style={
         {
           ...wrapperStyle,
@@ -58,7 +56,7 @@ function Item({
         } as React.CSSProperties
       }
     >
-      <InnerWrapper style={innerWrapperStyle}>
+      <InnerWrapper>
         {renderItem({
           dragging: Boolean(dragging),
           sorting: Boolean(sorting),
