@@ -270,24 +270,23 @@ class SuperuserTestCase(TestCase):
                 assert superuser.is_active is False
 
     def test_login_saves_session(self):
-        with self.settings(VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=False):
-            user = self.create_user("foo@example.com", is_superuser=True)
-            request = self.make_request()
-            superuser = Superuser(request, allowed_ips=(), current_datetime=self.current_datetime)
-            superuser.set_logged_in(user, current_datetime=self.current_datetime)
+        user = self.create_user("foo@example.com", is_superuser=True)
+        request = self.make_request()
+        superuser = Superuser(request, allowed_ips=(), current_datetime=self.current_datetime)
+        superuser.set_logged_in(user, current_datetime=self.current_datetime)
 
-            # request.user wasn't set
-            assert not superuser.is_active
+        # request.user wasn't set
+        assert not superuser.is_active
 
-            request.user = user
-            assert superuser.is_active
+        request.user = user
+        assert superuser.is_active
 
-            data = request.session.get(SESSION_KEY)
-            assert data
-            assert data["exp"] == (self.current_datetime + MAX_AGE).strftime("%s")
-            assert data["idl"] == (self.current_datetime + IDLE_MAX_AGE).strftime("%s")
-            assert len(data["tok"]) == 12
-            assert data["uid"] == str(user.id)
+        data = request.session.get(SESSION_KEY)
+        assert data
+        assert data["exp"] == (self.current_datetime + MAX_AGE).strftime("%s")
+        assert data["idl"] == (self.current_datetime + IDLE_MAX_AGE).strftime("%s")
+        assert len(data["tok"]) == 12
+        assert data["uid"] == str(user.id)
 
     def test_logout_clears_session(self):
         request = self.build_request()
@@ -363,17 +362,16 @@ class SuperuserTestCase(TestCase):
 
     @mock.patch("sentry.auth.superuser.logger")
     def test_superuser_session_doesnt_needs_validatation_superuser_prompts(self, logger):
-        with self.settings(VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=False):
-            user = User(is_superuser=True)
-            request = self.make_request(user=user, method="PUT")
-            superuser = Superuser(request, org_id=None)
-            superuser.set_logged_in(request.user)
-            assert superuser.is_active is True
-            assert logger.info.call_count == 1
-            logger.info.assert_any_call(
-                "superuser.logged-in",
-                extra={"ip_address": "127.0.0.1", "user_id": user.id},
-            )
+        user = User(is_superuser=True)
+        request = self.make_request(user=user, method="PUT")
+        superuser = Superuser(request, org_id=None)
+        superuser.set_logged_in(request.user)
+        assert superuser.is_active is True
+        assert logger.info.call_count == 1
+        logger.info.assert_any_call(
+            "superuser.logged-in",
+            extra={"ip_address": "127.0.0.1", "user_id": user.id},
+        )
 
     def test_superuser_invalid_serializer(self):
         serialized_data = SuperuserAccessSerializer(data={})
