@@ -735,6 +735,11 @@ export function getSpanGroupBounds(
   }
 }
 
+/**
+ * Recursively modifies the timestamps for a span and all of its descendants by startTimeDelta
+ * @param root
+ * @param startTimeDelta
+ */
 export function adjustEmbeddedTransactionTimestamps(
   root: SpanTreeModel,
   startTimeDelta: number
