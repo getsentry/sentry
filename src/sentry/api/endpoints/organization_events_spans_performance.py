@@ -559,35 +559,23 @@ class SpanQueryBuilder(QueryBuilder):  # type: ignore
         op = span.op
         group = span.group
 
-        op_group_match_condition = Function(
+        condition = Function(
             "and",
             [
                 Function("equals", [Identifier("x"), op]),
                 Function("equals", [Identifier("y"), group]),
             ],
         )
-        condition = op_group_match_condition
 
         if min_exclusive_time is not None:
-            exclusive_time_lower_bound = Function("greater", [Identifier("z"), min_exclusive_time])
+            condition = Function(
+                "and", [Function("greater", [Identifier("z"), min_exclusive_time]), condition]
+            )
 
-            if max_exclusive_time is not None:
-                exclusive_time_upper_bound = Function("less", [Identifier("z"), max_exclusive_time])
-                exclusive_time_bounds = Function(
-                    "and",
-                    [
-                        exclusive_time_lower_bound,
-                        exclusive_time_upper_bound,
-                    ],
-                )
-                condition = Function("and", [op_group_match_condition, exclusive_time_bounds])
-
-            else:
-                condition = Function("and", [op_group_match_condition, exclusive_time_lower_bound])
-
-        elif max_exclusive_time is not None:
-            exclusive_time_upper_bound = Function("less", [Identifier("z"), max_exclusive_time])
-            condition = Function("and", [op_group_match_condition, exclusive_time_upper_bound])
+        if max_exclusive_time is not None:
+            condition = Function(
+                "and", [Function("less", [Identifier("z"), max_exclusive_time]), condition]
+            )
 
         return Function(
             "arrayReduce",
