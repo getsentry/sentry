@@ -1305,6 +1305,93 @@ describe('WidgetBuilder', function () {
     expect(tagsMock).not.toHaveBeenCalled();
   });
 
+  it('excludes the Other series when grouping and using multiple y-axes', async function () {
+    renderTestComponent({
+      orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      query: {
+        displayType: DisplayType.LINE,
+      },
+    });
+
+    await selectEvent.select(await screen.findByText('Select group'), 'project');
+
+    userEvent.click(screen.getByText('Add Overlay'));
+    await selectEvent.select(screen.getByText('(Required)'), /count_unique/);
+
+    await waitFor(() => {
+      expect(eventsStatsMock).toBeCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({excludeOther: '1'}),
+        })
+      );
+    });
+  });
+
+  it('excludes the Other series when grouping and using multiple queries', async function () {
+    renderTestComponent({
+      orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      query: {
+        displayType: DisplayType.LINE,
+      },
+    });
+
+    await selectEvent.select(await screen.findByText('Select group'), 'project');
+    userEvent.click(screen.getByText('Add Query'));
+
+    await waitFor(() => {
+      expect(eventsStatsMock).toBeCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({excludeOther: '1'}),
+        })
+      );
+    });
+  });
+
+  it('includes Other series when there is only one query and one y-axis', async function () {
+    renderTestComponent({
+      orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      query: {
+        displayType: DisplayType.LINE,
+      },
+    });
+
+    await selectEvent.select(await screen.findByText('Select group'), 'project');
+
+    await waitFor(() => {
+      expect(eventsStatsMock).toBeCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.not.objectContaining({excludeOther: '1'}),
+        })
+      );
+    });
+  });
+
+  it('decreases the limit when more y-axes and queries are added', async function () {
+    renderTestComponent({
+      orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      query: {
+        displayType: DisplayType.LINE,
+      },
+    });
+
+    await selectEvent.select(await screen.findByText('Select group'), 'project');
+
+    screen.getByText('Limit to 5 results');
+
+    userEvent.click(screen.getByText('Add Query'));
+    userEvent.click(screen.getByText('Add Query'));
+
+    screen.getByText('Limit to 3 results');
+
+    userEvent.click(screen.getByText('Add Overlay'));
+    userEvent.click(screen.getByText('Add Overlay'));
+
+    await screen.findByText('Limit to 1 result');
+  });
+
   describe('Sort by selectors', function () {
     it('renders', async function () {
       renderTestComponent({
@@ -1765,21 +1852,41 @@ describe('WidgetBuilder', function () {
 
       userEvent.click(screen.getByLabelText(/releases/i));
 
-      expect(await screen.findByText('sum(…)')).toBeInTheDocument();
+      expect(screen.getByText('sum(…)')).toBeInTheDocument();
       expect(screen.getByText('session')).toBeInTheDocument();
 
       userEvent.click(screen.getByText('sum(…)'));
-      expect(await screen.findByText('count_unique(…)')).toBeInTheDocument();
+      expect(screen.getByText('count_unique(…)')).toBeInTheDocument();
 
       expect(screen.getByText('release')).toBeInTheDocument();
       expect(screen.getByText('environment')).toBeInTheDocument();
       expect(screen.getByText('session.status')).toBeInTheDocument();
 
       userEvent.click(screen.getByText('count_unique(…)'));
-      expect(await screen.findByText('user')).toBeInTheDocument();
+      expect(screen.getByText('user')).toBeInTheDocument();
     });
 
-    it('makes the appropriate metrics call', async function () {
+    it('does not display tags as params', async function () {
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      expect(
+        await screen.findByText('Releases (sessions, crash rates)')
+      ).toBeInTheDocument();
+
+      userEvent.click(screen.getByLabelText(/releases/i));
+
+      expect(screen.getByText('sum(…)')).toBeInTheDocument();
+      await selectEvent.select(screen.getByText('sum(…)'), 'count_unique(…)');
+
+      userEvent.click(screen.getByText('user'));
+      expect(screen.queryByText('release')).not.toBeInTheDocument();
+      expect(screen.queryByText('environment')).not.toBeInTheDocument();
+      expect(screen.queryByText('session.status')).not.toBeInTheDocument();
+    });
+
+    it('makes the appropriate sessions call', async function () {
       renderTestComponent({
         orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
       });
@@ -1825,14 +1932,14 @@ describe('WidgetBuilder', function () {
       userEvent.click(screen.getByText('Table'));
       userEvent.click(screen.getByText('Line Chart'));
 
-      expect(await screen.findByText('sum(…)')).toBeInTheDocument();
+      expect(screen.getByText('sum(…)')).toBeInTheDocument();
       expect(screen.getByText(`session`)).toBeInTheDocument();
 
       userEvent.click(screen.getByText('sum(…)'));
-      expect(await screen.findByText('count_unique(…)')).toBeInTheDocument();
+      expect(screen.getByText('count_unique(…)')).toBeInTheDocument();
 
       userEvent.click(screen.getByText('count_unique(…)'));
-      expect(await screen.findByText('user')).toBeInTheDocument();
+      expect(screen.getByText('user')).toBeInTheDocument();
     });
 
     it('sets widgetType to release', async function () {
@@ -1942,7 +2049,7 @@ describe('WidgetBuilder', function () {
 
     // Disabling for CI, but should run locally when making changes
     // eslint-disable-next-line jest/no-disabled-tests
-    it.skip('renders with an release search bar', async function () {
+    it.skip('renders with a release search bar', async function () {
       renderTestComponent({
         orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
       });
