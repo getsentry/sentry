@@ -137,7 +137,6 @@ class AuthIdentityHandler:
         if not user_was_logged_in:
             raise self._NotCompletedSecurityChecks()
 
-        # This may trigger more attempts than successes as we redirect if security checks have not been completed
         metrics.incr(
             "sso.login_success",
             tags={
@@ -187,7 +186,6 @@ class AuthIdentityHandler:
         try:
             self._login(user)
         except self._NotCompletedSecurityChecks:
-            # Does not necessarily mean login flow has failed
             return HttpResponseRedirect(auth.get_login_redirect(self.request))
 
         state.clear()
@@ -833,8 +831,8 @@ class AuthHelper(Pipeline):
                 "sentry-organization-auth-settings", args=[self.organization.slug]
             )
 
-        # NOTE: Does NOT indicated a login error.
-        # Could potentially be error with registering + logging in, or configuring the provider, etc
+        # NOTE: Does NOT indicated a _login_ error specificallyl.
+        # Could potentially be error with registering, configuring the provider, etc
         metrics.incr(
             "sso.error",
             tags={

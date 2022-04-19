@@ -130,7 +130,7 @@ class AuthLoginView(BaseView):
             elif request.GET.get("op") == "sso":
                 op = "sso"
 
-        # login form validated on post or renders form fields for GET
+        # login_form either validated on post or renders form fields for GET
         login_form = self.get_login_form(request)
         if can_register:
             register_form = self.get_register_form(
@@ -294,7 +294,7 @@ class AuthLoginView(BaseView):
     def post(self, request: Request, **kwargs) -> Response:
         op = request.POST.get("op")
         if op == "sso" and request.POST.get("organization"):
-            # post coming from "Single Sign On tab"
+            # if post is from "Single Sign On tab"
             auth_provider = self.get_auth_provider(request.POST["organization"])
             if auth_provider:
                 next_uri = reverse("sentry-auth-organization", args=[request.POST["organization"]])

@@ -37,7 +37,7 @@ class IdentityProviderPipeline(Pipeline):
 
     def finish_pipeline(self):
         # NOTE: only reached in the case of linking a new identity
-        # Reached via Social Auth pipelines
+        # via Social Auth pipelines
         identity = self.provider.build_identity(self.state.data)
 
         Identity.objects.link_identity(
