@@ -38,7 +38,7 @@ export function createDashboard(
   orgId: string,
   newDashboard: DashboardDetails,
   duplicate?: boolean,
-  projectIds?: string[] | number[]
+  projectIds?: number[]
 ): Promise<DashboardDetails> {
   const {title, widgets} = newDashboard;
 
@@ -48,7 +48,7 @@ export function createDashboard(
       method: 'POST',
       data: {title, widgets: widgets.map(widget => omit(widget, ['tempId'])), duplicate},
       query: {
-        project: projectIds.map(String),
+        project: projectIds?.map(String),
       },
     }
   );
@@ -110,7 +110,8 @@ export function fetchDashboard(
 export function updateDashboard(
   api: Client,
   orgId: string,
-  dashboard: DashboardDetails
+  dashboard: DashboardDetails,
+  projectIds?: number[]
 ): Promise<DashboardDetails> {
   const data = {
     title: dashboard.title,
@@ -122,6 +123,9 @@ export function updateDashboard(
     {
       method: 'PUT',
       data,
+      query: {
+        project: projectIds?.map(String),
+      },
     }
   );
 
@@ -169,7 +173,7 @@ export function validateWidget(
   api: Client,
   orgId: string,
   widget: Widget,
-  projectIds?: string[] | number[]
+  projectIds?: number[]
 ): Promise<undefined> {
   const promise: Promise<undefined> = api.requestPromise(
     `/organizations/${orgId}/dashboards/widgets/`,

@@ -379,7 +379,8 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   handleUpdateWidgetList = (widgets: Widget[]) => {
-    const {organization, dashboard, api, onDashboardUpdate, location} = this.props;
+    const {organization, dashboard, api, onDashboardUpdate, location, selection} =
+      this.props;
     const {modifiedDashboard} = this.state;
 
     // Use the new widgets for calculating layout because widgets has
@@ -397,7 +398,12 @@ class DashboardDetail extends Component<Props, State> {
     if (this.isEditing || this.isPreview) {
       return;
     }
-    updateDashboard(api, organization.slug, newModifiedDashboard).then(
+    updateDashboard(
+      api,
+      organization.slug,
+      newModifiedDashboard,
+      selection.projects
+    ).then(
       (newDashboard: DashboardDetails) => {
         if (onDashboardUpdate) {
           onDashboardUpdate(newDashboard);
@@ -520,7 +526,12 @@ class DashboardDetail extends Component<Props, State> {
             });
             return;
           }
-          updateDashboard(api, organization.slug, modifiedDashboard).then(
+          updateDashboard(
+            api,
+            organization.slug,
+            modifiedDashboard,
+            selection.projects
+          ).then(
             (newDashboard: DashboardDetails) => {
               if (onDashboardUpdate) {
                 onDashboardUpdate(newDashboard);
