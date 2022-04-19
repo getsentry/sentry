@@ -22,7 +22,9 @@ export function useFlamegraphPreferencesValue(): FlamegraphStateContextValue[0][
   const context = useContext(FlamegraphStateContext);
 
   if (context === null) {
-    throw new Error('useFlamegraphPreferences called outside of FlamegraphStateProvider');
+    throw new Error(
+      'useFlamegraphPreferencesValue called outside of FlamegraphStateProvider'
+    );
   }
 
   return context[0].preferences;

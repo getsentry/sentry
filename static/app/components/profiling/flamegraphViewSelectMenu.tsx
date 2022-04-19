@@ -4,12 +4,13 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphPreferences';
 
 interface FlamegraphViewSelectMenuProps {
   onSortingChange: (sorting: FlamegraphViewSelectMenuProps['sorting']) => void;
   onViewChange: (view: FlamegraphViewSelectMenuProps['view']) => void;
-  sorting: 'call order' | 'left heavy';
-  view: 'top down' | 'bottom up';
+  sorting: FlamegraphPreferences['sorting'];
+  view: FlamegraphPreferences['view'];
 }
 
 function FlamegraphViewSelectMenu({
