@@ -17,6 +17,7 @@ import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
 
+import OnboardingViewTask from './onboardingCard';
 import ProgressHeader from './progressHeader';
 import Task from './task';
 import {getMergedTasks} from './taskConfig';
@@ -54,7 +55,7 @@ Heading.defaultProps = {
   transition: testableTransition(),
 };
 
-const completeNowHeading = <Heading key="now">{t('The Basics')}</Heading>;
+const completeNowHeading = <Heading key="now">{t('Next Steps')}</Heading>;
 const upcomingTasksHeading = (
   <Heading key="upcoming">
     <Tooltip
@@ -167,6 +168,7 @@ class OnboardingWizardSidebar extends Component<Props> {
         <TopRight src={HighlightTopRight} />
         <ProgressHeader allTasks={all} completedTasks={complete} />
         <TaskList>
+          <OnboardingViewTask org={this.props.organization} />
           <AnimatePresence initial={false}>{items}</AnimatePresence>
         </TaskList>
       </TaskSidebarPanel>
