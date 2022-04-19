@@ -5,6 +5,7 @@ import {components} from 'react-select';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
+import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -86,6 +87,14 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
   };
 
   componentDidMount() {
+    this.fetchData();
+  }
+
+  componentDidUpdate(prevProps: Props) {
+    if (isEqual(prevProps.project, this.props.project)) {
+      return;
+    }
+
     this.fetchData();
   }
 
@@ -245,53 +254,61 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
   }
 
   renderProjectSelector() {
-    const {project: selectedProject, location, router, projects, disabled} = this.props;
+    const {project: _selectedProject, projects, disabled} = this.props;
 
     return (
-      <SelectControl
-        isDisabled={disabled}
-        value={selectedProject.id}
-        styles={{
-          container: (provided: {[x: string]: string | number | boolean}) => ({
-            ...provided,
-            margin: `${space(0.5)}`,
-          }),
+      <FormField
+        name="projectId"
+        inline={false}
+        style={{
+          ...this.formElemBaseStyle,
+          minWidth: 300,
+          flex: 2,
         }}
-        options={projects.map(project => ({
-          label: project.slug,
-          value: project.id,
-          leadingItems: (
-            <IdBadge
-              project={project}
-              avatarProps={{consistentWidth: true}}
-              avatarSize={18}
-              disableLink
-              hideName
+        flexibleControlStateSize
+      >
+        {({onChange, onBlur, model}) => {
+          const selectedProject =
+            projects.find(({id}) => id === model.getValue('projectId')) ||
+            _selectedProject;
+
+          return (
+            <SelectControl
+              isDisabled={disabled}
+              value={selectedProject.id}
+              options={projects.map(project => ({
+                label: project.slug,
+                value: project.id,
+                leadingItems: (
+                  <IdBadge
+                    project={project}
+                    avatarProps={{consistentWidth: true}}
+                    avatarSize={18}
+                    disableLink
+                    hideName
+                  />
+                ),
+              }))}
+              onChange={({value}: {value: Project['id']}) => {
+                onChange(value, {});
+                onBlur(value, {});
+              }}
+              components={{
+                SingleValue: containerProps => (
+                  <components.ValueContainer {...containerProps}>
+                    <IdBadge
+                      project={selectedProject}
+                      avatarProps={{consistentWidth: true}}
+                      avatarSize={18}
+                      disableLink
+                    />
+                  </components.ValueContainer>
+                ),
+              }}
             />
-          ),
-        }))}
-        onChange={({label}: {label: Project['slug']}) =>
-          router.replace({
-            ...location,
-            query: {
-              ...location.query,
-              project: label,
-            },
-          })
-        }
-        components={{
-          SingleValue: containerProps => (
-            <components.ValueContainer {...containerProps}>
-              <IdBadge
-                project={selectedProject}
-                avatarProps={{consistentWidth: true}}
-                avatarSize={18}
-                disableLink
-              />
-            </components.ValueContainer>
-          ),
+          );
         }}
-      />
+      </FormField>
     );
   }
 
