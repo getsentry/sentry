@@ -721,30 +721,13 @@ def get_example_transaction(
     ]
 
     if min_exclusive_time is not None:
-        if max_exclusive_time is not None:
-            matching_spans = [
-                span
-                for span in chain([root_span], data.get("spans", []))
-                if span["op"] == span_op
-                and int(span["hash"], 16) == span_group_id
-                and span["exclusive_time"] > min_exclusive_time
-                and span["exclusive_time"] < max_exclusive_time
-            ]
-        else:
-            matching_spans = [
-                span
-                for span in chain([root_span], data.get("spans", []))
-                if span["op"] == span_op
-                and int(span["hash"], 16) == span_group_id
-                and span["exclusive_time"] > min_exclusive_time
-            ]
-    elif max_exclusive_time is not None:
         matching_spans = [
-            span
-            for span in chain([root_span], data.get("spans", []))
-            if span["op"] == span_op
-            and int(span["hash"], 16) == span_group_id
-            and span["exclusive_time"] < max_exclusive_time
+            span for span in matching_spans if span["exclusive_time"] > min_exclusive_time
+        ]
+
+    if max_exclusive_time is not None:
+        matching_spans = [
+            span for span in matching_spans if span["exclusive_time"] < max_exclusive_time
         ]
 
     # get the first non-None description
