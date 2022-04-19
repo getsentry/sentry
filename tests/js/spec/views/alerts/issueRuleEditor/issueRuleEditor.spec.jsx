@@ -1,10 +1,20 @@
 import {browserHistory} from 'react-router';
+import selectEvent from 'react-select-event';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountGlobalModal} from 'sentry-test/modal';
-import {selectByValue} from 'sentry-test/select-new';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
 import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import {metric} from 'sentry/utils/analytics';
 import IssueRuleEditor from 'sentry/views/alerts/issueRuleEditor';
@@ -12,6 +22,11 @@ import ProjectAlerts from 'sentry/views/settings/projectAlerts';
 
 jest.unmock('sentry/utils/recreateRoute');
 jest.mock('sentry/actionCreators/onboardingTasks');
+jest.mock('sentry/actionCreators/indicator', () => ({
+  addSuccessMessage: jest.fn(),
+  addErrorMessage: jest.fn(),
+  addLoadingMessage: jest.fn(),
+}));
 jest.mock('sentry/utils/analytics', () => ({
   metric: {
     startTransaction: jest.fn(() => ({
@@ -24,47 +39,74 @@ jest.mock('sentry/utils/analytics', () => ({
   },
 }));
 
-describe('ProjectAlerts -> IssueRuleEditor', function () {
-  const projectAlertRuleDetailsRoutes = [
-    {
-      path: '/',
-    },
-    {
-      path: '/settings/',
-      name: 'Settings',
-      indexRoute: {},
-    },
-    {
-      name: 'Organization',
-      path: ':orgId/',
-    },
-    {
-      name: 'Project',
-      path: 'projects/:projectId/',
-    },
-    {},
-    {
-      indexRoute: {name: 'General'},
-    },
-    {
-      name: 'Alert Rules',
-      path: 'alerts/',
-      indexRoute: {},
-    },
-    {
-      path: 'rules/',
-      name: 'Rules',
-      component: null,
-      indexRoute: {},
-      childRoutes: [
-        {path: 'new/', name: 'New'},
-        {path: ':ruleId/', name: 'Edit'},
-      ],
-    },
-    {path: ':ruleId/', name: 'Edit Alert Rule'},
-  ];
+const projectAlertRuleDetailsRoutes = [
+  {
+    path: '/',
+  },
+  {
+    path: '/settings/',
+    name: 'Settings',
+    indexRoute: {},
+  },
+  {
+    name: 'Organization',
+    path: ':orgId/',
+  },
+  {
+    name: 'Project',
+    path: 'projects/:projectId/',
+  },
+  {},
+  {
+    indexRoute: {name: 'General'},
+  },
+  {
+    name: 'Alert Rules',
+    path: 'alerts/',
+    indexRoute: {},
+  },
+  {
+    path: 'rules/',
+    name: 'Rules',
+    component: null,
+    indexRoute: {},
+    childRoutes: [
+      {path: 'new/', name: 'New'},
+      {path: ':ruleId/', name: 'Edit'},
+    ],
+  },
+  {path: ':ruleId/', name: 'Edit Alert Rule'},
+];
 
-  beforeEach(async function () {
+const createWrapper = (props = {}) => {
+  const {organization, project, routerContext, router} = initializeOrg(props);
+  const params = {orgId: organization.slug, projectId: project.slug, ruleId: '1'};
+  const onChangeTitleMock = jest.fn();
+  const wrapper = render(
+    <ProjectAlerts organization={organization} params={params}>
+      <IssueRuleEditor
+        params={params}
+        location={{pathname: ''}}
+        routes={projectAlertRuleDetailsRoutes}
+        router={router}
+        onChangeTitle={onChangeTitleMock}
+        project={project}
+        userTeamIds={[]}
+      />
+    </ProjectAlerts>,
+    {context: routerContext}
+  );
+
+  return {
+    wrapper,
+    organization,
+    project,
+    onChangeTitleMock,
+  };
+};
+
+describe('ProjectAlerts -> IssueRuleEditor', function () {
+  beforeEach(function () {
     browserHistory.replace = jest.fn();
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/rules/configuration/',
@@ -86,56 +128,30 @@ describe('ProjectAlerts -> IssueRuleEditor', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
+    jest.clearAllMocks();
   });
 
-  const createWrapper = (props = {}) => {
-    const {organization, project, routerContext} = initializeOrg(props);
-    const params = {orgId: organization.slug, projectId: project.slug, ruleId: '1'};
-    const onChangeTitleMock = jest.fn();
-    const wrapper = mountWithTheme(
-      <ProjectAlerts organization={organization} params={params}>
-        <IssueRuleEditor
-          params={params}
-          location={{pathname: ''}}
-          routes={projectAlertRuleDetailsRoutes}
-          onChangeTitle={onChangeTitleMock}
-          project={project}
-          userTeamIds={[]}
-        />
-      </ProjectAlerts>,
-      routerContext
-    );
-
-    return {
-      wrapper,
-      organization,
-      project,
-    };
-  };
   describe('Edit Rule', function () {
     let mock;
     const endpoint = '/projects/org-slug/project-slug/rules/1/';
-    beforeEach(async function () {
+    beforeEach(function () {
       mock = MockApiClient.addMockResponse({
         url: endpoint,
         method: 'PUT',
         body: TestStubs.ProjectAlertRule(),
       });
-      metric.startTransaction.mockClear();
     });
 
-    it('gets correct rule name', async function () {
+    it('gets correct rule name', function () {
       const rule = TestStubs.ProjectAlertRule();
       mock = MockApiClient.addMockResponse({
         url: endpoint,
         method: 'GET',
         body: rule,
       });
-      const {wrapper} = createWrapper();
+      const {onChangeTitleMock} = createWrapper();
       expect(mock).toHaveBeenCalled();
-      expect(wrapper.find('IssueRuleEditor').prop('onChangeTitle')).toHaveBeenCalledWith(
-        rule.name
-      );
+      expect(onChangeTitleMock).toHaveBeenCalledWith(rule.name);
     });
 
     it('deletes rule', async function () {
@@ -144,40 +160,44 @@ describe('ProjectAlerts -> IssueRuleEditor', function () {
         method: 'DELETE',
         body: {},
       });
-      const {wrapper} = createWrapper();
-      wrapper.find('button[aria-label="Delete Rule"]').simulate('click');
+      createWrapper();
+      userEvent.click(screen.getByLabelText('Delete Rule'));
 
-      const modal = await mountGlobalModal();
-      modal.find('button[aria-label="Delete Rule"]').simulate('click');
+      renderGlobalModal();
+      expect(
+        await screen.findByText('Are you sure you want to delete this rule?')
+      ).toBeInTheDocument();
+      userEvent.click(screen.getByTestId('confirm-button'));
 
-      await tick();
-      expect(deleteMock).toHaveBeenCalled();
+      await waitFor(() => expect(deleteMock).toHaveBeenCalled());
       expect(browserHistory.replace).toHaveBeenCalledWith(
         '/settings/org-slug/projects/project-slug/alerts/'
       );
     });
 
     it('sends correct environment value', async function () {
-      const {wrapper} = createWrapper();
-      selectByValue(wrapper, 'production', {name: 'environment'});
-      wrapper.find('form').simulate('submit');
+      createWrapper();
+      await selectEvent.select(screen.getByText('staging'), 'production');
+      userEvent.click(screen.getByText('Save Rule'));
 
-      expect(mock).toHaveBeenCalledWith(
-        endpoint,
-        expect.objectContaining({
-          data: expect.objectContaining({environment: 'production'}),
-        })
+      await waitFor(() =>
+        expect(mock).toHaveBeenCalledWith(
+          endpoint,
+          expect.objectContaining({
+            data: expect.objectContaining({environment: 'production'}),
+          })
+        )
       );
       expect(metric.startTransaction).toHaveBeenCalledTimes(1);
       expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
     });
 
     it('strips environment value if "All environments" is selected', async function () {
-      const {wrapper} = createWrapper();
-      selectByValue(wrapper, '__all_environments__', {name: 'environment'});
-      wrapper.find('form').simulate('submit');
+      createWrapper();
+      await selectEvent.select(screen.getByText('staging'), 'All Environments');
+      userEvent.click(screen.getByText('Save Rule'));
 
-      expect(mock).toHaveBeenCalledTimes(1);
+      await waitFor(() => expect(mock).toHaveBeenCalledTimes(1));
       expect(mock).not.toHaveBeenCalledWith(
         endpoint,
         expect.objectContaining({
@@ -189,10 +209,10 @@ describe('ProjectAlerts -> IssueRuleEditor', function () {
     });
 
     it('updates the alert onboarding task', async function () {
-      const {wrapper} = createWrapper();
-      wrapper.find('form').simulate('submit');
+      createWrapper();
+      userEvent.click(screen.getByText('Save Rule'));
 
-      expect(updateOnboardingTask).toHaveBeenCalled();
+      await waitFor(() => expect(updateOnboardingTask).toHaveBeenCalledTimes(1));
       expect(metric.startTransaction).toHaveBeenCalledTimes(1);
       expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
     });
@@ -201,7 +221,7 @@ describe('ProjectAlerts -> IssueRuleEditor', function () {
   describe('Edit Rule: Slack Channel Look Up', function () {
     const uuid = 'xxxx-xxxx-xxxx';
 
-    beforeEach(async function () {
+    beforeEach(function () {
       jest.useFakeTimers();
     });
 
@@ -210,70 +230,71 @@ describe('ProjectAlerts -> IssueRuleEditor', function () {
       MockApiClient.clearMockResponses();
     });
 
-    it('pending status keeps loading true', async function () {
-      const endpoint = `/projects/org-slug/project-slug/rule-task/${uuid}/`;
+    it('success status updates the rule', async function () {
+      const mockSuccess = MockApiClient.addMockResponse({
+        url: `/projects/org-slug/project-slug/rule-task/${uuid}/`,
+        body: {status: 'success', rule: TestStubs.ProjectAlertRule({name: 'Slack Rule'})},
+      });
       MockApiClient.addMockResponse({
-        url: endpoint,
+        url: '/projects/org-slug/project-slug/rules/1/',
+        method: 'PUT',
+        statusCode: 202,
+        body: {uuid},
+      });
+      createWrapper();
+      userEvent.click(screen.getByText('Save Rule'));
+
+      await waitFor(() => expect(addLoadingMessage).toHaveBeenCalledTimes(2));
+      jest.advanceTimersByTime(1000);
+
+      await waitFor(() => expect(mockSuccess).toHaveBeenCalledTimes(1));
+      jest.advanceTimersByTime(1000);
+      await waitFor(() => expect(addSuccessMessage).toHaveBeenCalledTimes(1));
+      expect(screen.getByDisplayValue('Slack Rule')).toBeInTheDocument();
+    });
+
+    it('pending status keeps loading true', async function () {
+      const pollingMock = MockApiClient.addMockResponse({
+        url: `/projects/org-slug/project-slug/rule-task/${uuid}/`,
         body: {status: 'pending'},
       });
-      const {wrapper} = createWrapper();
-      const ruleEditor = wrapper.find('IssueRuleEditor').last();
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/rules/1/',
+        method: 'PUT',
+        statusCode: 202,
+        body: {uuid},
+      });
+      createWrapper();
+      userEvent.click(screen.getByText('Save Rule'));
 
-      ruleEditor.setState({uuid, loading: true});
-      await Promise.resolve();
-      ruleEditor.update();
+      await waitFor(() => expect(addLoadingMessage).toHaveBeenCalledTimes(2));
+      jest.advanceTimersByTime(1000);
 
-      ruleEditor.instance().fetchStatus();
-      jest.runOnlyPendingTimers();
+      await waitFor(() => expect(pollingMock).toHaveBeenCalledTimes(1));
 
-      await Promise.resolve();
-      ruleEditor.update();
-      expect(ruleEditor.state('loading')).toBe(true);
+      expect(screen.getByTestId('loading-mask')).toBeInTheDocument();
     });
 
     it('failed status renders error message', async function () {
-      const endpoint = `/projects/org-slug/project-slug/rule-task/${uuid}/`;
-      MockApiClient.addMockResponse({
-        url: endpoint,
+      const mockFailed = MockApiClient.addMockResponse({
+        url: `/projects/org-slug/project-slug/rule-task/${uuid}/`,
         body: {status: 'failed'},
       });
-      const {wrapper} = createWrapper();
-      const ruleEditor = wrapper.find('IssueRuleEditor').last();
-
-      ruleEditor.setState({uuid, loading: true});
-      await Promise.resolve();
-      ruleEditor.update();
-
-      ruleEditor.instance().fetchStatus();
-      jest.runAllTimers();
-
-      await Promise.resolve();
-      ruleEditor.update();
-
-      expect(ruleEditor.state('loading')).toBe(false);
-      expect(ruleEditor.state('detailedError')).toEqual({actions: ['An error occurred']});
-    });
-
-    it('success status updates the rule', async function () {
-      const endpoint = `/projects/org-slug/project-slug/rule-task/${uuid}/`;
       MockApiClient.addMockResponse({
-        url: endpoint,
-        body: {status: 'success', rule: TestStubs.ProjectAlertRule({name: 'Slack Rule'})},
+        url: '/projects/org-slug/project-slug/rules/1/',
+        method: 'PUT',
+        statusCode: 202,
+        body: {uuid},
       });
-      const {wrapper} = createWrapper();
-      const ruleEditor = wrapper.find('IssueRuleEditor').last();
+      createWrapper();
+      userEvent.click(screen.getByText('Save Rule'));
 
-      ruleEditor.setState({uuid, loading: true});
-      await Promise.resolve();
-      ruleEditor.update();
+      await waitFor(() => expect(addLoadingMessage).toHaveBeenCalledTimes(2));
+      jest.advanceTimersByTime(1000);
 
-      ruleEditor.instance().fetchStatus();
-      jest.runOnlyPendingTimers();
-
-      await Promise.resolve();
-      ruleEditor.update();
-      expect(ruleEditor.state('loading')).toBe(false);
-      expect(ruleEditor.state('rule').name).toBe('Slack Rule');
+      await waitFor(() => expect(mockFailed).toHaveBeenCalledTimes(1));
+      expect(screen.getByText('An error occurred')).toBeInTheDocument();
+      expect(addErrorMessage).toHaveBeenCalledTimes(1);
     });
   });
 });
