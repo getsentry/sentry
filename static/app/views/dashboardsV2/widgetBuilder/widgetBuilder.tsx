@@ -75,6 +75,7 @@ import {
   DataSet,
   DEFAULT_RESULTS_LIMIT,
   getParsedDefaultWidgetQuery,
+  getResultsLimit,
   mapErrors,
   NEW_DASHBOARD_ID,
   normalizeQueries,
@@ -504,16 +505,6 @@ function WidgetBuilder({
       const newState = cloneDeep(prevState);
       set(newState, `queries.${queryIndex}`, newQuery);
       set(newState, 'userHasModified', true);
-
-      if (widgetBuilderNewDesign && isTimeseriesChart && queryIndex === 0) {
-        const groupByFields = newQuery.columns.filter(field => !(field === 'equation|'));
-
-        if (groupByFields.length === 0) {
-          set(newState, 'limit', undefined);
-        } else {
-          set(newState, 'limit', newState.limit ?? DEFAULT_RESULTS_LIMIT);
-        }
-      }
       return {...newState, errors: undefined};
     });
   }
@@ -605,7 +596,14 @@ function WidgetBuilder({
       if (groupByFields.length === 0) {
         set(newState, 'limit', undefined);
       } else {
-        set(newState, 'limit', newState.limit ?? DEFAULT_RESULTS_LIMIT);
+        set(
+          newState,
+          'limit',
+          Math.min(
+            newState.limit ?? DEFAULT_RESULTS_LIMIT,
+            getResultsLimit(newQueries.length, newQueries[0].aggregates.length)
+          )
+        );
       }
     }
 
@@ -617,13 +615,14 @@ function WidgetBuilder({
 
     const newState = cloneDeep(state);
 
-    state.queries.forEach((query, index) => {
+    const newQueries = state.queries.map(query => {
       const newQuery = cloneDeep(query);
       newQuery.columns = fieldStrings;
-      set(newState, `queries.${index}`, newQuery);
+      return newQuery;
     });
 
     set(newState, 'userHasModified', true);
+    set(newState, 'queries', newQueries);
 
     if (widgetBuilderNewDesign && isTimeseriesChart) {
       const groupByFields = newState.queries[0].columns.filter(
@@ -632,7 +631,14 @@ function WidgetBuilder({
       if (groupByFields.length === 0) {
         set(newState, 'limit', undefined);
       } else {
-        set(newState, 'limit', newState.limit ?? DEFAULT_RESULTS_LIMIT);
+        set(
+          newState,
+          'limit',
+          Math.min(
+            newState.limit ?? DEFAULT_RESULTS_LIMIT,
+            getResultsLimit(newQueries.length, newQueries[0].aggregates.length)
+          )
+        );
       }
     }
 
@@ -640,7 +646,7 @@ function WidgetBuilder({
   }
 
   function handleLimitChange(newLimit: number) {
-    setState({...state, limit: newLimit});
+    setState(prevState => ({...prevState, limit: newLimit}));
   }
 
   function handleSortByChange(newSortBy: string) {
@@ -1067,24 +1073,19 @@ const BuildSteps = styled(List)`
 `;
 
 const Body = styled(Layout.Body)`
-  grid-template-rows: 1fr;
   && {
     gap: 0;
     padding: 0;
   }
 
-  @media (max-width: ${p => p.theme.breakpoints[3]}) {
-    grid-template-columns: 1fr;
-  }
+  grid-template-rows: 1fr;
 
   @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    /* 325px + 16px + 16px to match Side component width, padding-left and padding-right */
-    grid-template-columns: minmax(100px, auto) calc(325px + ${space(2) + space(2)});
+    grid-template-columns: minmax(100px, auto) 400px;
   }
 
   @media (min-width: ${p => p.theme.breakpoints[3]}) {
-    /* 325px + 16px + 30px to match Side component width, padding-left and padding-right */
-    grid-template-columns: minmax(100px, auto) calc(325px + ${space(2) + space(4)});
+    grid-template-columns: 1fr;
   }
 `;
 
@@ -1111,15 +1112,24 @@ const Side = styled(Layout.Side)`
 
   @media (max-width: ${p => p.theme.breakpoints[3]}) {
     border-top: 1px solid ${p => p.theme.gray200};
+    grid-row: 2/2;
+    grid-column: 1/-1;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+    max-width: 400px;
   }
 
   @media (max-width: ${p => p.theme.breakpoints[3]}) {
-    grid-row: 2/2;
-    grid-column: 1/1;
+    max-width: 100%;
   }
 `;
 
 const MainWrapper = styled('div')`
   display: flex;
   flex-direction: column;
+
+  @media (max-width: ${p => p.theme.breakpoints[3]}) {
+    grid-column: 1/-1;
+  }
 `;

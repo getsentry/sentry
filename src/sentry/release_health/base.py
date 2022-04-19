@@ -1,8 +1,23 @@
-from datetime import datetime
-from typing import Literal, Mapping, Optional, Sequence, Set, Tuple, TypedDict, TypeVar, Union
+from __future__ import annotations
 
-from sentry.snuba.sessions_v2 import QueryDefinition
+from datetime import datetime
+from typing import (
+    TYPE_CHECKING,
+    Literal,
+    Mapping,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    TypedDict,
+    TypeVar,
+    Union,
+)
+
 from sentry.utils.services import Service
+
+if TYPE_CHECKING:
+    from sentry.snuba.sessions_v2 import QueryDefinition
 
 ProjectId = int
 OrganizationId = int
