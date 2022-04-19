@@ -165,11 +165,14 @@ def _deobfuscate(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
                 }
             )
         elif len(mapped) > 1:
+            bottom_class = mapped[-1].class_name
             method["inline_frames"] = [
                 {
                     "class_name": new_frame.class_name,
                     "name": new_frame.method,
-                    "source_file": new_frame.file,
+                    "source_file": method["source_file"]
+                    if bottom_class == new_frame.class_name
+                    else None,
                     "source_line": new_frame.line,
                 }
                 for new_frame in mapped
