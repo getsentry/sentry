@@ -565,14 +565,6 @@ const generateButtonTheme = (colors: BaseColors, alias: Aliases) => ({
 });
 
 const generateUtils = (colors: BaseColors) => ({
-  linkUnderline: css({
-    textDecoration: `underline ${colors.translucentGray200}`,
-    textDecorationThickness: '1px',
-    textUnderlineOffset: '1px',
-    '&:hover': {
-      textDecorationColor: colors.gray300,
-    },
-  }),
   tooltipUnderline: css({
     textDecoration: `underline dotted ${colors.gray300}`,
     textDecorationThickness: '0.75px',
