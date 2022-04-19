@@ -221,20 +221,9 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
           }
 
           // Transform to fit the table format
-          if ([DisplayType.TABLE, DisplayType.BIG_NUMBER].includes(widget.displayType)) {
-            const tableData = transformSessionsResponseToTable(
-              data
-            ) as TableDataWithTitle; // Cast so we can add the title.
-            tableData.title = widget.queries[requestIndex]?.name ?? '';
-            const tableResults = [...(prevState.tableResults ?? []), tableData];
-            onDataFetched?.({tableResults});
-            return {
-              ...prevState,
-              errorMessage: undefined,
-              tableResults,
-              pageLinks: response?.getResponseHeader('link') ?? undefined,
-            };
-          }
+          const tableData = transformSessionsResponseToTable(data) as TableDataWithTitle; // Cast so we can add the title.
+          tableData.title = widget.queries[requestIndex]?.name ?? '';
+          const tableResults = [...(prevState.tableResults ?? []), tableData];
 
           // Transform to fit the chart format
           const timeseriesResults = [...(prevState.timeseriesResults ?? [])];
@@ -254,9 +243,20 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
               result;
           });
 
+          onDataFetched?.({timeseriesResults, tableResults});
+
+          if ([DisplayType.TABLE, DisplayType.BIG_NUMBER].includes(widget.displayType)) {
+            return {
+              ...prevState,
+              errorMessage: undefined,
+              tableResults,
+              pageLinks: response?.getResponseHeader('link') ?? undefined,
+            };
+          }
+
           const rawResultsClone = cloneDeep(prevState.rawResults ?? []);
           rawResultsClone[requestIndex] = data;
-          onDataFetched?.({timeseriesResults});
+
           return {
             ...prevState,
             errorMessage: undefined,

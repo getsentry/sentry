@@ -123,6 +123,7 @@ export function WidgetCardChartContainer({
                 isMobile={isMobile}
                 windowWidth={windowWidth}
                 expandNumbers={expandNumbers}
+                onZoom={onZoom}
               />
             </Fragment>
           );
