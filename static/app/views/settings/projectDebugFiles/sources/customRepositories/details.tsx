@@ -45,16 +45,16 @@ const Wrapper = styled('div')`
   gap: ${space(1)};
   margin-top: ${space(0.5)};
   align-items: center;
-
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 700;
+
+  grid-column: 2/-1;
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     margin-top: ${space(1)};
     grid-template-columns: max-content 1fr;
     gap: ${space(1)};
     grid-row: 3/3;
-    grid-column: 1/-1;
   }
 `;
 
