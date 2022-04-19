@@ -602,6 +602,7 @@ class Dashboard extends Component<Props, State> {
     });
 
     const items = this.getWidgetIds();
+    console.log({items});
 
     return (
       <DndContext

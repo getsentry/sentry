@@ -79,23 +79,20 @@ class DraggableList extends Component<Props, State> {
             />
           ))}
         </SortableContext>
-        {createPortal(
-          <DragOverlay>
-            {activeId ? (
-              <Item
-                value={items[activeIndex]}
-                renderItem={renderItem}
-                wrapperStyle={wrapperStyle({
-                  id: items[activeIndex],
-                  index: activeIndex,
-                  isDragging: true,
-                  isSorting: false,
-                })}
-              />
-            ) : null}
-          </DragOverlay>,
-          document.body
-        )}
+        <DragOverlay>
+          {activeId ? (
+            <Item
+              value={items[activeIndex]}
+              renderItem={renderItem}
+              wrapperStyle={wrapperStyle({
+                id: items[activeIndex],
+                index: activeIndex,
+                isDragging: true,
+                isSorting: false,
+              })}
+            />
+          ) : null}
+        </DragOverlay>
       </DndContext>
     );
   }

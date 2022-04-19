@@ -57,6 +57,10 @@ function ViewEditDashboard(props: Props) {
     }
   }, [location.pathname]);
 
+  organization.features = organization.features.filter(
+    x => x !== 'dashboard-grid-layout'
+  );
+
   return (
     <DashboardBasicFeature organization={organization}>
       <OrgDashboards

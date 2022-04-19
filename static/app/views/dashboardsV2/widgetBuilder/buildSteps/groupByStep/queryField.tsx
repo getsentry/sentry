@@ -14,10 +14,10 @@ export interface QueryFieldProps {
   fieldOptions: React.ComponentProps<typeof TableQueryField>['fieldOptions'];
   onChange: (newValue: QueryFieldValue) => void;
   value: QueryFieldValue;
+  attributes?: UseDraggableArguments['attributes'];
   canDelete?: boolean;
   canDrag?: boolean;
   forwardRef?: React.Ref<HTMLDivElement>;
-  grabAttributes?: UseDraggableArguments['attributes'];
   isDragging?: boolean;
   listeners?: DraggableSyntheticListeners;
   onDelete?: () => void;
@@ -31,7 +31,7 @@ export function QueryField({
   value,
   forwardRef,
   listeners,
-  grabAttributes,
+  attributes,
   canDelete,
   canDrag,
   style,
@@ -44,7 +44,7 @@ export function QueryField({
           {canDrag && (
             <DragAndReorderButton
               {...listeners}
-              {...grabAttributes}
+              {...attributes}
               aria-label={t('Drag to reorder')}
               icon={<IconGrabbable size="xs" />}
               size="zero"
@@ -83,10 +83,6 @@ const QueryFieldWrapper = styled('div')`
   align-items: center;
   justify-content: space-between;
   width: 100%;
-
-  :not(:last-child) {
-    margin-bottom: ${space(1)};
-  }
 
   > * + * {
     margin-left: ${space(1)};

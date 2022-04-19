@@ -2,17 +2,19 @@ import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 import {useTheme} from '@emotion/react';
 
-import space from 'sentry/styles/space';
-
 import {QueryField, QueryFieldProps} from './queryField';
 
 interface SortableItemProps extends Omit<QueryFieldProps, 'wrapperStyle'> {
-  id: string;
+  dragId: string;
 }
 
-export function SortableQueryField({id, ...props}: SortableItemProps) {
+export function SortableQueryField({dragId, ...props}: SortableItemProps) {
   const theme = useTheme();
-  const {listeners, setNodeRef, transform, transition, isDragging} = useSortable({id});
+  const {listeners, setNodeRef, transform, transition, attributes, isDragging} =
+    useSortable({
+      id: dragId,
+      transition: null,
+    });
 
   let style = {
     transform: CSS.Transform.toString(transform),
@@ -24,10 +26,9 @@ export function SortableQueryField({id, ...props}: SortableItemProps) {
     style = {
       ...style,
       zIndex: 100,
-      height: '41px',
+      height: '40px',
       border: `2px dashed ${theme.border}`,
       borderRadius: theme.borderRadius,
-      margin: `0 ${space(3)} ${space(1)} ${space(3)}`,
     };
   }
 
@@ -35,6 +36,7 @@ export function SortableQueryField({id, ...props}: SortableItemProps) {
     <QueryField
       forwardRef={setNodeRef}
       listeners={listeners}
+      attributes={attributes}
       isDragging={isDragging}
       style={style}
       {...props}

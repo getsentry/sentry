@@ -1,9 +1,18 @@
-import React, {Fragment, useEffect, useMemo, useState} from 'react';
-import {closestCenter, DndContext, DragOverlay} from '@dnd-kit/core';
+import React, {Fragment, useMemo, useState} from 'react';
+import {
+  closestCenter,
+  DndContext,
+  DragOverlay,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
 import {
   arrayMove,
   SortableContext,
-  verticalListSortingStrategy, // <== doesn't break if this is rectSortingStrategy
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 
@@ -14,7 +23,6 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {generateFieldAsString, QueryFieldValue} from 'sentry/utils/discover/fields';
-import usePrevious from 'sentry/utils/usePrevious';
 import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 
@@ -23,57 +31,14 @@ import {SortableQueryField} from './sortableQueryField';
 
 const GROUP_BY_LIMIT = 20;
 const EMPTY_FIELD: QueryFieldValue = {kind: FieldValueKind.FIELD, field: ''};
-import isEqual from 'lodash/isEqual';
-
 interface Props {
   fieldOptions: ReturnType<typeof generateFieldOptions>;
   onChange: (fields: QueryFieldValue[]) => void;
   columns?: QueryFieldValue[];
 }
 
-interface State {
-  activeItem: string | null;
-  items: string[];
-}
-
 export function GroupBySelector({fieldOptions, columns = [], onChange}: Props) {
-  const [state, setState] = useState<State>(getState);
-  const previousColumns = usePrevious(columns);
-
-  useEffect(() => {
-    let shouldCancelUpdates = false;
-
-    if (!isEqual(previousColumns, columns)) {
-      if (shouldCancelUpdates) {
-        return undefined;
-      }
-
-      setState(getState());
-    }
-
-    return () => {
-      shouldCancelUpdates = true;
-    };
-  }, [columns, previousColumns]);
-
-  // useEffect(() => {
-  //   const newColumns = state.items.reduce((acc, item, index) => {
-  //     acc[index] = columns[Number(item)];
-  //     return acc;
-  //   }, [] as QueryFieldValue[]);
-
-  //   onChange(newColumns);
-  // }, [state.items]);
-
-  function getState() {
-    return {
-      activeItem: null,
-      items: columns.reduce((acc, _column, index) => {
-        acc.push(String(index));
-        return acc;
-      }, [] as string[]),
-    };
-  }
+  const [activeId, setActiveId] = useState<string | null>(null);
 
   function handleAdd() {
     const newColumns =
@@ -118,6 +83,20 @@ export function GroupBySelector({fieldOptions, columns = [], onChange}: Props) {
     }, {});
   }, [fieldOptions, columns]);
 
+  const items = useMemo(() => {
+    return columns.reduce((acc, _column, index) => {
+      acc.push(String(index));
+      return acc;
+    }, [] as string[]);
+  }, [columns]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
   return (
     <Fragment>
       <StyledField inline={false} flexibleControlStateSize stacked>
@@ -132,47 +111,55 @@ export function GroupBySelector({fieldOptions, columns = [], onChange}: Props) {
           </QueryFieldWrapper>
         ) : (
           <DndContext
+            sensors={sensors}
             collisionDetection={closestCenter}
             onDragStart={({active}) => {
-              if (!active) {
-                return;
-              }
-              setState(prevState => ({...prevState, activeItem: active.id}));
+              setActiveId(active.id);
             }}
             onDragEnd={({over, active}) => {
-              if (over && active.id !== over.id) {
-                const oldIndex = state.items.indexOf(active.id);
-                const newIndex = state.items.indexOf(over.id);
-                const newItems = arrayMove(state.items, oldIndex, newIndex);
+              setActiveId(null);
 
-                setState({activeItem: null, items: newItems});
-                return;
+              if (over) {
+                const activeDragId = active.id;
+                const getIndex = items.indexOf.bind(items);
+                const activeIndex = activeDragId ? getIndex(activeDragId) : -1;
+                const overIndex = getIndex(over.id);
+
+                if (activeIndex !== overIndex) {
+                  onChange(arrayMove(columns, activeIndex, overIndex));
+                }
               }
-
-              setState({...state, activeItem: null});
+            }}
+            onDragCancel={() => {
+              setActiveId(null);
             }}
           >
-            <SortableContext items={state.items} strategy={verticalListSortingStrategy}>
-              {state.items.map((item, index) => (
-                <SortableQueryField
-                  key={index}
-                  id={item}
-                  value={columns[Number(item)]}
-                  fieldOptions={filteredFieldOptions}
-                  onChange={value => handleSelect(value, index)}
-                  onDelete={() => handleRemove(index)}
-                  canDrag={canDrag}
-                  canDelete={canDelete}
-                />
-              ))}
+            <SortableContext items={items} strategy={verticalListSortingStrategy}>
+              {columns.map((column, index) => {
+                const key = items[index];
+                const dragId = key;
+                return (
+                  <SortableQueryField
+                    key={key}
+                    dragId={dragId}
+                    value={column}
+                    fieldOptions={filteredFieldOptions}
+                    onChange={value => handleSelect(value, index)}
+                    onDelete={() => handleRemove(index)}
+                    canDrag={canDrag}
+                    canDelete={canDelete}
+                  />
+                );
+              })}
             </SortableContext>
-            <DragOverlay>
-              {state.activeItem ? (
+            <DragOverlay dropAnimation={null}>
+              {activeId ? (
                 <Ghost>
                   <QueryField
-                    value={columns[Number(state.activeItem)]}
+                    value={columns[Number(activeId)]}
                     fieldOptions={filteredFieldOptions}
-                    onChange={value => handleSelect(value, Number(state.activeItem))}
+                    onChange={value => handleSelect(value, Number(activeId))}
+                    onDelete={() => handleRemove(Number(activeId))}
                     canDrag={canDrag}
                     canDelete={canDelete}
                   />
@@ -215,6 +202,7 @@ const AddGroupButton = styled(Button)`
 `;
 
 const Ghost = styled('div')`
+  position: absolute;
   background: ${p => p.theme.background};
   padding: ${space(0.5)};
   border-radius: ${p => p.theme.borderRadius};
