@@ -61,7 +61,8 @@ def get_metric_conditional_tagging_rules(
     project: Project,
 ) -> Sequence[MetricConditionalTaggingRule]:
     rules: List[MetricConditionalTaggingRule] = []
-
+    
+    # transaction-specific overrides must precede the project-wide threshold in the list of rules.
     for threshold in project.projecttransactionthresholdoverride_set.all():
         rules.extend(
             _threshold_to_rules(
