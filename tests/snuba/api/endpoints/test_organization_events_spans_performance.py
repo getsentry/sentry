@@ -1205,6 +1205,86 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
 
         self.assert_span_examples(response.data, [self.span_example_results("http.server", event)])
 
+    def test_one_span_with_min(self):
+        spans = [
+            {
+                "same_process_as_parent": True,
+                "parent_span_id": "a" * 16,
+                "span_id": x * 16,
+                "start_timestamp": iso_format(self.min_ago + timedelta(seconds=1)),
+                "timestamp": iso_format(self.min_ago + timedelta(seconds=4)),
+                "op": "django.middleware",
+                "description": "middleware span",
+                "hash": "cd" * 8,
+                "exclusive_time": 5.0,
+            }
+            for x in ["b", "c"]
+        ]
+        self.create_event(spans=spans)
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={
+                    "project": self.project.id,
+                    "span": f"django.middleware:{'cd' * 8}",
+                    "min_exclusive_time": 7.0,
+                },
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+
+        expected_result = [
+            {
+                "op": "django.middleware",
+                "group": "cd" * 8,
+                "examples": [],
+            }
+        ]
+
+        self.assert_span_examples(response.data, expected_result)
+
+    def test_one_span_with_max(self):
+        spans = [
+            {
+                "same_process_as_parent": True,
+                "parent_span_id": "a" * 16,
+                "span_id": x * 16,
+                "start_timestamp": iso_format(self.min_ago + timedelta(seconds=1)),
+                "timestamp": iso_format(self.min_ago + timedelta(seconds=4)),
+                "op": "django.middleware",
+                "description": "middleware span",
+                "hash": "cd" * 8,
+                "exclusive_time": 5.0,
+            }
+            for x in ["b", "c"]
+        ]
+        self.create_event(spans=spans)
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={
+                    "project": self.project.id,
+                    "span": f"django.middleware:{'cd' * 8}",
+                    "max_exclusive_time": 2.0,
+                },
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+
+        expected_result = [
+            {
+                "op": "django.middleware",
+                "group": "cd" * 8,
+                "examples": [],
+            }
+        ]
+
+        self.assert_span_examples(response.data, expected_result)
+
     def test_one_span_with_min_max(self):
         spans = [
             {
@@ -1309,6 +1389,158 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
             response.data,
             [self.span_example_results("http.server", event)],
         )
+
+    def test_per_page_with_min(self):
+        spans = [
+            {
+                "same_process_as_parent": True,
+                "parent_span_id": "a" * 16,
+                "span_id": x * 16,
+                "start_timestamp": iso_format(self.min_ago + timedelta(seconds=1)),
+                "timestamp": iso_format(self.min_ago + timedelta(seconds=4)),
+                "op": "django.middleware",
+                "description": "middleware span",
+                "hash": "cd" * 8,
+                "exclusive_time": 5.0,
+            }
+            for x in ["b", "c"]
+        ] + [
+            {
+                "same_process_as_parent": True,
+                "parent_span_id": "a" * 16,
+                "span_id": x * 16,
+                "start_timestamp": iso_format(self.min_ago + timedelta(seconds=4)),
+                "timestamp": iso_format(self.min_ago + timedelta(seconds=5)),
+                "op": "django.middleware",
+                "description": "middleware span",
+                "hash": "cd" * 8,
+                "exclusive_time": 3.0,
+            }
+            for x in ["d", "e", "f"]
+        ]
+
+        # create two events
+        self.create_event(spans=spans)
+        event = self.create_event(spans=spans)
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={
+                    "project": self.project.id,
+                    "span": f"django.middleware:{'cd' * 8}",
+                    "min_exclusive_time": 4.0,
+                    "per_page": 1,
+                },
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+
+        expected_result = [
+            {
+                "op": "django.middleware",
+                "group": "cd" * 8,
+                "examples": [
+                    {
+                        "id": event.event_id,
+                        "description": "middleware span",
+                        "startTimestamp": (self.min_ago).timestamp(),
+                        "finishTimestamp": (self.min_ago + timedelta(seconds=8)).timestamp(),
+                        "nonOverlappingExclusiveTime": 3000.0,
+                        "spans": [
+                            {
+                                "id": x * 16,
+                                "exclusiveTime": 5.0,
+                                "startTimestamp": (self.min_ago + timedelta(seconds=1)).timestamp(),
+                                "finishTimestamp": (
+                                    self.min_ago + timedelta(seconds=4)
+                                ).timestamp(),
+                            }
+                            for x in ["b", "c"]
+                        ],
+                    }
+                ],
+            }
+        ]
+
+        self.assert_span_examples(response.data, expected_result)
+
+    def test_per_page_with_max(self):
+        spans = [
+            {
+                "same_process_as_parent": True,
+                "parent_span_id": "a" * 16,
+                "span_id": x * 16,
+                "start_timestamp": iso_format(self.min_ago + timedelta(seconds=1)),
+                "timestamp": iso_format(self.min_ago + timedelta(seconds=4)),
+                "op": "django.middleware",
+                "description": "middleware span",
+                "hash": "cd" * 8,
+                "exclusive_time": 5.0,
+            }
+            for x in ["b", "c"]
+        ] + [
+            {
+                "same_process_as_parent": True,
+                "parent_span_id": "a" * 16,
+                "span_id": x * 16,
+                "start_timestamp": iso_format(self.min_ago + timedelta(seconds=4)),
+                "timestamp": iso_format(self.min_ago + timedelta(seconds=5)),
+                "op": "django.middleware",
+                "description": "middleware span",
+                "hash": "cd" * 8,
+                "exclusive_time": 3.0,
+            }
+            for x in ["d", "e", "f"]
+        ]
+
+        # create two events
+        self.create_event(spans=spans)
+        event = self.create_event(spans=spans)
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={
+                    "project": self.project.id,
+                    "span": f"django.middleware:{'cd' * 8}",
+                    "max_exclusive_time": 4.0,
+                    "per_page": 1,
+                },
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+
+        expected_result = [
+            {
+                "op": "django.middleware",
+                "group": "cd" * 8,
+                "examples": [
+                    {
+                        "id": event.event_id,
+                        "description": "middleware span",
+                        "startTimestamp": (self.min_ago).timestamp(),
+                        "finishTimestamp": (self.min_ago + timedelta(seconds=8)).timestamp(),
+                        "nonOverlappingExclusiveTime": 1000.0,
+                        "spans": [
+                            {
+                                "id": x * 16,
+                                "exclusiveTime": 3.0,
+                                "startTimestamp": (self.min_ago + timedelta(seconds=4)).timestamp(),
+                                "finishTimestamp": (
+                                    self.min_ago + timedelta(seconds=5)
+                                ).timestamp(),
+                            }
+                            for x in ["d", "e", "f"]
+                        ],
+                    }
+                ],
+            }
+        ]
+
+        self.assert_span_examples(response.data, expected_result)
 
     def test_per_page_with_min_max(self):
         spans = [
