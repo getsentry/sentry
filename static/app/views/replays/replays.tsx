@@ -64,8 +64,7 @@ function Replays(props: Props) {
       name: '',
       version: 2,
       fields: ['eventID', 'project', 'timestamp', 'user.display', 'url'],
-      // @ts-ignore
-      orderby: query.sort || '-timestamp',
+      orderby: sanitizeLocationQuery(query.sort) || '-timestamp',
       environment: selection.environments,
       projects: selection.projects,
       query: `transaction:sentry-replay ${searchQuery}`, // future: change to replay event
@@ -133,8 +132,7 @@ function Replays(props: Props) {
   const sort: {
     field: string;
   } = {
-    // @ts-ignore
-    field: query.sort || '-timestamp',
+    field: sanitizeLocationQuery(query.sort) || '-timestamp',
   };
 
   const arrowDirection = sort.field.startsWith('-') ? 'down' : 'up';
