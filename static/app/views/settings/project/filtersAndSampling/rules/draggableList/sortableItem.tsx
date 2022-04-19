@@ -1,14 +1,23 @@
 import * as React from 'react';
+import {UniqueIdentifier} from '@dnd-kit/core';
 import {useSortable} from '@dnd-kit/sortable';
 
 import Item from './item';
 
 export type SortableItemProps = Pick<
   React.ComponentProps<typeof Item>,
-  'renderItem' | 'index'
+  'renderItem' | 'index' | 'innerWrapperStyle'
 > & {
   id: string;
   index: number;
+  innerWrapperStyle(args: {
+    id: UniqueIdentifier;
+    index: number;
+    isDragOverlay: boolean;
+    isDragging: boolean;
+    isSorting: boolean;
+    overIndex: number;
+  }): React.CSSProperties;
   wrapperStyle(args: {
     id: string;
     index: number;
@@ -24,6 +33,7 @@ function SortableItem({
   renderItem,
   disabled,
   wrapperStyle,
+  innerWrapperStyle,
 }: SortableItemProps) {
   const {
     attributes,
@@ -31,6 +41,7 @@ function SortableItem({
     isDragging,
     listeners,
     setNodeRef,
+    overIndex,
     transform,
     transition,
   } = useSortable({id, disabled});
@@ -47,6 +58,14 @@ function SortableItem({
       listeners={listeners}
       attributes={attributes}
       wrapperStyle={wrapperStyle({id, index, isDragging, isSorting})}
+      innerWrapperStyle={innerWrapperStyle({
+        id,
+        index,
+        isDragging,
+        isSorting,
+        overIndex,
+        isDragOverlay: false,
+      })}
     />
   );
 }

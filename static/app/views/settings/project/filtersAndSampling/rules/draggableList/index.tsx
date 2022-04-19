@@ -1,4 +1,5 @@
 import {Component} from 'react';
+import {createPortal} from 'react-dom';
 import {DndContext, DragOverlay} from '@dnd-kit/core';
 import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
 
@@ -11,7 +12,10 @@ export type UpdateItemsProps = {
   reorderedItems: Array<string>;
 };
 
-type DefaultProps = Pick<SortableItemProps, 'disabled' | 'wrapperStyle'>;
+type DefaultProps = Pick<
+  SortableItemProps,
+  'disabled' | 'wrapperStyle' | 'innerWrapperStyle'
+>;
 
 type Props = Pick<ItemProps, 'renderItem'> & {
   items: Array<string>;
@@ -26,6 +30,7 @@ class DraggableList extends Component<Props, State> {
   static defaultProps: DefaultProps = {
     disabled: false,
     wrapperStyle: () => ({}),
+    innerWrapperStyle: () => ({}),
   };
 
   state: State = {};
@@ -36,7 +41,8 @@ class DraggableList extends Component<Props, State> {
 
   render() {
     const {activeId} = this.state;
-    const {items, onUpdateItems, renderItem, disabled, wrapperStyle} = this.props;
+    const {items, onUpdateItems, renderItem, disabled, wrapperStyle, innerWrapperStyle} =
+      this.props;
 
     const getIndex = items.indexOf.bind(items);
     const activeIndex = activeId ? getIndex(activeId) : -1;
@@ -75,23 +81,35 @@ class DraggableList extends Component<Props, State> {
               renderItem={renderItem}
               disabled={disabled}
               wrapperStyle={wrapperStyle}
+              innerWrapperStyle={innerWrapperStyle}
             />
           ))}
         </SortableContext>
-        <DragOverlay>
-          {activeId ? (
-            <Item
-              value={items[activeIndex]}
-              renderItem={renderItem}
-              wrapperStyle={wrapperStyle({
-                id: items[activeIndex],
-                index: activeIndex,
-                isDragging: true,
-                isSorting: false,
-              })}
-            />
-          ) : null}
-        </DragOverlay>
+        {createPortal(
+          <DragOverlay>
+            {activeId ? (
+              <Item
+                value={items[activeIndex]}
+                renderItem={renderItem}
+                wrapperStyle={wrapperStyle({
+                  id: items[activeIndex],
+                  index: activeIndex,
+                  isDragging: true,
+                  isSorting: false,
+                })}
+                innerWrapperStyle={innerWrapperStyle({
+                  id: items[activeIndex],
+                  index: activeIndex,
+                  isSorting: activeId !== null,
+                  isDragging: true,
+                  overIndex: -1,
+                  isDragOverlay: true,
+                })}
+              />
+            ) : null}
+          </DragOverlay>,
+          document.body
+        )}
       </DndContext>
     );
   }
