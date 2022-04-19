@@ -1,5 +1,5 @@
 ---
-created: '2022-04-07T11:02:02.860359Z'
+created: '2022-04-19T12:36:48.889664Z'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -11,6 +11,37 @@ breakdownsV2:
     - browser
     - resource
     type: spanOperations
+metricConditionalTagging:
+- condition:
+    inner:
+    - name: transaction.duration
+      op: gt
+      value: 1200
+    op: and
+  tagValue: frustrated
+  targetMetrics:
+  - s:transactions/user@none
+  - d:transactions/duration@millisecond
+  targetTag: satisfaction
+- condition:
+    inner:
+    - name: transaction.duration
+      op: gt
+      value: 300
+    op: and
+  tagValue: tolerated
+  targetMetrics:
+  - s:transactions/user@none
+  - d:transactions/duration@millisecond
+  targetTag: satisfaction
+- condition:
+    inner: []
+    op: and
+  tagValue: satisfied
+  targetMetrics:
+  - s:transactions/user@none
+  - d:transactions/duration@millisecond
+  targetTag: satisfaction
 transactionMetrics:
   extractCustomTags: []
   extractMetrics:
@@ -38,8 +69,3 @@ transactionMetrics:
   - d:transactions/breakdowns.ops.db
   - d:transactions/breakdowns.ops.browser
   - d:transactions/breakdowns.ops.resource
-  satisfactionThresholds:
-    projectThreshold:
-      metric: duration
-      threshold: 300.0
-    transactionThresholds: {}

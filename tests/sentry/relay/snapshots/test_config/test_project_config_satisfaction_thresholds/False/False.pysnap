@@ -1,9 +1,35 @@
 ---
-created: '2022-02-28T13:20:49.317250Z'
+created: '2022-04-19T12:36:49.105349Z'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
-projectThreshold:
-  metric: duration
-  threshold: 300.0
-transactionThresholds: {}
+- condition:
+    inner:
+    - name: transaction.duration
+      op: gt
+      value: 1200
+    op: and
+  tagValue: frustrated
+  targetMetrics:
+  - s:transactions/user@none
+  - d:transactions/duration@millisecond
+  targetTag: satisfaction
+- condition:
+    inner:
+    - name: transaction.duration
+      op: gt
+      value: 300
+    op: and
+  tagValue: tolerated
+  targetMetrics:
+  - s:transactions/user@none
+  - d:transactions/duration@millisecond
+  targetTag: satisfaction
+- condition:
+    inner: []
+    op: and
+  tagValue: satisfied
+  targetMetrics:
+  - s:transactions/user@none
+  - d:transactions/duration@millisecond
+  targetTag: satisfaction

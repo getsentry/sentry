@@ -1,9 +1,35 @@
 ---
-created: '2022-02-28T13:20:49.410307Z'
+created: '2022-04-19T12:33:09.203815Z'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
-projectThreshold:
-  metric: lcp
-  threshold: 500
-transactionThresholds: {}
+- condition:
+    inner:
+    - name: transaction.measurements.lcp
+      op: gt
+      value: 2000
+    op: and
+  tagValue: frustrated
+  targetMetrics:
+  - s:transactions/user@none
+  - d:transactions/duration@millisecond
+  targetTag: satisfaction
+- condition:
+    inner:
+    - name: transaction.measurements.lcp
+      op: gt
+      value: 500
+    op: and
+  tagValue: tolerated
+  targetMetrics:
+  - s:transactions/user@none
+  - d:transactions/duration@millisecond
+  targetTag: satisfaction
+- condition:
+    inner: []
+    op: and
+  tagValue: satisfied
+  targetMetrics:
+  - s:transactions/user@none
+  - d:transactions/duration@millisecond
+  targetTag: satisfaction

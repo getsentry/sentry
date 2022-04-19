@@ -1,15 +1,113 @@
 ---
-created: '2022-02-28T13:20:49.505288Z'
+created: '2022-04-19T12:36:49.339601Z'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
-projectThreshold:
-  metric: duration
-  threshold: 300.0
-transactionThresholds:
-  bar:
-    metric: lcp
-    threshold: 600
-  foo:
-    metric: duration
-    threshold: 400
+- condition:
+    inner:
+    - name: transaction.measurements.lcp
+      op: gt
+      value: 2400
+    - name: event.transaction
+      op: eq
+      value: bar
+    op: and
+  tagValue: frustrated
+  targetMetrics:
+  - s:transactions/user@none
+  - d:transactions/duration@millisecond
+  targetTag: satisfaction
+- condition:
+    inner:
+    - name: transaction.measurements.lcp
+      op: gt
+      value: 600
+    - name: event.transaction
+      op: eq
+      value: bar
+    op: and
+  tagValue: tolerated
+  targetMetrics:
+  - s:transactions/user@none
+  - d:transactions/duration@millisecond
+  targetTag: satisfaction
+- condition:
+    inner:
+    - name: event.transaction
+      op: eq
+      value: bar
+    op: and
+  tagValue: satisfied
+  targetMetrics:
+  - s:transactions/user@none
+  - d:transactions/duration@millisecond
+  targetTag: satisfaction
+- condition:
+    inner:
+    - name: transaction.duration
+      op: gt
+      value: 1600
+    - name: event.transaction
+      op: eq
+      value: foo
+    op: and
+  tagValue: frustrated
+  targetMetrics:
+  - s:transactions/user@none
+  - d:transactions/duration@millisecond
+  targetTag: satisfaction
+- condition:
+    inner:
+    - name: transaction.duration
+      op: gt
+      value: 400
+    - name: event.transaction
+      op: eq
+      value: foo
+    op: and
+  tagValue: tolerated
+  targetMetrics:
+  - s:transactions/user@none
+  - d:transactions/duration@millisecond
+  targetTag: satisfaction
+- condition:
+    inner:
+    - name: event.transaction
+      op: eq
+      value: foo
+    op: and
+  tagValue: satisfied
+  targetMetrics:
+  - s:transactions/user@none
+  - d:transactions/duration@millisecond
+  targetTag: satisfaction
+- condition:
+    inner:
+    - name: transaction.duration
+      op: gt
+      value: 1200
+    op: and
+  tagValue: frustrated
+  targetMetrics:
+  - s:transactions/user@none
+  - d:transactions/duration@millisecond
+  targetTag: satisfaction
+- condition:
+    inner:
+    - name: transaction.duration
+      op: gt
+      value: 300
+    op: and
+  tagValue: tolerated
+  targetMetrics:
+  - s:transactions/user@none
+  - d:transactions/duration@millisecond
+  targetTag: satisfaction
+- condition:
+    inner: []
+    op: and
+  tagValue: satisfied
+  targetMetrics:
+  - s:transactions/user@none
+  - d:transactions/duration@millisecond
+  targetTag: satisfaction
