@@ -552,6 +552,32 @@ describe('Performance > Transaction Spans > Span Summary', function () {
         const nodes = await screen.findAllByText('Self Time Distribution');
         expect(nodes[0]).toBeInTheDocument();
       });
+
+      it('sends min and max to suspect spans query', async function () {
+        const mock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events-spans/',
+          body: {},
+        });
+        const data = initializeData({
+          features: FEATURES,
+          query: {project: '1', transaction: 'transaction', min: '10', max: '120'},
+        });
+
+        render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
+          context: data.routerContext,
+          organization: data.organization,
+        });
+
+        expect(mock).toHaveBeenLastCalledWith(
+          '/organizations/org-slug/events-spans-performance/',
+          expect.objectContaining({
+            query: expect.objectContaining({
+              min_exclusive_time: '10',
+              max_exclusive_time: '120',
+            }),
+          })
+        );
+      });
     });
   });
 });
