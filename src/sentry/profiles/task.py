@@ -1,9 +1,10 @@
 from typing import Any, MutableMapping
 
 from django.conf import settings
+from symbolic import ProguardMapper  # type: ignore
 
 from sentry.lang.native.symbolicator import Symbolicator
-from sentry.models import Project
+from sentry.models import Project, ProjectDebugFile
 from sentry.profiles.device import classify_device
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, kafka_config
@@ -24,6 +25,8 @@ def process_profile(profile: MutableMapping[str, Any], **kwargs: Any) -> None:
         if not _validate_ios_profile(profile=profile):
             return None
         profile = _symbolicate(profile=profile)
+    elif profile["platform"] == "android":
+        profile = _deobfuscate(profile=profile)
 
     profile = _normalize(profile=profile)
 
@@ -128,5 +131,55 @@ def _symbolicate(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
 
     # save the symbolicated frames on the profile
     profile["profile"] = profile["sampled_profile"]
+
+    return profile
+
+
+def _deobfuscate(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
+    debug_file_id = profile.get("build_id")
+    if debug_file_id == "" or debug_file_id is None:
+        return profile
+
+    project = Project.objects.get_from_cache(id=profile["project_id"])
+    dif_paths = ProjectDebugFile.difcache.fetch_difs(project, [debug_file_id], features=["mapping"])
+    debug_file_path = dif_paths.get(debug_file_id)
+    if debug_file_path is None:
+        return profile
+
+    mapper = ProguardMapper.open(debug_file_path)
+    if not mapper.has_line_info:
+        return profile
+
+    for method in profile["profile"]["methods"]:
+        mapped = mapper.remap_frame(
+            method["class_name"], method["name"], method["source_line"] or 0
+        )
+        if len(mapped) == 1:
+            new_frame = mapped[0]
+            method.update(
+                {
+                    "class_name": new_frame.class_name,
+                    "name": new_frame.method,
+                    "source_file": new_frame.file,
+                    "source_line": new_frame.line,
+                }
+            )
+        elif len(mapped) > 1:
+            bottom_class = mapped[-1].class_name
+            method["inline_frames"] = [
+                {
+                    "class_name": new_frame.class_name,
+                    "name": new_frame.method,
+                    "source_file": method["source_file"]
+                    if bottom_class == new_frame.class_name
+                    else None,
+                    "source_line": new_frame.line,
+                }
+                for new_frame in mapped
+            ]
+        else:
+            mapped = mapper.remap_class(method["class_name"])
+            if mapped:
+                method["class_name"] = mapped
 
     return profile
