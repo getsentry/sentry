@@ -60,16 +60,16 @@ export default function SpanSiblingGroupBar(props: Props) {
     }
 
     if (!operation) {
-      return <strong>{`${t('Autogrouped ')}\u2014 ${description}`}</strong>;
+      return <strong>{`${t('Autogrouped')} \u2014 ${description}`}</strong>;
     }
 
     if (!description) {
-      return <strong>{`${t('Autogrouped ')}\u2014 ${operation}`}</strong>;
+      return <strong>{`${t('Autogrouped')} \u2014 ${operation}`}</strong>;
     }
 
     return (
       <React.Fragment>
-        <strong>{`${t('Autogrouped ')}\u2014 ${operation} \u2014 `}</strong>
+        <strong>{`${t('Autogrouped')} \u2014 ${operation} \u2014 `}</strong>
         {description}
       </React.Fragment>
     );
