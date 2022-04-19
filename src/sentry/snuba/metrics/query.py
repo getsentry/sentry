@@ -28,6 +28,11 @@ class CountUnique(MetricField):
         super().__init__("count_unique", metric_name)
 
 
+class Avg(MetricField):
+    def __init__(self, metric_name: str):
+        super().__init__("avg", metric_name)
+
+
 class Sum(MetricField):
     def __init__(self, metric_name: str):
         super().__init__("sum", metric_name)
@@ -108,7 +113,7 @@ class QueryType(Flag):
 
 
 @dataclass(frozen=True)
-class MetricsQuery:
+class QueryDefinition:
     """Definition of a metrics query, inspired by snuba_sdk.Query"""
 
     org_id: int
