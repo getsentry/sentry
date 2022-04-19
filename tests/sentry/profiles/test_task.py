@@ -65,6 +65,15 @@ class ProfilesProcessTaskTest(TestCase):
             owner=self.owner, flags=0  # disable default allow_joinleave access
         )
         self.team = self.create_team(organization=self.organization)
+        self.upload_dsym_files_url = reverse(
+            "sentry-api-0-dsym-files",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+            },
+        )
+
+        self.login_as(user=self.owner)
 
     @fixture
     def ios_profile(self):
@@ -107,22 +116,12 @@ class ProfilesProcessTaskTest(TestCase):
         assert isinstance(profile["android_api_level"], int)
 
     def test_basic_deobfuscation(self):
-        url = reverse(
-            "sentry-api-0-dsym-files",
-            kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
-            },
-        )
-
-        self.login_as(user=self.owner)
-
         out = BytesIO()
         with ZipFile(out, "w") as f:
             f.writestr(f"proguard/{PROGUARD_UUID}.txt", PROGUARD_SOURCE)
 
         response = self.client.post(
-            url,
+            self.upload_dsym_files_url,
             {
                 "file": SimpleUploadedFile(
                     "symbols.zip", out.getvalue(), content_type="application/zip"
@@ -168,22 +167,12 @@ class ProfilesProcessTaskTest(TestCase):
         assert frames[1]["class_name"] == "org.slf4j.helpers.Util$ClassContextSecurityManager"
 
     def test_inline_deobfuscation(self):
-        url = reverse(
-            "sentry-api-0-dsym-files",
-            kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
-            },
-        )
-
-        self.login_as(user=self.owner)
-
         out = BytesIO()
         with ZipFile(out, "w") as f:
             f.writestr(f"proguard/{PROGUARD_INLINE_UUID}.txt", PROGUARD_INLINE_SOURCE)
 
         response = self.client.post(
-            url,
+            self.upload_dsym_files_url,
             {
                 "file": SimpleUploadedFile(
                     "symbols.zip", out.getvalue(), content_type="application/zip"
@@ -240,22 +229,12 @@ class ProfilesProcessTaskTest(TestCase):
         assert frames[1]["inline_frames"][2]["class_name"] == "io.sentry.sample.MainActivity"
 
     def test_error_on_resolving(self):
-        url = reverse(
-            "sentry-api-0-dsym-files",
-            kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
-            },
-        )
-
-        self.login_as(user=self.owner)
-
         out = BytesIO()
         with ZipFile(out, "w") as f:
             f.writestr(f"proguard/{PROGUARD_BUG_UUID}.txt", PROGUARD_BUG_SOURCE)
 
         response = self.client.post(
-            url,
+            self.upload_dsym_files_url,
             {
                 "file": SimpleUploadedFile(
                     "symbols.zip", out.getvalue(), content_type="application/zip"
