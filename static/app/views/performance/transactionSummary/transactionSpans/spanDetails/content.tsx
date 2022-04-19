@@ -5,6 +5,7 @@ import {Location} from 'history';
 import Feature from 'sentry/components/acl/feature';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
+import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import space from 'sentry/styles/space';
@@ -59,7 +60,12 @@ export default function SpanDetailsContentWrapper(props: Props) {
             tab={Tab.Spans}
             spanSlug={spanSlug}
           />
-          <Layout.Title>{transactionName}</Layout.Title>
+          <Layout.Title>
+            <TransactionName>
+              <IdBadge project={project} avatarSize={28} hideName />
+              {transactionName}
+            </TransactionName>
+          </Layout.Title>
         </Layout.HeaderContent>
       </Layout.Header>
       <Layout.Body>
@@ -123,6 +129,13 @@ export default function SpanDetailsContentWrapper(props: Props) {
     </Fragment>
   );
 }
+
+const TransactionName = styled('div')`
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  grid-column-gap: ${space(1)};
+  align-items: center;
+`;
 
 type ContentProps = {
   eventView: EventView;

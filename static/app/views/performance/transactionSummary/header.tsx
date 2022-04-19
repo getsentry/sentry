@@ -7,10 +7,12 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import FeatureBadge from 'sentry/components/featureBadge';
+import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ListLink from 'sentry/components/links/listLink';
 import NavTabs from 'sentry/components/navTabs';
 import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
@@ -218,7 +220,8 @@ class TransactionHeader extends React.Component<Props> {
   }
 
   render() {
-    const {organization, location, projectId, transactionName, currentTab} = this.props;
+    const {organization, location, projectId, transactionName, currentTab, projects} =
+      this.props;
 
     const routeQuery = {
       orgSlug: organization.slug,
@@ -233,6 +236,8 @@ class TransactionHeader extends React.Component<Props> {
     const spansTarget = spansRouteWithQuery(routeQuery);
     const anomaliesTarget = anomaliesRouteWithQuery(routeQuery);
 
+    const project = projects.find(p => p.id === projectId);
+
     return (
       <Layout.Header>
         <Layout.HeaderContent>
@@ -245,7 +250,12 @@ class TransactionHeader extends React.Component<Props> {
             }}
             tab={currentTab}
           />
-          <Layout.Title>{transactionName}</Layout.Title>
+          <Layout.Title>
+            <TransactionName>
+              <IdBadge project={project} avatarSize={28} hideName />
+              {transactionName}
+            </TransactionName>
+          </Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
@@ -318,6 +328,13 @@ const StyledNavTabs = styled(NavTabs)`
   margin-bottom: 0;
   /* Makes sure the tabs are pushed into another row */
   width: 100%;
+`;
+
+const TransactionName = styled('div')`
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  grid-column-gap: ${space(1)};
+  align-items: center;
 `;
 
 export default TransactionHeader;
