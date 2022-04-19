@@ -27,10 +27,6 @@ function DashboardsV2Container(props: Props) {
     return <Fragment>{children}</Fragment>;
   }
 
-  organization.features = organization.features.filter(
-    x => x !== 'dashboard-grid-layout'
-  );
-
   return (
     <DashboardBasicFeature organization={organization}>
       <OrgDashboards
