@@ -31,8 +31,8 @@ class MetricConditionalTaggingRule(TypedDict):
 
 
 _TRANSACTION_METRICS_TO_RULE_FIELD = {
-    TransactionMetric.LCP.value: "transaction.measurements.lcp",
-    TransactionMetric.DURATION.value: "transaction.duration",
+    TransactionMetric.LCP.value: "event.measurements.lcp.value",
+    TransactionMetric.DURATION.value: "event.duration",
 }
 
 _SATISFACTION_TARGET_METRICS = (
