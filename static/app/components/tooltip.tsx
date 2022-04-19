@@ -247,7 +247,10 @@ export function DO_NOT_USE_TOOLTIP({
           {({cx, css}) =>
             cloneElement(triggerChildren, {
               ...containerProps,
-              className: cx(showIndicator && css(theme.tooltipUnderline)),
+              className: cx(
+                showIndicator && css(theme.tooltipUnderline),
+                triggerChildren.props.className
+              ),
               ref: setRef,
             })
           }
@@ -258,17 +261,14 @@ export function DO_NOT_USE_TOOLTIP({
     containerProps.containerDisplayMode = containerDisplayMode;
 
     return (
-      <ClassNames>
-        {({cx, css}) => (
-          <Container
-            {...containerProps}
-            className={cx(className, showIndicator && css(theme.tooltipUnderline))}
-            ref={setRef}
-          >
-            {triggerChildren}
-          </Container>
-        )}
-      </ClassNames>
+      <Container
+        {...containerProps}
+        css={showIndicator && theme.tooltipUnderline}
+        className={className}
+        ref={setRef}
+      >
+        {triggerChildren}
+      </Container>
     );
   }
 
@@ -319,7 +319,9 @@ export function DO_NOT_USE_TOOLTIP({
 
 // Using an inline-block solves the container being smaller
 // than the elements it is wrapping
-const Container = styled('span')<{containerDisplayMode?: React.CSSProperties['display']}>`
+const Container = styled('span')<{
+  containerDisplayMode?: React.CSSProperties['display'];
+}>`
   ${p => p.containerDisplayMode && `display: ${p.containerDisplayMode}`};
   max-width: 100%;
 `;
