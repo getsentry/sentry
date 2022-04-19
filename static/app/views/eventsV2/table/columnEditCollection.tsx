@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 
 import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
 import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import Input from 'sentry/components/forms/controls/input';
 import {getOffsetOfElement} from 'sentry/components/performance/waterfall/utils';
@@ -583,7 +584,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
           });
         })}
         <RowContainer showAliasField={showAliasField} singleColumn={singleColumn}>
-          <Actions showAliasField={showAliasField}>
+          <Actions gap={1} showAliasField={showAliasField}>
             <Button
               size="small"
               aria-label={t('Add a Column')}
@@ -613,18 +614,9 @@ class ColumnEditCollection extends React.Component<Props, State> {
   }
 }
 
-const Actions = styled('div')<{showAliasField?: boolean}>`
-  grid-column: 2 / 3;
-
-  & button {
-    margin-right: ${space(1)};
-  }
-
-  ${p =>
-    p.showAliasField &&
-    css`
-      grid-column: 1/-1;
-    `};
+const Actions = styled(ButtonBar)<{showAliasField?: boolean}>`
+  grid-column: ${p => (p.showAliasField ? '1/-1' : ' 2/3')};
+  justify-content: flex-start;
 `;
 
 const RowContainer = styled('div')<{
