@@ -37,7 +37,8 @@ export function createDashboard(
   api: Client,
   orgId: string,
   newDashboard: DashboardDetails,
-  duplicate?: boolean
+  duplicate?: boolean,
+  projectIds?: string[] | number[]
 ): Promise<DashboardDetails> {
   const {title, widgets} = newDashboard;
 
@@ -46,6 +47,9 @@ export function createDashboard(
     {
       method: 'POST',
       data: {title, widgets: widgets.map(widget => omit(widget, ['tempId'])), duplicate},
+      query: {
+        project: projectIds.map(String),
+      },
     }
   );
 

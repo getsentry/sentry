@@ -33,12 +33,13 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import {Organization, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
+import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {
   WidgetViewerContext,
@@ -82,6 +83,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   initialState: DashboardState;
   organization: Organization;
   route: PlainRoute;
+  selection: PageFilters;
   newWidget?: Widget;
   onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
   onSetNewWidget?: () => void;
@@ -461,7 +463,8 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   onCommit = () => {
-    const {api, organization, location, dashboard, onDashboardUpdate} = this.props;
+    const {api, organization, location, dashboard, onDashboardUpdate, selection} =
+      this.props;
     const {modifiedDashboard, dashboardState} = this.state;
 
     switch (dashboardState) {
@@ -476,7 +479,13 @@ class DashboardDetail extends Component<Props, State> {
               was_previewed: true,
             });
           }
-          createDashboard(api, organization.slug, modifiedDashboard, this.isPreview).then(
+          createDashboard(
+            api,
+            organization.slug,
+            modifiedDashboard,
+            this.isPreview,
+            selection.projects
+          ).then(
             (newDashboard: DashboardDetails) => {
               addSuccessMessage(t('Dashboard created'));
               trackAnalyticsEvent({
@@ -807,4 +816,4 @@ const DashboardPageFilterBar = styled(PageFilterBar)`
   max-width: 100%;
 `;
 
-export default withApi(withOrganization(DashboardDetail));
+export default withPageFilters(withApi(withOrganization(DashboardDetail)));

@@ -20,9 +20,10 @@ import TimeSince from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import {Organization, PageFilters} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import withApi from 'sentry/utils/withApi';
+import withPageFilters from 'sentry/utils/withPageFilters';
 import {DashboardListItem, DisplayType} from 'sentry/views/dashboardsV2/types';
 
 import {cloneDashboard, miniWidget} from '../utils';
@@ -37,6 +38,7 @@ type Props = {
   onDashboardsChange: () => void;
   organization: Organization;
   pageLinks: string;
+  selection: PageFilters;
 };
 
 function DashboardList({
@@ -69,7 +71,8 @@ function DashboardList({
       const dashboardDetail = await fetchDashboard(api, organization.slug, dashboard.id);
       const newDashboard = cloneDashboard(dashboardDetail);
       newDashboard.widgets.map(widget => (widget.id = undefined));
-      await createDashboard(api, organization.slug, newDashboard, true);
+      // TODO(nar): Is there a const for this?
+      await createDashboard(api, organization.slug, newDashboard, true, [-1]);
 
       trackAnalyticsEvent({
         eventKey: 'dashboards_manage.duplicate',
@@ -297,4 +300,4 @@ const DropdownTrigger = styled(Button)`
   transform: translateX(${space(1)});
 `;
 
-export default withApi(DashboardList);
+export default withPageFilters(withApi(DashboardList));
