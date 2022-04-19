@@ -461,6 +461,57 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
             "detail": ErrorDetail("You must specify exactly 1 project.", code="parse_error"),
         }
 
+    def test_bad_params_reverse_min_max_exclusive_time(self):
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={
+                    "project": self.project.id,
+                    "min_exclusive_time": 7.0,
+                    "max_exclusive_time": 1.0,
+                },
+                format="json",
+            )
+
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "non_field_errors": ["min_exclusive_time cannot be greater than max_exclusive_time."]
+        }
+
+    def test_bad_params_invalid_min_exclusive_time(self):
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={
+                    "project": self.project.id,
+                    "min_exclusive_time": "foo",
+                    "max_exclusive_time": 1.0,
+                },
+                format="json",
+            )
+
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "min_exclusive_time": ["A valid number is required."]
+        }, "failing for min_exclusive_time"
+
+    def test_bad_params_invalid_max_exclusive_time(self):
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={
+                    "project": self.project.id,
+                    "min_exclusive_time": 100,
+                    "max_exclusive_time": "bar",
+                },
+                format="json",
+            )
+
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "max_exclusive_time": ["A valid number is required."]
+        }, "failing for max_exclusive_time"
+
     def test_bad_sort(self):
         with self.feature(self.FEATURES):
             response = self.client.get(
@@ -835,6 +886,48 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
             )
             in mock_raw_snql_query.call_args_list[0][0][0].where
         )
+
+    def test_min_exclusive_time_filter(self):
+        self.create_event()
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={
+                    "project": self.project.id,
+                    "min_exclusive_time": 4,
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        assert response.data == []
+
+    def test_max_exclusive_time_filter(self):
+        self.create_event()
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={
+                    "project": self.project.id,
+                    "max_exclusive_time": 1,
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        assert response.data == []
+
+    def test_min_max_exclusive_time_filter(self):
+        self.create_event()
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"project": self.project.id, "max_exclusive_time": 5, "min_exclusive_time": 4},
+            )
+
+        assert response.status_code == 200, response.content
+        assert response.data == []
 
     @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
     def test_pagination_first_page(self, mock_raw_snql_query):
