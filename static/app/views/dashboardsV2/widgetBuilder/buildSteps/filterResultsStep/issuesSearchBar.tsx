@@ -1,3 +1,4 @@
+import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
@@ -7,6 +8,10 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import useApi from 'sentry/utils/useApi';
 import withIssueTags from 'sentry/utils/withIssueTags';
 import {WidgetQuery} from 'sentry/views/dashboardsV2/types';
+import {
+  MAX_MENU_HEIGHT,
+  MAX_SEARCH_ITEMS,
+} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 import IssueListSearchBar from 'sentry/views/issueList/searchBar';
 
 interface Props {
@@ -42,18 +47,27 @@ function IssuesSearchBarContainer({
   }
 
   return (
-    <StyledIssueListSearchBar
-      searchSource={searchSource}
-      organization={organization}
-      query={query.conditions || ''}
-      sort=""
-      onSearch={onSearch}
-      onBlur={onBlur}
-      excludeEnvironment
-      supportedTags={tags}
-      tagValueLoader={tagValueLoader}
-      onSidebarToggle={() => undefined}
-    />
+    <ClassNames>
+      {({css}) => (
+        <StyledIssueListSearchBar
+          searchSource={searchSource}
+          organization={organization}
+          query={query.conditions || ''}
+          sort=""
+          onSearch={onSearch}
+          onBlur={onBlur}
+          excludeEnvironment
+          supportedTags={tags}
+          tagValueLoader={tagValueLoader}
+          onSidebarToggle={() => undefined}
+          maxSearchItems={MAX_SEARCH_ITEMS}
+          dropdownClassName={css`
+            max-height: ${MAX_MENU_HEIGHT}px;
+            overflow-y: auto;
+          `}
+        />
+      )}
+    </ClassNames>
   );
 }
 

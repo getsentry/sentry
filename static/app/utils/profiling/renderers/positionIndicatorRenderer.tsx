@@ -15,17 +15,19 @@ class PositionIndicatorRenderer {
     this.context = getContext(this.canvas, '2d');
   }
 
-  draw(configView: Rect, configSpace: Rect, configToPhysicalSpace: mat3): void {
+  draw(configView: Rect, configSpace: Rect, configViewToPhysicalSpace: mat3): void {
     if (configView.equals(configSpace)) {
       // User is not zoomed in, so we dont need to draw anything.
       return;
     }
 
     // Transform both views to their respective physical spaces
-    const physicalConfigViewRect =
-      Rect.From(configView).transformRect(configToPhysicalSpace);
-    const physicalConfigRect =
-      Rect.From(configSpace).transformRect(configToPhysicalSpace);
+    const physicalConfigViewRect = Rect.From(configView).transformRect(
+      configViewToPhysicalSpace
+    );
+    const physicalConfigRect = Rect.From(configSpace).transformRect(
+      configViewToPhysicalSpace
+    );
 
     const offsetRectForBorderWidth: [number, number, number, number] = [
       physicalConfigViewRect.x - this.theme.SIZES.MINIMAP_POSITION_OVERLAY_BORDER_WIDTH,

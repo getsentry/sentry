@@ -179,7 +179,19 @@ class SnubaTSDBTest(OutcomesSnubaTest):
                     "timestamp": self.start_time,
                     "key_id": 1,
                 },
-                3,
+                1,
+            )
+            self.store_outcomes(
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "outcome": outcome.value,
+                    "category": DataCategory.ERROR,
+                    "timestamp": self.start_time,
+                    "key_id": 1,
+                    "quantity": 2,
+                },
+                1,
             )
             self.store_outcomes(
                 {
@@ -448,27 +460,3 @@ class SnubaTSDBTest(OutcomesSnubaTest):
         ]
         for model in models:
             assert model in SnubaTSDB.model_query_settings
-
-    def test_outcomes_have_a_10s_setting(self):
-        exceptions = [
-            TSDBModel.project_total_forwarded  # this is not outcomes and will be moved separately
-        ]
-
-        def is_an_outcome(model):
-            if model in exceptions:
-                return False
-
-            # 100 - 200: project outcomes
-            # 200 - 300: organization outcomes
-            # 500 - 600: key outcomes
-            # 600 - 700: filtered project based outcomes
-            return (
-                (100 <= model.value < 200)
-                or (200 <= model.value < 300)
-                or (500 <= model.value < 600)
-                or (600 <= model.value < 700)
-            )
-
-        models = [x for x in list(TSDBModel) if is_an_outcome(x)]
-        for model in models:
-            assert model in SnubaTSDB.lower_rollup_query_settings
