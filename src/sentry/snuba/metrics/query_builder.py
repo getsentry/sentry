@@ -1,5 +1,5 @@
 __all__ = (
-    "QueryDefinitionXXX",
+    "QueryDefinition",
     "SnubaQueryBuilder",
     "SnubaResultConverter",
     "get_date_range",
@@ -154,7 +154,7 @@ def parse_query(query_string: str) -> Sequence[Condition]:
     return where
 
 
-class QueryDefinitionXXX:
+class QueryDefinition:
     """
     This is the definition of the query the user wants to execute.
     This is constructed out of the request params, and also contains a list of

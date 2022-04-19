@@ -48,7 +48,7 @@ from sentry.snuba.metrics.fields.snql import (
 from sentry.snuba.metrics.naming_layer.mapping import get_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.metrics.query import CountUnique, Percentile95, Sum
-from sentry.snuba.metrics.query_builder import QueryDefinitionXXX
+from sentry.snuba.metrics.query_builder import QueryDefinition
 
 
 @dataclass
@@ -348,7 +348,7 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2, monkeypatch):
             "statsPeriod": ["2d"],
         }
     )
-    query_definition = QueryDefinitionXXX([PseudoProject(1, 1)], query_params)
+    query_definition = QueryDefinition([PseudoProject(1, 1)], query_params)
     query_builder = SnubaQueryBuilder([PseudoProject(1, 1)], query_definition.to_metrics_query())
     snuba_queries, fields_in_entities = query_builder.get_snuba_queries()
     assert fields_in_entities == {
@@ -476,7 +476,7 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, monkeypatch):
             "orderBy": ["-sum(sentry.sessions.session)"],
         }
     )
-    query_definition = QueryDefinitionXXX(
+    query_definition = QueryDefinition(
         [PseudoProject(1, 1)], query_params, paginator_kwargs={"limit": 3}
     )
     snuba_queries, _ = SnubaQueryBuilder(
@@ -563,7 +563,7 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2, monkeypatch):
             ],
         }
     )
-    query_definition = QueryDefinitionXXX(
+    query_definition = QueryDefinition(
         [PseudoProject(1, 1)], query_params, paginator_kwargs={"limit": 3}
     )
     snuba_queries, _ = SnubaQueryBuilder(
@@ -668,7 +668,7 @@ def test_translate_results(_1, _2, monkeypatch):
             "statsPeriod": ["2d"],
         }
     )
-    query_definition = QueryDefinitionXXX([PseudoProject(1, 1)], query_params)
+    query_definition = QueryDefinition([PseudoProject(1, 1)], query_params)
     fields_in_entities = {
         "metrics_counters": [("sum", SessionMRI.SESSION.value)],
         "metrics_distributions": [
@@ -844,7 +844,7 @@ def test_translate_results_derived_metrics(_1, _2, monkeypatch):
             "statsPeriod": ["2d"],
         }
     )
-    query_definition = QueryDefinitionXXX([PseudoProject(1, 1)], query_params)
+    query_definition = QueryDefinition([PseudoProject(1, 1)], query_params)
     fields_in_entities = {
         "metrics_counters": [
             (None, SessionMRI.ERRORED_PREAGGREGATED.value),
@@ -941,7 +941,7 @@ def test_translate_results_missing_slots(_1, _2, monkeypatch):
             "statsPeriod": ["3d"],
         }
     )
-    query_definition = QueryDefinitionXXX([PseudoProject(1, 1)], query_params)
+    query_definition = QueryDefinition([PseudoProject(1, 1)], query_params)
     fields_in_entities = {
         "metrics_counters": [
             ("sum", SessionMRI.SESSION.value),
