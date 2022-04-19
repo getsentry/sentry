@@ -509,7 +509,7 @@ class GroupDetails extends Component<Props, State> {
     };
 
     if (currentTab === Tab.DETAILS) {
-      if (group.id !== event?.groupID) {
+      if (group.id !== event?.groupID && !eventError) {
         // if user pastes only the event id into the url, but it's from another group, redirect to correct group/event
         const redirectUrl = `/organizations/${organization.slug}/issues/${event?.groupID}/events/${event?.id}/`;
         this.props.router.push(redirectUrl);
