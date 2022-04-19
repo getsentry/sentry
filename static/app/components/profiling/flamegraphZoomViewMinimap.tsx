@@ -129,8 +129,8 @@ function FlamegraphZoomViewMinimap({
       positionIndicatorRenderer.context.clearRect(
         0,
         0,
-        flamegraphMiniMapRenderer.physicalSpace.width,
-        flamegraphMiniMapRenderer.physicalSpace.height
+        positionIndicatorRenderer.canvas.width,
+        positionIndicatorRenderer.canvas.height
       );
     };
 
