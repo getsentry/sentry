@@ -715,7 +715,9 @@ class IssueRuleEditor extends AsyncView<Props, State> {
             }
           >
             <List symbol="colored-numeric">
-              {this.state.loading && <SemiTransparentLoadingMask />}
+              {this.state.loading && (
+                <SemiTransparentLoadingMask data-test-id="loading-mask" />
+              )}
               <StyledListItem>{t('Add alert settings')}</StyledListItem>
               {hasAlertWizardV3 ? (
                 <SettingsContainer>
