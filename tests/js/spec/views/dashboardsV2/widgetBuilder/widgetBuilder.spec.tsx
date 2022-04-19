@@ -1823,9 +1823,35 @@ describe('WidgetBuilder', function () {
   });
 
   describe('Release Widgets', function () {
-    it('maintains the selected dataset when display type is changed', async function () {
+    const releaseHealthFeatureFlags = [
+      ...defaultOrgFeatures,
+      'new-widget-builder-experience-design',
+      'dashboard-metrics',
+    ];
+
+    it('does not show the Release Health data set if there is no dashboard-metrics flag', async function () {
       renderTestComponent({
         orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      expect(await screen.findByText('Errors and Transactions')).toBeInTheDocument();
+      expect(
+        screen.queryByText('Releases (sessions, crash rates)')
+      ).not.toBeInTheDocument();
+    });
+
+    it('shows the Release Health data set if there is the dashboard-metrics flag', async function () {
+      renderTestComponent({
+        orgFeatures: releaseHealthFeatureFlags,
+      });
+
+      expect(await screen.findByText('Errors and Transactions')).toBeInTheDocument();
+      expect(screen.getByText('Releases (sessions, crash rates)')).toBeInTheDocument();
+    });
+
+    it('maintains the selected dataset when display type is changed', async function () {
+      renderTestComponent({
+        orgFeatures: releaseHealthFeatureFlags,
       });
 
       expect(
@@ -1843,7 +1869,7 @@ describe('WidgetBuilder', function () {
 
     it('displays metrics tags', async function () {
       renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        orgFeatures: releaseHealthFeatureFlags,
       });
 
       expect(
@@ -1868,7 +1894,7 @@ describe('WidgetBuilder', function () {
 
     it('does not display tags as params', async function () {
       renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        orgFeatures: releaseHealthFeatureFlags,
       });
 
       expect(
@@ -1888,7 +1914,7 @@ describe('WidgetBuilder', function () {
 
     it('makes the appropriate sessions call', async function () {
       renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        orgFeatures: releaseHealthFeatureFlags,
       });
 
       expect(
@@ -1919,7 +1945,7 @@ describe('WidgetBuilder', function () {
 
     it('displays the correct options for area chart', async function () {
       renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        orgFeatures: releaseHealthFeatureFlags,
       });
 
       expect(
@@ -1947,7 +1973,7 @@ describe('WidgetBuilder', function () {
 
       renderTestComponent({
         onSave: handleSave,
-        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        orgFeatures: releaseHealthFeatureFlags,
       });
 
       userEvent.click(await screen.findByText('Releases (sessions, crash rates)'));
@@ -2000,7 +2026,7 @@ describe('WidgetBuilder', function () {
       };
 
       renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        orgFeatures: releaseHealthFeatureFlags,
         dashboard,
         params: {
           widgetIndex: '0',
@@ -2021,7 +2047,7 @@ describe('WidgetBuilder', function () {
         query: {
           source: DashboardWidgetSource.DISCOVERV2,
         },
-        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        orgFeatures: releaseHealthFeatureFlags,
       });
 
       userEvent.click(await screen.findByText('Table'));
@@ -2051,7 +2077,7 @@ describe('WidgetBuilder', function () {
     // eslint-disable-next-line jest/no-disabled-tests
     it.skip('renders with a release search bar', async function () {
       renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        orgFeatures: releaseHealthFeatureFlags,
       });
 
       userEvent.type(
