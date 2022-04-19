@@ -1653,6 +1653,43 @@ describe('WidgetBuilder', function () {
     });
   });
 
+  it('opens top-N widgets as top-N display', async function () {
+    const widget: Widget = {
+      id: '1',
+      title: 'Errors over time',
+      interval: '5m',
+      displayType: DisplayType.TOP_N,
+      queries: [
+        {
+          name: '',
+          conditions: '',
+          fields: ['count()', 'count_unique(id)'],
+          aggregates: ['count()', 'count_unique(id)'],
+          columns: [],
+          orderby: '-count',
+        },
+      ],
+    };
+
+    const dashboard: DashboardDetails = {
+      id: '1',
+      title: 'Dashboard',
+      createdBy: undefined,
+      dateCreated: '2020-01-01T00:00:00.000Z',
+      widgets: [widget],
+    };
+
+    renderTestComponent({
+      orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      dashboard,
+      params: {
+        widgetIndex: '0',
+      },
+    });
+
+    expect(await screen.findByText('Top 5 Events')).toBeInTheDocument();
+  });
+
   // Disabling for CI, but should run locally when making changes
   // eslint-disable-next-line jest/no-disabled-tests
   it.skip('Update table header values (field alias)', async function () {

@@ -261,16 +261,12 @@ function WidgetBuilder({
 
     if (isEditing && isValidWidgetIndex) {
       const widgetFromDashboard = dashboard.widgets[widgetIndexNum];
-      const visualization =
-        widgetBuilderNewDesign && widgetFromDashboard.displayType === DisplayType.TOP_N
-          ? DisplayType.TABLE
-          : widgetFromDashboard.displayType;
       setState({
         title: widgetFromDashboard.title,
-        displayType: visualization,
+        displayType: widgetFromDashboard.displayType,
         interval: widgetFromDashboard.interval,
         queries: normalizeQueries({
-          displayType: visualization,
+          displayType: widgetFromDashboard.displayType,
           queries: widgetFromDashboard.queries,
           widgetType: widgetFromDashboard.widgetType ?? WidgetType.DISCOVER,
           widgetBuilderNewDesign,
