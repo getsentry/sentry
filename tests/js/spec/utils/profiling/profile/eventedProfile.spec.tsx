@@ -22,35 +22,6 @@ describe('EventedProfile', () => {
     expect(profile.endedAt).toBe(1000);
   });
 
-  it('handles offset start', () => {
-    const trace: Profiling.EventedProfile = {
-      name: 'profile',
-      startValue: 500,
-      endValue: 1000,
-      unit: 'milliseconds',
-      type: 'evented',
-      events: [
-        {
-          type: 'O',
-          frame: 0,
-          at: 500,
-        },
-        {
-          type: 'C',
-          frame: 0,
-          at: 1000,
-        },
-      ],
-    };
-
-    const profile = EventedProfile.FromProfile(trace, createFrameIndex([{name: 'f0'}]));
-
-    expect(profile.duration).toBe(500);
-    expect(profile.name).toBe(trace.name);
-    expect(profile.startedAt).toBe(500);
-    expect(profile.endedAt).toBe(1000);
-  });
-
   it('rebuilds the stack', () => {
     const trace: Profiling.EventedProfile = {
       name: 'profile',

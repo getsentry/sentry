@@ -131,7 +131,7 @@ class DashboardDetail extends Component<Props, State> {
       location,
       router,
     } = this.props;
-    const {seriesData, tableData} = this.state;
+    const {seriesData, tableData, issuesData, pageLinks, totalIssuesCount} = this.state;
     if (isWidgetViewerPath(location.pathname)) {
       const widget =
         defined(widgetId) &&
@@ -143,6 +143,9 @@ class DashboardDetail extends Component<Props, State> {
           widget,
           seriesData,
           tableData,
+          issuesData,
+          pageLinks,
+          totalIssuesCount,
           onClose: () => {
             // Filter out Widget Viewer Modal query params when exiting the Modal
             const query = omit(location.query, Object.values(WidgetViewerQueryField));
@@ -630,8 +633,8 @@ class DashboardDetail extends Component<Props, State> {
             </StyledPageHeader>
             <DashboardPageFilterBar>
               <ProjectPageFilter />
-              <EnvironmentPageFilter alignDropdown="right" />
-              <DatePageFilter alignDropdown="right" />
+              <EnvironmentPageFilter alignDropdown="left" />
+              <DatePageFilter alignDropdown="left" />
             </DashboardPageFilterBar>
             <HookHeader organization={organization} />
             <Dashboard
@@ -735,8 +738,8 @@ class DashboardDetail extends Component<Props, State> {
                 <Layout.Main fullWidth>
                   <DashboardPageFilterBar>
                     <ProjectPageFilter />
-                    <EnvironmentPageFilter alignDropdown="right" />
-                    <DatePageFilter alignDropdown="right" />
+                    <EnvironmentPageFilter alignDropdown="left" />
+                    <DatePageFilter alignDropdown="left" />
                   </DashboardPageFilterBar>
                   <WidgetViewerContext.Provider value={{seriesData, setData}}>
                     <Dashboard

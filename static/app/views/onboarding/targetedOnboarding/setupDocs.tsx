@@ -24,7 +24,8 @@ import withProjects from 'sentry/utils/withProjects';
 import FirstEventFooter from './components/firstEventFooter';
 import FullIntroduction from './components/fullIntroduction';
 import TargetedOnboardingSidebar from './components/sidebar';
-import {ClientState, fetchClientState, StepProps} from './types';
+import {StepProps} from './types';
+import {usePersistedOnboardingState} from './utils';
 
 /**
  * The documentation will include the following string should it be missing the
@@ -41,15 +42,12 @@ type Props = {
 
 function SetupDocs({organization, projects, search}: Props) {
   const api = useApi();
-  const [clientState, setClientState] = useState<ClientState | null>(null);
+  const [clientState] = usePersistedOnboardingState();
   const selectedProjectsSet = new Set(
     clientState?.selectedPlatforms.map(
       platform => clientState.platformToProjectIdMap[platform]
     ) || []
   );
-  useEffect(() => {
-    fetchClientState(api, organization.slug).then(setClientState);
-  }, []);
 
   const [hasError, setHasError] = useState(false);
   const [platformDocs, setPlatformDocs] = useState<PlatformDoc | null>(null);
@@ -218,9 +216,15 @@ function SetupDocs({organization, projects, search}: Props) {
                 project_index: projectIndex,
               }
             );
-            const nextProject = projects.find(
-              (p, index) => !p.firstEvent && index > projectIndex
-            );
+            if (!project.platform || !clientState) {
+              browserHistory.push('/');
+              return;
+            }
+            const platformIndex = clientState.selectedPlatforms.indexOf(project.platform);
+            const nextPlatform = clientState.selectedPlatforms[platformIndex + 1];
+            const nextProjectSlug =
+              nextPlatform && clientState.platformToProjectIdMap[nextPlatform];
+            const nextProject = projects.find(p => p.slug === nextProjectSlug);
             if (!nextProject) {
               // TODO: integrations
               browserHistory.push('/');

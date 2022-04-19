@@ -20,8 +20,8 @@ import {SpanSortOthers} from '../types';
 import {getTotalsView} from '../utils';
 
 import SpanChart from './chart';
+import SpanDetailsControls from './spanDetailsControls';
 import SpanDetailsHeader from './spanDetailsHeader';
-import SpanDetailsSearchBar from './spanDetailsSearchBar';
 import SpanTable from './spanDetailsTable';
 
 type Props = {
@@ -149,7 +149,7 @@ function SpanDetailsContent(props: ContentProps) {
         suspectSpan={suspectSpan}
       />
       <Feature features={['performance-span-histogram-view']}>
-        <SpanDetailsSearchBar
+        <SpanDetailsControls
           organization={organization}
           location={location}
           eventView={eventView}
