@@ -1,5 +1,4 @@
 import {Component} from 'react';
-import {createPortal} from 'react-dom';
 import {DndContext, DragOverlay} from '@dnd-kit/core';
 import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
 

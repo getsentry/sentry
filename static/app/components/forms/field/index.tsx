@@ -141,6 +141,7 @@ class Field extends React.Component<FieldProps> {
       children,
       style,
       showHelpInTooltip,
+      ...props
     } = otherProps;
 
     const isVisible = typeof visible === 'function' ? visible(this.props) : visible;
@@ -180,6 +181,7 @@ class Field extends React.Component<FieldProps> {
         highlighted={highlighted}
         hasControlState={!flexibleControlStateSize}
         style={style}
+        {...props}
       >
         {((label && !hideLabel) || helpElement) && (
           <FieldDescription inline={inline} htmlFor={id}>

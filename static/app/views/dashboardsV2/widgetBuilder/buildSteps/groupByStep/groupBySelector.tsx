@@ -1,19 +1,6 @@
 import React, {Fragment, useMemo, useState} from 'react';
-import {
-  closestCenter,
-  DndContext,
-  DragOverlay,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
+import {closestCenter, DndContext, DragOverlay} from '@dnd-kit/core';
+import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -90,28 +77,18 @@ export function GroupBySelector({fieldOptions, columns = [], onChange}: Props) {
     }, [] as string[]);
   }, [columns]);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-
   return (
     <Fragment>
       <StyledField inline={false} flexibleControlStateSize stacked>
         {columns.length === 0 ? (
-          <QueryFieldWrapper>
-            <QueryField
-              value={EMPTY_FIELD}
-              fieldOptions={filteredFieldOptions}
-              onChange={value => handleSelect(value, 0)}
-              canDelete={canDelete}
-            />
-          </QueryFieldWrapper>
+          <QueryField
+            value={EMPTY_FIELD}
+            fieldOptions={filteredFieldOptions}
+            onChange={value => handleSelect(value, 0)}
+            canDelete={canDelete}
+          />
         ) : (
           <DndContext
-            sensors={sensors}
             collisionDetection={closestCenter}
             onDragStart={({active}) => {
               setActiveId(active.id);
@@ -120,9 +97,8 @@ export function GroupBySelector({fieldOptions, columns = [], onChange}: Props) {
               setActiveId(null);
 
               if (over) {
-                const activeDragId = active.id;
                 const getIndex = items.indexOf.bind(items);
-                const activeIndex = activeDragId ? getIndex(activeDragId) : -1;
+                const activeIndex = getIndex(active.id);
                 const overIndex = getIndex(over.id);
 
                 if (activeIndex !== overIndex) {
@@ -135,13 +111,11 @@ export function GroupBySelector({fieldOptions, columns = [], onChange}: Props) {
             }}
           >
             <SortableContext items={items} strategy={verticalListSortingStrategy}>
-              {columns.map((column, index) => {
-                const key = items[index];
-                const dragId = key;
-                return (
+              <SortableQueryFields>
+                {columns.map((column, index) => (
                   <SortableQueryField
-                    key={key}
-                    dragId={dragId}
+                    key={items[index]}
+                    dragId={items[index]}
                     value={column}
                     fieldOptions={filteredFieldOptions}
                     onChange={value => handleSelect(value, index)}
@@ -149,8 +123,8 @@ export function GroupBySelector({fieldOptions, columns = [], onChange}: Props) {
                     canDrag={canDrag}
                     canDelete={canDelete}
                   />
-                );
-              })}
+                ))}
+              </SortableQueryFields>
             </SortableContext>
             <DragOverlay dropAnimation={null}>
               {activeId ? (
@@ -159,7 +133,6 @@ export function GroupBySelector({fieldOptions, columns = [], onChange}: Props) {
                     value={columns[Number(activeId)]}
                     fieldOptions={filteredFieldOptions}
                     onChange={value => handleSelect(value, Number(activeId))}
-                    onDelete={() => handleRemove(Number(activeId))}
                     canDrag={canDrag}
                     canDelete={canDelete}
                   />
@@ -178,21 +151,6 @@ export function GroupBySelector({fieldOptions, columns = [], onChange}: Props) {
   );
 }
 
-const QueryFieldWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-
-  :not(:last-child) {
-    margin-bottom: ${space(1)};
-  }
-
-  > * + * {
-    margin-left: ${space(1)};
-  }
-`;
-
 const StyledField = styled(Field)`
   padding-bottom: ${space(1)};
 `;
@@ -201,18 +159,28 @@ const AddGroupButton = styled(Button)`
   width: min-content;
 `;
 
+const SortableQueryFields = styled('div')`
+  display: grid;
+  grid-auto-flow: row;
+  grid-gap: ${space(1)};
+`;
+
 const Ghost = styled('div')`
   position: absolute;
   background: ${p => p.theme.background};
   padding: ${space(0.5)};
   border-radius: ${p => p.theme.borderRadius};
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.15);
-  width: 710px;
   opacity: 0.8;
   cursor: grabbing;
   padding-right: ${space(2)};
+  width: 100%;
 
   button {
     cursor: grabbing;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    width: 710px;
   }
 `;
