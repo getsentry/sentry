@@ -4,9 +4,12 @@ import {Location} from 'history';
 import omit from 'lodash/omit';
 
 import Button from 'sentry/components/button';
+import DatePageFilter from 'sentry/components/datePageFilter';
 import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -74,6 +77,12 @@ function EventsContent(props: Props) {
 
   return (
     <Layout.Main fullWidth>
+      {organization.features.includes('selection-filters-v2') && (
+        <StyledPageFilterBar condensed>
+          <EnvironmentPageFilter />
+          <DatePageFilter alignDropdown="left" />
+        </StyledPageFilterBar>
+      )}
       <Search {...props} />
       <StyledTable>
         <EventsTable
@@ -88,6 +97,10 @@ function EventsContent(props: Props) {
     </Layout.Main>
   );
 }
+
+const StyledPageFilterBar = styled(PageFilterBar)`
+  margin-bottom: ${space(1)};
+`;
 
 function Search(props: Props) {
   const {
