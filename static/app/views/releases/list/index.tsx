@@ -80,13 +80,17 @@ class ReleasesList extends AsyncView<Props, State> {
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {organization, location} = this.props;
-    const {statsPeriod} = location.query;
+    const {statsPeriod, start, end, utc} = location.query;
     const activeSort = this.getSort();
     const activeStatus = this.getStatus();
 
     const query = {
       ...pick(location.query, ['project', 'environment', 'cursor', 'query', 'sort']),
       summaryStatsPeriod: statsPeriod,
+      ...(statsPeriod && {statsPeriod}),
+      start,
+      end,
+      utc,
       per_page: 20,
       flatten: activeSort === ReleasesSortOption.DATE ? 0 : 1,
       adoptionStages: 1,
