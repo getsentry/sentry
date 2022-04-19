@@ -32,6 +32,7 @@ from sentry.models import (
     GroupSubscription,
     GroupTombstone,
     Integration,
+    Organization,
     OrganizationIntegration,
     Release,
     ReleaseStages,
@@ -73,6 +74,45 @@ class GroupListTest(APITestCase, SnubaTestCase):
         else:
             org = args[0]
         return super().get_response(org, **kwargs)
+
+    def test_issue_visibility_with_closed_membership(self):
+        # disable default allow_joinleave
+        self.organization.update(flags=0)
+        self.organization.refresh_from_db()
+        user = self.create_user()
+        team = self.create_team(organization=self.organization)
+        self.create_member(organization=self.organization, user=user, role="member", teams=[team])
+        self.create_project(organization=self.organization, teams=[team])
+
+        event = self.store_event(
+            data={"event_id": "a" * 32, "timestamp": iso_format(before_now(seconds=1))},
+            project_id=self.project.id,
+        )
+        group = event.group
+        self.login_as(user=user)
+
+        with self.feature("organizations:global-views"):
+            response = self.get_valid_response(sort_by="date", query="is:unresolved")
+            assert len(response.data) == 0
+
+    def test_issue_visibility_with_open_membership(self):
+        self.organization.update(flags=Organization.flags.allow_joinleave)
+        user = self.create_user()
+        team = self.create_team(organization=self.organization)
+        self.create_member(organization=self.organization, user=user, role="member", teams=[team])
+        self.create_project(organization=self.organization, teams=[team])
+
+        event = self.store_event(
+            data={"event_id": "a" * 32, "timestamp": iso_format(before_now(seconds=1))},
+            project_id=self.project.id,
+        )
+        group = event.group
+        self.login_as(user=user)
+
+        with self.feature("organizations:global-views"):
+            response = self.get_valid_response(sort_by="date", query="is:unresolved")
+            assert len(response.data) == 1
+            assert response.data[0]["id"] == str(group.id)
 
     def test_sort_by_date_with_tag(self):
         # XXX(dcramer): this tests a case where an ambiguous column name existed
