@@ -87,7 +87,7 @@ class ReleasesList extends AsyncView<Props, State> {
     const query = {
       ...pick(location.query, ['project', 'environment', 'cursor', 'query', 'sort']),
       summaryStatsPeriod: statsPeriod,
-      ...(statsPeriod && {statsPeriod}),
+      statsPeriod,
       start,
       end,
       utc,
