@@ -147,7 +147,7 @@ class AlertChart extends AsyncComponent<Props, State> {
         </StyledPanelBody>
         <ChartFooter>
           <FooterHeader>{t('Total Alerts')}</FooterHeader>
-          <FooterValue>{totalAlertsTriggered}</FooterValue>
+          <FooterValue>{totalAlertsTriggered.toLocaleString()}</FooterValue>
         </ChartFooter>
       </Panel>
     );
