@@ -48,11 +48,21 @@ export default FilterBar;
 
 const Wrapper = styled('div')`
   display: grid;
-  grid-template-columns: min-content 1fr;
   gap: ${space(1.5)};
   margin-bottom: ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: min-content 1fr;
+  }
 `;
 
 const FilterButtons = styled(ButtonBar)`
-  grid-auto-columns: minmax(auto, 300px);
+  display: flex;
+  flex-wrap: wrap;
+  gap: ${space(1.5)};
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    display: grid;
+    grid-auto-columns: minmax(auto, 300px);
+  }
 `;
