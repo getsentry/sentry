@@ -568,21 +568,26 @@ class SpanQueryBuilder(QueryBuilder):  # type: ignore
         )
         condition = op_group_match_condition
 
-        if min_exclusive_time is not None and max_exclusive_time is None:
+        if min_exclusive_time is not None:
             exclusive_time_lower_bound = Function("greater", [Identifier("z"), min_exclusive_time])
-            condition = Function("and", [op_group_match_condition, exclusive_time_lower_bound])
-        elif max_exclusive_time is not None and min_exclusive_time is None:
+
+            if max_exclusive_time is not None:
+                exclusive_time_upper_bound = Function("less", [Identifier("z"), max_exclusive_time])
+                exclusive_time_bounds = Function(
+                    "and",
+                    [
+                        exclusive_time_lower_bound,
+                        exclusive_time_upper_bound,
+                    ],
+                )
+                condition = Function("and", [op_group_match_condition, exclusive_time_bounds])
+
+            else:
+                condition = Function("and", [op_group_match_condition, exclusive_time_lower_bound])
+
+        elif max_exclusive_time is not None:
             exclusive_time_upper_bound = Function("less", [Identifier("z"), max_exclusive_time])
             condition = Function("and", [op_group_match_condition, exclusive_time_upper_bound])
-        elif min_exclusive_time is not None and max_exclusive_time is not None:
-            exclusive_time_bounds = Function(
-                "and",
-                [
-                    Function("greater", [Identifier("z"), min_exclusive_time]),
-                    Function("less", [Identifier("z"), max_exclusive_time]),
-                ],
-            )
-            condition = Function("and", [op_group_match_condition, exclusive_time_bounds])
 
         return Function(
             "arrayReduce",
@@ -727,31 +732,30 @@ def get_example_transaction(
         if span["op"] == span_op and int(span["hash"], 16) == span_group_id
     ]
 
-    if min_exclusive_time is not None and max_exclusive_time is None:
+    if min_exclusive_time is not None:
+        if max_exclusive_time is not None:
+            matching_spans = [
+                span
+                for span in chain([root_span], data.get("spans", []))
+                if span["op"] == span_op
+                and int(span["hash"], 16) == span_group_id
+                and span["exclusive_time"] > min_exclusive_time
+                and span["exclusive_time"] < max_exclusive_time
+            ]
+        else:
+            matching_spans = [
+                span
+                for span in chain([root_span], data.get("spans", []))
+                if span["op"] == span_op
+                and int(span["hash"], 16) == span_group_id
+                and span["exclusive_time"] > min_exclusive_time
+            ]
+    elif max_exclusive_time is not None:
         matching_spans = [
             span
             for span in chain([root_span], data.get("spans", []))
             if span["op"] == span_op
             and int(span["hash"], 16) == span_group_id
-            and span["exclusive_time"] > min_exclusive_time
-        ]
-
-    if min_exclusive_time is None and max_exclusive_time is not None:
-        matching_spans = [
-            span
-            for span in chain([root_span], data.get("spans", []))
-            if span["op"] == span_op
-            and int(span["hash"], 16) == span_group_id
-            and span["exclusive_time"] < max_exclusive_time
-        ]
-
-    if min_exclusive_time is not None and max_exclusive_time is not None:
-        matching_spans = [
-            span
-            for span in chain([root_span], data.get("spans", []))
-            if span["op"] == span_op
-            and int(span["hash"], 16) == span_group_id
-            and span["exclusive_time"] > min_exclusive_time
             and span["exclusive_time"] < max_exclusive_time
         ]
 
