@@ -152,6 +152,9 @@ const PositionedFallingError = styled('span')`
 `;
 
 const Wrapper = styled(motion.div)`
+  position: relative;
+  margin-top: auto;
+  margin-bottom: auto;
   max-width: 400px;
   display: flex;
   flex-direction: column;
