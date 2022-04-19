@@ -108,6 +108,7 @@ default_manager.add("organizations:performance-use-snql", OrganizationFeature, T
 default_manager.add("organizations:performance-use-metrics", OrganizationFeature, True)
 default_manager.add("organizations:performance-dry-run-mep", OrganizationFeature, True)
 default_manager.add("organizations:trends-use-snql", OrganizationFeature, True)
+default_manager.add("organizations:processing-sourcemap-lru-cache", OrganizationFeature, True)
 default_manager.add("organizations:profiling", OrganizationFeature, True)
 default_manager.add("organizations:project-event-date-limit", OrganizationFeature, True)
 default_manager.add("organizations:projects-page-redesign", OrganizationFeature, True)

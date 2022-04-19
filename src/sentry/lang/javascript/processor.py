@@ -6,6 +6,7 @@ import sys
 import time
 import zlib
 from datetime import datetime
+from functools import lru_cache
 from io import BytesIO
 from os.path import splitext
 from typing import IO, Optional, Tuple
@@ -18,7 +19,7 @@ from django.utils.encoding import force_bytes, force_text
 from requests.utils import get_encoding_from_headers
 from symbolic import SourceMapView
 
-from sentry import http, options
+from sentry import features, http, options
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import EventError, Organization, ReleaseFile
 from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, ReleaseArchive, read_artifact_index
@@ -773,6 +774,12 @@ def fetch_sourcemap(url, project=None, release=None, dist=None, allow_scraping=T
         raise UnparseableSourcemap({"url": http.expose_url(url)})
 
 
+@lru_cache(maxsize=options.get("processing.sourcemap-lru-cache-limit"))
+def cached_fetch_sourcemap(*args, **kwargs):
+    """Experimental version of fetch_sourcemap with a process-wide SourceMapView cache"""
+    return fetch_sourcemap(*args, **kwargs)
+
+
 def is_data_uri(url):
     return url[:BASE64_PREAMBLE_LENGTH] == BASE64_SOURCEMAP_PREAMBLE
 
@@ -1200,7 +1207,12 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 op="JavaScriptStacktraceProcessor.cache_source.fetch_sourcemap"
             ) as span:
                 span.set_data("sourcemap_url", sourcemap_url)
-                sourcemap_view = fetch_sourcemap(
+                if features.has("organizations:processing-sourcemap-lru-cache"):
+                    fetch_sourcemap_fn = cached_fetch_sourcemap
+                else:
+                    fetch_sourcemap_fn = fetch_sourcemap
+
+                sourcemap_view = fetch_sourcemap_fn(
                     sourcemap_url,
                     project=self.project,
                     release=self.release,

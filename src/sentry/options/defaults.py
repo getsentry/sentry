@@ -352,6 +352,11 @@ register("processing.release-archive-min-files", default=10)
 # Try to read release artifacts from zip archives
 register("processing.use-release-archives-sample-rate", default=0.0)  # unused
 
+# Max number of source maps in the process-wide source map cache.
+# The current default (10) only makes sense when the projects:per-process-sourcemap-cache
+# is enabled for a handful of projects.
+register("processing.sourcemap-lru-cache-limit", default=10)
+
 # All Relay options (statically authenticated Relays can be registered here)
 register("relay.static_auth", default={}, flags=FLAG_NOSTORE)
 
