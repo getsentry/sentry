@@ -5,6 +5,7 @@ import Alert from 'sentry/components/alert';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {metric} from 'sentry/utils/analytics';
+import routeTitleGen from 'sentry/utils/routeTitle';
 import RuleForm from 'sentry/views/alerts/incidentRules/ruleForm';
 import {IncidentRule} from 'sentry/views/alerts/incidentRules/types';
 import AsyncView from 'sentry/views/asyncView';
@@ -33,6 +34,19 @@ class IncidentRulesDetails extends AsyncView<Props, State> {
       ...super.getDefaultState(),
       actions: new Map(),
     };
+  }
+
+  getTitle(): string {
+    const {organization, project} = this.props;
+    const {rule} = this.state;
+    const ruleName = rule?.name;
+
+    return routeTitleGen(
+      ruleName ? t('Alert %s', ruleName) : '',
+      organization.slug,
+      false,
+      project?.slug
+    );
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
