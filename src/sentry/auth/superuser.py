@@ -24,6 +24,7 @@ from sentry.api.exceptions import SentryAPIException
 from sentry.auth.system import is_system_auth
 from sentry.utils import json
 from sentry.utils.auth import has_completed_sso
+from sentry.utils.settings import is_self_hosted
 
 logger = logging.getLogger("sentry.superuser")
 
@@ -115,6 +116,8 @@ class Superuser:
 
     @staticmethod
     def _needs_validation():
+        if is_self_hosted():
+            return False
         return settings.VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON
 
     @property
