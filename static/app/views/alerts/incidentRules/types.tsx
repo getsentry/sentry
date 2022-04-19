@@ -141,7 +141,9 @@ export enum ActionType {
 }
 
 export const ActionLabel = {
-  [ActionType.EMAIL]: t('Email'),
+  // \u200B is needed because Safari disregards autocomplete="off". It's seeing "Email" and
+  // opening up the browser autocomplete for email. https://github.com/JedWatson/react-select/issues/3500
+  [ActionType.EMAIL]: t('Emai\u200Bl'),
   [ActionType.SLACK]: t('Slack'),
   [ActionType.PAGERDUTY]: t('Pagerduty'),
   [ActionType.MSTEAMS]: t('MS Teams'),
