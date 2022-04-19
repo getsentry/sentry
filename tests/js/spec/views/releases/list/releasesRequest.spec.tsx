@@ -1,12 +1,12 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {HealthStatsPeriodOption} from 'sentry/types';
 import {ReleasesDisplayOption} from 'sentry/views/releases/list/releasesDisplayOptions';
 import ReleasesRequest from 'sentry/views/releases/list/releasesRequest';
 
-describe('ReleasesRequest', function () {
-  const {organization, routerContext, router} = initializeOrg();
+describe('ReleasesRequest', () => {
+  const {organization, router} = initializeOrg();
   const projectId = 123;
   const selection = {
     projects: [projectId],
@@ -28,7 +28,7 @@ describe('ReleasesRequest', function () {
           'release:7a82c130be9143361f20bc77252df783cf91e4fc OR release:e102abb2c46e7fe8686441091005c12aed90da99',
         interval: '1d',
         statsPeriod: '14d',
-        project: [projectId],
+        project: [`${projectId}`],
         field: ['sum(session)'],
         groupBy: ['project', 'release', 'session.status'],
       }),
@@ -43,7 +43,7 @@ describe('ReleasesRequest', function () {
         query: undefined,
         interval: '1d',
         statsPeriod: '14d',
-        project: [projectId],
+        project: [`${projectId}`],
         field: ['sum(session)'],
         groupBy: ['project', 'session.status'],
       }),
@@ -58,7 +58,7 @@ describe('ReleasesRequest', function () {
         query: undefined,
         interval: '1d',
         statsPeriod: '14d',
-        project: [123],
+        project: [`${projectId}`],
         field: ['sum(session)'],
         groupBy: ['project'],
       }),
@@ -74,7 +74,7 @@ describe('ReleasesRequest', function () {
           'release:7a82c130be9143361f20bc77252df783cf91e4fc OR release:e102abb2c46e7fe8686441091005c12aed90da99',
         interval: '1d',
         statsPeriod: '14d',
-        project: [123],
+        project: [`${projectId}`],
         field: ['sum(session)'],
         groupBy: ['project', 'release'],
       }),
@@ -90,7 +90,7 @@ describe('ReleasesRequest', function () {
           'release:7a82c130be9143361f20bc77252df783cf91e4fc OR release:e102abb2c46e7fe8686441091005c12aed90da99',
         interval: '1h',
         statsPeriod: '24h',
-        project: [projectId],
+        project: [`${projectId}`],
         field: ['sum(session)'],
         groupBy: ['project', 'release'],
       }),
@@ -105,7 +105,7 @@ describe('ReleasesRequest', function () {
         query: undefined,
         interval: '1h',
         statsPeriod: '24h',
-        project: [projectId],
+        project: [`${projectId}`],
         field: ['sum(session)'],
         groupBy: ['project'],
       }),
@@ -121,7 +121,7 @@ describe('ReleasesRequest', function () {
           'release:7a82c130be9143361f20bc77252df783cf91e4fc OR release:e102abb2c46e7fe8686441091005c12aed90da99',
         interval: '1d',
         statsPeriod: '14d',
-        project: [projectId],
+        project: [`${projectId}`],
         field: ['count_unique(user)', 'sum(session)'],
         groupBy: ['project', 'release', 'session.status'],
       }),
@@ -137,7 +137,7 @@ describe('ReleasesRequest', function () {
           'release:7a82c130be9143361f20bc77252df783cf91e4fc OR release:e102abb2c46e7fe8686441091005c12aed90da99',
         interval: '1h',
         statsPeriod: '24h',
-        project: [projectId],
+        project: [`${projectId}`],
         field: ['count_unique(user)'],
         groupBy: ['project', 'release'],
       }),
@@ -152,17 +152,17 @@ describe('ReleasesRequest', function () {
         query: undefined,
         interval: '1h',
         statsPeriod: '24h',
-        project: [projectId],
+        project: [`${projectId}`],
         field: ['count_unique(user)'],
         groupBy: ['project'],
       }),
     ],
   });
 
-  it('calculates correct session health data', async function () {
+  it('calculates correct session health data', async () => {
     let healthData;
 
-    const wrapper = mountWithTheme(
+    render(
       <ReleasesRequest
         releases={[
           '7a82c130be9143361f20bc77252df783cf91e4fc',
@@ -172,7 +172,7 @@ describe('ReleasesRequest', function () {
         location={{
           ...router.location,
           query: {
-            project: [projectId],
+            project: [`${projectId}`],
           },
         }}
         display={[ReleasesDisplayOption.SESSIONS]}
@@ -182,20 +182,19 @@ describe('ReleasesRequest', function () {
           healthData = getHealthData;
           return null;
         }}
-      </ReleasesRequest>,
-      routerContext
+      </ReleasesRequest>
     );
 
-    await tick();
-    wrapper.update();
+    await waitFor(() =>
+      expect(
+        healthData.getCrashCount(
+          '7a82c130be9143361f20bc77252df783cf91e4fc',
+          projectId,
+          ReleasesDisplayOption.SESSIONS
+        )
+      ).toBe(492)
+    );
 
-    expect(
-      healthData.getCrashCount(
-        '7a82c130be9143361f20bc77252df783cf91e4fc',
-        projectId,
-        ReleasesDisplayOption.SESSIONS
-      )
-    ).toBe(492);
     expect(
       healthData.getCrashFreeRate(
         '7a82c130be9143361f20bc77252df783cf91e4fc',
@@ -390,10 +389,10 @@ describe('ReleasesRequest', function () {
     expect(requestForAutoHealthStatsPeriodSessionHistogram).toHaveBeenCalledTimes(0);
   });
 
-  it('calculates correct user health data', async function () {
+  it('calculates correct user health data', async () => {
     let healthData;
 
-    const wrapper = mountWithTheme(
+    render(
       <ReleasesRequest
         releases={[
           '7a82c130be9143361f20bc77252df783cf91e4fc',
@@ -403,7 +402,7 @@ describe('ReleasesRequest', function () {
         location={{
           ...router.location,
           query: {
-            project: [projectId],
+            project: [`${projectId}`],
           },
         }}
         display={[ReleasesDisplayOption.USERS]}
@@ -413,20 +412,19 @@ describe('ReleasesRequest', function () {
           healthData = getHealthData;
           return null;
         }}
-      </ReleasesRequest>,
-      routerContext
+      </ReleasesRequest>
     );
 
-    await tick();
-    wrapper.update();
+    await waitFor(() =>
+      expect(
+        healthData.getCrashCount(
+          '7a82c130be9143361f20bc77252df783cf91e4fc',
+          projectId,
+          ReleasesDisplayOption.SESSIONS
+        )
+      ).toBe(492)
+    );
 
-    expect(
-      healthData.getCrashCount(
-        '7a82c130be9143361f20bc77252df783cf91e4fc',
-        projectId,
-        ReleasesDisplayOption.SESSIONS
-      )
-    ).toBe(492);
     expect(
       healthData.getCrashFreeRate(
         '7a82c130be9143361f20bc77252df783cf91e4fc',
@@ -619,10 +617,10 @@ describe('ReleasesRequest', function () {
     ).toBe(0.6029865569467598);
   });
 
-  it('calculates correct session count histogram (auto period)', async function () {
+  it('calculates correct session count histogram (auto period)', async () => {
     let healthData;
 
-    const wrapper = mountWithTheme(
+    render(
       <ReleasesRequest
         releases={[
           '7a82c130be9143361f20bc77252df783cf91e4fc',
@@ -632,7 +630,7 @@ describe('ReleasesRequest', function () {
         location={{
           ...router.location,
           query: {
-            project: [projectId],
+            project: [`${projectId}`],
           },
         }}
         display={[ReleasesDisplayOption.SESSIONS]}
@@ -643,12 +641,18 @@ describe('ReleasesRequest', function () {
           healthData = getHealthData;
           return null;
         }}
-      </ReleasesRequest>,
-      routerContext
+      </ReleasesRequest>
     );
 
-    await tick();
-    wrapper.update();
+    await waitFor(() =>
+      expect(
+        healthData.getAdoption(
+          '7a82c130be9143361f20bc77252df783cf91e4fc',
+          projectId,
+          ReleasesDisplayOption.SESSIONS
+        )
+      ).toBe(26.29607698886915)
+    );
 
     expect(
       healthData.getTimeSeries(
@@ -697,13 +701,6 @@ describe('ReleasesRequest', function () {
         z: 0,
       },
     ]);
-    expect(
-      healthData.getAdoption(
-        '7a82c130be9143361f20bc77252df783cf91e4fc',
-        projectId,
-        ReleasesDisplayOption.SESSIONS
-      )
-    ).toBe(26.29607698886915);
 
     expect(requestForAutoHealthStatsPeriodSessionHistogram).toHaveBeenCalledTimes(1);
     expect(requestForAutoTotalCountByProjectInPeriod).toHaveBeenCalledTimes(1);
