@@ -121,7 +121,11 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
         return {
           ...prevState,
           timeseriesResults: prevState.rawResults?.flatMap((rawResult, index) =>
-            transformSessionsResponseToSeries(rawResult, widget.queries[index].name)
+            transformSessionsResponseToSeries(
+              rawResult,
+              limit,
+              widget.queries[index].name
+            )
           ),
         };
       });
@@ -229,6 +233,7 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
           const timeseriesResults = [...(prevState.timeseriesResults ?? [])];
           const transformedResult = transformSessionsResponseToSeries(
             data,
+            this.limit,
             widget.queries[requestIndex].name
           );
 
