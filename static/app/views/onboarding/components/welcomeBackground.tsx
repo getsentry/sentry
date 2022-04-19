@@ -252,17 +252,11 @@ Log.defaultProps = {
 
 const Container = styled(motion.div)`
   pointer-events: none;
-  width: 100vw;
-  height: 80vh;
-  min-width: 200px;
-  max-width: 1200px;
-  min-height: 800px;
-  max-height: 900px;
-
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  height: 150%;
+  max-width: 100vw;
+  width: 300%;
+  top: -25%;
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     display: none;
