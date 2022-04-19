@@ -49,9 +49,9 @@ const PageFilterBar = styled('div')`
   }
 
   & > *:hover::after,
-  & > *:focus-within::after,
+  & > *[data-is-open='true']::after,
   & > *:hover + *:not(:first-child)::after,
-  & > *:focus-within + *:not(:first-child)::after {
+  & > *[data-is-open='true'] + *:not(:first-child)::after {
     display: none;
   }
 `;
