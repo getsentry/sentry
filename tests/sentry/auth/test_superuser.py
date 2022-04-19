@@ -164,7 +164,7 @@ class SuperuserTestCase(TestCase):
         with self.settings(
             SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True
         ):
-            user = User(is_superuser=True, id=10, email="test@sentry.io")
+            user = User(is_superuser=True, email="test@sentry.io")
             request = self.make_request(user=user, method="PUT")
             request._body = json.dumps(
                 {
@@ -182,15 +182,15 @@ class SuperuserTestCase(TestCase):
                 "superuser.superuser_access",
                 extra={
                     "superuser_token_id": superuser.token,
-                    "user_id": 10,
-                    "user_email": "test@sentry.io",
+                    "user_id": user.id,
+                    "user_email": user.email,
                     "su_access_category": "for_unit_test",
                     "reason_for_su": "Edit organization settings",
                 },
             )
 
     def test_su_access_no_request(self):
-        user = User(is_superuser=True, id=10, email="test@sentry.io")
+        user = User(is_superuser=True)
         request = self.make_request(user=user, method="PUT")
 
         superuser = Superuser(request, org_id=None)
@@ -237,7 +237,7 @@ class SuperuserTestCase(TestCase):
 
     @mock.patch("sentry.auth.superuser.logger")
     def test_su_access_no_request_user_missing_info(self, logger):
-        user = User(is_superuser=True, id=10, email="test@sentry.io")
+        user = User(is_superuser=True)
         request = self.make_request(user=user, method="PUT")
         request._body = json.dumps(
             {
@@ -257,7 +257,7 @@ class SuperuserTestCase(TestCase):
     def test_su_access_invalid_request_body(
         self,
     ):
-        user = User(is_superuser=True, id=10, email="test@sentry.io")
+        user = User(is_superuser=True)
         request = self.make_request(user=user, method="PUT")
         request._body = '{"invalid" "json"}'
 
