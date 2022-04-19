@@ -59,7 +59,9 @@ class RatelimitMiddleware:
                 rate_limit_group = (
                     rate_limit_config.group if rate_limit_config else RateLimitConfig().group
                 )
-                request.rate_limit_key = get_rate_limit_key(view_func, request, rate_limit_config)
+                request.rate_limit_key = get_rate_limit_key(
+                    view_func, request, rate_limit_group, rate_limit_config
+                )
                 if request.rate_limit_key is None:
                     return
 

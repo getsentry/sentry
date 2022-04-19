@@ -5,7 +5,8 @@ from unittest import TestCase
 
 from freezegun import freeze_time
 
-from sentry.ratelimits import RateLimitConfig, above_rate_limit_check, finish_request
+from sentry.ratelimits import above_rate_limit_check, finish_request
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitMeta, RateLimitType
 
 

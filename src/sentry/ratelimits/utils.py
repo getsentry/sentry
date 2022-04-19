@@ -39,7 +39,10 @@ def concurrent_limiter() -> ConcurrentRateLimiter:
 
 
 def get_rate_limit_key(
-    view_func: EndpointFunction, request: Request, rate_limit_config: RateLimitConfig | None = None
+    view_func: EndpointFunction,
+    request: Request,
+    rate_limit_group: str,
+    rate_limit_config: RateLimitConfig | None = None,
 ) -> str | None:
     """Construct a consistent global rate limit key using the arguments provided"""
     if not hasattr(view_func, "view_class") or request.path_info.startswith(
@@ -95,14 +98,12 @@ def get_rate_limit_key(
     else:
         return None
 
-    group = rate_limit_config.group
-
     if rate_limit_config and rate_limit_config.has_custom_limit():
         # if there is a custom rate limit on the endpoint, we add view to the key
         # otherwise we just use what's default for the group
-        return f"{category}:{group}:{view}:{http_method}:{id}"
+        return f"{category}:{rate_limit_group}:{view}:{http_method}:{id}"
     else:
-        return f"{category}:{group}:{http_method}:{id}"
+        return f"{category}:{rate_limit_group}:{http_method}:{id}"
 
 
 def get_organization_id_from_token(token_id: str) -> int | None:
