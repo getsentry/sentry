@@ -131,7 +131,7 @@ class DashboardDetail extends Component<Props, State> {
       location,
       router,
     } = this.props;
-    const {seriesData, tableData} = this.state;
+    const {seriesData, tableData, issuesData, pageLinks, totalIssuesCount} = this.state;
     if (isWidgetViewerPath(location.pathname)) {
       const widget =
         defined(widgetId) &&
@@ -143,6 +143,9 @@ class DashboardDetail extends Component<Props, State> {
           widget,
           seriesData,
           tableData,
+          issuesData,
+          pageLinks,
+          totalIssuesCount,
           onClose: () => {
             // Filter out Widget Viewer Modal query params when exiting the Modal
             const query = omit(location.query, Object.values(WidgetViewerQueryField));
