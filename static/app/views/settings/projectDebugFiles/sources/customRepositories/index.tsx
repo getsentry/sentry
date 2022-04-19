@@ -167,7 +167,6 @@ function CustomRepositories({
   }
 
   function handleEditRepository(repoId: CustomRepo['id']) {
-    console.log('here', repoId);
     router.push({
       ...location,
       query: {

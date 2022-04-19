@@ -46,7 +46,6 @@ function AppStoreConnect({
   onSubmit,
   appStoreConnectStatusData,
 }: Props) {
-  const editing = !!initialData;
   const {credentials} = appStoreConnectStatusData ?? {};
 
   const [isLoading, setIsLoading] = useState(false);
@@ -98,7 +97,7 @@ function AppStoreConnect({
         setStepTwoData({app: storeApps[0]});
       }
 
-      if (editing) {
+      if (!!initialData) {
         updateCredentials();
         return;
       }
@@ -314,7 +313,7 @@ function AppStoreConnect({
           <StepsOverview>
             {tct('[currentStep] of [totalSteps]', {
               currentStep: activeStep + 1,
-              totalSteps: editing ? 1 : steps.length,
+              totalSteps: !!initialData ? 1 : steps.length,
             })}
           </StepsOverview>
         </HeaderContent>
@@ -333,7 +332,7 @@ function AppStoreConnect({
                 <LoadingIndicator mini />
               </LoadingIndicatorWrapper>
             )}
-            {editing
+            {!!initialData
               ? t('Update')
               : activeStep + 1 === steps.length
               ? t('Save')
