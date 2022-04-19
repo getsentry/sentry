@@ -35,11 +35,9 @@ _TRANSACTION_METRICS_TO_RULE_FIELD = {
     TransactionMetric.DURATION.value: "transaction.duration",
 }
 
-_SATISFACTION_TARGET_METRICS = frozenset(
-    [
-        "s:transactions/user@none",
-        "d:transactions/duration@millisecond",
-    ]
+_SATISFACTION_TARGET_METRICS = (
+    "s:transactions/user@none",
+    "d:transactions/duration@millisecond",
 )
 
 _SATISFACTION_TARGET_TAG = "satisfaction"
@@ -71,6 +69,9 @@ def get_metric_conditional_tagging_rules(
             )
         )
 
+    # Rules are processed top-down. The following is a fallback for when
+    # there's no transaction-name-specific rule:
+
     try:
         threshold = ProjectTransactionThreshold.objects.get(project=project)
         rules.extend(_threshold_to_rules(threshold, []))
@@ -101,7 +102,7 @@ def _threshold_to_rules(
                 *extra_conditions,
             ],
         },
-        "targetMetrics": list(_SATISFACTION_TARGET_METRICS),
+        "targetMetrics": _SATISFACTION_TARGET_METRICS,
         "targetTag": _SATISFACTION_TARGET_TAG,
         "tagValue": "frustrated",
     }
@@ -117,15 +118,26 @@ def _threshold_to_rules(
                 *extra_conditions,
             ],
         },
-        "targetMetrics": list(_SATISFACTION_TARGET_METRICS),
+        "targetMetrics": _SATISFACTION_TARGET_METRICS,
         "targetTag": _SATISFACTION_TARGET_TAG,
         "tagValue": "tolerated",
     }
     satisfied: MetricConditionalTaggingRule = {
         "condition": {"op": "and", "inner": list(extra_conditions)},
-        "targetMetrics": list(_SATISFACTION_TARGET_METRICS),
+        "targetMetrics": _SATISFACTION_TARGET_METRICS,
         "targetTag": _SATISFACTION_TARGET_TAG,
         "tagValue": "satisfied",
     }
 
+    # Order is important here, as rules for a particular tag name are processed
+    # top-down, and rules are skipped if the tag has already been defined by a
+    # previous rule.
+    #
+    # if duration > 4000 {
+    #     frustrated
+    # } else if duration > 1000 {
+    #     tolerated
+    # } else {
+    #     satisfied
+    # }
     return [frustrated, tolerated, satisfied]
