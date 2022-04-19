@@ -208,6 +208,7 @@ function SetupDocs({organization, projects, search}: Props) {
           isLast={projectIndex === projects.length - 1}
           hasFirstEvent={checkProjectHasFirstEvent(project)}
           onClickSetupLater={() => {
+            const orgIssuesURL = `/organizations/${organization.slug}/issues/?project=${project.id}`;
             trackAdvancedAnalyticsEvent(
               'growth.onboarding_clicked_setup_platform_later',
               {
@@ -217,7 +218,7 @@ function SetupDocs({organization, projects, search}: Props) {
               }
             );
             if (!project.platform || !clientState) {
-              browserHistory.push('/');
+              browserHistory.push(orgIssuesURL);
               return;
             }
             const platformIndex = clientState.selectedPlatforms.indexOf(project.platform);
@@ -227,7 +228,7 @@ function SetupDocs({organization, projects, search}: Props) {
             const nextProject = projects.find(p => p.slug === nextProjectSlug);
             if (!nextProject) {
               // TODO: integrations
-              browserHistory.push('/');
+              browserHistory.push(orgIssuesURL);
               return;
             }
             setNewProject(nextProject.id);
