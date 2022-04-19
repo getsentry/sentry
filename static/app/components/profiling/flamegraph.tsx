@@ -19,7 +19,9 @@ import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {Profile} from 'sentry/utils/profiling/profile/profile';
 
 function getTransactionConfigSpace(profiles: Profile[]): Rect {
-  return new Rect(0, 0, Math.max(...profiles.map(p => p.endedAt)), 0);
+  const startedAt = Math.min(...profiles.map(p => p.startedAt));
+  const endedAt = Math.max(...profiles.map(p => p.endedAt));
+  return new Rect(startedAt, 0, endedAt - startedAt, 0);
 }
 interface FlamegraphProps {
   profiles: ProfileGroup;

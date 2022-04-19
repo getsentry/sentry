@@ -255,4 +255,27 @@ describe('Incident Rules Details', function () {
       })
     );
   });
+
+  it('renders 404', function () {
+    const {organization, project} = initializeOrg();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/alert-rules/1234/`,
+      statusCode: 404,
+      body: {},
+    });
+
+    render(
+      <IncidentRulesDetails
+        params={{
+          orgId: organization.slug,
+          projectId: project.slug,
+          ruleId: '1234',
+        }}
+        organization={organization}
+        project={project}
+      />
+    );
+
+    expect(screen.getByText('This alert rule could not be found.')).toBeInTheDocument();
+  });
 });

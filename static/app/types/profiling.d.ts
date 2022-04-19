@@ -1,10 +1,10 @@
-namespace Profiling {
+declare namespace Profiling {
   interface RawProfileBase {
     endValue: number;
     startValue: number;
     name: string;
     unit: string;
-    spans?: RawSpan[];
+    spans?: Span[];
   }
 
   // Android traces follow this format

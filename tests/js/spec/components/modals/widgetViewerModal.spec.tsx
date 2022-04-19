@@ -9,6 +9,7 @@ import MemberListStore from 'sentry/stores/memberListStore';
 import space from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {SessionMetric} from 'sentry/utils/metrics/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
 
 jest.mock('echarts-for-react/lib/core', () => {
@@ -765,6 +766,60 @@ describe('Modals -> WidgetViewerModal', function () {
         'grid-template-columns':
           ' minmax(90px, auto) minmax(90px, auto) minmax(575px, auto)',
       });
+    });
+  });
+
+  describe('Release Health Widgets', function () {
+    let sessionsMock;
+    const mockQuery = {
+      conditions: '',
+      fields: [`sum(${SessionMetric.SESSION})`],
+      columns: [],
+      aggregates: [],
+      id: '1',
+      name: 'Query Name',
+      orderby: '',
+    };
+    const mockWidget = {
+      id: '1',
+      title: 'Metrics Widget',
+      displayType: DisplayType.TOP_N,
+      interval: '5m',
+      queries: [mockQuery],
+      widgetType: WidgetType.METRICS,
+    };
+    beforeEach(function () {
+      sessionsMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/sessions/',
+        body: TestStubs.SessionsField({
+          field: `sum(${SessionMetric.SESSION})`,
+        }),
+      });
+    });
+    it('does a sessions query', async function () {
+      await renderModal({initialData, widget: mockWidget});
+      expect(sessionsMock).toHaveBeenCalled();
+    });
+
+    it('renders widget title', async function () {
+      await renderModal({initialData, widget: mockWidget});
+      expect(screen.getByText('Metrics Widget')).toBeInTheDocument();
+    });
+
+    it('renders Edit', async function () {
+      await renderModal({initialData, widget: mockWidget});
+      expect(screen.getByText('Edit Widget')).toBeInTheDocument();
+    });
+
+    it('renders table header and body', async function () {
+      await renderModal({initialData, widget: mockWidget});
+      expect(screen.getByText('sum(sentry.sessions.session)')).toBeInTheDocument();
+      expect(screen.getByText('492')).toBeInTheDocument();
+    });
+
+    it('renders Metrics widget viewer', async function () {
+      const {container} = await renderModal({initialData, widget: mockWidget});
+      expect(container).toSnapshot();
     });
   });
 });
