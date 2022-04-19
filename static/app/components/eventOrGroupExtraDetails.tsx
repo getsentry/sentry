@@ -119,6 +119,10 @@ const GroupExtra = styled('div')`
   a {
     color: inherit;
   }
+
+  @media (min-width: ${p => p.theme.breakpoints[4]}) {
+    line-height: 1;
+  }
 `;
 
 const ShadowlessProjectBadge = styled(ProjectBadge)`
