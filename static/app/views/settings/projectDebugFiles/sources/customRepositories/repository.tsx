@@ -37,6 +37,7 @@ function Repository({
   if (repository.type === CustomRepoType.APP_STORE_CONNECT) {
     const authenticated = repository.details?.credentials.status !== 'invalid';
     const detailsAvailable = repository.details !== undefined;
+    console.log(detailsAvailable);
 
     return (
       <StyledPanelItem>

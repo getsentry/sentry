@@ -5,6 +5,7 @@ import {
   userEvent,
   waitFor,
   waitForElementToBeRemoved,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -415,5 +416,37 @@ describe('Custom Repositories', function () {
 
       expect(screen.queryByRole('button', {name: 'Sync Now'})).not.toBeInTheDocument();
     });
+  });
+
+  describe.only('Update saved store', function () {
+    it('credentials not authorized for the application', async function () {
+      const {rerender} = render(
+        <TestComponent
+          {...props}
+          organization={organization}
+          customRepositories={[httpRepository, appStoreConnectRepository]}
+        />,
+        {context: routerContext}
+      );
+
+      // Open actions of the App Store Connect repository
+      const actions = screen.getAllByLabelText('Actions');
+
+      await waitFor(() => expect(actions[1]).toBeEnabled());
+
+      userEvent.click(actions[1]);
+
+      const configureButtons = screen.getAllByLabelText('Configure');
+
+      // Click on the 'Configure' button of the App Store Connect repository
+      userEvent.click(configureButtons[0]);
+
+      // Display modal content
+      expect(
+        await screen.findByText('App Store Connect credentials')
+      ).toBeInTheDocument();
+    });
+
+    // it("credentials valid for the application"), function() {}
   });
 });
