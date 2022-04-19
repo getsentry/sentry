@@ -58,9 +58,6 @@ const SearchContainer = styled('div')`
 const StyledPageFilterBar = styled(PageFilterBar)`
   width: max-content;
   max-width: 100%;
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    width: 100%;
-  }
 `;
 
 export default ReplaysFilters;
