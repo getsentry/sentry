@@ -205,7 +205,11 @@ function SetupDocs({organization, projects, search}: Props) {
         <FirstEventFooter
           project={project}
           organization={organization}
-          isLast={projectIndex === projects.length - 1}
+          isLast={
+            !!clientState &&
+            project.slug ===
+              clientState.selectedPlatforms[clientState.selectedPlatforms.length - 1]
+          }
           hasFirstEvent={checkProjectHasFirstEvent(project)}
           onClickSetupLater={() => {
             const orgIssuesURL = `/organizations/${organization.slug}/issues/?project=${project.id}`;
