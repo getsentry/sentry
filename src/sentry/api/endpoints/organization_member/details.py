@@ -264,8 +264,10 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             if member.user == request.user and (assigned_role != member.role):
                 return Response({"detail": "You cannot make changes to your own role."}, status=400)
 
-            if organization_roles.get(assigned_role).is_retired and features.has(
-                "organizations:team-roles", organization
+            if (
+                organization_roles.get(assigned_role).is_retired
+                and assigned_role != member.role
+                and features.has("organizations:team-roles", organization)
             ):
                 message = f"The role '{assigned_role}' is deprecated and may no longer be assigned."
                 return Response({"detail": message}, status=400)
