@@ -36,3 +36,59 @@ class TestFetchProjectsWithRecentSessions(TestCase, SnubaTestCase):
             self.organization.id: [self.project1.id, self.project2.id],
             self.org2.id: [self.org2_project.id],
         }
+
+
+class TestFetchProjectReleaseHealthTotals(TestCase, SnubaTestCase):
+    def setUp(self):
+        self.project1 = self.create_project()
+        self.project2 = self.create_project()
+        self.environment1 = self.create_environment(project=self.project1)
+        self.environment2 = self.create_environment(project=self.project2)
+        self.release1 = self.create_release(project=self.project1)
+        self.release2 = self.create_release(project=self.project2)
+
+    def test(self):
+        self.bulk_store_sessions(
+            [
+                self.build_session(
+                    project_id=self.project1,
+                    environment=self.environment1.name,
+                    release=self.release1.version,
+                )
+                for _ in range(5)
+            ]
+            + [
+                self.build_session(
+                    project_id=self.project2,
+                    environment=self.environment2.name,
+                    release=self.release2.version,
+                )
+            ]
+        )
+
+        totals = release_monitor.fetch_project_release_health_totals(
+            self.organization.id,
+            [self.project.id, self.project1.id, self.project2.id],
+        )
+        assert totals == {
+            self.project1.id: {
+                self.environment1.name: {
+                    "total_sessions": 5,
+                    "releases": {self.release1.version: 5},
+                }
+            },
+            self.project2.id: {
+                self.environment2.name: {
+                    "total_sessions": 1,
+                    "releases": {self.release2.version: 1},
+                }
+            },
+        }
+
+    def test_no_data(self):
+
+        totals = release_monitor.fetch_project_release_health_totals(
+            self.organization.id,
+            [self.project.id, self.project1.id, self.project2.id],
+        )
+        assert totals == {}
