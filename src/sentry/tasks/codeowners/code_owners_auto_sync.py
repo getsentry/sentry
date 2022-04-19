@@ -63,7 +63,7 @@ def code_owners_auto_sync(commit_id: int, **kwargs):
         except (NotImplementedError, NotFound):
             codeowner_contents = None
 
-        # If failed to fetch, the user can manually sync. We'll send them an email on failure.
+        # If we fail to fetch the codeowners file, the user can manually sync. We'll send them an email on failure.
         if not codeowner_contents:
             return AutoSyncNotification(code_mapping.project).send()
 
