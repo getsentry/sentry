@@ -174,6 +174,7 @@ const StyledIconClose = styled(IconClose)`
   position: absolute;
   right: ${space(1.5)};
   top: ${space(1.5)};
+  cursor: pointer;
   color: ${p => p.theme.gray300};
 `;
 
