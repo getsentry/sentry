@@ -1,7 +1,7 @@
 from typing import Any, MutableMapping
 
 from django.conf import settings
-from symbolic import ProguardMapper
+from symbolic import ProguardMapper  # type: ignore
 
 from sentry.lang.native.symbolicator import Symbolicator
 from sentry.models import Project, ProjectDebugFile
