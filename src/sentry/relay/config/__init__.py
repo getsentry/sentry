@@ -199,7 +199,6 @@ def get_project_config(project, full_config=True, project_keys=None):
             )
         except Exception:
             capture_exception()
-            raise
 
     if features.has("projects:performance-suspect-spans-ingestion", project=project):
         cfg["config"]["spanAttributes"] = project.get_option("sentry:span_attributes")
