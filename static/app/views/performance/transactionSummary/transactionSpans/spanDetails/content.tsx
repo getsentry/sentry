@@ -62,7 +62,14 @@ export default function SpanDetailsContentWrapper(props: Props) {
           />
           <Layout.Title>
             <TransactionName>
-              <IdBadge project={project} avatarSize={28} hideName />
+              {project && (
+                <IdBadge
+                  project={project}
+                  avatarSize={28}
+                  hideName
+                  avatarProps={{hasTooltip: true, tooltip: project.slug}}
+                />
+              )}
               {transactionName}
             </TransactionName>
           </Layout.Title>
