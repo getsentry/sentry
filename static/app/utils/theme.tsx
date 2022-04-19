@@ -1,4 +1,4 @@
-import {css} from '@emotion/react';
+import '@emotion/react';
 
 import color from 'color';
 
@@ -565,11 +565,11 @@ const generateButtonTheme = (colors: BaseColors, alias: Aliases) => ({
 });
 
 const generateUtils = (colors: BaseColors) => ({
-  tooltipUnderline: css({
+  tooltipUnderline: {
     textDecoration: `underline dotted ${colors.gray300}`,
     textDecorationThickness: '0.75px',
     textUnderlineOffset: '1.25px',
-  }),
+  },
 });
 
 const iconSizes = {

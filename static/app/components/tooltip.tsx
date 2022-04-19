@@ -9,7 +9,7 @@ import {
 } from 'react';
 import {createPortal} from 'react-dom';
 import {Manager, Popper, PopperArrowProps, PopperProps, Reference} from 'react-popper';
-import {ClassNames, SerializedStyles, useTheme} from '@emotion/react';
+import {SerializedStyles, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, MotionProps, MotionStyle} from 'framer-motion';
 import * as PopperJS from 'popper.js';
@@ -242,20 +242,14 @@ export function DO_NOT_USE_TOOLTIP({
       (skipWrapper || typeof triggerChildren.type === 'string')
     ) {
       // Basic DOM nodes can be cloned and have more props applied.
-      return (
-        <ClassNames>
-          {({cx, css}) =>
-            cloneElement(triggerChildren, {
-              ...containerProps,
-              className: cx(
-                showUnderline && css(theme.tooltipUnderline),
-                triggerChildren.props.className
-              ),
-              ref: setRef,
-            })
-          }
-        </ClassNames>
-      );
+      return cloneElement(triggerChildren, {
+        ...containerProps,
+        style: {
+          ...triggerChildren.props.style,
+          ...(showUnderline && theme.tooltipUnderline),
+        },
+        ref: setRef,
+      });
     }
 
     containerProps.containerDisplayMode = containerDisplayMode;
@@ -263,7 +257,7 @@ export function DO_NOT_USE_TOOLTIP({
     return (
       <Container
         {...containerProps}
-        css={showUnderline && theme.tooltipUnderline}
+        {...(showUnderline && {style: theme.tooltipUnderline})}
         className={className}
         ref={setRef}
       >
