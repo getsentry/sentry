@@ -57,9 +57,12 @@ const Wrapper = styled('div')`
 `;
 
 const FilterButtons = styled(ButtonBar)`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(1.5)};
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: ${space(1.5)};
+  }
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     display: grid;
