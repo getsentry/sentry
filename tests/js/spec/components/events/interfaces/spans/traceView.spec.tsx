@@ -43,8 +43,8 @@ function generateSampleEvent(): EventTransaction {
 }
 
 function generateSampleSpan(
-  description: string,
-  op: string,
+  description: string | null,
+  op: string | null,
   span_id: string,
   parent_span_id: string,
   event: EventTransaction
@@ -330,5 +330,64 @@ describe('TraceView', () => {
     userEvent.click(embeddedTransactionBadge);
     expect(fetchEmbeddedTransactionMock).toHaveBeenCalled();
     expect(await screen.findByText(/i am embedded :\)/i)).toBeInTheDocument();
+  });
+
+  it('should correctly render sibling autogroup text when op and/or description is not provided', async () => {
+    const data = initializeData({
+      features: ['performance-autogroup-sibling-spans'],
+    });
+
+    const event1 = generateSampleEvent();
+    generateSampleSpan('group me', null, 'b000000000000000', 'a000000000000000', event1);
+    generateSampleSpan('group me', null, 'c000000000000000', 'a000000000000000', event1);
+    generateSampleSpan('group me', null, 'd000000000000000', 'a000000000000000', event1);
+    generateSampleSpan('group me', null, 'e000000000000000', 'a000000000000000', event1);
+    generateSampleSpan('group me', null, 'f000000000000000', 'a000000000000000', event1);
+
+    const {rerender} = render(
+      <TraceView
+        organization={data.organization}
+        waterfallModel={new WaterfallModel(event1)}
+      />
+    );
+    expect(await screen.findByTestId('span-row-2')).toHaveTextContent(
+      /Autogrouped — group me/
+    );
+
+    const event2 = generateSampleEvent();
+    generateSampleSpan(null, 'http', 'b000000000000000', 'a000000000000000', event2);
+    generateSampleSpan(null, 'http', 'c000000000000000', 'a000000000000000', event2);
+    generateSampleSpan(null, 'http', 'd000000000000000', 'a000000000000000', event2);
+    generateSampleSpan(null, 'http', 'e000000000000000', 'a000000000000000', event2);
+    generateSampleSpan(null, 'http', 'f000000000000000', 'a000000000000000', event2);
+
+    rerender(
+      <TraceView
+        organization={data.organization}
+        waterfallModel={new WaterfallModel(event2)}
+      />
+    );
+
+    expect(await screen.findByTestId('span-row-2')).toHaveTextContent(
+      /Autogrouped — http/
+    );
+
+    const event3 = generateSampleEvent();
+    generateSampleSpan(null, null, 'b000000000000000', 'a000000000000000', event3);
+    generateSampleSpan(null, null, 'c000000000000000', 'a000000000000000', event3);
+    generateSampleSpan(null, null, 'd000000000000000', 'a000000000000000', event3);
+    generateSampleSpan(null, null, 'e000000000000000', 'a000000000000000', event3);
+    generateSampleSpan(null, null, 'f000000000000000', 'a000000000000000', event3);
+
+    rerender(
+      <TraceView
+        organization={data.organization}
+        waterfallModel={new WaterfallModel(event3)}
+      />
+    );
+
+    expect(await screen.findByTestId('span-row-2')).toHaveTextContent(
+      /Autogrouped — siblings/
+    );
   });
 });
