@@ -4,7 +4,7 @@ from django.db.models import F
 from django.utils import timezone
 
 from sentry.models import GroupRelease, Project, ReleaseProjectEnvironment, Repository
-from sentry.tasks.releasemonitor import monitor_release_adoption, process_projects_with_sessions
+from sentry.release_health.tasks import monitor_release_adoption, process_projects_with_sessions
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 

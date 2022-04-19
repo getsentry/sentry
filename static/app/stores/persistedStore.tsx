@@ -22,6 +22,10 @@ export const DefaultPersistedStore: PersistedStore = {
   onboarding: null,
 };
 
+export const DefaultLoadedPersistedStore: PersistedStore = {
+  onboarding: {},
+};
+
 type PersistedStoreContextValue = [
   PersistedStore,
   React.Dispatch<React.SetStateAction<PersistedStore>>
@@ -54,15 +58,16 @@ export function PersistedStoreProvider(props: {children: React.ReactNode}) {
     }
 
     let shouldCancelRequest = false;
-
     api
       .requestPromise(`/organizations/${organization.slug}/client-state/`)
       .then((response: PersistedStore) => {
         if (shouldCancelRequest) {
           return;
         }
-
-        setState(oldState => ({...oldState, ...response}));
+        setState({...DefaultLoadedPersistedStore, ...response});
+      })
+      .catch(() => {
+        setState(DefaultPersistedStore);
       });
 
     return () => {
@@ -87,7 +92,7 @@ export function usePersistedStoreCategory<C extends keyof PersistedStore>(
 
   const setCategoryState = useCallback(
     (val: PersistedStore[C] | null) => {
-      setState(oldState => ({...(oldState || DefaultPersistedStore), [category]: val}));
+      setState(oldState => ({...oldState, [category]: val}));
 
       // If a state is set with null, we can clear it from the server.
       const endpointLocation = `/organizations/${organization.slug}/client-state/${category}/`;

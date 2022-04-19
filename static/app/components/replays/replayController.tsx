@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import BooleanField from 'sentry/components/forms/booleanField';
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
-import {Panel, PanelBody} from 'sentry/components/panels';
-import {Consumer as ReplayContextProvider} from 'sentry/components/replays/replayContext';
-import {IconPause, IconPlay, IconRefresh, IconResize} from 'sentry/icons';
+import {Panel as BasePanel, PanelBody as BasePanelBody} from 'sentry/components/panels';
+import {Consumer as ReplayContextConsumer} from 'sentry/components/replays/replayContext';
+import useFullscreen from 'sentry/components/replays/useFullscreen';
+import {IconArrow, IconPause, IconPlay, IconRefresh, IconResize} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
@@ -16,13 +16,15 @@ import {formatTime} from './utils';
 const SECOND = 1000;
 
 interface ReplayControllerProps {
-  onFullscreen?: () => void;
   speedOptions?: number[];
+  toggleFullscreen?: () => void;
 }
 
+// A mix of the public `ReplayControllerProps` and props injected by `ReplayContextConsumer`
 interface ControlsProps extends Required<ReplayControllerProps> {
   currentTime: number;
   duration: number | undefined;
+  isFullscreen: boolean;
   isPlaying: boolean;
   isSkippingInactive: boolean;
   setCurrentTime: (time: number) => void;
@@ -35,18 +37,19 @@ interface ControlsProps extends Required<ReplayControllerProps> {
 const ReplayControls = ({
   currentTime,
   duration,
+  isFullscreen,
   isPlaying,
   isSkippingInactive,
-  onFullscreen,
   setCurrentTime,
   setSpeed,
   speed,
   speedOptions,
+  toggleFullscreen,
   togglePlayPause,
   toggleSkipInactive,
 }: ControlsProps) => {
   return (
-    <Column>
+    <React.Fragment>
       <TimelineRange
         data-test-id="replay-timeline-range"
         name="replay-timeline"
@@ -63,7 +66,7 @@ const ReplayControls = ({
             data-test-id="replay-back-10s"
             size="xsmall"
             title={t('Go back 10 seconds')}
-            icon={<IconRefresh color="gray500" size="sm" />}
+            icon={<IconRefresh size="sm" />}
             onClick={() => setCurrentTime(currentTime - 10 * SECOND)}
             aria-label={t('Go back 10 seconds')}
           />
@@ -79,7 +82,7 @@ const ReplayControls = ({
             data-test-id="replay-forward-10s"
             size="xsmall"
             title={t('Go forward 10 seconds')}
-            icon={<IconClockwise color="gray500" size="sm" />}
+            icon={<IconClockwise size="sm" />}
             onClick={() => setCurrentTime(currentTime + 10 * SECOND)}
             aria-label={t('Go forward 10 seconds')}
           />
@@ -88,15 +91,15 @@ const ReplayControls = ({
           {formatTime(currentTime)} / {duration ? formatTime(duration) : '??:??'}
         </span>
 
-        <RightLeftBooleanField
-          data-test-id="replay-skip-inactive"
-          name="skip-inactive"
-          label={t('Skip to events')}
-          onChange={() => toggleSkipInactive(!isSkippingInactive)}
-          inline={false}
-          stacked
-          hideControlState
-          value={isSkippingInactive}
+        {/* TODO(replay): Need a better icon for the FastForward toggle */}
+        <Button
+          data-test-id="replay-fast-forward"
+          size="xsmall"
+          title={t('Fast-forward idle moments')}
+          aria-label={t('Fast-forward idle moments')}
+          icon={<IconArrow size="sm" direction="right" />}
+          priority={isSkippingInactive ? 'primary' : undefined}
+          onClick={() => toggleSkipInactive(!isSkippingInactive)}
         />
         <ButtonBar active={String(speed)} merged>
           {speedOptions.map(opt => (
@@ -115,17 +118,23 @@ const ReplayControls = ({
         <Button
           data-test-id="replay-fullscreen"
           size="xsmall"
-          title={t('View in full screen')}
+          title={isFullscreen ? t('Exit full screen') : t('View in full screen')}
+          aria-label={isFullscreen ? t('Exit full screen') : t('View in full screen')}
           icon={<IconResize size="sm" />}
-          onClick={onFullscreen}
-          aria-label={t('View in full screen')}
+          priority={isFullscreen ? 'primary' : undefined}
+          onClick={toggleFullscreen}
         />
       </ButtonGrid>
-    </Column>
+    </React.Fragment>
   );
 };
 
-const Column = styled('div')`
+const Panel = styled(BasePanel)<{isFullscreen: boolean}>`
+  width: 100%;
+  ${p => (p.isFullscreen ? 'margin-bottom: 0;' : '')}
+`;
+
+const PanelBody = styled(BasePanelBody)`
   display: grid;
   flex-direction: column;
 `;
@@ -146,24 +155,14 @@ const TimelineRange = styled(RangeSlider)`
   margin-top: ${space(1)};
 `;
 
-const RightLeftBooleanField = styled(BooleanField)`
-  flex-direction: row;
-  column-gap: ${space(0.5)};
-  align-items: center;
-  padding-bottom: 0;
-
-  label {
-    /* Align the label with the center of the checkbox */
-    margin-bottom: 0;
-  }
-`;
-
 export default function ReplayController({
-  onFullscreen = () => {},
+  toggleFullscreen = () => {},
   speedOptions = [0.5, 1, 2, 4],
 }: ReplayControllerProps) {
+  const {isFullscreen} = useFullscreen();
+
   return (
-    <ReplayContextProvider>
+    <ReplayContextConsumer>
       {({
         currentTime,
         duration,
@@ -175,24 +174,25 @@ export default function ReplayController({
         togglePlayPause,
         toggleSkipInactive,
       }) => (
-        <Panel>
+        <Panel isFullscreen={isFullscreen}>
           <PanelBody withPadding>
             <ReplayControls
               currentTime={currentTime}
               duration={duration}
+              isFullscreen={isFullscreen}
               isPlaying={isPlaying}
               isSkippingInactive={skipInactive}
-              onFullscreen={onFullscreen}
               setCurrentTime={setCurrentTime}
               setSpeed={setSpeed}
               speed={speed}
               speedOptions={speedOptions}
+              toggleFullscreen={toggleFullscreen}
               togglePlayPause={togglePlayPause}
               toggleSkipInactive={toggleSkipInactive}
             />
           </PanelBody>
         </Panel>
       )}
-    </ReplayContextProvider>
+    </ReplayContextConsumer>
   );
 }
