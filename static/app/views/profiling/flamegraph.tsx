@@ -64,9 +64,9 @@ function FlamegraphView(props: FlamegraphViewProps): React.ReactElement {
 
   useEffect(() => {
     if (!props.params.eventId || !props.params.projectId) {
-      return;
+      return undefined;
     }
-    api.clear();
+
     setRequestState('loading');
 
     fetchFlamegraphs(api, props.params.eventId, props.params.projectId, organization)
@@ -75,6 +75,10 @@ function FlamegraphView(props: FlamegraphViewProps): React.ReactElement {
         setRequestState('resolved');
       })
       .catch(() => setRequestState('errored'));
+
+    return () => {
+      api.clear();
+    };
   }, [props.params.eventId, props.params.projectId, api, organization]);
 
   return (

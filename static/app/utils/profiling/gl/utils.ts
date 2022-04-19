@@ -465,8 +465,7 @@ export function trimTextCenter(text: string, low: number) {
 
 export function computeClampedConfigView(
   newConfigView: Rect,
-  width: {max: number; min: number},
-  height: {max: number; min: number}
+  {width, height}: {height: {max: number; min: number}; width: {max: number; min: number}}
 ) {
   if (!newConfigView.isValid()) {
     throw new Error(newConfigView.toString());

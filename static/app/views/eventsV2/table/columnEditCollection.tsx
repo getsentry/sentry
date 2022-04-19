@@ -42,6 +42,7 @@ type Props = {
   onChange: (columns: Column[]) => void;
   organization: Organization;
   className?: string;
+  filterAggregateParameters?: (option: FieldValueOption) => boolean;
   filterPrimaryOptions?: (option: FieldValueOption) => boolean;
   noFieldsMessage?: string;
   showAliasField?: boolean;
@@ -416,8 +417,14 @@ class ColumnEditCollection extends React.Component<Props, State> {
       isGhost?: boolean;
     }
   ) {
-    const {columns, fieldOptions, filterPrimaryOptions, noFieldsMessage, showAliasField} =
-      this.props;
+    const {
+      columns,
+      fieldOptions,
+      filterAggregateParameters,
+      filterPrimaryOptions,
+      noFieldsMessage,
+      showAliasField,
+    } = this.props;
     const {isDragging, draggingTargetIndex, draggingIndex} = this.state;
 
     let placeholder: React.ReactNode = null;
@@ -473,6 +480,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
             shouldRenderTag
             disabled={disabled}
             filterPrimaryOptions={filterPrimaryOptions}
+            filterAggregateParameters={filterAggregateParameters}
             noFieldsMessage={noFieldsMessage}
             skipParameterPlaceholder={showAliasField}
           />
