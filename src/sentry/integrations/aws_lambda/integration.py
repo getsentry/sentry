@@ -379,7 +379,7 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
         failures = []
         success_count = 0
 
-        with ThreadPoolExecutor(max_workers=10) as _lambda_setup_thread_pool:
+        with ThreadPoolExecutor(max_workers=100) as _lambda_setup_thread_pool:
             # use threading here to parallelize requests
             # no timeout on the thread since the underlying request will time out
             # if it takes too long
