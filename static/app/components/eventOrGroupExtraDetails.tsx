@@ -114,6 +114,7 @@ const GroupExtra = styled('div')`
   position: relative;
   min-width: 500px;
   white-space: nowrap;
+  line-height: 1.2;
 
   a {
     color: inherit;
