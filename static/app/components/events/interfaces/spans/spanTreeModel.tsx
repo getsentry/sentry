@@ -19,7 +19,6 @@ import {
   TreeDepthType,
 } from './types';
 import {
-  adjustEmbeddedTransactionTimestamps,
   generateRootSpan,
   getSiblingGroupKey,
   getSpanID,
@@ -35,9 +34,9 @@ export const MIN_SIBLING_GROUP_SIZE = 5;
 
 class SpanTreeModel {
   api: Client;
-  span: SpanType;
 
   // readonly state
+  span: Readonly<SpanType>;
   children: Array<SpanTreeModel> = [];
   isRoot: boolean;
 
@@ -770,6 +769,26 @@ class SpanTreeModel {
           }
 
           const parsedTrace = parseTrace(event);
+
+          // We need to adjust the timestamps for this embedded transaction only if it is not within the bounds of its parent span
+          if (
+            parsedTrace.traceStartTimestamp < this.span.start_timestamp ||
+            parsedTrace.traceEndTimestamp > this.span.timestamp
+          ) {
+            const startTimeDelta =
+              this.span.start_timestamp - parsedTrace.traceStartTimestamp;
+
+            parsedTrace.traceStartTimestamp += startTimeDelta;
+            parsedTrace.traceEndTimestamp += startTimeDelta;
+
+            parsedTrace.spans.forEach(span => {
+              span.start_timestamp += startTimeDelta;
+              span.timestamp += startTimeDelta;
+            });
+
+            this.isEmbeddedTransactionTimeAdjusted = true;
+          }
+
           const rootSpan = generateRootSpan(parsedTrace);
           const parsedRootSpan = new SpanTreeModel(
             rootSpan,
@@ -777,18 +796,6 @@ class SpanTreeModel {
             this.api,
             false
           );
-
-          // We need to adjust the timestamps for this embedded transaction only if it is not within the bounds of its parent span
-          if (
-            parsedRootSpan.span.start_timestamp < this.span.start_timestamp ||
-            parsedRootSpan.span.timestamp > this.span.timestamp
-          ) {
-            const startTimeDelta =
-              this.span.start_timestamp - parsedRootSpan.span.start_timestamp;
-            adjustEmbeddedTransactionTimestamps(parsedRootSpan, startTimeDelta);
-            this.isEmbeddedTransactionTimeAdjusted = true;
-          }
-
           this.embeddedChildren = [parsedRootSpan];
           this.fetchEmbeddedChildrenState = 'idle';
           addTraceBounds(parsedRootSpan.generateTraceBounds());
