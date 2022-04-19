@@ -362,7 +362,7 @@ class SuperuserTestCase(TestCase):
 
     @mock.patch("sentry.auth.superuser.logger")
     def test_superuser_session_doesnt_needs_validatation_superuser_prompts(self, logger):
-        user = User(is_superuser=True, id=10, email="test@sentry.io")
+        user = User(is_superuser=True)
         request = self.make_request(user=user, method="PUT")
         superuser = Superuser(request, org_id=None)
         superuser.set_logged_in(request.user)
