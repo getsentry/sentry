@@ -151,16 +151,30 @@ def _deobfuscate(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
         return profile
 
     for method in profile["profile"]["methods"]:
-        # first, try to remap complete frames
         mapped = mapper.remap_frame(
             method["class_name"], method["name"], method["source_line"] or 0
         )
         if len(mapped) == 1:
-            method["class_name"] = mapped[0].class_name
-            method["name"] = mapped[0].method
-            method["source_line"] = mapped[0].line
+            new_frame = mapped[0]
+            method.update(
+                {
+                    "class_name": new_frame.class_name,
+                    "name": new_frame.method,
+                    "source_file": new_frame.file,
+                    "source_line": new_frame.line,
+                }
+            )
+        elif len(mapped) > 1:
+            method["inline_frames"] = [
+                {
+                    "class_name": new_frame.class_name,
+                    "name": new_frame.method,
+                    "source_file": new_frame.file,
+                    "source_line": new_frame.line,
+                }
+                for new_frame in mapped
+            ]
         else:
-            # second, if that is not possible, try to re-map only the class-name
             mapped = mapper.remap_class(method["class_name"])
             if mapped:
                 method["class_name"] = mapped
