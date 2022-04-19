@@ -34,8 +34,10 @@ from sentry.models import (
     Integration,
     Organization,
     OrganizationIntegration,
+    OrganizationMemberTeam,
     Release,
     ReleaseStages,
+    TeamStatus,
     UserOption,
     add_group_to_inbox,
     remove_group_from_inbox,
@@ -78,17 +80,17 @@ class GroupListTest(APITestCase, SnubaTestCase):
     def test_issue_visibility_with_closed_membership(self):
         # disable default allow_joinleave
         self.organization.update(flags=0)
-        self.organization.refresh_from_db()
         user = self.create_user()
         team = self.create_team(organization=self.organization)
         self.create_member(organization=self.organization, user=user, role="member", teams=[team])
-        self.create_project(organization=self.organization, teams=[team])
 
-        event = self.store_event(
+        other_team = self.create_team(organization=self.organization)
+        other_project = self.create_project(organization=self.organization, teams=[other_team])
+
+        self.store_event(
             data={"event_id": "a" * 32, "timestamp": iso_format(before_now(seconds=1))},
-            project_id=self.project.id,
+            project_id=other_project.id,
         )
-        group = event.group
         self.login_as(user=user)
 
         with self.feature("organizations:global-views"):
@@ -100,19 +102,19 @@ class GroupListTest(APITestCase, SnubaTestCase):
         user = self.create_user()
         team = self.create_team(organization=self.organization)
         self.create_member(organization=self.organization, user=user, role="member", teams=[team])
-        self.create_project(organization=self.organization, teams=[team])
 
-        event = self.store_event(
+        other_team = self.create_team(organization=self.organization)
+        other_project = self.create_project(organization=self.organization, teams=[other_team])
+
+        self.store_event(
             data={"event_id": "a" * 32, "timestamp": iso_format(before_now(seconds=1))},
-            project_id=self.project.id,
+            project_id=other_project.id,
         )
-        group = event.group
         self.login_as(user=user)
 
         with self.feature("organizations:global-views"):
             response = self.get_valid_response(sort_by="date", query="is:unresolved")
-            assert len(response.data) == 1
-            assert response.data[0]["id"] == str(group.id)
+            assert len(response.data) == 0
 
     def test_sort_by_date_with_tag(self):
         # XXX(dcramer): this tests a case where an ambiguous column name existed
