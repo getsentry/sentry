@@ -164,13 +164,17 @@ export function deleteDashboard(
 export function validateWidget(
   api: Client,
   orgId: string,
-  widget: Widget
+  widget: Widget,
+  projectIds?: string[] | number[]
 ): Promise<undefined> {
   const promise: Promise<undefined> = api.requestPromise(
     `/organizations/${orgId}/dashboards/widgets/`,
     {
       method: 'POST',
       data: widget,
+      query: {
+        project: projectIds?.map(String),
+      },
     }
   );
   return promise;

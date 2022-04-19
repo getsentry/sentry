@@ -194,11 +194,17 @@ class Dashboard extends Component<Props, State> {
   }
 
   async addNewWidget() {
-    const {api, organization, newWidget, handleAddCustomWidget, onSetNewWidget} =
-      this.props;
+    const {
+      api,
+      organization,
+      newWidget,
+      handleAddCustomWidget,
+      onSetNewWidget,
+      selection,
+    } = this.props;
     if (newWidget) {
       try {
-        await validateWidget(api, organization.slug, newWidget);
+        await validateWidget(api, organization.slug, newWidget, selection.projects);
         handleAddCustomWidget(newWidget);
         onSetNewWidget?.();
       } catch (error) {

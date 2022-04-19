@@ -222,6 +222,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       onAddWidget,
       onUpdateWidget,
       widget: previousWidget,
+      selection,
       source,
     } = this.props;
     this.setState({loading: true});
@@ -239,7 +240,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       });
     }
     try {
-      await validateWidget(api, organization.slug, widgetData);
+      await validateWidget(api, organization.slug, widgetData, selection.projects);
       if (typeof onUpdateWidget === 'function' && !!previousWidget) {
         onUpdateWidget({
           id: previousWidget?.id,
