@@ -20,7 +20,7 @@ from sentry.eventstream.kafka.protocol import (
     get_task_kwargs_for_message,
     get_task_kwargs_for_message_from_headers,
 )
-from sentry.eventstream.snuba import SnubaProtocolEventStream
+from sentry.eventstream.snuba import KW_SKIP_SEMANTIC_PARTITIONING, SnubaProtocolEventStream
 from sentry.killswitches import killswitch_matches_context
 from sentry.utils import json, kafka, metrics
 from sentry.utils.batching_kafka_consumer import BatchingKafkaConsumer
@@ -119,12 +119,17 @@ class KafkaEventStream(SnubaProtocolEventStream):
         primary_hash,
         received_timestamp,  # type: float
         skip_consume=False,
+        **kwargs,
     ):
         message_type = "transaction" if self._is_transaction_event(event) else "error"
         assign_partitions_randomly = killswitch_matches_context(
             "kafka.send-project-events-to-random-partitions",
             {"project_id": event.project_id, "message_type": message_type},
         )
+
+        if assign_partitions_randomly:
+            kwargs[KW_SKIP_SEMANTIC_PARTITIONING] = True
+
         return super().insert(
             group,
             event,
@@ -134,7 +139,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
             primary_hash,
             received_timestamp,
             skip_consume,
-            assign_partitions_randomly,
+            **kwargs,
         )
 
     def _send(
@@ -144,7 +149,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         extra_data: Tuple[Any, ...] = (),
         asynchronous: bool = True,
         headers: Optional[Mapping[str, str]] = None,
-        assign_partition_randomly: bool = False,
+        skip_semantic_partitioning: bool = False,
     ):
         if headers is None:
             headers = {}
@@ -168,7 +173,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         try:
             self.producer.produce(
                 topic=self.topic,
-                key=str(project_id).encode("utf-8") if not assign_partition_randomly else None,
+                key=str(project_id).encode("utf-8") if not skip_semantic_partitioning else None,
                 value=json.dumps((self.EVENT_PROTOCOL_VERSION, _type) + extra_data),
                 on_delivery=self.delivery_callback,
                 headers=[(k, v.encode("utf-8")) for k, v in headers.items()],
