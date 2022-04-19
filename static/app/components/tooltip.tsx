@@ -257,7 +257,7 @@ export function DO_NOT_USE_TOOLTIP({
     return (
       <Container
         {...containerProps}
-        {...(showUnderline && {style: theme.tooltipUnderline})}
+        style={showUnderline ? theme.tooltipUnderline : undefined}
         className={className}
         ref={setRef}
       >
