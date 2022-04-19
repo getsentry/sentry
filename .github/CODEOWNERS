@@ -249,6 +249,9 @@ build-utils/        @getsentry/owners-js-build
 /api-docs/                                    @getsentry/ecosystem
 /tests/apidocs/                               @getsentry/ecosystem
 
+/src/sentry/middleware/ratelimit.py           @getsentry/ecosystem
+/src/sentry/middleware/access_log.py          @getsentry/ecosystem
+
 ### End of Ecosystem ###
 
 
