@@ -574,10 +574,10 @@ def profiles_consumer(**options):
     get_profiles_consumer(**options).run()
 
 
-@run.command("last-seen-updater")
+@run.command("indexer-last-seen-updater")
 @log_options()
 @configuration
-@batching_kafka_options("snuba-metrics-consumer")
+@batching_kafka_options("indexer-last-seen-updater-consumer")
 @click.option("--processes", default=1, type=int)
 @click.option("--input-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
 @click.option("--output-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
@@ -585,7 +585,7 @@ def profiles_consumer(**options):
 @click.option("commit_max_batch_time", "--commit-max-batch-time-ms", type=int, default=10000)
 @click.option("--topic", default="snuba-metrics", help="Topic to read indexer output from.")
 def last_seen_updater(**options):
-    from sentry.sentry_metrics.multiprocess import get_last_seen_updater
+    from sentry.sentry_metrics.last_seen_updater import get_last_seen_updater
 
     consumer = get_last_seen_updater(**options)
 
