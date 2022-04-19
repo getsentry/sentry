@@ -29,7 +29,7 @@ class GoogleIdentityProvider(OAuth2Provider):
         return options.get("auth-google.client-secret")
 
     def build_identity(self, state):
-        data = state["data"]
+        data = state.get("data", {})
 
         try:
             id_token = data["id_token"]

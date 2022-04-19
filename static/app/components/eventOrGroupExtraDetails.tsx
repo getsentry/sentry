@@ -114,9 +114,14 @@ const GroupExtra = styled('div')`
   position: relative;
   min-width: 500px;
   white-space: nowrap;
+  line-height: 1.2;
 
   a {
     color: inherit;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    line-height: 1;
   }
 `;
 

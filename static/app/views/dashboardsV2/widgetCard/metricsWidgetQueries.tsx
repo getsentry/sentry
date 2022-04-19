@@ -4,7 +4,7 @@ import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
 import {doSessionsRequest} from 'sentry/actionCreators/sessions';
-import {Client} from 'sentry/api';
+import {Client, ResponseMeta} from 'sentry/api';
 import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
 import {t} from 'sentry/locale';
 import {OrganizationSummary, PageFilters, SessionApiResponse} from 'sentry/types';
@@ -22,17 +22,23 @@ import {transformSessionsResponseToTable} from './transformSessionsResponseToTab
 type Props = {
   api: Client;
   children: (
-    props: Pick<State, 'loading' | 'timeseriesResults' | 'tableResults' | 'errorMessage'>
+    props: Pick<
+      State,
+      'loading' | 'timeseriesResults' | 'tableResults' | 'errorMessage' | 'pageLinks'
+    >
   ) => React.ReactNode;
   organization: OrganizationSummary;
   selection: PageFilters;
   widget: Widget;
+  cursor?: string;
+  includeAllArgs?: boolean;
   limit?: number;
 };
 
 type State = {
   loading: boolean;
   errorMessage?: string;
+  pageLinks?: string;
   queryFetchID?: symbol;
   rawResults?: SessionApiResponse[];
   tableResults?: TableDataWithTitle[];
@@ -56,7 +62,7 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
 
   componentDidUpdate(prevProps: Props) {
     const {loading, rawResults} = this.state;
-    const {selection, widget, organization, limit} = this.props;
+    const {selection, widget, organization, limit, cursor} = this.props;
     const ignroredWidgetProps = [
       'queries',
       'title',
@@ -97,7 +103,8 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
       !isEqual(
         widget.queries.flatMap(q => q.columns.filter(column => !!column)),
         prevProps.widget.queries.flatMap(q => q.columns.filter(column => !!column))
-      )
+      ) ||
+      cursor !== prevProps.cursor
     ) {
       this.fetchData();
       return;
@@ -114,7 +121,11 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
         return {
           ...prevState,
           timeseriesResults: prevState.rawResults?.flatMap((rawResult, index) =>
-            transformSessionsResponseToSeries(rawResult, widget.queries[index].name)
+            transformSessionsResponseToSeries(
+              rawResult,
+              limit,
+              widget.queries[index].name
+            )
           ),
         };
       });
@@ -143,7 +154,7 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
   }
 
   fetchData() {
-    const {selection, api, organization, widget} = this.props;
+    const {selection, api, organization, widget, includeAllArgs, cursor} = this.props;
 
     if (widget.displayType === DisplayType.WORLD_MAP) {
       this.setState({errorMessage: t('World Map is not supported by metrics.')});
@@ -177,6 +188,8 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
         query: query.conditions,
         start,
         statsPeriod: period,
+        includeAllArgs,
+        cursor,
       };
       return doSessionsRequest(api, requestData);
     });
@@ -184,7 +197,15 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
     let completed = 0;
     promises.forEach(async (promise, requestIndex) => {
       try {
-        const response = await promise;
+        const res = await promise;
+        let data: SessionApiResponse;
+        let response: ResponseMeta;
+        if (Array.isArray(res)) {
+          data = res[0];
+          response = res[2];
+        } else {
+          data = res;
+        }
         if (!this._isMounted) {
           return;
         }
@@ -197,20 +218,22 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
           // Transform to fit the table format
           if ([DisplayType.TABLE, DisplayType.BIG_NUMBER].includes(widget.displayType)) {
             const tableData = transformSessionsResponseToTable(
-              response
+              data
             ) as TableDataWithTitle; // Cast so we can add the title.
             tableData.title = widget.queries[requestIndex]?.name ?? '';
             return {
               ...prevState,
               errorMessage: undefined,
               tableResults: [...(prevState.tableResults ?? []), tableData],
+              pageLinks: response?.getResponseHeader('link') ?? undefined,
             };
           }
 
           // Transform to fit the chart format
           const timeseriesResults = [...(prevState.timeseriesResults ?? [])];
           const transformedResult = transformSessionsResponseToSeries(
-            response,
+            data,
+            this.limit,
             widget.queries[requestIndex].name
           );
 
@@ -225,13 +248,13 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
           });
 
           const rawResultsClone = cloneDeep(prevState.rawResults ?? []);
-          rawResultsClone[requestIndex] = response;
-
+          rawResultsClone[requestIndex] = data;
           return {
             ...prevState,
             errorMessage: undefined,
             timeseriesResults,
             rawResults: rawResultsClone,
+            pageLinks: response?.getResponseHeader('link') ?? undefined,
           };
         });
       } catch (err) {
@@ -259,13 +282,15 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
 
   render() {
     const {children} = this.props;
-    const {loading, timeseriesResults, tableResults, errorMessage} = this.state;
+    const {loading, timeseriesResults, tableResults, errorMessage, pageLinks} =
+      this.state;
 
     return children({
       loading,
       timeseriesResults,
       tableResults,
       errorMessage,
+      pageLinks,
     });
   }
 }

@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -19,7 +19,6 @@ import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import Projects from 'sentry/utils/projects';
-import withOrganization from 'sentry/utils/withOrganization';
 
 import FilterBar from '../filterBar';
 import {Incident} from '../types';
@@ -293,49 +292,30 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
   }
 }
 
-class IncidentsListContainer extends Component<Props> {
-  componentDidMount() {
-    this.trackView();
-  }
-
-  componentDidUpdate(nextProps: Props) {
-    if (nextProps.location.query?.status !== this.props.location.query?.status) {
-      this.trackView();
-    }
-  }
-
-  trackView() {
-    const {organization} = this.props;
-
+function IncidentsListContainer(props: Props) {
+  useEffect(() => {
     trackAdvancedAnalyticsEvent('alert_stream.viewed', {
-      organization,
+      organization: props.organization,
     });
-  }
+  }, []);
 
-  renderNoAccess() {
-    return (
-      <Layout.Body>
-        <Layout.Main fullWidth>
-          <Alert type="warning">{t("You don't have access to this feature")}</Alert>
-        </Layout.Main>
-      </Layout.Body>
-    );
-  }
+  const renderDisabled = () => (
+    <Layout.Body>
+      <Layout.Main fullWidth>
+        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+      </Layout.Main>
+    </Layout.Body>
+  );
 
-  render() {
-    const {organization} = this.props;
-
-    return (
-      <Feature
-        features={['organizations:incidents']}
-        organization={organization}
-        hookName="feature-disabled:alerts-page"
-        renderDisabled={this.renderNoAccess}
-      >
-        <IncidentsList {...this.props} />
-      </Feature>
-    );
-  }
+  return (
+    <Feature
+      features={['incidents']}
+      hookName="feature-disabled:alerts-page"
+      renderDisabled={renderDisabled}
+    >
+      <IncidentsList {...props} />
+    </Feature>
+  );
 }
 
 const StyledAlert = styled(Alert)`
@@ -346,4 +326,4 @@ const EmptyStateAction = styled('p')`
   font-size: ${p => p.theme.fontSizeLarge};
 `;
 
-export default withOrganization(IncidentsListContainer);
+export default IncidentsListContainer;
