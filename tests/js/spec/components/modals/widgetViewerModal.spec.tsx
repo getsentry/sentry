@@ -831,16 +831,6 @@ describe('Modals -> WidgetViewerModal', function () {
       return eventsv2Mock;
     }
 
-    it('uses provided tableData and does not make an eventsv2 requests', async function () {
-      const eventsv2Mock = mockEventsv2();
-      await renderModal({
-        initialData,
-        widget: mockWidget,
-        tableData: [],
-      });
-      expect(eventsv2Mock).not.toHaveBeenCalled();
-    });
-
     it('makes eventsv2 requests when table is paginated', async function () {
       const eventsv2Mock = mockEventsv2();
       await renderModal({
