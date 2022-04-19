@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -36,11 +36,13 @@ type Props = AsyncView['props'] &
     statsPeriod?: string | undefined; // revisit i'm sure i'm doing statsperiod wrong
   };
 
-const sanitizeLocationQuery = query => {
-  if (!query || Array.isArray(query)) {
+// certain query params can be either a string or an array of strings
+// so if we have an array we reduce it down to a string
+const getQueryParamAsString = query => {
+  if (!query) {
     return '';
   }
-  return query;
+  return Array.isArray(query) ? query.join(' ') : query;
 };
 
 function Replays(props: Props) {
@@ -49,11 +51,11 @@ function Replays(props: Props) {
   const {projects} = useProjects();
 
   const [searchQuery, setSearchQuery] = useState<string>(
-    sanitizeLocationQuery(location.query.query)
+    getQueryParamAsString(location.query.query)
   );
 
   useEffect(() => {
-    setSearchQuery(sanitizeLocationQuery(location.query.query));
+    setSearchQuery(getQueryParamAsString(location.query.query));
   }, [location.query.query]);
 
   const getEventView = () => {
@@ -64,7 +66,7 @@ function Replays(props: Props) {
       name: '',
       version: 2,
       fields: ['eventID', 'project', 'timestamp', 'user.display', 'url'],
-      orderby: sanitizeLocationQuery(query.sort) || '-timestamp',
+      orderby: getQueryParamAsString(query.sort) || '-timestamp',
       environment: selection.environments,
       projects: selection.projects,
       query: `transaction:sentry-replay ${searchQuery}`, // future: change to replay event
@@ -89,7 +91,7 @@ function Replays(props: Props) {
 
   const renderTable = (replayList: Array<Replay>) => {
     return replayList?.map(replay => (
-      <React.Fragment key={replay.id}>
+      <Fragment key={replay.id}>
         <Link
           to={`/organizations/${organization.slug}/replays/${generateEventSlug({
             project: replay.project,
@@ -122,7 +124,7 @@ function Replays(props: Props) {
             <TimeSince date={replay.timestamp} />
           </TimeSinceWrapper>
         </div>
-      </React.Fragment>
+      </Fragment>
     ));
   };
 
@@ -132,14 +134,14 @@ function Replays(props: Props) {
   const sort: {
     field: string;
   } = {
-    field: sanitizeLocationQuery(query.sort) || '-timestamp',
+    field: getQueryParamAsString(query.sort) || '-timestamp',
   };
 
   const arrowDirection = sort.field.startsWith('-') ? 'down' : 'up';
   const sortArrow = <IconArrow color="gray300" size="xs" direction={arrowDirection} />;
 
   return (
-    <React.Fragment>
+    <Fragment>
       <StyledPageHeader>
         <HeaderTitle>
           <div>
@@ -156,7 +158,7 @@ function Replays(props: Props) {
           >
             {data => {
               return (
-                <React.Fragment>
+                <Fragment>
                   <ReplaysFilters
                     query={searchQuery}
                     organization={organization}
@@ -195,13 +197,13 @@ function Replays(props: Props) {
                     {data.tableData ? renderTable(data.tableData.data as Replay[]) : null}
                   </PanelTable>
                   <Pagination pageLinks={data.pageLinks} />
-                </React.Fragment>
+                </Fragment>
               );
             }}
           </DiscoverQuery>
         </StyledPageContent>
       </PageFiltersContainer>
-    </React.Fragment>
+    </Fragment>
   );
 }
 
