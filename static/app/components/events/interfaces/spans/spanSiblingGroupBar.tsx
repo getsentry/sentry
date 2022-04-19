@@ -55,16 +55,16 @@ export default function SpanSiblingGroupBar(props: Props) {
     const operation = spanGrouping[0].span.op;
     const description = spanGrouping[0].span.description;
 
-    if (!operation && !description) {
+    if (!description || !operation) {
+      if (description) {
+        return <strong>{`${t('Autogrouped')} \u2014 ${description}`}</strong>;
+      }
+
+      if (operation) {
+        return <strong>{`${t('Autogrouped')} \u2014 ${operation}`}</strong>;
+      }
+
       return <strong>{`${t('Autogrouped')} \u2014 ${t('siblings')}`}</strong>;
-    }
-
-    if (!operation) {
-      return <strong>{`${t('Autogrouped')} \u2014 ${description}`}</strong>;
-    }
-
-    if (!description) {
-      return <strong>{`${t('Autogrouped')} \u2014 ${operation}`}</strong>;
     }
 
     return (
