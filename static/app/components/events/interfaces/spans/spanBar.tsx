@@ -108,6 +108,7 @@ type SpanBarProps = {
   event: Readonly<EventTransaction>;
   fetchEmbeddedChildrenState: FetchEmbeddedChildrenState;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
+  isEmbeddedTransactionTimeAdjusted: boolean;
   numOfSpanChildren: number;
   numOfSpans: number;
   organization: Organization;
@@ -124,7 +125,6 @@ type SpanBarProps = {
   treeDepth: number;
   groupOccurrence?: number;
   groupType?: GroupType;
-  isEmbeddedTransactionTimeAdjusted?: boolean;
   isLast?: boolean;
   isRoot?: boolean;
   spanBarColor?: string;

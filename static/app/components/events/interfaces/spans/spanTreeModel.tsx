@@ -177,6 +177,7 @@ class SpanTreeModel {
       fetchEmbeddedChildrenState: 'idle',
       showEmbeddedChildren: false,
       toggleEmbeddedChildren: undefined,
+      isEmbeddedTransactionTimeAdjusted: this.isEmbeddedTransactionTimeAdjusted,
     };
     return gapSpan;
   }
@@ -292,6 +293,7 @@ class SpanTreeModel {
           ? this.toggleNestedSpanGroup
           : undefined,
       toggleSiblingSpanGroup: undefined,
+      isEmbeddedTransactionTimeAdjusted: this.isEmbeddedTransactionTimeAdjusted,
     };
 
     if (wrappedSpan.type === 'root_span') {
