@@ -309,8 +309,8 @@ jobs:
     # workflows that generate artifacts succeed
     needs: [acceptance, frontend, chartcuterie]
     name: triggers visual snapshot
-    # Do not execute on forks or on master
-    if: github.head_repository.full_name == 'getsentry/sentry' && github.ref != 'refs/heads/master'
+    # Only when all jobs succeed; Do not execute on forks or on master
+    if: success() && github.head_repository.full_name == 'getsentry/sentry' && github.ref != 'refs/heads/master'
     runs-on: ubuntu-20.04
     timeout-minutes: 20
 

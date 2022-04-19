@@ -441,5 +441,7 @@ jobs:
       ]
     name: Backend
     runs-on: ubuntu-20.04
+    # Only when all jobs succeed()
+    if: success()
     steps:
       - run: 'echo "All required checks have passed and we meet the requirements." '
