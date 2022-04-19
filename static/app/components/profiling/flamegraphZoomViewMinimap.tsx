@@ -129,8 +129,8 @@ function FlamegraphZoomViewMinimap({
       positionIndicatorRenderer.context.clearRect(
         0,
         0,
-        flamegraphMiniMapRenderer.physicalSpace.width,
-        flamegraphMiniMapRenderer.physicalSpace.height
+        positionIndicatorRenderer.canvas.width,
+        positionIndicatorRenderer.canvas.height
       );
     };
 
@@ -238,13 +238,6 @@ function FlamegraphZoomViewMinimap({
     canvasPoolManager.registerScheduler(scheduler);
     return () => canvasPoolManager.unregisterScheduler(scheduler);
   }, [scheduler]);
-
-  useEffect(() => {
-    window.addEventListener('mouseup', () => {
-      setLastDragVector(null);
-      setStartDragConfigSpaceCursor(null);
-    });
-  }, []);
 
   const onMouseDrag = useCallback(
     (evt: React.MouseEvent<HTMLCanvasElement>) => {
@@ -434,6 +427,14 @@ function FlamegraphZoomViewMinimap({
   }, []);
 
   useEffect(() => {
+    window.addEventListener('mouseup', onMinimapCanvasMouseUp);
+
+    return () => {
+      window.removeEventListener('mouseup', onMinimapCanvasMouseUp);
+    };
+  }, [onMinimapCanvasMouseUp]);
+
+  useEffect(() => {
     if (!flamegraphMiniMapCanvasRef) {
       return undefined;
     }
@@ -467,9 +468,6 @@ function FlamegraphZoomViewMinimap({
             ? 'grab'
             : 'col-resize'
         }
-        style={{
-          userSelect: 'none',
-        }}
       />
       <OverlayCanvas ref={canvas => setFlamegraphMiniMapOverlayCanvasRef(canvas)} />
     </Fragment>
@@ -483,6 +481,7 @@ const Canvas = styled('canvas')<{cursor?: React.CSSProperties['cursor']}>`
   left: 0;
   top: 0;
   cursor: ${props => props.cursor ?? 'default'};
+  user-select: none;
 `;
 
 const OverlayCanvas = styled(Canvas)`

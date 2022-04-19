@@ -9,6 +9,7 @@ from parsimonious.exceptions import ParseError  # noqa
 from parsimonious.grammar import Grammar, NodeVisitor
 from rest_framework.serializers import ValidationError
 
+from sentry.eventstore.models import EventSubjectTemplateData
 from sentry.models import ActorTuple
 from sentry.utils.glob import glob_match
 from sentry.utils.safe import get_path
@@ -132,8 +133,30 @@ class Matcher(namedtuple("Matcher", "type pattern")):
 
     def test_tag(self, data):
         tag = self.type[5:]
+
+        # inspect the event-payload User interface first before checking tags.user
+        if tag and tag.startswith("user."):
+            for k, v in (get_path(data, "user", filter=True) or {}).items():
+                if isinstance(v, str) and tag.endswith("." + k) and glob_match(v, self.pattern):
+                    return True
+                # user interface supports different fields in the payload, any other fields present gets put into the
+                # 'data' dict
+                # we look one more level deep to see if the pattern matches
+                elif k == "data":
+                    for data_k, data_v in (v or {}).items():
+                        if (
+                            isinstance(data_v, str)
+                            and tag.endswith("." + data_k)
+                            and glob_match(data_v, self.pattern)
+                        ):
+                            return True
+
         for k, v in get_path(data, "tags", filter=True) or ():
             if k == tag and glob_match(v, self.pattern):
+                return True
+            elif k == EventSubjectTemplateData.tag_aliases.get(tag, tag) and glob_match(
+                v, self.pattern
+            ):
                 return True
         return False
 
