@@ -48,6 +48,7 @@ class SeenInfo extends React.Component<Props> {
     return (
       <HovercardWrapper>
         <StyledHovercard
+          showIndicator
           header={
             <div>
               <TimeSinceWrapper>

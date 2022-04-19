@@ -198,6 +198,7 @@ class GroupHeader extends React.Component<Props, State> {
                       <h6 className="nav-header">
                         <Tooltip
                           className="help-link"
+                          showIndicator
                           title={t(
                             'This identifier is unique across your organization, and can be used to reference an issue in various places, like commit messages.'
                           )}

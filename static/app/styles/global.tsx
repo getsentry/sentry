@@ -14,7 +14,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
   }
 
   abbr {
-    border-bottom: 1px dotted ${theme.gray300};
+    ${theme.tooltipIndicator};
   }
 
   a {
