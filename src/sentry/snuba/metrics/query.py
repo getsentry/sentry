@@ -18,9 +18,9 @@ class MetricField:
     metric_name: str
 
 
-class Sum(MetricField):
+class Count(MetricField):
     def __init__(self, metric_name: str):
-        super().__init__("sum", metric_name)
+        super().__init__("count", metric_name)
 
 
 class CountUnique(MetricField):
@@ -28,14 +28,53 @@ class CountUnique(MetricField):
         super().__init__("count_unique", metric_name)
 
 
+class Sum(MetricField):
+    def __init__(self, metric_name: str):
+        super().__init__("sum", metric_name)
+
+
+class Max(MetricField):
+    def __init__(self, metric_name: str):
+        super().__init__("max", metric_name)
+
+
+class Min(MetricField):
+    def __init__(self, metric_name: str):
+        super().__init__("min", metric_name)
+
+
+class Percentile50(MetricField):
+    def __init__(self, metric_name: str):
+        super().__init__("p50", metric_name)
+
+
+class Percentile75(MetricField):
+    def __init__(self, metric_name: str):
+        super().__init__("p75", metric_name)
+
+
+class Percentile90(MetricField):
+    def __init__(self, metric_name: str):
+        super().__init__("p90", metric_name)
+
+
 class Percentile95(MetricField):
     def __init__(self, metric_name: str):
         super().__init__("p95", metric_name)
 
 
-class Histogram(MetricField):
+class Percentile99(MetricField):
     def __init__(self, metric_name: str):
-        super().__init__("histogram", metric_name)
+        super().__init__("p99", metric_name)
+
+
+@dataclass(frozen=True)
+class Histogram:
+    metric_name: str
+
+    @property
+    def op(self) -> MetricOperationType:
+        return "histogram"
 
 
 @dataclass(frozen=True)
@@ -85,7 +124,7 @@ class MetricsQuery:
     offset: Optional[Offset] = None
     type: QueryType = QueryType.BOTH
 
-    # TODO: These should be properaties of the Histogram field
+    # TODO: These should be properties of the Histogram field
     histogram_buckets: int = 100
     histogram_from: Optional[float] = None
     histogram_to: Optional[float] = None
