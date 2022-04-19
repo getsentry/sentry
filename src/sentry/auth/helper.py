@@ -126,6 +126,7 @@ class AuthIdentityHandler:
                 "organization_id": self.organization.id,
                 "user_id": user.id,
             },
+            sample_rate=1.0,
             skip_internal=False,
         )
         user_was_logged_in = auth.login(
@@ -144,6 +145,7 @@ class AuthIdentityHandler:
                 "organization_id": self.organization.id,
                 "user_id": user.id,
             },
+            sample_rate=1.0,
             skip_internal=False,
         )
 
