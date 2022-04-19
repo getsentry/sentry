@@ -131,6 +131,31 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         )
         assert data == {(self.project.id, self.session_release)}
 
+    def test_check_has_health_data_without_releases_should_include_sessions_lte_90_days(self):
+        """
+        Test that ensures that `check_has_health_data` returns a set of projects that has health
+        data within the last 90d if only a list of project ids is provided and any project with
+        session data earlier than 90 days should be included
+        """
+        project2 = self.create_project(
+            name="Bar2",
+            slug="bar2",
+            teams=[self.team],
+            fire_project_created=True,
+            organization=self.organization,
+        )
+        self.store_session(
+            self.build_session(
+                **{
+                    "project_id": project2.id,
+                    "org_id": project2.organization_id,
+                    "status": "exited",
+                }
+            )
+        )
+        data = self.backend.check_has_health_data([self.project.id, project2.id])
+        assert data == {self.project.id, project2.id}
+
     def test_check_has_health_data_does_not_crash_when_sending_projects_list_as_set(self):
         data = self.backend.check_has_health_data({self.project.id})
         assert data == {self.project.id}
