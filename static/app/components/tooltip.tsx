@@ -92,15 +92,15 @@ export interface InternalTooltipProps {
   position?: PopperJS.Placement;
 
   /**
-   * Whether to add a dotted underline to the trigger element, to indicate the
-   * presence of a tooltip.
-   */
-  showIndicator?: boolean;
-
-  /**
    * Only display the tooltip only if the content overflows
    */
   showOnlyOnOverflow?: boolean;
+
+  /**
+   * Whether to add a dotted underline to the trigger element, to indicate the
+   * presence of a tooltip.
+   */
+  showUnderline?: boolean;
 
   /**
    * If child node supports ref forwarding, you can skip apply a wrapper
@@ -143,7 +143,7 @@ export function DO_NOT_USE_TOOLTIP({
   forceVisible,
   isHoverable,
   popperStyle,
-  showIndicator,
+  showUnderline,
   showOnlyOnOverflow,
   skipWrapper,
   title,
@@ -248,7 +248,7 @@ export function DO_NOT_USE_TOOLTIP({
             cloneElement(triggerChildren, {
               ...containerProps,
               className: cx(
-                showIndicator && css(theme.tooltipUnderline),
+                showUnderline && css(theme.tooltipUnderline),
                 triggerChildren.props.className
               ),
               ref: setRef,
@@ -263,7 +263,7 @@ export function DO_NOT_USE_TOOLTIP({
     return (
       <Container
         {...containerProps}
-        css={showIndicator && theme.tooltipUnderline}
+        css={showUnderline && theme.tooltipUnderline}
         className={className}
         ref={setRef}
       >

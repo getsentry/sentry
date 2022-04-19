@@ -138,7 +138,7 @@ class GroupEventToolbar extends Component<Props> {
             </ExternalLink>
           </LinkContainer>
         </Heading>
-        <Tooltip title={this.getDateTooltip()} showIndicator disableForVisualTest>
+        <Tooltip title={this.getDateTooltip()} showUnderline disableForVisualTest>
           <StyledDateTime
             format={is24Hours ? 'MMM D, YYYY HH:mm:ss zz' : 'll LTS z'}
             date={getDynamicText({

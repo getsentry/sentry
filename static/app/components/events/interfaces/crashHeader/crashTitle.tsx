@@ -34,7 +34,7 @@ const CrashTitle = ({
           {title}
         </GuideAnchor>
         {onChange && (
-          <Tooltip showIndicator title={t('Toggle stack trace order')}>
+          <Tooltip showUnderline title={t('Toggle stack trace order')}>
             <small>
               (
               <span onClick={handleToggleOrder}>

@@ -70,7 +70,7 @@ interface HovercardProps {
    * Whether to add a dotted underline to the trigger element, to indicate the
    * presence of a tooltip.
    */
-  showIndicator?: boolean;
+  showUnderline?: boolean;
   /**
    * Color of the arrow tip border
    */
@@ -158,7 +158,7 @@ function Hovercard(props: HovercardProps): React.ReactElement {
             ref={ref}
             aria-describedby={tooltipId}
             className={props.containerClassName}
-            showIndicator={props.showIndicator}
+            showUnderline={props.showUnderline}
             {...hoverProps}
           >
             {props.children}
@@ -279,8 +279,8 @@ function getTipDirection(
   return (prefix || 'top') as 'top' | 'bottom' | 'left' | 'right';
 }
 
-const Trigger = styled('span')<{showIndicator?: boolean}>`
-  ${p => p.showIndicator && p.theme.tooltipUnderline};
+const Trigger = styled('span')<{showUnderline?: boolean}>`
+  ${p => p.showUnderline && p.theme.tooltipUnderline};
 `;
 
 const HovercardContainer = styled('div')`
