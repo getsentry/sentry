@@ -291,9 +291,16 @@ class QueryDefinition:
 def get_intervals(query: TimeRange):
     start = query.start
     end = query.end
-    delta = timedelta(
-        seconds=getattr(query, "rollup", None) or query.granularity.granularity
-    )  # HACK
+    delta = timedelta(seconds=query.rollup)
+    while start < end:
+        yield start
+        start += delta
+
+
+def get_intervals_for_metrics_query(query: MetricsQuery):
+    start = query.start
+    end = query.end
+    delta = timedelta(seconds=query.granularity.granularity)
     while start < end:
         yield start
         start += delta
@@ -527,7 +534,7 @@ class SnubaQueryBuilder:
                 limit=self._metrics_query.limit,
                 offset=self._metrics_query.offset,
                 rollup=self._metrics_query.granularity,
-                intervals_len=len(list(get_intervals(self._metrics_query))),
+                intervals_len=len(list(get_intervals_for_metrics_query(self._metrics_query))),
             )
 
         return queries_dict, fields_in_entities
