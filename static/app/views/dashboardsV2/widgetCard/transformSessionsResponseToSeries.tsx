@@ -3,8 +3,12 @@ import {Series} from 'sentry/types/echarts';
 
 export function transformSessionsResponseToSeries(
   response: SessionApiResponse | null,
+  limit?: number,
   queryAlias?: string
 ): Series[] {
+  if (response === null) {
+    return [];
+  }
   function getSeriesName(field: string, group: SessionApiResponse['groups'][number]) {
     const groupName = Object.entries(group.by)
       .map(([_, value]) => `${value}`)
@@ -12,15 +16,17 @@ export function transformSessionsResponseToSeries(
     const seriesName = groupName ? `${groupName} : ${field}` : field;
     return `${queryAlias ? `${queryAlias} > ` : ''}${seriesName}`;
   }
-  return (
-    response?.groups.flatMap(group =>
-      Object.keys(group.series).map(field => ({
-        seriesName: getSeriesName(field, group),
-        data: response.intervals.map((interval, index) => ({
-          name: interval,
-          value: group.series[field][index] ?? 0,
-        })),
-      }))
-    ) ?? []
+  // Temporarily restrict the number of lines we plot on grouped queries
+  const groups: SessionApiResponse['groups'] = limit
+    ? response.groups.slice(0, limit)
+    : response.groups;
+  return groups.flatMap(group =>
+    Object.keys(group.series).map(field => ({
+      seriesName: getSeriesName(field, group),
+      data: response.intervals.map((interval, index) => ({
+        name: interval,
+        value: group.series[field][index] ?? 0,
+      })),
+    }))
   );
 }
