@@ -39,6 +39,10 @@ function OrganizationTeams({
   requestList,
   onRemoveAccessRequest,
 }: Props) {
+  const [teamQuery, setTeamQuery] = useState('');
+  const {initiallyLoaded} = useTeams({provideUserTeams: true});
+  const {teams, onSearch, loadMore, hasMore, fetching} = useTeams();
+
   if (!organization) {
     return null;
   }
@@ -69,10 +73,6 @@ function OrganizationTeams({
     : '';
 
   const title = t('Teams');
-
-  const [teamQuery, setTeamQuery] = useState('');
-  const {initiallyLoaded} = useTeams({provideUserTeams: true});
-  const {teams, onSearch, loadMore, hasMore, fetching} = useTeams();
 
   const debouncedSearch = debounce(onSearch, DEFAULT_DEBOUNCE_DURATION);
   function handleSearch(query: string) {

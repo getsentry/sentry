@@ -73,10 +73,6 @@ function Onboarding(props: Props) {
   const stepObj = ONBOARDING_STEPS.find(({id}) => stepId === id);
   const stepIndex = ONBOARDING_STEPS.findIndex(({id}) => stepId === id);
 
-  if (!stepObj || stepIndex === -1) {
-    return <div>Can't find</div>;
-  }
-
   const cornerVariantControl = useAnimation();
   const updateCornerVariant = () => {
     // TODO: find better way to delay the corner animation
@@ -92,6 +88,9 @@ function Onboarding(props: Props) {
 
   const [containerHasFooter, setContainerHasFooter] = useState<boolean>(false);
   const updateAnimationState = () => {
+    if (!stepObj) {
+      return;
+    }
     setContainerHasFooter(stepObj.hasFooter ?? false);
     cornerVariantControl.start(stepObj.cornerVariant);
   };
@@ -99,6 +98,10 @@ function Onboarding(props: Props) {
   useEffect(updateAnimationState, []);
 
   const goToStep = (step: StepDescriptor) => {
+    if (!stepObj) {
+      return;
+    }
+
     if (step.cornerVariant !== stepObj.cornerVariant) {
       cornerVariantControl.start('none');
     }
@@ -118,6 +121,10 @@ function Onboarding(props: Props) {
   const activeStepIndex = ONBOARDING_STEPS.findIndex(({id}) => props.params.step === id);
 
   const handleGoBack = () => {
+    if (!stepObj) {
+      return;
+    }
+
     const previousStep = ONBOARDING_STEPS[activeStepIndex - 1];
     if (stepObj.cornerVariant !== previousStep.cornerVariant) {
       cornerVariantControl.start('none');
@@ -142,6 +149,9 @@ function Onboarding(props: Props) {
     );
   };
 
+  if (!stepObj || stepIndex === -1) {
+    return <div>Can't find</div>;
+  }
   return (
     <main data-test-id="targeted-onboarding">
       <SentryDocumentTitle title={stepObj.title} />

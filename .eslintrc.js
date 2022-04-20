@@ -6,7 +6,10 @@ const process = require('process');
 const isRelaxed = !!process.env.SENTRY_ESLINT_RELAXED;
 
 module.exports = {
-  extends: [isRelaxed ? 'sentry-app' : 'sentry-app/strict'],
+  extends: [
+    'plugin:react-hooks/recommended',
+    isRelaxed ? 'sentry-app' : 'sentry-app/strict',
+  ],
   globals: {
     require: false,
     expect: false,
@@ -18,6 +21,8 @@ module.exports = {
   },
 
   rules: {},
+
+  plugins: [],
 
   overrides: [
     {

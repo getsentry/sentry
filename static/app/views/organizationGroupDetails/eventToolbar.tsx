@@ -18,7 +18,7 @@ import space from 'sentry/styles/space';
 import {Group, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
-import {use24Hours} from 'sentry/utils/dates';
+import {shouldUse24Hours} from 'sentry/utils/dates';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
 import QuickTrace from './quickTrace';
@@ -99,7 +99,7 @@ class GroupEventToolbar extends Component<Props> {
   }
 
   render() {
-    const is24Hours = use24Hours();
+    const is24Hours = shouldUse24Hours();
     const evt = this.props.event;
 
     const {group, organization, location, project} = this.props;

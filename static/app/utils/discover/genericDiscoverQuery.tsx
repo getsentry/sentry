@@ -300,12 +300,12 @@ class _GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>>
 // Shim to allow us to use generic discover query or any specialization with or without passing org slug or eventview, which are now contexts.
 // This will help keep tests working and we can remove extra uses of context-provided props and update tests as we go.
 export function GenericDiscoverQuery<T, P>(props: OuterProps<T, P>) {
-  const orgSlug = props.orgSlug ?? useOrganization().slug;
-  const eventView = props.eventView ?? usePerformanceEventView();
+  const organizationSlug = useOrganization().slug;
+  const eventView = usePerformanceEventView();
   const _props: Props<T, P> = {
     ...props,
-    orgSlug,
-    eventView,
+    orgSlug: props.orgSlug ?? organizationSlug,
+    eventView: props.eventView ?? eventView,
   };
   return <_GenericDiscoverQuery<T, P> {..._props} />;
 }
