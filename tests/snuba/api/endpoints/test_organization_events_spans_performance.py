@@ -895,12 +895,28 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
                 self.url,
                 data={
                     "project": self.project.id,
-                    "min_exclusive_time": 4,
+                    "min_exclusive_time": 3,
                 },
             )
 
+        expected_result = [
+            {
+                "op": "http.server",
+                "group": "abababababababab",
+                "description": "root transaction",
+                "frequency": None,
+                "count": None,
+                "avgOccurrences": None,
+                "sumExclusiveTime": 4.0,
+                "p50ExclusiveTime": None,
+                "p75ExclusiveTime": None,
+                "p95ExclusiveTime": None,
+                "p99ExclusiveTime": None,
+            },
+        ]
+
         assert response.status_code == 200, response.content
-        assert response.data == []
+        assert response.data == expected_result
 
     def test_max_exclusive_time_filter(self):
         self.create_event()
@@ -910,12 +926,27 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
                 self.url,
                 data={
                     "project": self.project.id,
-                    "max_exclusive_time": 1,
+                    "max_exclusive_time": 2,
                 },
             )
 
+        expected_result = [
+            {
+                "op": "django.view",
+                "group": "ef" * 8,
+                "description": "view span",
+                "frequency": None,
+                "count": None,
+                "avgOccurrences": None,
+                "sumExclusiveTime": 3.0,
+                "p50ExclusiveTime": None,
+                "p75ExclusiveTime": None,
+                "p95ExclusiveTime": None,
+                "p99ExclusiveTime": None,
+            }
+        ]
         assert response.status_code == 200, response.content
-        assert response.data == []
+        assert response.data == expected_result
 
     def test_min_max_exclusive_time_filter(self):
         self.create_event()
@@ -923,11 +954,27 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
-                data={"project": self.project.id, "max_exclusive_time": 5, "min_exclusive_time": 4},
+                data={"project": self.project.id, "max_exclusive_time": 4, "min_exclusive_time": 2},
             )
 
+        expected_result = [
+            {
+                "op": "django.middleware",
+                "group": "cd" * 8,
+                "description": "middleware span",
+                "frequency": None,
+                "count": None,
+                "avgOccurrences": None,
+                "sumExclusiveTime": 6.0,
+                "p50ExclusiveTime": None,
+                "p75ExclusiveTime": None,
+                "p95ExclusiveTime": None,
+                "p99ExclusiveTime": None,
+            }
+        ]
+
         assert response.status_code == 200, response.content
-        assert response.data == []
+        assert response.data == expected_result
 
     @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
     def test_pagination_first_page(self, mock_raw_snql_query):
