@@ -298,6 +298,7 @@ const Menu = ({
           {...getRootProps()}
           className={rootClassName}
           disabled={disabled}
+          data-is-open={isOpen}
           data-test-id={dataTestId}
         >
           {children({
