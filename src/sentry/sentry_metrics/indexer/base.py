@@ -21,7 +21,7 @@ class BulkRecordResult:
     meta: BulkRecordMeta
 
     # For brevity, allow callers to address the mapping directly
-    def __getitem__(self, org_id: int):
+    def __getitem__(self, org_id: int) -> Mapping[str, int]:
         return self.mapping[org_id]
 
 

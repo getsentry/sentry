@@ -174,7 +174,7 @@ class PGStringIndexerV2(StringIndexer):
 
         return StringIndexerTable.objects.filter(query_statement)
 
-    def bulk_record(self, org_strings: MutableMapping[int, Set[str]]) -> BulkRecordResult:
+    def bulk_record(self, org_strings: Mapping[int, Set[str]]) -> BulkRecordResult:
         """
         Takes in a mapping with org_ids to sets of strings.
 
