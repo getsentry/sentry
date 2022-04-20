@@ -49,7 +49,6 @@ from sentry.snuba.metrics.utils import (
     UNALLOWED_TAGS,
     DerivedMetricParseException,
     MetricDoesNotExistException,
-    TimeRange,
 )
 from sentry.snuba.sessions_v2 import ONE_DAY  # TODO: unite metrics and sessions_v2
 from sentry.snuba.sessions_v2 import AllowedResolution, InvalidField, finite_or_none
@@ -288,19 +287,9 @@ class APIQueryDefinition:
                 )
 
 
-def get_intervals(query: TimeRange):
-    start = query.start
-    end = query.end
-    delta = timedelta(seconds=query.rollup)
-    while start < end:
-        yield start
-        start += delta
-
-
-def get_intervals_for_query_definition(query: QueryDefinition):
-    start = query.start
-    end = query.end
-    delta = timedelta(seconds=query.granularity.granularity)
+def get_intervals(start: datetime, end: datetime, granularity: int):
+    assert granularity > 0
+    delta = timedelta(seconds=granularity)
     while start < end:
         yield start
         start += delta
@@ -534,7 +523,15 @@ class SnubaQueryBuilder:
                 limit=self._query_definition.limit,
                 offset=self._query_definition.offset,
                 rollup=self._query_definition.granularity,
-                intervals_len=len(list(get_intervals_for_query_definition(self._query_definition))),
+                intervals_len=len(
+                    list(
+                        get_intervals(
+                            self._query_definition.start,
+                            self._query_definition.end,
+                            self._query_definition.granularity.granularity,
+                        )
+                    )
+                ),
             )
 
         return queries_dict, fields_in_entities

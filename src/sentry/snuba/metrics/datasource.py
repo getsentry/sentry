@@ -29,7 +29,7 @@ from sentry.snuba.metrics.query_builder import (
     ALLOWED_GROUPBY_COLUMNS,
     SnubaQueryBuilder,
     SnubaResultConverter,
-    get_intervals_for_query_definition,
+    get_intervals,
 )
 from sentry.snuba.metrics.utils import (
     AVAILABLE_OPERATIONS,
@@ -422,7 +422,7 @@ def get_tag_values(
 
 def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
     """Get time series for the given query"""
-    intervals = list(get_intervals_for_query_definition(query))
+    intervals = list(get_intervals(query.start, query.end, query.granularity.granularity))
     results = {}
     fields_in_entities = {}
 

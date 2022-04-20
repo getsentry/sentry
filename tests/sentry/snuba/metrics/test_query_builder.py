@@ -680,7 +680,9 @@ def test_translate_results(_1, _2, monkeypatch):
         ],
     }
 
-    intervals = list(get_intervals(query_definition))
+    intervals = list(
+        get_intervals(query_definition.start, query_definition.end, query_definition.rollup)
+    )
 
     session_metric_id = resolve(org_id, SessionMRI.SESSION.value)
     session_dur_metric_id = resolve(org_id, SessionMRI.RAW_DURATION.value)
@@ -859,7 +861,9 @@ def test_translate_results_derived_metrics(_1, _2, monkeypatch):
         ],
     }
 
-    intervals = list(get_intervals(query_definition))
+    intervals = list(
+        get_intervals(query_definition.start, query_definition.end, query_definition.rollup)
+    )
     results = {
         "metrics_counters": {
             "totals": {
@@ -978,7 +982,9 @@ def test_translate_results_missing_slots(_1, _2, monkeypatch):
         },
     }
 
-    intervals = list(get_intervals(query_definition))
+    intervals = list(
+        get_intervals(query_definition.start, query_definition.end, query_definition.rollup)
+    )
     assert SnubaResultConverter(
         org_id, query_definition.to_query_definition(), fields_in_entities, intervals, results
     ).translate_results() == [
@@ -993,3 +999,8 @@ def test_translate_results_missing_slots(_1, _2, monkeypatch):
             },
         },
     ]
+
+
+def test_get_intervals():
+    with pytest.raises(AssertionError):
+        list(get_intervals(MOCK_NOW - timedelta(days=1), MOCK_NOW, -3600))

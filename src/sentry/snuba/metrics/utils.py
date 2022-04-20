@@ -26,7 +26,6 @@ __all__ = (
     "MetricDoesNotExistException",
     "MetricDoesNotExistInIndexer",
     "NotSupportedOverCompositeEntityException",
-    "TimeRange",
     "MetricEntity",
     "UNALLOWED_TAGS",
     "combine_dictionary_of_list_values",
@@ -35,7 +34,6 @@ __all__ = (
 
 import re
 from abc import ABC
-from datetime import datetime
 from typing import (
     Collection,
     Dict,
@@ -43,7 +41,6 @@ from typing import (
     Literal,
     Mapping,
     Optional,
-    Protocol,
     Sequence,
     Tuple,
     TypedDict,
@@ -209,9 +206,3 @@ class DerivedMetricParseException(DerivedMetricException):
 
 class NotSupportedOverCompositeEntityException(DerivedMetricException):
     ...
-
-
-class TimeRange(Protocol):
-    start: datetime
-    end: datetime
-    rollup: int
