@@ -186,7 +186,7 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
                 dataset=Dataset.Discover,
                 params=params,
                 equation_config={
-                    "auto_add": not is_table or is_equation(orderby.lstrip("-")),
+                    "auto_add": not is_table,
                     "aggregates_only": not is_table,
                 },
             )
