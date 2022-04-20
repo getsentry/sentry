@@ -76,12 +76,14 @@ const defaultState: GuideStoreState = {
 interface GuideStoreDefinition extends StoreDefinition {
   browserHistoryListener: null | (() => void);
 
+  closeGuide(dismissed?: boolean): void;
   fetchSucceeded(data: GuidesServerData): void;
   nextStep(): void;
   recordCue(guide: string): void;
   registerAnchor(target: string): void;
   setForceHide(forceHide: boolean): void;
   state: GuideStoreState;
+  toStep(step: number): void;
   unregisterAnchor(target: string): void;
   updatePrevGuide(nextGuide: Guide | null): void;
 }

@@ -24,6 +24,7 @@ from rest_framework import serializers
 from sentry.auth.system import is_system_auth
 from sentry.utils import json
 from sentry.utils.auth import has_completed_sso
+from sentry.utils.settings import is_self_hosted
 
 logger = logging.getLogger("sentry.superuser")
 
@@ -103,6 +104,8 @@ class Superuser:
 
     @staticmethod
     def _needs_validation():
+        if is_self_hosted():
+            return False
         return settings.VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON
 
     @property
@@ -336,7 +339,7 @@ class Superuser:
         except (AttributeError, json.JSONDecodeError, RawPostDataException):
             su_access_json = {}
 
-        if "superuserAccessCategory" in su_access_json:
+        if su_access_json.get("isSuperuserModal"):
 
             su_access_info = SuperuserAccessSerializer(data=su_access_json)
 

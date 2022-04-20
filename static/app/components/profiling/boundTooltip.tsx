@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {useLayoutEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
@@ -7,14 +7,14 @@ import {getContext, measureText, Rect} from 'sentry/utils/profiling/gl/utils';
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
 
 const useCachedMeasure = (string: string, font: string): Rect => {
-  const cache = React.useRef<Record<string, Rect>>({});
-  const ctx = React.useMemo(() => {
+  const cache = useRef<Record<string, Rect>>({});
+  const ctx = useMemo(() => {
     const context = getContext(document.createElement('canvas'), '2d');
     context.font = font;
     return context;
   }, []);
 
-  return React.useMemo(() => {
+  return useMemo(() => {
     if (cache.current[string]) {
       return cache.current[string];
     }
@@ -32,18 +32,18 @@ const useCachedMeasure = (string: string, font: string): Rect => {
 
 interface BoundTooltipProps {
   bounds: Rect;
-  configToPhysicalSpace: mat3;
+  configViewToPhysicalSpace: mat3;
   cursor: vec2 | null;
   children?: React.ReactNode;
 }
 
 function BoundTooltip({
   bounds,
-  configToPhysicalSpace,
+  configViewToPhysicalSpace,
   cursor,
   children,
 }: BoundTooltipProps): React.ReactElement | null {
-  const tooltipRef = React.useRef<HTMLDivElement>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
   const flamegraphTheme = useFlamegraphTheme();
   const tooltipRect = useCachedMeasure(
     tooltipRef.current?.textContent ?? '',
@@ -51,7 +51,7 @@ function BoundTooltip({
   );
   const devicePixelRatio = useDevicePixelRatio();
 
-  const physicalToLogicalSpace = React.useMemo(
+  const physicalToLogicalSpace = useMemo(
     () =>
       mat3.fromScaling(
         mat3.create(),
@@ -60,9 +60,9 @@ function BoundTooltip({
     [devicePixelRatio]
   );
 
-  const [tooltipBounds, setTooltipBounds] = React.useState<Rect>(Rect.Empty());
+  const [tooltipBounds, setTooltipBounds] = useState<Rect>(Rect.Empty());
 
-  React.useLayoutEffect(() => {
+  useLayoutEffect(() => {
     if (!children || bounds.isEmpty() || !tooltipRef.current) {
       setTooltipBounds(Rect.Empty());
       return;
@@ -88,7 +88,7 @@ function BoundTooltip({
     vec2.create(),
     vec2.fromValues(cursor[0], cursor[1]),
 
-    configToPhysicalSpace
+    configViewToPhysicalSpace
   );
 
   const logicalSpaceCursor = vec2.transformMat3(

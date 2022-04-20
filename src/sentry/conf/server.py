@@ -337,6 +337,7 @@ INSTALLED_APPS = (
     "sentry.discover",
     "sentry.analytics.events",
     "sentry.nodestore",
+    "sentry.release_health",
     "sentry.search",
     "sentry.sentry_metrics.indexer",
     "sentry.snuba",
@@ -569,7 +570,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.integrations",
     "sentry.tasks.low_priority_symbolication",
     "sentry.tasks.merge",
-    "sentry.tasks.releasemonitor",
     "sentry.tasks.options",
     "sentry.tasks.ping",
     "sentry.tasks.post_process",
@@ -589,6 +589,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.user_report",
     "sentry.profiles.task",
     "sentry.release_health.duplex",
+    "sentry.release_health.tasks",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -779,7 +780,7 @@ CELERYBEAT_SCHEDULE = {
         "options": {"expires": 60 * 25},
     },
     "monitor-release-adoption": {
-        "task": "sentry.tasks.monitor_release_adoption",
+        "task": "sentry.release_health.tasks.monitor_release_adoption",
         "schedule": crontab(minute=0),
         "options": {"expires": 3600, "queue": "releasemonitor"},
     },
@@ -1047,6 +1048,8 @@ SENTRY_FEATURES = {
     "organizations:dashboards-edit": True,
     # Enable dashboard widget library
     "organizations:widget-library": False,
+    # Enable metrics enhanced performance in dashboards
+    "organizations:dashboards-mep": False,
     # Enable metrics in dashboards
     "organizations:dashboards-metrics": False,
     # Enable widget viewer modal in dashboards
@@ -1415,6 +1418,13 @@ SENTRY_METRICS_INDEXER_CACHE_TTL = 3600 * 2
 # Release Health
 SENTRY_RELEASE_HEALTH = "sentry.release_health.sessions.SessionsReleaseHealthBackend"
 SENTRY_RELEASE_HEALTH_OPTIONS = {}
+
+# Release Monitor
+SENTRY_RELEASE_MONITOR = (
+    "sentry.release_health.release_monitor.sessions.SessionReleaseMonitorBackend"
+)
+SENTRY_RELEASE_MONITOR_OPTIONS = {}
+
 
 # Render charts on the backend. This uses the Chartcuterie external service.
 SENTRY_CHART_RENDERER = "sentry.charts.chartcuterie.Chartcuterie"
