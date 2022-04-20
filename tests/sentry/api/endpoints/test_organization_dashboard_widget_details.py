@@ -272,3 +272,19 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert response.status_code == 400, response.data
         assert "queries" in response.data, response.data
         assert response.data["queries"][0]["conditions"], response.data
+
+    def test_project_doesnt_exist_should_not_error(self):
+        data = {
+            "title": "Unresolved Issues",
+            "displayType": "table",
+            "widgetType": "discover",
+            "queries": [
+                {"name": "unresolved", "conditions": "project:this-doesnt-exist", "fields": []}
+            ],
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 200, response.data

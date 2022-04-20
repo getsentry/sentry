@@ -1,5 +1,5 @@
 from functools import reduce
-from typing import List, Mapping, Optional
+from typing import Mapping, Optional
 
 from snuba_sdk import Condition, Op
 
@@ -74,11 +74,6 @@ def project_slug_converter(
     project_slugs: Mapping[str, int] = {
         slug: project_id for slug, project_id in builder.project_slugs.items() if slug in slugs
     }
-    missing: List[str] = [slug for slug in slugs if slug not in project_slugs]
-    if missing and search_filter.operator in constants.EQUALITY_OPERATORS:
-        raise InvalidSearchQuery(
-            f"Invalid query. Project(s) {', '.join(missing)} do not exist or are not actively selected."
-        )
     # Sorted for consistent query results
     project_ids = list(sorted(project_slugs.values()))
     if project_ids:
