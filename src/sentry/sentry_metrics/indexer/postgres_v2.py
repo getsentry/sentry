@@ -24,7 +24,7 @@ from sentry.sentry_metrics.indexer.models import StringIndexer as StringIndexerT
 from sentry.sentry_metrics.indexer.strings import REVERSE_SHARED_STRINGS, SHARED_STRINGS
 from sentry.utils import metrics
 
-from .base import BulkRecordMeta, BulkRecordResult, FetchType
+from .base import BulkRecordMetaAcc, BulkRecordResult, FetchType
 
 _INDEXER_CACHE_METRIC = "sentry_metrics.indexer.memcache"
 _INDEXER_DB_METRIC = "sentry_metrics.indexer.postgres"
@@ -200,7 +200,7 @@ class PGStringIndexerV2(StringIndexer):
         KeyCollection for the next step:
             new_keys = key_results.get_unmapped_keys(mapping)
         """
-        meta_acc: BulkRecordMeta = dict({})
+        meta_acc: BulkRecordMetaAcc = dict({})
         cache_keys = KeyCollection(org_strings)
         cache_key_strs = cache_keys.as_strings()
         cache_results = indexer_cache.get_many(cache_key_strs)
@@ -363,7 +363,7 @@ class StaticStringsIndexerDecorator(StringIndexer):
         static_string_results = static_key_results.get_mapped_results()
         org_strings_left = static_key_results.get_unmapped_keys(static_keys)
 
-        decoration_meta = {
+        decoration_meta: MutableMapping[FetchType, Mapping[int, str]] = {
             FetchType.HARDCODED: {
                 _int: string
                 for string_to_int in static_string_results.values()

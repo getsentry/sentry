@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import Mapping, Optional, Set
+from typing import Mapping, MutableMapping, Optional, Set
 
 from sentry.utils.services import Service
 
@@ -13,6 +13,7 @@ class FetchType(Enum):
 
 
 BulkRecordMeta = Mapping[FetchType, Mapping[int, str]]
+BulkRecordMetaAcc = MutableMapping[FetchType, Mapping[int, str]]
 
 
 @dataclass
