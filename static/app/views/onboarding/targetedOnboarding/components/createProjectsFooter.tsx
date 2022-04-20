@@ -121,6 +121,10 @@ const SelectionWrapper = styled(motion.div)`
   flex-direction: column;
   justify-content: center;
   align-items: center;
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: none;
+  }
 `;
 
 SelectionWrapper.defaultProps = {
