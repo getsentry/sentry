@@ -199,6 +199,7 @@ describe('WaterfallModel', () => {
       showEmbeddedChildren: false,
       toggleEmbeddedChildren: expect.any(Function),
       fetchEmbeddedChildrenState: 'idle',
+      isEmbeddedTransactionTimeAdjusted: false,
     },
     {
       type: 'span',
@@ -223,6 +224,7 @@ describe('WaterfallModel', () => {
       fetchEmbeddedChildrenState: 'idle',
       toggleNestedSpanGroup: undefined,
       toggleSiblingSpanGroup: undefined,
+      isEmbeddedTransactionTimeAdjusted: false,
     },
     {
       type: 'gap',
@@ -240,6 +242,7 @@ describe('WaterfallModel', () => {
       showEmbeddedChildren: false,
       toggleEmbeddedChildren: undefined,
       fetchEmbeddedChildrenState: 'idle',
+      isEmbeddedTransactionTimeAdjusted: false,
     },
     {
       type: 'span',
@@ -264,6 +267,7 @@ describe('WaterfallModel', () => {
       fetchEmbeddedChildrenState: 'idle',
       toggleNestedSpanGroup: undefined,
       toggleSiblingSpanGroup: undefined,
+      isEmbeddedTransactionTimeAdjusted: false,
     },
     {
       type: 'span',
@@ -290,6 +294,7 @@ describe('WaterfallModel', () => {
       fetchEmbeddedChildrenState: 'idle',
       toggleNestedSpanGroup: undefined,
       toggleSiblingSpanGroup: undefined,
+      isEmbeddedTransactionTimeAdjusted: false,
     },
     {
       type: 'span',
@@ -316,6 +321,7 @@ describe('WaterfallModel', () => {
       fetchEmbeddedChildrenState: 'idle',
       toggleNestedSpanGroup: undefined,
       toggleSiblingSpanGroup: undefined,
+      isEmbeddedTransactionTimeAdjusted: false,
     },
     {
       type: 'span',
@@ -342,6 +348,7 @@ describe('WaterfallModel', () => {
       fetchEmbeddedChildrenState: 'idle',
       toggleNestedSpanGroup: undefined,
       toggleSiblingSpanGroup: undefined,
+      isEmbeddedTransactionTimeAdjusted: false,
     },
     {
       type: 'span',
@@ -368,6 +375,7 @@ describe('WaterfallModel', () => {
       fetchEmbeddedChildrenState: 'idle',
       toggleNestedSpanGroup: undefined,
       toggleSiblingSpanGroup: undefined,
+      isEmbeddedTransactionTimeAdjusted: false,
     },
     {
       type: 'gap',
@@ -385,6 +393,7 @@ describe('WaterfallModel', () => {
       showEmbeddedChildren: false,
       toggleEmbeddedChildren: undefined,
       fetchEmbeddedChildrenState: 'idle',
+      isEmbeddedTransactionTimeAdjusted: false,
     },
     {
       type: 'span',
@@ -411,6 +420,7 @@ describe('WaterfallModel', () => {
       fetchEmbeddedChildrenState: 'idle',
       toggleNestedSpanGroup: undefined,
       toggleSiblingSpanGroup: undefined,
+      isEmbeddedTransactionTimeAdjusted: false,
     },
     {
       type: 'span_group_chain',
@@ -456,6 +466,7 @@ describe('WaterfallModel', () => {
           fetchEmbeddedChildrenState: 'idle',
           toggleNestedSpanGroup: undefined,
           toggleSiblingSpanGroup: undefined,
+          isEmbeddedTransactionTimeAdjusted: false,
         },
         {
           type: 'span',
@@ -482,6 +493,7 @@ describe('WaterfallModel', () => {
           fetchEmbeddedChildrenState: 'idle',
           toggleNestedSpanGroup: undefined,
           toggleSiblingSpanGroup: undefined,
+          isEmbeddedTransactionTimeAdjusted: false,
         },
       ],
       isNestedSpanGroupExpanded: false,
@@ -513,6 +525,7 @@ describe('WaterfallModel', () => {
       fetchEmbeddedChildrenState: 'idle',
       toggleNestedSpanGroup: undefined,
       toggleSiblingSpanGroup: undefined,
+      isEmbeddedTransactionTimeAdjusted: false,
     },
   ];
 

@@ -76,6 +76,7 @@ export type SpanSiblingGroupProps = {
 type CommonEnhancedProcessedSpanType = {
   continuingTreeDepths: Array<TreeDepthType>;
   fetchEmbeddedChildrenState: FetchEmbeddedChildrenState;
+  isEmbeddedTransactionTimeAdjusted: boolean;
   isLastSibling: boolean;
   numOfSpanChildren: number;
   showEmbeddedChildren: boolean;

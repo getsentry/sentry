@@ -108,6 +108,7 @@ type SpanBarProps = {
   event: Readonly<EventTransaction>;
   fetchEmbeddedChildrenState: FetchEmbeddedChildrenState;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
+  isEmbeddedTransactionTimeAdjusted: boolean;
   numOfSpanChildren: number;
   numOfSpans: number;
   organization: Organization;
@@ -806,7 +807,19 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     return null;
   }
 
-  renderWarningText({warningText}: {warningText?: string} = {}) {
+  renderWarningText() {
+    let warningText = this.getBounds().warning;
+
+    if (this.props.isEmbeddedTransactionTimeAdjusted) {
+      const embeddedWarningText = t(
+        'All child span timestamps have been adjusted to account for mismatched client and server clocks.'
+      );
+
+      warningText = warningText
+        ? `${warningText}. ${embeddedWarningText}`
+        : embeddedWarningText;
+    }
+
     if (!warningText) {
       return null;
     }
@@ -885,7 +898,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
                 spanBarHatch={!!spanBarHatch}
               >
                 {durationString}
-                {this.renderWarningText({warningText: bounds.warning})}
+                {this.renderWarningText()}
               </DurationPill>
             </RowRectangle>
           )}
