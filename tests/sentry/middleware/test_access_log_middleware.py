@@ -110,8 +110,9 @@ urlpatterns = [
 ]
 
 
-@override_settings(ROOT_URLCONF="tests.sentry.middleware.test_access_log_middleware")
-@override_settings(LOG_API_ACCESS=True)
+@override_settings(
+    ROOT_URLCONF="tests.sentry.middleware.test_access_log_middleware", LOG_API_ACCESS=True
+)
 class LogCaptureAPITestCase(APITestCase):
     @pytest.fixture(autouse=True)
     def inject_fixtures(self, caplog):
@@ -128,6 +129,7 @@ class LogCaptureAPITestCase(APITestCase):
         return [r for r in self._caplog.records if r.name == "sentry.access.api"]
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class TestAccessLogRateLimited(LogCaptureAPITestCase):
 
     endpoint = "ratelimit-endpoint"
@@ -142,6 +144,7 @@ class TestAccessLogRateLimited(LogCaptureAPITestCase):
         assert self.captured_logs[0].remaining == "0"
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class TestAccessLogConcurrentRateLimited(LogCaptureAPITestCase):
 
     endpoint = "concurrent-ratelimit-endpoint"

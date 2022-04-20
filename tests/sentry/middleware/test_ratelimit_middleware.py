@@ -25,6 +25,7 @@ from sentry.testutils import APITestCase, TestCase
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class RatelimitMiddlewareTest(TestCase):
     middleware = RatelimitMiddleware(None)
     factory = fixture(RequestFactory)
@@ -190,6 +191,7 @@ class RatelimitMiddlewareTest(TestCase):
         )
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class TestGetRateLimitValue(TestCase):
     def test_default_rate_limit_values(self):
         """Ensure that the default rate limits are called for endpoints without overrides"""
@@ -282,7 +284,9 @@ urlpatterns = [
 ]
 
 
-@override_settings(ROOT_URLCONF="tests.sentry.middleware.test_ratelimit_middleware")
+@override_settings(
+    ROOT_URLCONF="tests.sentry.middleware.test_ratelimit_middleware", SENTRY_SELF_HOSTED=False
+)
 class TestRatelimitHeader(APITestCase):
 
     endpoint = "ratelimit-header-endpoint"
@@ -342,7 +346,9 @@ class TestRatelimitHeader(APITestCase):
         assert int(response["X-Sentry-Rate-Limit-Limit"]) == 2
 
 
-@override_settings(ROOT_URLCONF="tests.sentry.middleware.test_ratelimit_middleware")
+@override_settings(
+    ROOT_URLCONF="tests.sentry.middleware.test_ratelimit_middleware", SENTRY_SELF_HOSTED=False
+)
 class TestConcurrentRateLimiter(APITestCase):
     endpoint = "concurrent-endpoint"
 

@@ -31,9 +31,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
 
     rate_limits = {
         "GET": {
-            RateLimitCategory.IP: RateLimit(3, 1),
-            RateLimitCategory.USER: RateLimit(3, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(3, 1),
+            RateLimitCategory.IP: RateLimit(0, 1),
+            RateLimitCategory.USER: RateLimit(0, 1),
+            RateLimitCategory.ORGANIZATION: RateLimit(0, 1),
         }
     }
 
