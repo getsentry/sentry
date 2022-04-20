@@ -340,9 +340,7 @@ def _path_to_regex(pattern: str) -> Pattern[str]:
     return re.compile(regex)
 
 
-def _iter_frames(
-    data: Union[Mapping[str, Any], Sequence[Any]]
-) -> Iterator[Union[Mapping[str, Any], Sequence[Any]]]:
+def _iter_frames(data: Union[Mapping[str, Any], Sequence[Any]]) -> Iterator[Any]:
     try:
         yield from get_path(data, "stacktrace", "frames", filter=True) or ()
     except KeyError:
