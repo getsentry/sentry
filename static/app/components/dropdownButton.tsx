@@ -58,6 +58,7 @@ const DropdownButton = ({
       {...props}
       type="button"
       aria-haspopup="listbox"
+      aria-expanded={detached ? isOpen : undefined}
       disabled={disabled}
       priority={priority}
       isOpen={isOpen}
