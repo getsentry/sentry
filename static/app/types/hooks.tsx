@@ -208,7 +208,9 @@ export type SettingsHooks = {
 };
 
 /**
- * Callback hooks
+ * Callback hooks.
+ * These hooks just call a function that has no return value
+ * and perform some sort of callback logic
  */
 type CallbackHooks = {
   'callback:on-guide-update': GuideUpdateCallback;
