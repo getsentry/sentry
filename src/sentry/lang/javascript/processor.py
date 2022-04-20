@@ -1215,7 +1215,6 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                     fetch_sourcemap_fn = cached_fetch_sourcemap
                 else:
                     fetch_sourcemap_fn = fetch_sourcemap
-
                 sourcemap_view = fetch_sourcemap_fn(
                     sourcemap_url,
                     project=self.project,

@@ -1380,7 +1380,8 @@ class CacheSourceTest(TestCase):
         "sentry.lang.javascript.processor.discover_sourcemap",
         return_value="app:///../node_modules/some-package/index.js.map",
     )
-    def test_sourcemap_lru_cache_used(self, _):
+    @patch("sentry.lang.javascript.processor.fetch_sourcemap")
+    def test_sourcemap_lru_cache_used(self, _1, _2):
         """When the feature flag is on, lru cache is reused"""
 
         project = self.create_project()
