@@ -956,6 +956,9 @@ function WidgetBuilder({
                       onYAxisOrColumnFieldChange={newFields => {
                         handleYAxisOrColumnFieldChange(newFields, true);
                       }}
+                      explodedFields={explodedFields}
+                      tags={tags}
+                      organization={organization}
                     />
                   )}
                   {![DisplayType.TABLE].includes(state.displayType) && (
