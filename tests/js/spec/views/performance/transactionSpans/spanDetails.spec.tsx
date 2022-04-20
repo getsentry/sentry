@@ -349,7 +349,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
         });
       });
 
-      it('renders a search bar', async function () {
+      it('renders a search bar', function () {
         const data = initializeData({
           features: FEATURES,
           query: {project: '1', transaction: 'transaction'},
@@ -360,7 +360,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
           organization: data.organization,
         });
 
-        const searchBarNode = await screen.findByPlaceholderText('Filter Transactions');
+        const searchBarNode = screen.getByPlaceholderText('Filter Transactions');
         expect(searchBarNode).toBeInTheDocument();
       });
 
@@ -553,7 +553,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
         expect(nodes[0]).toBeInTheDocument();
       });
 
-      it('sends min and max to suspect spans query', async function () {
+      it('sends min and max to suspect spans query', function () {
         const mock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/events-spans/',
           body: {},
