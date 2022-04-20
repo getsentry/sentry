@@ -268,7 +268,7 @@ jobs:
     needs: files-changed
     name: relay test
     runs-on: ubuntu-20.04
-    timeout-minutes: 10
+    timeout-minutes: 20
     strategy:
       matrix:
         python-version: [3.8.12]
