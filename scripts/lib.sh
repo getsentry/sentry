@@ -14,6 +14,19 @@ if [ -z "${CI+x}" ]; then
     green="$(tput setaf 2)"
     yellow="$(tput setaf 3)"
     reset="$(tput sgr0)"
+    if [ -z "${SENTRY_DEVENV_NO_REPORT+x}" ]; then
+        sentry_cli_major_version="$(sentry-cli --version | awk '{print $2}' | sed 's/\([0-9]*\).*/\1/')"
+        # XXX: Until we support version 2.x
+        if [ $sentry_cli_major_version -lt 2 ]; then
+            # sentry-dev-env project
+            export SENTRY_DSN="https://9bdb053cb8274ea69231834d1edeec4c@o1.ingest.sentry.io/5723503"
+            eval "$(sentry-cli bash-hook)"
+        else
+            echo "You are using the latest major release of sentry-cli."
+            echo "${yellow}Please remove it and we will install the correct version: rm $(which sentry-cli)${reset}"
+            exit 1
+        fi
+    fi
 fi
 
 venv_name=".venv"
@@ -32,15 +45,6 @@ configure-sentry-cli() {
         if ! require sentry-cli; then
             # XXX: Temporary install version 1.74.3 until we upgrade to version 2.x
             curl -sL https://gist.githubusercontent.com/armenzg/96481b0b653ecf807900373f5af09816/raw/caf5695e0eb6c214ec84f9fc217965aec928acc0/get-cli.sh | bash
-        fi
-        sentry_cli_major_version="$(sentry-cli --version | awk '{print $2}' | sed 's/\([0-9]*\).*/\1/')"
-        # XXX: Until we support version 2.x
-        if [ $sentry_cli_major_version -lt 2 ]; then
-            eval "$(sentry-cli bash-hook)"
-        else
-            echo "You are using the latest major release of sentry-cli."
-            echo "${yellow}Please remove it and we will install the correct version: rm $(which sentry-cli)${reset}"
-            exit 1
         fi
     fi
 }
