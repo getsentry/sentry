@@ -71,6 +71,7 @@ export default function CreateProjectsFooter({
       responses.map(ProjectActions.createSuccess);
       trackAdvancedAnalyticsEvent('growth.onboarding_set_up_your_projects', {
         platforms: platforms.join(','),
+        platform_count: platforms.length,
         organization,
       });
       clearIndicators();
