@@ -71,7 +71,8 @@ function DashboardList({
       const dashboardDetail = await fetchDashboard(api, organization.slug, dashboard.id);
       const newDashboard = cloneDashboard(dashboardDetail);
       newDashboard.widgets.map(widget => (widget.id = undefined));
-      // TODO(nar): Is there a const for this?
+
+      // -1 for project IDs means it should include all projects
       await createDashboard(api, organization.slug, newDashboard, true, [-1]);
 
       trackAnalyticsEvent({
