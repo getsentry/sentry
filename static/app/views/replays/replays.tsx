@@ -1,5 +1,5 @@
 import {Fragment, useEffect, useState} from 'react';
-import {browserHistory, withRouter, WithRouterProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import FeatureBadge from 'sentry/components/featureBadge';
@@ -15,7 +15,7 @@ import {IconArrow, IconCalendar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageContent, PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
-import {NewQuery, Organization, PageFilters} from 'sentry/types';
+import {NewQuery, PageFilters} from 'sentry/types';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
@@ -23,19 +23,14 @@ import getUrlPathname from 'sentry/utils/getUrlPathname';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import AsyncView from 'sentry/views/asyncView';
 
 import ReplaysFilters from './filters';
 import {Replay} from './types';
 
-type Props = AsyncView['props'] &
-  WithRouterProps<{orgId: string}> & {
-    organization: Organization;
-    selection: PageFilters;
-    statsPeriod?: string | undefined; // revisit i'm sure i'm doing statsperiod wrong
-  };
+type Props = {
+  selection: PageFilters;
+};
 
 // certain query params can be either a string or an array of strings
 // so if we have an array we reduce it down to a string
@@ -154,7 +149,7 @@ function Replays(props: Props) {
         <StyledPageContent>
           <DiscoverQuery
             eventView={getEventView()}
-            location={props.location}
+            location={location}
             orgSlug={organization.slug}
           >
             {data => {
@@ -255,4 +250,4 @@ const SortLink = styled(Link)`
   }
 `;
 
-export default withRouter(withPageFilters(withOrganization(Replays)));
+export default withPageFilters(Replays);
