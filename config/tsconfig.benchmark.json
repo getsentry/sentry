@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.build.json",
+  "ts-node": {
+    "transpileOnly": true,
+    "compilerOptions": {
+      "jsx": "react"
+    }
+  }
+}
