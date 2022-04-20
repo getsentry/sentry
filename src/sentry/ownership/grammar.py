@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import operator
 import re
 from collections import namedtuple
@@ -70,7 +72,7 @@ class Rule(namedtuple("Rule", "matcher owners")):
         return {"matcher": self.matcher.dump(), "owners": [o.dump() for o in self.owners]}
 
     @classmethod
-    def load(cls, data: Mapping[str, Any]) -> "Rule":
+    def load(cls, data: Mapping[str, Any]) -> Rule:
         return cls(Matcher.load(data["matcher"]), [Owner.load(o) for o in data["owners"]])
 
     def test(self, data: Mapping[str, Any]) -> Union[bool, Any]:
@@ -96,7 +98,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
         return {"type": self.type, "pattern": self.pattern}
 
     @classmethod
-    def load(cls, data: Mapping[str, str]) -> "Matcher":
+    def load(cls, data: Mapping[str, str]) -> Matcher:
         return cls(data["type"], data["pattern"])
 
     def test(self, data: Union[Mapping[str, Any], Sequence[Any]]) -> bool:
@@ -194,7 +196,7 @@ class Owner(namedtuple("Owner", "type identifier")):
         return {"type": self.type, "identifier": self.identifier}
 
     @classmethod
-    def load(cls, data: Mapping[str, Any]) -> "Owner":
+    def load(cls, data: Mapping[str, Any]) -> Owner:
         return cls(data["type"], data["identifier"])
 
 
@@ -481,7 +483,7 @@ def convert_codeowners_syntax(
     return result
 
 
-def resolve_actors(owners: Iterable["Owner"], project_id: int) -> Mapping["Owner", "ActorTuple"]:
+def resolve_actors(owners: Iterable[Owner], project_id: int) -> Mapping[Owner, ActorTuple]:
     """Convert a list of Owner objects into a dictionary
     of {Owner: Actor} pairs. Actors not identified are returned
     as None."""
