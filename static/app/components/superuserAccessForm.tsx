@@ -1,19 +1,26 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
+import {logout} from 'sentry/actionCreators/account';
+import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import Form from 'sentry/components/forms/form';
 import Hook from 'sentry/components/hook';
 import ThemeAndStyleProvider from 'sentry/components/themeAndStyleProvider';
 import {ErrorCodes} from 'sentry/constants/superuserAccessErrors';
 import {t} from 'sentry/locale';
+import withApi from 'sentry/utils/withApi';
+
+type Props = {
+  api: Client;
+};
 
 type State = {
   error: boolean;
   errorType: string;
 };
 
-class SuperuserAccessForm extends Component<State> {
+class SuperuserAccessForm extends Component<Props, State> {
   state: State = {
     error: false,
     errorType: '',
@@ -40,8 +47,17 @@ class SuperuserAccessForm extends Component<State> {
     });
   };
 
+  handleLogout = async () => {
+    const {api} = this.props;
+    await logout(api);
+    window.location.assign('/auth/login/');
+  };
+
   render() {
     const {error, errorType} = this.state;
+    if (errorType === ErrorCodes.invalidSSOSession) {
+      this.handleLogout();
+    }
     return (
       <ThemeAndStyleProvider>
         <Form
@@ -69,4 +85,4 @@ const StyledAlert = styled(Alert)`
   margin-bottom: 0;
 `;
 
-export default SuperuserAccessForm;
+export default withApi(SuperuserAccessForm);

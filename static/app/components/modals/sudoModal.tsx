@@ -2,6 +2,7 @@ import * as React from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
+import {logout} from 'sentry/actionCreators/account';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
@@ -113,6 +114,12 @@ class SudoModal extends React.Component<Props, State> {
     }
   };
 
+  handleLogout = async () => {
+    const {api} = this.props;
+    await logout(api);
+    window.location.assign('/auth/login/');
+  };
+
   async getAuthenticators() {
     const {api} = this.props;
 
@@ -129,6 +136,10 @@ class SudoModal extends React.Component<Props, State> {
     const {authenticators, error, errorType} = this.state;
     const user = ConfigStore.get('user');
     const isSelfHosted = ConfigStore.get('isSelfHosted');
+
+    if (errorType === ErrorCodes.invalidSSOSession) {
+      this.handleLogout();
+    }
 
     if (
       (!user.hasPasswordAuth && authenticators.length === 0) ||
