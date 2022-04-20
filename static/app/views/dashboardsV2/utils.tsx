@@ -301,3 +301,7 @@ export function flattenErrors(
   });
   return update;
 }
+
+export function getNextEquationIndex(possibleEquations: string[]) {
+  return possibleEquations.filter(isEquation).length;
+}

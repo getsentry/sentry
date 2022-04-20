@@ -3,6 +3,7 @@ import {
   constructWidgetFromQuery,
   eventViewFromWidget,
   getFieldsFromEquations,
+  getNextEquationIndex,
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
 } from 'sentry/views/dashboardsV2/utils';
@@ -227,6 +228,27 @@ describe('Dashboards util', () => {
       expect(url).toEqual(
         '/organizations/org-slug/issues/?query=is%3Aunresolved&sort=date&statsPeriod=7d'
       );
+    });
+  });
+
+  describe('getNextEquationIndex', function () {
+    it('returns 0 if there are no equations', function () {
+      expect(getNextEquationIndex(['count()', 'epm()', 'count_unique(user)'])).toBe(0);
+    });
+
+    it('returns the count of equations if there are multiple', function () {
+      expect(
+        getNextEquationIndex([
+          'count()',
+          'equation|count_unique(user) * 2',
+          'count_unique(user)',
+          'equation|count_unique(user) * 3',
+        ])
+      ).toBe(2);
+    });
+
+    it('returns 0 if the possible equations array is empty', function () {
+      expect(getNextEquationIndex([])).toBe(0);
     });
   });
 });

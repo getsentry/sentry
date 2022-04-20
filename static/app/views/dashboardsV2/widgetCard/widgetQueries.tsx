@@ -24,7 +24,7 @@ import {
 import {TOP_N} from 'sentry/utils/discover/types';
 
 import {DEFAULT_TABLE_LIMIT, DisplayType, Widget, WidgetQuery} from '../types';
-import {eventViewFromWidget, getWidgetInterval} from '../utils';
+import {eventViewFromWidget, getNextEquationIndex, getWidgetInterval} from '../utils';
 
 type RawResult = EventsStats | MultiSeriesEventsStats;
 
@@ -422,18 +422,14 @@ class WidgetQueries extends React.Component<Props, State> {
             isEquation(query.orderby)
           ) {
             // find the max equation so far
-            const maxEquation = -1;
+            const nextEquationIndex = getNextEquationIndex(query.aggregates);
             const isDescending = query.orderby.startsWith('-');
+            const customEquation = isDescending ? query.orderby.slice(1) : query.orderby;
+            const prefix = isDescending ? '-' : '';
 
-            // make that our orderby
-            requestData.orderby = `${isDescending ? '-' : ''}equation[${
-              maxEquation + 1
-            }]`;
-            requestData.field = [
-              ...query.columns,
-              ...query.aggregates,
-              query.orderby.slice(1),
-            ];
+            // Construct the alias form of the equation and inject it into the request
+            requestData.orderby = `${prefix}equation[${nextEquationIndex}]`;
+            requestData.field = [...query.columns, ...query.aggregates, customEquation];
           }
         }
       }
