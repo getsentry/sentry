@@ -37,7 +37,7 @@ from sentry.snuba.metrics.fields.base import (
 from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
 from sentry.snuba.metrics.query import DerivedMetric, MetricField
 from sentry.snuba.metrics.query import OrderBy as MetricsOrderBy
-from sentry.snuba.metrics.query import QueryDefinition, QueryType, Selectable, Tag
+from sentry.snuba.metrics.query import QueryDefinition, Selectable, Tag
 from sentry.snuba.metrics.utils import (
     ALLOWED_GROUPBY_COLUMNS,
     FIELD_REGEX,
@@ -206,17 +206,11 @@ class APIQueryDefinition:
         self._validate_series_limit(query_params)
 
     def to_query_definition(self) -> QueryDefinition:
-        type_ = QueryType(0)
-        assert self.include_series or self.include_totals
-        if self.include_series:
-            type_ |= QueryType.SERIES
-        if self.include_totals:
-            type_ |= QueryType.TOTALS
-
         return QueryDefinition(
             org_id=org_id_from_projects(self._projects),
             project_ids=[project.id for project in self._projects],
-            type=type_,
+            include_totals=self.include_totals,
+            include_series=self.include_series,
             select=self.fields,
             start=self.start,
             end=self.end,
@@ -412,10 +406,10 @@ class SnubaQueryBuilder:
             orderby=orderby,
         )
 
-        if self._query_definition.type & QueryType.TOTALS:
+        if self._query_definition.include_totals:
             rv["totals"] = totals_query
 
-        if self._query_definition.type & QueryType.SERIES:
+        if self._query_definition.include_series:
             series_query = totals_query.set_groupby(
                 (totals_query.groupby or []) + [Column(TS_COL_GROUP)]
             )
@@ -590,9 +584,9 @@ class SnubaResultConverter:
         )
 
         tag_data = groups.setdefault(tags, {})
-        if self._query_definition.type & QueryType.SERIES:
+        if self._query_definition.include_series:
             tag_data.setdefault("series", {})
-        if self._query_definition.type & QueryType.TOTALS:
+        if self._query_definition.include_totals:
             tag_data.setdefault("totals", {})
 
         bucketed_time = data.pop(TS_COL_GROUP, None)
@@ -625,7 +619,7 @@ class SnubaResultConverter:
                 if key not in tag_data["totals"] or tag_data["totals"][key] == default_null_value:
                     tag_data["totals"][key] = cleaned_value
 
-            if self._query_definition.type & QueryType.SERIES:
+            if self._query_definition.include_series:
                 if bucketed_time is not None or tag_data["totals"][key] == default_null_value:
                     empty_values = len(self._intervals) * [default_null_value]
                     series = tag_data["series"].setdefault(key, empty_values)

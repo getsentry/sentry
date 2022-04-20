@@ -1,7 +1,6 @@
 """ Classes needed to build a metrics query. Inspired by snuba_sdk.query. """
 from dataclasses import dataclass
 from datetime import datetime
-from enum import Flag, auto
 from typing import Literal, Optional, Sequence, Union
 
 from snuba_sdk import Direction, Granularity, Limit, Offset
@@ -106,12 +105,6 @@ class OrderBy:
     direction: Direction
 
 
-class QueryType(Flag):
-    TOTALS = auto()
-    SERIES = auto()
-    BOTH = TOTALS | SERIES
-
-
 @dataclass(frozen=True)
 class QueryDefinition:
     """Definition of a metrics query, inspired by snuba_sdk.Query"""
@@ -127,7 +120,8 @@ class QueryDefinition:
     orderby: Optional[OrderBy] = None
     limit: Optional[Limit] = None
     offset: Optional[Offset] = None
-    type: QueryType = QueryType.BOTH
+    include_totals: bool = True
+    include_series: bool = True
 
     # TODO: These should be properties of the Histogram field
     histogram_buckets: int = 100
