@@ -1,11 +1,11 @@
 ---
-created: '2022-04-19T18:26:50.660657Z'
+created: '2022-04-20T13:21:42.602592Z'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
 - condition:
     inner:
-    - name: transaction.measurements.lcp
+    - name: event.measurements.lcp.value
       op: gt
       value: 2400
     - name: event.transaction
@@ -19,7 +19,7 @@ source: tests/sentry/relay/test_config.py
   targetTag: satisfaction
 - condition:
     inner:
-    - name: transaction.measurements.lcp
+    - name: event.measurements.lcp.value
       op: gt
       value: 600
     - name: event.transaction
@@ -44,7 +44,7 @@ source: tests/sentry/relay/test_config.py
   targetTag: satisfaction
 - condition:
     inner:
-    - name: transaction.duration
+    - name: event.duration
       op: gt
       value: 1600
     - name: event.transaction
@@ -58,7 +58,7 @@ source: tests/sentry/relay/test_config.py
   targetTag: satisfaction
 - condition:
     inner:
-    - name: transaction.duration
+    - name: event.duration
       op: gt
       value: 400
     - name: event.transaction
@@ -83,7 +83,7 @@ source: tests/sentry/relay/test_config.py
   targetTag: satisfaction
 - condition:
     inner:
-    - name: transaction.measurements.lcp
+    - name: event.measurements.lcp.value
       op: gt
       value: 2000
     op: and
@@ -94,7 +94,7 @@ source: tests/sentry/relay/test_config.py
   targetTag: satisfaction
 - condition:
     inner:
-    - name: transaction.measurements.lcp
+    - name: event.measurements.lcp.value
       op: gt
       value: 500
     op: and
@@ -121,7 +121,7 @@ source: tests/sentry/relay/test_config.py
       value: javascript
     - name: event.duration
       op: gte
-      value: 12632.5
+      value: 8784.25
     op: and
   tagValue: outlier
   targetMetrics:
@@ -137,7 +137,7 @@ source: tests/sentry/relay/test_config.py
       value: javascript
     - name: event.duration
       op: gte
-      value: 3432
+      value: 2433
     op: and
   tagValue: outlier
   targetMetrics:
@@ -153,7 +153,7 @@ source: tests/sentry/relay/test_config.py
       value: python
     - name: event.duration
       op: gte
-      value: 294
+      value: 285
     op: and
   tagValue: outlier
   targetMetrics:
@@ -169,7 +169,7 @@ source: tests/sentry/relay/test_config.py
       value: node
     - name: event.duration
       op: gte
-      value: 253
+      value: 250
     op: and
   tagValue: outlier
   targetMetrics:
@@ -185,7 +185,7 @@ source: tests/sentry/relay/test_config.py
       value: php
     - name: event.duration
       op: gte
-      value: 703
+      value: 601
     op: and
   tagValue: outlier
   targetMetrics:
@@ -201,7 +201,7 @@ source: tests/sentry/relay/test_config.py
       value: ruby
     - name: event.duration
       op: gte
-      value: 186
+      value: 177
     op: and
   tagValue: outlier
   targetMetrics:
@@ -217,7 +217,7 @@ source: tests/sentry/relay/test_config.py
       value: python
     - name: event.duration
       op: gte
-      value: 1351
+      value: 1276
     op: and
   tagValue: outlier
   targetMetrics:
@@ -233,7 +233,7 @@ source: tests/sentry/relay/test_config.py
       value: javascript
     - name: event.duration
       op: gte
-      value: 1295923.5
+      value: 1291493.25
     op: and
   tagValue: outlier
   targetMetrics:
@@ -249,7 +249,7 @@ source: tests/sentry/relay/test_config.py
       value: cocoa
     - name: event.duration
       op: gte
-      value: 1998
+      value: 1611
     op: and
   tagValue: outlier
   targetMetrics:
@@ -265,7 +265,7 @@ source: tests/sentry/relay/test_config.py
       value: node
     - name: event.duration
       op: gte
-      value: 1430.75
+      value: 1334.75
     op: and
   tagValue: outlier
   targetMetrics:
@@ -297,7 +297,7 @@ source: tests/sentry/relay/test_config.py
       value: python
     - name: event.duration
       op: gte
-      value: 770.75
+      value: 719.75
     op: and
   tagValue: outlier
   targetMetrics:
@@ -313,7 +313,7 @@ source: tests/sentry/relay/test_config.py
       value: java
     - name: event.duration
       op: gte
-      value: 98
+      value: 92
     op: and
   tagValue: outlier
   targetMetrics:
@@ -329,7 +329,7 @@ source: tests/sentry/relay/test_config.py
       value: java
     - name: event.duration
       op: gte
-      value: 835.75
+      value: 724.75
     op: and
   tagValue: outlier
   targetMetrics:
@@ -345,7 +345,7 @@ source: tests/sentry/relay/test_config.py
       value: ruby
     - name: event.duration
       op: gte
-      value: 1113
+      value: 1068
     op: and
   tagValue: outlier
   targetMetrics:
@@ -361,7 +361,7 @@ source: tests/sentry/relay/test_config.py
       value: ruby
     - name: event.duration
       op: gte
-      value: 915
+      value: 870
     op: and
   tagValue: outlier
   targetMetrics:
@@ -377,7 +377,7 @@ source: tests/sentry/relay/test_config.py
       value: javascript
     - name: event.duration
       op: gte
-      value: 2559.75
+      value: 2532.75
     op: and
   tagValue: outlier
   targetMetrics:
@@ -393,7 +393,7 @@ source: tests/sentry/relay/test_config.py
       value: python
     - name: event.duration
       op: gte
-      value: 1030
+      value: 883
     op: and
   tagValue: outlier
   targetMetrics:
@@ -409,7 +409,7 @@ source: tests/sentry/relay/test_config.py
       value: other
     - name: event.duration
       op: gte
-      value: 10005
+      value: 7008
     op: and
   tagValue: outlier
   targetMetrics:
@@ -425,7 +425,7 @@ source: tests/sentry/relay/test_config.py
       value: php
     - name: event.duration
       op: gte
-      value: 3161.25
+      value: 2981.25
     op: and
   tagValue: outlier
   targetMetrics:
@@ -441,7 +441,7 @@ source: tests/sentry/relay/test_config.py
       value: node
     - name: event.duration
       op: gte
-      value: 1450
+      value: 1420
     op: and
   tagValue: outlier
   targetMetrics:
@@ -457,7 +457,7 @@ source: tests/sentry/relay/test_config.py
       value: node
     - name: event.duration
       op: gte
-      value: 136
+      value: 133
     op: and
   tagValue: outlier
   targetMetrics:
@@ -473,7 +473,7 @@ source: tests/sentry/relay/test_config.py
       value: python
     - name: event.duration
       op: gte
-      value: 9966.75
+      value: 8083.5
     op: and
   tagValue: outlier
   targetMetrics:
@@ -505,7 +505,7 @@ source: tests/sentry/relay/test_config.py
       value: other
     - name: event.duration
       op: gte
-      value: 12000
+      value: 3000
     op: and
   tagValue: outlier
   targetMetrics:
@@ -537,7 +537,7 @@ source: tests/sentry/relay/test_config.py
       value: ruby
     - name: event.duration
       op: gte
-      value: 122
+      value: 116
     op: and
   tagValue: outlier
   targetMetrics:
@@ -553,7 +553,7 @@ source: tests/sentry/relay/test_config.py
       value: node
     - name: event.duration
       op: gte
-      value: 628
+      value: 571
     op: and
   tagValue: outlier
   targetMetrics:
@@ -569,7 +569,7 @@ source: tests/sentry/relay/test_config.py
       value: other
     - name: event.duration
       op: gte
-      value: 73
+      value: 61
     op: and
   tagValue: outlier
   targetMetrics:
@@ -585,7 +585,7 @@ source: tests/sentry/relay/test_config.py
       value: node
     - name: event.duration
       op: gte
-      value: 788
+      value: 782
     op: and
   tagValue: outlier
   targetMetrics:
@@ -601,7 +601,7 @@ source: tests/sentry/relay/test_config.py
       value: python
     - name: event.duration
       op: gte
-      value: 3345.75
+      value: 3264.75
     op: and
   tagValue: outlier
   targetMetrics:
@@ -617,7 +617,7 @@ source: tests/sentry/relay/test_config.py
       value: node
     - name: event.duration
       op: gte
-      value: 4786.5
+      value: 4777.5
     op: and
   tagValue: outlier
   targetMetrics:
@@ -649,7 +649,7 @@ source: tests/sentry/relay/test_config.py
       value: python
     - name: event.duration
       op: gte
-      value: 7
+      value: 4
     op: and
   tagValue: outlier
   targetMetrics:
@@ -665,7 +665,7 @@ source: tests/sentry/relay/test_config.py
       value: java
     - name: event.duration
       op: gte
-      value: 5099.75
+      value: 4409.75
     op: and
   tagValue: outlier
   targetMetrics:
@@ -681,7 +681,7 @@ source: tests/sentry/relay/test_config.py
       value: ruby
     - name: event.duration
       op: gte
-      value: 2717.25
+      value: 2690.25
     op: and
   tagValue: outlier
   targetMetrics:
@@ -697,7 +697,7 @@ source: tests/sentry/relay/test_config.py
       value: python
     - name: event.duration
       op: gte
-      value: 3223.75
+      value: 3193.75
     op: and
   tagValue: outlier
   targetMetrics:
@@ -713,7 +713,7 @@ source: tests/sentry/relay/test_config.py
       value: php
     - name: event.duration
       op: gte
-      value: 1407
+      value: 1254
     op: and
   tagValue: outlier
   targetMetrics:
@@ -729,7 +729,7 @@ source: tests/sentry/relay/test_config.py
       value: python
     - name: event.duration
       op: gte
-      value: 843
+      value: 771
     op: and
   tagValue: outlier
   targetMetrics:
@@ -745,7 +745,7 @@ source: tests/sentry/relay/test_config.py
       value: python
     - name: event.duration
       op: gte
-      value: 340
+      value: 265
     op: and
   tagValue: outlier
   targetMetrics:
@@ -761,7 +761,7 @@ source: tests/sentry/relay/test_config.py
       value: node
     - name: event.duration
       op: gte
-      value: 187
+      value: 157
     op: and
   tagValue: outlier
   targetMetrics:
@@ -793,7 +793,7 @@ source: tests/sentry/relay/test_config.py
       value: other
     - name: event.duration
       op: gte
-      value: 1285
+      value: 1138
     op: and
   tagValue: outlier
   targetMetrics:
@@ -809,7 +809,7 @@ source: tests/sentry/relay/test_config.py
       value: node
     - name: event.duration
       op: gte
-      value: 7422
+      value: 6693
     op: and
   tagValue: outlier
   targetMetrics:
@@ -825,7 +825,7 @@ source: tests/sentry/relay/test_config.py
       value: php
     - name: event.duration
       op: gte
-      value: 381
+      value: 327
     op: and
   tagValue: outlier
   targetMetrics:
@@ -841,7 +841,7 @@ source: tests/sentry/relay/test_config.py
       value: php
     - name: event.duration
       op: gte
-      value: 896
+      value: 791
     op: and
   tagValue: outlier
   targetMetrics:
@@ -857,7 +857,7 @@ source: tests/sentry/relay/test_config.py
       value: php
     - name: event.duration
       op: gte
-      value: 872
+      value: 794
     op: and
   tagValue: outlier
   targetMetrics:
@@ -873,7 +873,7 @@ source: tests/sentry/relay/test_config.py
       value: go
     - name: event.duration
       op: gte
-      value: 40
+      value: 37
     op: and
   tagValue: outlier
   targetMetrics:
@@ -889,7 +889,7 @@ source: tests/sentry/relay/test_config.py
       value: node
     - name: event.duration
       op: gte
-      value: 708
+      value: 582
     op: and
   tagValue: outlier
   targetMetrics:
@@ -905,7 +905,7 @@ source: tests/sentry/relay/test_config.py
       value: node
     - name: event.duration
       op: gte
-      value: 709
+      value: 679
     op: and
   tagValue: outlier
   targetMetrics:
@@ -916,6 +916,13 @@ source: tests/sentry/relay/test_config.py
     - name: event.duration
       op: gte
       value: 0
+    op: and
+  tagValue: inlier
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner: []
     op: and
   tagValue: outlier
   targetMetrics:
