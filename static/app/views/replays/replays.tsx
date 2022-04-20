@@ -23,14 +23,12 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import AsyncView from 'sentry/views/asyncView';
 
 import ReplaysFilters from './filters';
 import {Replay} from './types';
 
-type Props = AsyncView['props'] & {
+type Props = {
   selection: PageFilters;
-  statsPeriod?: string | undefined; // revisit i'm sure i'm doing statsperiod wrong
 };
 
 // certain query params can be either a string or an array of strings
