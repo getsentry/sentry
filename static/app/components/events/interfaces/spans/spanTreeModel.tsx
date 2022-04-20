@@ -534,7 +534,7 @@ class SpanTreeModel {
             type: 'span_group_siblings',
             span: this.span,
             treeDepth: treeDepth + 1,
-            continuingTreeDepths,
+            continuingTreeDepths: descendantContinuingTreeDepths,
             spanSiblingGrouping: wrappedSiblings,
             isLastSibling: groupIndex === groupedDescendants.length - 1,
             occurrence: occurrence ?? 0,
