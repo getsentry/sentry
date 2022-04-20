@@ -38,6 +38,7 @@ class Migration(CheckedMigration):
             database_operations=[
                 migrations.RunSQL(
                     "DROP INDEX CONCURRENTLY IF EXISTS sentry_alertrule_status_active;",
+                    reverse_sql="CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS sentry_alertrule_status_active ON sentry_alertrule USING btree (organization_id, name, status)  WHERE status = 0;",
                     hints={"tables": ["sentry_alertrule"]},
                 )
             ],
