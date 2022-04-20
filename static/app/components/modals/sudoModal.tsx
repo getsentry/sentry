@@ -118,10 +118,10 @@ class SudoModal extends React.Component<Props, State> {
     const {api} = this.props;
     try {
       await logout(api);
-      window.location.assign('/auth/login/');
     } catch {
       // ignore errors
     }
+    window.location.assign('/auth/login/');
   };
 
   async getAuthenticators() {

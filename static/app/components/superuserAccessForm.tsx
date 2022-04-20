@@ -51,10 +51,10 @@ class SuperuserAccessForm extends Component<Props, State> {
     const {api} = this.props;
     try {
       await logout(api);
-      window.location.assign('/auth/login/');
     } catch {
       // ignore errors
     }
+    window.location.assign('/auth/login/');
   };
 
   render() {
