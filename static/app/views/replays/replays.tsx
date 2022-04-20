@@ -211,7 +211,7 @@ const StyledPageHeader = styled(PageHeader)`
 
 const StyledPageContent = styled(PageContent)`
   box-shadow: 0px 0px 1px ${p => p.theme.gray200};
-  background-color: ${p => p.theme.white};
+  background-color: ${p => p.theme.background};
 `;
 
 const StyledPanelTable = styled(PanelTable)`
