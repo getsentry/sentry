@@ -15705,10 +15705,10 @@ webpack-merge@^5.7.3:
     clone-deep "^4.0.1"
     wildcard "^2.0.0"
 
-webpack-remove-empty-scripts@^0.7.3:
-  version "0.7.3"
-  resolved "https://registry.yarnpkg.com/webpack-remove-empty-scripts/-/webpack-remove-empty-scripts-0.7.3.tgz#f57b9823f5bd7016b44a4990f9257defd018513d"
-  integrity sha512-yipqb25A0qtH7X9vKt6yihwyYkTtSlRiDdBb2QsyrkqGM3hpfAcfOO1lYDef9HQUNm3s8ojmorbNg32XXX6FYg==
+webpack-remove-empty-scripts@^0.8.0:
+  version "0.8.0"
+  resolved "https://registry.yarnpkg.com/webpack-remove-empty-scripts/-/webpack-remove-empty-scripts-0.8.0.tgz#204f9db03fb0fcf09843be51340cb0d12b706bc6"
+  integrity sha512-B8hRdGtwaCaZzJj8t838oNTtSi+wLJ//74X1HHqrKW+LP8WK2KzGEEkW662XWik/jqUeM6XQZMmXS/pFt64cvg==
   dependencies:
     ansis "^1.3.4"
 
