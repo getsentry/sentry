@@ -10,7 +10,6 @@ with the same Enum name but with a value of the MRI so we would add
 
 
 __all__ = (
-    "MetricKey",
     "SessionMetricKey",
     "TransactionMetricKey",
     "TransactionTagsKey",
@@ -19,7 +18,6 @@ __all__ = (
 )
 
 from enum import Enum
-from typing import Union
 
 
 class SessionMetricKey(Enum):
@@ -77,9 +75,6 @@ class TransactionMetricKey(Enum):
     APDEX = "transaction.apdex"
     MISERABLE_USER = "transaction.miserable_user"
     USER_MISERY = "transaction.user_misery"
-
-
-MetricKey = Union[SessionMetricKey, TransactionMetricKey]
 
 
 # TODO: these tag keys and values below probably don't belong here, and should
