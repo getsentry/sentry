@@ -3,6 +3,7 @@ import * as PropTypes from 'prop-types';
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'sentry/api';
+import GroupingStore from 'sentry/stores/groupingStore';
 import {GroupMergedView} from 'sentry/views/organizationGroupDetails/groupMerged';
 
 jest.mock('sentry/api');
@@ -37,6 +38,12 @@ describe('Issues -> Merged View', function () {
     });
   });
 
+  beforeEach(() => {
+    GroupingStore.init();
+  });
+  afterEach(() => {
+    GroupingStore.teardown();
+  });
   it('renders initially with loading component', function () {
     const wrapper = mountWithTheme(
       <GroupMergedView

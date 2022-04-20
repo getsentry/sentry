@@ -13,3 +13,9 @@ export const ScaledReplayPlayer = () => (
     <ReplayPlayer />
   </ReplayContextProvider>
 );
+
+export const FastForwardingReplayPlayer = () => (
+  <ReplayContextProvider value={{fastForwardSpeed: 4}} events={events}>
+    <ReplayPlayer />
+  </ReplayContextProvider>
+);

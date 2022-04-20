@@ -54,14 +54,16 @@ function FlamegraphZoomView({
           flamegraphCanvasRef,
           flamegraph,
           flamegraphTheme,
-          flamegraph.inverted
-            ? vec2.fromValues(0, 0)
-            : vec2.fromValues(
-                0,
-                flamegraphTheme.SIZES.TIMELINE_HEIGHT * window.devicePixelRatio
-              ),
+          vec2.fromValues(
+            0,
+            flamegraphTheme.SIZES.TIMELINE_HEIGHT * window.devicePixelRatio
+          ),
           {draw_border: true}
         );
+
+        if (!previousRenderer?.configSpace.equals(renderer.configSpace)) {
+          return renderer;
+        }
 
         if (previousRenderer?.flamegraph.profile === renderer.flamegraph.profile) {
           if (previousRenderer.flamegraph.inverted !== renderer.flamegraph.inverted) {
@@ -73,18 +75,15 @@ function FlamegraphZoomView({
               previousRenderer.configView.translateY(
                 previousRenderer.configSpace.height -
                   previousRenderer.configView.height -
-                  previousRenderer.configView.y -
-                  (renderer.flamegraph.inverted ? 1 : 0)
+                  previousRenderer.configView.y
               )
             );
           } else if (
             previousRenderer.flamegraph.leftHeavy !== renderer.flamegraph.leftHeavy
           ) {
-            /*
-             * When the user toggles left heavy, the entire flamegraph will take
-             * on a different shape. In this case, there's no obvious position
-             * that can be carried over.
-             */
+            // When the user toggles left heavy, the entire flamegraph will take
+            // on a different shape. In this case, there's no obvious position
+            // that can be carried over.
           } else {
             renderer.setConfigView(previousRenderer.configView);
           }
@@ -179,8 +178,8 @@ function FlamegraphZoomView({
       textRenderer.context.clearRect(
         0,
         0,
-        flamegraphRenderer.physicalSpace.width,
-        flamegraphRenderer.physicalSpace.height
+        textRenderer.canvas.width,
+        textRenderer.canvas.height
       );
     };
 
@@ -190,7 +189,7 @@ function FlamegraphZoomView({
           new Rect(
             selectedNode.start,
             flamegraph.inverted
-              ? flamegraphRenderer.configSpace.height - selectedNode.depth
+              ? flamegraphRenderer.configSpace.height - selectedNode.depth - 1
               : selectedNode.depth,
             selectedNode.end - selectedNode.start,
             1
@@ -200,7 +199,7 @@ function FlamegraphZoomView({
             BORDER_WIDTH: flamegraphRenderer.theme.SIZES.FRAME_BORDER_WIDTH,
           },
           selectedFrameRenderer.context,
-          flamegraphRenderer.configToPhysicalSpace
+          flamegraphRenderer.configViewToPhysicalSpace
         );
       }
 
@@ -209,7 +208,7 @@ function FlamegraphZoomView({
           new Rect(
             hoveredNode.start,
             flamegraph.inverted
-              ? flamegraphRenderer.configSpace.height - hoveredNode.depth
+              ? flamegraphRenderer.configSpace.height - hoveredNode.depth - 1
               : hoveredNode.depth,
             hoveredNode.end - hoveredNode.start,
             1
@@ -219,7 +218,7 @@ function FlamegraphZoomView({
             BORDER_WIDTH: flamegraphRenderer.theme.SIZES.HOVERED_FRAME_BORDER_WIDTH,
           },
           selectedFrameRenderer.context,
-          flamegraphRenderer.configToPhysicalSpace
+          flamegraphRenderer.configViewToPhysicalSpace
         );
       }
     };
@@ -228,7 +227,7 @@ function FlamegraphZoomView({
       textRenderer.draw(
         flamegraphRenderer.configView,
         flamegraphRenderer.configSpace,
-        flamegraphRenderer.configToPhysicalSpace
+        flamegraphRenderer.configViewToPhysicalSpace
       );
     };
 
@@ -236,7 +235,7 @@ function FlamegraphZoomView({
       gridRenderer.draw(
         flamegraphRenderer.configView,
         flamegraphRenderer.physicalSpace,
-        flamegraphRenderer.configToPhysicalSpace
+        flamegraphRenderer.configViewToPhysicalSpace
       );
     };
 
@@ -279,21 +278,7 @@ function FlamegraphZoomView({
     };
 
     const onResetZoom = () => {
-      flamegraphRenderer.setConfigView(
-        flamegraph.inverted
-          ? flamegraphRenderer.configView
-              .translateY(
-                flamegraphRenderer.configSpace.height -
-                  flamegraphRenderer.configView.height +
-                  1
-              )
-              .translate(0, 0)
-              .withWidth(flamegraph.configSpace.width)
-          : flamegraphRenderer.configView
-              .translate(0, 0)
-              .withWidth(flamegraph.configSpace.width)
-      );
-
+      flamegraphRenderer.resetConfigView();
       setConfigSpaceCursor(null);
       scheduler.draw();
     };
@@ -436,7 +421,7 @@ function FlamegraphZoomView({
 
       const physicalToConfig = mat3.invert(
         mat3.create(),
-        flamegraphRenderer.configToPhysicalSpace
+        flamegraphRenderer.configViewToPhysicalSpace
       );
       const [m00, m01, m02, m10, m11, m12] = physicalToConfig;
 
@@ -530,7 +515,7 @@ function FlamegraphZoomView({
       const physicalDelta = vec2.fromValues(evt.deltaX, evt.deltaY);
       const physicalToConfig = mat3.invert(
         mat3.create(),
-        flamegraphRenderer.configToPhysicalSpace
+        flamegraphRenderer.configViewToPhysicalSpace
       );
       const [m00, m01, m02, m10, m11, m12] = physicalToConfig;
 
@@ -599,7 +584,7 @@ function FlamegraphZoomView({
         <BoundTooltip
           bounds={canvasBounds}
           cursor={configSpaceCursor}
-          configToPhysicalSpace={flamegraphRenderer?.configToPhysicalSpace}
+          configViewToPhysicalSpace={flamegraphRenderer?.configViewToPhysicalSpace}
         >
           {hoveredNode?.frame?.name}
         </BoundTooltip>
