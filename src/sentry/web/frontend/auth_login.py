@@ -130,6 +130,7 @@ class AuthLoginView(BaseView):
             elif request.GET.get("op") == "sso":
                 op = "sso"
 
+        # login_form either validated on post or renders form fields for GET
         login_form = self.get_login_form(request)
         if can_register:
             register_form = self.get_register_form(
@@ -262,10 +263,7 @@ class AuthLoginView(BaseView):
     def get(self, request: Request, **kwargs) -> Response:
         next_uri = self.get_next_uri(request)
         if request.user.is_authenticated:
-            # if the user is a superuser, but not 'superuser authenticated'
-            # we allow them to re-authenticate to gain superuser status
-            if not request.user.is_superuser or is_active_superuser(request):
-                return self.handle_authenticated(request)
+            return self.handle_authenticated(request)
 
         request.session.set_test_cookie()
 
@@ -293,10 +291,12 @@ class AuthLoginView(BaseView):
     def post(self, request: Request, **kwargs) -> Response:
         op = request.POST.get("op")
         if op == "sso" and request.POST.get("organization"):
+            # if post is from "Single Sign On tab"
             auth_provider = self.get_auth_provider(request.POST["organization"])
             if auth_provider:
                 next_uri = reverse("sentry-auth-organization", args=[request.POST["organization"]])
             else:
+                # Redirect to the org login route
                 next_uri = request.get_full_path()
                 messages.add_message(request, messages.ERROR, ERR_NO_SSO)
 

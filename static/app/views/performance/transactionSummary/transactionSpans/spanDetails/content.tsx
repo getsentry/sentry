@@ -13,6 +13,7 @@ import SuspectSpansQuery, {
   ChildrenProps as SuspectSpansProps,
 } from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
 import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
+import {decodeScalar} from 'sentry/utils/queryString';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 
 import Tab from '../../tabs';
@@ -20,9 +21,10 @@ import {SpanSortOthers} from '../types';
 import {getTotalsView} from '../utils';
 
 import SpanChart from './chart';
+import SpanDetailsControls from './spanDetailsControls';
 import SpanDetailsHeader from './spanDetailsHeader';
-import SpanDetailsSearchBar from './spanDetailsSearchBar';
 import SpanTable from './spanDetailsTable';
+import {ZoomKeys} from './utils';
 
 type Props = {
   eventView: EventView;
@@ -35,6 +37,8 @@ type Props = {
 
 export default function SpanDetailsContentWrapper(props: Props) {
   const {location, organization, eventView, project, transactionName, spanSlug} = props;
+  const minExclusiveTime = decodeScalar(location.query[ZoomKeys.MIN]);
+  const maxExclusiveTime = decodeScalar(location.query[ZoomKeys.MAX]);
 
   return (
     <Fragment>
@@ -85,6 +89,8 @@ export default function SpanDetailsContentWrapper(props: Props) {
                       spanOp={spanSlug.op}
                       spanGroup={spanSlug.group}
                       limit={10}
+                      minExclusiveTime={minExclusiveTime}
+                      maxExclusiveTime={maxExclusiveTime}
                     >
                       {spanExamplesResults => (
                         <SpanDetailsContent
@@ -149,7 +155,7 @@ function SpanDetailsContent(props: ContentProps) {
         suspectSpan={suspectSpan}
       />
       <Feature features={['performance-span-histogram-view']}>
-        <SpanDetailsSearchBar
+        <SpanDetailsControls
           organization={organization}
           location={location}
           eventView={eventView}

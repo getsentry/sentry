@@ -24,6 +24,7 @@ from sentry.api.exceptions import SentryAPIException
 from sentry.auth.system import is_system_auth
 from sentry.utils import json
 from sentry.utils.auth import has_completed_sso
+from sentry.utils.settings import is_self_hosted
 
 logger = logging.getLogger("sentry.superuser")
 
@@ -43,6 +44,11 @@ COOKIE_HTTPONLY = getattr(settings, "SUPERUSER_COOKIE_HTTPONLY", True)
 
 # the maximum time the session can stay alive
 MAX_AGE = getattr(settings, "SUPERUSER_MAX_AGE", timedelta(hours=4))
+
+# the maximum time the session can stay alive when accessing different orgs
+MAX_AGE_PRIVILEGED_ORG_ACCESS = getattr(
+    settings, "MAX_AGE_PRIVILEGED_ORG_ACCESS", timedelta(hours=1)
+)
 
 # the maximum time the session can stay alive without making another request
 IDLE_MAX_AGE = getattr(settings, "SUPERUSER_IDLE_MAX_AGE", timedelta(minutes=15))
@@ -74,10 +80,29 @@ class SuperuserAccessFormInvalidJson(SentryAPIException):
     message = "The request contains invalid json"
 
 
+class EmptySuperuserAccessForm(SentryAPIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    code = "empty-superuser-access-form"
+    message = "The request contains an empty superuser acccess form data"
+
+
 class Superuser:
     allowed_ips = [ipaddress.ip_network(str(v), strict=False) for v in ALLOWED_IPS]
 
     org_id = ORG_ID
+
+    def _check_expired_on_org_change(self):
+        if self.expires is not None:
+            session_start_time = self.expires - MAX_AGE
+            current_datetime = timezone.now()
+            if current_datetime - session_start_time > MAX_AGE_PRIVILEGED_ORG_ACCESS:
+                logger.warning(
+                    "superuser.privileged_org_access_expired",
+                    extra={"superuser_token": self.token},
+                )
+                self.set_logged_out()
+                return False
+        return self._is_active
 
     def __init__(self, request, allowed_ips=UNSET, org_id=UNSET, current_datetime=None):
         self.request = request
@@ -91,10 +116,15 @@ class Superuser:
 
     @staticmethod
     def _needs_validation():
+        if is_self_hosted():
+            return False
         return settings.VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON
 
     @property
     def is_active(self):
+        org = getattr(self.request, "organization", None)
+        if org and org.id != self.org_id:
+            return self._check_expired_on_org_change()
         # if we've been logged out
         if not self.request.user.is_authenticated:
             return False
@@ -321,15 +351,14 @@ class Superuser:
         except json.JSONDecodeError:
             raise SuperuserAccessFormInvalidJson()
         except AttributeError:
-            su_access_json = {}
+            raise EmptySuperuserAccessForm()
 
-        if "superuserAccessCategory" in su_access_json:
+        su_access_info = SuperuserAccessSerializer(data=su_access_json)
 
-            su_access_info = SuperuserAccessSerializer(data=su_access_json)
+        if not su_access_info.is_valid():
+            raise serializers.ValidationError(su_access_info.errors)
 
-            if not su_access_info.is_valid():
-                raise serializers.ValidationError(su_access_info.errors)
-
+        try:
             logger.info(
                 "superuser.superuser_access",
                 extra={
@@ -340,8 +369,9 @@ class Superuser:
                     "reason_for_su": su_access_info.validated_data["superuserReason"],
                 },
             )
-
-        enable_and_log_superuser_access()
+            enable_and_log_superuser_access()
+        except AttributeError:
+            logger.error("superuser.superuser_access.missing_user_info")
 
     def set_logged_out(self):
         """

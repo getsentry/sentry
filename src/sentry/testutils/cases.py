@@ -113,7 +113,6 @@ from sentry.search.events.constants import (
     METRICS_MAP,
 )
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.indexer.postgres import PGStringIndexer
 from sentry.tagstore.snuba import SnubaTagStorage
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.helpers.slack import install_slack
@@ -1117,18 +1116,20 @@ class SessionMetricsTestCase(SnubaTestCase):
 
     @classmethod
     def _push_metric(cls, session, type, key: SessionMRI, tags, value):
+        org_id = session["org_id"]
+
         def metric_id(key: SessionMRI):
-            res = indexer.record(1, key.value)
+            res = indexer.record(org_id, key.value)
             assert res is not None, key
             return res
 
         def tag_key(name):
-            res = indexer.record(1, name)
+            res = indexer.record(org_id, name)
             assert res is not None, name
             return res
 
         def tag_value(name):
-            res = indexer.record(1, name)
+            res = indexer.record(org_id, name)
             assert res is not None, name
             return res
 
@@ -1186,6 +1187,7 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
         "measurements.fcp": "metrics_distributions",
         "measurements.fid": "metrics_distributions",
         "measurements.cls": "metrics_distributions",
+        "spans.http": "metrics_distributions",
         "user": "metrics_sets",
     }
     METRIC_STRINGS = []
@@ -1211,7 +1213,7 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
             *list(METRICS_MAP.values()),
         ]
         org_strings = {self.organization.id: set(strings)}
-        PGStringIndexer().bulk_record(org_strings=org_strings)
+        indexer.bulk_record(org_strings=org_strings)
 
     def store_metric(
         self,
@@ -1223,11 +1225,13 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
     ):
         internal_metric = METRICS_MAP[metric]
         entity = self.ENTITY_MAP[metric]
+        org_id = self.organization.id
+
         if tags is None:
             tags = {}
         else:
             tags = {
-                indexer.resolve(self.organization.id, key): indexer.resolve(
+                indexer.record(self.organization.id, key): indexer.record(
                     self.organization.id, value
                 )
                 for key, value in tags.items()
@@ -1247,9 +1251,9 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
         self._send_buckets(
             [
                 {
-                    "org_id": self.organization.id,
+                    "org_id": org_id,
                     "project_id": project,
-                    "metric_id": indexer.resolve(self.organization.id, internal_metric),
+                    "metric_id": indexer.resolve(org_id, internal_metric),
                     "timestamp": metric_timestamp,
                     "tags": tags,
                     "type": self.TYPE_MAP[entity],
@@ -1518,9 +1522,12 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
         self.login_as(self.user)
 
 
-class TestMigrations(TestCase):
+class TestMigrations(TransactionTestCase):
     """
     From https://www.caktusgroup.com/blog/2016/02/02/writing-unit-tests-django-migrations/
+
+    Note that when running these tests locally you will need to set the `MIGRATIONS_TEST_MIGRATE=1`
+    environmental variable for these to pass.
     """
 
     @property
@@ -1531,6 +1538,7 @@ class TestMigrations(TestCase):
     migrate_to = None
 
     def setUp(self):
+        super().setUp()
         assert (
             self.migrate_from and self.migrate_to
         ), "TestCase '{}' must define migrate_from and migrate_to properties".format(
@@ -1538,7 +1546,11 @@ class TestMigrations(TestCase):
         )
         self.migrate_from = [(self.app, self.migrate_from)]
         self.migrate_to = [(self.app, self.migrate_to)]
+
         executor = MigrationExecutor(connection)
+        self.current_migration = [
+            max(filter(lambda m: m[0] == self.app, executor.loader.applied_migrations))
+        ]
         old_apps = executor.loader.project_state(self.migrate_from).apps
 
         # Reverse to the original migration
@@ -1552,6 +1564,12 @@ class TestMigrations(TestCase):
         executor.migrate(self.migrate_to)
 
         self.apps = executor.loader.project_state(self.migrate_to).apps
+
+    def tearDown(self):
+        super().tearDown()
+        executor = MigrationExecutor(connection)
+        executor.loader.build_graph()  # reload.
+        executor.migrate(self.current_migration)
 
     def setup_before_migration(self, apps):
         pass
