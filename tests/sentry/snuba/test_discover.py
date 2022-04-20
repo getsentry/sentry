@@ -3073,7 +3073,6 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             # make sure to opt in to gain access to the function
             functions_acl=["sumArray"],
             # -Array combinator is only supported in SnQL
-            use_snql=True,
         )
         assert results["data"][0]["sumArray_measurements_value"] == 3000.0
 
@@ -3218,7 +3217,6 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 "end": self.now,
             },
             orderby="project",
-            use_snql=True,
         )
         data = result["data"]
         assert len(data) == len(expected)

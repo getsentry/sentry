@@ -50,7 +50,7 @@ def query(
     conditions=None,
     extra_snql_condition=None,
     functions_acl=None,
-    use_snql=False,
+    use_snql=True,
     dry_run=False,
 ):
     metrics_compatible = not equations or dry_run
