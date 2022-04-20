@@ -73,7 +73,6 @@ from sentry.search.events.fields import (
     SnQLFieldColumn,
     SnQLFunction,
     SnQLStringArg,
-    StringArrayColumn,
     normalize_count_if_value,
     normalize_percentile_alias,
     reflective_result_type,
@@ -604,7 +603,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                 ),
                 SnQLFunction(
                     "array_join",
-                    required_args=[StringArrayColumn("column")],
+                    required_args=[ColumnArg("column")],
                     snql_column=lambda args, alias: Function("arrayJoin", [args["column"]], alias),
                     default_result_type="string",
                     private=True,
@@ -1516,10 +1515,14 @@ class DiscoverDatasetConfig(DatasetConfig):
         build: str = search_filter.value.raw_value
 
         operator, negated = handle_operator_negation(search_filter.operator)
+        try:
+            django_op = OPERATOR_TO_DJANGO[operator]
+        except KeyError:
+            raise InvalidSearchQuery("Invalid operation 'IN' for semantic version filter.")
         versions = list(
             Release.objects.filter_by_semver_build(
                 organization_id,
-                OPERATOR_TO_DJANGO[operator],
+                django_op,
                 build,
                 project_ids=project_ids,
                 negated=negated,
