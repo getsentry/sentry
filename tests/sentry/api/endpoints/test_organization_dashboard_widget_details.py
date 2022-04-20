@@ -272,3 +272,35 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert response.status_code == 400, response.data
         assert "queries" in response.data, response.data
         assert response.data["queries"][0]["conditions"], response.data
+
+    def test_raw_equation_in_orderby_is_valid(self):
+        data = {
+            "title": "Test Query",
+            "displayType": "table",
+            "widgetType": "discover",
+            "queries": [
+                {"name": "", "conditions": "", "fields": [], "orderby": "equation|count() * 2"}
+            ],
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 200, response.data
+
+    def test_raw_desc_equation_in_orderby_is_valid(self):
+        data = {
+            "title": "Test Query",
+            "displayType": "table",
+            "widgetType": "discover",
+            "queries": [
+                {"name": "", "conditions": "", "fields": [], "orderby": "-equation|count() * 2"}
+            ],
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 200, response.data
