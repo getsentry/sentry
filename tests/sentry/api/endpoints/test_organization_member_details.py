@@ -15,6 +15,7 @@ from sentry.models import (
     UserOption,
 )
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers import with_feature
 
 
 class OrganizationMemberTestBase(APITestCase):
@@ -101,6 +102,19 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
 
         response = self.get_success_response(self.organization.slug, member_om.id)
         assert team.slug in response.data["teams"]
+
+    def test_lists_organization_roles(self):
+        response = self.get_success_response(self.organization.slug, "me")
+
+        role_ids = [role["id"] for role in response.data["roles"]]
+        assert role_ids == ["member", "admin", "manager", "owner"]
+
+    @with_feature("organizations:team-roles")
+    def test_hides_retired_organization_roles(self):
+        response = self.get_success_response(self.organization.slug, "me")
+
+        role_ids = [role["id"] for role in response.data["roles"]]
+        assert role_ids == ["member", "manager", "owner"]
 
 
 class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
@@ -308,6 +322,30 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
 
         member_om = OrganizationMember.objects.get(organization=self.organization, user=member)
         assert member_om.role == "member"
+
+    @with_feature("organizations:team-roles")
+    def test_cannot_update_with_retired_role(self):
+        member = self.create_user("baz@example.com")
+        member_om = self.create_member(
+            organization=self.organization, user=member, role="member", teams=[]
+        )
+
+        self.get_error_response(self.organization.slug, member_om.id, role="admin", status_code=400)
+
+        member_om = OrganizationMember.objects.get(organization=self.organization, user=member)
+        assert member_om.role == "member"
+
+    @with_feature("organizations:team-roles")
+    def test_ignores_retired_role_updated_to_itself(self):
+        member = self.create_user("baz@example.com")
+        member_om = self.create_member(
+            organization=self.organization, user=member, role="admin", teams=[]
+        )
+
+        self.get_success_response(self.organization.slug, member_om.id, role="admin")
+
+        member_om = OrganizationMember.objects.get(organization=self.organization, user=member)
+        assert member_om.role == "admin"
 
     @patch("sentry.models.OrganizationMember.send_sso_link_email")
     def test_cannot_reinvite_normal_member(self, mock_send_sso_link_email):
