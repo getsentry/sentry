@@ -57,6 +57,7 @@ class Role(abc.ABC):
 @dataclass(frozen=True, eq=True)
 class OrganizationRole(Role):
     is_global: bool = False
+    is_retired: bool = False
 
     def get_minimum_team_role(self) -> TeamRole:
         """Return the minimum team role for this organization role.
