@@ -57,7 +57,7 @@ class SlackNotifyServiceForm(forms.Form):  # type: ignore
         # in the task (integrations/slack/tasks.py) if the channel_id is found.
         self._pending_save = False
 
-    def _format_error_message(self, message: str) -> Any:
+    def _format_slack_error_message(self, message: str) -> Any:
         return _(f"Slack: {message}")
 
     def clean(self) -> dict[str, Any] | None:
@@ -76,7 +76,7 @@ class SlackNotifyServiceForm(forms.Form):  # type: ignore
             )
             if not self.data.get("channel"):
                 raise forms.ValidationError(
-                    self._format_error_message("Channel name is a required field."),
+                    self._format_slack_error_message("Channel name is a required field."),
                     code="invalid",
                 )
             # default to "#" if they have the channel name without the prefix
@@ -97,7 +97,7 @@ class SlackNotifyServiceForm(forms.Form):  # type: ignore
                 params = {"channel": self.data.get("channel"), "channel_id": channel_id}
                 raise forms.ValidationError(
                     # ValidationErrors contain a list of error messages, not just one.
-                    self._format_error_message("; ".join(e.messages)),
+                    self._format_slack_error_message("; ".join(e.messages)),
                     code="invalid",
                     params=params,
                 )
@@ -105,7 +105,7 @@ class SlackNotifyServiceForm(forms.Form):  # type: ignore
             integration = Integration.objects.get(id=workspace)
         except Integration.DoesNotExist:
             raise forms.ValidationError(
-                self._format_error_message("Workspace is a required field."),
+                self._format_slack_error_message("Workspace is a required field."),
                 code="invalid",
             )
 
@@ -127,7 +127,7 @@ class SlackNotifyServiceForm(forms.Form):  # type: ignore
                 params = {"channel": channel, "domain": domain}
 
                 raise forms.ValidationError(
-                    self._format_error_message(
+                    self._format_slack_error_message(
                         "Multiple users were found with display name '%(channel)s'. "
                         "Please use your username, found at %(domain)s/account/settings#username."
                     ),
@@ -136,7 +136,7 @@ class SlackNotifyServiceForm(forms.Form):  # type: ignore
                 )
             except ApiRateLimitedError:
                 raise forms.ValidationError(
-                    self._format_error_message(SLACK_RATE_LIMITED_MESSAGE),
+                    self._format_slack_error_message(SLACK_RATE_LIMITED_MESSAGE),
                     code="invalid",
                 )
 
@@ -152,7 +152,7 @@ class SlackNotifyServiceForm(forms.Form):  # type: ignore
                 "workspace": dict(self.fields["workspace"].choices).get(int(workspace)),
             }
             raise forms.ValidationError(
-                self._format_error_message(
+                self._format_slack_error_message(
                     'The resource "%(channel)s" does not exist or has not been granted access in the %(workspace)s Slack workspace.'
                 ),
                 code="invalid",

@@ -41,20 +41,22 @@ class AlertRuleActionRequester(Mediator):
         urlparts[2] = self.uri
         return urlunparse(urlparts)
 
-    def _get_error_message(self, response: Response) -> str:
+    def _get_response_message(self, response: Response, default_message: str) -> str:
         """
-        Returns the error message from the response body, if in the expected location.
+        Returns the message from the response body, if in the expected location.
+        Used to bubble up info from the Sentry App to the UI.
         The location should be coordinated with the docs on Alert Rule Action UI Components.
         """
         try:
-            error_message = response.json().get("message", DEFAULT_ERROR_MESSAGE)
+            message = response.json().get("message", default_message)
         except Exception:
-            error_message = DEFAULT_ERROR_MESSAGE
-        return error_message
+            message = default_message
+
+        return f"{self.sentry_app.name}: {message}"
 
     def _make_request(self) -> AlertRuleActionResult:
         try:
-            send_and_save_sentry_app_request(
+            response = send_and_save_sentry_app_request(
                 self._build_url(),
                 self.sentry_app,
                 self.install.organization_id,
@@ -73,12 +75,12 @@ class AlertRuleActionRequester(Mediator):
                     "error_message": str(e),
                 },
             )
-            message = f"{self.sentry_app.name}: {self._get_error_message(e.response)}"
-            # Bubble up error message from Sentry App to the UI for the user.
-            return AlertRuleActionResult(success=False, message=message)
-        # No messages are bubbled up from successful responses.
-        message = f"{self.sentry_app.name}: {DEFAULT_SUCCESS_MESSAGE}"
-        return AlertRuleActionResult(success=True, message=message)
+            return AlertRuleActionResult(
+                success=False, message=self._get_response_message(e.response, DEFAULT_ERROR_MESSAGE)
+            )
+        return AlertRuleActionResult(
+            success=True, message=self._get_response_message(response, DEFAULT_SUCCESS_MESSAGE)
+        )
 
     def _build_headers(self):
         request_uuid = uuid4().hex
