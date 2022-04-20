@@ -51,7 +51,6 @@ class _DefaultThreshold:
     threshold: int
 
 
-_DefaultThreshold
 _DEFAULT_THRESHOLD = _DefaultThreshold(
     metric=TransactionMetric[DEFAULT_THRESHOLD["metric"].upper()].value,
     threshold=int(DEFAULT_THRESHOLD["threshold"]),
@@ -80,7 +79,6 @@ def get_metric_conditional_tagging_rules(
         rules.extend(_threshold_to_rules(threshold, []))
     except ProjectTransactionThreshold.DoesNotExist:
         rules.extend(_threshold_to_rules(_DEFAULT_THRESHOLD, []))
-        pass
 
     rules.extend(_produce_histogram_outliers())
 
