@@ -4,6 +4,7 @@ import logging
 import uuid
 from typing import Callable
 
+from django.conf import settings
 from django.http.response import HttpResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -14,7 +15,6 @@ from sentry.ratelimits import (
     get_rate_limit_key,
     get_rate_limit_value,
 )
-from sentry.ratelimits.config import ENFORCE_CONCURRENT_RATE_LIMITS
 from sentry.types.ratelimit import RateLimitCategory, RateLimitMeta, RateLimitType
 from sentry.utils import json, metrics
 
@@ -66,7 +66,7 @@ class RatelimitMiddleware:
                 # TODO: also limit by concurrent window once we have the data
                 rate_limit_cond = (
                     request.rate_limit_metadata.rate_limit_type != RateLimitType.NOT_LIMITED
-                    if ENFORCE_CONCURRENT_RATE_LIMITS
+                    if settings.ENFORCE_CONCURRENT_RATE_LIMITS
                     else request.rate_limit_metadata.rate_limit_type == RateLimitType.FIXED_WINDOW
                 )
                 if rate_limit_cond:
