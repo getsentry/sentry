@@ -18,14 +18,14 @@ const DATASET_CHOICES: [DataSet, string][] = [
 interface Props {
   dataSet: DataSet;
   displayType: DisplayType;
+  hasReleaseHealthFeature: boolean;
   onChange: (dataSet: DataSet) => void;
-  widgetBuilderNewDesign: boolean;
 }
 
 export function DataSetStep({
   dataSet,
   onChange,
-  widgetBuilderNewDesign,
+  hasReleaseHealthFeature,
   displayType,
 }: Props) {
   const disabledChoices: RadioGroupProps<string>['disabledChoices'] = [];
@@ -62,7 +62,7 @@ export function DataSetStep({
         label="dataSet"
         value={dataSet}
         choices={
-          widgetBuilderNewDesign
+          hasReleaseHealthFeature
             ? [
                 ...DATASET_CHOICES,
                 [DataSet.RELEASE, t('Releases (sessions, crash rates)')],
