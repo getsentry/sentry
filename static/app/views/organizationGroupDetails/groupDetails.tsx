@@ -496,7 +496,7 @@ class GroupDetails extends Component<Props, State> {
   }
 
   renderContent(project: AvatarProject, group: Group) {
-    const {children, environments} = this.props;
+    const {children, environments, organization} = this.props;
     const {loadingEvent, eventError, event} = this.state;
 
     const {currentTab, baseUrl} = this.getCurrentRouteInfo(group);
@@ -509,14 +509,20 @@ class GroupDetails extends Component<Props, State> {
     };
 
     if (currentTab === Tab.DETAILS) {
-      childProps = {
-        ...childProps,
-        event,
-        loadingEvent,
-        eventError,
-        groupReprocessingStatus,
-        onRetry: () => this.remountComponent(),
-      };
+      if (group.id !== event?.groupID && !eventError) {
+        // if user pastes only the event id into the url, but it's from another group, redirect to correct group/event
+        const redirectUrl = `/organizations/${organization.slug}/issues/${event?.groupID}/events/${event?.id}/`;
+        this.props.router.push(redirectUrl);
+      } else {
+        childProps = {
+          ...childProps,
+          event,
+          loadingEvent,
+          eventError,
+          groupReprocessingStatus,
+          onRetry: () => this.remountComponent(),
+        };
+      }
     }
 
     if (currentTab === Tab.TAGS) {
