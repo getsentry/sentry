@@ -18,8 +18,10 @@ import {SortableQueryField} from './sortableQueryField';
 
 const GROUP_BY_LIMIT = 20;
 const EMPTY_FIELD: QueryFieldValue = {kind: FieldValueKind.FIELD, field: ''};
+
+type FieldOptions = ReturnType<typeof generateFieldOptions>;
 interface Props {
-  fieldOptions: ReturnType<typeof generateFieldOptions>;
+  fieldOptions: FieldOptions;
   onChange: (fields: QueryFieldValue[]) => void;
   columns?: QueryFieldValue[];
 }
@@ -58,16 +60,31 @@ export function GroupBySelector({fieldOptions, columns = [], onChange}: Props) {
 
   const canDrag = columns.length > 1;
   const canDelete = canDrag || hasOnlySingleColumnWithValue;
+  const columnFieldsAsString = columns.map(generateFieldAsString);
 
-  const filteredFieldOptions = useMemo(() => {
-    const columnFieldsAsString = columns.map(generateFieldAsString);
-    return Object.keys(fieldOptions).reduce((acc, key) => {
-      const value = fieldOptions[key];
-      if (!columnFieldsAsString.includes(value.value.meta.name)) {
-        acc[key] = value;
+  const {filteredFieldOptions, columnsAsFieldOptions} = useMemo(() => {
+    return Object.keys(fieldOptions).reduce(
+      (acc, key) => {
+        const value = fieldOptions[key];
+        if (!columnFieldsAsString.includes(value.value.meta.name)) {
+          acc.filteredFieldOptions[key] = value;
+          return acc;
+        }
+
+        const columnIndex = columnFieldsAsString.findIndex(
+          column => column === value.value.meta.name
+        );
+        acc.columnsAsFieldOptions[columnIndex] = {[key]: value};
+        return acc;
+      },
+      {
+        filteredFieldOptions: {},
+        columnsAsFieldOptions: [],
+      } as {
+        columnsAsFieldOptions: FieldOptions[];
+        filteredFieldOptions: FieldOptions;
       }
-      return acc;
-    }, {});
+    );
   }, [fieldOptions, columns]);
 
   const items = useMemo(() => {
@@ -117,7 +134,10 @@ export function GroupBySelector({fieldOptions, columns = [], onChange}: Props) {
                     key={items[index]}
                     dragId={items[index]}
                     value={column}
-                    fieldOptions={filteredFieldOptions}
+                    fieldOptions={{
+                      ...filteredFieldOptions,
+                      ...columnsAsFieldOptions[index],
+                    }}
                     onChange={value => handleSelect(value, index)}
                     onDelete={() => handleRemove(index)}
                     canDrag={canDrag}
@@ -131,7 +151,10 @@ export function GroupBySelector({fieldOptions, columns = [], onChange}: Props) {
                 <Ghost>
                   <QueryField
                     value={columns[Number(activeId)]}
-                    fieldOptions={filteredFieldOptions}
+                    fieldOptions={{
+                      ...filteredFieldOptions,
+                      ...columnsAsFieldOptions[Number(activeId)],
+                    }}
                     onChange={value => handleSelect(value, Number(activeId))}
                     canDrag={canDrag}
                     canDelete={canDelete}

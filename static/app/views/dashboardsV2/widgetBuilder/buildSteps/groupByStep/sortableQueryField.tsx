@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 
 import {QueryField, QueryFieldProps} from './queryField';
 
-interface SortableItemProps extends Omit<QueryFieldProps, 'wrapperStyle'> {
+interface SortableItemProps extends QueryFieldProps {
   dragId: string;
 }
 
