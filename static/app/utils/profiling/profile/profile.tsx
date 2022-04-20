@@ -7,13 +7,13 @@ import {Frame} from '../frame';
 // head at commit e37f6fa7c38c110205e22081560b99cb89ce885e
 export class Profile {
   // Duration of the profile
-  duration = 0;
+  duration: number;
   // Started at ts of the profile - varies between implementations of the profiler.
   // For JS self profiles, this is the time origin (https://www.w3.org/TR/hr-time-2/#dfn-time-origin), for others it's epoch time
-  startedAt = 0;
+  startedAt: number;
   // Ended at ts of the profile - varies between implementations of the profiler.
   // For JS self profiles, this is the time origin (https://www.w3.org/TR/hr-time-2/#dfn-time-origin), for others it's epoch time
-  endedAt = 0;
+  endedAt: number;
 
   // Unit in which the timings are reported in
   unit = 'microseconds';

@@ -22,12 +22,12 @@ describe('CursorRenderer', () => {
     const cursor = vec2.fromValues(0.5, 0.5);
     const physicalSpace = new Rect(0, 0, 1000, 1000);
 
-    const configToPhysicalSpace = Transform.betweenRect(
+    const configViewToPhysicalSpace = Transform.betweenRect(
       new Rect(0, 0, 1, 1),
       physicalSpace
     );
 
-    renderer.draw(cursor, physicalSpace, configToPhysicalSpace.toMatrix());
+    renderer.draw(cursor, physicalSpace, configViewToPhysicalSpace.toMatrix());
 
     expect(context.beginPath).toHaveBeenCalled();
 

@@ -66,15 +66,21 @@ class RequestTimingMiddleware(MiddlewareMixin):
         if not view_path:
             return
 
+        rate_limit_type = getattr(
+            getattr(request, "rate_limit_metadata", None), "rate_limit_type", None
+        )
+
         tags = getattr(request, "_metric_tags", {})
         tags.update(
             {
                 "method": request.method,
                 "status_code": status_code,
                 "ui_request": is_frontend_request(request),
+                "rate_limit_type": getattr(rate_limit_type, "value", None)
+                if rate_limit_type
+                else None,
             }
         )
-
         metrics.incr("view.response", instance=view_path, tags=tags, skip_internal=False)
 
         start_time = getattr(request, "_start_time", None)

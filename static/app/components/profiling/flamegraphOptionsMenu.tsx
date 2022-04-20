@@ -6,8 +6,10 @@ import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
-import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider';
+import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphPreferences';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
+
+import {FlamegraphXAxisOptionsMenu} from './flamegraphAxisOptionsMenu';
 
 interface FlamegraphOptionsMenuProps {
   canvasPoolManager: CanvasPoolManager;
@@ -50,6 +52,7 @@ function FlamegraphOptionsMenu({
           )
         )}
       </DropdownControl>
+      <FlamegraphXAxisOptionsMenu />
       <Button size="xsmall" onClick={() => canvasPoolManager.dispatch('resetZoom', [])}>
         {t('Reset Zoom')}
       </Button>

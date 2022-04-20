@@ -32,7 +32,7 @@ import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {getAggregateAlias, isAggregateField} from 'sentry/utils/discover/fields';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
@@ -48,6 +48,7 @@ import {
 } from 'sentry/views/dashboardsV2/utils';
 import WidgetCardChart from 'sentry/views/dashboardsV2/widgetCard/chart';
 import IssueWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/issueWidgetQueries';
+import MetricsWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/metricsWidgetQueries';
 import {WidgetCardChartContainer} from 'sentry/views/dashboardsV2/widgetCard/widgetCardChartContainer';
 import WidgetQueries from 'sentry/views/dashboardsV2/widgetCard/widgetQueries';
 import {decodeColumnOrder} from 'sentry/views/eventsV2/utils';
@@ -57,14 +58,18 @@ import {
   renderDiscoverGridHeaderCell,
   renderGridBodyCell,
   renderIssueGridHeaderCell,
+  renderMetricsGridHeaderCell,
 } from './widgetViewerModal/widgetViewerTableCell';
 
 export type WidgetViewerModalOptions = {
   organization: Organization;
   widget: Widget;
+  issuesData?: TableDataRow[];
   onEdit?: () => void;
+  pageLinks?: string;
   seriesData?: Series[];
   tableData?: TableDataWithTitle[];
+  totalIssuesCount?: string;
 };
 
 type Props = ModalRenderProps &
@@ -149,6 +154,9 @@ function WidgetViewerModal(props: Props) {
     params,
     seriesData,
     tableData,
+    issuesData,
+    totalIssuesCount,
+    pageLinks: defaultPageLinks,
   } = props;
   // Get widget zoom from location
   // We use the start and end query params for just the initial state
@@ -230,12 +238,13 @@ function WidgetViewerModal(props: Props) {
     columns.unshift(GEO_COUNTRY_CODE);
   }
   // Default table columns for visualizations that don't have a column setting
-  const shouldReplaceTableColumns = [
-    DisplayType.AREA,
-    DisplayType.LINE,
-    DisplayType.BIG_NUMBER,
-    DisplayType.BAR,
-  ].includes(widget.displayType);
+  const shouldReplaceTableColumns =
+    [
+      DisplayType.AREA,
+      DisplayType.LINE,
+      DisplayType.BIG_NUMBER,
+      DisplayType.BAR,
+    ].includes(widget.displayType) && widget.widgetType === WidgetType.DISCOVER;
 
   let equationFieldsCount = 0;
   // Updates fields by adding any individual terms from equation fields as a column
@@ -352,6 +361,196 @@ function WidgetViewerModal(props: Props) {
     });
   }
 
+  const renderDiscoverTable: WidgetQueries['props']['children'] = ({
+    tableResults,
+    loading,
+    pageLinks,
+  }) => {
+    const links = parseLinkHeader(pageLinks ?? null);
+    const isFirstPage = links.previous?.results === false;
+    return (
+      <React.Fragment>
+        <GridEditable
+          isLoading={loading}
+          data={tableResults?.[0]?.data ?? []}
+          columnOrder={columnOrder}
+          columnSortBy={columnSortBy}
+          grid={{
+            renderHeadCell: renderDiscoverGridHeaderCell({
+              ...props,
+              widget: tableWidget,
+              tableData: tableResults?.[0],
+              onHeaderClick: () => {
+                if ([DisplayType.TOP_N, DisplayType.TABLE].includes(widget.displayType)) {
+                  setChartUnmodified(false);
+                }
+              },
+            }) as (column: GridColumnOrder, columnIndex: number) => React.ReactNode,
+            renderBodyCell: renderGridBodyCell({
+              ...props,
+              tableData: tableResults?.[0],
+              isFirstPage,
+            }),
+            onResizeColumn,
+          }}
+          location={location}
+        />
+        {(links?.previous?.results || links?.next?.results) && (
+          <Pagination
+            pageLinks={pageLinks}
+            onCursor={newCursor => {
+              router.replace({
+                pathname: location.pathname,
+                query: {
+                  ...location.query,
+                  [WidgetViewerQueryField.CURSOR]: newCursor,
+                },
+              });
+
+              if (widget.displayType === DisplayType.TABLE) {
+                setChartUnmodified(false);
+              }
+
+              trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.paginate', {
+                organization,
+                widget_type: WidgetType.DISCOVER,
+                display_type: widget.displayType,
+              });
+            }}
+          />
+        )}
+      </React.Fragment>
+    );
+  };
+
+  const renderIssuesTable: IssueWidgetQueries['props']['children'] = ({
+    transformedResults,
+    loading,
+    pageLinks,
+    totalCount,
+  }) => {
+    if (totalResults === undefined && totalCount) {
+      setTotalResults(totalCount);
+    }
+    const links = parseLinkHeader(pageLinks ?? null);
+    return (
+      <React.Fragment>
+        <GridEditable
+          isLoading={loading}
+          data={transformedResults}
+          columnOrder={columnOrder}
+          columnSortBy={columnSortBy}
+          grid={{
+            renderHeadCell: renderIssueGridHeaderCell({
+              location,
+              organization,
+              selection,
+              widget: tableWidget,
+              onHeaderClick: () => {
+                setChartUnmodified(false);
+              },
+            }) as (column: GridColumnOrder, columnIndex: number) => React.ReactNode,
+            renderBodyCell: renderGridBodyCell({
+              location,
+              organization,
+              selection,
+              widget: tableWidget,
+            }),
+            onResizeColumn,
+          }}
+          location={location}
+        />
+        {(links?.previous?.results || links?.next?.results) && (
+          <Pagination
+            pageLinks={pageLinks}
+            onCursor={(nextCursor, _path, _query, delta) => {
+              let nextPage = isNaN(page) ? delta : page + delta;
+              let newCursor = nextCursor;
+              // unset cursor and page when we navigate back to the first page
+              // also reset cursor if somehow the previous button is enabled on
+              // first page and user attempts to go backwards
+              if (nextPage <= 0) {
+                newCursor = undefined;
+                nextPage = 0;
+              }
+              router.replace({
+                pathname: location.pathname,
+                query: {
+                  ...location.query,
+                  [WidgetViewerQueryField.CURSOR]: newCursor,
+                  [WidgetViewerQueryField.PAGE]: nextPage,
+                },
+              });
+
+              if (widget.displayType === DisplayType.TABLE) {
+                setChartUnmodified(false);
+              }
+
+              trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.paginate', {
+                organization,
+                widget_type: WidgetType.ISSUE,
+                display_type: widget.displayType,
+              });
+            }}
+          />
+        )}
+      </React.Fragment>
+    );
+  };
+
+  const renderMetricsTable: MetricsWidgetQueries['props']['children'] = ({
+    tableResults,
+    loading,
+    pageLinks,
+  }) => {
+    const links = parseLinkHeader(pageLinks ?? null);
+    const isFirstPage = links.previous?.results === false;
+    return (
+      <React.Fragment>
+        <GridEditable
+          isLoading={loading}
+          data={tableResults?.[0]?.data ?? []}
+          columnOrder={columnOrder}
+          columnSortBy={columnSortBy}
+          grid={{
+            renderHeadCell: renderMetricsGridHeaderCell({
+              ...props,
+              widget: tableWidget,
+              tableData: tableResults?.[0],
+              onHeaderClick: () => setChartUnmodified(false),
+            }) as (column: GridColumnOrder, columnIndex: number) => React.ReactNode,
+            renderBodyCell: renderGridBodyCell({
+              ...props,
+              tableData: tableResults?.[0],
+              isFirstPage,
+            }),
+            onResizeColumn,
+          }}
+          location={location}
+        />
+        {(links?.previous?.results || links?.next?.results) && (
+          <Pagination
+            pageLinks={pageLinks}
+            onCursor={newCursor => {
+              router.replace({
+                pathname: location.pathname,
+                query: {
+                  ...location.query,
+                  [WidgetViewerQueryField.CURSOR]: newCursor,
+                },
+              });
+              trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.paginate', {
+                organization,
+                widget_type: WidgetType.METRICS,
+                display_type: widget.displayType,
+              });
+            }}
+          />
+        )}
+      </React.Fragment>
+    );
+  };
+
   function onZoom(_evt, chart) {
     // @ts-ignore getModel() is private but we need this to retrieve datetime values of zoomed in region
     const model = chart.getModel();
@@ -382,8 +581,6 @@ function WidgetViewerModal(props: Props) {
     });
   }
 
-  const shouldUseDataFromProps = (!!seriesData || !!tableData) && chartUnmodified;
-
   function renderWidgetViewer() {
     return (
       <React.Fragment>
@@ -393,7 +590,7 @@ function WidgetViewerModal(props: Props) {
               widget.displayType !== DisplayType.BIG_NUMBER ? HALF_CONTAINER_HEIGHT : null
             }
           >
-            {shouldUseDataFromProps ? (
+            {(!!seriesData || !!tableData) && chartUnmodified ? (
               <MemoizedWidgetCardChart
                 timeseriesResults={seriesData}
                 tableResults={tableData}
@@ -553,7 +750,32 @@ function WidgetViewerModal(props: Props) {
           </QueryContainer>
         )}
         {widget.widgetType === WidgetType.ISSUE ? (
-          <IssueWidgetQueries
+          issuesData && chartUnmodified ? (
+            renderIssuesTable({
+              transformedResults: issuesData,
+              loading: false,
+              errorMessage: undefined,
+              pageLinks: defaultPageLinks,
+              totalCount: totalIssuesCount,
+            })
+          ) : (
+            <IssueWidgetQueries
+              api={api}
+              organization={organization}
+              widget={tableWidget}
+              selection={modalSelection}
+              limit={
+                widget.displayType === DisplayType.TABLE
+                  ? FULL_TABLE_ITEM_LIMIT
+                  : HALF_TABLE_ITEM_LIMIT
+              }
+              cursor={cursor}
+            >
+              {renderIssuesTable}
+            </IssueWidgetQueries>
+          )
+        ) : widget.widgetType === WidgetType.METRICS ? (
+          <MetricsWidgetQueries
             api={api}
             organization={organization}
             widget={tableWidget}
@@ -563,77 +785,17 @@ function WidgetViewerModal(props: Props) {
                 ? FULL_TABLE_ITEM_LIMIT
                 : HALF_TABLE_ITEM_LIMIT
             }
+            includeAllArgs
             cursor={cursor}
           >
-            {({transformedResults, loading, pageLinks, totalCount}) => {
-              if (totalResults === undefined) {
-                setTotalResults(totalCount);
-              }
-              const links = parseLinkHeader(pageLinks ?? null);
-              return (
-                <React.Fragment>
-                  <GridEditable
-                    isLoading={loading}
-                    data={transformedResults}
-                    columnOrder={columnOrder}
-                    columnSortBy={columnSortBy}
-                    grid={{
-                      renderHeadCell: renderIssueGridHeaderCell({
-                        location,
-                        organization,
-                        selection,
-                        widget: tableWidget,
-                      }) as (
-                        column: GridColumnOrder,
-                        columnIndex: number
-                      ) => React.ReactNode,
-                      renderBodyCell: renderGridBodyCell({
-                        location,
-                        organization,
-                        selection,
-                        widget: tableWidget,
-                      }),
-                      onResizeColumn,
-                    }}
-                    location={location}
-                  />
-                  {(links?.previous?.results || links?.next?.results) && (
-                    <Pagination
-                      pageLinks={pageLinks}
-                      onCursor={(nextCursor, _path, _query, delta) => {
-                        let nextPage = isNaN(page) ? delta : page + delta;
-                        let newCursor = nextCursor;
-                        // unset cursor and page when we navigate back to the first page
-                        // also reset cursor if somehow the previous button is enabled on
-                        // first page and user attempts to go backwards
-                        if (nextPage <= 0) {
-                          newCursor = undefined;
-                          nextPage = 0;
-                        }
-                        router.replace({
-                          pathname: location.pathname,
-                          query: {
-                            ...location.query,
-                            [WidgetViewerQueryField.CURSOR]: newCursor,
-                            [WidgetViewerQueryField.PAGE]: nextPage,
-                          },
-                        });
-
-                        trackAdvancedAnalyticsEvent(
-                          'dashboards_views.widget_viewer.paginate',
-                          {
-                            organization,
-                            widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                            display_type: widget.displayType,
-                          }
-                        );
-                      }}
-                    />
-                  )}
-                </React.Fragment>
-              );
-            }}
-          </IssueWidgetQueries>
+            {renderMetricsTable}
+          </MetricsWidgetQueries>
+        ) : tableData && chartUnmodified && widget.displayType === DisplayType.TABLE ? (
+          renderDiscoverTable({
+            tableResults: tableData,
+            loading: false,
+            pageLinks: defaultPageLinks,
+          })
         ) : (
           <WidgetQueries
             api={api}
@@ -645,66 +807,9 @@ function WidgetViewerModal(props: Props) {
                 ? FULL_TABLE_ITEM_LIMIT
                 : HALF_TABLE_ITEM_LIMIT
             }
-            pagination
             cursor={cursor}
           >
-            {({tableResults, loading, pageLinks}) => {
-              const isFirstPage = pageLinks
-                ? parseLinkHeader(pageLinks).previous.results === false
-                : false;
-              const links = parseLinkHeader(pageLinks ?? null);
-              return (
-                <React.Fragment>
-                  <GridEditable
-                    isLoading={loading}
-                    data={tableResults?.[0]?.data ?? []}
-                    columnOrder={columnOrder}
-                    columnSortBy={columnSortBy}
-                    grid={{
-                      renderHeadCell: renderDiscoverGridHeaderCell({
-                        ...props,
-                        widget: tableWidget,
-                        tableData: tableResults?.[0],
-                        onHeaderClick: () => setChartUnmodified(false),
-                      }) as (
-                        column: GridColumnOrder,
-                        columnIndex: number
-                      ) => React.ReactNode,
-                      renderBodyCell: renderGridBodyCell({
-                        ...props,
-                        tableData: tableResults?.[0],
-                        isFirstPage,
-                      }),
-                      onResizeColumn,
-                    }}
-                    location={location}
-                  />
-                  {(links?.previous?.results || links?.next?.results) && (
-                    <Pagination
-                      pageLinks={pageLinks}
-                      onCursor={newCursor => {
-                        router.replace({
-                          pathname: location.pathname,
-                          query: {
-                            ...location.query,
-                            [WidgetViewerQueryField.CURSOR]: newCursor,
-                          },
-                        });
-
-                        trackAdvancedAnalyticsEvent(
-                          'dashboards_views.widget_viewer.paginate',
-                          {
-                            organization,
-                            widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                            display_type: widget.displayType,
-                          }
-                        );
-                      }}
-                    />
-                  )}
-                </React.Fragment>
-              );
-            }}
+            {renderDiscoverTable}
           </WidgetQueries>
         )}
       </React.Fragment>
@@ -737,22 +842,7 @@ function WidgetViewerModal(props: Props) {
       <Body>{renderWidgetViewer()}</Body>
       <Footer>
         <ResultsContainer>
-          {totalResults &&
-            (widget.widgetType === WidgetType.ISSUE ? (
-              <span>
-                {tct('[description:Total Issues:] [total]', {
-                  description: <strong />,
-                  total: totalResults === '1000' ? '1000+' : totalResults,
-                })}
-              </span>
-            ) : (
-              <span>
-                {tct('[description:Total Events:] [total]', {
-                  description: <strong />,
-                  total: totalResults,
-                })}
-              </span>
-            ))}
+          {totalResults && renderTotalResults(totalResults, widget.widgetType)}
           <ButtonBar gap={1}>
             {onEdit && widget.id && (
               <Button
@@ -770,28 +860,56 @@ function WidgetViewerModal(props: Props) {
                 {t('Edit Widget')}
               </Button>
             )}
-            <Button
-              to={path}
-              priority="primary"
-              type="button"
-              onClick={() => {
-                trackAdvancedAnalyticsEvent(
-                  'dashboards_views.widget_viewer.open_source',
-                  {
-                    organization,
-                    widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                    display_type: widget.displayType,
-                  }
-                );
-              }}
-            >
-              {openLabel}
-            </Button>
+            {widget.widgetType &&
+              [WidgetType.DISCOVER, WidgetType.ISSUE].includes(widget.widgetType) && (
+                <Button
+                  to={path}
+                  priority="primary"
+                  type="button"
+                  onClick={() => {
+                    trackAdvancedAnalyticsEvent(
+                      'dashboards_views.widget_viewer.open_source',
+                      {
+                        organization,
+                        widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                        display_type: widget.displayType,
+                      }
+                    );
+                  }}
+                >
+                  {openLabel}
+                </Button>
+              )}
           </ButtonBar>
         </ResultsContainer>
       </Footer>
     </React.Fragment>
   );
+}
+
+function renderTotalResults(totalResults: string, widgetType?: WidgetType) {
+  switch (widgetType) {
+    case WidgetType.ISSUE:
+      return (
+        <span>
+          {tct('[description:Total Issues:] [total]', {
+            description: <strong />,
+            total: totalResults === '1000' ? '1000+' : totalResults,
+          })}
+        </span>
+      );
+    case WidgetType.DISCOVER:
+      return (
+        <span>
+          {tct('[description:Total Events:] [total]', {
+            description: <strong />,
+            total: totalResults,
+          })}
+        </span>
+      );
+    default:
+      return <span />;
+  }
 }
 
 export const modalCss = css`
@@ -821,6 +939,7 @@ const HighlightContainer = styled('span')<{display?: 'block' | 'flex'}>`
   gap: ${space(1)};
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
+  line-height: 2;
 `;
 
 const ResultsContainer = styled('div')`

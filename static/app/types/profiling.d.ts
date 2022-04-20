@@ -1,10 +1,10 @@
-namespace Profiling {
+declare namespace Profiling {
   interface RawProfileBase {
     endValue: number;
     startValue: number;
     name: string;
     unit: string;
-    spans?: RawSpan[];
+    spans?: Span[];
   }
 
   // Android traces follow this format
@@ -56,6 +56,7 @@ namespace Profiling {
   type Schema = {
     name: string;
     activeProfileIndex?: number;
+    duration_ns: number;
     profiles: ReadonlyArray<ProfileTypes>;
     shared: {
       frames: ReadonlyArray<Omit<FrameInfo, 'key'>>;
