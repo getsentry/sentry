@@ -70,7 +70,6 @@ class StaticStringsIndexerTest(TestCase):
 
         assert results[2]["1.0.0"] == v1.id
         assert results[3]["2.0.0"] == v2.id
-        print(results.meta)
 
 
 class PostgresIndexerV2Test(TestCase):
@@ -171,7 +170,6 @@ class PostgresIndexerV2Test(TestCase):
 
         for string, id in results[org_id].items():
             assert expected_mapping[string] == id
-        print(results.meta)
 
     def test_already_cached_plus_read_results(self) -> None:
         """
