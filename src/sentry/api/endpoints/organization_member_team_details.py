@@ -259,7 +259,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
             team_membership.update(role=None)
 
         metrics.incr(
-            "team_roles:assign",
+            "team_roles.assign",
             tags={"target_team_role": team_role.id, "applying_minimum": str(applying_minimum)},
         )
 

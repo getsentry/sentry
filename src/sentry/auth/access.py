@@ -187,7 +187,7 @@ class Access(abc.ABC):
         membership = self._team_memberships.get(team)
         if membership is not None and scope in membership.get_scopes():
             metrics.incr(
-                "team_roles:pass_by_team_scope",
+                "team_roles.pass_by_team_scope",
                 tags={"team_role": membership.role, "scope": scope},
             )
             return True
@@ -254,7 +254,7 @@ class Access(abc.ABC):
                 for scope in scopes:
                     if scope in team_scopes:
                         metrics.incr(
-                            "team_roles:pass_by_project_scope",
+                            "team_roles.pass_by_project_scope",
                             tags={"team_role": membership.role, "scope": scope},
                         )
                         return True
