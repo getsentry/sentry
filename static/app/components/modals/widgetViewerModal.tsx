@@ -336,7 +336,7 @@ function WidgetViewerModal(props: Props) {
   // Get discover result totals
   React.useEffect(() => {
     const getDiscoverTotals = async () => {
-      if (widget.widgetType !== WidgetType.ISSUE) {
+      if (widget.widgetType === WidgetType.DISCOVER) {
         setTotalResults(await fetchDiscoverTotal(api, organization, location, eventView));
       }
     };
@@ -837,7 +837,7 @@ function WidgetViewerModal(props: Props) {
       <Body>{renderWidgetViewer()}</Body>
       <Footer>
         <ResultsContainer>
-          {totalResults && renderTotalResults(totalResults, widget.widgetType)}
+          {renderTotalResults(totalResults, widget.widgetType)}
           <ButtonBar gap={1}>
             {onEdit && widget.id && (
               <Button
@@ -882,7 +882,10 @@ function WidgetViewerModal(props: Props) {
   );
 }
 
-function renderTotalResults(totalResults: string, widgetType?: WidgetType) {
+function renderTotalResults(totalResults?: string, widgetType?: WidgetType) {
+  if (totalResults === undefined) {
+    return <span />;
+  }
   switch (widgetType) {
     case WidgetType.ISSUE:
       return (
