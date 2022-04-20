@@ -572,3 +572,24 @@ def profiles_consumer(**options):
     from sentry.profiles.consumer import get_profiles_consumer
 
     get_profiles_consumer(**options).run()
+
+
+@run.command("indexer-last-seen-updater")
+@log_options()
+@configuration
+@batching_kafka_options("indexer-last-seen-updater-consumer")
+@click.option("commit_max_batch_size", "--commit-max-batch-size", type=int, default=25000)
+@click.option("commit_max_batch_time", "--commit-max-batch-time-ms", type=int, default=10000)
+@click.option("--topic", default="snuba-metrics", help="Topic to read indexer output from.")
+def last_seen_updater(**options):
+    from sentry.sentry_metrics.last_seen_updater import get_last_seen_updater
+
+    consumer = get_last_seen_updater(**options)
+
+    def handler(signum, frame):
+        consumer.signal_shutdown()
+
+    signal.signal(signal.SIGINT, handler)
+    signal.signal(signal.SIGTERM, handler)
+
+    consumer.run()

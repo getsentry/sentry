@@ -444,7 +444,6 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
     def create(
         self, commit: Callable[[Mapping[Partition, Position]], None]
     ) -> ProcessingStrategy[KafkaPayload]:
-
         parallel_strategy = ParallelTransformStep(
             process_messages,
             ProduceStep(commit),
@@ -481,7 +480,6 @@ class BatchConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
     def create(
         self, commit: Callable[[Mapping[Partition, Position]], None]
     ) -> ProcessingStrategy[KafkaPayload]:
-
         transform_step = TransformStep(
             next_step=SimpleProduceStep(
                 commit,
@@ -681,7 +679,6 @@ def get_streaming_metrics_consumer(
     factory_name: str,
     **options: Mapping[str, Union[str, int]],
 ) -> StreamProcessor:
-
     if factory_name == "multiprocess":
         processing_factory = MetricsConsumerStrategyFactory(
             max_batch_size=max_batch_size,
