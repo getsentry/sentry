@@ -10,6 +10,11 @@ export enum SessionMetric {
   SESSION = 'session',
   SESSION_DURATION = 'session.duration',
   USER = 'user',
+  SESSION_ALL = 'session.all',
+  SESSION_HEALTHY = 'session.healthy',
+  SESSION_ERRORED = 'session.errored',
+  SESSION_ABNORMAL = 'session.abnormal',
+  SESSION_CRASHED = 'session.crashed',
 }
 
 export type SessionsOperation =
