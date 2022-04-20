@@ -87,7 +87,7 @@ class ReleasesList extends AsyncView<Props, State> {
     const query = {
       ...pick(location.query, ['project', 'environment', 'cursor', 'query', 'sort']),
       summaryStatsPeriod: statsPeriod,
-      statsPeriod,
+      statsPeriod: statsPeriod || DEFAULT_STATS_PERIOD,
       start,
       end,
       utc,
@@ -292,11 +292,16 @@ class ReleasesList extends AsyncView<Props, State> {
   }
 
   renderEmptyMessage() {
-    const {location, organization, selection} = this.props;
-    const {statsPeriod} = location.query;
+    const {location} = this.props;
+    const {statsPeriod, start, end} = location.query;
     const searchQuery = this.getQuery();
     const activeSort = this.getSort();
     const activeStatus = this.getStatus();
+
+    const selectedPeriod =
+      !!start && !!end
+        ? 'time range'
+        : getRelativeSummary(statsPeriod || DEFAULT_STATS_PERIOD).toLowerCase();
 
     if (searchQuery && searchQuery.length) {
       return (
@@ -336,13 +341,9 @@ class ReleasesList extends AsyncView<Props, State> {
     }
 
     if (activeSort !== ReleasesSortOption.DATE) {
-      const relativePeriod = getRelativeSummary(
-        statsPeriod || DEFAULT_STATS_PERIOD
-      ).toLowerCase();
-
       return (
         <EmptyStateWarning small>
-          {`${t('There are no releases with data in the')} ${relativePeriod}.`}
+          {`${t('There are no releases with data in the')} ${selectedPeriod}.`}
         </EmptyStateWarning>
       );
     }
@@ -356,10 +357,9 @@ class ReleasesList extends AsyncView<Props, State> {
     }
 
     return (
-      <ReleasesPromo
-        organization={organization}
-        projectId={selection.projects.filter(p => p !== ALL_ACCESS_PROJECTS)[0]}
-      />
+      <EmptyStateWarning small>
+        {`${t('There are no releases with data in the')} ${selectedPeriod}.`}
+      </EmptyStateWarning>
     );
   }
 
@@ -413,12 +413,24 @@ class ReleasesList extends AsyncView<Props, State> {
     const {location, selection, organization, router} = this.props;
     const {releases, reloading, releasesPageLinks} = this.state;
 
+    const selectedProject = this.getSelectedProject();
+    const hasReleasesSetup = selectedProject?.features.includes('releases');
+
     if (this.shouldShowLoadingIndicator()) {
       return <LoadingIndicator />;
     }
 
-    if (!releases?.length) {
+    if (!releases?.length && hasReleasesSetup) {
       return this.renderEmptyMessage();
+    }
+
+    if (!releases?.length && !hasReleasesSetup) {
+      return (
+        <ReleasesPromo
+          organization={organization}
+          projectId={selection.projects.filter(p => p !== ALL_ACCESS_PROJECTS)[0]}
+        />
+      );
     }
 
     return (
@@ -435,7 +447,6 @@ class ReleasesList extends AsyncView<Props, State> {
           const singleProjectSelected =
             selection.projects?.length === 1 &&
             selection.projects[0] !== ALL_ACCESS_PROJECTS;
-          const selectedProject = this.getSelectedProject();
           const isMobileProject =
             selectedProject?.platform && isMobileRelease(selectedProject.platform);
 
