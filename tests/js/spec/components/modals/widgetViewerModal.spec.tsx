@@ -863,7 +863,7 @@ describe('Modals -> WidgetViewerModal', function () {
     const mockWidget = {
       id: '1',
       title: 'Metrics Widget',
-      displayType: DisplayType.TOP_N,
+      displayType: DisplayType.LINE,
       interval: '5m',
       queries: [mockQuery],
       widgetType: WidgetType.METRICS,
@@ -902,17 +902,36 @@ describe('Modals -> WidgetViewerModal', function () {
       expect(container).toSnapshot();
     });
 
-    it('makes a sessions request after sorting by a table column', async function () {
-      await renderModal({
+    it('makes a new sessions request after sorting by a table column', async function () {
+      const {rerender} = await renderModal({
         initialData,
         widget: mockWidget,
         tableData: [],
         seriesData: [],
       });
-      expect(sessionsMock).not.toHaveBeenCalled();
+      expect(sessionsMock).toHaveBeenCalledTimes(1);
       userEvent.click(screen.getByText(`sum(${SessionMetric.SESSION})`));
+      expect(initialData.router.push).toHaveBeenCalledWith({
+        query: {sort: '-sum(sentry.sessions.session)'},
+      });
+      // Need to manually set the new router location and rerender to simulate the sortable column click
+      initialData.router.location.query = {sort: '-sum(sentry.sessions.session)'};
+      rerender(
+        <WidgetViewerModal
+          Header={stubEl}
+          Footer={stubEl as ModalRenderProps['Footer']}
+          Body={stubEl as ModalRenderProps['Body']}
+          CloseButton={stubEl}
+          closeModal={() => undefined}
+          organization={initialData.organization}
+          widget={mockWidget}
+          onEdit={() => undefined}
+          seriesData={[]}
+          tableData={[]}
+        />
+      );
       await waitFor(() => {
-        expect(sessionsMock).toHaveBeenCalled();
+        expect(sessionsMock).toHaveBeenCalledTimes(2);
       });
     });
   });
