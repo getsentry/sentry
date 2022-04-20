@@ -308,7 +308,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
 
         if omt_update_count > 0:
             metrics.incr(
-                "team_roles.update_to_detault",
+                "team_roles.update_to_minimum",
                 tags={"target_org_role": role, "count": omt_update_count},
             )
 
