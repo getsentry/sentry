@@ -114,6 +114,23 @@ class RatelimitMiddlewareTest(TestCase):
             self.middleware.process_view(request, self._test_endpoint, [], {})
             assert not request.will_be_rate_limited
 
+    @patch("sentry.middleware.ratelimit.get_rate_limit_value")
+    @override_settings(SENTRY_SELF_HOSTED=True)
+    def test_self_hosted_rate_limit_check(self, default_rate_limit_mock):
+        """Check that for self hosted installs we don't rate limit"""
+        request = self.factory.get("/")
+        default_rate_limit_mock.return_value = RateLimit(10, 100)
+        self.middleware.process_view(request, self._test_endpoint, [], {})
+        assert not request.will_be_rate_limited
+
+        default_rate_limit_mock.return_value = RateLimit(1, 1)
+        with freeze_time("2000-01-01") as frozen_time:
+            self.middleware.process_view(request, self._test_endpoint, [], {})
+            assert not request.will_be_rate_limited
+            frozen_time.tick(1)
+            self.middleware.process_view(request, self._test_endpoint, [], {})
+            assert not request.will_be_rate_limited
+
     def test_rate_limit_category(self):
         request = self.factory.get("/")
         request.META["REMOTE_ADDR"] = None

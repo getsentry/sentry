@@ -42,10 +42,10 @@ class RatelimitMiddleware:
         """Check if the endpoint call will violate."""
         with metrics.timer("middleware.ratelimit.process_view"):
             try:
-                if settings.SENTRY_SELF_HOSTED:
-                    return
                 # TODO: put these fields into their own object
                 request.will_be_rate_limited = False
+                if settings.SENTRY_SELF_HOSTED:
+                    return
                 request.rate_limit_category = None
                 request.rate_limit_uid = uuid.uuid4().hex
                 request.rate_limit_key = get_rate_limit_key(view_func, request)
