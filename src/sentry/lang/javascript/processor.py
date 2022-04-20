@@ -844,6 +844,10 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             "sentry:scrape_javascript", True
         ) is not False and self.project.get_option("sentry:scrape_javascript", True)
 
+        self.use_sourcemap_lru_cache = features.has(
+            "organizations:processing-sourcemap-lru-cache", organization
+        )
+
         self.fetch_count = 0
         self.sourcemaps_touched = set()
 
@@ -1207,7 +1211,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 op="JavaScriptStacktraceProcessor.cache_source.fetch_sourcemap"
             ) as span:
                 span.set_data("sourcemap_url", sourcemap_url)
-                if features.has("organizations:processing-sourcemap-lru-cache"):
+                if self.use_sourcemap_lru_cache:
                     fetch_sourcemap_fn = cached_fetch_sourcemap
                 else:
                     fetch_sourcemap_fn = fetch_sourcemap

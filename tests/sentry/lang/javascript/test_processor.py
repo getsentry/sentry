@@ -19,6 +19,7 @@ from sentry.lang.javascript.processor import (
     JavaScriptStacktraceProcessor,
     UnparseableSourcemap,
     cache,
+    cached_fetch_sourcemap,
     discover_sourcemap,
     fetch_file,
     fetch_release_archive_for_url,
@@ -34,6 +35,7 @@ from sentry.lang.javascript.processor import (
 from sentry.models import EventError, File, Release, ReleaseFile
 from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, update_artifact_index
 from sentry.testutils import TestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 from sentry.utils.strings import truncatechars
@@ -1372,3 +1374,28 @@ class CacheSourceTest(TestCase):
         # now we have an error
         assert len(processor.cache.get_errors(abs_path)) == 1
         assert processor.cache.get_errors(abs_path)[0] == {"url": map_url, "type": "js_no_source"}
+
+    @with_feature("organizations:processing-sourcemap-lru-cache")
+    @patch(
+        "sentry.lang.javascript.processor.discover_sourcemap",
+        return_value="app:///../node_modules/some-package/index.js.map",
+    )
+    def test_sourcemap_lru_cache_used(self, _):
+        """When the feature flag is on, lru cache is reused"""
+
+        project = self.create_project()
+        release = self.create_release(project=project, version="12.31.12")
+
+        abs_path = "app:///../node_modules/some-package/index.js"
+        self.create_release_file(release_id=release.id, name=abs_path)
+
+        for expected_cache_hits, expected_cache_misses in [(0, 1), (1, 1)]:
+            processor = JavaScriptStacktraceProcessor(
+                data={"release": release.version}, stacktrace_infos=None, project=project
+            )
+            processor.release = release
+
+            processor.cache_source(abs_path)
+            cache_info = cached_fetch_sourcemap.cache_info()
+            assert cache_info.hits == expected_cache_hits
+            assert cache_info.misses == expected_cache_misses
