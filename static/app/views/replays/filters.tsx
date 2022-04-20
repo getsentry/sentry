@@ -20,7 +20,7 @@ function ReplaysFilters({organization, handleSearchQuery, query}: Props) {
     <FilterContainer>
       <SearchContainer>
         <StyledPageFilterBar>
-          <ProjectPageFilter />
+          <ProjectPageFilter hideAnchorGuide />
           <EnvironmentPageFilter />
           <DatePageFilter />
         </StyledPageFilterBar>

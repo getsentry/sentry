@@ -36,6 +36,11 @@ type Props = WithRouterProps & {
   forceProject?: MinimalProject | null;
 
   /**
+   * If the hide flag is passed, anchor guide is disabled
+   */
+  hideAnchorGuide?: boolean;
+
+  /**
    * Subject that will be used in a tooltip that is shown on a lock icon hover
    * E.g. This 'issue' is unique to a project
    */
@@ -74,6 +79,7 @@ type Props = WithRouterProps & {
 
 function ProjectPageFilter({
   router,
+  hideAnchorGuide = false,
   specificProjectSlugs,
   maxTitleLength = 20,
   ...otherProps
@@ -152,6 +158,7 @@ function ProjectPageFilter({
         target="new_page_filter_button"
         position="bottom"
         onStepComplete={actions.open}
+        disabled={hideAnchorGuide}
       >
         <PageFilterDropdownButton
           detached
