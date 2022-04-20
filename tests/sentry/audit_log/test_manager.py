@@ -16,9 +16,7 @@ class AuditLogEventManagerTest(TestCase):
                 event_id=500,
                 name="TEST_LOG_ENTRY",
                 api_name="test-log.entry",
-                render=lambda audit_log_event: "test member {email} is {role}".format(
-                    **audit_log_event.data
-                ),
+                template="test member {email} is {role}",
             )
         )
 
@@ -46,9 +44,7 @@ class AuditLogEventManagerTest(TestCase):
                 event_id=500,
                 name="TEST_LOG_ENTRY",
                 api_name="test-log.entry",
-                render=lambda audit_log_event: "test member {email} is {role}".format(
-                    **audit_log_event.data
-                ),
+                template="test member {email} is {role}",
             )
         )
         test_manager.add(
@@ -56,7 +52,7 @@ class AuditLogEventManagerTest(TestCase):
                 event_id=500,
                 name="TEST_DUPLICATE",
                 api_name="test.duplicate",
-                render=lambda audit_log_event: "test duplicate",
+                template="test duplicate",
             )
         )
         assert mock_capture_exception.called
@@ -74,9 +70,7 @@ class AuditLogEventManagerTest(TestCase):
                 event_id=500,
                 name="TEST_LOG_ENTRY",
                 api_name="test-log.entry",
-                render=lambda audit_log_event: "test member {email} is {role}".format(
-                    **audit_log_event.data
-                ),
+                template="test member {email} is {role}",
             )
         )
         test_manager.add(
@@ -84,7 +78,7 @@ class AuditLogEventManagerTest(TestCase):
                 event_id=501,
                 name="TEST_LOG_ENTRY",
                 api_name="test.duplicate",
-                render=lambda audit_log_event: "test duplicate",
+                template="test duplicate",
             )
         )
         assert mock_capture_exception.called

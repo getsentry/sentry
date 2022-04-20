@@ -1,5 +1,5 @@
-from .manager import *  # NOQA
-from .register import default_manager  # NOQA
+from sentry.audit_log.manager import *  # NOQA
+from sentry.audit_log.register import default_manager  # NOQA
 
 # expose public api
 
