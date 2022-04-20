@@ -91,6 +91,8 @@ export default function SpanDetailsContentWrapper(props: Props) {
                       spanOp={spanSlug.op}
                       spanGroup={spanSlug.group}
                       limit={10}
+                      minExclusiveTime={minExclusiveTime}
+                      maxExclusiveTime={maxExclusiveTime}
                     >
                       {spanExamplesResults => (
                         <SpanDetailsContent

@@ -385,7 +385,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
       it('enables reset button when min and max are set', function () {
         const data = initializeData({
           features: FEATURES,
-          query: {project: '1', transaction: 'transaction', min: 10, max: 100},
+          query: {project: '1', transaction: 'transaction', min: '10', max: '100'},
         });
 
         render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
@@ -402,7 +402,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
       it('clears min and max query parameters when reset button is clicked', function () {
         const data = initializeData({
           features: FEATURES,
-          query: {project: '1', transaction: 'transaction', min: 10, max: 100},
+          query: {project: '1', transaction: 'transaction', min: '10', max: '100'},
         });
 
         render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
@@ -415,7 +415,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
         });
         resetButton.click();
         expect(browserHistory.push).toHaveBeenCalledWith(
-          expect.not.objectContaining({min: expect.any(Number), max: expect.any(Number)})
+          expect.not.objectContaining({min: expect.any(String), max: expect.any(String)})
         );
       });
 
@@ -551,6 +551,32 @@ describe('Performance > Transaction Spans > Span Summary', function () {
 
         const nodes = await screen.findAllByText('Self Time Distribution');
         expect(nodes[0]).toBeInTheDocument();
+      });
+
+      it('sends min and max to span example query', function () {
+        const mock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events-spans/',
+          body: {},
+        });
+        const data = initializeData({
+          features: FEATURES,
+          query: {project: '1', transaction: 'transaction', min: '10', max: '120'},
+        });
+
+        render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
+          context: data.routerContext,
+          organization: data.organization,
+        });
+
+        expect(mock).toHaveBeenLastCalledWith(
+          '/organizations/org-slug/events-spans/',
+          expect.objectContaining({
+            query: expect.objectContaining({
+              min_exclusive_time: '10',
+              max_exclusive_time: '120',
+            }),
+          })
+        );
       });
 
       it('sends min and max to suspect spans query', function () {
