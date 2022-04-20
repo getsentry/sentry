@@ -1,15 +1,18 @@
 from django.contrib.auth.signals import user_logged_in, user_logged_out
 
+from sentry.utils.settings import is_self_hosted
+
 
 # Upon login, we automatically want to enable superuser
 # status
 def enable_superuser(request, user, **kwargs):
-    su = getattr(request, "superuser", None)
-    if su:
-        if user.is_superuser:
-            su.set_logged_in(user)
-        else:
-            su._set_logged_out()
+    if is_self_hosted():
+        su = getattr(request, "superuser", None)
+        if su:
+            if user.is_superuser:
+                su.set_logged_in(user)
+            else:
+                su._set_logged_out()
 
 
 def disable_superuser(request, user, **kwargs):
