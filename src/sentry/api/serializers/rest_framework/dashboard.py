@@ -185,7 +185,10 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
             builder = UnresolvedQuery(
                 dataset=Dataset.Discover,
                 params=params,
-                equation_config={"auto_add": not is_table, "aggregates_only": not is_table},
+                equation_config={
+                    "auto_add": not is_table or is_equation(orderby.lstrip("-")),
+                    "aggregates_only": not is_table,
+                },
             )
 
             builder.resolve_conditions(conditions, use_aggregate_conditions=True)
@@ -204,10 +207,11 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
             # error based on the Widget's type
             data["discover_query_error"] = {"fields": f"Invalid fields: {err}"}
 
-        try:
-            builder.resolve_orderby(orderby)
-        except (InvalidSearchQuery) as err:
-            data["discover_query_error"] = {"orderby": f"Invalid orderby: {err}"}
+        if not is_equation(orderby.lstrip("-")):
+            try:
+                builder.resolve_orderby(orderby)
+            except (InvalidSearchQuery) as err:
+                data["discover_query_error"] = {"orderby": f"Invalid orderby: {err}"}
 
         return data
 
