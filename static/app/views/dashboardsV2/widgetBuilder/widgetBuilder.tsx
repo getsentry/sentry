@@ -203,6 +203,7 @@ function WidgetBuilder({
   const widgetBuilderNewDesign = organization.features.includes(
     'new-widget-builder-experience-design'
   );
+  const hasReleaseHealthFeature = organization.features.includes('dashboard-metrics');
 
   // Construct PageFilters object using statsPeriod/start/end props so we can
   // render widget graph using saved timeframe from Saved/Prebuilt Query
@@ -939,7 +940,7 @@ function WidgetBuilder({
                     dataSet={state.dataSet}
                     displayType={state.displayType}
                     onChange={handleDataSetChange}
-                    widgetBuilderNewDesign={widgetBuilderNewDesign}
+                    hasReleaseHealthFeature={hasReleaseHealthFeature}
                   />
                   {isTabularChart && (
                     <ColumnsStep
