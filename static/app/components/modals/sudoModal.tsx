@@ -116,8 +116,12 @@ class SudoModal extends React.Component<Props, State> {
 
   handleLogout = async () => {
     const {api} = this.props;
-    await logout(api);
-    window.location.assign('/auth/login/');
+    try {
+      await logout(api);
+      window.location.assign('/auth/login/');
+    } catch {
+      // ignore errors
+    }
   };
 
   async getAuthenticators() {
