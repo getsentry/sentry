@@ -101,7 +101,7 @@ function AddToDashboardModal({
         ],
       };
 
-      await updateDashboard(api, organization.slug, newDashboard, selection.projects);
+      await updateDashboard(api, organization.slug, newDashboard);
 
       closeModal();
       addSuccessMessage(t('Successfully added widget to dashboard'));

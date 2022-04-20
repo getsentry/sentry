@@ -72,8 +72,7 @@ function DashboardList({
       const newDashboard = cloneDashboard(dashboardDetail);
       newDashboard.widgets.map(widget => (widget.id = undefined));
 
-      // -1 for project IDs means it should include all projects
-      await createDashboard(api, organization.slug, newDashboard, true, [-1]);
+      await createDashboard(api, organization.slug, newDashboard, true);
 
       trackAnalyticsEvent({
         eventKey: 'dashboards_manage.duplicate',

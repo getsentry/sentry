@@ -768,7 +768,7 @@ function WidgetBuilder({
     setState({...state, loading: true});
 
     try {
-      await validateWidget(api, organization.slug, widgetData, pageFilters.projects);
+      await validateWidget(api, organization.slug, widgetData);
       return true;
     } catch (error) {
       setState({

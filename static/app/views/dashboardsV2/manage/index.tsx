@@ -20,12 +20,11 @@ import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
-import {Organization, PageFilters, SelectValue} from 'sentry/types';
+import {Organization, SelectValue} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
-import withPageFilters from 'sentry/utils/withPageFilters';
 import AsyncView from 'sentry/views/asyncView';
 
 import {DASHBOARDS_TEMPLATES} from '../data';
@@ -50,7 +49,6 @@ type Props = {
   location: Location;
   organization: Organization;
   router: InjectedRouter;
-  selection: PageFilters;
 } & AsyncView['props'];
 
 type State = {
@@ -226,7 +224,7 @@ class ManageDashboards extends AsyncView<Props, State> {
   }
 
   async onAdd(dashboard: DashboardDetails) {
-    const {organization, api, selection} = this.props;
+    const {organization, api} = this.props;
     trackAdvancedAnalyticsEvent('dashboards_manage.templates.add', {
       organization,
       dashboard_id: dashboard.id,
@@ -241,8 +239,7 @@ class ManageDashboards extends AsyncView<Props, State> {
         ...dashboard,
         widgets: assignDefaultLayout(dashboard.widgets, getInitialColumnDepths()),
       },
-      true,
-      selection.projects
+      true
     );
     this.onDashboardsChange();
     addSuccessMessage(`${dashboard.title} dashboard template successfully added.`);
@@ -368,4 +365,4 @@ const TemplateContainer = styled('div')`
   }
 `;
 
-export default withPageFilters(withApi(withOrganization(ManageDashboards)));
+export default withApi(withOrganization(ManageDashboards));

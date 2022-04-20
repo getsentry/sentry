@@ -33,13 +33,12 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
-import {Organization, PageFilters} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
-import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {
   WidgetViewerContext,
@@ -83,7 +82,6 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   initialState: DashboardState;
   organization: Organization;
   route: PlainRoute;
-  selection: PageFilters;
   newWidget?: Widget;
   onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
   onSetNewWidget?: () => void;
@@ -379,8 +377,7 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   handleUpdateWidgetList = (widgets: Widget[]) => {
-    const {organization, dashboard, api, onDashboardUpdate, location, selection} =
-      this.props;
+    const {organization, dashboard, api, onDashboardUpdate, location} = this.props;
     const {modifiedDashboard} = this.state;
 
     // Use the new widgets for calculating layout because widgets has
@@ -398,12 +395,7 @@ class DashboardDetail extends Component<Props, State> {
     if (this.isEditing || this.isPreview) {
       return;
     }
-    updateDashboard(
-      api,
-      organization.slug,
-      newModifiedDashboard,
-      selection.projects
-    ).then(
+    updateDashboard(api, organization.slug, newModifiedDashboard).then(
       (newDashboard: DashboardDetails) => {
         if (onDashboardUpdate) {
           onDashboardUpdate(newDashboard);
@@ -469,8 +461,7 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   onCommit = () => {
-    const {api, organization, location, dashboard, onDashboardUpdate, selection} =
-      this.props;
+    const {api, organization, location, dashboard, onDashboardUpdate} = this.props;
     const {modifiedDashboard, dashboardState} = this.state;
 
     switch (dashboardState) {
@@ -485,13 +476,7 @@ class DashboardDetail extends Component<Props, State> {
               was_previewed: true,
             });
           }
-          createDashboard(
-            api,
-            organization.slug,
-            modifiedDashboard,
-            this.isPreview,
-            selection.projects
-          ).then(
+          createDashboard(api, organization.slug, modifiedDashboard, this.isPreview).then(
             (newDashboard: DashboardDetails) => {
               addSuccessMessage(t('Dashboard created'));
               trackAnalyticsEvent({
@@ -526,12 +511,7 @@ class DashboardDetail extends Component<Props, State> {
             });
             return;
           }
-          updateDashboard(
-            api,
-            organization.slug,
-            modifiedDashboard,
-            selection.projects
-          ).then(
+          updateDashboard(api, organization.slug, modifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
               if (onDashboardUpdate) {
                 onDashboardUpdate(newDashboard);
@@ -827,4 +807,4 @@ const DashboardPageFilterBar = styled(PageFilterBar)`
   max-width: 100%;
 `;
 
-export default withPageFilters(withApi(withOrganization(DashboardDetail)));
+export default withApi(withOrganization(DashboardDetail));
