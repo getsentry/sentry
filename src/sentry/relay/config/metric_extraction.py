@@ -11,7 +11,7 @@ from sentry.models import (
 
 
 class RuleConditionInner(TypedDict):
-    op: Literal["eq", "gt"]
+    op: Literal["eq", "gt", "gte"]
     name: str
     value: Any
 
@@ -148,7 +148,7 @@ def _threshold_to_rules(
     return [frustrated, tolerated, satisfied]
 
 
-def _produce_histogram_outliers():
+def _produce_histogram_outliers() -> Sequence[MetricConditionalTaggingRule]:
     # SELECT
     #     platform,
     #     transaction_op AS op,
@@ -162,59 +162,59 @@ def _produce_histogram_outliers():
     # ORDER BY c DESC
     # LIMIT 50
     query_results = [
-        ["javascript", "pageload", [1282.75, 3783.25]],
-        ["javascript", "navigation", [333, 1033]],
-        ["python", "http.server", [3, 97]],
-        ["node", "http.server", [1, 84]],
-        ["php", "http.server", [34, 223]],
-        ["ruby", "rails.request", [3, 61]],
-        ["python", "celery.task", [25, 442]],
-        ["javascript", "ui.load", [1476.75, 431482.25]],
-        ["cocoa", "ui.load", [129, 623]],
-        ["node", "awslambda.handler", [32, 466.25]],
-        ["csharp", "http.server", [0, 46]],
-        ["python", "serverless.function", [17, 251.25]],
-        ["java", "http.server", [2, 32]],
-        ["java", "ui.load", [37, 266.25]],
-        ["ruby", "active_job", [15, 366]],
-        ["ruby", "sidekiq", [15, 300]],
-        ["javascript", "default", [9, 850.25]],
-        ["python", "asgi.server", [49, 327]],
-        ["other", "navigation", [999, 3002]],
-        ["php", "console.command", [60, 1033.75]],
-        ["node", "default", [10, 480]],
-        ["node", "transaction", [1, 45]],
-        ["python", "rq.task", [627.75, 3113]],
-        ["go", "http.server", [0, 133]],
-        ["other", "pageload", [3000, 3000]],
-        ["ruby", "rails.action_cable", [0, 4]],
-        ["ruby", "rack.request", [2, 40]],
-        ["node", "gql", [19, 203]],
-        ["other", "http.server", [4, 23]],
-        ["node", "test", [2, 262]],
-        ["python", "default", [27, 1106.25]],
-        ["node", "gcp.function.http", [3, 1594.5]],
-        ["php", "sentry.test", [0, 257.5]],
-        ["python", "websocket.server", [1, 2]],
-        ["java", "navigation", [230, 1623.25]],
-        ["ruby", "delayed_job", [9, 902.75]],
-        ["python", "task", [10, 1071.25]],
-        ["php", "queue.process", [51, 452]],
-        ["python", "query", [24, 273]],
-        ["python", "mutation", [25, 105]],
-        ["node", "request", [10, 59]],
-        ["java", "task", [0, 647]],
-        ["other", "task", [49, 412]],
-        ["node", "gcp.function.event", [243, 2393]],
-        ["php", "default", [18, 121]],
-        ["php", "queue.job", [35, 287]],
-        ["php", "http.request", [26, 282]],
-        ["go", "grpc.server", [1, 13]],
-        ["node", "execute", [42, 222]],
-        ["node", "functions.https.onCall", [10, 233]],
+        ("javascript", "pageload", (1282.75, 3783.25)),
+        ("javascript", "navigation", (333, 1033)),
+        ("python", "http.server", (3, 97)),
+        ("node", "http.server", (1, 84)),
+        ("php", "http.server", (34, 223)),
+        ("ruby", "rails.request", (3, 61)),
+        ("python", "celery.task", (25, 442)),
+        ("javascript", "ui.load", (1476.75, 431482.25)),
+        ("cocoa", "ui.load", (129, 623)),
+        ("node", "awslambda.handler", (32, 466.25)),
+        ("csharp", "http.server", (0, 46)),
+        ("python", "serverless.function", (17, 251.25)),
+        ("java", "http.server", (2, 32)),
+        ("java", "ui.load", (37, 266.25)),
+        ("ruby", "active_job", (15, 366)),
+        ("ruby", "sidekiq", (15, 300)),
+        ("javascript", "default", (9, 850.25)),
+        ("python", "asgi.server", (49, 327)),
+        ("other", "navigation", (999, 3002)),
+        ("php", "console.command", (60, 1033.75)),
+        ("node", "default", (10, 480)),
+        ("node", "transaction", (1, 45)),
+        ("python", "rq.task", (627.75, 3113)),
+        ("go", "http.server", (0, 133)),
+        ("other", "pageload", (3000, 3000)),
+        ("ruby", "rails.action_cable", (0, 4)),
+        ("ruby", "rack.request", (2, 40)),
+        ("node", "gql", (19, 203)),
+        ("other", "http.server", (4, 23)),
+        ("node", "test", (2, 262)),
+        ("python", "default", (27, 1106.25)),
+        ("node", "gcp.function.http", (3, 1594.5)),
+        ("php", "sentry.test", (0, 257.5)),
+        ("python", "websocket.server", (1, 2)),
+        ("java", "navigation", (230, 1623.25)),
+        ("ruby", "delayed_job", (9, 902.75)),
+        ("python", "task", (10, 1071.25)),
+        ("php", "queue.process", (51, 452)),
+        ("python", "query", (24, 273)),
+        ("python", "mutation", (25, 105)),
+        ("node", "request", (10, 59)),
+        ("java", "task", (0, 647)),
+        ("other", "task", (49, 412)),
+        ("node", "gcp.function.event", (243, 2393)),
+        ("php", "default", (18, 121)),
+        ("php", "queue.job", (35, 287)),
+        ("php", "http.request", (26, 282)),
+        ("go", "grpc.server", (1, 13)),
+        ("node", "execute", (42, 222)),
+        ("node", "functions.https.onCall", (10, 233)),
     ]
 
-    rules = []
+    rules: List[MetricConditionalTaggingRule] = []
     for platform, op, (p25, p75) in query_results:
         rules.append(
             {
