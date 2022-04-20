@@ -33,6 +33,7 @@ from sentry.lang.javascript.processor import (
     trim_line,
 )
 from sentry.models import EventError, File, Release, ReleaseFile
+from sentry.models.project import Project
 from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, update_artifact_index
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
@@ -1392,9 +1393,11 @@ class CacheSourceTest(TestCase):
 
         for expected_cache_hits, expected_cache_misses in [(0, 1), (1, 1)]:
             processor = JavaScriptStacktraceProcessor(
-                data={"release": release.version}, stacktrace_infos=None, project=project
+                data={"release": release.version},
+                stacktrace_infos=None,
+                project=Project.objects.get(pk=project.id),
             )
-            processor.release = release
+            processor.release = Release.objects.get(pk=release.id)
 
             processor.cache_source(abs_path)
             cache_info = cached_fetch_sourcemap.cache_info()
