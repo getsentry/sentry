@@ -363,7 +363,7 @@ class StaticStringsIndexerDecorator(StringIndexer):
         static_string_results = static_key_results.get_mapped_results()
         org_strings_left = static_key_results.get_unmapped_keys(static_keys)
 
-        decoration_meta: MutableMapping[FetchType, Mapping[int, str]] = {
+        decoration_meta: BulkRecordMetaAcc = {
             FetchType.HARDCODED: {
                 _int: string
                 for string_to_int in static_string_results.values()
