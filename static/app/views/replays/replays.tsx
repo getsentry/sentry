@@ -160,7 +160,7 @@ function Replays(props: Props) {
                     organization={organization}
                     handleSearchQuery={handleSearchQuery}
                   />
-                  <PanelTable
+                  <StyledPanelTable
                     isLoading={data.isLoading}
                     isEmpty={data.tableData?.data.length === 0}
                     headers={[
@@ -191,7 +191,7 @@ function Replays(props: Props) {
                     ]}
                   >
                     {data.tableData ? renderTable(data.tableData.data as Replay[]) : null}
-                  </PanelTable>
+                  </StyledPanelTable>
                   <Pagination pageLinks={data.pageLinks} />
                 </Fragment>
               );
@@ -212,6 +212,12 @@ const StyledPageHeader = styled(PageHeader)`
 const StyledPageContent = styled(PageContent)`
   box-shadow: 0px 0px 1px ${p => p.theme.gray200};
   background-color: ${p => p.theme.white};
+`;
+
+const StyledPanelTable = styled(PanelTable)`
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 `;
 
 const HeaderTitle = styled(PageHeading)`
