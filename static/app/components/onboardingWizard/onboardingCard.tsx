@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 import {PlatformIcon} from 'platformicons';
 
+import Button from 'sentry/components/button';
 import Card from 'sentry/components/card';
 import Link from 'sentry/components/links/link';
 import {IconChevron, IconClose, IconEllipsis} from 'sentry/icons';
@@ -22,9 +23,6 @@ type Props = {
 };
 
 function OnboardingViewTask({org}: Props) {
-  if (!org?.experiments.TargetedOnboardingMultiSelectExperiment) {
-    return null;
-  }
   const {projects: allProjects} = useProjects({orgId: org.id});
   const [onboardingState, setOnboardingState] = usePersistedOnboardingState();
   if (!onboardingState) {
@@ -85,7 +83,15 @@ function OnboardingViewTask({org}: Props) {
             )}
           </OnboardingTaskProjectList>
           <SkipConfirm onSkip={handleSkip}>
-            {({skip}) => <StyledIconClose size="xs" onClick={skip} />}
+            {({skip}) => (
+              <CloseButton
+                borderless
+                size="zero"
+                aria-label={t('Close')}
+                icon={<IconClose size="xs" />}
+                onClick={skip}
+              />
+            )}
           </SkipConfirm>
         </TaskCard>
       )}
@@ -170,11 +176,11 @@ const PulsingIndicatorText = styled('span')`
   font-size: ${p => p.theme.fontSizeMedium};
   margin: 0 ${space(1)};
 `;
-const StyledIconClose = styled(IconClose)`
+const CloseButton = styled(Button)`
+  padding: 0;
   position: absolute;
   right: ${space(1.5)};
   top: ${space(1.5)};
-  cursor: pointer;
   color: ${p => p.theme.gray300};
 `;
 
