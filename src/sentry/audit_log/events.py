@@ -96,11 +96,8 @@ class ProjectEditAuditLogEvent(AuditLogEvent):
 
     def render(self, audit_log_entry: AuditLogEntry):
         if "old_slug" in audit_log_entry.data:
-            return (
-                "renamed project slug from "
-                + audit_log_entry.data["old_slug"]
-                + " to "
-                + audit_log_entry.data["new_slug"]
+            return "renamed project slug from {old_slug} to {new_slug}".format(
+                **audit_log_entry.data
             )
         items_string = " ".join(
             f"in {key} to {value}" for (key, value) in audit_log_entry.data.items()
