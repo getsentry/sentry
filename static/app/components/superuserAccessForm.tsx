@@ -61,6 +61,7 @@ class SuperuserAccessForm extends Component<Props, State> {
     const {error, errorType} = this.state;
     if (errorType === ErrorCodes.invalidSSOSession) {
       this.handleLogout();
+      return null;
     }
     return (
       <ThemeAndStyleProvider>

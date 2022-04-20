@@ -143,6 +143,7 @@ class SudoModal extends React.Component<Props, State> {
 
     if (errorType === ErrorCodes.invalidSSOSession) {
       this.handleLogout();
+      return null;
     }
 
     if (
