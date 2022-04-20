@@ -510,7 +510,7 @@ class Results extends React.Component<Props, State> {
                   <StyledPageFilterBar>
                     <ProjectPageFilter />
                     <EnvironmentPageFilter />
-                    <DatePageFilter />
+                    <DatePageFilter alignDropdown="left" />
                   </StyledPageFilterBar>
                 )}
                 <StyledSearchBar
