@@ -184,6 +184,7 @@ const AddGroupButton = styled(Button)`
 const SortableQueryFields = styled('div')`
   display: grid;
   grid-auto-flow: row;
+  gap: ${space(1)};
 `;
 
 const Ghost = styled('div')`
