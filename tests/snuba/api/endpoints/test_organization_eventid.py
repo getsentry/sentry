@@ -1,3 +1,4 @@
+from django.test import override_settings
 from django.urls import NoReverseMatch, reverse
 from freezegun import freeze_time
 
@@ -48,6 +49,7 @@ class EventIdLookupEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 404, response.content
 
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_ratelimit(self):
         url = reverse(
             "sentry-api-0-event-id-lookup",
