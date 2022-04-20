@@ -205,9 +205,6 @@ jobs:
         with:
           github-token: ${{ steps.token.outputs.token }}
 
-      - name: Handle artifacts
-        uses: ./.github/actions/artifacts
-
   migration:
     needs: files-changed
     name: check migration
