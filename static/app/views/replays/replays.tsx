@@ -19,6 +19,7 @@ import {NewQuery, Organization, PageFilters} from 'sentry/types';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
+import getUrlPathname from 'sentry/utils/getUrlPathname';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -109,7 +110,7 @@ function Replays(props: Props) {
               email: replay['user.display'],
             }}
             // this is the subheading for the avatar, so displayEmail in this case is a misnomer
-            displayEmail={replay.url?.split('?')[0] || ''}
+            displayEmail={getUrlPathname(replay.url) ?? ''}
           />
         </Link>
         <ProjectBadge
