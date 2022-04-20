@@ -23,6 +23,9 @@ type Props = {
 };
 
 function OnboardingViewTask({org}: Props) {
+  if (!org?.experiments.TargetedOnboardingMultiSelectExperiment) {
+    return null;
+  }
   const {projects: allProjects} = useProjects({orgId: org.id});
   const [onboardingState, setOnboardingState] = usePersistedOnboardingState();
   if (!onboardingState) {
@@ -177,7 +180,6 @@ const PulsingIndicatorText = styled('span')`
   margin: 0 ${space(1)};
 `;
 const CloseButton = styled(Button)`
-  padding: 0;
   position: absolute;
   right: ${space(1.5)};
   top: ${space(1.5)};
