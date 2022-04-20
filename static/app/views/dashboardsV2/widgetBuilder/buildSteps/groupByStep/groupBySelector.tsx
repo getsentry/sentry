@@ -66,15 +66,14 @@ export function GroupBySelector({fieldOptions, columns = [], onChange}: Props) {
     return Object.keys(fieldOptions).reduce(
       (acc, key) => {
         const value = fieldOptions[key];
-        if (!columnFieldsAsString.includes(value.value.meta.name)) {
+        const optionInColumnsIndex = columnFieldsAsString.findIndex(
+          column => column === value.value.meta.name
+        );
+        if (optionInColumnsIndex === -1) {
           acc.filteredFieldOptions[key] = value;
           return acc;
         }
-
-        const columnIndex = columnFieldsAsString.findIndex(
-          column => column === value.value.meta.name
-        );
-        acc.columnsAsFieldOptions[columnIndex] = {[key]: value};
+        acc.columnsAsFieldOptions[optionInColumnsIndex] = {[key]: value};
         return acc;
       },
       {
