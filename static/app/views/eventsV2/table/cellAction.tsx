@@ -1,9 +1,8 @@
 import * as React from 'react';
 import {createPortal} from 'react-dom';
-import {Manager, Popper, Reference} from 'react-popper';
+import {Manager, Popper, PopperProps, Reference} from 'react-popper';
 import styled from '@emotion/styled';
 import color from 'color';
-import * as PopperJS from 'popper.js';
 
 import {IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -364,7 +363,7 @@ class CellAction extends React.Component<Props, State> {
       return null;
     }
 
-    const modifiers: PopperJS.Modifiers = {
+    const modifiers: PopperProps['modifiers'] = {
       hide: {
         enabled: false,
       },

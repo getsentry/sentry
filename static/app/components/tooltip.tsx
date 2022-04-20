@@ -12,7 +12,6 @@ import {Manager, Popper, PopperArrowProps, PopperProps, Reference} from 'react-p
 import {SerializedStyles, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, MotionProps, MotionStyle} from 'framer-motion';
-import * as PopperJS from 'popper.js';
 
 import {IS_ACCEPTANCE_TEST} from 'sentry/constants/index';
 import space from 'sentry/styles/space';
@@ -89,7 +88,7 @@ export interface InternalTooltipProps {
   /**
    * Position for the tooltip.
    */
-  position?: PopperJS.Placement;
+  position?: PopperProps['placement'];
 
   /**
    * Only display the tooltip only if the content overflows
@@ -202,7 +201,7 @@ export function DO_NOT_USE_TOOLTIP({
 
   // Tracks the triggering element
   const triggerRef = useRef<HTMLElement | null>(null);
-  const modifiers: PopperJS.Modifiers = useMemo(() => {
+  const modifiers: PopperProps['modifiers'] = useMemo(() => {
     return {
       hide: {enabled: false},
       preventOverflow: {
