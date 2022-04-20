@@ -504,7 +504,7 @@ describe('Custom Repositories', function () {
         await screen.findByText('App Store Connect credentials')
       ).toBeInTheDocument();
 
-      userEvent.click(await screen.findByText('Update'));
+      userEvent.click(screen.getByText('Update'));
 
       await waitFor(() => expect(updateMockSucceeds).toHaveBeenCalledTimes(1));
       expect(updateCredentialsMockSucceeds).toHaveBeenCalledTimes(1);
@@ -553,7 +553,7 @@ describe('Custom Repositories', function () {
         'invalid key{enter}'
       );
 
-      userEvent.click(await screen.findByText('Update'));
+      userEvent.click(screen.getByText('Update'));
 
       await waitFor(() => expect(updateCredentialsMockFails).toHaveBeenCalledTimes(1));
 
