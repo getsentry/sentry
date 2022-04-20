@@ -352,7 +352,7 @@ class StaticStringsIndexerDecorator(StringIndexer):
     def _get_db_records(self, db_keys: KeyCollection) -> Any:
         return self.indexer._get_db_records(db_keys)
 
-    def bulk_record(self, org_strings: Mapping[int, Set[str]]) -> Mapping[int, Mapping[str, int]]:
+    def bulk_record(self, org_strings: Mapping[int, Set[str]]) -> BulkRecordResult:
         static_keys = KeyCollection(org_strings)
         static_key_results = KeyResults()
         for org_id, string in static_keys.as_tuples():
@@ -363,12 +363,28 @@ class StaticStringsIndexerDecorator(StringIndexer):
         static_string_results = static_key_results.get_mapped_results()
         org_strings_left = static_key_results.get_unmapped_keys(static_keys)
 
+        decoration_meta = {
+            FetchType.HARDCODED: {
+                _int: string
+                for string_to_int in static_string_results.values()
+                for string, _int in string_to_int.items()
+                if _int is not None
+            }
+        }
+
         if org_strings_left.size == 0:
-            return static_string_results
+            return BulkRecordResult(
+                mapping=static_string_results,
+                meta=decoration_meta,
+            )
 
         indexer_results = self.indexer.bulk_record(org_strings_left.mapping)
+        decoration_meta.update(indexer_results.meta)
 
-        return merge_results([static_string_results, indexer_results])
+        return BulkRecordResult(
+            mapping=merge_results([static_string_results, indexer_results]),
+            meta=decoration_meta,
+        )
 
     def record(self, org_id: int, string: str) -> int:
         if string in SHARED_STRINGS:
