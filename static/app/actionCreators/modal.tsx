@@ -42,6 +42,7 @@ export function closeModal() {
 
 type OpenSudoModalOptions = {
   isSuperuser?: boolean;
+  needsReload?: boolean;
   onClose?: () => void;
   retryRequest?: () => Promise<any>;
   sudo?: boolean;
