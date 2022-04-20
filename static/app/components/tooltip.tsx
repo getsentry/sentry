@@ -9,10 +9,9 @@ import {
 } from 'react';
 import {createPortal} from 'react-dom';
 import {Manager, Popper, PopperArrowProps, PopperProps, Reference} from 'react-popper';
-import {SerializedStyles} from '@emotion/react';
+import {SerializedStyles, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, MotionProps, MotionStyle} from 'framer-motion';
-import * as PopperJS from 'popper.js';
 
 import {IS_ACCEPTANCE_TEST} from 'sentry/constants/index';
 import space from 'sentry/styles/space';
@@ -89,12 +88,18 @@ export interface InternalTooltipProps {
   /**
    * Position for the tooltip.
    */
-  position?: PopperJS.Placement;
+  position?: PopperProps['placement'];
 
   /**
    * Only display the tooltip only if the content overflows
    */
   showOnlyOnOverflow?: boolean;
+
+  /**
+   * Whether to add a dotted underline to the trigger element, to indicate the
+   * presence of a tooltip.
+   */
+  showUnderline?: boolean;
 
   /**
    * If child node supports ref forwarding, you can skip apply a wrapper
@@ -137,6 +142,7 @@ export function DO_NOT_USE_TOOLTIP({
   forceVisible,
   isHoverable,
   popperStyle,
+  showUnderline,
   showOnlyOnOverflow,
   skipWrapper,
   title,
@@ -146,6 +152,7 @@ export function DO_NOT_USE_TOOLTIP({
 }: InternalTooltipProps) {
   const [visible, setVisible] = useState(false);
   const tooltipId = useMemo(() => domId('tooltip-'), []);
+  const theme = useTheme();
 
   // Delayed open and close time handles
   const delayOpenTimeoutRef = useRef<number | undefined>(undefined);
@@ -194,7 +201,7 @@ export function DO_NOT_USE_TOOLTIP({
 
   // Tracks the triggering element
   const triggerRef = useRef<HTMLElement | null>(null);
-  const modifiers: PopperJS.Modifiers = useMemo(() => {
+  const modifiers: PopperProps['modifiers'] = useMemo(() => {
     return {
       hide: {enabled: false},
       preventOverflow: {
@@ -234,13 +241,25 @@ export function DO_NOT_USE_TOOLTIP({
       (skipWrapper || typeof triggerChildren.type === 'string')
     ) {
       // Basic DOM nodes can be cloned and have more props applied.
-      return cloneElement(triggerChildren, {...containerProps, ref: setRef});
+      return cloneElement(triggerChildren, {
+        ...containerProps,
+        style: {
+          ...triggerChildren.props.style,
+          ...(showUnderline && theme.tooltipUnderline),
+        },
+        ref: setRef,
+      });
     }
 
     containerProps.containerDisplayMode = containerDisplayMode;
 
     return (
-      <Container {...containerProps} className={className} ref={setRef}>
+      <Container
+        {...containerProps}
+        style={showUnderline ? theme.tooltipUnderline : undefined}
+        className={className}
+        ref={setRef}
+      >
         {triggerChildren}
       </Container>
     );

@@ -3,33 +3,33 @@ import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 
 import {Panel as _Panel} from 'sentry/components/panels';
-import {Consumer as ReplayContextProvider} from 'sentry/components/replays/replayContext';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
 import useFullscreen from 'sentry/components/replays/useFullscreen';
+import Tooltip from 'sentry/components/tooltip';
+import {IconArrow} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 
 interface Props {
   className?: string;
 }
 
-type Dimensions = {height: number; width: number};
-type RootElem = null | HTMLDivElement;
+function BasePlayerRoot({className}: Props) {
+  const {isFullscreen} = useFullscreen();
 
-type RootProps = {
-  flexibleHeight: boolean;
-  initRoot: (root: RootElem) => void;
-  videoDimensions: Dimensions;
-  className?: string;
-};
+  // In fullscreen we need to consider the max-height that the player is able
+  // to full up, on a page that scrolls we only consider the max-width.
+  const fixedHeight = isFullscreen;
 
-function BasePlayerRoot({
-  className,
-  flexibleHeight,
-  initRoot,
-  videoDimensions,
-}: RootProps) {
+  const {initRoot, dimensions: videoDimensions, fastForwardSpeed} = useReplayContext();
+
   const windowEl = useRef<HTMLDivElement>(null);
   const viewEl = useRef<HTMLDivElement>(null);
 
-  const [windowDimensions, setWindowDimensions] = useState<Dimensions>();
+  const [windowDimensions, setWindowDimensions] = useState({
+    width: 0,
+    height: 0,
+  });
 
   // Create the `rrweb` instance which creates an iframe inside `viewEl`
   useEffect(() => initRoot(viewEl.current), [viewEl.current]);
@@ -40,9 +40,9 @@ function BasePlayerRoot({
   const updateWindowDimensions = useCallback(
     () =>
       setWindowDimensions({
-        width: windowEl.current?.clientWidth,
-        height: windowEl.current?.clientHeight,
-      } as Dimensions),
+        width: windowEl.current?.clientWidth || 0,
+        height: windowEl.current?.clientHeight || 0,
+      }),
     [windowEl.current]
   );
   useResizeObserver({ref: windowEl, onResize: updateWindowDimensions});
@@ -57,13 +57,13 @@ function BasePlayerRoot({
   // Update the scale of the view whenever dimensions have changed.
   useEffect(() => {
     if (viewEl.current) {
-      const scale = flexibleHeight
-        ? Math.min((windowDimensions?.width || 0) / videoDimensions.width, 1)
-        : Math.min(
-            (windowDimensions?.width || 0) / videoDimensions.width,
-            (windowDimensions?.height || 0) / videoDimensions.height,
+      const scale = fixedHeight
+        ? Math.min(
+            windowDimensions.width / videoDimensions.width,
+            windowDimensions.height / videoDimensions.height,
             1
-          );
+          )
+        : Math.min(windowDimensions.width / videoDimensions.width, 1);
       if (scale) {
         viewEl.current.style['transform-origin'] = 'top left';
         viewEl.current.style.transform = `scale(${scale})`;
@@ -74,11 +74,39 @@ function BasePlayerRoot({
   }, [windowDimensions, videoDimensions]);
 
   return (
-    <Centered ref={windowEl} data-test-id="replay-window">
-      <div ref={viewEl} data-test-id="replay-view" className={className} />
-    </Centered>
+    <Panel isFullscreen={isFullscreen}>
+      <Centered ref={windowEl} data-test-id="replay-window">
+        <div ref={viewEl} data-test-id="replay-view" className={className} />
+        {fastForwardSpeed ? (
+          <FastForwardBadge>
+            <FastForwardTooltip title={t('Fast forwarding')}>
+              <IconArrow size="sm" direction="right" />
+              {fastForwardSpeed}x
+            </FastForwardTooltip>
+          </FastForwardBadge>
+        ) : null}
+      </Centered>
+    </Panel>
   );
 }
+
+const FastForwardBadge = styled('div')`
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  background: ${p => p.theme.gray300};
+  color: ${p => p.theme.white};
+  padding: ${space(0.5)} ${space(1)};
+  border-bottom-left-radius: ${p => p.theme.borderRadius};
+  border-top-right-radius: ${p => p.theme.borderRadius};
+`;
+
+const FastForwardTooltip = styled(Tooltip)`
+  display: grid;
+  grid-template-columns: max-content max-content;
+  gap: ${space(0.5)};
+  align-items: center;
+`;
 
 const Panel = styled(_Panel)<{isFullscreen: boolean}>`
   /*
@@ -197,21 +225,4 @@ const SentryPlayerRoot = styled(PlayerRoot)`
   }
 `;
 
-export default function ReplayPlayer({className}: Props) {
-  const {isFullscreen} = useFullscreen();
-
-  return (
-    <ReplayContextProvider>
-      {({initRoot, dimensions}) => (
-        <Panel isFullscreen={isFullscreen}>
-          <SentryPlayerRoot
-            className={className}
-            flexibleHeight={!isFullscreen}
-            initRoot={initRoot}
-            videoDimensions={dimensions}
-          />
-        </Panel>
-      )}
-    </ReplayContextProvider>
-  );
-}
+export default SentryPlayerRoot;

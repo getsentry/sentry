@@ -1,20 +1,33 @@
 import {Entry, EntryType, Event} from 'sentry/types/event';
 
-function isBreadcrumbs(entry: Entry) {
-  return entry.type === EntryType.BREADCRUMBS;
-}
+export default function mergeBreadcrumbsEntries(
+  events: Event[],
+  rootEvent: Event
+): Entry {
+  const rrwebEventIds = events.map(({id}) => id);
 
-export default function mergeBreadcrumbsEntries(events: Event[]): Entry {
-  const allValues = events
-    .flatMap(event => event.entries.filter(isBreadcrumbs))
-    .flatMap(entry => entry.data.values)
-    .map(value => JSON.stringify(value));
-  const deduped = new Set(allValues);
+  const notRRWebTransaction = crumb =>
+    !(
+      crumb.category === 'sentry.transaction' &&
+      (rootEvent.id === crumb.message || rrwebEventIds.includes(crumb.message))
+    );
+
+  const allValues = events.flatMap(event =>
+    event.entries.flatMap((entry: Entry) =>
+      entry.type === EntryType.BREADCRUMBS
+        ? entry.data.values.filter(notRRWebTransaction)
+        : []
+    )
+  );
+
+  const stringified = allValues.map(value => JSON.stringify(value));
+  const deduped = Array.from(new Set(stringified));
+  const values = deduped.map(value => JSON.parse(value));
 
   return {
     type: EntryType.BREADCRUMBS,
     data: {
-      values: Array.from(deduped).map(value => JSON.parse(value)),
+      values,
     },
   };
 }
