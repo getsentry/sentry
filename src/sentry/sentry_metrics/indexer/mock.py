@@ -29,7 +29,7 @@ class SimpleIndexer(StringIndexer):
                     strings_to_ints[string] = self._record(org_id, string)
             result[org_id] = strings_to_ints
 
-        return BulkRecordResult(mapping=result)
+        return BulkRecordResult(mapping=result, meta={})
 
     def record(self, org_id: int, string: str) -> int:
         if string in SHARED_STRINGS:
