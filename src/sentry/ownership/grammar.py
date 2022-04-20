@@ -2,7 +2,7 @@ import operator
 import re
 from collections import namedtuple
 from functools import reduce
-from typing import Iterable, List, Mapping, Pattern, Tuple
+from typing import Any, Callable, Iterable, List, Mapping, Pattern, Sequence, Tuple, Union
 
 from django.db.models import Q
 from parsimonious.exceptions import ParseError  # noqa
@@ -109,7 +109,11 @@ class Matcher(namedtuple("Matcher", "type pattern")):
         elif self.type.startswith("tags."):
             return self.test_tag(data)
         elif self.type == CODEOWNERS:
-            return self.test_codeowners(data)
+            return self.test_frames(
+                data,
+                ["filename", "abs_path"],
+                lambda val, pattern: _path_to_regex(pattern).search(val),
+            )
         return False
 
     def test_url(self, data):
@@ -119,14 +123,21 @@ class Matcher(namedtuple("Matcher", "type pattern")):
             return False
         return url and glob_match(url, self.pattern, ignorecase=True)
 
-    def test_frames(self, data, keys):
+    def test_frames(
+        self,
+        data: Union[Mapping, Sequence],
+        keys: Sequence[str],
+        match_frame_value_func: Callable[[Any, Any], Any] = lambda val, pattern: glob_match(
+            val, pattern, ignorecase=True, path_normalize=True
+        ),
+    ):
         for frame in _iter_frames(data):
             for key in keys:
                 value = frame.get(key)
                 if not value:
                     continue
 
-                if glob_match(value, self.pattern, ignorecase=True, path_normalize=True):
+                if match_frame_value_func(value, self.pattern):
                     return True
 
         return False
@@ -158,26 +169,6 @@ class Matcher(namedtuple("Matcher", "type pattern")):
                 v, self.pattern
             ):
                 return True
-        return False
-
-    def test_codeowners(self, data):
-        """
-        Codeowners has a slightly different syntax compared to issue owners
-        As such we need to match it using gitignore logic.
-        See syntax documentation here:
-        https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-repository-on-github/about-code-owners
-        """
-        spec = _path_to_regex(self.pattern)
-        keys = ["filename", "abs_path"]
-        for frame in _iter_frames(data):
-            value = next((frame.get(key) for key in keys if frame.get(key)), None)
-
-            if not value:
-                continue
-
-            if spec.search(value):
-                return True
-
         return False
 
 
@@ -342,7 +333,7 @@ def _path_to_regex(pattern: str) -> Pattern[str]:
     return re.compile(regex)
 
 
-def _iter_frames(data):
+def _iter_frames(data: Union[Mapping, Sequence]):
     try:
         yield from get_path(data, "stacktrace", "frames", filter=True) or ()
     except KeyError:
