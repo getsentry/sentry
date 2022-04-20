@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, Mapping, MutableMapping, Optional, Set
+from typing import Mapping, Optional, Set
 
 from sentry.utils.services import Service
 
@@ -12,10 +12,13 @@ class FetchType(Enum):
     FIRST_SEEN = "f"
 
 
+BulkRecordMeta = Mapping[FetchType, Mapping[int, str]]
+
+
 @dataclass
 class BulkRecordResult:
     mapping: Mapping[int, Mapping[str, int]]
-    meta: MutableMapping[FetchType, Dict[int, str]]
+    meta: BulkRecordMeta
 
     # For brevity, allow callers to address the mapping directly
     def __getitem__(self, org_id: int):
@@ -32,7 +35,7 @@ class StringIndexer(Service):
 
     __all__ = ("record", "resolve", "reverse_resolve", "bulk_record")
 
-    def bulk_record(self, org_strings: MutableMapping[int, Set[str]]) -> BulkRecordResult:
+    def bulk_record(self, org_strings: Mapping[int, Set[str]]) -> BulkRecordResult:
         raise NotImplementedError()
 
     def record(self, org_id: int, string: str) -> int:

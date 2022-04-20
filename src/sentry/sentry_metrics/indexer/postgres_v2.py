@@ -24,7 +24,7 @@ from sentry.sentry_metrics.indexer.models import StringIndexer as StringIndexerT
 from sentry.sentry_metrics.indexer.strings import REVERSE_SHARED_STRINGS, SHARED_STRINGS
 from sentry.utils import metrics
 
-from .base import BulkRecordResult
+from .base import BulkRecordMeta, BulkRecordResult, FetchType
 
 _INDEXER_CACHE_METRIC = "sentry_metrics.indexer.memcache"
 _INDEXER_DB_METRIC = "sentry_metrics.indexer.postgres"
@@ -200,11 +200,13 @@ class PGStringIndexerV2(StringIndexer):
         KeyCollection for the next step:
             new_keys = key_results.get_unmapped_keys(mapping)
         """
+        meta_acc: BulkRecordMeta = dict({})
         cache_keys = KeyCollection(org_strings)
         cache_key_strs = cache_keys.as_strings()
         cache_results = indexer_cache.get_many(cache_key_strs)
 
         hits = [k for k, v in cache_results.items() if v is not None]
+        meta_acc[FetchType.CACHE_HIT] = {v: k for k, v in cache_results.items() if v is not None}
         metrics.incr(
             _INDEXER_CACHE_METRIC,
             tags={"cache_hit": "true", "caller": "get_many_ids"},
@@ -230,7 +232,7 @@ class PGStringIndexerV2(StringIndexer):
         db_read_keys = cache_key_results.get_unmapped_keys(cache_keys)
 
         if db_read_keys.size == 0:
-            return BulkRecordResult(mapping=mapped_cache_results, meta={})
+            return BulkRecordResult(mapping=mapped_cache_results, meta=meta_acc)
 
         db_read_key_results = KeyResults()
         db_read_key_results.add_key_results(
@@ -240,6 +242,9 @@ class PGStringIndexerV2(StringIndexer):
             ]
         )
         new_results_to_cache = db_read_key_results.get_mapped_key_strings_to_ints()
+        meta_acc[FetchType.DB_READ] = {
+            v: k for k, v in new_results_to_cache.items() if v is not None
+        }
 
         mapped_db_read_results = db_read_key_results.get_mapped_results()
         db_write_keys = db_read_key_results.get_unmapped_keys(db_read_keys)
@@ -258,7 +263,7 @@ class PGStringIndexerV2(StringIndexer):
         if db_write_keys.size == 0:
             indexer_cache.set_many(new_results_to_cache)
             return BulkRecordResult(
-                mapping=merge_results([mapped_cache_results, mapped_db_read_results]), meta={}
+                mapping=merge_results([mapped_cache_results, mapped_db_read_results]), meta=meta_acc
             )
 
         new_records = []
@@ -286,12 +291,15 @@ class PGStringIndexerV2(StringIndexer):
         indexer_cache.set_many(new_results_to_cache)
 
         mapped_db_write_results = db_write_key_results.get_mapped_results()
+        meta_acc[FetchType.FIRST_SEEN] = {
+            v: k for k, v in new_results_to_cache.items() if v is not None
+        }
 
         return BulkRecordResult(
             mapping=merge_results(
                 [mapped_cache_results, mapped_db_read_results, mapped_db_write_results]
             ),
-            meta={},
+            meta=meta_acc,
         )
 
     def record(self, org_id: int, string: str) -> int:
