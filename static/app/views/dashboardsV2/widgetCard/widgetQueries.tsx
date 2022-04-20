@@ -16,6 +16,7 @@ import {
 } from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {TableData, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {isEquation} from 'sentry/utils/discover/fields';
 import {
   DiscoverQueryRequestParams,
   doDiscoverQuery,
@@ -415,6 +416,25 @@ class WidgetQueries extends React.Component<Props, State> {
           // y-axis and one query
           requestData.excludeOther =
             query.aggregates.length !== 1 || widget.queries.length !== 1;
+
+          if (
+            (query.orderby.startsWith('-') && isEquation(query.orderby.slice(1))) ||
+            isEquation(query.orderby)
+          ) {
+            // find the max equation so far
+            const maxEquation = -1;
+            const isDescending = query.orderby.startsWith('-');
+
+            // make that our orderby
+            requestData.orderby = `${isDescending ? '-' : ''}equation[${
+              maxEquation + 1
+            }]`;
+            requestData.field = [
+              ...query.columns,
+              ...query.aggregates,
+              query.orderby.slice(1),
+            ];
+          }
         }
       }
       return doEventsRequest(api, requestData);
