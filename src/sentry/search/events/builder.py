@@ -36,6 +36,7 @@ from sentry.models import Organization
 from sentry.models.project import Project
 from sentry.search.events.constants import (
     ARRAY_FIELDS,
+    DRY_RUN_COLUMNS,
     EQUALITY_OPERATORS,
     METRICS_GRANULARITIES,
     METRICS_MAX_LIMIT,
@@ -71,6 +72,7 @@ from sentry.search.events.types import (
 from sentry.sentry_metrics import indexer
 from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
 from sentry.utils.snuba import (
+    DATASETS,
     Dataset,
     QueryOutsideRetentionError,
     bulk_snql_query,
@@ -127,8 +129,6 @@ class QueryBuilder:
         self.turbo = Turbo(turbo)
         self.sample_rate = sample_rate
 
-        self.resolve_column_name = resolve_column(self.dataset)
-
         (
             self.field_alias_converter,
             self.function_converter,
@@ -145,6 +145,11 @@ class QueryBuilder:
             equations=equations,
             orderby=orderby,
         )
+
+    def resolve_column_name(self, col: str) -> str:
+        # TODO when utils/snuba.py becomes typed don't need this extra annotation
+        column_resolver: Callable[[str], str] = resolve_column(self.dataset)
+        return column_resolver(col)
 
     def resolve_query(
         self,
@@ -809,7 +814,7 @@ class QueryBuilder:
         # TODO: This method should use an aliased column from the SDK once
         # that is available to skip these hacks that we currently have to
         # do aliasing.
-        resolved = self.resolve_column_name(name, self.organization_id)
+        resolved = self.resolve_column_name(name)
         column = Column(resolved)
 
         # If the expected alias is identical to the resolved snuba column,
@@ -830,7 +835,7 @@ class QueryBuilder:
 
         :param name: The unresolved sentry name.
         """
-        resolved_column = self.resolve_column_name(name, self.organization_id)
+        resolved_column = self.resolve_column_name(name)
         return Column(resolved_column)
 
     # Query filter helper methods
@@ -1488,12 +1493,22 @@ class HistogramQueryBuilder(QueryBuilder):
 
 
 class MetricsQueryBuilder(QueryBuilder):
-    def __init__(self, *args: Any, allow_metric_aggregates: Optional[bool] = False, **kwargs: Any):
+    def __init__(
+        self,
+        *args: Any,
+        allow_metric_aggregates: Optional[bool] = False,
+        dry_run: Optional[bool] = False,
+        **kwargs: Any,
+    ):
         self.distributions: List[CurriedFunction] = []
         self.sets: List[CurriedFunction] = []
         self.counters: List[CurriedFunction] = []
         self.metric_ids: Set[int] = set()
         self.allow_metric_aggregates = allow_metric_aggregates
+        self._indexer_cache: Dict[str, Optional[int]] = {}
+        # Don't do any of the actions that would impact performance in anyway
+        # Skips all indexer checks, and won't interact with clickhouse
+        self.dry_run = dry_run
         super().__init__(
             # Dataset is always Metrics
             Dataset.Metrics,
@@ -1506,21 +1521,45 @@ class MetricsQueryBuilder(QueryBuilder):
             raise InvalidSearchQuery("Organization id required to create a metrics query")
         self.granularity = self.resolve_granularity()
 
+    def resolve_column_name(self, col: str) -> str:
+        if col.startswith("tags["):
+            tag_match = TAG_KEY_RE.search(col)
+            col = tag_match.group("tag") if tag_match else col
+
+        if col in DATASETS[Dataset.Metrics]:
+            return str(DATASETS[Dataset.Metrics][col])
+        tag_id = self.resolve_metric_index(col)
+        if tag_id is None:
+            raise InvalidSearchQuery(f"Unknown field: {col}")
+        return f"tags[{tag_id}]"
+
     def column(self, name: str) -> Column:
         """Given an unresolved sentry name and return a snql column.
 
         :param name: The unresolved sentry name.
         """
+        missing_column = IncompatibleMetricsQuery(f"Column {name} was not found in metrics indexer")
+        if self.dry_run:
+            if name in DRY_RUN_COLUMNS:
+                return Column(name)
+            else:
+                raise missing_column
         try:
             return super().column(name)
         except InvalidSearchQuery:
-            raise IncompatibleMetricsQuery(f"Column {name} was not found in metrics indexer")
+            raise missing_column
 
     def aliased_column(self, name: str) -> SelectType:
+        missing_column = IncompatibleMetricsQuery(f"Column {name} was not found in metrics indexer")
+        if self.dry_run:
+            if name in DRY_RUN_COLUMNS:
+                return Column(name)
+            else:
+                raise missing_column
         try:
             return super().aliased_column(name)
         except InvalidSearchQuery:
-            raise IncompatibleMetricsQuery(f"Column {name} was not found in metrics indexer")
+            raise missing_column
 
     def resolve_granularity(self) -> Granularity:
         """Granularity impacts metric queries even when they aren't timeseries because the data needs to be
@@ -1624,11 +1663,21 @@ class MetricsQueryBuilder(QueryBuilder):
             return resolved_function
         return None
 
+    def resolve_metric_index(self, value: str) -> Optional[int]:
+        """Layer on top of the metric indexer so we'll only hit it at most once per value"""
+        if value not in self._indexer_cache:
+            result = indexer.resolve(self.organization_id, value)
+            self._indexer_cache[value] = result
+
+        return self._indexer_cache[value]
+
     def _resolve_tag_value(self, value: str) -> int:
-        result = indexer.resolve(self.organization_id, value)
+        if self.dry_run:
+            return -1
+        result = self.resolve_metric_index(value)
         if result is None:
             raise InvalidSearchQuery("Tag value was not found")
-        return cast(int, result)
+        return result
 
     def _default_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         if search_filter.value.is_wildcard():
@@ -1781,6 +1830,8 @@ class MetricsQueryBuilder(QueryBuilder):
             "data": None,
             "meta": [],
         }
+        if self.dry_run:
+            return result
         # We need to run the same logic on all 3 queries, since the `primary` query could come back with no results. The
         # goal is to get n=limit results from one query, then use those n results to create a condition for the
         # remaining queries. This is so that we can respect function orderbys from the first query, but also so we don't
@@ -1869,6 +1920,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         selected_columns: Optional[List[str]] = None,
         allow_metric_aggregates: Optional[bool] = False,
         functions_acl: Optional[List[str]] = None,
+        dry_run: Optional[bool] = False,
     ):
         super().__init__(
             params=params,
@@ -1877,6 +1929,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
             allow_metric_aggregates=allow_metric_aggregates,
             auto_fields=False,
             functions_acl=functions_acl,
+            dry_run=dry_run,
         )
         if self.granularity.granularity > interval:
             for granularity in METRICS_GRANULARITIES:
@@ -1956,6 +2009,11 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
         queries = self.get_snql_query()
+        if self.dry_run:
+            return {
+                "data": [],
+                "meta": [],
+            }
         if queries:
             results = bulk_snql_query(queries, referrer, use_cache)
         else:

@@ -41,10 +41,10 @@ export function closeModal() {
 }
 
 type OpenSudoModalOptions = {
+  isSuperuser?: boolean;
   onClose?: () => void;
   retryRequest?: () => Promise<any>;
   sudo?: boolean;
-  superuser?: boolean;
 };
 
 type emailVerificationModalOptions = {
@@ -246,6 +246,13 @@ export async function openWidgetBuilderOverwriteModal(
   options: OverwriteWidgetModalProps
 ) {
   const mod = await import('sentry/components/modals/widgetBuilder/overwriteWidgetModal');
+  const {default: Modal, modalCss} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
+}
+
+export async function openAddToDashboardModal(options) {
+  const mod = await import('sentry/components/modals/widgetBuilder/addToDashboardModal');
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});

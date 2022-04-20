@@ -6,6 +6,7 @@ import Breadcrumbs, {Crumb, CrumbDropdown} from 'sentry/components/breadcrumbs';
 import IdBadge from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import useProjects from 'sentry/utils/useProjects';
@@ -14,43 +15,49 @@ import type {RouteWithName} from 'sentry/views/settings/components/settingsBread
 
 interface Props {
   location: Location;
-  orgSlug: string;
+  organization: Organization;
   projectSlug: string;
   routes: RouteWithName[];
   title: string;
   alertName?: string;
+  alertType?: string;
   canChangeProject?: boolean;
 }
 
 function BuilderBreadCrumbs({
-  orgSlug,
   title,
   alertName,
   projectSlug,
   routes,
   canChangeProject,
   location,
+  organization,
+  alertType,
 }: Props) {
   const {projects} = useProjects();
   const isSuperuser = isActiveSuperuser();
   const project = projects.find(({slug}) => projectSlug === slug);
+  const hasAlertWizardV3 = organization.features.includes('alert-wizard-v3');
 
   const label = (
     <IdBadge project={project ?? {slug: projectSlug}} avatarSize={18} disableLink />
   );
 
   const projectCrumbLink: Crumb = {
-    to: `/organizations/${orgSlug}/alerts/rules/?project=${project?.id}`,
+    to: `/organizations/${organization.slug}/alerts/rules/?project=${project?.id}`,
     label,
   };
 
   function getProjectDropdownCrumb(): CrumbDropdown {
     return {
-      onSelect: ({value}) => {
+      onSelect: ({value: projectId}) => {
+        // TODO(taylangocmen): recreating route doesn't update query, don't edit recreateRoute will add project selector for alert-wizard-v3
         browserHistory.push(
           recreateRoute('', {
             routes,
-            params: {orgId: orgSlug, projectId: value},
+            params: hasAlertWizardV3
+              ? {orgId: organization.slug, alertType}
+              : {orgId: organization.slug, projectId},
             location,
           })
         );
@@ -80,16 +87,16 @@ function BuilderBreadCrumbs({
 
   const crumbs: (Crumb | CrumbDropdown)[] = [
     {
-      to: `/organizations/${orgSlug}/alerts/rules/`,
+      to: `/organizations/${organization.slug}/alerts/rules/`,
       label: t('Alerts'),
       preservePageFilters: true,
     },
-    projectCrumb,
+    ...(hasAlertWizardV3 ? [] : [projectCrumb]),
     {
       label: title,
       ...(alertName
         ? {
-            to: `/organizations/${orgSlug}/alerts/${projectSlug}/wizard`,
+            to: `/organizations/${organization.slug}/alerts/${projectSlug}/wizard`,
             preservePageFilters: true,
           }
         : {}),

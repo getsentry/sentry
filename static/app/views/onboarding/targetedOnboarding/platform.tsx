@@ -7,11 +7,11 @@ import MultiPlatformPicker from 'sentry/components/multiPlatformPicker';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
 import testableTransition from 'sentry/utils/testableTransition';
-import useApi from 'sentry/utils/useApi';
 import StepHeading from 'sentry/views/onboarding/components/stepHeading';
 
 import CreateProjectsFooter from './components/createProjectsFooter';
-import {ClientState, fetchClientState, StepProps} from './types';
+import {StepProps} from './types';
+import {usePersistedOnboardingState} from './utils';
 
 function OnboardingPlatform(props: StepProps) {
   const [selectedPlatforms, setSelectedPlatforms] = useState<PlatformKey[]>([]);
@@ -22,18 +22,18 @@ function OnboardingPlatform(props: StepProps) {
     setSelectedPlatforms(selectedPlatforms.filter(p => p !== platform));
   };
 
-  const api = useApi();
+  const [clientState] = usePersistedOnboardingState();
   useEffect(() => {
-    fetchClientState(api, props.organization.slug).then((lastState: ClientState) => {
-      setSelectedPlatforms(lastState.selectedPlatforms);
-    });
-  }, []);
+    if (clientState) {
+      setSelectedPlatforms(clientState.selectedPlatforms);
+    }
+  }, [clientState]);
 
   const clearPlatforms = () => setSelectedPlatforms([]);
   return (
     <Wrapper>
       <StepHeading step={props.stepIndex}>
-        {t('Select all your projects platform')}
+        {t('Select the platforms you want to monitor')}
       </StepHeading>
       <motion.div
         transition={testableTransition()}

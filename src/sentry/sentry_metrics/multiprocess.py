@@ -389,16 +389,19 @@ def process_messages(
             new_payload_value = deepcopy(parsed_payload_value)
 
             metric_name = parsed_payload_value["name"]
+            org_id = parsed_payload_value["org_id"]
             tags = parsed_payload_value.get("tags", {})
 
             try:
-                new_tags: Mapping[int, int] = {mapping[k]: mapping[v] for k, v in tags.items()}
+                new_tags: Mapping[int, int] = {
+                    mapping[org_id][k]: mapping[org_id][v] for k, v in tags.items()
+                }
             except KeyError:
                 logger.error("process_messages.key_error", extra={"tags": tags}, exc_info=True)
                 continue
 
             new_payload_value["tags"] = new_tags
-            new_payload_value["metric_id"] = mapping[metric_name]
+            new_payload_value["metric_id"] = mapping[org_id][metric_name]
             new_payload_value["retention_days"] = 90
 
             del new_payload_value["name"]

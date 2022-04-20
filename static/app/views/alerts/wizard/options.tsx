@@ -35,6 +35,8 @@ export type AlertType =
   | 'crash_free_sessions'
   | 'crash_free_users';
 
+export type MetricAlertType = Exclude<AlertType, 'issues'>;
+
 export const AlertWizardAlertNames: Record<AlertType, string> = {
   issues: t('Issues'),
   num_errors: t('Number of Errors'),
@@ -226,7 +228,7 @@ export type WizardRuleTemplate = {
 };
 
 export const AlertWizardRuleTemplates: Record<
-  Exclude<AlertType, 'issues'>,
+  MetricAlertType,
   Readonly<WizardRuleTemplate>
 > = {
   num_errors: {
@@ -292,6 +294,8 @@ export const AlertWizardRuleTemplates: Record<
     eventTypes: EventTypes.USER,
   },
 };
+
+export const DEFAULT_WIZARD_TEMPLATE = AlertWizardRuleTemplates.num_errors;
 
 export const hidePrimarySelectorSet = new Set<AlertType>([
   'num_errors',

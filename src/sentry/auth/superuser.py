@@ -16,11 +16,15 @@ from datetime import datetime, timedelta
 
 from django.conf import settings
 from django.core.signing import BadSignature
+from django.http import RawPostDataException
 from django.utils import timezone
 from django.utils.crypto import constant_time_compare, get_random_string
+from rest_framework import serializers
 
 from sentry.auth.system import is_system_auth
+from sentry.utils import json
 from sentry.utils.auth import has_completed_sso
+from sentry.utils.settings import is_self_hosted
 
 logger = logging.getLogger("sentry.superuser")
 
@@ -41,12 +45,19 @@ COOKIE_HTTPONLY = getattr(settings, "SUPERUSER_COOKIE_HTTPONLY", True)
 # the maximum time the session can stay alive
 MAX_AGE = getattr(settings, "SUPERUSER_MAX_AGE", timedelta(hours=4))
 
+# the maximum time the session can stay alive when accessing different orgs
+MAX_AGE_PRIVILEGED_ORG_ACCESS = getattr(
+    settings, "MAX_AGE_PRIVILEGED_ORG_ACCESS", timedelta(hours=1)
+)
+
 # the maximum time the session can stay alive without making another request
-IDLE_MAX_AGE = getattr(settings, "SUPERUSER_IDLE_MAX_AGE", timedelta(minutes=30))
+IDLE_MAX_AGE = getattr(settings, "SUPERUSER_IDLE_MAX_AGE", timedelta(minutes=15))
 
 ALLOWED_IPS = frozenset(getattr(settings, "SUPERUSER_ALLOWED_IPS", settings.INTERNAL_IPS) or ())
 
 ORG_ID = getattr(settings, "SUPERUSER_ORG_ID", None)
+
+SUPERUSER_ACCESS_CATEGORIES = getattr(settings, "SUPERUSER_ACCESS_CATEGORIES", ["for_unit_test"])
 
 UNSET = object()
 
@@ -58,10 +69,28 @@ def is_active_superuser(request):
     return su.is_active
 
 
+class SuperuserAccessSerializer(serializers.Serializer):
+    superuserAccessCategory = serializers.ChoiceField(choices=SUPERUSER_ACCESS_CATEGORIES)
+    superuserReason = serializers.CharField(min_length=4, max_length=128)
+
+
 class Superuser:
     allowed_ips = [ipaddress.ip_network(str(v), strict=False) for v in ALLOWED_IPS]
 
     org_id = ORG_ID
+
+    def _check_expired_on_org_change(self):
+        if self.expires is not None:
+            session_start_time = self.expires - MAX_AGE
+            current_datetime = timezone.now()
+            if current_datetime - session_start_time > MAX_AGE_PRIVILEGED_ORG_ACCESS:
+                logger.warning(
+                    "superuser.privileged_org_access_expired",
+                    extra={"superuser_token": self.token},
+                )
+                self.set_logged_out()
+                return False
+        return self._is_active
 
     def __init__(self, request, allowed_ips=UNSET, org_id=UNSET, current_datetime=None):
         self.request = request
@@ -73,8 +102,17 @@ class Superuser:
             self.org_id = org_id
         self._populate(current_datetime=current_datetime)
 
+    @staticmethod
+    def _needs_validation():
+        if is_self_hosted():
+            return False
+        return settings.VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON
+
     @property
     def is_active(self):
+        org = getattr(self.request, "organization", None)
+        if org and org.id != self.org_id:
+            return self._check_expired_on_org_change()
         # if we've been logged out
         if not self.request.user.is_authenticated:
             return False
@@ -275,16 +313,51 @@ class Superuser:
         request = self.request
         if current_datetime is None:
             current_datetime = timezone.now()
-        self._set_logged_in(
-            expires=current_datetime + MAX_AGE,
-            token=get_random_string(12),
-            user=user,
-            current_datetime=current_datetime,
-        )
-        logger.info(
-            "superuser.logged-in",
-            extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": user.id},
-        )
+
+        token = get_random_string(12)
+
+        def enable_and_log_superuser_access():
+            self._set_logged_in(
+                expires=current_datetime + MAX_AGE,
+                token=token,
+                user=user,
+                current_datetime=current_datetime,
+            )
+
+            logger.info(
+                "superuser.logged-in",
+                extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": user.id},
+            )
+
+        if not self._needs_validation():
+            enable_and_log_superuser_access()
+            return
+
+        try:
+            # need to use json loads as the data is no longer in request.data
+            su_access_json = json.loads(request.body)
+        except (AttributeError, json.JSONDecodeError, RawPostDataException):
+            su_access_json = {}
+
+        if su_access_json.get("isSuperuserModal"):
+
+            su_access_info = SuperuserAccessSerializer(data=su_access_json)
+
+            if not su_access_info.is_valid():
+                raise serializers.ValidationError(su_access_info.errors)
+
+            logger.info(
+                "superuser.superuser_access",
+                extra={
+                    "superuser_token_id": token,
+                    "user_id": request.user.id,
+                    "user_email": request.user.email,
+                    "su_access_category": su_access_info.validated_data["superuserAccessCategory"],
+                    "reason_for_su": su_access_info.validated_data["superuserReason"],
+                },
+            )
+
+        enable_and_log_superuser_access()
 
     def set_logged_out(self):
         """

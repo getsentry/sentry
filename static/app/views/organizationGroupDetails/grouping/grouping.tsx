@@ -5,7 +5,8 @@ import {Location} from 'history';
 import debounce from 'lodash/debounce';
 
 import {Client} from 'sentry/api';
-import RangeSlider, {Slider} from 'sentry/components/forms/controls/rangeSlider';
+import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
+import Slider from 'sentry/components/forms/controls/rangeSlider/slider';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';

@@ -3,6 +3,7 @@ import {browserHistory, RouteComponentProps} from 'react-router';
 
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import {Organization} from 'sentry/types';
@@ -48,14 +49,16 @@ function CreateDashboard(props: Props) {
       organization={props.organization}
       renderDisabled={renderDisabled}
     >
-      <DashboardDetail
-        {...props}
-        initialState={initialState}
-        dashboard={dashboard}
-        dashboards={[]}
-        newWidget={newWidget}
-        onSetNewWidget={() => setNewWidget(undefined)}
-      />
+      <ErrorBoundary>
+        <DashboardDetail
+          {...props}
+          initialState={initialState}
+          dashboard={dashboard}
+          dashboards={[]}
+          newWidget={newWidget}
+          onSetNewWidget={() => setNewWidget(undefined)}
+        />
+      </ErrorBoundary>
     </Feature>
   );
 }

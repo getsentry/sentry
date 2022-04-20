@@ -85,7 +85,12 @@ class Rule(Model):
         return rv
 
     def get_audit_log_data(self):
-        return {"label": self.label, "data": self.data, "status": self.status}
+        return {
+            "label": self.label,
+            "data": self.data,
+            "status": self.status,
+            "environment": self.environment_id,
+        }
 
 
 class RuleActivityType(Enum):

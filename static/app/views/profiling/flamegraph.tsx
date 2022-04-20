@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useState} from 'react';
+import styled from '@emotion/styled';
 
 import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
@@ -63,9 +64,9 @@ function FlamegraphView(props: FlamegraphViewProps): React.ReactElement {
 
   useEffect(() => {
     if (!props.params.eventId || !props.params.projectId) {
-      return;
+      return undefined;
     }
-    api.clear();
+
     setRequestState('loading');
 
     fetchFlamegraphs(api, props.params.eventId, props.params.projectId, organization)
@@ -74,6 +75,10 @@ function FlamegraphView(props: FlamegraphViewProps): React.ReactElement {
         setRequestState('resolved');
       })
       .catch(() => setRequestState('errored'));
+
+    return () => {
+      api.clear();
+    };
   }, [props.params.eventId, props.params.projectId, api, organization]);
 
   return (
@@ -88,7 +93,9 @@ function FlamegraphView(props: FlamegraphViewProps): React.ReactElement {
             ) : requestState === 'loading' ? (
               <Fragment>
                 <Flamegraph profiles={LoadingGroup} />
-                <LoadingIndicator />
+                <LoadingIndicatorContainer>
+                  <LoadingIndicator />
+                </LoadingIndicatorContainer>
               </Fragment>
             ) : requestState === 'resolved' && profiles ? (
               <Flamegraph profiles={profiles} />
@@ -99,5 +106,14 @@ function FlamegraphView(props: FlamegraphViewProps): React.ReactElement {
     </SentryDocumentTitle>
   );
 }
+
+const LoadingIndicatorContainer = styled('div')`
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+`;
 
 export default FlamegraphView;

@@ -9,6 +9,7 @@ from parsimonious.exceptions import ParseError  # noqa
 from parsimonious.grammar import Grammar, NodeVisitor
 from rest_framework.serializers import ValidationError
 
+from sentry.eventstore.models import EventSubjectTemplateData
 from sentry.models import ActorTuple
 from sentry.utils.glob import glob_match
 from sentry.utils.safe import get_path
@@ -132,8 +133,30 @@ class Matcher(namedtuple("Matcher", "type pattern")):
 
     def test_tag(self, data):
         tag = self.type[5:]
+
+        # inspect the event-payload User interface first before checking tags.user
+        if tag and tag.startswith("user."):
+            for k, v in (get_path(data, "user", filter=True) or {}).items():
+                if isinstance(v, str) and tag.endswith("." + k) and glob_match(v, self.pattern):
+                    return True
+                # user interface supports different fields in the payload, any other fields present gets put into the
+                # 'data' dict
+                # we look one more level deep to see if the pattern matches
+                elif k == "data":
+                    for data_k, data_v in (v or {}).items():
+                        if (
+                            isinstance(data_v, str)
+                            and tag.endswith("." + data_k)
+                            and glob_match(data_v, self.pattern)
+                        ):
+                            return True
+
         for k, v in get_path(data, "tags", filter=True) or ():
             if k == tag and glob_match(v, self.pattern):
+                return True
+            elif k == EventSubjectTemplateData.tag_aliases.get(tag, tag) and glob_match(
+                v, self.pattern
+            ):
                 return True
         return False
 
@@ -379,7 +402,7 @@ def parse_code_owners(data: str) -> Tuple[List[str], List[str], List[str]]:
         if rule.startswith("#") or not len(rule):
             continue
 
-        assignees = rule.strip().split()[1:]
+        _, assignees = get_codeowners_path_and_owners(rule)
         for assignee in assignees:
             if "/" not in assignee:
                 if re.match(r"[^@]+@[^@]+\.[^@]+", assignee):
@@ -391,6 +414,13 @@ def parse_code_owners(data: str) -> Tuple[List[str], List[str], List[str]]:
                 teams.append(assignee)
 
     return teams, usernames, emails
+
+
+def get_codeowners_path_and_owners(rule):
+    # Regex does a negative lookbehind for a backslash. Matches on whitespace without a preceding backslash.
+    pattern = re.compile(r"(?<!\\)\s")
+    path, *code_owners = (i for i in pattern.split(rule.strip()) if i)
+    return path, code_owners
 
 
 def convert_codeowners_syntax(codeowners, associations, code_mapping):
@@ -408,7 +438,7 @@ def convert_codeowners_syntax(codeowners, associations, code_mapping):
             result += f"{rule}\n"
             continue
 
-        path, *code_owners = (x.strip() for x in rule.split())
+        path, code_owners = get_codeowners_path_and_owners(rule)
         # Escape invalid paths https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-repository-on-github/about-code-owners#syntax-exceptions
         # Check if path has whitespace
         # Check if path has '#' not as first character

@@ -26,22 +26,18 @@ import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
   DateString,
-  MetricsMetaCollection,
-  MetricsTagCollection,
   Organization,
   PageFilters,
   SelectValue,
+  SessionMetric,
   TagCollection,
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getColumnsAndAggregates} from 'sentry/utils/discover/fields';
 import Measurements from 'sentry/utils/measurements/measurements';
-import {SessionMetric} from 'sentry/utils/metrics/fields';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
 import withApi from 'sentry/utils/withApi';
-import withMetricsMeta from 'sentry/utils/withMetricsMeta';
-import withMetricsTags from 'sentry/utils/withMetricsTags';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withTags from 'sentry/utils/withTags';
 import {DISPLAY_TYPE_CHOICES} from 'sentry/views/dashboardsV2/data';
@@ -57,8 +53,16 @@ import {
   WidgetType,
 } from 'sentry/views/dashboardsV2/types';
 import {generateIssueWidgetFieldOptions} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/utils';
-import {generateMetricsWidgetFieldOptions} from 'sentry/views/dashboardsV2/widgetBuilder/metricWidget/fields';
-import {mapErrors, normalizeQueries} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
+import {
+  generateReleaseWidgetFieldOptions,
+  SESSIONS_FIELDS,
+  SESSIONS_TAGS,
+} from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
+import {
+  mapErrors,
+  NEW_DASHBOARD_ID,
+  normalizeQueries,
+} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 import {WidgetTemplate} from 'sentry/views/dashboardsV2/widgetLibrary/data';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
@@ -90,8 +94,6 @@ export type DashboardWidgetModalOptions = {
 type Props = ModalRenderProps &
   DashboardWidgetModalOptions & {
     api: Client;
-    metricsMeta: MetricsMetaCollection;
-    metricsTags: MetricsTagCollection;
     organization: Organization;
     selection: PageFilters;
     tags: TagCollection;
@@ -285,7 +287,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       !(
         dashboards.find(({title, id}) => {
           return title === selectedDashboard?.label && id === selectedDashboard?.value;
-        }) || selectedDashboard.value === 'new'
+        }) || selectedDashboard.value === NEW_DASHBOARD_ID
       )
     ) {
       errors.dashboard = t('This field may not be blank');
@@ -327,7 +329,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         organization,
       });
 
-      if (selectedDashboard.value === 'new') {
+      if (selectedDashboard.value === NEW_DASHBOARD_ID) {
         browserHistory.push({
           pathname: `/organizations/${organization.slug}/dashboards/new/`,
           query: pathQuery,
@@ -612,33 +614,15 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     );
   }
 
-  renderWidgetQueryForm() {
-    const {
-      organization,
-      selection,
-      tags,
-      metricsTags,
-      metricsMeta,
-      start,
-      end,
-      statsPeriod,
-    } = this.props;
+  renderWidgetQueryForm(
+    querySelection: PageFilters,
+    releaseWidgetFieldOptions: ReturnType<typeof generateReleaseWidgetFieldOptions>
+  ) {
+    const {organization, tags} = this.props;
     const state = this.state;
     const errors = state.errors;
 
-    // Construct PageFilters object using statsPeriod/start/end props so we can
-    // render widget graph using saved timeframe from Saved/Prebuilt Query
-    const querySelection: PageFilters = statsPeriod
-      ? {...selection, datetime: {start: null, end: null, period: statsPeriod, utc: null}}
-      : start && end
-      ? {...selection, datetime: {start, end, period: null, utc: null}}
-      : selection;
-
     const issueWidgetFieldOptions = generateIssueWidgetFieldOptions();
-    const metricsWidgetFieldOptions = generateMetricsWidgetFieldOptions(
-      Object.values(metricsMeta),
-      Object.values(metricsTags).map(({key}) => key)
-    );
     const fieldOptions = (measurementKeys: string[]) =>
       generateFieldOptions({
         organization,
@@ -690,7 +674,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
               widgetType={state.widgetType}
               queries={state.queries}
               errors={errors?.queries}
-              fieldOptions={metricsWidgetFieldOptions}
+              fieldOptions={releaseWidgetFieldOptions}
               onChange={(queryIndex: number, widgetQuery: WidgetQuery) =>
                 this.handleQueryChange(widgetQuery, queryIndex)
               }
@@ -718,7 +702,6 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
             />
           </React.Fragment>
         );
-
       case WidgetType.DISCOVER:
       default:
         return (
@@ -781,6 +764,10 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       onUpdateWidget,
       onAddLibraryWidget,
       source,
+      selection,
+      start,
+      end,
+      statsPeriod,
     } = this.props;
     const state = this.state;
     const errors = state.errors;
@@ -807,6 +794,19 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     if (showMetricsDatasetSelector) {
       datasetChoices.push(MetricsDataset);
     }
+
+    // Construct PageFilters object using statsPeriod/start/end props so we can
+    // render widget graph using saved timeframe from Saved/Prebuilt Query
+    const querySelection: PageFilters = statsPeriod
+      ? {...selection, datetime: {start: null, end: null, period: statsPeriod, utc: null}}
+      : start && end
+      ? {...selection, datetime: {start, end, period: null, utc: null}}
+      : selection;
+
+    const metricsWidgetFieldOptions = generateReleaseWidgetFieldOptions(
+      Object.values(SESSIONS_FIELDS),
+      SESSIONS_TAGS
+    );
 
     return (
       <React.Fragment>
@@ -886,7 +886,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
               />
             </React.Fragment>
           )}
-          {this.renderWidgetQueryForm()}
+          {this.renderWidgetQueryForm(querySelection, metricsWidgetFieldOptions)}
         </Body>
         <Footer>
           <ButtonBar gap={1}>
@@ -943,6 +943,4 @@ const StyledFieldLabel = styled(FieldLabel)`
   display: inline-flex;
 `;
 
-export default withApi(
-  withPageFilters(withTags(withMetricsMeta(withMetricsTags(AddDashboardWidgetModal))))
-);
+export default withApi(withPageFilters(withTags(AddDashboardWidgetModal)));

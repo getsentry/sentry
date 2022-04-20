@@ -15,7 +15,6 @@ import {
   NotificationSettingsByProviderObject,
   NotificationSettingsObject,
 } from 'sentry/views/settings/account/notifications/constants';
-import FeedbackAlert from 'sentry/views/settings/account/notifications/feedbackAlert';
 import {ACCOUNT_NOTIFICATION_FIELDS} from 'sentry/views/settings/account/notifications/fields';
 import {
   NOTIFICATION_SETTING_FIELDS,
@@ -321,7 +320,6 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
         {hasSlack && unlinkedOrgs.length > 0 && (
           <UnlinkedAlert organizations={unlinkedOrgs} />
         )}
-        <FeedbackAlert />
         <Form
           saveOnBlur
           apiMethod="PUT"
