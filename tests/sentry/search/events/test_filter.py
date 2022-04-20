@@ -1793,6 +1793,12 @@ class SemverBuildFilterConverterTest(BaseSemverConverterTest, TestCase):
         with pytest.raises(ValueError, match="organization_id is a required param"):
             _semver_filter_converter(filter, key, {"something": 1})
 
+        filter = SearchFilter(SearchKey(key), "IN", SearchValue("sentry"))
+        with pytest.raises(
+            InvalidSearchQuery, match="Invalid operation 'IN' for semantic version filter."
+        ):
+            _semver_filter_converter(filter, key, {"organization_id": 1})
+
     def test_empty(self):
         self.run_test("=", "test", "IN", [SEMVER_EMPTY_RELEASE])
 
@@ -1822,6 +1828,11 @@ class ParseSemverTest(unittest.TestCase):
             match=INVALID_SEMVER_MESSAGE,
         ):
             assert parse_semver("hello", ">") is None
+        with pytest.raises(
+            InvalidSearchQuery,
+            match="Invalid operation 'IN' for semantic version filter.",
+        ):
+            assert parse_semver("1.2.3.4", "IN") is None
 
     def test_normal(self):
         self.run_test("1", ">", SemverFilter("gt", [1, 0, 0, 0, 1, ""]))

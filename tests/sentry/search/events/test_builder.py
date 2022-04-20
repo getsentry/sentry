@@ -2109,3 +2109,12 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             query="transaction:foo_transaction",
             allow_metric_aggregates=False,
         )
+
+    def test_invalid_semver_filter(self):
+        with self.assertRaises(InvalidSearchQuery):
+            QueryBuilder(
+                Dataset.Discover,
+                self.params,
+                "user.email:foo@example.com release.build:[1.2.1]",
+                ["user.email", "release"],
+            )

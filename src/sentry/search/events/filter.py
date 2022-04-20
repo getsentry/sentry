@@ -477,10 +477,15 @@ def _semver_build_filter_converter(
     build: str = search_filter.value.raw_value
 
     operator, negated = handle_operator_negation(search_filter.operator)
+    try:
+        django_op = OPERATOR_TO_DJANGO[operator]
+    except KeyError:
+        raise InvalidSearchQuery("Invalid operation 'IN' for semantic version filter.")
+
     versions = list(
         Release.objects.filter_by_semver_build(
             organization_id,
-            OPERATOR_TO_DJANGO[operator],
+            django_op,
             build,
             project_ids=project_ids,
             negated=negated,
@@ -515,7 +520,11 @@ def parse_semver(version, operator) -> Optional[SemverFilter]:
      - 1.*
     """
     (operator, negated) = handle_operator_negation(operator)
-    operator = OPERATOR_TO_DJANGO[operator]
+    try:
+        operator = OPERATOR_TO_DJANGO[operator]
+    except KeyError:
+        raise InvalidSearchQuery("Invalid operation 'IN' for semantic version filter.")
+
     version = version if "@" in version else f"{SEMVER_FAKE_PACKAGE}@{version}"
     parsed = parse_release_relay(version)
     parsed_version = parsed.get("version_parsed")
