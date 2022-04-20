@@ -37,15 +37,12 @@ export default function FirstEventFooter({
   const source = 'targeted_onboarding_first_event_footer';
 
   const getSecondaryCta = () => {
-    // if hasn't sent first event, allow skiping
-    if (!hasFirstEvent) {
-      return <Button onClick={onClickSetupLater}>{t('Setup Later')}</Button>;
-    }
+    // if hasn't sent first event, allow skiping.
     // if last, no secondary cta
-    if (isLast) {
-      return null;
+    if (!hasFirstEvent || !isLast) {
+      return <Button onClick={onClickSetupLater}>{t('Next Platform')}</Button>;
     }
-    return <Button onClick={onClickSetupLater}>{t('Next Platform')}</Button>;
+    return null;
   };
 
   const getPrimaryCta = ({firstIssue}: {firstIssue: null | true | Group}) => {
