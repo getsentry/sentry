@@ -15,6 +15,8 @@ jobs:
     outputs:
       eslint_config: ${{ steps.changes.outputs.eslint_config }}
       frontend: ${{ steps.changes.outputs.frontend }}
+      frontend_components_modified_lintable: ${{ steps.changes.outputs.frontend_components_modified_lintable }}
+      frontend_components_modified_lintable_files: ${{ steps.changes.outputs.frontend_components_modified_lintable_files }}
       frontend_modified_lintable_files: ${{ steps.changes.outputs.frontend_modified_lintable_files }}
       yarn_lockfile: ${{ steps.changes.outputs.yarn_lockfile }}
     steps:
@@ -146,7 +148,6 @@ jobs:
           yarn storybook-build
 
   webpack:
-    if: needs.files-changed.outputs.frontend != 'true'
     needs: files-changed
     runs-on: ubuntu-20.04
     steps:

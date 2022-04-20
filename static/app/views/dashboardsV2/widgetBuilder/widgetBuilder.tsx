@@ -203,6 +203,7 @@ function WidgetBuilder({
   const widgetBuilderNewDesign = organization.features.includes(
     'new-widget-builder-experience-design'
   );
+  const hasReleaseHealthFeature = organization.features.includes('dashboard-metrics');
 
   // Construct PageFilters object using statsPeriod/start/end props so we can
   // render widget graph using saved timeframe from Saved/Prebuilt Query
@@ -261,16 +262,12 @@ function WidgetBuilder({
 
     if (isEditing && isValidWidgetIndex) {
       const widgetFromDashboard = dashboard.widgets[widgetIndexNum];
-      const visualization =
-        widgetBuilderNewDesign && widgetFromDashboard.displayType === DisplayType.TOP_N
-          ? DisplayType.TABLE
-          : widgetFromDashboard.displayType;
       setState({
         title: widgetFromDashboard.title,
-        displayType: visualization,
+        displayType: widgetFromDashboard.displayType,
         interval: widgetFromDashboard.interval,
         queries: normalizeQueries({
-          displayType: visualization,
+          displayType: widgetFromDashboard.displayType,
           queries: widgetFromDashboard.queries,
           widgetType: widgetFromDashboard.widgetType ?? WidgetType.DISCOVER,
           widgetBuilderNewDesign,
@@ -943,7 +940,7 @@ function WidgetBuilder({
                     dataSet={state.dataSet}
                     displayType={state.displayType}
                     onChange={handleDataSetChange}
-                    widgetBuilderNewDesign={widgetBuilderNewDesign}
+                    hasReleaseHealthFeature={hasReleaseHealthFeature}
                   />
                   {isTabularChart && (
                     <ColumnsStep
