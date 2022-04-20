@@ -87,6 +87,7 @@ class SpanTreeModel {
       toggleNestedSpanGroup: action,
       expandedSiblingGroups: observable,
       toggleSiblingSpanGroup: action,
+      isEmbeddedTransactionTimeAdjusted: observable,
     });
   }
 
