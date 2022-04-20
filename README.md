@@ -1,7 +1,10 @@
 <p align="center">
   <p align="center">
-    <a href="https://sentry.io/?utm_source=github&utm_medium=logo" target="_blank">
+    <a href="https://sentry.io/?utm_source=github&utm_medium=logo#gh-light-mode-only" target="_blank">
       <img src="https://sentry-brand.storage.googleapis.com/sentry-logo-black.png" alt="Sentry" height="72">
+    </a>
+    <a href="https://sentry.io/?utm_source=github&utm_medium=logo#gh-dark-mode-only" target="_blank">
+      <img src="https://sentry-brand.storage.googleapis.com/sentry-logo-white.png" alt="Sentry" height="72">
     </a>
   </p>
   <p align="center">
