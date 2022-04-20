@@ -21,6 +21,7 @@ from sentry.models import (
 )
 from sentry.roles import team_roles
 from sentry.roles.manager import TeamRole
+from sentry.utils import metrics
 from sentry.utils.json import JSONData
 
 ERR_INSUFFICIENT_ROLE = "You do not have permission to edit that user's membership."
@@ -246,6 +247,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         """Modify a member's team-level role."""
         minimum_team_role = roles.get_minimum_team_role(team_membership.organizationmember.role)
         if team_role.priority > minimum_team_role.priority:
+            applying_minimum = False
             team_membership.update(role=team_role.id)
         else:
             # The new team role is redundant to the role that this member would
@@ -253,7 +255,13 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
             # invisible in the UI, and it would be surprising if it were suddenly
             # left over after the user's org-level role is demoted. So, write a null
             # value to the database and let the minimum team role take over.
+            applying_minimum = True
             team_membership.update(role=None)
+
+        metrics.incr(
+            "team_roles:assign",
+            tags={"target_team_role": team_role.id, "applying_minimum": str(applying_minimum)},
+        )
 
     def delete(
         self,

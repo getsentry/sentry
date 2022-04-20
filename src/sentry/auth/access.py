@@ -28,6 +28,7 @@ from sentry.models import (
 )
 from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole, TeamRole
+from sentry.utils import metrics
 from sentry.utils.request_cache import request_cache
 
 
@@ -182,8 +183,16 @@ class Access(abc.ABC):
             return False
         if self.has_scope(scope):
             return True
+
         membership = self._team_memberships.get(team)
-        return membership is not None and scope in membership.get_scopes()
+        if membership is not None and scope in membership.get_scopes():
+            metrics.incr(
+                "team_roles:pass_by_team_scope",
+                tags={"team_role": membership.role, "scope": scope},
+            )
+            return True
+
+        return False
 
     def has_team_membership(self, team: Team) -> bool:
         return team in self.teams
@@ -238,10 +247,18 @@ class Access(abc.ABC):
 
         if self.member and features.has("organizations:team-roles", self.member.organization):
             for team in project.teams.all():
-                if team in self._team_memberships:
-                    team_scopes = self._team_memberships[team].get_scopes()
-                    if any(scope in team_scopes for scope in scopes):
+                membership = self._team_memberships.get(team)
+                if membership is None:
+                    continue
+                team_scopes = membership.get_scopes()
+                for scope in scopes:
+                    if scope in team_scopes:
+                        metrics.incr(
+                            "team_roles:pass_by_project_scope",
+                            tags={"team_role": membership.role, "scope": scope},
+                        )
                         return True
+
         return False
 
     def to_django_context(self) -> Mapping[str, bool]:
