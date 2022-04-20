@@ -2,6 +2,7 @@ import omit from 'lodash/omit';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {
   DashboardDetails,
@@ -46,6 +47,12 @@ export function createDashboard(
     {
       method: 'POST',
       data: {title, widgets: widgets.map(widget => omit(widget, ['tempId'])), duplicate},
+      query: {
+        // TODO: This should be replaced in the future with projects
+        // when we save Dashboard page filters. This is being sent to
+        // bypass validation when creating or updating dashboards
+        project: [ALL_ACCESS_PROJECTS],
+      },
     }
   );
 
@@ -118,6 +125,12 @@ export function updateDashboard(
     {
       method: 'PUT',
       data,
+      query: {
+        // TODO: This should be replaced in the future with projects
+        // when we save Dashboard page filters. This is being sent to
+        // bypass validation when creating or updating dashboards
+        project: [ALL_ACCESS_PROJECTS],
+      },
     }
   );
 
@@ -171,6 +184,12 @@ export function validateWidget(
     {
       method: 'POST',
       data: widget,
+      query: {
+        // TODO: This should be replaced in the future with projects
+        // when we save Dashboard page filters. This is being sent to
+        // bypass validation when creating or updating dashboards
+        project: [ALL_ACCESS_PROJECTS],
+      },
     }
   );
   return promise;
