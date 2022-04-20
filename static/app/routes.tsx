@@ -1391,7 +1391,7 @@ function buildRoutes() {
 
   // Once org issues is complete, these routes can be nested under
   // /organizations/:orgId/issues
-  const groupDetailsRoutes = (
+  const issueDetailsRoutes = (
     <Route
       path="/organizations/:orgId/issues/:groupId/"
       componentPromise={() => import('sentry/views/organizationGroupDetails')}
@@ -1904,7 +1904,7 @@ function buildRoutes() {
       {dashboardRoutes}
       {userFeedbackRoutes}
       {issueListRoutes}
-      {groupDetailsRoutes}
+      {issueDetailsRoutes}
       {alertRoutes}
       {monitorsRoutes}
       {replayRoutes}
