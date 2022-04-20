@@ -578,9 +578,6 @@ def profiles_consumer(**options):
 @log_options()
 @configuration
 @batching_kafka_options("indexer-last-seen-updater-consumer")
-@click.option("--processes", default=1, type=int)
-@click.option("--input-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
-@click.option("--output-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
 @click.option("commit_max_batch_size", "--commit-max-batch-size", type=int, default=25000)
 @click.option("commit_max_batch_time", "--commit-max-batch-time-ms", type=int, default=10000)
 @click.option("--topic", default="snuba-metrics", help="Topic to read indexer output from.")
