@@ -489,9 +489,9 @@ class IssueListOverview extends React.Component<Props, State> {
               })),
             };
           },
-          error: err => {
+          error: () => {
             this.setState({
-              error: parseApiError(err),
+              issuesLoading: false,
             });
           },
           complete: () => {
