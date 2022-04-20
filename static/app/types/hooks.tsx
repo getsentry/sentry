@@ -85,10 +85,7 @@ type FirstPartyIntegrationAdditionalCTAProps = {
   integrations: Integration[];
 };
 
-type GuideUpdateCallback = (
-  nextGuide: Guide | null,
-  opts?: {dismissed?: boolean}
-) => void;
+type GuideUpdateCallback = (nextGuide: Guide | null, opts: {dismissed?: boolean}) => void;
 
 /**
  * Component wrapping hooks
