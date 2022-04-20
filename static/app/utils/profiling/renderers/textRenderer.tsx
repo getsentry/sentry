@@ -35,23 +35,34 @@ class TextRenderer {
     this.flamegraph = flamegraph;
 
     this.context = getContext(canvas, '2d');
-
     resizeCanvasToDisplaySize(canvas);
   }
 
-  clearCache(): void {
-    this.textCache = {};
-  }
-
-  measureText(context: CanvasRenderingContext2D, text: string): number {
+  measureAndCacheText(text: string): number {
     if (this.textCache[text]) {
       return this.textCache[text];
     }
-    this.textCache[text] = context.measureText(text).width;
+    this.textCache[text] = this.context.measureText(text).width;
     return this.textCache[text];
   }
 
+  maybeInvalidateCache(): void {
+    const TEST_STRING = 'Who knows if this changed, font-display: swap wont tell me';
+
+    if (this.textCache[TEST_STRING] === undefined) {
+      this.measureAndCacheText(TEST_STRING);
+      return;
+    }
+
+    const newMeasuredSize = this.context.measureText(TEST_STRING).width;
+    if (newMeasuredSize !== this.textCache[TEST_STRING]) {
+      this.textCache = {[TEST_STRING]: newMeasuredSize};
+    }
+  }
+
   draw(configViewSpace: Rect, configSpace: Rect, configViewToPhysicalSpace: mat3): void {
+    this.maybeInvalidateCache();
+
     this.context.font = `${this.theme.SIZES.BAR_FONT_SIZE * window.devicePixelRatio}px ${
       this.theme.FONTS.FRAME_FONT
     }`;
@@ -59,7 +70,7 @@ class TextRenderer {
     this.context.textBaseline = 'alphabetic';
     this.context.fillStyle = this.theme.COLORS.LABEL_FONT_COLOR;
 
-    const minWidth = this.measureText(this.context, ELLIPSIS);
+    const minWidth = this.measureAndCacheText(ELLIPSIS);
 
     let frame: FlamegraphFrame;
     let i: number;
@@ -120,12 +131,12 @@ class TextRenderer {
         let text = frame.frame.name;
 
         // If text width is smaller than rectangle, just draw the text
-        if (this.measureText(this.context, text) > paddedRectangleWidth) {
+        if (this.measureAndCacheText(text) > paddedRectangleWidth) {
           text = trimTextCenter(
             text,
             findRangeBinarySearch(
               {low: 0, high: paddedRectangleWidth},
-              n => this.measureText(this.context, text.substring(0, n)),
+              n => this.measureAndCacheText(text.substring(0, n)),
               paddedRectangleWidth
             )[0]
           );
