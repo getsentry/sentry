@@ -223,7 +223,9 @@ def _produce_histogram_outliers():
                     "inner": [
                         {"op": "eq", "name": "event.contexts.trace.op", "value": op},
                         {"op": "eq", "name": "event.platform", "value": platform},
-                        {"op": "gte", "name": "event.duration", "value": p25 + 3 * p75},
+                        # This is in line with https://github.com/getsentry/sentry/blob/63308b3f2256fe2f24da43a951154d0ef2218d19/src/sentry/snuba/discover.py#L1728-L1729=
+                        # See also https://en.wikipedia.org/wiki/Outlier#Tukey's_fences
+                        {"op": "gte", "name": "event.duration", "value": p25 + 3 * abs(p75 - p25)},
                     ],
                 },
                 "targetMetrics": _HISTOGRAM_OUTLIERS_TARGET_METRICS,
@@ -240,6 +242,15 @@ def _produce_histogram_outliers():
                     {"op": "gte", "name": "event.duration", "value": 0},
                 ],
             },
+            "targetMetrics": _HISTOGRAM_OUTLIERS_TARGET_METRICS,
+            "targetTag": "histogram_outlier",
+            "tagValue": "inlier",
+        }
+    )
+
+    rules.append(
+        {
+            "condition": {"op": "and", "inner": []},
             "targetMetrics": _HISTOGRAM_OUTLIERS_TARGET_METRICS,
             "targetTag": "histogram_outlier",
             "tagValue": "outlier",
