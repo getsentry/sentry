@@ -73,7 +73,6 @@ from sentry.search.events.fields import (
     SnQLFieldColumn,
     SnQLFunction,
     SnQLStringArg,
-    StringArrayColumn,
     normalize_count_if_value,
     normalize_percentile_alias,
     reflective_result_type,
@@ -604,7 +603,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                 ),
                 SnQLFunction(
                     "array_join",
-                    required_args=[StringArrayColumn("column")],
+                    required_args=[ColumnArg("column")],
                     snql_column=lambda args, alias: Function("arrayJoin", [args["column"]], alias),
                     default_result_type="string",
                     private=True,

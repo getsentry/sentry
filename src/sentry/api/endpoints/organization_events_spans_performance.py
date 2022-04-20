@@ -126,6 +126,19 @@ class SpansPerformanceSerializer(serializers.Serializer):  # type: ignore
     spanGroup = ListField(
         child=serializers.CharField(), required=False, allow_null=True, max_length=4
     )
+    min_exclusive_time = serializers.FloatField(required=False)
+    max_exclusive_time = serializers.FloatField(required=False)
+
+    def validate(self, data):
+        if (
+            "min_exclusive_time" in data
+            and "max_exclusive_time" in data
+            and data["min_exclusive_time"] > data["max_exclusive_time"]
+        ):
+            raise serializers.ValidationError(
+                "min_exclusive_time cannot be greater than max_exclusive_time."
+            )
+        return data
 
     def validate_spanGroup(self, span_groups):
         for group in span_groups:
@@ -153,6 +166,8 @@ class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsSpansEndpoint
         query = serialized.get("query")
         span_ops = serialized.get("spanOp")
         span_groups = serialized.get("spanGroup")
+        min_exclusive_time = serialized.get("min_exclusive_time")
+        max_exclusive_time = serialized.get("max_exclusive_time")
 
         direction, orderby_column = self.get_orderby_column(request)
 
@@ -167,6 +182,8 @@ class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsSpansEndpoint
                 orderby_column,
                 limit,
                 offset,
+                min_exclusive_time,
+                max_exclusive_time,
             )
 
             return [suspect.serialize() for suspect in suspects]
@@ -465,6 +482,8 @@ def query_suspect_span_groups(
     orderby: str,
     limit: int,
     offset: int,
+    min_exclusive_time: Optional[float] = None,
+    max_exclusive_time: Optional[float] = None,
 ) -> List[SuspectSpan]:
     suspect_span_columns = SPAN_PERFORMANCE_COLUMNS[orderby]
 
@@ -516,6 +535,24 @@ def query_suspect_span_groups(
                 builder.resolve_function("array_join(spans_group)"),
                 Op.IN,
                 Function("tuple", span_groups),
+            )
+        )
+
+    if min_exclusive_time is not None:
+        extra_conditions.append(
+            Condition(
+                builder.resolve_function("array_join(spans_exclusive_time)"),
+                Op.GT,
+                min_exclusive_time,
+            )
+        )
+
+    if max_exclusive_time is not None:
+        extra_conditions.append(
+            Condition(
+                builder.resolve_function("array_join(spans_exclusive_time)"),
+                Op.LT,
+                max_exclusive_time,
             )
         )
 
