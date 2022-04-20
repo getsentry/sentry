@@ -20,7 +20,7 @@ class PostgresIndexerTest(TestCase):
     def test_indexer(self):
         org_id = self.organization.id
         org_strings = {org_id: {"hello", "hey", "hi"}}
-        results = PGStringIndexer().bulk_record(org_strings=org_strings).mapping
+        results = PGStringIndexer().bulk_record(org_strings=org_strings)
         obj_ids = MetricsKeyIndexer.objects.filter(string__in=["hello", "hey", "hi"]).values_list(
             "id", flat=True
         )
@@ -70,6 +70,7 @@ class StaticStringsIndexerTest(TestCase):
 
         assert results[2]["1.0.0"] == v1.id
         assert results[3]["2.0.0"] == v2.id
+        print(results.meta)
 
 
 class PostgresIndexerV2Test(TestCase):
@@ -170,6 +171,7 @@ class PostgresIndexerV2Test(TestCase):
 
         for string, id in results[org_id].items():
             assert expected_mapping[string] == id
+        print(results.meta)
 
     def test_already_cached_plus_read_results(self) -> None:
         """
