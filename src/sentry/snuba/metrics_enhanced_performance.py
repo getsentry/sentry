@@ -147,7 +147,7 @@ def timeseries_query(
     allow_metric_aggregates=True,
     comparison_delta: Optional[timedelta] = None,
     functions_acl: Optional[List[str]] = None,
-    use_snql: Optional[bool] = False,
+    use_snql: Optional[bool] = True,
     dry_run: bool = False,
 ) -> SnubaTSResult:
     """
