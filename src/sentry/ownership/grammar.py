@@ -112,6 +112,10 @@ class Matcher(namedtuple("Matcher", "type pattern")):
             return self.test_frames(
                 data,
                 ["filename", "abs_path"],
+                # Codeowners has a slightly different syntax compared to issue owners
+                # As such we need to match it using gitignore logic.
+                # See syntax documentation here:
+                # https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-repository-on-github/about-code-owners
                 lambda val, pattern: _path_to_regex(pattern).search(val),
             )
         return False
