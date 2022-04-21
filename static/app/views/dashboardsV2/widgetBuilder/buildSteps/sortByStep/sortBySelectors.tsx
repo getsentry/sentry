@@ -125,6 +125,7 @@ export function SortBySelectors({
                 sortDirection: values.sortDirection,
               });
             }}
+            hideFieldOptions
           />
         </ArithmeticInputWrapper>
       )}
