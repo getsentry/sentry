@@ -1,5 +1,6 @@
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import trimStart from 'lodash/trimStart';
 import uniqBy from 'lodash/uniqBy';
 
 import Input from 'sentry/components/forms/controls/input';
@@ -8,7 +9,8 @@ import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {SelectValue} from 'sentry/types';
-import {WidgetType} from 'sentry/views/dashboardsV2/types';
+import {EQUATION_PREFIX, getEquation, isEquation} from 'sentry/utils/discover/fields';
+import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
 
 import {SortDirection, sortDirections} from '../../utils';
 
@@ -18,14 +20,38 @@ interface Values {
 }
 
 interface Props {
+  displayType: DisplayType;
   onChange: (values: Values) => void;
   sortByOptions: SelectValue<string>[];
   values: Values;
   widgetType: WidgetType;
+  isGrouped?: boolean;
 }
 
-export function SortBySelectors({values, sortByOptions, widgetType, onChange}: Props) {
+export function SortBySelectors({
+  values,
+  sortByOptions,
+  widgetType,
+  onChange,
+  displayType,
+  isGrouped,
+}: Props) {
   const [customEquation, setCustomEquation] = useState<Values | null>(null);
+  const isTimeseriesChart = [
+    DisplayType.LINE,
+    DisplayType.BAR,
+    DisplayType.AREA,
+  ].includes(displayType);
+
+  useEffect(() => {
+    if (isEquation(trimStart(values.sortBy, '-'))) {
+      setCustomEquation({
+        sortBy: trimStart(values.sortBy, '-'),
+        sortDirection: values.sortDirection,
+      });
+    }
+  }, [values.sortBy]);
+
   return (
     <Wrapper>
       <Tooltip
@@ -60,14 +86,20 @@ export function SortBySelectors({values, sortByOptions, widgetType, onChange}: P
         value={customEquation ? 'custom-equation' : values.sortBy}
         options={[
           ...uniqBy(sortByOptions, ({value}) => value),
-          {value: 'custom-equation', label: t('Custom Equation')},
+          ...(isTimeseriesChart && isGrouped
+            ? [{value: 'custom-equation', label: t('Custom Equation')}]
+            : []),
         ]}
         onChange={(option: SelectValue<string>) => {
           if (option.value === 'custom-equation') {
-            setCustomEquation({
-              sortBy: '',
-              sortDirection: values.sortDirection,
-            });
+            // Only set the custom equation if custom equation wasn't
+            // already selected, or else the state gets wiped
+            if (!customEquation) {
+              setCustomEquation({
+                sortBy: '',
+                sortDirection: values.sortDirection,
+              });
+            }
             return;
           }
 
@@ -81,9 +113,10 @@ export function SortBySelectors({values, sortByOptions, widgetType, onChange}: P
       {customEquation && (
         <StyledInput
           placeholder={t('Enter Equation')}
+          value={getEquation(customEquation.sortBy)}
           onChange={e => {
             setCustomEquation({
-              sortBy: `equation|${e.target.value}`,
+              sortBy: `${EQUATION_PREFIX}${e.target.value}`,
               sortDirection: values.sortDirection,
             });
           }}

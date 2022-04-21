@@ -2,6 +2,7 @@ import * as React from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
+import trimStart from 'lodash/trimStart';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import {Client} from 'sentry/api';
@@ -417,19 +418,18 @@ class WidgetQueries extends React.Component<Props, State> {
           requestData.excludeOther =
             query.aggregates.length !== 1 || widget.queries.length !== 1;
 
-          if (
-            (query.orderby.startsWith('-') && isEquation(query.orderby.slice(1))) ||
-            isEquation(query.orderby)
-          ) {
-            // find the max equation so far
+          if (isEquation(trimStart(query.orderby, '-'))) {
             const nextEquationIndex = getNextEquationIndex(query.aggregates);
             const isDescending = query.orderby.startsWith('-');
-            const customEquation = isDescending ? query.orderby.slice(1) : query.orderby;
             const prefix = isDescending ? '-' : '';
 
             // Construct the alias form of the equation and inject it into the request
             requestData.orderby = `${prefix}equation[${nextEquationIndex}]`;
-            requestData.field = [...query.columns, ...query.aggregates, customEquation];
+            requestData.field = [
+              ...query.columns,
+              ...query.aggregates,
+              trimStart(query.orderby, '-'),
+            ];
           }
         }
       }

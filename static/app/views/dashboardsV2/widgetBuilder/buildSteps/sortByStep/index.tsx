@@ -88,6 +88,8 @@ export function SortByStep({
             )}
           <SortBySelectors
             widgetType={widgetType}
+            displayType={displayType}
+            isGrouped={!!queries[0].columns.length}
             sortByOptions={
               dataSet === DataSet.ISSUES
                 ? generateIssueWidgetOrderOptions(
