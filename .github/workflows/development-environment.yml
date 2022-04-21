@@ -11,6 +11,7 @@ on:
       - '.envrc'
       - 'Brewfile'
       - 'scripts/*'
+      - 'tools/*'
       - 'src/sentry/runner/commands/devserver.py'
       - 'src/sentry/runner/commands/devservices.py'
       - 'bin/load-mocks'
@@ -105,6 +106,24 @@ jobs:
           source .venv/bin/activate
           [[ $(python -V) == "Python $(cat .python-version)" ]]
 
+  tools-tests:
+    runs-on: ubuntu-20.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
+        with:
+          python-version: 3.8.12
+          cache: 'pip'
+          cache-dependency-path: |
+            requirements-dev.txt
+            requirements-pre-commit.txt
+      - name: install dependencies
+        run: pip install -r requirements-dev.txt -r requirements-pre-commit.txt
+      - name: run tests
+        run: make test-tools
+      - name: Handle artifacts
+        uses: ./.github/actions/artifacts
 
   # We don't yet test the bootstrap step
   # https://github.com/getsentry/bootstrap-sentry/blob/7af557be84920dd587e48613dbc308c937bc0e08/bootstrap.sh#L618-L619
