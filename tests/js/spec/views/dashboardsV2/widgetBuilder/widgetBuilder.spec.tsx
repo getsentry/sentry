@@ -1575,7 +1575,7 @@ describe('WidgetBuilder', function () {
       });
     });
 
-    it.only('allows for sorting by a custom equation', async function () {
+    it('allows for sorting by a custom equation', async function () {
       renderTestComponent({
         orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
         query: {
