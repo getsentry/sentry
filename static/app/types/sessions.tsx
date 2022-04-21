@@ -1,9 +1,11 @@
 import {AggregationOutputType, ColumnType} from 'sentry/utils/discover/fields';
 
+type SessionsColumnType = ColumnType | 'calculated';
+
 export type SessionsMeta = {
   name: string;
   operations: SessionsOperation[];
-  type: ColumnType;
+  type: SessionsColumnType;
 };
 
 export enum SessionMetric {
@@ -20,6 +22,8 @@ export enum SessionMetric {
 export type SessionsOperation =
   | 'sum'
   | 'count_unique'
+  | 'count_user'
+  | 'count_session'
   | 'avg'
   | 'max'
   | 'p50'

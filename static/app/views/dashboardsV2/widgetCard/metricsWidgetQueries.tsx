@@ -19,6 +19,25 @@ import {getWidgetInterval} from '../utils';
 import {transformSessionsResponseToSeries} from './transformSessionsResponseToSeries';
 import {transformSessionsResponseToTable} from './transformSessionsResponseToTable';
 
+const FIELD_TO_DERIVED_EXPRESSION = {
+  'count_session(session.all)': 'sum(session)',
+  'count_user(session.all)': 'count_unique(user)',
+  'count_session(session.abnormal)': 'session.abnormal',
+  'count_user(session.abnormal)': 'session.abnormal_user',
+  'count_session(session.crashed)': 'session.crashed',
+  'count_user(session.crashed)': 'session.crashed_user',
+  'count_session(session.errored)': 'session.errored',
+  'count_user(session.errored)': 'session.errored_user',
+  'count_session(session.healthy)': 'session.healthy',
+  'count_user(session.healthy)': 'session.healthy_user',
+  'crash_free_rate(session)': 'session.crash_free_rate',
+  'crash_free_rate(user)': 'session.crash_free_user_rate',
+};
+
+function mapDerivedMetrics(field: string): string {
+  return FIELD_TO_DERIVED_EXPRESSION[field];
+}
+
 type Props = {
   api: Client;
   children: (
@@ -176,7 +195,9 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
     const interval = getWidgetInterval(widget, {start, end, period});
 
     const promises = widget.queries.map(query => {
-      const aggregates = query.aggregates.map(stripDerivedMetricsPrefix);
+      const aggregates = query.aggregates
+        .map(stripDerivedMetricsPrefix)
+        .map(mapDerivedMetrics);
       const requestData = {
         field: aggregates,
         orgSlug: organization.slug,

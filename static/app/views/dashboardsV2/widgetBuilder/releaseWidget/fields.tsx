@@ -25,6 +25,31 @@ export const SESSIONS_FIELDS: Readonly<Partial<Record<SessionMetric, SessionsMet
     operations: ['avg', 'p50', 'p75', 'p95', 'p99', 'max'],
     type: 'duration',
   },
+  [SessionMetric.SESSION_ALL]: {
+    name: 'session.all',
+    operations: ['count_user', 'count_session'],
+    type: 'calculated',
+  },
+  // [SessionMetric.SESSION_ABNORMAL]: {
+  //   name: 'session',
+  //   operations: ['count_user', 'count_session'],
+  //   type: 'calculated',
+  // },
+  // [SessionMetric.SESSION_CRASHED]: {
+  //   name: 'session',
+  //   operations: ['count_user', 'count_session'],
+  //   type: 'calculated',
+  // },
+  // [SessionMetric.SESSION_ERRORED]: {
+  //   name: 'session',
+  //   operations: ['count_user', 'count_session'],
+  //   type: 'calculated',
+  // },
+  // [SessionMetric.SESSION_HEALTHY]: {
+  //   name: 'session',
+  //   operations: ['count_user', 'count_session'],
+  //   type: 'calculated',
+  // },
 };
 
 export const SESSIONS_OPERATIONS: Readonly<
@@ -33,6 +58,16 @@ export const SESSIONS_OPERATIONS: Readonly<
   sum: {
     columnTypes: ['integer'],
     defaultValue: SessionMetric.SESSION,
+    outputType: 'integer',
+  },
+  count_user: {
+    columnTypes: ['calculated'],
+    defaultValue: SessionMetric.SESSION_ALL,
+    outputType: 'integer',
+  },
+  count_session: {
+    columnTypes: ['calculated'],
+    defaultValue: SessionMetric.SESSION_ALL,
     outputType: 'integer',
   },
   count_unique: {
