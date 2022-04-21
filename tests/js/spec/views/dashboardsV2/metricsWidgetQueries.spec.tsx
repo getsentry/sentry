@@ -101,7 +101,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
                 {name: '2021-03-17T00:00:00Z', value: 2},
                 {name: '2021-03-18T00:00:00Z', value: 490},
               ]),
-              seriesName: 'sessions: sum(session)',
+              seriesName: 'sessions > sum(session)',
             },
           ],
         })
