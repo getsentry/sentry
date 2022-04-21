@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useRef, useState} from 'react';
+import React, {useCallback, useContext, useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {Replayer, ReplayerEvents} from 'rrweb';
 import type {eventWithTime} from 'rrweb/typings/types';
@@ -14,17 +14,79 @@ type RootElem = null | HTMLDivElement;
 // It has state that, when changed, will not trigger a react render.
 // Instead only expose methods that wrap `Replayer` and manage state.
 type ReplayPlayerContextProps = {
+  /**
+   * The current time of the video, in miliseconds
+   * The value is updated on every animation frame, about every 16.6ms
+   */
   currentTime: number;
+
+  /**
+   * Original dimensions in pixels of the captured browser window
+   */
   dimensions: Dimensions;
+
+  /**
+   * Duration of the video, in miliseconds
+   */
   duration: undefined | number;
-  events: eventWithTime[];
+
+  /**
+   * Raw RRWeb events
+   */
+  events: ReadonlyArray<eventWithTime>;
+
+  /**
+   * The calculated speed of the player when fast-forwarding through idle moments in the video
+   * The value is set to `0` when the video is not fast-forwarding
+   * The speed is automatically determined by the length of each idle period
+   */
+  fastForwardSpeed: number;
+
+  /**
+   * Required to be called with a <div> Ref
+   * Represents the location in the DOM where the iframe video should be mounted
+   *
+   * @param _root
+   */
   initRoot: (root: RootElem) => void;
+
+  /**
+   * Whether the video is currently playing
+   */
   isPlaying: boolean;
+
+  /**
+   * Whether fast-forward mode is enabled if RRWeb detects idle moments in the video
+   */
+  isSkippingInactive: boolean;
+
+  /**
+   * Jump the video to a specific time
+   */
   setCurrentTime: (time: number) => void;
+
+  /**
+   * Set speed for normal playback
+   */
   setSpeed: (speed: number) => void;
-  skipInactive: boolean;
+
+  /**
+   * The speed for normal playback
+   */
   speed: number;
+
+  /**
+   * Start or stop playback
+   *
+   * @param play
+   */
   togglePlayPause: (play: boolean) => void;
+
+  /**
+   * Allow RRWeb to use Fast-Forward mode for idle moments in the video
+   *
+   * @param skip
+   */
   toggleSkipInactive: (skip: boolean) => void;
 };
 
@@ -33,18 +95,21 @@ const ReplayPlayerContext = React.createContext<ReplayPlayerContextProps>({
   dimensions: {height: 0, width: 0},
   duration: undefined,
   events: [],
-  initRoot: _root => {},
+  fastForwardSpeed: 0,
+  initRoot: () => {},
   isPlaying: false,
+  isSkippingInactive: false,
   setCurrentTime: () => {},
   setSpeed: () => {},
-  skipInactive: false,
   speed: 1,
   togglePlayPause: () => {},
   toggleSkipInactive: () => {},
 });
 
 type Props = {
+  children: React.ReactNode;
   events: eventWithTime[];
+  value?: Partial<ReplayPlayerContextProps>;
 };
 
 function useCurrentTime(callback: () => number) {
@@ -53,25 +118,27 @@ function useCurrentTime(callback: () => number) {
   return currentTime;
 }
 
-export function Provider({children, events}: React.PropsWithChildren<Props>) {
+export function Provider({children, events, value = {}}: Props) {
   const theme = useTheme();
   const oldEvents = usePrevious(events);
   const replayerRef = useRef<Replayer>(null);
   const [dimensions, setDimensions] = useState<Dimensions>({height: 0, width: 0});
   const [isPlaying, setIsPlaying] = useState(false);
-  const [skipInactive, setSkipInactive] = useState(false);
+  const [isSkippingInactive, setIsSkippingInactive] = useState(false);
   const [speed, setSpeedState] = useState(1);
+  const [fastForwardSpeed, setFFSpeed] = useState(0);
 
-  const forceDimensions = dimension => {
-    setDimensions(dimension as Dimensions);
+  const forceDimensions = (dimension: Dimensions) => {
+    setDimensions(dimension);
   };
   const setPlayingFalse = () => {
     setIsPlaying(false);
   };
-
-  const cleanupListeners = () => {
-    replayerRef.current?.off(ReplayerEvents.Resize, forceDimensions);
-    replayerRef.current?.off(ReplayerEvents.Finish, setPlayingFalse);
+  const onFastForwardStart = (e: {speed: number}) => {
+    setFFSpeed(e.speed);
+  };
+  const onFastForwardEnd = () => {
+    setFFSpeed(0);
   };
 
   const initRoot = (root: RootElem) => {
@@ -94,7 +161,6 @@ export function Provider({children, events}: React.PropsWithChildren<Props>) {
       while (root.firstChild) {
         root.removeChild(root.firstChild);
       }
-      cleanupListeners();
     }
 
     // eslint-disable-next-line no-new
@@ -113,8 +179,12 @@ export function Provider({children, events}: React.PropsWithChildren<Props>) {
       // plugins: [],
     });
 
+    // @ts-expect-error: rrweb types event handlers with `unknown` parameters
     inst.on(ReplayerEvents.Resize, forceDimensions);
     inst.on(ReplayerEvents.Finish, setPlayingFalse);
+    // @ts-expect-error: rrweb types event handlers with `unknown` parameters
+    inst.on(ReplayerEvents.SkipStart, onFastForwardStart);
+    inst.on(ReplayerEvents.SkipEnd, onFastForwardEnd);
 
     // `.current` is marked as readonly, but it's safe to set the value from
     // inside a `useEffect` hook.
@@ -127,7 +197,6 @@ export function Provider({children, events}: React.PropsWithChildren<Props>) {
     if (replayerRef.current && events) {
       initRoot(replayerRef.current.wrapper.parentElement as RootElem);
     }
-    return cleanupListeners;
   }, [replayerRef.current, events]);
 
   const getCurrentTime = useCallback(
@@ -200,7 +269,7 @@ export function Provider({children, events}: React.PropsWithChildren<Props>) {
       if (skip !== replayer.config.skipInactive) {
         replayer.setConfig({skipInactive: skip});
       }
-      setSkipInactive(skip);
+      setIsSkippingInactive(skip);
     },
     [replayerRef.current]
   );
@@ -214,14 +283,16 @@ export function Provider({children, events}: React.PropsWithChildren<Props>) {
         dimensions,
         duration: replayerRef.current?.getMetaData().totalTime,
         events,
+        fastForwardSpeed,
         initRoot,
         isPlaying,
+        isSkippingInactive,
         setCurrentTime,
         setSpeed,
-        skipInactive,
         speed,
         togglePlayPause,
         toggleSkipInactive,
+        ...value,
       }}
     >
       {children}
@@ -229,4 +300,4 @@ export function Provider({children, events}: React.PropsWithChildren<Props>) {
   );
 }
 
-export const Consumer = ReplayPlayerContext.Consumer;
+export const useReplayContext = () => useContext(ReplayPlayerContext);

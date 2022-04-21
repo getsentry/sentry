@@ -11,7 +11,12 @@ import WidgetTable from 'sentry-images/dashboard/widget-table.svg';
 import WidgetWorldMap from 'sentry-images/dashboard/widget-world-map.svg';
 
 import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
-import {getDiffInMinutes, getInterval} from 'sentry/components/charts/utils';
+import {
+  getDiffInMinutes,
+  getInterval,
+  SIX_HOURS,
+  TWENTY_FOUR_HOURS,
+} from 'sentry/components/charts/utils';
 import {Organization, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getUtcDateString, parsePeriodToHours} from 'sentry/utils/dates';
@@ -158,6 +163,16 @@ export function getWidgetInterval(
   const desiredPeriod = parsePeriodToHours(interval);
   const selectedRange = getDiffInMinutes(datetimeObj);
 
+  if (widget.widgetType === WidgetType.METRICS) {
+    // Lower fidelity for Release Health widgets because of what
+    // the sessions endpoint can currently support.
+    interval = getInterval(datetimeObj, 'medium');
+    if (selectedRange > SIX_HOURS && selectedRange <= TWENTY_FOUR_HOURS) {
+      interval = '1h';
+    }
+    return widget.displayType === 'bar' ? '1d' : interval;
+  }
+
   // selectedRange is in minutes, desiredPeriod is in hours
   // convert desiredPeriod to minutes
   if (selectedRange / (desiredPeriod * 60) > MAX_BIN_COUNT) {
@@ -264,25 +279,29 @@ export function getWidgetIssueUrl(
 }
 
 export function flattenErrors(
-  data: ValidationError,
+  data: ValidationError | string,
   update: FlatValidationError
 ): FlatValidationError {
-  Object.keys(data).forEach((key: string) => {
-    const value = data[key];
-    if (typeof value === 'string') {
-      update[key] = value;
-      return;
-    }
-    // Recurse into nested objects.
-    if (Array.isArray(value) && typeof value[0] === 'string') {
-      update[key] = value[0];
-      return;
-    }
-    if (Array.isArray(value) && typeof value[0] === 'object') {
-      (value as ValidationError[]).map(item => flattenErrors(item, update));
-    } else {
-      flattenErrors(value as ValidationError, update);
-    }
-  });
+  if (typeof data === 'string') {
+    update.error = data;
+  } else {
+    Object.keys(data).forEach((key: string) => {
+      const value = data[key];
+      if (typeof value === 'string') {
+        update[key] = value;
+        return;
+      }
+      // Recurse into nested objects.
+      if (Array.isArray(value) && typeof value[0] === 'string') {
+        update[key] = value[0];
+        return;
+      }
+      if (Array.isArray(value) && typeof value[0] === 'object') {
+        (value as ValidationError[]).map(item => flattenErrors(item, update));
+      } else {
+        flattenErrors(value as ValidationError, update);
+      }
+    });
+  }
   return update;
 }

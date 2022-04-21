@@ -1,4 +1,4 @@
-import {useEffect, useRef} from 'react';
+import {useCallback, useEffect, useRef} from 'react';
 import {createPortal} from 'react-dom';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -69,17 +69,20 @@ function SidebarPanel({
 }: Props): React.ReactElement {
   const portalEl = useRef<HTMLDivElement>(getSidebarPortal());
 
-  function panelCloseHandler(evt: MouseEvent) {
-    if (!(evt.target instanceof Element)) {
-      return;
-    }
+  const panelCloseHandler = useCallback(
+    (evt: MouseEvent) => {
+      if (!(evt.target instanceof Element)) {
+        return;
+      }
 
-    if (portalEl.current.contains(evt.target)) {
-      return;
-    }
+      if (portalEl.current.contains(evt.target)) {
+        return;
+      }
 
-    hidePanel();
-  }
+      hidePanel();
+    },
+    [hidePanel]
+  );
 
   useEffect(() => {
     // Wait one tick to setup the click handler so we don't detect the click
@@ -89,7 +92,7 @@ function SidebarPanel({
     return function cleanup() {
       document.removeEventListener('click', panelCloseHandler);
     };
-  }, []);
+  }, [panelCloseHandler]);
 
   return createPortal(
     <PanelContainer
