@@ -427,8 +427,8 @@ class SequencePaginator:
             next_cursor = Cursor(
                 next_score,
                 hi - self.search(next_score, hi=hi),
-                False,
-                hi < len(self.scores),
+                is_prev=False,
+                has_results=hi < len(self.scores),
             )
         else:
             prev_cursor = Cursor(cursor.value, cursor.offset, True, False)
