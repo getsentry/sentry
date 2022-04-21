@@ -119,6 +119,7 @@ class JiraIssueHookView(JiraBaseHook):
                 external_issue = ExternalIssue.objects.get(
                     integration_id=integration.id, key=issue_key
                 )
+                # TODO(Ecosystem): Handle multiple group links appearing in Jira's Issue Hook View
                 group_link = GroupLink.objects.filter(
                     linked_type=GroupLink.LinkedType.issue,
                     linked_id=external_issue.id,
