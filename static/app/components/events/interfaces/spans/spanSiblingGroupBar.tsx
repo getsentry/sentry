@@ -98,20 +98,6 @@ export default function SpanSiblingGroupBar(props: Props) {
       );
     });
 
-    if (!isLastSibling) {
-      const depth: number = unwrapTreeDepth(spanTreeDepth - 1);
-      const left = ((spanTreeDepth - depth) * (TOGGLE_BORDER_BOX / 2) + 2) * -1;
-      connectorBars.push(
-        <ConnectorBar
-          style={{
-            left,
-          }}
-          key={`${span.description}-${depth}`}
-          orphanBranch={false}
-        />
-      );
-    }
-
     return (
       <TreeConnector isLast={isLastSibling} hasToggler orphanBranch={isOrphanSpan(span)}>
         {connectorBars}
