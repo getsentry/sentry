@@ -3,6 +3,7 @@ from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
+import sentry_sdk
 from django.urls import reverse
 from freezegun import freeze_time
 
@@ -10,6 +11,8 @@ from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.cases import SessionMetricsTestCase
 from sentry.utils.dates import to_timestamp
+
+sentry_sdk.init(None)  # TODO: remove me
 
 
 def result_sorted(result):
@@ -706,6 +709,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         seen = set()  # Make sure all session statuses are listed
         for group in result_sorted(response.data)["groups"]:
             seen.add(group["by"].get("session.status"))
+
             if group["by"] == {"session.status": "healthy"}:
                 assert group["totals"] == pytest.approx(expected)
                 for key, series in group["series"].items():

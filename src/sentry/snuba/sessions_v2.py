@@ -573,15 +573,15 @@ def massage_sessions_result(
         groups.append(group)
 
     return {
-        "start": _isoformat_z(query.start),
-        "end": _isoformat_z(query.end),
+        "start": isoformat_z(query.start),
+        "end": isoformat_z(query.end),
         "query": query.query,
         "intervals": timestamps,
         "groups": groups,
     }
 
 
-def _isoformat_z(date):
+def isoformat_z(date):
     return datetime.utcfromtimestamp(int(to_timestamp(date))).isoformat() + "Z"
 
 

@@ -955,7 +955,7 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             metric_mri=SessionMRI.HEALTHY.value,
             metrics=[
                 SessionMRI.ALL.value,
-                SessionMRI.ERRORED.value,
+                SessionMRI.ERRORED_ALL.value,
             ],
             unit="sessions",
             post_query_func=lambda init, errored: max(0, init - errored),
