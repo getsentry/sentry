@@ -1863,10 +1863,10 @@ describe('WidgetBuilder', function () {
     const releaseHealthFeatureFlags = [
       ...defaultOrgFeatures,
       'new-widget-builder-experience-design',
-      'dashboard-metrics',
+      'dashboards-metrics',
     ];
 
-    it('does not show the Release Health data set if there is no dashboard-metrics flag', async function () {
+    it('does not show the Release Health data set if there is no dashboards-metrics flag', async function () {
       renderTestComponent({
         orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
       });
@@ -1877,7 +1877,7 @@ describe('WidgetBuilder', function () {
       ).not.toBeInTheDocument();
     });
 
-    it('shows the Release Health data set if there is the dashboard-metrics flag', async function () {
+    it('shows the Release Health data set if there is the dashboards-metrics flag', async function () {
       renderTestComponent({
         orgFeatures: releaseHealthFeatureFlags,
       });
