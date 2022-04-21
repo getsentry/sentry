@@ -3,7 +3,7 @@
 name: visual diff
 on:
   # This allows PRs opened from forks to execute the Visual Snapshots
-  # since secrets are not passed to workflows when triggered via forks.
+  # since secrets are not passed to workflows when triggered via forks
   workflow_run:
     workflows:
       - acceptance
