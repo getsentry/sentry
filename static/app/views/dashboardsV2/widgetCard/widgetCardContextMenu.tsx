@@ -3,11 +3,13 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {openDashboardWidgetQuerySelectorModal} from 'sentry/actionCreators/modal';
+import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
 import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
 import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
+import Tag from 'sentry/components/tag';
 import {IconEllipsis, IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -19,8 +21,7 @@ import {getWidgetDiscoverUrl, getWidgetIssueUrl} from 'sentry/views/dashboardsV2
 
 import {Widget, WidgetType} from '../types';
 import {WidgetViewerContext} from '../widgetViewer/widgetViewerContext';
-import Tag from 'sentry/components/tag';
-import Feature from 'sentry/components/acl/feature';
+
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
 
 type Props = {
