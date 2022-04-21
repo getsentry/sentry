@@ -55,12 +55,22 @@ export default function SpanSiblingGroupBar(props: Props) {
     const operation = spanGrouping[0].span.op;
     const description = spanGrouping[0].span.description;
 
+    if (!description || !operation) {
+      if (description) {
+        return <strong>{`${t('Autogrouped')} \u2014 ${description}`}</strong>;
+      }
+
+      if (operation) {
+        return <strong>{`${t('Autogrouped')} \u2014 ${operation}`}</strong>;
+      }
+
+      return <strong>{`${t('Autogrouped')} \u2014 ${t('siblings')}`}</strong>;
+    }
+
     return (
       <React.Fragment>
-        <strong>{`${t('Autogrouped ')}\u2014 ${operation} ${
-          description && '\u2014 '
-        }`}</strong>
-        {description && `${description}`}
+        <strong>{`${t('Autogrouped')} \u2014 ${operation} \u2014 `}</strong>
+        {description}
       </React.Fragment>
     );
   }
@@ -87,20 +97,6 @@ export default function SpanSiblingGroupBar(props: Props) {
         />
       );
     });
-
-    if (!isLastSibling) {
-      const depth: number = unwrapTreeDepth(spanTreeDepth - 1);
-      const left = ((spanTreeDepth - depth) * (TOGGLE_BORDER_BOX / 2) + 2) * -1;
-      connectorBars.push(
-        <ConnectorBar
-          style={{
-            left,
-          }}
-          key={`${span.description}-${depth}`}
-          orphanBranch={false}
-        />
-      );
-    }
 
     return (
       <TreeConnector isLast={isLastSibling} hasToggler orphanBranch={isOrphanSpan(span)}>

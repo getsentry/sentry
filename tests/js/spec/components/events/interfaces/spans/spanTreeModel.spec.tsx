@@ -220,6 +220,7 @@ describe('SpanTreeModel', () => {
         fetchEmbeddedChildrenState: 'idle',
         toggleNestedSpanGroup: undefined,
         toggleSiblingSpanGroup: undefined,
+        isEmbeddedTransactionTimeAdjusted: false,
       },
       {
         type: 'span',
@@ -250,6 +251,7 @@ describe('SpanTreeModel', () => {
         fetchEmbeddedChildrenState: 'idle',
         toggleNestedSpanGroup: undefined,
         toggleSiblingSpanGroup: undefined,
+        isEmbeddedTransactionTimeAdjusted: false,
       },
       {
         type: 'span',
@@ -280,6 +282,7 @@ describe('SpanTreeModel', () => {
         fetchEmbeddedChildrenState: 'idle',
         toggleNestedSpanGroup: undefined,
         toggleSiblingSpanGroup: undefined,
+        isEmbeddedTransactionTimeAdjusted: false,
       },
       {
         type: 'span',
@@ -306,6 +309,7 @@ describe('SpanTreeModel', () => {
         fetchEmbeddedChildrenState: 'idle',
         toggleNestedSpanGroup: undefined,
         toggleSiblingSpanGroup: undefined,
+        isEmbeddedTransactionTimeAdjusted: false,
       },
     ];
 
@@ -411,6 +415,7 @@ describe('SpanTreeModel', () => {
         fetchEmbeddedChildrenState: 'idle',
         toggleNestedSpanGroup: undefined,
         toggleSiblingSpanGroup: undefined,
+        isEmbeddedTransactionTimeAdjusted: false,
       },
       {
         type: 'span',
@@ -434,6 +439,7 @@ describe('SpanTreeModel', () => {
         fetchEmbeddedChildrenState: 'idle',
         toggleNestedSpanGroup: undefined,
         toggleSiblingSpanGroup: undefined,
+        isEmbeddedTransactionTimeAdjusted: false,
       }
     );
 

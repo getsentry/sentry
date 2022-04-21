@@ -8,7 +8,9 @@ export default {
   title: 'Components/Profiling/FlamegraphZoomView',
 };
 
-const eventedProfiles = importProfile(require('./EventedTrace.json'));
+const eventedProfiles = importProfile(
+  require('sentry/utils/profiling/profile/formats/android/trace.json')
+);
 
 export const EventedTrace = () => {
   return (
@@ -22,7 +24,9 @@ export const EventedTrace = () => {
   );
 };
 
-const sampledTrace = importProfile(require('./SampledTrace.json'));
+const sampledTrace = importProfile(
+  require('sentry/utils/profiling/profile/formats/ios/trace.json')
+);
 
 export const SampledTrace = () => {
   return (
@@ -36,7 +40,9 @@ export const SampledTrace = () => {
   );
 };
 
-const jsSelfProfile = importProfile(require('./JSSelfProfilingTrace.json'));
+const jsSelfProfile = importProfile(
+  require('sentry/utils/profiling/profile/formats/jsSelfProfile/trace.json')
+);
 
 export const JSSelfProfiling = () => {
   return (
@@ -51,7 +57,7 @@ export const JSSelfProfiling = () => {
 };
 
 const typescriptProfile = importProfile(
-  require('./../../../../tests/js/spec/utils/profiling/profile/samples/chrometrace/typescript/trace.json')
+  require('sentry/utils/profiling/profile/formats/typescript/trace.json')
 );
 
 export const TypescriptProfile = () => {

@@ -1653,6 +1653,43 @@ describe('WidgetBuilder', function () {
     });
   });
 
+  it('opens top-N widgets as top-N display', async function () {
+    const widget: Widget = {
+      id: '1',
+      title: 'Errors over time',
+      interval: '5m',
+      displayType: DisplayType.TOP_N,
+      queries: [
+        {
+          name: '',
+          conditions: '',
+          fields: ['count()', 'count_unique(id)'],
+          aggregates: ['count()', 'count_unique(id)'],
+          columns: [],
+          orderby: '-count',
+        },
+      ],
+    };
+
+    const dashboard: DashboardDetails = {
+      id: '1',
+      title: 'Dashboard',
+      createdBy: undefined,
+      dateCreated: '2020-01-01T00:00:00.000Z',
+      widgets: [widget],
+    };
+
+    renderTestComponent({
+      orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      dashboard,
+      params: {
+        widgetIndex: '0',
+      },
+    });
+
+    expect(await screen.findByText('Top 5 Events')).toBeInTheDocument();
+  });
+
   // Disabling for CI, but should run locally when making changes
   // eslint-disable-next-line jest/no-disabled-tests
   it.skip('Update table header values (field alias)', async function () {
@@ -2237,6 +2274,31 @@ describe('WidgetBuilder', function () {
         expect(screen.queryByLabelText('Remove group')).not.toBeInTheDocument()
       );
     });
+
+    it("display 'remove' and 'drag to reorder' buttons", async function () {
+      renderTestComponent({
+        query: {displayType: 'line'},
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      await screen.findByText('Select group');
+
+      expect(screen.queryByLabelText('Remove group')).not.toBeInTheDocument();
+
+      await selectEvent.select(screen.getByText('Select group'), 'project');
+
+      expect(screen.getByLabelText('Remove group')).toBeInTheDocument();
+      expect(screen.queryByLabelText('Drag to reorder')).not.toBeInTheDocument();
+
+      userEvent.click(screen.getByText('Add Group'));
+
+      expect(screen.getAllByLabelText('Remove group')).toHaveLength(2);
+      expect(screen.getAllByLabelText('Drag to reorder')).toHaveLength(2);
+    });
+
+    it.todo(
+      'Since simulate drag and drop with RTL is not recommended because of browser layout, remember to create acceptance test for this'
+    );
   });
 
   describe('limit field', function () {
