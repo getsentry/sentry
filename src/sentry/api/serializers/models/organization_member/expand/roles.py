@@ -57,7 +57,6 @@ class OrganizationMemberWithRolesSerializer(OrganizationMemberWithTeamsSerialize
             serializer=OrganizationRoleSerializer(),
             allowed_roles=self.allowed_roles,
         )
-
         context["teamRoles"] = serialize(team_roles.get_all(), serializer=TeamRoleSerializer())
 
         return context
