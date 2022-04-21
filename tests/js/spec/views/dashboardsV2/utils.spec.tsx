@@ -2,6 +2,7 @@ import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {
   constructWidgetFromQuery,
   eventViewFromWidget,
+  flattenErrors,
   getFieldsFromEquations,
   getNextEquationIndex,
   getWidgetDiscoverUrl,
@@ -228,6 +229,27 @@ describe('Dashboards util', () => {
       expect(url).toEqual(
         '/organizations/org-slug/issues/?query=is%3Aunresolved&sort=date&statsPeriod=7d'
       );
+    });
+  });
+
+  describe('flattenErrors', function () {
+    it('flattens nested errors', () => {
+      const errorResponse = {
+        widgets: [
+          {
+            title: ['Ensure this field has no more than 3 characters.'],
+          },
+        ],
+      };
+      expect(flattenErrors(errorResponse, {})).toEqual({
+        title: 'Ensure this field has no more than 3 characters.',
+      });
+    });
+    it('does not spread error strings', () => {
+      const errorResponse = 'Dashboard title already taken.';
+      expect(flattenErrors(errorResponse, {})).toEqual({
+        error: 'Dashboard title already taken.',
+      });
     });
   });
 

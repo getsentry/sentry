@@ -59,6 +59,14 @@ type Props = {
   organization?: Organization;
 };
 
+function togglePanel(panel: SidebarPanelKey) {
+  SidebarPanelStore.togglePanel(panel);
+}
+
+function hidePanel() {
+  SidebarPanelStore.hidePanel();
+}
+
 function Sidebar({location, organization}: Props) {
   const config = useLegacyStore(ConfigStore);
   const preferences = useLegacyStore(PreferencesStore);
@@ -71,9 +79,6 @@ function Sidebar({location, organization}: Props) {
     const action = collapsed ? showSidebar : hideSidebar;
     action();
   };
-
-  const togglePanel = (panel: SidebarPanelKey) => SidebarPanelStore.togglePanel(panel);
-  const hidePanel = () => SidebarPanelStore.hidePanel();
 
   const bcl = document.body.classList;
 

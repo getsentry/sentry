@@ -901,5 +901,19 @@ describe('Modals -> WidgetViewerModal', function () {
       const {container} = await renderModal({initialData, widget: mockWidget});
       expect(container).toSnapshot();
     });
+
+    it('makes a sessions request after sorting by a table column', async function () {
+      await renderModal({
+        initialData,
+        widget: mockWidget,
+        tableData: [],
+        seriesData: [],
+      });
+      expect(sessionsMock).not.toHaveBeenCalled();
+      userEvent.click(screen.getByText(`sum(${SessionMetric.SESSION})`));
+      await waitFor(() => {
+        expect(sessionsMock).toHaveBeenCalled();
+      });
+    });
   });
 });

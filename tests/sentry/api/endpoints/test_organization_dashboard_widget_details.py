@@ -129,6 +129,68 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         )
         assert response.status_code == 200, response.data
 
+    def test_valid_orderby_equation_alias_line_widget(self):
+        data = {
+            "title": "Invalid query",
+            "displayType": "line",
+            "queries": [
+                {
+                    "name": "errors",
+                    "conditions": "event.type:error",
+                    "fields": ["equation|count() * 2"],
+                    "orderby": "equation[0]",
+                }
+            ],
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 200, response.data
+
+    def test_invalid_orderby_equation_alias_line_widget(self):
+        data = {
+            "title": "Invalid query",
+            "displayType": "line",
+            "queries": [
+                {
+                    "name": "errors",
+                    "conditions": "event.type:error",
+                    "fields": ["equation|count() * 2"],
+                    "orderby": "equation[999999]",
+                }
+            ],
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 400, response.data
+        assert "queries" in response.data, response.data
+
+    def test_missing_equation_for_orderby_equation_alias(self):
+        data = {
+            "title": "Invalid query",
+            "displayType": "line",
+            "queries": [
+                {
+                    "name": "errors",
+                    "conditions": "event.type:error",
+                    "fields": [""],
+                    "orderby": "equation[0]",
+                }
+            ],
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 400, response.data
+        assert "queries" in response.data, response.data
+
     def test_invalid_equation_table_widget(self):
         data = {
             "title": "Invalid query",
@@ -304,3 +366,25 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             data=data,
         )
         assert response.status_code == 200, response.data
+
+    def test_invalid_raw_equation_in_orderby_throws_error(self):
+        data = {
+            "title": "Test Query",
+            "displayType": "table",
+            "widgetType": "discover",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "fields": [],
+                    "orderby": "-equation|thisIsNotARealEquation() * 42",
+                }
+            ],
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 400, response.data
+        assert "queries" in response.data, response.data

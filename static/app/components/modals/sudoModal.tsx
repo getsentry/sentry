@@ -28,6 +28,7 @@ type Props = WithRouterProps &
      * User is a superuser without an active su session
      */
     isSuperuser?: boolean;
+    needsReload?: boolean;
     /**
      * expects a function that returns a Promise
      */
@@ -57,8 +58,24 @@ class SudoModal extends React.Component<Props, State> {
     this.getAuthenticators();
   }
 
+  handleSubmit = async () => {
+    const {api, isSuperuser} = this.props;
+    const data = {
+      isSuperuserModal: isSuperuser,
+      superuserAccessCategory: 'cops_csm',
+      superuserReason: 'COPS and CSM use',
+    };
+    try {
+      await api.requestPromise('/auth/', {method: 'PUT', data});
+      this.handleSuccess();
+    } catch (err) {
+      this.handleError(err);
+    }
+  };
+
   handleSuccess = () => {
-    const {closeModal, isSuperuser, location, router, retryRequest} = this.props;
+    const {closeModal, isSuperuser, location, needsReload, router, retryRequest} =
+      this.props;
 
     if (!retryRequest) {
       closeModal();
@@ -67,6 +84,9 @@ class SudoModal extends React.Component<Props, State> {
 
     if (isSuperuser) {
       router.replace({pathname: location.pathname, state: {forceUpdate: new Date()}});
+      if (needsReload) {
+        window.location.reload();
+      }
       return;
     }
 
@@ -156,6 +176,11 @@ class SudoModal extends React.Component<Props, State> {
               onSubmitSuccess={this.handleSuccess}
               onSubmitError={this.handleError}
               initialData={{isSuperuserModal: isSuperuser}}
+              extraButton={
+                <BackWrapper>
+                  <Button onClick={this.handleSubmit}>{t('COPS/CSM')}</Button>
+                </BackWrapper>
+              }
               resetOnError
             >
               {!isSelfHosted && <Hook name="component:superuser-access-category" />}
@@ -244,4 +269,9 @@ const StyledInputField = styled(InputField)`
 
 const StyledAlert = styled(Alert)`
   margin-bottom: 0;
+`;
+
+const BackWrapper = styled('div')`
+  width: 100%;
+  margin-left: ${space(4)};
 `;
