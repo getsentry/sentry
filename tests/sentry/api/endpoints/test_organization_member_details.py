@@ -15,6 +15,7 @@ from sentry.models import (
     SentryAppInstallationToken,
     UserOption,
 )
+from sentry.roles import organization_roles
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
 
@@ -379,10 +380,13 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
     def test_with_internal_integration(self):
         member = self.create_user("baz@example.com")
         member_om = self.create_member(organization=self.organization, user=member, role="member")
+
+        scopes = ["member:admin"]
+        scopes += organization_roles.get("admin").scopes
         self.create_internal_integration(
             name="my_app",
             organization=self.organization,
-            scopes=("member:admin",),
+            scopes=scopes,
             webhook_url="http://example.com",
         )
         # there should only be one record created so just grab the first one
@@ -394,11 +398,9 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
             HTTP_AUTHORIZATION=f"Bearer {token.api_token.token}",
         )
 
-        # The app token has no associated OrganizationMember and therefore no role.
-        # So we can't authorize it to promote to a role less than or equal to its
-        # own. This may be supported in the future. For now, assert that it provides
-        # a graceful authorization failure.
-        assert response.status_code == 403
+        assert response.status_code == 200
+        member_om.refresh_from_db()
+        assert member_om.role == "admin"
 
 
 class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
