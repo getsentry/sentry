@@ -336,7 +336,7 @@ function WidgetViewerModal(props: Props) {
   // Get discover result totals
   React.useEffect(() => {
     const getDiscoverTotals = async () => {
-      if (widget.widgetType !== WidgetType.ISSUE) {
+      if (widget.widgetType === WidgetType.DISCOVER) {
         setTotalResults(await fetchDiscoverTotal(api, organization, location, eventView));
       }
     };
@@ -517,7 +517,11 @@ function WidgetViewerModal(props: Props) {
               ...props,
               widget: tableWidget,
               tableData: tableResults?.[0],
-              onHeaderClick: () => setChartUnmodified(false),
+              onHeaderClick: () => {
+                if ([DisplayType.TOP_N, DisplayType.TABLE].includes(widget.displayType)) {
+                  setChartUnmodified(false);
+                }
+              },
             }) as (column: GridColumnOrder, columnIndex: number) => React.ReactNode,
             renderBodyCell: renderGridBodyCell({
               ...props,
@@ -581,6 +585,87 @@ function WidgetViewerModal(props: Props) {
     });
   }
 
+  function renderWidgetViewerTable() {
+    switch (widget.widgetType) {
+      case WidgetType.ISSUE:
+        if (issuesData && chartUnmodified) {
+          return renderIssuesTable({
+            transformedResults: issuesData,
+            loading: false,
+            errorMessage: undefined,
+            pageLinks: defaultPageLinks,
+            totalCount: totalIssuesCount,
+          });
+        }
+        return (
+          <IssueWidgetQueries
+            api={api}
+            organization={organization}
+            widget={tableWidget}
+            selection={modalSelection}
+            limit={
+              widget.displayType === DisplayType.TABLE
+                ? FULL_TABLE_ITEM_LIMIT
+                : HALF_TABLE_ITEM_LIMIT
+            }
+            cursor={cursor}
+          >
+            {renderIssuesTable}
+          </IssueWidgetQueries>
+        );
+      case WidgetType.METRICS:
+        if (tableData && chartUnmodified) {
+          return renderMetricsTable({
+            tableResults: tableData,
+            loading: false,
+            pageLinks: defaultPageLinks,
+          });
+        }
+        return (
+          <MetricsWidgetQueries
+            api={api}
+            organization={organization}
+            widget={tableWidget}
+            selection={modalSelection}
+            limit={
+              widget.displayType === DisplayType.TABLE
+                ? FULL_TABLE_ITEM_LIMIT
+                : HALF_TABLE_ITEM_LIMIT
+            }
+            includeAllArgs
+            cursor={cursor}
+          >
+            {renderMetricsTable}
+          </MetricsWidgetQueries>
+        );
+      case WidgetType.DISCOVER:
+      default:
+        if (tableData && chartUnmodified && widget.displayType === DisplayType.TABLE) {
+          return renderDiscoverTable({
+            tableResults: tableData,
+            loading: false,
+            pageLinks: defaultPageLinks,
+          });
+        }
+        return (
+          <WidgetQueries
+            api={api}
+            organization={organization}
+            widget={tableWidget}
+            selection={modalSelection}
+            limit={
+              widget.displayType === DisplayType.TABLE
+                ? FULL_TABLE_ITEM_LIMIT
+                : HALF_TABLE_ITEM_LIMIT
+            }
+            cursor={cursor}
+          >
+            {renderDiscoverTable}
+          </WidgetQueries>
+        );
+    }
+  }
+
   function renderWidgetViewer() {
     return (
       <React.Fragment>
@@ -620,35 +705,7 @@ function WidgetViewerModal(props: Props) {
                 selection={modalSelection}
                 // Top N charts rely on the orderby of the table
                 widget={primaryWidget}
-                onZoom={(_evt, chart) => {
-                  // @ts-ignore getModel() is private but we need this to retrieve datetime values of zoomed in region
-                  const model = chart.getModel();
-                  const {startValue, endValue} = model._payload.batch[0];
-                  const newStart = getUtcDateString(moment.utc(startValue));
-                  const newEnd = getUtcDateString(moment.utc(endValue));
-                  setModalSelection({
-                    ...modalSelection,
-                    datetime: {
-                      ...modalSelection.datetime,
-                      start: newStart,
-                      end: newEnd,
-                      period: null,
-                    },
-                  });
-                  router.push({
-                    pathname: location.pathname,
-                    query: {
-                      ...location.query,
-                      [WidgetViewerQueryField.START]: newStart,
-                      [WidgetViewerQueryField.END]: newEnd,
-                    },
-                  });
-                  trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.zoom', {
-                    organization,
-                    widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                    display_type: widget.displayType,
-                  });
-                }}
+                onZoom={onZoom}
                 onLegendSelectChanged={onLegendSelectChanged}
                 legendOptions={{selected: disabledLegends}}
                 expandNumbers
@@ -749,69 +806,7 @@ function WidgetViewerModal(props: Props) {
             )}
           </QueryContainer>
         )}
-        {widget.widgetType === WidgetType.ISSUE ? (
-          issuesData && chartUnmodified ? (
-            renderIssuesTable({
-              transformedResults: issuesData,
-              loading: false,
-              errorMessage: undefined,
-              pageLinks: defaultPageLinks,
-              totalCount: totalIssuesCount,
-            })
-          ) : (
-            <IssueWidgetQueries
-              api={api}
-              organization={organization}
-              widget={tableWidget}
-              selection={modalSelection}
-              limit={
-                widget.displayType === DisplayType.TABLE
-                  ? FULL_TABLE_ITEM_LIMIT
-                  : HALF_TABLE_ITEM_LIMIT
-              }
-              cursor={cursor}
-            >
-              {renderIssuesTable}
-            </IssueWidgetQueries>
-          )
-        ) : widget.widgetType === WidgetType.METRICS ? (
-          <MetricsWidgetQueries
-            api={api}
-            organization={organization}
-            widget={tableWidget}
-            selection={modalSelection}
-            limit={
-              widget.displayType === DisplayType.TABLE
-                ? FULL_TABLE_ITEM_LIMIT
-                : HALF_TABLE_ITEM_LIMIT
-            }
-            includeAllArgs
-            cursor={cursor}
-          >
-            {renderMetricsTable}
-          </MetricsWidgetQueries>
-        ) : tableData && chartUnmodified && widget.displayType === DisplayType.TABLE ? (
-          renderDiscoverTable({
-            tableResults: tableData,
-            loading: false,
-            pageLinks: defaultPageLinks,
-          })
-        ) : (
-          <WidgetQueries
-            api={api}
-            organization={organization}
-            widget={tableWidget}
-            selection={modalSelection}
-            limit={
-              widget.displayType === DisplayType.TABLE
-                ? FULL_TABLE_ITEM_LIMIT
-                : HALF_TABLE_ITEM_LIMIT
-            }
-            cursor={cursor}
-          >
-            {renderDiscoverTable}
-          </WidgetQueries>
-        )}
+        {renderWidgetViewerTable()}
       </React.Fragment>
     );
   }
@@ -842,7 +837,7 @@ function WidgetViewerModal(props: Props) {
       <Body>{renderWidgetViewer()}</Body>
       <Footer>
         <ResultsContainer>
-          {totalResults && renderTotalResults(totalResults, widget.widgetType)}
+          {renderTotalResults(totalResults, widget.widgetType)}
           <ButtonBar gap={1}>
             {onEdit && widget.id && (
               <Button
@@ -887,7 +882,10 @@ function WidgetViewerModal(props: Props) {
   );
 }
 
-function renderTotalResults(totalResults: string, widgetType?: WidgetType) {
+function renderTotalResults(totalResults?: string, widgetType?: WidgetType) {
+  if (totalResults === undefined) {
+    return <span />;
+  }
   switch (widgetType) {
     case WidgetType.ISSUE:
       return (

@@ -186,9 +186,10 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
 
       const field = fields[0];
 
-      // Change tableMeta for the field from integer to number so we it doesn't get shortened
-      if (!!expandNumbers && tableMeta[field] === 'integer') {
-        tableMeta[field] = 'number';
+      // Change tableMeta for the field from integer to string since we will be rendering with toLocaleString
+      const shouldExpandInteger = !!expandNumbers && tableMeta[field] === 'integer';
+      if (shouldExpandInteger) {
+        tableMeta[field] = 'string';
       }
 
       if (!field || !result.data.length) {
@@ -202,7 +203,9 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
         widget.widgetType !== WidgetType.METRICS
       );
 
-      const rendered = fieldRenderer(dataRow);
+      const rendered = fieldRenderer(
+        shouldExpandInteger ? {[field]: dataRow[field].toLocaleString()} : dataRow
+      );
 
       const isModalWidget = !!!(widget.id || widget.tempId);
       if (
