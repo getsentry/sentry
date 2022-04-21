@@ -32,9 +32,18 @@ def get_allowed_roles(
 
     allowed_roles = []
     if can_admin and not is_active_superuser(request):
-        acting_member = member or OrganizationMember.objects.get(
-            user=request.user, organization=organization
-        )
+        if member:
+            acting_member = member
+        else:
+            try:
+                acting_member = OrganizationMember.objects.get(
+                    user=request.user, organization=organization
+                )
+            except OrganizationMember.DoesNotExist:
+                # This can happen if the request was authorized by an app integration
+                # token whose proxy user does not have an OrganizationMember object.
+                return can_admin, allowed_roles
+
         if member and roles.get(acting_member.role).priority < roles.get(member.role).priority:
             can_admin = False
         else:
