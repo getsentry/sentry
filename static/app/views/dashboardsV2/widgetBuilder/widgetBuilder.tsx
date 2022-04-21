@@ -191,18 +191,26 @@ function WidgetBuilder({
     }
   }, []);
 
-  const isEditing = defined(widgetIndex);
-  const widgetIndexNum = Number(widgetIndex);
-  const isValidWidgetIndex =
-    widgetIndexNum >= 0 &&
-    widgetIndexNum < dashboard.widgets.length &&
-    Number.isInteger(widgetIndexNum);
-  const orgSlug = organization.slug;
-
   // Feature flag for new widget builder design. This feature is still a work in progress and not yet available internally.
   const widgetBuilderNewDesign = organization.features.includes(
     'new-widget-builder-experience-design'
   );
+  const hasReleaseHealthFeature = organization.features.includes('dashboards-metrics');
+
+  const filteredDashboardWidgets = dashboard.widgets.filter(({widgetType}) => {
+    if (widgetType === WidgetType.METRICS) {
+      return hasReleaseHealthFeature;
+    }
+    return true;
+  });
+
+  const isEditing = defined(widgetIndex);
+  const widgetIndexNum = Number(widgetIndex);
+  const isValidWidgetIndex =
+    widgetIndexNum >= 0 &&
+    widgetIndexNum < filteredDashboardWidgets.length &&
+    Number.isInteger(widgetIndexNum);
+  const orgSlug = organization.slug;
 
   // Construct PageFilters object using statsPeriod/start/end props so we can
   // render widget graph using saved timeframe from Saved/Prebuilt Query
@@ -260,17 +268,13 @@ function WidgetBuilder({
     });
 
     if (isEditing && isValidWidgetIndex) {
-      const widgetFromDashboard = dashboard.widgets[widgetIndexNum];
-      const visualization =
-        widgetBuilderNewDesign && widgetFromDashboard.displayType === DisplayType.TOP_N
-          ? DisplayType.TABLE
-          : widgetFromDashboard.displayType;
+      const widgetFromDashboard = filteredDashboardWidgets[widgetIndexNum];
       setState({
         title: widgetFromDashboard.title,
-        displayType: visualization,
+        displayType: widgetFromDashboard.displayType,
         interval: widgetFromDashboard.interval,
         queries: normalizeQueries({
-          displayType: visualization,
+          displayType: widgetFromDashboard.displayType,
           queries: widgetFromDashboard.queries,
           widgetType: widgetFromDashboard.widgetType ?? WidgetType.DISCOVER,
           widgetBuilderNewDesign,
@@ -432,6 +436,24 @@ function WidgetBuilder({
       set(newState, 'queries', normalized);
 
       return {...newState, errors: undefined};
+    });
+  }
+
+  function getUpdateWidgetIndex() {
+    if (!widgetToBeUpdated) {
+      return -1;
+    }
+
+    return dashboard.widgets.findIndex(widget => {
+      if (defined(widget.id)) {
+        return widget.id === widgetToBeUpdated.id;
+      }
+
+      if (defined(widget.tempId)) {
+        return widget.tempId === widgetToBeUpdated.tempId;
+      }
+
+      return false;
     });
   }
 
@@ -668,7 +690,8 @@ function WidgetBuilder({
     }
 
     let nextWidgetList = [...dashboard.widgets];
-    nextWidgetList.splice(widgetIndexNum, 1);
+    const updateWidgetIndex = getUpdateWidgetIndex();
+    nextWidgetList.splice(updateWidgetIndex, 1);
     nextWidgetList = generateWidgetsAfterCompaction(nextWidgetList);
 
     onSave(nextWidgetList);
@@ -709,7 +732,7 @@ function WidgetBuilder({
 
     if (!!widgetToBeUpdated) {
       let nextWidgetList = [...dashboard.widgets];
-      const updateIndex = nextWidgetList.indexOf(widgetToBeUpdated);
+      const updateWidgetIndex = getUpdateWidgetIndex();
       const nextWidgetData = {...widgetData, id: widgetToBeUpdated.id};
 
       // Only modify and re-compact if the default height has changed
@@ -717,10 +740,10 @@ function WidgetBuilder({
         getDefaultWidgetHeight(widgetToBeUpdated.displayType) !==
         getDefaultWidgetHeight(widgetData.displayType)
       ) {
-        nextWidgetList[updateIndex] = enforceWidgetHeightValues(nextWidgetData);
+        nextWidgetList[updateWidgetIndex] = enforceWidgetHeightValues(nextWidgetData);
         nextWidgetList = generateWidgetsAfterCompaction(nextWidgetList);
       } else {
-        nextWidgetList[updateIndex] = nextWidgetData;
+        nextWidgetList[updateWidgetIndex] = nextWidgetData;
       }
 
       onSave(nextWidgetList);
@@ -943,7 +966,7 @@ function WidgetBuilder({
                     dataSet={state.dataSet}
                     displayType={state.displayType}
                     onChange={handleDataSetChange}
-                    widgetBuilderNewDesign={widgetBuilderNewDesign}
+                    hasReleaseHealthFeature={hasReleaseHealthFeature}
                   />
                   {isTabularChart && (
                     <ColumnsStep

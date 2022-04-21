@@ -17,7 +17,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
 import {Group, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {use24Hours} from 'sentry/utils/dates';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
@@ -57,12 +57,11 @@ class GroupEventToolbar extends Component<Props> {
     return this.props.event.id !== nextProps.event.id;
   }
 
-  handleTraceLink(organization: Organization) {
-    trackAnalyticsEvent({
-      eventKey: 'quick_trace.trace_id.clicked',
-      eventName: 'Quick Trace: Trace ID clicked',
-      organization_id: parseInt(organization.id, 10),
-      source: 'issues',
+  handleNavigationClick(button: string) {
+    trackAdvancedAnalyticsEvent('issue_details.event_navigation_clicked', {
+      organization: this.props.organization,
+      project_id: parseInt(this.props.project.id, 10),
+      button,
     });
   }
 
@@ -127,13 +126,25 @@ class GroupEventToolbar extends Component<Props> {
             {pathname: `${baseEventsPath}${evt.nextEventID}/`, query: location.query},
             {pathname: `${baseEventsPath}latest/`, query: location.query},
           ]}
+          onOldestClick={() => this.handleNavigationClick('oldest')}
+          onOlderClick={() => this.handleNavigationClick('older')}
+          onNewerClick={() => this.handleNavigationClick('newer')}
+          onNewestClick={() => this.handleNavigationClick('newest')}
           size="small"
         />
         <Heading>
           {t('Event')}{' '}
           <EventIdLink to={`${baseEventsPath}${evt.id}/`}>{evt.eventID}</EventIdLink>
           <LinkContainer>
-            <ExternalLink href={jsonUrl}>
+            <ExternalLink
+              href={jsonUrl}
+              onClick={() =>
+                trackAdvancedAnalyticsEvent('issue_details.event_json_clicked', {
+                  organization,
+                  group_id: parseInt(`${evt.groupID}`, 10),
+                })
+              }
+            >
               {'JSON'} (<FileSize bytes={evt.size} />)
             </ExternalLink>
           </LinkContainer>

@@ -4,10 +4,11 @@ import classNames from 'classnames';
 
 import {selectText} from 'sentry/utils/selectText';
 
-type Props = React.PropsWithChildren<{
+type Props = {
+  children: React.ReactNode;
   className?: string;
   style?: React.CSSProperties;
-}>;
+};
 
 type AutoSelectHandle = {
   selectText: () => void;

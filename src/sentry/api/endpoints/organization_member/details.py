@@ -6,7 +6,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import ratelimits, roles
+from sentry import features, ratelimits, roles
 from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.serializers import (
@@ -37,7 +37,8 @@ from sentry.models import (
     TeamStatus,
     UserOption,
 )
-from sentry.roles import team_roles
+from sentry.roles import organization_roles, team_roles
+from sentry.roles.manager import OrganizationRole
 from sentry.utils import metrics
 
 from . import get_allowed_roles
@@ -109,8 +110,19 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             context["user"] = serialize(member.user, request.user, DetailedUserSerializer())
 
         context["isOnlyOwner"] = member.is_only_owner()
+
+        def is_retired_role_hidden(role: OrganizationRole) -> bool:
+            return (
+                role.is_retired
+                and role.id != member.role
+                and features.has("organizations:team-roles", member.organization)
+            )
+
+        organization_role_list = [
+            role for role in organization_roles.get_all() if not is_retired_role_hidden(role)
+        ]
         context["roles"] = serialize(
-            roles.get_all(), serializer=RoleSerializer(), allowed_roles=allowed_roles
+            organization_role_list, serializer=RoleSerializer(), allowed_roles=allowed_roles
         )
 
         return context
@@ -231,12 +243,13 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                     [OrganizationMemberTeam(team=team, organizationmember=member) for team in teams]
                 )
 
-        if result.get("role"):
+        assigned_role = result.get("role")
+        if assigned_role:
             _, allowed_roles = get_allowed_roles(request, organization)
             allowed_role_ids = {r.id for r in allowed_roles}
 
             # A user cannot promote others above themselves
-            if result["role"] not in allowed_role_ids:
+            if assigned_role not in allowed_role_ids:
                 return Response(
                     {"role": "You do not have permission to assign the given role."}, status=403
                 )
@@ -248,10 +261,18 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                     status=403,
                 )
 
-            if member.user == request.user and (result["role"] != member.role):
+            if member.user == request.user and (assigned_role != member.role):
                 return Response({"detail": "You cannot make changes to your own role."}, status=400)
 
-            self._change_org_member_role(member, result["role"])
+            if (
+                organization_roles.get(assigned_role).is_retired
+                and assigned_role != member.role
+                and features.has("organizations:team-roles", organization)
+            ):
+                message = f"The role '{assigned_role}' is deprecated and may no longer be assigned."
+                return Response({"detail": message}, status=400)
+
+            self._change_org_member_role(member, assigned_role)
 
         self.create_audit_entry(
             request=request,
