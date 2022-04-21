@@ -104,7 +104,6 @@ class AlertRuleCreateEndpointTest(APITestCase):
             "projects": [self.project.slug],
             "owner": self.user.id,
             "name": "JustAValidTestRule",
-            "comparisonDelta": 60,
         }
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]

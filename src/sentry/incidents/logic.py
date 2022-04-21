@@ -1480,8 +1480,8 @@ def get_filtered_actions(validated_alert_rule_data, action_type: AlertRuleTrigge
     from sentry.incidents.serializers import STRING_TO_ACTION_TYPE
 
     filtered_actions = []
-    for trigger in validated_alert_rule_data["triggers"]:
-        for action in trigger["actions"]:
-            if STRING_TO_ACTION_TYPE[action["type"]] == action_type:
+    for trigger in validated_alert_rule_data.get("triggers", []):
+        for action in trigger.get("actions", []):
+            if STRING_TO_ACTION_TYPE.get(action.get("type")) == action_type:
                 filtered_actions.append(rewrite_trigger_action_fields(action))
     return filtered_actions
