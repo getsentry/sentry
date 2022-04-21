@@ -1,4 +1,4 @@
-import {ReducerAction, ReducerState, useReducer} from 'react';
+import {ReducerAction, ReducerState, useCallback, useReducer} from 'react';
 
 export type UndoableNode<S> = {
   current: S;
@@ -72,12 +72,27 @@ export function useUndoableReducer<
 >(
   reducer: R,
   initialState: ReducerState<R>
-): [ReducerState<R>, React.Dispatch<UndoableReducerAction<ReducerAction<R>>>] {
+): [
+  ReducerState<R>,
+  React.Dispatch<UndoableReducerAction<ReducerAction<R>>>,
+  {
+    peekFuture: () => ReducerState<R> | undefined;
+    peekHistory: () => ReducerState<R> | undefined;
+  }
+] {
   const [state, dispatch] = useReducer(makeUndoableReducer(reducer), {
     current: initialState,
     previous: undefined,
     next: undefined,
   });
 
-  return [state.current, dispatch];
+  const peekHistory = useCallback((): ReducerState<R> | undefined => {
+    return state?.previous?.current;
+  }, [state.current]);
+
+  const peekFuture = useCallback((): ReducerState<R> | undefined => {
+    return state?.next?.current;
+  }, [state.current]);
+
+  return [state.current, dispatch, {peekHistory, peekFuture}];
 }
