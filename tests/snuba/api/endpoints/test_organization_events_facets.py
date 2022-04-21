@@ -85,6 +85,42 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         ]
         self.assert_facet(response, "number", expected)
 
+    def test_order_by(self):
+        self.store_event(
+            data={
+                "event_id": uuid4().hex,
+                "timestamp": self.min_ago_iso,
+                "tags": {"alpha": "one"},
+                "environment": "aaaa",
+            },
+            project_id=self.project2.id,
+        )
+        self.store_event(
+            data={
+                "event_id": uuid4().hex,
+                "timestamp": self.min_ago_iso,
+                "tags": {"beta": "one"},
+                "environment": "bbbb",
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": uuid4().hex,
+                "timestamp": self.min_ago_iso,
+                "tags": {"charlie": "two"},
+                "environment": "cccc",
+            },
+            project_id=self.project.id,
+        )
+
+        with self.feature(self.features):
+            response = self.client.get(self.url, format="json")
+
+        assert response.status_code == 200, response.content
+        keys = [facet["key"] for facet in response.data]
+        assert ["alpha", "beta", "charlie", "environment", "level", "project"] == keys
+
     def test_with_message_query(self):
         self.store_event(
             data={

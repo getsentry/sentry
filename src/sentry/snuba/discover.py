@@ -1179,7 +1179,7 @@ def get_facets(
                     ]
                 )
 
-        return results
+        return sorted(results)
 
     # temporarily add old-json to referrer
     referrer = f"{referrer}.old-json"
