@@ -146,19 +146,18 @@ textarea {
 }
 
 a {
+  border-radius: 4px;
   cursor: pointer;
   transition: color linear 0.2s;
   color: @link-color;
   text-decoration: none;
 
-  &:hover,
-  &:focus {
-    color: @link-hover-color;
+  &:hover {
     text-decoration: none;
   }
 
   &:focus {
-    .tab-focus();
+    box-shadow: @link-color 0 0 0 2px;
     text-decoration: none;
   }
 }
