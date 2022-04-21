@@ -28,6 +28,7 @@ jobs:
         with:
           token: ${{ github.token }}
           filters: .github/file-filters.yml
+          list-files: shell
 
   typescript-and-lint:
     needs: files-changed
@@ -148,7 +149,6 @@ jobs:
           yarn storybook-build
 
   webpack:
-    if: needs.files-changed.outputs.frontend != 'true'
     needs: files-changed
     runs-on: ubuntu-20.04
     steps:
@@ -191,6 +191,12 @@ jobs:
   frontend-required-check:
     needs: [typescript-and-lint, webpack]
     name: Frontend
+    # This is necessary since a failed/skipped dependent job would cause this job to be skipped
+    if: always()
     runs-on: ubuntu-20.04
     steps:
-      - run: 'echo "All required checks have passed and we meet the requirements." '
+      # If any jobs we depend on fail, we will fail since this checks triggers Visual Snapshots which is a required check
+      - name: Check for failures
+        if: contains(needs.*.result, 'failure')
+        run: |
+          echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
