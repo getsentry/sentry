@@ -1,12 +1,12 @@
-import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
+import {DashboardsMEPContext} from 'sentry/views/dashboardsV2/widgetCard/dashboardsMEPContext';
 import WidgetQueries, {
   flattenMultiSeriesDataWithGrouping,
 } from 'sentry/views/dashboardsV2/widgetCard/widgetQueries';
-import {DashboardsMEPContext} from 'sentry/views/dashboardsV2/widgetCard/dashboardsMEPContext';
 
 describe('Dashboards > WidgetQueries', function () {
   const initialData = initializeOrg({
