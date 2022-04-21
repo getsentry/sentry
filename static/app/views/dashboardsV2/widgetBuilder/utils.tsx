@@ -1,4 +1,5 @@
 import isEqual from 'lodash/isEqual';
+import trimStart from 'lodash/trimStart';
 
 import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesForm';
 import {t} from 'sentry/locale';
@@ -7,6 +8,7 @@ import {
   aggregateFunctionOutputType,
   aggregateOutputType,
   getAggregateAlias,
+  isEquation,
   isLegalYAxisType,
   stripDerivedMetricsPrefix,
 } from 'sentry/utils/discover/fields';
@@ -131,8 +133,11 @@ export function normalizeQueries({
           ? stripDerivedMetricsPrefix(queries[0].orderby)
           : queries[0].orderby;
 
+      // Ignore the orderby if it is a raw equation, if we're switching to a table
+      // or Top-N chart, a custom equation should be reset since it only applies when
+      // grouping in timeseries charts
       const orderBy =
-        getAggregateAlias(queryOrderBy) ||
+        (!isEquation(trimStart(queryOrderBy, '-')) && getAggregateAlias(queryOrderBy)) ||
         (widgetType === WidgetType.ISSUE
           ? IssueSortOptions.DATE
           : generateOrderOptions({

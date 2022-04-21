@@ -40,7 +40,7 @@ export function SortBySelectors({
 }: Props) {
   const [showCustomEquation, setShowCustomEquation] = useState(false);
   const [customEquation, setCustomEquation] = useState<Values>({
-    sortBy: '',
+    sortBy: `${EQUATION_PREFIX}`,
     sortDirection: values.sortDirection,
   });
   const isTimeseriesChart = [
@@ -56,6 +56,8 @@ export function SortBySelectors({
         sortBy: trimStart(values.sortBy, '-'),
         sortDirection: values.sortDirection,
       });
+    } else {
+      setShowCustomEquation(false);
     }
   }, [values.sortBy]);
 

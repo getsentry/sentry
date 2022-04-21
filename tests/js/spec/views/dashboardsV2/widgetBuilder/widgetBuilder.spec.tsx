@@ -1695,6 +1695,43 @@ describe('WidgetBuilder', function () {
       expect(screen.getByText('Operators')).toBeInTheDocument();
       expect(screen.queryByText('Fields')).not.toBeInTheDocument();
     });
+
+    it('hides Custom Equation input and resets orderby when switching to table', async function () {
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        query: {
+          source: DashboardWidgetSource.DASHBOARDS,
+          displayType: DisplayType.LINE,
+        },
+      });
+
+      await selectEvent.select(await screen.findByText('Select group'), 'project');
+      expect(screen.getAllByText('count()')).toHaveLength(2);
+      await selectEvent.select(screen.getAllByText('count()')[1], 'Custom Equation');
+      userEvent.paste(
+        screen.getByPlaceholderText('Enter Equation'),
+        'count_unique(user) * 2'
+      );
+      userEvent.keyboard('{enter}');
+
+      // Switch the display type to Table
+      userEvent.click(screen.getByText('Line Chart'));
+      userEvent.click(screen.getByText('Table'));
+
+      expect(screen.getAllByText('count()')).toHaveLength(2);
+      expect(screen.queryByPlaceholderText('Enter Equation')).not.toBeInTheDocument();
+
+      await waitFor(() => {
+        expect(eventsStatsMock).toHaveBeenCalledWith(
+          '/organizations/org-slug/events-stats/',
+          expect.objectContaining({
+            query: expect.objectContaining({
+              orderby: '-count',
+            }),
+          })
+        );
+      });
+    });
   });
 
   describe('Widget creation coming from other verticals', function () {
