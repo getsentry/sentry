@@ -14,6 +14,8 @@ import ArithmeticInput from 'sentry/views/eventsV2/table/arithmeticInput';
 
 import {SortDirection, sortDirections} from '../../utils';
 
+const CUSTOM_EQUATION_VALUE = 'custom-equation';
+
 interface Values {
   sortBy: string;
   sortDirection: SortDirection;
@@ -36,7 +38,11 @@ export function SortBySelectors({
   displayType,
   isGrouped,
 }: Props) {
-  const [customEquation, setCustomEquation] = useState<Values | null>(null);
+  const [showCustomEquation, setShowCustomEquation] = useState(false);
+  const [customEquation, setCustomEquation] = useState<Values>({
+    sortBy: '',
+    sortDirection: values.sortDirection,
+  });
   const isTimeseriesChart = [
     DisplayType.LINE,
     DisplayType.BAR,
@@ -45,6 +51,7 @@ export function SortBySelectors({
 
   useEffect(() => {
     if (isEquation(trimStart(values.sortBy, '-'))) {
+      setShowCustomEquation(true);
       setCustomEquation({
         sortBy: trimStart(values.sortBy, '-'),
         sortDirection: values.sortDirection,
@@ -83,23 +90,18 @@ export function SortBySelectors({
         name="sortBy"
         menuPlacement="auto"
         placeholder={`${t('Select a column')}\u{2026}`}
-        value={customEquation ? 'custom-equation' : values.sortBy}
+        value={showCustomEquation ? CUSTOM_EQUATION_VALUE : values.sortBy}
         options={[
           ...uniqBy(sortByOptions, ({value}) => value),
           ...(isTimeseriesChart && isGrouped
-            ? [{value: 'custom-equation', label: t('Custom Equation')}]
+            ? [{value: CUSTOM_EQUATION_VALUE, label: t('Custom Equation')}]
             : []),
         ]}
         onChange={(option: SelectValue<string>) => {
-          if (option.value === 'custom-equation') {
-            // Only set the custom equation if custom equation wasn't
-            // already selected, or else the state gets wiped
-            if (!customEquation) {
-              setCustomEquation({
-                sortBy: '',
-                sortDirection: values.sortDirection,
-              });
-            }
+          const isSortingByCustomEquation = option.value === CUSTOM_EQUATION_VALUE;
+          setShowCustomEquation(isSortingByCustomEquation);
+          if (isSortingByCustomEquation) {
+            onChange(customEquation);
             return;
           }
 
@@ -107,10 +109,9 @@ export function SortBySelectors({
             sortBy: option.value,
             sortDirection: values.sortDirection,
           });
-          setCustomEquation(null);
         }}
       />
-      {customEquation && (
+      {showCustomEquation && (
         <ArithmeticInputWrapper>
           <ArithmeticInput
             name="arithmetic"
@@ -120,10 +121,12 @@ export function SortBySelectors({
             placeholder={t('Enter Equation')}
             value={getEquation(customEquation.sortBy)}
             onUpdate={value => {
-              onChange({
+              const newValue = {
                 sortBy: `${EQUATION_PREFIX}${value}`,
                 sortDirection: values.sortDirection,
-              });
+              };
+              onChange(newValue);
+              setCustomEquation(newValue);
             }}
             hideFieldOptions
           />
