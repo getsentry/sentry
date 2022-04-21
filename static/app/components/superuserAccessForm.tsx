@@ -1,6 +1,7 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
+import {logout} from 'sentry/actionCreators/account';
 import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import Form from 'sentry/components/forms/form';
@@ -64,8 +65,22 @@ class SuperuserAccessForm extends Component<Props, State> {
     });
   };
 
+  handleLogout = async () => {
+    const {api} = this.props;
+    try {
+      await logout(api);
+    } catch {
+      // ignore errors
+    }
+    window.location.assign('/auth/login/');
+  };
+
   render() {
     const {error, errorType} = this.state;
+    if (errorType === ErrorCodes.invalidSSOSession) {
+      this.handleLogout();
+      return null;
+    }
     return (
       <ThemeAndStyleProvider>
         <Form
