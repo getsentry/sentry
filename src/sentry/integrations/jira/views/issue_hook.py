@@ -119,7 +119,6 @@ class JiraIssueHookView(JiraBaseHook):
                 external_issue = ExternalIssue.objects.get(
                     integration_id=integration.id, key=issue_key
                 )
-                # TODO: handle multiple
                 group_link = GroupLink.objects.filter(
                     linked_type=GroupLink.LinkedType.issue,
                     linked_id=external_issue.id,
@@ -128,7 +127,12 @@ class JiraIssueHookView(JiraBaseHook):
                 if not group_link:
                     raise GroupLink.DoesNotExist()
                 group = Group.objects.get(id=group_link.group_id)
-            except (ExternalIssue.DoesNotExist, GroupLink.DoesNotExist, Group.DoesNotExist) as e:
+            except (
+                ExternalIssue.DoesNotExist,
+                GroupLink.DoesNotExist,
+                Group.DoesNotExist,
+                ExternalIssue.MultipleObjectsReturned,
+            ) as e:
                 scope.set_tag("failure", e.__class__.__name__)
                 set_badge(integration, issue_key, 0)
                 return self.get_response({"issue_not_linked": True})
