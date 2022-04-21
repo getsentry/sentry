@@ -32,12 +32,6 @@ jobs:
           token: ${{ github.token }}
           filters: .github/file-filters.yml
 
-      - name: foo
-        run: |
-          jq . <<EOF
-            ${{ toJSON(github) }}
-          EOF
-
   frontend:
     needs: files-changed
     name: frontend tests
@@ -331,7 +325,7 @@ jobs:
         id: visual-snapshots-diff
         uses: getsentry/action-visual-snapshot@v2
         # Do not execute on forks or on master. Forks are handled in visual-diff.yml
-        if: github.head_repository.full_name == 'getsentry/sentry' && github.ref != 'refs/heads/master'
+        if: github.head.repo.full_name == 'getsentry/sentry' && github.ref != 'refs/heads/master'
         with:
           api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
           gcs-bucket: 'sentry-visual-snapshots'
