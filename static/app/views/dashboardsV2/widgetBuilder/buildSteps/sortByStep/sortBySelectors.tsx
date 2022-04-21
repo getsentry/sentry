@@ -9,7 +9,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {SelectValue} from 'sentry/types';
 import {EQUATION_PREFIX, getEquation, isEquation} from 'sentry/utils/discover/fields';
-import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
+import {WidgetType} from 'sentry/views/dashboardsV2/types';
 import ArithmeticInput from 'sentry/views/eventsV2/table/arithmeticInput';
 
 import {SortDirection, sortDirections} from '../../utils';
@@ -22,12 +22,11 @@ interface Values {
 }
 
 interface Props {
-  displayType: DisplayType;
   onChange: (values: Values) => void;
   sortByOptions: SelectValue<string>[];
   values: Values;
   widgetType: WidgetType;
-  isGrouped?: boolean;
+  hasGroupBy?: boolean;
 }
 
 export function SortBySelectors({
@@ -35,20 +34,13 @@ export function SortBySelectors({
   sortByOptions,
   widgetType,
   onChange,
-  displayType,
-  isGrouped,
+  hasGroupBy,
 }: Props) {
   const [showCustomEquation, setShowCustomEquation] = useState(false);
   const [customEquation, setCustomEquation] = useState<Values>({
     sortBy: `${EQUATION_PREFIX}`,
     sortDirection: values.sortDirection,
   });
-  const isTimeseriesChart = [
-    DisplayType.LINE,
-    DisplayType.BAR,
-    DisplayType.AREA,
-  ].includes(displayType);
-
   useEffect(() => {
     if (isEquation(trimStart(values.sortBy, '-'))) {
       setShowCustomEquation(true);
@@ -95,7 +87,7 @@ export function SortBySelectors({
         value={showCustomEquation ? CUSTOM_EQUATION_VALUE : values.sortBy}
         options={[
           ...uniqBy(sortByOptions, ({value}) => value),
-          ...(isTimeseriesChart && isGrouped
+          ...(hasGroupBy
             ? [{value: CUSTOM_EQUATION_VALUE, label: t('Custom Equation')}]
             : []),
         ]}
