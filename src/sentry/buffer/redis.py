@@ -60,7 +60,8 @@ class RedisBuffer(Buffer):
 
     def validate(self):
         try:
-            with self.cluster.all() as client:
+            # wait 10 seconds at most
+            with self.cluster.all(timeout=10) as client:
                 client.ping()
         except Exception as e:
             raise InvalidConfiguration(str(e))
