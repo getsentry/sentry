@@ -304,10 +304,10 @@ jobs:
         uses: ./.github/actions/artifacts
         if: ${{ needs.files-changed.outputs.backend == 'true' }}
 
-  visual-diff:
-    # This guarantees that we will only schedule Visual Snapshots if all
-    # workflows that generate artifacts succeed
+  # If this job fails then visual-diff will not be scheduled
+  acceptance-required-check:
     needs: [acceptance, frontend, chartcuterie]
+    # XXX: Cannot rename this check since it is now required
     name: triggers visual snapshot
     # This is necessary since a failed/skipped dependent job would cause this job to be skipped
     if: always()
@@ -315,18 +315,8 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      # If any jobs we depend on fail, we will fail since this checks triggers Visual Snapshots which is a required check
+      # If any jobs we depend on fails, this job will fail since visual-diff.yml depends on this succeeding
       - name: Check for failures
         if: contains(needs.*.result, 'failure')
         run: |
           echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
-
-      - name: Diff snapshots
-        id: visual-snapshots-diff
-        uses: getsentry/action-visual-snapshot@v2
-        # Do not execute on forks or on master. Forks are handled in visual-diff.yml
-        if: github.head.repo.full_name == 'getsentry/sentry' && github.ref != 'refs/heads/master'
-        with:
-          api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
-          gcs-bucket: 'sentry-visual-snapshots'
-          gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}
