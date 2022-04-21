@@ -833,19 +833,32 @@ class AuthHelper(Pipeline):
                 "sentry-organization-auth-settings", args=[self.organization.slug]
             )
 
-        # NOTE: Does NOT indicated a _login_ error specificallyl.
-        # Could potentially be error with registering, configuring the provider, etc
-        metrics.incr(
-            "sso.error",
-            tags={
-                "flow": self.state.flow,
-                "provider": self.provider.key,
-                "organization_id": self.organization.id,
-                "user_id": self.request.user.id,
-            },
-            skip_internal=False,
-            sample_rate=1.0,
-        )
+        if redirect_uri == "/":
+            metrics.incr(
+                "sso.exit",
+                tags={
+                    "flow": self.state.flow,
+                    "provider": self.provider.key,
+                    "organization_id": self.organization.id,
+                    "user_id": self.request.user.id,
+                },
+                skip_internal=False,
+                sample_rate=1.0,
+            )
+        else:
+            metrics.incr(
+                "sso.error",
+                tags={
+                    "flow": self.state.flow,
+                    "provider": self.provider.key,
+                    "organization_id": self.organization.id,
+                    "user_id": self.request.user.id,
+                },
+                skip_internal=False,
+                sample_rate=1.0,
+            )
+
+        # NOTE: Does NOT necessarily indicate a login _failure_
         logger.warning(
             "sso.login-pipeline.error",
             extra={
