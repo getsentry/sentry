@@ -28,6 +28,7 @@ jobs:
         with:
           token: ${{ github.token }}
           filters: .github/file-filters.yml
+          list-files: shell
 
   typescript-and-lint:
     needs: files-changed
@@ -108,8 +109,7 @@ jobs:
       - name: stylelint (changed files only)
         if: github.ref != 'refs/heads/master' && needs.files-changed.outputs.frontend_components_modified_lintable == 'true'
         run: |
-          # XXX: this should use the set of changed files
-          yarn lint:css
+          yarn stylelint ${{ needs.files-changed.outputs.frontend_components_modified_lintable_files }}
 
       # Check (and error) for dirty working tree for forks
       # Reason being we need a different token to auto commit changes and
