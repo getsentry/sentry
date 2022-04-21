@@ -135,6 +135,9 @@ class JiraIssueHookView(JiraBaseHook):
                 )
             except (
                 ExternalIssue.DoesNotExist,
+                # Multiple ExternalIssues are returned if organizations share one integration.
+                # Since we cannot identify the organization from the request alone, for now, we just
+                # avoid crashing on the MultipleObjectsReturned error.
                 ExternalIssue.MultipleObjectsReturned,
             ) as e:
                 scope.set_tag("failure", e.__class__.__name__)
