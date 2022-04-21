@@ -14,7 +14,6 @@ from sentry.notifications.notifications.user_report import UserReportNotificatio
 from sentry.notifications.types import ActionTargetType
 from sentry.plugins.base.structs import Notification
 from sentry.tasks.digests import deliver_digest
-from sentry.types.rules import RuleFuture
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
