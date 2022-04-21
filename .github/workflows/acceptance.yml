@@ -32,6 +32,12 @@ jobs:
           token: ${{ github.token }}
           filters: .github/file-filters.yml
 
+      - name: foo
+        run: |
+          jq . <<EOF
+            ${{ toJSON(github) }}
+          EOF
+
   frontend:
     needs: files-changed
     name: frontend tests
