@@ -106,7 +106,7 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
             )
 
         if search_filter.key.name == SEMVER_PACKAGE_ALIAS:
-            negated = True if search_filter.operator == "!=" else False
+            negated = search_filter.operator == "!="
             queryset = queryset.filter_by_semver(
                 organization.id,
                 SemverFilter("exact", [], search_filter.value.raw_value, negated),

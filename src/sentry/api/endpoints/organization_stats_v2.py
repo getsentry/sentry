@@ -97,7 +97,7 @@ class OrgStatsQueryParamsSerializer(serializers.Serializer):
         ("error", "transaction", "attachment"),
         required=False,
         help_text=(
-            "If filtering by attachments, you cannot filter by any other category due to quantity values becoming non-sensical (combining bytes and event counts).\n\n"
+            "If filtering by attachments, you cannot filter by any other category due to quantity values becoming nonsensical (combining bytes and event counts).\n\n"
             "If filtering by `error`, it will automatically add `default` and `security` as we currently roll those two categories into `error` for displaying."
         ),
     )

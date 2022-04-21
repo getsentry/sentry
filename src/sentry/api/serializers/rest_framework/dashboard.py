@@ -157,7 +157,7 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
             equations, fields = categorize_columns(fields)
 
         # TODO(dam): Temp code while we are sure adoption
-        # of fromtend code that sends this data is high enough
+        # of frontend code that sends this data is high enough
         columns = self._get_attr(data, "columns", []).copy()
         aggregates = self._get_attr(data, "aggregates", []).copy()
 

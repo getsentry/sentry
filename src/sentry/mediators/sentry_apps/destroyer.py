@@ -18,7 +18,7 @@ class Destroyer(Mediator):
 
     def _destroy_sentry_app_installations(self):
         for install in self.sentry_app.installations.all():
-            notify = False if self.sentry_app.is_internal else True
+            notify = not self.sentry_app.is_internal
             sentry_app_installations.Destroyer.run(
                 install=install, user=self.sentry_app.proxy_user, notify=notify
             )
