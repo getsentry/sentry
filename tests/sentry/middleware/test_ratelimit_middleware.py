@@ -156,21 +156,22 @@ class RatelimitMiddlewareTest(TestCase):
 
         view = OrganizationGroupIndexEndpoint.as_view()
         rate_limit_config = get_rate_limit_config(view.view_class)
+        rate_limit_group = rate_limit_config.group if rate_limit_config else RateLimitConfig().group
 
         # Test for default IP
         request = self.factory.get("/")
         assert (
-            get_rate_limit_key(view, request, rate_limit_config)
+            get_rate_limit_key(view, request, rate_limit_group, rate_limit_config)
             == "ip:default:OrganizationGroupIndexEndpoint:GET:127.0.0.1"
         )
         # Test when IP address is missing
         request.META["REMOTE_ADDR"] = None
-        assert get_rate_limit_key(view, request, rate_limit_config) is None
+        assert get_rate_limit_key(view, request, rate_limit_group, rate_limit_config) is None
 
         # Test when IP addess is IPv6
         request.META["REMOTE_ADDR"] = "684D:1111:222:3333:4444:5555:6:77"
         assert (
-            get_rate_limit_key(view, request, rate_limit_config)
+            get_rate_limit_key(view, request, rate_limit_group, rate_limit_config)
             == "ip:default:OrganizationGroupIndexEndpoint:GET:684D:1111:222:3333:4444:5555:6:77"
         )
 
@@ -178,7 +179,7 @@ class RatelimitMiddlewareTest(TestCase):
         request.session = {}
         request.user = self.user
         assert (
-            get_rate_limit_key(view, request, rate_limit_config)
+            get_rate_limit_key(view, request, rate_limit_group, rate_limit_config)
             == f"user:default:OrganizationGroupIndexEndpoint:GET:{self.user.id}"
         )
 
@@ -187,14 +188,14 @@ class RatelimitMiddlewareTest(TestCase):
         request.auth = token
         request.user = self.user
         assert (
-            get_rate_limit_key(view, request, rate_limit_config)
+            get_rate_limit_key(view, request, rate_limit_group, rate_limit_config)
             == f"user:default:OrganizationGroupIndexEndpoint:GET:{self.user.id}"
         )
 
         # Test for sentryapp auth tokens:
         self.populate_sentry_app_request(request)
         assert (
-            get_rate_limit_key(view, request, rate_limit_config)
+            get_rate_limit_key(view, request, rate_limit_group, rate_limit_config)
             == f"org:default:OrganizationGroupIndexEndpoint:GET:{self.organization.id}"
         )
 
@@ -205,7 +206,7 @@ class RatelimitMiddlewareTest(TestCase):
         request.user = AnonymousUser()
         request.auth = api_key
         assert (
-            get_rate_limit_key(view, request, rate_limit_config)
+            get_rate_limit_key(view, request, rate_limit_group, rate_limit_config)
             == "ip:default:OrganizationGroupIndexEndpoint:GET:684D:1111:222:3333:4444:5555:6:77"
         )
 
