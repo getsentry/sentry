@@ -1,9 +1,8 @@
-import {useEffect, useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import trimStart from 'lodash/trimStart';
 import uniqBy from 'lodash/uniqBy';
 
-import Input from 'sentry/components/forms/controls/input';
 import SelectControl from 'sentry/components/forms/selectControl';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
@@ -11,6 +10,7 @@ import space from 'sentry/styles/space';
 import {SelectValue} from 'sentry/types';
 import {EQUATION_PREFIX, getEquation, isEquation} from 'sentry/utils/discover/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
+import ArithmeticInput from 'sentry/views/eventsV2/table/arithmeticInput';
 
 import {SortDirection, sortDirections} from '../../utils';
 
@@ -111,19 +111,22 @@ export function SortBySelectors({
         }}
       />
       {customEquation && (
-        <StyledInput
-          placeholder={t('Enter Equation')}
-          value={getEquation(customEquation.sortBy)}
-          onChange={e => {
-            setCustomEquation({
-              sortBy: `${EQUATION_PREFIX}${e.target.value}`,
-              sortDirection: values.sortDirection,
-            });
-          }}
-          onBlur={() => {
-            onChange(customEquation);
-          }}
-        />
+        <ArithmeticInputWrapper>
+          <ArithmeticInput
+            name="arithmetic"
+            key="parameter:text"
+            type="text"
+            required
+            placeholder={t('Enter Equation')}
+            value={getEquation(customEquation.sortBy)}
+            onUpdate={value => {
+              onChange({
+                sortBy: `${EQUATION_PREFIX}${value}`,
+                sortDirection: values.sortDirection,
+              });
+            }}
+          />
+        </ArithmeticInputWrapper>
       )}
     </Wrapper>
   );
@@ -138,6 +141,6 @@ const Wrapper = styled('div')`
   }
 `;
 
-const StyledInput = styled(Input)`
+const ArithmeticInputWrapper = styled('div')`
   grid-column: 1/-1;
 `;
