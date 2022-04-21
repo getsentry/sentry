@@ -107,6 +107,7 @@ const ReplayPlayerContext = React.createContext<ReplayPlayerContextProps>({
 });
 
 type Props = {
+  children: React.ReactNode;
   events: eventWithTime[];
   value?: Partial<ReplayPlayerContextProps>;
 };
@@ -117,7 +118,7 @@ function useCurrentTime(callback: () => number) {
   return currentTime;
 }
 
-export function Provider({children, events, value = {}}: React.PropsWithChildren<Props>) {
+export function Provider({children, events, value = {}}: Props) {
   const theme = useTheme();
   const oldEvents = usePrevious(events);
   const replayerRef = useRef<Replayer>(null);
