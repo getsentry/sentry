@@ -316,8 +316,6 @@ SelectFieldInFieldLabel.parameters = {
 
 export const CompactSelectField = props => (
   <CompactSelect
-    name="compact select"
-    label="Select With Label In Field"
     defaultValue="choice_one"
     options={[
       {value: 'choice_one', label: 'Choice One'},
