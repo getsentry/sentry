@@ -36,12 +36,12 @@ describe('ProcessingIssueHint', function () {
     });
 
     it('displays an icon', function () {
-      const icon = wrapper.find('IconWarning');
+      const icon = wrapper.find('IconNot');
       expect(icon.length).toBe(1);
     });
 
     it('displays text', function () {
-      const text = wrapper.find('Wrapper').text();
+      const text = wrapper.find('StyledTextBlock').text();
       expect(text).toEqual(expect.stringContaining('issues blocking'));
     });
   });
@@ -60,12 +60,12 @@ describe('ProcessingIssueHint', function () {
     });
 
     it('displays an icon', function () {
-      const icon = wrapper.find('IconSettings');
+      const icon = wrapper.find('IconInfo');
       expect(icon.length).toBe(1);
     });
 
     it('displays text', function () {
-      const text = wrapper.find('Wrapper').text();
+      const text = wrapper.find('StyledTextBlock').text();
       expect(text).toEqual(expect.stringContaining('Reprocessing'));
     });
   });
@@ -87,12 +87,12 @@ describe('ProcessingIssueHint', function () {
     });
 
     it('displays an icon', function () {
-      const icon = wrapper.find('IconSettings');
+      const icon = wrapper.find('IconWarning');
       expect(icon.length).toBe(1);
     });
 
     it('displays text', function () {
-      const text = wrapper.find('Wrapper').text();
+      const text = wrapper.find('StyledTextBlock').text();
       expect(text).toEqual(expect.stringContaining('pending reprocessing'));
     });
   });
@@ -110,7 +110,7 @@ describe('ProcessingIssueHint', function () {
       );
     });
     it('displays the project slug', function () {
-      const text = wrapper.find('Wrapper').text();
+      const text = wrapper.find('StyledTextBlock').text();
       expect(text).toEqual(expect.stringContaining(projectId));
     });
   });

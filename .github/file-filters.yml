@@ -24,7 +24,7 @@ frontend: &frontend
   - 'docs-ui/**'
   - 'static/**'
   - 'tests/js/**'
-  - '.github/workflows/js-*.yml'
+  - '.github/workflows/frontend.yml'
 
 frontend_modified_lintable:
   - added|modified: *frontend_lintable
@@ -43,7 +43,7 @@ backend_dependencies: &backend_dependencies
 backend_build_changes: &backend_build_changes
   - 'Makefile'
   - '.pre-commit-config.yaml'
-  - '.github/workflows/!(js-*)'
+  - '.github/workflows/!(frontend)'
   - '.github/actions/setup-sentry/action.yml'
 
 backend: &backend
@@ -56,14 +56,24 @@ backend: &backend
   - 'migrations_lockfile.txt'
   - 'config/**/*'
 
-plugins:
+acceptance: &acceptance
+  - *backend
+  - *frontend
+
+plugins: &plugins
   - *backend
   - 'src/sentry_plugins/**/*.html'
 
-api_docs:
+api_docs: &api_docs
   - *backend
   - 'api-docs/**'
   - 'tests/apidocs/**'
+
+# This is the ultimate controller for backend.yml
+backend_any_type: &backend_any_type
+  - *backend
+  - *api_docs
+  - *plugins
 
 migrations_added:
   - added: 'src/sentry/migrations/*'

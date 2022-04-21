@@ -3,12 +3,12 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import UserAvatar from 'sentry/components/avatar/userAvatar';
-import Link from 'sentry/components/links/link';
+import Link, {LinkProps} from 'sentry/components/links/link';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {AvatarUser, Member} from 'sentry/types';
 
-type Props = {
+interface Props {
   member: Member;
   avatarSize?: UserAvatar['props']['size'];
   className?: string;
@@ -17,7 +17,7 @@ type Props = {
   hideEmail?: boolean;
   orgId?: string;
   useLink?: boolean;
-};
+}
 
 function getMemberUser(member: Member): AvatarUser {
   if (member.user) {
@@ -89,10 +89,11 @@ const StyledEmail = styled('div')`
   ${overflowEllipsis};
 `;
 
-type NameProps = {
+interface NameProps {
   hideEmail: boolean;
+  to: LinkProps['to'];
   useLink: boolean;
-} & Pick<React.ComponentProps<typeof Link>, 'to'>;
+}
 
 const StyledName = styled(({useLink, to, ...props}: NameProps) => {
   const forwardProps = omit(props, 'hideEmail');

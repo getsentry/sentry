@@ -15,7 +15,7 @@ from sentry.api import client
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.user import DetailedUserSerializer
+from sentry.api.serializers.models.user import DetailedSelfUserSerializer
 from sentry.api.serializers.rest_framework import ListField
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import LANGUAGES
@@ -132,7 +132,7 @@ class UserDetailsEndpoint(UserEndpoint):
 
         :auth: required
         """
-        return Response(serialize(user, request.user, DetailedUserSerializer()))
+        return Response(serialize(user, request.user, DetailedSelfUserSerializer()))
 
     def put(self, request: Request, user) -> Response:
         """
@@ -196,7 +196,7 @@ class UserDetailsEndpoint(UserEndpoint):
                     },
                 )
 
-        return Response(serialize(user, request.user, DetailedUserSerializer()))
+        return Response(serialize(user, request.user, DetailedSelfUserSerializer()))
 
     @sudo_required
     def delete(self, request: Request, user) -> Response:

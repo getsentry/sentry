@@ -24,7 +24,6 @@ from sentry_sdk import Hub
 from snuba_sdk.legacy import json_to_snql
 from snuba_sdk.query import Query
 
-from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
     Environment,
     Group,
@@ -36,7 +35,6 @@ from sentry.models import (
     ReleaseProject,
 )
 from sentry.net.http import connection_from_url
-from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
 from sentry.utils import json, metrics
@@ -771,12 +769,13 @@ def _bulk_snuba_query(
     snuba_param_list: Sequence[SnubaQueryBody],
     headers: Mapping[str, str],
 ) -> ResultSet:
+    query_referrer = headers.get("referer", "<unknown>")
+
     with sentry_sdk.start_span(
         op="snuba_query",
-        description="running snuba queries",
+        description=query_referrer,
     ) as span:
         span.set_tag("snuba.num_queries", len(snuba_param_list))
-        query_referrer = headers.get("referer", "<unknown>")
         # We set both span + sdk level, this is cause 1 txn/error might query snuba more than once
         # but we still want to know a general sense of how referrers impact performance
         span.set_tag("query.referrer", query_referrer)
@@ -895,13 +894,14 @@ def _legacy_snql_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> Raw
 def _raw_snql_query(
     query: Query, thread_hub: Hub, headers: Mapping[str, str]
 ) -> urllib3.response.HTTPResponse:
-    with timer("snql_query"):
+    # Enter hub such that http spans are properly nested
+    with thread_hub, timer("snql_query"):
         referrer = headers.get("referer", "<unknown>")
         if SNUBA_INFO:
             logger.info(f"{referrer}.body: {query}")
             query = query.set_debug(True)
 
-        with thread_hub.start_span(op="snuba_snql", description="validation") as span:
+        with thread_hub.start_span(op="snuba_snql.validation", description=referrer) as span:
             span.set_tag("snuba.referrer", referrer)
             scope = thread_hub.scope
             if scope.transaction:
@@ -918,9 +918,8 @@ def _raw_snql_query(
             )
             body = query.snuba()
 
-        with thread_hub.start_span(op="snuba_snql", description="run query") as span:
+        with thread_hub.start_span(op="snuba_snql.run", description=str(query)) as span:
             span.set_tag("snuba.referrer", referrer)
-            span.set_data("snql", str(query))
             return _snuba_pool.urlopen("POST", f"/{query.dataset}/snql", body=body, headers=headers)
 
 
@@ -1001,8 +1000,8 @@ def nest_groups(data, groups, aggregate_cols):
         return OrderedDict((k, nest_groups(v, rest, aggregate_cols)) for k, v in inter.items())
 
 
-def resolve_column(dataset):
-    def _resolve_column(col):
+def resolve_column(dataset) -> Callable[[str], str]:
+    def _resolve_column(col: str) -> str:
         if col is None:
             return col
         if isinstance(col, int) or isinstance(col, float):
@@ -1014,13 +1013,6 @@ def resolve_column(dataset):
         if dataset == Dataset.Discover:
             if isinstance(col, (list, tuple)) or col == "project_id":
                 return col
-        elif dataset == Dataset.Metrics:
-            if col in DATASETS[dataset]:
-                return DATASETS[dataset][col]
-            tag_id = indexer.resolve(col)
-            if tag_id is None:
-                raise InvalidSearchQuery(f"Unknown field: {col}")
-            return f"tags[{tag_id}]"
         else:
             if (
                 col in DATASET_FIELDS[dataset]

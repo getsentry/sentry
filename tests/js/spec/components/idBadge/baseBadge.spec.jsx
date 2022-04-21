@@ -8,8 +8,7 @@ describe('BadgeBadge', function () {
       <BaseBadge
         organization={TestStubs.Organization()}
         displayName={<span id="test">display name</span>}
-      />,
-      TestStubs.routerContext()
+      />
     );
     expect(wrapper.find('#test')).toHaveLength(1);
     expect(wrapper.find('#test').text()).toBe('display name');
@@ -17,8 +16,7 @@ describe('BadgeBadge', function () {
 
   it('can hide avatar', function () {
     const wrapper = mountWithTheme(
-      <BaseBadge organization={TestStubs.Organization()} hideAvatar />,
-      TestStubs.routerContext()
+      <BaseBadge organization={TestStubs.Organization()} hideAvatar />
     );
     expect(wrapper.find('StyledAvatar')).toHaveLength(0);
   });
@@ -29,8 +27,7 @@ describe('BadgeBadge', function () {
         organization={TestStubs.Organization()}
         hideName
         displayName={<span id="test">display name</span>}
-      />,
-      TestStubs.routerContext()
+      />
     );
     expect(wrapper.find('#test')).toHaveLength(0);
   });

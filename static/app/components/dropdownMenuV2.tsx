@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useRef, useState} from 'react';
+import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {useKeyboard} from '@react-aria/interactions';
@@ -48,6 +48,11 @@ type Props = {
    */
   menuTitle?: string;
   onClose?: () => void;
+  /**
+   * Current width of the trigger element. This is used as the menu's minumum
+   * width.
+   */
+  triggerWidth?: number;
 } & AriaMenuOptions<MenuItemProps> &
   Partial<OverlayProps> &
   Partial<AriaPositionProps>;
@@ -59,6 +64,7 @@ function Menu({
   placement = 'bottom left',
   closeOnSelect = true,
   triggerRef,
+  triggerWidth,
   isSubmenu,
   menuTitle,
   closeRootMenu,
@@ -68,11 +74,12 @@ function Menu({
   ...props
 }: Props) {
   const state = useTreeState<MenuItemProps>({...props, selectionMode: 'single'});
-  const stateCollection = [...state.collection];
+  const stateCollection = useMemo(() => [...state.collection], [state.collection]);
 
   // Implement focus states, keyboard navigation, aria-label,...
   const menuRef = useRef(null);
   const {menuProps} = useMenu({...props, selectionMode: 'single'}, state, menuRef);
+  const {separatorProps} = useSeparator({elementType: 'li'});
 
   // If this is a submenu, pressing arrow left should close it (but not the
   // root menu).
@@ -108,6 +115,10 @@ function Menu({
     placement,
     containerPadding,
     isOpen: true,
+    // useOverlayPosition's algorithm doesn't work well for submenus on viewport
+    // scroll. Changing the boundary element (document.body by default) seems to
+    // fix this.
+    boundaryElement: document.querySelector<HTMLElement>('.app') ?? undefined,
   });
 
   // Store whether this menu/submenu is the current focused one, which in a
@@ -130,7 +141,7 @@ function Menu({
         : state.selectionManager.isSelected(`${node.key}`);
     });
     setHasFocus(isLeafSubmenu);
-  }, [state.selectionManager.selectedKeys]);
+  }, [stateCollection, state.selectionManager]);
   // Menu props from useMenu, modified to disable keyboard events if the
   // current menu does not have focus.
   const modifiedMenuProps = {
@@ -192,7 +203,6 @@ function Menu({
       const isLastNode = collection.length - 1 === i;
       const showSeparator =
         !isLastNode && (node.type === 'section' || collection[i + 1]?.type === 'section');
-      const {separatorProps} = useSeparator({elementType: 'li'});
 
       let itemToRender: React.ReactNode;
 
@@ -224,7 +234,10 @@ function Menu({
         <MenuWrap
           ref={menuRef}
           {...modifiedMenuProps}
-          style={{maxHeight: positionProps.style?.maxHeight}}
+          style={{
+            maxHeight: positionProps.style?.maxHeight,
+            minWidth: triggerWidth,
+          }}
         >
           {menuTitle && <MenuTitle>{menuTitle}</MenuTitle>}
           {renderCollection(stateCollection)}

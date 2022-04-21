@@ -1,22 +1,8 @@
-"""
-- Turn on HTTP Event Collector by enabling its endpoint. HEC is not enabled by default.
-  - http://dev.splunk.com/view/event-collector/SP-CAAAE7F
-  - Settings > Data Inputs > HTTP Event Collector > Add new
-    - Name: Sentry
-  - You'll be given an HEC token, which is needed to configure Sentry.
-- On the client that will log to HEC, create a POST request, and set its authentication header or key/value pair to include the HEC token.
-- POST data to the HEC token receiver.
-
-Note: Managed Splunk Cloud customers can turn on HTTP Event Collector by filing a request ticket with Splunk Support.
-Note: Managed Splunk Cloud customers can create a HEC token by filing a request ticket with Splunk Support.
-
-For more details on the payload: http://dev.splunk.com/view/event-collector/SP-CAAAE6M
-"""
-
-
 import logging
+from typing import Any, MutableMapping
 
 from sentry import tagstore
+from sentry.eventstore.models import Event
 from sentry.integrations import FeatureDescription, IntegrationFeatures
 from sentry.plugins.bases.data_forwarding import DataForwardingPlugin
 from sentry.shared_integrations.exceptions import ApiError, ApiHostError, ApiTimeoutError
@@ -38,6 +24,22 @@ Send Sentry events to Splunk.
 
 
 class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
+    """
+    - Turn on HTTP Event Collector by enabling its endpoint. HEC is not enabled by default.
+      - http://dev.splunk.com/view/event-collector/SP-CAAAE7F
+      - Settings > Data Inputs > HTTP Event Collector > Add new
+        - Name: Sentry
+      - You'll be given an HEC token, which is needed to configure Sentry.
+    - On the client that will log to HEC, create a POST request, and set its
+      authentication header or key/value pair to include the HEC token.
+    - POST data to the HEC token receiver.
+
+    Note: Managed Splunk Cloud customers can turn on HTTP Event Collector by filing a request ticket with Splunk Support.
+    Note: Managed Splunk Cloud customers can create a HEC token by filing a request ticket with Splunk Support.
+
+    For more details on the payload: http://dev.splunk.com/view/event-collector/SP-CAAAE6M
+    """
+
     title = "Splunk"
     slug = "splunk"
     description = DESCRIPTION
@@ -191,7 +193,7 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
         }
         return payload
 
-    def forward_event(self, event, payload):
+    def forward_event(self, event: Event, payload: MutableMapping[str, Any]) -> bool:
         if not (self.project_token and self.project_index and self.project_instance):
             metrics.incr(
                 "integrations.splunk.forward-event.unconfigured",
@@ -211,16 +213,6 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
         try:
             # https://docs.splunk.com/Documentation/Splunk/7.2.3/Data/TroubleshootHTTPEventCollector
             client.request(payload)
-
-            metrics.incr(
-                "integrations.splunk.forward-event.success",
-                tags={
-                    "project_id": event.project_id,
-                    "organization_id": event.project.organization_id,
-                    "event_type": event.get_event_type(),
-                },
-            )
-            return True
         except Exception as exc:
             metric = "integrations.splunk.forward-event.error"
             metrics.incr(
@@ -241,19 +233,23 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
                 },
             )
 
-            if isinstance(
-                exc,
-                (
-                    ApiHostError,
-                    ApiTimeoutError,
-                ),
+            if isinstance(exc, ApiError) and (
+                # These two are already handled by the API client, Just log and return.
+                isinstance(exc, (ApiHostError, ApiTimeoutError))
+                # Most 4xxs are not errors or actionable for us do not re-raise.
+                or (401 <= exc.code <= 404)
+                # 502s are too noisy.
+                or exc.code == 502
             ):
-                # The above errors are already handled by the API client.
-                # Just log and return.
                 return False
+            raise exc
 
-            if isinstance(exc, ApiError) and 401 <= exc.code <= 404:
-                # Most 4xxs are not errors or actionable for us do not re-raise
-                return False
-
-            raise
+        metrics.incr(
+            "integrations.splunk.forward-event.success",
+            tags={
+                "project_id": event.project_id,
+                "organization_id": event.project.organization_id,
+                "event_type": event.get_event_type(),
+            },
+        )
+        return True

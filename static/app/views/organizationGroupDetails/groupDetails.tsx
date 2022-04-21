@@ -1,7 +1,8 @@
-import * as React from 'react';
+import {cloneElement, Component, Fragment, isValidElement} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
+import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import PropTypes from 'prop-types';
+import * as PropTypes from 'prop-types';
 
 import {Client} from 'sentry/api';
 import LoadingError from 'sentry/components/loadingError';
@@ -12,10 +13,12 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import SentryTypes from 'sentry/sentryTypes';
 import GroupStore from 'sentry/stores/groupStore';
-import {PageContent} from 'sentry/styles/organization';
+import space from 'sentry/styles/space';
 import {AvatarProject, Group, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
+import {getUtcDateString} from 'sentry/utils/dates';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import Projects from 'sentry/utils/projects';
 import recreateRoute from 'sentry/utils/recreateRoute';
@@ -23,6 +26,7 @@ import withApi from 'sentry/utils/withApi';
 
 import {ERROR_TYPES} from './constants';
 import GroupHeader from './header';
+import SampleEventAlert from './sampleEventAlert';
 import {Tab} from './types';
 import {
   fetchGroupEvent,
@@ -54,7 +58,7 @@ type State = {
   event?: Event;
 };
 
-class GroupDetails extends React.Component<Props, State> {
+class GroupDetails extends Component<Props, State> {
   static childContextTypes = {
     group: SentryTypes.Group,
     location: PropTypes.object,
@@ -70,16 +74,20 @@ class GroupDetails extends React.Component<Props, State> {
   }
 
   componentDidMount() {
-    this.fetchData();
+    this.fetchData(true);
     this.updateReprocessingProgress();
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
+    const globalSelectionReadyChanged =
+      prevProps.isGlobalSelectionReady !== this.props.isGlobalSelectionReady;
+
     if (
-      prevProps.isGlobalSelectionReady !== this.props.isGlobalSelectionReady ||
+      globalSelectionReadyChanged ||
       prevProps.location.pathname !== this.props.location.pathname
     ) {
-      this.fetchData();
+      // Skip tracking for other navigation events like switching events
+      this.fetchData(globalSelectionReadyChanged);
     }
 
     if (
@@ -93,10 +101,12 @@ class GroupDetails extends React.Component<Props, State> {
   componentWillUnmount() {
     GroupStore.reset();
     callIfFunction(this.listener);
-    if (this.interval) {
-      clearInterval(this.interval);
+    if (this.refetchInterval) {
+      window.clearInterval(this.refetchInterval);
     }
   }
+
+  refetchInterval: number | null = null;
 
   get initialState(): State {
     return {
@@ -109,6 +119,21 @@ class GroupDetails extends React.Component<Props, State> {
       errorType: null,
       project: null,
     };
+  }
+
+  trackView(project: Project) {
+    const {organization, params, location} = this.props;
+    const {alert_date, alert_rule_id, alert_type} = location.query;
+    trackAdvancedAnalyticsEvent('issue_details.viewed', {
+      organization,
+      project_id: parseInt(project.id, 10),
+      group_id: parseInt(params.groupId, 10),
+      // Alert properties track if the user came from email/slack alerts
+      alert_date:
+        typeof alert_date === 'string' ? getUtcDateString(Number(alert_date)) : undefined,
+      alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
+      alert_type: typeof alert_type === 'string' ? alert_type : undefined,
+    });
   }
 
   remountComponent = () => {
@@ -178,7 +203,10 @@ class GroupDetails extends React.Component<Props, State> {
     if (!hasReprocessingV2Feature) {
       return;
     }
-    this.interval = setInterval(this.refetchGroup, 30000);
+    if (this.refetchInterval) {
+      window.clearInterval(this.refetchInterval);
+    }
+    this.refetchInterval = window.setInterval(this.refetchGroup, 30000);
   }
 
   hasReprocessingV2Feature() {
@@ -325,7 +353,7 @@ class GroupDetails extends React.Component<Props, State> {
     GroupStore.onPopulateReleases(this.props.params.groupId, releases);
   }
 
-  async fetchData() {
+  async fetchData(trackView = false) {
     const {api, isGlobalSelectionReady, params} = this.props;
 
     // Need to wait for global selection store to be ready before making request
@@ -390,13 +418,16 @@ class GroupDetails extends React.Component<Props, State> {
       this.setState({project, loadingGroup: false});
 
       GroupStore.loadInitialData([data]);
+
+      if (trackView) {
+        this.trackView(project);
+      }
     } catch (error) {
       this.handleRequestError(error);
     }
   }
 
   listener = GroupStore.listen(itemIds => this.onGroupChange(itemIds), undefined);
-  interval: ReturnType<typeof setInterval> | undefined = undefined;
 
   onGroupChange(itemIds: Set<string>) {
     const id = this.props.params.groupId;
@@ -447,7 +478,9 @@ class GroupDetails extends React.Component<Props, State> {
     switch (this.state.errorType) {
       case ERROR_TYPES.GROUP_NOT_FOUND:
         return (
-          <LoadingError message={t('The issue you were looking for was not found.')} />
+          <StyledLoadingError
+            message={t('The issue you were looking for was not found.')}
+          />
         );
 
       case ERROR_TYPES.MISSING_MEMBERSHIP:
@@ -458,12 +491,12 @@ class GroupDetails extends React.Component<Props, State> {
           />
         );
       default:
-        return <LoadingError onRetry={this.remountComponent} />;
+        return <StyledLoadingError onRetry={this.remountComponent} />;
     }
   }
 
   renderContent(project: AvatarProject, group: Group) {
-    const {children, environments} = this.props;
+    const {children, environments, organization} = this.props;
     const {loadingEvent, eventError, event} = this.state;
 
     const {currentTab, baseUrl} = this.getCurrentRouteInfo(group);
@@ -476,14 +509,20 @@ class GroupDetails extends React.Component<Props, State> {
     };
 
     if (currentTab === Tab.DETAILS) {
-      childProps = {
-        ...childProps,
-        event,
-        loadingEvent,
-        eventError,
-        groupReprocessingStatus,
-        onRetry: () => this.remountComponent(),
-      };
+      if (group.id !== event?.groupID && !eventError) {
+        // if user pastes only the event id into the url, but it's from another group, redirect to correct group/event
+        const redirectUrl = `/organizations/${organization.slug}/issues/${event?.groupID}/events/${event?.id}/`;
+        this.props.router.push(redirectUrl);
+      } else {
+        childProps = {
+          ...childProps,
+          event,
+          loadingEvent,
+          eventError,
+          groupReprocessingStatus,
+          onRetry: () => this.remountComponent(),
+        };
+      }
     }
 
     if (currentTab === Tab.TAGS) {
@@ -491,7 +530,7 @@ class GroupDetails extends React.Component<Props, State> {
     }
 
     return (
-      <React.Fragment>
+      <Fragment>
         <GroupHeader
           groupReprocessingStatus={groupReprocessingStatus}
           project={project as Project}
@@ -500,10 +539,8 @@ class GroupDetails extends React.Component<Props, State> {
           currentTab={currentTab}
           baseUrl={baseUrl}
         />
-        {React.isValidElement(children)
-          ? React.cloneElement(children, childProps)
-          : children}
-      </React.Fragment>
+        {isValidElement(children) ? cloneElement(children, childProps) : children}
+      </Fragment>
     );
   }
 
@@ -530,7 +567,7 @@ class GroupDetails extends React.Component<Props, State> {
         {({projects, initiallyLoaded, fetchError}) =>
           initiallyLoaded ? (
             fetchError ? (
-              <LoadingError message={t('Error loading the specified project')} />
+              <StyledLoadingError message={t('Error loading the specified project')} />
             ) : (
               // TODO(ts): Update renderContent function to deal with empty group
               this.renderContent(projects[0], group!)
@@ -544,24 +581,35 @@ class GroupDetails extends React.Component<Props, State> {
   }
 
   render() {
-    const {project} = this.state;
+    const {project, group} = this.state;
+    const {organization} = this.props;
+    const isSampleError = group?.tags.some(tag => tag.key === 'sample_event');
 
     return (
-      <SentryDocumentTitle noSuffix title={this.getTitle()}>
-        <PageFiltersContainer
-          skipLoadLastUsed
-          forceProject={project}
-          showDateSelector={false}
-          shouldForceProject
-          lockedMessageSubject={t('issue')}
-          showIssueStreamLink
-          showProjectSettingsLink
-        >
-          <PageContent>{this.renderPageContent()}</PageContent>
-        </PageFiltersContainer>
-      </SentryDocumentTitle>
+      <Fragment>
+        {isSampleError && project && (
+          <SampleEventAlert project={project} organization={organization} />
+        )}
+        <SentryDocumentTitle noSuffix title={this.getTitle()}>
+          <PageFiltersContainer
+            skipLoadLastUsed
+            forceProject={project}
+            showDateSelector={false}
+            shouldForceProject
+            lockedMessageSubject={t('issue')}
+            showIssueStreamLink
+            showProjectSettingsLink
+          >
+            {this.renderPageContent()}
+          </PageFiltersContainer>
+        </SentryDocumentTitle>
+      </Fragment>
     );
   }
 }
 
 export default withApi(Sentry.withProfiler(GroupDetails));
+
+const StyledLoadingError = styled(LoadingError)`
+  margin: ${space(2)};
+`;

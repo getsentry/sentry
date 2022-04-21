@@ -11,6 +11,7 @@ import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
+import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {TraceFullDetailedQuery} from 'sentry/utils/performance/quickTrace/traceFullQuery';
 import TraceMetaQuery from 'sentry/utils/performance/quickTrace/traceMetaQuery';
 import {TraceFullDetailed, TraceMeta} from 'sentry/utils/performance/quickTrace/types';
@@ -76,7 +77,7 @@ class TraceSummary extends Component<Props> {
       traces,
       meta,
     }: {
-      error: string | null;
+      error: QueryError | null;
       isLoading: boolean;
       meta: TraceMeta | null;
       traces: TraceFullDetailed[] | null;
@@ -98,7 +99,7 @@ class TraceSummary extends Component<Props> {
     if (!dateSelected) {
       return content({
         isLoading: false,
-        error: 'date selection not specified',
+        error: new QueryError('date selection not specified'),
         traces: null,
         meta: null,
       });

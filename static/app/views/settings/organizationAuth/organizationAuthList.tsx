@@ -11,7 +11,7 @@ import PermissionAlert from 'sentry/views/settings/organization/permissionAlert'
 
 import ProviderItem from './providerItem';
 
-const providerPopularity = {
+const PROVIDER_POPULARITY: Record<string, number> = {
   google: 0,
   github: 1,
   okta: 2,
@@ -35,16 +35,16 @@ const OrganizationAuthList = ({organization, providerList, activeProvider}: Prop
   // Sort provider list twice: first, by popularity,
   // and then a second time, to sort unavailable providers for the current plan to the end of the list.
   const sortedByPopularity = (providerList ?? []).sort((a, b) => {
-    if (!(a.key in providerPopularity)) {
+    if (!(a.key in PROVIDER_POPULARITY)) {
       return -1;
     }
-    if (!(b.key in providerPopularity)) {
+    if (!(b.key in PROVIDER_POPULARITY)) {
       return 1;
     }
-    if (providerPopularity[a.key] === providerPopularity[b.key]) {
+    if (PROVIDER_POPULARITY[a.key] === PROVIDER_POPULARITY[b.key]) {
       return 0;
     }
-    return providerPopularity[a.key] > providerPopularity[b.key] ? 1 : -1;
+    return PROVIDER_POPULARITY[a.key] > PROVIDER_POPULARITY[b.key] ? 1 : -1;
   });
 
   const list = sortedByPopularity.sort((a, b) => {

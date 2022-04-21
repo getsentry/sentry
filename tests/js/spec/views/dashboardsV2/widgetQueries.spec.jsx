@@ -2,7 +2,9 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {Client} from 'sentry/api';
-import WidgetQueries from 'sentry/views/dashboardsV2/widgetCard/widgetQueries';
+import WidgetQueries, {
+  flattenMultiSeriesDataWithGrouping,
+} from 'sentry/views/dashboardsV2/widgetCard/widgetQueries';
 
 describe('Dashboards > WidgetQueries', function () {
   const initialData = initializeOrg({
@@ -14,21 +16,49 @@ describe('Dashboards > WidgetQueries', function () {
     interval: '5m',
     displayType: 'line',
     queries: [
-      {conditions: 'event.type:error', fields: ['count()'], name: 'errors'},
-      {conditions: 'event.type:default', fields: ['count()'], name: 'default'},
+      {
+        conditions: 'event.type:error',
+        fields: ['count()'],
+        aggregates: ['count()'],
+        columns: [],
+        name: 'errors',
+      },
+      {
+        conditions: 'event.type:default',
+        fields: ['count()'],
+        aggregates: ['count()'],
+        columns: [],
+        name: 'default',
+      },
     ],
   };
   const singleQueryWidget = {
     title: 'Errors',
     interval: '5m',
     displayType: 'line',
-    queries: [{conditions: 'event.type:error', fields: ['count()'], name: 'errors'}],
+    queries: [
+      {
+        conditions: 'event.type:error',
+        fields: ['count()'],
+        aggregates: ['count()'],
+        columns: [],
+        name: 'errors',
+      },
+    ],
   };
   const tableWidget = {
     title: 'SDK',
     interval: '5m',
     displayType: 'table',
-    queries: [{conditions: 'event.type:error', fields: ['sdk.name'], name: 'sdk'}],
+    queries: [
+      {
+        conditions: 'event.type:error',
+        fields: ['sdk.name'],
+        aggregates: [],
+        columns: ['sdk.name'],
+        name: 'sdk',
+      },
+    ],
   };
   const selection = {
     projects: [1],
@@ -258,8 +288,20 @@ describe('Dashboards > WidgetQueries', function () {
       interval: '5m',
       displayType: 'table',
       queries: [
-        {conditions: 'event.type:error', fields: ['sdk.name'], name: 'sdk'},
-        {conditions: 'title:ValueError', fields: ['title'], name: 'title'},
+        {
+          conditions: 'event.type:error',
+          fields: ['sdk.name'],
+          aggregates: [],
+          columns: ['sdk.name'],
+          name: 'sdk',
+        },
+        {
+          conditions: 'title:ValueError',
+          fields: ['title'],
+          aggregates: [],
+          columns: ['sdk.name'],
+          name: 'title',
+        },
       ],
     };
 
@@ -308,7 +350,15 @@ describe('Dashboards > WidgetQueries', function () {
           title: 'SDK',
           interval: '5m',
           displayType: 'big_number',
-          queries: [{conditions: 'event.type:error', fields: ['sdk.name'], name: 'sdk'}],
+          queries: [
+            {
+              conditions: 'event.type:error',
+              fields: ['sdk.name'],
+              aggregates: [],
+              columns: ['sdk.name'],
+              name: 'sdk',
+            },
+          ],
         }}
         organization={initialData.organization}
         selection={selection}
@@ -362,7 +412,15 @@ describe('Dashboards > WidgetQueries', function () {
           title: 'SDK',
           interval: '5m',
           displayType: 'world_map',
-          queries: [{conditions: 'event.type:error', fields: ['count()'], name: 'sdk'}],
+          queries: [
+            {
+              conditions: 'event.type:error',
+              fields: ['count()'],
+              aggregates: [],
+              columns: ['count()'],
+              name: 'sdk',
+            },
+          ],
         }}
         organization={initialData.organization}
         selection={selection}
@@ -420,8 +478,20 @@ describe('Dashboards > WidgetQueries', function () {
       interval: '5m',
       displayType: 'table',
       queries: [
-        {conditions: 'event.type:error', fields: ['sdk.name'], name: 'sdk'},
-        {conditions: 'title:ValueError', fields: ['title'], name: 'title'},
+        {
+          conditions: 'event.type:error',
+          fields: ['sdk.name'],
+          aggregates: [],
+          columns: ['sdk.name'],
+          name: 'sdk',
+        },
+        {
+          conditions: 'title:ValueError',
+          fields: ['sdk.name'],
+          aggregates: [],
+          columns: ['sdk.name'],
+          name: 'title',
+        },
       ],
     };
 
@@ -630,5 +700,109 @@ describe('Dashboards > WidgetQueries', function () {
       '/organizations/org-slug/events-stats/',
       expect.objectContaining({query: expect.objectContaining({interval: '4h'})})
     );
+  });
+
+  describe('multi-series grouped data', () => {
+    const [START, END] = [1647399900, 1647399901];
+    let mockCountData, mockCountUniqueData, mockRawResultData;
+
+    beforeEach(() => {
+      mockCountData = {
+        start: START,
+        end: END,
+        data: [
+          [START, [{'count()': 0}]],
+          [END, [{'count()': 0}]],
+        ],
+      };
+      mockCountUniqueData = {
+        start: START,
+        end: END,
+        data: [
+          [START, [{'count_unique()': 0}]],
+          [END, [{'count_unique()': 0}]],
+        ],
+      };
+      mockRawResultData = {
+        local: {
+          'count()': mockCountData,
+          'count_unique()': mockCountUniqueData,
+          order: 0,
+        },
+        prod: {
+          'count()': mockCountData,
+          'count_unique()': mockCountUniqueData,
+          order: 1,
+        },
+      };
+    });
+
+    it('combines group name and aggregate names in grouped multi series data', () => {
+      const actual = flattenMultiSeriesDataWithGrouping(mockRawResultData, '');
+      expect(actual).toEqual([
+        [
+          0,
+          expect.objectContaining({
+            seriesName: 'local : count()',
+            data: expect.anything(),
+          }),
+        ],
+        [
+          0,
+          expect.objectContaining({
+            seriesName: 'local : count_unique()',
+            data: expect.anything(),
+          }),
+        ],
+        [
+          1,
+          expect.objectContaining({
+            seriesName: 'prod : count()',
+            data: expect.anything(),
+          }),
+        ],
+        [
+          1,
+          expect.objectContaining({
+            seriesName: 'prod : count_unique()',
+            data: expect.anything(),
+          }),
+        ],
+      ]);
+    });
+
+    it('prefixes with a query alias when provided', () => {
+      const actual = flattenMultiSeriesDataWithGrouping(mockRawResultData, 'Query 1');
+      expect(actual).toEqual([
+        [
+          0,
+          expect.objectContaining({
+            seriesName: 'Query 1 > local : count()',
+            data: expect.anything(),
+          }),
+        ],
+        [
+          0,
+          expect.objectContaining({
+            seriesName: 'Query 1 > local : count_unique()',
+            data: expect.anything(),
+          }),
+        ],
+        [
+          1,
+          expect.objectContaining({
+            seriesName: 'Query 1 > prod : count()',
+            data: expect.anything(),
+          }),
+        ],
+        [
+          1,
+          expect.objectContaining({
+            seriesName: 'Query 1 > prod : count_unique()',
+            data: expect.anything(),
+          }),
+        ],
+      ]);
+    });
   });
 });

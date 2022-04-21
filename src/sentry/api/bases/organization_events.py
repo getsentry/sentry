@@ -232,9 +232,15 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
     ) -> Dict[str, Any]:
         with sentry_sdk.start_span(op="discover.endpoint", description="base.handle_results"):
             data = self.handle_data(request, organization, project_ids, results.get("data"))
+            meta = results.get("meta", {})
+
+            # TODO(wmak): Check if the performance facets histogram endpoint actually needs meta as a list
+            if isinstance(meta, dict) and "isMetricsData" not in meta:
+                meta["isMetricsData"] = False
+
             if not data:
-                return {"data": [], "meta": {}}
-            return {"data": data, "meta": results.get("meta", {})}
+                return {"data": [], "meta": meta}
+            return {"data": data, "meta": meta}
 
     def handle_data(
         self,

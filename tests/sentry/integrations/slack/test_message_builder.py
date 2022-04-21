@@ -7,6 +7,7 @@ from django.urls import reverse
 
 from sentry.eventstore.models import Event
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
+from sentry.incidents.models import IncidentStatus
 from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
@@ -84,7 +85,7 @@ class BuildIncidentAttachmentTest(TestCase):
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule, status=2)
         trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
-        action = self.create_alert_rule_trigger_action(
+        self.create_alert_rule_trigger_action(
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
         title = f"Resolved: {alert_rule.name}"
@@ -93,7 +94,7 @@ class BuildIncidentAttachmentTest(TestCase):
                 to_timestamp(incident.date_started), "{date_pretty}", "{time}"
             )
         )
-        assert SlackIncidentsMessageBuilder(incident, action).build() == {
+        assert SlackIncidentsMessageBuilder(incident, IncidentStatus.CLOSED).build() == {
             "fallback": title,
             "title": title,
             "title_link": absolute_uri(
@@ -123,7 +124,7 @@ class BuildIncidentAttachmentTest(TestCase):
         title = f"Critical: {alert_rule.name}"
         metric_value = 5000
         trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
-        action = self.create_alert_rule_trigger_action(
+        self.create_alert_rule_trigger_action(
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
         incident_footer_ts = (
@@ -133,7 +134,7 @@ class BuildIncidentAttachmentTest(TestCase):
         )
         # This should fail because it pulls status from `action` instead of `incident`
         assert SlackIncidentsMessageBuilder(
-            incident, action, metric_value=metric_value, method="fire"
+            incident, IncidentStatus.CRITICAL, metric_value=metric_value
         ).build() == {
             "fallback": title,
             "title": title,

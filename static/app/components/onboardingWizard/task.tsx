@@ -113,7 +113,7 @@ function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}
         requisite: task.requisiteTasks[0].title,
       })}
     >
-      <IconLock color="pink300" />
+      <IconLock color="pink300" isSolid />
     </Tooltip>
   );
 
@@ -124,7 +124,15 @@ function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}
 
   const skipAction = task.skippable && (
     <SkipConfirm onSkip={handleSkip}>
-      {({skip}) => <StyledIconClose size="xs" onClick={skip} />}
+      {({skip}) => (
+        <CloseButton
+          borderless
+          size="zero"
+          aria-label={t('Close')}
+          icon={<IconClose size="xs" />}
+          onClick={skip}
+        />
+      )}
     </SkipConfirm>
   );
 
@@ -214,7 +222,7 @@ const InProgressIndicator = styled(({user, ...props}: InProgressIndicatorProps) 
   gap: ${space(1)};
 `;
 
-const StyledIconClose = styled(IconClose)`
+const CloseButton = styled(Button)`
   position: absolute;
   right: ${space(1.5)};
   top: ${space(1.5)};

@@ -20,7 +20,6 @@ function doLogin(wrapper, apiRequest) {
 }
 
 describe('LoginForm', function () {
-  const routerContext = TestStubs.routerContext();
   const api = new MockApiClient();
 
   it('handles errors', async function () {
@@ -35,10 +34,7 @@ describe('LoginForm', function () {
 
     const authConfig = {};
 
-    const wrapper = mountWithTheme(
-      <LoginForm api={api} authConfig={authConfig} />,
-      routerContext
-    );
+    const wrapper = mountWithTheme(<LoginForm api={api} authConfig={authConfig} />);
     doLogin(wrapper, mockRequest);
 
     await tick();
@@ -64,10 +60,7 @@ describe('LoginForm', function () {
     });
 
     const authConfig = {};
-    const wrapper = mountWithTheme(
-      <LoginForm api={api} authConfig={authConfig} />,
-      routerContext
-    );
+    const wrapper = mountWithTheme(<LoginForm api={api} authConfig={authConfig} />);
 
     doLogin(wrapper, mockRequest);
 
@@ -83,10 +76,7 @@ describe('LoginForm', function () {
       githubLoginLink: '/githubLogin',
     };
 
-    const wrapper = mountWithTheme(
-      <LoginForm api={api} authConfig={authConfig} />,
-      routerContext
-    );
+    const wrapper = mountWithTheme(<LoginForm api={api} authConfig={authConfig} />);
 
     expect(wrapper.find('ProviderWrapper Button').map(b => b.props().href)).toEqual(
       expect.arrayContaining(['/vstsLogin', '/githubLogin'])

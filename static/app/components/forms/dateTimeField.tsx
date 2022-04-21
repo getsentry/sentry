@@ -1,7 +1,7 @@
-import InputField from './inputField';
+import InputField, {InputFieldProps} from './inputField';
 
-type Props = InputField['props'];
+export type DateTimeFieldProps = Omit<InputFieldProps, 'type'>;
 
-export default function DateTimeField(props: Omit<Props, 'type'>) {
+export default function DateTimeField(props: DateTimeFieldProps) {
   return <InputField {...props} type="datetime-local" />;
 }

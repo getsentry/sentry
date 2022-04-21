@@ -4,6 +4,7 @@ import {Location} from 'history';
 import moment from 'moment-timezone';
 
 import DateTime from 'sentry/components/dateTime';
+import {DataSection} from 'sentry/components/events/styles';
 import FileSize from 'sentry/components/fileSize';
 import GlobalAppStoreConnectUpdateAlert from 'sentry/components/globalAppStoreConnectUpdateAlert';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -16,7 +17,8 @@ import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
 import {Group, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {use24Hours} from 'sentry/utils/dates';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
 import QuickTrace from './quickTrace';
@@ -55,12 +57,11 @@ class GroupEventToolbar extends Component<Props> {
     return this.props.event.id !== nextProps.event.id;
   }
 
-  handleTraceLink(organization: Organization) {
-    trackAnalyticsEvent({
-      eventKey: 'quick_trace.trace_id.clicked',
-      eventName: 'Quick Trace: Trace ID clicked',
-      organization_id: parseInt(organization.id, 10),
-      source: 'issues',
+  handleNavigationClick(button: string) {
+    trackAdvancedAnalyticsEvent('issue_details.event_navigation_clicked', {
+      organization: this.props.organization,
+      project_id: parseInt(this.props.project.id, 10),
+      button,
     });
   }
 
@@ -97,6 +98,7 @@ class GroupEventToolbar extends Component<Props> {
   }
 
   render() {
+    const is24Hours = use24Hours();
     const evt = this.props.event;
 
     const {group, organization, location, project} = this.props;
@@ -114,7 +116,7 @@ class GroupEventToolbar extends Component<Props> {
       Math.abs(+moment(evt.dateReceived) - +moment(evt.dateCreated)) > latencyThreshold;
 
     return (
-      <Wrapper>
+      <StyledDataSection>
         <StyledNavigationButtonGroup
           hasPrevious={!!evt.previousEventID}
           hasNext={!!evt.nextEventID}
@@ -124,20 +126,36 @@ class GroupEventToolbar extends Component<Props> {
             {pathname: `${baseEventsPath}${evt.nextEventID}/`, query: location.query},
             {pathname: `${baseEventsPath}latest/`, query: location.query},
           ]}
+          onOldestClick={() => this.handleNavigationClick('oldest')}
+          onOlderClick={() => this.handleNavigationClick('older')}
+          onNewerClick={() => this.handleNavigationClick('newer')}
+          onNewestClick={() => this.handleNavigationClick('newest')}
           size="small"
         />
         <Heading>
           {t('Event')}{' '}
           <EventIdLink to={`${baseEventsPath}${evt.id}/`}>{evt.eventID}</EventIdLink>
           <LinkContainer>
-            <ExternalLink href={jsonUrl}>
+            <ExternalLink
+              href={jsonUrl}
+              onClick={() =>
+                trackAdvancedAnalyticsEvent('issue_details.event_json_clicked', {
+                  organization,
+                  group_id: parseInt(`${evt.groupID}`, 10),
+                })
+              }
+            >
               {'JSON'} (<FileSize bytes={evt.size} />)
             </ExternalLink>
           </LinkContainer>
         </Heading>
-        <Tooltip title={this.getDateTooltip()} disableForVisualTest>
+        <Tooltip title={this.getDateTooltip()} showUnderline disableForVisualTest>
           <StyledDateTime
-            date={getDynamicText({value: evt.dateCreated, fixed: 'Dummy timestamp'})}
+            format={is24Hours ? 'MMM D, YYYY HH:mm:ss zz' : 'll LTS z'}
+            date={getDynamicText({
+              value: evt.dateCreated,
+              fixed: 'Dummy timestamp',
+            })}
           />
           {isOverLatencyThreshold && <StyledIconWarning color="yellow300" />}
         </Tooltip>
@@ -152,18 +170,18 @@ class GroupEventToolbar extends Component<Props> {
           organization={organization}
           location={location}
         />
-      </Wrapper>
+      </StyledDataSection>
     );
   }
 }
 
-const Wrapper = styled('div')`
+const StyledDataSection = styled(DataSection)`
   position: relative;
-  margin-bottom: -5px;
+  display: block;
+  border-top: 0;
   /* z-index seems unnecessary, but increasing (instead of removing) just in case(billy) */
   /* Fixes tooltips in toolbar having lower z-index than .btn-group .btn.active */
   z-index: 3;
-  padding: 20px 30px 20px 40px;
 
   @media (max-width: 767px) {
     display: none;
@@ -191,7 +209,6 @@ const StyledIconWarning = styled(IconWarning)`
 `;
 
 const StyledDateTime = styled(DateTime)`
-  border-bottom: 1px dotted #dfe3ea;
   color: ${p => p.theme.subText};
 `;
 

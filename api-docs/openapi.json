@@ -234,12 +234,6 @@
     "/api/0/sentry-app-installations/{uuid}/external-issues/{external_issue_id}/": {
       "$ref": "paths/integration-platform/sentry-app-external-issue-details.json"
     },
-    "/api/0/organizations/{organization_slug}/scim/v2/Users": {
-      "$ref": "paths/scim/member_index.json"
-    },
-    "/api/0/organizations/{organization_slug}/scim/v2/Users/{member_id}": {
-      "$ref": "paths/scim/member_details.json"
-    },
     "/api/0/organizations/{organization_slug}/scim/v2/Groups": {
       "$ref": "paths/scim/team_index.json"
     },

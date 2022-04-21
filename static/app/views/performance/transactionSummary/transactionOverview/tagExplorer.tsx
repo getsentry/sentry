@@ -3,7 +3,7 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject} from 'history';
 
-import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import GridEditable, {
@@ -14,6 +14,7 @@ import GridEditable, {
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import PerformanceDuration from 'sentry/components/performanceDuration';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
@@ -21,6 +22,7 @@ import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import EventView, {fromSorts, isFieldSortable} from 'sentry/utils/discover/eventView';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {formatPercentage} from 'sentry/utils/formatters';
+import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import SegmentExplorerQuery, {
   TableData,
   TableDataRow,
@@ -31,7 +33,6 @@ import CellAction, {Actions, updateQuery} from 'sentry/views/eventsV2/table/cell
 import {TableColumn} from 'sentry/views/eventsV2/table/types';
 
 import {
-  PerformanceDuration,
   platformAndConditionsToPerformanceType,
   PROJECT_PERFORMANCE_TYPE,
 } from '../../utils';
@@ -40,6 +41,7 @@ import {
   SpanOperationBreakdownFilter,
 } from '../filter';
 import {tagsRouteWithQuery} from '../transactionTags/utils';
+import {normalizeSearchConditions} from '../utils';
 
 const TAGS_CURSOR_NAME = 'tags_cursor';
 
@@ -303,10 +305,7 @@ class _TagExplorer extends React.Component<Props> {
         organization_id: parseInt(organization.id, 10),
       });
 
-      const searchConditions = new MutableSearch(eventView.query);
-
-      // remove any event.type queries since it is implied to apply to only transactions
-      searchConditions.removeFilter('event.type');
+      const searchConditions = normalizeSearchConditions(eventView.query);
 
       updateQuery(searchConditions, action, {...column, name: actionRow.id}, tagValue);
 
@@ -556,4 +555,12 @@ const StyledPagination = styled(Pagination)`
   margin: 0 0 0 ${space(1)};
 `;
 
-export const TagExplorer = _TagExplorer;
+export const TagExplorer = (props: Props) => {
+  const {hideSinceMetricsOnly} = useMEPSettingContext();
+
+  if (hideSinceMetricsOnly) {
+    return null;
+  }
+
+  return <_TagExplorer {...props} />;
+};

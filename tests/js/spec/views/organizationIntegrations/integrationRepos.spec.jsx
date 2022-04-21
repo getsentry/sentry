@@ -7,7 +7,6 @@ import IntegrationRepos from 'sentry/views/organizationIntegrations/integrationR
 describe('IntegrationRepos', function () {
   const org = TestStubs.Organization();
   const integration = TestStubs.GitHubIntegration();
-  const routerContext = TestStubs.routerContext();
 
   beforeEach(() => {
     Client.clearMockResponses();
@@ -31,10 +30,7 @@ describe('IntegrationRepos', function () {
         body: [],
       });
 
-      const wrapper = mountWithTheme(
-        <IntegrationRepos integration={integration} />,
-        routerContext
-      );
+      const wrapper = mountWithTheme(<IntegrationRepos integration={integration} />);
       expect(wrapper.find('PanelBody')).toHaveLength(0);
       expect(wrapper.find('Alert')).toHaveLength(1);
     });
@@ -59,15 +55,9 @@ describe('IntegrationRepos', function () {
         body: [],
       });
 
-      const wrapper = mountWithTheme(
-        <IntegrationRepos integration={integration} />,
-        routerContext
-      );
+      const wrapper = mountWithTheme(<IntegrationRepos integration={integration} />);
       wrapper.find('DropdownButton').simulate('click');
-
       wrapper.find('StyledListElement').simulate('click');
-      await wrapper.update();
-      await wrapper.update();
 
       expect(addRepo).toHaveBeenCalledWith(
         `/organizations/${org.slug}/repos/`,
@@ -79,6 +69,10 @@ describe('IntegrationRepos', function () {
           },
         })
       );
+
+      await tick();
+      wrapper.update();
+
       const name = wrapper.find('RepositoryRow').find('strong').first();
       expect(name).toHaveLength(1);
       expect(name.text()).toEqual('example/repo-name');
@@ -109,13 +103,10 @@ describe('IntegrationRepos', function () {
         body: [],
       });
 
-      const wrapper = mountWithTheme(
-        <IntegrationRepos integration={integration} />,
-        routerContext
-      );
+      const wrapper = mountWithTheme(<IntegrationRepos integration={integration} />);
       wrapper.find('DropdownButton').simulate('click');
       wrapper.find('StyledListElement').simulate('click');
-      await wrapper.update();
+      wrapper.update();
 
       expect(addRepo).toHaveBeenCalled();
       expect(wrapper.find('RepoOption')).toHaveLength(0);
@@ -147,10 +138,7 @@ describe('IntegrationRepos', function () {
         url: `/organizations/${org.slug}/repos/4/`,
         body: {},
       });
-      const wrapper = mountWithTheme(
-        <IntegrationRepos integration={integration} />,
-        routerContext
-      );
+      const wrapper = mountWithTheme(<IntegrationRepos integration={integration} />);
 
       wrapper.find('DropdownButton').simulate('click');
       wrapper.find('StyledListElement').simulate('click');
@@ -183,10 +171,7 @@ describe('IntegrationRepos', function () {
         url: `/organizations/${org.slug}/repos/4/`,
         body: {},
       });
-      const wrapper = mountWithTheme(
-        <IntegrationRepos integration={integration} />,
-        routerContext
-      );
+      const wrapper = mountWithTheme(<IntegrationRepos integration={integration} />);
       wrapper.find('DropdownButton').simulate('click');
       wrapper.find('StyledListElement').simulate('click');
 

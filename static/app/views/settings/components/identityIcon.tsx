@@ -21,7 +21,8 @@ import visualstudio from 'sentry-logos/logo-visualstudio.svg';
 
 // Map of plugin id -> logo filename
 export const DEFAULT_ICON = placeholder;
-export const ICON_PATHS = {
+
+export const ICON_PATHS: Record<string, string> = {
   _default: DEFAULT_ICON,
 
   'active-directory': vsts,
@@ -60,8 +61,8 @@ const IdentityIcon = styled('div')<Props>`
   background-size: contain;
   background-position: center center;
   background-repeat: no-repeat;
-  background-image: url(${({providerId}) =>
-    (providerId !== undefined && ICON_PATHS[providerId]) || DEFAULT_ICON});
+  background-image: url(${p =>
+    (p.providerId !== undefined && ICON_PATHS[p.providerId]) || DEFAULT_ICON});
 `;
 
 IdentityIcon.defaultProps = {

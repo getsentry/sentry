@@ -1,6 +1,8 @@
 from typing import FrozenSet
 
+from django.conf import settings
 from django.db import models
+from django.db.models.signals import post_migrate
 
 from sentry.db.models import ArrayField, DefaultFieldsModel, sane_repr
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
@@ -46,3 +48,26 @@ class UserRoleUser(DefaultFieldsModel):
         db_table = "sentry_userrole_users"
 
     __repr__ = sane_repr("user", "role")
+
+
+# this must be idempotent because it executes on every migration
+def manage_default_super_admin_role(app_config, using, **kwargs):
+    if app_config and app_config.name != "sentry":
+        return
+
+    try:
+        app_config.get_model("UserRole")
+    except LookupError:
+        return
+
+    role, _ = UserRole.objects.get_or_create(
+        name="Super Admin", defaults={"permissions": settings.SENTRY_USER_PERMISSIONS}
+    )
+    if role.permissions != settings.SENTRY_USER_PERMISSIONS:
+        role.permissions = settings.SENTRY_USER_PERMISSIONS
+        role.save(update_fields=["permissions"])
+
+
+post_migrate.connect(
+    manage_default_super_admin_role, dispatch_uid="manage_default_super_admin_role", weak=False
+)

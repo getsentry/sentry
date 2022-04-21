@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
@@ -13,6 +13,10 @@ describe('ProjectDetail', function () {
   beforeEach(() => {
     PageFiltersStore.reset();
     ProjectsStore.reset();
+    // @ts-ignore no-console
+    // eslint-disable-next-line no-console
+    console.error = jest.fn();
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
       body: [],
@@ -25,7 +29,7 @@ describe('ProjectDetail', function () {
   });
 
   describe('project low priority queue alert', function () {
-    it('does not render alert', async function () {
+    it('does not render alert', function () {
       const projects = [
         {
           ...project,
@@ -47,10 +51,10 @@ describe('ProjectDetail', function () {
 
       ProjectsStore.loadInitialData(projects);
 
-      mountWithTheme(
-        <ProjectDetails organization={organization} {...router} params={params} />,
-        {context: routerContext}
-      );
+      render(<ProjectDetails organization={organization} {...router} params={params} />, {
+        context: routerContext,
+        organization,
+      });
 
       expect(
         screen.queryByText(
@@ -82,10 +86,10 @@ describe('ProjectDetail', function () {
         body: projects[0],
       });
 
-      mountWithTheme(
-        <ProjectDetails organization={organization} {...router} params={params} />,
-        {context: routerContext}
-      );
+      render(<ProjectDetails organization={organization} {...router} params={params} />, {
+        context: routerContext,
+        organization,
+      });
 
       expect(
         await screen.findByText(

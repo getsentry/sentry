@@ -1,16 +1,17 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import AlertRulesList from 'sentry/views/alerts/rules';
 import {IncidentStatus} from 'sentry/views/alerts/types';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
-jest.mock('sentry/utils/analytics');
+jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
 
-describe('OrganizationRuleList', () => {
+describe('AlertRulesList', () => {
   const {routerContext, organization, router} = initializeOrg();
   TeamStore.loadInitialData([], false, null);
   let rulesMock;
@@ -20,17 +21,18 @@ describe('OrganizationRuleList', () => {
     '<https://sentry.io/api/0/organizations/org-slug/combined-rules/?cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"';
 
   const getComponent = props => (
-    <AlertRulesList
-      organization={organization}
-      params={{orgId: organization.slug}}
-      location={{query: {}, search: ''}}
-      router={router}
-      {...props}
-    />
+    <OrganizationContext.Provider value={organization}>
+      <AlertRulesList
+        organization={organization}
+        params={{orgId: organization.slug}}
+        location={{query: {}, search: ''}}
+        router={router}
+        {...props}
+      />
+    </OrganizationContext.Provider>
   );
 
-  const createWrapper = props =>
-    mountWithTheme(getComponent(props), {context: routerContext});
+  const createWrapper = props => render(getComponent(props), {context: routerContext});
 
   beforeEach(() => {
     rulesMock = MockApiClient.addMockResponse({
@@ -69,7 +71,7 @@ describe('OrganizationRuleList', () => {
   afterEach(() => {
     act(() => ProjectsStore.reset());
     MockApiClient.clearMockResponses();
-    trackAnalyticsEvent.mockClear();
+    trackAdvancedAnalyticsEvent.mockClear();
   });
 
   it('displays list', async () => {
@@ -86,12 +88,12 @@ describe('OrganizationRuleList', () => {
 
     expect(screen.getAllByTestId('badge-display-name')[0]).toHaveTextContent('earth');
 
-    expect(trackAnalyticsEvent).toHaveBeenCalledWith({
-      eventKey: 'alert_rules.viewed',
-      eventName: 'Alert Rules: Viewed',
-      organization_id: '3',
-      sort: 'incident_status,date_triggered',
-    });
+    expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
+      'alert_rules.viewed',
+      expect.objectContaining({
+        sort: 'incident_status,date_triggered',
+      })
+    );
   });
 
   it('displays empty state', async () => {
@@ -216,7 +218,8 @@ describe('OrganizationRuleList', () => {
     userEvent.click(await screen.findByTestId('filter-button'));
 
     // Uncheck myteams
-    userEvent.click(await screen.findByText('My Teams'));
+    const myTeams = await screen.findAllByText('My Teams');
+    userEvent.click(myTeams[1]);
 
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({

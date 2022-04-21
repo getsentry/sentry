@@ -26,5 +26,6 @@ class GroupEmailThread(Model):
         app_label = "sentry"
         db_table = "sentry_groupemailthread"
         unique_together = (("email", "group"), ("email", "msgid"))
+        indexes = [models.Index(fields=["date", "project", "id"])]
 
     __repr__ = sane_repr("email", "group_id", "msgid")

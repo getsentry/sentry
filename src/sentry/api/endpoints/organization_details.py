@@ -20,7 +20,11 @@ from sentry.api.serializers.models.organization import TrustedRelaySerializer
 from sentry.api.serializers.rest_framework import ListField
 from sentry.constants import LEGACY_RATE_LIMIT_OPTIONS, RESERVED_ORGANIZATION_SLUGS
 from sentry.datascrubbing import validate_pii_config_update
-from sentry.lang.native.utils import STORE_CRASH_REPORTS_DEFAULT, convert_crashreport_count
+from sentry.lang.native.utils import (
+    STORE_CRASH_REPORTS_DEFAULT,
+    STORE_CRASH_REPORTS_MAX,
+    convert_crashreport_count,
+)
 from sentry.models import (
     AuditLogEntryEvent,
     Authenticator,
@@ -141,7 +145,9 @@ class OrganizationSerializer(serializers.Serializer):
     dataScrubberDefaults = serializers.BooleanField(required=False)
     sensitiveFields = ListField(child=serializers.CharField(), required=False)
     safeFields = ListField(child=serializers.CharField(), required=False)
-    storeCrashReports = serializers.IntegerField(min_value=-1, max_value=20, required=False)
+    storeCrashReports = serializers.IntegerField(
+        min_value=-1, max_value=STORE_CRASH_REPORTS_MAX, required=False
+    )
     attachmentsRole = serializers.CharField(required=True)
     debugFilesRole = serializers.CharField(required=True)
     eventsMemberAdmin = serializers.BooleanField(required=False)

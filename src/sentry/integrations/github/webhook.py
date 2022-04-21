@@ -50,9 +50,9 @@ class Webhook:
         raise NotImplementedError
 
     def __call__(self, event: Mapping[str, Any], host: str | None = None) -> None:
-        external_id = event["installation"]["id"]
+        external_id = event.get("installation", {}).get("id")
         if host:
-            external_id = "{}:{}".format(host, event["installation"]["id"])
+            external_id = f"{host}:{external_id}"
 
         try:
             integration = Integration.objects.get(external_id=external_id, provider=self.provider)
@@ -405,11 +405,11 @@ class PullRequestEventWebhook(Webhook):
             )
 
         try:
-            PullRequest.create_or_save(
+            PullRequest.objects.update_or_create(
                 organization_id=organization.id,
                 repository_id=repo.id,
                 key=number,
-                values={
+                defaults={
                     "organization_id": organization.id,
                     "title": title,
                     "author": author,

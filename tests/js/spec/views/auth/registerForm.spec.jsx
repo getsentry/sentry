@@ -26,7 +26,6 @@ function doLogin(wrapper, apiRequest) {
 }
 
 describe('Register', function () {
-  const routerContext = TestStubs.routerContext();
   const api = new MockApiClient();
 
   it('handles errors', async function () {
@@ -41,10 +40,7 @@ describe('Register', function () {
 
     const authConfig = {};
 
-    const wrapper = mountWithTheme(
-      <RegisterForm api={api} authConfig={authConfig} />,
-      routerContext
-    );
+    const wrapper = mountWithTheme(<RegisterForm api={api} authConfig={authConfig} />);
     doLogin(wrapper, mockRequest);
 
     await tick();
@@ -70,10 +66,7 @@ describe('Register', function () {
     });
 
     const authConfig = {};
-    const wrapper = mountWithTheme(
-      <RegisterForm api={api} authConfig={authConfig} />,
-      routerContext
-    );
+    const wrapper = mountWithTheme(<RegisterForm api={api} authConfig={authConfig} />);
 
     doLogin(wrapper, mockRequest);
 

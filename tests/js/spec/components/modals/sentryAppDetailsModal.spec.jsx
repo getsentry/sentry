@@ -20,8 +20,7 @@ describe('SentryAppDetailsModal', function () {
         onInstall={onInstall}
         isInstalled={isInstalled}
         closeModal={closeModal}
-      />,
-      TestStubs.routerContext()
+      />
     );
   }
 

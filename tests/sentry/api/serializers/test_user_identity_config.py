@@ -106,3 +106,15 @@ class UserIdentityConfigSerializerTest(TestCase):
             "dateVerified": identity.last_verified,
             "dateSynced": identity.last_synced,
         }
+
+    def test_global_identity_with_integration_provider(self):
+        integration_provider = IdentityProvider.objects.create(
+            type="msteams", external_id="ao645i51", config={}
+        )
+        identity = Identity.objects.create(
+            idp=integration_provider, user=self.user, external_id="5ppj2dip"
+        )
+        view = UserIdentityConfig.wrap(identity, Status.CAN_DISCONNECT)
+        result = serialize(view)
+
+        assert result["provider"] == {"key": "msteams", "name": "Microsoft Teams"}

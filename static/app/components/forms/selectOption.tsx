@@ -70,7 +70,7 @@ const InnerWrap = styled('div')<{isDisabled: boolean; isFocused: boolean}>`
     p.isDisabled &&
     `
     color: ${p.theme.subText};
-    cursor: initial;
+    cursor: not-allowed;
   `}
 `;
 

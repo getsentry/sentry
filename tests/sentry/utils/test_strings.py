@@ -71,7 +71,7 @@ def test_codec_lookup():
     assert codec_lookup("undefined", default=None) is None
     assert codec_lookup("undefined", default="latin1").name == "iso8859-1"
     assert codec_lookup("zlib", default="latin1").name == "iso8859-1"
-    assert codec_lookup("unknownshit", default="latin1").name == "iso8859-1"
+    assert codec_lookup("unknowable", default="latin1").name == "iso8859-1"
 
 
 def test_soft_break():

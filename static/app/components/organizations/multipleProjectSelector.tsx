@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
-import {GetActorPropsFn} from 'sentry/components/dropdownMenu';
+import {MenuActions} from 'sentry/components/dropdownMenu';
 import Link from 'sentry/components/links/link';
 import HeaderItem from 'sentry/components/organizations/headerItem';
 import PlatformList from 'sentry/components/platformList';
@@ -22,26 +22,27 @@ import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import ProjectSelector from './projectSelector';
 
 type Props = WithRouterProps & {
+  memberProjects: Project[];
   nonMemberProjects: Project[];
   onChange: (selected: number[]) => void;
   onUpdate: (newProjects?: number[]) => void;
   organization: Organization;
-  projects: Project[];
   value: number[];
   customDropdownButton?: (config: {
-    getActorProps: GetActorPropsFn;
+    actions: MenuActions;
     isOpen: boolean;
     selectedProjects: Project[];
   }) => React.ReactElement;
   customLoadingIndicator?: React.ReactNode;
+  detached?: boolean;
   disableMultipleProjectSelection?: boolean;
   footerMessage?: React.ReactNode;
   forceProject?: MinimalProject | null;
   isGlobalSelectionReady?: boolean;
   lockedMessageSubject?: React.ReactNode;
-  pinned?: boolean;
   shouldForceProject?: boolean;
   showIssueStreamLink?: boolean;
+  showPin?: boolean;
   showProjectSettingsLink?: boolean;
 };
 
@@ -197,7 +198,7 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
   render() {
     const {
       value,
-      projects,
+      memberProjects,
       isGlobalSelectionReady,
       disableMultipleProjectSelection,
       nonMemberProjects,
@@ -208,12 +209,11 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
       footerMessage,
       customDropdownButton,
       customLoadingIndicator,
-      pinned,
     } = this.props;
     const selectedProjectIds = new Set(value);
     const multi = this.multi;
 
-    const allProjects = [...projects, ...nonMemberProjects];
+    const allProjects = [...memberProjects, ...nonMemberProjects];
     const selected = allProjects.filter(project =>
       selectedProjectIds.has(parseInt(project.id, 10))
     );
@@ -260,7 +260,7 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
             {...this.props}
             multi={!!multi}
             selectedProjects={selected}
-            multiProjects={projects}
+            multiProjects={memberProjects}
             onSelect={this.handleQuickSelect}
             onClose={this.handleClose}
             onMultiSelect={this.handleMultiSelect}
@@ -295,11 +295,10 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
                 message={footerMessage}
               />
             )}
-            pinned={pinned}
           >
-            {({getActorProps, selectedProjects, isOpen}) => {
+            {({actions, selectedProjects, isOpen}) => {
               if (customDropdownButton) {
-                return customDropdownButton({getActorProps, selectedProjects, isOpen});
+                return customDropdownButton({actions, selectedProjects, isOpen});
               }
               const hasSelected = !!selectedProjects.length;
               const title = hasSelected
@@ -330,7 +329,6 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
                       ? `/settings/${organization.slug}/projects/${selected[0]?.slug}/`
                       : ''
                   }
-                  {...getActorProps()}
                 >
                   {title}
                 </StyledHeaderItem>
@@ -461,9 +459,14 @@ const FooterMessage = styled('div')`
 const StyledProjectSelector = styled(ProjectSelector)`
   background-color: ${p => p.theme.background};
   color: ${p => p.theme.textColor};
-  margin: 1px 0 0 -1px;
-  border-radius: ${p => p.theme.borderRadiusBottom};
-  width: 100%;
+
+  ${p =>
+    !p.detached &&
+    `
+    width: 100%;
+    margin: 1px 0 0 -1px;
+    border-radius: ${p.theme.borderRadiusBottom};
+  `}
 `;
 
 const StyledHeaderItem = styled(HeaderItem)`

@@ -1,9 +1,11 @@
+import unittest
+
 from django.urls import reverse
 
 from sentry.models import OrganizationMember
 from sentry.models.auditlogentry import AuditLogEntry, AuditLogEntryEvent
 from sentry.scim.endpoints.utils import SCIMQueryParamSerializer
-from sentry.testutils import SCIMAzureTestCase, SCIMTestCase, TestCase
+from sentry.testutils import SCIMAzureTestCase, SCIMTestCase
 
 CREATE_USER_POST_DATA = {
     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
@@ -175,7 +177,7 @@ class SCIMMemberIndexAzureTests(SCIMAzureTestCase):
         }
 
 
-class SCIMQueryParameterSerializerTest(TestCase):
+class SCIMQueryParameterSerializerTest(unittest.TestCase):
     def test_defaults(self):
         serializer = SCIMQueryParamSerializer(data={})
         assert serializer.is_valid()

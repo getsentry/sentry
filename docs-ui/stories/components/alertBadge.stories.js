@@ -1,4 +1,4 @@
-import AlertBadge from 'sentry/views/alerts/alertBadge';
+import AlertBadge from 'sentry/components/alertBadge';
 import {IncidentStatus} from 'sentry/views/alerts/types';
 
 export default {

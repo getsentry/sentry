@@ -7,28 +7,26 @@ import {createFrameIndex} from './utils';
 
 export class SampledProfile extends Profile {
   static FromProfile(
-    sampled: Profiling.SampledProfile,
+    sampledProfile: Profiling.SampledProfile,
     frameIndex: ReturnType<typeof createFrameIndex>
   ): Profile {
-    const {startValue, endValue, samples, weights} = sampled;
-
     const profile = new SampledProfile(
-      endValue - startValue,
-      startValue,
-      endValue,
-      sampled.name,
-      sampled.unit
+      sampledProfile.endValue - sampledProfile.startValue,
+      sampledProfile.startValue,
+      sampledProfile.endValue,
+      sampledProfile.name,
+      sampledProfile.unit
     );
 
-    if (samples.length !== weights.length) {
+    if (sampledProfile.samples.length !== sampledProfile.weights.length) {
       throw new Error(
-        `Expected samples.length (${samples.length}) to equal weights.length (${weights.length})`
+        `Expected samples.length (${sampledProfile.samples.length}) to equal weights.length (${sampledProfile.weights.length})`
       );
     }
 
-    for (let i = 0; i < samples.length; i++) {
-      const stack = samples[i];
-      const weight = weights[i];
+    for (let i = 0; i < sampledProfile.samples.length; i++) {
+      const stack = sampledProfile.samples[i];
+      const weight = sampledProfile.weights[i];
 
       profile.appendSampleWithWeight(
         stack.map(n => {
@@ -67,13 +65,15 @@ export class SampledProfile extends Profile {
 
       node.addToTotalWeight(weight);
 
-      let start = framesInStack.length - 1;
       // TODO: This is On^2, because we iterate over all frames in the stack to check if our
       // frame is a recursive frame. We could do this in O(1) by keeping a map of frames in the stack
       // We check the stack in a top-down order to find the first recursive frame.
+      let start = framesInStack.length - 1;
       while (start >= 0) {
         if (framesInStack[start].frame === node.frame) {
-          node.setRecursive(node);
+          // The recursion edge is bidirectional
+          framesInStack[start].setRecursive(node);
+          node.setRecursive(framesInStack[start]);
           break;
         }
         start--;

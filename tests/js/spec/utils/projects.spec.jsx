@@ -1,10 +1,4 @@
-import {
-  act,
-  mountWithTheme,
-  screen,
-  userEvent,
-  waitFor,
-} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectActions from 'sentry/actions/projectActions';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -14,7 +8,7 @@ describe('utils.projects', function () {
   const renderer = jest.fn(() => null);
 
   const createWrapper = props =>
-    mountWithTheme(<Projects orgId="org-slug" children={renderer} {...props} />); // eslint-disable-line
+    render(<Projects orgId="org-slug" children={renderer} {...props} />); // eslint-disable-line
 
   beforeEach(function () {
     renderer.mockClear();

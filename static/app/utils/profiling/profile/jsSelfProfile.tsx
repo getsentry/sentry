@@ -24,13 +24,16 @@ export class JSSelfProfile extends Profile {
     ];
 
     for (const marker of markers) {
-      frameIndex[marker] = new Frame({
-        key: marker,
-        name: stackMarkerToHumanReadable(marker),
-        line: undefined,
-        column: undefined,
-        is_application: false,
-      });
+      frameIndex[marker] = new Frame(
+        {
+          key: marker,
+          name: stackMarkerToHumanReadable(marker),
+          line: undefined,
+          column: undefined,
+          is_application: false,
+        },
+        'web'
+      );
     }
 
     const startedAt = profile.samples[0].timestamp;
@@ -98,7 +101,9 @@ export class JSSelfProfile extends Profile {
 
       while (stackHeight >= 0) {
         if (framesInStack[stackHeight].frame === node.frame) {
-          node.setRecursive(node);
+          // The recursion edge is bidirectional
+          framesInStack[stackHeight].setRecursive(node);
+          node.setRecursive(framesInStack[stackHeight]);
           break;
         }
         stackHeight--;

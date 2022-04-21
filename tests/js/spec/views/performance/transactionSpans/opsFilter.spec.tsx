@@ -1,7 +1,7 @@
 import {Location} from 'history';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import EventView from 'sentry/utils/discover/eventView';
 import OpsFilter from 'sentry/views/performance/transactionSummary/transactionSpans/opsFilter';
@@ -51,7 +51,7 @@ describe('Performance > Transaction Spans', function () {
 
     const initialData = initializeData();
 
-    mountWithTheme(
+    render(
       <OpsFilter
         location={initialData.router.location}
         eventView={createEventView(initialData.router.location)}
@@ -81,7 +81,7 @@ describe('Performance > Transaction Spans', function () {
 
     const handleOpChange = jest.fn();
 
-    mountWithTheme(
+    render(
       <OpsFilter
         location={initialData.router.location}
         eventView={createEventView(initialData.router.location)}
@@ -110,7 +110,7 @@ describe('Performance > Transaction Spans', function () {
 
     const handleOpChange = jest.fn();
 
-    mountWithTheme(
+    render(
       <OpsFilter
         location={initialData.router.location}
         eventView={createEventView(initialData.router.location)}

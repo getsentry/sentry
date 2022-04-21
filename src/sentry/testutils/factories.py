@@ -261,14 +261,14 @@ class Factories:
         return om
 
     @staticmethod
-    def create_team_membership(team, member=None, user=None):
+    def create_team_membership(team, member=None, user=None, role=None):
         if member is None:
             member, _ = OrganizationMember.objects.get_or_create(
                 user=user, organization=team.organization, defaults={"role": "member"}
             )
 
         return OrganizationMemberTeam.objects.create(
-            team=team, organizationmember=member, is_active=True
+            team=team, organizationmember=member, is_active=True, role=role
         )
 
     @staticmethod
@@ -1190,4 +1190,11 @@ class Factories:
             prev_history=prev_history,
             prev_history_date=prev_history_date,
             **kwargs,
+        )
+
+    @staticmethod
+    def create_comment(issue, project, user, text="hello world"):
+        data = {"text": text}
+        return Activity.objects.create(
+            project=project, group=issue, type=Activity.NOTE, user=user, data=data
         )

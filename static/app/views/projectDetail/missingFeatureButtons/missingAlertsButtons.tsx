@@ -1,5 +1,3 @@
-import styled from '@emotion/styled';
-
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import CreateAlertButton from 'sentry/components/createAlertButton';
@@ -15,7 +13,7 @@ type Props = {
 
 function MissingAlertsButtons({organization, projectSlug}: Props) {
   return (
-    <StyledButtonBar gap={1}>
+    <ButtonBar gap={1}>
       <CreateAlertButton
         organization={organization}
         iconProps={{size: 'xs'}}
@@ -30,12 +28,8 @@ function MissingAlertsButtons({organization, projectSlug}: Props) {
       <Button size="small" external href={DOCS_URL}>
         {t('Learn More')}
       </Button>
-    </StyledButtonBar>
+    </ButtonBar>
   );
 }
-
-const StyledButtonBar = styled(ButtonBar)`
-  grid-template-columns: minmax(auto, max-content) minmax(auto, max-content);
-`;
 
 export default MissingAlertsButtons;

@@ -36,24 +36,6 @@ describe('TagDistributionMeter', function () {
   });
 
   describe('renderBody()', function () {
-    it('should return null if loading', function () {
-      element.setState({
-        loading: true,
-        error: false,
-      });
-      element.update();
-      expect(element.find('Segment')).toHaveLength(0);
-    });
-
-    it('should return null if in an error state', function () {
-      element.setState({
-        error: true,
-        loading: false,
-      });
-      element.update();
-      expect(element.find('Segment')).toHaveLength(0);
-    });
-
     it('should return "no recent data" if no total values present', function () {
       emptyElement.setState({
         error: false,

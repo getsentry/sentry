@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {browserHistory, InjectedRouter} from 'react-router';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
@@ -11,6 +11,7 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {PageFilters} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -20,7 +21,6 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {DEFAULT_STATS_PERIOD, generatePerformanceEventView} from './data';
 import {PerformanceLanding} from './landing';
-import {useMetricsSwitch} from './metricsSwitch';
 import {addRoutePerformanceContext, handleTrendsClick} from './utils';
 
 type Props = {
@@ -38,26 +38,22 @@ function PerformanceContent({selection, location, demoMode}: Props) {
   const api = useApi();
   const organization = useOrganization();
   const {projects} = useProjects();
-  const {isMetricsData} = useMetricsSwitch();
+  const mounted = useRef(false);
   const previousDateTime = usePrevious(selection.datetime);
 
   const [state, setState] = useState<State>({error: undefined});
 
   useEffect(() => {
-    loadOrganizationTags(api, organization.slug, selection);
-    addRoutePerformanceContext(selection);
-    trackAdvancedAnalyticsEvent('performance_views.overview.view', {
-      organization,
-      show_onboarding: shouldShowOnboarding(),
-    });
-  }, []);
-
-  useEffect(() => {
-    loadOrganizationTags(api, organization.slug, selection);
-    addRoutePerformanceContext(selection);
-  }, [selection.projects]);
-
-  useEffect(() => {
+    if (!mounted.current) {
+      trackAdvancedAnalyticsEvent('performance_views.overview.view', {
+        organization,
+        show_onboarding: shouldShowOnboarding(),
+      });
+      loadOrganizationTags(api, organization.slug, selection);
+      addRoutePerformanceContext(selection);
+      mounted.current = true;
+      return;
+    }
     if (!isEqual(previousDateTime, selection.datetime)) {
       loadOrganizationTags(api, organization.slug, selection);
       addRoutePerformanceContext(selection);
@@ -87,13 +83,12 @@ function PerformanceContent({selection, location, demoMode}: Props) {
         ...location.query,
         cursor: undefined,
         query: String(searchQuery).trim() || undefined,
+        isDefaultQuery: false,
       },
     });
   }
 
-  const eventView = generatePerformanceEventView(location, projects, {
-    isMetricsData,
-  });
+  const eventView = generatePerformanceEventView(location, projects);
 
   function shouldShowOnboarding() {
     // XXX used by getsentry to bypass onboarding for the upsell demo state.
@@ -125,28 +120,30 @@ function PerformanceContent({selection, location, demoMode}: Props) {
   return (
     <SentryDocumentTitle title={t('Performance')} orgSlug={organization.slug}>
       <PerformanceEventViewProvider value={{eventView}}>
-        <PageFiltersContainer
-          defaultSelection={{
-            datetime: {
-              start: null,
-              end: null,
-              utc: false,
-              period: DEFAULT_STATS_PERIOD,
-            },
-          }}
-        >
-          <PerformanceLanding
-            eventView={eventView}
-            setError={setError}
-            handleSearch={handleSearch}
-            handleTrendsClick={() => handleTrendsClick({location, organization})}
-            shouldShowOnboarding={shouldShowOnboarding()}
-            organization={organization}
-            location={location}
-            projects={projects}
-            selection={selection}
-          />
-        </PageFiltersContainer>
+        <MEPSettingProvider>
+          <PageFiltersContainer
+            defaultSelection={{
+              datetime: {
+                start: null,
+                end: null,
+                utc: false,
+                period: DEFAULT_STATS_PERIOD,
+              },
+            }}
+          >
+            <PerformanceLanding
+              eventView={eventView}
+              setError={setError}
+              handleSearch={handleSearch}
+              handleTrendsClick={() => handleTrendsClick({location, organization})}
+              shouldShowOnboarding={shouldShowOnboarding()}
+              organization={organization}
+              location={location}
+              projects={projects}
+              selection={selection}
+            />
+          </PageFiltersContainer>
+        </MEPSettingProvider>
       </PerformanceEventViewProvider>
     </SentryDocumentTitle>
   );

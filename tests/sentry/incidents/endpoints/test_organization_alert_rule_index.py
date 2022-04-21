@@ -1,4 +1,5 @@
 from copy import deepcopy
+from datetime import datetime
 
 import pytz
 import requests
@@ -12,6 +13,7 @@ from sentry.incidents.models import (
     IncidentTrigger,
     TriggerStatus,
 )
+from sentry.models import AuditLogEntry, AuditLogEntryEvent, Rule, RuleFireHistory
 from sentry.models.organizationmember import OrganizationMember
 from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
 from sentry.testutils import APITestCase
@@ -107,6 +109,11 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         assert resp.data == serialize(alert_rule, self.user)
+
+        audit_log_entry = AuditLogEntry.objects.filter(
+            event=AuditLogEntryEvent.ALERT_RULE_ADD, target_object=alert_rule.id
+        )
+        assert len(audit_log_entry) == 1
 
     def test_sentry_app(self):
         other_org = self.create_organization(owner=self.user)
@@ -1107,3 +1114,13 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert response.status_code == 200
         assert response.data[0]["id"] == str(alert_rule.id)
         assert response.data[0]["owner"] is None
+
+    @freeze_time()
+    def test_last_triggered(self):
+        self.login_as(user=self.user)
+        rule = Rule.objects.filter(project=self.project).first()
+        resp = self.get_success_response(self.organization.slug, expand=["lastTriggered"])
+        assert resp.data[0]["lastTriggered"] is None
+        RuleFireHistory.objects.create(project=self.project, rule=rule, group=self.group)
+        resp = self.get_success_response(self.organization.slug, expand=["lastTriggered"])
+        assert resp.data[0]["lastTriggered"] == datetime.now().replace(tzinfo=pytz.UTC)

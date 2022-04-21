@@ -24,7 +24,7 @@ def format_ondemand_budget(ondemand_data):
             attachments_budget = format_ondemand_max_spend(
                 ondemand_data.get("attachmentsBudget", 0)
             )
-            return f"split on-demand (errors at {errors_budget}, transactions at {transactions_budget}, and attachments at {attachments_budget})"
+            return f"per-category on-demand (errors at {errors_budget}, transactions at {transactions_budget}, and attachments at {attachments_budget})"
         else:
             shared_budget = ondemand_data.get("sharedMaxBudget", 0)
             return f"shared on-demand of {format_ondemand_max_spend(shared_budget)}"
@@ -127,6 +127,10 @@ class AuditLogEntryEvent:
     PROJECT_QUOTA_EDIT = 151
     PROJECT_QUOTA_REMOVE = 152
 
+    ALERT_RULE_ADD = 160
+    ALERT_RULE_EDIT = 161
+    ALERT_RULE_REMOVE = 162
+
 
 class AuditLogEntry(Model):
     __include_in_export__ = False
@@ -188,6 +192,9 @@ class AuditLogEntry(Model):
             (AuditLogEntryEvent.APIKEY_ADD, "api-key.create"),
             (AuditLogEntryEvent.APIKEY_EDIT, "api-key.edit"),
             (AuditLogEntryEvent.APIKEY_REMOVE, "api-key.remove"),
+            (AuditLogEntryEvent.ALERT_RULE_ADD, "alertrule.create"),
+            (AuditLogEntryEvent.ALERT_RULE_EDIT, "alertrule.edit"),
+            (AuditLogEntryEvent.ALERT_RULE_REMOVE, "alertrule.remove"),
             (AuditLogEntryEvent.RULE_ADD, "rule.create"),
             (AuditLogEntryEvent.RULE_EDIT, "rule.edit"),
             (AuditLogEntryEvent.RULE_REMOVE, "rule.remove"),
@@ -377,6 +384,13 @@ class AuditLogEntry(Model):
         elif self.event == AuditLogEntryEvent.APIKEY_REMOVE:
             return "removed api key {}".format(self.data["label"])
 
+        elif self.event == AuditLogEntryEvent.ALERT_RULE_ADD:
+            return 'added metric alert rule "{}"'.format(self.data["label"])
+        elif self.event == AuditLogEntryEvent.ALERT_RULE_EDIT:
+            return 'edited metric alert rule "{}"'.format(self.data["label"])
+        elif self.event == AuditLogEntryEvent.ALERT_RULE_REMOVE:
+            return 'removed metric alert rule "{}"'.format(self.data["label"])
+
         elif self.event == AuditLogEntryEvent.RULE_ADD:
             return 'added rule "{}"'.format(self.data["label"])
         elif self.event == AuditLogEntryEvent.RULE_EDIT:
@@ -394,8 +408,14 @@ class AuditLogEntry(Model):
             return f"changed on-demand budget to {next_ondemand_budget}"
         elif self.event == AuditLogEntryEvent.TRIAL_STARTED:
             return "started trial"
+
         elif self.event == AuditLogEntryEvent.PLAN_CHANGED:
-            return "changed plan to {}".format(self.data["plan_name"])
+            plan_name = self.data["plan_name"]
+            if "quotas" in self.data:
+                quotas = self.data["quotas"]
+                return f"changed plan to {plan_name} with {quotas}"
+            return f"changed plan to {plan_name}"
+
         elif self.event == AuditLogEntryEvent.PLAN_CANCELLED:
             return "cancelled plan"
 

@@ -1,4 +1,4 @@
-from typing import Any, List, Mapping, MutableMapping, Optional, Sequence, Set
+from typing import Any, Mapping, MutableMapping, Optional, Sequence, Set
 
 from sentry.sentry_metrics.indexer.models import MetricsKeyIndexer
 from sentry.utils import metrics
@@ -9,7 +9,7 @@ _INDEXER_CACHE_HIT_METRIC = "sentry_metrics.indexer.memcache.hit"
 _INDEXER_CACHE_MISS_METRIC = "sentry_metrics.indexer.memcache.miss"
 
 
-class PGStringIndexer(Service):  # type: ignore
+class PGStringIndexer(Service):
     """
     Provides integer IDs for metric names, tag keys and tag values
     and the corresponding reverse lookup.
@@ -31,10 +31,16 @@ class PGStringIndexer(Service):  # type: ignore
         # (which should all exist point at this point), but also cache the results
         return MetricsKeyIndexer.objects.get_many_from_cache(list(unmapped_strings), key="string")
 
-    def bulk_record(self, strings: List[str]) -> Mapping[str, int]:
+    def bulk_record(self, org_strings: MutableMapping[int, Set[str]]) -> Mapping[str, int]:
+        # XXX(meredith): We are going to be changing the implementation of bulk_record
+        # in a future PR, so for now we don't need to do anything with the org_id, we just
+        # want the signature to be correct for the new implementation
+        strings = set()
+        for _, strs in org_strings.items():
+            strings.update(strs)
 
         cache_results: Sequence[Any] = MetricsKeyIndexer.objects.get_many_from_cache(
-            strings, key="string"
+            list(strings), key="string"
         )
 
         mapped_result: MutableMapping[str, int] = {r.string: r.id for r in cache_results}
@@ -60,12 +66,12 @@ class PGStringIndexer(Service):  # type: ignore
 
         return mapped_result
 
-    def record(self, string: str) -> int:
+    def record(self, org_id: int, string: str) -> int:
         """Store a string and return the integer ID generated for it"""
-        result = self.bulk_record(strings=[string])
+        result = self.bulk_record({org_id: {string}})
         return result[string]
 
-    def resolve(self, string: str) -> Optional[int]:
+    def resolve(self, org_id: int, string: str) -> Optional[int]:
         """Lookup the integer ID for a string.
 
         Returns None if the entry cannot be found.

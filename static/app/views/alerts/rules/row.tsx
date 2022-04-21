@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
 
 import Access from 'sentry/components/acl/access';
+import AlertBadge from 'sentry/components/alertBadge';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import DateTime from 'sentry/components/dateTime';
@@ -17,19 +18,20 @@ import {IconArrow, IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
-import {Actor, Organization, Project} from 'sentry/types';
+import {Actor, Project} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import type {Color} from 'sentry/utils/theme';
-import {AlertRuleThresholdType} from 'sentry/views/alerts/incidentRules/types';
+import {
+  AlertRuleThresholdType,
+  AlertRuleTriggerType,
+} from 'sentry/views/alerts/incidentRules/types';
 
-import AlertBadge from '../alertBadge';
 import {CombinedMetricIssueAlerts, IncidentStatus} from '../types';
 import {isIssueAlert} from '../utils';
 
 type Props = {
   onDelete: (projectId: string, rule: CombinedMetricIssueAlerts) => void;
   orgId: string;
-  organization: Organization;
   projects: Project[];
   projectsLoaded: boolean;
   rule: CombinedMetricIssueAlerts;
@@ -89,8 +91,12 @@ function RuleListRow({
       return null;
     }
 
-    const criticalTrigger = rule.triggers.find(({label}) => label === 'critical');
-    const warningTrigger = rule.triggers.find(({label}) => label === 'warning');
+    const criticalTrigger = rule.triggers.find(
+      ({label}) => label === AlertRuleTriggerType.CRITICAL
+    );
+    const warningTrigger = rule.triggers.find(
+      ({label}) => label === AlertRuleTriggerType.WARNING
+    );
     const resolvedTrigger = rule.resolveThreshold;
     const trigger =
       activeIncident && rule.latestIncident?.status === IncidentStatus.CRITICAL
@@ -106,9 +112,9 @@ function RuleListRow({
 
     if (activeIncident) {
       iconColor =
-        trigger?.label === 'critical'
+        trigger?.label === AlertRuleTriggerType.CRITICAL
           ? 'red300'
-          : trigger?.label === 'warning'
+          : trigger?.label === AlertRuleTriggerType.WARNING
           ? 'yellow300'
           : 'green300';
       iconDirection = rule.thresholdType === AlertRuleThresholdType.ABOVE ? 'up' : 'down';
@@ -147,7 +153,11 @@ function RuleListRow({
 
   const canEdit = ownerId ? userTeams.has(ownerId) : true;
   const alertLink = isIssueAlert(rule) ? (
-    rule.name
+    <Link
+      to={`/organizations/${orgId}/alerts/rules/${rule.projects[0]}/${rule.id}/details/`}
+    >
+      {rule.name}
+    </Link>
   ) : (
     <TitleLink to={isIssueAlert(rule) ? editLink : detailsLink}>{rule.name}</TitleLink>
   );

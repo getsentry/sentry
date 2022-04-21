@@ -408,7 +408,7 @@ describe('EventView.fromSavedQuery()', function () {
       orderby: '-id',
       environment: ['staging'],
       display: 'previous',
-      yAxis: ['count()', 'failure_count()'],
+      yAxis: ['count()'],
     };
     const eventView = EventView.fromSavedQuery(saved);
 
@@ -429,6 +429,31 @@ describe('EventView.fromSavedQuery()', function () {
       environment: ['staging'],
       yAxis: 'count()',
       display: 'previous',
+    });
+  });
+
+  it('preserves utc with start/end', function () {
+    const saved = {
+      name: 'best query',
+      query: 'event.type:transaction',
+      fields: ['count()', 'title'],
+      start: '2019-10-20T21:02:51+0000',
+      end: '2019-10-23T19:27:04+0000',
+      utc: 'true',
+    };
+    const eventView = EventView.fromSavedQuery(saved);
+
+    expect(eventView).toMatchObject({
+      id: saved.id,
+      name: saved.name,
+      fields: [
+        {field: 'count()', width: COL_WIDTH_UNDEFINED},
+        {field: 'title', width: COL_WIDTH_UNDEFINED},
+      ],
+      query: 'event.type:transaction',
+      start: '2019-10-20T21:02:51.000',
+      end: '2019-10-23T19:27:04.000',
+      utc: 'true',
     });
   });
 });
@@ -3361,7 +3386,7 @@ describe('isAPIPayloadSimilar', function () {
       expect(results).toBe(false);
     });
 
-    it('it is similar if column order changes', function () {
+    it('is similar if column order changes', function () {
       const thisEventView = new EventView(state);
       const location = {};
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
@@ -3376,7 +3401,7 @@ describe('isAPIPayloadSimilar', function () {
       expect(results).toBe(true);
     });
 
-    it('it is similar if equation order relatively same', function () {
+    it('is similar if equation order relatively same', function () {
       const equationField = {field: 'equation|failure_count() / count()'};
       const otherEquationField = {field: 'equation|failure_count() / 2'};
       state.fields = [
@@ -3404,7 +3429,7 @@ describe('isAPIPayloadSimilar', function () {
       expect(results).toBe(true);
     });
 
-    it('it is not similar if equation order changes', function () {
+    it('is not similar if equation order changes', function () {
       const equationField = {field: 'equation|failure_count() / count()'};
       const otherEquationField = {field: 'equation|failure_count() / 2'};
       state.fields = [

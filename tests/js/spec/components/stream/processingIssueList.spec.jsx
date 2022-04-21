@@ -54,7 +54,7 @@ describe('ProcessingIssueList', function () {
         />
       );
       await wrapper.instance().componentDidMount();
-      await wrapper.update();
+      wrapper.update();
     });
 
     it('renders multiple issues', function () {

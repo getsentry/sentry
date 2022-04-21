@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
@@ -22,7 +22,7 @@ describe('MetricField', function () {
   });
 
   it('renders', function () {
-    mountWithTheme(
+    render(
       <Form initialData={{dataset: Dataset.ERRORS}} model={model}>
         <MetricField name="metric" organization={organization} />
       </Form>
@@ -30,7 +30,7 @@ describe('MetricField', function () {
   });
 
   it('has a select subset of error fields', function () {
-    mountWithTheme(
+    render(
       <Form initialData={{dataset: Dataset.ERRORS}} model={model}>
         <MetricField name="metric" organization={organization} />
       </Form>
@@ -48,7 +48,7 @@ describe('MetricField', function () {
   });
 
   it('has a select subset of transaction fields', function () {
-    mountWithTheme(
+    render(
       <Form initialData={{dataset: Dataset.TRANSACTIONS}} model={model}>
         <MetricField name="metric" organization={organization} />
       </Form>
@@ -67,7 +67,7 @@ describe('MetricField', function () {
   });
 
   it('maps field value to selected presets', function () {
-    mountWithTheme(
+    render(
       <Form initialData={{dataset: Dataset.TRANSACTIONS}} model={model}>
         <MetricField name="metric" organization={organization} />
       </Form>
@@ -84,7 +84,7 @@ describe('MetricField', function () {
   });
 
   it('changes field values when selecting presets', function () {
-    mountWithTheme(
+    render(
       <Form initialData={{dataset: Dataset.TRANSACTIONS}} model={model}>
         <MetricField name="metric" organization={organization} />
       </Form>

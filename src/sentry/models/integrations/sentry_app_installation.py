@@ -1,7 +1,9 @@
 import uuid
+from itertools import chain
+from typing import List
 
 from django.db import models
-from django.db.models import QuerySet
+from django.db.models import OuterRef, QuerySet, Subquery
 from django.utils import timezone
 
 from sentry.constants import SentryAppInstallationStatus
@@ -18,15 +20,60 @@ def default_uuid():
 
 
 class SentryAppInstallationForProviderManager(ParanoidManager):
+    def get_organization_filter_kwargs(self, organization_ids: List[int]):
+        return {
+            "organization_id__in": organization_ids,
+            "status": SentryAppInstallationStatus.INSTALLED,
+            "date_deleted": None,
+        }
+
     def get_installed_for_organization(self, organization_id: int) -> QuerySet:
-        return self.filter(
-            organization_id=organization_id,
-            status=SentryAppInstallationStatus.INSTALLED,
-            date_deleted=None,
-        )
+        return self.filter(**self.get_organization_filter_kwargs([organization_id]))
 
     def get_by_api_token(self, token_id: str) -> QuerySet:
         return self.filter(status=SentryAppInstallationStatus.INSTALLED, api_token_id=token_id)
+
+    def get_related_sentry_app_components(
+        self,
+        organization_ids: List[int],
+        sentry_app_ids: List[int],
+        type: str,
+        group_by="sentry_app_id",
+    ):
+        from sentry.models import SentryAppComponent
+
+        component_query = SentryAppComponent.objects.filter(
+            sentry_app_id=OuterRef("sentry_app_id"), type=type
+        )
+
+        sentry_app_installations = (
+            self.filter(**self.get_organization_filter_kwargs(organization_ids))
+            .filter(sentry_app_id__in=sentry_app_ids)
+            .annotate(
+                # Cannot annotate model object only individual fields. We can convert it into SentryAppComponent instance later.
+                sentry_app_component_id=Subquery(component_query.values("id")[:1]),
+                sentry_app_component_schema=Subquery(component_query.values("schema")[:1]),
+                sentry_app_component_uuid=Subquery(component_query.values("uuid")[:1]),
+            )
+            .filter(sentry_app_component_id__isnull=False)
+        )
+
+        # There should only be 1 install of a SentryApp per organization
+        grouped_sentry_app_installations = {
+            getattr(install, group_by): {
+                "sentry_app_installation": install.to_dict(),
+                "sentry_app_component": {
+                    "id": install.sentry_app_component_id,
+                    "type": type,
+                    "schema": install.sentry_app_component_schema,
+                    "uuid": install.sentry_app_component_uuid,
+                    "sentry_app_id": install.sentry_app_id,
+                },
+            }
+            for install in sentry_app_installations
+        }
+
+        return grouped_sentry_app_installations
 
 
 class SentryAppInstallation(ParanoidModel):
@@ -84,13 +131,19 @@ class SentryAppInstallation(ParanoidModel):
     # grant code should be included in the serialization.
     is_new = False
 
+    def to_dict(self):
+        opts = self._meta
+        data = {}
+        for field in chain(opts.concrete_fields, opts.private_fields, opts.many_to_many):
+            field_name = field.get_attname()
+            data[field_name] = self.serializable_value(field_name)
+        return data
+
     def save(self, *args, **kwargs):
         self.date_updated = timezone.now()
         return super().save(*args, **kwargs)
 
-    def prepare_sentry_app_components(self, component_type, project=None):
-        from sentry.coreapi import APIError
-        from sentry.mediators import sentry_app_components
+    def prepare_sentry_app_components(self, component_type, project=None, values=None):
         from sentry.models import SentryAppComponent
 
         try:
@@ -100,8 +153,18 @@ class SentryAppInstallation(ParanoidModel):
         except SentryAppComponent.DoesNotExist:
             return None
 
+        return self.prepare_ui_component(component, project, values)
+
+    def prepare_ui_component(self, component, project=None, values=None):
+        from sentry.coreapi import APIError
+        from sentry.mediators import sentry_app_components
+
+        if values is None:
+            values = []
         try:
-            sentry_app_components.Preparer.run(component=component, install=self, project=project)
+            sentry_app_components.Preparer.run(
+                component=component, install=self, project=project, values=values
+            )
             return component
         except APIError:
             # TODO(nisanthan): For now, skip showing the UI Component if the API requests fail

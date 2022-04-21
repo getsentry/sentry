@@ -5,9 +5,9 @@ import {
   IconLocation,
   IconMobile,
   IconRefresh,
+  IconSort,
   IconSpan,
   IconStack,
-  IconSwitch,
   IconTerminal,
   IconUser,
   IconWarning,
@@ -32,7 +32,7 @@ function Icon({type}: Props) {
     case BreadcrumbType.ERROR:
       return <IconFire size="xs" />;
     case BreadcrumbType.HTTP:
-      return <IconSwitch size="xs" />;
+      return <IconSort size="xs" rotated />;
     case BreadcrumbType.WARNING:
       return <IconWarning size="xs" />;
     case BreadcrumbType.QUERY:

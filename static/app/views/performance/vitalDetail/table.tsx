@@ -33,6 +33,7 @@ import {TableColumn} from 'sentry/views/eventsV2/table/types';
 
 import {DisplayModes} from '../transactionSummary/transactionOverview/charts';
 import {
+  normalizeSearchConditionsWithTransactionName,
   TransactionFilterOptions,
   transactionSummaryRouteWithQuery,
 } from '../transactionSummary/utils';
@@ -109,10 +110,9 @@ class Table extends React.Component<Props, State> {
         action,
       });
 
-      const searchConditions = new MutableSearch(eventView.query);
-
-      // remove any event.type queries since it is implied to apply to only transactions
-      searchConditions.removeFilter('event.type');
+      const searchConditions = normalizeSearchConditionsWithTransactionName(
+        eventView.query
+      );
 
       updateQuery(searchConditions, action, column, value);
 

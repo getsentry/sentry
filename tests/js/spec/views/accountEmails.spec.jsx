@@ -17,7 +17,7 @@ describe('AccountEmails', function () {
   });
 
   it('renders with emails', function () {
-    const wrapper = mountWithTheme(<AccountEmails />, TestStubs.routerContext());
+    const wrapper = mountWithTheme(<AccountEmails />);
 
     expect(wrapper).toSnapshot();
   });
@@ -29,7 +29,7 @@ describe('AccountEmails', function () {
       statusCode: 200,
     });
 
-    const wrapper = mountWithTheme(<AccountEmails />, TestStubs.routerContext());
+    const wrapper = mountWithTheme(<AccountEmails />);
 
     expect(mock).not.toHaveBeenCalled();
 
@@ -54,7 +54,7 @@ describe('AccountEmails', function () {
       statusCode: 200,
     });
 
-    const wrapper = mountWithTheme(<AccountEmails />, TestStubs.routerContext());
+    const wrapper = mountWithTheme(<AccountEmails />);
 
     expect(mock).not.toHaveBeenCalled();
 
@@ -79,7 +79,7 @@ describe('AccountEmails', function () {
       statusCode: 200,
     });
 
-    const wrapper = mountWithTheme(<AccountEmails />, TestStubs.routerContext());
+    const wrapper = mountWithTheme(<AccountEmails />);
 
     expect(mock).not.toHaveBeenCalled();
 
@@ -102,7 +102,7 @@ describe('AccountEmails', function () {
       method: 'POST',
       statusCode: 200,
     });
-    const wrapper = mountWithTheme(<AccountEmails />, TestStubs.routerContext());
+    const wrapper = mountWithTheme(<AccountEmails />);
 
     expect(mock).not.toHaveBeenCalled();
 

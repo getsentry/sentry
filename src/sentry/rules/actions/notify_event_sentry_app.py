@@ -1,7 +1,6 @@
-"""
-Used for notifying a *specific* sentry app with a custom webhook payload (i.e. specified UI components)
-"""
-from typing import Any, Mapping, Optional, Sequence
+from __future__ import annotations
+
+from typing import Any, Generator, Mapping, Sequence
 
 from rest_framework import serializers
 
@@ -9,16 +8,18 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.sentry_app_component import SentryAppAlertRuleActionSerializer
 from sentry.eventstore.models import Event
 from sentry.models import Project, SentryApp, SentryAppComponent, SentryAppInstallation
+from sentry.rules import EventState
 from sentry.rules.actions.base import EventAction
+from sentry.rules.base import CallbackFuture
 from sentry.tasks.sentry_apps import notify_sentry_app
 
 ValidationError = serializers.ValidationError
 
 
-def validate_field(value: Optional[str], field: Mapping[str, Any], app_name: str):
+def validate_field(value: str | None, field: Mapping[str, Any], app_name: str) -> None:
     # Only validate synchronous select fields
     if field.get("type") == "select" and not field.get("uri"):
-        allowed_values = [option[0] for option in field.get("options")]
+        allowed_values = [option[0] for option in field.get("options", [])]
         # Reject None values and empty strings
         if value and value not in allowed_values:
             field_label = field.get("label")
@@ -28,7 +29,13 @@ def validate_field(value: Optional[str], field: Mapping[str, Any], app_name: str
             )
 
 
-class NotifyEventSentryAppAction(EventAction):  # type: ignore
+class NotifyEventSentryAppAction(EventAction):
+    """
+    Used for notifying a *specific* sentry app with a custom webhook payload
+    (i.e. specified UI components).
+    """
+
+    id = "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction"
     actionType = "sentryapp"
     # Required field for EventAction, value is ignored
     label = ""
@@ -51,7 +58,7 @@ class NotifyEventSentryAppAction(EventAction):  # type: ignore
 
         return action_list
 
-    def get_sentry_app(self, event: Event) -> Optional[SentryApp]:
+    def get_sentry_app(self, event: Event) -> SentryApp | None:
         extra = {"event_id": event.event_id}
 
         sentry_app_installation_uuid = self.get_option("sentryAppInstallationUuid")
@@ -66,7 +73,7 @@ class NotifyEventSentryAppAction(EventAction):  # type: ignore
 
         return None
 
-    def get_setting_value(self, field_name):
+    def get_setting_value(self, field_name: str) -> str | None:
         incoming_settings = self.data.get("settings", [])
         return next(
             (setting["value"] for setting in incoming_settings if setting["name"] == field_name),
@@ -132,7 +139,7 @@ class NotifyEventSentryAppAction(EventAction):  # type: ignore
                 f"Unexpected setting(s) '{extra_keys_string}' configured for {sentry_app.name}"
             )
 
-    def after(self, event: Event, state: str) -> Any:
+    def after(self, event: Event, state: EventState) -> Generator[CallbackFuture, None, None]:
         sentry_app = self.get_sentry_app(event)
         yield self.future(
             notify_sentry_app,

@@ -56,8 +56,11 @@ jobs:
 
       - name: Build OpenAPI Derefed JSON
         if: steps.changes.outputs.api_docs == 'true'
+        # install ts-node for ts build scripts to execute properly without potentially installing
+        # conflicting deps when running scripts locally
+        # see: https://github.com/getsentry/sentry/pull/32328/files
         run: |
-          make build-api-docs
+          yarn add ts-node && make build-api-docs
 
       - name: Copy artifact into getsentry/sentry-api-schema
         if: steps.changes.outputs.api_docs == 'true'

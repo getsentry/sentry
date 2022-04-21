@@ -19,7 +19,9 @@ import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
+import Button from 'sentry/components/button';
 import {IconResize} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -48,6 +50,7 @@ import SortableWidget from './sortableWidget';
 import {DashboardDetails, DashboardWidgetSource, Widget, WidgetType} from './types';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
+const DRAG_RESIZE_CLASS = 'widget-resize';
 const DESKTOP = 'desktop';
 const MOBILE = 'mobile';
 export const NUM_DESKTOP_COLS = 6;
@@ -69,7 +72,6 @@ type Props = {
   handleUpdateWidgetList: (widgets: Widget[]) => void;
   isEditing: boolean;
   location: Location;
-  onSetWidgetToBeUpdated: (widget: Widget) => void;
   /**
    * Fired when widgets are added/removed/sorted.
    */
@@ -80,6 +82,7 @@ type Props = {
   widgetLimitReached: boolean;
   isPreview?: boolean;
   newWidget?: Widget;
+  onSetNewWidget?: () => void;
   paramDashboardId?: string;
   paramTemplateId?: string;
 };
@@ -91,7 +94,7 @@ type State = {
 };
 
 class Dashboard extends Component<Props, State> {
-  constructor(props) {
+  constructor(props: Props) {
     super(props);
     const {dashboard, organization} = props;
     const isUsingGrid = organization.features.includes('dashboard-grid-layout');
@@ -137,42 +140,42 @@ class Dashboard extends Component<Props, State> {
   }
 
   async componentDidMount() {
-    const {isEditing, organization} = this.props;
+    const {organization, newWidget} = this.props;
     if (organization.features.includes('dashboard-grid-layout')) {
       window.addEventListener('resize', this.debouncedHandleResize);
     }
-    // Load organization tags when in edit mode.
-    if (isEditing) {
-      this.fetchTags();
+
+    // Always load organization tags on dashboards
+    this.fetchTags();
+
+    if (newWidget) {
+      this.addNewWidget();
     }
-    this.addNewWidget();
 
     // Get member list data for issue widgets
     this.fetchMemberList();
   }
 
   async componentDidUpdate(prevProps: Props) {
-    const {isEditing, newWidget} = this.props;
+    const {selection, newWidget} = this.props;
 
-    // Load organization tags when going into edit mode.
-    // We use tags on the add widget modal.
-    if (prevProps.isEditing !== isEditing && isEditing) {
-      this.fetchTags();
-    }
-    if (newWidget !== prevProps.newWidget) {
+    if (newWidget && newWidget !== prevProps.newWidget) {
       this.addNewWidget();
     }
-    if (!isEqual(prevProps.selection.projects, this.props.selection.projects)) {
+    if (!isEqual(prevProps.selection.projects, selection.projects)) {
       this.fetchMemberList();
     }
   }
 
   componentWillUnmount() {
-    const {organization} = this.props;
-    if (organization.features.includes('dashboard-grid-layout')) {
+    if (this.props.organization.features.includes('dashboard-grid-layout')) {
       window.removeEventListener('resize', this.debouncedHandleResize);
     }
+
+    window.clearTimeout(this.forceCheckTimeout);
   }
+
+  forceCheckTimeout: number | undefined = undefined;
 
   debouncedHandleResize = debounce(() => {
     this.setState({
@@ -191,11 +194,13 @@ class Dashboard extends Component<Props, State> {
   }
 
   async addNewWidget() {
-    const {api, organization, newWidget, handleAddCustomWidget} = this.props;
+    const {api, organization, newWidget, handleAddCustomWidget, onSetNewWidget} =
+      this.props;
     if (newWidget) {
       try {
         await validateWidget(api, organization.slug, newWidget);
         handleAddCustomWidget(newWidget);
+        onSetNewWidget?.();
       } catch (error) {
         // Don't do anything, widget isn't valid
         addErrorMessage(error);
@@ -215,7 +220,34 @@ class Dashboard extends Component<Props, State> {
       selection,
       handleUpdateWidgetList,
       handleAddCustomWidget,
+      router,
+      location,
+      paramDashboardId,
     } = this.props;
+
+    if (organization.features.includes('new-widget-builder-experience')) {
+      if (paramDashboardId) {
+        router.push({
+          pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/new/`,
+          query: {
+            ...location.query,
+            source: DashboardWidgetSource.DASHBOARDS,
+          },
+        });
+        return;
+      }
+
+      router.push({
+        pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
+        query: {
+          ...location.query,
+          source: DashboardWidgetSource.DASHBOARDS,
+        },
+      });
+
+      return;
+    }
+
     trackAdvancedAnalyticsEvent('dashboards_views.add_widget_modal.opened', {
       organization,
     });
@@ -240,29 +272,6 @@ class Dashboard extends Component<Props, State> {
       selection,
       onAddWidget: handleAddCustomWidget,
       source: DashboardWidgetSource.DASHBOARDS,
-    });
-  };
-
-  handleOpenWidgetBuilder = () => {
-    const {router, location, paramDashboardId, organization} = this.props;
-
-    if (paramDashboardId) {
-      router.push({
-        pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/new/`,
-        query: {
-          ...location.query,
-          source: DashboardWidgetSource.DASHBOARDS,
-        },
-      });
-      return;
-    }
-
-    router.push({
-      pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
-      query: {
-        ...location.query,
-        source: DashboardWidgetSource.DASHBOARDS,
-      },
     });
   };
 
@@ -300,6 +309,7 @@ class Dashboard extends Component<Props, State> {
     nextList = generateWidgetsAfterCompaction(nextList);
 
     onUpdate(nextList);
+
     if (!!!isEditing) {
       handleUpdateWidgetList(nextList);
     }
@@ -322,7 +332,7 @@ class Dashboard extends Component<Props, State> {
     }
   };
 
-  handleEditWidget = (widget: Widget) => () => {
+  handleEditWidget = (widget: Widget, index: number) => () => {
     const {
       organization,
       dashboard,
@@ -330,16 +340,18 @@ class Dashboard extends Component<Props, State> {
       router,
       location,
       paramDashboardId,
-      onSetWidgetToBeUpdated,
       handleAddCustomWidget,
+      isEditing,
     } = this.props;
 
-    if (organization.features.includes('new-widget-builder-experience')) {
-      onSetWidgetToBeUpdated(widget);
-
+    if (
+      organization.features.includes('new-widget-builder-experience') &&
+      (!organization.features.includes('new-widget-builder-experience-modal-access') ||
+        isEditing)
+    ) {
       if (paramDashboardId) {
         router.push({
-          pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/${widget.id}/edit/`,
+          pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/${index}/edit/`,
           query: {
             ...location.query,
             source: DashboardWidgetSource.DASHBOARDS,
@@ -349,12 +361,14 @@ class Dashboard extends Component<Props, State> {
       }
 
       router.push({
-        pathname: `/organizations/${organization.slug}/dashboards/new/widget/${widget.id}/edit/`,
+        pathname: `/organizations/${organization.slug}/dashboards/new/widget/${index}/edit/`,
         query: {
           ...location.query,
           source: DashboardWidgetSource.DASHBOARDS,
         },
       });
+
+      return;
     }
 
     trackAdvancedAnalyticsEvent('dashboards_views.edit_widget_modal.opened', {
@@ -392,7 +406,7 @@ class Dashboard extends Component<Props, State> {
       isEditing,
       widgetLimitReached,
       onDelete: this.handleDeleteWidget(widget),
-      onEdit: this.handleEditWidget(widget),
+      onEdit: this.handleEditWidget(widget, index),
       onDuplicate: this.handleDuplicateWidget(widget, index),
       isPreview,
     };
@@ -401,20 +415,23 @@ class Dashboard extends Component<Props, State> {
       const key = constructGridItemKey(widget);
       const dragId = key;
       return (
-        <GridItem key={key} data-grid={widget.layout}>
+        <div key={key} data-grid={widget.layout}>
           <SortableWidget
             {...widgetProps}
             dragId={dragId}
             isMobile={isMobile}
             windowWidth={windowWidth}
+            index={String(index)}
           />
-        </GridItem>
+        </div>
       );
     }
 
     const key = generateWidgetId(widget, index);
     const dragId = key;
-    return <SortableWidget {...widgetProps} key={key} dragId={dragId} />;
+    return (
+      <SortableWidget {...widgetProps} key={key} dragId={dragId} index={String(index)} />
+    );
   }
 
   handleLayoutChange = (_, allLayouts: Layouts) => {
@@ -475,9 +492,10 @@ class Dashboard extends Component<Props, State> {
     onUpdate(newWidgets);
 
     // Force check lazyLoad elements that might have shifted into view after (re)moving an upper widget
-    // Unfortunately need to use setTimeout since React Grid Layout animates widgets into view when layout changes
+    // Unfortunately need to use window.setTimeout since React Grid Layout animates widgets into view when layout changes
     // RGL doesn't provide a handler for post animation layout change
-    setTimeout(forceCheck, 400);
+    window.clearTimeout(this.forceCheckTimeout);
+    this.forceCheckTimeout = window.setTimeout(forceCheck, 400);
   };
 
   handleBreakpointChange = (newBreakpoint: string) => {
@@ -520,10 +538,13 @@ class Dashboard extends Component<Props, State> {
     const {layouts, isMobile} = this.state;
     const {isEditing, dashboard, organization, widgetLimitReached} = this.props;
     let {widgets} = dashboard;
-    // Filter out any issue widgets if the user does not have the feature flag
-    if (!organization.features.includes('issues-in-dashboards')) {
-      widgets = widgets.filter(({widgetType}) => widgetType !== WidgetType.ISSUE);
-    }
+    // Filter out any issue/metrics widgets if the user does not have the feature flag
+    widgets = widgets.filter(({widgetType}) => {
+      if (widgetType === WidgetType.METRICS) {
+        return organization.features.includes('dashboards-metrics');
+      }
+      return true;
+    });
 
     const columnDepths = calculateColumnDepths(layouts[DESKTOP]);
     const widgetsWithLayout = assignDefaultLayout(widgets, columnDepths);
@@ -537,6 +558,7 @@ class Dashboard extends Component<Props, State> {
         rowHeight={ROW_HEIGHT}
         margin={WIDGET_MARGINS}
         draggableHandle={`.${DRAG_HANDLE_CLASS}`}
+        draggableCancel={`.${DRAG_RESIZE_CLASS}`}
         layouts={layouts}
         onLayoutChange={this.handleLayoutChange}
         onBreakpointChange={this.handleBreakpointChange}
@@ -544,11 +566,13 @@ class Dashboard extends Component<Props, State> {
         isResizable={canModifyLayout}
         resizeHandle={
           <ResizeHandle
-            className="react-resizable-handle"
+            aria-label={t('Resize Widget')}
             data-test-id="custom-resize-handle"
-          >
-            <IconResize />
-          </ResizeHandle>
+            className={DRAG_RESIZE_CLASS}
+            size="xsmall"
+            borderless
+            icon={<IconResize size="xs" />}
+          />
         }
         useCSSTransforms={false}
         isBounded
@@ -559,11 +583,7 @@ class Dashboard extends Component<Props, State> {
             key={ADD_WIDGET_BUTTON_DRAG_ID}
             data-grid={this.addWidgetLayout}
           >
-            <AddWidget
-              orgFeatures={organization.features}
-              onAddWidget={this.handleStartAdd}
-              onOpenWidgetBuilder={this.handleOpenWidgetBuilder}
-            />
+            <AddWidget onAddWidget={this.handleStartAdd} />
           </AddWidgetWrapper>
         )}
       </GridLayout>
@@ -573,10 +593,13 @@ class Dashboard extends Component<Props, State> {
   renderDndDashboard = () => {
     const {isEditing, onUpdate, dashboard, organization, widgetLimitReached} = this.props;
     let {widgets} = dashboard;
-    // Filter out any issue widgets if the user does not have the feature flag
-    if (!organization.features.includes('issues-in-dashboards')) {
-      widgets = widgets.filter(({widgetType}) => widgetType !== WidgetType.ISSUE);
-    }
+    // Filter out any issue/metrics widgets if the user does not have the feature flag
+    widgets = widgets.filter(({widgetType}) => {
+      if (widgetType === WidgetType.METRICS) {
+        return organization.features.includes('dashboards-metrics');
+      }
+      return true;
+    });
 
     const items = this.getWidgetIds();
 
@@ -601,11 +624,7 @@ class Dashboard extends Component<Props, State> {
           <SortableContext items={items} strategy={rectSortingStrategy}>
             {widgets.map((widget, index) => this.renderWidget(widget, index))}
             {isEditing && !!!widgetLimitReached && (
-              <AddWidget
-                orgFeatures={organization.features}
-                onAddWidget={this.handleStartAdd}
-                onOpenWidgetBuilder={this.handleOpenWidgetBuilder}
-              />
+              <AddWidget onAddWidget={this.handleStartAdd} />
             )}
           </SortableContext>
         </WidgetContainer>
@@ -651,31 +670,24 @@ const AddWidgetWrapper = styled('div')`
   background-color: ${p => p.theme.background};
 `;
 
-const GridItem = styled('div')`
-  .react-resizable-handle {
-    z-index: 2;
-  }
-`;
-
 const GridLayout = styled(WidthProvider(Responsive))`
   margin: -${space(2)};
 
-  .react-resizable-handle {
-    background-image: none;
-  }
-
-  .react-grid-item > .react-resizable-handle::after {
-    border: none;
-  }
-
   .react-grid-item.react-grid-placeholder {
     background: ${p => p.theme.purple200};
+    border-radius: ${p => p.theme.borderRadius};
   }
 `;
 
-const ResizeHandle = styled('div')`
+const ResizeHandle = styled(Button)`
   position: absolute;
-  bottom: 2px;
-  right: 2px;
+  z-index: 2;
+  bottom: ${space(0.5)};
+  right: ${space(0.5)};
+  color: ${p => p.theme.subText};
   cursor: nwse-resize;
+
+  .react-resizable-hide & {
+    display: none;
+  }
 `;

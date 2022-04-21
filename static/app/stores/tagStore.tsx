@@ -1,8 +1,10 @@
-import Reflux from 'reflux';
+import {createStore} from 'reflux';
 
-import TagActions from 'sentry/actions/tagActions';
 import {Tag, TagCollection} from 'sentry/types';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
+
+import {CommonStoreDefinition} from './types';
 
 // This list is only used on issues. Events/discover
 // have their own field list that exists elsewhere.
@@ -50,21 +52,21 @@ const BUILTIN_TAGS = [
   return acc;
 }, {});
 
-type TagStoreInterface = {
+interface TagStoreDefinition extends CommonStoreDefinition<TagCollection> {
   getAllTags(): TagCollection;
   getBuiltInTags(): TagCollection;
   getIssueAttributes(): TagCollection;
-  onLoadTagsSuccess(data: Tag[]): void;
+  loadTagsSuccess(data: Tag[]): void;
   reset(): void;
   state: TagCollection;
-};
+}
 
-const storeConfig: Reflux.StoreDefinition & TagStoreInterface = {
+const storeConfig: TagStoreDefinition = {
   state: {},
+  unsubscribeListeners: [],
 
   init() {
     this.state = {};
-    this.listenTo(TagActions.loadTagsSuccess, this.onLoadTagsSuccess);
   },
 
   getBuiltInTags() {
@@ -160,7 +162,11 @@ const storeConfig: Reflux.StoreDefinition & TagStoreInterface = {
     return this.state;
   },
 
-  onLoadTagsSuccess(data) {
+  getState() {
+    return this.getAllTags();
+  },
+
+  loadTagsSuccess(data) {
     const newTags = data.reduce<TagCollection>((acc, tag) => {
       acc[tag.key] = {
         values: [],
@@ -175,6 +181,5 @@ const storeConfig: Reflux.StoreDefinition & TagStoreInterface = {
   },
 };
 
-const TagStore = Reflux.createStore(storeConfig) as Reflux.Store & TagStoreInterface;
-
+const TagStore = createStore(makeSafeRefluxStore(storeConfig));
 export default TagStore;

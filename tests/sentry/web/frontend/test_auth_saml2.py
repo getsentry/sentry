@@ -31,6 +31,8 @@ dummy_provider_config = {
 
 
 class DummySAML2Provider(SAML2Provider):
+    name = "dummy"
+
     def get_saml_setup_pipeline(self):
         return []
 

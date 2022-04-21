@@ -11,10 +11,7 @@ describe('OnboardingWelcome', function () {
   it('calls onUpdate when setting the platform', function () {
     const onUpdate = jest.fn();
 
-    const wrapper = mountWithTheme(
-      <OnboardingPlatform active onUpdate={onUpdate} />,
-      TestStubs.routerContext()
-    );
+    const wrapper = mountWithTheme(<OnboardingPlatform active onUpdate={onUpdate} />);
 
     wrapper.find('[data-test-id="platform-dotnet"]').first().simulate('click');
 
@@ -24,10 +21,7 @@ describe('OnboardingWelcome', function () {
   it('creates a project when no project exists', async function () {
     const onComplete = jest.fn();
 
-    const wrapper = mountWithTheme(
-      <OnboardingPlatform active onComplete={onComplete} />,
-      TestStubs.routerContext()
-    );
+    const wrapper = mountWithTheme(<OnboardingPlatform active onComplete={onComplete} />);
 
     const getButton = () => wrapper.find('Button[priority="primary"]');
 
@@ -68,8 +62,7 @@ describe('OnboardingWelcome', function () {
         project={{id: '1', slug: 'test'}}
         platform="dotnet"
         onComplete={onComplete}
-      />,
-      TestStubs.routerContext()
+      />
     );
 
     const getButton = () => wrapper.find('Button[priority="primary"]');

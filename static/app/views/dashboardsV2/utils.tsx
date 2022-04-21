@@ -1,6 +1,7 @@
 import {Query} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import pick from 'lodash/pick';
+import * as qs from 'query-string';
 
 import WidgetArea from 'sentry-images/dashboard/widget-area.svg';
 import WidgetBar from 'sentry-images/dashboard/widget-bar.svg';
@@ -9,10 +10,23 @@ import WidgetLine from 'sentry-images/dashboard/widget-line-1.svg';
 import WidgetTable from 'sentry-images/dashboard/widget-table.svg';
 import WidgetWorldMap from 'sentry-images/dashboard/widget-world-map.svg';
 
-import {getDiffInMinutes, getInterval} from 'sentry/components/charts/utils';
-import {PageFilters} from 'sentry/types';
+import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
+import {
+  getDiffInMinutes,
+  getInterval,
+  SIX_HOURS,
+  TWENTY_FOUR_HOURS,
+} from 'sentry/components/charts/utils';
+import {Organization, PageFilters} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {getUtcDateString, parsePeriodToHours} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
+import {
+  getColumnsAndAggregates,
+  isEquation,
+  stripEquationPrefix,
+} from 'sentry/utils/discover/fields';
+import {DisplayModes} from 'sentry/utils/discover/types';
 import {
   DashboardDetails,
   DisplayType,
@@ -20,6 +34,14 @@ import {
   WidgetQuery,
   WidgetType,
 } from 'sentry/views/dashboardsV2/types';
+
+export type ValidationError = {
+  [key: string]: string | string[] | ValidationError[] | ValidationError;
+};
+
+export type FlatValidationError = {
+  [key: string]: string | FlatValidationError[] | FlatValidationError;
+};
 
 export function cloneDashboard(dashboard: DashboardDetails): DashboardDetails {
   return cloneDeep(dashboard);
@@ -37,9 +59,9 @@ export function eventViewFromWidget(
   // World Map requires an additional column (geo.country_code) to display in discover when navigating from the widget
   const fields =
     widgetDisplayType === DisplayType.WORLD_MAP &&
-    !query.fields.includes('geo.country_code')
-      ? ['geo.country_code', ...query.fields]
-      : query.fields;
+    !query.columns.includes('geo.country_code')
+      ? ['geo.country_code', ...query.columns, ...query.aggregates]
+      : [...query.columns, ...query.aggregates];
   const conditions =
     widgetDisplayType === DisplayType.WORLD_MAP &&
     !query.conditions.includes('has:geo.country_code')
@@ -77,11 +99,14 @@ export function constructWidgetFromQuery(query?: Query): Widget | undefined {
       queryFields &&
       typeof query.queryOrderby === 'string'
     ) {
+      const {columns, aggregates} = getColumnsAndAggregates(queryFields);
       queryConditions.forEach((condition, index) => {
         queries.push({
           name: queryNames[index],
           conditions: condition,
           fields: queryFields,
+          columns,
+          aggregates,
           orderby: query.queryOrderby as string,
         });
       });
@@ -138,6 +163,16 @@ export function getWidgetInterval(
   const desiredPeriod = parsePeriodToHours(interval);
   const selectedRange = getDiffInMinutes(datetimeObj);
 
+  if (widget.widgetType === WidgetType.METRICS) {
+    // Lower fidelity for Release Health widgets because of what
+    // the sessions endpoint can currently support.
+    interval = getInterval(datetimeObj, 'medium');
+    if (selectedRange > SIX_HOURS && selectedRange <= TWENTY_FOUR_HOURS) {
+      interval = '1h';
+    }
+    return widget.displayType === 'bar' ? '1d' : interval;
+  }
+
   // selectedRange is in minutes, desiredPeriod is in hours
   // convert desiredPeriod to minutes
   if (selectedRange / (desiredPeriod * 60) > MAX_BIN_COUNT) {
@@ -148,4 +183,125 @@ export function getWidgetInterval(
     }
   }
   return interval;
+}
+
+export function getFieldsFromEquations(fields: string[]): string[] {
+  // Gather all fields and functions used in equations and prepend them to the provided fields
+  const termsSet: Set<string> = new Set();
+  fields.filter(isEquation).forEach(field => {
+    const parsed = parseArithmetic(stripEquationPrefix(field)).tc;
+    parsed.fields.forEach(({term}) => termsSet.add(term as string));
+    parsed.functions.forEach(({term}) => termsSet.add(term as string));
+  });
+  return Array.from(termsSet);
+}
+
+export function getWidgetDiscoverUrl(
+  widget: Widget,
+  selection: PageFilters,
+  organization: Organization,
+  index: number = 0
+) {
+  const eventView = eventViewFromWidget(
+    widget.title,
+    widget.queries[index],
+    selection,
+    widget.displayType
+  );
+  const discoverLocation = eventView.getResultsViewUrlTarget(organization.slug);
+
+  // Pull a max of 3 valid Y-Axis from the widget
+  const yAxisOptions = eventView.getYAxisOptions().map(({value}) => value);
+  discoverLocation.query.yAxis = [
+    ...new Set(
+      widget.queries[0].aggregates.filter(aggregate => yAxisOptions.includes(aggregate))
+    ),
+  ].slice(0, 3);
+
+  // Visualization specific transforms
+  switch (widget.displayType) {
+    case DisplayType.WORLD_MAP:
+      discoverLocation.query.display = DisplayModes.WORLDMAP;
+      break;
+    case DisplayType.BAR:
+      discoverLocation.query.display = DisplayModes.BAR;
+      break;
+    case DisplayType.TOP_N:
+      discoverLocation.query.display = DisplayModes.TOP5;
+      // Last field is used as the yAxis
+      const aggregates = widget.queries[0].aggregates;
+      discoverLocation.query.yAxis = aggregates[aggregates.length - 1];
+      if (aggregates.slice(0, -1).includes(aggregates[aggregates.length - 1])) {
+        discoverLocation.query.field = aggregates.slice(0, -1);
+      }
+      break;
+    default:
+      break;
+  }
+
+  // Equation fields need to have their terms explicitly selected as columns in the discover table
+  const fields = discoverLocation.query.field;
+  const query = widget.queries[0];
+  const queryFields = defined(query.fields)
+    ? query.fields
+    : [...query.columns, ...query.aggregates];
+  const equationFields = getFieldsFromEquations(queryFields);
+  // Updates fields by adding any individual terms from equation fields as a column
+  equationFields.forEach(term => {
+    if (Array.isArray(fields) && !fields.includes(term)) {
+      fields.unshift(term);
+    }
+  });
+
+  // Construct and return the discover url
+  const discoverPath = `${discoverLocation.pathname}?${qs.stringify({
+    ...discoverLocation.query,
+  })}`;
+  return discoverPath;
+}
+
+export function getWidgetIssueUrl(
+  widget: Widget,
+  selection: PageFilters,
+  organization: Organization
+) {
+  const {start, end, utc, period} = selection.datetime;
+  const datetime =
+    start && end
+      ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
+      : {statsPeriod: period};
+  const issuesLocation = `/organizations/${organization.slug}/issues/?${qs.stringify({
+    query: widget.queries?.[0]?.conditions,
+    sort: widget.queries?.[0]?.orderby,
+    ...datetime,
+  })}`;
+  return issuesLocation;
+}
+
+export function flattenErrors(
+  data: ValidationError | string,
+  update: FlatValidationError
+): FlatValidationError {
+  if (typeof data === 'string') {
+    update.error = data;
+  } else {
+    Object.keys(data).forEach((key: string) => {
+      const value = data[key];
+      if (typeof value === 'string') {
+        update[key] = value;
+        return;
+      }
+      // Recurse into nested objects.
+      if (Array.isArray(value) && typeof value[0] === 'string') {
+        update[key] = value[0];
+        return;
+      }
+      if (Array.isArray(value) && typeof value[0] === 'object') {
+        (value as ValidationError[]).map(item => flattenErrors(item, update));
+      } else {
+        flattenErrors(value as ValidationError, update);
+      }
+    });
+  }
+  return update;
 }

@@ -1,6 +1,6 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
-import {act, mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import IntegrationExternalMappings from 'sentry/components/integrationExternalMappings';
 
@@ -66,7 +66,7 @@ describe('IntegrationExternalMappings', function () {
       method: 'GET',
       body: {},
     });
-    mountWithTheme(
+    render(
       <IntegrationExternalMappings
         organization={organization}
         integration={TestStubs.GitHubIntegration()}
@@ -86,7 +86,7 @@ describe('IntegrationExternalMappings', function () {
 
   it('still renders suggestions if no mappings are provided', async function () {
     createMockSuggestions();
-    mountWithTheme(
+    render(
       <IntegrationExternalMappings
         organization={organization}
         integration={TestStubs.GitHubIntegration()}
@@ -111,7 +111,7 @@ describe('IntegrationExternalMappings', function () {
 
   it('renders suggestions along with the provided mappings', async function () {
     createMockSuggestions();
-    mountWithTheme(
+    render(
       <IntegrationExternalMappings
         organization={organization}
         integration={TestStubs.GitHubIntegration()}
@@ -141,7 +141,7 @@ describe('IntegrationExternalMappings', function () {
   });
 
   it('uses the methods passed down from props appropriately', async function () {
-    mountWithTheme(
+    render(
       <IntegrationExternalMappings
         organization={organization}
         integration={TestStubs.GitHubIntegration()}

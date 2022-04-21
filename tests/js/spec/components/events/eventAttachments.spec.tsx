@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import EventAttachments from 'sentry/components/events/eventAttachments';
 
@@ -17,7 +17,7 @@ describe('EventAttachments', function () {
   };
 
   it('shows attachments limit reached notice', function () {
-    mountWithTheme(<EventAttachments {...props} />);
+    render(<EventAttachments {...props} />);
 
     expect(screen.getByText('Attachments (0)')).toBeInTheDocument();
 
@@ -36,7 +36,7 @@ describe('EventAttachments', function () {
   });
 
   it('does not render anything if no attachments (nor stripped) are available', function () {
-    const {container} = mountWithTheme(
+    const {container} = render(
       <EventAttachments
         {...props}
         event={{...event, metadata: {stripped_crash: false}}}

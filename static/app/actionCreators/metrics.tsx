@@ -1,4 +1,4 @@
-import {Client} from 'sentry/api';
+import {Client, ResponseMeta} from 'sentry/api';
 import {getInterval} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {DateString, MetricsApiResponse, Organization} from 'sentry/types';
@@ -41,18 +41,18 @@ export const doMetricsRequest = (
     statsPeriodEnd,
     ...dateTime
   }: DoMetricsRequestOptions
-): Promise<MetricsApiResponse> => {
+): Promise<MetricsApiResponse | [MetricsApiResponse, string, ResponseMeta]> => {
   const {start, end, statsPeriod} = normalizeDateTimeParams(dateTime, {
     allowEmptyPeriod: true,
   });
 
   const urlQuery = Object.fromEntries(
     Object.entries({
-      field,
+      field: field.filter(f => !!f),
       cursor,
       end,
       environment,
-      groupBy,
+      groupBy: groupBy?.filter(g => !!g),
       interval: interval || getInterval({start, end, period: statsPeriod}),
       query: query || undefined,
       per_page: limit,
@@ -62,7 +62,7 @@ export const doMetricsRequest = (
       statsPeriod,
       statsPeriodStart,
       statsPeriodEnd,
-    }).filter(([, value]) => defined(value))
+    }).filter(([, value]) => defined(value) && value !== '')
   );
 
   const pathname = `/organizations/${orgSlug}/metrics/data/`;

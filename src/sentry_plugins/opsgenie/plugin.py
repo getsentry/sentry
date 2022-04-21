@@ -30,7 +30,7 @@ class OpsGenieOptionsForm(notify.NotificationConfigurationForm):
         help_text="The user names of individual users or groups (comma separated)",
         required=False,
     )
-    alert_url = forms.CharField(
+    alert_url = forms.URLField(
         max_length=255,
         label="OpsGenie Alert URL",
         widget=forms.TextInput(
@@ -74,10 +74,11 @@ class OpsGeniePlugin(CorePluginMixin, notify.NotificationPlugin):
     def get_form_initial(self, project=None):
         return {"alert_url": "https://api.opsgenie.com/v2/alerts"}
 
-    def build_payload(self, group, event, triggering_rules):
-        payload = {
+    @staticmethod
+    def build_payload(group, event, triggering_rules):
+        return {
             "message": event.message or event.title,
-            "alias": "sentry: %d" % group.id,
+            "alias": f"sentry: {group.id}",
             "source": "Sentry",
             "details": {
                 "Sentry ID": str(group.id),
@@ -90,13 +91,8 @@ class OpsGeniePlugin(CorePluginMixin, notify.NotificationPlugin):
                 "Triggering Rules": json.dumps(triggering_rules),
             },
             "entity": group.culprit,
+            "tags": [f'{str(x).replace(",", "")}:{str(y).replace(",", "")}' for x, y in event.tags],
         }
-
-        payload["tags"] = [
-            "{}:{}".format(str(x).replace(",", ""), str(y).replace(",", "")) for x, y in event.tags
-        ]
-
-        return payload
 
     def notify_users(self, group, event, fail_silently=False, triggering_rules=None, **kwargs):
         if not self.is_configured(group.project):

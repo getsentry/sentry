@@ -17,23 +17,20 @@ import {Theme} from 'sentry/utils/theme';
  */
 type ButtonElement = HTMLButtonElement & HTMLAnchorElement & any;
 
-type ConditionalAriaLabel =
-  | {
-      children: Omit<React.ReactNode, 'null' | 'undefined' | 'boolean'>;
-      'aria-label'?: string;
-    }
-  | {
-      'aria-label': string;
-      children?: null | boolean;
-    };
+type TooltipProps = React.ComponentProps<typeof Tooltip>;
 
-type Props = {
+interface BaseButtonProps
+  extends Omit<
+    React.ButtonHTMLAttributes<ButtonElement>,
+    'ref' | 'label' | 'size' | 'title'
+  > {
   align?: 'center' | 'left' | 'right';
   // This is only used with `<ButtonBar>`
   barId?: string;
   borderless?: boolean;
   busy?: boolean;
   disabled?: boolean;
+  download?: HTMLAnchorElement['download'];
   external?: boolean;
   forwardRef?: React.Ref<ButtonElement>;
   href?: string;
@@ -41,16 +38,24 @@ type Props = {
   name?: string;
   onClick?: (e: React.MouseEvent) => void;
   priority?: 'default' | 'primary' | 'danger' | 'link' | 'success' | 'form';
+  rel?: HTMLAnchorElement['rel'];
   size?: 'zero' | 'xsmall' | 'small';
-  title?: React.ComponentProps<typeof Tooltip>['title'];
+  target?: HTMLAnchorElement['target'];
+  title?: TooltipProps['title'];
   to?: string | object;
-  tooltipProps?: Omit<Tooltip['props'], 'children' | 'title' | 'skipWrapper'>;
-
+  tooltipProps?: Omit<TooltipProps, 'children' | 'title' | 'skipWrapper'>;
   translucentBorder?: boolean;
-} & ConditionalAriaLabel;
+}
 
-type ButtonProps = Omit<React.HTMLProps<ButtonElement>, keyof Props | 'ref' | 'label'> &
-  Props;
+export interface ButtonPropsWithoutAriaLabel extends BaseButtonProps {
+  children: React.ReactNode;
+}
+export interface ButtonPropsWithAriaLabel extends BaseButtonProps {
+  'aria-label': string;
+  children?: never;
+}
+
+export type ButtonProps = ButtonPropsWithoutAriaLabel | ButtonPropsWithAriaLabel;
 
 type Url = ButtonProps['to'] | ButtonProps['href'];
 
@@ -71,7 +76,7 @@ function BaseButton({
   tooltipProps,
   onClick,
   ...buttonProps
-}: Props) {
+}: ButtonProps) {
   // Intercept onClick and propagate
   function handleClick(e: React.MouseEvent) {
     // Don't allow clicks when disabled or busy
@@ -147,13 +152,9 @@ const Button = reactForwardRef<ButtonElement, ButtonProps>((props, ref) => (
 ));
 
 Button.displayName = 'Button';
-
 export default Button;
 
 type StyledButtonProps = ButtonProps & {theme: Theme};
-
-const getFontWeight = ({priority, borderless}: StyledButtonProps) =>
-  `font-weight: ${priority === 'link' || borderless ? 'inherit' : 600};`;
 
 const getBoxShadow = ({
   priority,
@@ -220,11 +221,25 @@ const getColors = ({
     }
   };
 
+  const getBackgroundColor = () => {
+    switch (priority) {
+      case 'primary':
+      case 'success':
+      case 'danger':
+        return `background-color: ${background};`;
+      default:
+        if (borderless) {
+          return `background-color: transparent;`;
+        }
+        return `background-color: ${background};`;
+    }
+  };
+
   return css`
     color: ${color};
-    background-color: ${background};
+    ${getBackgroundColor()}
 
-    border: 1px solid ${borderless ? 'transparent' : border};
+    border: 1px solid ${borderless || priority === 'link' ? 'transparent' : border};
 
     ${translucentBorder && `border-width: 0;`}
 
@@ -235,11 +250,12 @@ const getColors = ({
     ${size !== 'zero' &&
     `
     &:hover,
-    &:focus,
-    &:active {
+    &:active,
+    &.focus-visible,
+    &[aria-expanded="true"] {
       color: ${colorActive || color};
       background: ${backgroundActive};
-      border-color: ${borderless ? 'transparent' : borderActive};
+      border-color: ${borderless || priority === 'link' ? 'transparent' : borderActive};
     }`}
 
     &.focus-visible {
@@ -272,7 +288,7 @@ const getSizeStyles = ({size, translucentBorder, theme}: StyledButtonProps) => {
 const StyledButton = styled(
   reactForwardRef<any, ButtonProps>(
     (
-      {forwardRef, size: _size, external, to, href, disabled, ...otherProps}: Props,
+      {forwardRef, size: _size, external, to, href, disabled, ...otherProps}: ButtonProps,
       forwardRefAlt
     ) => {
       // XXX: There may be two forwarded refs here, one potentially passed from a
@@ -309,11 +325,11 @@ const StyledButton = styled(
       prop === 'external' ||
       (typeof prop === 'string' && isPropValid(prop)),
   }
-)<Props>`
+)<ButtonProps>`
   display: inline-block;
   border-radius: ${p => p.theme.button.borderRadius};
   text-transform: none;
-  ${getFontWeight};
+  font-weight: 600;
   ${getColors};
   ${getSizeStyles}
   ${getBoxShadow};
@@ -321,7 +337,7 @@ const StyledButton = styled(
   opacity: ${p => (p.busy || p.disabled) && '0.65'};
   transition: background 0.1s, border 0.1s, box-shadow 0.1s;
 
-  ${p => p.priority === 'link' && `font-size: inherit; padding: 0;`}
+  ${p => p.priority === 'link' && `font-size: inherit; font-weight: inherit; padding: 0;`}
   ${p => p.size === 'zero' && `height: auto; min-height: auto; padding: ${space(0.25)};`}
 
   &:focus {

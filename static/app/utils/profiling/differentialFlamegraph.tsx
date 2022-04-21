@@ -1,4 +1,4 @@
-import {FlamegraphTheme} from './flamegraph/FlamegraphTheme';
+import {ColorChannels, FlamegraphTheme} from './flamegraph/flamegraphTheme';
 import {relativeChange} from './units/units';
 import {Flamegraph} from './flamegraph';
 import {FlamegraphFrame} from './flamegraphFrame';
@@ -20,6 +20,7 @@ function countFrameOccurences(frames: FlamegraphFrame[]): Map<string, number> {
 }
 
 export class DifferentialFlamegraph extends Flamegraph {
+  colors: Map<string, ColorChannels> = new Map();
   fromToDiff: Map<string, number> = new Map();
   toCount: Map<string, number> = new Map();
   fromCount: Map<string, number> = new Map();
@@ -32,15 +33,14 @@ export class DifferentialFlamegraph extends Flamegraph {
     const differentialFlamegraph = new DifferentialFlamegraph(
       to.profile,
       to.profileIndex,
-      from.inverted,
-      from.leftHeavy
+      {inverted: from.inverted, leftHeavy: from.leftHeavy}
     );
 
     const fromCounts = countFrameOccurences(from.frames);
     const toCounts = countFrameOccurences(to.frames);
 
     const countDiff: Map<string, number> = new Map();
-    const colorMap: Map<string | number, number[]> =
+    const colorMap: Map<string, ColorChannels> =
       differentialFlamegraph.colors ?? new Map();
 
     for (const frame of to.frames) {
@@ -76,14 +76,14 @@ export class DifferentialFlamegraph extends Flamegraph {
       }
 
       countDiff.set(key, diff);
-      colorMap.set(key, color);
+      colorMap.set(key, color as ColorChannels);
     }
 
     differentialFlamegraph.fromToDiff = countDiff;
     differentialFlamegraph.toCount = toCounts;
     differentialFlamegraph.fromCount = fromCounts;
 
-    differentialFlamegraph.setColors(colorMap);
+    differentialFlamegraph.colors = colorMap;
 
     return differentialFlamegraph;
   }

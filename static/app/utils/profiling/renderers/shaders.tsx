@@ -1,4 +1,4 @@
-import {FlamegraphTheme} from '../flamegraph/FlamegraphTheme';
+import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
 
 export const vertex = () => `
 attribute vec2 a_position;

@@ -117,9 +117,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
 )
 
-# The ratio of requests for which the new stackwalking method should be compared against the old one
-register("symbolicator.compare_stackwalking_methods_rate", default=0.0)
-
 # Killswitch for symbolication sources, based on a list of source IDs. Meant to be used in extreme
 # situations where it is preferable to break symbolication in a few places as opposed to letting
 # it break everywhere.
@@ -387,3 +384,8 @@ register("store.save-transactions-ingest-consumer-rate", default=0.0)
 
 # Drop delete_old_primary_hash messages for a particular project.
 register("reprocessing2.drop-delete-old-primary-hash", default=[])
+
+# Send event messages for specific project IDs to random partitions in Kafka
+# contents are a list of project IDs to message types to be randomly assigned
+# e.g. [{"project_id": 2, "message_type": "error"}, {"project_id": 3, "message_type": "transaction"}]
+register("kafka.send-project-events-to-random-partitions", default=[])

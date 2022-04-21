@@ -1,5 +1,4 @@
-import inspect
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, get_type_hints
 
 from drf_spectacular.extensions import OpenApiAuthenticationExtension, OpenApiSerializerExtension
 from drf_spectacular.openapi import AutoSchema
@@ -23,7 +22,9 @@ class TokenAuthExtension(OpenApiAuthenticationExtension):  # type: ignore
             for s in permission.scope_map.get(auto_schema.method, []):
                 scopes.add(s)
 
-        return {self.name: list(scopes)}
+        scope_list = list(scopes)
+        scope_list.sort()
+        return {self.name: scope_list}
 
     def get_security_definition(
         self, auto_schema: AutoSchema
@@ -47,8 +48,11 @@ class SentryResponseSerializerExtension(OpenApiSerializerExtension):  # type: ig
         return name
 
     def map_serializer(self, auto_schema: AutoSchema, direction: Direction) -> Any:
-        serializer_signature = inspect.signature(self.target.serialize)
-        return resolve_type_hint(serializer_signature.return_annotation)
+        type_hints = get_type_hints(self.target.serialize)
+        if "return" not in type_hints:
+            raise TypeError("Please type the return value of the serializer with a TypedDict")
+
+        return resolve_type_hint(type_hints["return"])
 
 
 class SentryInlineResponseSerializerExtension(OpenApiSerializerExtension):  # type: ignore

@@ -7,7 +7,7 @@ from django import forms
 from requests.exceptions import HTTPError, SSLError
 
 from sentry import digests, ratelimits
-from sentry.exceptions import PluginError
+from sentry.exceptions import InvalidIdentity, PluginError
 from sentry.models import NotificationSetting
 from sentry.plugins.base import Notification, Plugin
 from sentry.plugins.base.configuration import react_plugin_config
@@ -62,7 +62,14 @@ class NotificationPlugin(Plugin):
             return self.notify_users(
                 event.group, event, triggering_rules=[r.label for r in notification.rules]
             )
-        except (SSLError, HTTPError, ApiError, PluginError, UrllibHTTPError) as err:
+        except (
+            ApiError,
+            HTTPError,
+            InvalidIdentity,
+            PluginError,
+            SSLError,
+            UrllibHTTPError,
+        ) as err:
             self.logger.info(
                 "notification-plugin.notify-failed",
                 extra={
@@ -180,7 +187,6 @@ class NotificationPlugin(Plugin):
             elif hasattr(exc, "read") and callable(exc.read):
                 test_results = f"{exc}\n{exc.read()[:256]}"
             else:
-                logging.exception("Plugin(%s) raised an error during test, %s", self.slug, str(exc))
                 if str(exc).lower().startswith("error communicating with"):
                     test_results = str(exc)[:256]
                 else:

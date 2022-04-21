@@ -174,7 +174,7 @@ type Rect = {
 };
 
 // get position of element relative to top/left of document
-const getOffsetOfElement = (element: Element) => {
+export const getOffsetOfElement = (element: Element) => {
   // left and top are relative to viewport
   const {left, top} = element.getBoundingClientRect();
 

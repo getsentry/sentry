@@ -65,7 +65,7 @@ steps:
           docker-compose logs;
           exit $test_return;
         fi
-    timeout: 600s
+    timeout: 660s
   - name: 'gcr.io/cloud-builders/docker'
     id: docker-push
     waitFor:
@@ -94,7 +94,7 @@ artifacts:
     paths: ['dist/*.whl']
 options:
   # We need more memory for Webpack builds & e2e self-hosted tests
-  machineType: 'N1_HIGHCPU_8'
+  machineType: 'E2_HIGHCPU_8'
   env:
     - 'CI=1'
     - 'SENTRY_IMAGE=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA'

@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import GlobalModal from 'sentry/components/globalModal';
 import FiltersAndSampling from 'sentry/views/settings/project/filtersAndSampling';
@@ -28,7 +28,7 @@ export function renderComponent(withModal = true) {
     },
   } as Parameters<typeof initializeOrg>[0]);
 
-  return mountWithTheme(
+  return render(
     <Fragment>
       {withModal && <GlobalModal />}
       <FiltersAndSampling organization={organization} project={project} />

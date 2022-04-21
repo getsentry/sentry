@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 
 import LoadingMask from 'sentry/components/loadingMask';
 
-type Props = {
+interface Props extends React.HTMLAttributes<HTMLDivElement> {
   height?: string;
-} & React.HTMLProps<HTMLDivElement>;
+}
 
 const LoadingPanel = styled(({height: _height, ...props}: Props) => (
   <div {...props}>

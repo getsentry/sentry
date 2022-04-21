@@ -135,8 +135,8 @@ class Fixtures:
             project = self.project
         return Factories.create_project_rule(
             project=project,
-            action_match=action_match,
-            condition_match=condition_match,
+            action_data=action_match,
+            condition_data=condition_match,
             *args,
             **kwargs,
         )
@@ -389,6 +389,9 @@ class Fixtures:
         if "actor" not in kwargs:
             kwargs["actor"] = self.user.actor
         return Factories.create_group_history(*args, **kwargs)
+
+    def create_comment(self, *args, **kwargs):
+        return Factories.create_comment(*args, **kwargs)
 
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot):

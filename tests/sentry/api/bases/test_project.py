@@ -141,6 +141,15 @@ class ProjectPermissionTest(ProjectPermissionBase):
 
         assert not self.has_object_perm("POST", project, user=sentry_app.proxy_user)
 
+    def test_member_project_no_teams(self):
+        user = self.create_user(is_superuser=False)
+        self.create_member(user=user, organization=self.org, role="member", teams=[])
+        project = self.create_project(teams=[self.team])
+        self.team.delete()
+        # if `allow_joinleave` is True, members should be able to GET a project even if
+        # it has no teams
+        assert self.has_object_perm("GET", project, user=user)
+
 
 class ProjectPermissionNoJoinLeaveTest(ProjectPermissionBase):
     def setUp(self):
@@ -255,3 +264,16 @@ class ProjectPermissionNoJoinLeaveTest(ProjectPermissionBase):
         # owners should be able to act on teams/projects they
         # don't have access to
         assert self.has_object_perm("POST", project, user=user)
+
+    def test_member_without_team_access(self):
+        user = self.create_user(is_superuser=False)
+        self.create_member(user=user, organization=self.org, role="member", teams=[])
+        assert not self.has_object_perm("GET", self.project, user=user)
+
+    def test_member_project_no_teams(self):
+        user = self.create_user(is_superuser=False)
+        self.create_member(user=user, organization=self.org, role="member", teams=[])
+        project = self.create_project(teams=[self.team])
+        self.team.delete()
+        # if `allow_joinleave` is False, members cannot GET a project with no teams
+        assert not self.has_object_perm("GET", project, user=user)

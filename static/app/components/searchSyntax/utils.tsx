@@ -1,6 +1,6 @@
 import {LocationRange} from 'pegjs';
 
-import {Token, TokenConverter, TokenResult} from './parser';
+import {Token, TokenResult} from './parser';
 
 /**
  * Used internally within treeResultLocator to stop recursion once we've
@@ -208,9 +208,7 @@ type GetKeyNameOpts = {
  * Utility to get the string name of any type of key.
  */
 export const getKeyName = (
-  key: ReturnType<
-    TokenConverter['tokenKeySimple' | 'tokenKeyExplicitTag' | 'tokenKeyAggregate']
-  >,
+  key: TokenResult<Token.KeySimple | Token.KeyExplicitTag | Token.KeyAggregate>,
   options: GetKeyNameOpts = {}
 ) => {
   const {aggregateWithArgs} = options;

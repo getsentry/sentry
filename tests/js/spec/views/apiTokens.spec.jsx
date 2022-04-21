@@ -6,8 +6,6 @@ import {ApiTokens} from 'sentry/views/settings/account/apiTokens';
 const organization = TestStubs.Organization();
 
 describe('ApiTokens', function () {
-  const routerContext = TestStubs.routerContext();
-
   beforeEach(function () {
     Client.clearMockResponses();
   });
@@ -18,10 +16,7 @@ describe('ApiTokens', function () {
       body: null,
     });
 
-    const wrapper = mountWithTheme(
-      <ApiTokens organization={organization} />,
-      routerContext
-    );
+    const wrapper = mountWithTheme(<ApiTokens organization={organization} />);
 
     // Should be loading
     expect(wrapper).toSnapshot();
@@ -33,10 +28,7 @@ describe('ApiTokens', function () {
       body: [TestStubs.ApiToken()],
     });
 
-    const wrapper = mountWithTheme(
-      <ApiTokens organization={organization} />,
-      routerContext
-    );
+    const wrapper = mountWithTheme(<ApiTokens organization={organization} />);
 
     // Should be loading
     expect(wrapper).toSnapshot();
@@ -55,10 +47,7 @@ describe('ApiTokens', function () {
 
     expect(mock).not.toHaveBeenCalled();
 
-    const wrapper = mountWithTheme(
-      <ApiTokens organization={organization} />,
-      routerContext
-    );
+    const wrapper = mountWithTheme(<ApiTokens organization={organization} />);
 
     wrapper.find('button[aria-label="Remove"]').simulate('click');
 

@@ -4,7 +4,13 @@ from django.utils import timezone
 from django.utils.timezone import now
 from freezegun import freeze_time
 
-from sentry.models import GroupAssignee, GroupHistory, GroupHistoryStatus, GroupStatus
+from sentry.models import (
+    GroupAssignee,
+    GroupEnvironment,
+    GroupHistory,
+    GroupHistoryStatus,
+    GroupStatus,
+)
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 
@@ -172,6 +178,54 @@ class TeamIssueBreakdownTest(APITestCase):
         compare_response(response, project1, [3, 3, 3, 4, 4, 5, 5])
         compare_response(response, project2, [0, 1, 0, 1, 0, 1, 0])
         compare_response(response, project3, [0, 1, 0, 0, 0, 0, 0])
+
+    def test_status_format_with_environment(self):
+        project1 = self.create_project(teams=[self.team])
+        env1 = self.create_environment(name="development", project=project1)
+        env2 = self.create_environment(name="production", project=project1)
+        group1_1 = self.create_group(project_id=project1.id, first_seen=before_now(days=40))
+        group1_2 = self.create_group(project_id=project1.id, first_seen=before_now(days=40))
+        group1_3 = self.create_group(project_id=project1.id, first_seen=before_now(days=40))
+        GroupEnvironment.objects.create(group_id=group1_1.id, environment_id=env2.id)
+        GroupEnvironment.objects.create(group_id=group1_2.id, environment_id=env2.id)
+        GroupEnvironment.objects.create(group_id=group1_3.id, environment_id=env1.id)
+        GroupAssignee.objects.assign(group1_1, self.user)
+        GroupAssignee.objects.assign(group1_2, self.user)
+        GroupAssignee.objects.assign(group1_3, self.user)
+        GroupHistory.objects.all().delete()
+
+        self.create_group_history(
+            group=group1_1, date_added=before_now(days=40), status=GroupHistoryStatus.UNRESOLVED
+        )
+        self.create_group_history(
+            group=group1_2, date_added=before_now(days=40), status=GroupHistoryStatus.UNRESOLVED
+        )
+        self.create_group_history(
+            group=group1_3, date_added=before_now(days=40), status=GroupHistoryStatus.UNRESOLVED
+        )
+
+        self.login_as(user=self.user)
+        response = self.get_success_response(
+            self.team.organization.slug, self.team.slug, statsPeriod="7d", environment="production"
+        )
+
+        def compare_response(response, project, expected_results):
+            start = (now() - timedelta(days=len(expected_results) - 1)).replace(
+                hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc
+            )
+            expected = {
+                (start + timedelta(days=i)).isoformat(): {"unresolved": value}
+                for i, value in enumerate(expected_results)
+            }
+            assert expected == response.data[project.id]
+
+        compare_response(response, project1, [2, 2, 2, 2, 2, 2, 2])
+
+        response = self.get_success_response(
+            self.team.organization.slug, self.team.slug, statsPeriod="7d"
+        )
+
+        compare_response(response, project1, [3, 3, 3, 3, 3, 3, 3])
 
     def test_no_projects(self):
         self.login_as(user=self.user)

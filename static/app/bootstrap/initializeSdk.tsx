@@ -8,6 +8,7 @@ import {_browserPerformanceTimeOriginMode} from '@sentry/utils';
 import {DISABLE_RR_WEB, SENTRY_RELEASE_VERSION, SPA_DSN} from 'sentry/constants';
 import {Config} from 'sentry/types';
 import {init as initApiSentryClient} from 'sentry/utils/apiSentryClient';
+import {LongTaskObserver} from 'sentry/utils/performanceForSentry';
 
 /**
  * We accept a routes argument here because importing `static/routes`
@@ -31,7 +32,7 @@ function getSentryIntegrations(hasReplays: boolean = false, routes?: Function) {
             ),
           }
         : {}),
-      idleTimeout: 1000,
+      idleTimeout: 5000,
       _metricOptions: {
         _reportAllChanges: false,
       },
@@ -109,4 +110,6 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
     Sentry.setTag('sentry_version', window.__SENTRY__VERSION);
   }
   Sentry.setTag('rrweb.active', hasReplays ? 'yes' : 'no');
+
+  LongTaskObserver.startPerformanceObserver();
 }

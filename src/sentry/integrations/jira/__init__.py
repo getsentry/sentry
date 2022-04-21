@@ -1,8 +1,16 @@
 from sentry.rules import rules
-from sentry.utils.imports import import_submodules
 
+from .client import JIRA_KEY, JiraApiClient
+from .integration import JiraIntegration, JiraIntegrationProvider
 from .notify_action import JiraCreateTicketAction
 
-import_submodules(globals(), __name__, __path__)
+__all__ = (
+    "JIRA_KEY",
+    "JiraApiClient",
+    "JiraCreateTicketAction",
+    "JiraIntegration",
+    "JiraIntegrationProvider",
+)
+
 
 rules.add(JiraCreateTicketAction)

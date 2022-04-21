@@ -156,6 +156,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
 
 RESERVED_PROJECT_SLUGS = frozenset(
     (
+        "$all",
         "api-keys",
         "audit-log",
         "auth",
@@ -549,6 +550,7 @@ DEFAULT_STORE_NORMALIZER_ARGS = dict(
 INTERNAL_INTEGRATION_TOKEN_COUNT_MAX = 20
 
 ALL_ACCESS_PROJECTS = {-1}
+ALL_ACCESS_PROJECTS_SLUG = "$all"
 
 # Most number of events for the top-n graph
 MAX_TOP_EVENTS = 10

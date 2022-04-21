@@ -58,7 +58,7 @@ export const SPAN_RELATIVE_PERIODS = pick(DEFAULT_RELATIVE_PERIODS, [
 export const SPAN_SORT_OPTIONS: SpanSortOption[] = [
   {
     prefix: t('Sort By'),
-    label: t('Total Exclusive Time'),
+    label: t('Total Self Time'),
     field: SpanSortOthers.SUM_EXCLUSIVE_TIME,
   },
   {
@@ -73,22 +73,22 @@ export const SPAN_SORT_OPTIONS: SpanSortOption[] = [
   },
   {
     prefix: t('Sort By'),
-    label: t('p50 Exclusive Time'),
+    label: t('p50 Self Time'),
     field: SpanSortPercentiles.P50_EXCLUSIVE_TIME,
   },
   {
     prefix: t('Sort By'),
-    label: t('p75 Exclusive Time'),
+    label: t('p75 Self Time'),
     field: SpanSortPercentiles.P75_EXCLUSIVE_TIME,
   },
   {
     prefix: t('Sort By'),
-    label: t('p95 Exclusive Time'),
+    label: t('p95 Self Time'),
     field: SpanSortPercentiles.P95_EXCLUSIVE_TIME,
   },
   {
     prefix: t('Sort By'),
-    label: t('p99 Exclusive Time'),
+    label: t('p99 Self Time'),
     field: SpanSortPercentiles.P99_EXCLUSIVE_TIME,
   },
 ];
@@ -135,22 +135,21 @@ export function parseSpanSlug(spanSlug: string | undefined): SpanSlug | undefine
 export function generateSpansEventView({
   location,
   transactionName,
-  isMetricsData,
 }: {
-  isMetricsData: boolean;
   location: Location;
   transactionName: string;
 }): EventView {
   const query = decodeScalar(location.query.query, '');
   const conditions = new MutableSearch(query);
 
-  // event.type is not a valid metric tag, so it will be added to the query only
-  // in case the metric switch is disabled (for now).
-  if (!isMetricsData) {
-    conditions.setFilterValues('event.type', ['transaction']);
-  }
-
+  conditions.setFilterValues('event.type', ['transaction']);
   conditions.setFilterValues('transaction', [transactionName]);
+
+  Object.keys(conditions.filters).forEach(field => {
+    if (isAggregateField(field)) {
+      conditions.removeFilter(field);
+    }
+  });
 
   const eventView = EventView.fromNewQueryWithLocation(
     {
@@ -237,3 +236,7 @@ export const SPAN_SORT_TO_FIELDS: Record<SpanSort, string[]> = {
     'sumArray(spans_exclusive_time)',
   ],
 };
+
+export function getExclusiveTimeDisplayedValue(value: string): string {
+  return value.replace('exclusive', 'self');
+}

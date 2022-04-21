@@ -1,4 +1,4 @@
-import {mountWithTheme, screen, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import Line from 'sentry/components/events/interfaces/frame/line';
 import {Frame} from 'sentry/types';
@@ -28,7 +28,7 @@ describe('Frame - Line', function () {
 
   describe('renderOriginalSourceInfo()', function () {
     it('should render the source map information as a HTML string', function () {
-      const {container} = mountWithTheme(
+      const {container} = render(
         <Line
           data={{
             origAbsPath: 'https://beta.getsentry.com/_static/sentry/dist/vendor.js',
@@ -47,7 +47,7 @@ describe('Frame - Line', function () {
 
   describe('renderContext()', () => {
     it('should render context lines', () => {
-      mountWithTheme(
+      render(
         <Line
           data={{
             ...data,
@@ -70,7 +70,7 @@ describe('Frame - Line', function () {
     });
 
     it('should render register values', () => {
-      mountWithTheme(
+      render(
         <Line
           data={data}
           registers={{
@@ -101,7 +101,7 @@ describe('Frame - Line', function () {
     });
 
     it('should not render empty registers', () => {
-      mountWithTheme(
+      render(
         <Line data={data} registers={{}} components={[]} event={event} isExpanded />
       );
 
@@ -120,7 +120,7 @@ describe('Frame - Line', function () {
         project_id: "u'3'",
       };
 
-      mountWithTheme(
+      render(
         <Line
           data={{...data, vars}}
           registers={{}}

@@ -13,7 +13,9 @@ class ProjectCreateSampleEndpoint(ProjectEndpoint):
     permission_classes = (ProjectEventPermission,)
 
     def post(self, request: Request, project) -> Response:
-        event = create_sample_event(project, platform=project.platform, default="javascript")
+        event = create_sample_event(
+            project, platform=project.platform, default="javascript", tagged=True
+        )
         add_group_to_inbox(event.group, GroupInboxReason.NEW)
 
         data = serialize(event, request.user)

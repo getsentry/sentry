@@ -1,10 +1,9 @@
 import * as React from 'react';
-import {browserHistory} from 'react-router';
+import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
-import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
@@ -21,24 +20,16 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project, SavedQuery} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
-import {DisplayModes} from 'sentry/utils/discover/types';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 import {
-  DashboardWidgetSource,
-  DisplayType,
-  WidgetQuery,
-} from 'sentry/views/dashboardsV2/types';
+  constructAddQueryToDashboardLink,
+  handleAddQueryToDashboard,
+} from 'sentry/views/eventsV2/utils';
 
-import {
-  displayModeToDisplayType,
-  handleCreateQuery,
-  handleDeleteQuery,
-  handleUpdateQuery,
-} from './utils';
+import {handleCreateQuery, handleDeleteQuery, handleUpdateQuery} from './utils';
 
 type DefaultProps = {
   disabled: boolean;
@@ -61,6 +52,7 @@ type Props = DefaultProps & {
   >['onIncompatibleQuery'];
   organization: Organization;
   projects: Project[];
+  router: InjectedRouter;
   savedQuery: SavedQuery | undefined;
   savedQueryLoading: boolean;
   updateCallback: () => void;
@@ -233,39 +225,6 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     });
   };
 
-  handleAddDashboardWidget = () => {
-    const {organization, eventView, savedQuery, yAxis} = this.props;
-
-    const displayType = displayModeToDisplayType(eventView.display as DisplayModes);
-    const defaultTableColumns = eventView.fields.map(({field}) => field);
-    const sort = eventView.sorts[0];
-    const defaultWidgetQuery: WidgetQuery = {
-      name: '',
-      fields: [
-        ...(displayType === DisplayType.TOP_N ? defaultTableColumns : []),
-        ...(typeof yAxis === 'string' ? [yAxis] : yAxis ?? ['count()']),
-      ],
-      conditions: eventView.query,
-      orderby: sort ? `${sort.kind === 'desc' ? '-' : ''}${sort.field}` : '',
-    };
-
-    trackAdvancedAnalyticsEvent('discover_views.add_to_dashboard.modal_open', {
-      organization,
-      saved_query: !!savedQuery,
-    });
-
-    openAddDashboardWidgetModal({
-      organization,
-      source: DashboardWidgetSource.DISCOVERV2,
-      defaultWidgetQuery,
-      defaultTableColumns,
-      defaultTitle:
-        savedQuery?.name ??
-        (eventView.name !== 'All Events' ? eventView.name : undefined),
-      displayType,
-    });
-  };
-
   renderButtonSaveAs(disabled: boolean) {
     const {queryName} = this.state;
     /**
@@ -375,6 +334,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
           onIncompatibleQuery={onIncompatibleAlertQuery}
           onSuccess={this.handleCreateAlertSuccess}
           referrer="discover"
+          aria-label={t('Create Alert')}
           data-test-id="discover2-create-from-discover"
         />
       </GuideAnchor>
@@ -382,11 +342,32 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
   }
 
   renderButtonAddToDashboard() {
+    const {organization, location, eventView, savedQuery, yAxis, router} = this.props;
     return (
       <Button
         key="add-dashboard-widget-from-discover"
         data-test-id="add-dashboard-widget-from-discover"
-        onClick={this.handleAddDashboardWidget}
+        {...(organization.features.includes('new-widget-builder-experience') &&
+        !organization.features.includes('new-widget-builder-experience-design')
+          ? {
+              to: constructAddQueryToDashboardLink({
+                organization,
+                location,
+                eventView,
+                query: savedQuery,
+                yAxis,
+              }),
+            }
+          : {
+              onClick: () =>
+                handleAddQueryToDashboard({
+                  organization,
+                  eventView,
+                  query: savedQuery,
+                  yAxis,
+                  router,
+                }),
+            })}
       >
         {t('Add to Dashboard')}
       </Button>

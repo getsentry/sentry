@@ -14,14 +14,36 @@ on:
   pull_request:
 
 jobs:
+  files-changed:
+    name: detect what files changed
+    runs-on: ubuntu-20.04
+    timeout-minutes: 3
+    # Map a step output to a job output
+    outputs:
+      acceptance: ${{ steps.changes.outputs.acceptance }}
+      backend: ${{ steps.changes.outputs.backend }}
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Check for backend file changes
+        uses: getsentry/paths-filter@v2
+        id: changes
+        with:
+          token: ${{ github.token }}
+          filters: .github/file-filters.yml
+
   frontend:
+    needs: files-changed
     name: frontend tests
     runs-on: ubuntu-20.04
     timeout-minutes: 20
     strategy:
+      # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
+      # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
+      fail-fast: false
       matrix:
         # XXX: When updating this, make sure you also update CI_NODE_TOTAL.
-        instance: [0, 1, 2]
+        instance: [0, 1, 2, 3]
 
     env:
       VISUAL_HTML_ENABLE: 1
@@ -59,7 +81,7 @@ jobs:
           # XXX: CI_NODE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
           #      Otherwise, if there are other things in the matrix, using strategy.job-total
           #      wouldn't be correct.
-          CI_NODE_TOTAL: 3
+          CI_NODE_TOTAL: 4
           CI_NODE_INDEX: ${{ matrix.instance }}
         run: |
           JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit
@@ -85,8 +107,12 @@ jobs:
 
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
+        with:
+          files: .artifacts/coverage/*
+          type: frontend
 
   webpack:
+    needs: files-changed
     name: create frontend bundle
     runs-on: ubuntu-20.04
     timeout-minutes: 10
@@ -144,14 +170,19 @@ jobs:
           path: dist.tar.gz
 
   acceptance:
+    needs: files-changed
     name: acceptance
     runs-on: ubuntu-20.04
     timeout-minutes: 20
     strategy:
+      # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
+      # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
+      fail-fast: false
       matrix:
         python-version: [3.8.12]
         # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
         instance: [0, 1, 2, 3]
+        pg-version: ['9.6', '14']
     env:
       # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
       MATRIX_INSTANCE_TOTAL: 4
@@ -169,6 +200,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
           pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           snuba: true
+          pg-version: ${{ matrix.pg-version }}
 
       - name: Wait for frontend build
         uses: getsentry/action-wait-for-check@v1.0.0
@@ -205,12 +237,17 @@ jobs:
 
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
+        if: ${{ needs.files-changed.outputs.backend == 'true' }}
 
   chartcuterie:
+    needs: files-changed
     name: chartcuterie integration
     runs-on: ubuntu-20.04
     timeout-minutes: 30
     strategy:
+      # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
+      # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
+      fail-fast: false
       matrix:
         python-version: [3.8.12]
         # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
@@ -265,3 +302,31 @@ jobs:
 
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
+        if: ${{ needs.files-changed.outputs.backend == 'true' }}
+
+  visual-diff:
+    # This guarantees that we will only schedule Visual Snapshots if all
+    # workflows that generate artifacts succeed
+    needs: [acceptance, frontend, chartcuterie]
+    name: triggers visual snapshot
+    # This is necessary since a failed/skipped dependent job would cause this job to be skipped
+    if: always()
+    runs-on: ubuntu-20.04
+    timeout-minutes: 20
+
+    steps:
+      # If any jobs we depend on fail, we will fail since this checks triggers Visual Snapshots which is a required check
+      - name: Check for failures
+        if: contains(needs.*.result, 'failure')
+        run: |
+          echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
+
+      - name: Diff snapshots
+        id: visual-snapshots-diff
+        uses: getsentry/action-visual-snapshot@v2
+        # Do not execute on forks or on master. Forks are handled in visual-diff.yml
+        if: github.head_repository.full_name == 'getsentry/sentry' && github.ref != 'refs/heads/master'
+        with:
+          api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
+          gcs-bucket: 'sentry-visual-snapshots'
+          gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}

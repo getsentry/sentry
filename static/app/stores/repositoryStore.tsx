@@ -1,9 +1,10 @@
-import Reflux from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
 import RepoActions from 'sentry/actions/repositoryActions';
 import {Repository} from 'sentry/types';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
-type RepositoryStoreInterface = {
+interface RepositoryStoreDefinition extends StoreDefinition {
   get(): {
     orgSlug?: string;
     repositories?: Repository[];
@@ -21,9 +22,9 @@ type RepositoryStoreInterface = {
     repositoriesError?: Error;
     repositoriesLoading?: boolean;
   };
-};
+}
 
-const storeConfig: Reflux.StoreDefinition & RepositoryStoreInterface = {
+const storeConfig: RepositoryStoreDefinition = {
   listenables: RepoActions,
   state: {
     orgSlug: undefined,
@@ -81,7 +82,5 @@ const storeConfig: Reflux.StoreDefinition & RepositoryStoreInterface = {
   },
 };
 
-const RepositoryStore = Reflux.createStore(storeConfig) as Reflux.Store &
-  RepositoryStoreInterface;
-
+const RepositoryStore = createStore(makeSafeRefluxStore(storeConfig));
 export default RepositoryStore;

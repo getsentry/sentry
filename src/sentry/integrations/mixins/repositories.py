@@ -125,7 +125,7 @@ class RepositoryMixin:
          * raw - the decoded raw contents of the codeowner file
         """
         if self.codeowners_locations is None:
-            raise Exception("Implement self.codeowners_locations to use this method.")
+            raise NotImplementedError("Implement self.codeowners_locations to use this method.")
 
         for filepath in self.codeowners_locations:
             html_url = self.check_file(repo, filepath, ref)

@@ -445,8 +445,8 @@ def pytest_addoption(parser):
 
 
 def pytest_configure(config):
-    if hasattr(config, "slaveinput"):
-        return  # xdist slave
+    if hasattr(config, "workerinput"):
+        return  # xdist worker
 
     config.option.selenium_driver = (
         config.getoption("selenium_driver")

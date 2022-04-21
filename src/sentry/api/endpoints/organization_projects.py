@@ -79,10 +79,10 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                 elif key == "slug":
                     queryset = queryset.filter(slug__in=value)
                 elif key == "team":
-                    team_list = list(Team.objects.filter(slug__in=value))
+                    team_list = list(Team.objects.filter(organization=organization, slug__in=value))
                     queryset = queryset.filter(teams__in=team_list)
                 elif key == "!team":
-                    team_list = list(Team.objects.filter(slug__in=value))
+                    team_list = list(Team.objects.filter(organization=organization, slug__in=value))
                     queryset = queryset.exclude(teams__in=team_list)
                 elif key == "is_member":
                     queryset = queryset.filter(teams__organizationmember__user=request.user)
@@ -100,16 +100,18 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                 serialize(list(queryset), request.user, ProjectSummarySerializer(collapse=collapse))
             )
         else:
+            expand = set()
+            if request.GET.get("transactionStats"):
+                expand.add("transaction_stats")
+            if request.GET.get("sessionStats"):
+                expand.add("session_stats")
 
             def serialize_on_result(result):
-                transaction_stats = request.GET.get("transactionStats")
-                session_stats = request.GET.get("sessionStats")
                 environment_id = self._get_environment_id_from_request(request, organization.id)
                 serializer = ProjectSummarySerializer(
                     environment_id=environment_id,
                     stats_period=stats_period,
-                    transaction_stats=transaction_stats,
-                    session_stats=session_stats,
+                    expand=expand,
                     collapse=collapse,
                 )
                 return serialize(result, request.user, serializer)

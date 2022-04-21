@@ -403,7 +403,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         except IdentityProvider.DoesNotExist:
             identity = None
         if not identity:
-            return self.respond(status=403)
+            return self.respond_with_text(NO_IDENTITY_MESSAGE)
 
         NotificationSetting.objects.enable_settings_for_user(
             recipient=identity.user, provider=ExternalProviders.SLACK

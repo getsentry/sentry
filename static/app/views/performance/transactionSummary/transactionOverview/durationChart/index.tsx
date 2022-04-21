@@ -3,7 +3,6 @@ import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import {Location, Query} from 'history';
 
-import ErrorPanel from 'sentry/components/charts/errorPanel';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import {getInterval, getSeriesSelection} from 'sentry/components/charts/utils';
@@ -12,13 +11,10 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import {OrganizationSummary} from 'sentry/types';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
-import {TransactionMetric} from 'sentry/utils/metrics/fields';
-import MetricsRequest from 'sentry/utils/metrics/metricsRequest';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import useApi from 'sentry/utils/useApi';
-import {useMetricsSwitch} from 'sentry/views/performance/metricsSwitch';
+import {getMEPQueryParams} from 'sentry/views/performance/landing/widgets/utils';
 
-import {transformMetricsToArea} from '../../../landing/widgets/transforms/transformMetricsToArea';
 import {ViewProps} from '../../../types';
 import {
   SPAN_OPERATION_BREAKDOWN_FILTER_TO_FIELD,
@@ -64,7 +60,7 @@ function DurationChart({
 }: Props) {
   const api = useApi();
   const theme = useTheme();
-  const {isMetricsData} = useMetricsSwitch();
+  const mepContext = useMEPSettingContext();
 
   function handleLegendSelectChanged(legendChange: {
     name: string;
@@ -137,64 +133,6 @@ function DurationChart({
     </HeaderTitleLegend>
   );
 
-  if (isMetricsData) {
-    // TODO(metrics): Update this logic as soon as the metrics API supports spans
-    if (!!parameter) {
-      return (
-        <Fragment>
-          {header}
-          <ErrorPanel>{`TODO: P* ${parameter}`}</ErrorPanel>
-        </Fragment>
-      );
-    }
-
-    const fields = Object.values([
-      DurationFunctionField.P50,
-      DurationFunctionField.P75,
-      DurationFunctionField.P95,
-      DurationFunctionField.P99,
-      'max',
-    ]).map(v => `${v}(${TransactionMetric.SENTRY_TRANSACTIONS_TRANSACTION_DURATION})`);
-
-    return (
-      <Fragment>
-        {header}
-        <MetricsRequest
-          {...requestCommonProps}
-          query={new MutableSearch(query).formatString()} // TODO(metrics): not all tags will be compatible with metrics
-          orgSlug={organization.slug}
-          field={fields}
-        >
-          {durationRequestResponseProps => {
-            const {errored, loading, reloading} = durationRequestResponseProps;
-
-            const series = fields.map(field => {
-              const {data} = transformMetricsToArea(
-                {
-                  location,
-                  fields: [field],
-                },
-                durationRequestResponseProps
-              );
-
-              return data[0];
-            });
-
-            return (
-              <Content
-                series={series}
-                errored={errored}
-                loading={loading}
-                reloading={reloading}
-                {...contentCommonProps}
-              />
-            );
-          }}
-        </MetricsRequest>
-      </Fragment>
-    );
-  }
-
   const yAxis = Object.values(DurationFunctionField).map(v => `${v}(${parameter})`);
 
   return (
@@ -209,6 +147,7 @@ function DurationChart({
         partial
         withoutZerofill={withoutZerofill}
         referrer="api.performance.transaction-summary.duration-chart"
+        queryExtras={getMEPQueryParams(mepContext)}
       >
         {({results, errored, loading, reloading, timeframe: timeFrame}) => (
           <Content

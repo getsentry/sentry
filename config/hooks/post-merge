@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 red="$(tput setaf 1)"
+yellow="$(tput setaf 3)"
 bold="$(tput bold)"
 reset="$(tput sgr0)"
 
@@ -22,6 +23,8 @@ update_command="make ${pc}${py}${js}${migrations}"
 [${red}${bold}!!!${reset}] ${red} It looks like some dependencies have changed that will require your intervention. Run the following to update:${reset}
 
     ${red}${bold}${update_command}${reset}
+
+${yellow}If you want these commands to automatically be executed after pulling code you can export the SENTRY_POST_MERGE_AUTO_UPDATE variable.${reset}
 
 EOF
 

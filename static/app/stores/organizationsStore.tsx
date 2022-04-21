@@ -1,9 +1,10 @@
-import Reflux from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
 import OrganizationsActions from 'sentry/actions/organizationsActions';
 import {Organization} from 'sentry/types';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
-type OrganizationsStoreInterface = {
+interface OrganizationsStoreDefinition extends StoreDefinition {
   add(item: Organization): void;
   get(slug: string): Organization | undefined;
 
@@ -15,9 +16,9 @@ type OrganizationsStoreInterface = {
   onUpdate(org: Organization): void;
   remove(slug: string): void;
   state: Organization[];
-};
+}
 
-const storeConfig: Reflux.StoreDefinition & OrganizationsStoreInterface = {
+const storeConfig: OrganizationsStoreDefinition = {
   listenables: [OrganizationsActions],
 
   state: [],
@@ -85,7 +86,6 @@ const storeConfig: Reflux.StoreDefinition & OrganizationsStoreInterface = {
   },
 };
 
-const OrganizationsStore = Reflux.createStore(storeConfig) as Reflux.Store &
-  OrganizationsStoreInterface;
+const OrganizationsStore = createStore(makeSafeRefluxStore(storeConfig));
 
 export default OrganizationsStore;

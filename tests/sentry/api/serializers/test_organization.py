@@ -1,11 +1,19 @@
 from unittest import mock
 
 from django.conf import settings
+from django.utils import timezone
 
 from sentry import features
-from sentry.api.serializers import DetailedOrganizationSerializer, serialize
+from sentry.api.serializers import (
+    DetailedOrganizationSerializer,
+    DetailedOrganizationSerializerWithProjectsAndTeams,
+    OnboardingTasksSerializer,
+    serialize,
+)
 from sentry.auth import access
 from sentry.features.base import OrganizationFeature
+from sentry.models import OrganizationOnboardingTask
+from sentry.models.organizationonboardingtask import OnboardingTask, OnboardingTaskStatus
 from sentry.testutils import TestCase
 
 
@@ -29,7 +37,6 @@ class OrganizationSerializerTest(TestCase):
             "discover-basic",
             "discover-query",
             "event-attachments",
-            "event-attachments-viewer",
             "images-loaded-v2",
             "integrations-alert-rule",
             "integrations-chat-unfurl",
@@ -40,17 +47,14 @@ class OrganizationSerializerTest(TestCase):
             "integrations-ticket-rules",
             "invite-members",
             "invite-members-rate-limits",
-            "issue-percent-filters",
             "minute-resolution-sessions",
             "open-membership",
             "relay",
-            "semver",
             "shared-issues",
             "sso-basic",
             "sso-saml2",
             "symbol-sources",
             "team-insights",
-            "unhandled-issue-flag",
         }
 
     @mock.patch("sentry.features.batch_has")
@@ -85,3 +89,58 @@ class DetailedOrganizationSerializerTest(TestCase):
         assert result["role"] == "owner"
         assert result["access"] == settings.SENTRY_SCOPES
         assert result["relayPiiConfig"] is None
+
+
+class DetailedOrganizationSerializerWithProjectsAndTeamsTest(TestCase):
+    def test_detailed_org_projs_teams(self):
+        # access the test fixtures so they're initialized
+        self.team
+        self.project
+        acc = access.from_user(self.user, self.organization)
+        serializer = DetailedOrganizationSerializerWithProjectsAndTeams()
+        result = serialize(self.organization, self.user, serializer, access=acc)
+
+        assert result["id"] == str(self.organization.id)
+        assert result["role"] == "owner"
+        assert result["access"] == settings.SENTRY_SCOPES
+        assert result["relayPiiConfig"] is None
+        assert len(result["teams"]) == 1
+        assert len(result["projects"]) == 1
+
+
+class OnboardingTasksSerializerTest(TestCase):
+    def test_onboarding_tasks_serializer(self):
+        completion_seen = timezone.now()
+        serializer = OnboardingTasksSerializer()
+        task = OrganizationOnboardingTask.objects.create(
+            organization=self.organization,
+            task=OnboardingTask.FIRST_PROJECT,
+            status=OnboardingTaskStatus.PENDING,
+            user=self.user,
+            completion_seen=completion_seen,
+        )
+
+        result = serialize(task, self.user, serializer)
+        assert result["task"] == "create_project"
+        assert result["status"] == "pending"
+        assert result["completionSeen"] == completion_seen
+        assert result["data"] == {}
+
+
+class TrustedRelaySerializer(TestCase):
+    def test_trusted_relay_serializer(self):
+        completion_seen = timezone.now()
+        serializer = OnboardingTasksSerializer()
+        task = OrganizationOnboardingTask.objects.create(
+            organization=self.organization,
+            task=OnboardingTask.FIRST_PROJECT,
+            status=OnboardingTaskStatus.PENDING,
+            user=self.user,
+            completion_seen=completion_seen,
+        )
+
+        result = serialize(task, self.user, serializer)
+        assert result["task"] == "create_project"
+        assert result["status"] == "pending"
+        assert result["completionSeen"] == completion_seen
+        assert result["data"] == {}

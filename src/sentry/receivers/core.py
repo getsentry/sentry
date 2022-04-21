@@ -92,8 +92,7 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
             sender=create_default_project,
         )
 
-        # HACK: manually update the ID after insert due to Postgres
-        # sequence issues. Seriously, fuck everything about this.
+        # HACK: Manually update the ID after insert due to Postgres sequence issues.
         connection = connections[project._state.db]
         cursor = connection.cursor()
         cursor.execute(PROJECT_SEQUENCE_FIX)

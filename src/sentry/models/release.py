@@ -20,6 +20,7 @@ from sentry.app import locks
 from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER
 from sentry.db.models import (
     ArrayField,
+    BaseQuerySet,
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
@@ -125,7 +126,7 @@ class SemverFilter:
     negated: bool = False
 
 
-class ReleaseQuerySet(models.QuerySet):
+class ReleaseQuerySet(BaseQuerySet):
     def annotate_prerelease_column(self):
         """
         Adds a `prerelease_case` column to the queryset which is used to properly sort
@@ -1182,9 +1183,9 @@ def follows_semver_versioning_scheme(org_id, project_id, release_version=None):
 
         # Check if the latest ten releases are semver compliant
         releases_list = list(
-            Release.objects.filter(organization_id=org_id, projects__id__in=[project_id]).order_by(
-                "-date_added"
-            )[:10]
+            Release.objects.filter(organization_id=org_id, projects__id__in=[project_id])
+            .using_replica()
+            .order_by("-date_added")[:10]
         )
 
         if not releases_list:

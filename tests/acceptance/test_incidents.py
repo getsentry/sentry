@@ -1,6 +1,8 @@
 import pytz
 from django.utils import timezone
 
+from sentry.incidents.logic import update_incident_status
+from sentry.incidents.models import IncidentStatus, IncidentStatusMethod
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 
@@ -30,6 +32,9 @@ class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
             date_detected=timezone.now(),
             projects=[self.project],
             alert_rule=alert_rule,
+        )
+        update_incident_status(
+            incident, IncidentStatus.CRITICAL, status_method=IncidentStatusMethod.RULE_TRIGGERED
         )
 
         features = {feature: True for feature in FEATURE_NAME}

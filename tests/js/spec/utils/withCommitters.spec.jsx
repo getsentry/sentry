@@ -32,6 +32,10 @@ describe('withCommitters HoC', function () {
     CommitterStore.init();
   });
 
+  afterEach(() => {
+    CommitterStore.teardown();
+  });
+
   it('adds committers prop', async () => {
     const Component = () => null;
     const Container = withCommitters(Component);

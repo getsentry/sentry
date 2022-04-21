@@ -1,9 +1,17 @@
 import {t} from 'sentry/locale';
-import {SchemaFormConfig} from 'sentry/views/organizationIntegrations/sentryAppExternalForm';
+import type {SchemaFormConfig} from 'sentry/views/organizationIntegrations/sentryAppExternalForm';
+
+import type {Incident} from '../types';
 
 export enum AlertRuleThresholdType {
   ABOVE,
   BELOW,
+}
+
+export enum AlertRuleTriggerType {
+  CRITICAL = 'critical',
+  WARNING = 'warning',
+  RESOLVE = 'resolve',
 }
 
 export enum AlertRuleComparisonType {
@@ -15,6 +23,8 @@ export enum Dataset {
   ERRORS = 'events',
   TRANSACTIONS = 'transactions',
   SESSIONS = 'sessions',
+  /** Also used for crash free alerts */
+  METRICS = 'metrics',
 }
 
 export enum EventTypes {
@@ -45,7 +55,7 @@ export enum SessionsAggregate {
 export type UnsavedTrigger = {
   actions: Action[];
   alertThreshold: number | '' | null;
-  label: string;
+  label: AlertRuleTriggerType;
   // UnsavedTrigger can be apart of an Unsaved Alert Rule that does not have an
   // id yet
   alertRuleId?: string;
@@ -83,15 +93,20 @@ export type UnsavedIncidentRule = {
   owner?: string | null;
 };
 
-export type SavedIncidentRule = UnsavedIncidentRule & {
+export interface SavedIncidentRule extends UnsavedIncidentRule {
   dateCreated: string;
   dateModified: string;
   id: string;
   name: string;
   status: number;
   createdBy?: {email: string; id: number; name: string} | null;
+  errors?: {detail: string}[];
+  /**
+   * Returned with the expand=latestIncident query parameter
+   */
+  latestIncident?: Incident | null;
   originalAlertRuleId?: number | null;
-};
+}
 
 export type IncidentRule = Partial<SavedIncidentRule> & UnsavedIncidentRule;
 
@@ -126,7 +141,9 @@ export enum ActionType {
 }
 
 export const ActionLabel = {
-  [ActionType.EMAIL]: t('Email'),
+  // \u200B is needed because Safari disregards autocomplete="off". It's seeing "Email" and
+  // opening up the browser autocomplete for email. https://github.com/JedWatson/react-select/issues/3500
+  [ActionType.EMAIL]: t('Emai\u200Bl'),
   [ActionType.SLACK]: t('Slack'),
   [ActionType.PAGERDUTY]: t('Pagerduty'),
   [ActionType.MSTEAMS]: t('MS Teams'),
@@ -208,8 +225,6 @@ export type MetricActionTemplate = {
  * This is the user's configured action
  */
 export type Action = UnsavedAction & Partial<SavedActionFields>;
-export type SavedAction = Omit<UnsavedAction, 'unsavedDateCreated' | 'unsavedId'> &
-  SavedActionFields;
 
 type SavedActionFields = {
   /**
@@ -231,6 +246,11 @@ type SavedActionFields = {
    * model id of the action
    */
   id: string;
+
+  /**
+   *  Could not fetch details from SentryApp. Show the rule but make it disabled.
+   */
+  disabled?: boolean;
 };
 
 type UnsavedAction = {

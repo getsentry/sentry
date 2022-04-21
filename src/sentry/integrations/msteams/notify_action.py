@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Any
+
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 
@@ -27,7 +31,7 @@ class MsTeamsNotifyServiceForm(forms.Form):
         self.fields["team"].choices = team_list
         self.fields["team"].widget.choices = self.fields["team"].choices
 
-    def clean(self):
+    def clean(self) -> dict[str, Any] | None:
         cleaned_data = super().clean()
 
         integration_id = cleaned_data.get("team")
@@ -52,6 +56,7 @@ class MsTeamsNotifyServiceForm(forms.Form):
 
 
 class MsTeamsNotifyServiceAction(IntegrationEventAction):
+    id = "sentry.integrations.msteams.notify_action.MsTeamsNotifyServiceAction"
     form_cls = MsTeamsNotifyServiceForm
     label = "Send a notification to the {team} Team to {channel}"
     prompt = "Send a Microsoft Teams notification"

@@ -8,16 +8,19 @@ import * as pageFilters from 'sentry/actionCreators/pageFilters';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
+import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import PerformanceContent from 'sentry/views/performance/content';
 import {DEFAULT_MAX_DURATION} from 'sentry/views/performance/trends/utils';
 
 const FEATURES = ['performance-view'];
 
-function WrappedComponent({organization, location}) {
+function WrappedComponent({organization, isMEPEnabled = false, location}) {
   return (
     <OrganizationContext.Provider value={organization}>
-      <PerformanceContent organization={organization} location={location} />
+      <MEPSettingProvider _isMEPEnabled={isMEPEnabled}>
+        <PerformanceContent organization={organization} location={location} />
+      </MEPSettingProvider>
     </OrganizationContext.Provider>
   );
 }
@@ -31,6 +34,7 @@ function initializeData(projects, query, features = FEATURES) {
     organization,
     router: {
       location: {
+        pathname: '/test',
         query: query || {},
       },
     },
@@ -60,6 +64,7 @@ function initializeTrendsData(query, addDefaultQuery = true) {
     organization,
     router: {
       location: {
+        pathname: '/test',
         query: {
           ...otherTrendsQuery,
           ...query,
@@ -275,8 +280,11 @@ describe('Performance > Content', function () {
       />,
       data.routerContext
     );
-    await tick();
-    wrapper.update();
+
+    await act(async () => {
+      await tick();
+      wrapper.update();
+    });
 
     // performance landing container
     expect(wrapper.find('div[data-test-id="performance-landing-v3"]').exists()).toBe(
@@ -288,6 +296,7 @@ describe('Performance > Content', function () {
 
     // Table should render.
     expect(wrapper.find('Table')).toHaveLength(1);
+
     wrapper.unmount();
   });
 
@@ -305,7 +314,11 @@ describe('Performance > Content', function () {
       />,
       data.routerContext
     );
-    await tick();
+
+    await act(async () => {
+      await tick();
+      wrapper.update();
+    });
 
     // onboarding should show.
     expect(wrapper.find('Onboarding')).toHaveLength(1);
@@ -329,7 +342,11 @@ describe('Performance > Content', function () {
       />,
       data.routerContext
     );
-    await tick();
+
+    await act(async () => {
+      await tick();
+      wrapper.update();
+    });
 
     expect(wrapper.find('Onboarding')).toHaveLength(0);
     wrapper.unmount();
@@ -346,8 +363,11 @@ describe('Performance > Content', function () {
       />,
       data.routerContext
     );
-    await tick();
-    wrapper.update();
+
+    await act(async () => {
+      await tick();
+      wrapper.update();
+    });
 
     const link = wrapper.find('[data-test-id="grid-editable"] GridBody Link').at(0);
     link.simulate('click', {button: 0});
@@ -356,7 +376,7 @@ describe('Performance > Content', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           transaction: '/apple/cart',
-          query: 'sentry:yes transaction.duration:<15m',
+          query: 'sentry:yes',
         }),
       })
     );
@@ -372,8 +392,12 @@ describe('Performance > Content', function () {
       />,
       data.routerContext
     );
-    await tick();
-    wrapper.update();
+
+    await act(async () => {
+      await tick();
+      wrapper.update();
+    });
+
     expect(pageFilters.updateDateTime).toHaveBeenCalledTimes(0);
     wrapper.unmount();
   });
@@ -391,7 +415,11 @@ describe('Performance > Content', function () {
       />,
       data.routerContext
     );
-    await tick();
+
+    await act(async () => {
+      await tick();
+      wrapper.update();
+    });
 
     const trendsLink = wrapper.find('[data-test-id="landing-header-trends"]').at(0);
     trendsLink.simulate('click');
@@ -424,7 +452,11 @@ describe('Performance > Content', function () {
       />,
       data.routerContext
     );
-    await tick();
+
+    await act(async () => {
+      await tick();
+      wrapper.update();
+    });
 
     expect(browserHistory.push).toHaveBeenCalledTimes(0);
     wrapper.unmount();
@@ -440,7 +472,11 @@ describe('Performance > Content', function () {
       />,
       data.routerContext
     );
-    await tick();
+
+    await act(async () => {
+      await tick();
+      wrapper.update();
+    });
 
     expect(browserHistory.push).toHaveBeenCalledTimes(0);
     wrapper.unmount();
@@ -456,7 +492,11 @@ describe('Performance > Content', function () {
       />,
       data.routerContext
     );
-    await tick();
+
+    await act(async () => {
+      await tick();
+      wrapper.update();
+    });
 
     const trendsLink = wrapper.find('[data-test-id="landing-header-trends"]').at(0);
     trendsLink.simulate('click');
@@ -486,8 +526,11 @@ describe('Performance > Content', function () {
       />,
       data.routerContext
     );
-    await tick();
-    wrapper.update();
+
+    await act(async () => {
+      await tick();
+      wrapper.update();
+    });
 
     expect(
       wrapper.find('Button[data-test-id="create-sample-transaction-btn"]').exists()

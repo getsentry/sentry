@@ -7,7 +7,7 @@ import Alert from 'sentry/components/alert';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
 import HookOrDefault from 'sentry/components/hookOrDefault';
-import {IconFlag, IconOpen, IconWarning} from 'sentry/icons';
+import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Integration, IntegrationProvider, ObjectStatus} from 'sentry/types';
@@ -73,20 +73,15 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     // The server response for integration installations includes old icon CSS classes
     // We map those to the currently in use values to their react equivalents
     // and fallback to IconFlag just in case.
-    const alerts = (metadata.aspects.alerts || []).map(item => {
-      switch (item.icon) {
-        case 'icon-warning':
-        case 'icon-warning-sm':
-          return {...item, icon: <IconWarning />};
-        default:
-          return {...item, icon: <IconFlag />};
-      }
-    });
+    const alerts = (metadata.aspects.alerts || []).map(item => ({
+      ...item,
+      showIcon: true,
+    }));
 
     if (!provider.canAdd && metadata.aspects.externalInstall) {
       alerts.push({
         type: 'warning',
-        icon: <IconOpen />,
+        showIcon: true,
         text: metadata.aspects.externalInstall.noticeText,
       });
     }
@@ -259,7 +254,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     return (
       <Fragment>
         {alertText && (
-          <Alert type="warning" icon={<IconFlag size="sm" />}>
+          <Alert type="warning" showIcon>
             {alertText}
           </Alert>
         )}

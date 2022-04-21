@@ -2,17 +2,14 @@ import styled from '@emotion/styled';
 
 import {ROW_HEIGHT} from 'sentry/components/performance/waterfall/constants';
 import {getBackgroundColor} from 'sentry/components/performance/waterfall/utils';
-import {OmitHtmlDivProps} from 'sentry/utils';
 
-type RowProps = {
+interface RowProps extends React.HTMLAttributes<HTMLDivElement> {
   cursor?: 'pointer' | 'default';
   showBorder?: boolean;
   visible?: boolean;
-};
+}
 
-type RowAndDivProps = Omit<React.HTMLProps<HTMLDivElement>, keyof RowProps> & RowProps;
-
-export const Row = styled('div')<RowAndDivProps>`
+export const Row = styled('div')<RowProps>`
   display: ${p => (p.visible ? 'block' : 'none')};
   border-top: ${p => (p.showBorder ? `1px solid ${p.theme.border}` : null)};
   margin-top: ${p => (p.showBorder ? '-1px' : null)}; /* to prevent offset on toggle */
@@ -29,10 +26,10 @@ export const Row = styled('div')<RowAndDivProps>`
   }
 `;
 
-type RowCellProps = OmitHtmlDivProps<{
+type RowCellProps = {
   showDetail?: boolean;
   showStriping?: boolean;
-}>;
+};
 
 export const RowCellContainer = styled('div')<RowCellProps>`
   display: flex;

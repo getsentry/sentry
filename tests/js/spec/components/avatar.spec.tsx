@@ -1,4 +1,4 @@
-import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import AvatarComponent from 'sentry/components/avatar';
 import ConfigStore from 'sentry/stores/configStore';
@@ -33,7 +33,7 @@ describe('Avatar', function () {
 
   describe('render()', function () {
     it('has `avatar` className', function () {
-      mountWithTheme(<AvatarComponent user={user} />);
+      render(<AvatarComponent user={user} />);
 
       const avatarElement = screen.getByTestId(`${avatar.avatarType}-avatar`);
       expect(avatarElement).toBeInTheDocument();
@@ -41,7 +41,7 @@ describe('Avatar', function () {
     });
 
     it('should show a gravatar when avatar type is gravatar', async function () {
-      mountWithTheme(<AvatarComponent user={user} />);
+      render(<AvatarComponent user={user} />);
 
       expect(screen.getByTestId(`${avatar.avatarType}-avatar`)).toBeInTheDocument();
       const avatarImage = await screen.findByRole('img');
@@ -54,7 +54,7 @@ describe('Avatar', function () {
     it('should show an upload when avatar type is upload', async function () {
       avatar.avatarType = 'upload';
 
-      mountWithTheme(<AvatarComponent user={user} />);
+      render(<AvatarComponent user={user} />);
 
       expect(screen.getByTestId(`${avatar.avatarType}-avatar`)).toBeInTheDocument();
       const avatarImage = await screen.findByRole('img');
@@ -62,7 +62,7 @@ describe('Avatar', function () {
     });
 
     it('should show an upload with the correct size (static 120 size)', async function () {
-      const avatar1 = mountWithTheme(<AvatarComponent user={user} size={76} />);
+      const avatar1 = render(<AvatarComponent user={user} size={76} />);
       expect(await screen.findByRole('img')).toHaveAttribute(
         'src',
         `/avatar/${avatar.avatarUuid}/?s=120`
@@ -70,7 +70,7 @@ describe('Avatar', function () {
 
       avatar1.unmount();
 
-      const avatar2 = mountWithTheme(<AvatarComponent user={user} size={121} />);
+      const avatar2 = render(<AvatarComponent user={user} size={121} />);
       expect(await screen.findByRole('img')).toHaveAttribute(
         'src',
         `/avatar/${avatar.avatarUuid}/?s=120`
@@ -78,7 +78,7 @@ describe('Avatar', function () {
 
       avatar2.unmount();
 
-      const avatar3 = mountWithTheme(<AvatarComponent user={user} size={32} />);
+      const avatar3 = render(<AvatarComponent user={user} size={32} />);
       expect(await screen.findByRole('img')).toHaveAttribute(
         'src',
         `/avatar/${avatar.avatarUuid}/?s=120`
@@ -86,7 +86,7 @@ describe('Avatar', function () {
 
       avatar3.unmount();
 
-      mountWithTheme(<AvatarComponent user={user} size={1} />);
+      render(<AvatarComponent user={user} size={1} />);
       expect(await screen.findByRole('img')).toHaveAttribute(
         'src',
         `/avatar/${avatar.avatarUuid}/?s=120`
@@ -96,21 +96,21 @@ describe('Avatar', function () {
     it('should not show upload or gravatar when avatar type is letter', function () {
       avatar.avatarType = 'letter_avatar';
 
-      mountWithTheme(<AvatarComponent user={user} />);
+      render(<AvatarComponent user={user} />);
 
       expect(screen.getByTestId(`${avatar.avatarType}-avatar`)).toBeInTheDocument();
       expect(screen.getByText(userNameInitials)).toBeInTheDocument();
     });
 
     it('use letter avatar by default, when no avatar type is set and user has an email address', function () {
-      mountWithTheme(<AvatarComponent user={{...user, avatar: undefined}} />);
+      render(<AvatarComponent user={{...user, avatar: undefined}} />);
 
       expect(screen.getByTestId(`${avatar.avatarType}-avatar`)).toBeInTheDocument();
       expect(screen.getByText(userNameInitials)).toBeInTheDocument();
     });
 
     it('should show a gravatar when no avatar type is set and user has an email address', function () {
-      mountWithTheme(<AvatarComponent gravatar user={{...user, avatar: undefined}} />);
+      render(<AvatarComponent gravatar user={{...user, avatar: undefined}} />);
 
       const avatarElement = screen.getByTestId(`gravatar-avatar`);
       expect(avatarElement).toBeInTheDocument();
@@ -118,9 +118,7 @@ describe('Avatar', function () {
     });
 
     it('should not show a gravatar when no avatar type is set and user has no email address', function () {
-      mountWithTheme(
-        <AvatarComponent gravatar user={{...user, email: '', avatar: undefined}} />
-      );
+      render(<AvatarComponent gravatar user={{...user, email: '', avatar: undefined}} />);
 
       expect(screen.getByTestId(`letter_avatar-avatar`)).toBeInTheDocument();
       expect(screen.getByText(userNameInitials)).toBeInTheDocument();
@@ -129,7 +127,7 @@ describe('Avatar', function () {
     it('can display a team Avatar', function () {
       const team = TestStubs.Team({slug: 'test-team_test'});
 
-      mountWithTheme(<AvatarComponent team={team} />);
+      render(<AvatarComponent team={team} />);
 
       expect(screen.getByTestId(`letter_avatar-avatar`)).toBeInTheDocument();
       expect(screen.getByText('TT')).toBeInTheDocument();
@@ -138,7 +136,7 @@ describe('Avatar', function () {
     it('can display an organization Avatar', function () {
       const organization = TestStubs.Organization({slug: 'test-organization'});
 
-      mountWithTheme(<AvatarComponent organization={organization} />);
+      render(<AvatarComponent organization={organization} />);
 
       expect(screen.getByTestId(`letter_avatar-avatar`)).toBeInTheDocument();
       expect(screen.getByText('TO')).toBeInTheDocument();
@@ -150,7 +148,7 @@ describe('Avatar', function () {
         platform: 'java',
       });
 
-      mountWithTheme(<AvatarComponent project={project} />);
+      render(<AvatarComponent project={project} />);
 
       const platformIcon = screen.getByRole('img');
       expect(platformIcon).toBeInTheDocument();
@@ -163,7 +161,7 @@ describe('Avatar', function () {
     it('displays a fallback platform list for project Avatar using the `platform` specified during onboarding', function () {
       const project = TestStubs.Project({platform: 'java'});
 
-      mountWithTheme(<AvatarComponent project={project} />);
+      render(<AvatarComponent project={project} />);
 
       const platformIcon = screen.getByRole('img');
       expect(platformIcon).toBeInTheDocument();
@@ -176,7 +174,7 @@ describe('Avatar', function () {
     it('uses onboarding project when platforms is an empty array', function () {
       const project = TestStubs.Project({platforms: [], platform: 'java'});
 
-      mountWithTheme(<AvatarComponent project={project} />);
+      render(<AvatarComponent project={project} />);
 
       const platformIcon = screen.getByRole('img');
       expect(platformIcon).toBeInTheDocument();
@@ -194,23 +192,21 @@ describe('Avatar', function () {
         avatars: [colorAvatar, simpleAvatar],
       });
 
-      const avatar1 = mountWithTheme(<AvatarComponent sentryApp={sentryApp} isColor />);
+      const avatar1 = render(<AvatarComponent sentryApp={sentryApp} isColor />);
       expect(await screen.findByRole('img')).toHaveAttribute(
         'src',
         `/sentry-app-avatar/${colorAvatar.avatarUuid}/?s=120`
       );
       avatar1.unmount();
 
-      const avatar2 = mountWithTheme(
-        <AvatarComponent sentryApp={sentryApp} isColor={false} />
-      );
+      const avatar2 = render(<AvatarComponent sentryApp={sentryApp} isColor={false} />);
       expect(await screen.findByRole('img')).toHaveAttribute(
         'src',
         `/sentry-app-avatar/${simpleAvatar.avatarUuid}/?s=120`
       );
       avatar2.unmount();
 
-      mountWithTheme(<AvatarComponent sentryApp={sentryApp} isDefault />);
+      render(<AvatarComponent sentryApp={sentryApp} isDefault />);
       expect(screen.getByTestId('default-sentry-app-avatar')).toBeInTheDocument();
     });
 
@@ -219,13 +215,13 @@ describe('Avatar', function () {
       const sentryApp = TestStubs.SentryApp({avatars: []});
 
       // No existing avatars
-      const avatar1 = mountWithTheme(<AvatarComponent sentryApp={sentryApp} isColor />);
+      const avatar1 = render(<AvatarComponent sentryApp={sentryApp} isColor />);
       expect(screen.getByTestId('default-sentry-app-avatar')).toBeInTheDocument();
       avatar1.unmount();
 
       // No provided `isColor` attribute
       sentryApp.avatars.push(colorAvatar);
-      const avatar2 = mountWithTheme(<AvatarComponent sentryApp={sentryApp} />);
+      const avatar2 = render(<AvatarComponent sentryApp={sentryApp} />);
       expect(await screen.findByRole('img')).toHaveAttribute(
         'src',
         `/sentry-app-avatar/${colorAvatar.avatarUuid}/?s=120`
@@ -234,7 +230,7 @@ describe('Avatar', function () {
 
       // avatarType of `default`
       sentryApp.avatars[0].avatarType = 'default';
-      mountWithTheme(<AvatarComponent sentryApp={sentryApp} isColor />);
+      render(<AvatarComponent sentryApp={sentryApp} isColor />);
       expect(screen.getByTestId('default-sentry-app-avatar')).toBeInTheDocument();
     });
   });

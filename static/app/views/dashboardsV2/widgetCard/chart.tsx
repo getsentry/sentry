@@ -2,46 +2,46 @@ import * as React from 'react';
 import {InjectedRouter} from 'react-router';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {LegendComponentOption} from 'echarts';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
-import AreaChart from 'sentry/components/charts/areaChart';
-import BarChart from 'sentry/components/charts/barChart';
+import {AreaChart} from 'sentry/components/charts/areaChart';
+import {BarChart} from 'sentry/components/charts/barChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
-import LineChart from 'sentry/components/charts/lineChart';
+import {LineChart} from 'sentry/components/charts/lineChart';
 import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {getSeriesSelection, processTableResults} from 'sentry/components/charts/utils';
-import WorldMapChart from 'sentry/components/charts/worldMapChart';
+import {WorldMapChart} from 'sentry/components/charts/worldMapChart';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Placeholder from 'sentry/components/placeholder';
+import Placeholder, {PlaceholderProps} from 'sentry/components/placeholder';
 import Tooltip from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
-import {defined} from 'sentry/utils';
+import {EChartDataZoomHandler, EChartEventHandler} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
-import {getFieldFormatter} from 'sentry/utils/discover/fieldRenderers';
+import {getFieldFormatter, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {
   getAggregateArg,
   getEquation,
   getMeasurementSlug,
   isEquation,
   maybeEquationAlias,
+  stripDerivedMetricsPrefix,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {Theme} from 'sentry/utils/theme';
+import {eventViewFromWidget} from 'sentry/views/dashboardsV2/utils';
 
-import {DisplayType, Widget} from '../types';
+import {DisplayType, Widget, WidgetType} from '../types';
 
 import WidgetQueries from './widgetQueries';
-
-const BIG_NUMBER_WIDGET_DEFAULT_HEIGHT = 200;
-const BIG_NUMBER_WIDGET_DEFAULT_WIDTH = 400;
 
 type TableResultProps = Pick<
   WidgetQueries['state'],
@@ -58,16 +58,33 @@ type WidgetCardChartProps = Pick<
   selection: PageFilters;
   theme: Theme;
   widget: Widget;
+  expandNumbers?: boolean;
   isMobile?: boolean;
+  legendOptions?: LegendComponentOption;
+  onLegendSelectChanged?: EChartEventHandler<{
+    name: string;
+    selected: Record<string, boolean>;
+    type: 'legendselectchanged';
+  }>;
+  onZoom?: EChartDataZoomHandler;
   windowWidth?: number;
 };
 
-class WidgetCardChart extends React.Component<WidgetCardChartProps> {
-  shouldComponentUpdate(nextProps: WidgetCardChartProps): boolean {
+type State = {
+  // For tracking height of the container wrapping BigNumber widgets
+  // so we can dynamically scale font-size
+  containerHeight: number;
+};
+
+class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
+  state = {containerHeight: 0};
+
+  shouldComponentUpdate(nextProps: WidgetCardChartProps, nextState: State): boolean {
     if (
       this.props.widget.displayType === DisplayType.BIG_NUMBER &&
       nextProps.widget.displayType === DisplayType.BIG_NUMBER &&
-      this.props.windowWidth !== nextProps.windowWidth
+      (this.props.windowWidth !== nextProps.windowWidth ||
+        !isEqual(this.props.widget?.layout, nextProps.widget?.layout))
     ) {
       return true;
     }
@@ -89,7 +106,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       },
     };
 
-    return !isEqual(currentProps, nextProps);
+    return !isEqual(currentProps, nextProps) || !isEqual(this.state, nextState);
   }
 
   tableResultComponent({
@@ -97,33 +114,47 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
     errorMessage,
     tableResults,
   }: TableResultProps): React.ReactNode {
-    const {location, widget, organization} = this.props;
+    const {location, widget, organization, selection} = this.props;
     if (errorMessage) {
       return (
-        <ErrorPanel>
+        <StyledErrorPanel>
           <IconWarning color="gray500" size="lg" />
-        </ErrorPanel>
+        </StyledErrorPanel>
       );
     }
 
-    if (typeof tableResults === 'undefined' || loading) {
+    if (typeof tableResults === 'undefined') {
       // Align height to other charts.
-      return <LoadingPlaceholder height="200px" />;
+      return <LoadingPlaceholder />;
     }
 
     return tableResults.map((result, i) => {
-      const fields = widget.queries[i]?.fields ?? [];
+      const fields = widget.queries[i]?.fields?.map(stripDerivedMetricsPrefix) ?? [];
+      const fieldAliases = widget.queries[i]?.fieldAliases ?? [];
+      const eventView = eventViewFromWidget(
+        widget.title,
+        widget.queries[0],
+        selection,
+        widget.displayType
+      );
+
       return (
         <StyledSimpleTableChart
           key={`table:${result.title}`}
+          eventView={eventView}
+          fieldAliases={fieldAliases}
           location={location}
           fields={fields}
           title={tableResults.length > 1 ? result.title : ''}
           loading={loading}
+          loader={<LoadingPlaceholder />}
           metadata={result.meta}
           data={result.data}
           organization={organization}
           stickyHeaders
+          getCustomFieldRenderer={(field, meta) =>
+            getFieldRenderer(field, meta, widget.widgetType !== WidgetType.METRICS)
+          }
         />
       );
     });
@@ -136,9 +167,9 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
   }: TableResultProps): React.ReactNode {
     if (errorMessage) {
       return (
-        <ErrorPanel>
+        <StyledErrorPanel>
           <IconWarning color="gray500" size="lg" />
-        </ErrorPanel>
+        </StyledErrorPanel>
       );
     }
 
@@ -146,86 +177,77 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       return <BigNumber>{'\u2014'}</BigNumber>;
     }
 
-    const {organization, widget, isMobile, windowWidth} = this.props;
+    const {containerHeight} = this.state;
+    const {organization, widget, isMobile, expandNumbers} = this.props;
 
     return tableResults.map(result => {
-      const tableMeta = result.meta ?? {};
-      const fields = Object.keys(tableMeta ?? {});
+      const tableMeta = {...result.meta};
+      const fields = Object.keys(tableMeta);
 
       const field = fields[0];
+
+      // Change tableMeta for the field from integer to string since we will be rendering with toLocaleString
+      const shouldExpandInteger = !!expandNumbers && tableMeta[field] === 'integer';
+      if (shouldExpandInteger) {
+        tableMeta[field] = 'string';
+      }
 
       if (!field || !result.data.length) {
         return <BigNumber key={`big_number:${result.title}`}>{'\u2014'}</BigNumber>;
       }
 
       const dataRow = result.data[0];
-      const fieldRenderer = getFieldFormatter(field, tableMeta);
+      const fieldRenderer = getFieldFormatter(
+        field,
+        tableMeta,
+        widget.widgetType !== WidgetType.METRICS
+      );
 
-      const rendered = fieldRenderer(dataRow);
+      const rendered = fieldRenderer(
+        shouldExpandInteger ? {[field]: dataRow[field].toLocaleString()} : dataRow
+      );
 
       const isModalWidget = !!!(widget.id || widget.tempId);
       if (
         !!!organization.features.includes('dashboard-grid-layout') ||
         isModalWidget ||
-        isMobile ||
-        !!!defined(windowWidth)
+        isMobile
       ) {
         return <BigNumber key={`big_number:${result.title}`}>{rendered}</BigNumber>;
       }
 
-      // making it a bit more sensitive to height changes with
-      // the exponent so it doesn't go purely off of the w:h ratio
-      const transformedWidthToHeightRatio =
-        widget.layout?.w && widget.layout?.h
-          ? widget.layout.w / widget.layout.h ** 1.5
-          : 1;
-
-      const widthToHeightRatio =
-        widget.layout?.w && widget.layout?.h ? widget.layout.w / widget.layout.h : 1;
-
-      const h = BIG_NUMBER_WIDGET_DEFAULT_HEIGHT;
-
-      // heuristics to maintain an aspect ratio that works
-      // most of the time, taking into account the height
-      // & width of the container and the width of the
-      // window
-      const w =
-        widget.layout?.w && widget.layout?.h
-          ? transformedWidthToHeightRatio * (300 + windowWidth / 4)
-          : BIG_NUMBER_WIDGET_DEFAULT_WIDTH;
-
-      // adjusting font size for very tall widgets to prevent
-      // text clipping
-      const fontSize =
-        transformedWidthToHeightRatio < 0.5
-          ? BIG_NUMBER_WIDGET_DEFAULT_HEIGHT * widthToHeightRatio
-          : BIG_NUMBER_WIDGET_DEFAULT_HEIGHT;
+      // The font size is the container height, minus the top and bottom padding
+      const fontSize = !!!expandNumbers
+        ? containerHeight - parseInt(space(1), 10) - parseInt(space(3), 10)
+        : `max(min(8vw, 90px), ${space(4)})`;
 
       return (
-        <BigNumber fontSize={fontSize} key={`big_number:${result.title}`}>
-          <svg
-            width="100%"
-            height="100%"
-            viewBox={`0 0 ${w} ${h}`}
-            preserveAspectRatio="xMinYMin meet"
-          >
-            <foreignObject x="0" y="0" width="100%" height="100%">
-              <Tooltip title={rendered} showOnlyOnOverflow>
-                {rendered}
-              </Tooltip>
-            </foreignObject>
-          </svg>
+        <BigNumber
+          key={`big_number:${result.title}`}
+          style={{
+            fontSize,
+            ...(!!expandNumbers
+              ? {padding: `${space(1)} ${space(3)} 0 ${space(3)}`}
+              : {}),
+          }}
+        >
+          <Tooltip title={rendered} showOnlyOnOverflow>
+            {rendered}
+          </Tooltip>
         </BigNumber>
       );
     });
   }
 
   chartComponent(chartProps): React.ReactNode {
-    const {widget} = this.props;
+    const {organization, widget} = this.props;
+    const stacked =
+      organization.features.includes('new-widget-builder-experience-design') &&
+      widget.queries[0].columns.length > 0;
 
     switch (widget.displayType) {
       case 'bar':
-        return <BarChart {...chartProps} />;
+        return <BarChart {...chartProps} stacked={stacked} />;
       case 'area':
       case 'top_n':
         return <AreaChart stacked {...chartProps} />;
@@ -246,35 +268,50 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       loading,
       widget,
       organization,
+      onZoom,
+      legendOptions,
+      expandNumbers,
     } = this.props;
 
     if (widget.displayType === 'table') {
-      return (
-        <TransitionChart loading={loading} reloading={loading}>
-          <LoadingScreen loading={loading} />
-          {this.tableResultComponent({tableResults, loading, errorMessage})}
-        </TransitionChart>
-      );
+      return getDynamicText({
+        value: (
+          <TransitionChart loading={loading} reloading={loading}>
+            <LoadingScreen loading={loading} />
+            {this.tableResultComponent({tableResults, loading, errorMessage})}
+          </TransitionChart>
+        ),
+        fixed: <Placeholder height="200px" testId="skeleton-ui" />,
+      });
     }
 
     if (widget.displayType === 'big_number') {
       return (
         <TransitionChart loading={loading} reloading={loading}>
           <LoadingScreen loading={loading} />
-          {this.bigNumberComponent({tableResults, loading, errorMessage})}
+          <BigNumberResizeWrapper
+            ref={el => {
+              if (el !== null && !!!expandNumbers) {
+                const {height} = el.getBoundingClientRect();
+                this.setState({containerHeight: height});
+              }
+            }}
+          >
+            {this.bigNumberComponent({tableResults, loading, errorMessage})}
+          </BigNumberResizeWrapper>
         </TransitionChart>
       );
     }
 
     if (errorMessage) {
       return (
-        <ErrorPanel>
+        <StyledErrorPanel>
           <IconWarning color="gray500" size="lg" />
-        </ErrorPanel>
+        </StyledErrorPanel>
       );
     }
 
-    const {location, router, selection} = this.props;
+    const {location, router, selection, onLegendSelectChanged} = this.props;
     const {start, end, period, utc} = selection.datetime;
 
     // Only allow height resizing for widgets that are on a dashboard
@@ -325,9 +362,10 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
         }
         return seriesName;
       },
+      ...legendOptions,
     };
 
-    const axisField = widget.queries[0]?.fields?.[0] ?? 'count()';
+    const axisField = widget.queries[0]?.aggregates?.[0] ?? 'count()';
     const axisLabel = isEquation(axisField) ? getEquation(axisField) : axisField;
     const chartOptions = {
       autoHeightResize,
@@ -357,22 +395,24 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
         {zoomRenderProps => {
           if (errorMessage) {
             return (
-              <ErrorPanel>
+              <StyledErrorPanel>
                 <IconWarning color="gray500" size="lg" />
-              </ErrorPanel>
+              </StyledErrorPanel>
             );
           }
 
-          const colors = timeseriesResults
-            ? theme.charts.getColorPalette(timeseriesResults.length - 2)
-            : [];
-          // TODO(wmak): Need to change this when updating dashboards to support variable topEvents
-          if (
+          const shouldColorOther =
             widget.displayType === 'top_n' &&
             timeseriesResults &&
-            timeseriesResults.length > 5
-          ) {
-            colors[colors.length - 1] = theme.chartOther;
+            timeseriesResults.length > 5;
+          const colors = timeseriesResults
+            ? theme.charts.getColorPalette(
+                timeseriesResults.length - (shouldColorOther ? 3 : 2)
+              )
+            : [];
+          // TODO(wmak): Need to change this when updating dashboards to support variable topEvents
+          if (shouldColorOther) {
+            colors[colors.length] = theme.chartOther;
           }
 
           // Create a list of series based on the order of the fields,
@@ -400,8 +440,11 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
                   value: this.chartComponent({
                     ...zoomRenderProps,
                     ...chartOptions,
+                    // Override default datazoom behaviour for updating Global Selection Header
+                    ...(onZoom ? {onDataZoom: onZoom} : {}),
                     legend,
                     series,
+                    onLegendSelectChanged,
                   }),
                   fixed: <Placeholder height="200px" testId="skeleton-ui" />,
                 })}
@@ -413,6 +456,8 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
     );
   }
 }
+
+export default withTheme(WidgetCardChart);
 
 const StyledTransparentLoadingMask = styled(props => (
   <TransparentLoadingMask {...props} maskBackgroundColor="transparent" />
@@ -432,20 +477,29 @@ const LoadingScreen = ({loading}: {loading: boolean}) => {
     </StyledTransparentLoadingMask>
   );
 };
-const LoadingPlaceholder = styled(Placeholder)`
+
+const LoadingPlaceholder = styled(({className}: PlaceholderProps) => (
+  <Placeholder height="200px" className={className} />
+))`
   background-color: ${p => p.theme.surface200};
 `;
 
-const BigNumber = styled('div')<{fontSize?: number}>`
-  resize: both;
+const BigNumberResizeWrapper = styled('div')`
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+`;
+
+const BigNumber = styled('div')`
   line-height: 1;
   display: inline-flex;
   flex: 1;
   width: 100%;
   min-height: 0;
-  font-size: ${p => (p.fontSize ? `${p.fontSize}px` : '32px')};
+  font-size: 32px;
   color: ${p => p.theme.headingColor};
   padding: ${space(1)} ${space(3)} ${space(3)} ${space(3)};
+
   * {
     text-align: left !important;
   }
@@ -464,4 +518,6 @@ const StyledSimpleTableChart = styled(SimpleTableChart)`
   box-shadow: none;
 `;
 
-export default withTheme(WidgetCardChart);
+const StyledErrorPanel = styled(ErrorPanel)`
+  padding: ${space(2)};
+`;

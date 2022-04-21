@@ -1,47 +1,45 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  act,
-  mountWithTheme,
-  screen,
-  userEvent,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
+import AlertsContainer from 'sentry/views/alerts';
 import IncidentsList from 'sentry/views/alerts/list';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
-describe('IncidentsList', function () {
-  let routerContext;
-  let router;
-  let organization;
+describe('IncidentsList', () => {
   let projectMock;
-  let projects;
   const projects1 = ['a', 'b', 'c'];
   const projects2 = ['c', 'd'];
 
-  const createWrapper = (props = {}) => {
-    return mountWithTheme(
-      <IncidentsList
-        params={{orgId: organization.slug}}
-        location={{query: {}, search: ''}}
-        router={router}
-        {...props}
-      />,
-      {context: routerContext}
-    );
-  };
-
-  beforeEach(function () {
+  const renderComponent = ({organization} = {}) => {
     const context = initializeOrg({
       organization: {
         features: ['incidents'],
+        ...organization,
       },
     });
-    routerContext = context.routerContext;
-    router = context.router;
-    organization = context.organization;
+    const routerContext = context.routerContext;
+    const org = context.organization;
+    const router = context.router;
+    return {
+      component: render(
+        <OrganizationContext.Provider value={org}>
+          <AlertsContainer>
+            <IncidentsList
+              params={{orgId: org.slug}}
+              location={{query: {}, search: ''}}
+              router={router}
+            />
+          </AlertsContainer>
+        </OrganizationContext.Provider>,
+        {context: routerContext}
+      ),
+      router,
+    };
+  };
 
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/',
       body: [
@@ -71,7 +69,7 @@ describe('IncidentsList', function () {
       }),
     });
 
-    projects = [
+    const projects = [
       TestStubs.Project({slug: 'a', platform: 'javascript'}),
       TestStubs.Project({slug: 'b'}),
       TestStubs.Project({slug: 'c'}),
@@ -85,13 +83,13 @@ describe('IncidentsList', function () {
     act(() => ProjectsStore.loadInitialData(projects));
   });
 
-  afterEach(function () {
+  afterEach(() => {
     act(() => ProjectsStore.reset());
     MockApiClient.clearMockResponses();
   });
 
-  it('displays list', async function () {
-    createWrapper();
+  it('displays list', async () => {
+    renderComponent();
 
     const items = await screen.findAllByTestId('alert-title');
 
@@ -99,9 +97,7 @@ describe('IncidentsList', function () {
     expect(within(items[0]).getByText('First incident')).toBeInTheDocument();
     expect(within(items[1]).getByText('Second incident')).toBeInTheDocument();
 
-    // PageFiltersContainer loads projects + the Projects render-prop component
-    // to load projects for all rows.
-    expect(projectMock).toHaveBeenCalledTimes(2);
+    expect(projectMock).toHaveBeenCalledTimes(1);
 
     expect(projectMock).toHaveBeenLastCalledWith(
       expect.anything(),
@@ -114,7 +110,7 @@ describe('IncidentsList', function () {
     expect(within(projectBadges[0]).getByText('a')).toBeInTheDocument();
   });
 
-  it('displays empty state (first time experience)', async function () {
+  it('displays empty state (first time experience)', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/',
       body: [],
@@ -132,7 +128,7 @@ describe('IncidentsList', function () {
       method: 'PUT',
     });
 
-    createWrapper();
+    renderComponent();
 
     expect(await screen.findByText('More signal, less noise')).toBeInTheDocument();
 
@@ -141,7 +137,7 @@ describe('IncidentsList', function () {
     expect(promptsUpdateMock).toHaveBeenCalledTimes(1);
   });
 
-  it('displays empty state (rules not yet created)', async function () {
+  it('displays empty state (rules not yet created)', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/',
       body: [],
@@ -155,7 +151,7 @@ describe('IncidentsList', function () {
       body: {data: {dismissed_ts: Math.floor(Date.now() / 1000)}},
     });
 
-    createWrapper();
+    renderComponent();
 
     expect(
       await screen.findByText('No incidents exist for the current query.')
@@ -165,7 +161,7 @@ describe('IncidentsList', function () {
     expect(promptsMock).toHaveBeenCalledTimes(1);
   });
 
-  it('displays empty state (rules created)', async function () {
+  it('displays empty state (rules created)', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/',
       body: [],
@@ -179,7 +175,7 @@ describe('IncidentsList', function () {
       body: {data: {dismissed_ts: Math.floor(Date.now() / 1000)}},
     });
 
-    createWrapper();
+    renderComponent();
 
     expect(
       await screen.findByText('No incidents exist for the current query.')
@@ -189,10 +185,10 @@ describe('IncidentsList', function () {
     expect(promptsMock).toHaveBeenCalledTimes(0);
   });
 
-  it('filters by opened issues', function () {
-    createWrapper();
+  it('filters by opened issues', async () => {
+    const {router} = renderComponent();
 
-    userEvent.click(screen.getByTestId('filter-button'));
+    userEvent.click(await screen.findByTestId('filter-button'));
 
     const resolved = screen.getByText('Resolved');
     expect(resolved).toBeInTheDocument();
@@ -212,31 +208,30 @@ describe('IncidentsList', function () {
     });
   });
 
-  it('disables the new alert button for those without alert:write', function () {
+  it('disables the new alert button for those without alert:write', async () => {
     const noAccessOrg = {
-      ...organization,
       access: [],
     };
 
-    createWrapper({organization: noAccessOrg});
-    expect(screen.getByLabelText('Create Alert')).toHaveAttribute(
+    renderComponent({organization: noAccessOrg});
+    expect(await screen.findByLabelText('Create Alert')).toHaveAttribute(
       'aria-disabled',
       'true'
     );
   });
 
-  it('does not disable the new alert button for those with alert:write', function () {
+  it('does not disable the new alert button for those with alert:write', async () => {
     // Enabled with access
-    createWrapper();
+    renderComponent();
 
-    expect(screen.getByLabelText('Create Alert')).toHaveAttribute(
+    expect(await screen.findByLabelText('Create Alert')).toHaveAttribute(
       'aria-disabled',
       'false'
     );
   });
 
   it('searches by name', async () => {
-    createWrapper();
+    const {router} = renderComponent();
 
     const input = screen.getByPlaceholderText('Search by name');
     expect(input).toBeInTheDocument();
@@ -270,12 +265,10 @@ describe('IncidentsList', function () {
     });
     TeamStore.getById = jest.fn().mockReturnValue(team);
     const org = {
-      ...organization,
       features: ['incidents', 'team-alerts-ownership'],
     };
 
-    const {container} = createWrapper({organization: org});
-    expect(screen.getByText(team.name)).toBeInTheDocument();
-    expect(container).toSnapshot();
+    renderComponent({organization: org});
+    expect(await screen.findByText(team.name)).toBeInTheDocument();
   });
 });

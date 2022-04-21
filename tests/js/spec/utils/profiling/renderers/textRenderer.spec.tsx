@@ -1,7 +1,7 @@
 import {mat3} from 'gl-matrix';
 
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {LightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/FlamegraphTheme';
+import {LightFlamegraphTheme as Theme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {Rect, trimTextCenter} from 'sentry/utils/profiling/gl/utils';
 import {EventedProfile} from 'sentry/utils/profiling/profile/eventedProfile';
 import {createFrameIndex} from 'sentry/utils/profiling/profile/utils';
@@ -25,7 +25,7 @@ const makeBaseFlamegraph = (): Flamegraph => {
     createFrameIndex([{name: 'f0'}, {name: 'f1'}])
   );
 
-  return new Flamegraph(profile, 0, false, false);
+  return new Flamegraph(profile, 0, {inverted: false, leftHeavy: false});
 };
 
 describe('TextRenderer', () => {
@@ -37,10 +37,40 @@ describe('TextRenderer', () => {
     const frameAboveView = new Rect(0, -1.1, 1, 1);
     const frameBelowView = new Rect(0, 1.1, 1, 1);
 
-    expect(isOutsideView(frameLeftOutsideOfView, view, false)).toBe(true);
-    expect(isOutsideView(frameRightOutsideOfView, view, false)).toBe(true);
-    expect(isOutsideView(frameAboveView, view, false)).toBe(true);
-    expect(isOutsideView(frameBelowView, view, false)).toBe(true);
+    expect(isOutsideView(frameLeftOutsideOfView, view)).toBe(true);
+    expect(isOutsideView(frameRightOutsideOfView, view)).toBe(true);
+    expect(isOutsideView(frameAboveView, view)).toBe(true);
+    expect(isOutsideView(frameBelowView, view)).toBe(true);
+  });
+
+  it('invalidates cache if cached measurements do not match new measurements', () => {
+    const context: Partial<CanvasRenderingContext2D> = {
+      measureText: jest
+        .fn()
+        .mockReturnValueOnce({width: 1}) // first call for test
+        .mockReturnValueOnce({width: 10})
+        .mockReturnValueOnce({width: 20}),
+    };
+
+    const canvas: Partial<HTMLCanvasElement> = {
+      getContext: jest.fn().mockReturnValue(context),
+    };
+
+    const textRenderer = new TextRenderer(
+      canvas as HTMLCanvasElement,
+      makeBaseFlamegraph(),
+      Theme
+    );
+
+    textRenderer.measureAndCacheText('test');
+
+    textRenderer.maybeInvalidateCache();
+    textRenderer.maybeInvalidateCache();
+
+    expect(textRenderer.textCache.test).toBe(undefined);
+    expect(textRenderer.textCache).toEqual({
+      'Who knows if this changed, font-display: swap wont tell me': 20,
+    });
   });
   it('caches measure text', () => {
     const context: Partial<CanvasRenderingContext2D> = {
@@ -54,10 +84,10 @@ describe('TextRenderer', () => {
     const textRenderer = new TextRenderer(
       canvas as HTMLCanvasElement,
       makeBaseFlamegraph(),
-      LightFlamegraphTheme
+      Theme
     );
-    textRenderer.measureText(context as CanvasRenderingContext2D, 'text');
-    textRenderer.measureText(context as CanvasRenderingContext2D, 'text');
+    textRenderer.measureAndCacheText('text');
+    textRenderer.measureAndCacheText('text');
     expect(context.measureText).toHaveBeenCalledTimes(1);
   });
   it('skips rendering node if it is not visible', () => {
@@ -83,7 +113,7 @@ describe('TextRenderer', () => {
       createFrameIndex([{name: 'f0'}, {name: 'f1'}, {name: 'f2'}])
     );
 
-    const flamegraph = new Flamegraph(profile, 0, false, false);
+    const flamegraph = new Flamegraph(profile, 0, {inverted: false, leftHeavy: false});
 
     const context: Partial<CanvasRenderingContext2D> = {
       measureText: jest.fn().mockReturnValue({width: 10}),
@@ -94,14 +124,10 @@ describe('TextRenderer', () => {
       getContext: jest.fn().mockReturnValue(context),
     };
 
-    const textRenderer = new TextRenderer(
-      canvas as HTMLCanvasElement,
-      flamegraph,
-      LightFlamegraphTheme
-    );
+    const textRenderer = new TextRenderer(canvas as HTMLCanvasElement, flamegraph, Theme);
 
     textRenderer.draw(
-      new Rect(0, 2.1, 200, 2),
+      new Rect(0, 1.1, 200, 2),
       flamegraph.configSpace,
       mat3.identity(mat3.create())
     );
@@ -109,9 +135,9 @@ describe('TextRenderer', () => {
     expect(context.fillText).toHaveBeenCalledTimes(1);
     expect(context.fillText).toHaveBeenCalledWith(
       'f1',
-      100 + LightFlamegraphTheme.SIZES.BAR_PADDING,
+      100 + Theme.SIZES.BAR_PADDING,
       // depth + 1 - half font size
-      1 + 1 - LightFlamegraphTheme.SIZES.BAR_FONT_SIZE / 2 // center text vertically inside the rect
+      1 + Theme.SIZES.BAR_HEIGHT - Theme.SIZES.BAR_FONT_SIZE / 2 // center text vertically inside the rect
     );
   });
   it("trims output text if it doesn't fit", () => {
@@ -132,7 +158,7 @@ describe('TextRenderer', () => {
       createFrameIndex([{name: longFrameName}])
     );
 
-    const flamegraph = new Flamegraph(profile, 0, false, false);
+    const flamegraph = new Flamegraph(profile, 0, {inverted: false, leftHeavy: false});
 
     const context: Partial<CanvasRenderingContext2D> = {
       measureText: jest.fn().mockImplementation(n => {
@@ -145,11 +171,7 @@ describe('TextRenderer', () => {
       getContext: jest.fn().mockReturnValue(context),
     };
 
-    const textRenderer = new TextRenderer(
-      canvas as HTMLCanvasElement,
-      flamegraph,
-      LightFlamegraphTheme
-    );
+    const textRenderer = new TextRenderer(canvas as HTMLCanvasElement, flamegraph, Theme);
 
     textRenderer.draw(
       new Rect(0, 0, Math.floor(longFrameName.length / 2), 10),
@@ -161,10 +183,10 @@ describe('TextRenderer', () => {
     expect(context.fillText).toHaveBeenCalledWith(
       trimTextCenter(
         longFrameName,
-        Math.floor(longFrameName.length / 2) - LightFlamegraphTheme.SIZES.BAR_PADDING * 2
+        Math.floor(longFrameName.length / 2) - Theme.SIZES.BAR_PADDING * 2
       ),
-      LightFlamegraphTheme.SIZES.BAR_PADDING,
-      1 - LightFlamegraphTheme.SIZES.BAR_FONT_SIZE / 2 // center text vertically inside the rect
+      Theme.SIZES.BAR_PADDING,
+      Theme.SIZES.BAR_HEIGHT - Theme.SIZES.BAR_FONT_SIZE / 2 // center text vertically inside the rect
     );
   });
   it('pins text to left and respects right boundary', () => {
@@ -185,7 +207,7 @@ describe('TextRenderer', () => {
       createFrameIndex([{name: longFrameName}])
     );
 
-    const flamegraph = new Flamegraph(profile, 0, false, false);
+    const flamegraph = new Flamegraph(profile, 0, {inverted: false, leftHeavy: false});
 
     const context: Partial<CanvasRenderingContext2D> = {
       measureText: jest.fn().mockImplementation(n => {
@@ -198,11 +220,7 @@ describe('TextRenderer', () => {
       getContext: jest.fn().mockReturnValue(context),
     };
 
-    const textRenderer = new TextRenderer(
-      canvas as HTMLCanvasElement,
-      flamegraph,
-      LightFlamegraphTheme
-    );
+    const textRenderer = new TextRenderer(canvas as HTMLCanvasElement, flamegraph, Theme);
 
     textRenderer.draw(
       new Rect(
@@ -219,11 +237,10 @@ describe('TextRenderer', () => {
     expect(context.fillText).toHaveBeenCalledWith(
       trimTextCenter(
         longFrameName,
-        Math.floor(longFrameName.length / 2 / 2) -
-          LightFlamegraphTheme.SIZES.BAR_PADDING * 2
+        Math.floor(longFrameName.length / 2 / 2) - Theme.SIZES.BAR_PADDING * 2
       ),
-      Math.floor(longFrameName.length / 2) + LightFlamegraphTheme.SIZES.BAR_PADDING,
-      1 - LightFlamegraphTheme.SIZES.BAR_FONT_SIZE / 2 // center text vertically inside the rect
+      Math.floor(longFrameName.length / 2) + Theme.SIZES.BAR_PADDING,
+      Theme.SIZES.BAR_HEIGHT - Theme.SIZES.BAR_FONT_SIZE / 2 // center text vertically inside the rect
     );
   });
 });

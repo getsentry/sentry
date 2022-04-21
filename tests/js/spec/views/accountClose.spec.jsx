@@ -32,7 +32,7 @@ describe('AccountClose', function () {
   });
 
   it('lists all orgs user is an owner of', async function () {
-    const wrapper = mountWithTheme(<AccountClose />, TestStubs.routerContext());
+    const wrapper = mountWithTheme(<AccountClose />);
 
     // Input for single owner org
     expect(wrapper.find('input').first().prop('checked')).toBe(true);

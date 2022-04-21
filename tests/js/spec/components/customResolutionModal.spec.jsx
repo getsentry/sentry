@@ -23,8 +23,7 @@ describe('CustomResolutionModal', function () {
         projectSlug="project-slug"
         onSelected={onSelected}
         closeModal={jest.fn()}
-      />,
-      TestStubs.routerContext()
+      />
     );
 
     expect(releasesMock).toHaveBeenCalled();

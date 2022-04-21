@@ -317,7 +317,7 @@ class GroupManager(BaseManager):
         if updated_count:
             for group in groups:
                 Activity.objects.create_group_activity(group, activity_type)
-                record_group_history_from_activity_type(group, activity_type)
+                record_group_history_from_activity_type(group, activity_type.value)
 
     def from_share_id(self, share_id: str) -> Group:
         if not share_id or len(share_id) != 32:

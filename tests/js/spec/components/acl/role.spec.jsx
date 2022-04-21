@@ -1,6 +1,6 @@
 import Cookies from 'js-cookie';
 
-import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Role} from 'sentry/components/acl/role';
 import ConfigStore from 'sentry/stores/configStore';
@@ -40,7 +40,7 @@ describe('Role', function () {
     });
 
     it('has a sufficient role', function () {
-      mountWithTheme(<Role role="admin">{childrenMock}</Role>, {context: routerContext});
+      render(<Role role="admin">{childrenMock}</Role>, {context: routerContext});
 
       expect(childrenMock).toHaveBeenCalledWith({
         hasRole: true,
@@ -48,7 +48,7 @@ describe('Role', function () {
     });
 
     it('has an unsufficient role', function () {
-      mountWithTheme(<Role role="manager">{childrenMock}</Role>, {
+      render(<Role role="manager">{childrenMock}</Role>, {
         context: routerContext,
       });
 
@@ -61,7 +61,7 @@ describe('Role', function () {
       ConfigStore.config.user = {isSuperuser: true};
       Cookies.set = jest.fn();
 
-      mountWithTheme(<Role role="owner">{childrenMock}</Role>, {context: routerContext});
+      render(<Role role="owner">{childrenMock}</Role>, {context: routerContext});
 
       expect(childrenMock).toHaveBeenCalledWith({
         hasRole: true,
@@ -71,7 +71,7 @@ describe('Role', function () {
     });
 
     it('does not give access to a made up role', function () {
-      mountWithTheme(<Role role="abcdefg">{childrenMock}</Role>, {
+      render(<Role role="abcdefg">{childrenMock}</Role>, {
         context: routerContext,
       });
 
@@ -83,7 +83,7 @@ describe('Role', function () {
     it('handles no user', function () {
       const user = {...ConfigStore.config.user};
       ConfigStore.config.user = undefined;
-      mountWithTheme(<Role role="member">{childrenMock}</Role>, {context: routerContext});
+      render(<Role role="member">{childrenMock}</Role>, {context: routerContext});
 
       expect(childrenMock).toHaveBeenCalledWith({
         hasRole: false,
@@ -94,7 +94,7 @@ describe('Role', function () {
     it('updates if user changes', function () {
       const user = {...ConfigStore.config.user};
       ConfigStore.config.user = undefined;
-      const {rerender} = mountWithTheme(<Role role="member">{childrenMock}</Role>, {
+      const {rerender} = render(<Role role="member">{childrenMock}</Role>, {
         context: routerContext,
       });
 
@@ -110,7 +110,7 @@ describe('Role', function () {
     });
 
     it('handles no availableRoles', function () {
-      mountWithTheme(
+      render(
         <Role role="member" organization={{...organization, availableRoles: undefined}}>
           {childrenMock}
         </Role>,
@@ -125,7 +125,7 @@ describe('Role', function () {
 
   describe('as React node', function () {
     it('has a sufficient role', function () {
-      mountWithTheme(
+      render(
         <Role role="member">
           <div>The Child</div>
         </Role>,
@@ -136,7 +136,7 @@ describe('Role', function () {
     });
 
     it('has an unsufficient role', function () {
-      mountWithTheme(
+      render(
         <Role role="owner">
           <div>The Child</div>
         </Role>,

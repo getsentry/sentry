@@ -12,7 +12,7 @@ type Measurement = {
   name: string;
 };
 
-type MeasurementCollection = Record<string, Measurement>;
+export type MeasurementCollection = Record<string, Measurement>;
 
 type VitalType = WebVital | MobileVital;
 

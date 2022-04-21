@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {act, render} from 'sentry-test/reactTestingLibrary';
 
 import ViewEditDashboard from 'sentry/views/dashboardsV2/view';
 
@@ -64,7 +64,16 @@ describe('Dashboards > Detail', function () {
         body: TestStubs.EventsStats(),
       });
       MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/tags/',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
         url: '/organizations/org-slug/users/',
+        method: 'GET',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/tags/',
         method: 'GET',
         body: [],
       });
@@ -102,14 +111,14 @@ describe('Dashboards > Detail', function () {
           {id: '1', title: 'Custom Errors'}
         ),
       });
-      const {container} = mountWithTheme(
+      const {container} = render(
         <ViewEditDashboard
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
           router={initialData.router}
           location={initialData.router.location}
         />,
-        {context: initialData.routerContext}
+        {context: initialData.routerContext, organization: initialData.organization}
       );
       await act(async () => {
         await tick();

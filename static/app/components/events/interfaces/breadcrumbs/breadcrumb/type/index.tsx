@@ -14,7 +14,12 @@ type Props = Required<Pick<React.ComponentProps<typeof SvgIcon>, 'color'>> &
 function Type({type, color, description, error}: Props) {
   return (
     <Wrapper error={error}>
-      <Tooltip title={description} disabled={!description}>
+      <Tooltip
+        title={description}
+        disabled={!description}
+        skipWrapper
+        disableForVisualTest
+      >
         <IconWrapper color={color}>
           <Icon type={type} />
         </IconWrapper>

@@ -10,7 +10,6 @@ import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
-import {IconFlag} from 'sentry/icons/iconFlag';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters, Project} from 'sentry/types';
@@ -48,6 +47,13 @@ type Props = {
 type State = {
   error?: string;
   previousTrendFunction?: TrendFunctionField;
+};
+
+export const defaultTrendsSelectionDate = {
+  start: null,
+  end: null,
+  utc: false,
+  period: DEFAULT_TRENDS_STATS_PERIOD,
 };
 
 class TrendsContent extends React.Component<Props, State> {
@@ -114,7 +120,7 @@ class TrendsContent extends React.Component<Props, State> {
     }
 
     return (
-      <Alert type="error" icon={<IconFlag size="md" />}>
+      <Alert type="error" showIcon>
         {error}
       </Alert>
     );
@@ -203,12 +209,7 @@ class TrendsContent extends React.Component<Props, State> {
     return (
       <PageFiltersContainer
         defaultSelection={{
-          datetime: {
-            start: null,
-            end: null,
-            utc: false,
-            period: DEFAULT_TRENDS_STATS_PERIOD,
-          },
+          datetime: defaultTrendsSelectionDate,
         }}
       >
         <Layout.Header>
@@ -240,7 +241,7 @@ class TrendsContent extends React.Component<Props, State> {
                   onSearch={this.handleSearch}
                   maxQueryLength={MAX_QUERY_LENGTH}
                 />
-                <TrendsDropdown>
+                <TrendsDropdown data-test-id="trends-dropdown">
                   <DropdownControl
                     buttonProps={{prefix: t('Percentile')}}
                     label={currentTrendFunction.label}

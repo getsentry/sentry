@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import EventView from 'sentry/utils/discover/eventView';
 import SpanOpsQuery from 'sentry/utils/performance/suspectSpans/spanOpsQuery';
@@ -24,14 +24,14 @@ describe('SuspectSpansQuery', function () {
     };
   });
 
-  it('fetches data on mount', async function () {
+  it('fetches data on mount', function () {
     const getMock = MockApiClient.addMockResponse({
       url: '/organizations/test-org/events-span-ops/',
       // just asserting that the data is being fetched, no need for actual data here
       body: [],
     });
 
-    mountWithTheme(
+    render(
       <SpanOpsQuery location={location} orgSlug="test-org" eventView={eventView}>
         {() => null}
       </SpanOpsQuery>

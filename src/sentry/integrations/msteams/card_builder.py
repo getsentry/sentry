@@ -349,7 +349,7 @@ def build_group_descr(group):
 def build_rule_url(rule, group, project):
     org_slug = group.organization.slug
     project_slug = project.slug
-    rule_url = f"/organizations/{org_slug}/alerts/rules/{project_slug}/{rule.id}/"
+    rule_url = f"/organizations/{org_slug}/alerts/rules/{project_slug}/{rule.id}/details/"
     return absolute_uri(rule_url)
 
 
@@ -682,8 +682,8 @@ def build_unlinked_card():
     }
 
 
-def build_incident_attachment(action, incident, metric_value=None, method=None):
-    data = incident_attachment_info(incident, metric_value, action=action, method=method)
+def build_incident_attachment(incident, new_status, metric_value=None):
+    data = incident_attachment_info(incident, new_status, metric_value)
 
     colors = {"Resolved": "good", "Warning": "warning", "Critical": "attention"}
 

@@ -1,5 +1,5 @@
 import {browserHistory} from 'react-router';
-import PropTypes from 'prop-types';
+import * as PropTypes from 'prop-types';
 
 import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 
@@ -9,7 +9,6 @@ const OrganizationGroupEvents = GroupEvents;
 
 describe('groupEvents', function () {
   let request;
-  const routerContext = TestStubs.routerContext();
 
   beforeEach(function () {
     request = MockApiClient.addMockResponse({
@@ -57,8 +56,7 @@ describe('groupEvents', function () {
         group={TestStubs.Group()}
         params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
         location={{query: {}}}
-      />,
-      routerContext
+      />
     );
 
     expect(component).toSnapshot();

@@ -44,3 +44,8 @@ export function spanDetailsRouteWithQuery({
     },
   };
 }
+
+export enum ZoomKeys {
+  MIN = 'min',
+  MAX = 'max',
+}

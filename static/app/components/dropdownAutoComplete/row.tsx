@@ -87,13 +87,14 @@ const AutoCompleteItem = styled('div')<{
   disabled?: boolean;
   itemSize?: ItemSize;
 }>`
+  position: relative;
   /* needed for virtualized lists that do not fill parent height */
   /* e.g. breadcrumbs (org height > project, but want same fixed height for both) */
   display: flex;
   flex-direction: column;
   justify-content: center;
 
-  font-size: 0.9em;
+  font-size: ${p => p.theme.fontSizeMedium};
   background-color: ${p => (p.isHighlighted ? p.theme.hover : 'transparent')};
   color: ${p => (p.isHighlighted ? p.theme.textColor : 'inherit')};
   padding: ${p => getItemPaddingForSize(p.itemSize)};

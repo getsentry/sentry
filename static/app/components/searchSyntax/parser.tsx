@@ -530,6 +530,7 @@ export class TokenConverter {
    * [0]:https://pegjs.org/documentation
    */
   predicateFilter = <T extends FilterType>(type: T, key: FilterMap[T]['key']) => {
+    // @ts-expect-error Unclear why this isn’t resolving correctly
     const keyName = getKeyName(key);
     const aggregateKey = key as ReturnType<TokenConverter['tokenKeyAggregate']>;
 
@@ -765,6 +766,7 @@ const defaultConfig: SearchConfig = {
   ]),
   durationKeys: new Set(['transaction.duration']),
   percentageKeys: new Set(['percentage']),
+  // do not put functions in this Set
   numericKeys: new Set([
     'project_id',
     'project.id',
@@ -773,15 +775,6 @@ const defaultConfig: SearchConfig = {
     'stack.lineno',
     'stack.stack_level',
     'transaction.duration',
-    'apdex',
-    'p75',
-    'p95',
-    'p99',
-    'failure_rate',
-    'count_miserable',
-    'user_misery',
-    'count_miserable_new',
-    'user_miser_new',
   ]),
   dateKeys: new Set([
     'start',

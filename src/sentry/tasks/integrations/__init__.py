@@ -1,15 +1,17 @@
 import logging
-from typing import Any
 
 from django.conf import settings
 
 from sentry import features
+from sentry.integrations import IntegrationInstallation
 from sentry.models import ExternalIssue, Organization
 
 logger = logging.getLogger("sentry.tasks.integrations")
 
 
-def should_comment_sync(installation: Any, external_issue: ExternalIssue) -> bool:
+def should_comment_sync(
+    installation: IntegrationInstallation, external_issue: ExternalIssue
+) -> bool:
     organization = Organization.objects.get(id=external_issue.organization_id)
     has_issue_sync = features.has("organizations:integrations-issue-sync", organization)
     return has_issue_sync and installation.should_sync("comment")

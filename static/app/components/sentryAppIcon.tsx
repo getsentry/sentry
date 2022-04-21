@@ -1,5 +1,3 @@
-import React from 'react';
-
 import SentryAppAvatar from 'sentry/components/avatar/sentryAppAvatar';
 import {AvatarSentryApp} from 'sentry/types';
 

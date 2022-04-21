@@ -49,8 +49,7 @@ describe('SentryAppExternalIssueActions', () => {
             sentryAppInstallation={install}
             sentryAppComponent={component}
           />
-        </Fragment>,
-        TestStubs.routerContext()
+        </Fragment>
       );
     });
 
@@ -175,8 +174,7 @@ describe('SentryAppExternalIssueActions', () => {
           sentryAppComponent={component}
           sentryAppInstallation={install}
           externalIssue={externalIssue}
-        />,
-        TestStubs.routerContext()
+        />
       );
     });
 

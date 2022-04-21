@@ -141,6 +141,14 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
             "detail": 'Invalid field: "summ(qarntenty)"',
         }
 
+    def test_no_end_param(self):
+        response = self.do_request(
+            {"field": ["sum(quantity)"], "interval": "1d", "start": "2021-03-14T00:00:00Z"}
+        )
+
+        assert response.status_code == 400, response.content
+        assert result_sorted(response.data) == {"detail": "start and end are both required"}
+
     def test_unknown_category(self):
         response = self.do_request(
             {

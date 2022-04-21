@@ -28,8 +28,7 @@ describe('TeamAccessRequestModal', function () {
         teamId={teamId}
         memberId={memberId}
         {...modalRenderProps}
-      />,
-      TestStubs.routerContext()
+      />
     );
 
     createMock = MockApiClient.addMockResponse({

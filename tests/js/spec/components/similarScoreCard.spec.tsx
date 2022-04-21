@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import SimilarScoreCard from 'sentry/components/similarScoreCard';
 
@@ -8,12 +8,12 @@ describe('SimilarScoreCard', function () {
   afterEach(function () {});
 
   it('renders', function () {
-    const {container} = mountWithTheme(<SimilarScoreCard />);
+    const {container} = render(<SimilarScoreCard />);
     expect(container).toBeEmptyDOMElement();
   });
 
   it('renders with score list', function () {
-    const {container} = mountWithTheme(
+    const {container} = render(
       <SimilarScoreCard
         scoreList={[
           ['exception:message:character-shingles', null],

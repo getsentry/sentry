@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import re
 from operator import attrgetter
@@ -607,15 +609,15 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 },
             )
             raise IntegrationError(
-                "Could not fetch project list from Jira"
-                "Ensure that jira is available and your account is still active."
+                "Could not fetch project list from Jira. Ensure that Jira is"
+                " available and your account is still active."
             )
 
         meta = self.get_issue_create_meta(client, project_id, jira_projects)
         if not meta:
             raise IntegrationError(
-                "Could not fetch issue create metadata from Jira. "
-                "Ensure that the integration user has access to the requested project."
+                "Could not fetch issue create metadata from Jira. Ensure that"
+                " the integration user has access to the requested project."
             )
 
         # check if the issuetype was passed as a parameter
@@ -669,7 +671,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         # Sort based on priority, then field name
         dynamic_fields.sort(key=lambda f: anti_gravity.get(f, (0, f)))
 
-        # build up some dynamic fields based on required shit.
+        # Build up some dynamic fields based on what is required.
         for field in dynamic_fields:
             if field in standard_fields or field in [x.strip() for x in ignored_fields]:
                 # don't overwrite the fixed fields for the form.
@@ -677,6 +679,8 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
             mb_field = self.build_dynamic_field(issue_type_meta["fields"][field], group)
             if mb_field:
+                if mb_field["label"] in params.get("ignored", []):
+                    continue
                 mb_field["name"] = field
                 fields.append(mb_field)
 
@@ -769,10 +773,11 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                         cleaned_data[field] = v
                         continue
                     if schema["type"] == "user" or schema.get("items") == "user":
-                        v = {user_id_field: v}
-                    elif schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES.get("multiuserpicker"):
-                        # custom multi-picker
-                        v = [{user_id_field: v}]
+                        if schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES.get("multiuserpicker"):
+                            # custom multi-picker
+                            v = [{user_id_field: user_id} for user_id in v]
+                        else:
+                            v = {user_id_field: v}
                     elif schema["type"] == "issuelink":  # used by Parent field
                         v = {"key": v}
                     elif schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES["epic"]:
@@ -833,8 +838,8 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
     def sync_assignee_outbound(
         self,
-        external_issue: "ExternalIssue",
-        user: Optional["User"],
+        external_issue: ExternalIssue,
+        user: Optional[User],
         assign: bool = True,
         **kwargs: Any,
     ) -> None:

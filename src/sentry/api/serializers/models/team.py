@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 from collections import defaultdict
+from datetime import datetime
 from typing import (
+    TYPE_CHECKING,
     AbstractSet,
     Any,
-    Iterable,
     List,
     Mapping,
     MutableMapping,
@@ -17,7 +20,7 @@ from typing_extensions import TypedDict
 
 from sentry import roles
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.api.serializers.models.organization_member import SCIMMeta
+from sentry.api.serializers.types import SerializedAvatarFields
 from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
@@ -33,19 +36,28 @@ from sentry.models import (
 )
 from sentry.scim.endpoints.constants import SCIM_SCHEMA_GROUP
 from sentry.utils.compat import zip
-from sentry.utils.json import JSONData
 from sentry.utils.query import RangeQuerySetWrapper
 
+if TYPE_CHECKING:
+    from sentry.api.serializers import (
+        ExternalActorResponse,
+        OrganizationSerializerResponse,
+        ProjectSerializerResponse,
+        SCIMMeta,
+    )
 
-def get_team_memberships(team_list: Sequence[Team], user: User) -> Iterable[int]:
+
+def _get_team_memberships(team_list: Sequence[Team], user: User) -> Mapping[int, str | None]:
     """Get memberships the user has in the provided team list"""
     if not user.is_authenticated:
-        return []
+        return {}
 
-    team_ids: Iterable[int] = OrganizationMemberTeam.objects.filter(
-        organizationmember__user=user, team__in=team_list
-    ).values_list("team", flat=True)
-    return team_ids
+    return {
+        team_id: team_role
+        for (team_id, team_role) in OrganizationMemberTeam.objects.filter(
+            organizationmember__user=user, team__in=team_list
+        ).values_list("team__id", "role")
+    }
 
 
 def get_member_totals(team_list: Sequence[Team], user: User) -> Mapping[str, int]:
@@ -88,6 +100,25 @@ def get_access_requests(item_list: Sequence[Team], user: User) -> AbstractSet[Te
     return frozenset()
 
 
+class _TeamSerializerResponseOptional(TypedDict, total=False):
+    externalTeams: list[ExternalActorResponse]
+    organization: OrganizationSerializerResponse
+    projects: ProjectSerializerResponse
+
+
+class TeamSerializerResponse(_TeamSerializerResponseOptional):
+    id: str
+    slug: str
+    name: str
+    dateCreated: datetime
+    isMember: bool
+    teamRole: str
+    hasAccess: bool
+    isPending: bool
+    memberCount: int
+    avatar: SerializedAvatarFields
+
+
 @register(Team)
 class TeamSerializer(Serializer):  # type: ignore
     def __init__(
@@ -116,7 +147,7 @@ class TeamSerializer(Serializer):  # type: ignore
         org_roles = get_org_roles(org_ids, user)
 
         member_totals = get_member_totals(item_list, user)
-        memberships = get_team_memberships(item_list, user)
+        team_memberships = _get_team_memberships(item_list, user)
         access_requests = get_access_requests(item_list, user)
 
         avatars = {a.team_id: a for a in TeamAvatar.objects.filter(team__in=item_list)}
@@ -125,8 +156,17 @@ class TeamSerializer(Serializer):  # type: ignore
         result: MutableMapping[Team, MutableMapping[str, Any]] = {}
 
         for team in item_list:
-            is_member = team.id in memberships
             org_role = org_roles.get(team.organization_id)
+
+            if team.id in team_memberships:
+                is_member = True
+                team_role = team_memberships[team.id]
+                if team_role is None:
+                    team_role = roles.get_minimum_team_role(org_role).id
+            else:
+                is_member = False
+                team_role = None
+
             if is_member:
                 has_access = True
             elif is_superuser:
@@ -140,6 +180,7 @@ class TeamSerializer(Serializer):  # type: ignore
             result[team] = {
                 "pending_request": team.id in access_requests,
                 "is_member": is_member,
+                "team_role": team_role,
                 "has_access": has_access,
                 "avatar": avatars.get(team.id),
                 "member_count": member_totals.get(team.id, 0),
@@ -176,21 +217,22 @@ class TeamSerializer(Serializer):  # type: ignore
 
     def serialize(
         self, obj: Team, attrs: Mapping[str, Any], user: Any, **kwargs: Any
-    ) -> MutableMapping[str, JSONData]:
+    ) -> TeamSerializerResponse:
         if attrs.get("avatar"):
-            avatar = {
+            avatar: SerializedAvatarFields = {
                 "avatarType": attrs["avatar"].get_avatar_type_display(),
                 "avatarUuid": attrs["avatar"].ident if attrs["avatar"].file_id else None,
             }
         else:
             avatar = {"avatarType": "letter_avatar", "avatarUuid": None}
 
-        result = {
+        result: TeamSerializerResponse = {
             "id": str(obj.id),
             "slug": obj.slug,
             "name": obj.name,
             "dateCreated": obj.date_added,
             "isMember": attrs["is_member"],
+            "teamRole": attrs["team_role"],
             "hasAccess": attrs["has_access"],
             "isPending": attrs["pending_request"],
             "memberCount": attrs["member_count"],

@@ -1,24 +1,24 @@
 import {browserHistory} from 'react-router';
+import selectEvent from 'react-select-event';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  act,
-  mountWithTheme as reactMountWithTheme,
-  screen,
-  userEvent,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {getOptionByLabel, openMenu, selectByLabel} from 'sentry-test/select-new';
 
 import {openDashboardWidgetLibraryModal} from 'sentry/actionCreators/modal';
 import AddDashboardWidgetModal from 'sentry/components/modals/addDashboardWidgetModal';
 import {t} from 'sentry/locale';
 import TagStore from 'sentry/stores/tagStore';
+import {SessionMetric} from 'sentry/types';
 import * as types from 'sentry/views/dashboardsV2/types';
 
 jest.mock('sentry/actionCreators/modal', () => ({
   openDashboardWidgetLibraryModal: jest.fn(),
 }));
+
+// Mocking worldMapChart to avoid act warnings
+jest.mock('sentry/components/charts/worldMapChart');
 
 const stubEl = props => <div>{props.children}</div>;
 
@@ -58,7 +58,7 @@ function mountModal({
 }
 
 function mountModalWithRtl({initialData, onAddWidget, onUpdateWidget, widget, source}) {
-  return reactMountWithTheme(
+  return render(
     <AddDashboardWidgetModal
       Header={stubEl}
       Body={stubEl}
@@ -70,7 +70,10 @@ function mountModalWithRtl({initialData, onAddWidget, onUpdateWidget, widget, so
       widget={widget}
       closeModal={() => void 0}
       source={source || types.DashboardWidgetSource.DASHBOARDS}
-    />
+    />,
+    {
+      organization: initialData.organization,
+    }
   );
 }
 
@@ -107,7 +110,7 @@ async function setSearchConditions(el, query) {
 describe('Modals -> AddDashboardWidgetModal', function () {
   const initialData = initializeOrg({
     organization: {
-      features: ['performance-view', 'discover-query', 'issues-in-dashboards'],
+      features: ['performance-view', 'discover-query'],
       apdexThreshold: 400,
     },
   });
@@ -121,10 +124,10 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     widgetDisplay: ['area'],
   });
 
-  let eventsStatsMock, metricsTagsMock;
+  let eventsStatsMock, metricsDataMock;
 
   beforeEach(function () {
-    TagStore.onLoadTagsSuccess(tags);
+    TagStore.loadTagsSuccess(tags);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/widgets/',
       method: 'POST',
@@ -155,9 +158,18 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       url: '/organizations/org-slug/issues/',
       body: [],
     });
-    metricsTagsMock = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/tags/',
       body: [{key: 'environment'}, {key: 'release'}, {key: 'session.status'}],
+    });
+    metricsDataMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/organizations/org-slug/metrics/data/',
+      body: TestStubs.MetricsField({field: SessionMetric.USER}),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/metrics/meta/`,
+      body: TestStubs.MetricsMeta(),
     });
   });
 
@@ -171,7 +183,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       source: types.DashboardWidgetSource.DISCOVERV2,
     });
     await tick();
-    await wrapper.update();
+    wrapper.update();
     selectDashboard(wrapper, {label: t('+ Create New Dashboard'), value: 'new'});
     await clickSubmit(wrapper);
     expect(browserHistory.push).toHaveBeenCalledWith(
@@ -188,7 +200,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       source: types.DashboardWidgetSource.DISCOVERV2,
     });
     await tick();
-    await wrapper.update();
+    wrapper.update();
     selectDashboard(wrapper, {label: t('Test Dashboard'), value: '1'});
     await clickSubmit(wrapper);
     expect(browserHistory.push).toHaveBeenCalledWith(
@@ -206,7 +218,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       source: types.DashboardWidgetSource.DISCOVERV2,
     });
     await tick();
-    await wrapper.update();
+    wrapper.update();
     openMenu(wrapper, {name: 'dashboard', control: true});
 
     const input = wrapper.find('SelectControl[name="dashboard"]');
@@ -271,6 +283,25 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     wrapper.unmount();
   });
 
+  it('updates widget aggregate', async function () {
+    let widget = undefined;
+    const wrapper = mountModal({
+      initialData,
+      onAddWidget: data => (widget = data),
+    });
+    // No delete button as there is only one field.
+    expect(wrapper.find('IconDelete')).toHaveLength(0);
+
+    selectByLabel(wrapper, 'p95(\u2026)', {name: 'field', at: 0, control: true});
+
+    await clickSubmit(wrapper);
+
+    expect(widget.queries).toHaveLength(1);
+    expect(widget.queries[0].fields).toEqual(['p95(transaction.duration)']);
+    expect(widget.queries[0].aggregates).toEqual(['p95(transaction.duration)']);
+    wrapper.unmount();
+  });
+
   it('can add additional fields', async function () {
     let widget = undefined;
     const wrapper = mountModal({
@@ -295,6 +326,11 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['count()', 'p95(transaction.duration)']);
+    expect(widget.queries[0].aggregates).toEqual([
+      'count()',
+      'p95(transaction.duration)',
+    ]);
+    expect(widget.queries[0].columns).toEqual([]);
     wrapper.unmount();
   });
 
@@ -329,6 +365,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['count()', 'equation|count() + 100']);
+    expect(widget.queries[0].aggregates).toEqual(['count()', 'equation|count() + 100']);
     wrapper.unmount();
   });
 
@@ -362,6 +399,10 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['count()', 'p95(transaction.duration)']);
+    expect(widget.queries[0].aggregates).toEqual([
+      'count()',
+      'p95(transaction.duration)',
+    ]);
 
     // Add another search filter
     const addQuery = wrapper.find('button[aria-label="Add Query"]');
@@ -384,11 +425,13 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       name: '',
       conditions: '',
       fields: ['count()', 'p95(transaction.duration)'],
+      aggregates: ['count()', 'p95(transaction.duration)'],
     });
     expect(widget.queries[1]).toMatchObject({
       name: 'Errors',
       conditions: 'event.type:error',
       fields: ['count()', 'p95(transaction.duration)'],
+      aggregates: ['count()', 'p95(transaction.duration)'],
     });
 
     wrapper.unmount();
@@ -491,7 +534,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     });
 
     await clickSubmit(wrapper);
-    await wrapper.update();
+    wrapper.update();
 
     // API request should fail and not add widget.
     expect(widget).toBeUndefined();
@@ -517,12 +560,16 @@ describe('Modals -> AddDashboardWidgetModal', function () {
           name: 'errors',
           conditions: 'event.type:error',
           fields: ['count()', 'count_unique(id)'],
+          aggregates: ['count()', 'count_unique(id)'],
+          columns: [],
         },
         {
           id: '9',
           name: 'csp',
           conditions: 'event.type:csp',
           fields: ['count()', 'count_unique(id)'],
+          aggregates: ['count()', 'count_unique(id)'],
+          columns: [],
         },
       ],
     };
@@ -605,7 +652,9 @@ describe('Modals -> AddDashboardWidgetModal', function () {
           name: 'errors',
           conditions: 'event.type:error',
           fields: ['sdk.name', 'count()'],
-          orderby: '',
+          aggregates: ['count()'],
+          columns: ['sdk.name'],
+          orderby: 'count',
         },
       ],
     };
@@ -634,18 +683,26 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       1
     );
 
+    expect(
+      wrapper
+        .find('WidgetQueriesForm SelectControl[name="orderby"] SingleValue div')
+        .text()
+    ).toEqual('count() asc');
+
     // Add a column, and choose a value,
     wrapper.find('button[aria-label="Add a Column"]').simulate('click');
-    await wrapper.update();
+    wrapper.update();
 
     selectByLabel(wrapper, 'trace', {name: 'field', at: 2, control: true});
-    await wrapper.update();
+    wrapper.update();
 
     await clickSubmit(wrapper);
 
     // A new field should be added.
     expect(widget.queries[0].fields).toHaveLength(3);
-    expect(widget.queries[0].fields[2]).toEqual('trace');
+    expect(widget.queries[0].fields).toEqual(['sdk.name', 'count()', 'trace']);
+    expect(widget.queries[0].aggregates).toEqual(['count()']);
+    expect(widget.queries[0].columns).toEqual(['sdk.name', 'trace']);
     wrapper.unmount();
   });
 
@@ -743,6 +800,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['p95(transaction.duration)']);
+    expect(widget.queries[0].aggregates).toEqual(['p95(transaction.duration)']);
+    expect(widget.queries[0].columns).toEqual([]);
     wrapper.unmount();
   });
 
@@ -785,6 +844,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(widget.displayType).toEqual('line');
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['any(measurements.lcp)']);
+    expect(widget.queries[0].aggregates).toEqual(['any(measurements.lcp)']);
+    expect(widget.queries[0].columns).toEqual([]);
     wrapper.unmount();
   });
 
@@ -819,6 +880,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(widget.displayType).toEqual('big_number');
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['count_unique(user.display)']);
+    expect(widget.queries[0].aggregates).toEqual(['count_unique(user.display)']);
+    expect(widget.queries[0].columns).toEqual([]);
     wrapper.unmount();
   });
 
@@ -882,6 +945,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(widget.displayType).toEqual('world_map');
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['count_unique(measurements.lcp)']);
+    expect(widget.queries[0].aggregates).toEqual(['count_unique(measurements.lcp)']);
+    expect(widget.queries[0].columns).toEqual([]);
     wrapper.unmount();
   });
 
@@ -931,6 +996,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(widget.displayType).toEqual('line');
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['count()']);
+    expect(widget.queries[0].aggregates).toEqual(['count()']);
+    expect(widget.queries[0].columns).toEqual([]);
     wrapper.unmount();
   });
 
@@ -943,6 +1010,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       defaultWidgetQuery: {
         name: '',
         fields: ['title', 'count()', 'count_unique(user)', 'epm()', 'count()'],
+        columns: ['title'],
+        aggregates: ['count()', 'count_unique(user)', 'epm()', 'count()'],
         conditions: 'tag:value',
         orderby: '',
       },
@@ -990,6 +1059,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       defaultWidgetQuery: {
         name: '',
         fields: ['count()', 'failure_count()', 'count_unique(user)'],
+        aggregates: ['count()', 'failure_count()', 'count_unique(user)'],
+        columns: [],
         conditions: 'tag:value',
         orderby: '',
       },
@@ -1015,6 +1086,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     });
 
     expect(wrapper.find('SelectPicker').at(1).props().value.value).toEqual('bar');
+    await tick();
     wrapper.unmount();
   });
 
@@ -1027,6 +1099,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       displayType: types.DisplayType.TOP_N,
       defaultWidgetQuery: {
         fields: ['title', 'count()', 'count_unique(user)'],
+        aggregates: ['count()', 'count_unique(user)'],
+        columns: ['title'],
         orderby: '-count_unique_user',
       },
       defaultTableColumns: ['title', 'count()'],
@@ -1041,6 +1115,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(wrapper.find('WidgetQueriesForm').props().queries[0].orderby).toEqual(
       '-count_unique_user'
     );
+    await tick();
     wrapper.unmount();
   });
 
@@ -1091,7 +1166,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
   });
 
   it('limits TopN display to one query when switching from another visualization', async () => {
-    reactMountWithTheme(
+    render(
       <AddDashboardWidgetModal
         Header={stubEl}
         Body={stubEl}
@@ -1121,11 +1196,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
   describe('Issue Widgets', function () {
     it('sets widgetType to issues', async function () {
-      initialData.organization.features = [
-        'performance-view',
-        'discover-query',
-        'issues-in-dashboards',
-      ];
+      initialData.organization.features = ['performance-view', 'discover-query'];
       const onAdd = jest.fn(() => {});
       const wrapper = mountModalWithRtl({
         initialData,
@@ -1146,6 +1217,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
               fields: ['issue', 'assignee', 'title'],
               name: '',
               orderby: '',
+              aggregates: [],
+              columns: ['issue', 'assignee', 'title'],
             },
           ],
           title: '',
@@ -1156,11 +1229,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     });
 
     it('does not render the dataset selector', async function () {
-      initialData.organization.features = [
-        'performance-view',
-        'discover-query',
-        'issues-in-dashboards',
-      ];
+      initialData.organization.features = ['performance-view', 'discover-query'];
       const wrapper = mountModalWithRtl({
         initialData,
         onAddWidget: () => undefined,
@@ -1175,11 +1244,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     });
 
     it('renders the dataset selector', function () {
-      initialData.organization.features = [
-        'performance-view',
-        'discover-query',
-        'issues-in-dashboards',
-      ];
+      initialData.organization.features = ['performance-view', 'discover-query'];
       const wrapper = mountModalWithRtl({
         initialData,
         onAddWidget: () => undefined,
@@ -1187,7 +1252,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         source: types.DashboardWidgetSource.DASHBOARDS,
       });
 
-      expect(metricsTagsMock).not.toHaveBeenCalled();
+      expect(metricsDataMock).not.toHaveBeenCalled();
 
       expect(screen.getByText('Data Set')).toBeInTheDocument();
       expect(
@@ -1196,17 +1261,13 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       expect(
         screen.getByText('Issues (States, Assignment, Time, etc.)')
       ).toBeInTheDocument();
-      // Hide without the dashboard-metrics feature flag
-      expect(screen.queryByText('Metrics (Release Health)')).not.toBeInTheDocument();
+      // Hide without the dashboards-metrics feature flag
+      expect(screen.queryByText(/release/i)).not.toBeInTheDocument();
       wrapper.unmount();
     });
 
     it('disables moving and deleting issue column', async function () {
-      initialData.organization.features = [
-        'performance-view',
-        'discover-query',
-        'issues-in-dashboards',
-      ];
+      initialData.organization.features = ['performance-view', 'discover-query'];
       const wrapper = mountModalWithRtl({
         initialData,
         onAddWidget: () => undefined,
@@ -1234,31 +1295,33 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       wrapper.unmount();
     });
   });
-  describe('Metrics Widgets', function () {
+
+  // Disabling since the modal is going to be removed soon
+  // eslint-disable-next-line jest/no-disabled-tests
+  describe.skip('Metrics Widgets', function () {
     it('renders the dataset selector', async function () {
       initialData.organization.features = [
         'performance-view',
         'discover-query',
         'dashboards-metrics',
       ];
-      const wrapper = mountModalWithRtl({
+
+      mountModalWithRtl({
         initialData,
         onAddWidget: () => undefined,
         onUpdateWidget: () => undefined,
         source: types.DashboardWidgetSource.DASHBOARDS,
       });
 
-      await tick();
+      expect(await screen.findByText('Data Set')).toBeInTheDocument();
 
-      expect(screen.getByText('Data Set')).toBeInTheDocument();
       expect(
         screen.getByText('All Events (Errors and Transactions)')
       ).toBeInTheDocument();
       expect(
-        screen.queryByText('Issues (States, Assignment, Time, etc.)')
-      ).not.toBeInTheDocument();
-      expect(screen.getByText('Metrics (Release Health)')).toBeInTheDocument();
-      wrapper.unmount();
+        screen.getByText('Issues (States, Assignment, Time, etc.)')
+      ).toBeInTheDocument();
+      expect(screen.getByText('Health (Releases, sessions)')).toBeInTheDocument();
     });
 
     it('maintains the selected dataset when display type is changed', async function () {
@@ -1267,33 +1330,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         'discover-query',
         'dashboards-metrics',
       ];
-      const wrapper = mountModalWithRtl({
-        initialData,
-        onAddWidget: () => undefined,
-        onUpdateWidget: () => undefined,
-        source: types.DashboardWidgetSource.DASHBOARDS,
-      });
-
-      const metricsDataset = screen.getByLabelText('Metrics (Release Health)');
-      expect(metricsDataset).not.toBeChecked();
-      await act(async () =>
-        userEvent.click(screen.getByLabelText('Metrics (Release Health)'))
-      );
-      expect(metricsDataset).toBeChecked();
-
-      userEvent.click(screen.getByText('Table'));
-      userEvent.click(screen.getByText('Line Chart'));
-      expect(metricsDataset).toBeChecked();
-
-      wrapper.unmount();
-    });
-
-    it('retrieves tags when modal is opened', async function () {
-      initialData.organization.features = [
-        'performance-view',
-        'discover-query',
-        'dashboards-metrics',
-      ];
       mountModalWithRtl({
         initialData,
         onAddWidget: () => undefined,
@@ -1301,24 +1337,51 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         source: types.DashboardWidgetSource.DASHBOARDS,
       });
 
-      await tick();
-      expect(metricsTagsMock).toHaveBeenCalledTimes(1);
+      expect(
+        await screen.findByRole('heading', {name: 'Add Widget'})
+      ).toBeInTheDocument();
 
-      await act(async () =>
-        userEvent.click(screen.getByLabelText('Metrics (Release Health)'))
-      );
+      expect(screen.getByLabelText(/release/i)).not.toBeChecked();
+      userEvent.click(screen.getByLabelText(/release/i));
+      await waitFor(() => expect(screen.getByLabelText(/release/i)).toBeChecked());
 
-      expect(screen.getByText('sum(…)')).toBeInTheDocument();
+      userEvent.click(screen.getByText('Table'));
+      userEvent.click(screen.getByText('Line Chart'));
+      await waitFor(() => expect(screen.getByLabelText(/release/i)).toBeChecked());
+    });
+
+    it('displays metrics tags', async function () {
+      initialData.organization.features = [
+        'performance-view',
+        'discover-query',
+        'dashboards-metrics',
+      ];
+
+      mountModalWithRtl({
+        initialData,
+        onAddWidget: () => undefined,
+        onUpdateWidget: () => undefined,
+        source: types.DashboardWidgetSource.DASHBOARDS,
+      });
+
+      expect(
+        await screen.findByRole('heading', {name: 'Add Widget'})
+      ).toBeInTheDocument();
+
+      userEvent.click(screen.getByLabelText(/release/i));
+
+      expect(await screen.findByText('sum(…)')).toBeInTheDocument();
       expect(screen.getByText('sentry.sessions.session')).toBeInTheDocument();
 
       userEvent.click(screen.getByText('sum(…)'));
-      expect(screen.getByText('count_unique(…)')).toBeInTheDocument();
+      expect(await screen.findByText('count_unique(…)')).toBeInTheDocument();
+
       expect(screen.getByText('release')).toBeInTheDocument();
       expect(screen.getByText('environment')).toBeInTheDocument();
       expect(screen.getByText('session.status')).toBeInTheDocument();
 
       userEvent.click(screen.getByText('count_unique(…)'));
-      expect(screen.getByText('sentry.sessions.user')).toBeInTheDocument();
+      expect(await screen.findByText('sentry.sessions.user')).toBeInTheDocument();
     });
 
     it('displays the correct options for area chart', async function () {
@@ -1327,6 +1390,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         'discover-query',
         'dashboards-metrics',
       ];
+
       mountModalWithRtl({
         initialData,
         onAddWidget: () => undefined,
@@ -1334,24 +1398,197 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         source: types.DashboardWidgetSource.DASHBOARDS,
       });
 
-      await tick();
-      expect(metricsTagsMock).toHaveBeenCalledTimes(1);
+      expect(
+        await screen.findByRole('heading', {name: 'Add Widget'})
+      ).toBeInTheDocument();
 
-      await act(async () =>
-        userEvent.click(screen.getByLabelText('Metrics (Release Health)'))
-      );
+      userEvent.click(screen.getByLabelText(/release/i));
 
       userEvent.click(screen.getByText('Table'));
       userEvent.click(screen.getByText('Line Chart'));
 
-      expect(screen.getByText('sum(…)')).toBeInTheDocument();
+      expect(await screen.findByText('sum(…)')).toBeInTheDocument();
       expect(screen.getByText('sentry.sessions.session')).toBeInTheDocument();
 
       userEvent.click(screen.getByText('sum(…)'));
-      expect(screen.getByText('count_unique(…)')).toBeInTheDocument();
+      expect(await screen.findByText('count_unique(…)')).toBeInTheDocument();
 
       userEvent.click(screen.getByText('count_unique(…)'));
-      expect(screen.getByText('sentry.sessions.user')).toBeInTheDocument();
+      expect(await screen.findByText('sentry.sessions.user')).toBeInTheDocument();
+    });
+
+    it('makes the appropriate metrics call', async function () {
+      initialData.organization.features = [
+        'performance-view',
+        'discover-query',
+        'dashboards-metrics',
+      ];
+
+      mountModalWithRtl({
+        initialData,
+        onAddWidget: () => undefined,
+        onUpdateWidget: () => undefined,
+        source: types.DashboardWidgetSource.DASHBOARDS,
+      });
+
+      expect(
+        await screen.findByRole('heading', {name: 'Add Widget'})
+      ).toBeInTheDocument();
+
+      userEvent.click(screen.getByLabelText(/release/i));
+
+      userEvent.click(screen.getByText('Table'));
+      userEvent.click(screen.getByText('Line Chart'));
+
+      await waitFor(() =>
+        expect(metricsDataMock).toHaveBeenLastCalledWith(
+          `/organizations/org-slug/metrics/data/`,
+          expect.objectContaining({
+            query: {
+              environment: [],
+              field: ['sum(sentry.sessions.session)'],
+              groupBy: [],
+              interval: '30m',
+              project: [],
+              statsPeriod: '14d',
+              per_page: 20,
+              orderBy: 'sum(sentry.sessions.session)',
+            },
+          })
+        )
+      );
+    });
+
+    it('can select derived metric fields', async function () {
+      initialData.organization.features = [
+        'performance-view',
+        'discover-query',
+        'dashboards-metrics',
+      ];
+      const addWidgetMock = jest.fn();
+
+      mountModalWithRtl({
+        initialData,
+        onAddWidget: addWidgetMock,
+        onUpdateWidget: addWidgetMock,
+        source: types.DashboardWidgetSource.DASHBOARDS,
+      });
+
+      expect(
+        await screen.findByRole('heading', {name: 'Add Widget'})
+      ).toBeInTheDocument();
+
+      userEvent.click(screen.getByLabelText(/release/i));
+
+      await selectEvent.select(screen.getByText('sum(…)'), /session.crash_free_rate/);
+      expect(screen.getByText('session.crash_free_rate()')).toBeInTheDocument();
+      expect(screen.getByText('f(x)')).toBeInTheDocument();
+
+      expect(metricsDataMock).toHaveBeenLastCalledWith(
+        `/organizations/org-slug/metrics/data/`,
+        expect.objectContaining({
+          query: {
+            environment: [],
+            field: ['session.crash_free_rate'],
+            groupBy: [],
+            interval: '30m',
+            orderBy: 'session.crash_free_rate',
+            per_page: 5,
+            project: [],
+            statsPeriod: '14d',
+          },
+        })
+      );
+
+      userEvent.click(screen.getByRole('button', {name: 'Add Widget'}));
+      await waitFor(() =>
+        expect(addWidgetMock).toHaveBeenCalledWith(
+          expect.objectContaining({
+            displayType: 'table',
+            interval: '5m',
+            queries: [
+              {
+                aggregates: ['calculated|session.crash_free_rate'],
+                columns: [],
+                conditions: '',
+                fields: ['calculated|session.crash_free_rate'],
+                name: '',
+                orderby: '',
+              },
+            ],
+            title: '',
+            widgetType: 'metrics',
+          })
+        )
+      );
+    });
+
+    it('displays no metrics message', async function () {
+      // ensure that we have no metrics fields
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/metrics/meta/`,
+        body: [],
+      });
+
+      initialData.organization.features = [
+        'performance-view',
+        'discover-query',
+        'dashboards-metrics',
+      ];
+
+      mountModalWithRtl({
+        initialData,
+        onAddWidget: () => undefined,
+        onUpdateWidget: () => undefined,
+        source: types.DashboardWidgetSource.DASHBOARDS,
+      });
+
+      expect(
+        await screen.findByRole('heading', {name: 'Add Widget'})
+      ).toBeInTheDocument();
+
+      // change data set to metrics
+      userEvent.click(screen.getByLabelText(/release/i));
+
+      // open visualization select
+      userEvent.click(screen.getByText('Table'));
+      // choose line chart
+      userEvent.click(screen.getByText('Line Chart'));
+
+      // open fields select
+      userEvent.click(screen.getByText(/required/i));
+
+      // there's correct empty message
+      expect(await screen.findByText(/no metrics/i)).toBeInTheDocument();
+    });
+
+    it('metrics do not have equation', async function () {
+      mountModalWithRtl({
+        initialData,
+        widget: {
+          displayType: 'table',
+          widgetType: 'metrics',
+          queries: [
+            {
+              id: '9',
+              name: 'errors',
+              conditions: 'event.type:error',
+              fields: ['sdk.name', 'count()'],
+              columns: ['sdk.name'],
+              aggregates: ['count()'],
+              orderby: '',
+            },
+          ],
+        },
+      });
+
+      // Select line chart display
+      userEvent.click(await screen.findByText('Table'));
+      userEvent.click(screen.getByText('Line Chart'));
+
+      await waitFor(() =>
+        expect(screen.queryByLabelText('Add an Equation')).not.toBeInTheDocument()
+      );
     });
   });
 });

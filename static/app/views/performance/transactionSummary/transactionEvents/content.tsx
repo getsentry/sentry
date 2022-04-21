@@ -6,7 +6,6 @@ import omit from 'lodash/omit';
 import Button from 'sentry/components/button';
 import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
 import SearchBar from 'sentry/components/events/searchBar';
-import GlobalSdkUpdateAlert from 'sentry/components/globalSdkUpdateAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
@@ -36,7 +35,7 @@ type Props = {
   webVital?: WebVital;
 };
 
-const transactionsListTitles = [
+const TRANSACTIONS_LIST_TITLES: Readonly<string[]> = [
   t('event id'),
   t('user'),
   t('operation duration'),
@@ -57,6 +56,7 @@ function EventsContent(props: Props) {
   } = props;
 
   const eventView = originalEventView.clone();
+  const transactionsListTitles = TRANSACTIONS_LIST_TITLES.slice();
 
   if (webVital) {
     transactionsListTitles.splice(3, 0, t(webVital));
@@ -180,19 +180,9 @@ const StyledTable = styled('div')`
   flex-grow: 1;
 `;
 
-const StyledSdkUpdatesAlert = styled(GlobalSdkUpdateAlert)`
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    margin-bottom: 0;
-  }
-`;
-
 const SearchRowMenuItem = styled('div')`
   margin-left: ${space(1)};
   flex-grow: 0;
 `;
-
-StyledSdkUpdatesAlert.defaultProps = {
-  Wrapper: p => <Layout.Main fullWidth {...p} />,
-};
 
 export default EventsContent;

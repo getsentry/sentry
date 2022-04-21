@@ -2,63 +2,88 @@ import {Location} from 'history';
 
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {t} from 'sentry/locale';
-import {Trace} from 'sentry/types/profiling/trace';
+import {Trace} from 'sentry/types/profiling/core';
 
 import {ProfilingTableCell} from './profilingTableCell';
-import {TableColumnKey, TableColumnOrders} from './types';
+import {TableColumn, TableColumnKey, TableColumnOrders, TableDataRow} from './types';
 
 interface ProfilingTableProps {
+  error: string | null;
+  isLoading: boolean;
   location: Location;
   traces: Trace[];
 }
 
-function ProfilingTable({location, traces}: ProfilingTableProps) {
+function ProfilingTable({error, isLoading, location, traces}: ProfilingTableProps) {
   return (
     <GridEditable
-      isLoading={false}
+      isLoading={isLoading}
+      error={error}
       data={traces}
       columnOrder={COLUMN_ORDER.map(key => COLUMNS[key])}
       columnSortBy={[]}
-      grid={{renderBodyCell: ProfilingTableCell}}
+      grid={{renderBodyCell: renderProfilingTableCell}}
       location={location}
     />
   );
 }
 
+function renderProfilingTableCell(
+  column: TableColumn,
+  dataRow: TableDataRow,
+  rowIndex: number,
+  columnIndex: number
+) {
+  return (
+    <ProfilingTableCell
+      column={column}
+      dataRow={dataRow}
+      rowIndex={rowIndex}
+      columnIndex={columnIndex}
+    />
+  );
+}
+
 const COLUMN_ORDER: TableColumnKey[] = [
-  'id',
   'failed',
-  'app_version',
-  'interaction_name',
-  'start_time_unix',
+  'id',
+  'project_id',
+  'version_name',
+  'transaction_name',
+  'timestamp',
   'trace_duration_ms',
   'device_model',
-  'device_class',
+  'device_classification',
 ];
 
 const COLUMNS: TableColumnOrders = {
   id: {
     key: 'id',
-    name: t('Flamegraph'),
+    name: t('Profile ID'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  project_id: {
+    key: 'project_id',
+    name: t('Project'),
     width: COL_WIDTH_UNDEFINED,
   },
   failed: {
     key: 'failed',
     name: t('Status'),
-    width: COL_WIDTH_UNDEFINED,
+    width: 14, // make this as small as possible
   },
-  app_version: {
-    key: 'app_version',
+  version_name: {
+    key: 'version_name',
     name: t('Version'),
     width: COL_WIDTH_UNDEFINED,
   },
-  interaction_name: {
-    key: 'interaction_name',
-    name: t('Interaction Name'),
+  transaction_name: {
+    key: 'transaction_name',
+    name: t('Transaction Name'),
     width: COL_WIDTH_UNDEFINED,
   },
-  start_time_unix: {
-    key: 'start_time_unix',
+  timestamp: {
+    key: 'timestamp',
     name: t('Timestamp'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -72,9 +97,9 @@ const COLUMNS: TableColumnOrders = {
     name: t('Device Model'),
     width: COL_WIDTH_UNDEFINED,
   },
-  device_class: {
-    key: 'device_class',
-    name: t('Device Class'),
+  device_classification: {
+    key: 'device_classification',
+    name: t('Device Classification'),
     width: COL_WIDTH_UNDEFINED,
   },
 };

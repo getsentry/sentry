@@ -4,13 +4,14 @@ import math
 import operator
 import zlib
 from calendar import Calendar
-from collections import OrderedDict, namedtuple
+from collections import OrderedDict, defaultdict, namedtuple
 from datetime import date, datetime, timedelta
 from functools import partial, reduce
 from itertools import zip_longest
 from typing import Iterable, Mapping, NamedTuple, Tuple
 
 import pytz
+from django.db.models import F
 from django.urls.base import reverse
 from django.utils import dateformat, timezone
 from django.utils.http import urlencode
@@ -31,8 +32,10 @@ from sentry.models import (
     Activity,
     Group,
     GroupHistory,
+    GroupHistoryStatus,
     GroupStatus,
     Organization,
+    OrganizationMember,
     OrganizationStatus,
     Project,
     Team,
@@ -771,7 +774,7 @@ def verify_prepare_reports(*args, **kwargs):
     max_retries=5,
     acks_late=True,
 )
-def prepare_organization_report(timestamp, duration, organization_id, dry_run=False):
+def prepare_organization_report(timestamp, duration, organization_id, user_id=None, dry_run=False):
     try:
         organization = _get_organization_queryset().get(id=organization_id)
     except Organization.DoesNotExist:
@@ -797,7 +800,13 @@ def prepare_organization_report(timestamp, duration, organization_id, dry_run=Fa
 
     # If an OrganizationMember row doesn't have an associated user, this is
     # actually a pending invitation, so no report should be delivered.
-    member_set = organization.member_set.filter(user_id__isnull=False, user__is_active=True)
+    kwargs = dict(user_id__isnull=False, user__is_active=True)
+    if user_id:
+        kwargs["user_id"] = user_id
+
+    member_set = organization.member_set.filter(**kwargs).exclude(
+        flags=F("flags").bitor(OrganizationMember.flags["member-limit:restricted"])
+    )
 
     for user_id in member_set.values_list("user_id", flat=True):
         deliver_organization_user_report.delay(
@@ -843,11 +852,11 @@ def build_message(timestamp, duration, organization, user, reports):
     start, stop = interval = _to_interval(timestamp, duration)
 
     duration_spec = durations[duration]
-    html_template = None
+    html_template = "sentry/emails/reports/body.html"
+    smtp_category = "organization_report_email"
     if features.has("organizations:new-weekly-report", organization, actor=user):
         html_template = "sentry/emails/reports/new.html"
-    else:
-        html_template = "sentry/emails/reports/body.html"
+        smtp_category = "organization_report_email_new"
 
     message = MessageBuilder(
         subject="{} Report for {}: {} - {}".format(
@@ -867,7 +876,7 @@ def build_message(timestamp, duration, organization, user, reports):
             "report": to_context(organization, interval, reports),
             "user": user,
         },
-        headers={"X-SMTPAPI": json.dumps({"category": "organization_report_email"})},
+        headers={"X-SMTPAPI": json.dumps({"category": smtp_category})},
     )
 
     message.add_users((user.id,))
@@ -1136,23 +1145,47 @@ def build_key_errors_ctx(key_events, organization):
         id__in=map(lambda i: i[0], key_events),
     ).all()
 
-    group_id_to_group_history = {}
-    group_history = GroupHistory.objects.filter(
-        group__id__in=map(lambda i: i[0], key_events), organization=organization
-    ).all()
+    group_id_to_group_history = defaultdict(lambda: (GroupHistoryStatus.NEW, "New Issue"))
+    group_history = (
+        GroupHistory.objects.filter(
+            group__id__in=map(lambda i: i[0], key_events), organization=organization
+        )
+        .order_by("date_added")
+        .all()
+    )
+    # The order_by ensures that the group_id_to_group_history contains the latest GroupHistory entry
     for g in group_history:
-        group_id_to_group_history[g.group.id] = g.get_status_display()
+        group_id_to_group_history[g.group.id] = (g.status, g.get_status_display())
 
     group_id_to_group = {}
     for group in groups:
         group_id_to_group[group.id] = group
+
+    status_to_color = {
+        GroupHistoryStatus.UNRESOLVED: "#FAD473",
+        GroupHistoryStatus.RESOLVED: "#8ACBBC",
+        GroupHistoryStatus.SET_RESOLVED_IN_RELEASE: "#8ACBBC",
+        GroupHistoryStatus.SET_RESOLVED_IN_COMMIT: "#8ACBBC",
+        GroupHistoryStatus.SET_RESOLVED_IN_PULL_REQUEST: "#8ACBBC",
+        GroupHistoryStatus.AUTO_RESOLVED: "#8ACBBC",
+        GroupHistoryStatus.IGNORED: "#DBD6E1",
+        GroupHistoryStatus.UNIGNORED: "#FAD473",
+        GroupHistoryStatus.ASSIGNED: "#FAAAAC",
+        GroupHistoryStatus.UNASSIGNED: "#FAD473",
+        GroupHistoryStatus.REGRESSED: "#FAAAAC",
+        GroupHistoryStatus.DELETED: "#DBD6E1",
+        GroupHistoryStatus.DELETED_AND_DISCARDED: "#DBD6E1",
+        GroupHistoryStatus.REVIEWED: "#FAD473",
+        GroupHistoryStatus.NEW: "#FAD473",
+    }
 
     return [
         {
             "group": group_id_to_group[e[0]],
             "count": e[1],
             # For new issues, group history would be None and we default to Unresolved
-            "status": group_id_to_group_history.get(e[0], "Unresolved"),
+            "status": group_id_to_group_history[e[0]][1],
+            "status_color": status_to_color.get(group_id_to_group_history[e[0]][0], "#DBD6E1"),
         }
         for e in filter(lambda e: e[0] in group_id_to_group, key_events)
     ]

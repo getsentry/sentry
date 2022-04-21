@@ -64,20 +64,21 @@ function OrganizationGeneralSettings(props: Props) {
     </Fragment>
   );
 
-  const handleSaveForm: React.ComponentProps<typeof OrganizationSettingsForm>['onSave'] =
-    (prevData: Organization, data: Partial<Organization>) => {
-      if (data.slug && data.slug !== prevData.slug) {
-        changeOrganizationSlug(
-          prevData,
-          data as Partial<Organization> & Pick<Organization, 'slug'>
-        );
-        browserHistory.replace(`/settings/${data.slug}/`);
-      } else {
-        // This will update OrganizationStore (as well as OrganizationsStore
-        // which is slightly incorrect because it has summaries vs a detailed org)
-        updateOrganization(data);
-      }
-    };
+  const handleSaveForm: React.ComponentProps<
+    typeof OrganizationSettingsForm
+  >['onSave'] = (prevData: Organization, data: Partial<Organization>) => {
+    if (data.slug && data.slug !== prevData.slug) {
+      changeOrganizationSlug(
+        prevData,
+        data as Partial<Organization> & Pick<Organization, 'slug'>
+      );
+      browserHistory.replace(`/settings/${data.slug}/`);
+    } else {
+      // This will update OrganizationStore (as well as OrganizationsStore
+      // which is slightly incorrect because it has summaries vs a detailed org)
+      updateOrganization(data);
+    }
+  };
 
   const handleConfirmRemoveOrg = () => {
     if (!organization) {

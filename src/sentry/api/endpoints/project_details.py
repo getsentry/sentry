@@ -29,7 +29,7 @@ from sentry.lang.native.symbolicator import (
     parse_sources,
     redact_source_secrets,
 )
-from sentry.lang.native.utils import convert_crashreport_count
+from sentry.lang.native.utils import STORE_CRASH_REPORTS_MAX, convert_crashreport_count
 from sentry.models import (
     AuditLogEntryEvent,
     Group,
@@ -39,7 +39,6 @@ from sentry.models import (
     ProjectBookmark,
     ProjectRedirect,
     ProjectStatus,
-    ProjectTeam,
     ScheduledDeletion,
 )
 from sentry.notifications.types import NotificationSettingTypes
@@ -141,7 +140,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     sensitiveFields = ListField(child=serializers.CharField(), required=False)
     safeFields = ListField(child=serializers.CharField(), required=False)
     storeCrashReports = serializers.IntegerField(
-        min_value=-1, max_value=20, required=False, allow_null=True
+        min_value=-1, max_value=STORE_CRASH_REPORTS_MAX, required=False, allow_null=True
     )
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     builtinSymbolSources = ListField(child=serializers.CharField(), required=False)
@@ -399,8 +398,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         :pparam string project_slug: the slug of the project to update.
         :param string name: the new name for the project.
         :param string slug: the new slug for the project.
-        :param string team: the slug of new team for the project. Note, will be deprecated
-                            soon when multiple teams can have access to a project.
         :param string platform: the new platform for the project.
         :param boolean isBookmarked: in case this API call is invoked with a
                                      user context this allows changing of
@@ -469,24 +466,12 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             changed = True
             changed_proj_settings["new_project"] = project.name
 
-        old_team_id = None
-        new_team = None
-        if result.get("team"):
-            return Response(
-                {"detail": ["Editing a team via this endpoint has been deprecated."]}, status=400
-            )
-
         if result.get("platform"):
             project.platform = result["platform"]
             changed = True
 
         if changed:
             project.save()
-            if old_team_id is not None:
-                ProjectTeam.objects.filter(project=project, team_id=old_team_id).update(
-                    team=new_team
-                )
-
             if old_slug:
                 ProjectRedirect.record(project, old_slug)
 

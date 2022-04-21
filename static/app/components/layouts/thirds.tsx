@@ -126,6 +126,7 @@ export const Main = styled('section')<{fullWidth?: boolean}>`
   grid-column: ${p => (p.fullWidth ? '1/3' : '1/2')};
   max-width: 100%;
 `;
+
 export const Side = styled('aside')`
   grid-column: 2/3;
 `;

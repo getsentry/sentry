@@ -7,6 +7,7 @@ describe('TimeRangeSelector', function () {
   let wrapper;
   const onChange = jest.fn();
   const routerContext = TestStubs.routerContext();
+  const organization = TestStubs.Organization();
 
   const createWrapper = (props = {}) =>
     mountWithTheme(
@@ -14,7 +15,7 @@ describe('TimeRangeSelector', function () {
         showAbsolute
         showRelative
         onChange={onChange}
-        organization={TestStubs.Organization()}
+        organization={organization}
         {...props}
       />,
       routerContext
@@ -29,7 +30,12 @@ describe('TimeRangeSelector', function () {
 
   it('renders when given relative period not in dropdown', function () {
     wrapper = mountWithTheme(
-      <TimeRangeSelector showAbsolute={false} showRelative={false} relative="9d" />,
+      <TimeRangeSelector
+        organization={organization}
+        showAbsolute={false}
+        showRelative={false}
+        relative="9d"
+      />,
       routerContext
     );
     expect(wrapper.find('HeaderItem').text()).toEqual('Other');
@@ -37,7 +43,12 @@ describe('TimeRangeSelector', function () {
 
   it('renders when given an invalid relative period', function () {
     wrapper = mountWithTheme(
-      <TimeRangeSelector showAbsolute={false} showRelative={false} relative="1w" />,
+      <TimeRangeSelector
+        organization={organization}
+        showAbsolute={false}
+        showRelative={false}
+        relative="1w"
+      />,
       routerContext
     );
     expect(wrapper.find('HeaderItem').text()).toEqual('Invalid period');
@@ -45,12 +56,16 @@ describe('TimeRangeSelector', function () {
 
   it('hides relative and absolute selectors', async function () {
     wrapper = mountWithTheme(
-      <TimeRangeSelector showAbsolute={false} showRelative={false} />,
+      <TimeRangeSelector
+        organization={organization}
+        showAbsolute={false}
+        showRelative={false}
+      />,
       routerContext
     );
     await wrapper.find('HeaderItem').simulate('click');
     expect(wrapper.find('RelativeSelector SelectorItem')).toHaveLength(0);
-    expect(wrapper.find('SelectorItem[value="absolute"]')).toHaveLength(0);
+    expect(wrapper.find('AutoCompleteItem[data-test-id="absolute"]')).toHaveLength(0);
   });
 
   it('selects absolute item', async function () {
@@ -58,7 +73,7 @@ describe('TimeRangeSelector', function () {
     await wrapper.find('HeaderItem').simulate('click');
 
     expect(wrapper.find('[data-test-id="date-range"]')).toHaveLength(0);
-    await wrapper.find('SelectorItem[value="absolute"]').simulate('click');
+    await wrapper.find('AutoCompleteItem[data-test-id="absolute"]').simulate('click');
 
     const newProps = {
       relative: null,
@@ -77,7 +92,7 @@ describe('TimeRangeSelector', function () {
     await wrapper.find('HeaderItem').simulate('click');
 
     expect(wrapper.find('[data-test-id="date-range"]')).toHaveLength(0);
-    await wrapper.find('SelectorItem[value="absolute"]').simulate('click');
+    await wrapper.find('AutoCompleteItem[data-test-id="absolute"]').simulate('click');
 
     const newProps = {
       relative: null,
@@ -99,7 +114,7 @@ describe('TimeRangeSelector', function () {
     });
     await wrapper.find('HeaderItem').simulate('click');
 
-    wrapper.find('SelectorItem[value="absolute"]').simulate('click');
+    wrapper.find('AutoCompleteItem[data-test-id="absolute"]').simulate('click');
     expect(onChange).toHaveBeenCalledWith({
       relative: null,
       start: new Date('2017-10-10T02:41:20.000Z'),
@@ -107,7 +122,7 @@ describe('TimeRangeSelector', function () {
       utc: false,
     });
 
-    wrapper.find('SelectorItem[value="14d"]').simulate('click');
+    wrapper.find('AutoCompleteItem[data-test-id="14d"]').simulate('click');
     expect(onChange).toHaveBeenLastCalledWith({
       relative: '14d',
       start: undefined,
@@ -116,7 +131,7 @@ describe('TimeRangeSelector', function () {
 
     wrapper.setProps({relative: '14d', start: null, end: null});
     await wrapper.find('HeaderItem').simulate('click');
-    wrapper.find('SelectorItem[value="absolute"]').simulate('click');
+    wrapper.find('AutoCompleteItem[data-test-id="absolute"]').simulate('click');
     expect(onChange).toHaveBeenLastCalledWith({
       relative: null,
       start: new Date('2017-10-03T02:41:20.000Z'),
@@ -132,7 +147,7 @@ describe('TimeRangeSelector', function () {
     });
     await wrapper.find('HeaderItem').simulate('click');
 
-    wrapper.find('SelectorItem[value="absolute"]').simulate('click');
+    wrapper.find('AutoCompleteItem[data-test-id="absolute"]').simulate('click');
     expect(onChange).toHaveBeenCalledWith({
       relative: null,
       start: new Date('2017-10-09T22:41:20.000Z'),
@@ -140,7 +155,7 @@ describe('TimeRangeSelector', function () {
       utc: true,
     });
 
-    wrapper.find('SelectorItem[value="14d"]').simulate('click');
+    wrapper.find('AutoCompleteItem[data-test-id="14d"]').simulate('click');
     expect(onChange).toHaveBeenLastCalledWith({
       relative: '14d',
       start: undefined,
@@ -149,7 +164,7 @@ describe('TimeRangeSelector', function () {
 
     wrapper.setProps({relative: '14d', start: null, end: null});
     await wrapper.find('HeaderItem').simulate('click');
-    wrapper.find('SelectorItem[value="absolute"]').simulate('click');
+    wrapper.find('AutoCompleteItem[data-test-id="absolute"]').simulate('click');
     expect(onChange).toHaveBeenLastCalledWith({
       relative: null,
       start: new Date('2017-10-02T22:41:20.000Z'),
@@ -166,7 +181,7 @@ describe('TimeRangeSelector', function () {
     await wrapper.find('HeaderItem').simulate('click');
 
     // Local time is 22:41:20-0500 -- this is what date picker should show
-    wrapper.find('SelectorItem[value="absolute"]').simulate('click');
+    wrapper.find('AutoCompleteItem[data-test-id="absolute"]').simulate('click');
     expect(onChange).toHaveBeenCalledWith({
       relative: null,
       start: new Date('2017-10-09T22:41:20.000Z'),
@@ -198,7 +213,7 @@ describe('TimeRangeSelector', function () {
     });
     await wrapper.find('HeaderItem').simulate('click');
 
-    wrapper.find('SelectorItem[value="absolute"]').simulate('click');
+    wrapper.find('AutoCompleteItem[data-test-id="absolute"]').simulate('click');
     expect(onChange).toHaveBeenCalledWith({
       relative: null,
       start: new Date('2017-10-09T22:41:20.000-0400'),
@@ -275,10 +290,7 @@ describe('TimeRangeSelector', function () {
     });
 
     await wrapper.find('HeaderItem').simulate('click');
-    await wrapper.find('SelectorItem[value="absolute"]').simulate('click');
-
-    expect(wrapper.find('SelectorItem[value="absolute"]').prop('selected')).toBe(true);
-    expect(wrapper.find('SelectorItem[value="14d"]').prop('selected')).toBe(false);
+    await wrapper.find('AutoCompleteItem[data-test-id="absolute"]').simulate('click');
   });
 
   it('uses the default absolute date', async function () {
@@ -290,9 +302,9 @@ describe('TimeRangeSelector', function () {
     });
 
     await wrapper.find('HeaderItem').simulate('click');
-    await wrapper.find('SelectorItem[value="absolute"]').simulate('click');
+    await wrapper.find('AutoCompleteItem[data-test-id="absolute"]').simulate('click');
 
-    wrapper.find('SelectorItem[value="absolute"]').simulate('click');
+    wrapper.find('AutoCompleteItem[data-test-id="absolute"]').simulate('click');
     expect(onChange).toHaveBeenCalledWith({
       relative: null,
       start: new Date('2017-10-10T00:00:00.000Z'),

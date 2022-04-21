@@ -49,21 +49,14 @@ function getDocumentTitle(transactionName: string): string {
 function generateEventView({
   location,
   transactionName,
-  isMetricsData,
 }: {
-  isMetricsData: boolean;
   location: Location;
   transactionName: string;
 }): EventView {
   const query = decodeScalar(location.query.query, '');
   const conditions = new MutableSearch(query);
 
-  // event.type is not a valid metric tag, so it will be added to the query only
-  // in case the metric switch is disabled (for now).
-  if (!isMetricsData) {
-    conditions.setFilterValues('event.type', ['transaction']);
-  }
-
+  conditions.setFilterValues('event.type', ['transaction']);
   conditions.setFilterValues('transaction', [transactionName]);
 
   const eventView = EventView.fromNewQueryWithLocation(

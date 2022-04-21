@@ -9,345 +9,536 @@ class Columns(Enum):
     Value is a tuple of (internal Events name, internal Transaction name, internal
     Discover name, external alias)
     None means the column is not available in that dataset.
+    Always use keyword arguments to declare columns for legibility.
     """
 
-    EVENT_ID = Column("events.event_id", "event_id", "event_id", "event_id", "id")
-    GROUP_ID = Column("events.group_id", "group_id", None, "group_id", "issue.id")
-    PROJECT_ID = Column("events.project_id", "project_id", "project_id", "project_id", "project.id")
-    TIMESTAMP = Column("events.timestamp", "timestamp", "finish_ts", "timestamp", "timestamp")
-    TIME = Column("events.time", "time", "bucketed_end", "time", "time")
-    CULPRIT = Column("events.culprit", "culprit", None, "culprit", "culprit")
-    LOCATION = Column("events.location", "location", None, "location", "location")
-    MESSAGE = Column("events.message", "message", "transaction_name", "message", "message")
-    PLATFORM = Column("events.platform", "platform", "platform", "platform", "platform.name")
+    EVENT_ID = Column(
+        group_name="events.event_id",
+        event_name="event_id",
+        transaction_name="event_id",
+        discover_name="event_id",
+        alias="id",
+    )
+    GROUP_ID = Column(
+        group_name="events.group_id",
+        event_name="group_id",
+        transaction_name=None,
+        discover_name="group_id",
+        alias="issue.id",
+    )
+    PROJECT_ID = Column(
+        group_name="events.project_id",
+        event_name="project_id",
+        transaction_name="project_id",
+        discover_name="project_id",
+        alias="project.id",
+    )
+    TIMESTAMP = Column(
+        group_name="events.timestamp",
+        event_name="timestamp",
+        transaction_name="finish_ts",
+        discover_name="timestamp",
+        alias="timestamp",
+    )
+    TIME = Column(
+        group_name="events.time",
+        event_name="time",
+        transaction_name="bucketed_end",
+        discover_name="time",
+        alias="time",
+    )
+    CULPRIT = Column(
+        group_name="events.culprit",
+        event_name="culprit",
+        transaction_name=None,
+        discover_name="culprit",
+        alias="culprit",
+    )
+    LOCATION = Column(
+        group_name="events.location",
+        event_name="location",
+        transaction_name=None,
+        discover_name="location",
+        alias="location",
+    )
+    MESSAGE = Column(
+        group_name="events.message",
+        event_name="message",
+        transaction_name="transaction_name",
+        discover_name="message",
+        alias="message",
+    )
+    PLATFORM = Column(
+        group_name="events.platform",
+        event_name="platform",
+        transaction_name="platform",
+        discover_name="platform",
+        alias="platform.name",
+    )
     ENVIRONMENT = Column(
-        "events.environment", "environment", "environment", "environment", "environment"
+        group_name="events.environment",
+        event_name="environment",
+        transaction_name="environment",
+        discover_name="environment",
+        alias="environment",
     )
     RELEASE = Column(
-        "events.tags[sentry:release]", "tags[sentry:release]", "release", "release", "release"
+        group_name="events.tags[sentry:release]",
+        event_name="tags[sentry:release]",
+        transaction_name="release",
+        discover_name="release",
+        alias="release",
     )
-    DIST = Column("events.tags[sentry:dist]", "tags[sentry:dist]", "dist", "dist", "dist")
-    TITLE = Column("events.title", "title", "transaction_name", "title", "title")
-    TYPE = Column("events.type", "type", None, "type", "event.type")
-    TAGS_KEY = Column("events.tags.key", "tags.key", "tags.key", "tags.key", "tags.key")
-    TAGS_VALUE = Column("events.tags.value", "tags.value", "tags.value", "tags.value", "tags.value")
-    TAGS_KEYS = Column("events.tags_key", "tags_key", "tags_key", "tags_key", "tags_key")
+    DIST = Column(
+        group_name="events.tags[sentry:dist]",
+        event_name="tags[sentry:dist]",
+        transaction_name="dist",
+        discover_name="dist",
+        alias="dist",
+    )
+    TITLE = Column(
+        group_name="events.title",
+        event_name="title",
+        transaction_name="transaction_name",
+        discover_name="title",
+        alias="title",
+    )
+    TYPE = Column(
+        group_name="events.type",
+        event_name="type",
+        transaction_name=None,
+        discover_name="type",
+        alias="event.type",
+    )
+    TAGS_KEY = Column(
+        group_name="events.tags.key",
+        event_name="tags.key",
+        transaction_name="tags.key",
+        discover_name="tags.key",
+        alias="tags.key",
+    )
+    TAGS_VALUE = Column(
+        group_name="events.tags.value",
+        event_name="tags.value",
+        transaction_name="tags.value",
+        discover_name="tags.value",
+        alias="tags.value",
+    )
+    TAGS_KEYS = Column(
+        group_name="events.tags_key",
+        event_name="tags_key",
+        transaction_name="tags_key",
+        discover_name="tags_key",
+        alias="tags_key",
+    )
     TAGS_VALUES = Column(
-        "events.tags_value", "tags_value", "tags_value", "tags_value", "tags_value"
+        group_name="events.tags_value",
+        event_name="tags_value",
+        transaction_name="tags_value",
+        discover_name="tags_value",
+        alias="tags_value",
     )
     TRANSACTION = Column(
-        "events.transaction", "transaction", "transaction_name", "transaction", "transaction"
+        group_name="events.transaction",
+        event_name="transaction",
+        transaction_name="transaction_name",
+        discover_name="transaction",
+        alias="transaction",
     )
-    USER = Column("events.tags[sentry:user]", "tags[sentry:user]", "user", "user", "user")
-    USER_ID = Column("events.user_id", "user_id", "user_id", "user_id", "user.id")
-    USER_EMAIL = Column("events.email", "email", "user_email", "email", "user.email")
-    USER_USERNAME = Column("events.username", "username", "user_name", "username", "user.username")
+    USER = Column(
+        group_name="events.tags[sentry:user]",
+        event_name="tags[sentry:user]",
+        transaction_name="user",
+        discover_name="user",
+        alias="user",
+    )
+    USER_ID = Column(
+        group_name="events.user_id",
+        event_name="user_id",
+        transaction_name="user_id",
+        discover_name="user_id",
+        alias="user.id",
+    )
+    USER_EMAIL = Column(
+        group_name="events.email",
+        event_name="email",
+        transaction_name="user_email",
+        discover_name="email",
+        alias="user.email",
+    )
+    USER_USERNAME = Column(
+        group_name="events.username",
+        event_name="username",
+        transaction_name="user_name",
+        discover_name="username",
+        alias="user.username",
+    )
     USER_IP_ADDRESS = Column(
-        "events.ip_address", "ip_address", "ip_address", "ip_address", "user.ip"
+        group_name="events.ip_address",
+        event_name="ip_address",
+        transaction_name="ip_address",
+        discover_name="ip_address",
+        alias="user.ip",
     )
-    USER_DISPLAY = Column(None, None, None, "user.display", "user.display")
-    SDK_NAME = Column("events.sdk_name", "sdk_name", "sdk_name", "sdk_name", "sdk.name")
+    USER_DISPLAY = Column(
+        group_name=None,
+        event_name=None,
+        transaction_name=None,
+        discover_name="user.display",
+        alias="user.display",
+    )
+    SDK_NAME = Column(
+        group_name="events.sdk_name",
+        event_name="sdk_name",
+        transaction_name="sdk_name",
+        discover_name="sdk_name",
+        alias="sdk.name",
+    )
     SDK_VERSION = Column(
-        "events.sdk_version", "sdk_version", "sdk_version", "sdk_version", "sdk.version"
+        group_name="events.sdk_version",
+        event_name="sdk_version",
+        transaction_name="sdk_version",
+        discover_name="sdk_version",
+        alias="sdk.version",
     )
 
     HTTP_METHOD = Column(
-        "events.http_method",
-        "http_method",
-        "http_method",
-        "http_method",
-        "http.method",
+        group_name="events.http_method",
+        event_name="http_method",
+        transaction_name="http_method",
+        discover_name="http_method",
+        alias="http.method",
     )
     HTTP_REFERER = Column(
-        "events.http_referer",
-        "http_referer",
-        "http_referer",
-        "http_referer",
-        "http.referer",
+        group_name="events.http_referer",
+        event_name="http_referer",
+        transaction_name="http_referer",
+        discover_name="http_referer",
+        alias="http.referer",
     )
-    HTTP_URL = Column("events.tags[url]", "tags[url]", "tags[url]", "tags[url]", "http.url")
+    HTTP_URL = Column(
+        group_name="events.tags[url]",
+        event_name="tags[url]",
+        transaction_name="tags[url]",
+        discover_name="tags[url]",
+        alias="http.url",
+    )
     OS_BUILD = Column(
-        "events.contexts[os.build]",
-        "contexts[os.build]",
-        "contexts[os.build]",
-        "contexts[os.build]",
-        "os.build",
+        group_name="events.contexts[os.build]",
+        event_name="contexts[os.build]",
+        transaction_name="contexts[os.build]",
+        discover_name="contexts[os.build]",
+        alias="os.build",
     )
     OS_KERNEL_VERSION = Column(
-        "events.contexts[os.kernel_version]",
-        "contexts[os.kernel_version]",
-        "contexts[os.kernel_version]",
-        "contexts[os.kernel_version]",
-        "os.kernel_version",
+        group_name="events.contexts[os.kernel_version]",
+        event_name="contexts[os.kernel_version]",
+        transaction_name="contexts[os.kernel_version]",
+        discover_name="contexts[os.kernel_version]",
+        alias="os.kernel_version",
     )
     DEVICE_ARCH = Column(
-        "events.contexts[device.arch]",
-        "contexts[device.arch]",
-        "contexts[device.arch]",
-        "contexts[device.arch]",
-        "device.arch",
+        group_name="events.contexts[device.arch]",
+        event_name="contexts[device.arch]",
+        transaction_name="contexts[device.arch]",
+        discover_name="contexts[device.arch]",
+        alias="device.arch",
     )
     DEVICE_BATTERY_LEVEL = Column(
-        "events.contexts[device.battery_level]",
-        "contexts[device.battery_level]",
-        "contexts[device.battery_level]",
-        "contexts[device.battery_level]",
-        "device.battery_level",
+        group_name="events.contexts[device.battery_level]",
+        event_name="contexts[device.battery_level]",
+        transaction_name="contexts[device.battery_level]",
+        discover_name="contexts[device.battery_level]",
+        alias="device.battery_level",
     )
     DEVICE_BRAND = Column(
-        "events.contexts[device.brand]",
-        "contexts[device.brand]",
-        "contexts[device.brand]",
-        "contexts[device.brand]",
-        "device.brand",
+        group_name="events.contexts[device.brand]",
+        event_name="contexts[device.brand]",
+        transaction_name="contexts[device.brand]",
+        discover_name="contexts[device.brand]",
+        alias="device.brand",
     )
     DEVICE_CHARGING = Column(
-        "events.contexts[device.charging]",
-        "contexts[device.charging]",
-        "contexts[device.charging]",
-        "contexts[device.charging]",
-        "device.charging",
+        group_name="events.contexts[device.charging]",
+        event_name="contexts[device.charging]",
+        transaction_name="contexts[device.charging]",
+        discover_name="contexts[device.charging]",
+        alias="device.charging",
     )
     DEVICE_LOCALE = Column(
-        "events.contexts[device.locale]",
-        "contexts[device.locale]",
-        "contexts[device.locale]",
-        "contexts[device.locale]",
-        "device.locale",
+        group_name="events.contexts[device.locale]",
+        event_name="contexts[device.locale]",
+        transaction_name="contexts[device.locale]",
+        discover_name="contexts[device.locale]",
+        alias="device.locale",
     )
     DEVICE_MODEL_ID = Column(
-        "events.contexts[device.model_id]",
-        "contexts[device.model_id]",
-        "contexts[device.model_id]",
-        "contexts[device.model_id]",
-        "device.model_id",
+        group_name="events.contexts[device.model_id]",
+        event_name="contexts[device.model_id]",
+        transaction_name="contexts[device.model_id]",
+        discover_name="contexts[device.model_id]",
+        alias="device.model_id",
     )
     DEVICE_NAME = Column(
-        "events.contexts[device.name]",
-        "contexts[device.name]",
-        "contexts[device.name]",
-        "contexts[device.name]",
-        "device.name",
+        group_name="events.contexts[device.name]",
+        event_name="contexts[device.name]",
+        transaction_name="contexts[device.name]",
+        discover_name="contexts[device.name]",
+        alias="device.name",
     )
     DEVICE_ONLINE = Column(
-        "events.contexts[device.online]",
-        "contexts[device.online]",
-        "contexts[device.online]",
-        "contexts[device.online]",
-        "device.online",
+        group_name="events.contexts[device.online]",
+        event_name="contexts[device.online]",
+        transaction_name="contexts[device.online]",
+        discover_name="contexts[device.online]",
+        alias="device.online",
     )
     DEVICE_ORIENTATION = Column(
-        "events.contexts[device.orientation]",
-        "contexts[device.orientation]",
-        "contexts[device.orientation]",
-        "contexts[device.orientation]",
-        "device.orientation",
+        group_name="events.contexts[device.orientation]",
+        event_name="contexts[device.orientation]",
+        transaction_name="contexts[device.orientation]",
+        discover_name="contexts[device.orientation]",
+        alias="device.orientation",
     )
     DEVICE_SIMULATOR = Column(
-        "events.contexts[device.simulator]",
-        "contexts[device.simulator]",
-        "contexts[device.simulator]",
-        "contexts[device.simulator]",
-        "device.simulator",
+        group_name="events.contexts[device.simulator]",
+        event_name="contexts[device.simulator]",
+        transaction_name="contexts[device.simulator]",
+        discover_name="contexts[device.simulator]",
+        alias="device.simulator",
     )
     DEVICE_UUID = Column(
-        "events.contexts[device.uuid]",
-        "contexts[device.uuid]",
-        "contexts[device.uuid]",
-        "contexts[device.uuid]",
-        "device.uuid",
+        group_name="events.contexts[device.uuid]",
+        event_name="contexts[device.uuid]",
+        transaction_name="contexts[device.uuid]",
+        discover_name="contexts[device.uuid]",
+        alias="device.uuid",
     )
     GEO_COUNTRY_CODE = Column(
-        "events.geo_country_code",
-        "geo_country_code",
-        "contexts[geo.country_code]",
-        "geo_country_code",
-        "geo.country_code",
+        group_name="events.geo_country_code",
+        event_name="geo_country_code",
+        transaction_name="contexts[geo.country_code]",
+        discover_name="geo_country_code",
+        alias="geo.country_code",
     )
     GEO_REGION = Column(
-        "events.geo_region", "geo_region", "contexts[geo.region]", "geo_region", "geo.region"
+        group_name="events.geo_region",
+        event_name="geo_region",
+        transaction_name="contexts[geo.region]",
+        discover_name="geo_region",
+        alias="geo.region",
     )
-    GEO_CITY = Column("events.geo_city", "geo_city", "contexts[geo.city]", "geo_city", "geo.city")
+    GEO_CITY = Column(
+        group_name="events.geo_city",
+        event_name="geo_city",
+        transaction_name="contexts[geo.city]",
+        discover_name="geo_city",
+        alias="geo.city",
+    )
     ERROR_TYPE = Column(
-        "events.exception_stacks.type",
-        "exception_stacks.type",
-        None,
-        "exception_stacks.type",
-        "error.type",
+        group_name="events.exception_stacks.type",
+        event_name="exception_stacks.type",
+        transaction_name=None,
+        discover_name="exception_stacks.type",
+        alias="error.type",
     )
     ERROR_VALUE = Column(
-        "events.exception_stacks.value",
-        "exception_stacks.value",
-        None,
-        "exception_stacks.value",
-        "error.value",
+        group_name="events.exception_stacks.value",
+        event_name="exception_stacks.value",
+        transaction_name=None,
+        discover_name="exception_stacks.value",
+        alias="error.value",
     )
     ERROR_MECHANISM = Column(
-        "events.exception_stacks.mechanism_type",
-        "exception_stacks.mechanism_type",
-        None,
-        "exception_stacks.mechanism_type",
-        "error.mechanism",
+        group_name="events.exception_stacks.mechanism_type",
+        event_name="exception_stacks.mechanism_type",
+        transaction_name=None,
+        discover_name="exception_stacks.mechanism_type",
+        alias="error.mechanism",
     )
     ERROR_HANDLED = Column(
-        "events.exception_stacks.mechanism_handled",
-        "exception_stacks.mechanism_handled",
-        None,
-        "exception_stacks.mechanism_handled",
-        "error.handled",
+        group_name="events.exception_stacks.mechanism_handled",
+        event_name="exception_stacks.mechanism_handled",
+        transaction_name=None,
+        discover_name="exception_stacks.mechanism_handled",
+        alias="error.handled",
     )
     STACK_ABS_PATH = Column(
-        "events.exception_frames.abs_path",
-        "exception_frames.abs_path",
-        None,
-        "exception_frames.abs_path",
-        "stack.abs_path",
+        group_name="events.exception_frames.abs_path",
+        event_name="exception_frames.abs_path",
+        transaction_name=None,
+        discover_name="exception_frames.abs_path",
+        alias="stack.abs_path",
     )
     STACK_FILENAME = Column(
-        "events.exception_frames.filename",
-        "exception_frames.filename",
-        None,
-        "exception_frames.filename",
-        "stack.filename",
+        group_name="events.exception_frames.filename",
+        event_name="exception_frames.filename",
+        transaction_name=None,
+        discover_name="exception_frames.filename",
+        alias="stack.filename",
     )
     STACK_PACKAGE = Column(
-        "events.exception_frames.package",
-        "exception_frames.package",
-        None,
-        "exception_frames.package",
-        "stack.package",
+        group_name="events.exception_frames.package",
+        event_name="exception_frames.package",
+        transaction_name=None,
+        discover_name="exception_frames.package",
+        alias="stack.package",
     )
     STACK_MODULE = Column(
-        "events.exception_frames.module",
-        "exception_frames.module",
-        None,
-        "exception_frames.module",
-        "stack.module",
+        group_name="events.exception_frames.module",
+        event_name="exception_frames.module",
+        transaction_name=None,
+        discover_name="exception_frames.module",
+        alias="stack.module",
     )
     STACK_FUNCTION = Column(
-        "events.exception_frames.function",
-        "exception_frames.function",
-        None,
-        "exception_frames.function",
-        "stack.function",
+        group_name="events.exception_frames.function",
+        event_name="exception_frames.function",
+        transaction_name=None,
+        discover_name="exception_frames.function",
+        alias="stack.function",
     )
     STACK_IN_APP = Column(
-        "events.exception_frames.in_app",
-        "exception_frames.in_app",
-        None,
-        "exception_frames.in_app",
-        "stack.in_app",
+        group_name="events.exception_frames.in_app",
+        event_name="exception_frames.in_app",
+        transaction_name=None,
+        discover_name="exception_frames.in_app",
+        alias="stack.in_app",
     )
     STACK_COLNO = Column(
-        "events.exception_frames.colno",
-        "exception_frames.colno",
-        None,
-        "exception_frames.colno",
-        "stack.colno",
+        group_name="events.exception_frames.colno",
+        event_name="exception_frames.colno",
+        transaction_name=None,
+        discover_name="exception_frames.colno",
+        alias="stack.colno",
     )
     STACK_LINENO = Column(
-        "events.exception_frames.lineno",
-        "exception_frames.lineno",
-        None,
-        "exception_frames.lineno",
-        "stack.lineno",
+        group_name="events.exception_frames.lineno",
+        event_name="exception_frames.lineno",
+        transaction_name=None,
+        discover_name="exception_frames.lineno",
+        alias="stack.lineno",
     )
     STACK_STACK_LEVEL = Column(
-        "events.exception_frames.stack_level",
-        "exception_frames.stack_level",
-        None,
-        "exception_frames.stack_level",
-        "stack.stack_level",
+        group_name="events.exception_frames.stack_level",
+        event_name="exception_frames.stack_level",
+        transaction_name=None,
+        discover_name="exception_frames.stack_level",
+        alias="stack.stack_level",
     )
     CONTEXTS_KEY = Column(
-        "events.contexts.key", "contexts.key", "contexts.key", None, "contexts.key"
+        group_name="events.contexts.key",
+        event_name="contexts.key",
+        transaction_name="contexts.key",
+        discover_name=None,
+        alias="contexts.key",
     )
     CONTEXTS_VALUE = Column(
-        "events.contexts.value", "contexts.value", "contexts.value", None, "contexts.value"
+        group_name="events.contexts.value",
+        event_name="contexts.value",
+        transaction_name="contexts.value",
+        discover_name=None,
+        alias="contexts.value",
     )
     # Transactions specific columns
-    TRANSACTION_OP = Column(None, None, "transaction_op", "transaction_op", "transaction.op")
-    TRANSACTION_DURATION = Column(None, None, "duration", "duration", "transaction.duration")
+    TRANSACTION_OP = Column(
+        group_name=None,
+        event_name=None,
+        transaction_name="transaction_op",
+        discover_name="transaction_op",
+        alias="transaction.op",
+    )
+    TRANSACTION_DURATION = Column(
+        group_name=None,
+        event_name=None,
+        transaction_name="duration",
+        discover_name="duration",
+        alias="transaction.duration",
+    )
     TRANSACTION_STATUS = Column(
-        None, None, "transaction_status", "transaction_status", "transaction.status"
+        group_name=None,
+        event_name=None,
+        transaction_name="transaction_status",
+        discover_name="transaction_status",
+        alias="transaction.status",
     )
     MEASUREMENTS_KEYS = Column(
-        None,
-        None,
-        "measurements.key",
-        "measurements.key",
-        "measurements_key",
+        group_name=None,
+        event_name=None,
+        transaction_name="measurements.key",
+        discover_name="measurements.key",
+        alias="measurements_key",
     )
     MEASUREMENTS_VALUES = Column(
-        None,
-        None,
-        "measurements.value",
-        "measurements.value",
-        "measurements_value",
+        group_name=None,
+        event_name=None,
+        transaction_name="measurements.value",
+        discover_name="measurements.value",
+        alias="measurements_value",
     )
     SPAN_OP_BREAKDOWNS_KEYS = Column(
-        None,
-        None,
-        "span_op_breakdowns.key",
-        "span_op_breakdowns.key",
-        "span_op_breakdowns_key",
+        group_name=None,
+        event_name=None,
+        transaction_name="span_op_breakdowns.key",
+        discover_name="span_op_breakdowns.key",
+        alias="span_op_breakdowns_key",
     )
     SPAN_OP_BREAKDOWNS_VALUES = Column(
-        None,
-        None,
-        "span_op_breakdowns.value",
-        "span_op_breakdowns.value",
-        "span_op_breakdowns_value",
+        group_name=None,
+        event_name=None,
+        transaction_name="span_op_breakdowns.value",
+        discover_name="span_op_breakdowns.value",
+        alias="span_op_breakdowns_value",
     )
     SPANS_OP = Column(
-        None,
-        None,
-        "spans.op",
-        "spans.op",
-        "spans_op",
+        group_name=None,
+        event_name=None,
+        transaction_name="spans.op",
+        discover_name="spans.op",
+        alias="spans_op",
     )
     SPANS_GROUP = Column(
-        None,
-        None,
-        "spans.group",
-        "spans.group",
-        "spans_group",
+        group_name=None,
+        event_name=None,
+        transaction_name="spans.group",
+        discover_name="spans.group",
+        alias="spans_group",
     )
     SPANS_EXCLUSIVE_TIME = Column(
-        None,
-        None,
-        "spans.exclusive_time",
-        "spans.exclusive_time",
-        "spans_exclusive_time",
+        group_name=None,
+        event_name=None,
+        transaction_name="spans.exclusive_time",
+        discover_name="spans.exclusive_time",
+        alias="spans_exclusive_time",
     )
     # Tracing context fields.
     TRACE_ID = Column(
-        "events.contexts[trace.trace_id]",
-        "contexts[trace.trace_id]",
-        "trace_id",
-        "contexts[trace.trace_id]",
-        "trace",
+        group_name="events.contexts[trace.trace_id]",
+        event_name="contexts[trace.trace_id]",
+        transaction_name="trace_id",
+        discover_name="contexts[trace.trace_id]",
+        alias="trace",
     )
     SPAN_ID = Column(
-        "events.contexts[trace.span_id]",
-        "contexts[trace.span_id]",
-        "contexts[trace.span_id]",
-        "contexts[trace.span_id]",
-        "trace.span",
+        group_name="events.contexts[trace.span_id]",
+        event_name="contexts[trace.span_id]",
+        transaction_name="contexts[trace.span_id]",
+        discover_name="contexts[trace.span_id]",
+        alias="trace.span",
     )
     PARENT_SPAN_ID = Column(
-        None,
-        None,
-        "contexts[trace.parent_span_id]",
-        "contexts[trace.parent_span_id]",
-        "trace.parent_span",
+        group_name=None,
+        event_name=None,
+        transaction_name="contexts[trace.parent_span_id]",
+        discover_name="contexts[trace.parent_span_id]",
+        alias="trace.parent_span",
     )
 
     # Reprocessing context
     REPROCESSING_ORIGINAL_GROUP_ID = Column(
-        "events.contexts[reprocessing.original_issue_id]",
-        "contexts[reprocessing.original_issue_id]",
-        "contexts[reprocessing.original_issue_id]",
-        "contexts[reprocessing.original_issue_id]",
-        "reprocessing.original_issue_id",
+        group_name="events.contexts[reprocessing.original_issue_id]",
+        event_name="contexts[reprocessing.original_issue_id]",
+        transaction_name="contexts[reprocessing.original_issue_id]",
+        discover_name="contexts[reprocessing.original_issue_id]",
+        alias="reprocessing.original_issue_id",
     )

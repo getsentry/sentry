@@ -70,8 +70,7 @@ describe('RuleBuilder', function () {
 
   it('renders', async function () {
     const wrapper = mountWithTheme(
-      <RuleBuilder project={project} organization={organization} onAddRule={handleAdd} />,
-      TestStubs.routerContext()
+      <RuleBuilder project={project} organization={organization} onAddRule={handleAdd} />
     );
 
     await tick();
@@ -90,7 +89,7 @@ describe('RuleBuilder', function () {
 
     // Select the first item in the list.
     await selectByValueAsync(wrapper, 'user:1', {name: 'owners', control: true});
-    await wrapper.update();
+    wrapper.update();
 
     expect(wrapper.find('AddButton').prop('disabled')).toBe(false);
     add.simulate('click');
@@ -110,8 +109,7 @@ describe('RuleBuilder', function () {
         onAddRule={handleAdd}
         urls={['example.com/a', 'example.com/a/foo']}
         paths={['a/bar', 'a/foo']}
-      />,
-      TestStubs.routerContext()
+      />
     );
 
     // Open the menu so we can do some assertions.

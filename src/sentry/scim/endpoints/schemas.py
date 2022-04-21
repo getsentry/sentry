@@ -183,6 +183,8 @@ SCIM_SCHEMA_LIST = [SCIM_USER_ATTRIBUTES_SCHEMA, SCIM_GROUP_ATTRIBUTES_SCHEMA]
 
 
 class OrganizationSCIMSchemaIndex(SCIMEndpoint):
+    private = True
+
     def get(self, request: Request, organization) -> Response:
         query_params = self.get_query_parameters(request)
 

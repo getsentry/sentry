@@ -14,6 +14,7 @@ import {
   QueryFieldValue,
   WebVital,
 } from 'sentry/utils/discover/fields';
+import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -60,15 +61,17 @@ function TransactionOverview(props: Props) {
   }, [selection]);
 
   return (
-    <PageLayout
-      location={location}
-      organization={organization}
-      projects={projects}
-      tab={Tab.TransactionSummary}
-      getDocumentTitle={getDocumentTitle}
-      generateEventView={generateEventView}
-      childComponent={OverviewContentWrapper}
-    />
+    <MEPSettingProvider>
+      <PageLayout
+        location={location}
+        organization={organization}
+        projects={projects}
+        tab={Tab.TransactionSummary}
+        getDocumentTitle={getDocumentTitle}
+        generateEventView={generateEventView}
+        childComponent={OverviewContentWrapper}
+      />
+    </MEPSettingProvider>
   );
 }
 
@@ -81,7 +84,6 @@ function OverviewContentWrapper(props: ChildProps) {
     transactionName,
     transactionThreshold,
     transactionThresholdMetric,
-    isMetricsData,
   } = props;
 
   const spanOperationBreakdownFilter = decodeFilterFromLocation(location);
@@ -121,7 +123,8 @@ function OverviewContentWrapper(props: ChildProps) {
       referrer="api.performance.transaction-summary"
     >
       {({isLoading, error, tableData}) => {
-        const totals: TotalValues | null = tableData?.data?.[0] ?? null;
+        const totals: TotalValues | null =
+          (tableData?.data?.[0] as {[k: string]: number}) ?? null;
         return (
           <SummaryContent
             location={location}
@@ -134,7 +137,6 @@ function OverviewContentWrapper(props: ChildProps) {
             totalValues={totals}
             onChangeFilter={onChangeFilter}
             spanOperationBreakdownFilter={spanOperationBreakdownFilter}
-            isMetricsData={isMetricsData}
           />
         );
       }}
@@ -156,9 +158,7 @@ function getDocumentTitle(transactionName: string): string {
 function generateEventView({
   location,
   transactionName,
-  isMetricsData,
 }: {
-  isMetricsData: boolean;
   location: Location;
   transactionName: string;
 }): EventView {
@@ -167,12 +167,7 @@ function generateEventView({
   const query = decodeScalar(location.query.query, '');
   const conditions = new MutableSearch(query);
 
-  // event.type is not a valid metric tag, so it will be added to the query only
-  // in case the metric switch is disabled (for now).
-  if (!isMetricsData) {
-    conditions.setFilterValues('event.type', ['transaction']);
-  }
-
+  conditions.setFilterValues('event.type', ['transaction']);
   conditions.setFilterValues('transaction', [transactionName]);
 
   Object.keys(conditions.filters).forEach(field => {

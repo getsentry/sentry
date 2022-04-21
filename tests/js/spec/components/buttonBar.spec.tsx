@@ -1,11 +1,11 @@
-import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 
 describe('ButtonBar', function () {
   const createWrapper = () =>
-    mountWithTheme(
+    render(
       <ButtonBar active="2" merged>
         <Button barId="1">First Button</Button>
         <Button barId="2">Second Button</Button>

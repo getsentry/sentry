@@ -1,4 +1,4 @@
-import Link from 'sentry/components/links/link';
+import type {LinkProps} from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {Project} from 'sentry/types';
 import {DisplayModes} from 'sentry/utils/discover/types';
@@ -18,7 +18,7 @@ type PresetCta = {
   /**
    * The location to direct to upon clicking the CTA.
    */
-  to: React.ComponentProps<typeof Link>['to'];
+  to: LinkProps['to'];
   /**
    * The tooltip title for the CTA button, may be empty.
    */
@@ -250,12 +250,7 @@ function makeFailureRateCta({orgSlug, incident, projects, stats}: PresetCtaOpts)
 /**
  * Get the CTA used for alerts that do not have a preset
  */
-export function makeDefaultCta({
-  orgSlug,
-  projects,
-  incident,
-  stats,
-}: PresetCtaOpts): PresetCta {
+function makeDefaultCta({orgSlug, projects, incident, stats}: PresetCtaOpts): PresetCta {
   if (!incident) {
     return {
       buttonText: t('Open in Discover'),

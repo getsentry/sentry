@@ -64,7 +64,7 @@ describe('EventsV2 > MiniGraph', function () {
     });
   });
 
-  it('makes an EventsRequest with all selected multi y axis', async function () {
+  it('makes an EventsRequest with all selected multi y axis', function () {
     const yAxis = ['count()', 'failure_count()'];
     const wrapper = mountWithTheme(
       <MiniGraph
@@ -79,7 +79,7 @@ describe('EventsV2 > MiniGraph', function () {
     expect(eventsRequestProps.yAxis).toEqual(yAxis);
   });
 
-  it('uses low fidelity interval for bar charts', async function () {
+  it('uses low fidelity interval for bar charts', function () {
     const yAxis = ['count()', 'failure_count()'];
     eventView.display = 'bar';
     const wrapper = mountWithTheme(
@@ -95,7 +95,7 @@ describe('EventsV2 > MiniGraph', function () {
     expect(eventsRequestProps.interval).toEqual('12h');
   });
 
-  it('renders WorldMapChart', async function () {
+  it('renders WorldMapChart', function () {
     const yAxis = ['count()', 'failure_count()'];
     eventView.display = 'worldmap';
     const wrapper = mountWithTheme(

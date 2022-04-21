@@ -2,7 +2,7 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 
 type Props = {
-  toggle: React.HTMLProps<HTMLButtonElement>['onClick'];
+  toggle: React.MouseEventHandler<HTMLButtonElement>;
   className?: string;
   /**
    * Toggle color is always active.

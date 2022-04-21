@@ -6,10 +6,7 @@ describe('FirstEventIndicator', function () {
   it('renders waiting status', async function () {
     const org = TestStubs.Organization();
 
-    const wrapper = mountWithTheme(
-      <Indicator organization={org} firstIssue={null} />,
-      TestStubs.routerContext()
-    );
+    const wrapper = mountWithTheme(<Indicator organization={org} firstIssue={null} />);
 
     expect(wrapper.find('WaitingIndicator').exists()).toBe(true);
   });
@@ -19,8 +16,7 @@ describe('FirstEventIndicator', function () {
       const org = TestStubs.Organization();
 
       const wrapper = mountWithTheme(
-        <Indicator organization={org} firstIssue={{id: 1}} />,
-        TestStubs.routerContext()
+        <Indicator organization={org} firstIssue={{id: 1}} />
       );
 
       expect(wrapper.find('ReceivedIndicator').exists()).toBe(true);
@@ -31,8 +27,7 @@ describe('FirstEventIndicator', function () {
       const project = TestStubs.ProjectDetails({});
 
       const wrapper = mountWithTheme(
-        <Indicator organization={org} project={project} firstIssue />,
-        TestStubs.routerContext()
+        <Indicator organization={org} project={project} firstIssue />
       );
 
       // No button when there is no known issue ID

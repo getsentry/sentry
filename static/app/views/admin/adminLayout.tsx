@@ -58,5 +58,4 @@ export default AdminLayout;
 const Page = styled('div')`
   display: flex;
   flex-grow: 1;
-  margin-bottom: -20px;
 `;

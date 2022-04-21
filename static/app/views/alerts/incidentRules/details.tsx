@@ -1,7 +1,11 @@
 import {RouteComponentProps} from 'react-router';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import Alert from 'sentry/components/alert';
+import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {metric} from 'sentry/utils/analytics';
+import routeTitleGen from 'sentry/utils/routeTitle';
 import RuleForm from 'sentry/views/alerts/incidentRules/ruleForm';
 import {IncidentRule} from 'sentry/views/alerts/incidentRules/types';
 import AsyncView from 'sentry/views/asyncView';
@@ -32,6 +36,19 @@ class IncidentRulesDetails extends AsyncView<Props, State> {
     };
   }
 
+  getTitle(): string {
+    const {organization, project} = this.props;
+    const {rule} = this.state;
+    const ruleName = rule?.name;
+
+    return routeTitleGen(
+      ruleName ? t('Alert %s', ruleName) : '',
+      organization.slug,
+      false,
+      project?.slug
+    );
+  }
+
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {orgId, ruleId} = this.props.params;
 
@@ -41,6 +58,13 @@ class IncidentRulesDetails extends AsyncView<Props, State> {
   onRequestSuccess({stateKey, data}) {
     if (stateKey === 'rule' && data.name) {
       this.props.onChangeTitle(data.name);
+    }
+  }
+
+  onLoadAllEndpointsSuccess() {
+    const {rule} = this.state;
+    if (rule?.errors) {
+      (rule?.errors || []).map(({detail}) => addErrorMessage(detail, {append: true}));
     }
   }
 
@@ -54,6 +78,19 @@ class IncidentRulesDetails extends AsyncView<Props, State> {
       query: {project: project.id},
     });
   };
+
+  renderError(error?: Error, disableLog = false): React.ReactNode {
+    const {errors} = this.state;
+    const notFound = Object.values(errors).find(resp => resp && resp.status === 404);
+    if (notFound) {
+      return (
+        <Alert type="error" showIcon>
+          {t('This alert rule could not be found.')}
+        </Alert>
+      );
+    }
+    return super.renderError(error, disableLog);
+  }
 
   renderBody() {
     const {ruleId} = this.props.params;

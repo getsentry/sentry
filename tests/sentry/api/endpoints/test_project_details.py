@@ -208,19 +208,6 @@ class ProjectUpdateTest(APITestCase):
         self.get_valid_response(self.org_slug, self.proj_slug, options=options)
         assert project.get_option("mail:subject_prefix") == ""
 
-    def test_team_changes_deprecated(self):
-        project = self.create_project()
-        team = self.create_team(members=[self.user])
-        self.login_as(user=self.user)
-
-        resp = self.get_valid_response(
-            self.org_slug, self.proj_slug, team=team.slug, status_code=400
-        )
-        assert resp.data["detail"][0] == "Editing a team via this endpoint has been deprecated."
-
-        project = Project.objects.get(id=project.id)
-        assert project.teams.first() != team
-
     def test_simple_member_restriction(self):
         project = self.create_project()
         user = self.create_user("bar@example.com")
@@ -533,6 +520,14 @@ class ProjectUpdateTest(APITestCase):
         resp = self.get_valid_response(self.org_slug, self.proj_slug, storeCrashReports=10)
         assert self.project.get_option("sentry:store_crash_reports") == 10
         assert resp.data["storeCrashReports"] == 10
+
+    def test_store_crash_reports_exceeded(self):
+        # NB: Align with test_organization_details.py
+        data = {"storeCrashReports": 101}
+
+        resp = self.get_error_response(self.org_slug, self.proj_slug, status_code=400, **data)
+        assert self.project.get_option("sentry:store_crash_reports") is None
+        assert b"storeCrashReports" in resp.content
 
     def test_relay_pii_config(self):
         value = '{"applications": {"freeform": []}}'

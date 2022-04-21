@@ -7,7 +7,7 @@ import ToolBox from 'sentry/components/charts/components/toolBox';
 import {EChartChartReadyHandler, EChartDataZoomHandler} from 'sentry/types/echarts';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 
-export type RenderProps = {
+type RenderProps = {
   dataZoom: ReturnType<typeof DataZoomInside>;
   onChartReady: EChartChartReadyHandler;
   onDataZoom: EChartDataZoomHandler;

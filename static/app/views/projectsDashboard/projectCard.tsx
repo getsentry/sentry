@@ -10,10 +10,10 @@ import Placeholder from 'sentry/components/placeholder';
 import BookmarkStar from 'sentry/components/projects/bookmarkStar';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import ScoreCard, {
-  HeaderTitle,
   Score,
   ScorePanel,
   ScoreWrapper,
+  Title,
   Trend,
 } from 'sentry/components/scoreCard';
 import {releaseHealth} from 'sentry/data/platformCategories';
@@ -27,9 +27,7 @@ import {callIfFunction} from 'sentry/utils/callIfFunction';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
-import MissingReleasesButtons, {
-  MissingReleaseButtonBar,
-} from 'sentry/views/projectDetail/missingFeatureButtons/missingReleasesButtons';
+import MissingReleasesButtons from 'sentry/views/projectDetail/missingFeatureButtons/missingReleasesButtons';
 import {
   CRASH_FREE_DECIMAL_THRESHOLD,
   displayCrashFreePercent,
@@ -140,11 +138,11 @@ class ProjectCard extends Component<Props> {
             <HeaderRow>
               <StyledIdBadge
                 project={project}
-                avatarSize={18}
+                avatarSize={32}
                 hideOverflow
                 disableLink={!hasProjectAccess}
               />
-              <BookmarkStar organization={organization} project={project} />
+              <StyledBookmarkStar organization={organization} project={project} />
             </HeaderRow>
             <SummaryLinks>
               {stats ? (
@@ -153,7 +151,7 @@ class ProjectCard extends Component<Props> {
                     data-test-id="project-errors"
                     to={`/organizations/${organization.slug}/issues/?project=${project.id}`}
                   >
-                    {t('errors: %s', formatAbbreviatedNumber(totalErrors))}
+                    {t('Errors: %s', formatAbbreviatedNumber(totalErrors))}
                   </Link>
                   {this.hasPerformance && (
                     <Fragment>
@@ -163,7 +161,7 @@ class ProjectCard extends Component<Props> {
                         to={`/organizations/${organization.slug}/performance/?project=${project.id}`}
                       >
                         {t(
-                          'transactions: %s',
+                          'Transactions: %s',
                           formatAbbreviatedNumber(totalTransactions)
                         )}
                         {zeroTransactions && (
@@ -303,14 +301,18 @@ const ChartContainer = styled('div')`
 `;
 
 const CardHeader = styled('div')`
-  margin: ${space(1.5)} ${space(2)};
+  margin: ${space(2)} 13px;
+  height: 32px;
+`;
+
+const StyledBookmarkStar = styled(BookmarkStar)`
+  padding: 0;
 `;
 
 const HeaderRow = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr auto;
+  display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
 
   ${p => p.theme.text.cardTitle};
   color: ${p => p.theme.headingColor};
@@ -333,14 +335,6 @@ const FooterWrapper = styled('div')`
     font-size: ${p => p.theme.fontSizeMedium};
     padding: 0;
   }
-  ${MissingReleaseButtonBar} {
-    a {
-      background-color: ${p => p.theme.background};
-      border: 1px solid ${p => p.theme.border};
-      border-radius: ${p => p.theme.borderRadius};
-      color: ${p => p.theme.gray500};
-    }
-  }
 `;
 
 const ScoreCardWrapper = styled('div')`
@@ -348,9 +342,8 @@ const ScoreCardWrapper = styled('div')`
   ${ScorePanel} {
     min-height: auto;
   }
-  ${HeaderTitle} {
+  ${Title} {
     color: ${p => p.theme.gray300};
-    font-weight: 600;
   }
   ${ScoreWrapper} {
     flex-direction: column;
@@ -403,22 +396,34 @@ const StyledIdBadge = styled(IdBadge)`
   overflow: hidden;
   white-space: nowrap;
   flex-shrink: 1;
+  & div {
+    align-items: flex-start;
+  }
+
+  & span {
+    padding: 0;
+    position: relative;
+    top: -1px;
+  }
 `;
 
 const SummaryLinks = styled('div')`
   display: flex;
+  position: relative;
+  top: -${space(2)};
   align-items: center;
+  font-weight: 400;
 
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSizeSmall};
 
   /* Need to offset for the project icon and margin */
-  margin-left: 26px;
+  margin-left: 40px;
 
   a {
-    color: ${p => p.theme.formText};
+    color: ${p => p.theme.subText};
     :hover {
-      color: ${p => p.theme.subText};
+      color: ${p => p.theme.linkHoverColor};
     }
   }
   em {

@@ -2,7 +2,10 @@ import {cloneElement, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
+import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import Button from 'sentry/components/button';
+import HookOrDefault from 'sentry/components/hookOrDefault';
+import {Hovercard} from 'sentry/components/hovercard';
 import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Member, Organization} from 'sentry/types';
@@ -19,6 +22,15 @@ type Props = {
 type State = AsyncView['state'] & {
   inviteRequests: Member[];
 };
+
+const InviteMembersButtonHook = HookOrDefault({
+  hookName: 'member-invite-button:customization',
+  defaultComponent: ({children, organization, onTriggerModal}) =>
+    children({
+      disabled: !organization.features.includes('invite-members'),
+      onTriggerModal,
+    }),
+});
 
 class OrganizationMembersWrapper extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
@@ -92,14 +104,13 @@ class OrganizationMembersWrapper extends AsyncView<Props, State> {
     });
 
   renderBody() {
-    const {children} = this.props;
+    const {children, organization} = this.props;
     const {requestList, inviteRequests} = this.state;
 
     const action = (
-      <Button
-        priority="primary"
-        size="small"
-        onClick={() =>
+      <InviteMembersButtonHook
+        organization={organization}
+        onTriggerModal={() =>
           openInviteMembersModal({
             onClose: () => {
               this.fetchData();
@@ -107,11 +118,9 @@ class OrganizationMembersWrapper extends AsyncView<Props, State> {
             source: 'members_settings',
           })
         }
-        data-test-id="email-invite"
-        icon={<IconMail />}
       >
-        {t('Invite Members')}
-      </Button>
+        {renderInviteMembersButton}
+      </InviteMembersButtonHook>
     );
 
     return (
@@ -129,6 +138,43 @@ class OrganizationMembersWrapper extends AsyncView<Props, State> {
       </Fragment>
     );
   }
+}
+
+function renderInviteMembersButton({
+  disabled,
+  onTriggerModal,
+}: {
+  onTriggerModal: () => void;
+  disabled?: boolean;
+}) {
+  const action = (
+    <Button
+      priority="primary"
+      size="small"
+      onClick={onTriggerModal}
+      data-test-id="email-invite"
+      icon={<IconMail />}
+      disabled={disabled}
+    >
+      {t('Invite Members')}
+    </Button>
+  );
+
+  return disabled ? (
+    <Hovercard
+      body={
+        <FeatureDisabled
+          featureName="Invite Members"
+          features={['organizations:invite-members']}
+          hideHelpToggle
+        />
+      }
+    >
+      {action}
+    </Hovercard>
+  ) : (
+    action
+  );
 }
 
 export default withOrganization(OrganizationMembersWrapper);

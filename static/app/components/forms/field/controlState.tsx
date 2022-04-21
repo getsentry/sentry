@@ -5,7 +5,7 @@ import Spinner from 'sentry/components/forms/spinner';
 import {IconCheckmark, IconWarning} from 'sentry/icons';
 import {fadeOut, pulse} from 'sentry/styles/animations';
 
-type Props = {
+export interface ControlStateProps {
   /**
    * Display the  error indicator
    */
@@ -18,12 +18,12 @@ type Props = {
    * Display the saving state
    */
   isSaving?: boolean;
-};
+}
 
 /**
  * ControlState (i.e. loading/error icons) for form fields
  */
-const ControlState = ({isSaving, isSaved, error}: Props) => (
+const ControlState = ({isSaving, isSaved, error}: ControlStateProps) => (
   <Fragment>
     {isSaving ? (
       <ControlStateWrapper>

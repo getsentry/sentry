@@ -1,81 +1,70 @@
 from datetime import timedelta
 
-from django.urls import reverse
 from django.utils import timezone
 
-from sentry.models import GroupAssignee, ProjectStatus
+from sentry.models import GroupAssignee, OrganizationMemberTeam, ProjectStatus
 from sentry.testutils import APITestCase
 
 
 class OrganizationMemberIssuesAssignedTest(APITestCase):
+    endpoint = "sentry-api-0-organization-member-issues-assigned"
+
+    def setUp(self):
+        super().setUp()
+        self.login_as(self.user)
+        self.now = timezone.now()
+
+        self.group = self.create_group(project=self.project)
+        GroupAssignee.objects.create(
+            group=self.group,
+            project=self.project,
+            user=self.user,
+            date_added=self.now,
+        )
+
     def test_simple(self):
-        now = timezone.now()
-        user = self.create_user("foo@example.com")
-        org = self.create_organization(name="foo")
-        team = self.create_team(name="foo", organization=org)
-        self.create_member(organization=org, user=user, role="admin", teams=[team])
-        project1 = self.create_project(name="foo", organization=org, teams=[team])
-        group1 = self.create_group(project=project1)
-        group2 = self.create_group(project=project1)
+        group2 = self.create_group(project=self.project)
+        GroupAssignee.objects.create(
+            group=group2,
+            project=self.project,
+            user=self.user,
+            date_added=self.now + timedelta(seconds=1),
+        )
+
         project2 = self.create_project(
-            name="bar", organization=org, teams=[team], status=ProjectStatus.PENDING_DELETION
+            name="project_2",
+            organization=self.organization,
+            teams=[self.team],
+            status=ProjectStatus.PENDING_DELETION,
         )
         group3 = self.create_group(project=project2)
-        GroupAssignee.objects.create(group=group1, project=project1, user=user, date_added=now)
+        # This should not show up because project is pending removal.
         GroupAssignee.objects.create(
-            group=group2, project=project1, user=user, date_added=now + timedelta(seconds=1)
+            group=group3,
+            project=project2,
+            user=self.user,
+            date_added=self.now + timedelta(seconds=2),
         )
-        # should not show up as project is pending removal
-        GroupAssignee.objects.create(
-            group=group3, project=project2, user=user, date_added=now + timedelta(seconds=2)
-        )
 
-        path = reverse("sentry-api-0-organization-member-issues-assigned", args=[org.slug, "me"])
+        response = self.get_success_response(self.organization.slug, "me")
 
-        self.login_as(user)
-
-        resp = self.client.get(path)
-
-        assert resp.status_code == 200
-        assert len(resp.data) == 2
-        assert resp.data[0]["id"] == str(group2.id)
-        assert resp.data[1]["id"] == str(group1.id)
+        assert len(response.data) == 2
+        assert response.data[0]["id"] == str(group2.id)
+        assert response.data[1]["id"] == str(self.group.id)
 
     def test_via_team(self):
-        now = timezone.now()
-        user = self.create_user("foo@example.com")
-        org = self.create_organization(name="foo")
-        team = self.create_team(name="foo", organization=org)
-        self.create_member(organization=org, user=user, role="admin", teams=[team])
-        project1 = self.create_project(name="foo", organization=org, teams=[team])
-        group1 = self.create_group(project=project1)
-        GroupAssignee.objects.create(group=group1, project=project1, team=team, date_added=now)
+        response = self.get_success_response(self.organization.slug, "me")
 
-        path = reverse("sentry-api-0-organization-member-issues-assigned", args=[org.slug, "me"])
-
-        self.login_as(user)
-
-        resp = self.client.get(path)
-
-        assert resp.status_code == 200
-        assert len(resp.data) == 1
-        assert resp.data[0]["id"] == str(group1.id)
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(self.group.id)
 
     def test_team_does_not_return_all_org_teams_for_owners(self):
-        now = timezone.now()
-        user = self.create_user("foo@example.com")
-        org = self.create_organization(name="foo")
-        team = self.create_team(name="foo", organization=org)
-        self.create_member(organization=org, user=user, role="owner", teams=[])
-        project1 = self.create_project(name="foo", organization=org, teams=[team])
-        group1 = self.create_group(project=project1)
-        GroupAssignee.objects.create(group=group1, project=project1, team=team, date_added=now)
+        # Remove the team that has access to self.group.
+        OrganizationMemberTeam.objects.filter(
+            organizationmember__organization=self.organization,
+            organizationmember__user=self.user,
+        ).delete()
 
-        path = reverse("sentry-api-0-organization-member-issues-assigned", args=[org.slug, "me"])
+        response = self.get_success_response(self.organization.slug, "me")
 
-        self.login_as(user)
-
-        resp = self.client.get(path)
-
-        assert resp.status_code == 200
-        assert len(resp.data) == 0
+        assert len(response.data) == 0

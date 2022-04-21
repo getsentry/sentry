@@ -1,5 +1,5 @@
-import Reflux from 'reflux';
+import {createActions} from 'reflux';
 
-const ModalActions = Reflux.createActions(['openModal', 'closeModal']);
+const ModalActions = createActions(['openModal', 'closeModal']);
 
 export default ModalActions;

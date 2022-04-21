@@ -9,7 +9,6 @@ from hashlib import md5
 from typing import Any, List, Mapping, Sequence, Set, Tuple
 
 import sentry_sdk
-from django.db.models import QuerySet
 from django.utils import timezone
 from snuba_sdk import Direction, Op
 from snuba_sdk.expressions import Expression
@@ -20,6 +19,7 @@ from sentry import options
 from sentry.api.event_search import SearchFilter
 from sentry.api.paginator import DateTimePaginator, Paginator, SequencePaginator
 from sentry.constants import ALLOWED_FUTURE_DELTA
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models import Environment, Group, Optional, Project
 from sentry.search.events.fields import DateArg
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
@@ -101,7 +101,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         self,
         projects: Sequence[Project],
         retention_window_start: Optional[datetime],
-        group_queryset: QuerySet,
+        group_queryset: BaseQuerySet,
         environments: Optional[Sequence[Environment]],
         sort_by: str,
         limit: int,
@@ -325,7 +325,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         self,
         projects: Sequence[Project],
         retention_window_start: Optional[datetime],
-        group_queryset: QuerySet,
+        group_queryset: BaseQuerySet,
         environments: Optional[Sequence[Environment]],
         sort_by: str,
         limit: int,
@@ -397,7 +397,9 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         max_candidates = options.get("snuba.search.max-pre-snuba-candidates")
 
         with sentry_sdk.start_span(op="snuba_group_query") as span:
-            group_ids = list(group_queryset.values_list("id", flat=True)[: max_candidates + 1])
+            group_ids = list(
+                group_queryset.using_replica().values_list("id", flat=True)[: max_candidates + 1]
+            )
             span.set_data("Max Candidates", max_candidates)
             span.set_data("Result Size", len(group_ids))
         metrics.timing("snuba.search.num_candidates", len(group_ids))
@@ -758,7 +760,7 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         self,
         projects: Sequence[Project],
         retention_window_start: Optional[datetime],
-        group_queryset: QuerySet,
+        group_queryset: BaseQuerySet,
         environments: Sequence[Environment],
         sort_by: str,
         limit: int,

@@ -1,7 +1,6 @@
 import * as React from 'react';
-import userEvent from '@testing-library/user-event';
 
-import {act, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Hovercard, HOVERCARD_PORTAL_ID} from 'sentry/components/hovercard';
 
@@ -15,7 +14,7 @@ describe('Hovercard', () => {
   });
 
   it('reuses portal', () => {
-    mountWithTheme(
+    render(
       <React.Fragment>
         <Hovercard
           position="top"
@@ -40,7 +39,7 @@ describe('Hovercard', () => {
     expect(document.querySelectorAll(`#${HOVERCARD_PORTAL_ID}`)).toHaveLength(1);
   });
   it('Displays card', async () => {
-    mountWithTheme(
+    render(
       <Hovercard
         position="top"
         body="Hovercard Body"
@@ -58,7 +57,7 @@ describe('Hovercard', () => {
   });
 
   it('Does not display card', () => {
-    mountWithTheme(
+    render(
       <Hovercard
         position="top"
         body="Hovercard Body"
@@ -78,7 +77,7 @@ describe('Hovercard', () => {
   });
 
   it('Always displays card', () => {
-    mountWithTheme(
+    render(
       <Hovercard
         position="top"
         body="Hovercard Body"
@@ -96,7 +95,7 @@ describe('Hovercard', () => {
 
   it('Respects displayTimeout displays card', async () => {
     const DISPLAY_TIMEOUT = 100;
-    mountWithTheme(
+    render(
       <Hovercard
         position="top"
         body="Hovercard Body"
@@ -121,7 +120,7 @@ describe('Hovercard', () => {
   });
 
   it('Doesnt leak timeout', () => {
-    mountWithTheme(
+    render(
       <Hovercard
         position="top"
         body="Hovercard Body"

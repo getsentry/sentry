@@ -24,7 +24,7 @@ export type CursorHandler = (
 ) => void;
 
 type Props = WithRouterProps & {
-  caption?: React.ReactElement;
+  caption?: React.ReactNode;
   className?: string;
   disabled?: boolean;
   onCursor?: CursorHandler;

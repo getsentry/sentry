@@ -6,7 +6,7 @@ import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import Input from 'sentry/components/forms/controls/input';
-import InputField from 'sentry/components/forms/inputField';
+import InputField, {InputFieldProps} from 'sentry/components/forms/inputField';
 import {TableType} from 'sentry/components/forms/type';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -14,24 +14,27 @@ import space from 'sentry/styles/space';
 import {defined, objectIsEmpty} from 'sentry/utils';
 import {singleLineRenderer} from 'sentry/utils/marked';
 
-const defaultProps = {
+interface DefaultProps {
   /**
    * Text used for the 'add' button. An empty string can be used
    * to just render the "+" icon.
    */
-  addButtonText: t('Add Item'),
+  addButtonText: string;
   /**
    * Automatically save even if fields are empty
    */
+  allowEmpty: boolean;
+}
+
+const DEFAULT_PROPS: DefaultProps = {
+  addButtonText: t('Add Item'),
   allowEmpty: false,
 };
 
-type DefaultProps = Readonly<typeof defaultProps>;
-type Props = InputField['props'];
-type RenderProps = Props & DefaultProps & TableType;
+interface RenderProps extends InputFieldProps, DefaultProps, Omit<TableType, 'type'> {}
 
-export default class TableField extends React.Component<Props> {
-  static defaultProps = defaultProps;
+export default class TableField extends React.Component<InputFieldProps> {
+  static defaultProps = DEFAULT_PROPS;
 
   hasValue = value => defined(value) && !objectIsEmpty(value);
 

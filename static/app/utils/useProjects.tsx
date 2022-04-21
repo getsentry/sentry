@@ -207,7 +207,7 @@ function useProjects({limit, slugs, orgId: propOrgId}: Options = {}) {
         ...state,
         hasMore,
         fetching: false,
-        initiallyLoaded: !store.loading,
+        initiallyLoaded: true,
         nextCursor,
       });
     } catch (err) {

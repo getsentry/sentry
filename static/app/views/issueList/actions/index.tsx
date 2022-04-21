@@ -22,16 +22,19 @@ import {BULK_LIMIT, BULK_LIMIT_STR, ConfirmAction} from './utils';
 type Props = {
   allResultsVisible: boolean;
   api: Client;
-  displayCount: React.ReactElement;
+  displayCount: React.ReactNode;
   displayReprocessingActions: boolean;
   groupIds: string[];
   onDelete: () => void;
   onSelectStatsPeriod: (period: string) => void;
+  onSortChange: (sort: string) => void;
   organization: Organization;
   query: string;
   queryCount: number;
   selection: PageFilters;
+  sort: string;
   statsPeriod: string;
+  onActionTaken?: (itemIds: string[]) => void;
   onMarkReviewed?: (itemIds: string[]) => void;
 };
 
@@ -117,15 +120,24 @@ class IssueListActions extends React.Component<Props, State> {
   };
 
   handleUpdate = (data?: any) => {
-    const {selection, api, organization, query, onMarkReviewed} = this.props;
+    const {selection, api, organization, query, onMarkReviewed, onActionTaken} =
+      this.props;
     const orgId = organization.slug;
+    const hasIssueListRemovalAction = organization.features.includes(
+      'issue-list-removal-action'
+    );
 
     this.actionSelectedGroups(itemIds => {
-      addLoadingMessage(t('Saving changes\u2026'));
+      // TODO(Kelly): remove once issue-list-removal-action feature is stable
+      if (!hasIssueListRemovalAction) {
+        addLoadingMessage(t('Saving changes\u2026'));
+      }
 
       if (data?.inbox === false) {
         onMarkReviewed?.(itemIds ?? []);
       }
+
+      onActionTaken?.(itemIds ?? []);
 
       // If `itemIds` is undefined then it means we expect to bulk update all items
       // that match the query.
@@ -148,7 +160,9 @@ class IssueListActions extends React.Component<Props, State> {
         },
         {
           complete: () => {
-            clearIndicators();
+            if (!hasIssueListRemovalAction) {
+              clearIndicators();
+            }
           },
         }
       );
@@ -158,8 +172,6 @@ class IssueListActions extends React.Component<Props, State> {
   handleDelete = () => {
     const {selection, api, organization, query, onDelete} = this.props;
     const orgId = organization.slug;
-
-    addLoadingMessage(t('Removing events\u2026'));
 
     this.actionSelectedGroups(itemIds => {
       bulkDelete(
@@ -174,7 +186,6 @@ class IssueListActions extends React.Component<Props, State> {
         },
         {
           complete: () => {
-            clearIndicators();
             onDelete();
           },
         }
@@ -185,8 +196,6 @@ class IssueListActions extends React.Component<Props, State> {
   handleMerge = () => {
     const {selection, api, organization, query} = this.props;
     const orgId = organization.slug;
-
-    addLoadingMessage(t('Merging events\u2026'));
 
     this.actionSelectedGroups(itemIds => {
       mergeGroups(
@@ -199,11 +208,7 @@ class IssueListActions extends React.Component<Props, State> {
           environment: selection.environments,
           ...selection.datetime,
         },
-        {
-          complete: () => {
-            clearIndicators();
-          },
-        }
+        {}
       );
     });
   };
@@ -265,6 +270,9 @@ class IssueListActions extends React.Component<Props, State> {
           </ActionsCheckbox>
           {!displayReprocessingActions && (
             <ActionSet
+              sort={this.props.sort}
+              onSortChange={this.props.onSortChange}
+              hasPageFilters={organization.features.includes('selection-filters-v2')}
               orgSlug={organization.slug}
               queryCount={queryCount}
               query={query}

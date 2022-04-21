@@ -109,6 +109,7 @@ function DropdownLink({
             {...getRootProps({
               className: topLevelCx,
             })}
+            data-test-id="dropdown-link"
           >
             <a onClick={disabled ? undefined : onClickActor} {...actorProps}>
               {customTitle || (

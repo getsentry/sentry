@@ -12,23 +12,17 @@ import withOrganization from 'sentry/utils/withOrganization';
 import EventTitleTreeLabel from './eventTitleTreeLabel';
 import {StackTracePreview} from './stacktracePreview';
 
-type Props = Partial<DefaultProps> & {
+type Props = {
   data: Event | BaseGroup | GroupTombstone;
   organization: Organization;
   className?: string;
   /* is issue breakdown? */
   grouping?: boolean;
-  guideAnchorName?: string;
   hasGuideAnchor?: boolean;
   withStackTracePreview?: boolean;
 };
 
-type DefaultProps = {
-  guideAnchorName: string;
-};
-
 function EventOrGroupTitle({
-  guideAnchorName = 'issue_title',
   organization,
   data,
   withStackTracePreview,
@@ -49,7 +43,7 @@ function EventOrGroupTitle({
 
   return (
     <Wrapper className={className} hasGroupingTreeUI={hasGroupingTreeUI}>
-      <GuideAnchor disabled={!hasGuideAnchor} target={guideAnchorName} position="bottom">
+      <GuideAnchor disabled={!hasGuideAnchor} target="issue_title" position="bottom">
         {withStackTracePreview ? (
           <StyledStacktracePreview
             organization={organization}

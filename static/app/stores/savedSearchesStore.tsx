@@ -1,8 +1,9 @@
 import findIndex from 'lodash/findIndex';
-import Reflux from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
 import SavedSearchesActions from 'sentry/actions/savedSearchesActions';
 import {SavedSearch, SavedSearchType} from 'sentry/types';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 type State = {
   hasError: boolean;
@@ -10,16 +11,18 @@ type State = {
   savedSearches: SavedSearch[];
 };
 
-type SavedSearchesStoreInterface = {
+interface SavedSearchesStoreDefinition extends StoreDefinition {
   findByQuery(query: string, sort: string): SavedSearch | undefined;
   get(): State;
   getFilteredSearches(type: SavedSearchType, id?: string): SavedSearch[];
   onPinSearch(type: SavedSearchType, query: string, sort: string): void;
   reset(): void;
   updateExistingSearch(id: string, changes: Partial<SavedSearch>): SavedSearch;
-};
+}
 
-const storeConfig: Reflux.StoreDefinition & SavedSearchesStoreInterface = {
+const storeConfig: SavedSearchesStoreDefinition = {
+  unsubscribeListeners: [],
+
   state: {
     savedSearches: [],
     hasError: false,
@@ -39,15 +42,27 @@ const storeConfig: Reflux.StoreDefinition & SavedSearchesStoreInterface = {
       unpinSearch,
     } = SavedSearchesActions;
 
-    this.listenTo(startFetchSavedSearches, this.onStartFetchSavedSearches);
-    this.listenTo(fetchSavedSearchesSuccess, this.onFetchSavedSearchesSuccess);
-    this.listenTo(fetchSavedSearchesError, this.onFetchSavedSearchesError);
-    this.listenTo(resetSavedSearches, this.onReset);
-    this.listenTo(createSavedSearchSuccess, this.onCreateSavedSearchSuccess);
-    this.listenTo(deleteSavedSearchSuccess, this.onDeleteSavedSearchSuccess);
-    this.listenTo(pinSearch, this.onPinSearch);
-    this.listenTo(pinSearchSuccess, this.onPinSearchSuccess);
-    this.listenTo(unpinSearch, this.onUnpinSearch);
+    this.unsubscribeListeners.push(
+      this.listenTo(startFetchSavedSearches, this.onStartFetchSavedSearches)
+    );
+    this.unsubscribeListeners.push(
+      this.listenTo(fetchSavedSearchesSuccess, this.onFetchSavedSearchesSuccess)
+    );
+    this.unsubscribeListeners.push(
+      this.listenTo(fetchSavedSearchesError, this.onFetchSavedSearchesError)
+    );
+    this.unsubscribeListeners.push(this.listenTo(resetSavedSearches, this.onReset));
+    this.unsubscribeListeners.push(
+      this.listenTo(createSavedSearchSuccess, this.onCreateSavedSearchSuccess)
+    );
+    this.unsubscribeListeners.push(
+      this.listenTo(deleteSavedSearchSuccess, this.onDeleteSavedSearchSuccess)
+    );
+    this.unsubscribeListeners.push(this.listenTo(pinSearch, this.onPinSearch));
+    this.unsubscribeListeners.push(
+      this.listenTo(pinSearchSuccess, this.onPinSearchSuccess)
+    );
+    this.unsubscribeListeners.push(this.listenTo(unpinSearch, this.onUnpinSearch));
 
     this.reset();
   },
@@ -230,7 +245,5 @@ const storeConfig: Reflux.StoreDefinition & SavedSearchesStoreInterface = {
   },
 };
 
-const SavedSearchesStore = Reflux.createStore(storeConfig) as Reflux.Store &
-  SavedSearchesStoreInterface;
-
+const SavedSearchesStore = createStore(makeSafeRefluxStore(storeConfig));
 export default SavedSearchesStore;

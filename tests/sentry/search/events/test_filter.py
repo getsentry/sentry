@@ -1041,7 +1041,11 @@ class GetSnubaQueryArgsTest(TestCase):
             "user.display:bill@example.com", {"organization_id": self.organization.id}
         )
         assert _filter.conditions == [
-            [["coalesce", ["user.email", "user.username", "user.ip"]], "=", "bill@example.com"]
+            [
+                ["coalesce", ["user.email", "user.username", "user.id", "user.ip"]],
+                "=",
+                "bill@example.com",
+            ]
         ]
         assert _filter.filter_keys == {}
         assert _filter.group_ids == []
@@ -1052,7 +1056,10 @@ class GetSnubaQueryArgsTest(TestCase):
             [
                 [
                     "match",
-                    [["coalesce", ["user.email", "user.username", "user.ip"]], "'(?i)^jill.*$'"],
+                    [
+                        ["coalesce", ["user.email", "user.username", "user.id", "user.ip"]],
+                        "'(?i)^jill.*$'",
+                    ],
                 ],
                 "=",
                 1,
@@ -1064,7 +1071,11 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_has_user_display(self):
         _filter = get_filter("has:user.display", {"organization_id": self.organization.id})
         assert _filter.conditions == [
-            [["isNull", [["coalesce", ["user.email", "user.username", "user.ip"]]]], "!=", 1]
+            [
+                ["isNull", [["coalesce", ["user.email", "user.username", "user.id", "user.ip"]]]],
+                "!=",
+                1,
+            ]
         ]
         assert _filter.filter_keys == {}
         assert _filter.group_ids == []
@@ -1072,7 +1083,11 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_not_has_user_display(self):
         _filter = get_filter("!has:user.display", {"organization_id": self.organization.id})
         assert _filter.conditions == [
-            [["isNull", [["coalesce", ["user.email", "user.username", "user.ip"]]]], "=", 1]
+            [
+                ["isNull", [["coalesce", ["user.email", "user.username", "user.id", "user.ip"]]]],
+                "=",
+                1,
+            ]
         ]
         assert _filter.filter_keys == {}
         assert _filter.group_ids == []
@@ -1778,6 +1793,12 @@ class SemverBuildFilterConverterTest(BaseSemverConverterTest, TestCase):
         with pytest.raises(ValueError, match="organization_id is a required param"):
             _semver_filter_converter(filter, key, {"something": 1})
 
+        filter = SearchFilter(SearchKey(key), "IN", SearchValue("sentry"))
+        with pytest.raises(
+            InvalidSearchQuery, match="Invalid operation 'IN' for semantic version filter."
+        ):
+            _semver_filter_converter(filter, key, {"organization_id": 1})
+
     def test_empty(self):
         self.run_test("=", "test", "IN", [SEMVER_EMPTY_RELEASE])
 
@@ -1807,6 +1828,11 @@ class ParseSemverTest(unittest.TestCase):
             match=INVALID_SEMVER_MESSAGE,
         ):
             assert parse_semver("hello", ">") is None
+        with pytest.raises(
+            InvalidSearchQuery,
+            match="Invalid operation 'IN' for semantic version filter.",
+        ):
+            assert parse_semver("1.2.3.4", "IN") is None
 
     def test_normal(self):
         self.run_test("1", ">", SemverFilter("gt", [1, 0, 0, 0, 1, ""]))

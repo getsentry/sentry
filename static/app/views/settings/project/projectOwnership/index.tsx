@@ -13,11 +13,11 @@ import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
+import FeatureBadge from 'sentry/components/featureBadge';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
@@ -66,7 +66,7 @@ class ProjectOwnership extends AsyncView<Props, State> {
       [
         'codeMappings',
         `/organizations/${organization.slug}/code-mappings/`,
-        {query: {projectId: project.id}},
+        {query: {project: project.id}},
       ],
       [
         'integrations',
@@ -262,7 +262,7 @@ tags.sku_class:enterprise #enterprise`;
           <Alert
             key={id}
             type="error"
-            icon={<IconWarning size="md" />}
+            showIcon
             expand={[
               <AlertContentContainer key="container">
                 {Object.entries(errors)
@@ -380,6 +380,7 @@ tags.sku_class:enterprise #enterprise`;
           initialData={{
             fallthrough: ownership.fallthrough,
             autoAssignment: ownership.autoAssignment,
+            codeownersAutoSync: ownership.codeownersAutoSync,
           }}
           hideFooter
         >
@@ -405,6 +406,29 @@ tags.sku_class:enterprise #enterprise`;
                       'Alerts will be sent to all users who have access to this project.'
                     ),
                     disabled,
+                  },
+                  {
+                    name: 'codeownersAutoSync',
+                    type: 'boolean',
+                    label: tct(
+                      `Automatically sync changes from CODEOWNERS file to Code Owners [badge]`,
+                      {
+                        badge: (
+                          <FeatureBadge
+                            type="new"
+                            title={
+                              !(this.state.codeowners || []).length
+                                ? 'Setup Code Owners to use this feature.'
+                                : undefined
+                            }
+                          />
+                        ),
+                      }
+                    ),
+                    help: t(
+                      'Sentry will watch for CODEOWNERS file changes during a Release and then update Code Owners.'
+                    ),
+                    disabled: disabled || !(this.state.codeowners || []).length,
                   },
                 ],
               },

@@ -1,25 +1,40 @@
+from __future__ import annotations
+
 import functools
 import inspect
 import itertools
 import logging
 import threading
 from concurrent import futures
-from typing import Any, Callable, Mapping, Optional, Sequence, Tuple, Type, TypeVar
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    cast,
+)
 
 from django.utils.functional import LazyObject, empty
+from rest_framework.request import Request
 
 from sentry.utils import metrics, warnings
 from sentry.utils.concurrent import Executor, FutureSet, ThreadedExecutor, TimedFuture
 
 from .imports import import_string
+from .types import AnyCallable
 
 logger = logging.getLogger(__name__)
 
 STATUS_SUCCESS = "success"
 
 
-def raises(exceptions):
-    def decorator(function):
+def raises(exceptions: BaseException) -> Callable[[AnyCallable], AnyCallable]:
+    def decorator(function: AnyCallable) -> AnyCallable:
         function.__raises__ = exceptions
         return function
 
@@ -29,7 +44,7 @@ def raises(exceptions):
 class Service:
     __all__: Tuple[str, ...] = ()
 
-    def validate(self):
+    def validate(self) -> None:
         """
         Validates the settings for this backend (i.e. such as proper connection
         info).
@@ -37,13 +52,13 @@ class Service:
         Raise ``InvalidConfiguration`` if there is a configuration error.
         """
 
-    def setup(self):
+    def setup(self) -> None:
         """
         Initialize this service.
         """
 
 
-class LazyServiceWrapper(LazyObject):
+class LazyServiceWrapper(LazyObject):  # type: ignore
     """
     Lazyily instantiates a standard Sentry service class.
 
@@ -56,7 +71,14 @@ class LazyServiceWrapper(LazyObject):
     >>> service.expose(locals())
     """
 
-    def __init__(self, backend_base, backend_path, options, dangerous=(), metrics_path=None):
+    def __init__(
+        self,
+        backend_base: Type[Service],
+        backend_path: str,
+        options: Mapping[str, Any],
+        dangerous: Optional[Sequence[Type[Service]]] = (),
+        metrics_path: Optional[str] = None,
+    ):
         super().__init__()
         self.__dict__.update(
             {
@@ -68,7 +90,7 @@ class LazyServiceWrapper(LazyObject):
             }
         )
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
         if self._wrapped is empty:
             self._setup()
 
@@ -84,7 +106,7 @@ class LazyServiceWrapper(LazyObject):
 
         return attr
 
-    def _setup(self):
+    def _setup(self) -> None:
         backend = import_string(self._backend)
         assert issubclass(backend, Service)
         if backend in self._dangerous:
@@ -97,7 +119,7 @@ class LazyServiceWrapper(LazyObject):
         instance = backend(**self._options)
         self._wrapped = instance
 
-    def expose(self, context):
+    def expose(self, context: MutableMapping[str, Any]) -> None:
         base = self._base
         base_instance = base()
         for key in itertools.chain(base.__all__, ("validate", "setup")):
@@ -107,21 +129,21 @@ class LazyServiceWrapper(LazyObject):
                 context[key] = getattr(base_instance, key)
 
 
-def resolve_callable(value):
+def resolve_callable(value: str | AnyCallable) -> AnyCallable:
     if callable(value):
         return value
     elif isinstance(value, str):
-        return import_string(value)
+        return cast(Callable[..., Any], import_string(value))
     else:
         raise TypeError("Expected callable or string")
 
 
 class Context:
-    def __init__(self, request, backends):
+    def __init__(self, request: Request, backends: Dict[Type[Service | None], Service]):
         self.request = request
         self.backends = backends
 
-    def copy(self):
+    def copy(self) -> Context:
         return Context(self.request, self.backends.copy())
 
 
@@ -134,8 +156,6 @@ Callback = Callable[
     [Context, str, Mapping[str, Any], Sequence[str], Sequence[TimedFuture]],
     None,
 ]
-
-T = TypeVar("T")
 
 
 class Delegator:
@@ -211,8 +231,8 @@ class Delegator:
 
     def __init__(
         self,
-        base: Type[T],
-        backends: Mapping[str, Tuple[T, Executor]],
+        base: Type[Service],
+        backends: Mapping[str, Tuple[Service, Executor]],
         selector: Selector,
         callback: Optional[Callback] = None,
     ) -> None:
@@ -228,12 +248,12 @@ class Delegator:
         """
 
     class State(threading.local):
-        def __init__(self):
-            self.context = None
+        def __init__(self) -> None:
+            self.context: None | Context = None
 
     __state = State()
 
-    def __getattr__(self, attribute_name):
+    def __getattr__(self, attribute_name: str) -> Any:
         # When deciding how to handle attribute accesses, we have three
         # different possible outcomes:
         # 1. If this is defined as a method on the base implementation, we are
@@ -250,7 +270,7 @@ class Delegator:
         if not inspect.isroutine(base_value):
             return base_value
 
-        def execute(*args, **kwargs):
+        def execute(*args: Sequence[Any], **kwargs: Mapping[str, Any]) -> Any:
             context = type(self).__state.context
 
             # If there is no context object already set in the thread local
@@ -289,7 +309,7 @@ class Delegator:
                     f"{selected_backend_names[0]!r} is not a registered backend."
                 )
 
-            def call_backend_method(context, backend, is_primary):
+            def call_backend_method(context: Context, backend: Service, is_primary: bool) -> Any:
                 # Update the thread local state in the executor to the provided
                 # context object. This allows the context to be propagated
                 # across different threads.
@@ -373,12 +393,16 @@ class Delegator:
                     )
                 )
 
-            return results[0].result()
+            result: TimedFuture = results[0]
+            return result.result()
 
         return execute
 
 
-def build_instance_from_options(options, default_constructor=None):
+def build_instance_from_options(
+    options: Mapping[str, Any],
+    default_constructor: None | Callable[..., Service] = None,
+) -> Service:
     try:
         path = options["path"]
     except KeyError:
@@ -424,7 +448,13 @@ class ServiceDelegator(Delegator, Service):
     - A reference to a callable object.
     """
 
-    def __init__(self, backend_base, backends, selector_func, callback_func=None):
+    def __init__(
+        self,
+        backend_base: str,
+        backends: Mapping[str, Mapping[str, Any]],
+        selector_func: str | AnyCallable,
+        callback_func: str | AnyCallable | None = None,
+    ):
         super().__init__(
             import_string(backend_base),
             {
@@ -440,11 +470,11 @@ class ServiceDelegator(Delegator, Service):
             resolve_callable(callback_func) if callback_func is not None else None,
         )
 
-    def validate(self):
+    def validate(self) -> None:
         for backend, executor in self.backends.values():
             backend.validate()
 
-    def setup(self):
+    def setup(self) -> None:
         for backend, executor in self.backends.values():
             backend.setup()
 

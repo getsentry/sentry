@@ -1,10 +1,12 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, screen, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import EventTagsAndScreenshot from 'sentry/components/events/eventTagsAndScreenshot';
 import {EventAttachment} from 'sentry/types';
 
-describe('EventTagsAndScreenshot ', function () {
+import {deviceNameMapper} from '../../../../../static/app/components/deviceName';
+
+describe('EventTagsAndScreenshot', function () {
   const contexts = {
     app: {
       app_start_time: '2021-08-31T15:14:21Z',
@@ -144,7 +146,7 @@ describe('EventTagsAndScreenshot ', function () {
 
   describe('renders tags only', function () {
     it('not shared event - without attachments', function () {
-      const {container} = mountWithTheme(
+      const {container} = render(
         <EventTagsAndScreenshot
           event={{...event, tags, contexts}}
           organization={organization}
@@ -180,7 +182,9 @@ describe('EventTagsAndScreenshot ', function () {
 
       // Context Item 3
       const contextItem3 = within(contextItems[2]);
-      expect(contextItem3.getByRole('heading')).toHaveTextContent(contexts.device.model);
+      expect(contextItem3.getByRole('heading')).toHaveTextContent(
+        deviceNameMapper(contexts.device.model)?.trim() ?? ''
+      );
       expect(contextItem3.getByTestId('context-sub-title')).toHaveTextContent(
         `Model:${contexts.device.model_id}`
       );
@@ -193,7 +197,7 @@ describe('EventTagsAndScreenshot ', function () {
     });
 
     it('shared event - without attachments', function () {
-      const {container} = mountWithTheme(
+      const {container} = render(
         <EventTagsAndScreenshot
           event={{...event, tags, contexts}}
           organization={organization}
@@ -216,7 +220,7 @@ describe('EventTagsAndScreenshot ', function () {
     });
 
     it('shared event - with attachments', function () {
-      const {container} = mountWithTheme(
+      const {container} = render(
         <EventTagsAndScreenshot
           event={{...event, tags, contexts}}
           organization={organization}
@@ -241,7 +245,7 @@ describe('EventTagsAndScreenshot ', function () {
 
   describe('renders screenshot only', function () {
     it('no context and no tags', function () {
-      const {container} = mountWithTheme(
+      const {container} = render(
         <EventTagsAndScreenshot
           event={event}
           organization={organization}
@@ -270,7 +274,7 @@ describe('EventTagsAndScreenshot ', function () {
 
   describe('renders screenshot and tags', function () {
     it('has context, tags and attachments', function () {
-      const {container} = mountWithTheme(
+      const {container} = render(
         <EventTagsAndScreenshot
           event={{...event, tags, contexts}}
           organization={organization}
@@ -303,7 +307,7 @@ describe('EventTagsAndScreenshot ', function () {
     });
 
     it('has context and attachments only', function () {
-      const {container} = mountWithTheme(
+      const {container} = render(
         <EventTagsAndScreenshot
           event={{...event, contexts}}
           organization={organization}
@@ -336,7 +340,7 @@ describe('EventTagsAndScreenshot ', function () {
     });
 
     it('has tags and attachments only', function () {
-      const {container} = mountWithTheme(
+      const {container} = render(
         <EventTagsAndScreenshot
           event={{...event, tags}}
           organization={organization}

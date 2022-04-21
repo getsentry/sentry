@@ -65,8 +65,8 @@ class ReleaseProjectEnvironment(Model):
                 defaults={"first_seen": datetime, "last_seen": datetime},
             )
             cache.set(cache_key, instance, 3600)
-            metrics_tags["cache_hit"] = "true"
         else:
+            metrics_tags["cache_hit"] = "true"
             created = False
 
         metrics_tags["created"] = "true" if created else "false"

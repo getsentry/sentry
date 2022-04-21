@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import EventWaiter from 'sentry/utils/eventWaiter';
 
@@ -20,7 +20,7 @@ describe('EventWaiter', function () {
 
     const child = jest.fn().mockReturnValue(null);
 
-    mountWithTheme(
+    render(
       <EventWaiter
         api={new MockApiClient()}
         organization={org}
@@ -29,10 +29,8 @@ describe('EventWaiter', function () {
         pollInterval={10}
       >
         {child}
-      </EventWaiter>,
-      TestStubs.routerContext()
+      </EventWaiter>
     );
-
     expect(child).toHaveBeenCalledWith({firstIssue: null});
 
     // Add the first events and associated responses and tick the timer
@@ -48,7 +46,6 @@ describe('EventWaiter', function () {
         firstSeen: null,
       },
     ];
-
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/issues/`,
       method: 'GET',
@@ -95,7 +92,7 @@ describe('EventWaiter', function () {
 
     const child = jest.fn().mockReturnValue(null);
 
-    mountWithTheme(
+    render(
       <EventWaiter
         api={new MockApiClient()}
         organization={org}
@@ -104,8 +101,7 @@ describe('EventWaiter', function () {
         pollInterval={10}
       >
         {child}
-      </EventWaiter>,
-      TestStubs.routerContext()
+      </EventWaiter>
     );
 
     // We have to await *two* API calls. We could normally do this using tick(),
@@ -135,7 +131,7 @@ describe('EventWaiter', function () {
 
     const child = jest.fn().mockReturnValue(null);
 
-    mountWithTheme(
+    render(
       <EventWaiter
         api={new MockApiClient()}
         organization={org}
@@ -145,8 +141,7 @@ describe('EventWaiter', function () {
         disabled
       >
         {child}
-      </EventWaiter>,
-      TestStubs.routerContext()
+      </EventWaiter>
     );
 
     expect(child).toHaveBeenCalledWith({firstIssue: null});

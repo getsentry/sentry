@@ -3,6 +3,7 @@ import {browserHistory, RouteComponentProps} from 'react-router';
 
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import {Organization} from 'sentry/types';
@@ -19,7 +20,7 @@ type Props = RouteComponentProps<{orgId: string; templateId?: string}, {}> & {
 };
 
 function CreateDashboard(props: Props) {
-  const {organization, location} = props;
+  const {location} = props;
   const {templateId} = props.params;
   const [newWidget, setNewWidget] = useState<Widget | undefined>();
   function renderDisabled() {
@@ -41,20 +42,23 @@ function CreateDashboard(props: Props) {
     if (constructedWidget) {
       browserHistory.replace(location.pathname);
     }
-  }, [organization.slug]);
+  }, [location.pathname]);
   return (
     <Feature
       features={['dashboards-edit']}
       organization={props.organization}
       renderDisabled={renderDisabled}
     >
-      <DashboardDetail
-        {...props}
-        initialState={initialState}
-        dashboard={dashboard}
-        dashboards={[]}
-        newWidget={newWidget}
-      />
+      <ErrorBoundary>
+        <DashboardDetail
+          {...props}
+          initialState={initialState}
+          dashboard={dashboard}
+          dashboards={[]}
+          newWidget={newWidget}
+          onSetNewWidget={() => setNewWidget(undefined)}
+        />
+      </ErrorBoundary>
     </Feature>
   );
 }

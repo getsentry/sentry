@@ -38,8 +38,7 @@ describe('AddCodeOwnerModal', function () {
         project={project}
         codeMappings={[codeMapping]}
         onSave={() => {}}
-      />,
-      TestStubs.routerContext()
+      />
     );
     expect(wrapper.find('Button').prop('disabled')).toBe(true);
   });
@@ -58,8 +57,7 @@ describe('AddCodeOwnerModal', function () {
         project={project}
         codeMappings={[codeMapping]}
         onSave={() => {}}
-      />,
-      TestStubs.routerContext()
+      />
     );
 
     selectByValue(wrapper, codeMapping.id, {name: 'codeMappingId'});
@@ -86,8 +84,7 @@ describe('AddCodeOwnerModal', function () {
         project={project}
         codeMappings={[codeMapping]}
         onSave={() => {}}
-      />,
-      TestStubs.routerContext()
+      />
     );
 
     selectByValue(wrapper, codeMapping.id, {name: 'codeMappingId'});
@@ -118,8 +115,7 @@ describe('AddCodeOwnerModal', function () {
         project={project}
         codeMappings={[codeMapping]}
         onSave={() => {}}
-      />,
-      TestStubs.routerContext()
+      />
     );
 
     selectByValue(wrapper, codeMapping.id, {name: 'codeMappingId'});

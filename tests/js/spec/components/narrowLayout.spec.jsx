@@ -1,4 +1,4 @@
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import NarrowLayout from 'sentry/components/narrowLayout';
 
@@ -11,12 +11,12 @@ describe('NarrowLayout', function () {
   });
 
   it('renders without logout', function () {
-    mountWithTheme(<NarrowLayout />);
+    render(<NarrowLayout />);
     expect(screen.queryByText('Sign out')).not.toBeInTheDocument();
   });
 
   it('renders with logout', function () {
-    mountWithTheme(<NarrowLayout showLogout />);
+    render(<NarrowLayout showLogout />);
     expect(screen.getByText('Sign out')).toBeInTheDocument();
   });
 
@@ -26,7 +26,7 @@ describe('NarrowLayout', function () {
       method: 'DELETE',
       status: 204,
     });
-    mountWithTheme(<NarrowLayout showLogout />);
+    render(<NarrowLayout showLogout />);
 
     userEvent.click(screen.getByText('Sign out'));
     expect(mock).toHaveBeenCalled();

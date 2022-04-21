@@ -1,10 +1,14 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from typing import Optional, Union
 
+import sentry.integrations
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.auth.provider import Provider
+from sentry.exceptions import NotRegistered
 from sentry.identity import is_login_provider
 from sentry.models import AuthIdentity, Identity, Organization
 from social_auth.models import UserSocialAuth
@@ -39,7 +43,7 @@ class UserIdentityProvider:
     name: str
 
     @classmethod
-    def adapt(cls, provider: Provider) -> "UserIdentityProvider":
+    def adapt(cls, provider: Provider) -> UserIdentityProvider:
         return cls(provider.key, provider.name)
 
 
@@ -57,7 +61,7 @@ class UserIdentityConfig:
     date_synced: Optional[datetime] = None
 
     @classmethod
-    def wrap(cls, identity: IdentityType, status: Status) -> "UserIdentityConfig":
+    def wrap(cls, identity: IdentityType, status: Status) -> UserIdentityConfig:
         def base(**kwargs):
             return cls(
                 category=_IDENTITY_CATEGORY_KEYS[type(identity)],
@@ -75,8 +79,13 @@ class UserIdentityConfig:
                 is_login=False,
             )
         elif isinstance(identity, Identity):
+            try:
+                provider = identity.get_provider()
+            except NotRegistered:
+                provider = sentry.integrations.get(identity.idp.type)
+
             return base(
-                provider=UserIdentityProvider.adapt(identity.get_provider()),
+                provider=UserIdentityProvider.adapt(provider),
                 name=identity.external_id,
                 is_login=supports_login(identity),
                 date_added=identity.date_added,
@@ -101,7 +110,7 @@ class UserIdentityConfig:
 
 @register(UserIdentityConfig)
 class UserIdentityConfigSerializer(Serializer):
-    def serialize(self, obj: UserIdentityConfig, attrs, user):
+    def serialize(self, obj: UserIdentityConfig, attrs, user, **kwargs):
         return {
             "category": obj.category,
             "id": str(obj.id),

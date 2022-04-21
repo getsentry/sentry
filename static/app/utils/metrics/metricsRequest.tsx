@@ -24,7 +24,6 @@ const omitIgnoredProps = (props: Props) =>
 export type MetricsRequestRenderProps = {
   error: string | null;
   errored: boolean;
-  isLoading: boolean;
   loading: boolean;
   pageLinks: string | null;
   reloading: boolean;
@@ -45,7 +44,7 @@ type DefaultProps = {
    */
   includeSeriesData: boolean;
   /**
-   * Transform the response data to be something ingestible by GridEditable tables
+   * Transform the response data to be something ingestible by GridEditable table
    */
   includeTabularData: boolean;
   /**
@@ -220,14 +219,13 @@ class MetricsRequest extends React.Component<Props, State> {
     return children?.({
       loading,
       reloading,
-      isLoading: loading || reloading, // some components downstream are used to loading/reloading or isLoading that combines both (EventsRequest vs DiscoverQuery)
       errored,
       error,
       response,
       responsePrevious,
       pageLinks,
       tableData: includeTabularData
-        ? transformMetricsResponseToTable({response})
+        ? transformMetricsResponseToTable(response)
         : undefined,
       seriesData: includeSeriesData
         ? transformMetricsResponseToSeries(response)

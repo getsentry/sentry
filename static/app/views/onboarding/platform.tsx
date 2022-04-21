@@ -12,6 +12,7 @@ import {PlatformKey} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
 import {Team} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import testableTransition from 'sentry/utils/testableTransition';
 import withApi from 'sentry/utils/withApi';
 import withTeams from 'sentry/utils/withTeams';
 
@@ -131,6 +132,7 @@ class OnboardingPlatform extends Component<Props, State> {
       <div>
         <StepHeading step={1}>Choose your project’s platform</StepHeading>
         <motion.div
+          transition={testableTransition()}
           variants={{
             initial: {y: 30, opacity: 0},
             animate: {y: 0, opacity: 1},

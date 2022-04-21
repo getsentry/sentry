@@ -1,4 +1,4 @@
-import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import TeamIssuesBreakdown from 'sentry/views/organizationStats/teamInsights/teamIssuesBreakdown';
 
@@ -12,7 +12,7 @@ describe('TeamIssuesBreakdown', () => {
       body: TestStubs.TeamIssuesBreakdown(),
     });
     const statuses = ['new', 'regressed', 'unignored'];
-    mountWithTheme(
+    render(
       <TeamIssuesBreakdown
         organization={organization}
         projects={[project]}

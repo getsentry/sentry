@@ -10,5 +10,6 @@ class CheckedMigration(Migration):
     checked = True
 
     def apply(self, project_state, schema_editor, collect_sql=False):
-        schema_editor.safe = True
+        if self.checked:
+            schema_editor.safe = True
         return super().apply(project_state, schema_editor, collect_sql)

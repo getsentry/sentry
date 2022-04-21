@@ -1,4 +1,4 @@
-import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import LetterAvatar from 'sentry/components/letterAvatar';
 
@@ -42,64 +42,64 @@ describe('LetterAvatar', function () {
 
   describe('display name', function () {
     it('should get initials based on name', function () {
-      mountWithTheme(<LetterAvatar {...USER_1} />);
+      render(<LetterAvatar {...USER_1} />);
       expect(screen.getByText('JB')).toBeInTheDocument();
     });
 
     it('should get initials based on email', function () {
-      mountWithTheme(<LetterAvatar {...USER_2} />);
+      render(<LetterAvatar {...USER_2} />);
       expect(screen.getByText('J')).toBeInTheDocument();
     });
 
     it('should get initials based on username', function () {
-      mountWithTheme(<LetterAvatar {...USER_3} />);
+      render(<LetterAvatar {...USER_3} />);
       expect(screen.getByText('F')).toBeInTheDocument();
     });
 
     it('should show question mark if user has no display name', function () {
-      mountWithTheme(<LetterAvatar {...USER_4} />);
+      render(<LetterAvatar {...USER_4} />);
       expect(screen.getByText('?')).toBeInTheDocument();
     });
 
     it('should show question mark even if display name is a space', function () {
-      mountWithTheme(<LetterAvatar {...USER_7} />);
+      render(<LetterAvatar {...USER_7} />);
       expect(screen.getByText('?')).toBeInTheDocument();
     });
 
     it('should get initials based on name even if there are trailing spaces', function () {
-      mountWithTheme(<LetterAvatar {...USER_6} />);
+      render(<LetterAvatar {...USER_6} />);
       expect(screen.getByText('JB')).toBeInTheDocument();
     });
 
     it('should not slice multibyte characters in half', function () {
-      mountWithTheme(<LetterAvatar {...USER_8} />);
+      render(<LetterAvatar {...USER_8} />);
       expect(screen.getByText('\u2603\u2603')).toBeInTheDocument();
     });
 
     it('should pick most last name', function () {
-      mountWithTheme(<LetterAvatar {...USER_9} />);
+      render(<LetterAvatar {...USER_9} />);
       expect(screen.getByText('JB')).toBeInTheDocument();
     });
   });
 
   describe('color', function () {
     it('should return a color based on email', function () {
-      const {container} = mountWithTheme(<LetterAvatar {...USER_1} />);
+      const {container} = render(<LetterAvatar {...USER_1} />);
       expect(container).toSnapshot();
     });
 
     it('should return a color based on username', function () {
-      const {container} = mountWithTheme(<LetterAvatar {...USER_3} />);
+      const {container} = render(<LetterAvatar {...USER_3} />);
       expect(container).toSnapshot();
     });
 
     it('should return a color based on id', function () {
-      const {container} = mountWithTheme(<LetterAvatar {...USER_4} />);
+      const {container} = render(<LetterAvatar {...USER_4} />);
       expect(container).toSnapshot();
     });
 
     it('should return a color based on ip address', function () {
-      const {container} = mountWithTheme(<LetterAvatar {...USER_5} />);
+      const {container} = render(<LetterAvatar {...USER_5} />);
       expect(container).toSnapshot();
     });
   });

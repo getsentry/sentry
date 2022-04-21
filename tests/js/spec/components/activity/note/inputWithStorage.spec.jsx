@@ -14,10 +14,9 @@ describe('NoteInputWithStorage', function () {
     memberList: [],
     teams: [],
   };
-  const routerContext = TestStubs.routerContext();
 
   const createWrapper = props =>
-    mountWithTheme(<NoteInputWithStorage {...defaultProps} {...props} />, routerContext);
+    mountWithTheme(<NoteInputWithStorage {...defaultProps} {...props} />);
 
   it('loads draft item from local storage when mounting', function () {
     localStorage.getItem.mockImplementation(() => JSON.stringify({item1: 'saved item'}));

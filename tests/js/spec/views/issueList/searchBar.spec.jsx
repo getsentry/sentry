@@ -27,7 +27,7 @@ describe('IssueListSearchBar', function () {
 
   beforeEach(function () {
     TagStore.reset();
-    TagStore.onLoadTagsSuccess(TestStubs.Tags());
+    TagStore.loadTagsSuccess(TestStubs.Tags());
     supportedTags = TagStore.getAllTags();
     // Add a tag that is preseeded with values.
     supportedTags.is = {
@@ -283,7 +283,7 @@ describe('IssueListSearchBar', function () {
         organization,
       };
       const searchBar = mountWithTheme(<IssueListSearchBar {...props} />, routerContext);
-      searchBar.find('ActionButton[data-test-id="pin-icon"]').simulate('click');
+      searchBar.find('ActionButton[data-test-id="pin-icon"] button').simulate('click');
 
       expect(pinSearch).toHaveBeenLastCalledWith(
         expect.anything(),
@@ -308,7 +308,9 @@ describe('IssueListSearchBar', function () {
       };
       const searchBar = mountWithTheme(<IssueListSearchBar {...props} />, routerContext);
 
-      searchBar.find('ActionButton[aria-label="Unpin this search"]').simulate('click');
+      searchBar
+        .find('ActionButton[aria-label="Unpin this search"] button')
+        .simulate('click');
 
       expect(unpinSearch).toHaveBeenLastCalledWith(
         expect.anything(),

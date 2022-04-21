@@ -12,13 +12,18 @@ jest.mock('sentry/utils/localStorage', () => ({
 }));
 
 describe('PageFiltersStore', function () {
+  beforeEach(() => {
+    PageFiltersStore.init();
+  });
   afterEach(function () {
     PageFiltersStore.reset();
+    PageFiltersStore.teardown();
   });
 
   it('getState()', function () {
     expect(PageFiltersStore.getState()).toEqual({
       isReady: false,
+      desyncedFilters: new Set(),
       pinnedFilters: new Set(),
       selection: {
         projects: [],

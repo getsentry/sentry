@@ -2,7 +2,6 @@ import * as React from 'react';
 import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Badge from 'sentry/components/badge';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -14,37 +13,17 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconPause, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
-import withProjects from 'sentry/utils/withProjects';
+import useProjects from 'sentry/utils/useProjects';
 
 import SavedSearchTab from './savedSearchTab';
 import {getTabs, IssueSortOptions, Query, QueryCounts, TAB_MAX_COUNT} from './utils';
-
-type WrapGuideProps = {
-  children: React.ReactElement;
-  query: string;
-  tabQuery: string;
-  to: React.ComponentProps<typeof GuideAnchor>['to'];
-};
-
-function WrapGuideTabs({children, tabQuery, query, to}: WrapGuideProps) {
-  if (tabQuery === Query.FOR_REVIEW) {
-    return (
-      <GuideAnchor target="inbox_guide_tab" disabled={query === Query.FOR_REVIEW} to={to}>
-        <GuideAnchor target="for_review_guide_tab">{children}</GuideAnchor>
-      </GuideAnchor>
-    );
-  }
-
-  return children;
-}
 
 type Props = {
   displayReprocessingTab: boolean;
   onRealtimeChange: (realtime: boolean) => void;
   organization: Organization;
-  projects: Project[];
   query: string;
   queryCounts: QueryCounts;
   realtimeActive: boolean;
@@ -68,8 +47,8 @@ function IssueListHeader({
   router,
   displayReprocessingTab,
   selectedProjectIds,
-  projects,
 }: Props) {
+  const {projects} = useProjects();
   const tabs = getTabs(organization);
   const visibleTabs = displayReprocessingTab
     ? tabs
@@ -132,32 +111,30 @@ function IssueListHeader({
             return (
               <li key={tabQuery} className={query === tabQuery ? 'active' : ''}>
                 <Link to={to} onClick={() => trackTabClick(tabQuery)}>
-                  <WrapGuideTabs query={query} tabQuery={tabQuery} to={to}>
-                    <Tooltip
-                      title={tooltipTitle}
-                      position="bottom"
-                      isHoverable={tooltipHoverable}
-                      delay={1000}
-                    >
-                      {queryName}{' '}
-                      {queryCounts[tabQuery]?.count > 0 && (
-                        <Badge
-                          type={
-                            tabQuery === Query.FOR_REVIEW &&
-                            queryCounts[tabQuery]!.count > 0
-                              ? 'review'
-                              : 'default'
-                          }
-                        >
-                          <QueryCount
-                            hideParens
-                            count={queryCounts[tabQuery].count}
-                            max={queryCounts[tabQuery].hasMore ? TAB_MAX_COUNT : 1000}
-                          />
-                        </Badge>
-                      )}
-                    </Tooltip>
-                  </WrapGuideTabs>
+                  <Tooltip
+                    title={tooltipTitle}
+                    position="bottom"
+                    isHoverable={tooltipHoverable}
+                    delay={1000}
+                  >
+                    {queryName}{' '}
+                    {queryCounts[tabQuery]?.count > 0 && (
+                      <Badge
+                        type={
+                          tabQuery === Query.FOR_REVIEW &&
+                          queryCounts[tabQuery]!.count > 0
+                            ? 'review'
+                            : 'default'
+                        }
+                      >
+                        <QueryCount
+                          hideParens
+                          count={queryCounts[tabQuery].count}
+                          max={queryCounts[tabQuery].hasMore ? TAB_MAX_COUNT : 1000}
+                        />
+                      </Badge>
+                    )}
+                  </Tooltip>
                 </Link>
               </li>
             );
@@ -178,7 +155,7 @@ function IssueListHeader({
   );
 }
 
-export default withProjects(IssueListHeader);
+export default IssueListHeader;
 
 const StyledLayoutTitle = styled(Layout.Title)`
   margin-top: ${space(0.5)};

@@ -1,4 +1,4 @@
-export default `
+const overflowEllipsisLeft = `
   display: block;
   white-space: nowrap;
   overflow: hidden;
@@ -7,3 +7,5 @@ export default `
   direction: rtl;
   text-align: left;
 `;
+
+export default overflowEllipsisLeft;

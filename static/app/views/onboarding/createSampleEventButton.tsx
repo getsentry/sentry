@@ -8,7 +8,7 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import Button from 'sentry/components/button';
+import Button, {ButtonProps} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {trackAdhocEvent, trackAnalyticsEvent} from 'sentry/utils/analytics';
@@ -16,12 +16,12 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
-type Props = React.ComponentProps<typeof Button> & {
+type CreateSampleEventButtonProps = {
   api: Client;
   organization: Organization;
   source: string;
   project?: Project;
-};
+} & ButtonProps;
 
 type State = {
   creating: boolean;
@@ -41,7 +41,9 @@ async function latestEventAvailable(
     if (retries > EVENT_POLL_RETRIES) {
       return {eventCreated: false, retries: retries - 1};
     }
-    await new Promise(resolve => setTimeout(resolve, EVENT_POLL_INTERVAL));
+
+    await new Promise(resolve => window.setTimeout(resolve, EVENT_POLL_INTERVAL));
+
     try {
       await api.requestPromise(`/issues/${groupID}/events/latest/`);
       return {eventCreated: true, retries};
@@ -51,7 +53,10 @@ async function latestEventAvailable(
   }
 }
 
-class CreateSampleEventButton extends React.Component<Props, State> {
+class CreateSampleEventButton extends React.Component<
+  CreateSampleEventButtonProps,
+  State
+> {
   state: State = {
     creating: false,
   };

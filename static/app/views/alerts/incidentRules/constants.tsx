@@ -4,6 +4,7 @@ import {AggregationKey, LooseFieldKey} from 'sentry/utils/discover/fields';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {
   AlertRuleThresholdType,
+  AlertRuleTriggerType,
   Dataset,
   Datasource,
   EventTypes,
@@ -97,15 +98,6 @@ export function getWizardAlertFieldConfig(
 }
 
 /**
- * Allowed aggregations for alerts created from wizard
- */
-export const wizardAlertFieldConfig: OptionConfig = {
-  aggregations: commonAggregations,
-  fields: ['transaction.duration'],
-  measurementKeys: Object.keys(WEB_VITAL_DETAILS),
-};
-
-/**
  * Allowed transaction aggregations for alerts
  */
 export const transactionFieldConfig: OptionConfig = {
@@ -114,7 +106,7 @@ export const transactionFieldConfig: OptionConfig = {
   measurementKeys: Object.keys(WEB_VITAL_DETAILS),
 };
 
-export function createDefaultTrigger(label: 'critical' | 'warning'): Trigger {
+export function createDefaultTrigger(label: AlertRuleTriggerType): Trigger {
   return {
     label,
     alertThreshold: '',
@@ -132,7 +124,10 @@ export function createDefaultRule(
     query: '',
     timeWindow: 60,
     thresholdPeriod: 1,
-    triggers: [createDefaultTrigger('critical'), createDefaultTrigger('warning')],
+    triggers: [
+      createDefaultTrigger(AlertRuleTriggerType.CRITICAL),
+      createDefaultTrigger(AlertRuleTriggerType.WARNING),
+    ],
     projects: [],
     environment: null,
     resolveThreshold: '',

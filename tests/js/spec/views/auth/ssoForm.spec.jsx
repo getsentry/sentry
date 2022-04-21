@@ -16,7 +16,6 @@ function doSso(wrapper, apiRequest) {
 }
 
 describe('SsoForm', function () {
-  const routerContext = TestStubs.routerContext();
   const api = new MockApiClient();
 
   it('renders', function () {
@@ -24,10 +23,7 @@ describe('SsoForm', function () {
       serverHostname: 'testserver',
     };
 
-    const wrapper = mountWithTheme(
-      <SsoForm api={api} authConfig={authConfig} />,
-      routerContext
-    );
+    const wrapper = mountWithTheme(<SsoForm api={api} authConfig={authConfig} />);
 
     expect(wrapper.find('.help-block').text()).toBe(
       'Your ID is the slug after the hostname. e.g. testserver/acme is acme.'
@@ -46,10 +42,7 @@ describe('SsoForm', function () {
 
     const authConfig = {};
 
-    const wrapper = mountWithTheme(
-      <SsoForm api={api} authConfig={authConfig} />,
-      routerContext
-    );
+    const wrapper = mountWithTheme(<SsoForm api={api} authConfig={authConfig} />);
     doSso(wrapper, mockRequest);
 
     await tick();
@@ -69,10 +62,7 @@ describe('SsoForm', function () {
     });
 
     const authConfig = {};
-    const wrapper = mountWithTheme(
-      <SsoForm api={api} authConfig={authConfig} />,
-      routerContext
-    );
+    const wrapper = mountWithTheme(<SsoForm api={api} authConfig={authConfig} />);
 
     doSso(wrapper, mockRequest);
 

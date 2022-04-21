@@ -519,7 +519,7 @@ class ActualMinimap extends React.PureComponent<{
   renderRootSpan(): React.ReactNode {
     const {spans, generateBounds} = this.props;
 
-    return spans.map(payload => {
+    return spans.map((payload, i) => {
       switch (payload.type) {
         case 'root_span':
         case 'span':
@@ -536,6 +536,7 @@ class ActualMinimap extends React.PureComponent<{
 
           return (
             <MinimapSpanBar
+              key={`${payload.type}-${i}`}
               style={{
                 backgroundColor:
                   payload.type === 'span_group_chain' ? theme.blue300 : spanBarColor,
@@ -543,6 +544,37 @@ class ActualMinimap extends React.PureComponent<{
                 width: spanWidth,
               }}
             />
+          );
+        }
+        case 'span_group_siblings': {
+          const {spanSiblingGrouping} = payload;
+
+          return (
+            <MinimapSiblingGroupBar
+              data-test-id="minimap-sibling-group-bar"
+              key={`${payload.type}-${i}`}
+            >
+              {spanSiblingGrouping?.map(({span}, index) => {
+                const bounds = generateBounds({
+                  startTimestamp: span.start_timestamp,
+                  endTimestamp: span.timestamp,
+                });
+                const {left: spanLeft, width: spanWidth} = this.getBounds(bounds);
+
+                return (
+                  <MinimapSpanBar
+                    style={{
+                      backgroundColor: theme.blue300,
+                      left: spanLeft,
+                      width: spanWidth,
+                      minWidth: 0,
+                      position: 'absolute',
+                    }}
+                    key={index}
+                  />
+                );
+              })}
+            </MinimapSiblingGroupBar>
           );
         }
         default: {
@@ -763,6 +795,15 @@ const MinimapSpanBar = styled('div')`
   min-width: 1px;
   border-radius: 1px;
   box-sizing: border-box;
+`;
+
+const MinimapSiblingGroupBar = styled('div')`
+  display: flex;
+  position: relative;
+  height: 2px;
+  min-height: 2px;
+  max-height: 2px;
+  top: -2px;
 `;
 
 const BackgroundSlider = styled('div')`

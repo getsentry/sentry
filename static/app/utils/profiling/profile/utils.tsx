@@ -1,3 +1,6 @@
+import {Span} from '@sentry/types';
+
+import {defined} from 'sentry/utils';
 import {Frame} from 'sentry/utils/profiling/frame';
 
 type FrameIndex = Record<string | number, Frame>;
@@ -15,12 +18,17 @@ export function createFrameIndex(
 ): FrameIndex {
   if (trace) {
     return (frames as JSSelfProfiling.Frame[]).reduce((acc, frame, index) => {
-      acc[index] = new Frame({
-        key: index,
-        resource:
-          frame.resourceId !== undefined ? trace.resources[frame.resourceId] : undefined,
-        ...frame,
-      });
+      acc[index] = new Frame(
+        {
+          key: index,
+          resource:
+            frame.resourceId !== undefined
+              ? trace.resources[frame.resourceId]
+              : undefined,
+          ...frame,
+        },
+        'web'
+      );
       return acc;
     }, {});
   }
@@ -88,4 +96,20 @@ export function memoizeVariadicByReference<Arguments, Value>(
     cache.value = fn(...args);
     return cache.value;
   };
+}
+
+export function wrapWithSpan<T>(parentSpan: Span | undefined, fn: () => T, options): T {
+  if (!defined(parentSpan)) {
+    return fn();
+  }
+
+  const sentrySpan = parentSpan.startChild(options);
+  try {
+    return fn();
+  } catch (error) {
+    sentrySpan.setStatus('internal_error');
+    throw error;
+  } finally {
+    sentrySpan.finish();
+  }
 }

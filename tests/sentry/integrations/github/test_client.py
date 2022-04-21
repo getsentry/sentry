@@ -1,3 +1,4 @@
+import base64
 from unittest import mock
 
 import responses
@@ -5,6 +6,12 @@ import responses
 from sentry.models import Integration, Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils import TestCase
+
+GITHUB_CODEOWNERS = {
+    "filepath": "CODEOWNERS",
+    "html_url": "https://github.com/org/reponame/CODEOWNERS",
+    "raw": "docs/*    @NisanthanNanthakumar   @getsentry/ecosystem\n* @NisanthanNanthakumar\n",
+}
 
 
 class GitHubAppsClientTest(TestCase):
@@ -159,3 +166,32 @@ class GitHubAppsClientTest(TestCase):
         self.client.get_with_pagination(f"/repos/{self.repo.name}/assignees")
         assert len(responses.calls) == 5
         assert responses.calls[1].response.status_code == 200
+
+    @mock.patch(
+        "sentry.integrations.github.integration.GitHubIntegration.check_file",
+        return_value=GITHUB_CODEOWNERS["html_url"],
+    )
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_get_codeowner_file(self, mock_jwt, mock_check_file):
+        self.config = self.create_code_mapping(
+            repo=self.repo,
+            project=self.project,
+        )
+
+        responses.add(
+            method=responses.POST,
+            url="https://api.github.com/app/installations/1/access_tokens",
+            body='{"token": "12345token", "expires_at": "2030-01-01T00:00:00Z"}',
+            content_type="application/json",
+        )
+        responses.add(
+            method=responses.GET,
+            url=f"https://api.github.com/repos/{self.repo.name}/contents/CODEOWNERS?ref=master",
+            json={"content": base64.b64encode(GITHUB_CODEOWNERS["raw"].encode()).decode("ascii")},
+        )
+        result = self.install.get_codeowner_file(
+            self.config.repository, ref=self.config.default_branch
+        )
+
+        assert result == GITHUB_CODEOWNERS

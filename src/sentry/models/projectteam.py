@@ -4,7 +4,6 @@ from django.db.models.signals import post_delete, post_save
 
 from sentry.constants import ObjectStatus
 from sentry.db.models import BaseManager, FlexibleForeignKey, Model, sane_repr
-from sentry.tasks.code_owners import update_code_owners_schema
 
 if TYPE_CHECKING:
     from sentry.models import Team
@@ -48,23 +47,26 @@ class ProjectTeam(Model):
     __repr__ = sane_repr("project_id", "team_id")
 
 
+def process_resource_change(instance, **kwargs):
+    from sentry.tasks.codeowners import update_code_owners_schema
+
+    return (
+        update_code_owners_schema.apply_async(
+            kwargs={
+                "organization": instance.project.organization,
+                "projects": [instance.project],
+            }
+        ),
+    )
+
+
 post_save.connect(
-    lambda instance, **kwargs: update_code_owners_schema.apply_async(
-        kwargs={
-            "organization": instance.project.organization,
-            "projects": [instance.project],
-        }
-    ),
+    lambda instance, **kwargs: process_resource_change(instance, **kwargs),
     sender=ProjectTeam,
     weak=False,
 )
 post_delete.connect(
-    lambda instance, **kwargs: update_code_owners_schema.apply_async(
-        kwargs={
-            "organization": instance.project.organization,
-            "projects": [instance.project],
-        }
-    ),
+    lambda instance, **kwargs: process_resource_change(instance, **kwargs),
     sender=ProjectTeam,
     weak=False,
 )

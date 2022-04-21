@@ -15,9 +15,8 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import {DisplayModes} from 'sentry/utils/discover/types';
 import withApi from 'sentry/utils/withApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import {Widget} from 'sentry/views/dashboardsV2/types';
+import {DisplayType, Widget} from 'sentry/views/dashboardsV2/types';
 import {eventViewFromWidget} from 'sentry/views/dashboardsV2/utils';
-import {DisplayType} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 
 export type DashboardWidgetQuerySelectorModalOptions = {
   organization: Organization;
@@ -45,7 +44,9 @@ class DashboardWidgetQuerySelectorModal extends React.Component<Props> {
       // Pull a max of 3 valid Y-Axis from the widget
       const yAxisOptions = eventView.getYAxisOptions().map(({value}) => value);
       discoverLocation.query.yAxis = [
-        ...new Set(query.fields.filter(field => yAxisOptions.includes(field))),
+        ...new Set(
+          query.aggregates.filter(aggregate => yAxisOptions.includes(aggregate))
+        ),
       ].slice(0, 3);
       switch (widget.displayType) {
         case DisplayType.BAR:

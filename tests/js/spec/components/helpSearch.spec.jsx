@@ -1,4 +1,4 @@
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import HelpSearch from 'sentry/components/helpSearch';
 
@@ -68,7 +68,7 @@ jest.mock('@sentry-internal/global-search', () => ({
 
 describe('HelpSearch', function () {
   it('produces search results', async function () {
-    mountWithTheme(
+    render(
       <HelpSearch
         entryPoint="sidebar_help"
         renderInput={({getInputProps}) => (

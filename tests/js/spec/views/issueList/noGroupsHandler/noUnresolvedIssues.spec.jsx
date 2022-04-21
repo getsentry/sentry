@@ -1,23 +1,12 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import CongratsRobotsVideo from 'sentry/views/issueList/noGroupsHandler/congratsRobots';
 import NoUnresolvedIssues from 'sentry/views/issueList/noGroupsHandler/noUnresolvedIssues';
-
-// Mocking this because of https://github.com/airbnb/enzyme/issues/2326
-jest.mock('sentry/views/issueList/noGroupsHandler/congratsRobots', () =>
-  jest.fn(() => null)
-);
 
 describe('NoUnresolvedIssues', function () {
   it('renders', async function () {
-    const wrapper = mountWithTheme(<NoUnresolvedIssues />);
+    render(<NoUnresolvedIssues title="No issues" />);
 
-    // Need this because of suspense
-    await tick();
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('Message').exists()).toBe(true);
-    expect(wrapper.find(CongratsRobotsVideo).exists()).toBe(true);
+    expect(screen.getByText('No issues')).toBeInTheDocument();
+    expect(await screen.findByLabelText('Congratulations video')).toBeInTheDocument();
   });
 });

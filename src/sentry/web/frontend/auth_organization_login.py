@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from sentry.auth.helper import AuthHelper
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.models import AuthProvider, Organization, OrganizationStatus
+from sentry.utils.auth import initiate_login
 from sentry.web.frontend.auth_login import AuthLoginView
 
 
@@ -56,6 +57,12 @@ class AuthOrganizationLoginView(AuthLoginView):
             return self.redirect(reverse("sentry-login"))
 
         request.session.set_test_cookie()
+
+        # check on POST to handle
+        # multiple tabs case well now that we include redirect in url
+        if request.method == "POST":
+            next_uri = self.get_next_uri(request)
+            initiate_login(request, next_uri)
 
         try:
             auth_provider = AuthProvider.objects.get(organization=organization)

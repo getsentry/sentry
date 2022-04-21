@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import ViewEditDashboard from 'sentry/views/dashboardsV2/view';
 
@@ -27,7 +27,7 @@ describe('Dashboards > ViewEditDashboard', function () {
         title: 'test',
       },
     };
-    mountWithTheme(
+    render(
       <ViewEditDashboard
         location={TestStubs.location(location)}
         organization={initialData.organization}

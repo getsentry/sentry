@@ -3,6 +3,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 import UserFeedback from 'sentry/views/userFeedback';
 
 describe('UserFeedback', function () {
@@ -49,7 +50,12 @@ describe('UserFeedback', function () {
       headers: {Link: pageLinks},
     });
 
-    const wrapper = mountWithTheme(<UserFeedback {...params} />, routerContext);
+    const wrapper = mountWithTheme(
+      <OrganizationContext.Provider value={organization}>
+        <UserFeedback {...params} />
+      </OrganizationContext.Provider>,
+      routerContext
+    );
     await tick();
     wrapper.update();
 
@@ -66,7 +72,12 @@ describe('UserFeedback', function () {
         orgId: organization.slug,
       },
     };
-    const wrapper = mountWithTheme(<UserFeedback {...params} />, routerContext);
+    const wrapper = mountWithTheme(
+      <OrganizationContext.Provider value={organization}>
+        <UserFeedback {...params} />
+      </OrganizationContext.Provider>,
+      routerContext
+    );
 
     expect(wrapper.find('NoProjectMessage').exists()).toBe(true);
     expect(wrapper.find('UserFeedbackEmpty').exists()).toBe(false);
@@ -87,7 +98,12 @@ describe('UserFeedback', function () {
         orgId: organization.slug,
       },
     };
-    const wrapper = mountWithTheme(<UserFeedback {...params} />, routerContext);
+    const wrapper = mountWithTheme(
+      <OrganizationContext.Provider value={organization}>
+        <UserFeedback {...params} />
+      </OrganizationContext.Provider>,
+      routerContext
+    );
 
     expect(wrapper.find('UserFeedbackEmpty').prop('projectIds')).toEqual([]);
   });
@@ -107,7 +123,12 @@ describe('UserFeedback', function () {
         orgId: organization.slug,
       },
     };
-    const wrapper = mountWithTheme(<UserFeedback {...params} />, routerContext);
+    const wrapper = mountWithTheme(
+      <OrganizationContext.Provider value={organization}>
+        <UserFeedback {...params} />
+      </OrganizationContext.Provider>,
+      routerContext
+    );
 
     expect(wrapper.find('UserFeedbackEmpty').prop('projectIds')).toEqual(['112']);
   });
@@ -127,7 +148,12 @@ describe('UserFeedback', function () {
         orgId: organization.slug,
       },
     };
-    const wrapper = mountWithTheme(<UserFeedback {...params} />, routerContext);
+    const wrapper = mountWithTheme(
+      <OrganizationContext.Provider value={organization}>
+        <UserFeedback {...params} />
+      </OrganizationContext.Provider>,
+      routerContext
+    );
 
     expect(wrapper.find('UserFeedbackEmpty').prop('projectIds')).toEqual(['112', '113']);
   });

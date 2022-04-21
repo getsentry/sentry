@@ -1,22 +1,27 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import pick from 'lodash/pick';
+import omit from 'lodash/omit';
 
 import MarkArea from 'sentry/components/charts/components/markArea';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {LineChartSeries} from 'sentry/components/charts/lineChart';
+import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import AnomaliesQuery, {
   AnomalyInfo,
   AnomalyPayload,
+  ChildrenProps,
 } from 'sentry/utils/performance/anomalies/anomaliesQuery';
+import {decodeScalar} from 'sentry/utils/queryString';
 import theme from 'sentry/utils/theme';
-import _DurationChart from 'sentry/views/performance/charts/chart';
 
 import {GenericPerformanceWidget} from '../../landing/widgets/components/performanceWidget';
 import {WidgetEmptyStateWarning} from '../../landing/widgets/components/selectableList';
@@ -39,6 +44,10 @@ type Props = {
   transactionName: string;
 };
 
+type AnomaliesSectionProps = Props & {
+  queryData: ChildrenProps;
+};
+
 const anomalyAreaName = (anomaly: AnomalyInfo) => `#${anomaly.id}`;
 const transformAnomalyToArea = (
   anomaly: AnomalyInfo
@@ -47,17 +56,20 @@ const transformAnomalyToArea = (
   {xAxis: anomaly.end},
 ];
 
-const transformAnomalyData = (_: any, results: {data: AnomalyPayload}) => {
+const transformAnomalyData = (
+  _: any,
+  results: {data: AnomalyPayload; error: null | string; isLoading: boolean}
+) => {
   const data: LineChartSeries[] = [];
   const resultData = results.data;
 
   if (!resultData) {
     return {
-      isLoading: false,
-      isErrored: false,
+      isLoading: results.isLoading,
+      isErrored: !!results.error,
       data: undefined,
       hasData: false,
-      loading: false,
+      loading: results.isLoading,
     };
   }
 
@@ -160,11 +172,11 @@ const transformAnomalyData = (_: any, results: {data: AnomalyPayload}) => {
   });
 
   return {
-    isLoading: false,
-    isErrored: false,
+    isLoading: results.isLoading,
+    isErrored: !!results.error,
     data,
     hasData: true,
-    loading: false,
+    loading: results.isLoading,
   };
 };
 
@@ -174,24 +186,17 @@ type DataType = {
   chart: AnomalyData;
 };
 
-function Anomalies(props: Props) {
+function Anomalies(props: AnomaliesSectionProps) {
   const height = 250;
   const chartColor = theme.charts.colors[0];
 
   const chart = useMemo<QueryDefinition<DataType, WidgetDataResult>>(() => {
     return {
       fields: '',
-      component: provided => (
-        <AnomaliesQuery
-          orgSlug={props.organization.slug}
-          location={props.location}
-          eventView={props.eventView}
-          {...pick(provided, 'children')}
-        />
-      ),
+      component: provided => <Fragment>{provided.children(props.queryData)}</Fragment>,
       transform: transformAnomalyData,
     };
-  }, []);
+  }, [props.eventView, props.queryData]);
 
   return (
     <GenericPerformanceWidget<DataType>
@@ -242,25 +247,63 @@ function Anomalies(props: Props) {
 }
 
 function AnomaliesContent(props: Props) {
+  const {location, organization, eventView} = props;
+  const query = decodeScalar(location.query.query, '');
+
+  function handleChange(key: string) {
+    return function (value: string | undefined) {
+      const queryParams = normalizeDateTimeParams({
+        ...(location.query || {}),
+        [key]: value,
+      });
+
+      // do not propagate pagination when making a new search
+      const toOmit = ['cursor'];
+      if (!defined(value)) {
+        toOmit.push(key);
+      }
+      const searchQueryParams = omit(queryParams, toOmit);
+
+      browserHistory.push({
+        ...location,
+        query: searchQueryParams,
+      });
+    };
+  }
   return (
     <Layout.Main fullWidth>
-      <Anomalies {...props} />
-      <TableContainer>
-        <AnomaliesQuery
-          orgSlug={props.organization.slug}
-          location={props.location}
-          eventView={props.eventView}
-        >
-          {({data}) => (
-            <AnomaliesTable anomalies={data?.anomalies} {...props} isLoading={false} />
-          )}
-        </AnomaliesQuery>
-      </TableContainer>
+      <SearchBar
+        organization={organization}
+        projectIds={eventView.project}
+        query={query}
+        fields={eventView.fields}
+        onSearch={handleChange('query')}
+      />
+      <AnomaliesQuery
+        organization={organization}
+        location={location}
+        eventView={eventView}
+      >
+        {queryData => (
+          <Fragment>
+            <Container>
+              <Anomalies {...props} queryData={queryData} />
+            </Container>
+            <Container>
+              <AnomaliesTable
+                anomalies={queryData.data?.anomalies}
+                {...props}
+                isLoading={queryData.isLoading}
+              />
+            </Container>
+          </Fragment>
+        )}
+      </AnomaliesQuery>
     </Layout.Main>
   );
 }
 
-const TableContainer = styled('div')`
+const Container = styled('div')`
   margin-top: ${space(2)};
 `;
 

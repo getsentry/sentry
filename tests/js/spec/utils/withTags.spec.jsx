@@ -1,4 +1,4 @@
-import {act, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import TagStore from 'sentry/stores/tagStore';
 import withTags from 'sentry/utils/withTags';
@@ -24,13 +24,13 @@ describe('withTags HoC', function () {
     };
 
     const Container = withTags(MyComponent);
-    mountWithTheme(<Container other="value" />);
+    render(<Container other="value" />);
 
     // Should forward props.
     expect(screen.getByText('value')).toBeInTheDocument();
 
     act(() => {
-      TagStore.onLoadTagsSuccess([{name: 'Mechanism', key: 'mechanism', count: 1}]);
+      TagStore.loadTagsSuccess([{name: 'Mechanism', key: 'mechanism', count: 1}]);
     });
 
     // Should forward prop

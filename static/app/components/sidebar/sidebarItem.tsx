@@ -101,7 +101,8 @@ const SidebarItem = ({
     (labelString === 'Discover' && location.pathname.includes('/discover/')) ||
     (labelString === 'Dashboards' &&
       (location.pathname.includes('/dashboards/') ||
-        location.pathname.includes('/dashboard/'))) ||
+        location.pathname.includes('/dashboard/')) &&
+      !location.pathname.startsWith('/settings/')) ||
     // TODO: this won't be necessary once we remove settingsHome
     (labelString === 'Settings' && location.pathname.startsWith('/settings/')) ||
     (labelString === 'Alerts' &&

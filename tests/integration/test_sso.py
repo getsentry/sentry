@@ -20,7 +20,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         self.login_as(user)
 
         path = f"/{organization.slug}/"
-        redirect_uri = f"/auth/login/{organization.slug}/"
+        redirect_uri = f"/auth/login/{organization.slug}/?next=%2Ffoo%2F"
 
         # we should be redirecting the user to the authentication form as they
         # haven't verified this specific organization

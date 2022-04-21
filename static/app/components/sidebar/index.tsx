@@ -6,17 +6,16 @@ import {Location} from 'history';
 import * as qs from 'query-string';
 
 import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
-import SidebarPanelActions from 'sentry/actions/sidebarPanelActions';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {
+  doesPathHaveNewFilters,
   extractSelectionParameters,
-  getPathsWithNewFilters,
 } from 'sentry/components/organizations/pageFilters/utils';
 import {
   IconChevron,
-  IconGraph,
+  IconDashboard,
   IconIssues,
   IconLab,
   IconLightning,
@@ -60,6 +59,14 @@ type Props = {
   organization?: Organization;
 };
 
+function togglePanel(panel: SidebarPanelKey) {
+  SidebarPanelStore.togglePanel(panel);
+}
+
+function hidePanel() {
+  SidebarPanelStore.hidePanel();
+}
+
 function Sidebar({location, organization}: Props) {
   const config = useLegacyStore(ConfigStore);
   const preferences = useLegacyStore(PreferencesStore);
@@ -72,9 +79,6 @@ function Sidebar({location, organization}: Props) {
     const action = collapsed ? showSidebar : hideSidebar;
     action();
   };
-
-  const togglePanel = (panel: SidebarPanelKey) => SidebarPanelActions.togglePanel(panel);
-  const hidePanel = () => SidebarPanelActions.hidePanel();
 
   const bcl = document.body.classList;
 
@@ -116,7 +120,7 @@ function Sidebar({location, organization}: Props) {
     // of new page filter selection. You must pin your filters in which case
     // they will persist anyway.
     if (organization) {
-      if (getPathsWithNewFilters(organization).includes(pathname)) {
+      if (doesPathHaveNewFilters(pathname, organization)) {
         return;
       }
     }
@@ -283,6 +287,21 @@ function Sidebar({location, organization}: Props) {
     </Feature>
   );
 
+  const replays = hasOrganization && (
+    <Feature features={['session-replay']} organization={organization}>
+      <SidebarItem
+        {...sidebarItemProps}
+        onClick={(_id, evt) =>
+          navigateWithPageFilters(`/organizations/${organization.slug}/replays/`, evt)
+        }
+        icon={<IconLab size="md" />}
+        label={t('Replays')}
+        to={`/organizations/${organization.slug}/replays/`}
+        id="replays"
+      />
+    </Feature>
+  );
+
   const dashboards = hasOrganization && (
     <Feature
       hookName="feature-disabled:dashboards-sidebar-item"
@@ -296,7 +315,7 @@ function Sidebar({location, organization}: Props) {
         onClick={(_id, evt) =>
           navigateWithPageFilters(`/organizations/${organization.slug}/dashboards/`, evt)
         }
-        icon={<IconGraph size="md" />}
+        icon={<IconDashboard size="md" />}
         label={t('Dashboards')}
         to={`/organizations/${organization.slug}/dashboards/`}
         id="customizable-dashboards"
@@ -384,6 +403,7 @@ function Sidebar({location, organization}: Props) {
               </SidebarSection>
 
               <SidebarSection>{monitors}</SidebarSection>
+              <SidebarSection>{replays}</SidebarSection>
 
               <SidebarSection>
                 {activity}

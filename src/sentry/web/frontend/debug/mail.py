@@ -15,6 +15,8 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.views.generic import View
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry import eventstore
 from sentry.app import tsdb
@@ -39,7 +41,9 @@ from sentry.models import (
 )
 from sentry.notifications.notifications.activity import EMAIL_CLASSES_BY_TYPE
 from sentry.notifications.notifications.base import BaseNotification
+from sentry.notifications.notifications.digest import DigestNotification
 from sentry.notifications.types import GroupSubscriptionReason
+from sentry.notifications.utils import get_group_settings_link, get_rules
 from sentry.utils import loremipsum
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.email import inline_css
@@ -179,22 +183,18 @@ class ActivityMailPreview:
         return context
 
     def text_body(self):
-        return render_to_string(self.email.get_template(), context=self.get_context())
+        txt_template = f"{self.email.template_path}.txt"
+        return render_to_string(txt_template, context=self.get_context())
 
     def html_body(self):
+        html_template = f"{self.email.template_path}.html"
         try:
-            return inline_css(
-                render_to_string(self.email.get_html_template(), context=self.get_context())
-            )
+            return inline_css(render_to_string(html_template, context=self.get_context()))
         except Exception:
             import traceback
 
             traceback.print_exc()
             raise
-
-
-from rest_framework.request import Request
-from rest_framework.response import Response
 
 
 class ActivityMailDebugView(View):
@@ -266,7 +266,7 @@ def alert(request):
     group.message = event.search_message
     group.data = {"type": event_type.key, "metadata": event_type.get_metadata(data)}
 
-    rule = Rule(label="An example rule")
+    rule = Rule(id=1, label="An example rule")
 
     # XXX: this interface_list code needs to be the same as in
     #      src/sentry/mail/adapter.py
@@ -283,10 +283,13 @@ def alert(request):
         text_template="sentry/emails/error.txt",
         context={
             "rule": rule,
+            "rules": get_rules([rule], org, project),
             "group": group,
             "event": event,
             "timezone": pytz.timezone("Europe/Vienna"),
-            "link": "http://example.com/link",
+            # http://testserver/organizations/example/issues/<issue-id>/?referrer=alert_email
+            #       &alert_type=email&alert_timestamp=<ts>&alert_rule_id=1
+            "link": get_group_settings_link(group, None, get_rules([rule], org, project), 1337),
             "interfaces": interface_list,
             "tags": event.tags,
             "project_label": project.slug,
@@ -352,12 +355,12 @@ def digest(request):
 
     group_generator = make_group_generator(random, project)
 
-    for i in range(random.randint(1, 30)):
+    for _ in range(random.randint(1, 30)):
         group = next(group_generator)
         state["groups"][group.id] = group
 
         offset = timedelta(seconds=0)
-        for i in range(random.randint(1, 10)):
+        for _ in range(random.randint(1, 10)):
             offset += timedelta(seconds=random.random() * 120)
 
             data = dict(load_data("python"))
@@ -395,14 +398,8 @@ def digest(request):
     digest = build_digest(project, records, state)[0]
     start, end, counts = get_digest_metadata(digest)
 
-    context = {
-        "project": project,
-        "counts": counts,
-        "digest": digest,
-        "start": start,
-        "end": end,
-        "referrer": "digest_email",
-    }
+    rule_details = get_rules(list(rules.values()), org, project)
+    context = DigestNotification.build_context(digest, project, org, rule_details, 1337)
     add_unsubscribe_link(context)
 
     return MailPreview(
@@ -693,11 +690,7 @@ def render_preview_email_for_notification(
 ) -> MutableMapping[str, Any]:
     # remove unneeded fields
     basic_args = get_builder_args(notification, recipient)
-    args = {
-        k: v
-        for k, v in basic_args.items()
-        if k not in ["headers", "reference", "reply_reference", "subject"]
-    }
+    args = {k: v for k, v in basic_args.items() if k not in ["headers", "reference", "subject"]}
     # convert subject back to a string
     args["subject"] = basic_args["subject"].decode("utf-8")
 

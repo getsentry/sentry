@@ -1,11 +1,11 @@
-import Link from 'sentry/components/links/link';
+import type {LinkProps} from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {Project} from 'sentry/types';
 import {DisplayModes} from 'sentry/utils/discover/types';
 import {IncidentRule} from 'sentry/views/alerts/incidentRules/types';
 import {getIncidentRuleDiscoverUrl} from 'sentry/views/alerts/utils/getIncidentRuleDiscoverUrl';
 
-type PresetCta = {
+interface PresetCta {
   /**
    * The CTA text
    */
@@ -13,14 +13,14 @@ type PresetCta = {
   /**
    * The location to direct to upon clicking the CTA.
    */
-  to: React.ComponentProps<typeof Link>['to'];
+  to: LinkProps['to'];
   /**
    * The tooltip title for the CTA button, may be empty.
    */
   title?: string;
-};
+}
 
-type PresetCtaOpts = {
+interface PresetCtaOpts {
   orgSlug: string;
   projects: Project[];
   end?: string;
@@ -28,7 +28,7 @@ type PresetCtaOpts = {
   fields?: string[];
   rule?: IncidentRule;
   start?: string;
-};
+}
 
 /**
  * Get the CTA used for alert rules that do not have a preset
@@ -58,6 +58,7 @@ export function makeDefaultCta({
     to: getIncidentRuleDiscoverUrl({
       orgSlug,
       projects,
+      environment: rule.environment,
       rule,
       eventType,
       start,

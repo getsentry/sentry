@@ -1,8 +1,7 @@
 import {Component, Fragment} from 'react';
-import ReactDOM from 'react-dom';
-import {Manager, Popper, Reference} from 'react-popper';
+import {createPortal} from 'react-dom';
+import {Manager, Popper, PopperProps, Reference} from 'react-popper';
 import styled from '@emotion/styled';
-import * as PopperJS from 'popper.js';
 
 import MenuHeader from 'sentry/components/actions/menuHeader';
 import CheckboxFancy from 'sentry/components/checkboxFancy/checkboxFancy';
@@ -208,7 +207,7 @@ class TeamKeyTransaction extends Component<Props, State> {
       return null;
     }
 
-    const modifiers: PopperJS.Modifiers = {
+    const modifiers: PopperProps['modifiers'] = {
       hide: {
         enabled: false,
       },
@@ -219,7 +218,7 @@ class TeamKeyTransaction extends Component<Props, State> {
       },
     };
 
-    return ReactDOM.createPortal(
+    return createPortal(
       <Popper placement="top" modifiers={modifiers}>
         {({ref: popperRef, style, placement}) => (
           <DropdownWrapper

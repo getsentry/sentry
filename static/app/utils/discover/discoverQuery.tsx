@@ -1,10 +1,11 @@
-import * as React from 'react';
-
 import {MetaType} from 'sentry/utils/discover/eventView';
 import withApi from 'sentry/utils/withApi';
 import {TransactionThresholdMetric} from 'sentry/views/performance/transactionSummary/transactionThresholdModal';
 
-import GenericDiscoverQuery, {DiscoverQueryProps} from './genericDiscoverQuery';
+import GenericDiscoverQuery, {
+  DiscoverQueryProps,
+  GenericChildrenProps,
+} from './genericDiscoverQuery';
 
 /**
  * An individual row in a DiscoverQuery result
@@ -24,10 +25,14 @@ export type TableData = {
 
 export type TableDataWithTitle = TableData & {title: string};
 
-export type DiscoverQueryPropsWithThresholds = DiscoverQueryProps & {
+type DiscoverQueryPropsWithThresholds = DiscoverQueryProps & {
   transactionName?: string;
   transactionThreshold?: number;
   transactionThresholdMetric?: TransactionThresholdMetric;
+};
+
+type DiscoverQueryComponentProps = DiscoverQueryPropsWithThresholds & {
+  children: (props: GenericChildrenProps<TableData>) => React.ReactNode;
 };
 
 function shouldRefetchData(
@@ -41,7 +46,7 @@ function shouldRefetchData(
   );
 }
 
-function DiscoverQuery(props: DiscoverQueryPropsWithThresholds) {
+function DiscoverQuery(props: DiscoverQueryComponentProps) {
   return (
     <GenericDiscoverQuery<TableData, DiscoverQueryPropsWithThresholds>
       route="eventsv2"

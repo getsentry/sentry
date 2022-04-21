@@ -1,12 +1,8 @@
-import {
-  mountWithTheme,
-  screen,
-  userEvent,
-  waitFor,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {StackTracePreview} from 'sentry/components/stacktracePreview';
-import {EntryType, Event} from 'sentry/types/event';
+import {EventError} from 'sentry/types';
+import {EntryType, Event, ExceptionType, ExceptionValue, Frame} from 'sentry/types/event';
 import useApi from 'sentry/utils/useApi';
 
 const makeEvent = (event: Partial<Event> = {}): Event => {
@@ -31,7 +27,7 @@ describe('StackTracePreview', () => {
     // @ts-ignore useApi is mocked
     useApi.mockReturnValue(api);
 
-    mountWithTheme(
+    render(
       <StackTracePreview
         issueId="issue"
         eventId="event_id"
@@ -59,7 +55,7 @@ describe('StackTracePreview', () => {
     // @ts-ignore useApi is mocked
     useApi.mockReturnValue(api);
 
-    mountWithTheme(
+    render(
       <StackTracePreview
         issueId="issue"
         organization={TestStubs.Organization({slug: 'org_slug'})}
@@ -85,7 +81,7 @@ describe('StackTracePreview', () => {
     // @ts-ignore useApi is mocked
     useApi.mockReturnValue(api);
 
-    mountWithTheme(
+    render(
       <StackTracePreview
         issueId="issue"
         organization={TestStubs.Organization({slug: 'org_slug'})}
@@ -107,7 +103,7 @@ describe('StackTracePreview', () => {
     // @ts-ignore useApi is mocked
     useApi.mockReturnValue(api);
 
-    mountWithTheme(
+    render(
       <StackTracePreview
         issueId="issue"
         organization={TestStubs.Organization({slug: 'org_slug'})}
@@ -127,36 +123,63 @@ describe('StackTracePreview', () => {
     ['stack-trace-content-v2', ['grouping-stacktrace-ui']],
   ])('renders %s', async (component, features) => {
     const api = new MockApiClient();
-    jest.spyOn(api, 'requestPromise').mockResolvedValue(
-      makeEvent({
-        id: 'event_id',
-        entries: [
-          {
-            // @ts-ignore, tbc what would be the right type here?
-            type: EntryType.EXCEPTION,
-            data: {
-              values: [
-                {
-                  stacktrace: {
-                    hasSystemFrames: false,
-                    registers: {},
-                    framesOmitted: 0,
-                    frames: [
-                      {colNo: 0, fileName: 'file.js', function: 'throwError', lineNo: 0},
-                    ],
-                  },
-                },
-              ],
-            },
-          },
-        ],
-      })
-    );
+
+    const frame: Frame = {
+      colNo: 0,
+      filename: 'file.js',
+      function: 'throwError',
+      lineNo: 0,
+      absPath: null,
+      context: [],
+      errors: null,
+      inApp: false,
+      instructionAddr: null,
+      module: null,
+      package: null,
+      platform: null,
+      rawFunction: null,
+      symbol: null,
+      symbolAddr: null,
+      trust: undefined,
+      vars: null,
+    };
+    const thread: ExceptionValue = {
+      stacktrace: {
+        hasSystemFrames: false,
+        registers: {},
+        framesOmitted: 0,
+        frames: [frame],
+      },
+      mechanism: null,
+      module: null,
+      rawStacktrace: null,
+      threadId: null,
+      type: '',
+      value: '',
+    };
+
+    const exceptionValue: ExceptionType = {
+      values: [thread],
+      excOmitted: undefined,
+      hasSystemFrames: false,
+    };
+
+    const errorEvent: EventError = {
+      id: 'event_id',
+      entries: [
+        {
+          type: EntryType.EXCEPTION,
+          data: exceptionValue,
+        },
+      ],
+    } as EventError;
+
+    jest.spyOn(api, 'requestPromise').mockResolvedValue(makeEvent(errorEvent));
 
     // @ts-ignore useApi is mocked
     useApi.mockReturnValue(api);
 
-    mountWithTheme(
+    render(
       <StackTracePreview
         issueId="issue"
         organization={TestStubs.Organization({

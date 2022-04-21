@@ -6,7 +6,6 @@ import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ResolutionStatusDetails} from 'sentry/types';
 
@@ -109,7 +108,7 @@ export default class CustomIgnoreDurationModal extends Component<Props, State> {
           </form>
         </Body>
         {this.state.dateWarning && (
-          <Alert icon={<IconWarning size="md" />} type="error">
+          <Alert type="error" showIcon>
             {t('Please enter a valid date in the future')}
           </Alert>
         )}

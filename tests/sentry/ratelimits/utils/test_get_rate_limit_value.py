@@ -1,9 +1,8 @@
 from unittest import TestCase
 
-from django.conf import settings
-
 from sentry.api.base import Endpoint
 from sentry.ratelimits import get_rate_limit_value
+from sentry.ratelimits.config import RateLimitConfig, get_default_rate_limits_for_group
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
@@ -14,18 +13,15 @@ class TestGetRateLimitValue(TestCase):
         class TestEndpoint(Endpoint):
             pass
 
-        assert (
-            get_rate_limit_value("GET", TestEndpoint, RateLimitCategory.IP)
-            == settings.SENTRY_RATELIMITER_DEFAULTS[RateLimitCategory.IP]
-        )
-        assert (
-            get_rate_limit_value("POST", TestEndpoint, RateLimitCategory.ORGANIZATION)
-            == settings.SENTRY_RATELIMITER_DEFAULTS[RateLimitCategory.ORGANIZATION]
-        )
-        assert (
-            get_rate_limit_value("DELETE", TestEndpoint, RateLimitCategory.USER)
-            == settings.SENTRY_RATELIMITER_DEFAULTS[RateLimitCategory.USER]
-        )
+        assert get_rate_limit_value(
+            "GET", TestEndpoint, RateLimitCategory.IP
+        ) == get_default_rate_limits_for_group("default", RateLimitCategory.IP)
+        assert get_rate_limit_value(
+            "POST", TestEndpoint, RateLimitCategory.ORGANIZATION
+        ) == get_default_rate_limits_for_group("default", RateLimitCategory.ORGANIZATION)
+        assert get_rate_limit_value(
+            "DELETE", TestEndpoint, RateLimitCategory.USER
+        ) == get_default_rate_limits_for_group("default", RateLimitCategory.USER)
 
     def test_override_rate_limit(self):
         """Override one or more of the default rate limits."""
@@ -37,26 +33,28 @@ class TestGetRateLimitValue(TestCase):
             }
 
         assert get_rate_limit_value("GET", TestEndpoint, RateLimitCategory.IP) == RateLimit(100, 5)
-        assert (
-            get_rate_limit_value("GET", TestEndpoint, RateLimitCategory.USER)
-            == settings.SENTRY_RATELIMITER_DEFAULTS[RateLimitCategory.USER]
-        )
-        assert (
-            get_rate_limit_value("POST", TestEndpoint, RateLimitCategory.IP)
-            == settings.SENTRY_RATELIMITER_DEFAULTS[RateLimitCategory.IP]
-        )
+        assert get_rate_limit_value(
+            "GET", TestEndpoint, RateLimitCategory.USER
+        ) == get_default_rate_limits_for_group("default", RateLimitCategory.USER)
+        assert get_rate_limit_value(
+            "POST", TestEndpoint, RateLimitCategory.IP
+        ) == get_default_rate_limits_for_group("default", RateLimitCategory.IP)
         assert get_rate_limit_value("POST", TestEndpoint, RateLimitCategory.USER) == RateLimit(
             20, 4
         )
 
     def test_inherit(self):
         class ParentEndpoint(Endpoint):
-            rate_limits = {"GET": {RateLimitCategory.IP: RateLimit(100, 5)}}
+            rate_limits = RateLimitConfig(
+                group="foo", limit_overrides={"GET": {RateLimitCategory.IP: RateLimit(100, 5)}}
+            )
 
         class ChildEndpoint(ParentEndpoint):
-            rate_limits = {"GET": {}}
+            rate_limits = RateLimitConfig(group="foo", limit_overrides={"GET": {}})
 
-        assert get_rate_limit_value("GET", ChildEndpoint, RateLimitCategory.IP) == RateLimit(100, 5)
+        assert get_rate_limit_value(
+            "GET", ChildEndpoint, RateLimitCategory.IP
+        ) == get_default_rate_limits_for_group("foo", RateLimitCategory.IP)
 
     def test_multiple_inheritance(self):
         class ParentEndpoint(Endpoint):
@@ -66,22 +64,12 @@ class TestGetRateLimitValue(TestCase):
             rate_limits = {"GET": {RateLimitCategory.IP: RateLimit(2, 4)}}
 
         class ChildEndpoint(ParentEndpoint, Mixin):
-            rate_limits = {"GET": {}}
+            pass
 
         class ChildEndpointReverse(Mixin, ParentEndpoint):
-            rate_limits = {"GET": {}}
+            pass
 
         assert get_rate_limit_value("GET", ChildEndpoint, RateLimitCategory.IP) == RateLimit(100, 5)
         assert get_rate_limit_value("GET", ChildEndpointReverse, RateLimitCategory.IP) == RateLimit(
             2, 4
         )
-
-    def test_non_endpoint(self):
-        """Views that don't inherit Endpoint should not return a value."""
-
-        class TestEndpoint:
-            pass
-
-        assert get_rate_limit_value("GET", TestEndpoint, RateLimitCategory.IP) is None
-        assert get_rate_limit_value("POST", TestEndpoint, RateLimitCategory.ORGANIZATION) is None
-        assert get_rate_limit_value("DELETE", TestEndpoint, RateLimitCategory.USER) is None

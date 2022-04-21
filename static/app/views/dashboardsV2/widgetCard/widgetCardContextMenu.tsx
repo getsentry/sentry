@@ -1,34 +1,44 @@
+import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
-import * as qs from 'query-string';
+import {Location} from 'history';
 
 import {openDashboardWidgetQuerySelectorModal} from 'sentry/actionCreators/modal';
-import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
+import Button from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
 import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
-import {IconEllipsis} from 'sentry/icons';
+import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
+import {IconEllipsis, IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {getUtcDateString} from 'sentry/utils/dates';
-import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
-import {DisplayModes} from 'sentry/utils/discover/types';
-import {eventViewFromWidget} from 'sentry/views/dashboardsV2/utils';
-import {DisplayType} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
+import {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {getWidgetDiscoverUrl, getWidgetIssueUrl} from 'sentry/views/dashboardsV2/utils';
 
 import {Widget, WidgetType} from '../types';
+import {WidgetViewerContext} from '../widgetViewer/widgetViewerContext';
 
 type Props = {
+  location: Location;
   organization: Organization;
+  router: InjectedRouter;
   selection: PageFilters;
   widget: Widget;
   widgetLimitReached: boolean;
+  index?: string;
   isPreview?: boolean;
+  issuesData?: TableDataRow[];
   onDelete?: () => void;
   onDuplicate?: () => void;
   onEdit?: () => void;
+  pageLinks?: string;
+  seriesData?: Series[];
   showContextMenu?: boolean;
+  showWidgetViewerButton?: boolean;
+  tableData?: TableDataWithTitle[];
+  totalIssuesCount?: string;
 };
 
 function WidgetCardContextMenu({
@@ -41,6 +51,15 @@ function WidgetCardContextMenu({
   onEdit,
   showContextMenu,
   isPreview,
+  showWidgetViewerButton,
+  router,
+  location,
+  index,
+  seriesData,
+  tableData,
+  issuesData,
+  pageLinks,
+  totalIssuesCount,
 }: Props) {
   if (!showContextMenu) {
     return null;
@@ -49,27 +68,63 @@ function WidgetCardContextMenu({
   const menuOptions: MenuItemProps[] = [];
   const disabledKeys: string[] = [];
 
+  const openWidgetViewerPath = (id: string | undefined) => {
+    if (!isWidgetViewerPath(location.pathname)) {
+      router.push({
+        pathname: `${location.pathname}${
+          location.pathname.endsWith('/') ? '' : '/'
+        }widget/${id}/`,
+        query: location.query,
+      });
+    }
+  };
+
   if (isPreview) {
     return (
-      <ContextWrapper>
-        <DropdownMenuControlV2
-          items={[
-            {
-              key: 'preview',
-              label: t('This is a preview only. To edit, you must add this dashboard.'),
-            },
-          ]}
-          triggerProps={{
-            'aria-label': t('Widget actions'),
-            size: 'xsmall',
-            borderless: true,
-            showChevron: false,
-            icon: <IconEllipsis direction="down" size="sm" />,
-          }}
-          placement="bottom right"
-          disabledKeys={['preview']}
-        />
-      </ContextWrapper>
+      <WidgetViewerContext.Consumer>
+        {({setData}) => (
+          <ContextWrapper>
+            <StyledDropdownMenuControlV2
+              items={[
+                {
+                  key: 'preview',
+                  label: t(
+                    'This is a preview only. To edit, you must add this dashboard.'
+                  ),
+                },
+              ]}
+              triggerProps={{
+                'aria-label': t('Widget actions'),
+                size: 'xsmall',
+                borderless: true,
+                showChevron: false,
+                icon: <IconEllipsis direction="down" size="sm" />,
+              }}
+              placement="bottom right"
+              disabledKeys={['preview']}
+            />
+            {showWidgetViewerButton && (
+              <OpenWidgetViewerButton
+                aria-label={t('Open Widget Viewer')}
+                priority="link"
+                size="zero"
+                icon={<IconExpand size="xs" />}
+                onClick={() => {
+                  (seriesData || tableData || issuesData) &&
+                    setData({
+                      seriesData,
+                      tableData,
+                      issuesData,
+                      pageLinks,
+                      totalIssuesCount,
+                    });
+                  openWidgetViewerPath(index);
+                }}
+              />
+            )}
+          </ContextWrapper>
+        )}
+      </WidgetViewerContext.Consumer>
     );
   }
 
@@ -79,58 +134,7 @@ function WidgetCardContextMenu({
   ) {
     // Open Widget in Discover
     if (widget.queries.length) {
-      const eventView = eventViewFromWidget(
-        widget.title,
-        widget.queries[0],
-        selection,
-        widget.displayType
-      );
-      const discoverLocation = eventView.getResultsViewUrlTarget(organization.slug);
-      // Pull a max of 3 valid Y-Axis from the widget
-      const yAxisOptions = eventView.getYAxisOptions().map(({value}) => value);
-      discoverLocation.query.yAxis = [
-        ...new Set(
-          widget.queries[0].fields.filter(field => yAxisOptions.includes(field))
-        ),
-      ].slice(0, 3);
-      switch (widget.displayType) {
-        case DisplayType.WORLD_MAP:
-          discoverLocation.query.display = DisplayModes.WORLDMAP;
-          break;
-        case DisplayType.BAR:
-          discoverLocation.query.display = DisplayModes.BAR;
-          break;
-        case DisplayType.TOP_N:
-          discoverLocation.query.display = DisplayModes.TOP5;
-          // Last field is used as the yAxis
-          discoverLocation.query.yAxis =
-            widget.queries[0].fields[widget.queries[0].fields.length - 1];
-          discoverLocation.query.field = widget.queries[0].fields.slice(0, -1);
-          break;
-        default:
-          break;
-      }
-
-      // Gather all fields and functions used in equations and prepend them to discover columns
-      const termsSet: Set<string> = new Set();
-      widget.queries[0].fields.forEach(field => {
-        if (isEquation(field)) {
-          const parsed = parseArithmetic(stripEquationPrefix(field)).tc;
-          parsed.fields.forEach(({term}) => termsSet.add(term as string));
-          parsed.functions.forEach(({term}) => termsSet.add(term as string));
-        }
-      });
-      termsSet.forEach(term => {
-        const fields = discoverLocation.query.field;
-        if (Array.isArray(fields) && !fields.includes(term)) {
-          fields.unshift(term);
-        }
-      });
-
-      const discoverPath = `${discoverLocation.pathname}?${qs.stringify({
-        ...discoverLocation.query,
-      })}`;
-
+      const discoverPath = getWidgetDiscoverUrl(widget, selection, organization);
       menuOptions.push({
         key: 'open-in-discover',
         label: t('Open in Discover'),
@@ -155,16 +159,7 @@ function WidgetCardContextMenu({
   }
 
   if (widget.widgetType === WidgetType.ISSUE) {
-    const {start, end, utc, period} = selection.datetime;
-    const datetime =
-      start && end
-        ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
-        : {statsPeriod: period};
-    const issuesLocation = `/organizations/${organization.slug}/issues/?${qs.stringify({
-      query: widget.queries?.[0]?.conditions,
-      sort: widget.queries?.[0]?.orderby,
-      ...datetime,
-    })}`;
+    const issuesLocation = getWidgetIssueUrl(widget, selection, organization);
 
     menuOptions.push({
       key: 'open-in-issues',
@@ -206,20 +201,42 @@ function WidgetCardContextMenu({
   }
 
   return (
-    <ContextWrapper>
-      <DropdownMenuControlV2
-        items={menuOptions}
-        triggerProps={{
-          'aria-label': t('Widget actions'),
-          size: 'xsmall',
-          borderless: true,
-          showChevron: false,
-          icon: <IconEllipsis direction="down" size="sm" />,
-        }}
-        placement="bottom right"
-        disabledKeys={disabledKeys}
-      />
-    </ContextWrapper>
+    <WidgetViewerContext.Consumer>
+      {({setData}) => (
+        <ContextWrapper>
+          <StyledDropdownMenuControlV2
+            items={menuOptions}
+            triggerProps={{
+              'aria-label': t('Widget actions'),
+              size: 'xsmall',
+              borderless: true,
+              showChevron: false,
+              icon: <IconEllipsis direction="down" size="sm" />,
+            }}
+            placement="bottom right"
+            disabledKeys={disabledKeys}
+          />
+          {showWidgetViewerButton && (
+            <OpenWidgetViewerButton
+              aria-label={t('Open Widget Viewer')}
+              priority="link"
+              size="zero"
+              icon={<IconExpand size="xs" />}
+              onClick={() => {
+                setData({
+                  seriesData,
+                  tableData,
+                  issuesData,
+                  pageLinks,
+                  totalIssuesCount,
+                });
+                openWidgetViewerPath(widget.id ?? index);
+              }}
+            />
+          )}
+        </ContextWrapper>
+      )}
+    </WidgetViewerContext.Consumer>
   );
 }
 
@@ -230,4 +247,20 @@ const ContextWrapper = styled('div')`
   align-items: center;
   height: ${space(3)};
   margin-left: ${space(1)};
+`;
+
+const StyledDropdownMenuControlV2 = styled(DropdownMenuControlV2)`
+  & > button {
+    z-index: auto;
+  }
+`;
+
+const OpenWidgetViewerButton = styled(Button)`
+  padding: ${space(0.75)} ${space(1)};
+  color: ${p => p.theme.textColor};
+  &:hover {
+    color: ${p => p.theme.textColor};
+    background: ${p => p.theme.surface400};
+    border-color: transparent;
+  }
 `;

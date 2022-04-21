@@ -6,7 +6,7 @@ import isEqual from 'lodash/isEqual';
 import throttle from 'lodash/throttle';
 
 import Button from 'sentry/components/button';
-import BarChart, {BarChartSeries} from 'sentry/components/charts/barChart';
+import {BarChart, BarChartSeries} from 'sentry/components/charts/barChart';
 import BarChartZoom from 'sentry/components/charts/barChartZoom';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
@@ -336,6 +336,7 @@ class VitalCard extends Component<Props, State> {
                 showBar={false}
                 showStates={false}
                 showVitalPercentNames={false}
+                showVitalThresholds={false}
                 showDurationDetail={false}
               />
             </PercentContainer>

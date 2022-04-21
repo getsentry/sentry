@@ -10,93 +10,92 @@ export class Flamegraph {
   profile: Profile;
   frames: FlamegraphFrame[] = [];
 
-  name: string;
   profileIndex: number;
-  startedAt: number;
-  endedAt: number;
 
   inverted?: boolean = false;
   leftHeavy?: boolean = false;
 
-  colors: Map<string | number, number[]> | null = null;
-
   depth = 0;
-  duration = 0;
   configSpace: Rect = new Rect(0, 0, 0, 0);
 
   formatter: (value: number) => string;
   frameIndex: Record<string, FlamegraphFrame> = {};
 
+  static Empty(): Flamegraph {
+    return new Flamegraph(Profile.Empty(), 0, {
+      inverted: false,
+      leftHeavy: false,
+    });
+  }
+
+  static From(from: Flamegraph, {inverted = false, leftHeavy = false}): Flamegraph {
+    return new Flamegraph(from.profile, from.profileIndex, {inverted, leftHeavy});
+  }
+
   constructor(
     profile: Profile,
     profileIndex: number,
-    inverted = false,
-    leftHeavy = false
+    {
+      inverted = false,
+      leftHeavy = false,
+      configSpace,
+    }: {configSpace?: Rect; inverted?: boolean; leftHeavy?: boolean} = {}
   ) {
     this.inverted = inverted;
     this.leftHeavy = leftHeavy;
 
     // @TODO check if we can not keep a reference to the profile
     this.profile = profile;
-
-    this.duration = profile.duration;
     this.profileIndex = profileIndex;
-    this.name = profile.name;
 
-    this.startedAt = profile.startedAt;
-    this.endedAt = profile.endedAt;
-
+    // If a custom config space is provided, use it and draw the chart in it
     this.frames = leftHeavy
-      ? this.buildLeftHeavyGraph(profile)
-      : this.buildCallOrderGraph(profile);
+      ? this.buildLeftHeavyGraph(profile, configSpace ? configSpace.x : 0)
+      : this.buildCallOrderGraph(profile, configSpace ? configSpace.x : 0);
 
     this.formatter = makeFormatter(profile.unit);
 
-    if (this.frames.length) {
-      this.configSpace = new Rect(this.startedAt, 0, this.duration, this.depth);
-    } else {
-      // If we have no frames, set the trace duration to 1 second so that we can render a placeholder grid
+    // If the profile duration is 0, set the flamegraph duration
+    // to 1 second so we can render a placeholder grid
+    this.configSpace = new Rect(
+      0,
+      0,
+      this.profile.unit === 'microseconds'
+        ? 1e6
+        : this.profile.unit === 'milliseconds'
+        ? 1e3
+        : 1,
+      this.depth
+    );
+
+    if (this.profile.duration) {
       this.configSpace = new Rect(
-        this.startedAt,
+        configSpace ? configSpace.x : this.profile.startedAt,
         0,
-        this.profile.unit === 'microseconds'
-          ? 1e6
-          : this.profile.unit === 'milliseconds'
-          ? 1e3
-          : 1,
-        0
+        configSpace ? configSpace.width : this.profile.duration,
+        this.depth
       );
     }
   }
 
-  static Empty(): Flamegraph {
-    return new Flamegraph(
-      new Profile(0, 0, 1_000_000, 'Profile', 'microseconds'),
-      0,
-      false,
-      false
-    );
-  }
-
-  static From(from: Flamegraph, inverted = false, leftHeavy = false): Flamegraph {
-    return new Flamegraph(from.profile, from.profileIndex, inverted, leftHeavy);
-  }
-
-  buildCallOrderGraph(profile: Profile): FlamegraphFrame[] {
+  buildCallOrderGraph(profile: Profile, offset: number): FlamegraphFrame[] {
     const frames: FlamegraphFrame[] = [];
     const stack: FlamegraphFrame[] = [];
+
+    let idx = 0;
 
     const openFrame = (node: CallTreeNode, value: number) => {
       const parent = lastOfArray(stack);
 
       const frame: FlamegraphFrame = {
+        key: idx,
         frame: node.frame,
         node,
         parent,
         children: [],
         depth: 0,
-        start: value,
-        end: value,
+        start: offset + value,
+        end: offset + value,
       };
 
       if (parent) {
@@ -104,6 +103,7 @@ export class Flamegraph {
       }
 
       stack.push(frame);
+      idx++;
     };
 
     const closeFrame = (_: CallTreeNode, value: number) => {
@@ -114,7 +114,7 @@ export class Flamegraph {
         throw new Error('Unbalanced stack');
       }
 
-      stackTop.end = value;
+      stackTop.end = offset + value;
       stackTop.depth = stack.length;
 
       if (stackTop.end - stackTop.start === 0) {
@@ -129,7 +129,7 @@ export class Flamegraph {
     return frames;
   }
 
-  buildLeftHeavyGraph(profile: Profile): FlamegraphFrame[] {
+  buildLeftHeavyGraph(profile: Profile, offset: number): FlamegraphFrame[] {
     const frames: FlamegraphFrame[] = [];
     const stack: FlamegraphFrame[] = [];
 
@@ -140,16 +140,18 @@ export class Flamegraph {
 
     sortTree(profile.appendOrderTree);
 
+    let idx = 0;
     const openFrame = (node: CallTreeNode, value: number) => {
       const parent = lastOfArray(stack);
       const frame: FlamegraphFrame = {
+        key: idx,
         frame: node.frame,
         node,
         parent,
         children: [],
         depth: 0,
-        start: value,
-        end: value,
+        start: offset + value,
+        end: offset + value,
       };
 
       if (parent) {
@@ -157,6 +159,7 @@ export class Flamegraph {
       }
 
       stack.push(frame);
+      idx++;
     };
 
     const closeFrame = (_node: CallTreeNode, value: number) => {
@@ -166,7 +169,7 @@ export class Flamegraph {
         throw new Error('Unbalanced stack');
       }
 
-      stackTop.end = value;
+      stackTop.end = offset + value;
       stackTop.depth = stack.length;
 
       // Dont draw 0 width frames
@@ -195,29 +198,6 @@ export class Flamegraph {
     }
     visit(profile.appendOrderTree, 0);
     return frames;
-  }
-
-  setColors(colors: Map<string | number, number[]> | null): void {
-    this.colors = colors;
-  }
-
-  withOffset(offset: number): Flamegraph {
-    const mutateFrame = (frame: FlamegraphFrame) => {
-      frame.start = offset + frame.start;
-      frame.end = offset + frame.end;
-
-      return frame;
-    };
-
-    const visit = (frame: FlamegraphFrame): void => {
-      mutateFrame(frame);
-    };
-
-    for (const frame of this.frames) {
-      visit(frame);
-    }
-
-    return this;
   }
 
   setConfigSpace(configSpace: Rect): Flamegraph {

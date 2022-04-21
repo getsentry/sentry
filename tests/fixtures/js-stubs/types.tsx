@@ -32,6 +32,7 @@ type TestStubFixtures = {
   DiscoverSavedQuery: OverridableStub;
   DocIntegration: OverridableStub;
   Entries: SimpleStub;
+  Environments: OverridableStub;
   Event: OverridableStub;
   EventEntry: OverridableStub;
   EventEntryDebugMeta: OverridableStub;
@@ -66,6 +67,8 @@ type TestStubFixtures = {
   MetricsFieldByMeasurementRating: OverridableStub;
   MetricsFieldByTransactionStatus: OverridableStub;
   MetricsFieldsByMeasurementRating: OverridableStub;
+  MetricsMeta: OverridableStub;
+  MetricsSessionUserCountByStatusByRelease: SimpleStub;
   OrgOwnedApps: SimpleStub;
   Organization: OverridableStub;
   OrganizationEvent: OverridableStub;
@@ -107,6 +110,7 @@ type TestStubFixtures = {
   SessionUserCountByStatusByRelease: SimpleStub;
   SessionUserStatusCountByProjectInPeriod: SimpleStub;
   SessionUserStatusCountByReleaseInPeriod: SimpleStub;
+  SessionsField: OverridableStub;
   SesssionTotalCountByReleaseIn24h: SimpleStub;
   ShortIdQueryResult: OverridableStub;
   SourceMapArchive: OverridableStub;
@@ -134,9 +138,7 @@ type TestStubFixtures = {
   VstsPlugin: SimpleStub;
 
   // TODO: These need propertly typed still
-
   // Widget(queries = {...DEFAULT_QUERIES}, options)
-  // Environments(hidden)
   // Dashboard(widgets = DEFAULT_WIDGETS, props = {})
   // AsanaAutocomplete(type = 'project', values = [DEFAULT_AUTOCOMPLETE])
   // PhabricatorAutocomplete(type = 'project', values = null)

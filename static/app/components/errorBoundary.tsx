@@ -5,7 +5,6 @@ import * as Sentry from '@sentry/react';
 
 import Alert from 'sentry/components/alert';
 import DetailedError from 'sentry/components/errors/detailedError';
-import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
@@ -94,7 +93,7 @@ class ErrorBoundary extends React.Component<Props, State> {
 
     if (mini) {
       return (
-        <Alert type="error" icon={<IconFlag size="md" />} className={className}>
+        <Alert type="error" showIcon className={className}>
           {message || t('There was a problem rendering this component')}
         </Alert>
       );

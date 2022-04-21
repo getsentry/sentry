@@ -32,6 +32,7 @@ class TitleStar extends Component<TitleProps> {
         aria-label={t('Toggle star for team')}
       />
     );
+
     if (!isOpen && keyedTeams?.length) {
       const teamSlugs = keyedTeams.map(({slug}) => slug).join(', ');
       return <Tooltip title={teamSlugs}>{button}</Tooltip>;

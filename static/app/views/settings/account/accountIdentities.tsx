@@ -10,7 +10,6 @@ import Confirm from 'sentry/components/confirm';
 import DateTime from 'sentry/components/dateTime';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
 import Tag from 'sentry/components/tag';
-import {IconFlag} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {UserIdentityCategory, UserIdentityConfig, UserIdentityStatus} from 'sentry/types';
@@ -83,7 +82,7 @@ class AccountIdentities extends AsyncView<Props, State> {
         confirmText={t('Disconnect')}
         message={
           <Fragment>
-            <Alert type="error" icon={<IconFlag size="md" />}>
+            <Alert type="error" showIcon>
               {tct('Disconnect Your [provider] Identity?', {
                 provider: identity.provider.name,
               })}

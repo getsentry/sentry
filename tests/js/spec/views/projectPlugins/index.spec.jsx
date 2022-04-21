@@ -11,7 +11,6 @@ jest.mock('sentry/actionCreators/plugins', () => ({
 
 describe('ProjectPluginsContainer', function () {
   let org, project, plugins, wrapper, params, organization;
-  const routerContext = TestStubs.routerContext();
 
   beforeEach(function () {
     org = TestStubs.Organization();
@@ -50,8 +49,7 @@ describe('ProjectPluginsContainer', function () {
       method: 'DELETE',
     });
     wrapper = mountWithTheme(
-      <ProjectPlugins params={params} organization={organization} />,
-      routerContext
+      <ProjectPlugins params={params} organization={organization} />
     );
   });
 
