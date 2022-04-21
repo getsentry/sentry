@@ -2,13 +2,28 @@ from __future__ import annotations
 
 import operator
 import re
+from abc import ABC
 from collections import namedtuple
 from functools import reduce
-from typing import Any, Callable, Iterable, Iterator, List, Mapping, Pattern, Sequence, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Container,
+    Iterable,
+    Iterator,
+    List,
+    Mapping,
+    Optional,
+    Pattern,
+    Sequence,
+    Sized,
+    Tuple,
+    Union,
+)
 
 from django.db.models import Q
-from parsimonious.exceptions import ParseError  # type: ignore # noqa
-from parsimonious.grammar import Grammar, NodeVisitor  # type: ignore
+from parsimonious.exceptions import ParseError  # noqa
+from parsimonious.grammar import Grammar, NodeVisitor
 from rest_framework.serializers import ValidationError
 
 from sentry.eventstore.models import EventSubjectTemplateData
@@ -62,6 +77,10 @@ _       = space*
 )
 
 
+class PathSearchable(Container[str], Sized, ABC):
+    pass
+
+
 class Rule(namedtuple("Rule", "matcher owners")):
     """
     A Rule represents a single line in an Ownership file.
@@ -94,14 +113,17 @@ class Matcher(namedtuple("Matcher", "type pattern")):
         src/*
     """
 
-    def dump(self) -> Mapping[str, Any]:
+    def dump(self) -> Mapping[str, str]:
         return {"type": self.type, "pattern": self.pattern}
 
     @classmethod
     def load(cls, data: Mapping[str, str]) -> Matcher:
         return cls(data["type"], data["pattern"])
 
-    def test(self, data: Union[Mapping[str, Any], Sequence[Any]]) -> bool:
+    def test(
+        self,
+        data: PathSearchable,
+    ) -> bool:
         if self.type == URL:
             return self.test_url(data)
         elif self.type == PATH:
@@ -118,11 +140,13 @@ class Matcher(namedtuple("Matcher", "type pattern")):
                 # As such we need to match it using gitignore logic.
                 # See syntax documentation here:
                 # https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-repository-on-github/about-code-owners
-                lambda val, pattern: _path_to_regex(pattern).search(val),
+                lambda val, pattern: bool(_path_to_regex(pattern).search(val))
+                if val is not None
+                else False,
             )
         return False
 
-    def test_url(self, data: Union[Mapping[str, Any], Sequence[Any]]) -> bool:
+    def test_url(self, data: PathSearchable) -> bool:
         if not isinstance(data, Mapping):
             return False
 
@@ -134,10 +158,10 @@ class Matcher(namedtuple("Matcher", "type pattern")):
 
     def test_frames(
         self,
-        data: Union[Mapping[str, Any], Sequence[Any]],
+        data: PathSearchable,
         keys: Sequence[str],
-        match_frame_value_func: Callable[[Any, Any], Any] = lambda val, pattern: glob_match(
-            val, pattern, ignorecase=True, path_normalize=True
+        match_frame_value_func: Callable[[Optional[str], str], bool] = lambda val, pattern: bool(
+            glob_match(val, pattern, ignorecase=True, path_normalize=True)
         ),
     ) -> bool:
         for frame in (f for f in _iter_frames(data) if isinstance(f, Mapping)):
@@ -151,7 +175,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
 
         return False
 
-    def test_tag(self, data: Union[Mapping[str, Any], Sequence[Any]]) -> bool:
+    def test_tag(self, data: PathSearchable) -> bool:
         tag = self.type[5:]
 
         # inspect the event-payload User interface first before checking tags.user
@@ -196,14 +220,14 @@ class Owner(namedtuple("Owner", "type identifier")):
         return {"type": self.type, "identifier": self.identifier}
 
     @classmethod
-    def load(cls, data: Mapping[str, Any]) -> Owner:
+    def load(cls, data: Mapping[str, str]) -> Owner:
         return cls(data["type"], data["identifier"])
 
 
 class OwnershipVisitor(NodeVisitor):  # type: ignore
     visit_comment = visit_empty = lambda *a: None
 
-    def visit_ownership(self, node: Any, children: Any) -> Any:
+    def visit_ownership(self, node: Any, children: Any) -> Sequence[Any]:
         return [_f for _f in children if _f]
 
     def visit_line(self, node: Any, children: Any) -> Any:
@@ -212,11 +236,11 @@ class OwnershipVisitor(NodeVisitor):  # type: ignore
         if comment_or_rule_or_empty:
             return comment_or_rule_or_empty
 
-    def visit_rule(self, node: Any, children: Any) -> Any:
+    def visit_rule(self, node: Any, children: Any) -> Rule:
         _, matcher, owners = children
         return Rule(matcher, owners)
 
-    def visit_matcher(self, node: Any, children: Any) -> Any:
+    def visit_matcher(self, node: Any, children: Any) -> Matcher:
         _, tag, identifier = children
         return Matcher(tag, identifier)
 
@@ -231,7 +255,7 @@ class OwnershipVisitor(NodeVisitor):  # type: ignore
         _, owners = children
         return owners
 
-    def visit_owner(self, node: Any, children: Any) -> Any:
+    def visit_owner(self, node: Any, children: Any) -> Owner:
         _, is_team, pattern = children
         type = "team" if is_team else "user"
         # User emails are case insensitive, so coerce them
@@ -240,7 +264,7 @@ class OwnershipVisitor(NodeVisitor):  # type: ignore
             pattern = pattern.lower()
         return Owner(type, pattern)
 
-    def visit_team_prefix(self, node: Any, children: Any) -> Any:
+    def visit_team_prefix(self, node: Any, children: Any) -> bool:
         return bool(children)
 
     def visit_any_identifier(self, node: Any, children: Any) -> Any:
@@ -342,7 +366,7 @@ def _path_to_regex(pattern: str) -> Pattern[str]:
     return re.compile(regex)
 
 
-def _iter_frames(data: Union[Mapping[str, Any], Sequence[Any]]) -> Iterator[Any]:
+def _iter_frames(data: PathSearchable) -> Iterator[Any]:
     try:
         yield from get_path(data, "stacktrace", "frames", filter=True) or ()
     except KeyError:
