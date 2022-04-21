@@ -262,6 +262,9 @@ const StyledStepper = styled(Stepper)`
   margin-left: auto;
   margin-right: auto;
   align-self: center;
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+    display: none;
+  }
 `;
 
 interface BackButtonProps extends Omit<ButtonProps, 'icon' | 'priority'> {

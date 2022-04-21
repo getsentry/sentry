@@ -53,7 +53,7 @@ function TargetedOnboardingWelcome({organization, ...props}: StepProps) {
       organization,
       source,
     });
-  });
+  }, []);
 
   const onComplete = () => {
     trackAdvancedAnalyticsEvent('growth.onboarding_clicked_instrument_app', {
