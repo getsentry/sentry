@@ -10,10 +10,25 @@ import {
   useUndoableReducer,
 } from 'sentry/utils/useUndoableReducer';
 
+const INITIAL_STATE = {
+  preferences: {
+    colorCoding: 'by symbol name' as const,
+    sorting: 'call order' as const,
+    view: 'top down' as const,
+    synchronizeXAxisWithTransaction: false,
+  },
+  search: {
+    open: false,
+    index: null,
+    results: null,
+    query: '',
+  },
+};
+
 describe('makeUndoableReducer', () => {
   it('does not overflow', () => {
     const mockFirstReducer = jest.fn().mockImplementation(v => ++v);
-    const reducer = makeUndoableReducer(mockFirstReducer);
+    const reducer = makeUndoableReducer(mockFirstReducer, 0);
 
     expect(() =>
       reducer({previous: undefined, current: 0, next: undefined}, {type: 'undo'})
@@ -22,12 +37,13 @@ describe('makeUndoableReducer', () => {
       reducer({previous: undefined, current: 0, next: undefined}, {type: 'redo'})
     ).not.toThrow();
   });
-  it('calls undo/redo if action matches', () => {
+
+  it('calls undo/redo/reset if action matches', () => {
     const mockFirstReducer = jest.fn().mockImplementation(v => {
       return ++v;
     });
 
-    const reducer = makeUndoableReducer(mockFirstReducer);
+    const reducer = makeUndoableReducer(mockFirstReducer, 0);
 
     const first: UndoableNode<number> = {
       previous: undefined,
@@ -45,6 +61,11 @@ describe('makeUndoableReducer', () => {
 
     expect(reducer(first, {type: 'redo'})).toEqual(current);
     expect(reducer(current, {type: 'undo'})).toEqual(first);
+    expect(reducer(current, {type: 'reset'})).toEqual({
+      previous: undefined,
+      current: 0,
+      next: undefined,
+    });
     expect(mockFirstReducer).not.toHaveBeenCalled();
 
     expect(reducer(current, 'add')).toEqual({
@@ -135,14 +156,17 @@ describe('makeUndoableReducer', () => {
       return state - 1;
     };
 
+    const initialState = {simple: 0};
+
     const {result} = reactHooks.renderHook(() =>
-      useReducer(makeUndoableReducer(makeCombinedReducers({simple: simpleReducer})), {
-        previous: undefined,
-        current: {
-          simple: 0,
-        },
-        next: undefined,
-      })
+      useReducer(
+        makeUndoableReducer(makeCombinedReducers({simple: simpleReducer}), initialState),
+        {
+          previous: undefined,
+          current: initialState,
+          next: undefined,
+        }
+      )
     );
 
     reactHooks.act(() => result.current[1]({type: 'add'}));
@@ -157,7 +181,7 @@ describe('makeUndoableReducer', () => {
 
   it('can work with objects', () => {
     const {result} = reactHooks.renderHook(() =>
-      useReducer(makeUndoableReducer(combinedReducers), {
+      useReducer(makeUndoableReducer(combinedReducers, INITIAL_STATE), {
         previous: undefined,
         current: {
           preferences: {

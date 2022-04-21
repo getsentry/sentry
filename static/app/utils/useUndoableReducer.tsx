@@ -89,8 +89,8 @@ export function useUndoableReducer<
   reducer: R,
   initialState: ReducerState<R>
 ): [ReducerState<R>, React.Dispatch<UndoableReducerAction<ReducerAction<R>>>] {
-  const [state, dispatch] = useReducer(makeUndoableReducer(reducer, {...initialState}), {
-    current: {...initialState},
+  const [state, dispatch] = useReducer(makeUndoableReducer(reducer, initialState), {
+    current: initialState,
     previous: undefined,
     next: undefined,
   });
