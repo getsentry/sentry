@@ -346,6 +346,9 @@ CompactSelectField.args = {
   crossOffset: 0,
   containerPadding: 8,
   placement: 'bottom left',
+  triggerProps: {
+    prefix: 'Prefix',
+  },
 };
 CompactSelectField.argTypes = {
   placement: {
