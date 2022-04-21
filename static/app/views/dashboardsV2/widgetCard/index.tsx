@@ -6,9 +6,12 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {Client} from 'sentry/api';
+import Feature from 'sentry/components/acl/feature';
+import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import Tooltip from 'sentry/components/tooltip';
@@ -26,12 +29,9 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import {DRAG_HANDLE_CLASS} from '../dashboard';
 import {Widget, WidgetType} from '../types';
 
+import {DashboardsMEPConsumer, DashboardsMEPProvider} from './dashboardsMEPContext';
 import WidgetCardChartContainer from './widgetCardChartContainer';
 import WidgetCardContextMenu from './widgetCardContextMenu';
-import Alert from 'sentry/components/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
-import Feature from 'sentry/components/acl/feature';
-import {DashboardsMEPConsumer, DashboardsMEPProvider} from './dashboardsMEPContext';
 
 type DraggableProps = Pick<ReturnType<typeof useSortable>, 'attributes' | 'listeners'>;
 
@@ -56,10 +56,10 @@ type Props = WithRouterProps & {
   onEdit?: () => void;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   showContextMenu?: boolean;
+  showStoredAlert?: boolean;
   showWidgetViewerButton?: boolean;
   tableItemLimit?: number;
   windowWidth?: number;
-  showStoredAlert?: boolean;
 };
 
 type State = {
