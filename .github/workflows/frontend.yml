@@ -15,6 +15,8 @@ jobs:
     outputs:
       eslint_config: ${{ steps.changes.outputs.eslint_config }}
       frontend: ${{ steps.changes.outputs.frontend }}
+      frontend_components_modified_lintable: ${{ steps.changes.outputs.frontend_components_modified_lintable }}
+      frontend_components_modified_lintable_files: ${{ steps.changes.outputs.frontend_components_modified_lintable_files }}
       frontend_modified_lintable_files: ${{ steps.changes.outputs.frontend_modified_lintable_files }}
       yarn_lockfile: ${{ steps.changes.outputs.yarn_lockfile }}
     steps:
@@ -106,7 +108,8 @@ jobs:
       - name: stylelint (changed files only)
         if: github.ref != 'refs/heads/master' && needs.files-changed.outputs.frontend_components_modified_lintable == 'true'
         run: |
-          yarn stylelint ${{ needs.files-changed.outputs.frontend_components_modified_lintable_files }}
+          # XXX: this should use the set of changed files
+          yarn lint:css
 
       # Check (and error) for dirty working tree for forks
       # Reason being we need a different token to auto commit changes and
@@ -146,7 +149,6 @@ jobs:
           yarn storybook-build
 
   webpack:
-    if: needs.files-changed.outputs.frontend != 'true'
     needs: files-changed
     runs-on: ubuntu-20.04
     steps:
@@ -189,6 +191,12 @@ jobs:
   frontend-required-check:
     needs: [typescript-and-lint, webpack]
     name: Frontend
+    # This is necessary since a failed/skipped dependent job would cause this job to be skipped
+    if: always()
     runs-on: ubuntu-20.04
     steps:
-      - run: 'echo "All required checks have passed and we meet the requirements." '
+      # If any jobs we depend on fail, we will fail since this checks triggers Visual Snapshots which is a required check
+      - name: Check for failures
+        if: contains(needs.*.result, 'failure')
+        run: |
+          echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1

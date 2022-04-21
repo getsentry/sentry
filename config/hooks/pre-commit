@@ -16,8 +16,8 @@ if sys.version_info.major < 3:
 try:
     import sentry_sdk
 
-    if os.environ.get("SENTRY_DSN"):
-        sentry_sdk.init(dsn=os.environ["SENTRY_DSN"])
+    if not os.environ.get("SENTRY_DEVENV_NO_REPORT"):
+        sentry_sdk.init(dsn="https://9bdb053cb8274ea69231834d1edeec4c@o1.ingest.sentry.io/5723503")
     else:
         sys.stdout.write(
             "WARNING: Errors in this file will not be reported to Sentry since SENTRY_DSN is not set.\n"

@@ -42,6 +42,36 @@ describe('TextRenderer', () => {
     expect(isOutsideView(frameAboveView, view)).toBe(true);
     expect(isOutsideView(frameBelowView, view)).toBe(true);
   });
+
+  it('invalidates cache if cached measurements do not match new measurements', () => {
+    const context: Partial<CanvasRenderingContext2D> = {
+      measureText: jest
+        .fn()
+        .mockReturnValueOnce({width: 1}) // first call for test
+        .mockReturnValueOnce({width: 10})
+        .mockReturnValueOnce({width: 20}),
+    };
+
+    const canvas: Partial<HTMLCanvasElement> = {
+      getContext: jest.fn().mockReturnValue(context),
+    };
+
+    const textRenderer = new TextRenderer(
+      canvas as HTMLCanvasElement,
+      makeBaseFlamegraph(),
+      Theme
+    );
+
+    textRenderer.measureAndCacheText('test');
+
+    textRenderer.maybeInvalidateCache();
+    textRenderer.maybeInvalidateCache();
+
+    expect(textRenderer.textCache.test).toBe(undefined);
+    expect(textRenderer.textCache).toEqual({
+      'Who knows if this changed, font-display: swap wont tell me': 20,
+    });
+  });
   it('caches measure text', () => {
     const context: Partial<CanvasRenderingContext2D> = {
       measureText: jest.fn().mockReturnValue({width: 10}),
@@ -56,8 +86,8 @@ describe('TextRenderer', () => {
       makeBaseFlamegraph(),
       Theme
     );
-    textRenderer.measureText(context as CanvasRenderingContext2D, 'text');
-    textRenderer.measureText(context as CanvasRenderingContext2D, 'text');
+    textRenderer.measureAndCacheText('text');
+    textRenderer.measureAndCacheText('text');
     expect(context.measureText).toHaveBeenCalledTimes(1);
   });
   it('skips rendering node if it is not visible', () => {

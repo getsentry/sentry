@@ -60,7 +60,7 @@ export type GrowthEventParameters = {
   'growth.onboarding_load_choose_platform': {};
   'growth.onboarding_quick_start_cta': SampleEventParam;
   'growth.onboarding_set_up_your_project': PlatformParam;
-  'growth.onboarding_set_up_your_projects': {platforms: string};
+  'growth.onboarding_set_up_your_projects': {platform_count: number; platforms: string};
   'growth.onboarding_start_onboarding': {
     source?: string;
   };

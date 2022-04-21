@@ -77,10 +77,6 @@ build-utils/        @getsentry/owners-js-build
 
 # Owners by product feature
 
-# Releases UI
-/static/app/views/releases/                                     @getsentry/owners-releases-ui
-/tests/js/spec/views/releases/                                  @getsentry/owners-releases-ui
-
 ### Issue/Metric Alerts ###
 /static/app/views/settings/projectAlerts/                       @getsentry/workflow
 /tests/js/spec/views/settings/projectAlerts/                    @getsentry/workflow
@@ -301,6 +297,9 @@ build-utils/        @getsentry/owners-js-build
 
 /static/app/views/organizationStats/teamInsights      @getsentry/workflow
 /tests/js/spec/views/organizationStats/teamInsights/  @getsentry/workflow
+
+/static/app/views/releases/                           @getsentry/workflow
+/tests/js/spec/views/releases/                        @getsentry/workflow
 
 ## End of Workflow ##
 
