@@ -1584,19 +1584,116 @@ describe('WidgetBuilder', function () {
         },
       });
 
-      expect(await screen.findByText('Sort by a y-axis')).toBeInTheDocument();
-
-      expect(await screen.findAllByText('count()')).toHaveLength(2);
-
+      await selectEvent.select(await screen.findByText('Select group'), 'project');
+      expect(screen.getAllByText('count()')).toHaveLength(2);
       await selectEvent.select(screen.getAllByText('count()')[1], 'Custom Equation');
-
-      expect(screen.getByText('Enter Equation')).toBeInTheDocument();
-
-      userEvent.paste(screen.getByText('Enter Equation'), 'count_unique(user) * 2');
+      userEvent.paste(
+        screen.getByPlaceholderText('Enter Equation'),
+        'count_unique(user) * 2'
+      );
+      userEvent.keyboard('{enter}');
 
       await waitFor(() => {
-        expect(eventsStatsMock).toHaveBeenCalledWith();
+        expect(eventsStatsMock).toHaveBeenCalledWith(
+          '/organizations/org-slug/events-stats/',
+          expect.objectContaining({
+            query: expect.objectContaining({
+              field: expect.arrayContaining(['equation|count_unique(user) * 2']),
+              orderby: '-equation[0]',
+            }),
+          })
+        );
       });
+    });
+
+    it('persists the state when toggling between sorting options', async function () {
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        query: {
+          source: DashboardWidgetSource.DASHBOARDS,
+          displayType: DisplayType.LINE,
+        },
+      });
+
+      await selectEvent.select(await screen.findByText('Select group'), 'project');
+      expect(screen.getAllByText('count()')).toHaveLength(2);
+      await selectEvent.select(screen.getAllByText('count()')[1], 'Custom Equation');
+      userEvent.paste(
+        screen.getByPlaceholderText('Enter Equation'),
+        'count_unique(user) * 2'
+      );
+      userEvent.keyboard('{enter}');
+
+      // Switch away from the Custom Equation
+      expect(screen.getByText('project')).toBeInTheDocument();
+      await selectEvent.select(screen.getByText('Custom Equation'), 'project');
+      expect(screen.getAllByText('project')).toHaveLength(2);
+
+      // Switch back, the equation should still be visible
+      await selectEvent.select(screen.getAllByText('project')[1], 'Custom Equation');
+      expect(screen.getByPlaceholderText('Enter Equation')).toHaveValue(
+        'count_unique(user) * 2'
+      );
+    });
+
+    it('displays the custom equation if the widget has it saved', async function () {
+      const widget: Widget = {
+        id: '1',
+        title: 'Test Widget',
+        interval: '5m',
+        displayType: DisplayType.LINE,
+        queries: [
+          {
+            name: '',
+            conditions: '',
+            fields: ['count()', 'project'],
+            aggregates: ['count()'],
+            columns: ['project'],
+            orderby: '-equation|count_unique(user) * 2',
+          },
+        ],
+      };
+
+      const dashboard: DashboardDetails = {
+        id: '1',
+        title: 'Dashboard',
+        createdBy: undefined,
+        dateCreated: '2020-01-01T00:00:00.000Z',
+        widgets: [widget],
+      };
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        query: {
+          source: DashboardWidgetSource.DASHBOARDS,
+          displayType: DisplayType.LINE,
+        },
+        params: {
+          widgetIndex: '0',
+        },
+        dashboard,
+      });
+
+      expect(await screen.findByPlaceholderText('Enter Equation')).toHaveValue(
+        'count_unique(user) * 2'
+      );
+    });
+
+    it('displays Operators in the input dropdown', async function () {
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        query: {
+          source: DashboardWidgetSource.DASHBOARDS,
+          displayType: DisplayType.LINE,
+        },
+      });
+
+      await selectEvent.select(await screen.findByText('Select group'), 'project');
+      expect(screen.getAllByText('count()')).toHaveLength(2);
+      await selectEvent.select(screen.getAllByText('count()')[1], 'Custom Equation');
+      selectEvent.openMenu(screen.getByPlaceholderText('Enter Equation'));
+
+      expect(screen.getByText('Operators')).toBeInTheDocument();
+      expect(screen.queryByText('Fields')).not.toBeInTheDocument();
     });
   });
 
