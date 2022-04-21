@@ -6,6 +6,7 @@ import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import GroupStore from 'sentry/stores/groupStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 import GroupDetails from 'sentry/views/organizationGroupDetails';
 
 jest.unmock('sentry/utils/recreateRoute');
@@ -65,9 +66,11 @@ describe('groupDetails', () => {
 
   const createWrapper = (props = {selection}) => {
     return render(
-      <GroupDetails organization={organization} {...router} selection={props.selection}>
-        <MockComponent />
-      </GroupDetails>,
+      <OrganizationContext.Provider value={organization}>
+        <GroupDetails {...router} selection={props.selection}>
+          <MockComponent />
+        </GroupDetails>
+      </OrganizationContext.Provider>,
       {context: routerContext}
     );
   };
