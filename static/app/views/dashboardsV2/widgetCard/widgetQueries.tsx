@@ -28,6 +28,7 @@ import {
   getDashboardsMEPQueryParams,
   getWidgetInterval,
 } from '../utils';
+
 import {DashboardsMEPContext} from './dashboardsMEPContext';
 
 type RawResult = EventsStats | MultiSeriesEventsStats;
@@ -172,9 +173,6 @@ type State = {
 };
 
 class WidgetQueries extends React.Component<Props, State> {
-  static contextType = DashboardsMEPContext;
-  context: React.ContextType<typeof DashboardsMEPContext> | undefined;
-
   state: State = {
     loading: true,
     queryFetchID: undefined,
@@ -270,6 +268,9 @@ class WidgetQueries extends React.Component<Props, State> {
   componentWillUnmount() {
     this._isMounted = false;
   }
+
+  static contextType = DashboardsMEPContext;
+  context: React.ContextType<typeof DashboardsMEPContext> | undefined;
 
   private _isMounted: boolean = false;
 

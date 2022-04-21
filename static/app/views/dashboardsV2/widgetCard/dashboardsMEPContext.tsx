@@ -1,13 +1,14 @@
 import {ReactNode, useState} from 'react';
+
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 
-interface DashboardsMEPContext {
+interface DashboardsMEPContextInterface {
   setIsMetricsData: (value?: boolean) => void;
   isMetricsData?: boolean;
 }
 
 const [_DashboardsMEPProvider, useDashboardsMEPContext, DashboardsMEPContext] =
-  createDefinedContext<DashboardsMEPContext>({
+  createDefinedContext<DashboardsMEPContextInterface>({
     name: 'DashboardsMEPContext',
   });
 
@@ -28,4 +29,9 @@ function DashboardsMEPProvider({children}: {children: ReactNode}) {
   );
 }
 
-export {DashboardsMEPContext, DashboardsMEPProvider, DashboardsMEPConsumer, useDashboardsMEPContext};
+export {
+  DashboardsMEPContext,
+  DashboardsMEPProvider,
+  DashboardsMEPConsumer,
+  useDashboardsMEPContext,
+};
