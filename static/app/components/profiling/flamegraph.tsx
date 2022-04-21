@@ -13,6 +13,7 @@ import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
+import {useFlamegraphState} from 'sentry/utils/profiling/flamegraph/useFlamegraphState';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
@@ -29,6 +30,7 @@ interface FlamegraphProps {
 
 function Flamegraph(props: FlamegraphProps): ReactElement {
   const flamegraphTheme = useFlamegraphTheme();
+  const [_state, dispatchFlamegraphState] = useFlamegraphState();
   const [{sorting, view, synchronizeXAxisWithTransaction}, dispatch] =
     useFlamegraphPreferences();
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
@@ -61,6 +63,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
   const onImport = useCallback((profile: ProfileGroup) => {
     setActiveProfileIndex(null);
     setImportedProfiles(profile);
+    dispatchFlamegraphState({type: 'reset'});
   }, []);
 
   return (
