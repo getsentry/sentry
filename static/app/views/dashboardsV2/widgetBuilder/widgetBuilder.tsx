@@ -212,15 +212,6 @@ function WidgetBuilder({
     Number.isInteger(widgetIndexNum);
   const orgSlug = organization.slug;
 
-<<<<<<< HEAD
-=======
-  // Feature flag for new widget builder design. This feature is still a work in progress and not yet available internally.
-  const widgetBuilderNewDesign = organization.features.includes(
-    'new-widget-builder-experience-design'
-  );
-  const hasReleaseHealthFeature = organization.features.includes('dashboard-metrics');
-
->>>>>>> master
   // Construct PageFilters object using statsPeriod/start/end props so we can
   // render widget graph using saved timeframe from Saved/Prebuilt Query
   const pageFilters: PageFilters = statsPeriod
@@ -448,18 +439,18 @@ function WidgetBuilder({
     });
   }
 
-  function getUpdateWidgetIndex(){
-    if ( !widgetToBeUpdated) {
+  function getUpdateWidgetIndex() {
+    if (!widgetToBeUpdated) {
       return -1;
     }
 
-   return dashboard.widgets.findIndex(widget => {
+    return dashboard.widgets.findIndex(widget => {
       if (defined(widget.id)) {
-       return widget.id === widgetToBeUpdated.id;
+        return widget.id === widgetToBeUpdated.id;
       }
 
       if (defined(widget.tempId)) {
-        return  widget.tempId === widgetToBeUpdated.tempId;
+        return widget.tempId === widgetToBeUpdated.tempId;
       }
 
       return false;
