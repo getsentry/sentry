@@ -59,7 +59,6 @@ const Wrapper = styled('div')`
 const FilterButtons = styled(ButtonBar)`
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     display: flex;
-    flex-direction: column;
     align-items: flex-start;
     gap: ${space(1.5)};
   }
