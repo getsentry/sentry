@@ -220,11 +220,10 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
             # error based on the Widget's type
             data["discover_query_error"] = {"fields": f"Invalid fields: {err}"}
 
-        if not is_equation(orderby.lstrip("-")):
-            try:
-                builder.resolve_orderby(orderby)
-            except (InvalidSearchQuery) as err:
-                data["discover_query_error"] = {"orderby": f"Invalid orderby: {err}"}
+        try:
+            builder.resolve_orderby(orderby)
+        except (InvalidSearchQuery) as err:
+            data["discover_query_error"] = {"orderby": f"Invalid orderby: {err}"}
 
         return data
 
