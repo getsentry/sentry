@@ -19,6 +19,9 @@ import {getWidgetDiscoverUrl, getWidgetIssueUrl} from 'sentry/views/dashboardsV2
 
 import {Widget, WidgetType} from '../types';
 import {WidgetViewerContext} from '../widgetViewer/widgetViewerContext';
+import Tag from 'sentry/components/tag';
+import Feature from 'sentry/components/acl/feature';
+import {useDashboardsMEPContext} from './dashboardsMEPContext';
 
 type Props = {
   location: Location;
@@ -61,6 +64,7 @@ function WidgetCardContextMenu({
   pageLinks,
   totalIssuesCount,
 }: Props) {
+  const {isMetricsData} = useDashboardsMEPContext();
   if (!showContextMenu) {
     return null;
   }
@@ -204,6 +208,15 @@ function WidgetCardContextMenu({
     <WidgetViewerContext.Consumer>
       {({setData}) => (
         <ContextWrapper>
+          <Feature organization={organization} features={['dashboards-mep']}>
+            {isMetricsData === false && (
+              <StoredTag
+                tooltipText={t('This widget is only applicable to stored event data.')}
+              >
+                {t('Stored')}
+              </StoredTag>
+            )}
+          </Feature>
           <StyledDropdownMenuControlV2
             items={menuOptions}
             triggerProps={{
@@ -263,4 +276,8 @@ const OpenWidgetViewerButton = styled(Button)`
     background: ${p => p.theme.surface400};
     border-color: transparent;
   }
+`;
+
+const StoredTag = styled(Tag)`
+  margin-right: ${space(0.5)};
 `;

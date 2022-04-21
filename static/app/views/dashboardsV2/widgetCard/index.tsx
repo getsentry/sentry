@@ -13,7 +13,7 @@ import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import Tooltip from 'sentry/components/tooltip';
 import {IconCopy, IconDelete, IconEdit, IconGrabbable} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
@@ -24,10 +24,14 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {DRAG_HANDLE_CLASS} from '../dashboard';
-import {Widget} from '../types';
+import {Widget, WidgetType} from '../types';
 
 import WidgetCardChartContainer from './widgetCardChartContainer';
 import WidgetCardContextMenu from './widgetCardContextMenu';
+import Alert from 'sentry/components/alert';
+import ExternalLink from 'sentry/components/links/externalLink';
+import Feature from 'sentry/components/acl/feature';
+import {DashboardsMEPConsumer, DashboardsMEPProvider} from './dashboardsMEPContext';
 
 type DraggableProps = Pick<ReturnType<typeof useSortable>, 'attributes' | 'listeners'>;
 
@@ -55,6 +59,7 @@ type Props = WithRouterProps & {
   showWidgetViewerButton?: boolean;
   tableItemLimit?: number;
   windowWidth?: number;
+  showStoredAlert?: boolean;
 };
 
 type State = {
@@ -205,32 +210,25 @@ class WidgetCard extends React.Component<Props, State> {
       tableItemLimit,
       windowWidth,
       noLazyLoad,
+      showStoredAlert,
     } = this.props;
     return (
       <ErrorBoundary
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
       >
-        <StyledPanel isDragging={false}>
-          <WidgetHeader>
-            <Tooltip title={widget.title} containerDisplayMode="grid" showOnlyOnOverflow>
-              <WidgetTitle>{widget.title}</WidgetTitle>
-            </Tooltip>
-            {this.renderContextMenu()}
-          </WidgetHeader>
-          {noLazyLoad ? (
-            <WidgetCardChartContainer
-              api={api}
-              organization={organization}
-              selection={selection}
-              widget={widget}
-              isMobile={isMobile}
-              renderErrorMessage={renderErrorMessage}
-              tableItemLimit={tableItemLimit}
-              windowWidth={windowWidth}
-              onDataFetched={this.setData}
-            />
-          ) : (
-            <LazyLoad once resize height={200}>
+        <DashboardsMEPProvider>
+          <StyledPanel isDragging={false}>
+            <WidgetHeader>
+              <Tooltip
+                title={widget.title}
+                containerDisplayMode="grid"
+                showOnlyOnOverflow
+              >
+                <WidgetTitle>{widget.title}</WidgetTitle>
+              </Tooltip>
+              {this.renderContextMenu()}
+            </WidgetHeader>
+            {noLazyLoad ? (
               <WidgetCardChartContainer
                 api={api}
                 organization={organization}
@@ -242,10 +240,42 @@ class WidgetCard extends React.Component<Props, State> {
                 windowWidth={windowWidth}
                 onDataFetched={this.setData}
               />
-            </LazyLoad>
-          )}
-          {this.renderToolbar()}
-        </StyledPanel>
+            ) : (
+              <LazyLoad once resize height={200}>
+                <WidgetCardChartContainer
+                  api={api}
+                  organization={organization}
+                  selection={selection}
+                  widget={widget}
+                  isMobile={isMobile}
+                  renderErrorMessage={renderErrorMessage}
+                  tableItemLimit={tableItemLimit}
+                  windowWidth={windowWidth}
+                  onDataFetched={this.setData}
+                />
+              </LazyLoad>
+            )}
+            {this.renderToolbar()}
+          </StyledPanel>
+          <Feature organization={organization} features={['dashboards-mep']}>
+            <DashboardsMEPConsumer>
+              {({isMetricsData}) =>
+                showStoredAlert &&
+                widget.widgetType === WidgetType.DISCOVER &&
+                isMetricsData === false && (
+                  <StoredDataAlert showIcon>
+                    {tct(
+                      "Your selection is only applicable to [storedData: stored event data]. We've automatically adjusted your results.",
+                      {
+                        storedData: <ExternalLink href="https://docs.sentry.io/" />, // TODO(dashboards): Update the docs URL
+                      }
+                    )}
+                  </StoredDataAlert>
+                )
+              }
+            </DashboardsMEPConsumer>
+          </Feature>
+        </DashboardsMEPProvider>
       </ErrorBoundary>
     );
   }
@@ -317,4 +347,9 @@ const WidgetHeader = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
+`;
+
+const StoredDataAlert = styled(Alert)`
+  margin-top: ${space(1)};
+  margin-bottom: 0;
 `;
