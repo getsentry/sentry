@@ -14,7 +14,7 @@ from .. import OrganizationMemberWithTeamsSerializer
 from ..response import OrganizationMemberWithRolesResponse
 
 
-def is_retired_role_hidden(role: OrganizationRole, member: OrganizationMember) -> bool:
+def _is_retired_role_hidden(role: OrganizationRole, member: OrganizationMember) -> bool:
     return (
         role.is_retired
         and role.id != member.role
@@ -50,7 +50,7 @@ class OrganizationMemberWithRolesSerializer(OrganizationMemberWithTeamsSerialize
         context["isOnlyOwner"] = obj.is_only_owner()
 
         organization_role_list = [
-            role for role in organization_roles.get_all() if not is_retired_role_hidden(role, obj)
+            role for role in organization_roles.get_all() if not _is_retired_role_hidden(role, obj)
         ]
         context["roles"] = serialize(
             organization_role_list,
