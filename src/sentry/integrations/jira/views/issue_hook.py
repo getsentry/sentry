@@ -129,9 +129,9 @@ class JiraIssueHookView(JiraBaseHook):
                 group = Group.objects.get(id=group_link.group_id)
             except (
                 ExternalIssue.DoesNotExist,
+                ExternalIssue.MultipleObjectsReturned,
                 GroupLink.DoesNotExist,
                 Group.DoesNotExist,
-                ExternalIssue.MultipleObjectsReturned,
             ) as e:
                 scope.set_tag("failure", e.__class__.__name__)
                 set_badge(integration, issue_key, 0)
