@@ -47,7 +47,7 @@ from sentry.snuba.metrics.fields.snql import (
 )
 from sentry.snuba.metrics.naming_layer.mapping import get_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
-from sentry.snuba.metrics.query import CountUnique, Percentile95, Sum
+from sentry.snuba.metrics.query import MetricField
 from sentry.snuba.metrics.query_builder import APIQueryDefinition
 
 
@@ -230,9 +230,9 @@ def test_build_snuba_query(mock_now, mock_now2, monkeypatch):
         org_id=1,
         project_ids=[1],
         select=[
-            Sum("sentry.sessions.session"),
-            CountUnique("sentry.sessions.user"),
-            Percentile95("sentry.sessions.session.duration"),
+            MetricField("sum", "sentry.sessions.session"),
+            MetricField("count_unique", "sentry.sessions.user"),
+            MetricField("p95", "sentry.sessions.session.duration"),
         ],
         start=MOCK_NOW - timedelta(days=90),
         end=MOCK_NOW,

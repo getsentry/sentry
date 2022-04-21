@@ -17,91 +17,13 @@ class MetricField:
     metric_name: str
 
 
-class Count(MetricField):
-    def __init__(self, metric_name: str):
-        super().__init__("count", metric_name)
-
-
-class CountUnique(MetricField):
-    def __init__(self, metric_name: str):
-        super().__init__("count_unique", metric_name)
-
-
-class Avg(MetricField):
-    def __init__(self, metric_name: str):
-        super().__init__("avg", metric_name)
-
-
-class Sum(MetricField):
-    def __init__(self, metric_name: str):
-        super().__init__("sum", metric_name)
-
-
-class Max(MetricField):
-    def __init__(self, metric_name: str):
-        super().__init__("max", metric_name)
-
-
-class Min(MetricField):
-    def __init__(self, metric_name: str):
-        super().__init__("min", metric_name)
-
-
-class Percentile50(MetricField):
-    def __init__(self, metric_name: str):
-        super().__init__("p50", metric_name)
-
-
-class Percentile75(MetricField):
-    def __init__(self, metric_name: str):
-        super().__init__("p75", metric_name)
-
-
-class Percentile90(MetricField):
-    def __init__(self, metric_name: str):
-        super().__init__("p90", metric_name)
-
-
-class Percentile95(MetricField):
-    def __init__(self, metric_name: str):
-        super().__init__("p95", metric_name)
-
-
-class Percentile99(MetricField):
-    def __init__(self, metric_name: str):
-        super().__init__("p99", metric_name)
-
-
-@dataclass(frozen=True)
-class Histogram:
-    metric_name: str
-
-    @property
-    def op(self) -> MetricOperationType:
-        return "histogram"
-
-
-@dataclass(frozen=True)
-class DerivedMetric:
-    metric_name: str
-
-    @property
-    def op(self) -> None:
-        return None
-
-
-Sortable = Union[MetricField, DerivedMetric]
-
-
-Selectable = Union[Sortable, Histogram]
-
 Tag = str
 Groupable = Union[Tag, Literal["project_id"]]
 
 
 @dataclass(frozen=True)
 class OrderBy:
-    field: Sortable
+    field: MetricField
     direction: Direction
 
 
@@ -111,7 +33,7 @@ class QueryDefinition:
 
     org_id: int
     project_ids: Sequence[int]
-    select: Sequence[Selectable]
+    select: Sequence[MetricField]
     start: datetime
     end: datetime
     granularity: Granularity

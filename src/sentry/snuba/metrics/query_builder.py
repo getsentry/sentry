@@ -35,9 +35,9 @@ from sentry.snuba.metrics.fields.base import (
     org_id_from_projects,
 )
 from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
-from sentry.snuba.metrics.query import DerivedMetric, MetricField
+from sentry.snuba.metrics.query import MetricField
 from sentry.snuba.metrics.query import OrderBy as MetricsOrderBy
-from sentry.snuba.metrics.query import QueryDefinition, Selectable, Tag
+from sentry.snuba.metrics.query import QueryDefinition, Tag
 from sentry.snuba.metrics.utils import (
     ALLOWED_GROUPBY_COLUMNS,
     FIELD_REGEX,
@@ -56,7 +56,7 @@ from sentry.utils.dates import parse_stats_period, to_datetime, to_timestamp
 from sentry.utils.snuba import parse_snuba_datetime
 
 
-def parse_field(field: str, query_params) -> Selectable:
+def parse_field(field: str, query_params) -> MetricField:
     derived_metrics_mri = get_derived_metrics(exclude_private=True)
     matches = FIELD_REGEX.match(field)
     try:
@@ -79,7 +79,7 @@ def parse_field(field: str, query_params) -> Selectable:
             derived_metrics_mri[metric_mri], DerivedMetricExpression
         ):
             # The isinstance check is there to foreshadow adding raw metric aliases
-            return DerivedMetric(metric_name)
+            return MetricField(op=None, metric_name=metric_name)
         raise InvalidField(
             f"Failed to parse '{field}'. Must be something like 'sum(my_metric)', or a supported "
             f"aggregate derived metric like `session.crash_free_rate"
