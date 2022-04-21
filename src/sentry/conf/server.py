@@ -587,6 +587,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.update_user_reports",
     "sentry.tasks.user_report",
     "sentry.profiles.task",
+    "sentry.replays.tasks",
     "sentry.release_health.duplex",
     "sentry.release_health.tasks",
 )
@@ -656,6 +657,7 @@ CELERY_QUEUES = [
     Queue("unmerge", routing_key="unmerge"),
     Queue("update", routing_key="update"),
     Queue("profiles.process", routing_key="profiles.process"),
+    Queue("replays.save_replay", routing_key="replays.save_replay"),
     Queue("release_health.duplex", routing_key="release_health.duplex"),
 ]
 
@@ -2325,6 +2327,9 @@ KAFKA_INGEST_EVENTS = "ingest-events"
 KAFKA_INGEST_ATTACHMENTS = "ingest-attachments"
 KAFKA_INGEST_TRANSACTIONS = "ingest-transactions"
 KAFKA_INGEST_METRICS = "ingest-metrics"
+KAFKA_INGEST_REPLAY_PAYLOADS = "ingest-replay-payloads"
+KAFKA_INGEST_REPLAY_EVENTS = "ingest-replay-events"
+KAFKA_SNUBA_REPLAY_EVENTS = "snuba-replay-events"
 KAFKA_SNUBA_METRICS = "snuba-metrics"
 KAFKA_PROFILES = "profiles"
 
@@ -2362,6 +2367,10 @@ KAFKA_TOPICS = {
     KAFKA_SNUBA_METRICS: {"cluster": "default", "topic": KAFKA_SNUBA_METRICS},
     # Topic for receiving profiles from Relay
     KAFKA_PROFILES: {"cluster": "default", "topic": KAFKA_PROFILES},
+    # Replay topics
+    KAFKA_INGEST_REPLAY_PAYLOADS: {"cluster": "default", "topic": KAFKA_INGEST_REPLAY_PAYLOADS},
+    KAFKA_INGEST_REPLAY_EVENTS: {"cluster": "default", "topic": KAFKA_INGEST_REPLAY_EVENTS},
+    KAFKA_SNUBA_REPLAY_EVENTS: {"cluster": "default", "topic": KAFKA_SNUBA_REPLAY_EVENTS},
 }
 
 # If True, consumers will create the topics if they don't exist

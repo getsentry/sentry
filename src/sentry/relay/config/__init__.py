@@ -25,9 +25,7 @@ from sentry.utils.http import get_origins
 from sentry.utils.sdk import configure_scope
 
 #: These features will be listed in the project config
-EXPOSABLE_FEATURES = [
-    "organizations:profiling",
-]
+EXPOSABLE_FEATURES = ["organizations:profiling", "organizations:session-replay"]
 
 logger = logging.getLogger(__name__)
 

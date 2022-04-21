@@ -603,3 +603,25 @@ def last_seen_updater(**options):
     signal.signal(signal.SIGTERM, handler)
 
     consumer.run()
+
+
+@run.command("ingest-replay-payloads")
+@log_options()
+@click.option("--topic", default="ingest-replay-payloads", help="Topic to get replay payloads from")
+@batching_kafka_options("ingest-replay-payloads")
+@configuration
+def replay_payloads_consumer(**options):
+    from sentry.replays.consumers import get_replay_payloads_consumer
+
+    get_replay_payloads_consumer(**options).run()
+
+
+@run.command("ingest-replay-events")
+@log_options()
+@click.option("--topic", default="ingest-replay-events", help="Topic to get replay events from.")
+@batching_kafka_options("ingest-replay-events")
+@configuration
+def replay_events_consumer(**options):
+    from sentry.replays.consumers import get_replay_events_consumer
+
+    get_replay_events_consumer(**options).run()
