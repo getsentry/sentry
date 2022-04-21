@@ -305,11 +305,17 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             # null. We do this because such a team role would be effectively
             # invisible in the UI, and would be surprising if it were left behind
             # after the user's org role is lowered again.
-            OrganizationMemberTeam.objects.filter(
+            omt_update_count = OrganizationMemberTeam.objects.filter(
                 organizationmember=member, role__in=lesser_team_roles
             ).update(role=None)
 
             member.update(role=role)
+
+        if omt_update_count > 0:
+            metrics.incr(
+                "team_roles.update_to_minimum",
+                tags={"target_org_role": role, "count": omt_update_count},
+            )
 
     @extend_schema(
         operation_id="Delete an Organization Member",
