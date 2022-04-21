@@ -225,7 +225,7 @@ class AddCodeOwnerModal extends AsyncComponent<Props, State> {
                 </div>
                 <Container style={{paddingTop: space(2)}}>
                   <Button type="button" priority="primary" size="small" to={baseUrl}>
-                    Setup Integrations
+                    Setup Integration
                   </Button>
                 </Container>
               </Fragment>
