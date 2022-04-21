@@ -20,7 +20,9 @@ import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import getUrlPathname from 'sentry/utils/getUrlPathname';
+import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
+import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -41,10 +43,13 @@ const getQueryParamAsString = query => {
   return Array.isArray(query) ? query.join(' ') : query;
 };
 
+const columns = [t('Session'), t('Project')];
+
 function Replays(props: Props) {
   const location = useLocation();
   const organization = useOrganization();
   const {projects} = useProjects();
+  const isScreenLarge = useMedia(`(min-width: ${theme.breakpoints[0]})`);
 
   const [searchQuery, setSearchQuery] = useState<string>(
     getQueryParamAsString(location.query.query)
@@ -108,12 +113,14 @@ function Replays(props: Props) {
             displayEmail={getUrlPathname(replay.url) ?? ''}
           />
         </Link>
-        <ProjectBadge
-          project={
-            projects.find(p => p.slug === replay.project) || {slug: replay.project}
-          }
-          avatarSize={16}
-        />
+        {isScreenLarge && (
+          <ProjectBadge
+            project={
+              projects.find(p => p.slug === replay.project) || {slug: replay.project}
+            }
+            avatarSize={16}
+          />
+        )}
         <div>
           <TimeSinceWrapper>
             <StyledIconCalendarWrapper color="gray500" size="sm" />
@@ -164,8 +171,9 @@ function Replays(props: Props) {
                     isLoading={data.isLoading}
                     isEmpty={data.tableData?.data.length === 0}
                     headers={[
-                      t('Session'),
-                      t('Project'),
+                      ...(!isScreenLarge
+                        ? columns.filter(col => col === t('Session'))
+                        : columns),
                       <SortLink
                         key="timestamp"
                         role="columnheader"
@@ -205,6 +213,7 @@ function Replays(props: Props) {
 
 const StyledPageHeader = styled(PageHeader)`
   background-color: ${p => p.theme.surface100};
+  min-width: max-content;
   margin-top: ${space(1.5)};
   margin-left: ${space(4)};
 `;
@@ -215,8 +224,12 @@ const StyledPageContent = styled(PageContent)`
 `;
 
 const StyledPanelTable = styled(PanelTable)`
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  @media (max-width: ${p => p.theme.breakpoints[3]}) {
+    grid-template-columns: minmax(0, 1fr) max-content max-content;
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: minmax(0, 1fr) max-content;
   }
 `;
 
