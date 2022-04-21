@@ -263,39 +263,3 @@ def _get_filter_conditions(conditions: Sequence[Condition]) -> Any:
     return json_to_snql(
         {"selected_columns": ["value"], "conditions": conditions}, entity=dummy_entity
     ).where
-
-
-# def _translate_conditions(org_id: int, input_: Any) -> Any:
-#     if isinstance(input_, Column):
-#         # The only filterable tag keys are release and environment.
-#         assert input_.name in ("release", "environment")
-#         # It greatly simplifies code if we just assume that they exist.
-#         # Alternative would be:
-#         #   * if tag key or value does not exist in AND-clause, return no data
-#         #   * if tag key or value does not exist in OR-clause, remove condition
-#         return Column(resolve_tag_key(org_id, input_.name))
-
-#     if isinstance(input_, str):
-#         # Assuming this is the right-hand side, we need to fetch a tag value.
-#         # It's OK if the tag value resolves to None, the snuba query will then
-#         # return no results, as is intended behavior
-
-#         return indexer.resolve(org_id, input_)
-
-#     if isinstance(input_, Function):
-#         return Function(
-#             function=input_.function, parameters=_translate_conditions(org_id, input_.parameters)
-#         )
-
-#     if isinstance(input_, Condition):
-#         return Condition(
-#             lhs=_translate_conditions(org_id, input_.lhs),
-#             op=input_.op,
-#             rhs=_translate_conditions(org_id, input_.rhs),
-#         )
-
-#     if isinstance(input_, (int, float)):
-#         return input_
-
-#     assert isinstance(input_, (tuple, list)), input_
-#     return [_translate_conditions(org_id, item) for item in input_]
