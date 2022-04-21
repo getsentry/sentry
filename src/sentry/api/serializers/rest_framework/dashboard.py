@@ -144,7 +144,17 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
 
         # TODO(dam): Use columns and aggregates for validation
         fields = self._get_attr(data, "fields", []).copy()
-        equations, fields = categorize_columns(fields)
+        injected_orderby_equation = None
+        if is_equation(orderby.lstrip("-")):
+            injected_orderby_equation = orderby.lstrip("-")
+            fields.append(injected_orderby_equation)
+            equations, fields = categorize_columns(fields)
+            orderby_prefix = "-" if orderby.startswith("-") else ""
+
+            # Subtract one because the equation is injected to fields
+            orderby = f"{orderby_prefix}equation[{len(equations) - 1}]"
+        else:
+            equations, fields = categorize_columns(fields)
 
         # TODO(dam): Temp code while we are sure adoption
         # of fromtend code that sends this data is high enough
@@ -152,7 +162,10 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
         aggregates = self._get_attr(data, "aggregates", []).copy()
 
         if not columns and not aggregates:
-            for field in fields:
+            # If the orderby is an equation, it was injected into the fields
+            # so it needs to be ignored when filling out columns and aggregates
+            iterable_fields = fields[:-1] if injected_orderby_equation else fields
+            for field in iterable_fields:
                 if is_aggregate(field):
                     aggregates.append(field)
                 else:
@@ -186,7 +199,7 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
                 dataset=Dataset.Discover,
                 params=params,
                 equation_config={
-                    "auto_add": not is_table,
+                    "auto_add": not is_table or injected_orderby_equation,
                     "aggregates_only": not is_table,
                 },
             )
@@ -207,11 +220,10 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
             # error based on the Widget's type
             data["discover_query_error"] = {"fields": f"Invalid fields: {err}"}
 
-        if not is_equation(orderby.lstrip("-")):
-            try:
-                builder.resolve_orderby(orderby)
-            except (InvalidSearchQuery) as err:
-                data["discover_query_error"] = {"orderby": f"Invalid orderby: {err}"}
+        try:
+            builder.resolve_orderby(orderby)
+        except (InvalidSearchQuery) as err:
+            data["discover_query_error"] = {"orderby": f"Invalid orderby: {err}"}
 
         return data
 

@@ -304,3 +304,25 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             data=data,
         )
         assert response.status_code == 200, response.data
+
+    def test_invalid_raw_equation_in_order_by_throws_error(self):
+        data = {
+            "title": "Test Query",
+            "displayType": "table",
+            "widgetType": "discover",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "fields": [],
+                    "orderby": "-equation|thisIsNotARealEquation() * 42",
+                }
+            ],
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 400, response.data
+        assert "queries" in response.data, response.data
