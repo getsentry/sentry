@@ -6,11 +6,11 @@ from sentry import features
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.user import DetailedUserSerializer
 from sentry.models import OrganizationMember, User
-from sentry.roles.manager import OrganizationRole, Role
 from sentry.roles import organization_roles, team_roles
+from sentry.roles.manager import OrganizationRole, Role
 
-from .. import OrganizationMemberWithTeamsSerializer
 from ...role import OrganizationRoleSerializer, TeamRoleSerializer
+from .. import OrganizationMemberWithTeamsSerializer
 from ..response import OrganizationMemberWithRolesResponse
 
 
