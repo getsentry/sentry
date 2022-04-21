@@ -4,7 +4,7 @@ from typing import Any, Callable, Dict, List, Mapping, Match, Optional, Set, Tup
 
 import sentry_sdk
 from django.utils.functional import cached_property
-from parsimonious.exceptions import ParseError  # type: ignore
+from parsimonious.exceptions import ParseError
 from snuba_sdk.aliased_expression import AliasedExpression
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import And, BooleanCondition, Condition, Op, Or
