@@ -64,8 +64,8 @@ def _get_allowed_roles_by_access(request: Request, organization: Organization) -
     which means we can't compare to a member's role. Allow such a token to assign a
     role if the token has access to all of that role's scopes.
     """
-    access_obj = access.from_request(request, organization)
-    return [role for role in roles.get_all() if access_obj.scopes.issuperset(role.scopes)]
+    request_scopes = access.from_request(request, organization).scopes
+    return [role for role in roles.get_all() if role.scopes.issubset(request_scopes)]
 
 
 from .details import OrganizationMemberDetailsEndpoint
