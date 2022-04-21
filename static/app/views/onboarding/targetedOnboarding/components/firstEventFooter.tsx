@@ -39,7 +39,7 @@ export default function FirstEventFooter({
   const getSecondaryCta = () => {
     // if hasn't sent first event, allow skiping.
     // if last, no secondary cta
-    if (!hasFirstEvent || !isLast) {
+    if (!hasFirstEvent && !isLast) {
       return <Button onClick={onClickSetupLater}>{t('Next Platform')}</Button>;
     }
     return null;
