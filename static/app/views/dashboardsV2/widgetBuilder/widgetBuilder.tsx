@@ -195,7 +195,7 @@ function WidgetBuilder({
   const widgetBuilderNewDesign = organization.features.includes(
     'new-widget-builder-experience-design'
   );
-  const hasReleaseHealthFeature = organization.features.includes('dashboard-metrics');
+  const hasReleaseHealthFeature = organization.features.includes('dashboards-metrics');
 
   const filteredDashboardWidgets = dashboard.widgets.filter(({widgetType}) => {
     if (widgetType === WidgetType.METRICS) {

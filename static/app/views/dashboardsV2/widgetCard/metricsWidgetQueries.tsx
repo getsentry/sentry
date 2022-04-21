@@ -35,7 +35,7 @@ const FIELD_TO_DERIVED_EXPRESSION = {
 };
 
 function mapDerivedMetrics(field: string): string {
-  return FIELD_TO_DERIVED_EXPRESSION[field];
+  return FIELD_TO_DERIVED_EXPRESSION[field] ?? field;
 }
 
 type Props = {
