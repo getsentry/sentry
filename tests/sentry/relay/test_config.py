@@ -115,6 +115,7 @@ def test_project_config_with_breakdown(default_project, insta_snapshot, transact
         {
             "breakdownsV2": cfg["config"]["breakdownsV2"],
             "transactionMetrics": cfg["config"].get("transactionMetrics"),
+            "metricConditionalTagging": cfg["config"].get("metricConditionalTagging"),
         }
     )
 
@@ -155,7 +156,7 @@ def test_project_config_satisfaction_thresholds(
         cfg = get_project_config(default_project, full_config=True)
 
     cfg = cfg.to_dict()
-    insta_snapshot(cfg["config"]["transactionMetrics"]["satisfactionThresholds"])
+    insta_snapshot(cfg["config"]["metricConditionalTagging"])
 
 
 @pytest.mark.django_db
