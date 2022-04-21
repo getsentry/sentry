@@ -642,8 +642,7 @@ class CombinedQuerysetPaginator:
             sort_keys = []
             sort_keys.append(self.get_item_key(item, is_prev))
             if len(self.model_key_map.get(type(item))) > 1:
-                for k in self.model_key_map.get(type(item))[1:]:
-                    sort_keys.append(k)
+                sort_keys.extend(iter(self.model_key_map.get(type(item))[1:]))
             sort_keys.append(type(item).__name__)
             return tuple(sort_keys)
 
@@ -740,7 +739,7 @@ class ChainPaginator:
             remaining = limit - len(results) + 1
             results.extend(source[offset : offset + remaining])
             # don't do offset = max(0, offset - len(source)) because len(source) may be expensive
-            if len(results) == 0:
+            if not results:
                 offset -= len(source)
             else:
                 offset = 0
