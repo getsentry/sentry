@@ -835,7 +835,7 @@ class AuthHelper(Pipeline):
 
         if redirect_uri == "/":
             metrics.incr(
-                "sso.exit",
+                "sso.error",
                 tags={
                     "flow": self.state.flow,
                     "provider": self.provider.key,
@@ -847,7 +847,7 @@ class AuthHelper(Pipeline):
             )
         else:
             metrics.incr(
-                "sso.error",
+                "sso.exit",
                 tags={
                     "flow": self.state.flow,
                     "provider": self.provider.key,
