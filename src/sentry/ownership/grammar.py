@@ -437,7 +437,7 @@ def parse_code_owners(data: str) -> Tuple[List[str], List[str], List[str]]:
     return teams, usernames, emails
 
 
-def get_codeowners_path_and_owners(rule: str) -> Tuple[Any, Any]:
+def get_codeowners_path_and_owners(rule: str) -> Tuple[str, Sequence[str]]:
     # Regex does a negative lookbehind for a backslash. Matches on whitespace without a preceding backslash.
     pattern = re.compile(r"(?<!\\)\s")
     path, *code_owners = (i for i in pattern.split(rule.strip()) if i)
