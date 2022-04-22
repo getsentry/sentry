@@ -89,7 +89,7 @@ class ReleasesList extends AsyncView<Props, State> {
     const query = {
       ...pick(location.query, ['project', 'environment', 'cursor', 'query', 'sort']),
       summaryStatsPeriod: statsPeriod,
-      statsPeriod: statsPeriod || DEFAULT_STATS_PERIOD,
+      statsPeriod,
       start,
       end,
       utc,
@@ -302,7 +302,7 @@ class ReleasesList extends AsyncView<Props, State> {
 
     const selectedPeriod =
       !!start && !!end
-        ? 'time range'
+        ? t('time range')
         : getRelativeSummary(statsPeriod || DEFAULT_STATS_PERIOD).toLowerCase();
 
     if (searchQuery && searchQuery.length) {
