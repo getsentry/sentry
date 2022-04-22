@@ -5,15 +5,14 @@ import {Location} from 'history';
 import debounce from 'lodash/debounce';
 
 import {Client} from 'sentry/api';
+import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
 import Slider from 'sentry/components/forms/controls/rangeSlider/slider';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
-import {IconMegaphone} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {BaseGroup, Group, Organization, Project} from 'sentry/types';
@@ -49,15 +48,13 @@ type GroupingLevel = {
 function LinkFooter() {
   return (
     <Footer>
-      <ExternalLink
-        href={`mailto:grouping@sentry.io?subject=${encodeURIComponent(
-          'Grouping Feedback'
-        )}&body=${encodeURIComponent(
-          `URL: ${window.location.href}\n\nThanks for taking the time to provide us feedback. What's on your mind?`
-        )}`}
-      >
-        <StyledIconMegaphone /> {t('Give Feedback')}
-      </ExternalLink>
+      <FeatureFeedback
+        feedbackTypes={[
+          t('Too eager grouping'),
+          t('Too specific grouping'),
+          t('Other grouping issue'),
+        ]}
+      />
     </Footer>
   );
 }
@@ -306,10 +303,6 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
 }
 
 export default withApi(Grouping);
-
-const StyledIconMegaphone = styled(IconMegaphone)`
-  margin-right: ${space(0.5)};
-`;
 
 const Wrapper = styled('div')`
   flex: 1;
