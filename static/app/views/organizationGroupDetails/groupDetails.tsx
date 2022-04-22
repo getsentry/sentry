@@ -585,6 +585,8 @@ class GroupDetails extends Component<Props, State> {
     const {organization} = this.props;
     const isSampleError = group?.tags.some(tag => tag.key === 'sample_event');
 
+    const hasPageFilters = organization.features.includes('selection-filters-v2');
+
     return (
       <Fragment>
         {isSampleError && project && (
@@ -599,6 +601,7 @@ class GroupDetails extends Component<Props, State> {
             lockedMessageSubject={t('issue')}
             showIssueStreamLink
             showProjectSettingsLink
+            hideGlobalHeader={hasPageFilters}
           >
             {this.renderPageContent()}
           </PageFiltersContainer>

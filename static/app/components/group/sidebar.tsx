@@ -7,6 +7,7 @@ import pickBy from 'lodash/pickBy';
 
 import {Client} from 'sentry/api';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import ExternalIssueList from 'sentry/components/group/externalIssuesList';
 import GroupParticipants from 'sentry/components/group/participants';
@@ -36,7 +37,6 @@ type Props = {
   group: Group;
   organization: Organization;
   project: Project;
-  className?: string;
   event?: Event;
 };
 
@@ -178,12 +178,19 @@ class BaseGroupSidebar extends React.Component<Props, State> {
   }
 
   render() {
-    const {className, event, group, organization, project, environments} = this.props;
+    const {event, group, organization, project, environments} = this.props;
     const {allEnvironmentsGroupData, currentRelease, tagsWithTopValues} = this.state;
     const projectId = project.slug;
 
+    const hasPageFilters = organization.features.includes('selection-filters-v2');
+
     return (
-      <div className={className}>
+      <Container>
+        {hasPageFilters && (
+          <PageFiltersContainer>
+            <EnvironmentPageFilter alignDropdown="right" />
+          </PageFiltersContainer>
+        )}
         {event && <SuggestedOwners project={project} group={group} event={event} />}
 
         <GroupReleaseStats
@@ -247,10 +254,18 @@ class BaseGroupSidebar extends React.Component<Props, State> {
         </SidebarSection>
 
         {this.renderParticipantData()}
-      </div>
+      </Container>
     );
   }
 }
+
+const PageFiltersContainer = styled('div')`
+  margin-bottom: ${space(2)};
+`;
+
+const Container = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
 
 const TagPlaceholders = styled('div')`
   display: grid;
@@ -264,8 +279,6 @@ const ExternalIssues = styled('div')`
   gap: ${space(2)};
 `;
 
-const GroupSidebar = styled(withApi(BaseGroupSidebar))`
-  font-size: ${p => p.theme.fontSizeMedium};
-`;
+const GroupSidebar = withApi(BaseGroupSidebar);
 
 export default GroupSidebar;
