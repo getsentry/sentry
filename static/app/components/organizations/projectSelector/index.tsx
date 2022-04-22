@@ -220,11 +220,7 @@ const ProjectSelector = ({
           </AddButton>
           {showPin && (
             <GuideAnchor target="new_page_filter_pin" position="bottom">
-              <PageFilterPinButton
-                size="xsmall"
-                filter="projects"
-                organization={organization}
-              />
+              <PageFilterPinButton size="xsmall" filter="projects" />
             </GuideAnchor>
           )}
         </InputActions>

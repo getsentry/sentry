@@ -442,11 +442,7 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
                 `}
                 inputActions={
                   showPin ? (
-                    <StyledPinButton
-                      size="xsmall"
-                      filter="datetime"
-                      organization={organization}
-                    />
+                    <StyledPinButton size="xsmall" filter="datetime" />
                   ) : undefined
                 }
                 onSelect={this.handleSelect}
