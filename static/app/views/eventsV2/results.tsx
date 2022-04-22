@@ -507,7 +507,7 @@ class Results extends React.Component<Props, State> {
               <Top fullWidth>
                 {this.renderError(error)}
                 {hasPageFilters && (
-                  <StyledPageFilterBar>
+                  <StyledPageFilterBar condensed>
                     <ProjectPageFilter />
                     <EnvironmentPageFilter />
                     <DatePageFilter alignDropdown="left" />
@@ -585,8 +585,6 @@ const StyledPageContent = styled(PageContent)`
 `;
 
 const StyledPageFilterBar = styled(PageFilterBar)`
-  max-width: 100%;
-  width: max-content;
   margin-bottom: ${space(1)};
 `;
 
