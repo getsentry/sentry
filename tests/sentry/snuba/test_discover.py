@@ -6228,6 +6228,36 @@ class TopEventsTimeseriesQueryTest(TimeseriesBase):
             referrer=None,
         )
 
+    @patch("sentry.snuba.discover.query")
+    def test_equation_fields_are_auto_added(self, mock_query):
+        start = before_now(minutes=5)
+        end = before_now(seconds=1)
+        discover.top_events_timeseries(
+            selected_columns=["count()"],
+            equations=["equation|count_unique(user) * 2"],
+            params={"start": start, "end": end, "project_id": [self.project.id]},
+            rollup=3600,
+            timeseries_columns=[],
+            user_query="",
+            orderby=["equation[0]"],
+            limit=10000,
+            organization=self.organization,
+        )
+
+        mock_query.assert_called_with(
+            ["count()"],
+            query="",
+            params={"start": start, "end": end, "project_id": [self.project.id]},
+            equations=["equation|count_unique(user) * 2"],
+            orderby=["equation[0]"],
+            referrer=None,
+            limit=10000,
+            auto_aggregations=True,
+            use_aggregate_conditions=True,
+            use_snql=False,
+            include_equation_fields=True,
+        )
+
 
 def format_project_event(project_slug, event_id):
     return f"{project_slug}:{event_id}"
