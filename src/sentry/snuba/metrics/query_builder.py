@@ -278,7 +278,7 @@ class APIQueryDefinition:
                 raise InvalidParams(
                     f"Requested interval of {query_params.get('interval', '1h')} with statsPeriod of "
                     f"{query_params.get('statsPeriod')} is too granular for a per_page of "
-                    f"{self.limit} elements. Increase your interval, decrease your statsPeriod, "
+                    f"{self.limit.limit} elements. Increase your interval, decrease your statsPeriod, "
                     f"or decrease your per_page parameter."
                 )
 
