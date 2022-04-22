@@ -154,7 +154,7 @@ type Props = WithRouterProps & {
   /**
    * A function to get documentation for a field
    */
-  getFieldDoc?: (key: string) => string;
+  getFieldDoc?: (key: string) => React.ReactNode;
   /**
    * List user's recent searches
    */
@@ -759,9 +759,9 @@ class SmartSearchBar extends React.Component<Props, State> {
         .map(value => ({
           value,
           desc: value,
-          documentation: getFieldDoc ? getFieldDoc(value.slice(0, -1)) : '',
+          documentation: getFieldDoc?.(value.slice(0, -1)) ?? '',
         }))
-        .sort((a, b) => a.value > b.value),
+        .sort((a, b) => a.value.localeCompare(b.value)),
       supportedTagType ?? ItemType.TAG_KEY,
     ];
   }
