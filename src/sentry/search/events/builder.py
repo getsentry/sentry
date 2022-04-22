@@ -4,7 +4,7 @@ from typing import Any, Callable, Dict, List, Mapping, Match, Optional, Set, Tup
 
 import sentry_sdk
 from django.utils.functional import cached_property
-from parsimonious.exceptions import ParseError  # type: ignore
+from parsimonious.exceptions import ParseError
 from snuba_sdk.aliased_expression import AliasedExpression
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import And, BooleanCondition, Condition, Op, Or
@@ -419,8 +419,11 @@ class QueryBuilder:
 
         sentry_sdk.set_tag("query.has_equations", equations is not None and len(equations) > 0)
         if equations:
-            _, _, parsed_equations = resolve_equation_list(
-                equations, stripped_columns, use_snql=True, **self.equation_config
+            _, stripped_columns, parsed_equations = resolve_equation_list(
+                equations,
+                stripped_columns,
+                use_snql=True,
+                **self.equation_config,
             )
             for index, parsed_equation in enumerate(parsed_equations):
                 resolved_equation = self.resolve_equation(

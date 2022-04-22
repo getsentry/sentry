@@ -102,6 +102,7 @@ export function WidgetCardChartContainer({
         widget={widget}
         selection={selection}
         limit={widget.limit ?? tableItemLimit}
+        onDataFetched={onDataFetched}
       >
         {({tableResults, timeseriesResults, errorMessage, loading}) => {
           return (
@@ -122,6 +123,7 @@ export function WidgetCardChartContainer({
                 isMobile={isMobile}
                 windowWidth={windowWidth}
                 expandNumbers={expandNumbers}
+                onZoom={onZoom}
               />
             </Fragment>
           );

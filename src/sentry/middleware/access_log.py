@@ -79,7 +79,7 @@ def _create_api_access_log(
 
         request_auth = _get_request_auth(request)
         auth_id = getattr(request_auth, "id", None)
-        status_code = response.status_code if response else 500
+        status_code = getattr(response, "status_code", 500)
         log_metrics = dict(
             method=str(request.method),
             view=view,
