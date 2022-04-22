@@ -377,7 +377,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
         owner_om = OrganizationMember.objects.get(organization=self.organization, user=owner)
         assert owner_om.role == "owner"
 
-    def test_with_internal_integration(self):
+    def test_can_update_with_internal_integration(self):
         member = self.create_user("baz@example.com")
         member_om = self.create_member(organization=self.organization, user=member, role="member")
 
@@ -399,6 +399,29 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
         assert response.status_code == 200
         member_om.refresh_from_db()
         assert member_om.role == "admin"
+
+    def test_internal_integration_cannot_update_without_scopes(self):
+        member = self.create_user("baz@example.com")
+        member_om = self.create_member(organization=self.organization, user=member, role="member")
+
+        scopes = ["member:admin"]
+        scopes += organization_roles.get("member").scopes
+        integration = self.create_internal_integration(
+            organization=self.organization, scopes=scopes
+        )
+        token = SentryAppInstallationToken.objects.get(
+            sentry_app_installation__sentry_app=integration
+        )
+
+        response = self.client.put(
+            reverse(self.endpoint, args=[self.organization.slug, member_om.id]),
+            {"role": "admin"},
+            HTTP_AUTHORIZATION=f"Bearer {token.api_token.token}",
+        )
+
+        assert response.status_code == 403
+        member_om.refresh_from_db()
+        assert member_om.role == "member"
 
 
 class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
