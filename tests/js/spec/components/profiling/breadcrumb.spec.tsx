@@ -1,0 +1,38 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
+
+import {Breadcrumb} from 'sentry/components/profiling/breadcrumb';
+
+describe('Breadcrumb', function () {
+  let organization;
+
+  beforeEach(function () {
+    const context = initializeOrg();
+    organization = context.organization;
+  });
+
+  it('renders the profiling link', function () {
+    render(
+      <Breadcrumb
+        organization={organization}
+        trails={[
+          {type: 'profiling'},
+          {
+            type: 'flamegraph',
+            payload: {
+              interactionName: 'foo',
+              profileId: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+              projectSlug: 'bar',
+            },
+          },
+        ]}
+      />
+    );
+    expect(screen.getByText('Profiling')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Profiling'})).toHaveAttribute(
+      'href',
+      `/organizations/${organization.slug}/profiling/`
+    );
+    expect(screen.getByText('foo')).toBeInTheDocument();
+  });
+});

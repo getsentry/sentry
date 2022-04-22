@@ -89,6 +89,7 @@ function FlamegraphView(props: FlamegraphViewProps): React.ReactElement {
         <Layout.Header>
           <Layout.HeaderContent>
             <Breadcrumb
+              organization={organization}
               trails={[
                 {type: 'profiling'},
                 {

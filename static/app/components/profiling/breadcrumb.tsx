@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
-import useOrganization from 'sentry/utils/useOrganization';
 import {
   generateFlamegraphRoute,
   generateProfilingRoute,
@@ -26,11 +25,11 @@ type FlamegraphTrail = {
 type Trail = ProfilingTrail | FlamegraphTrail;
 
 interface BreadcrumbProps {
+  organization: Organization;
   trails: Trail[];
 }
 
-function Breadcrumb({trails}: BreadcrumbProps) {
-  const organization = useOrganization();
+function Breadcrumb({organization, trails}: BreadcrumbProps) {
   const crumbs = useMemo(
     () => trails.map(trail => trailToCrumb(trail, {organization})),
     [trails]
