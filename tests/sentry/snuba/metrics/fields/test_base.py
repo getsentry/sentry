@@ -385,9 +385,9 @@ class CompositeEntityDerivedMetricTestCase(TestCase):
             "metrics_sets": [SessionMRI.ERRORED_SET.value],
         }
         component_entities = DERIVED_METRICS[SessionMRI.HEALTHY.value].get_entity(projects=[1])
+
         assert sorted(component_entities["metrics_counters"]) == [
             SessionMRI.ALL.value,
-            SessionMRI.CRASHED_AND_ABNORMAL.value,
             SessionMRI.ERRORED_PREAGGREGATED.value,
         ]
         assert sorted(component_entities["metrics_sets"]) == [SessionMRI.ERRORED_SET.value]
