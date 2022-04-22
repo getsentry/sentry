@@ -3,6 +3,7 @@ import {useReducer} from 'react';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import {combinedReducers} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider';
+import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {makeCombinedReducers} from 'sentry/utils/useCombinedReducer';
 import {
   makeUndoableReducer,
@@ -26,7 +27,7 @@ const INITIAL_STATE = {
 };
 
 describe('makeUndoableReducer', () => {
-  it('does not overflow', () => {
+  it('does not overflow undo/redo', () => {
     const mockFirstReducer = jest.fn().mockImplementation(v => ++v);
     const reducer = makeUndoableReducer(mockFirstReducer, 0);
 
@@ -148,13 +149,22 @@ describe('makeUndoableReducer', () => {
     });
   });
 
+  it('can peek previous and next state', () => {
+    const simpleReducer = (state: number, action: {type: 'add'} | {type: 'subtract'}) =>
+      action.type === 'add' ? state + 1 : state - 1;
+
+    const {result} = reactHooks.renderHook(() => useUndoableReducer(simpleReducer, 0));
+
+    reactHooks.act(() => result.current[1]({type: 'add'}));
+    expect(result.current?.[2].previousState).toEqual(0);
+
+    reactHooks.act(() => result.current[1]({type: 'undo'}));
+    expect(result.current?.[2].nextState).toEqual(1);
+  });
+
   it('can work with primitives', () => {
-    const simpleReducer = (state: number, action: {type: 'add'} | {type: 'subtract'}) => {
-      if (action.type === 'add') {
-        return state + 1;
-      }
-      return state - 1;
-    };
+    const simpleReducer = (state: number, action: {type: 'add'} | {type: 'subtract'}) =>
+      action.type === 'add' ? state + 1 : state - 1;
 
     const initialState = {simple: 0};
 
@@ -184,6 +194,7 @@ describe('makeUndoableReducer', () => {
       useReducer(makeUndoableReducer(combinedReducers, INITIAL_STATE), {
         previous: undefined,
         current: {
+          position: {view: Rect.Empty()},
           preferences: {
             colorCoding: 'by symbol name',
             sorting: 'call order',
