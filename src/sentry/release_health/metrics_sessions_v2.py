@@ -358,6 +358,14 @@ def run_sessions_query(
     return cast(SessionsQueryResult, results)
 
 
+def _get_filter_conditions(conditions: Sequence[Condition]) -> Any:
+    """Translate given conditions to snql"""
+    dummy_entity = EntityKey.MetricsSets.value
+    return json_to_snql(
+        {"selected_columns": ["value"], "conditions": conditions}, entity=dummy_entity
+    ).where
+
+
 def _parse_orderby(query: QueryDefinition) -> Optional[OrderBy]:
     orderby = query.raw_orderby
     if orderby is None:
@@ -393,11 +401,3 @@ def _get_primary_field(fields: Sequence[Field], raw_groupby: Sequence[str]) -> M
 
     assert primary_metric_field
     return primary_metric_field
-
-
-def _get_filter_conditions(conditions: Sequence[Condition]) -> Any:
-    """Translate given conditions to snql"""
-    dummy_entity = EntityKey.MetricsSets.value
-    return json_to_snql(
-        {"selected_columns": ["value"], "conditions": conditions}, entity=dummy_entity
-    ).where
