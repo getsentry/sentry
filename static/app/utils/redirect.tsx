@@ -1,9 +1,10 @@
 import {useEffect} from 'react';
-import {browserHistory, InjectedRouter} from 'react-router';
-import {LocationDescriptor} from 'history';
+import {InjectedRouter} from 'react-router';
+
+import {useNavigate} from './useNavigate';
 
 type Props = {
-  to: LocationDescriptor;
+  to: string;
   router?: InjectedRouter;
 };
 
@@ -11,11 +12,14 @@ type Props = {
 // to be declarative.
 function Redirect({to, router}: Props) {
   // Redirect on mount.
+  const navigate = useNavigate();
   useEffect(() => {
     if (router) {
       router.replace(to);
     } else {
-      browserHistory.replace(to);
+      navigate(to, {
+        replace: true,
+      });
     }
   }, []);
 
