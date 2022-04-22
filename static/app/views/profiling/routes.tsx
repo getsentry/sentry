@@ -1,6 +1,10 @@
 import {Organization, Project} from 'sentry/types';
 import {Trace} from 'sentry/types/profiling/core';
 
+export function generateProfilingRoute({orgSlug}: {orgSlug: Organization['slug']}) {
+  return `/organizations/${orgSlug}/profiling/`;
+}
+
 export function generateFlamegraphRoute({
   orgSlug,
   projectSlug,
