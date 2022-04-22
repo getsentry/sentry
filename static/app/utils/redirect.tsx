@@ -17,9 +17,7 @@ function Redirect({to, router}: Props) {
     if (router) {
       router.replace(to);
     } else {
-      navigate(to, {
-        replace: true,
-      });
+      navigate(to, {replace: true});
     }
   }, []);
 
