@@ -29,7 +29,13 @@ type Props = RequestProps & {
 
 function getSuspectSpanPayload(props: RequestProps) {
   const {perSuspect, spanOps, spanGroups, minExclusiveTime, maxExclusiveTime} = props;
-  const payload = {perSuspect, spanOp: spanOps, spanGroup: spanGroups};
+  const payload = {
+    perSuspect,
+    spanOp: spanOps,
+    spanGroup: spanGroups,
+    min_exclusive_time: minExclusiveTime,
+    max_exclusive_time: maxExclusiveTime,
+  };
   if (!defined(payload.perSuspect)) {
     delete payload.perSuspect;
   }
@@ -43,8 +49,6 @@ function getSuspectSpanPayload(props: RequestProps) {
   return {
     ...payload,
     ...additionalPayload,
-    min_exclusive_time: minExclusiveTime,
-    max_exclusive_time: maxExclusiveTime,
   };
 }
 
