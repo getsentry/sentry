@@ -10,6 +10,7 @@ import {
   updateProjects,
 } from 'sentry/actionCreators/pageFilters';
 import DesyncedFilterAlert from 'sentry/components/organizations/pageFilters/desyncedFiltersAlert';
+import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -142,8 +143,8 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
       allowAbsoluteDatetime: true,
     });
     const newState = getStateFromQuery(location.query, {
-      allowEmptyPeriod: true,
       allowAbsoluteDatetime: true,
+      defaultStatsPeriod: defaultSelection?.datetime?.period ?? DEFAULT_STATS_PERIOD,
     });
 
     const newEnvironments = newState.environment || [];
