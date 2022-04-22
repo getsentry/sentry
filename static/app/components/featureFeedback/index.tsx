@@ -24,9 +24,3 @@ export function FeatureFeedback({feedbackTypes}: Props) {
     </Button>
   );
 }
-
-// const groupingOptions = [
-//   t('Too eager grouping'),
-//   t('Too specific grouping'),
-//   t('Other grouping issue'),
-// ];

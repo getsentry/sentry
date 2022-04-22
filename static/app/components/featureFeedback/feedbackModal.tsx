@@ -1,7 +1,8 @@
 import {Fragment, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
-import * as Sentry from '@sentry/react';
+import {BrowserClient} from '@sentry/react';
 
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import Textarea from 'sentry/components/forms/controls/textarea';
@@ -16,6 +17,11 @@ import useProjects from 'sentry/utils/useProjects';
 
 import ButtonBar from '../buttonBar';
 import Field from '../forms/field';
+
+const feedbackClient = new BrowserClient({
+  // feedback project under Sentry organization
+  dsn: 'https://3c5ef4e344a04a0694d187a1272e96de@o1.ingest.sentry.io/6356259',
+});
 
 export interface FeedBackModalProps {
   feedbackTypes: string[];
@@ -52,16 +58,23 @@ export function FeedbackModal({Header, Body, Footer, closeModal, feedbackTypes}:
       return;
     }
 
-    Sentry.withScope(function (scope) {
-      scope.setLevel(Sentry.Severity.Info);
-      scope.setUser(user);
-      scope.setTag('url', location.pathname);
-      scope.setExtra('subject', feedbackTypes[subject]);
-      scope.setExtra('orgFeatures', organization?.features);
-      scope.setExtra('orgAccess', organization?.access);
-      scope.setExtra('projectFeatures', project?.features);
-      Sentry.captureMessage(additionalInfo ?? '');
+    feedbackClient.captureEvent({
+      user,
+      tags: {
+        url: location.pathname,
+      },
+      extra: {
+        url: location.pathname,
+        orgFeatures: organization?.features,
+        orgAccess: organization?.access,
+        projectFeatures: project?.features,
+      },
+      message: additionalInfo?.trim()
+        ? `${feedbackTypes[subject]} - ${additionalInfo}`
+        : feedbackTypes[subject],
     });
+
+    addSuccessMessage(' Thanks for taking the time to provide us feedback!');
 
     closeModal();
   }

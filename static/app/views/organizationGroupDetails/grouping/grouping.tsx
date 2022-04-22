@@ -45,19 +45,11 @@ type GroupingLevel = {
   isCurrent: boolean;
 };
 
-function LinkFooter() {
-  return (
-    <Footer>
-      <FeatureFeedback
-        feedbackTypes={[
-          t('Too eager grouping'),
-          t('Too specific grouping'),
-          t('Other grouping issue'),
-        ]}
-      />
-    </Footer>
-  );
-}
+const groupingFeedbackTypes = [
+  t('Too eager grouping'),
+  t('Too specific grouping'),
+  t('Other grouping issue'),
+];
 
 function Grouping({api, groupId, location, organization, router, projSlug}: Props) {
   const {cursor, level} = location.query;
@@ -211,15 +203,17 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
       <Fragment>
         <Layout.Body>
           <Layout.Main fullWidth>
-            <ErrorMessage
-              onRetry={fetchGroupingLevels}
-              groupId={groupId}
-              error={error}
-              projSlug={projSlug}
-              orgSlug={organization.slug}
-              hasProjectWriteAccess={organization.access.includes('project:write')}
-            />
-            <LinkFooter />
+            <ErrorWrapper>
+              <FeatureFeedback feedbackTypes={groupingFeedbackTypes} />
+              <StyledErrorMessage
+                onRetry={fetchGroupingLevels}
+                groupId={groupId}
+                error={error}
+                projSlug={projSlug}
+                orgSlug={organization.slug}
+                hasProjectWriteAccess={organization.access.includes('project:write')}
+              />
+            </ErrorWrapper>
           </Layout.Main>
         </Layout.Body>
       </Fragment>
@@ -244,19 +238,22 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
             )}
           </Header>
           <Body>
-            <SliderWrapper>
-              {t('Fewer issues')}
-              <StyledRangeSlider
-                name="grouping-level"
-                allowedValues={groupingLevels.map(groupingLevel =>
-                  Number(groupingLevel.id)
-                )}
-                value={activeGroupingLevel ?? 0}
-                onChange={handleSetActiveGroupingLevel}
-                showLabel={false}
-              />
-              {t('More issues')}
-            </SliderWrapper>
+            <Actions>
+              <SliderWrapper>
+                {t('Fewer issues')}
+                <StyledRangeSlider
+                  name="grouping-level"
+                  allowedValues={groupingLevels.map(groupingLevel =>
+                    Number(groupingLevel.id)
+                  )}
+                  value={activeGroupingLevel ?? 0}
+                  onChange={handleSetActiveGroupingLevel}
+                  showLabel={false}
+                />
+                {t('More issues')}
+              </SliderWrapper>
+              <FeatureFeedback feedbackTypes={groupingFeedbackTypes} />
+            </Actions>
             <Content isReloading={isGroupingLevelDetailsLoading}>
               <StyledPanelTable headers={['', t('Events')]}>
                 {activeGroupingLevelDetails.map(
@@ -295,7 +292,6 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
               />
             </Content>
           </Body>
-          <LinkFooter />
         </Wrapper>
       </Layout.Main>
     </Layout.Body>
@@ -318,15 +314,26 @@ const Header = styled('p')`
   }
 `;
 
-const Footer = styled('p')`
-  && {
-    margin-top: ${space(2)};
-  }
-`;
-
 const Body = styled('div')`
   display: grid;
   gap: ${space(3)};
+`;
+
+const Actions = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr max-content;
+  align-items: center;
+`;
+
+const StyledErrorMessage = styled(ErrorMessage)`
+  width: 100%;
+`;
+
+const ErrorWrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: ${space(1)};
 `;
 
 const StyledPanelTable = styled(PanelTable)`
