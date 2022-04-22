@@ -1168,10 +1168,10 @@ export function getFieldDoc(field: string): React.ReactNode {
     return FIELDS_DOCS[field];
   }
   const parsed = parseFunction(field);
-  if (!parsed || !AGGREGATIONS.hasOwnProperty(parsed.name)) {
-    return '';
+  if (parsed && AGGREGATIONS.hasOwnProperty(parsed.name)) {
+    return AGGREGATIONS[parsed.name].documentation;
   }
-  return AGGREGATIONS[parsed.name].documentation;
+  return '';
 }
 
 export function getAggregateFields(fields: string[]): string[] {
