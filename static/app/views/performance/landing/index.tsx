@@ -52,10 +52,10 @@ import {
 
 type Props = {
   eventView: EventView;
-  getOnboardingProject: () => Project | undefined;
   handleSearch: (searchQuery: string) => void;
   handleTrendsClick: () => void;
   location: Location;
+  onBoardingProject: Project | undefined;
   organization: Organization;
   projects: Project[];
   selection: PageFilters;
@@ -78,7 +78,7 @@ export function PerformanceLanding(props: Props) {
     projects,
     handleSearch,
     handleTrendsClick,
-    getOnboardingProject,
+    onBoardingProject,
   } = props;
 
   const {teams, initiallyLoaded} = useTeams({provideUserTeams: true});
@@ -90,7 +90,6 @@ export function PerformanceLanding(props: Props) {
     eventView
   );
   const landingDisplay = paramLandingDisplay ?? defaultLandingDisplayForProjects;
-  const onBoardingProject = getOnboardingProject();
   const showOnboarding = onBoardingProject !== undefined;
 
   useEffect(() => {

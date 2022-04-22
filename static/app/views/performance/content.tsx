@@ -43,11 +43,44 @@ function PerformanceContent({selection, location, demoMode}: Props) {
 
   const [state, setState] = useState<State>({error: undefined});
 
+  function getOnboardingProject(): Project | undefined {
+    // XXX used by getsentry to bypass onboarding for the upsell demo state.
+    if (demoMode) {
+      return undefined;
+    }
+
+    if (projects.length === 0) {
+      return undefined;
+    }
+
+    // Current selection is 'my projects' or 'all projects'
+    if (eventView.project.length === 0 || eventView.project === [ALL_ACCESS_PROJECTS]) {
+      const filtered = projects.filter(p => p.firstTransactionEvent === false);
+      if (filtered.length === projects.length) {
+        return filtered[0];
+      }
+    }
+
+    // Any other subset of projects.
+    const filtered = projects.filter(
+      p =>
+        eventView.project.includes(parseInt(p.id, 10)) &&
+        p.firstTransactionEvent === false
+    );
+    if (filtered.length === eventView.project.length) {
+      return filtered[0];
+    }
+
+    return undefined;
+  }
+
+  const onBoardingProject = getOnboardingProject();
+
   useEffect(() => {
     if (!mounted.current) {
       trackAdvancedAnalyticsEvent('performance_views.overview.view', {
         organization,
-        show_onboarding: shouldShowOnboarding(),
+        show_onboarding: onBoardingProject !== undefined,
       });
       loadOrganizationTags(api, organization.slug, selection);
       addRoutePerformanceContext(selection);
@@ -90,64 +123,6 @@ function PerformanceContent({selection, location, demoMode}: Props) {
 
   const eventView = generatePerformanceEventView(location, projects);
 
-  function getOnboardingProject(): Project | undefined {
-    // XXX used by getsentry to bypass onboarding for the upsell demo state.
-    if (demoMode) {
-      return undefined;
-    }
-
-    if (projects.length === 0) {
-      return undefined;
-    }
-
-    // Current selection is 'my projects' or 'all projects'
-    if (eventView.project.length === 0 || eventView.project === [ALL_ACCESS_PROJECTS]) {
-      const filtered = projects.filter(p => p.firstTransactionEvent === false);
-      if (filtered.length === projects.length) {
-        return filtered[0];
-      }
-    }
-
-    // Any other subset of projects.
-    const filtered = projects.filter(
-      p =>
-        eventView.project.includes(parseInt(p.id, 10)) &&
-        p.firstTransactionEvent === false
-    );
-    if (filtered.length === eventView.project.length) {
-      return filtered[0];
-    }
-
-    return undefined;
-  }
-
-  function shouldShowOnboarding() {
-    // XXX used by getsentry to bypass onboarding for the upsell demo state.
-    if (demoMode) {
-      return false;
-    }
-
-    if (projects.length === 0) {
-      return false;
-    }
-
-    // Current selection is 'my projects' or 'all projects'
-    if (eventView.project.length === 0 || eventView.project === [ALL_ACCESS_PROJECTS]) {
-      return (
-        projects.filter(p => p.firstTransactionEvent === false).length === projects.length
-      );
-    }
-
-    // Any other subset of projects.
-    return (
-      projects.filter(
-        p =>
-          eventView.project.includes(parseInt(p.id, 10)) &&
-          p.firstTransactionEvent === false
-      ).length === eventView.project.length
-    );
-  }
-
   return (
     <SentryDocumentTitle title={t('Performance')} orgSlug={organization.slug}>
       <PerformanceEventViewProvider value={{eventView}}>
@@ -168,7 +143,7 @@ function PerformanceContent({selection, location, demoMode}: Props) {
               setError={setError}
               handleSearch={handleSearch}
               handleTrendsClick={() => handleTrendsClick({location, organization})}
-              getOnboardingProject={getOnboardingProject}
+              onBoardingProject={onBoardingProject}
               organization={organization}
               location={location}
               projects={projects}
