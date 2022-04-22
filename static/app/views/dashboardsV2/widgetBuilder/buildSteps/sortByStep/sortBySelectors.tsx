@@ -109,7 +109,6 @@ export function SortBySelectors({
         <ArithmeticInputWrapper>
           <ArithmeticInput
             name="arithmetic"
-            key="parameter:text"
             type="text"
             required
             placeholder={t('Enter Equation')}
