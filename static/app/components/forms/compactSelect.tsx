@@ -16,7 +16,10 @@ import {useMenuTriggerState} from '@react-stately/menu';
 import Badge from 'sentry/components/badge';
 import Button from 'sentry/components/button';
 import DropdownButton, {DropdownButtonProps} from 'sentry/components/dropdownButtonV2';
-import SelectControl, {ControlProps} from 'sentry/components/forms/selectControl';
+import SelectControl, {
+  ControlProps,
+  GeneralSelectValue,
+} from 'sentry/components/forms/selectControl';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 
@@ -25,7 +28,11 @@ interface TriggerRenderingProps {
   ref: React.RefObject<HTMLButtonElement>;
 }
 
-interface Props extends ControlProps, Partial<OverlayProps>, Partial<AriaPositionProps> {
+interface Props<OptionType>
+  extends Omit<ControlProps<OptionType>, 'choices'>,
+    Partial<OverlayProps>,
+    Partial<AriaPositionProps> {
+  options: Array<OptionType & {options?: OptionType[]}>;
   /**
    * Pass class name to the outer wrap
    */
@@ -87,7 +94,7 @@ export const CompactSelectControl = ({
  * A select component with a more compact trigger button. Accepts the same
  * props as SelectControl, plus some more for the trigger button & overlay.
  */
-function CompactSelect({
+function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValue>({
   // Select props
   options,
   onChange,
@@ -113,7 +120,7 @@ function CompactSelect({
   isDismissable = true,
   menuTitle,
   ...props
-}: Props) {
+}: Props<OptionType>) {
   // Manage the dropdown menu's open state
   const isDisabled = disabledProp || options?.length === 0;
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -157,7 +164,23 @@ function CompactSelect({
   // Update the button label when the value changes
   function getLabel(newValue): React.ReactNode {
     const valueSet = Array.isArray(newValue) ? newValue : [newValue];
-    const optionSet = valueSet.map(val => options.find(opt => opt.value === val));
+
+    // Recursively finds the selected option(s) from the options list
+    function getSelectedOptions(
+      opts: Props<OptionType>['options'],
+      value: Props<OptionType>['value']
+    ): Props<OptionType>['options'] {
+      return opts.reduce((acc: Props<OptionType>['options'], cur) => {
+        if (cur.options) {
+          return [...acc, ...getSelectedOptions(cur.options, value)];
+        }
+        if (cur.value === value) {
+          return [...acc, cur];
+        }
+        return acc;
+      }, []);
+    }
+    const optionSet = valueSet.map(val => getSelectedOptions(options, val)).flat();
     const firstOptionLabel = optionSet[0]?.label ?? '';
 
     return (
