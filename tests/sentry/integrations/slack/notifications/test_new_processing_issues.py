@@ -10,7 +10,7 @@ from sentry.types.activity import ActivityType
 from sentry.web.frontend.debug.debug_new_processing_issues_email import get_issues_data
 
 
-class SlackUnassignedNotificationTest(SlackActivityNotificationTest):
+class SlackNewProcessingIssuesNotificationTest(SlackActivityNotificationTest):
     @responses.activate
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_new_processing_issue(self, mock_func):
