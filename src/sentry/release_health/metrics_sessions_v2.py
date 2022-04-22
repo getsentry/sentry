@@ -3,11 +3,23 @@ from the `metrics` dataset instead of `sessions`.
 
 Do not call this module directly. Use the `release_health` service instead. """
 import logging
+from abc import ABC, abstractmethod
 from collections import defaultdict
 from copy import deepcopy
 from dataclasses import dataclass, replace
 from enum import Enum
-from typing import Any, List, MutableMapping, Optional, Sequence, TypedDict
+from typing import (
+    Any,
+    Iterable,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    TypedDict,
+    Union,
+    cast,
+)
 
 from snuba_sdk import Condition, Direction, Granularity, Limit
 from snuba_sdk.legacy import json_to_snql
@@ -32,11 +44,19 @@ from sentry.snuba.sessions_v2 import (
 
 logger = logging.getLogger(__name__)
 
+#: Group key as featured in output format
 GroupKeyDict = TypedDict(
     "GroupKeyDict",
     {"project": int, "release": str, "environment": str, "session.status": str},
     total=False,
 )
+
+
+#: Group key as featured in metrics format
+class MetricsGroupKeyDict(TypedDict, total=False):
+    project_id: int
+    release: str
+    environment: str
 
 
 class SessionStatus(Enum):
@@ -56,7 +76,7 @@ class GroupKey:
     session_status: Optional[str] = None
 
     @staticmethod
-    def from_input_dict(dct: GroupKeyDict) -> "GroupKey":
+    def from_input_dict(dct: MetricsGroupKeyDict) -> "GroupKey":
         """Construct from a metrics group["by"] result"""
         return GroupKey(
             project=dct.get("project_id", None),
@@ -87,8 +107,29 @@ def default_for(field: SessionsQueryFunction) -> SessionsQueryValue:
     return 0 if field in ("sum(session)", "count_unique(user)") else None
 
 
-class Field:
-    def extract_values(self, raw_groupby, input_groups, output_groups):
+GroupedData = Mapping[GroupKey, Any]
+
+
+class Field(ABC):
+
+    name: str
+
+    @abstractmethod
+    def get_session_status(
+        self, metric_field: MetricField, raw_groupby: Sequence[str]
+    ) -> Optional[str]:
+        ...
+
+    @abstractmethod
+    def get_metric_fields(self, raw_groupby: Sequence[str]) -> Sequence[MetricField]:
+        ...
+
+    def extract_values(
+        self,
+        raw_groupby: Sequence[str],
+        input_groups: GroupedData,
+        output_groups: GroupedData,
+    ) -> None:
         is_groupby_status = "session.status" in raw_groupby
         for metric_field in self.get_metric_fields(raw_groupby):
             session_status = self.get_session_status(metric_field, raw_groupby)
@@ -113,14 +154,14 @@ class Field:
                         value = self.normalize(value)
                     output_groups[group_key][subgroup][self.name] = value
 
-    def ensure_status_groups(self, input_group_key, output_groups):
+    def ensure_status_groups(self, input_group_key: GroupKey, output_groups: GroupedData) -> None:
         # To be consistent with original sessions implementation,
         # always create defaults for all session status groups
         for session_status in SessionStatus:
             group_key = replace(input_group_key, session_status=session_status.value)
             output_groups[group_key]  # creates entry in defaultdict
 
-    def get_groupby(self, raw_groupby):
+    def get_groupby(self, raw_groupby: Sequence[str]) -> Iterable[str]:
         for groupby in raw_groupby:
             if groupby == "session.status":
                 continue
@@ -129,12 +170,12 @@ class Field:
             else:
                 yield groupby
 
-    def normalize(self, value):
-        return finite_or_none(value)
+    def normalize(self, value: Union[int, float, None]) -> Union[int, float, None]:
+        return cast(Union[int, float, None], finite_or_none(value))
 
 
 class IntegerField(Field):
-    def normalize(self, value):
+    def normalize(self, value: Union[int, float, None]) -> Union[int, float, None]:
         value = super().normalize(value)
         if isinstance(value, float):
             return int(value)
@@ -153,10 +194,12 @@ class SessionsField(IntegerField):
         MetricField(None, SessionMetricKey.ALL.value): None,
     }
 
-    def get_session_status(self, metric_field, raw_groupby):
+    def get_session_status(
+        self, metric_field: MetricField, raw_groupby: Sequence[str]
+    ) -> Optional[str]:
         return self.metric_field_to_session_status[metric_field]
 
-    def get_metric_fields(self, raw_groupby):
+    def get_metric_fields(self, raw_groupby: Sequence[str]) -> Sequence[MetricField]:
         if "session.status" in raw_groupby:
             return [
                 # Always also get ALL, because this is what we sort by
@@ -182,10 +225,12 @@ class UsersField(IntegerField):
         MetricField(None, SessionMetricKey.ALL_USER.value): None,
     }
 
-    def get_session_status(self, metric_field, raw_groupby):
+    def get_session_status(
+        self, metric_field: MetricField, raw_groupby: Sequence[str]
+    ) -> Optional[str]:
         return self.metric_field_to_session_status[metric_field]
 
-    def get_metric_fields(self, raw_groupby):
+    def get_metric_fields(self, raw_groupby: Sequence[str]) -> Sequence[MetricField]:
         if "session.status" in raw_groupby:
             return [
                 # Always also get ALL, because this is what we sort by
@@ -205,16 +250,18 @@ class DurationField(Field):
         self.name = name
         self.op = name[:3]  # That this works is just a lucky coincidence
 
-    def get_session_status(self, metric_field, raw_groupby):
+    def get_session_status(
+        self, metric_field: MetricField, raw_groupby: Sequence[str]
+    ) -> Optional[str]:
         assert metric_field == MetricField(self.op, SessionMetricKey.DURATION.value)
         if "session.status" in raw_groupby:
             return "healthy"
         return None
 
-    def get_metric_fields(self, raw_groupby):
+    def get_metric_fields(self, raw_groupby: Sequence[str]) -> Sequence[MetricField]:
         return [MetricField(self.op, SessionMetricKey.DURATION.value)]
 
-    def normalize(self, value):
+    def normalize(self, value: Union[int, float, None]) -> Union[int, float, None]:
         value = finite_or_none(value)
         if value is not None:
             value *= 1000
@@ -295,7 +342,7 @@ def run_sessions_query(
 
     # Convert group keys back to dictionaries:
     results["groups"] = [
-        {"by": group_key.to_output_dict(), **group} for group_key, group in output_groups.items()
+        {"by": group_key.to_output_dict(), **group} for group_key, group in output_groups.items()  # type: ignore
     ]
 
     # Finally, serialize timestamps:
@@ -304,7 +351,7 @@ def run_sessions_query(
     results["intervals"] = [isoformat_z(ts) for ts in results["intervals"]]
     results["query"] = results.get("query", "")
 
-    return results
+    return cast(SessionsQueryResult, results)
 
 
 def _get_filter_conditions(conditions: Sequence[Condition]) -> Any:
@@ -315,7 +362,7 @@ def _get_filter_conditions(conditions: Sequence[Condition]) -> Any:
     ).where
 
 
-def _get_primary_field(fields: Sequence[MetricField], raw_groupby: Sequence[str]) -> MetricField:
+def _get_primary_field(fields: Sequence[Field], raw_groupby: Sequence[str]) -> MetricField:
     """Determine the field by which results will be ordered in case there is no orderBy"""
     primary_metric_field = None
     for i, field in enumerate(fields):
