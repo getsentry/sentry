@@ -80,6 +80,8 @@ export default function SpanDetailsContentWrapper(props: Props) {
                   spanOps={[spanSlug.op]}
                   spanGroups={[spanSlug.group]}
                   cursor="0:0:1"
+                  minExclusiveTime={minExclusiveTime}
+                  maxExclusiveTime={maxExclusiveTime}
                 >
                   {suspectSpansResults => (
                     <SpanExamplesQuery
