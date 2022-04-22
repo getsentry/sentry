@@ -180,7 +180,7 @@ class APIQueryDefinition:
             self.fields.append(parse_field(key, query_params))
 
         self.orderby = self._parse_orderby(query_params)
-        self.limit = self._parse_limit(query_params, paginator_kwargs)
+        self.limit: Optional[Limit] = self._parse_limit(query_params, paginator_kwargs)
         self.offset = self._parse_offset(query_params, paginator_kwargs)
 
         start, end, rollup = get_date_range(query_params)
@@ -248,7 +248,7 @@ class APIQueryDefinition:
 
     def _parse_limit(self, query_params, paginator_kwargs):
         if self.orderby:
-            return paginator_kwargs.get("limit")
+            return Limit(paginator_kwargs.get("limit"))
         else:
             per_page = query_params.get("per_page")
             if per_page is not None:
@@ -272,7 +272,9 @@ class APIQueryDefinition:
 
     def _validate_series_limit(self, query_params):
         if self.limit:
-            if (self.end - self.start).total_seconds() / self.rollup * self.limit > MAX_POINTS:
+            if (
+                self.end - self.start
+            ).total_seconds() / self.rollup * self.limit.limit > MAX_POINTS:
                 raise InvalidParams(
                     f"Requested interval of {query_params.get('interval', '1h')} with statsPeriod of "
                     f"{query_params.get('statsPeriod')} is too granular for a per_page of "
@@ -400,7 +402,7 @@ class SnubaQueryBuilder:
             groupby=groupby,
             select=select,
             where=where,
-            limit=Limit(limit or MAX_POINTS),
+            limit=limit or Limit(MAX_POINTS),
             offset=Offset(offset or 0),
             granularity=rollup,
             orderby=orderby,
@@ -417,7 +419,7 @@ class SnubaQueryBuilder:
             # In a series query, we also need to factor in the len of the intervals array
             series_limit = MAX_POINTS
             if limit:
-                series_limit = limit * intervals_len
+                series_limit = limit.limit * intervals_len
             rv["series"] = series_query.set_limit(series_limit)
 
         return rv
