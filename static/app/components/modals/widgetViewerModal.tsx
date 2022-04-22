@@ -244,7 +244,9 @@ function WidgetViewerModal(props: Props) {
       DisplayType.LINE,
       DisplayType.BIG_NUMBER,
       DisplayType.BAR,
-    ].includes(widget.displayType) && widget.widgetType === WidgetType.DISCOVER;
+    ].includes(widget.displayType) &&
+    widget.widgetType &&
+    [WidgetType.DISCOVER, WidgetType.METRICS].includes(widget.widgetType);
 
   let equationFieldsCount = 0;
   // Updates fields by adding any individual terms from equation fields as a column
@@ -265,12 +267,22 @@ function WidgetViewerModal(props: Props) {
   }
 
   if (shouldReplaceTableColumns) {
-    if (fields.length === 1) {
-      tableWidget.queries[0].orderby =
-        tableWidget.queries[0].orderby || `-${getAggregateAlias(fields[0])}`;
+    switch (widget.widgetType) {
+      case WidgetType.DISCOVER:
+        if (fields.length === 1) {
+          tableWidget.queries[0].orderby =
+            tableWidget.queries[0].orderby || `-${getAggregateAlias(fields[0])}`;
+        }
+        fields.unshift('title');
+        columns.unshift('title');
+        break;
+      case WidgetType.METRICS:
+        fields.unshift('release');
+        columns.unshift('release');
+        break;
+      default:
+        break;
     }
-    fields.unshift('title');
-    columns.unshift('title');
   }
 
   const eventView = eventViewFromWidget(
@@ -588,7 +600,7 @@ function WidgetViewerModal(props: Props) {
   function renderWidgetViewerTable() {
     switch (widget.widgetType) {
       case WidgetType.ISSUE:
-        if (issuesData && chartUnmodified) {
+        if (issuesData && chartUnmodified && widget.displayType === DisplayType.TABLE) {
           return renderIssuesTable({
             transformedResults: issuesData,
             loading: false,
@@ -614,7 +626,7 @@ function WidgetViewerModal(props: Props) {
           </IssueWidgetQueries>
         );
       case WidgetType.METRICS:
-        if (tableData && chartUnmodified) {
+        if (tableData && chartUnmodified && widget.displayType === DisplayType.TABLE) {
           return renderMetricsTable({
             tableResults: tableData,
             loading: false,
