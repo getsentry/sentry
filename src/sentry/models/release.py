@@ -451,7 +451,7 @@ class Release(Model):
     date_released = models.DateTimeField(null=True, blank=True)
     # arbitrary data recorded with the release
     data = JSONField(default={})
-    # new issues (groups) that arise as a consequence of this release
+    # Deprecated, we no longer write to this field
     new_groups = BoundedPositiveIntegerField(default=0)
     # generally the release manager, or the person initiating the process
     owner = FlexibleForeignKey("sentry.User", null=True, blank=True, on_delete=models.SET_NULL)
