@@ -1,17 +1,25 @@
 import {useEffect} from 'react';
 import {InjectedRouter} from 'react-router';
-import {LocationDescriptor} from 'history';
+
+import {useNavigate} from './useNavigate';
 
 type Props = {
-  router: InjectedRouter;
-  to: LocationDescriptor;
+  to: string;
+  router?: InjectedRouter;
 };
 
 // This is react-router v4 <Redirect to="path/" /> component to allow things
 // to be declarative.
 function Redirect({to, router}: Props) {
   // Redirect on mount.
-  useEffect(() => router.replace(to), []);
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (router) {
+      router.replace(to);
+    } else {
+      navigate(to, {replace: true});
+    }
+  }, []);
 
   return null;
 }
