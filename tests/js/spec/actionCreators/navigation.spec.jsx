@@ -72,6 +72,16 @@ describe('navigation ActionCreator', () => {
     expect(openModal).toHaveBeenCalled();
   });
 
+  it('should open modal when no project id is selected', () => {
+    expect(
+      navigateTo(
+        '/organizations/albertos-apples/performance/?project=:project#performance-sidequest',
+        router
+      )
+    ).toBe();
+    expect(openModal).toHaveBeenCalled();
+  });
+
   it('should open modal if more than one project is selected', () => {
     router.location.query.project = ['1', '2', '3'];
     expect(navigateTo('/settings/:projectId/alert', router)).toBe();
