@@ -11,21 +11,6 @@ import {
   useUndoableReducer,
 } from 'sentry/utils/useUndoableReducer';
 
-const INITIAL_STATE = {
-  preferences: {
-    colorCoding: 'by symbol name' as const,
-    sorting: 'call order' as const,
-    view: 'top down' as const,
-    synchronizeXAxisWithTransaction: false,
-  },
-  search: {
-    open: false,
-    index: null,
-    results: null,
-    query: '',
-  },
-};
-
 describe('makeUndoableReducer', () => {
   it('does not overflow undo/redo', () => {
     const mockFirstReducer = jest.fn().mockImplementation(v => ++v);
@@ -190,24 +175,26 @@ describe('makeUndoableReducer', () => {
   });
 
   it('can work with objects', () => {
+    const initialState = {
+      position: {view: Rect.Empty()},
+      preferences: {
+        colorCoding: 'by symbol name' as const,
+        sorting: 'call order' as const,
+        view: 'top down' as const,
+        synchronizeXAxisWithTransaction: false,
+      },
+      search: {
+        open: false,
+        index: null,
+        results: null,
+        query: '',
+      },
+    };
+
     const {result} = reactHooks.renderHook(() =>
-      useReducer(makeUndoableReducer(combinedReducers, INITIAL_STATE), {
+      useReducer(makeUndoableReducer(combinedReducers, initialState), {
         previous: undefined,
-        current: {
-          position: {view: Rect.Empty()},
-          preferences: {
-            colorCoding: 'by symbol name',
-            sorting: 'call order',
-            view: 'top down',
-            synchronizeXAxisWithTransaction: false,
-          },
-          search: {
-            open: false,
-            index: null,
-            results: null,
-            query: '',
-          },
-        },
+        current: initialState,
         next: undefined,
       })
     );
