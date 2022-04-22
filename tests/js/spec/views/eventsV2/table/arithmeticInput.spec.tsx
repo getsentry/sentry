@@ -197,7 +197,6 @@ describe('ArithmeticInput', function () {
     wrapper = mountWithTheme(
       <ArithmeticInput
         name="refinement"
-        key="parameter:text"
         type="text"
         required
         value=""
