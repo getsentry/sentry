@@ -1197,7 +1197,7 @@ describe('GlobalSelectionHeader', function () {
       expect(projectSelector.find('AutoCompleteItem')).toHaveLength(2);
       // My projects in the footer
       expect(
-        projectSelector.find('SelectorFooterControls Button').first().text()
+        projectSelector.find('ProjectSelectorFooter Button').first().text()
       ).toEqual('Select My Projects');
     });
 
@@ -1222,7 +1222,7 @@ describe('GlobalSelectionHeader', function () {
       expect(projectSelector.find('AutoCompleteItem')).toHaveLength(2);
       // All projects in the footer
       expect(
-        projectSelector.find('SelectorFooterControls Button').first().text()
+        projectSelector.find('ProjectSelectorFooter Button').first().text()
       ).toEqual('Select All Projects');
     });
 
@@ -1247,7 +1247,7 @@ describe('GlobalSelectionHeader', function () {
       expect(projectSelector.find('AutoCompleteItem')).toHaveLength(2);
       // All projects in the footer
       expect(
-        projectSelector.find('SelectorFooterControls Button').first().text()
+        projectSelector.find('ProjectSelectorFooter Button').first().text()
       ).toEqual('Select All Projects');
     });
 
@@ -1272,7 +1272,7 @@ describe('GlobalSelectionHeader', function () {
 
       // My projects in the footer
       expect(
-        projectSelector.find('SelectorFooterControls Button').first().text()
+        projectSelector.find('ProjectSelectorFooter Button').first().text()
       ).toEqual('Select My Projects');
     });
   });
