@@ -131,7 +131,7 @@ class DashboardDetail extends Component<Props, State> {
       location,
       router,
     } = this.props;
-    const {seriesData, tableData} = this.state;
+    const {seriesData, tableData, issuesData, pageLinks, totalIssuesCount} = this.state;
     if (isWidgetViewerPath(location.pathname)) {
       const widget =
         defined(widgetId) &&
@@ -143,6 +143,9 @@ class DashboardDetail extends Component<Props, State> {
           widget,
           seriesData,
           tableData,
+          issuesData,
+          pageLinks,
+          totalIssuesCount,
           onClose: () => {
             // Filter out Widget Viewer Modal query params when exiting the Modal
             const query = omit(location.query, Object.values(WidgetViewerQueryField));
@@ -628,7 +631,7 @@ class DashboardDetail extends Component<Props, State> {
                 widgetLimitReached={widgetLimitReached}
               />
             </StyledPageHeader>
-            <DashboardPageFilterBar>
+            <DashboardPageFilterBar condensed>
               <ProjectPageFilter />
               <EnvironmentPageFilter alignDropdown="left" />
               <DatePageFilter alignDropdown="left" />
@@ -733,7 +736,7 @@ class DashboardDetail extends Component<Props, State> {
               </Layout.Header>
               <Layout.Body>
                 <Layout.Main fullWidth>
-                  <DashboardPageFilterBar>
+                  <DashboardPageFilterBar condensed>
                     <ProjectPageFilter />
                     <EnvironmentPageFilter alignDropdown="left" />
                     <DatePageFilter alignDropdown="left" />
@@ -803,8 +806,6 @@ const StyledPageContent = styled(PageContent)`
 
 const DashboardPageFilterBar = styled(PageFilterBar)`
   margin-bottom: ${space(2)};
-  width: max-content;
-  max-width: 100%;
 `;
 
 export default withApi(withOrganization(DashboardDetail));

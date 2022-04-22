@@ -8,6 +8,7 @@ import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingM
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Organization, PageFilters} from 'sentry/types';
 import {EChartDataZoomHandler, EChartEventHandler, Series} from 'sentry/types/echarts';
+import {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 
 import {Widget, WidgetType} from '../types';
 
@@ -25,7 +26,13 @@ type Props = WithRouterProps & {
   expandNumbers?: boolean;
   isMobile?: boolean;
   legendOptions?: LegendComponentOption;
-  onDataFetched?: (results: {timeseriesResults?: Series[]}) => void;
+  onDataFetched?: (results: {
+    issuesResults?: TableDataRow[];
+    pageLinks?: string;
+    tableResults?: TableDataWithTitle[];
+    timeseriesResults?: Series[];
+    totalIssuesCount?: string;
+  }) => void;
   onLegendSelectChanged?: EChartEventHandler<{
     name: string;
     selected: Record<string, boolean>;
@@ -62,6 +69,7 @@ export function WidgetCardChartContainer({
         widget={widget}
         selection={selection}
         limit={tableItemLimit}
+        onDataFetched={onDataFetched}
       >
         {({transformedResults, errorMessage, loading}) => {
           return (
@@ -94,6 +102,7 @@ export function WidgetCardChartContainer({
         widget={widget}
         selection={selection}
         limit={widget.limit ?? tableItemLimit}
+        onDataFetched={onDataFetched}
       >
         {({tableResults, timeseriesResults, errorMessage, loading}) => {
           return (
@@ -114,6 +123,7 @@ export function WidgetCardChartContainer({
                 isMobile={isMobile}
                 windowWidth={windowWidth}
                 expandNumbers={expandNumbers}
+                onZoom={onZoom}
               />
             </Fragment>
           );

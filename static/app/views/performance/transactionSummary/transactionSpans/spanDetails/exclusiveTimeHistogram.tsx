@@ -24,6 +24,7 @@ import {
   formatHistogramData,
 } from 'sentry/utils/performance/histogram/utils';
 import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
+import {decodeScalar} from 'sentry/utils/queryString';
 
 import {ZoomKeys} from './utils';
 
@@ -40,8 +41,8 @@ type Props = WithRouterProps & {
 export default function ExclusiveTimeHistogram(props: Props) {
   const {location, organization, eventView, spanSlug} = props;
 
-  const start = location.query[ZoomKeys.MIN];
-  const end = location.query[ZoomKeys.MAX];
+  const start = decodeScalar(location.query[ZoomKeys.MIN]);
+  const end = decodeScalar(location.query[ZoomKeys.MAX]);
 
   return (
     <Fragment>

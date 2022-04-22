@@ -153,7 +153,7 @@ function Onboarding(props: Props) {
     return <div>Can't find</div>;
   }
   return (
-    <main data-test-id="targeted-onboarding">
+    <OnboardingWrapper data-test-id="targeted-onboarding">
       <SentryDocumentTitle title={stepObj.title} />
       <Header>
         <LogoSvg />
@@ -193,11 +193,14 @@ function Onboarding(props: Props) {
         </AnimatePresence>
         <AdaptivePageCorners animateVariant={cornerVariantControl} />
       </Container>
-    </main>
+    </OnboardingWrapper>
   );
 }
 
 const Container = styled('div')<{hasFooter: boolean}>`
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
   position: relative;
   background: ${p => p.theme.background};
   padding: 120px ${space(3)};
@@ -225,7 +228,11 @@ const LogoSvg = styled(LogoSentry)`
   color: ${p => p.theme.textColor};
 `;
 
-const OnboardingStep = styled(motion.div)``;
+const OnboardingStep = styled(motion.div)`
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+`;
 
 OnboardingStep.defaultProps = {
   initial: 'initial',
@@ -265,6 +272,9 @@ const StyledStepper = styled(Stepper)`
   margin-left: auto;
   margin-right: auto;
   align-self: center;
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+    display: none;
+  }
 `;
 
 interface BackButtonProps extends Omit<ButtonProps, 'icon' | 'priority'> {
@@ -313,6 +323,12 @@ const SkipOnboardingLink = styled(Link)`
 const UpsellWrapper = styled('div')`
   grid-column: 3;
   margin-left: auto;
+`;
+
+const OnboardingWrapper = styled('main')`
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
 `;
 
 export default withOrganization(withProjects(Onboarding));

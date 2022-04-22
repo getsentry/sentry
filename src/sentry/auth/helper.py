@@ -85,6 +85,7 @@ class AuthHelperSessionStore(PipelineSessionStore):
 
 @dataclass
 class AuthIdentityHandler:
+    # SSO auth handler
 
     auth_provider: Optional[AuthProvider]
     provider: Provider
@@ -118,6 +119,16 @@ class AuthIdentityHandler:
         pass
 
     def _login(self, user: Any) -> None:
+        metrics.incr(
+            "sso.login_attempt",
+            tags={
+                "provider": self.provider.key,
+                "organization_id": self.organization.id,
+                "user_id": user.id,
+            },
+            sample_rate=1.0,
+            skip_internal=False,
+        )
         user_was_logged_in = auth.login(
             self.request,
             user,
@@ -126,6 +137,17 @@ class AuthIdentityHandler:
         )
         if not user_was_logged_in:
             raise self._NotCompletedSecurityChecks()
+
+        metrics.incr(
+            "sso.login_success",
+            tags={
+                "provider": self.provider.key,
+                "organization_id": self.organization.id,
+                "user_id": user.id,
+            },
+            sample_rate=1.0,
+            skip_internal=False,
+        )
 
     @staticmethod
     def _set_linked_flag(member: OrganizationMember) -> None:
@@ -169,16 +191,6 @@ class AuthIdentityHandler:
             return HttpResponseRedirect(auth.get_login_redirect(self.request))
 
         state.clear()
-        metrics.incr(
-            "sso.login-success",
-            tags={
-                "provider": self.provider.key,
-                "organization_id": self.organization.id,
-                "user_id": user.id,
-            },
-            skip_internal=False,
-            sample_rate=1.0,
-        )
 
         if not is_active_superuser(self.request):
             # set activeorg to ensure correct redirect upon logging in
@@ -821,17 +833,32 @@ class AuthHelper(Pipeline):
                 "sentry-organization-auth-settings", args=[self.organization.slug]
             )
 
-        metrics.incr(
-            "sso.error",
-            tags={
-                "flow": self.state.flow,
-                "provider": self.provider.key,
-                "organization_id": self.organization.id,
-                "user_id": self.request.user.id,
-            },
-            skip_internal=False,
-            sample_rate=1.0,
-        )
+        if redirect_uri == "/":
+            metrics.incr(
+                "sso.error",
+                tags={
+                    "flow": self.state.flow,
+                    "provider": self.provider.key,
+                    "organization_id": self.organization.id,
+                    "user_id": self.request.user.id,
+                },
+                skip_internal=False,
+                sample_rate=1.0,
+            )
+        else:
+            metrics.incr(
+                "sso.exit",
+                tags={
+                    "flow": self.state.flow,
+                    "provider": self.provider.key,
+                    "organization_id": self.organization.id,
+                    "user_id": self.request.user.id,
+                },
+                skip_internal=False,
+                sample_rate=1.0,
+            )
+
+        # NOTE: Does NOT necessarily indicate a login _failure_
         logger.warning(
             "sso.login-pipeline.error",
             extra={
