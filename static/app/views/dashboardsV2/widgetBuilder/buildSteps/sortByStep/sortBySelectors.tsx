@@ -42,15 +42,14 @@ export function SortBySelectors({
     sortDirection: values.sortDirection,
   });
   useEffect(() => {
-    if (isEquation(trimStart(values.sortBy, '-'))) {
-      setShowCustomEquation(true);
+    const isSortingByEquation = isEquation(trimStart(values.sortBy, '-'));
+    if (isSortingByEquation) {
       setCustomEquation({
         sortBy: trimStart(values.sortBy, '-'),
         sortDirection: values.sortDirection,
       });
-    } else {
-      setShowCustomEquation(false);
     }
+    setShowCustomEquation(isSortingByEquation);
   }, [values.sortBy]);
 
   return (
