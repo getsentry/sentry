@@ -1,5 +1,4 @@
 import {Fragment, useEffect, useRef, useState} from 'react';
-import {withRouter, WithRouterProps} from 'react-router';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
@@ -23,8 +22,9 @@ import {Organization, Project} from 'sentry/types';
 import {analytics} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import theme from 'sentry/utils/theme';
+import {useRoutes} from 'sentry/utils/useRoutes';
 
-type Props = WithRouterProps & {
+type Props = {
   loadingProjects: boolean;
   /**
    * When menu is closed
@@ -72,9 +72,10 @@ function MultipleEnvironmentSelector({
   customLoadingIndicator,
   detached,
   forceEnvironment,
-  router,
   showPin,
 }: Props) {
+  const routes = useRoutes();
+
   const [selectedEnvs, setSelectedEnvs] = useState(value);
   const hasChanges = !isEqual(selectedEnvs, value);
 
@@ -104,7 +105,7 @@ function MultipleEnvironmentSelector({
 
     analytics('environmentselector.toggle', {
       action: willRemove ? 'removed' : 'added',
-      path: getRouteStringFromRoutes(router.routes),
+      path: getRouteStringFromRoutes(routes),
       org_id: parseInt(organization.id, 10),
     });
 
@@ -125,7 +126,7 @@ function MultipleEnvironmentSelector({
 
     analytics('environmentselector.update', {
       count: selectedEnvs.length,
-      path: getRouteStringFromRoutes(router.routes),
+      path: getRouteStringFromRoutes(routes),
       org_id: parseInt(organization.id, 10),
     });
 
@@ -137,7 +138,7 @@ function MultipleEnvironmentSelector({
    */
   const handleClear = () => {
     analytics('environmentselector.clear', {
-      path: getRouteStringFromRoutes(router.routes),
+      path: getRouteStringFromRoutes(routes),
       org_id: parseInt(organization.id, 10),
     });
 
@@ -147,7 +148,7 @@ function MultipleEnvironmentSelector({
 
   const handleQuickSelect = (item: Item) => {
     analytics('environmentselector.direct_selection', {
-      path: getRouteStringFromRoutes(router.routes),
+      path: getRouteStringFromRoutes(routes),
       org_id: parseInt(organization.id, 10),
     });
 
@@ -300,7 +301,7 @@ function MultipleEnvironmentSelector({
   );
 }
 
-export default withRouter(MultipleEnvironmentSelector);
+export default MultipleEnvironmentSelector;
 
 const StyledHeaderItem = styled(HeaderItem)`
   height: 100%;
