@@ -136,7 +136,15 @@ class GroupEventToolbar extends Component<Props> {
           {t('Event')}{' '}
           <EventIdLink to={`${baseEventsPath}${evt.id}/`}>{evt.eventID}</EventIdLink>
           <LinkContainer>
-            <ExternalLink href={jsonUrl}>
+            <ExternalLink
+              href={jsonUrl}
+              onClick={() =>
+                trackAdvancedAnalyticsEvent('issue_details.event_json_clicked', {
+                  organization,
+                  group_id: parseInt(`${evt.groupID}`, 10),
+                })
+              }
+            >
               {'JSON'} (<FileSize bytes={evt.size} />)
             </ExternalLink>
           </LinkContainer>
