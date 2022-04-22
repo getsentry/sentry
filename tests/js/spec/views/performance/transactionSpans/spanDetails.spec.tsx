@@ -581,7 +581,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
 
       it('sends min and max to suspect spans query', function () {
         const mock = MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/events-spans/',
+          url: '/organizations/org-slug/events-spans-performance/',
           body: {},
         });
         const data = initializeData({
