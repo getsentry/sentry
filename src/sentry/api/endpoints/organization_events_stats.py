@@ -146,7 +146,16 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                 "organizations:performance-dry-run-mep", False
             )
 
-            metrics_enhanced = request.GET.get("metricsEnhanced") == "1" and performance_use_metrics
+            # This param will be deprecated in favour of dataset
+            if "metricsEnhanced" in request.GET:
+                metrics_enhanced = (
+                    request.GET.get("metricsEnhanced") == "1" and performance_use_metrics
+                )
+                dataset = discover if not metrics_enhanced else metrics_enhanced_performance
+            else:
+                dataset = self.get_dataset(request) if performance_use_metrics else discover
+                metrics_enhanced = dataset != discover
+
             allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
             sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
 
@@ -175,7 +184,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                     include_other=include_other,
                     use_snql=discover_snql,
                 )
-            dataset = discover if not metrics_enhanced else metrics_enhanced_performance
             query_details = {
                 "selected_columns": query_columns,
                 "query": query,
