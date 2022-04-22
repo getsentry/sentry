@@ -135,6 +135,7 @@ jest.mock('@sentry/react', () => {
     withScope: jest.spyOn(SentryReact, 'withScope'),
     Severity: SentryReact.Severity,
     withProfiler: SentryReact.withProfiler,
+    BrowserClient: SentryReact.BrowserClient,
     startTransaction: () => ({
       finish: jest.fn(),
       setTag: jest.fn(),

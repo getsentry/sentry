@@ -74,7 +74,7 @@ export function FeedbackModal({Header, Body, Footer, closeModal, feedbackTypes}:
         : feedbackTypes[subject],
     });
 
-    addSuccessMessage(' Thanks for taking the time to provide us feedback!');
+    addSuccessMessage('Thanks for taking the time to provide us feedback!');
 
     closeModal();
   }
