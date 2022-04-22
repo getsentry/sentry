@@ -93,40 +93,44 @@ function Replays(props: Props) {
   const renderTable = (replayList: Array<Replay>) => {
     return replayList?.map(replay => (
       <Fragment key={replay.id}>
-        <Link
-          to={`/organizations/${organization.slug}/replays/${generateEventSlug({
-            project: replay.project,
-            id: replay.id,
-          })}/`}
-        >
-          <ReplayUserBadge
-            avatarSize={32}
-            displayName={replay['user.display']}
-            user={{
-              username: replay['user.display'],
-              id: replay['user.display'],
-              ip_address: replay['user.display'],
-              name: replay['user.display'],
-              email: replay['user.display'],
-            }}
-            // this is the subheading for the avatar, so displayEmail in this case is a misnomer
-            displayEmail={getUrlPathname(replay.url) ?? ''}
-          />
-        </Link>
+        <ReplayUserBadge
+          avatarSize={32}
+          displayName={
+            <Link
+              to={`/organizations/${organization.slug}/replays/${generateEventSlug({
+                project: replay.project,
+                id: replay.id,
+              })}/`}
+            >
+              {replay['user.display']}
+            </Link>
+          }
+          user={{
+            username: replay['user.display'],
+            id: replay['user.display'],
+            ip_address: replay['user.display'],
+            name: replay['user.display'],
+            email: replay['user.display'],
+          }}
+          // this is the subheading for the avatar, so displayEmail in this case is a misnomer
+          displayEmail={getUrlPathname(replay.url) ?? ''}
+        />
         {isScreenLarge && (
-          <ProjectBadge
-            project={
-              projects.find(p => p.slug === replay.project) || {slug: replay.project}
-            }
-            avatarSize={16}
-          />
+          <StyledPanelItem>
+            <ProjectBadge
+              project={
+                projects.find(p => p.slug === replay.project) || {slug: replay.project}
+              }
+              avatarSize={16}
+            />
+          </StyledPanelItem>
         )}
-        <div>
+        <StyledPanelItem>
           <TimeSinceWrapper>
             <StyledIconCalendarWrapper color="gray500" size="sm" />
             <TimeSince date={replay.timestamp} />
           </TimeSinceWrapper>
-        </div>
+        </StyledPanelItem>
       </Fragment>
     ));
   };
@@ -219,14 +223,13 @@ const StyledPageHeader = styled(PageHeader)`
 `;
 
 const StyledPageContent = styled(PageContent)`
+  padding: ${space(1.5)} ${space(2)};
   box-shadow: 0px 0px 1px ${p => p.theme.gray200};
   background-color: ${p => p.theme.background};
 `;
 
 const StyledPanelTable = styled(PanelTable)`
-  @media (max-width: ${p => p.theme.breakpoints[3]}) {
-    grid-template-columns: minmax(0, 1fr) max-content max-content;
-  }
+  grid-template-columns: minmax(0, 1fr) max-content max-content;
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-columns: minmax(0, 1fr) max-content;
@@ -240,16 +243,21 @@ const HeaderTitle = styled(PageHeading)`
   flex: 1;
 `;
 
+const StyledPanelItem = styled('div')`
+  margin-top: ${space(0.75)};
+`;
+
 const ReplayUserBadge = styled(UserBadge)`
-  font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.linkColor};
+  font-size: ${p => p.theme.fontSizeLarge};
+  font-weight: 400;
+  line-height: 1.2;
 `;
 
 const TimeSinceWrapper = styled('div')`
   display: grid;
   grid-template-columns: repeat(2, minmax(auto, max-content));
   align-items: center;
-  gap: ${space(1.5)};
+  gap: ${space(1)};
 `;
 
 const StyledIconCalendarWrapper = styled(IconCalendar)`
