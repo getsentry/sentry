@@ -10,13 +10,17 @@ import Alert from 'sentry/components/alert';
 import ButtonBar from 'sentry/components/buttonBar';
 import {getInterval} from 'sentry/components/charts/utils';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
+import DatePageFilter from 'sentry/components/datePageFilter';
 import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
 import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
+import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -210,8 +214,17 @@ class VitalDetailContent extends Component<Props, State> {
     const filterString = getTransactionSearchQuery(location);
     const summaryConditions = getSummaryConditions(filterString);
 
+    const hasPageFilters = organization.features.includes('selection-filters-v2');
+
     return (
       <Fragment>
+        {hasPageFilters && (
+          <StyledPageFilterBar condensed>
+            <ProjectPageFilter />
+            <EnvironmentPageFilter />
+            <DatePageFilter />
+          </StyledPageFilterBar>
+        )}
         <StyledSearchBar
           searchSource="performance_vitals"
           organization={organization}
@@ -324,6 +337,10 @@ class VitalDetailContent extends Component<Props, State> {
 }
 
 export default withProjects(VitalDetailContent);
+
+const StyledPageFilterBar = styled(PageFilterBar)`
+  margin-bottom: ${space(1)};
+`;
 
 const StyledDescription = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
