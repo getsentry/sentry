@@ -400,7 +400,7 @@ class SnubaQueryBuilder:
             groupby=groupby,
             select=select,
             where=where,
-            limit=Limit(limit or MAX_POINTS),
+            limit=limit or Limit(MAX_POINTS),
             offset=Offset(offset or 0),
             granularity=rollup,
             orderby=orderby,
@@ -417,7 +417,7 @@ class SnubaQueryBuilder:
             # In a series query, we also need to factor in the len of the intervals array
             series_limit = MAX_POINTS
             if limit:
-                series_limit = limit * intervals_len
+                series_limit = limit.limit * intervals_len
             rv["series"] = series_query.set_limit(series_limit)
 
         return rv

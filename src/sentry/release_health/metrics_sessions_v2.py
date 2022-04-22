@@ -6,9 +6,10 @@ import logging
 from collections import defaultdict
 from copy import deepcopy
 from dataclasses import dataclass, replace
+from enum import Enum
 from typing import Any, List, MutableMapping, Optional, Sequence, TypedDict
 
-from snuba_sdk import Condition, Granularity
+from snuba_sdk import Condition, Direction, Granularity, Limit
 from snuba_sdk.legacy import json_to_snql
 
 from sentry.models.project import Project
@@ -20,8 +21,14 @@ from sentry.release_health.base import (
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics.datasource import get_series
 from sentry.snuba.metrics.naming_layer.public import SessionMetricKey
-from sentry.snuba.metrics.query import MetricField
-from sentry.snuba.sessions_v2 import QueryDefinition, finite_or_none, isoformat_z
+from sentry.snuba.metrics.query import MetricField, OrderBy
+from sentry.snuba.sessions_v2 import (
+    SNUBA_LIMIT,
+    QueryDefinition,
+    finite_or_none,
+    get_timestamps,
+    isoformat_z,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +37,13 @@ GroupKeyDict = TypedDict(
     {"project": int, "release": str, "environment": str, "session.status": str},
     total=False,
 )
+
+
+class SessionStatus(Enum):
+    ABNORMAL = "abnormal"
+    CRASHED = "crashed"
+    ERRORED = "errored"
+    HEALTHY = "healthy"
 
 
 @dataclass(frozen=True)
@@ -75,14 +89,21 @@ def default_for(field: SessionsQueryFunction) -> SessionsQueryValue:
 
 class Field:
     def extract_values(self, raw_groupby, input_groups, output_groups):
+        is_groupby_status = "session.status" in raw_groupby
         for metric_field in self.get_metric_fields(raw_groupby):
+            session_status = self.get_session_status(metric_field, raw_groupby)
+            if is_groupby_status and session_status is None:
+                # We fetched this only to be consistent with the sort order
+                # in the original implementation, don't add it to output data
+                continue
             field_name = (
                 f"{metric_field.op}({metric_field.metric_name})"
                 if metric_field.op
                 else metric_field.metric_name
             )
-            session_status = self.metric_field_to_session_status[metric_field]
             for input_group_key, group in input_groups.items():
+                if session_status:
+                    self.ensure_status_groups(input_group_key, output_groups)
                 group_key = replace(input_group_key, session_status=session_status)
                 for subgroup in ("totals", "series"):
                     value = group[subgroup][field_name]
@@ -91,6 +112,13 @@ class Field:
                     else:
                         value = self.normalize(value)
                     output_groups[group_key][subgroup][self.name] = value
+
+    def ensure_status_groups(self, input_group_key, output_groups):
+        # To be consistent with original sessions implementation,
+        # always create defaults for all session status groups
+        for session_status in SessionStatus:
+            group_key = replace(input_group_key, session_status=session_status.value)
+            output_groups[group_key]  # creates entry in defaultdict
 
     def get_groupby(self, raw_groupby):
         for groupby in raw_groupby:
@@ -125,9 +153,16 @@ class SessionsField(IntegerField):
         MetricField(None, SessionMetricKey.ALL.value): None,
     }
 
+    def get_session_status(self, metric_field, raw_groupby):
+        return self.metric_field_to_session_status[metric_field]
+
     def get_metric_fields(self, raw_groupby):
         if "session.status" in raw_groupby:
             return [
+                # Always also get ALL, because this is what we sort by
+                # in the sessions implementation, with which we want to be consistent
+                MetricField(None, SessionMetricKey.ALL.value),
+                # These are the fields we actually need:
                 MetricField(None, SessionMetricKey.HEALTHY.value),
                 MetricField(None, SessionMetricKey.ABNORMAL.value),
                 MetricField(None, SessionMetricKey.CRASHED.value),
@@ -147,9 +182,16 @@ class UsersField(IntegerField):
         MetricField(None, SessionMetricKey.ALL_USER.value): None,
     }
 
+    def get_session_status(self, metric_field, raw_groupby):
+        return self.metric_field_to_session_status[metric_field]
+
     def get_metric_fields(self, raw_groupby):
         if "session.status" in raw_groupby:
             return [
+                # Always also get ALL, because this is what we sort by
+                # in the sessions implementation, with which we want to be consistent
+                MetricField(None, SessionMetricKey.ALL_USER.value),
+                # These are the fields we actually need:
                 MetricField(None, SessionMetricKey.HEALTHY_USER.value),
                 MetricField(None, SessionMetricKey.ABNORMAL_USER.value),
                 MetricField(None, SessionMetricKey.CRASHED_USER.value),
@@ -163,12 +205,11 @@ class DurationField(Field):
         self.name = name
         self.op = name[:3]  # That this works is just a lucky coincidence
 
-    @property
-    def metric_field_to_session_status(self):
-        return {
-            MetricField(self.op, SessionMetricKey.DURATION.value): "healthy",
-            # TODO: Handle non-groupby case
-        }
+    def get_session_status(self, metric_field, raw_groupby):
+        assert metric_field == MetricField(self.op, SessionMetricKey.DURATION.value)
+        if "session.status" in raw_groupby:
+            return "healthy"
+        return None
 
     def get_metric_fields(self, raw_groupby):
         return [MetricField(self.op, SessionMetricKey.DURATION.value)]
@@ -211,6 +252,13 @@ def run_sessions_query(
     project_ids = filter_keys.pop("project_id")
     assert not filter_keys
 
+    # We only return the top-N groups, based on the first field that is being
+    # queried, assuming that those are the most relevant to the user.
+    # In a future iteration we might expose an `orderBy` query parameter.
+    primary_metric_field = _get_primary_field(fields, query.raw_groupby)
+    orderby = OrderBy(primary_metric_field, Direction.DESC)
+    max_groups = SNUBA_LIMIT // len(get_timestamps(query))
+
     metrics_query = MetricsQuery(
         org_id,
         project_ids,
@@ -222,6 +270,8 @@ def run_sessions_query(
         groupby=list(
             {column for field in fields for column in field.get_groupby(query.raw_groupby)}
         ),
+        orderby=orderby,
+        limit=Limit(max_groups),
     )
 
     # TODO: Stop passing project IDs everywhere
@@ -263,3 +313,14 @@ def _get_filter_conditions(conditions: Sequence[Condition]) -> Any:
     return json_to_snql(
         {"selected_columns": ["value"], "conditions": conditions}, entity=dummy_entity
     ).where
+
+
+def _get_primary_field(fields: Sequence[MetricField], raw_groupby: Sequence[str]) -> MetricField:
+    """Determine the field by which results will be ordered in case there is no orderBy"""
+    primary_metric_field = None
+    for i, field in enumerate(fields):
+        if i == 0 or field.name == "sum(session)":
+            primary_metric_field = field.get_metric_fields(raw_groupby)[0]
+
+    assert primary_metric_field
+    return primary_metric_field

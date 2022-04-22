@@ -674,6 +674,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         groups = result_sorted(response.data)["groups"]
         assert len(groups) == 1, groups
         group = groups[0]
+        assert group["by"] == {}
 
         assert group["totals"] == pytest.approx(expected)
         for key, series in group["series"].items():
