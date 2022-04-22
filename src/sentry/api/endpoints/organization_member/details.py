@@ -12,7 +12,8 @@ from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.serializers import (
     DetailedUserSerializer,
     OrganizationMemberWithTeamsSerializer,
-    RoleSerializer,
+    OrganizationRoleSerializer,
+    TeamRoleSerializer,
     serialize,
 )
 from sentry.api.serializers.rest_framework import ListField
@@ -122,8 +123,12 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             role for role in organization_roles.get_all() if not is_retired_role_hidden(role)
         ]
         context["roles"] = serialize(
-            organization_role_list, serializer=RoleSerializer(), allowed_roles=allowed_roles
+            organization_role_list,
+            serializer=OrganizationRoleSerializer(),
+            allowed_roles=allowed_roles,
         )
+
+        context["teamRoles"] = serialize(team_roles.get_all(), serializer=TeamRoleSerializer())
 
         return context
 
@@ -147,7 +152,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         member: OrganizationMember,
     ) -> Response:
         """
-        Retrive an organization member's details.
+        Retrieve an organization member's details.
 
         Will return a pending invite as long as it's already approved.
         """
@@ -300,11 +305,17 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             # null. We do this because such a team role would be effectively
             # invisible in the UI, and would be surprising if it were left behind
             # after the user's org role is lowered again.
-            OrganizationMemberTeam.objects.filter(
+            omt_update_count = OrganizationMemberTeam.objects.filter(
                 organizationmember=member, role__in=lesser_team_roles
             ).update(role=None)
 
             member.update(role=role)
+
+        if omt_update_count > 0:
+            metrics.incr(
+                "team_roles.update_to_minimum",
+                tags={"target_org_role": role, "count": omt_update_count},
+            )
 
     @extend_schema(
         operation_id="Delete an Organization Member",

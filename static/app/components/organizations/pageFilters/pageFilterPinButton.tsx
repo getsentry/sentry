@@ -7,6 +7,8 @@ import {t} from 'sentry/locale';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {PinnedPageFilter} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
   filter: PinnedPageFilter;
@@ -15,10 +17,16 @@ type Props = {
 };
 
 function PageFilterPinButton({filter, size, className}: Props) {
+  const organization = useOrganization();
   const {pinnedFilters} = useLegacyStore(PageFiltersStore);
   const pinned = pinnedFilters.has(filter);
 
   const onPin = () => {
+    trackAdvancedAnalyticsEvent('page_filters.pin_click', {
+      organization,
+      filter,
+      pin: !pinned,
+    });
     pinFilter(filter, !pinned);
   };
 
