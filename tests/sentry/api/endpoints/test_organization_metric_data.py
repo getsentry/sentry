@@ -968,7 +968,6 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             includeSeries="0",
             includeTotals="0",
         )
-
         assert response.status_code == 400
 
 
