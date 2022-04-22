@@ -548,7 +548,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
         : Math.max(
             ...columns.map(col =>
               col.kind === 'function' &&
-              AGGREGATIONS[col.function[0]].parameters.length === 2
+              AGGREGATIONS[col.function[0]]?.parameters.length === 2
                 ? 3
                 : 2
             )

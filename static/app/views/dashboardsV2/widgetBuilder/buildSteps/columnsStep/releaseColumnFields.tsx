@@ -31,7 +31,9 @@ export function ReleaseColumnFields({
   onYAxisOrColumnFieldChange,
 }: Props) {
   const filterAggregateParameters = (option: FieldValueOption) => {
-    return option.value.kind === FieldValueKind.METRICS;
+    return [FieldValueKind.METRICS, FieldValueKind.NUMERIC_METRICS].includes(
+      option.value.kind
+    );
   };
   return (
     <ColumnFields

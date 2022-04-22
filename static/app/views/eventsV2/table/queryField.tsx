@@ -23,6 +23,7 @@ import {
   QueryFieldValue,
   ValidateColumnTypes,
 } from 'sentry/utils/discover/fields';
+import {SESSIONS_OPERATIONS} from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
 
 import ArithmeticInput from './arithmeticInput';
 import {FieldValue, FieldValueColumns, FieldValueKind} from './types';
@@ -644,11 +645,13 @@ class QueryField extends React.Component<Props> {
       // Otherwise the field should be displayed in a column, taking up all available space and not displaying the "no parameter" field
       if (
         fieldValue.kind === 'function' &&
-        AGGREGATIONS[fieldValue.function[0]].parameters.length > 0
+        (AGGREGATIONS[fieldValue.function[0]]?.parameters.length > 0 ||
+          SESSIONS_OPERATIONS[fieldValue.function[0]]?.parameters.length > 0)
       ) {
         if (
           containerColumns === 3 &&
-          AGGREGATIONS[fieldValue.function[0]].parameters.length === 1
+          (AGGREGATIONS[fieldValue.function[0]]?.parameters.length === 1 ||
+            SESSIONS_OPERATIONS[fieldValue.function[0]]?.parameters.length === 1)
         ) {
           gridColumnsQuantity = 2;
         } else {
