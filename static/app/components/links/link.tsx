@@ -5,6 +5,8 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Location, LocationDescriptor} from 'history';
 
+import {Theme} from 'sentry/utils/theme';
+
 export interface LinkProps
   extends Omit<
     React.DetailedHTMLProps<React.HTMLAttributes<HTMLAnchorElement>, HTMLAnchorElement>,
@@ -30,6 +32,7 @@ export interface LinkProps
  */
 
 interface WithRouterBaseLinkProps extends WithRouterProps, LinkProps {}
+
 function BaseLink({
   location,
   disabled,
@@ -50,7 +53,7 @@ function BaseLink({
   }, []);
 
   if (!disabled && location) {
-    return <RouterLink to={to} ref={ref as any} {...props} />;
+    return <StyledRouterLink to={to} ref={ref as any} {...props} />;
   }
 
   if (typeof to === 'string') {
@@ -68,17 +71,34 @@ const Link = withRouter(BaseLink);
 
 export default Link;
 
-const Anchor = styled('a', {
+const linkStyles = ({disabled, theme}: {theme: Theme; disabled?: boolean}) => `
+  border-radius: ${theme.borderRadius};
+
+  &.focus-visible {
+    box-shadow: ${theme.linkFocus} 0 0 0 2px;
+    text-decoration: none;
+    outline: none;
+  }
+
+  ${
+    disabled &&
+    `
+      color:${theme.disabled};
+      pointer-events: none;
+      :hover {
+        color: ${theme.disabled};
+      }
+    `
+  }
+`;
+
+const StyledRouterLink = styled(RouterLink)`
+  ${linkStyles}
+`;
+
+export const Anchor = styled('a', {
   shouldForwardProp: prop =>
     typeof prop === 'string' && isPropValid(prop) && prop !== 'disabled',
 })<{disabled?: boolean}>`
-  ${p =>
-    p.disabled &&
-    `
-  color:${p.theme.disabled};
-  pointer-events: none;
-  :hover {
-    color: ${p.theme.disabled};
-  }
-  `};
+  ${linkStyles}
 `;
