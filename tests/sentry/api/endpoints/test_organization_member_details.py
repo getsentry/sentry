@@ -383,14 +383,12 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
 
         scopes = ["member:admin"]
         scopes += organization_roles.get("admin").scopes
-        self.create_internal_integration(
-            name="my_app",
-            organization=self.organization,
-            scopes=scopes,
-            webhook_url="http://example.com",
+        integration = self.create_internal_integration(
+            organization=self.organization, scopes=scopes
         )
-        # there should only be one record created so just grab the first one
-        token = SentryAppInstallationToken.objects.first()
+        token = SentryAppInstallationToken.objects.get(
+            sentry_app_installation__sentry_app=integration
+        )
 
         response = self.client.put(
             reverse(self.endpoint, args=[self.organization.slug, member_om.id]),
