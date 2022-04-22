@@ -1,5 +1,6 @@
 import {Fragment, useEffect, useRef} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
+import isEmpty from 'lodash/isEmpty';
 import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
 
@@ -20,6 +21,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 
 import GlobalSelectionHeader from './globalSelectionHeader';
 import {getDatetimeFromState, getStateFromQuery} from './parse';
+import {doesPathHaveNewFilters, extractSelectionParameters} from './utils';
 
 type GlobalSelectionHeaderProps = Omit<
   React.ComponentPropsWithoutRef<typeof GlobalSelectionHeader>,
@@ -80,6 +82,7 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
   const {isSuperuser} = ConfigStore.get('user');
   const isOrgAdmin = organization.access.includes('org:admin');
   const enforceSingleProject = !organization.features.includes('global-views');
+  const hasPageFilters = doesPathHaveNewFilters(location.pathname ?? '', organization);
 
   const specifiedProjects = specificProjectSlugs
     ? projects.filter(project => specificProjectSlugs.includes(project.slug))
@@ -99,20 +102,7 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
     nonMemberProjects,
   };
 
-  // Initializes GlobalSelectionHeader
-  //
-  // Calls an actionCreator to load project/environment from local storage when
-  // pinned, otherwise populate with defaults.
-  //
-  // This should only happen when the header is mounted e.g. when changing
-  // views or organizations.
-  useEffect(() => {
-    // We can initialize before ProjectsStore is fully loaded if we don't need to
-    // enforce single project.
-    if (!projectsLoaded && (shouldForceProject || enforceSingleProject)) {
-      return;
-    }
-
+  const doInitialization = () =>
     initializeUrlState({
       organization,
       queryParams: location.query,
@@ -127,6 +117,21 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
       showAbsolute,
       skipInitializeUrlParams,
     });
+
+  // Initializes GlobalSelectionHeader
+  //
+  // Calls an actionCreator to load project/environment from local storage when
+  // pinned, otherwise populate with defaults.
+  //
+  // This happens when we mount the container.
+  useEffect(() => {
+    // We can initialize before ProjectsStore is fully loaded if we don't need to
+    // enforce single project.
+    if (!projectsLoaded && (shouldForceProject || enforceSingleProject)) {
+      return;
+    }
+
+    doInitialization();
   }, [projectsLoaded, shouldForceProject, enforceSingleProject]);
 
   const lastQuery = useRef(location.query);
@@ -135,6 +140,24 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
   // we need to update our store to reflect URL changes
   useEffect(() => {
     if (location.query === lastQuery.current) {
+      return;
+    }
+
+    // We may need to re-initialize the URL state if we completely clear
+    // out the global selection URL state, for example by navigating with
+    // the sidebar on the same view.
+    const oldSelectionQuery = extractSelectionParameters(lastQuery.current);
+    const newSelectionQuery = extractSelectionParameters(location.query);
+
+    // XXX: This re-initalization is only required in new-page-filters
+    // land, since we have implicit pinning in the old land which will
+    // cause page filters to commonly reset.
+    if (
+      hasPageFilters &&
+      isEmpty(newSelectionQuery) &&
+      !isEqual(oldSelectionQuery, newSelectionQuery)
+    ) {
+      doInitialization();
       return;
     }
 
