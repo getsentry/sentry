@@ -75,7 +75,7 @@ const linkStyles = ({disabled, theme}: {theme: Theme; disabled?: boolean}) => `
   border-radius: ${theme.borderRadius};
 
   &.focus-visible {
-    box-shadow: ${theme.focusBorder} 0 0 0 2px;
+    box-shadow: ${theme.linkFocus} 0 0 0 2px;
     text-decoration: none;
     outline: none;
   }
