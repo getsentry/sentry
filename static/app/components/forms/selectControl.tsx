@@ -74,6 +74,11 @@ export type ControlProps<OptionType = GeneralSelectValue> = Omit<
    */
   inFieldLabel?: string;
   /**
+   * Whether this is used inside compactSelect. See
+   * components/compactSelect.tsx
+   */
+  isCompact?: boolean;
+  /**
    * Used by MultiSelectControl.
    */
   multiple?: boolean;
@@ -121,6 +126,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   props: WrappedControlProps<OptionType>
 ) {
   const theme = useTheme();
+  const {isCompact, isSearchable} = props;
 
   // TODO(epurkhiser): The loading indicator should probably also be our loading
   // indicator.
@@ -165,10 +171,24 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       ...(!state.isSearchable && {
         cursor: 'pointer',
       }),
+      ...(isCompact && {
+        padding: `${space(0.5)} ${space(0.5)}`,
+        borderRadius: 0,
+        border: 'none',
+        boxShadow: 'none',
+        cursor: 'initial',
+        minHeight: 'none',
+        ...(!isSearchable && {
+          height: 0,
+          padding: 0,
+          overflow: 'hidden',
+        }),
+      }),
     }),
 
     menu: (provided: React.CSSProperties) => ({
       ...provided,
+      fontSize: theme.fontSizeMedium,
       zIndex: theme.zIndex.dropdown,
       background: theme.backgroundElevated,
       border: `1px solid ${theme.border}`,
@@ -176,10 +196,42 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       boxShadow: theme.dropShadowHeavy,
       width: 'auto',
       minWidth: '100%',
+      ...(isCompact && {
+        position: 'relative',
+        margin: 0,
+        borderRadius: 0,
+        border: 'none',
+        boxShadow: 'none',
+        zIndex: 'initial',
+        ...(isSearchable && {paddingTop: 0}),
+      }),
     }),
+
+    menuList: (provided: React.CSSProperties) => ({
+      ...provided,
+      ...(isCompact &&
+        isSearchable && {
+          paddingTop: 0,
+        }),
+    }),
+
+    menuPortal: () => ({
+      maxWidth: '24rem',
+      zIndex: theme.zIndex.dropdown,
+      width: '90%',
+      position: 'fixed',
+      left: '50%',
+      top: '50%',
+      transform: 'translate(-50%, -50%)',
+      background: theme.backgroundElevated,
+      border: `1px solid ${theme.border}`,
+      borderRadius: theme.borderRadius,
+      boxShadow: theme.dropShadowHeavy,
+      overflow: 'hidden',
+    }),
+
     option: (provided: React.CSSProperties) => ({
       ...provided,
-      fontSize: theme.fontSizeMedium,
       cursor: 'pointer',
       color: theme.textColor,
       background: 'transparent',
@@ -191,10 +243,22 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     valueContainer: (provided: React.CSSProperties) => ({
       ...provided,
       alignItems: 'center',
+      ...(isCompact && {
+        fontSize: theme.fontSizeMedium,
+        padding: `${space(0.5)} ${space(1)}`,
+        border: `1px solid ${theme.innerBorder}`,
+        borderRadius: theme.borderRadius,
+        cursor: 'text',
+        background: theme.backgroundSecondary,
+      }),
     }),
     input: (provided: React.CSSProperties) => ({
       ...provided,
       color: theme.formText,
+      ...(isCompact && {
+        padding: 0,
+        margin: 0,
+      }),
     }),
     singleValue: (provided: React.CSSProperties) => ({
       ...provided,
@@ -203,6 +267,10 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     placeholder: (provided: React.CSSProperties) => ({
       ...provided,
       color: theme.formPlaceholder,
+      ...(isCompact && {
+        padding: 0,
+        margin: 0,
+      }),
     }),
     multiValue: (provided: React.CSSProperties) => ({
       ...provided,
@@ -238,6 +306,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       gridAutoFlow: 'column',
       gridGap: '2px',
       marginRight: '6px',
+      ...(isCompact && {display: 'none'}),
     }),
     clearIndicator: indicatorStyles,
     dropdownIndicator: indicatorStyles,
