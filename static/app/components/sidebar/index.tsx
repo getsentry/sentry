@@ -117,10 +117,13 @@ function Sidebar({location, organization}: Props) {
     evt: React.MouseEvent<HTMLAnchorElement>
   ) => {
     // XXX(epurkhiser): No need to navigate w/ the page filters in the world
-    // of new page filter selection. You must pin your filters in which case
-    // they will persist anyway.
+    // of new page filter selection unless you are navigating within the same
+    // context. You must pin your filters in which case they will persist anyway.
     if (organization) {
-      if (doesPathHaveNewFilters(pathname, organization)) {
+      if (
+        doesPathHaveNewFilters(pathname, organization) &&
+        pathname !== location?.pathname
+      ) {
         return;
       }
     }
