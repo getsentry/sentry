@@ -510,7 +510,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
                 borderless
               />
             ) : (
-              <Button
+              <RemoveButton
                 data-test-id={`remove-column-${i}`}
                 aria-label={t('Remove column')}
                 onClick={() => this.removeColumn(i)}
