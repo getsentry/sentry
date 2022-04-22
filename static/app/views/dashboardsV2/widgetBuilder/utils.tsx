@@ -133,11 +133,12 @@ export function normalizeQueries({
           ? stripDerivedMetricsPrefix(queries[0].orderby)
           : queries[0].orderby;
 
-      // Ignore the orderby if it is a raw equation, if we're switching to a table
+      // Ignore the orderby if it is a raw equation and we're switching to a table
       // or Top-N chart, a custom equation should be reset since it only applies when
       // grouping in timeseries charts
+      const ignoreOrderBy = isEquation(trimStart(queryOrderBy, '-')) && isTabularChart;
       const orderBy =
-        (!isEquation(trimStart(queryOrderBy, '-')) && getAggregateAlias(queryOrderBy)) ||
+        (!ignoreOrderBy && getAggregateAlias(queryOrderBy)) ||
         (widgetType === WidgetType.ISSUE
           ? IssueSortOptions.DATE
           : generateOrderOptions({
