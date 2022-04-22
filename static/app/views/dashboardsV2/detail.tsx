@@ -736,7 +736,7 @@ class DashboardDetail extends Component<Props, State> {
               </Layout.Header>
               <Layout.Body>
                 <Layout.Main fullWidth>
-                  <DashboardPageFilterBar>
+                  <DashboardPageFilterBar condensed>
                     <ProjectPageFilter />
                     <EnvironmentPageFilter alignDropdown="left" />
                     <DatePageFilter alignDropdown="left" />
