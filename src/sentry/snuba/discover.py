@@ -1189,7 +1189,8 @@ def get_facets(
                     ]
                 )
 
-        return sorted(results)
+        # Need to cast tuple values to str since the value might be None
+        return sorted(results, key=lambda result: (str(result.key), str(result.value)))
 
     # temporarily add old-json to referrer
     referrer = f"{referrer}.old-json"
