@@ -75,7 +75,7 @@ function BasePlayerRoot({className}: Props) {
 
   return (
     <Panel isFullscreen={isFullscreen}>
-      <Centered ref={windowEl} className="rr-block" data-test-id="replay-window">
+      <Centered ref={windowEl} className="sr-block" data-test-id="replay-window">
         <div ref={viewEl} data-test-id="replay-view" className={className} />
         {fastForwardSpeed ? (
           <FastForwardBadge>
