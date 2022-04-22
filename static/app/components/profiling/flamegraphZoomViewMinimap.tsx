@@ -1,16 +1,18 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {useFlamegraphPreferencesValue} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
+import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/useFlamegraphState';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Rect, watchForResize} from 'sentry/utils/profiling/gl/utils';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 import {PositionIndicatorRenderer} from 'sentry/utils/profiling/renderers/positionIndicatorRenderer';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
+import usePrevious from 'sentry/utils/usePrevious';
 
 interface FlamegraphZoomViewMinimapProps {
   canvasPoolManager: CanvasPoolManager;
@@ -21,8 +23,13 @@ function FlamegraphZoomViewMinimap({
   canvasPoolManager,
   flamegraph,
 }: FlamegraphZoomViewMinimapProps): React.ReactElement {
-  const flamegraphPreferences = useFlamegraphPreferencesValue();
   const flamegraphTheme = useFlamegraphTheme();
+  const [lastInteraction, setLastInteraction] = useState<
+    'pan' | 'click' | 'zoom' | 'scroll' | 'select' | null
+  >(null);
+
+  const [dispatch] = useDispatchFlamegraphState();
+  const flamegraphPreferences = useFlamegraphPreferencesValue();
 
   const [flamegraphMiniMapCanvasRef, setFlamegraphMiniMapRef] =
     useState<HTMLCanvasElement | null>(null);
@@ -206,6 +213,30 @@ function FlamegraphZoomViewMinimap({
     };
   }, [scheduler, flamegraphMiniMapRenderer]);
 
+  const previousInteraction = usePrevious(lastInteraction);
+  const beforeInteractionConfigView = useRef<Rect | null>(null);
+  useEffect(() => {
+    if (!flamegraphMiniMapRenderer) {
+      return;
+    }
+
+    // Check if we are starting a new interaction
+    if (previousInteraction === null && lastInteraction) {
+      beforeInteractionConfigView.current = flamegraphMiniMapRenderer.configView.clone();
+      return;
+    }
+
+    if (
+      beforeInteractionConfigView.current &&
+      !beforeInteractionConfigView.current.equals(flamegraphMiniMapRenderer.configView)
+    ) {
+      dispatch({
+        type: 'checkpoint',
+        payload: flamegraphMiniMapRenderer.configView.clone(),
+      });
+    }
+  }, [lastInteraction, flamegraphMiniMapRenderer]);
+
   const [startDragVector, setStartDragConfigSpaceCursor] = useState<vec2 | null>(null);
   const [lastDragVector, setLastDragVector] = useState<vec2 | null>(null);
 
@@ -300,6 +331,7 @@ function FlamegraphZoomViewMinimap({
 
       if (lastDragVector) {
         onMouseDrag(evt);
+        setLastInteraction('pan');
         return;
       }
       if (startDragVector) {
@@ -313,7 +345,11 @@ function FlamegraphZoomViewMinimap({
           flamegraphMiniMapRenderer.configView.height
         );
         canvasPoolManager.dispatch('setConfigView', [rect]);
+        setLastInteraction('select');
+        return;
       }
+
+      setLastInteraction(null);
     },
     [
       canvasPoolManager,
@@ -416,6 +452,7 @@ function FlamegraphZoomViewMinimap({
         );
         setStartDragConfigSpaceCursor(startConfigSpaceCursor);
       }
+      setLastInteraction('select');
     },
     [configSpaceCursor, flamegraphMiniMapRenderer, canvasPoolManager]
   );
@@ -424,7 +461,51 @@ function FlamegraphZoomViewMinimap({
     setConfigSpaceCursor(null);
     setStartDragConfigSpaceCursor(null);
     setLastDragVector(null);
+    setLastInteraction(null);
   }, []);
+
+  useEffect(() => {
+    if (!flamegraphMiniMapCanvasRef) {
+      return undefined;
+    }
+
+    let wheelStopTimeoutId: number | undefined;
+    function onCanvasWheel(evt: WheelEvent) {
+      window.clearTimeout(wheelStopTimeoutId);
+      wheelStopTimeoutId = window.setTimeout(() => {
+        setLastInteraction(null);
+      }, 300);
+
+      if (!flamegraphMiniMapRenderer) {
+        return;
+      }
+      evt.preventDefault();
+
+      // When we zoom, we want to clear cursor so that any tooltips
+      // rendered on the flamegraph are removed from the view
+      setConfigSpaceCursor(null);
+
+      if (evt.metaKey) {
+        onMinimapZoom(evt);
+        setLastInteraction('zoom');
+      } else {
+        onMinimapScroll(evt);
+        setLastInteraction('scroll');
+      }
+    }
+
+    flamegraphMiniMapCanvasRef.addEventListener('wheel', onCanvasWheel);
+
+    return () => {
+      window.clearTimeout(wheelStopTimeoutId);
+      flamegraphMiniMapCanvasRef.removeEventListener('wheel', onCanvasWheel);
+    };
+  }, [
+    flamegraphMiniMapCanvasRef,
+    flamegraphMiniMapRenderer,
+    onMinimapZoom,
+    onMinimapScroll,
+  ]);
 
   useEffect(() => {
     window.addEventListener('mouseup', onMinimapCanvasMouseUp);

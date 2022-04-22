@@ -186,6 +186,10 @@ export class Rect {
     this.size = vec2.fromValues(width, height);
   }
 
+  clone(): Rect {
+    return Rect.From(this);
+  }
+
   isValid(): boolean {
     return this.toMatrix().every(n => !isNaN(n));
   }
