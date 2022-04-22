@@ -955,7 +955,6 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             interval="1h",
             includeTotals="0",
         )
-
         assert response.data["groups"] == [
             {"by": {}, "series": {"sum(sentry.sessions.session)": [1.0]}}
         ]
@@ -968,7 +967,6 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             includeSeries="0",
             includeTotals="0",
         )
-
         assert response.status_code == 400
 
 
