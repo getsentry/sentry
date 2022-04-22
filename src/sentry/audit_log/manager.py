@@ -1,7 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Optional
-
-from sentry_sdk import capture_exception
+from typing import Dict, Optional
 
 from sentry.models.auditlogentry import AuditLogEntry
 
@@ -88,12 +86,9 @@ class AuditLogEventManager:
             audit_log_event.name in self._event_registry
             or audit_log_event.event_id in self._event_id_lookup
         ):
-            capture_exception(
-                DuplicateAuditLogEvent(
-                    f"Duplicate audit log: {audit_log_event.name} with ID {audit_log_event.event_id}"
-                )
+            raise DuplicateAuditLogEvent(
+                f"Duplicate audit log: {audit_log_event.name} with ID {audit_log_event.event_id}"
             )
-            return
 
         self._event_registry[audit_log_event.name] = audit_log_event
         self._event_id_lookup[audit_log_event.event_id] = audit_log_event
@@ -108,9 +103,9 @@ class AuditLogEventManager:
             raise AuditLogEventNotRegistered(f"Event {name} does not exist")
         return self._event_registry[name].event_id
 
-    def get_api_names(self) -> List[str]:
-        # returns a list of all the api names
-        api_names: list = []
+    def get_api_names(self) -> Dict[str, int]:
+        # returns a dict of all the api_name as the key and the event_id as the value
+        api_names: Dict[str, int] = {}
         for audit_log_event in self._event_registry.values():
-            api_names.append(audit_log_event.api_name)
+            api_names[audit_log_event.api_name] = audit_log_event.event_id
         return api_names
