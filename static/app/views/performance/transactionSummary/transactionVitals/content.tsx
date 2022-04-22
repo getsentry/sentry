@@ -5,10 +5,13 @@ import {Location} from 'history';
 
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
+import DatePageFilter from 'sentry/components/datePageFilter';
 import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -85,6 +88,12 @@ function VitalsContent(props: Props) {
                     </Alert>
                   )}
 
+                  {organization.features.includes('selection-filters-v2') && (
+                    <StyledPageFilterBar condensed>
+                      <EnvironmentPageFilter />
+                      <DatePageFilter alignDropdown="left" />
+                    </StyledPageFilterBar>
+                  )}
                   <StyledActions>
                     <StyledSearchBar
                       organization={organization}
@@ -159,6 +168,10 @@ const StyledActions = styled('div')`
   grid-template-columns: auto max-content max-content;
   align-items: center;
   margin-bottom: ${space(3)};
+`;
+
+const StyledPageFilterBar = styled(PageFilterBar)`
+  margin-bottom: ${space(1)};
 `;
 
 export default VitalsContent;

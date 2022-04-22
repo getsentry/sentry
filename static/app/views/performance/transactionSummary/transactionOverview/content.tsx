@@ -5,11 +5,14 @@ import {Location} from 'history';
 import omit from 'lodash/omit';
 
 import Feature from 'sentry/components/acl/feature';
+import DatePageFilter from 'sentry/components/datePageFilter';
 import TransactionsList, {
   DropdownOption,
 } from 'sentry/components/discover/transactionsList';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -263,6 +266,12 @@ function SummaryContent({
   return (
     <React.Fragment>
       <Layout.Main>
+        {organization.features.includes('selection-filters-v2') && (
+          <StyledPageFilterBar condensed>
+            <EnvironmentPageFilter />
+            <DatePageFilter alignDropdown="left" />
+          </StyledPageFilterBar>
+        )}
         <Search>
           <Filter
             organization={organization}
@@ -458,6 +467,10 @@ function getTransactionsListSort(
   const selectedSort = sortOptions.find(opt => opt.value === urlParam) || sortOptions[0];
   return {selected: selectedSort, options: sortOptions};
 }
+
+const StyledPageFilterBar = styled(PageFilterBar)`
+  margin-bottom: ${space(1)};
+`;
 
 const Search = styled('div')`
   display: flex;

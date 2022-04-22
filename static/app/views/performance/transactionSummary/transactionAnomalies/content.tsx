@@ -7,8 +7,11 @@ import omit from 'lodash/omit';
 import MarkArea from 'sentry/components/charts/components/markArea';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {LineChartSeries} from 'sentry/components/charts/lineChart';
+import DatePageFilter from 'sentry/components/datePageFilter';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -272,6 +275,12 @@ function AnomaliesContent(props: Props) {
   }
   return (
     <Layout.Main fullWidth>
+      {organization.features.includes('selection-filters-v2') && (
+        <StyledPageFilterBar condensed>
+          <EnvironmentPageFilter />
+          <DatePageFilter alignDropdown="left" />
+        </StyledPageFilterBar>
+      )}
       <SearchBar
         organization={organization}
         projectIds={eventView.project}
@@ -305,6 +314,10 @@ function AnomaliesContent(props: Props) {
 
 const Container = styled('div')`
   margin-top: ${space(2)};
+`;
+
+const StyledPageFilterBar = styled(PageFilterBar)`
+  margin-bottom: ${space(1)};
 `;
 
 export default AnomaliesContent;

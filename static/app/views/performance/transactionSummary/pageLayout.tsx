@@ -111,6 +111,7 @@ function PageLayout(props: Props) {
             showProjectSettingsLink
             relativeDateOptions={relativeDateOptions}
             maxPickableDays={maxPickableDays}
+            hideGlobalHeader={organization.features.includes('selection-filters-v2')}
           >
             <StyledPageContent>
               <NoProjectMessage organization={organization}>
