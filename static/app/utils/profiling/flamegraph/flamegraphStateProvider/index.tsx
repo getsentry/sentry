@@ -30,8 +30,8 @@ export type FlamegraphStateContextValue = [
   FlamegraphState,
   FlamegraphAction,
   {
-    peekFuture: () => FlamegraphState | undefined;
-    peekHistory: () => FlamegraphState | undefined;
+    nextState: FlamegraphState | undefined;
+    previousState: FlamegraphState | undefined;
   }
 ];
 

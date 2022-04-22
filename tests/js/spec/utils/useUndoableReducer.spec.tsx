@@ -135,10 +135,10 @@ describe('makeUndoableReducer', () => {
     const {result} = reactHooks.renderHook(() => useUndoableReducer(simpleReducer, 0));
 
     reactHooks.act(() => result.current[1]({type: 'add'}));
-    expect(result.current?.[2].peekHistory()).toEqual(0);
+    expect(result.current?.[2].previousState).toEqual(0);
 
     reactHooks.act(() => result.current[1]({type: 'undo'}));
-    expect(result.current?.[2].peekFuture()).toEqual(1);
+    expect(result.current?.[2].nextState).toEqual(1);
   });
 
   it('can work with primitives', () => {

@@ -38,7 +38,7 @@ function FlamegraphZoomView({
     'pan' | 'click' | 'zoom' | 'scroll' | null
   >(null);
 
-  const [dispatch, {peekHistory, peekFuture}] = useDispatchFlamegraphState();
+  const [dispatch, {previousState, nextState}] = useDispatchFlamegraphState();
   const flamegraphPreferences = useFlamegraphPreferencesValue();
 
   const [flamegraphCanvasRef, setFlamegraphCanvasRef] =
@@ -156,18 +156,11 @@ function FlamegraphZoomView({
         const action = evt.shiftKey ? 'redo' : 'undo';
 
         if (action === 'undo') {
-          const previousPosition = peekHistory()?.position.view;
+          const previousPosition = previousState?.position?.view;
 
           // If previous position is empty, reset the view to it's max
           if (previousPosition?.isEmpty()) {
-            canvasPoolManager.dispatch('setConfigView', [
-              new Rect(
-                0,
-                0,
-                Number.MAX_SAFE_INTEGER,
-                flamegraphRenderer.configView.height
-              ),
-            ]);
+            canvasPoolManager.dispatch('resetZoom', []);
           } else if (
             previousPosition &&
             !previousPosition?.equals(flamegraphRenderer.configView)
@@ -183,7 +176,7 @@ function FlamegraphZoomView({
         }
 
         if (action === 'redo') {
-          const nextPosition = peekFuture()?.position.view;
+          const nextPosition = nextState?.position?.view;
 
           if (nextPosition && !nextPosition.equals(flamegraphRenderer.configView)) {
             // We need to always dispatch with the height of the current view,
@@ -205,7 +198,7 @@ function FlamegraphZoomView({
     return () => {
       document.removeEventListener('keydown', onKeyDown);
     };
-  }, [flamegraphRenderer, peekFuture, peekHistory, scheduler]);
+  }, [flamegraphRenderer, previousState, nextState, scheduler]);
 
   const previousInteraction = usePrevious(lastInteraction);
   const beforeInteractionConfigView = useRef<Rect | null>(null);
