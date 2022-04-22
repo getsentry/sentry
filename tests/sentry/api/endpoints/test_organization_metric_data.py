@@ -960,7 +960,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             {"by": {}, "series": {"sum(sentry.sessions.session)": [1.0]}}
         ]
 
-        response = self.get_success_response(
+        response = self.get_response(
             self.organization.slug,
             field="sum(sentry.sessions.session)",
             statsPeriod="1h",
@@ -968,8 +968,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             includeSeries="0",
             includeTotals="0",
         )
-
-        assert response.data["groups"] == []
+        assert response.status_code == 400
 
 
 @freeze_time((timezone.now() - timedelta(days=2)).replace(hour=3, minute=26))

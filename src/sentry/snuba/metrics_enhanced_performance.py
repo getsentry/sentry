@@ -12,12 +12,12 @@ from sentry.snuba import discover
 from sentry.utils.snuba import SnubaTSResult
 
 
-def resolve_tags(results: Any, metrics_query: MetricsQueryBuilder) -> Any:
+def resolve_tags(results: Any, query_definition: MetricsQueryBuilder) -> Any:
     """Go through the results of a metrics query and reverse resolve its tags"""
     tags: List[str] = []
 
     with sentry_sdk.start_span(op="mep", description="resolve_tags"):
-        for column in metrics_query.columns:
+        for column in query_definition.columns:
             if (
                 isinstance(column, AliasedExpression)
                 and column.exp.subscriptable == "tags"

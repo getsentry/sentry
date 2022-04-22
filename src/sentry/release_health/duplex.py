@@ -619,7 +619,7 @@ def get_sessionsv2_schema(now: datetime, query: QueryDefinition) -> Mapping[str,
                 # timestamp 09:00 contains data for the range 09:00 - 10:00,
                 # And we want to still exclude that at 10:01
                 comparator if timestamp < max_timestamp else ComparatorType.Ignore
-                for timestamp in get_intervals(query)
+                for timestamp in get_intervals(query.start, query.end, query.rollup)
             ]
         )
         for field, comparator in schema_for_totals.items()

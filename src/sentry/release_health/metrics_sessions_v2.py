@@ -711,7 +711,7 @@ def run_sessions_query(
 
     data_points = _flatten_data(org_id, data)
 
-    intervals = list(get_intervals(query_clone))
+    intervals = list(get_intervals(query_clone.start, query_clone.end, query_clone.rollup))
     timestamp_index = {timestamp.isoformat(): index for index, timestamp in enumerate(intervals)}
 
     def default_for(field: SessionsQueryFunction) -> SessionsQueryValue:
