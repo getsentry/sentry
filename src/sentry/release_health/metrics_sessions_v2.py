@@ -17,12 +17,25 @@ from typing import (
     MutableMapping,
     Optional,
     Sequence,
+    Tuple,
     TypedDict,
     Union,
     cast,
 )
 
-from snuba_sdk import Condition, Direction, Granularity, Limit
+from snuba_sdk import (
+    And,
+    BooleanCondition,
+    Column,
+    Condition,
+    Direction,
+    Function,
+    Granularity,
+    Limit,
+    Op,
+    Or,
+)
+from snuba_sdk.conditions import ConditionGroup
 from snuba_sdk.legacy import json_to_snql
 
 from sentry.models.project import Project
@@ -69,6 +82,10 @@ class SessionStatus(Enum):
     CRASHED = "crashed"
     ERRORED = "errored"
     HEALTHY = "healthy"
+
+
+#: Used to filter results by session.status
+StatusFilter = Optional[FrozenSet[SessionStatus]]
 
 
 @dataclass(frozen=True)
@@ -120,7 +137,7 @@ class Field(ABC):
         self,
         name: str,
         raw_groupby: Sequence[str],
-        status_filter: Optional[FrozenSet[SessionStatus]],
+        status_filter: StatusFilter,
     ):
         self.name = name
         self._raw_groupby = raw_groupby
@@ -132,7 +149,7 @@ class Field(ABC):
 
     @abstractmethod
     def _get_metric_fields(
-        self, raw_groupby: Sequence[str], status_filter: Optional[FrozenSet[SessionStatus]]
+        self, raw_groupby: Sequence[str], status_filter: StatusFilter
     ) -> Sequence[MetricField]:
         ...
 
@@ -204,7 +221,7 @@ class CountField(Field):
         return self.status_to_metric_field[None]
 
     def _get_metric_fields(
-        self, raw_groupby: Sequence[str], status_filter: Optional[FrozenSet[SessionStatus]]
+        self, raw_groupby: Sequence[str], status_filter: StatusFilter
     ) -> Sequence[MetricField]:
         if status_filter:
             # Restrict fields to the included ones
@@ -260,6 +277,20 @@ class SessionsField(CountField):
 class UsersField(CountField):
     name = "count_unique(user)"
 
+    def __init__(
+        self,
+        name: str,
+        raw_groupby: Sequence[str],
+        status_filter: StatusFilter,
+    ):
+        # We cannot do set arithmetic outside of the metrics API:
+        if status_filter and len(status_filter) > 1 and "session.status" not in raw_groupby:
+            raise InvalidParams(
+                "Cannot filter count_unique by multiple session.status unless it is in groupBy"
+            )
+
+        super().__init__(name, raw_groupby, status_filter)
+
     session_status_fields = {
         SessionStatus.HEALTHY: MetricField(None, SessionMetricKey.HEALTHY_USER.value),
         SessionStatus.ABNORMAL: MetricField(None, SessionMetricKey.ABNORMAL_USER.value),
@@ -281,7 +312,7 @@ class DurationField(Field):
         return None
 
     def _get_metric_fields(
-        self, raw_groupby: Sequence[str], status_filter: Optional[FrozenSet[SessionStatus]]
+        self, raw_groupby: Sequence[str], status_filter: StatusFilter
     ) -> Sequence[MetricField]:
         if status_filter is None or SessionStatus.HEALTHY in status_filter:
             return [MetricField(self.op, SessionMetricKey.DURATION.value)]
@@ -321,6 +352,7 @@ def run_sessions_query(
     intervals = get_timestamps(query)
 
     where, status_filter = _get_filter_conditions(query.conditions)
+
     if status_filter == []:
         # There was a condition that cannot be met, such as 'session:status:foo'
         # no need to query metrics, just return empty groups.
@@ -404,12 +436,79 @@ def run_sessions_query(
     }
 
 
-def _get_filter_conditions(conditions: Sequence[Condition]) -> Any:
+def _get_filter_conditions(conditions: Any) -> ConditionGroup:
     """Translate given conditions to snql"""
     dummy_entity = EntityKey.MetricsSets.value
     return json_to_snql(
         {"selected_columns": ["value"], "conditions": conditions}, entity=dummy_entity
     ).where
+
+
+def _transform_conditions(
+    conditions: ConditionGroup,
+) -> Tuple[ConditionGroup, StatusFilter]:
+    """Split conditions into metrics conditions and a filter on session.status"""
+    if not conditions:
+        return conditions, None
+    if len(conditions) == 1:
+        where, status_filter = _transform_single_condition(conditions[0])
+    else:
+        where, status_filter = _transform_single_condition(And(conditions))
+    return [where], status_filter
+
+
+_ALL_STATUSES = frozenset(iter(SessionStatus))
+TRUE = Condition(Function("equals", [1, 1]), Op.EQ, True)
+
+
+def _transform_single_condition(
+    condition: Union[Condition, BooleanCondition]
+) -> Tuple[Union[Condition, BooleanCondition], StatusFilter]:
+    if isinstance(condition, And):
+        where, status_filters = zip(*map(_transform_single_condition, condition.conditions))
+        if len([f for f in status_filters if f is not None]) > 1:
+            raise InvalidParams("More than one session.status in AND condition")
+        return where, frozenset.intersection(*{f for f in status_filters if f is not None})
+
+    if isinstance(condition, Or):
+        where, status_filters = zip(*map(_transform_single_condition, condition.conditions))
+        if all(f is not None for f in status_filters):
+            # Union of status filters
+            return where, frozenset.union(*status_filters)
+        elif any(f is not None for f in status_filters):
+            # Some operands filter by status, some don't
+            # TODO: document Why
+            raise InvalidParams("Cannot mix session.status with other filters in OR")
+
+        # At this point, we don't have any status filters
+        return where, None
+
+    if isinstance(condition, Condition):
+        if condition.lhs == Column("session.status"):
+            if condition.op == Op.EQ:
+                return TRUE, _parse_session_status(condition.rhs)
+            if condition.op == Op.NEQ:
+                return TRUE, _ALL_STATUSES - _parse_session_status(condition.rhs)
+            if condition.op == Op.IN:
+                return TRUE, frozenset.union(
+                    *[_parse_session_status(status) for status in condition.rhs]
+                )
+            if condition.op == Op.NOT_IN:
+                return TRUE, _ALL_STATUSES - frozenset.union(
+                    *[_parse_session_status(status) for status in condition.rhs]
+                )
+            raise InvalidParams("Unable to resolve session.status filter")
+
+        return condition, None
+
+    return condition, None
+
+
+def _parse_session_status(status: Any) -> FrozenSet[SessionStatus]:
+    try:
+        return frozenset([SessionStatus(status)])
+    except ValueError:
+        return frozenset()
 
 
 def _parse_orderby(query: QueryDefinition) -> Optional[OrderBy]:

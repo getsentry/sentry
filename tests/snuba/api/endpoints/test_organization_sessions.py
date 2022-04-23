@@ -1072,6 +1072,7 @@ class OrganizationSessionsEndpointMetricsTest(
 
     @freeze_time(MOCK_DATETIME)
     def test_filter_by_session_status(self):
+        pass
         # TODO: test session.status:bogus
         # TODO: test !session.status:healthy
         # TODO: test session.status IN
