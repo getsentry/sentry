@@ -127,7 +127,7 @@ def _session_groupby_powerset() -> Iterable[str]:
                 Condition(Column("session.status"), Op.EQ, "bogus"),
             ],
             [Condition(Column("release"), Op.EQ, "foo")],
-            {},
+            frozenset(),
         ),
     ],
 )

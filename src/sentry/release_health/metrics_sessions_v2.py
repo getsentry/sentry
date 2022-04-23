@@ -29,7 +29,6 @@ from snuba_sdk import (
     Column,
     Condition,
     Direction,
-    Function,
     Granularity,
     Limit,
     Op,
@@ -458,20 +457,21 @@ def _transform_conditions(
 
 
 _ALL_STATUSES = frozenset(iter(SessionStatus))
-TRUE = Condition(Function("equals", [1, 1]), Op.EQ, True)
 
 
 def _transform_single_condition(
     condition: Union[Condition, BooleanCondition]
-) -> Tuple[Union[Condition, BooleanCondition], StatusFilter]:
+) -> Tuple[Optional[Union[Condition, BooleanCondition]], StatusFilter]:
     if isinstance(condition, And):
         where, status_filters = zip(*map(_transform_single_condition, condition.conditions))
+        where = make_boolean_op(And, where)
         if len([f for f in status_filters if f is not None]) > 1:
             raise InvalidParams("More than one session.status in AND condition")
         return where, frozenset.intersection(*{f for f in status_filters if f is not None})
 
     if isinstance(condition, Or):
         where, status_filters = zip(*map(_transform_single_condition, condition.conditions))
+        where = make_boolean_op(Or, where)
         if all(f is not None for f in status_filters):
             # Union of status filters
             return where, frozenset.union(*status_filters)
@@ -486,15 +486,15 @@ def _transform_single_condition(
     if isinstance(condition, Condition):
         if condition.lhs == Column("session.status"):
             if condition.op == Op.EQ:
-                return TRUE, _parse_session_status(condition.rhs)
+                return None, _parse_session_status(condition.rhs)
             if condition.op == Op.NEQ:
-                return TRUE, _ALL_STATUSES - _parse_session_status(condition.rhs)
+                return None, _ALL_STATUSES - _parse_session_status(condition.rhs)
             if condition.op == Op.IN:
-                return TRUE, frozenset.union(
+                return None, frozenset.union(
                     *[_parse_session_status(status) for status in condition.rhs]
                 )
             if condition.op == Op.NOT_IN:
-                return TRUE, _ALL_STATUSES - frozenset.union(
+                return None, _ALL_STATUSES - frozenset.union(
                     *[_parse_session_status(status) for status in condition.rhs]
                 )
             raise InvalidParams("Unable to resolve session.status filter")
@@ -502,6 +502,16 @@ def _transform_single_condition(
         return condition, None
 
     return condition, None
+
+
+def make_boolean_op(op: type, arguments: Sequence[Any]) -> Any:
+    arguments = [arg for arg in arguments if arg]
+    nargs = len(arguments)
+    if nargs == 0:
+        return None
+    if nargs == 1:
+        return arguments[0]
+    return op(arguments)
 
 
 def _parse_session_status(status: Any) -> FrozenSet[SessionStatus]:
