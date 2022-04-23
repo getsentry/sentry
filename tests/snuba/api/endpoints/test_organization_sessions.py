@@ -1029,7 +1029,6 @@ class OrganizationSessionsEndpointMetricsTest(
                 "series": {"sum(session)": [0, 2], "p95(session.duration)": [None, 79400.0]},
             },
         ]
-        print(response.data)
 
         # Not using `result_sorted` here, because we want to verify the order
         assert response.status_code == 200, response.data
@@ -1070,3 +1069,14 @@ class OrganizationSessionsEndpointMetricsTest(
                 ).status_code
                 == 200
             )
+
+    @freeze_time(MOCK_DATETIME)
+    def test_filter_by_session_status(self):
+        # TODO: test session.status:bogus
+        # TODO: test !session.status:healthy
+        # TODO: test session.status IN
+        # TODO: test session.status:healthy AND release:foo
+        # TODO: test session.status:healthy OR release:foo
+
+        # TODO: filter user by two session statuses, w/o group by
+        # TODO: test p95(duration) WHERE session.status:errored -> empty fields, handle correctly
