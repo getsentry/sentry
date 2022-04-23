@@ -16,6 +16,7 @@ import FallingError from 'sentry/views/onboarding/components/fallingError';
 import WelcomeBackground from 'sentry/views/onboarding/components/welcomeBackground';
 
 import {StepProps} from './types';
+import {usePersistedOnboardingState} from './utils';
 
 const fadeAway: MotionProps = {
   variants: {
@@ -48,6 +49,7 @@ function InnerAction({title, subText, cta, src}: TextWrapperProps) {
 
 function TargetedOnboardingWelcome({organization, ...props}: StepProps) {
   const source = 'targeted_onboarding';
+  const [clientState, setClientState] = usePersistedOnboardingState();
   React.useEffect(() => {
     trackAdvancedAnalyticsEvent('growth.onboarding_start_onboarding', {
       organization,
@@ -60,6 +62,13 @@ function TargetedOnboardingWelcome({organization, ...props}: StepProps) {
       organization,
       source,
     });
+    if (clientState) {
+      setClientState({
+        ...clientState,
+        url: 'welcome/',
+        state: 'started',
+      });
+    }
 
     props.onComplete();
   };

@@ -8,24 +8,7 @@ from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.utils import json, redis
-
-STATE_CATEGORIES = {
-    "onboarding": {
-        "ttl": 30 * 24 * 60 * 60,  # the time in seconds that the state will be persisted
-        "scope": "org",  # Can be "org" or "member"
-        "max_payload_size": 1024,
-    }
-}
-
-
-def get_client_state_key(organization, category, user):
-    if category not in STATE_CATEGORIES:
-        raise NotFound(detail="Category not found")
-    scope = STATE_CATEGORIES[category]["scope"]
-    if scope == "member":
-        return f"client-state:{category}:{organization}:{user.id}"
-    elif scope == "org":
-        return f"client-state:{category}:{organization}"
+from sentry.utils.client_state import STATE_CATEGORIES, get_client_state_key, get_redis_client
 
 
 class ClientStateListEndpoint(OrganizationEndpoint):
@@ -50,12 +33,13 @@ class ClientStateEndpoint(OrganizationEndpoint):
     private = True
 
     def __init__(self, **options) -> None:
-        cluster_key = getattr(settings, "SENTRY_CLIENT_STATE_REDIS_CLUSTER", "default")
-        self.client = redis.redis_clusters.get(cluster_key)
+        self.client = get_redis_client()
         super().__init__(**options)
 
     def get(self, request: Request, organization, category) -> Response:
         key = get_client_state_key(organization.slug, category, request.user)
+        if not key:
+            raise NotFound(detail="Category not found")
         value = self.client.get(key)
         if value:
             response = HttpResponse(value)
@@ -66,6 +50,8 @@ class ClientStateEndpoint(OrganizationEndpoint):
 
     def put(self, request: Request, organization, category):
         key = get_client_state_key(organization.slug, category, request.user)
+        if not key:
+            raise NotFound(detail="Category not found")
         data_to_write = json.dumps(request.data)
         if len(data_to_write) > STATE_CATEGORIES[category]["max_payload_size"]:
             return Response(status=413)
@@ -74,5 +60,7 @@ class ClientStateEndpoint(OrganizationEndpoint):
 
     def delete(self, request: Request, organization, category):
         key = get_client_state_key(organization.slug, category, request.user)
+        if not key:
+            raise NotFound(detail="Category not found")
         self.client.delete(key)
         return Response(status=204)
