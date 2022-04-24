@@ -1072,12 +1072,53 @@ class OrganizationSessionsEndpointMetricsTest(
 
     @freeze_time(MOCK_DATETIME)
     def test_filter_by_session_status(self):
-        pass
-        # TODO: test session.status:bogus
-        # TODO: test !session.status:healthy
-        # TODO: test session.status IN
-        # TODO: test session.status:healthy AND release:foo
-        # TODO: test session.status:healthy OR release:foo
+        default_request = {
+            "project": [-1],
+            "statsPeriod": "1d",
+            "interval": "1d",
+        }
+
+        def req(**kwargs):
+            return self.do_request(dict(default_request, **kwargs))
+
+        response = req(field=["sum(session)"], query="session.status:bogus")
+        print("---", response.status_code, response.data)
+
+        # assert response.status_code == 200, response.content
+        # assert result_sorted(response.data)["groups"] == [
+        #     {"by": {}, "series": {"sum(session)": [1]}, "totals": {"sum(session)": 1}}
+        # ]
+        response = req(field=["sum(session)"], query="session.status:bogus")
+        print("---", response.status_code, response.data)
+
+        response = req(field=["sum(session)"], query="!session.status:healthy")
+        print("---", response.status_code, response.data)
+
+        # sum(session) filtered by multiple statuses adds them
+        response = req(field=["sum(session)"], query="session.status IN ['healthy', 'errored']")
+        print("---", response.status_code, response.data)
+
+        response = req(
+            field=["sum(session)"],
+            query="session.status IN ['healthy', 'errored']",
+            groupBy="session.status",
+        )
+        print("---", response.status_code, response.data)
+
+        response = req(field=["sum(session)"], query="session.status:healthy release:foo")
+        print("---", response.status_code, response.data)
+
+        response = req(field=["sum(session)"], query="session.status:healthy OR release:foo")
+        print("---", response.status_code, response.data)
+
+        # count_unique(user) does not work with multiple session statuses selected
+        response = req(
+            field=["count_unique(user)"], query="session.status IN ['healthy', 'errored']"
+        )
+        print("---", response.status_code, response.data)
+
+        response = req(field=["p95(session.duration)"], query="session.status:abnormal")
+        print("---", response.status_code, response.data)
 
         # TODO: filter user by two session statuses, w/o group by
         # TODO: test p95(duration) WHERE session.status:errored -> empty fields, handle correctly

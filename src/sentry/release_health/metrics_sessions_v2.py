@@ -18,6 +18,7 @@ from typing import (
     Optional,
     Sequence,
     Tuple,
+    Type,
     TypedDict,
     Union,
     cast,
@@ -255,7 +256,7 @@ class CountField(Field):
 class SessionsField(CountField):
     name = "sum(session)"
 
-    session_status_fields = {
+    status_to_metric_field = {
         SessionStatus.HEALTHY: MetricField(None, SessionMetricKey.HEALTHY.value),
         SessionStatus.ABNORMAL: MetricField(None, SessionMetricKey.ABNORMAL.value),
         SessionStatus.CRASHED: MetricField(None, SessionMetricKey.CRASHED.value),
@@ -290,7 +291,7 @@ class UsersField(CountField):
 
         super().__init__(name, raw_groupby, status_filter)
 
-    session_status_fields = {
+    status_to_metric_field = {
         SessionStatus.HEALTHY: MetricField(None, SessionMetricKey.HEALTHY_USER.value),
         SessionStatus.ABNORMAL: MetricField(None, SessionMetricKey.ABNORMAL_USER.value),
         SessionStatus.CRASHED: MetricField(None, SessionMetricKey.CRASHED_USER.value),
@@ -300,9 +301,9 @@ class UsersField(CountField):
 
 
 class DurationField(Field):
-    def __init__(self, name: SessionsQueryFunction):
-        self.name = name
+    def __init__(self, name: str, raw_groupby: Sequence[str], status_filter: StatusFilter):
         self.op = name[:3]  # That this works is just a lucky coincidence
+        super().__init__(name, raw_groupby, status_filter)
 
     def _get_session_status(self, metric_field: MetricField) -> Optional[SessionStatus]:
         assert metric_field == MetricField(self.op, SessionMetricKey.DURATION.value)
@@ -325,7 +326,7 @@ class DurationField(Field):
         return value
 
 
-COLUMN_MAP = {
+FIELD_MAP: Mapping[SessionsQueryFunction, Type[Field]] = {
     "sum(session)": SessionsField,
     "count_unique(user)": UsersField,
     "avg(session.duration)": DurationField,
@@ -350,7 +351,8 @@ def run_sessions_query(
 
     intervals = get_timestamps(query)
 
-    where, status_filter = _get_filter_conditions(query.conditions)
+    conditions = _get_filter_conditions(query.conditions)
+    where, status_filter = _transform_conditions(conditions)
 
     if status_filter == []:
         # There was a condition that cannot be met, such as 'session:status:foo'
@@ -363,21 +365,21 @@ def run_sessions_query(
             "query": query.query,
         }
 
-    fields = [
-        COLUMN_MAP[field_name](field_name, query.raw_groupby, status_filter)
+    fields = {
+        field_name: FIELD_MAP[field_name](field_name, query.raw_groupby, status_filter)
         for field_name in query.raw_fields
-    ]
+    }
 
     filter_keys = query.filter_keys.copy()
     project_ids = filter_keys.pop("project_id")
     assert not filter_keys
 
-    orderby = _parse_orderby(query)
+    orderby = _parse_orderby(query, fields)
     if orderby is None:
         # We only return the top-N groups, based on the first field that is being
         # queried, assuming that those are the most relevant to the user.
         # In a future iteration we might expose an `orderBy` query parameter.
-        primary_metric_field = _get_primary_field(fields, query.raw_groupby)
+        primary_metric_field = _get_primary_field(fields.values(), query.raw_groupby)
         orderby = OrderBy(primary_metric_field, Direction.DESC)
 
     max_groups = SNUBA_LIMIT // len(intervals)
@@ -385,18 +387,12 @@ def run_sessions_query(
     metrics_query = MetricsQuery(
         org_id,
         project_ids,
-        list(
-            {
-                column
-                for field in fields
-                for column in field.get_metric_fields(query.raw_groupby, status_filter)
-            }
-        ),
+        list({column for field in fields.values() for column in field.metric_fields}),
         query.start,
         query.end,
         Granularity(query.rollup),
         where=where,
-        groupby=list({column for field in fields for column in field.get_groupby()}),
+        groupby=list({column for field in fields.values() for column in field.get_groupby()}),
         orderby=orderby,
         limit=Limit(max_groups),
     )
@@ -419,7 +415,7 @@ def run_sessions_query(
         }
     )
 
-    for field in fields:
+    for field in fields.values():
         field.extract_values(input_groups, output_groups)
 
     return {
@@ -521,7 +517,9 @@ def _parse_session_status(status: Any) -> FrozenSet[SessionStatus]:
         return frozenset()
 
 
-def _parse_orderby(query: QueryDefinition) -> Optional[OrderBy]:
+def _parse_orderby(
+    query: QueryDefinition, fields: Mapping[SessionsQueryFunction, Field]
+) -> Optional[OrderBy]:
     orderby = query.raw_orderby
     if orderby is None:
         return None
@@ -537,7 +535,7 @@ def _parse_orderby(query: QueryDefinition) -> Optional[OrderBy]:
     assert query.raw_fields
     if orderby not in query.raw_fields:
         raise InvalidParams("'orderBy' must be one of the provided 'fields'")
-    field = COLUMN_MAP[orderby](query)
+    field = fields[orderby]
 
     # Because we excluded groupBy session status, we should have a one-to-one mapping now
     assert len(field.metric_fields) == 1
