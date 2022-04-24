@@ -30,6 +30,7 @@ from snuba_sdk import (
     Column,
     Condition,
     Direction,
+    Function,
     Granularity,
     Limit,
     Op,
@@ -369,7 +370,10 @@ def run_sessions_query(
         for field_name in query.raw_fields
     }
 
-    if fields == []:
+    # Remove fields that do not query anything:
+    fields = {field_name: field for field_name, field in fields.items() if field.metric_fields}
+
+    if not fields:
         return _empty_result(query)
 
     filter_keys = query.filter_keys.copy()
@@ -463,7 +467,9 @@ def _transform_conditions(
         where, status_filter = _transform_single_condition(conditions[0])
     else:
         where, status_filter = _transform_single_condition(And(conditions))
-    return [where], status_filter
+    if where is not None:
+        where = [where]
+    return where, status_filter
 
 
 _ALL_STATUSES = frozenset(iter(SessionStatus))
