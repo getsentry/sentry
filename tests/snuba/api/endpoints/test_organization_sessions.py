@@ -1081,44 +1081,88 @@ class OrganizationSessionsEndpointMetricsTest(
         def req(**kwargs):
             return self.do_request(dict(default_request, **kwargs))
 
-        response = req(field=["sum(session)"], query="session.status:bogus")
-        print("---", response.status_code, response.data)
+        # response = req(field=["sum(session)"], query="session.status:bogus")
+        # assert response.status_code == 200, response.content
+        # assert result_sorted(response.data)["groups"] == []
 
+        # # expected = {
+        # #     "groups": [
+        # #         {
+        # #             "by": {"session.status": "abnormal"},
+        # #             "totals": {"sum(session)": 0},
+        # #             "series": {"sum(session)": [0]},
+        # #         },
+        # #         {
+        # #             "by": {"session.status": "crashed"},
+        # #             "totals": {"sum(session)": 1},
+        # #             "series": {"sum(session)": [1]},
+        # #         },
+        # #         {
+        # #             "by": {"session.status": "errored"},
+        # #             "totals": {"sum(session)": 2},
+        # #             "series": {"sum(session)": [2]},
+        # #         },
+        # #         {
+        # #             "by": {"session.status": "healthy"},
+        # #             "totals": {"sum(session)": 6},
+        # #             "series": {"sum(session)": [6]},
+        # #         },
+        # #     ],
+        # #     "start": "2022-04-23T00:00:00Z",
+        # #     "end": "2022-04-23T12:28:00Z",
+        # #     "intervals": ["2022-04-23T00:00:00Z"],
+        # #     "query": "",
+        # # }
+
+        # response = req(field=["sum(session)"], query="!session.status:healthy")
+        # assert response.status_code == 200, response.content
+        # assert result_sorted(response.data)["groups"] == [
+        #     {"by": {}, "series": {"sum(session)": [3]}, "totals": {"sum(session)": 3}}
+        # ]
+
+        # # sum(session) filtered by multiple statuses adds them
+        # response = req(field=["sum(session)"], query="session.status:[healthy, errored]")
+        # assert response.status_code == 200, response.content
+        # assert result_sorted(response.data)["groups"] == [
+        #     {"by": {}, "series": {"sum(session)": [8]}, "totals": {"sum(session)": 8}}
+        # ]
+
+        # response = req(
+        #     field=["sum(session)"],
+        #     query="session.status:[healthy, errored]",
+        #     groupBy="session.status",
+        # )
+        # assert response.status_code == 200, response.content
+        # assert result_sorted(response.data)["groups"] == [
+        #     {
+        #         "by": {"session.status": "errored"},
+        #         "totals": {"sum(session)": 2},
+        #         "series": {"sum(session)": [2]},
+        #     },
+        #     {
+        #         "by": {"session.status": "healthy"},
+        #         "totals": {"sum(session)": 6},
+        #         "series": {"sum(session)": [6]},
+        #     },
+        # ]
+
+        # response = req(field=["sum(session)"], query="session.status:healthy release:foo@1.1.0")
         # assert response.status_code == 200, response.content
         # assert result_sorted(response.data)["groups"] == [
         #     {"by": {}, "series": {"sum(session)": [1]}, "totals": {"sum(session)": 1}}
         # ]
-        response = req(field=["sum(session)"], query="session.status:bogus")
-        print("---", response.status_code, response.data)
 
-        response = req(field=["sum(session)"], query="!session.status:healthy")
-        print("---", response.status_code, response.data)
-
-        # sum(session) filtered by multiple statuses adds them
-        response = req(field=["sum(session)"], query="session.status IN ['healthy', 'errored']")
-        print("---", response.status_code, response.data)
-
-        response = req(
-            field=["sum(session)"],
-            query="session.status IN ['healthy', 'errored']",
-            groupBy="session.status",
-        )
-        print("---", response.status_code, response.data)
-
-        response = req(field=["sum(session)"], query="session.status:healthy release:foo")
-        print("---", response.status_code, response.data)
-
-        response = req(field=["sum(session)"], query="session.status:healthy OR release:foo")
-        print("---", response.status_code, response.data)
+        response = req(field=["sum(session)"], query="session.status:healthy OR release:foo@1.1.0")
+        assert response.status_code == 400, response.data
+        assert response.data == {"detail": "Cannot mix session.status with other filters in OR"}
 
         # count_unique(user) does not work with multiple session statuses selected
-        response = req(
-            field=["count_unique(user)"], query="session.status IN ['healthy', 'errored']"
-        )
-        print("---", response.status_code, response.data)
+        response = req(field=["count_unique(user)"], query="session.status:[healthy, errored]")
+        assert response.status_code == 400, response.data
+        assert response.data == {
+            "detail": "Cannot filter count_unique by multiple session.status unless it is in groupBy"
+        }
 
         response = req(field=["p95(session.duration)"], query="session.status:abnormal")
-        print("---", response.status_code, response.data)
-
-        # TODO: filter user by two session statuses, w/o group by
-        # TODO: test p95(duration) WHERE session.status:errored -> empty fields, handle correctly
+        assert response.status_code == 200, response.content
+        assert result_sorted(response.data)["groups"] == []

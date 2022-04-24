@@ -44,7 +44,12 @@ class OrganizationSessionsEndpoint(OrganizationEventsEndpointBase):
         else:
             allowed_resolution = AllowedResolution.one_hour
 
-        return QueryDefinition(query_params, params, allowed_resolution=allowed_resolution)
+        return QueryDefinition(
+            query_params,
+            params,
+            allowed_resolution=allowed_resolution,
+            restrict_columns=not release_health.is_metrics_based(),
+        )
 
     @contextmanager
     def handle_query_errors(self):

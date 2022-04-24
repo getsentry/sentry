@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import pytz
 
+from sentry import release_health
 from sentry.api.utils import get_date_range_from_params
 from sentry.search.events.filter import get_filter
 from sentry.utils.dates import parse_stats_period, to_datetime, to_timestamp
@@ -253,7 +254,9 @@ class QueryDefinition:
     `fields` and `groupby` definitions as [`ColumnDefinition`] objects.
     """
 
-    def __init__(self, query, params, allowed_resolution: AllowedResolution):
+    def __init__(
+        self, query, params, allowed_resolution: AllowedResolution, restrict_columns: bool = True
+    ):
         self.query = query.get("query", "")
         self.raw_fields = raw_fields = query.getlist("field", [])
         self.raw_groupby = raw_groupby = query.getlist("groupBy", [])
@@ -303,7 +306,12 @@ class QueryDefinition:
 
         # this makes sure that literals in complex queries are properly quoted,
         # and unknown fields are raised as errors
-        conditions = [resolve_condition(c, resolve_column) for c in snuba_filter.conditions]
+        if restrict_columns:
+            column_resolver = resolve_column
+        else:
+            column_resolver = lambda col: col  # Metrics can handle it
+
+        conditions = [resolve_condition(c, column_resolver) for c in snuba_filter.conditions]
         filter_keys = {
             resolve_filter_key(key): value for key, value in snuba_filter.filter_keys.items()
         }

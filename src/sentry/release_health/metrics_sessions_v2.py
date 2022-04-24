@@ -141,6 +141,7 @@ class Field(ABC):
     ):
         self.name = name
         self._raw_groupby = raw_groupby
+        self._status_filter = status_filter
         self.metric_fields = self._get_metric_fields(raw_groupby, status_filter)
 
     @abstractmethod
@@ -171,7 +172,7 @@ class Field(ABC):
                 else metric_field.metric_name
             )
             for input_group_key, group in input_groups.items():
-                if session_status:
+                if session_status and not self._status_filter:
                     self.ensure_status_groups(input_group_key, output_groups)
                 group_key = replace(input_group_key, session_status=session_status)
                 for subgroup in ("totals", "series"):
@@ -242,8 +243,10 @@ class CountField(Field):
         return [self.get_all_field()]
 
     def _get_session_status(self, metric_field: MetricField) -> Optional[SessionStatus]:
-        reverse_lookup = {v: k for k, v in self.status_to_metric_field.items()}
-        return reverse_lookup[metric_field]
+        if "session.status" in self._raw_groupby:
+            reverse_lookup = {v: k for k, v in self.status_to_metric_field.items()}
+            return reverse_lookup[metric_field]
+        return None
 
     def normalize(self, value: Scalar) -> Scalar:
         value = super().normalize(value)
@@ -352,23 +355,22 @@ def run_sessions_query(
     intervals = get_timestamps(query)
 
     conditions = _get_filter_conditions(query.conditions)
+    print(conditions)
     where, status_filter = _transform_conditions(conditions)
-
-    if status_filter == []:
+    print("--", query.query)
+    print("--", where, status_filter)
+    if status_filter == frozenset():
         # There was a condition that cannot be met, such as 'session:status:foo'
         # no need to query metrics, just return empty groups.
-        return {
-            "groups": [],
-            "start": isoformat_z(intervals[0]),
-            "end": isoformat_z(intervals[-1]),
-            "intervals": [isoformat_z(ts) for ts in intervals],
-            "query": query.query,
-        }
+        return _empty_result(query)
 
     fields = {
         field_name: FIELD_MAP[field_name](field_name, query.raw_groupby, status_filter)
         for field_name in query.raw_fields
     }
+
+    if fields == []:
+        return _empty_result(query)
 
     filter_keys = query.filter_keys.copy()
     project_ids = filter_keys.pop("project_id")
@@ -396,6 +398,7 @@ def run_sessions_query(
         orderby=orderby,
         limit=Limit(max_groups),
     )
+    print(metrics_query)
 
     # TODO: Stop passing project IDs everywhere
     projects = Project.objects.get_many_from_cache(project_ids)
@@ -428,6 +431,17 @@ def run_sessions_query(
         "end": isoformat_z(metrics_results["end"]),
         "intervals": [isoformat_z(ts) for ts in metrics_results["intervals"]],
         "query": metrics_results.get("query", ""),
+    }
+
+
+def _empty_result(query: QueryDefinition) -> SessionsQueryResult:
+    intervals = get_timestamps(query)
+    return {
+        "groups": [],
+        "start": intervals[0],
+        "end": intervals[-1],
+        "intervals": intervals,
+        "query": query.query,
     }
 
 
@@ -480,6 +494,10 @@ def _transform_single_condition(
         return where, None
 
     if isinstance(condition, Condition):
+        if condition.lhs == Function("ifNull", parameters=[Column("session.status"), ""]):
+            # HACK: metrics tags are never null. We should really
+            # write our own parser for this.
+            condition = replace(condition, lhs=Column("session.status"))
         if condition.lhs == Column("session.status"):
             if condition.op == Op.EQ:
                 return None, _parse_session_status(condition.rhs)
