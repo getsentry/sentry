@@ -65,9 +65,9 @@ export function FeedbackModal({Header, Body, Footer, closeModal, feedbackTypes}:
       },
       extra: {
         url: location.pathname,
-        orgFeatures: organization?.features,
-        orgAccess: organization?.access,
-        projectFeatures: project?.features,
+        orgFeatures: organization?.features ?? [],
+        orgAccess: organization?.access ?? [],
+        projectFeatures: project?.features ?? [],
       },
       message: additionalInfo?.trim()
         ? `${feedbackTypes[subject]} - ${additionalInfo}`
