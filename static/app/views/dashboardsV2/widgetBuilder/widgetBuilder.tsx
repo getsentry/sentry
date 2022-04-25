@@ -74,6 +74,7 @@ import {Header} from './header';
 import {
   DataSet,
   DEFAULT_RESULTS_LIMIT,
+  getIsTimeseriesChart,
   getParsedDefaultWidgetQuery,
   getResultsLimit,
   mapErrors,
@@ -338,11 +339,7 @@ function WidgetBuilder({
     query: isEmpty(queryParamsWithoutSource) ? undefined : queryParamsWithoutSource,
   };
 
-  const isTimeseriesChart = [
-    DisplayType.LINE,
-    DisplayType.BAR,
-    DisplayType.AREA,
-  ].includes(state.displayType);
+  const isTimeseriesChart = getIsTimeseriesChart(state.displayType);
 
   const isTabularChart = [DisplayType.TABLE, DisplayType.TOP_N].includes(
     state.displayType
@@ -361,10 +358,6 @@ function WidgetBuilder({
       if (newDisplayType === DisplayType.TOP_N) {
         // TOP N display should only allow a single query
         normalized.splice(1);
-      }
-
-      if (widgetBuilderNewDesign && !isTabularChart && !isTimeseriesChart) {
-        newState.limit = undefined;
       }
 
       if (
@@ -434,6 +427,21 @@ function WidgetBuilder({
       }
 
       set(newState, 'queries', normalized);
+
+      if (widgetBuilderNewDesign) {
+        if (getIsTimeseriesChart(newDisplayType) && normalized[0].columns.length) {
+          // If a limit already exists (i.e. going between timeseries) then keep it,
+          // otherwise calculate a limit
+          newState.limit =
+            prevState.limit ??
+            Math.min(
+              getResultsLimit(normalized.length, normalized[0].columns.length),
+              DEFAULT_RESULTS_LIMIT
+            );
+        } else {
+          newState.limit = undefined;
+        }
+      }
 
       return {...newState, errors: undefined};
     });
@@ -509,6 +517,7 @@ function WidgetBuilder({
       query.fields = prevState.queries[0].fields;
       query.aggregates = prevState.queries[0].aggregates;
       query.columns = prevState.queries[0].columns;
+      query.orderby = prevState.queries[0].orderby;
       newState.queries.push(query);
       return newState;
     });
@@ -890,16 +899,6 @@ function WidgetBuilder({
     return false;
   }
 
-  if (isEditing && !isValidWidgetIndex) {
-    return (
-      <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
-        <PageContent>
-          <LoadingError message={t('The widget you want to edit was not found.')} />
-        </PageContent>
-      </SentryDocumentTitle>
-    );
-  }
-
   const canAddSearchConditions =
     [DisplayType.LINE, DisplayType.AREA, DisplayType.BAR].includes(state.displayType) &&
     state.queries.length < 3;
@@ -929,6 +928,16 @@ function WidgetBuilder({
   const explodedFields = defined(fields)
     ? fields.map((field, index) => explodeField({field, alias: fieldAliases[index]}))
     : [...explodedColumns, ...explodedAggregates];
+
+  if (isEditing && !isValidWidgetIndex) {
+    return (
+      <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
+        <PageContent>
+          <LoadingError message={t('The widget you want to edit was not found.')} />
+        </PageContent>
+      </SentryDocumentTitle>
+    );
+  }
 
   return (
     <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>

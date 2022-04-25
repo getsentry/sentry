@@ -54,6 +54,8 @@ export type AddToDashboardModalProps = {
 
 type Props = ModalRenderProps & AddToDashboardModalProps;
 
+const SELECT_DASHBOARD_MESSAGE = t('Select a dashboard');
+
 function AddToDashboardModal({
   Header,
   Body,
@@ -87,7 +89,7 @@ function AddToDashboardModal({
   }
 
   async function handleAddAndStayInDiscover() {
-    if (selectedDashboardId === null) {
+    if (selectedDashboardId === null || selectedDashboardId === NEW_DASHBOARD_ID) {
       return;
     }
 
@@ -170,6 +172,7 @@ function AddToDashboardModal({
           widgetLimitReached={false}
           selection={selection}
           widget={widget}
+          showStoredAlert
         />
       </Body>
 
@@ -177,8 +180,8 @@ function AddToDashboardModal({
         <StyledButtonBar gap={1.5}>
           <Button
             onClick={handleAddAndStayInDiscover}
-            disabled={!canSubmit}
-            title={canSubmit ? undefined : t('Select a dashboard')}
+            disabled={!canSubmit || selectedDashboardId === NEW_DASHBOARD_ID}
+            title={canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}
           >
             {t('Add + Stay in Discover')}
           </Button>
@@ -186,7 +189,7 @@ function AddToDashboardModal({
             priority="primary"
             onClick={handleGoToBuilder}
             disabled={!canSubmit}
-            title={canSubmit ? undefined : t('Select a dashboard')}
+            title={canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}
           >
             {t('Open in Widget Builder')}
           </Button>

@@ -105,7 +105,7 @@ describe('Events > SearchBar', function () {
 
     expect(wrapper.find('SearchDropdown').prop('searchSubstring')).toEqual('release.');
     expect(wrapper.find('SearchDropdown Description').first().text()).toEqual(
-      'release.version:'
+      'release.build:'
     );
   });
 
