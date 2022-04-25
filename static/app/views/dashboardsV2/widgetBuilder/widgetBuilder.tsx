@@ -429,13 +429,15 @@ function WidgetBuilder({
       set(newState, 'queries', normalized);
 
       if (widgetBuilderNewDesign) {
-        // When changing to a timeseries chart with a grouping, assign a limit
-        // to avoid excessive series in the tooltip
         if (getIsTimeseriesChart(newDisplayType) && normalized[0].columns.length) {
-          newState.limit = Math.min(
-            getResultsLimit(normalized.length, normalized[0].columns.length),
-            DEFAULT_RESULTS_LIMIT
-          );
+          // If a limit already exists (i.e. going between timeseries) then keep it,
+          // otherwise calculate a limit
+          newState.limit =
+            prevState.limit ??
+            Math.min(
+              getResultsLimit(normalized.length, normalized[0].columns.length),
+              DEFAULT_RESULTS_LIMIT
+            );
         } else {
           newState.limit = undefined;
         }
