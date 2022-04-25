@@ -10,6 +10,8 @@ const OrganizationGroupEvents = GroupEvents;
 describe('groupEvents', function () {
   let request;
 
+  const organization = TestStubs.Organization();
+
   beforeEach(function () {
     request = MockApiClient.addMockResponse({
       url: '/issues/1/events/',
@@ -52,6 +54,7 @@ describe('groupEvents', function () {
   it('renders', function () {
     const component = mountWithTheme(
       <OrganizationGroupEvents
+        organization={organization}
         api={new MockApiClient()}
         group={TestStubs.Group()}
         params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
@@ -65,6 +68,7 @@ describe('groupEvents', function () {
   it('handles search', function () {
     const component = shallow(
       <OrganizationGroupEvents
+        organization={organization}
         api={new MockApiClient()}
         params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
         group={TestStubs.Group()}
@@ -97,6 +101,7 @@ describe('groupEvents', function () {
   it('handles environment filtering', function () {
     shallow(
       <OrganizationGroupEvents
+        organization={organization}
         api={new MockApiClient()}
         params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
         group={TestStubs.Group()}
