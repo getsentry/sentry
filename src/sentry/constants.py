@@ -256,7 +256,7 @@ TICKET_ACTIONS = frozenset(
     ]
 )
 
-SCHEMA_FORM_ACTIONS = frozenset(
+SENTRY_APP_ACTIONS = frozenset(
     ["sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction"]
 )
 

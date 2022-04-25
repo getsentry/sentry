@@ -3,7 +3,7 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.constants import MIGRATED_CONDITIONS, SCHEMA_FORM_ACTIONS, TICKET_ACTIONS
+from sentry.constants import MIGRATED_CONDITIONS, SENTRY_APP_ACTIONS, TICKET_ACTIONS
 from sentry.rules import rules
 
 
@@ -32,7 +32,7 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
             if not can_create_tickets and node.id in TICKET_ACTIONS:
                 continue
 
-            if node.id in SCHEMA_FORM_ACTIONS:
+            if node.id in SENTRY_APP_ACTIONS:
                 custom_actions = node.get_custom_actions(project)
                 if custom_actions:
                     action_list.extend(custom_actions)
