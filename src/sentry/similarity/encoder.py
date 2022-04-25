@@ -5,7 +5,7 @@ from sentry.utils.compat import map
 
 class Encoder:
     try:
-        number_types = (int, long, float)  # noqa
+        number_types = (int, long, float)
     except NameError:
         number_types = (int, float)
 

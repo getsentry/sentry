@@ -19,7 +19,7 @@ from typing import (
 )
 
 from django.db.models import Q
-from parsimonious.exceptions import ParseError  # noqa
+from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar, NodeVisitor
 from parsimonious.nodes import Node
 from rest_framework.serializers import ValidationError

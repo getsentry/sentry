@@ -11,7 +11,7 @@ __all__ = (
     "RateLimiter",
 )
 
-from .base import RateLimiter  # NOQA
+from .base import RateLimiter
 
 backend = LazyServiceWrapper(
     RateLimiter, settings.SENTRY_RATELIMITER, settings.SENTRY_RATELIMITER_OPTIONS

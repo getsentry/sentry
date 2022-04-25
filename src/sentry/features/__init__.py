@@ -117,7 +117,7 @@ default_manager.add("organizations:release-health-check-metrics", OrganizationFe
 default_manager.add("organizations:release-health-check-metrics-report", OrganizationFeature, True)
 default_manager.add("organizations:release-health-return-metrics", OrganizationFeature, True)
 default_manager.add("organizations:reprocessing-v2", OrganizationFeature)
-default_manager.add("organizations:required-email-verification", OrganizationFeature, True)  # NOQA
+default_manager.add("organizations:required-email-verification", OrganizationFeature, True)
 default_manager.add("organizations:rule-page", OrganizationFeature)
 default_manager.add("organizations:selection-filters-v2", OrganizationFeature, True)
 default_manager.add("organizations:session-replay", OrganizationFeature, True)

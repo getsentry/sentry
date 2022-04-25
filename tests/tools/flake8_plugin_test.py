@@ -4,9 +4,8 @@ from tools.flake8_plugin import S001, S002, SentryCheck
 
 
 def _run(src):
-    lines = src.splitlines(True)
     tree = ast.parse(src)
-    return list(SentryCheck(filename="example.py", tree=tree, lines=lines).run())
+    return list(SentryCheck(tree=tree).run())
 
 
 def _errors(*errors):

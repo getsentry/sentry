@@ -34,7 +34,7 @@ def encrypt_object(obj: IntoJsonObject, key: str) -> str:
     key = key.encode("utf-8")
     try:
         f = Fernet(key)
-    except Exception as e:  # NOQA
+    except Exception as e:
         raise ValueError("Invalid encryption key") from e
     json_str = json.dumps(obj)
     json_bytes = json_str.encode("utf-8")
@@ -52,7 +52,7 @@ def decrypt_object(encrypted: str, key: str) -> IntoJsonObject:
     key = key.encode("utf-8")
     try:
         f = Fernet(key)
-    except Exception as e:  # NOQA
+    except Exception as e:
         raise ValueError("Invalid encryption Key") from e
     encrypted = encrypted.encode("utf-8")
     decrypted_bytes = f.decrypt(encrypted)

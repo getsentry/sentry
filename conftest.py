@@ -82,7 +82,7 @@ def pytest_runtest_makereport(item, call):
         except AttributeError:
             pass
 
-        print(_error_workflow_command(filesystempath, lineno, longrepr))  # noqa: B314
+        print(_error_workflow_command(filesystempath, lineno, longrepr))  # noqa: S002
 
 
 def _error_workflow_command(filesystempath, lineno, longrepr):

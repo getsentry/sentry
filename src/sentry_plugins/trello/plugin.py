@@ -11,7 +11,7 @@ from sentry_plugins.base import CorePluginMixin
 
 from .client import TrelloApiClient
 
-SETUP_URL = "https://github.com/getsentry/sentry/blob/master/src/sentry_plugins/trello/Trello_Instructions.md"  # NOQA
+SETUP_URL = "https://github.com/getsentry/sentry/blob/master/src/sentry_plugins/trello/Trello_Instructions.md"
 
 LABLEX_REGEX = re.compile(r"\w+/https://trello\.com/")
 
