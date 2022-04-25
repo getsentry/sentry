@@ -1,5 +1,6 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
 import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
@@ -85,6 +86,7 @@ function FlamegraphView(props: FlamegraphViewProps): React.ReactElement {
         <Layout.Header>
           <Layout.HeaderContent>
             <Breadcrumb
+              location={props.location}
               organization={organization}
               trails={[
                 {type: 'profiling'},

@@ -1,12 +1,13 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
 import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {
-  generateFlamegraphRoute,
-  generateProfilingRoute,
+  flamegraphRouteWithQuery,
+  profilingRouteWithQuery,
 } from 'sentry/views/profiling/routes';
 
 type ProfilingTrail = {
@@ -25,31 +26,44 @@ type FlamegraphTrail = {
 type Trail = ProfilingTrail | FlamegraphTrail;
 
 interface BreadcrumbProps {
+  location: Location;
   organization: Organization;
   trails: Trail[];
 }
 
-function Breadcrumb({organization, trails}: BreadcrumbProps) {
+function Breadcrumb({location, organization, trails}: BreadcrumbProps) {
   const crumbs = useMemo(
-    () => trails.map(trail => trailToCrumb(trail, {organization})),
-    [trails]
+    () => trails.map(trail => trailToCrumb(trail, {location, organization})),
+    [location, organization, trails]
   );
   return <StyledBreadcrumbs crumbs={crumbs} />;
 }
 
-function trailToCrumb(trail: Trail, {organization}: {organization: Organization}): Crumb {
-  const trailType = trail.type;
-  switch (trailType) {
+function trailToCrumb(
+  trail: Trail,
+  {
+    location,
+    organization,
+  }: {
+    location: Location;
+    organization: Organization;
+  }
+): Crumb {
+  switch (trail.type) {
     case 'profiling': {
       return {
-        to: generateProfilingRoute({orgSlug: organization.slug}),
+        to: profilingRouteWithQuery({
+          location,
+          orgSlug: organization.slug,
+        }),
         label: t('Profiling'),
         preservePageFilters: true,
       };
     }
     case 'flamegraph': {
       return {
-        to: generateFlamegraphRoute({
+        to: flamegraphRouteWithQuery({
+          location,
           orgSlug: organization.slug,
           projectSlug: trail.payload.projectSlug,
           profileId: trail.payload.profileId,
@@ -59,7 +73,7 @@ function trailToCrumb(trail: Trail, {organization}: {organization: Organization}
       };
     }
     default:
-      throw new Error(`Unknown breadcrumb type: ${trailType}`);
+      throw new Error(`Unknown breadcrumb type: ${(trail as any).type}`);
   }
 }
 
