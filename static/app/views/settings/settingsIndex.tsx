@@ -15,7 +15,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconDocs, IconLock, IconStack, IconSupport} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import {Organization} from 'sentry/types';
 import withLatestContext from 'sentry/utils/withLatestContext';
 import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
@@ -371,7 +370,7 @@ const AvatarContainer = styled('div')`
 const OrganizationName = styled('div')`
   line-height: 1.1em;
 
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 const GridLayout = styled('div')`

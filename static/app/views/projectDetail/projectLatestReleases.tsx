@@ -14,7 +14,6 @@ import Version from 'sentry/components/version';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Organization, Release} from 'sentry/types';
 import {analytics} from 'sentry/utils/analytics';
@@ -221,7 +220,7 @@ const ReleasesTable = styled('div')`
 `;
 
 const StyledVersion = styled(Version)`
-  ${overflowEllipsis}
+  ${p => p.theme.overflowEllipsis}
   line-height: 1.6;
   font-variant-numeric: tabular-nums;
 `;

@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {TreeLabelPart} from 'sentry/types';
 import {getTreeLabelPartDetails} from 'sentry/utils/events';
@@ -66,12 +65,12 @@ const Label = styled('div')`
 `;
 
 const PriorityLabel = styled(Label)`
-  ${overflowEllipsis}
+  ${p => p.theme.overflowEllipsis}
   display: inline-block;
 `;
 
 const RemainingLabels = styled('div')`
-  ${overflowEllipsis}
+  ${p => p.theme.overflowEllipsis}
   display: inline-block;
   min-width: 50px;
 `;

@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Theme} from 'sentry/utils/theme';
 
@@ -33,5 +32,5 @@ export const ErrorLevel = styled('span')`
 `;
 
 export const ErrorTitle = styled('span')`
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;

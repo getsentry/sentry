@@ -23,7 +23,6 @@ import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {
   Group,
@@ -733,7 +732,7 @@ const StartedColumn = styled('div')`
   align-self: center;
   margin: 0 ${space(2)};
   color: ${p => p.theme.gray500};
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
   width: 85px;
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
@@ -746,7 +745,7 @@ const EventsReprocessedColumn = styled('div')`
   align-self: center;
   margin: 0 ${space(2)};
   color: ${p => p.theme.gray500};
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
   width: 75px;
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {

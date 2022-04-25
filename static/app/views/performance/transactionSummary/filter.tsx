@@ -9,7 +9,6 @@ import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import Radio from 'sentry/components/radio';
 import {IconFilter} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {OrganizationSummary} from 'sentry/types';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -237,7 +236,7 @@ const OperationDot = styled('div')<{backgroundColor: string}>`
 
 const OperationName = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 export function filterToField(option: SpanOperationBreakdownFilter) {

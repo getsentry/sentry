@@ -10,7 +10,6 @@ import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import TimeSince from 'sentry/components/timeSince';
 import {IconDiamond} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Actor} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -259,7 +258,7 @@ const Heading = styled(SectionHeading)<{noMargin?: boolean}>`
 `;
 
 const CreatedBy = styled('div')`
-  ${overflowEllipsis}
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const TriggerContainer = styled('div')`

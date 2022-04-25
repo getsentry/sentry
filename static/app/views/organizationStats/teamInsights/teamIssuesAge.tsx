@@ -13,7 +13,6 @@ import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Group, Organization} from 'sentry/types';
 import {getTitle} from 'sentry/utils/events';
@@ -224,13 +223,13 @@ const RightAligned = styled('span')`
 `;
 
 const ProjectTitleContainer = styled('div')`
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
   display: flex;
   align-items: center;
 `;
 
 const TitleOverflow = styled('div')`
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 const ShadowlessProjectBadge = styled(ProjectBadge)`

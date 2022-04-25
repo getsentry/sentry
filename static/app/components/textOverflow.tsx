@@ -1,9 +1,6 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
-import overflowEllipsisLeft from 'sentry/styles/overflowEllipsisLeft';
-
 type Props = {
   children: React.ReactNode;
   className?: string;
@@ -22,7 +19,13 @@ const TextOverflow = styled(
     );
   }
 )`
-  ${p => (p.ellipsisDirection === 'right' ? overflowEllipsis : overflowEllipsisLeft)};
+  ${p => p.theme.overflowEllipsis}
+  ${p =>
+    p.ellipsisDirection === 'left' &&
+    `
+      direction: rtl;
+      text-align: left;
+    `};
   width: auto;
   line-height: 1.2;
 `;

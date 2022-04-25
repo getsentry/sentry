@@ -7,7 +7,6 @@ import DropdownButton from 'sentry/components/dropdownButton';
 import DropdownControl, {Content} from 'sentry/components/dropdownControl';
 import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 
 type DropdownSection = {
@@ -246,7 +245,7 @@ const ListItem = styled('li')<{isChecked?: boolean}>`
 
 const TeamName = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 export default Filter;

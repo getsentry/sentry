@@ -11,7 +11,6 @@ import DropdownMenu from 'sentry/components/dropdownMenu';
 import Tooltip from 'sentry/components/tooltip';
 import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {SelectValue} from 'sentry/types';
 
@@ -169,7 +168,7 @@ class OptionCheckboxSelector extends Component<Props, State> {
 }
 
 const TruncatedLabel = styled('span')`
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
   max-width: 400px;
 `;
 

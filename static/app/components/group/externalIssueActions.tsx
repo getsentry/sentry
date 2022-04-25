@@ -7,7 +7,6 @@ import {Client} from 'sentry/api';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import IssueSyncListElement from 'sentry/components/issueSyncListElement';
 import {t} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Group, GroupIntegration} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
@@ -120,12 +119,12 @@ const ExternalIssueActions = ({configurations, group, onChange, api}: Props) => 
 const IssueTitle = styled('div')`
   font-size: 1.1em;
   font-weight: 600;
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 const IssueDescription = styled('div')`
   margin-top: ${space(1)};
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 const Wrapper = styled('div')`

@@ -5,7 +5,6 @@ import Badge from 'sentry/components/badge';
 import DropdownLink from 'sentry/components/dropdownLink';
 import QueryCount from 'sentry/components/queryCount';
 import {t} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Organization, SavedSearch} from 'sentry/types';
 
@@ -127,7 +126,7 @@ const TitleWrapper = styled('span')`
 const TitleTextOverflow = styled('span')`
   margin-right: ${space(0.5)};
   max-width: 150px;
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 const StyledDropdownLink = styled(DropdownLink)<{isActive?: boolean}>`

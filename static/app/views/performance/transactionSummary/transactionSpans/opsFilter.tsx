@@ -11,7 +11,6 @@ import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import Radio from 'sentry/components/radio';
 import {IconFilter, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -185,7 +184,7 @@ const OperationDot = styled('div')<{backgroundColor: string}>`
 
 const OperationName = styled('span')`
   font-size: ${p => p.theme.fontSizeMedium};
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`

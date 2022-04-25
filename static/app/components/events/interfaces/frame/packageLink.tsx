@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {trimPackage} from 'sentry/components/events/interfaces/frame/utils';
 import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'sentry/components/stacktracePreview';
 import Tooltip from 'sentry/components/tooltip';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
@@ -95,7 +94,7 @@ export const PackageName = styled('span')<
 >`
   max-width: ${p =>
     p.withLeadHint && p.isClickable && !p.includeSystemFrames ? '45px' : '104px'};
-  ${overflowEllipsis}
+  ${p => p.theme.overflowEllipsis}
 `;
 
 export default PackageLink;

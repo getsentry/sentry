@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import EventMessage from 'sentry/components/events/eventMessage';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Group} from 'sentry/types';
 
@@ -50,6 +49,6 @@ const Title = styled('h3')`
   @media (min-width: ${props => props.theme.breakpoints[0]}) {
     font-size: ${p => p.theme.headerFontSize};
     line-height: 1.1;
-    ${overflowEllipsis};
+    ${p => p.theme.overflowEllipsis};
   }
 `;

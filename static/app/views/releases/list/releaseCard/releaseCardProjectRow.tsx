@@ -17,7 +17,6 @@ import Placeholder from 'sentry/components/placeholder';
 import Tag from 'sentry/components/tag';
 import Tooltip from 'sentry/components/tooltip';
 import {t, tn} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Organization, Release, ReleaseProject} from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -252,7 +251,7 @@ const CrashFreeWrapper = styled('div')`
 `;
 
 const ViewColumn = styled('div')`
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
   line-height: 20px;
   text-align: right;
 `;

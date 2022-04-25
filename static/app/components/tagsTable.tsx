@@ -10,7 +10,6 @@ import Link from 'sentry/components/links/link';
 import Tooltip from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {MetaError} from 'sentry/types';
 import {Event, EventTag} from 'sentry/types/event';
@@ -102,7 +101,7 @@ const TagsTable = ({event, query, generateUrl, title = t('Tag Details')}: Props)
 export default TagsTable;
 
 const StyledTooltip = styled(Tooltip)`
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 const StyledTagsTable = styled('div')`

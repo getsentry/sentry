@@ -2,7 +2,6 @@ import {components as selectComponents} from 'react-select';
 import styled from '@emotion/styled';
 
 import {IconCheckmark} from 'sentry/icons';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
@@ -163,7 +162,7 @@ const Label = styled('p')`
   margin-bottom: 0;
   line-height: 1.4;
   white-space: nowrap;
-  ${overflowEllipsis}
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const Details = styled('p')`

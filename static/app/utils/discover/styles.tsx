@@ -4,13 +4,12 @@ import DateTime from 'sentry/components/dateTime';
 import Link from 'sentry/components/links/link';
 import ShortId from 'sentry/components/shortId';
 import {IconUser} from 'sentry/icons/iconUser';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 
 // Styled components used to render discover result sets.
 
 export const Container = styled('div')`
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 export const VersionContainer = styled('div')`
@@ -20,17 +19,17 @@ export const VersionContainer = styled('div')`
 export const NumberContainer = styled('div')`
   text-align: right;
   font-variant-numeric: tabular-nums;
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 export const FieldDateTime = styled(DateTime)`
   color: ${p => p.theme.gray300};
   font-variant-numeric: tabular-nums;
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 export const OverflowLink = styled(Link)`
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 export const FieldShortId = styled(ShortId)`

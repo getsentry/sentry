@@ -10,7 +10,6 @@ import {LocationDescriptor} from 'history';
 
 import Link from 'sentry/components/links/link';
 import {IconChevron} from 'sentry/icons';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Theme} from 'sentry/utils/theme';
 
@@ -391,7 +390,7 @@ const Label = styled('p')`
   margin-bottom: 0;
   line-height: 1.4;
   white-space: nowrap;
-  ${overflowEllipsis}
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const Details = styled('p')<{isDisabled: boolean; priority?: Priority}>`
@@ -399,7 +398,7 @@ const Details = styled('p')<{isDisabled: boolean; priority?: Priority}>`
   color: ${p => p.theme.subText};
   line-height: 1.2;
   margin-bottom: 0;
-  ${overflowEllipsis}
+  ${p => p.theme.overflowEllipsis}
 
   ${p => p.priority === 'primary' && `color: ${p.theme.activeText};`}
   ${p => p.priority === 'danger' && `color: ${p.theme.errorText};`}

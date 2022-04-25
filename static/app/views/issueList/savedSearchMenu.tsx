@@ -8,7 +8,6 @@ import MenuItem from 'sentry/components/menuItem';
 import Tooltip from 'sentry/components/tooltip';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Organization, SavedSearch} from 'sentry/types';
 
@@ -137,12 +136,12 @@ export default SavedSearchMenu;
 
 const SearchTitle = styled('div')`
   color: ${p => p.theme.textColor};
-  ${overflowEllipsis}
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const SearchQueryContainer = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  ${overflowEllipsis}
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const SearchQuery = styled('code')`
@@ -229,7 +228,7 @@ const MenuItemLink = styled('a')`
   /* Nav tabs style override */
   border: 0;
 
-  ${overflowEllipsis}
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const EmptyItem = styled('li')`

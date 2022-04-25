@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Panel} from 'sentry/components/panels';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import TextOverflow from 'sentry/components/textOverflow';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {Theme} from 'sentry/utils/theme';
@@ -67,7 +66,7 @@ export const HeaderTitle = styled('div')`
 
 export const Title = styled('div')`
   color: ${p => p.theme.headingColor};
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
   font-weight: 600;
 `;
 

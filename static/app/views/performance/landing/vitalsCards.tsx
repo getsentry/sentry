@@ -15,7 +15,6 @@ import Sparklines from 'sentry/components/sparklines';
 import SparklinesLine from 'sentry/components/sparklines/line';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -555,5 +554,5 @@ const CardValue = styled('div')`
 `;
 
 const OverflowEllipsis = styled('div')`
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;

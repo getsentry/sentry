@@ -12,7 +12,6 @@ import EventDataSection from 'sentry/components/events/eventDataSection';
 import FileSize from 'sentry/components/fileSize';
 import {PanelTable} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import {IssueAttachment} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import AttachmentUrl from 'sentry/utils/attachmentUrl';
@@ -178,7 +177,7 @@ const StyledPanelTable = styled(PanelTable)`
 `;
 
 const Name = styled('div')`
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 const Size = styled('div')`
