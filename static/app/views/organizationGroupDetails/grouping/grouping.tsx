@@ -204,7 +204,10 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
         <Layout.Body>
           <Layout.Main fullWidth>
             <ErrorWrapper>
-              <FeatureFeedback feedbackTypes={groupingFeedbackTypes} />
+              <FeatureFeedback
+                featureName="grouping"
+                feedbackTypes={groupingFeedbackTypes}
+              />
               <StyledErrorMessage
                 onRetry={fetchGroupingLevels}
                 groupId={groupId}
@@ -252,7 +255,10 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
                 />
                 {t('More issues')}
               </SliderWrapper>
-              <FeatureFeedback feedbackTypes={groupingFeedbackTypes} />
+              <FeatureFeedback
+                featureName="grouping"
+                feedbackTypes={groupingFeedbackTypes}
+              />
             </Actions>
             <Content isReloading={isGroupingLevelDetailsLoading}>
               <StyledPanelTable headers={['', t('Events')]}>

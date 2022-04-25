@@ -33,6 +33,7 @@ export const _FeatureFeedback = () => {
       }}
     >
       <FeatureFeedback
+        featureName="test"
         feedbackTypes={[
           "I don't like this feature",
           'I like this feature',

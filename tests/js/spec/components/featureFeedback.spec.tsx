@@ -19,6 +19,7 @@ function TestComponent({router}: {router: InjectedRouter}) {
       }}
     >
       <FeatureFeedback
+        featureName="test"
         feedbackTypes={[
           "I don't like this feature",
           'I like this feature',

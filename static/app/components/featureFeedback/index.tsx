@@ -9,15 +9,24 @@ interface Props extends FeedBackModalProps {}
 
 // Provides a button that, when clicked, opens a modal with a form that,
 // when filled and submitted, will send feedback to Sentry (feedbacks project).
-export function FeatureFeedback({feedbackTypes}: Props) {
+export function FeatureFeedback({feedbackTypes, featureName}: Props) {
   async function handleClick() {
     const mod = await import('sentry/components/featureFeedback/feedbackModal');
 
     const {FeedbackModal, modalCss} = mod;
 
-    openModal(deps => <FeedbackModal {...deps} feedbackTypes={feedbackTypes} />, {
-      modalCss,
-    });
+    openModal(
+      deps => (
+        <FeedbackModal
+          {...deps}
+          featureName={featureName}
+          feedbackTypes={feedbackTypes}
+        />
+      ),
+      {
+        modalCss,
+      }
+    );
   }
 
   return (

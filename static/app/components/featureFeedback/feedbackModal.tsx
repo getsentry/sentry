@@ -24,6 +24,7 @@ const feedbackClient = new BrowserClient({
 });
 
 export interface FeedBackModalProps {
+  featureName: string;
   feedbackTypes: string[];
 }
 
@@ -33,7 +34,14 @@ interface Props
 
 type State = {additionalInfo?: string; subject?: number};
 
-export function FeedbackModal({Header, Body, Footer, closeModal, feedbackTypes}: Props) {
+export function FeedbackModal({
+  Header,
+  Body,
+  Footer,
+  closeModal,
+  feedbackTypes,
+  featureName,
+}: Props) {
   const {organization} = useLegacyStore(OrganizationStore);
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const location = useLocation();
@@ -59,19 +67,21 @@ export function FeedbackModal({Header, Body, Footer, closeModal, feedbackTypes}:
     }
 
     feedbackClient.captureEvent({
-      user,
-      tags: {
+      message: additionalInfo?.trim()
+        ? `Feedback ${feedbackTypes[subject]} - ${additionalInfo}`
+        : `Feedback ${feedbackTypes[subject]}`,
+      request: {
         url: location.pathname,
       },
       extra: {
-        url: location.pathname,
         orgFeatures: organization?.features ?? [],
         orgAccess: organization?.access ?? [],
         projectFeatures: project?.features ?? [],
       },
-      message: additionalInfo?.trim()
-        ? `${feedbackTypes[subject]} - ${additionalInfo}`
-        : feedbackTypes[subject],
+      tags: {
+        featureName,
+      },
+      user,
     });
 
     addSuccessMessage('Thanks for taking the time to provide us feedback!');
