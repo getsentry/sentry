@@ -2529,5 +2529,54 @@ describe('WidgetBuilder', function () {
         })
       );
     });
+
+    it('unsets the limit when going from timeseries to table', async function () {
+      const widget: Widget = {
+        displayType: DisplayType.AREA,
+        interval: '1d',
+        queries: [
+          {
+            name: 'Test Widget',
+            fields: ['count()', 'count_unique(user)', 'epm()', 'project'],
+            columns: ['project'],
+            aggregates: ['count()', 'count_unique(user)', 'epm()'],
+            conditions: '',
+            orderby: '',
+          },
+        ],
+        title: 'Transactions',
+        id: '1',
+        limit: 1,
+      };
+
+      const dashboard: DashboardDetails = {
+        id: '1',
+        title: 'Dashboard',
+        createdBy: undefined,
+        dateCreated: '2020-01-01T00:00:00.000Z',
+        widgets: [widget],
+      };
+
+      renderTestComponent({
+        dashboard,
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        params: {
+          widgetIndex: '0',
+        },
+      });
+
+      userEvent.click(await screen.findByText('Area Chart'));
+      userEvent.click(screen.getByText('Table'));
+
+      expect(screen.queryByText('Limit to 1 result')).not.toBeInTheDocument();
+      expect(eventsv2Mock).toHaveBeenCalledWith(
+        '/organizations/org-slug/eventsv2/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            topEvents: undefined,
+          }),
+        })
+      );
+    });
   });
 });
