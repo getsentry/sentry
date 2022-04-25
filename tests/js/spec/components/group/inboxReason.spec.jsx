@@ -54,7 +54,7 @@ describe('InboxReason', () => {
 
     // Text is split up because of translations
     expect(await screen.findByText('Affected')).toBeInTheDocument();
-    expect(await screen.findByText('10')).toBeInTheDocument();
-    expect(await screen.findByText('user(s)')).toBeInTheDocument();
+    expect(screen.getByText('10')).toBeInTheDocument();
+    expect(screen.getByText('user(s)')).toBeInTheDocument();
   });
 });
