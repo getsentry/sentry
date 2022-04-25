@@ -156,7 +156,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
 
         Will return a pending invite as long as it's already approved.
         """
-        _, allowed_roles = get_allowed_roles(request, organization, member)
+        allowed_roles = get_allowed_roles(request, organization, member)
 
         context = self._serialize_member(member, request, allowed_roles)
 
@@ -250,7 +250,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
 
         assigned_role = result.get("role")
         if assigned_role:
-            _, allowed_roles = get_allowed_roles(request, organization)
+            allowed_roles = get_allowed_roles(request, organization)
             allowed_role_ids = {r.id for r in allowed_roles}
 
             # A user cannot promote others above themselves

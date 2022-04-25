@@ -24,14 +24,14 @@ class Sidebar extends PureComponent<Props> {
       ? rule.conditions.map(condition => (
           <ConditionsBadge key={condition.id}>{condition.name}</ConditionsBadge>
         ))
-      : '';
+      : null;
     const filters = rule.filters.length
       ? rule.filters.map(filter => (
           <ConditionsBadge key={filter.id}>
             {filter.time ? filter.name + '(s)' : filter.name}
           </ConditionsBadge>
         ))
-      : '';
+      : null;
     const actions = rule.actions.length ? (
       rule.actions.map(action => {
         let name = action.name;
@@ -59,12 +59,11 @@ class Sidebar extends PureComponent<Props> {
             </ChevronContainer>
             <StepContent>
               <StepLead>
-                {tct('[when:When] [selector] of the following happens', {
+                {tct('[when:When] an event is captured [selector]', {
                   when: <Badge />,
-                  selector: rule.actionMatch,
+                  selector: conditions?.length ? t('and %s...', rule.actionMatch) : '',
                 })}
               </StepLead>
-              <ConditionsBadge>{t('An event is captured')}</ConditionsBadge>
               {conditions}
             </StepContent>
           </StepContainer>

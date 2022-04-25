@@ -31,13 +31,14 @@ function XAxis({
   addSecondsToTimeFormat = false,
   ...props
 }: Props): XAXisComponentOption {
-  const axisLabelFormatter = (value: string, index: number) => {
+  const AxisLabelFormatter = (value: string, index: number) => {
+    const timeFormat = getTimeFormat({displaySeconds: addSecondsToTimeFormat});
+    const dateFormat = useShortDate ? 'MMM Do' : `MMM D ${timeFormat}`;
+    const firstItem = index === 0;
+    const format =
+      useShortInterval({start, end, period}) && !firstItem ? timeFormat : dateFormat;
+
     if (isGroupedByDate) {
-      const timeFormat = getTimeFormat({displaySeconds: addSecondsToTimeFormat});
-      const dateFormat = useShortDate ? 'MMM Do' : `MMM D ${timeFormat}`;
-      const firstItem = index === 0;
-      const format =
-        useShortInterval({start, end, period}) && !firstItem ? timeFormat : dateFormat;
       return getFormattedDate(value, format, {local: !utc});
     }
 
@@ -76,7 +77,7 @@ function XAxis({
       showMinLabel: false,
 
       // @ts-expect-error formatter type is missing
-      formatter: axisLabelFormatter,
+      formatter: AxisLabelFormatter,
     },
     axisPointer: {
       show: true,
