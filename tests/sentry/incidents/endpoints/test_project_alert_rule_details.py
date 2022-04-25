@@ -1,7 +1,6 @@
 from unittest.mock import patch
 
 import responses
-from exam import fixture
 
 from sentry.api.serializers import serialize
 from sentry.incidents.models import (
@@ -23,19 +22,18 @@ class AlertRuleDetailsBase:
         super().setUp()
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
-        self.owner_user = self.create_user()
-        self.member_user = self.create_user()
         self.alert_rule = self.create_alert_rule(name="hello")
+        self.owner_user = self.create_user()
         self.create_member(
-            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+            user=self.owner_user, organization=self.organization, role="owner", teams=[self.team]
         )
+        # Default to the 'owner' user
+        self.user = self.owner_user
+        self.member_user = self.create_user()
         self.create_member(
             user=self.member_user, organization=self.organization, role="member", teams=[self.team]
         )
-
-    @fixture
-    def valid_params(self):
-        return {
+        self.valid_params = {
             "name": "hello",
             "time_window": 10,
             "query": "level:error",
