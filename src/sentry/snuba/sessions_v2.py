@@ -257,6 +257,7 @@ class QueryDefinition:
         self.query = query.get("query", "")
         self.raw_fields = raw_fields = query.getlist("field", [])
         self.raw_groupby = raw_groupby = query.getlist("groupBy", [])
+        self.raw_orderby = query.getlist("orderBy")  # only respected by metrics implementation
 
         if len(raw_fields) == 0:
             raise InvalidField('Request is missing a "field"')
@@ -283,7 +284,7 @@ class QueryDefinition:
         query_columns = set()
         for i, field in enumerate(self.fields.values()):
             columns = field.get_snuba_columns(raw_groupby)
-            if i == 0:
+            if i == 0 or field == "sum(session)":  # Prefer first, but sum(session) always wins
                 self.primary_column = columns[0]  # Will be used in order by
             query_columns.update(columns)
         for groupby in self.groupby:
@@ -573,15 +574,15 @@ def massage_sessions_result(
         groups.append(group)
 
     return {
-        "start": _isoformat_z(query.start),
-        "end": _isoformat_z(query.end),
+        "start": isoformat_z(query.start),
+        "end": isoformat_z(query.end),
         "query": query.query,
         "intervals": timestamps,
         "groups": groups,
     }
 
 
-def _isoformat_z(date):
+def isoformat_z(date):
     return datetime.utcfromtimestamp(int(to_timestamp(date))).isoformat() + "Z"
 
 
