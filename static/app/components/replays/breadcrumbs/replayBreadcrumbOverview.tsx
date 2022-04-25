@@ -109,7 +109,7 @@ function Events({crumbs, width}: {crumbs: Crumb[]; width: number}) {
     <div style={{paddingTop: space(4)}}>
       <TimelineMarkerList totalColumns={totalColumns} remainder={0}>
         {Array.from(eventsByCol.entries()).map(([column, breadcrumbs]) => (
-          <EventColumn key={column} column={Number(column)}>
+          <EventColumn key={column} column={column}>
             <EventMarkerList breadcrumbs={breadcrumbs} />
           </EventColumn>
         ))}
