@@ -16,7 +16,7 @@ from sentry.ratelimits import (
     get_rate_limit_key,
     get_rate_limit_value,
 )
-from sentry.ratelimits.config import ENFORCE_CONCURRENT_RATE_LIMITS, RateLimitConfig
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimitCategory, RateLimitMeta, RateLimitType
 from sentry.utils import json, metrics
 
