@@ -84,7 +84,7 @@ export function FeedbackModal({
       user,
     });
 
-    addSuccessMessage('Thanks for taking the time to provide us feedback!');
+    addSuccessMessage(t('Thanks for taking the time to provide us feedback!'));
 
     closeModal();
   }
