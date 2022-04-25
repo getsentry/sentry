@@ -429,6 +429,8 @@ function WidgetBuilder({
       set(newState, 'queries', normalized);
 
       if (widgetBuilderNewDesign) {
+        // When changing to a timeseries chart with a grouping, assign a limit
+        // to avoid excessive series in the tooltip
         if (getIsTimeseriesChart(newDisplayType) && normalized[0].columns.length) {
           newState.limit = Math.min(
             getResultsLimit(normalized.length, normalized[0].columns.length),
