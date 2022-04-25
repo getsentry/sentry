@@ -59,15 +59,3 @@ class DiscoverProcessorTest(TestCase, SnubaTestCase):
         assert new_result_list[0] != result_list
         assert new_result_list[0]["count(id) / fake(field)"] == 5
         assert new_result_list[0]["count(id) / 2"] == 8
-
-
-class DiscoverProcessorTestWithSnql(DiscoverProcessorTest):
-    def setUp(self):
-        super().setUp()
-        self.discover_query = {
-            "statsPeriod": "14d",
-            "project": [self.project1.id, self.project2.id],
-            "field": ["count(id)", "fake(field)", "issue"],
-            "query": "",
-            "use_snql": True,
-        }

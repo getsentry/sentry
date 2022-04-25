@@ -190,9 +190,3 @@ class OrganizationEventsHasMeasurementsTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert response.data == {"measurements": True}
-
-
-class OrganizationEventsHasMeasurementsTestWithSnql(OrganizationEventsHasMeasurementsTest):
-    def setUp(self):
-        super().setUp()
-        self.features = {"organizations:performance-use-snql": True}

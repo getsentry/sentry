@@ -67,9 +67,6 @@ class OrganizationEventsHistogramEndpoint(OrganizationEventsV2EndpointBase):
                         max_value=data.get("max"),
                         data_filter=data.get("dataFilter"),
                         referrer="api.organization-events-histogram",
-                        use_snql=features.has(
-                            "organizations:performance-use-snql", organization, actor=request.user
-                        ),
                     )
 
                 return Response(results)

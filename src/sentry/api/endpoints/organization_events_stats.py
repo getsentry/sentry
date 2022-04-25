@@ -75,7 +75,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
     def get_features(self, organization: Organization, request: Request) -> Mapping[str, bool]:
         feature_names = [
             "organizations:performance-chart-interpolation",
-            "organizations:discover-use-snql",
             "organizations:performance-use-metrics",
             "organizations:performance-dry-run-mep",
         ]
@@ -135,7 +134,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                 else "api.organization-event-stats"
             )
             batch_features = self.get_features(organization, request)
-            discover_snql = batch_features.get("organizations:discover-use-snql", False)
             has_chart_interpolation = batch_features.get(
                 "organizations:performance-chart-interpolation", False
             )
@@ -173,7 +171,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                     allow_empty=False,
                     zerofill_results=zerofill_results,
                     include_other=include_other,
-                    use_snql=discover_snql,
                 )
             dataset = discover if not metrics_enhanced else metrics_enhanced_performance
             query_details = {
@@ -185,7 +182,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                 "zerofill_results": zerofill_results,
                 "comparison_delta": comparison_delta,
                 "allow_metric_aggregates": allow_metric_aggregates,
-                "use_snql": discover_snql,
             }
             if not metrics_enhanced and performance_dry_run_mep:
                 sentry_sdk.set_tag("query.mep_compatible", False)

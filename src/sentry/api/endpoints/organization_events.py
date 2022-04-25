@@ -81,9 +81,6 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
                 "auto_aggregations": True,
                 "use_aggregate_conditions": True,
                 "allow_metric_aggregates": allow_metric_aggregates,
-                "use_snql": features.has(
-                    "organizations:discover-use-snql", organization, actor=request.user
-                ),
             }
             if not metrics_enhanced and performance_dry_run_mep:
                 sentry_sdk.set_tag("query.mep_compatible", False)
@@ -147,9 +144,6 @@ class OrganizationEventsGeoEndpoint(OrganizationEventsV2EndpointBase):
                 referrer=referrer,
                 use_aggregate_conditions=True,
                 orderby=self.get_orderby(request) or maybe_aggregate,
-                use_snql=features.has(
-                    "organizations:discover-use-snql", organization, actor=request.user
-                ),
             )
 
         with self.handle_query_errors():
