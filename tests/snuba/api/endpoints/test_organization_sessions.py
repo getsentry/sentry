@@ -1153,9 +1153,9 @@ class OrganizationSessionsEndpointMetricsTest(
         ]
 
         # FIXME:
-        # response = req(field=["sum(session)"], query="session.status:healthy OR release:foo@1.1.0")
-        # assert response.status_code == 400, response.data
-        # assert response.data == {"detail": "Cannot mix session.status with other filters in OR"}
+        response = req(field=["sum(session)"], query="session.status:healthy OR release:foo@1.1.0")
+        assert response.status_code == 400, response.data
+        assert response.data == {"detail": "Unable to parse condition with session.status"}
 
         # count_unique(user) does not work with multiple session statuses selected
         response = req(field=["count_unique(user)"], query="session.status:[healthy, errored]")

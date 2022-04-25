@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 import pytest
 from django.urls import reverse
-from snuba_sdk import And, Column, Condition, Op, Or
+from snuba_sdk import Column, Condition, Function, Op
 
 from sentry.release_health.duplex import compare_results
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
@@ -111,22 +111,33 @@ def _session_groupby_powerset() -> Iterable[str]:
         (
             [
                 Condition(Column("release"), Op.EQ, "foo"),
-                Or(
-                    [
-                        Condition(Column("session.status"), Op.EQ, "abnormal"),
-                        Condition(Column("session.status"), Op.EQ, "errored"),
-                    ]
-                ),
+                Condition(Column("session.status"), Op.EQ, "bogus"),
             ],
             [Condition(Column("release"), Op.EQ, "foo")],
-            {SessionStatus.ABNORMAL, SessionStatus.ERRORED},
+            frozenset(),
         ),
         (
             [
                 Condition(Column("release"), Op.EQ, "foo"),
-                Condition(Column("session.status"), Op.EQ, "bogus"),
+                Condition(Column("session.status"), Op.NEQ, "abnormal"),
             ],
             [Condition(Column("release"), Op.EQ, "foo")],
+            {SessionStatus.HEALTHY, SessionStatus.ERRORED, SessionStatus.CRASHED},
+        ),
+        (
+            [
+                Condition(Column("release"), Op.EQ, "foo"),
+                Condition(Column("session.status"), Op.NOT_IN, ["abnormal", "bogus"]),
+            ],
+            [Condition(Column("release"), Op.EQ, "foo")],
+            {SessionStatus.HEALTHY, SessionStatus.ERRORED, SessionStatus.CRASHED},
+        ),
+        (
+            [
+                Condition(Column("session.status"), Op.EQ, "abnormal"),
+                Condition(Column("session.status"), Op.EQ, "errored"),
+            ],
+            [],
             frozenset(),
         ),
     ],
@@ -148,19 +159,16 @@ def test_transform_conditions_nochange(input):
     "input",
     [
         [
-            And(
-                [
-                    Condition(Column("session.status"), Op.EQ, "abnormal"),
-                    Condition(Column("session.status"), Op.EQ, "errored"),
-                ]
-            )
-        ],
-        [
-            Or(
-                [
-                    Condition(Column("release"), Op.EQ, "foo"),
-                    Condition(Column("session.status"), Op.EQ, "errored"),
-                ]
+            Condition(
+                Function(
+                    "or",
+                    [
+                        Function("equals", ["release", "foo"]),
+                        Function("equals", ["session.status", "foo"]),
+                    ],
+                ),
+                Op.EQ,
+                1,
             )
         ],
     ],

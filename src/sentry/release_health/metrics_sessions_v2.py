@@ -25,7 +25,6 @@ from typing import (
 )
 
 from snuba_sdk import (
-    And,
     BooleanCondition,
     Column,
     Condition,
@@ -34,7 +33,6 @@ from snuba_sdk import (
     Granularity,
     Limit,
     Op,
-    Or,
 )
 from snuba_sdk.conditions import ConditionGroup
 from snuba_sdk.legacy import json_to_snql
@@ -83,6 +81,9 @@ class SessionStatus(Enum):
     CRASHED = "crashed"
     ERRORED = "errored"
     HEALTHY = "healthy"
+
+
+ALL_STATUSES = frozenset(iter(SessionStatus))
 
 
 #: Used to filter results by session.status
@@ -356,10 +357,7 @@ def run_sessions_query(
     intervals = get_timestamps(query)
 
     conditions = _get_filter_conditions(query.conditions)
-    print(conditions)
     where, status_filter = _transform_conditions(conditions)
-    print("--", query.query)
-    print("--", where, status_filter)
     if status_filter == frozenset():
         # There was a condition that cannot be met, such as 'session:status:foo'
         # no need to query metrics, just return empty groups.
@@ -385,7 +383,7 @@ def run_sessions_query(
         # We only return the top-N groups, based on the first field that is being
         # queried, assuming that those are the most relevant to the user.
         # In a future iteration we might expose an `orderBy` query parameter.
-        primary_metric_field = _get_primary_field(fields.values(), query.raw_groupby)
+        primary_metric_field = _get_primary_field(list(fields.values()), query.raw_groupby)
         orderby = OrderBy(primary_metric_field, Direction.DESC)
 
     max_groups = SNUBA_LIMIT // len(intervals)
@@ -402,7 +400,6 @@ def run_sessions_query(
         orderby=orderby,
         limit=Limit(max_groups),
     )
-    print(metrics_query)
 
     # TODO: Stop passing project IDs everywhere
     projects = Project.objects.get_many_from_cache(project_ids)
@@ -461,44 +458,19 @@ def _transform_conditions(
     conditions: ConditionGroup,
 ) -> Tuple[ConditionGroup, StatusFilter]:
     """Split conditions into metrics conditions and a filter on session.status"""
-    if not conditions:
-        return conditions, None
-    if len(conditions) == 1:
-        where, status_filter = _transform_single_condition(conditions[0])
+    where, status_filters = zip(*map(_transform_single_condition, conditions))
+    where = [condition for condition in where if condition is not None]
+    status_filters = [f for f in status_filters if f is not None]
+    if status_filters:
+        status_filters = frozenset.intersection(*status_filters)
     else:
-        where, status_filter = _transform_single_condition(And(conditions))
-    if where is not None:
-        where = [where]
-    return where, status_filter
-
-
-_ALL_STATUSES = frozenset(iter(SessionStatus))
+        status_filters = None
+    return where, status_filters
 
 
 def _transform_single_condition(
     condition: Union[Condition, BooleanCondition]
 ) -> Tuple[Optional[Union[Condition, BooleanCondition]], StatusFilter]:
-    if isinstance(condition, And):
-        where, status_filters = zip(*map(_transform_single_condition, condition.conditions))
-        where = make_boolean_op(And, where)
-        if len([f for f in status_filters if f is not None]) > 1:
-            raise InvalidParams("More than one session.status in AND condition")
-        return where, frozenset.intersection(*{f for f in status_filters if f is not None})
-
-    if isinstance(condition, Or):
-        where, status_filters = zip(*map(_transform_single_condition, condition.conditions))
-        where = make_boolean_op(Or, where)
-        if all(f is not None for f in status_filters):
-            # Union of status filters
-            return where, frozenset.union(*status_filters)
-        elif any(f is not None for f in status_filters):
-            # Some operands filter by status, some don't
-            # TODO: document Why
-            raise InvalidParams("Cannot mix session.status with other filters in OR")
-
-        # At this point, we don't have any status filters
-        return where, None
-
     if isinstance(condition, Condition):
         if condition.lhs == Function("ifNull", parameters=[Column("session.status"), ""]):
             # HACK: metrics tags are never null. We should really
@@ -508,18 +480,27 @@ def _transform_single_condition(
             if condition.op == Op.EQ:
                 return None, _parse_session_status(condition.rhs)
             if condition.op == Op.NEQ:
-                return None, _ALL_STATUSES - _parse_session_status(condition.rhs)
+                return None, ALL_STATUSES - _parse_session_status(condition.rhs)
             if condition.op == Op.IN:
                 return None, frozenset.union(
                     *[_parse_session_status(status) for status in condition.rhs]
                 )
             if condition.op == Op.NOT_IN:
-                return None, _ALL_STATUSES - frozenset.union(
+                return None, ALL_STATUSES - frozenset.union(
                     *[_parse_session_status(status) for status in condition.rhs]
                 )
             raise InvalidParams("Unable to resolve session.status filter")
 
-        return condition, None
+    if "session.status" in str(condition):
+        # Anything not handled by the code above cannot be parsed for now,
+        # for two reasons:
+        # 1) Queries like session.status:healthy OR release:foo are hard to
+        #    translate, because they would require different conditions on the separate
+        #    metric fields.
+        # 2) AND and OR conditions come in the form `Condition(Function("or", [...]), Op.EQ, 1)`
+        #    where [...] can again contain any condition encoded as a Function. For this, we would
+        #    have to replicate the translation code above.
+        raise InvalidParams("Unable to parse condition with session.status")
 
     return condition, None
 
