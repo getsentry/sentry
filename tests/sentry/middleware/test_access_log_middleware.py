@@ -82,6 +82,9 @@ access_log_fields = (
     "rate_limit_type",
     "concurrent_limit",
     "concurrent_requests",
+    "reset_time",
+    "limit",
+    "remaining",
 )
 
 
@@ -125,6 +128,7 @@ class LogCaptureAPITestCase(APITestCase):
         return [r for r in self._caplog.records if r.name == "sentry.access.api"]
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class TestAccessLogRateLimited(LogCaptureAPITestCase):
 
     endpoint = "ratelimit-endpoint"
@@ -135,27 +139,32 @@ class TestAccessLogRateLimited(LogCaptureAPITestCase):
         self.assert_access_log_recorded()
         # no token because the endpoint was not hit
         assert self.captured_logs[0].token_type == "None"
+        assert self.captured_logs[0].limit == "0"
+        assert self.captured_logs[0].remaining == "0"
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class TestAccessLogConcurrentRateLimited(LogCaptureAPITestCase):
 
     endpoint = "concurrent-ratelimit-endpoint"
 
     def test_concurrent_request_finishes(self):
         self._caplog.set_level(logging.INFO, logger="api.access")
-        self.get_success_response()
+        for i in range(10):
+            self.get_success_response()
         # these requests were done in succession, so we should not have any
         # rate limiting
         self.assert_access_log_recorded()
-        assert self.captured_logs[0].token_type == "None"
-        assert self.captured_logs[0].concurrent_requests == "1"
-        assert self.captured_logs[0].concurrent_limit == "1"
-        assert self.captured_logs[0].rate_limit_type == "RateLimitType.NOT_LIMITED"
-        self.get_success_response()
-        assert self.captured_logs[1].token_type == "None"
-        assert self.captured_logs[1].concurrent_requests == "1"
-        assert self.captured_logs[1].concurrent_limit == "1"
-        assert self.captured_logs[1].rate_limit_type == "RateLimitType.NOT_LIMITED"
+        for i in range(10):
+            assert self.captured_logs[i].token_type == "None"
+            assert self.captured_logs[i].concurrent_requests == "1"
+            assert self.captured_logs[i].concurrent_limit == "1"
+            assert self.captured_logs[i].rate_limit_type == "RateLimitType.NOT_LIMITED"
+            assert self.captured_logs[i].limit == "20"
+            # we cannot assert on the exact amount of remaining requests because
+            # we may be crossing a second boundary during our test. That would make things
+            # flaky.
+            assert int(self.captured_logs[i].remaining) < 20
 
 
 class TestAccessLogSuccess(LogCaptureAPITestCase):

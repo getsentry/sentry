@@ -10,7 +10,6 @@ from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscrip
 from sentry.models import Environment
 from sentry.search.events.fields import resolve_field_list
 from sentry.search.events.filter import get_filter
-from sentry.sentry_metrics.sessions import SessionMetricKey
 from sentry.sentry_metrics.utils import (
     MetricIndexNotFound,
     resolve,
@@ -20,6 +19,7 @@ from sentry.sentry_metrics.utils import (
     reverse_resolve,
 )
 from sentry.snuba.dataset import EntityKey
+from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
 from sentry.utils import metrics
 from sentry.utils.snuba import Dataset, resolve_column, resolve_snuba_aliases
@@ -246,7 +246,7 @@ class SessionsEntitySubscription(BaseEntitySubscription):
 class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
     dataset = QueryDatasets.METRICS
     entity_key: EntityKey
-    metric_key: SessionMetricKey
+    metric_key: SessionMRI
     aggregation_func: str
 
     def __init__(
@@ -267,19 +267,30 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         return [self.session_status]
 
     def get_granularity(self) -> int:
-        # Both time_window and granularity are in seconds
-        # Time windows <= 1h -> Granularity 10s
-        # Time windows > 1h & <= 4h -> Granularity 60s
-        # Time windows > 4h and <= 24h -> Granularity 1 hour
-        # Time windows > 24h -> Granularity 1 day
+        """
+        Both time_window and granularity are in seconds
+        Time windows <= 1h -> Granularity 10s
+        Time windows > 1h & <= 4h -> Granularity 60s
+        Time windows > 4h and <= 24h -> Granularity 1 hour
+        Time windows > 24h -> Granularity 1 day
+        """
+        # ToDo(ahmed): Uncomment this logic once we are through with the comparisons
+        # if self.time_window <= 3600:
+        #     granularity = 10
+        # elif self.time_window <= 4 * 3600:
+        #     granularity = 60
+        # elif 4 * 3600 < self.time_window <= 24 * 3600:
+        #     granularity = 3600
+        # else:
+        #     granularity = 24 * 3600
+
+        # ToDo(ahmed): Hack this out in favor of previous commented logic
+        # Adding this to enable sessions vs metrics crash rate alert comparisons as it only
+        # makes sense to compare against sessions crash rate alerts with these granularities
         if self.time_window <= 3600:
-            granularity = 10
-        elif self.time_window <= 4 * 3600:
             granularity = 60
-        elif 4 * 3600 < self.time_window <= 24 * 3600:
-            granularity = 3600
         else:
-            granularity = 24 * 3600
+            granularity = 3600
         return granularity
 
     def build_snuba_filter(
@@ -374,13 +385,13 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
 
 class MetricsCountersEntitySubscription(BaseMetricsEntitySubscription):
     entity_key: EntityKey = EntityKey.MetricsCounters
-    metric_key: SessionMetricKey = SessionMetricKey.SESSION
+    metric_key: SessionMRI = SessionMRI.SESSION
     aggregation_func: str = "sum"
 
 
 class MetricsSetsEntitySubscription(BaseMetricsEntitySubscription):
     entity_key: EntityKey = EntityKey.MetricsSets
-    metric_key: SessionMetricKey = SessionMetricKey.USER
+    metric_key: SessionMRI = SessionMRI.USER
     aggregation_func: str = "uniq"
 
 

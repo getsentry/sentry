@@ -3,6 +3,7 @@ from urllib.parse import urlencode
 
 from django.test import override_settings
 from django.urls import reverse
+from django.utils.http import urlquote
 from exam import fixture
 
 from sentry.auth.authenticators import RecoveryCodeInterface, TotpInterface
@@ -189,29 +190,42 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
             ("/organizations/foo/issues/", 302),
         ]
 
-    def test_flow_as_existing_identity_superuser_granted(self):
-        from sentry.auth.superuser import COOKIE_NAME, Superuser
+    def test_org_redirects_to_relative_next_url(self):
+        user = self.create_user("bar@example.com")
+        auth_provider = AuthProvider.objects.create(
+            organization=self.organization, provider="dummy"
+        )
+        AuthIdentity.objects.create(auth_provider=auth_provider, user=user, ident="foo@example.com")
+        next = f"/organizations/{self.organization.slug}/releases/"
+        resp = self.client.post(self.path + "?next=" + next, {"init": True})
+        assert resp.status_code == 200
+        assert self.provider.TEMPLATE in resp.content.decode("utf-8")
 
-        with mock.patch.object(Superuser, "org_id", self.organization.id), override_settings(
-            SUPERUSER_ORG_ID=self.organization.id
-        ):
-            user = self.create_user("bar@example.com", is_superuser=True)
-            auth_provider = AuthProvider.objects.create(
-                organization=self.organization, provider="dummy"
-            )
+        path = reverse("sentry-auth-sso")
+        resp = self.client.post(path, {"email": "foo@example.com"}, follow=True)
+        assert resp.redirect_chain == [
+            (next, 302),
+        ]
 
-            AuthIdentity.objects.create(
-                auth_provider=auth_provider, user=user, ident="foo@example.com"
-            )
+    def test_org_login_doesnt_redirect_external(self):
+        user = self.create_user("bar@example.com")
+        auth_provider = AuthProvider.objects.create(
+            organization=self.organization, provider="dummy"
+        )
+        AuthIdentity.objects.create(auth_provider=auth_provider, user=user, ident="foo@example.com")
 
-            resp = self.client.post(self.path, {"init": True})
+        next = "http://example.com"
 
-            assert resp.status_code == 200
+        resp = self.client.post(self.path + "?next=" + urlquote(next), {"init": True})
+        assert resp.status_code == 200
+        assert self.provider.TEMPLATE in resp.content.decode("utf-8")
 
-            path = reverse("sentry-auth-sso")
-            resp = self.client.post(path, {"email": "foo@example.com"})
-            # if the superuser session is active we'll set a signed cookie
-            assert COOKIE_NAME in resp.cookies
+        path = reverse("sentry-auth-sso")
+        resp = self.client.post(path, {"email": "foo@example.com"}, follow=True)
+        assert resp.redirect_chain == [
+            (reverse("sentry-login"), 302),
+            ("/organizations/foo/issues/", 302),
+        ]
 
     def test_flow_as_unauthenticated_existing_matched_user_no_merge(self):
         auth_provider = AuthProvider.objects.create(

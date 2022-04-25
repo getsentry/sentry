@@ -135,10 +135,12 @@ class AutoComplete<T extends Item> extends React.Component<Props<T>, State<T>> {
 
   componentWillUnmount() {
     window.clearTimeout(this.blurTimeout);
+    window.clearTimeout(this.cancelCloseTimeout);
   }
 
   items = new Map();
   blurTimeout: number | undefined = undefined;
+  cancelCloseTimeout: number | undefined = undefined;
   itemCount?: number;
 
   isControlled() {
@@ -276,12 +278,10 @@ class AutoComplete<T extends Item> extends React.Component<Props<T>, State<T>> {
     };
 
   handleMenuMouseDown() {
-    window.clearTimeout(this.blurTimeout);
+    window.clearTimeout(this.cancelCloseTimeout);
     // Cancel close menu from input blur (mouseDown event can occur before input blur :()
-    this.blurTimeout = window.setTimeout(() => {
-      if (this.blurTimeout) {
-        window.clearTimeout(this.blurTimeout);
-      }
+    this.cancelCloseTimeout = window.setTimeout(() => {
+      window.clearTimeout(this.blurTimeout);
     });
   }
 

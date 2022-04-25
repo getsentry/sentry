@@ -56,7 +56,7 @@ function Content({
     );
   }
 
-  const chartOptions = {
+  const chartOptions: Omit<LineChartProps, 'series'> = {
     grid: {
       left: '10px',
       right: '10px',
@@ -67,7 +67,7 @@ function Content({
       showSymbol: false,
     },
     tooltip: {
-      trigger: 'axis' as const,
+      trigger: 'axis',
       valueFormatter: tooltipFormatter,
     },
     xAxis: timeFrame

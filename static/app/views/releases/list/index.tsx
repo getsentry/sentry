@@ -7,19 +7,24 @@ import pick from 'lodash/pick';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import Alert from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import DatePageFilter from 'sentry/components/datePageFilter';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {getRelativeSummary} from 'sentry/components/organizations/timeRangeSelector/utils';
 import PageHeading from 'sentry/components/pageHeading';
 import Pagination from 'sentry/components/pagination';
+import {Panel} from 'sentry/components/panels';
+import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {ItemType} from 'sentry/components/smartSearchBar/types';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {releaseHealth} from 'sentry/data/platformCategories';
+import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {PageContent, PageHeader} from 'sentry/styles/organization';
@@ -40,6 +45,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
 import AsyncView from 'sentry/views/asyncView';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 import ReleaseArchivedNotice from '../detail/overview/releaseArchivedNotice';
 import {isMobileRelease} from '../utils';
@@ -76,13 +82,17 @@ class ReleasesList extends AsyncView<Props, State> {
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {organization, location} = this.props;
-    const {statsPeriod} = location.query;
+    const {statsPeriod, start, end, utc} = location.query;
     const activeSort = this.getSort();
     const activeStatus = this.getStatus();
 
     const query = {
       ...pick(location.query, ['project', 'environment', 'cursor', 'query', 'sort']),
       summaryStatsPeriod: statsPeriod,
+      statsPeriod,
+      start,
+      end,
+      utc,
       per_page: 20,
       flatten: activeSort === ReleasesSortOption.DATE ? 0 : 1,
       adoptionStages: 1,
@@ -284,35 +294,48 @@ class ReleasesList extends AsyncView<Props, State> {
   }
 
   renderEmptyMessage() {
-    const {location, organization, selection} = this.props;
-    const {statsPeriod} = location.query;
+    const {location} = this.props;
+    const {statsPeriod, start, end} = location.query;
     const searchQuery = this.getQuery();
     const activeSort = this.getSort();
     const activeStatus = this.getStatus();
 
+    const selectedPeriod =
+      !!start && !!end
+        ? t('time range')
+        : getRelativeSummary(statsPeriod || DEFAULT_STATS_PERIOD).toLowerCase();
+
     if (searchQuery && searchQuery.length) {
       return (
-        <EmptyStateWarning small>{`${t(
-          'There are no releases that match'
-        )}: '${searchQuery}'.`}</EmptyStateWarning>
+        <Panel>
+          <EmptyMessage icon={<IconSearch size="xl" />} size="large">{`${t(
+            'There are no releases that match'
+          )}: '${searchQuery}'.`}</EmptyMessage>
+        </Panel>
       );
     }
 
     if (activeSort === ReleasesSortOption.USERS_24_HOURS) {
       return (
-        <EmptyStateWarning small>
-          {t('There are no releases with active user data (users in the last 24 hours).')}
-        </EmptyStateWarning>
+        <Panel>
+          <EmptyMessage icon={<IconSearch size="xl" />} size="large">
+            {t(
+              'There are no releases with active user data (users in the last 24 hours).'
+            )}
+          </EmptyMessage>
+        </Panel>
       );
     }
 
     if (activeSort === ReleasesSortOption.SESSIONS_24_HOURS) {
       return (
-        <EmptyStateWarning small>
-          {t(
-            'There are no releases with active session data (sessions in the last 24 hours).'
-          )}
-        </EmptyStateWarning>
+        <Panel>
+          <EmptyMessage icon={<IconSearch size="xl" />} size="large">
+            {t(
+              'There are no releases with active session data (sessions in the last 24 hours).'
+            )}
+          </EmptyMessage>
+        </Panel>
       );
     }
 
@@ -321,37 +344,40 @@ class ReleasesList extends AsyncView<Props, State> {
       activeSort === ReleasesSortOption.SEMVER
     ) {
       return (
-        <EmptyStateWarning small>
-          {t('There are no releases with semantic versioning.')}
-        </EmptyStateWarning>
+        <Panel>
+          <EmptyMessage icon={<IconSearch size="xl" />} size="large">
+            {t('There are no releases with semantic versioning.')}
+          </EmptyMessage>
+        </Panel>
       );
     }
 
     if (activeSort !== ReleasesSortOption.DATE) {
-      const relativePeriod = getRelativeSummary(
-        statsPeriod || DEFAULT_STATS_PERIOD
-      ).toLowerCase();
-
       return (
-        <EmptyStateWarning small>
-          {`${t('There are no releases with data in the')} ${relativePeriod}.`}
-        </EmptyStateWarning>
+        <Panel>
+          <EmptyMessage icon={<IconSearch size="xl" />} size="large">
+            {`${t('There are no releases with data in the')} ${selectedPeriod}.`}
+          </EmptyMessage>
+        </Panel>
       );
     }
 
     if (activeStatus === ReleasesStatusOption.ARCHIVED) {
       return (
-        <EmptyStateWarning small>
-          {t('There are no archived releases.')}
-        </EmptyStateWarning>
+        <Panel>
+          <EmptyMessage icon={<IconSearch size="xl" />} size="large">
+            {t('There are no archived releases.')}
+          </EmptyMessage>
+        </Panel>
       );
     }
 
     return (
-      <ReleasesPromo
-        organization={organization}
-        projectId={selection.projects.filter(p => p !== ALL_ACCESS_PROJECTS)[0]}
-      />
+      <Panel>
+        <EmptyMessage icon={<IconSearch size="xl" />} size="large">
+          {`${t('There are no releases with data in the')} ${selectedPeriod}.`}
+        </EmptyMessage>
+      </Panel>
     );
   }
 
@@ -405,12 +431,24 @@ class ReleasesList extends AsyncView<Props, State> {
     const {location, selection, organization, router} = this.props;
     const {releases, reloading, releasesPageLinks} = this.state;
 
+    const selectedProject = this.getSelectedProject();
+    const hasReleasesSetup = selectedProject?.features.includes('releases');
+
     if (this.shouldShowLoadingIndicator()) {
       return <LoadingIndicator />;
     }
 
-    if (!releases?.length) {
+    if (!releases?.length && hasReleasesSetup) {
       return this.renderEmptyMessage();
+    }
+
+    if (!releases?.length && !hasReleasesSetup) {
+      return (
+        <ReleasesPromo
+          organization={organization}
+          projectId={selection.projects.filter(p => p !== ALL_ACCESS_PROJECTS)[0]}
+        />
+      );
     }
 
     return (
@@ -427,7 +465,6 @@ class ReleasesList extends AsyncView<Props, State> {
           const singleProjectSelected =
             selection.projects?.length === 1 &&
             selection.projects[0] !== ALL_ACCESS_PROJECTS;
-          const selectedProject = this.getSelectedProject();
           const isMobileProject =
             selectedProject?.platform && isMobileRelease(selectedProject.platform);
 
@@ -488,6 +525,7 @@ class ReleasesList extends AsyncView<Props, State> {
         timeRangeHint={t(
           'Changing this date range will recalculate the release metrics.'
         )}
+        hideGlobalHeader
       >
         <PageContent>
           <NoProjectMessage organization={organization}>
@@ -496,6 +534,12 @@ class ReleasesList extends AsyncView<Props, State> {
             </PageHeader>
 
             {this.renderHealthCta()}
+
+            <ReleasesPageFilterBar condensed>
+              <ProjectPageFilter />
+              <EnvironmentPageFilter />
+              <DatePageFilter alignDropdown="left" />
+            </ReleasesPageFilterBar>
 
             <SortAndFilterWrapper>
               <GuideAnchor
@@ -572,6 +616,10 @@ const AlertText = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     flex-direction: row;
   }
+`;
+
+const ReleasesPageFilterBar = styled(PageFilterBar)`
+  margin-bottom: ${space(1)};
 `;
 
 const SortAndFilterWrapper = styled('div')`

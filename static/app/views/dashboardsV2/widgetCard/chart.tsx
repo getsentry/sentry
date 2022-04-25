@@ -18,7 +18,7 @@ import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingM
 import {getSeriesSelection, processTableResults} from 'sentry/components/charts/utils';
 import {WorldMapChart} from 'sentry/components/charts/worldMapChart';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Placeholder from 'sentry/components/placeholder';
+import Placeholder, {PlaceholderProps} from 'sentry/components/placeholder';
 import Tooltip from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
@@ -32,10 +32,12 @@ import {
   getMeasurementSlug,
   isEquation,
   maybeEquationAlias,
+  stripDerivedMetricsPrefix,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {Theme} from 'sentry/utils/theme';
+import {eventViewFromWidget} from 'sentry/views/dashboardsV2/utils';
 
 import {DisplayType, Widget, WidgetType} from '../types';
 
@@ -112,32 +114,40 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
     errorMessage,
     tableResults,
   }: TableResultProps): React.ReactNode {
-    const {location, widget, organization} = this.props;
+    const {location, widget, organization, selection} = this.props;
     if (errorMessage) {
       return (
-        <ErrorPanel>
+        <StyledErrorPanel>
           <IconWarning color="gray500" size="lg" />
-        </ErrorPanel>
+        </StyledErrorPanel>
       );
     }
 
-    if (typeof tableResults === 'undefined' || loading) {
+    if (typeof tableResults === 'undefined') {
       // Align height to other charts.
-      return <LoadingPlaceholder height="200px" />;
+      return <LoadingPlaceholder />;
     }
 
     return tableResults.map((result, i) => {
-      const fields = widget.queries[i]?.fields ?? [];
+      const fields = widget.queries[i]?.fields?.map(stripDerivedMetricsPrefix) ?? [];
       const fieldAliases = widget.queries[i]?.fieldAliases ?? [];
+      const eventView = eventViewFromWidget(
+        widget.title,
+        widget.queries[0],
+        selection,
+        widget.displayType
+      );
 
       return (
         <StyledSimpleTableChart
           key={`table:${result.title}`}
+          eventView={eventView}
           fieldAliases={fieldAliases}
           location={location}
           fields={fields}
           title={tableResults.length > 1 ? result.title : ''}
           loading={loading}
+          loader={<LoadingPlaceholder />}
           metadata={result.meta}
           data={result.data}
           organization={organization}
@@ -157,9 +167,9 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
   }: TableResultProps): React.ReactNode {
     if (errorMessage) {
       return (
-        <ErrorPanel>
+        <StyledErrorPanel>
           <IconWarning color="gray500" size="lg" />
-        </ErrorPanel>
+        </StyledErrorPanel>
       );
     }
 
@@ -171,14 +181,15 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
     const {organization, widget, isMobile, expandNumbers} = this.props;
 
     return tableResults.map(result => {
-      const tableMeta = result.meta ?? {};
-      const fields = Object.keys(tableMeta ?? {});
+      const tableMeta = {...result.meta};
+      const fields = Object.keys(tableMeta);
 
       const field = fields[0];
 
-      // Change tableMeta for the field from integer to number so we it doesn't get shortened
-      if (!!expandNumbers && tableMeta[field] === 'integer') {
-        tableMeta[field] = 'number';
+      // Change tableMeta for the field from integer to string since we will be rendering with toLocaleString
+      const shouldExpandInteger = !!expandNumbers && tableMeta[field] === 'integer';
+      if (shouldExpandInteger) {
+        tableMeta[field] = 'string';
       }
 
       if (!field || !result.data.length) {
@@ -192,7 +203,9 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
         widget.widgetType !== WidgetType.METRICS
       );
 
-      const rendered = fieldRenderer(dataRow);
+      const rendered = fieldRenderer(
+        shouldExpandInteger ? {[field]: dataRow[field].toLocaleString()} : dataRow
+      );
 
       const isModalWidget = !!!(widget.id || widget.tempId);
       if (
@@ -257,6 +270,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
       organization,
       onZoom,
       legendOptions,
+      expandNumbers,
     } = this.props;
 
     if (widget.displayType === 'table') {
@@ -277,7 +291,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
           <LoadingScreen loading={loading} />
           <BigNumberResizeWrapper
             ref={el => {
-              if (el !== null) {
+              if (el !== null && !!!expandNumbers) {
                 const {height} = el.getBoundingClientRect();
                 this.setState({containerHeight: height});
               }
@@ -291,9 +305,9 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
 
     if (errorMessage) {
       return (
-        <ErrorPanel>
+        <StyledErrorPanel>
           <IconWarning color="gray500" size="lg" />
-        </ErrorPanel>
+        </StyledErrorPanel>
       );
     }
 
@@ -381,9 +395,9 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
         {zoomRenderProps => {
           if (errorMessage) {
             return (
-              <ErrorPanel>
+              <StyledErrorPanel>
                 <IconWarning color="gray500" size="lg" />
-              </ErrorPanel>
+              </StyledErrorPanel>
             );
           }
 
@@ -443,6 +457,8 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
   }
 }
 
+export default withTheme(WidgetCardChart);
+
 const StyledTransparentLoadingMask = styled(props => (
   <TransparentLoadingMask {...props} maskBackgroundColor="transparent" />
 ))`
@@ -461,7 +477,10 @@ const LoadingScreen = ({loading}: {loading: boolean}) => {
     </StyledTransparentLoadingMask>
   );
 };
-const LoadingPlaceholder = styled(Placeholder)`
+
+const LoadingPlaceholder = styled(({className}: PlaceholderProps) => (
+  <Placeholder height="200px" className={className} />
+))`
   background-color: ${p => p.theme.surface200};
 `;
 
@@ -499,4 +518,6 @@ const StyledSimpleTableChart = styled(SimpleTableChart)`
   box-shadow: none;
 `;
 
-export default withTheme(WidgetCardChart);
+const StyledErrorPanel = styled(ErrorPanel)`
+  padding: ${space(2)};
+`;

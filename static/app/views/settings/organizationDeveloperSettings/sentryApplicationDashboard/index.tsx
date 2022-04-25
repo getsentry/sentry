@@ -3,7 +3,7 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {BarChart} from 'sentry/components/charts/barChart';
-import {LineChart} from 'sentry/components/charts/lineChart';
+import {LineChart, LineChartSeries} from 'sentry/components/charts/lineChart';
 import DateTime from 'sentry/components/dateTime';
 import Link from 'sentry/components/links/link';
 import {Panel, PanelBody, PanelFooter, PanelHeader} from 'sentry/components/panels';
@@ -211,16 +211,18 @@ type InteractionsChartProps = {
   };
 };
 const InteractionsChart = ({data}: InteractionsChartProps) => {
-  const elementInteractionsSeries = Object.keys(data).map((key: string) => {
-    const seriesData = data[key].map(point => ({
-      value: point[1],
-      name: point[0] * 1000,
-    }));
-    return {
-      seriesName: key,
-      data: seriesData,
-    };
-  });
+  const elementInteractionsSeries: LineChartSeries[] = Object.keys(data).map(
+    (key: string) => {
+      const seriesData = data[key].map(point => ({
+        value: point[1],
+        name: point[0] * 1000,
+      }));
+      return {
+        seriesName: key,
+        data: seriesData,
+      };
+    }
+  );
 
   return (
     <ChartWrapper>

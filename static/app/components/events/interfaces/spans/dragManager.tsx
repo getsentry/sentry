@@ -1,6 +1,7 @@
 import * as React from 'react';
 
 import {clamp, rectOfContent} from 'sentry/components/performance/waterfall/utils';
+import {PerformanceInteraction} from 'sentry/utils/performanceForSentry';
 import {setBodyUserSelect, UserSelectValues} from 'sentry/utils/userselect';
 
 // we establish the minimum window size so that the window size of 0% is not possible
@@ -108,6 +109,8 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
         return;
       }
 
+      PerformanceInteraction.startInteraction('SpanTreeHandleDrag');
+
       // prevent the user from selecting things outside the minimap when dragging
       // the mouse cursor outside the minimap
 
@@ -190,6 +193,8 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
       return;
     }
 
+    PerformanceInteraction.finishInteraction();
+
     // remove listeners that were attached in onDragStart
 
     this.cleanUpListeners();
@@ -236,6 +241,8 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
     if (isDragging || event.type !== 'mousedown' || !this.hasInteractiveLayer()) {
       return;
     }
+
+    PerformanceInteraction.startInteraction('SpanTreeWindowDrag');
 
     // prevent the user from selecting things outside the minimap when dragging
     // the mouse cursor outside the minimap
@@ -307,6 +314,8 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
     ) {
       return;
     }
+
+    PerformanceInteraction.finishInteraction();
 
     // remove listeners that were attached in onWindowSelectionDragStart
 

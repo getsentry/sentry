@@ -1,3 +1,4 @@
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesForm';
@@ -10,7 +11,7 @@ import {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/ty
 import {generateIssueWidgetOrderOptions} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/utils';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
-import {DataSet, RESULTS_LIMIT, SortDirection} from '../../utils';
+import {DataSet, getResultsLimit, SortDirection} from '../../utils';
 import {BuildStep} from '../buildStep';
 
 import {SortBySelectors} from './sortBySelectors';
@@ -41,6 +42,16 @@ export function SortByStep({
   onLimitChange,
 }: Props) {
   const orderBy = queries[0].orderby;
+  const maxLimit = getResultsLimit(queries.length, queries[0].aggregates.length);
+
+  useEffect(() => {
+    if (!limit) {
+      return;
+    }
+    if (limit > maxLimit) {
+      onLimitChange(maxLimit);
+    }
+  }, [limit, maxLimit]);
 
   if (widgetBuilderNewDesign) {
     return (
@@ -62,7 +73,7 @@ export function SortByStep({
               <ResultsLimitSelector
                 name="resultsLimit"
                 menuPlacement="auto"
-                options={[...Array(RESULTS_LIMIT).keys()].map(resultLimit => {
+                options={[...Array(maxLimit).keys()].map(resultLimit => {
                   const value = resultLimit + 1;
                   return {
                     label: tn('Limit to %s result', 'Limit to %s results', value),
@@ -78,16 +89,16 @@ export function SortByStep({
           <SortBySelectors
             widgetType={widgetType}
             sortByOptions={
-              dataSet === DataSet.EVENTS
-                ? generateOrderOptions({
+              dataSet === DataSet.ISSUES
+                ? generateIssueWidgetOrderOptions(
+                    organization.features.includes('issue-list-trend-sort')
+                  )
+                : generateOrderOptions({
                     widgetType,
                     widgetBuilderNewDesign: true,
                     columns: queries[0].columns,
                     aggregates: queries[0].aggregates,
                   })
-                : generateIssueWidgetOrderOptions(
-                    organization.features.includes('issue-list-trend-sort')
-                  )
             }
             values={{
               sortDirection:

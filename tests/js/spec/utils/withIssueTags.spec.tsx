@@ -35,7 +35,7 @@ describe('withIssueTags HoC', function () {
     expect(await screen.findByText(/ForwardedValue: value/)).toBeInTheDocument();
 
     act(() => {
-      TagStore.onLoadTagsSuccess([
+      TagStore.loadTagsSuccess([
         {name: 'MechanismTag', key: 'mechanism', values: ['MechanismTagValue']},
       ]);
     });
@@ -57,7 +57,7 @@ describe('withIssueTags HoC', function () {
     render(<Container forwardedValue="value" />);
 
     act(() => {
-      TagStore.onLoadTagsSuccess([
+      TagStore.loadTagsSuccess([
         {name: 'MechanismTag', key: 'mechanism', values: ['MechanismTagValue']},
       ]);
     });

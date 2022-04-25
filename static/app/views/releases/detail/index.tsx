@@ -360,6 +360,7 @@ class ReleasesDetailContainer extends AsyncComponent<
         showProjectSettingsLink
         projectsFooterMessage={this.renderProjectsFooterMessage()}
         showDateSelector={false}
+        hideGlobalHeader
       >
         <ReleasesDetail {...this.props} releaseMeta={releaseMeta} />
       </PageFiltersContainer>

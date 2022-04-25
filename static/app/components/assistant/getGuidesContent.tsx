@@ -233,28 +233,9 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
       ],
     },
     {
-      guide: 'percentage_based_alerts',
-      requiredTargets: ['percentage_based_alerts'],
-      steps: [
-        {
-          title: t('Percentage Based Alerts'),
-          target: 'percentage_based_alerts',
-          description: tct(
-            'View the event count as a percentage of sessions and alert on this number to adapt to changes in traffic patterns. [link:View the docs] to learn more.',
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/product/alerts/create-alerts/issue-alert-config/#when-conditions-triggers" />
-              ),
-            }
-          ),
-          nextText: t('Got it'),
-        },
-      ],
-    },
-    {
       guide: 'semver',
       requiredTargets: ['releases_search'],
-      dateThreshold: new Date(2021, 6, 1),
+      dateThreshold: new Date('2021-05-01'),
       steps: [
         {
           title: t('Filter by Semver'),
@@ -275,7 +256,7 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
     {
       guide: 'release_stages',
       requiredTargets: ['release_stages'],
-      dateThreshold: new Date(2021, 6, 1),
+      dateThreshold: new Date('2021-05-01'),
       steps: [
         {
           title: t('Adoption Filter'),
@@ -290,6 +271,30 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
             }
           ),
           nextText: t('Got it'),
+        },
+      ],
+    },
+    {
+      guide: 'new_page_filters',
+      requiredTargets: ['new_page_filter_button'],
+      expectedTargets: ['new_page_filter_pin'],
+      dateThreshold: new Date('2022-04-05'),
+      steps: [
+        {
+          title: t('Selection filters here now!'),
+          target: 'new_page_filter_button',
+          description: t(
+            "Selection filters were at the top of the page. Now they're here. Because this is what's getting filtered. Obvi."
+          ),
+          nextText: t('Sounds Good'),
+        },
+        {
+          title: t('Pin your filters'),
+          target: 'new_page_filter_pin',
+          description: t(
+            "Want to keep the same filters between searches and sessions? Click this button. Don't want to? Don't click this button."
+          ),
+          nextText: t('Got It'),
         },
       ],
     },

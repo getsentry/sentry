@@ -53,7 +53,7 @@ PROFILE_FILTERS = {
     "device_os_build_number",
     "device_os_name",
     "device_os_version",
-    "error_code",
+    "platform",
     "transaction_name",
     "version",
 }

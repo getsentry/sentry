@@ -52,17 +52,17 @@ class ConcurrentRateLimiter:
                 "Could not start request", dict(key=redis_key, limit=limit, request_uid=request_uid)
             )
             return ConcurrentLimitInfo(limit, -1, False)
-
-        logger.info(
-            "Cleaned up concurrent executions: %s",
-            cleaned_up_requests,
-            extra={
-                "cleaned_up_requests": cleaned_up_requests,
-                "key": key,
-                "limit": limit,
-                "request_uid": request_uid,
-            },
-        )
+        if cleaned_up_requests != 0:
+            logger.info(
+                "Cleaned up concurrent executions: %s",
+                cleaned_up_requests,
+                extra={
+                    "cleaned_up_requests": cleaned_up_requests,
+                    "key": key,
+                    "limit": limit,
+                    "request_uid": request_uid,
+                },
+            )
         return ConcurrentLimitInfo(limit, int(current_executions), not bool(request_allowed))
 
     def get_concurrent_requests(self, key: str) -> int:

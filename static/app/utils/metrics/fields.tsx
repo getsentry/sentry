@@ -6,6 +6,7 @@ export enum SessionMetric {
   SESSION = 'sentry.sessions.session',
   SESSION_DURATION = 'sentry.sessions.session.duration',
   SESSION_ERROR = 'sentry.sessions.session.error',
+  SESSION_CRASH_FREE_RATE = 'session.crash_free_rate',
   USER = 'sentry.sessions.user',
 }
 
@@ -41,6 +42,7 @@ export const METRIC_TO_COLUMN_TYPE: Readonly<
   [SessionMetric.SESSION_ERROR]: 'integer',
   [SessionMetric.SESSION_DURATION]: 'duration',
   [SessionMetric.SESSION]: 'integer',
+  [SessionMetric.SESSION_CRASH_FREE_RATE]: 'percentage',
 
   // Transaction metrics
   [TransactionMetric.USER]: 'integer',

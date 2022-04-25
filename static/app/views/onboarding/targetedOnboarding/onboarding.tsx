@@ -8,12 +8,12 @@ import Hook from 'sentry/components/hook';
 import Link from 'sentry/components/links/link';
 import LogoSentry from 'sentry/components/logoSentry';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import Redirect from 'sentry/utils/redirect';
 import testableTransition from 'sentry/utils/testableTransition';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
@@ -74,44 +74,42 @@ function Onboarding(props: Props) {
   const stepObj = ONBOARDING_STEPS.find(({id}) => stepId === id);
   const stepIndex = ONBOARDING_STEPS.findIndex(({id}) => stepId === id);
 
-  if (!stepObj || stepIndex === -1) {
-    return <div>Can't find</div>;
-  }
-
   const cornerVariantControl = useAnimation();
   const updateCornerVariant = () => {
     // TODO: find better way to delay the corner animation
     window.clearTimeout(cornerVariantTimeoutRed.current);
 
     cornerVariantTimeoutRed.current = window.setTimeout(
-      () => cornerVariantControl.start(activeStepIndex === 0 ? 'top-right' : 'top-left'),
+      () => cornerVariantControl.start(stepIndex === 0 ? 'top-right' : 'top-left'),
       1000
     );
   };
 
   useEffect(updateCornerVariant, []);
-  const [platforms, setPlatforms] = useState<PlatformKey[]>([]);
 
   const [containerHasFooter, setContainerHasFooter] = useState<boolean>(false);
   const updateAnimationState = () => {
+    if (!stepObj) {
+      return;
+    }
+
     setContainerHasFooter(stepObj.hasFooter ?? false);
     cornerVariantControl.start(stepObj.cornerVariant);
   };
 
   useEffect(updateAnimationState, []);
 
-  const addPlatform = (platform: PlatformKey) => {
-    setPlatforms([...platforms, platform]);
-  };
-
-  const removePlatform = (platform: PlatformKey) => {
-    setPlatforms(platforms.filter(p => p !== platform));
-  };
-  useEffect(updateCornerVariant, []);
-
-  const clearPlatforms = () => setPlatforms([]);
+  if (!stepObj || stepIndex === -1) {
+    return (
+      <Redirect to={`/onboarding/${organization.slug}/${ONBOARDING_STEPS[0].id}/`} />
+    );
+  }
 
   const goToStep = (step: StepDescriptor) => {
+    if (!stepObj) {
+      return;
+    }
+
     if (step.cornerVariant !== stepObj.cornerVariant) {
       cornerVariantControl.start('none');
     }
@@ -128,10 +126,13 @@ function Onboarding(props: Props) {
     browserHistory.push(`/onboarding/${props.params.orgId}/${nextStep.id}/`);
   };
 
-  const activeStepIndex = ONBOARDING_STEPS.findIndex(({id}) => props.params.step === id);
-
   const handleGoBack = () => {
-    const previousStep = ONBOARDING_STEPS[activeStepIndex - 1];
+    if (!stepObj) {
+      return;
+    }
+
+    const previousStep = ONBOARDING_STEPS[stepIndex - 1];
+
     if (stepObj.cornerVariant !== previousStep.cornerVariant) {
       cornerVariantControl.start('none');
     }
@@ -155,8 +156,11 @@ function Onboarding(props: Props) {
     );
   };
 
+  if (!stepObj || stepIndex === -1) {
+    return <div>Can't find</div>;
+  }
   return (
-    <main data-test-id="targeted-onboarding">
+    <OnboardingWrapper data-test-id="targeted-onboarding">
       <SentryDocumentTitle title={stepObj.title} />
       <Header>
         <LogoSvg />
@@ -173,26 +177,19 @@ function Onboarding(props: Props) {
         </UpsellWrapper>
       </Header>
       <Container hasFooter={containerHasFooter}>
-        <Back
-          animate={activeStepIndex > 0 ? 'visible' : 'hidden'}
-          onClick={handleGoBack}
-        />
+        <Back animate={stepIndex > 0 ? 'visible' : 'hidden'} onClick={handleGoBack} />
         <AnimatePresence exitBeforeEnter onExitComplete={updateAnimationState}>
           <OnboardingStep key={stepObj.id} data-test-id={`onboarding-step-${stepObj.id}`}>
             {stepObj.Component && (
               <stepObj.Component
                 active
-                stepIndex={activeStepIndex}
+                stepIndex={stepIndex}
                 onComplete={() => goNextStep(stepObj)}
                 orgId={props.params.orgId}
                 organization={props.organization}
                 search={props.location.search}
                 {...{
-                  platforms,
-                  addPlatform,
-                  removePlatform,
                   genSkipOnboardingLink,
-                  clearPlatforms,
                 }}
               />
             )}
@@ -200,11 +197,14 @@ function Onboarding(props: Props) {
         </AnimatePresence>
         <AdaptivePageCorners animateVariant={cornerVariantControl} />
       </Container>
-    </main>
+    </OnboardingWrapper>
   );
 }
 
 const Container = styled('div')<{hasFooter: boolean}>`
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
   position: relative;
   background: ${p => p.theme.background};
   padding: 120px ${space(3)};
@@ -232,7 +232,11 @@ const LogoSvg = styled(LogoSentry)`
   color: ${p => p.theme.textColor};
 `;
 
-const OnboardingStep = styled(motion.div)``;
+const OnboardingStep = styled(motion.div)`
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+`;
 
 OnboardingStep.defaultProps = {
   initial: 'initial',
@@ -272,6 +276,9 @@ const StyledStepper = styled(Stepper)`
   margin-left: auto;
   margin-right: auto;
   align-self: center;
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+    display: none;
+  }
 `;
 
 interface BackButtonProps extends Omit<ButtonProps, 'icon' | 'priority'> {
@@ -320,6 +327,12 @@ const SkipOnboardingLink = styled(Link)`
 const UpsellWrapper = styled('div')`
   grid-column: 3;
   margin-left: auto;
+`;
+
+const OnboardingWrapper = styled('main')`
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
 `;
 
 export default withOrganization(withProjects(Onboarding));

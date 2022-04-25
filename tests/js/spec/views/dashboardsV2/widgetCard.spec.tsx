@@ -1,6 +1,6 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as modal from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
@@ -132,7 +132,7 @@ describe('Dashboards > WidgetCard', function () {
 
     userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Open in Discover')).toBeInTheDocument();
-    userEvent.click(screen.getByRole('menuitemradio', {name: 'Open in Discover'}));
+    userEvent.click(screen.getByText('Open in Discover'));
     expect(router.push).toHaveBeenCalledWith(
       '/organizations/org-slug/discover/results/?environment=prod&field=count%28%29&field=failure_count%28%29&name=Errors&project=1&query=event.type%3Aerror&statsPeriod=14d&yAxis=count%28%29&yAxis=failure_count%28%29'
     );
@@ -171,7 +171,7 @@ describe('Dashboards > WidgetCard', function () {
 
     userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Open in Discover')).toBeInTheDocument();
-    userEvent.click(screen.getByRole('menuitemradio', {name: 'Open in Discover'}));
+    userEvent.click(screen.getByText('Open in Discover'));
     expect(router.push).toHaveBeenCalledWith(
       '/organizations/org-slug/discover/results/?display=worldmap&environment=prod&field=geo.country_code&field=count%28%29&name=Errors&project=1&query=event.type%3Aerror%20has%3Ageo.country_code&statsPeriod=14d&yAxis=count%28%29'
     );
@@ -213,7 +213,7 @@ describe('Dashboards > WidgetCard', function () {
 
     userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Open in Discover')).toBeInTheDocument();
-    userEvent.click(screen.getByRole('menuitemradio', {name: 'Open in Discover'}));
+    userEvent.click(screen.getByText('Open in Discover'));
     expect(router.push).toHaveBeenCalledWith(
       '/organizations/org-slug/discover/results/?environment=prod&field=count_if%28transaction.duration%2Cequals%2C300%29&field=failure_count%28%29&field=count%28%29&field=equation%7C%28count%28%29%20%2B%20failure_count%28%29%29%20%2F%20count_if%28transaction.duration%2Cequals%2C300%29&name=Errors&project=1&query=event.type%3Aerror&statsPeriod=14d&yAxis=equation%7C%28count%28%29%20%2B%20failure_count%28%29%29%20%2F%20count_if%28transaction.duration%2Cequals%2C300%29'
     );
@@ -252,7 +252,7 @@ describe('Dashboards > WidgetCard', function () {
 
     userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Open in Discover')).toBeInTheDocument();
-    userEvent.click(screen.getByRole('menuitemradio', {name: 'Open in Discover'}));
+    userEvent.click(screen.getByText('Open in Discover'));
     expect(router.push).toHaveBeenCalledWith(
       '/organizations/org-slug/discover/results/?display=top5&environment=prod&field=transaction&field=count%28%29&name=Errors&project=1&query=event.type%3Aerror&statsPeriod=14d&yAxis=count%28%29'
     );
@@ -559,5 +559,54 @@ describe('Dashboards > WidgetCard', function () {
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({pathname: '/mock-pathname/widget/10/'})
     );
+  });
+
+  it('renders stored data disclaimer', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/eventsv2/',
+      body: {
+        meta: {title: 'string', isMetricsData: false},
+        data: [{title: 'title'}],
+      },
+    });
+
+    render(
+      <WidgetCard
+        api={api}
+        organization={{
+          ...organization,
+          features: [...organization.features, 'dashboards-mep'],
+        }}
+        widget={{
+          ...multipleQueryWidget,
+          displayType: DisplayType.TABLE,
+          queries: [{...multipleQueryWidget.queries[0]}],
+        }}
+        selection={selection}
+        isEditing={false}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        onDuplicate={() => undefined}
+        renderErrorMessage={() => undefined}
+        isSorting={false}
+        currentWidgetDragging={false}
+        showContextMenu
+        widgetLimitReached={false}
+        showStoredAlert
+      />,
+      {context: routerContext}
+    );
+
+    await waitFor(() => {
+      // Badge in the widget header
+      expect(screen.getByText('Stored')).toBeInTheDocument();
+    });
+
+    await waitFor(() => {
+      expect(
+        // Alert below the widget
+        screen.getByText(/we've automatically adjusted your results/i)
+      ).toBeInTheDocument();
+    });
   });
 });

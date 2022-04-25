@@ -53,11 +53,17 @@ class OrganizationProfilingFiltersEndpoint(OrganizationEndpoint):
         if not features.has("organizations:profiling", organization, actor=request.user):
             return Response(status=404)
 
-        params = {}
-        projects = self.get_projects(request, organization)
+        try:
+            params = parse_profile_filters(request.query_params.get("query", ""))
+        except InvalidSearchQuery as err:
+            return Response(str(err), status=400)
 
-        if len(projects) > 0:
-            params["project"] = [p.id for p in projects]
+        params.update(
+            {
+                key: value.isoformat() if key in {"start", "end"} else value
+                for key, value in self.get_filter_params(request, organization).items()
+            }
+        )
 
         return proxy_profiling_service(
             "GET", f"/organizations/{organization.id}/filters", params=params

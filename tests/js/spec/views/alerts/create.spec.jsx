@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import selectEvent from 'react-select-event';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -88,9 +87,9 @@ describe('ProjectAlertsCreate', function () {
 
   it('redirects to wizard', function () {
     const location = {query: {}};
-    createWrapper(undefined, location);
+    const wrapper = createWrapper(undefined, location);
 
-    expect(browserHistory.replace).toHaveBeenCalledWith(
+    expect(wrapper.router.replace).toHaveBeenCalledWith(
       '/organizations/org-slug/alerts/project-slug/wizard'
     );
   });
@@ -293,8 +292,7 @@ describe('ProjectAlertsCreate', function () {
 
         await waitFor(() => {
           expect(wrapper.router.push).toHaveBeenCalledWith({
-            pathname: '/organizations/org-slug/alerts/rules/',
-            query: {project: '2'},
+            pathname: '/organizations/org-slug/alerts/rules/project-slug/1/details/',
           });
         });
       });
@@ -346,8 +344,7 @@ describe('ProjectAlertsCreate', function () {
 
         await waitFor(() => {
           expect(wrapper.router.push).toHaveBeenCalledWith({
-            pathname: '/organizations/org-slug/alerts/rules/',
-            query: {project: '2'},
+            pathname: '/organizations/org-slug/alerts/rules/project-slug/1/details/',
           });
         });
       });
@@ -396,8 +393,7 @@ describe('ProjectAlertsCreate', function () {
 
         await waitFor(() => {
           expect(wrapper.router.push).toHaveBeenCalledWith({
-            pathname: '/organizations/org-slug/alerts/rules/',
-            query: {project: '2'},
+            pathname: '/organizations/org-slug/alerts/rules/project-slug/1/details/',
           });
         });
       });
@@ -446,8 +442,7 @@ describe('ProjectAlertsCreate', function () {
 
         await waitFor(() => {
           expect(wrapper.router.push).toHaveBeenCalledWith({
-            pathname: '/organizations/org-slug/alerts/rules/',
-            query: {project: '2'},
+            pathname: '/organizations/org-slug/alerts/rules/project-slug/1/details/',
           });
         });
       });

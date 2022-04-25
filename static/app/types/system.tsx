@@ -1,6 +1,7 @@
 import type {FocusTrap} from 'focus-trap';
 
 import type exportGlobals from 'sentry/bootstrap/exportGlobals';
+import {Theme} from 'sentry/utils/theme';
 
 import type {User} from './user';
 
@@ -9,6 +10,7 @@ export enum SentryInitRenderReactComponent {
   SETUP_WIZARD = 'SetupWizard',
   SYSTEM_ALERTS = 'SystemAlerts',
   U2F_SIGN = 'U2fSign',
+  SU_ACCESS_FORM = 'SuperuserAccessForm',
 }
 
 export type OnSentryInitConfiguration =
@@ -127,7 +129,7 @@ export interface Config {
   /**
    * This comes from django (django.contrib.messages)
    */
-  messages: {level: string; message: string}[];
+  messages: {level: keyof Theme['alert']; message: string}[];
   needsUpgrade: boolean;
 
   privacyUrl: string | null;

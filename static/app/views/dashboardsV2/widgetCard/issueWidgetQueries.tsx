@@ -11,16 +11,11 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {queryToObj} from 'sentry/utils/stream';
-import {
-  DISCOVER_EXCLUSION_FIELDS,
-  IssueDisplayOptions,
-  IssueSortOptions,
-} from 'sentry/views/issueList/utils';
+import {DISCOVER_EXCLUSION_FIELDS, IssueSortOptions} from 'sentry/views/issueList/utils';
 
 import {DEFAULT_TABLE_LIMIT, Widget, WidgetQuery} from '../types';
 
 const DEFAULT_SORT = IssueSortOptions.DATE;
-const DEFAULT_DISPLAY = IssueDisplayOptions.EVENTS;
 const DEFAULT_EXPAND = ['owners'];
 
 type EndpointParams = Partial<PageFilters['datetime']> & {
@@ -28,7 +23,6 @@ type EndpointParams = Partial<PageFilters['datetime']> & {
   project: number[];
   collapse?: string[];
   cursor?: string;
-  display?: string;
   expand?: string[];
   groupStatsPeriod?: string | null;
   limit?: number;
@@ -52,6 +46,11 @@ type Props = {
   widget: Widget;
   cursor?: string;
   limit?: number;
+  onDataFetched?: (results: {
+    issuesResults?: TableDataRow[];
+    pageLinks?: string;
+    totalIssuesCount?: string;
+  }) => void;
 };
 
 type State = {
@@ -59,7 +58,7 @@ type State = {
   loading: boolean;
   memberListStoreLoaded: boolean;
   pageLinks: null | string;
-  tableResults: Group[];
+  tableResults: TableDataRow[];
   totalCount: null | string;
 };
 
@@ -102,7 +101,6 @@ class IssueWidgetQueries extends React.Component<Props, State> {
       !isEqual(widget.displayType, prevProps.widget.displayType) ||
       !isEqual(widget.interval, prevProps.widget.interval) ||
       !isEqual(widgetQueries, prevWidgetQueries) ||
-      !isEqual(widget.displayType, prevProps.widget.displayType) ||
       !isSelectionEqual(selection, prevProps.selection) ||
       cursor !== prevProps.cursor
     ) {
@@ -123,9 +121,8 @@ class IssueWidgetQueries extends React.Component<Props, State> {
     }, undefined),
   ];
 
-  transformTableResults(): TableDataRow[] {
+  transformTableResults(tableResults: Group[]): TableDataRow[] {
     const {selection, widget} = this.props;
-    const {tableResults} = this.state;
     GroupStore.add(tableResults);
     const transformedTableResults: TableDataRow[] = [];
     tableResults.forEach(
@@ -206,7 +203,8 @@ class IssueWidgetQueries extends React.Component<Props, State> {
   }
 
   async fetchIssuesData() {
-    const {selection, api, organization, widget, limit, cursor} = this.props;
+    const {selection, api, organization, widget, limit, cursor, onDataFetched} =
+      this.props;
     this.setState({tableResults: []});
     // Issue Widgets only support single queries
     const query = widget.queries[0];
@@ -216,7 +214,6 @@ class IssueWidgetQueries extends React.Component<Props, State> {
       environment: selection.environments,
       query: query.conditions,
       sort: query.orderby || DEFAULT_SORT,
-      display: DEFAULT_DISPLAY,
       expand: DEFAULT_EXPAND,
       limit: limit ?? DEFAULT_TABLE_LIMIT,
       cursor,
@@ -243,12 +240,20 @@ class IssueWidgetQueries extends React.Component<Props, State> {
           ...params,
         },
       });
+      const tableResults = this.transformTableResults(data);
+      const totalCount = resp?.getResponseHeader('X-Hits') ?? null;
+      const pageLinks = resp?.getResponseHeader('Link') ?? null;
       this.setState({
         loading: false,
         errorMessage: undefined,
-        tableResults: data,
-        totalCount: resp?.getResponseHeader('X-Hits') ?? null,
-        pageLinks: resp?.getResponseHeader('Link') ?? null,
+        tableResults,
+        totalCount,
+        pageLinks,
+      });
+      onDataFetched?.({
+        issuesResults: tableResults,
+        totalIssuesCount: totalCount ?? undefined,
+        pageLinks: pageLinks ?? undefined,
       });
     } catch (response) {
       const errorResponse = response?.responseJSON?.detail ?? null;
@@ -267,13 +272,18 @@ class IssueWidgetQueries extends React.Component<Props, State> {
 
   render() {
     const {children} = this.props;
-    const {loading, errorMessage, memberListStoreLoaded, pageLinks, totalCount} =
-      this.state;
-    const transformedResults = this.transformTableResults();
+    const {
+      tableResults,
+      loading,
+      errorMessage,
+      memberListStoreLoaded,
+      pageLinks,
+      totalCount,
+    } = this.state;
     return getDynamicText({
       value: children({
         loading: loading || !memberListStoreLoaded,
-        transformedResults,
+        transformedResults: tableResults,
         errorMessage,
         pageLinks,
         totalCount: totalCount ?? undefined,

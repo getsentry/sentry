@@ -55,7 +55,7 @@ class ExternalIssue(Model):
     # The foreign key here is an `int`, not `bigint`.
     integration = FlexibleForeignKey("sentry.Integration", db_constraint=False)
 
-    key = models.CharField(max_length=128)  # example APP-123 in jira
+    key = models.CharField(max_length=256)  # example APP-123 in jira
     date_added = models.DateTimeField(default=timezone.now)
     title = models.TextField(null=True)
     description = models.TextField(null=True)

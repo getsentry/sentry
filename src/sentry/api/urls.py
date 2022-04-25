@@ -91,7 +91,7 @@ from .endpoints.broadcast_index import BroadcastIndexEndpoint
 from .endpoints.builtin_symbol_sources import BuiltinSymbolSourcesEndpoint
 from .endpoints.catchall import CatchallEndpoint
 from .endpoints.chunk import ChunkUploadEndpoint
-from .endpoints.client_state import ClientStateEndpoint
+from .endpoints.client_state import ClientStateEndpoint, ClientStateListEndpoint
 from .endpoints.codeowners import (
     ExternalTeamDetailsEndpoint,
     ExternalTeamEndpoint,
@@ -345,6 +345,7 @@ from .endpoints.project_agnostic_rule_conditions import ProjectAgnosticRuleCondi
 from .endpoints.project_app_store_connect_credentials import (
     AppStoreConnectAppsEndpoint,
     AppStoreConnectCreateCredentialsEndpoint,
+    AppStoreConnectRefreshEndpoint,
     AppStoreConnectStatusEndpoint,
     AppStoreConnectUpdateCredentialsEndpoint,
 )
@@ -1589,6 +1590,11 @@ urlpatterns = [
                     ),
                 ),
                 url(
+                    r"^(?P<organization_slug>[^/]+)/client-state/$",
+                    ClientStateListEndpoint.as_view(),
+                    name="sentry-api-0-organization-client-state-list",
+                ),
+                url(
                     r"^(?P<organization_slug>[^/]+)/client-state/(?P<category>[^\/]+)/$",
                     ClientStateEndpoint.as_view(),
                     name="sentry-api-0-organization-client-state",
@@ -2160,6 +2166,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/(?P<credentials_id>[^\/]+)/$",
                     AppStoreConnectUpdateCredentialsEndpoint.as_view(),
                     name="sentry-api-0-project-appstoreconnect-credentials-update",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/(?P<credentials_id>[^\/]+)/refresh/$",
+                    AppStoreConnectRefreshEndpoint.as_view(),
+                    name="sentry-api-0-project-appstoreconnect-refresh",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/profiling/profiles/(?P<profile_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",

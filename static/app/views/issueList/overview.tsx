@@ -68,7 +68,6 @@ import {
   getTabs,
   getTabsWithCounts,
   isForReviewQuery,
-  IssueDisplayOptions,
   IssueSortOptions,
   Query,
   QueryCounts,
@@ -77,7 +76,6 @@ import {
 
 const MAX_ITEMS = 25;
 const DEFAULT_SORT = IssueSortOptions.DATE;
-const DEFAULT_DISPLAY = IssueDisplayOptions.EVENTS;
 // the default period for the graph in each issue row
 const DEFAULT_GRAPH_STATS_PERIOD = '24h';
 // the allowed period choices for graph in each issue row
@@ -101,7 +99,7 @@ type Props = {
 
 type State = {
   actionTaken: boolean;
-  actionTakenIds: string[];
+  actionTakenGroupData: Group[];
   error: string | null;
   // TODO(Kelly): remove forReview once issue-list-removal-action feature is stable
   forReview: boolean;
@@ -125,6 +123,7 @@ type State = {
   reviewedIds: string[];
   selectAllActive: boolean;
   tagsLoading: boolean;
+  undo: boolean;
   // Will be set to true if there is valid session data from issue-stats api call
   query?: string;
 };
@@ -133,7 +132,6 @@ type EndpointParams = Partial<PageFilters['datetime']> & {
   environment: string[];
   project: number[];
   cursor?: string;
-  display?: string;
   groupStatsPeriod?: string | null;
   page?: number | string;
   query?: string;
@@ -165,8 +163,9 @@ class IssueListOverview extends React.Component<Props, State> {
       // TODO(Kelly): remove reviewedIds and forReview once issue-list-removal-action feature is stable
       reviewedIds: [],
       actionTaken: false,
-      actionTakenIds: [],
+      actionTakenGroupData: [],
       forReview: false,
+      undo: false,
       selectAllActive: false,
       realtimeActive,
       pageLinks: '',
@@ -211,12 +210,6 @@ class IssueListOverview extends React.Component<Props, State> {
     if (!isEqual(prevProps.selection.projects, this.props.selection.projects)) {
       this.fetchMemberList();
       this.fetchTags();
-      // Reset display when selecting multiple projects
-      const projects = this.props.selection.projects ?? [];
-      const hasMultipleProjects = projects.length !== 1 || projects[0] === -1;
-      if (hasMultipleProjects && this.getDisplay() !== DEFAULT_DISPLAY) {
-        this.transitionTo({display: undefined});
-      }
     }
 
     // TODO(Kelly): remove once issue-list-removal-action feature is stable
@@ -315,21 +308,6 @@ class IssueListOverview extends React.Component<Props, State> {
     return DEFAULT_SORT;
   }
 
-  getDisplay(): IssueDisplayOptions {
-    const {organization, location} = this.props;
-
-    if (organization.features.includes('issue-percent-display')) {
-      if (
-        location.query.display &&
-        Object.values(IssueDisplayOptions).includes(location.query.display)
-      ) {
-        return location.query.display as IssueDisplayOptions;
-      }
-    }
-
-    return DEFAULT_DISPLAY;
-  }
-
   getGroupStatsPeriod(): string {
     let currentPeriod: string;
     if (typeof this.props.location.query?.groupStatsPeriod === 'string') {
@@ -370,11 +348,6 @@ class IssueListOverview extends React.Component<Props, State> {
     const sort = this.getSort();
     if (sort !== DEFAULT_SORT) {
       params.sort = sort;
-    }
-
-    const display = this.getDisplay();
-    if (display !== DEFAULT_DISPLAY) {
-      params.display = display;
     }
 
     const groupStatsPeriod = this.getGroupStatsPeriod();
@@ -422,9 +395,6 @@ class IssueListOverview extends React.Component<Props, State> {
     // If no stats period values are set, use default
     if (!requestParams.statsPeriod && !requestParams.start) {
       requestParams.statsPeriod = DEFAULT_STATS_PERIOD;
-    }
-    if (this.props.organization.features.includes('issue-percent-display')) {
-      requestParams.expand = 'sessions';
     }
 
     this._lastStatsRequest = this.props.api.request(this.getGroupStatsEndpoint(), {
@@ -519,10 +489,8 @@ class IssueListOverview extends React.Component<Props, State> {
               })),
             };
           },
-          error: err => {
-            this.setState({
-              error: parseApiError(err),
-            });
+          error: () => {
+            this.setState({queryCounts: {}});
           },
           complete: () => {
             this._lastFetchCountsRequest = null;
@@ -543,7 +511,7 @@ class IssueListOverview extends React.Component<Props, State> {
 
     // TODO(Kelly): update once issue-list-removal-action feature is stable
     if (hasIssueListRemovalAction && !this.state.realtimeActive) {
-      if (!this.state.actionTaken) {
+      if (!this.state.actionTaken && !this.state.undo) {
         GroupStore.loadInitialData([]);
         this._streamManager.reset();
 
@@ -636,6 +604,9 @@ class IssueListOverview extends React.Component<Props, State> {
           return;
         }
 
+        if (this.state.undo) {
+          GroupStore.loadInitialData(data);
+        }
         this._streamManager.push(data);
 
         // TODO(Kelly): update once issue-list-removal-action feature is stable
@@ -692,7 +663,7 @@ class IssueListOverview extends React.Component<Props, State> {
 
         // TODO(Kelly): update once issue-list-removal-action feature is stable
         if (hasIssueListRemovalAction && !this.state.realtimeActive) {
-          this.setState({actionTaken: false, actionTakenIds: []});
+          this.setState({actionTaken: false, undo: false});
         } else {
           this.setState({forReview: false});
         }
@@ -759,7 +730,7 @@ class IssueListOverview extends React.Component<Props, State> {
 
   onGroupChange() {
     const {organization} = this.props;
-    const {actionTakenIds} = this.state;
+    const {actionTakenGroupData} = this.state;
     const query = this.getQuery();
     const hasIssueListRemovalAction = organization.features.includes(
       'issue-list-removal-action'
@@ -769,10 +740,10 @@ class IssueListOverview extends React.Component<Props, State> {
     if (
       hasIssueListRemovalAction &&
       !this.state.realtimeActive &&
-      actionTakenIds.length > 0
+      actionTakenGroupData.length > 0
     ) {
       const filteredItems = this._streamManager.getAllItems().filter(item => {
-        return actionTakenIds.indexOf(item.id) !== -1;
+        return actionTakenGroupData.findIndex(data => data.id === item.id) !== -1;
       });
 
       const resolvedIds = filteredItems
@@ -843,13 +814,6 @@ class IssueListOverview extends React.Component<Props, State> {
 
   onSortChange = (sort: string) => {
     this.transitionTo({sort});
-  };
-
-  onDisplayChange = (display: string) => {
-    this.transitionTo({display});
-    trackAdvancedAnalyticsEvent('search.display_changed', {
-      organization: this.props.organization,
-    });
   };
 
   onCursorChange: CursorHandler = (nextCursor, _path, _query, delta) => {
@@ -984,7 +948,6 @@ class IssueListOverview extends React.Component<Props, State> {
           displayReprocessingLayout={displayReprocessingLayout}
           useFilteredStats
           showInboxTime={showInboxTime}
-          display={this.getDisplay()}
         />
       );
     });
@@ -1063,6 +1026,59 @@ class IssueListOverview extends React.Component<Props, State> {
     this.fetchData(true);
   };
 
+  onUndo = () => {
+    const {organization, selection} = this.props;
+    const {actionTakenGroupData} = this.state;
+    const query = this.getQuery();
+
+    const groupIds = actionTakenGroupData.map(data => data.id);
+    const projectIds = selection?.projects?.map(p => p.toString());
+    const endpoint = `/organizations/${organization.slug}/issues/`;
+
+    if (this._lastRequest) {
+      this._lastRequest.cancel();
+    }
+    if (this._lastStatsRequest) {
+      this._lastStatsRequest.cancel();
+    }
+    if (this._lastFetchCountsRequest) {
+      this._lastFetchCountsRequest.cancel();
+    }
+
+    this.props.api.request(endpoint, {
+      method: 'PUT',
+      data: {
+        status: 'unresolved',
+      },
+      query: {
+        project: projectIds,
+        id: groupIds,
+      },
+      success: response => {
+        if (!response) {
+          return;
+        }
+        // If on the Ignore or For Review tab, adding back to the GroupStore will make the issue show up
+        // on this page for a second and then be removed (will show up on All Unresolved). This is to
+        // stop this from happening and avoid confusion.
+        if (!query.includes('is:ignored') && !isForReviewQuery(query)) {
+          GroupStore.add(actionTakenGroupData);
+        }
+        this.setState({undo: true});
+      },
+      error: err => {
+        this.setState({
+          error: parseApiError(err),
+          issuesLoading: false,
+        });
+      },
+      complete: () => {
+        this.setState({actionTakenGroupData: []});
+        this.fetchData();
+      },
+    });
+  };
+
   onMarkReviewed = (itemIds: string[]) => {
     const {organization} = this.props;
     const query = this.getQuery();
@@ -1103,8 +1119,9 @@ class IssueListOverview extends React.Component<Props, State> {
   };
 
   onActionTaken = (itemIds: string[]) => {
+    const actionTakenGroupData = itemIds.map(id => GroupStore.get(id) as Group);
     this.setState({
-      actionTakenIds: itemIds,
+      actionTakenGroupData,
     });
   };
 
@@ -1112,10 +1129,14 @@ class IssueListOverview extends React.Component<Props, State> {
     if (itemIds.length > 1) {
       addMessage(t(`${actionType} ${itemIds.length} Issues`), 'success', {
         duration: 4000,
+        ...(actionType !== 'Reviewed' && {undo: this.onUndo}),
       });
     } else {
       const shortId = itemIds.map(item => GroupStore.get(item)?.shortId).toString();
-      addMessage(t(`${actionType} ${shortId}`), 'success', {duration: 4000});
+      addMessage(t(`${actionType} ${shortId}`), 'success', {
+        duration: 4000,
+        ...(actionType !== 'Reviewed' && {undo: this.onUndo}),
+      });
     }
 
     GroupStore.remove(itemIds);
@@ -1222,18 +1243,14 @@ class IssueListOverview extends React.Component<Props, State> {
               <IssueListFilters
                 organization={organization}
                 query={query}
-                queryCount={queryCount}
                 savedSearch={savedSearch}
                 sort={this.getSort()}
-                display={this.getDisplay()}
-                onDisplayChange={this.onDisplayChange}
                 onSortChange={this.onSortChange}
                 onSearch={this.onSearch}
                 onSidebarToggle={this.onSidebarToggle}
                 isSearchDisabled={isSidebarVisible}
                 tagValueLoader={this.tagValueLoader}
                 tags={tags}
-                selectedProjects={selection.projects}
               />
 
               <Panel>
@@ -1251,6 +1268,8 @@ class IssueListOverview extends React.Component<Props, State> {
                   groupIds={groupIds}
                   allResultsVisible={this.allResultsVisible()}
                   displayReprocessingActions={displayReprocessingActions}
+                  sort={this.getSort()}
+                  onSortChange={this.onSortChange}
                 />
                 <PanelBody>
                   <ProcessingIssueList

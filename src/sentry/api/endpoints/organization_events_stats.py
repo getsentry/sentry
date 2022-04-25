@@ -75,8 +75,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
     def get_features(self, organization: Organization, request: Request) -> Mapping[str, bool]:
         feature_names = [
             "organizations:performance-chart-interpolation",
-            "organizations:discover-use-snql",
             "organizations:performance-use-metrics",
+            "organizations:performance-dry-run-mep",
         ]
         batch_features = features.batch_has(
             feature_names,
@@ -125,6 +125,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
             # the start of the bucket does not align with the rollup.
             allow_partial_buckets = request.GET.get("partial") == "1"
 
+            include_other = request.GET.get("excludeOther") != "1"
+
             referrer = request.GET.get("referrer")
             referrer = (
                 referrer
@@ -132,12 +134,14 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                 else "api.organization-event-stats"
             )
             batch_features = self.get_features(organization, request)
-            discover_snql = batch_features.get("organizations:discover-use-snql", False)
             has_chart_interpolation = batch_features.get(
                 "organizations:performance-chart-interpolation", False
             )
             performance_use_metrics = batch_features.get(
                 "organizations:performance-use-metrics", False
+            )
+            performance_dry_run_mep = batch_features.get(
+                "organizations:performance-dry-run-mep", False
             )
 
             metrics_enhanced = request.GET.get("metricsEnhanced") == "1" and performance_use_metrics
@@ -166,21 +170,23 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                     referrer=referrer + ".find-topn",
                     allow_empty=False,
                     zerofill_results=zerofill_results,
-                    include_other=True,
-                    use_snql=discover_snql,
+                    include_other=include_other,
                 )
             dataset = discover if not metrics_enhanced else metrics_enhanced_performance
-            return dataset.timeseries_query(
-                selected_columns=query_columns,
-                query=query,
-                params=params,
-                rollup=rollup,
-                referrer=referrer,
-                zerofill_results=zerofill_results,
-                comparison_delta=comparison_delta,
-                allow_metric_aggregates=allow_metric_aggregates,
-                use_snql=discover_snql,
-            )
+            query_details = {
+                "selected_columns": query_columns,
+                "query": query,
+                "params": params,
+                "rollup": rollup,
+                "referrer": referrer,
+                "zerofill_results": zerofill_results,
+                "comparison_delta": comparison_delta,
+                "allow_metric_aggregates": allow_metric_aggregates,
+            }
+            if not metrics_enhanced and performance_dry_run_mep:
+                sentry_sdk.set_tag("query.mep_compatible", False)
+                metrics_enhanced_performance.timeseries_query(dry_run=True, **query_details)
+            return dataset.timeseries_query(**query_details)
 
         try:
             return Response(

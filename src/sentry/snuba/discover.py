@@ -209,12 +209,13 @@ def query(
     referrer=None,
     auto_fields=False,
     auto_aggregations=False,
+    include_equation_fields=False,
     allow_metric_aggregates=False,
     use_aggregate_conditions=False,
     conditions=None,
     extra_snql_condition=None,
     functions_acl=None,
-    use_snql=False,
+    use_snql=True,
 ):
     """
     High-level API for doing arbitrary user queries against events.
@@ -237,6 +238,8 @@ def query(
     auto_fields (bool) Set to true to have project + eventid fields automatically added.
     auto_aggregations (bool) Whether aggregates should be added automatically if they're used
                     in conditions, and there's at least one aggregate already.
+    include_equation_fields (bool) Whether fields should be added automatically if they're used in
+                    equations
     allow_metric_aggregates (bool) Ignored here, only used in metric enhanced performance
     use_aggregate_conditions (bool) Set to true if aggregates conditions should be used at all.
     conditions (Sequence[any]) List of conditions that are passed directly to snuba without
@@ -250,8 +253,6 @@ def query(
 
     sentry_sdk.set_tag("discover.use_snql", use_snql)
     if use_snql:
-        # temporarily add snql to referrer
-        referrer = f"{referrer}.wip-snql"
         builder = QueryBuilder(
             Dataset.Discover,
             params,
@@ -265,6 +266,7 @@ def query(
             functions_acl=functions_acl,
             limit=limit,
             offset=offset,
+            equation_config={"auto_add": include_equation_fields},
         )
         if extra_snql_condition is not None:
             builder.add_conditions(extra_snql_condition)
@@ -276,6 +278,8 @@ def query(
             result = transform_results(result, builder.function_alias_map, {}, None)
         return result
 
+    # temporarily add old-json to referrer
+    referrer = f"{referrer}.old-json"
     # We clobber this value throughout this code, so copy the value
     selected_columns = selected_columns[:]
 
@@ -287,6 +291,7 @@ def query(
         orderby,
         auto_fields,
         auto_aggregations,
+        include_equation_fields,
         use_aggregate_conditions,
         conditions,
         functions_acl,
@@ -330,6 +335,7 @@ def prepare_discover_query(
     orderby=None,
     auto_fields=False,
     auto_aggregations=False,
+    include_equation_fields=False,
     use_aggregate_conditions=False,
     conditions=None,
     functions_acl=None,
@@ -347,8 +353,11 @@ def prepare_discover_query(
             snuba_filter.having = []
 
     with sentry_sdk.start_span(op="discover.discover", description="query.field_translations"):
+        resolved_columns = selected_columns
         if equations is not None:
-            resolved_equations, _, _ = resolve_equation_list(equations, selected_columns)
+            resolved_equations, resolved_columns, _ = resolve_equation_list(
+                equations, selected_columns, auto_add=include_equation_fields
+            )
         else:
             resolved_equations = []
 
@@ -357,7 +366,7 @@ def prepare_discover_query(
             snuba_filter.orderby = [get_function_alias(o) for o in orderby]
 
         resolved_fields = resolve_field_list(
-            selected_columns,
+            resolved_columns,
             snuba_filter,
             auto_fields=auto_fields,
             auto_aggregations=auto_aggregations,
@@ -486,7 +495,7 @@ def timeseries_query(
     comparison_delta: Optional[timedelta] = None,
     functions_acl: Optional[Sequence[str]] = None,
     allow_metric_aggregates=False,
-    use_snql: Optional[bool] = False,
+    use_snql: Optional[bool] = True,
 ):
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -518,8 +527,6 @@ def timeseries_query(
         with sentry_sdk.start_span(
             op="discover.discover", description="timeseries.filter_transform"
         ) as span:
-            # temporarily add snql to referrer
-            referrer = f"{referrer}.wip-snql"
             equations, columns = categorize_columns(selected_columns)
             base_builder = TimeseriesQueryBuilder(
                 Dataset.Discover,
@@ -580,6 +587,9 @@ def timeseries_query(
 
         result = results[0]
         return SnubaTSResult({"data": result}, params["start"], params["end"], rollup)
+
+    # temporarily add old-json to referrer
+    referrer = f"{referrer}.old-json"
 
     with sentry_sdk.start_span(
         op="discover.discover", description="timeseries.filter_transform"
@@ -687,7 +697,7 @@ def top_events_timeseries(
     zerofill_results=True,
     include_other=False,
     functions_acl=None,
-    use_snql=False,
+    use_snql=True,
 ):
     """
     High-level API for doing arbitrary user timeseries queries for a limited number of top events
@@ -726,11 +736,10 @@ def top_events_timeseries(
                 auto_aggregations=True,
                 use_aggregate_conditions=True,
                 use_snql=use_snql,
+                include_equation_fields=True,
             )
 
     if use_snql:
-        # temporarily add snql to referrer
-        referrer = f"{referrer}.wip-snql"
         top_events_builder = TopEventsQueryBuilder(
             Dataset.Discover,
             params,
@@ -826,6 +835,9 @@ def top_events_timeseries(
                 )
 
         return results
+
+    # temporarily add old-json to referrer
+    referrer = f"{referrer}.old-json"
 
     with sentry_sdk.start_span(
         op="discover.discover", description="top_events.filter_transform"
@@ -1044,7 +1056,7 @@ def get_facets(
     params: ParamsType,
     referrer: str,
     limit: Optional[int] = TOP_KEYS_DEFAULT_LIMIT,
-    use_snql: Optional[bool] = False,
+    use_snql: Optional[bool] = True,
 ):
     """
     High-level API for getting 'facet map' results.
@@ -1062,8 +1074,6 @@ def get_facets(
     """
     sentry_sdk.set_tag("discover.use_snql", use_snql)
     if use_snql:
-        # temporarily add snql to referrer
-        referrer = f"{referrer}.wip-snql"
         sample = len(params["project_id"]) > 2
 
         with sentry_sdk.start_span(op="discover.discover", description="facets.frequent_tags"):
@@ -1179,7 +1189,11 @@ def get_facets(
                     ]
                 )
 
-        return results
+        # Need to cast tuple values to str since the value might be None
+        return sorted(results, key=lambda result: (str(result.key), str(result.value)))
+
+    # temporarily add old-json to referrer
+    referrer = f"{referrer}.old-json"
 
     with sentry_sdk.start_span(
         op="discover.discover", description="facets.filter_transform"
@@ -1342,7 +1356,7 @@ def spans_histogram_query(
     group_by=None,
     order_by=None,
     limit_by=None,
-    extra_snql_condition=None,
+    extra_condition=None,
     normalize_results=True,
 ):
     """
@@ -1361,7 +1375,7 @@ def spans_histogram_query(
     :param [str] group_by: Allows additional grouping to serve multifacet histograms.
     :param [str] order_by: Allows additional ordering within each alias to serve multifacet histograms.
     :param [str] limit_by: Allows limiting within a group when serving multifacet histograms.
-    :param [Condition] extra_snql_condition: Adds any additional conditions to the histogram query
+    :param [Condition] extra_condition: Adds any additional conditions to the histogram query
     :param bool normalize_results: Indicate whether to normalize the results by column into bins.
     """
     multiplier = int(10 ** precision)
@@ -1397,8 +1411,8 @@ def spans_histogram_query(
         orderby=order_by,
         limitby=limit_by,
     )
-    if extra_snql_condition is not None:
-        builder.add_conditions(extra_snql_condition)
+    if extra_condition is not None:
+        builder.add_conditions(extra_condition)
     results = builder.run_query(referrer)
 
     if not normalize_results:
@@ -1424,7 +1438,7 @@ def histogram_query(
     extra_conditions=None,
     extra_snql_condition=None,
     normalize_results=True,
-    use_snql=False,
+    use_snql=True,
 ):
     """
     API for generating histograms for numeric columns.
@@ -1487,8 +1501,6 @@ def histogram_query(
         )
 
     if use_snql:
-        # temporarily add snql to referrer
-        referrer = f"{referrer}.wip-snql"
         builder = HistogramQueryBuilder(
             num_buckets,
             histogram_column,
@@ -1509,6 +1521,8 @@ def histogram_query(
             builder.add_conditions(extra_snql_condition)
         results = builder.run_query(referrer)
     else:
+        # temporarily add old-json to referrer
+        referrer = f"{referrer}.old-json"
         conditions = []
         if key_column is not None:
             key_alias = get_function_alias(key_column)
@@ -1657,31 +1671,35 @@ def find_span_histogram_min_max(span, min_value, max_value, user_query, params, 
     :param {str: str} params: Filtering parameters with start, end, project_id, environment
     :param str data_filter: Indicate the filter strategy to be applied to the data.
     """
-
     if min_value is not None and max_value is not None:
         return min_value, max_value
 
     selected_columns = []
     min_column = ""
     max_column = ""
+    outlier_lower_fence = ""
+    outlier_upper_fence = ""
     if min_value is None:
         min_column = f'fn_span_exclusive_time("{span.op}", {span.group}, min)'
         selected_columns.append(min_column)
     if max_value is None:
         max_column = f'fn_span_exclusive_time("{span.op}", {span.group}, max)'
         selected_columns.append(max_column)
+    if data_filter == "exclude_outliers":
+        outlier_lower_fence = f'fn_span_exclusive_time("{span.op}", {span.group}, quantile(0.25))'
+        outlier_upper_fence = f'fn_span_exclusive_time("{span.op}", {span.group}, quantile(0.75))'
+        selected_columns.append(outlier_lower_fence)
+        selected_columns.append(outlier_upper_fence)
 
-    referrer = "api.organization-spans-histogram-min-max"
-    builder = QueryBuilder(
-        dataset=Dataset.Discover,
-        params=params,
+    results = query(
         selected_columns=selected_columns,
         query=user_query,
+        params=params,
         limit=1,
+        referrer="api.organization-spans-histogram-min-max",
         functions_acl=["fn_span_exclusive_time"],
     )
 
-    results = builder.run_query(referrer)
     data = results.get("data")
 
     # there should be exactly 1 row in the results, but if something went wrong here,
@@ -1706,18 +1724,39 @@ def find_span_histogram_min_max(span, min_value, max_value, user_query, params, 
         calculated_max_value = row[get_function_alias(max_column)]
         max_value = calculated_max_value if calculated_max_value else None
 
-    if max_value is not None and min_value is not None:
-        # min_value may be either queried or provided by the user. max_value was queried.
-        # If min_value > max_value, then max_value should be adjusted with respect to
-        # min_value, since min_value is a lower bound, and any and all data below
-        # min_value should be ignored.
-        max_value = max([max_value, min_value])
+        max_fence_value = None
+        if data_filter == "exclude_outliers":
+            outlier_lower_fence_alias = get_function_alias(outlier_lower_fence)
+            outlier_upper_fence_alias = get_function_alias(outlier_upper_fence)
+
+            first_quartile = row[outlier_lower_fence_alias]
+            third_quartile = row[outlier_upper_fence_alias]
+
+            if (
+                first_quartile is not None
+                or third_quartile is not None
+                or not math.isnan(first_quartile)
+                or not math.isnan(third_quartile)
+            ):
+                interquartile_range = abs(third_quartile - first_quartile)
+                upper_outer_fence = third_quartile + 3 * interquartile_range
+                max_fence_value = upper_outer_fence
+
+        candidates = [max_fence_value, max_value]
+        candidates = list(filter(lambda v: v is not None, candidates))
+        max_value = min(candidates) if candidates else None
+        if max_value is not None and min_value is not None:
+            # min_value may be either queried or provided by the user. max_value was queried.
+            # If min_value > max_value, then max_value should be adjusted with respect to
+            # min_value, since min_value is a lower bound, and any and all data below
+            # min_value should be ignored.
+            max_value = max([max_value, min_value])
 
     return min_value, max_value
 
 
 def find_histogram_min_max(
-    fields, min_value, max_value, user_query, params, data_filter=None, use_snql=False
+    fields, min_value, max_value, user_query, params, data_filter=None, use_snql=True
 ):
     """
     Find the min/max value of the specified fields. If either min/max is already

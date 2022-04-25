@@ -125,7 +125,7 @@ function VitalChartMetrics({
 
             const seriesMax = getMaxOfSeries(smoothedSeries);
             const yAxisMax = Math.max(seriesMax, vitalPoor);
-            chartOptions.yAxis.max = yAxisMax * 1.1;
+            chartOptions.yAxis!.max = yAxisMax * 1.1;
 
             return (
               <ReleaseSeries

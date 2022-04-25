@@ -17,7 +17,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 };
 
 type RouteParams = {
-  projectId: string;
+  projectId?: string;
 };
 
 function AlertBuilderProjectProvider(props: Props) {
@@ -25,11 +25,21 @@ function AlertBuilderProjectProvider(props: Props) {
   useScrollToTop({location: props.location});
 
   const {children, params, organization, ...other} = props;
-  const {projectId} = params;
-  const {projects, initiallyLoaded, fetching, fetchError} = useProjects({
-    slugs: [projectId],
-  });
-  const project = projects.find(({slug}) => slug === projectId);
+  const projectId = params.projectId || props.location.query.project;
+  const hasAlertWizardV3 = organization.features.includes('alert-wizard-v3');
+  const useFirstProject = hasAlertWizardV3 && projectId === undefined;
+
+  // calling useProjects() without args fetches all projects
+  const {projects, initiallyLoaded, fetching, fetchError} = useProjects(
+    useFirstProject
+      ? undefined
+      : {
+          slugs: [projectId],
+        }
+  );
+  const project = useFirstProject
+    ? projects.find(p => p)
+    : projects.find(({slug}) => slug === projectId);
 
   useEffect(() => {
     if (!project) {
@@ -56,6 +66,7 @@ function AlertBuilderProjectProvider(props: Props) {
         ...other,
         ...children.props,
         project,
+        projectId: useFirstProject ? project.slug : projectId,
         organization,
       })
     : children;

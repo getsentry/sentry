@@ -31,10 +31,12 @@ import {
 } from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import AnomaliesQuery from 'sentry/utils/performance/anomalies/anomaliesQuery';
+import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
 
+import {getMEPQueryParams} from '../../landing/widgets/utils';
 import {
   anomaliesRouteWithQuery,
   ANOMALY_FLAG,
@@ -53,7 +55,7 @@ type ContainerProps = WithRouterProps & {
 
 type Props = Pick<ContainerProps, 'organization' | 'isLoading' | 'error' | 'totals'> & {
   chartData: {
-    chartOptions: Record<string, any>;
+    chartOptions: Omit<LineChartProps, 'series'>;
     errored: boolean;
     loading: boolean;
     reloading: boolean;
@@ -229,6 +231,7 @@ function SidebarChartsContainer({
 }: ContainerProps) {
   const api = useApi();
   const theme = useTheme();
+  const mepSetting = useMEPSettingContext();
 
   const colors = theme.charts.getColorPalette(3);
   const statsPeriod = eventView.statsPeriod;
@@ -252,7 +255,7 @@ function SidebarChartsContainer({
     },
   };
 
-  const chartOptions = {
+  const chartOptions: Omit<LineChartProps, 'series'> = {
     height: 480,
     grid: [
       {
@@ -280,7 +283,7 @@ function SidebarChartsContainer({
     },
     xAxes: Array.from(new Array(3)).map((_i, index) => ({
       gridIndex: index,
-      type: 'time' as const,
+      type: 'time',
       show: false,
     })),
     yAxes: [
@@ -289,7 +292,7 @@ function SidebarChartsContainer({
         gridIndex: 0,
         interval: 0.2,
         axisLabel: {
-          formatter: (value: number) => formatFloat(value, 1),
+          formatter: (value: number) => `${formatFloat(value, 1)}`,
           color: theme.chartLabel,
         },
         ...axisLineConfig,
@@ -320,9 +323,9 @@ function SidebarChartsContainer({
     utc,
     isGroupedByDate: true,
     showTimeInTooltip: true,
-    colors: [colors[0], colors[1], colors[2]] as string[],
+    colors: [colors[0], colors[1], colors[2]],
     tooltip: {
-      trigger: 'axis' as const,
+      trigger: 'axis',
       truncate: 80,
       valueFormatter: tooltipFormatter,
       nameFormatter(value: string) {
@@ -368,6 +371,7 @@ function SidebarChartsContainer({
       yAxis={['apdex()', 'failure_rate()', 'epm()']}
       partial
       referrer="api.performance.transaction-summary.sidebar-chart"
+      queryExtras={getMEPQueryParams(mepSetting)}
     >
       {({results, errored, loading, reloading}) => {
         const series = results

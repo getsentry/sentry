@@ -17,7 +17,7 @@ QUERY_AGGREGATION_DISPLAY = {
 }
 
 
-def incident_attachment_info(incident, new_status: IncidentStatus, metric_value=None):
+def incident_attachment_info(incident, new_status: IncidentStatus, metric_value=None, unfurl=False):
     logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
     alert_rule = incident.alert_rule
 
@@ -71,15 +71,22 @@ def incident_attachment_info(incident, new_status: IncidentStatus, metric_value=
 
     title = f"{status}: {alert_rule.name}"
 
-    title_link = absolute_uri(
-        reverse(
-            "sentry-metric-alert",
-            kwargs={
-                "organization_slug": incident.organization.slug,
-                "incident_id": incident.identifier,
-            },
+    if unfurl:
+        # this URL is needed for the Slack unfurl, but nothing else
+        title_link = absolute_uri(
+            f"organizations/{incident.organization.slug}/alerts/rules/details/{incident.identifier}"
         )
-    )
+
+    else:
+        title_link = absolute_uri(
+            reverse(
+                "sentry-metric-alert",
+                kwargs={
+                    "organization_slug": incident.organization.slug,
+                    "incident_id": incident.identifier,
+                },
+            )
+        )
 
     return {
         "title": title,

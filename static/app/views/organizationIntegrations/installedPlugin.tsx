@@ -25,7 +25,7 @@ import {
 import {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrationAnalyticsEvents';
 import withApi from 'sentry/utils/withApi';
 
-export type Props = {
+type Props = {
   api: Client;
   onPluginEnableStatusChange: (projectId: string, status: boolean) => void;
   onResetConfiguration: (projectId: string) => void;

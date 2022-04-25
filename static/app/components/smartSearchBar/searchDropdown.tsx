@@ -70,6 +70,7 @@ class SearchDropdown extends PureComponent<Props> {
       <SearchItemTitleWrapper>
         {item.title && item.title + ' · '}
         <Description>{this.renderDescription(item)}</Description>
+        <Documentation>{item.documentation}</Documentation>
       </SearchItemTitleWrapper>
     </SearchListItem>
   );
@@ -194,4 +195,11 @@ const SearchItemTitleWrapper = styled('div')`
 const Description = styled('span')`
   font-size: ${p => p.theme.fontSizeSmall};
   font-family: ${p => p.theme.text.familyMono};
+`;
+
+const Documentation = styled('span')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-family: ${p => p.theme.text.familyMono};
+  float: right;
+  color: ${p => p.theme.gray300};
 `;

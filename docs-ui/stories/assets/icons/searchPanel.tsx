@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import Fuse from 'fuse.js';
 import debounce from 'lodash/debounce';
 
-import TextField from 'app/components/deprecatedforms/textField';
-import space from 'app/styles/space';
+import TextField from 'sentry/components/deprecatedforms/textField';
+import space from 'sentry/styles/space';
 
 import {IconData, iconGroups, IconPropName, iconProps, icons} from './data';
 import IconInfoBox from './infoBox';

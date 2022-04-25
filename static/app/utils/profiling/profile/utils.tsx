@@ -1,3 +1,6 @@
+import {Span} from '@sentry/types';
+
+import {defined} from 'sentry/utils';
 import {Frame} from 'sentry/utils/profiling/frame';
 
 type FrameIndex = Record<string | number, Frame>;
@@ -93,4 +96,20 @@ export function memoizeVariadicByReference<Arguments, Value>(
     cache.value = fn(...args);
     return cache.value;
   };
+}
+
+export function wrapWithSpan<T>(parentSpan: Span | undefined, fn: () => T, options): T {
+  if (!defined(parentSpan)) {
+    return fn();
+  }
+
+  const sentrySpan = parentSpan.startChild(options);
+  try {
+    return fn();
+  } catch (error) {
+    sentrySpan.setStatus('internal_error');
+    throw error;
+  } finally {
+    sentrySpan.finish();
+  }
 }

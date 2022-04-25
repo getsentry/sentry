@@ -13,7 +13,7 @@ import {
   getColumnsAndAggregates,
 } from 'sentry/utils/discover/fields';
 import {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
-import IssuesSearchBar from 'sentry/views/dashboardsV2/widgetBuilder/buildSteps/filterResultsStep/issuesSearchBar';
+import {IssuesSearchBar} from 'sentry/views/dashboardsV2/widgetBuilder/buildSteps/filterResultsStep/issuesSearchBar';
 import {generateIssueWidgetOrderOptions} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/utils';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';

@@ -96,6 +96,10 @@ class IssueSyncListElement extends React.Component<Props> {
                 display: flex;
                 align-items: center;
                 min-width: 0; /* flex-box overflow workaround */
+
+                svg {
+                  flex-shrink: 0;
+                }
               `}
               header={this.props.hoverCardHeader}
               body={this.props.hoverCardBody}

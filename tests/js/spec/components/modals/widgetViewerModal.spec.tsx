@@ -7,6 +7,8 @@ import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import WidgetViewerModal from 'sentry/components/modals/widgetViewerModal';
 import MemberListStore from 'sentry/stores/memberListStore';
 import space from 'sentry/styles/space';
+import {Series} from 'sentry/types/echarts';
+import {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
 
 jest.mock('echarts-for-react/lib/core', () => {
@@ -31,7 +33,21 @@ const waitForMetaToHaveBeenCalled = async () => {
   });
 };
 
-async function renderModal({initialData: {organization, routerContext}, widget}) {
+async function renderModal({
+  initialData: {organization, routerContext},
+  widget,
+  seriesData,
+  tableData,
+  issuesData,
+  pageLinks,
+}: {
+  initialData: any;
+  widget: any;
+  issuesData?: TableDataRow[];
+  pageLinks?: string;
+  seriesData?: Series[];
+  tableData?: TableDataWithTitle[];
+}) {
   const rendered = render(
     <div style={{padding: space(4)}}>
       <WidgetViewerModal
@@ -43,6 +59,10 @@ async function renderModal({initialData: {organization, routerContext}, widget})
         organization={organization}
         widget={widget}
         onEdit={() => undefined}
+        seriesData={seriesData}
+        tableData={tableData}
+        issuesData={issuesData}
+        pageLinks={pageLinks}
       />
     </div>,
     {
@@ -52,7 +72,7 @@ async function renderModal({initialData: {organization, routerContext}, widget})
   );
   // Need to wait since WidgetViewerModal will make a request to events-meta
   // for total events count on mount
-  if (widget.widgetType !== WidgetType.ISSUE) {
+  if (widget.widgetType === WidgetType.DISCOVER) {
     await waitForMetaToHaveBeenCalled();
   }
   return rendered;
@@ -114,6 +134,7 @@ describe('Modals -> WidgetViewerModal', function () {
       displayType: DisplayType.AREA,
       interval: '5m',
       queries: [mockQuery, additionalMockQuery],
+      widgetType: WidgetType.DISCOVER,
     };
 
     beforeEach(function () {
@@ -212,7 +233,7 @@ describe('Modals -> WidgetViewerModal', function () {
       await renderModal({initialData, widget: mockWidget});
       expect(
         screen.getByText(
-          'This widget was built with multiple queries. Table data can only be displayed for one query at a time.'
+          'This widget was built with multiple queries. Table data can only be displayed for one query at a time. To edit any of the queries, edit the widget.'
         )
       ).toBeInTheDocument();
       expect(screen.getByText('Query Name')).toBeInTheDocument();
@@ -299,6 +320,7 @@ describe('Modals -> WidgetViewerModal', function () {
       displayType: DisplayType.TOP_N,
       interval: '5m',
       queries: [mockQuery],
+      widgetType: WidgetType.DISCOVER,
     };
 
     beforeEach(function () {
@@ -468,10 +490,27 @@ describe('Modals -> WidgetViewerModal', function () {
       await waitForMetaToHaveBeenCalled();
       expect(await screen.findByText('Next Page Test Error')).toBeInTheDocument();
     });
+
+    it('uses provided seriesData and does not make an events-stats requests', async function () {
+      await renderModal({initialData, widget: mockWidget, seriesData: []});
+      expect(eventsStatsMock).not.toHaveBeenCalled();
+    });
+
+    it('makes events-stats requests when table is sorted', async function () {
+      await renderModal({
+        initialData,
+        widget: mockWidget,
+        seriesData: [],
+      });
+      expect(eventsStatsMock).not.toHaveBeenCalled();
+      userEvent.click(screen.getByText('count()'));
+      await waitForMetaToHaveBeenCalled();
+      expect(eventsStatsMock).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('Discover World Map Chart Widget', function () {
-    let eventsMock;
+    let eventsMock, eventsGeoMock;
     const mockQuery = {
       conditions: 'title:/organizations/:orgId/performance/summary/',
       fields: ['p75(measurements.lcp)'],
@@ -486,6 +525,7 @@ describe('Modals -> WidgetViewerModal', function () {
       displayType: DisplayType.WORLD_MAP,
       interval: '5m',
       queries: [mockQuery],
+      widgetType: WidgetType.DISCOVER,
     };
 
     beforeEach(function () {
@@ -513,7 +553,7 @@ describe('Modals -> WidgetViewerModal', function () {
         url: '/organizations/org-slug/eventsv2/',
         body: eventsBody,
       });
-      MockApiClient.addMockResponse({
+      eventsGeoMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-geo/',
         body: eventsBody,
       });
@@ -535,6 +575,11 @@ describe('Modals -> WidgetViewerModal', function () {
     it('renders Discover topn chart widget viewer', async function () {
       const {container} = await renderModal({initialData, widget: mockWidget});
       expect(container).toSnapshot();
+    });
+
+    it('uses provided tableData and does not make an eventsv2 requests', async function () {
+      await renderModal({initialData, widget: mockWidget, tableData: []});
+      expect(eventsGeoMock).not.toHaveBeenCalled();
     });
   });
 
@@ -674,7 +719,6 @@ describe('Modals -> WidgetViewerModal', function () {
         expect.objectContaining({
           data: {
             cursor: undefined,
-            display: 'events',
             environment: [],
             expand: ['owners'],
             limit: 20,
@@ -726,6 +770,167 @@ describe('Modals -> WidgetViewerModal', function () {
       expect(screen.getByTestId('grid-editable')).toHaveStyle({
         'grid-template-columns':
           ' minmax(90px, auto) minmax(90px, auto) minmax(575px, auto)',
+      });
+    });
+
+    it('uses provided issuesData and does not make an issues requests', async function () {
+      await renderModal({initialData, widget: mockWidget, issuesData: []});
+      expect(issuesMock).not.toHaveBeenCalled();
+    });
+
+    it('makes issues requests when table is sorted', async function () {
+      await renderModal({
+        initialData,
+        widget: mockWidget,
+        issuesData: [],
+      });
+      expect(issuesMock).not.toHaveBeenCalled();
+      userEvent.click(screen.getByText('events'));
+      await waitFor(() => {
+        expect(issuesMock).toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe('Table Widget', function () {
+    const mockQuery = {
+      conditions: 'title:/organizations/:orgId/performance/summary/',
+      fields: ['title', 'count()'],
+      aggregates: ['count()'],
+      columns: ['title'],
+      id: '1',
+      name: 'Query Name',
+      orderby: '',
+    };
+    const mockWidget = {
+      title: 'Test Widget',
+      displayType: DisplayType.TABLE,
+      interval: '5m',
+      queries: [mockQuery],
+      WidgetType: WidgetType.DISCOVER,
+    };
+    function mockEventsv2() {
+      const eventsv2Mock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/eventsv2/',
+        body: {
+          data: [
+            {
+              title: '/organizations/:orgId/dashboards/',
+              id: '1',
+              count: 1,
+            },
+          ],
+          meta: {
+            title: 'string',
+            id: 'string',
+            count: 1,
+            isMetricsData: false,
+          },
+        },
+      });
+      return eventsv2Mock;
+    }
+
+    it('makes eventsv2 requests when table is paginated', async function () {
+      const eventsv2Mock = mockEventsv2();
+      await renderModal({
+        initialData,
+        widget: mockWidget,
+        tableData: [],
+        pageLinks:
+          '<https://sentry.io>; rel="previous"; results="false"; cursor="0:0:1", <https://sentry.io>; rel="next"; results="true"; cursor="0:20:0"',
+      });
+      expect(eventsv2Mock).not.toHaveBeenCalled();
+      userEvent.click(screen.getByLabelText('Next'));
+      await waitFor(() => {
+        expect(eventsv2Mock).toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe('Release Health Widgets', function () {
+    let sessionsMock;
+    const mockQuery = {
+      conditions: '',
+      fields: [`sum(session)`],
+      columns: [],
+      aggregates: [],
+      id: '1',
+      name: 'Query Name',
+      orderby: '',
+    };
+    const mockWidget = {
+      id: '1',
+      title: 'Metrics Widget',
+      displayType: DisplayType.LINE,
+      interval: '5m',
+      queries: [mockQuery],
+      widgetType: WidgetType.METRICS,
+    };
+    beforeEach(function () {
+      sessionsMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/sessions/',
+        body: TestStubs.SesssionTotalCountByReleaseIn24h(),
+      });
+    });
+    it('does a sessions query', async function () {
+      await renderModal({initialData, widget: mockWidget});
+      expect(sessionsMock).toHaveBeenCalled();
+    });
+
+    it('renders widget title', async function () {
+      await renderModal({initialData, widget: mockWidget});
+      expect(screen.getByText('Metrics Widget')).toBeInTheDocument();
+    });
+
+    it('renders Edit', async function () {
+      await renderModal({initialData, widget: mockWidget});
+      expect(screen.getByText('Edit Widget')).toBeInTheDocument();
+    });
+
+    it('renders table header and body', async function () {
+      await renderModal({initialData, widget: mockWidget});
+      expect(screen.getByText('release')).toBeInTheDocument();
+      expect(screen.getByText('e102abb2c46e')).toBeInTheDocument();
+      expect(screen.getByText('sum(session)')).toBeInTheDocument();
+      expect(screen.getByText('6.3k')).toBeInTheDocument();
+    });
+
+    it('renders Metrics widget viewer', async function () {
+      const {container} = await renderModal({initialData, widget: mockWidget});
+      expect(container).toSnapshot();
+    });
+
+    it('makes a new sessions request after sorting by a table column', async function () {
+      const {rerender} = await renderModal({
+        initialData,
+        widget: mockWidget,
+        tableData: [],
+        seriesData: [],
+      });
+      expect(sessionsMock).toHaveBeenCalledTimes(1);
+      userEvent.click(screen.getByText(`sum(session)`));
+      expect(initialData.router.push).toHaveBeenCalledWith({
+        query: {sort: '-sum(session)'},
+      });
+      // Need to manually set the new router location and rerender to simulate the sortable column click
+      initialData.router.location.query = {sort: '-sum(session)'};
+      rerender(
+        <WidgetViewerModal
+          Header={stubEl}
+          Footer={stubEl as ModalRenderProps['Footer']}
+          Body={stubEl as ModalRenderProps['Body']}
+          CloseButton={stubEl}
+          closeModal={() => undefined}
+          organization={initialData.organization}
+          widget={mockWidget}
+          onEdit={() => undefined}
+          seriesData={[]}
+          tableData={[]}
+        />
+      );
+      await waitFor(() => {
+        expect(sessionsMock).toHaveBeenCalledTimes(2);
       });
     });
   });

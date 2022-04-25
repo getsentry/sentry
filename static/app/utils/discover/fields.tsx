@@ -1,10 +1,13 @@
 import isEqual from 'lodash/isEqual';
 
 import {RELEASE_ADOPTION_STAGES} from 'sentry/constants';
+import {t} from 'sentry/locale';
 import {MetricsType, Organization, SelectValue} from 'sentry/types';
 import {assert} from 'sentry/types/utils';
-
-import {METRIC_TO_COLUMN_TYPE} from '../metrics/fields';
+import {
+  SESSIONS_FIELDS,
+  SESSIONS_OPERATIONS,
+} from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
 
 export type Sort = {
   field: string;
@@ -81,6 +84,11 @@ export type QueryFieldValue =
     }
   | {
       field: string;
+      kind: 'calculatedField';
+      alias?: string;
+    }
+  | {
+      field: string;
       kind: 'equation';
       alias?: string;
     }
@@ -127,6 +135,7 @@ const CONDITIONS_ARGUMENTS: SelectValue<string>[] = [
 export const AGGREGATIONS = {
   count: {
     parameters: [],
+    documentation: t('number of events'),
     outputType: 'number',
     isSortable: true,
     multiPlotType: 'area',
@@ -140,7 +149,8 @@ export const AGGREGATIONS = {
         required: true,
       },
     ],
-    outputType: 'number',
+    documentation: t('unique number of events'),
+    outputType: 'integer',
     isSortable: true,
     multiPlotType: 'line',
   },
@@ -167,6 +177,7 @@ export const AGGREGATIONS = {
         required: true,
       },
     ],
+    documentation: t('miserable number of events'),
     outputType: 'number',
     isSortable: true,
     multiPlotType: 'area',
@@ -196,24 +207,28 @@ export const AGGREGATIONS = {
         required: true,
       },
     ],
+    documentation: t('conditional number of events'),
     outputType: 'number',
     isSortable: true,
     multiPlotType: 'area',
   },
   eps: {
     parameters: [],
+    documentation: t('events per second'),
     outputType: 'number',
     isSortable: true,
     multiPlotType: 'area',
   },
   epm: {
     parameters: [],
+    documentation: t('events per minute'),
     outputType: 'number',
     isSortable: true,
     multiPlotType: 'area',
   },
   failure_count: {
     parameters: [],
+    documentation: t('number of failed events'),
     outputType: 'number',
     isSortable: true,
     multiPlotType: 'line',
@@ -233,6 +248,7 @@ export const AGGREGATIONS = {
         required: true,
       },
     ],
+    documentation: t('minimum'),
     outputType: null,
     isSortable: true,
     multiPlotType: 'line',
@@ -252,6 +268,7 @@ export const AGGREGATIONS = {
         required: true,
       },
     ],
+    documentation: t('maximum'),
     outputType: null,
     isSortable: true,
     multiPlotType: 'line',
@@ -265,6 +282,7 @@ export const AGGREGATIONS = {
         defaultValue: 'transaction.duration',
       },
     ],
+    documentation: t('total value'),
     outputType: null,
     isSortable: true,
     multiPlotType: 'area',
@@ -278,6 +296,7 @@ export const AGGREGATIONS = {
         defaultValue: 'transaction.duration',
       },
     ],
+    documentation: t('pick any value'),
     outputType: null,
     isSortable: true,
   },
@@ -290,6 +309,7 @@ export const AGGREGATIONS = {
         required: false,
       },
     ],
+    documentation: t('median'),
     outputType: null,
     isSortable: true,
     multiPlotType: 'line',
@@ -303,6 +323,7 @@ export const AGGREGATIONS = {
         required: false,
       },
     ],
+    documentation: t('75th percentile'),
     outputType: null,
     isSortable: true,
     multiPlotType: 'line',
@@ -316,6 +337,7 @@ export const AGGREGATIONS = {
         required: false,
       },
     ],
+    documentation: t('95th percentile'),
     outputType: null,
     type: [],
     isSortable: true,
@@ -330,6 +352,7 @@ export const AGGREGATIONS = {
         required: false,
       },
     ],
+    documentation: t('99th percentile'),
     outputType: null,
     isSortable: true,
     multiPlotType: 'line',
@@ -343,6 +366,7 @@ export const AGGREGATIONS = {
         required: false,
       },
     ],
+    documentation: t('maximum'),
     outputType: null,
     isSortable: true,
     multiPlotType: 'line',
@@ -362,6 +386,7 @@ export const AGGREGATIONS = {
         required: true,
       },
     ],
+    documentation: t('arbitrary percentile'),
     outputType: null,
     isSortable: true,
     multiPlotType: 'line',
@@ -375,6 +400,7 @@ export const AGGREGATIONS = {
         required: true,
       },
     ],
+    documentation: t('average'),
     outputType: null,
     isSortable: true,
     multiPlotType: 'line',
@@ -388,6 +414,7 @@ export const AGGREGATIONS = {
         required: true,
       },
     ],
+    documentation: t('performance score, higher is better'),
     outputType: 'number',
     isSortable: true,
     multiPlotType: 'line',
@@ -401,18 +428,21 @@ export const AGGREGATIONS = {
         required: true,
       },
     ],
+    documentation: t('ratio of miserable users'),
     outputType: 'number',
     isSortable: true,
     multiPlotType: 'line',
   },
   failure_rate: {
     parameters: [],
+    documentation: t('failure_count()/count()'),
     outputType: 'percentage',
     isSortable: true,
     multiPlotType: 'line',
   },
   last_seen: {
     parameters: [],
+    documentation: t('largest timestamp'),
     outputType: 'date',
     isSortable: true,
   },
@@ -468,6 +498,7 @@ enum FieldKey {
   DEVICE_BATTERY_LEVEL = 'device.battery_level',
   DEVICE_BRAND = 'device.brand',
   DEVICE_CHARGING = 'device.charging',
+  DEVICE_FAMILY = 'device.family',
   DEVICE_LOCALE = 'device.locale',
   DEVICE_NAME = 'device.name',
   DEVICE_ONLINE = 'device.online',
@@ -490,6 +521,7 @@ enum FieldKey {
   HTTP_URL = 'http.url',
   ID = 'id',
   ISSUE = 'issue',
+  LEVEL = 'level',
   LOCATION = 'location',
   MESSAGE = 'message',
   OS_BUILD = 'os.build',
@@ -519,6 +551,7 @@ enum FieldKey {
   TRANSACTION_DURATION = 'transaction.duration',
   TRANSACTION_OP = 'transaction.op',
   TRANSACTION_STATUS = 'transaction.status',
+  USER = 'user',
   USER_EMAIL = 'user.email',
   USER_ID = 'user.id',
   USER_IP = 'user.ip',
@@ -551,6 +584,7 @@ export const FIELDS: Readonly<Record<FieldKey, ColumnType>> = {
   // tags.key and tags.value are omitted on purpose as well.
 
   [FieldKey.TRANSACTION]: 'string',
+  [FieldKey.USER]: 'string',
   [FieldKey.USER_ID]: 'string',
   [FieldKey.USER_EMAIL]: 'string',
   [FieldKey.USER_USERNAME]: 'string',
@@ -567,6 +601,7 @@ export const FIELDS: Readonly<Record<FieldKey, ColumnType>> = {
   [FieldKey.DEVICE_LOCALE]: 'string',
   [FieldKey.DEVICE_UUID]: 'string',
   [FieldKey.DEVICE_ARCH]: 'string',
+  [FieldKey.DEVICE_FAMILY]: 'string',
   [FieldKey.DEVICE_BATTERY_LEVEL]: 'number',
   [FieldKey.DEVICE_ORIENTATION]: 'string',
   [FieldKey.DEVICE_SIMULATOR]: 'boolean',
@@ -580,6 +615,7 @@ export const FIELDS: Readonly<Record<FieldKey, ColumnType>> = {
   [FieldKey.ERROR_MECHANISM]: 'string',
   [FieldKey.ERROR_HANDLED]: 'boolean',
   [FieldKey.ERROR_UNHANDLED]: 'boolean',
+  [FieldKey.LEVEL]: 'string',
   [FieldKey.STACK_ABS_PATH]: 'string',
   [FieldKey.STACK_FILENAME]: 'string',
   [FieldKey.STACK_PACKAGE]: 'string',
@@ -799,7 +835,9 @@ export function parseArguments(functionText: string, columnText: string): string
   // This function attempts to be identical with the similarly named parse_arguments
   // found in src/sentry/search/events/fields.py
   if (
-    (functionText !== 'to_other' && functionText !== 'count_if') ||
+    (functionText !== 'to_other' &&
+      functionText !== 'count_if' &&
+      functionText !== 'spans_histogram') ||
     columnText.length === 0
   ) {
     return columnText ? columnText.split(',').map(result => result.trim()) : [];
@@ -857,6 +895,7 @@ export function parseArguments(functionText: string, columnText: string): string
 // `|` is an invalid field character, so it is used to determine whether a field is an equation or not
 const EQUATION_PREFIX = 'equation|';
 const EQUATION_ALIAS_PATTERN = /^equation\[(\d+)\]$/;
+export const CALCULATED_FIELD_PREFIX = 'calculated|';
 
 export function isEquation(field: string): boolean {
   return field.startsWith(EQUATION_PREFIX);
@@ -898,6 +937,7 @@ export function isLegalEquationColumn(column: Column): boolean {
   if (column.kind === 'function' && column.function[0] === 'any') {
     return false;
   }
+
   const columnType = getColumnType(column);
   return columnType === 'number' || columnType === 'integer' || columnType === 'duration';
 }
@@ -933,9 +973,21 @@ export function generateAggregateFields(
   return fields.map(field => ({field})) as Field[];
 }
 
+export function isDerivedMetric(field: string): boolean {
+  return field.startsWith(CALCULATED_FIELD_PREFIX);
+}
+
+export function stripDerivedMetricsPrefix(field: string): string {
+  return field.replace(CALCULATED_FIELD_PREFIX, '');
+}
+
 export function explodeFieldString(field: string, alias?: string): Column {
   if (isEquation(field)) {
     return {kind: 'equation', field: getEquation(field), alias};
+  }
+
+  if (isDerivedMetric(field)) {
+    return {kind: 'calculatedField', field: stripDerivedMetricsPrefix(field), alias};
   }
 
   const results = parseFunction(field);
@@ -959,6 +1011,10 @@ export function explodeFieldString(field: string, alias?: string): Column {
 export function generateFieldAsString(value: QueryFieldValue): string {
   if (value.kind === 'field') {
     return value.field;
+  }
+
+  if (value.kind === 'calculatedField') {
+    return `${CALCULATED_FIELD_PREFIX}${value.field}`;
   }
 
   if (value.kind === 'equation') {
@@ -1001,11 +1057,128 @@ export function isAggregateField(field: string): boolean {
 }
 
 export function isAggregateFieldOrEquation(field: string): boolean {
-  return isAggregateField(field) || isAggregateEquation(field);
+  return isAggregateField(field) || isAggregateEquation(field) || isNumericMetrics(field);
+}
+
+/**
+ * Temporary hardcoded hack to enable testing derived metrics.
+ * Can be removed after we get rid of getAggregateFields
+ */
+export function isNumericMetrics(field: string): boolean {
+  return [
+    'session.crash_free_rate',
+    'session.crashed',
+    'session.errored_preaggregated',
+    'session.errored_set',
+    'session.init',
+  ].includes(field);
+}
+
+export const FIELDS_DOCS: Readonly<Record<string, string>> = {
+  has: t('check field exists'),
+  'release.version': t('semantic version'),
+  'release.stage': t('adoption stage'),
+  'release.package': t('semantic package'),
+  'release.build': t('semantic build number'),
+  [FieldKey.CULPRIT]: t('deprecated'),
+  [FieldKey.DEVICE_ARCH]: t('cpu architecture'),
+  [FieldKey.DEVICE_FAMILY]: t('common part of name'),
+  [FieldKey.DEVICE_BATTERY_LEVEL]: t('0-100 of level'),
+  [FieldKey.DEVICE_BRAND]: t('brand of device'),
+  [FieldKey.DEVICE_CHARGING]: t('True or False'),
+  [FieldKey.DEVICE_LOCALE]: t('deprecated'),
+  [FieldKey.DEVICE_NAME]: t('details of device'),
+  [FieldKey.DEVICE_ONLINE]: t('True or False'),
+  [FieldKey.DEVICE_ORIENTATION]: t('portrait or landscape'),
+  [FieldKey.DEVICE_SIMULATOR]: t('True or False'),
+  [FieldKey.DEVICE_UUID]: t('uuid'),
+  [FieldKey.DIST]: t('build or variant'),
+  [FieldKey.ENVIRONMENT]: t('deployment name'),
+  [FieldKey.ERROR_HANDLED]: t('True or False'),
+  [FieldKey.ERROR_MECHANISM]: t('created error'),
+  [FieldKey.ERROR_TYPE]: t('exception type'),
+  [FieldKey.ERROR_UNHANDLED]: t('True or False'),
+  [FieldKey.ERROR_VALUE]: t('error value'),
+  [FieldKey.EVENT_TYPE]: t('type of event'),
+  [FieldKey.GEO_CITY]: t('full name'),
+  [FieldKey.GEO_COUNTRY_CODE]: t('ISO 3166-1'),
+  [FieldKey.GEO_REGION]: t('full name'),
+  [FieldKey.HTTP_METHOD]: t('method of request'),
+  [FieldKey.HTTP_REFERER]: t('referer of request'),
+  [FieldKey.HTTP_URL]: t('url of request'),
+  [FieldKey.ID]: t('event identifier'),
+  [FieldKey.ISSUE]: t('issue short id'),
+  [FieldKey.LEVEL]: t('string'),
+  [FieldKey.LOCATION]: t('where error happened'),
+  [FieldKey.MESSAGE]: t('title or name'),
+  [FieldKey.OS_BUILD]: t('internal build revision'),
+  [FieldKey.OS_KERNEL_VERSION]: t('kernel string'),
+  [FieldKey.PLATFORM_NAME]: t('name of platform'),
+  [FieldKey.PROJECT]: t('project name'),
+  [FieldKey.RELEASE]: t('code version'),
+  [FieldKey.SDK_NAME]: t('sentry sdk name'),
+  [FieldKey.SDK_VERSION]: t('sentry sdk version'),
+  [FieldKey.STACK_ABS_PATH]: t('absolute path'),
+  [FieldKey.STACK_COLNO]: t('column number'),
+  [FieldKey.STACK_FILENAME]: t('source file'),
+  [FieldKey.STACK_FUNCTION]: t('function called'),
+  [FieldKey.STACK_IN_APP]: t('True or False'),
+  [FieldKey.STACK_LINENO]: t('line number'),
+  [FieldKey.STACK_MODULE]: t('platform specific'),
+  [FieldKey.STACK_PACKAGE]: t('package of frame'),
+  [FieldKey.STACK_STACK_LEVEL]: t('number'),
+  [FieldKey.TIMESTAMP]: t('time event occurred'),
+  [FieldKey.TIMESTAMP_TO_DAY]: t('rounded timestamp'),
+  [FieldKey.TIMESTAMP_TO_HOUR]: t('rounded timestamp'),
+  [FieldKey.TITLE]: t('title or name'),
+  [FieldKey.TRACE]: t('uuid'),
+  [FieldKey.TRACE_PARENT_SPAN]: t('span for parent trace'),
+  [FieldKey.TRACE_SPAN]: t('span for trace'),
+  [FieldKey.TRANSACTION]: t('transaction name'),
+  [FieldKey.TRANSACTION_DURATION]: t('duration'),
+  [FieldKey.TRANSACTION_OP]: t('short code'),
+  [FieldKey.TRANSACTION_STATUS]: t('final status'),
+  [FieldKey.USER]: t('unparsed user field'),
+  [FieldKey.USER_DISPLAY]: t('email>username>id>ip'),
+  [FieldKey.USER_EMAIL]: t('email'),
+  [FieldKey.USER_ID]: t('identifier'),
+  [FieldKey.USER_IP]: t('ip address'),
+  [FieldKey.USER_USERNAME]: t('username'),
+  [MobileVital.AppStartCold]: t('first launch duration'),
+  [MobileVital.AppStartWarm]: t('subsequent launch duration'),
+  [MobileVital.FramesFrozenRate]: t('frames_frozen/frames_total'),
+  [MobileVital.FramesFrozen]: t('framse slower than 700ms'),
+  [MobileVital.FramesSlowRate]: t('frames_slow/frames_total'),
+  [MobileVital.FramesSlow]: t('frames slower than 16ms'),
+  [MobileVital.FramesTotal]: t('number of frames'),
+  [MobileVital.StallCount]: t('stalled event loops'),
+  [MobileVital.StallLongestTime]: t('largest stalled event loop'),
+  [MobileVital.StallPercentage]: t('stall_total_time/duration'),
+  [MobileVital.StallTotalTime]: t('duration of stall'),
+  [WebVital.CLS]: t('cumulative layout shift'),
+  [WebVital.FCP]: t('first contentful paint'),
+  [WebVital.FID]: t('first input delay'),
+  [WebVital.FP]: t('first paint'),
+  [WebVital.LCP]: t('largest contentful paint'),
+  [WebVital.RequestTime]: t('time until response start'),
+  [WebVital.TTFB]: t('time to first byte'),
+};
+export function getFieldDoc(field: string): React.ReactNode {
+  if (FIELDS_DOCS.hasOwnProperty(field)) {
+    return FIELDS_DOCS[field];
+  }
+  const parsed = parseFunction(field);
+  if (parsed && AGGREGATIONS.hasOwnProperty(parsed.name)) {
+    return AGGREGATIONS[parsed.name].documentation;
+  }
+  return '';
 }
 
 export function getAggregateFields(fields: string[]): string[] {
-  return fields.filter(field => isAggregateField(field) || isAggregateEquation(field));
+  return fields.filter(
+    field =>
+      isAggregateField(field) || isAggregateEquation(field) || isNumericMetrics(field)
+  );
 }
 
 export function getColumnsAndAggregates(fields: string[]): {
@@ -1022,13 +1195,14 @@ export function getColumnsAndAggregatesAsStrings(fields: QueryFieldValue[]): {
   columns: string[];
   fieldAliases: string[];
 } {
+  // TODO(dam): distinguish between metrics, derived metrics and tags
   const aggregateFields: string[] = [];
   const nonAggregateFields: string[] = [];
   const fieldAliases: string[] = [];
 
   for (const field of fields) {
     const fieldString = generateFieldAsString(field);
-    if (field.kind === 'function') {
+    if (field.kind === 'function' || field.kind === 'calculatedField') {
       aggregateFields.push(fieldString);
     } else if (field.kind === 'equation') {
       if (isAggregateEquation(fieldString)) {
@@ -1076,7 +1250,8 @@ export function aggregateFunctionOutputType(
   funcName: string,
   firstArg: string | undefined
 ): AggregationOutputType | null {
-  const aggregate = AGGREGATIONS[ALIASES[funcName] || funcName];
+  const aggregate =
+    AGGREGATIONS[ALIASES[funcName] || funcName] ?? SESSIONS_OPERATIONS[funcName];
 
   // Attempt to use the function's outputType.
   if (aggregate?.outputType) {
@@ -1091,8 +1266,8 @@ export function aggregateFunctionOutputType(
     }
   }
 
-  if (firstArg && METRIC_TO_COLUMN_TYPE.hasOwnProperty(firstArg)) {
-    return METRIC_TO_COLUMN_TYPE[firstArg];
+  if (firstArg && SESSIONS_FIELDS.hasOwnProperty(firstArg)) {
+    return SESSIONS_FIELDS[firstArg].type as AggregationOutputType;
   }
 
   // If the function is an inherit type it will have a field as
@@ -1190,7 +1365,7 @@ export function fieldAlignment(
 /**
  * Match on types that are legal to show on a timeseries chart.
  */
-export function isLegalYAxisType(match: ColumnType) {
+export function isLegalYAxisType(match: ColumnType | MetricsType) {
   return ['number', 'integer', 'duration', 'percentage'].includes(match);
 }
 
