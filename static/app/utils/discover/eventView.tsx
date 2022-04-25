@@ -52,7 +52,7 @@ import {MutableSearch} from '../tokenizeSearch';
 import {getSortField} from './fieldRenderers';
 
 // Metadata mapping for discover results.
-export type MetaType = Record<string, ColumnType>;
+export type MetaType = Record<string, ColumnType> & {isMetricsData?: boolean};
 
 // Data in discover results.
 export type EventData = Record<string, any>;

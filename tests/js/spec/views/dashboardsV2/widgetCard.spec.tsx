@@ -1,6 +1,6 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as modal from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
@@ -559,5 +559,54 @@ describe('Dashboards > WidgetCard', function () {
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({pathname: '/mock-pathname/widget/10/'})
     );
+  });
+
+  it('renders stored data disclaimer', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/eventsv2/',
+      body: {
+        meta: {title: 'string', isMetricsData: false},
+        data: [{title: 'title'}],
+      },
+    });
+
+    render(
+      <WidgetCard
+        api={api}
+        organization={{
+          ...organization,
+          features: [...organization.features, 'dashboards-mep'],
+        }}
+        widget={{
+          ...multipleQueryWidget,
+          displayType: DisplayType.TABLE,
+          queries: [{...multipleQueryWidget.queries[0]}],
+        }}
+        selection={selection}
+        isEditing={false}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        onDuplicate={() => undefined}
+        renderErrorMessage={() => undefined}
+        isSorting={false}
+        currentWidgetDragging={false}
+        showContextMenu
+        widgetLimitReached={false}
+        showStoredAlert
+      />,
+      {context: routerContext}
+    );
+
+    await waitFor(() => {
+      // Badge in the widget header
+      expect(screen.getByText('Stored')).toBeInTheDocument();
+    });
+
+    await waitFor(() => {
+      expect(
+        // Alert below the widget
+        screen.getByText(/we've automatically adjusted your results/i)
+      ).toBeInTheDocument();
+    });
   });
 });

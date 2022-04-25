@@ -23,7 +23,13 @@ import {
 import {TOP_N} from 'sentry/utils/discover/types';
 
 import {DEFAULT_TABLE_LIMIT, DisplayType, Widget, WidgetQuery} from '../types';
-import {eventViewFromWidget, getWidgetInterval} from '../utils';
+import {
+  eventViewFromWidget,
+  getDashboardsMEPQueryParams,
+  getWidgetInterval,
+} from '../utils';
+
+import {DashboardsMEPContext} from './dashboardsMEPContext';
 
 type RawResult = EventsStats | MultiSeriesEventsStats;
 
@@ -81,6 +87,15 @@ export function flattenMultiSeriesDataWithGrouping(
   });
 
   return seriesWithOrdering;
+}
+
+function getIsMetricsDataFromSeriesResponse(result: RawResult): boolean | undefined {
+  const multiIsMetricsData = Object.values(result)
+    .map(({isMetricsData}) => isMetricsData)
+    // One non-metrics series will cause all of them to be marked as such
+    .reduce((acc, value) => (acc === false ? false : value), undefined);
+
+  return isMultiSeriesStats(result) ? multiIsMetricsData : result.isMetricsData;
 }
 
 function transformResult(
@@ -254,7 +269,17 @@ class WidgetQueries extends React.Component<Props, State> {
     this._isMounted = false;
   }
 
+  static contextType = DashboardsMEPContext;
+  context: React.ContextType<typeof DashboardsMEPContext> | undefined;
+
   private _isMounted: boolean = false;
+
+  get isMEPEnabled() {
+    // Events endpoint can return either always transactions, metrics, or metrics with a fallback to transactions (basically auto).
+    // For now, we are always keeping it on "auto" (if you have feature flag enabled).
+    // There's a chance that in the future this might become an explicit selector in the product.
+    return this.props.organization.features.includes('dashboards-mep');
+  }
 
   fetchEventData(queryFetchID: symbol) {
     const {selection, api, organization, widget, limit, cursor, onDataFetched} =
@@ -271,6 +296,7 @@ class WidgetQueries extends React.Component<Props, State> {
       const params: DiscoverQueryRequestParams = {
         per_page: limit ?? DEFAULT_TABLE_LIMIT,
         cursor,
+        ...getDashboardsMEPQueryParams(this.isMEPEnabled),
       };
       if (widget.displayType === 'table') {
         url = `/organizations/${organization.slug}/eventsv2/`;
@@ -296,9 +322,12 @@ class WidgetQueries extends React.Component<Props, State> {
     });
 
     let completed = 0;
+    let isMetricsData: boolean | undefined;
     promises.forEach(async (promise, i) => {
       try {
         const [data, _textstatus, resp] = await promise;
+        // If one of the queries is sampled, then mark the whole thing as sampled
+        isMetricsData = isMetricsData === false ? false : data.meta?.isMetricsData;
 
         // Cast so we can add the title.
         const tableData = data as TableDataWithTitle;
@@ -334,6 +363,7 @@ class WidgetQueries extends React.Component<Props, State> {
         if (!this._isMounted) {
           return;
         }
+        this.context?.setIsMetricsData(isMetricsData);
         this.setState(prevState => {
           if (prevState.queryFetchID !== queryFetchID) {
             // invariant: a different request was initiated after this request
@@ -381,6 +411,7 @@ class WidgetQueries extends React.Component<Props, State> {
           partial: true,
           topEvents: TOP_N,
           field: [...query.columns, ...query.aggregates],
+          queryExtras: getDashboardsMEPQueryParams(this.isMEPEnabled),
         };
         if (query.orderby) {
           requestData.orderby = query.orderby;
@@ -400,6 +431,7 @@ class WidgetQueries extends React.Component<Props, State> {
           includePrevious: false,
           referrer: `api.dashboards.widget.${displayType}-chart`,
           partial: true,
+          queryExtras: getDashboardsMEPQueryParams(this.isMEPEnabled),
         };
 
         if (
@@ -421,12 +453,18 @@ class WidgetQueries extends React.Component<Props, State> {
     });
 
     let completed = 0;
+    let isMetricsData: boolean | undefined;
     promises.forEach(async (promise, requestIndex) => {
       try {
         const rawResults = await promise;
         if (!this._isMounted) {
           return;
         }
+        // If one of the queries is sampled, then mark the whole thing as sampled
+        isMetricsData =
+          isMetricsData === false
+            ? false
+            : getIsMetricsDataFromSeriesResponse(rawResults);
         this.setState(prevState => {
           if (prevState.queryFetchID !== queryFetchID) {
             // invariant: a different request was initiated after this request
@@ -469,6 +507,7 @@ class WidgetQueries extends React.Component<Props, State> {
         if (!this._isMounted) {
           return;
         }
+        this.context?.setIsMetricsData(isMetricsData);
         this.setState(prevState => {
           if (prevState.queryFetchID !== queryFetchID) {
             // invariant: a different request was initiated after this request

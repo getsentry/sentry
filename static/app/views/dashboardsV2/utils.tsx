@@ -305,3 +305,11 @@ export function flattenErrors(
   }
   return update;
 }
+
+export function getDashboardsMEPQueryParams(isMEPEnabled: boolean) {
+  return isMEPEnabled
+    ? {
+        metricsEnhanced: '1',
+      }
+    : {};
+}

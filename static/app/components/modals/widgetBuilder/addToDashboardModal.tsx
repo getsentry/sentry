@@ -170,6 +170,7 @@ function AddToDashboardModal({
           widgetLimitReached={false}
           selection={selection}
           widget={widget}
+          showStoredAlert
         />
       </Body>
 
