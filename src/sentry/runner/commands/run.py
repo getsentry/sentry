@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import signal
 import sys
 from concurrent.futures import ThreadPoolExecutor
@@ -13,25 +15,19 @@ from sentry.runner.decorators import configuration, log_options
 DEFAULT_BLOCK_SIZE = int(32 * 1e6)
 
 
-class AddressParamType(click.ParamType):
-    name = "address"
+def _address_validate(
+    ctx: click.Context, param: click.Parameter, value: str | None
+) -> tuple[str | None, int | None]:
+    if value is None:
+        return (None, None)
 
-    def __call__(self, value, param=None, ctx=None):
-        if value is None:
-            return (None, None)
-        return self.convert(value, param, ctx)
-
-    def convert(self, value, param, ctx):
-        if ":" in value:
-            host, port = value.split(":", 1)
-            port = int(port)
-        else:
-            host = value
-            port = None
-        return host, port
-
-
-Address = AddressParamType()
+    if ":" in value:
+        host, port_s = value.split(":", 1)
+        port: int | None = int(port_s)
+    else:
+        host = value
+        port = None
+    return host, port
 
 
 class QueueSetType(click.ParamType):
@@ -76,7 +72,14 @@ def run():
 
 
 @run.command()
-@click.option("--bind", "-b", default=None, help="Bind address.", type=Address)
+@click.option(
+    "--bind",
+    "-b",
+    default=None,
+    help="Bind address.",
+    metavar="ADDRESS",
+    callback=_address_validate,
+)
 @click.option(
     "--workers", "-w", default=0, help="The number of worker processes for handling requests."
 )
@@ -115,7 +118,14 @@ def web(bind, workers, upgrade, with_lock, noinput):
 
 
 @run.command()
-@click.option("--bind", "-b", default=None, help="Bind address.", type=Address)
+@click.option(
+    "--bind",
+    "-b",
+    default=None,
+    help="Bind address.",
+    metavar="ADDRESS",
+    callback=_address_validate,
+)
 @click.option("--upgrade", default=False, is_flag=True, help="Upgrade before starting.")
 @click.option(
     "--noinput", default=False, is_flag=True, help="Do not prompt the user for input of any kind."
