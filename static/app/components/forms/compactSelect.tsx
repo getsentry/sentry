@@ -61,6 +61,25 @@ interface Props<OptionType>
   triggerProps?: DropdownButtonProps;
 }
 
+/**
+ * Recursively finds the selected option(s) from an options array. Useful for
+ * non-flat arrays that contain sections (groups of options).
+ */
+function getSelectedOptions<OptionType extends GeneralSelectValue = GeneralSelectValue>(
+  opts: Props<OptionType>['options'],
+  value: Props<OptionType>['value']
+): Props<OptionType>['options'] {
+  return opts.reduce((acc: Props<OptionType>['options'], cur) => {
+    if (cur.options) {
+      return acc.concat(getSelectedOptions(cur.options, value));
+    }
+    if (cur.value === value) {
+      return acc.concat(cur);
+    }
+    return acc;
+  }, []);
+}
+
 // Exported so we can further customize this component with react-select's
 // components prop elsewhere
 export const CompactSelectControl = ({
@@ -164,23 +183,9 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
   // Update the button label when the value changes
   function getLabel(newValue): React.ReactNode {
     const valueSet = Array.isArray(newValue) ? newValue : [newValue];
-
-    // Recursively finds the selected option(s) from the options list
-    function getSelectedOptions(
-      opts: Props<OptionType>['options'],
-      value: Props<OptionType>['value']
-    ): Props<OptionType>['options'] {
-      return opts.reduce((acc: Props<OptionType>['options'], cur) => {
-        if (cur.options) {
-          return [...acc, ...getSelectedOptions(cur.options, value)];
-        }
-        if (cur.value === value) {
-          return [...acc, cur];
-        }
-        return acc;
-      }, []);
-    }
-    const optionSet = valueSet.map(val => getSelectedOptions(options, val)).flat();
+    const optionSet = valueSet
+      .map(val => getSelectedOptions<OptionType>(options, val))
+      .flat();
     const firstOptionLabel = optionSet[0]?.label ?? '';
 
     return (
