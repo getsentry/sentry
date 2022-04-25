@@ -132,7 +132,7 @@ function Onboarding(props: Props) {
     }
 
     const previousStep = ONBOARDING_STEPS[stepIndex - 1];
-        
+
     if (stepObj.cornerVariant !== previousStep.cornerVariant) {
       cornerVariantControl.start('none');
     }
