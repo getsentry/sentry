@@ -200,7 +200,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                 {"organization": "Your organization is not allowed to invite members"}, status=403
             )
 
-        _, allowed_roles = get_allowed_roles(request, organization)
+        allowed_roles = get_allowed_roles(request, organization)
 
         serializer = OrganizationMemberSerializer(
             data=request.data,
