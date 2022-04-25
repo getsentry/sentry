@@ -72,7 +72,7 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
     def test_pii_tooltips(self):
         event = self.create_sample_event(platform="pii-tooltips")
         self.page.visit_issue(self.org.slug, event.group.id)
-        self.browser.snapshot("issue details pii tooltips")
+        self.browser.snapshot("issue details pii tooltips", desktop_only=True)
 
     def test_cocoa_event(self):
         event = self.create_sample_event(platform="cocoa")
@@ -208,7 +208,7 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
     def test_python_invalid_json_error(self):
         event = self.create_sample_event(default="python-invalid-json-error", platform="native")
         self.page.visit_issue(self.org.slug, event.group.id)
-        self.browser.snapshot("issue details invalid json error exception")
+        self.browser.snapshot("issue details invalid json error exception", desktop_only=True)
 
     def test_exception_with_address_instruction(self):
         event = self.create_sample_event(
