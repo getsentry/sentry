@@ -509,6 +509,7 @@ function WidgetBuilder({
       query.fields = prevState.queries[0].fields;
       query.aggregates = prevState.queries[0].aggregates;
       query.columns = prevState.queries[0].columns;
+      query.orderby = prevState.queries[0].orderby;
       newState.queries.push(query);
       return newState;
     });
@@ -890,16 +891,6 @@ function WidgetBuilder({
     return false;
   }
 
-  if (isEditing && !isValidWidgetIndex) {
-    return (
-      <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
-        <PageContent>
-          <LoadingError message={t('The widget you want to edit was not found.')} />
-        </PageContent>
-      </SentryDocumentTitle>
-    );
-  }
-
   const canAddSearchConditions =
     [DisplayType.LINE, DisplayType.AREA, DisplayType.BAR].includes(state.displayType) &&
     state.queries.length < 3;
@@ -929,6 +920,16 @@ function WidgetBuilder({
   const explodedFields = defined(fields)
     ? fields.map((field, index) => explodeField({field, alias: fieldAliases[index]}))
     : [...explodedColumns, ...explodedAggregates];
+
+  if (isEditing && !isValidWidgetIndex) {
+    return (
+      <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
+        <PageContent>
+          <LoadingError message={t('The widget you want to edit was not found.')} />
+        </PageContent>
+      </SentryDocumentTitle>
+    );
+  }
 
   return (
     <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>

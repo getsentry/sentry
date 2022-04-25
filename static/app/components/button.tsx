@@ -37,7 +37,7 @@ interface BaseButtonProps
   icon?: React.ReactNode;
   name?: string;
   onClick?: (e: React.MouseEvent) => void;
-  priority?: 'default' | 'primary' | 'danger' | 'link' | 'success' | 'form';
+  priority?: 'default' | 'primary' | 'danger' | 'link' | 'form';
   rel?: HTMLAnchorElement['rel'];
   size?: 'zero' | 'xsmall' | 'small';
   target?: HTMLAnchorElement['target'];
@@ -204,7 +204,6 @@ const getColors = ({
   const getFocusState = () => {
     switch (priority) {
       case 'primary':
-      case 'success':
       case 'danger':
         return `
           border-color: ${focusBorder};
@@ -224,7 +223,6 @@ const getColors = ({
   const getBackgroundColor = () => {
     switch (priority) {
       case 'primary':
-      case 'success':
       case 'danger':
         return `background-color: ${background};`;
       default:

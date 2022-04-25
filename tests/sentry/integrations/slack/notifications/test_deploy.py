@@ -9,7 +9,7 @@ from sentry.testutils.cases import SlackActivityNotificationTest
 from sentry.testutils.helpers.slack import get_attachment, send_notification
 
 
-class SlackUnassignedNotificationTest(SlackActivityNotificationTest):
+class SlackDeployNotificationTest(SlackActivityNotificationTest):
     @responses.activate
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_deploy(self, mock_func):

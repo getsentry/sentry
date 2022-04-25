@@ -181,12 +181,6 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase):
             assert len(mock_quantize.mock_calls) == 2
 
 
-class OrganizationEventsMetaEndpointWithSnql(OrganizationEventsMetaEndpoint):
-    def setUp(self):
-        super().setUp()
-        self.features["organizations:discover-use-snql"] = True
-
-
 class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
