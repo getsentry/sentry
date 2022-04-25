@@ -33,4 +33,6 @@ def get_client_state(category, organization, user, client=None):
     if not client:
         client = get_redis_client()
     value = client.get(key)
+    if not value:
+        return None
     return json.loads(value)

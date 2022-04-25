@@ -11,7 +11,7 @@ class HomeView(BaseView):
         organization = self.get_active_organization(request)
         if organization:
             state = get_client_state("onboarding", organization.slug, None)
-            if state.get("state") == "started" and state.get("url"):
+            if state and state.get("state") == "started" and state.get("url"):
                 return HttpResponseRedirect(f'/onboarding/{organization.slug}/{state["url"]}')
 
         return self.redirect_to_org(request)
