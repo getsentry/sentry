@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Flamegraph} from 'sentry/components/profiling/flamegraph';
@@ -20,11 +21,13 @@ const eventedProfiles = importProfile(
 );
 
 export const EventedTrace = () => {
+  const [profiles, setProfiles] = useState(eventedProfiles);
+
   return (
     <FlamegraphStateProvider>
       <FlamegraphThemeProvider>
         <FlamegraphContainer>
-          <Flamegraph profiles={eventedProfiles} />
+          <Flamegraph onImport={p => setProfiles(p)} profiles={profiles} />
         </FlamegraphContainer>
       </FlamegraphThemeProvider>
     </FlamegraphStateProvider>
@@ -36,11 +39,13 @@ const sampledTrace = importProfile(
 );
 
 export const SampledTrace = () => {
+  const [profiles, setProfiles] = useState(sampledTrace);
+
   return (
     <FlamegraphStateProvider>
       <FlamegraphThemeProvider>
         <FlamegraphContainer>
-          <Flamegraph profiles={sampledTrace} />
+          <Flamegraph onImport={p => setProfiles(p)} profiles={profiles} />
         </FlamegraphContainer>
       </FlamegraphThemeProvider>
     </FlamegraphStateProvider>
@@ -52,11 +57,13 @@ const jsSelfProfile = importProfile(
 );
 
 export const JSSelfProfiling = () => {
+  const [profiles, setProfiles] = useState(jsSelfProfile);
+
   return (
     <FlamegraphStateProvider>
       <FlamegraphThemeProvider>
         <FlamegraphContainer>
-          {jsSelfProfile ? <Flamegraph profiles={jsSelfProfile} /> : null}
+          <Flamegraph onImport={p => setProfiles(p)} profiles={profiles} />
         </FlamegraphContainer>
       </FlamegraphThemeProvider>
     </FlamegraphStateProvider>
@@ -68,11 +75,13 @@ const typescriptProfile = importProfile(
 );
 
 export const TypescriptProfile = () => {
+  const [profiles, setProfiles] = useState(typescriptProfile);
+
   return (
     <FlamegraphStateProvider>
       <FlamegraphThemeProvider>
         <FlamegraphContainer>
-          {typescriptProfile ? <Flamegraph profiles={typescriptProfile} /> : null}
+          <Flamegraph onImport={p => setProfiles(p)} profiles={profiles} />
         </FlamegraphContainer>
       </FlamegraphThemeProvider>
     </FlamegraphStateProvider>
