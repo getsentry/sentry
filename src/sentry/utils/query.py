@@ -12,7 +12,7 @@ class InvalidQuerySetError(ValueError):
     pass
 
 
-def celery_run_batch_query(filter, batch_size, referrer, state=None, fetch_events=True):  # noqa
+def celery_run_batch_query(filter, batch_size, referrer, state=None, fetch_events=True):
     """
     A tool for batched queries similar in purpose to RangeQuerySetWrapper that
     is used for celery tasks in issue merge/unmerge/reprocessing.
@@ -46,7 +46,7 @@ def celery_run_batch_query(filter, batch_size, referrer, state=None, fetch_event
 
     events = list(
         method(
-            filter=filter,  # noqa
+            filter=filter,
             limit=batch_size,
             referrer=referrer,
             orderby=["-timestamp", "-event_id"],
