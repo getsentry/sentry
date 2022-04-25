@@ -96,12 +96,7 @@ export function normalizeQueries({
   widgetBuilderNewDesign?: boolean;
   widgetType?: Widget['widgetType'];
 }): Widget['queries'] {
-  const isTimeseriesChart = [
-    DisplayType.LINE,
-    DisplayType.AREA,
-    DisplayType.BAR,
-  ].includes(displayType);
-
+  const isTimeseriesChart = getIsTimeseriesChart(displayType);
   const isTabularChart = [DisplayType.TABLE, DisplayType.TOP_N].includes(displayType);
 
   if (
@@ -347,4 +342,8 @@ export function filterPrimaryOptions({
 
 export function getResultsLimit(numQueries, numYAxes) {
   return Math.floor(RESULTS_LIMIT / (numQueries * numYAxes));
+}
+
+export function getIsTimeseriesChart(displayType: DisplayType) {
+  return [DisplayType.LINE, DisplayType.AREA, DisplayType.BAR].includes(displayType);
 }

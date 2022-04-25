@@ -50,7 +50,7 @@ def query(
     conditions=None,
     extra_snql_condition=None,
     functions_acl=None,
-    use_snql=False,
+    use_snql=True,
     dry_run=False,
 ):
     metrics_compatible = not equations or dry_run
@@ -147,7 +147,7 @@ def timeseries_query(
     allow_metric_aggregates=True,
     comparison_delta: Optional[timedelta] = None,
     functions_acl: Optional[List[str]] = None,
-    use_snql: Optional[bool] = False,
+    use_snql: Optional[bool] = True,
     dry_run: bool = False,
 ) -> SnubaTSResult:
     """

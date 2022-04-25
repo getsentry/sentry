@@ -79,6 +79,7 @@ access_log_fields = (
     "rate_limited",
     "rate_limit_category",
     "request_duration_seconds",
+    "group",
     "rate_limit_type",
     "concurrent_limit",
     "concurrent_requests",
@@ -128,6 +129,7 @@ class LogCaptureAPITestCase(APITestCase):
         return [r for r in self._caplog.records if r.name == "sentry.access.api"]
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class TestAccessLogRateLimited(LogCaptureAPITestCase):
 
     endpoint = "ratelimit-endpoint"
@@ -140,8 +142,10 @@ class TestAccessLogRateLimited(LogCaptureAPITestCase):
         assert self.captured_logs[0].token_type == "None"
         assert self.captured_logs[0].limit == "0"
         assert self.captured_logs[0].remaining == "0"
+        assert self.captured_logs[0].group == RateLimitedEndpoint.rate_limits.group
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class TestAccessLogConcurrentRateLimited(LogCaptureAPITestCase):
 
     endpoint = "concurrent-ratelimit-endpoint"
@@ -155,6 +159,7 @@ class TestAccessLogConcurrentRateLimited(LogCaptureAPITestCase):
         self.assert_access_log_recorded()
         for i in range(10):
             assert self.captured_logs[i].token_type == "None"
+            assert self.captured_logs[0].group == RateLimitedEndpoint.rate_limits.group
             assert self.captured_logs[i].concurrent_requests == "1"
             assert self.captured_logs[i].concurrent_limit == "1"
             assert self.captured_logs[i].rate_limit_type == "RateLimitType.NOT_LIMITED"

@@ -53,6 +53,7 @@ class RateLimitMeta:
     remaining: int
     limit: int
     window: int
+    group: str
     reset_time: int
     concurrent_limit: int | None
     concurrent_requests: int | None
