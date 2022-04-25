@@ -49,7 +49,7 @@ class JiraIssueHookTest(APITestCase):
         )
         self.integration.add_organization(self.organization, self.user)
 
-        external_issue = ExternalIssue.objects.create(
+        self.external_issue = ExternalIssue.objects.create(
             organization_id=group.organization.id,
             integration_id=self.integration.id,
             key=self.issue_key,
@@ -59,7 +59,7 @@ class JiraIssueHookTest(APITestCase):
             group_id=group.id,
             project_id=group.project_id,
             linked_type=GroupLink.LinkedType.issue,
-            linked_id=external_issue.id,
+            linked_id=self.external_issue.id,
             relationship=GroupLink.Relationship.references,
         )
 
@@ -100,10 +100,42 @@ class JiraIssueHookTest(APITestCase):
         assert response.status_code == 200
         resp_content = str(response.content)
         assert self.group.title in resp_content
+        assert self.group.get_absolute_url() in resp_content
         assert self.first_seen.strftime("%b. %d, %Y") in resp_content
         assert self.last_seen.strftime("%b. %d, %Y") in resp_content
         assert self.first_release.version in resp_content
         assert self.last_release.version in resp_content
+
+    @patch.object(Group, "get_last_release")
+    @patch("sentry.integrations.jira.views.issue_hook.get_integration_from_request")
+    @responses.activate
+    def test_multiple_issues(self, mock_get_integration_from_request, mock_get_last_release):
+        responses.add(
+            responses.PUT, self.properties_url % (self.issue_key, self.properties_key), json={}
+        )
+        mock_get_integration_from_request.return_value = self.integration
+        mock_get_last_release.return_value = self.last_release.version
+
+        new_group = self.create_group()
+
+        GroupLink.objects.create(
+            group_id=new_group.id,
+            project_id=new_group.project_id,
+            linked_type=GroupLink.LinkedType.issue,
+            linked_id=self.external_issue.id,
+            relationship=GroupLink.Relationship.references,
+        )
+
+        response = self.client.get(self.path)
+
+        assert response.status_code == 200
+        resp_content = str(response.content)
+        group_url = self.group.get_absolute_url()
+        new_group_url = new_group.get_absolute_url()
+
+        assert group_url != new_group_url
+        assert group_url in resp_content
+        assert new_group_url in resp_content
 
     @patch("sentry.integrations.jira.views.issue_hook.get_integration_from_request")
     @responses.activate
