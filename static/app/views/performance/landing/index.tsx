@@ -199,14 +199,14 @@ export function PerformanceLanding(props: Props) {
               />
             ) : (
               <Fragment>
-                {organization.features.includes('selection-filters-v2') && (
-                  <StyledPageFilterBar condensed>
-                    <ProjectPageFilter />
-                    <EnvironmentPageFilter />
-                    <DatePageFilter alignDropdown="left" />
-                  </StyledPageFilterBar>
-                )}
                 <SearchContainerWithFilter>
+                  {organization.features.includes('selection-filters-v2') && (
+                    <PageFilterBar condensed>
+                      <ProjectPageFilter />
+                      <EnvironmentPageFilter />
+                      <DatePageFilter alignDropdown="left" />
+                    </PageFilterBar>
+                  )}
                   <SearchBar
                     searchSource="performance_landing"
                     organization={organization}
@@ -255,14 +255,12 @@ const StyledHeading = styled(PageHeading)`
 
 const SearchContainerWithFilter = styled('div')`
   display: grid;
-  gap: ${space(0)};
+  grid-template-rows: auto auto;
+  gap: ${space(2)};
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: 1fr min-content;
+    grid-template-rows: auto;
+    grid-template-columns: auto 1fr;
   }
-`;
-
-const StyledPageFilterBar = styled(PageFilterBar)`
-  margin-bottom: ${space(1)};
 `;
