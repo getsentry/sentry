@@ -129,6 +129,18 @@ def run_metrics_query(
 
 
 def _get_entity_of_metric_mri(projects: Sequence[Project], metric_mri: str) -> EntityKey:
+    for KnownMRI in (SessionMRI, TransactionMRI):
+        try:
+            KnownMRI(metric_mri)
+        except ValueError:
+            pass
+        else:
+            return {
+                "c": EntityKey.MetricsCounters,
+                "d": EntityKey.MetricsDistributions,
+                "s": EntityKey.MetricsSets,
+            }[metric_mri[0]]
+
     assert projects
     org_id = org_id_from_projects(projects)
     metric_id = indexer.resolve(org_id, metric_mri)

@@ -1659,9 +1659,12 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             statsPeriod="6m",
             interval="6m",
         )
+        print(response.data["groups"])
         group = response.data["groups"][0]
-        assert group["totals"]["session.healthy"] == 4
-        assert group["series"]["session.healthy"] == [4]
+        assert group["totals"]["session.healthy"] == 6
+        assert group["series"]["session.healthy"] == [6]
+
+        print("--------------")
 
         self._send_buckets(
             [
@@ -1687,6 +1690,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             statsPeriod="6m",
             interval="6m",
         )
+        print(response.data["groups"])
         group = response.data["groups"][0]
         assert group["totals"]["session.healthy"] == 3
         assert group["series"]["session.healthy"] == [3]
