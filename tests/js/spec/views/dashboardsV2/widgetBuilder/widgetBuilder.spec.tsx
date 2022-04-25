@@ -2433,5 +2433,151 @@ describe('WidgetBuilder', function () {
         expect(screen.queryByText('Limit to 5 results')).not.toBeInTheDocument()
       );
     });
+
+    it('applies a limit when switching from a table to timeseries chart with grouping', async function () {
+      const widget: Widget = {
+        displayType: DisplayType.TABLE,
+        interval: '1d',
+        queries: [
+          {
+            name: 'Test Widget',
+            fields: ['count()', 'count_unique(user)', 'epm()', 'project'],
+            columns: ['project'],
+            aggregates: ['count()', 'count_unique(user)', 'epm()'],
+            conditions: '',
+            orderby: '',
+          },
+        ],
+        title: 'Transactions',
+        id: '1',
+      };
+
+      const dashboard: DashboardDetails = {
+        id: '1',
+        title: 'Dashboard',
+        createdBy: undefined,
+        dateCreated: '2020-01-01T00:00:00.000Z',
+        widgets: [widget],
+      };
+
+      renderTestComponent({
+        dashboard,
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        params: {
+          widgetIndex: '0',
+        },
+      });
+
+      userEvent.click(await screen.findByText('Table'));
+      userEvent.click(screen.getByText('Line Chart'));
+
+      expect(screen.getByText('Limit to 3 results')).toBeInTheDocument();
+      expect(eventsStatsMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            topEvents: 3,
+          }),
+        })
+      );
+    });
+
+    it('persists the limit when switching between timeseries charts', async function () {
+      const widget: Widget = {
+        displayType: DisplayType.AREA,
+        interval: '1d',
+        queries: [
+          {
+            name: 'Test Widget',
+            fields: ['count()', 'count_unique(user)', 'epm()', 'project'],
+            columns: ['project'],
+            aggregates: ['count()', 'count_unique(user)', 'epm()'],
+            conditions: '',
+            orderby: '',
+          },
+        ],
+        title: 'Transactions',
+        id: '1',
+        limit: 1,
+      };
+
+      const dashboard: DashboardDetails = {
+        id: '1',
+        title: 'Dashboard',
+        createdBy: undefined,
+        dateCreated: '2020-01-01T00:00:00.000Z',
+        widgets: [widget],
+      };
+
+      renderTestComponent({
+        dashboard,
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        params: {
+          widgetIndex: '0',
+        },
+      });
+
+      userEvent.click(await screen.findByText('Area Chart'));
+      userEvent.click(screen.getByText('Line Chart'));
+
+      expect(screen.getByText('Limit to 1 result')).toBeInTheDocument();
+      expect(eventsStatsMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            topEvents: 1,
+          }),
+        })
+      );
+    });
+
+    it('unsets the limit when going from timeseries to table', async function () {
+      const widget: Widget = {
+        displayType: DisplayType.AREA,
+        interval: '1d',
+        queries: [
+          {
+            name: 'Test Widget',
+            fields: ['count()', 'count_unique(user)', 'epm()', 'project'],
+            columns: ['project'],
+            aggregates: ['count()', 'count_unique(user)', 'epm()'],
+            conditions: '',
+            orderby: '',
+          },
+        ],
+        title: 'Transactions',
+        id: '1',
+        limit: 1,
+      };
+
+      const dashboard: DashboardDetails = {
+        id: '1',
+        title: 'Dashboard',
+        createdBy: undefined,
+        dateCreated: '2020-01-01T00:00:00.000Z',
+        widgets: [widget],
+      };
+
+      renderTestComponent({
+        dashboard,
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        params: {
+          widgetIndex: '0',
+        },
+      });
+
+      userEvent.click(await screen.findByText('Area Chart'));
+      userEvent.click(screen.getByText('Table'));
+
+      expect(screen.queryByText('Limit to 1 result')).not.toBeInTheDocument();
+      expect(eventsv2Mock).toHaveBeenCalledWith(
+        '/organizations/org-slug/eventsv2/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            topEvents: undefined,
+          }),
+        })
+      );
+    });
   });
 });
