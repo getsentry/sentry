@@ -1,19 +1,27 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import GroupTagDistributionMeter from 'sentry/components/group/tagDistributionMeter';
 
 describe('TagDistributionMeter', function () {
-  let element;
-  let emptyElement;
-  let organization;
+  const organization = TestStubs.Organization();
   const tags = TestStubs.Tags();
 
-  beforeEach(function () {
-    organization = TestStubs.Organization();
-
-    element = mountWithTheme(
+  it('should return "no recent data" if no total values present', function () {
+    render(
       <GroupTagDistributionMeter
-        key="element"
+        tag="browser"
+        group={{id: '1337'}}
+        organization={organization}
+        projectId="456"
+        totalValues={0}
+      />
+    );
+    expect(screen.getByText('No recent data.')).toBeInTheDocument();
+  });
+
+  it('should call renderSegments() if values present', function () {
+    render(
+      <GroupTagDistributionMeter
         tag="browser"
         group={{id: '1337'}}
         organization={organization}
@@ -22,33 +30,12 @@ describe('TagDistributionMeter', function () {
         topValues={tags[0].topValues}
       />
     );
-
-    emptyElement = mountWithTheme(
-      <GroupTagDistributionMeter
-        key="emptyElement"
-        tag="browser"
-        group={{id: '1337'}}
-        organization={organization}
-        projectId="456"
-        totalValues={0}
-      />
-    );
-  });
-
-  describe('renderBody()', function () {
-    it('should return "no recent data" if no total values present', function () {
-      emptyElement.setState({
-        error: false,
-        loading: false,
-      });
-      emptyElement.update();
-      expect(emptyElement.find('p').text()).toEqual('No recent data.');
-    });
-
-    it('should call renderSegments() if values present', function () {
-      element.setState({loading: false, error: false});
-      expect(element.find('Segment').length).toEqual(2);
-      expect(element.find('OtherSegment').length).toEqual(1);
-    });
+    expect(
+      screen.getByLabelText('Add the Chrome segment tag to the search query')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByLabelText('Add the Firefox segment tag to the search query')
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Other')).toBeInTheDocument();
   });
 });
