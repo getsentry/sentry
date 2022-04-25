@@ -110,7 +110,10 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         )
 
 
-@freeze_time("2021-10-18 13:00:00+00:00")
+MOCK_NOW = timezone.now().replace(hour=13, minute=0, second=0, microsecond=0)
+
+
+@freeze_time(MOCK_NOW)
 class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -215,7 +218,7 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, SnubaTestCase):
         assert data["text"] == "No sessions crash free rate in the last 60 minutes"
 
 
-@freeze_time("2021-10-18 13:00:00+00:00")
+@freeze_time(MOCK_NOW)
 class IncidentAttachmentInfoTestForMetricsCrashRateAlerts(
     IncidentAttachmentInfoTestForCrashRateAlerts, SessionMetricsTestCase
 ):
