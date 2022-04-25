@@ -43,6 +43,8 @@ function PerformanceContent({selection, location, demoMode}: Props) {
 
   const [state, setState] = useState<State>({error: undefined});
 
+  const eventView = generatePerformanceEventView(location, projects);
+
   function getOnboardingProject(): Project | undefined {
     // XXX used by getsentry to bypass onboarding for the upsell demo state.
     if (demoMode) {
@@ -120,8 +122,6 @@ function PerformanceContent({selection, location, demoMode}: Props) {
       },
     });
   }
-
-  const eventView = generatePerformanceEventView(location, projects);
 
   return (
     <SentryDocumentTitle title={t('Performance')} orgSlug={organization.slug}>
