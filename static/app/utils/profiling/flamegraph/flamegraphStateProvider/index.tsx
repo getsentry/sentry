@@ -1,5 +1,6 @@
 import {createContext} from 'react';
 
+import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {makeCombinedReducers} from 'sentry/utils/useCombinedReducer';
 import {
   UndoableReducer,
@@ -9,8 +10,10 @@ import {
 
 import {flamegraphPreferencesReducer} from './flamegraphPreferences';
 import {flamegraphSearchReducer} from './flamegraphSearch';
+import {flamegraphZoomPositionReducer} from './flamegraphZoomPosition';
 
 export const combinedReducers = makeCombinedReducers({
+  position: flamegraphZoomPositionReducer,
   preferences: flamegraphPreferencesReducer,
   search: flamegraphSearchReducer,
 });
@@ -23,7 +26,14 @@ type FlamegraphAction = React.Dispatch<
 
 type FlamegraphStateReducer = UndoableReducer<typeof combinedReducers>;
 
-export type FlamegraphStateContextValue = [FlamegraphState, FlamegraphAction];
+export type FlamegraphStateContextValue = [
+  FlamegraphState,
+  FlamegraphAction,
+  {
+    nextState: FlamegraphState | undefined;
+    previousState: FlamegraphState | undefined;
+  }
+];
 
 export const FlamegraphStateContext = createContext<FlamegraphStateContextValue | null>(
   null
@@ -37,6 +47,9 @@ export function FlamegraphStateProvider(
   props: FlamegraphStateProviderProps
 ): React.ReactElement {
   const reducer = useUndoableReducer(combinedReducers, {
+    position: {
+      view: Rect.Empty(),
+    },
     preferences: {
       colorCoding: 'by symbol name',
       sorting: 'call order',
