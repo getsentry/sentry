@@ -1085,35 +1085,6 @@ class OrganizationSessionsEndpointMetricsTest(
         assert response.status_code == 200, response.content
         assert result_sorted(response.data)["groups"] == []
 
-        # expected = {
-        #     "groups": [
-        #         {
-        #             "by": {"session.status": "abnormal"},
-        #             "totals": {"sum(session)": 0},
-        #             "series": {"sum(session)": [0]},
-        #         },
-        #         {
-        #             "by": {"session.status": "crashed"},
-        #             "totals": {"sum(session)": 1},
-        #             "series": {"sum(session)": [1]},
-        #         },
-        #         {
-        #             "by": {"session.status": "errored"},
-        #             "totals": {"sum(session)": 2},
-        #             "series": {"sum(session)": [2]},
-        #         },
-        #         {
-        #             "by": {"session.status": "healthy"},
-        #             "totals": {"sum(session)": 6},
-        #             "series": {"sum(session)": [6]},
-        #         },
-        #     ],
-        #     "start": "2022-04-23T00:00:00Z",
-        #     "end": "2022-04-23T12:28:00Z",
-        #     "intervals": ["2022-04-23T00:00:00Z"],
-        #     "query": "",
-        # }
-
         response = req(field=["sum(session)"], query="!session.status:healthy")
         assert response.status_code == 200, response.content
         assert result_sorted(response.data)["groups"] == [

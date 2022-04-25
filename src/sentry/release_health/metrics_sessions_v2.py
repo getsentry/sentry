@@ -505,16 +505,6 @@ def _transform_single_condition(
     return condition, None
 
 
-def make_boolean_op(op: type, arguments: Sequence[Any]) -> Any:
-    arguments = [arg for arg in arguments if arg]
-    nargs = len(arguments)
-    if nargs == 0:
-        return None
-    if nargs == 1:
-        return arguments[0]
-    return op(arguments)
-
-
 def _parse_session_status(status: Any) -> FrozenSet[SessionStatus]:
     try:
         return frozenset([SessionStatus(status)])
