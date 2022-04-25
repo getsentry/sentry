@@ -1748,6 +1748,42 @@ describe('WidgetBuilder', function () {
     expect(screen.getByText('This should persist')).toBeInTheDocument();
   });
 
+  it('copies over the orderby from the previous query if adding another', async function () {
+    renderTestComponent({
+      orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+    });
+
+    userEvent.click(await screen.findByText('Table'));
+    userEvent.click(screen.getByText('Line Chart'));
+    await selectEvent.select(screen.getAllByText('count()')[0], 'count_unique(…)');
+
+    MockApiClient.clearMockResponses();
+    eventsStatsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: [],
+    });
+
+    userEvent.click(screen.getByText('Add Query'));
+
+    // Assert on two calls, one for each query
+    const expectedArgs = expect.objectContaining({
+      query: expect.objectContaining({
+        orderby: '-count_unique_user',
+      }),
+    });
+    expect(eventsStatsMock).toHaveBeenNthCalledWith(
+      1,
+      '/organizations/org-slug/events-stats/',
+      expectedArgs
+    );
+
+    expect(eventsStatsMock).toHaveBeenNthCalledWith(
+      2,
+      '/organizations/org-slug/events-stats/',
+      expectedArgs
+    );
+  });
+
   describe('Issue Widgets', function () {
     it('sets widgetType to issues', async function () {
       const handleSave = jest.fn();
