@@ -61,10 +61,6 @@ function FlamegraphView(props: FlamegraphViewProps): React.ReactElement {
   const [requestState, setRequestState] = useState<RequestState>('initial');
 
   useEffect(() => {
-    document.scrollingElement?.scrollTo(0, 0);
-  }, []);
-
-  useEffect(() => {
     if (!props.params.eventId || !props.params.projectId) {
       return undefined;
     }

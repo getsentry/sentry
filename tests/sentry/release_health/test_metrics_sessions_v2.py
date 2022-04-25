@@ -7,7 +7,6 @@ from django.urls import reverse
 from sentry.release_health.duplex import compare_results
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.release_health.sessions import SessionsReleaseHealthBackend
-from sentry.sentry_metrics.indexer.mock import MockIndexer
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from tests.snuba.api.endpoints.test_organization_sessions import result_sorted
 
@@ -58,9 +57,6 @@ class MetricsSessionsV2Test(APITestCase, SnubaTestCase):
         Tests whether the number of keys in the metrics implementation of
         sessions data is the same as in the sessions implementation.
 
-        Runs twice. Firstly, against sessions implementation to populate the
-        cache. Then, against the metrics implementation, and compares with
-        cached results.
         """
         interval_days = "1d"
         groupbyes = _session_groupby_powerset()
@@ -73,8 +69,6 @@ class MetricsSessionsV2Test(APITestCase, SnubaTestCase):
                 sessions_data = result_sorted(self.get_sessions_data(groupby, interval_days))
 
             with patch(
-                "sentry.release_health.metrics_sessions_v2.indexer.resolve", MockIndexer().resolve
-            ), patch(
                 "sentry.api.endpoints.organization_sessions.release_health",
                 MetricsReleaseHealthBackend(),
             ):

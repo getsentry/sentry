@@ -1,13 +1,18 @@
 import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
+import styled from '@emotion/styled';
 import {Location} from 'history';
 import omit from 'lodash/omit';
 
+import DatePageFilter from 'sentry/components/datePageFilter';
 import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Pagination from 'sentry/components/pagination';
+import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -89,6 +94,12 @@ function SpansContent(props: Props) {
 
   return (
     <Layout.Main fullWidth>
+      {organization.features.includes('selection-filters-v2') && (
+        <StyledPageFilterBar condensed>
+          <EnvironmentPageFilter />
+          <DatePageFilter alignDropdown="left" />
+        </StyledPageFilterBar>
+      )}
       <Actions>
         <OpsFilter
           location={location}
@@ -160,6 +171,10 @@ function SpansContent(props: Props) {
     </Layout.Main>
   );
 }
+
+const StyledPageFilterBar = styled(PageFilterBar)`
+  margin-bottom: ${space(1)};
+`;
 
 function getSpansEventView(eventView: EventView, sort: SpanSort): EventView {
   eventView = eventView.clone();

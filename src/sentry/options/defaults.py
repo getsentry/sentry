@@ -204,6 +204,8 @@ register("aws-lambda.python.layer-name", default="SentryPythonServerlessSDK")
 register("aws-lambda.python.layer-version")
 # the region of the host account we use for assuming the role
 register("aws-lambda.host-region", default="us-east-2")
+# the number of threads we should use to install Lambdas
+register("aws-lambda.thread-count", default=100)
 
 # Snuba
 register("snuba.search.pre-snuba-candidates-optimizer", type=Bool, default=False)
