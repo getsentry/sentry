@@ -68,8 +68,8 @@ export function FeedbackModal({
 
     feedbackClient.captureEvent({
       message: additionalInfo?.trim()
-        ? `Feedback ${feedbackTypes[subject]} - ${additionalInfo}`
-        : `Feedback ${feedbackTypes[subject]}`,
+        ? `Feedback: ${feedbackTypes[subject]} - ${additionalInfo}`
+        : `Feedback: ${feedbackTypes[subject]}`,
       request: {
         url: location.pathname,
       },
