@@ -100,7 +100,7 @@ def resolve_tags(org_id: int, input_: Any) -> Any:
     pass Column("metric_id") or Column("project_id") into this function.
 
     """
-    if isinstance(input_, list):
+    if isinstance(input_, (list, tuple)):
         return [resolve_tags(org_id, item) for item in input_]
     if isinstance(input_, Function):
         if input_.function == "ifNull":

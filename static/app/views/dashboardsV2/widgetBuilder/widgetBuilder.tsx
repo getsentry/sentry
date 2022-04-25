@@ -509,6 +509,7 @@ function WidgetBuilder({
       query.fields = prevState.queries[0].fields;
       query.aggregates = prevState.queries[0].aggregates;
       query.columns = prevState.queries[0].columns;
+      query.orderby = prevState.queries[0].orderby;
       newState.queries.push(query);
       return newState;
     });

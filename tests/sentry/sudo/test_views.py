@@ -64,8 +64,7 @@ class SudoViewTestCase(BaseTestCase):
         response = sudo(self.request)
         self.assertEqual(response["Location"], REDIRECT_URL)
         self.request.GET = {
-            REDIRECT_FIELD_NAME: "http://%s\\@mattrobenolt.com"
-            % self.request.get_host(),  # noqa: W605
+            REDIRECT_FIELD_NAME: "http://%s\\@mattrobenolt.com" % self.request.get_host(),
         }
         response = sudo(self.request)
         self.assertEqual(response["Location"], REDIRECT_URL)
@@ -119,7 +118,7 @@ class SudoViewTestCase(BaseTestCase):
         self.assertEqual(response["Location"], REDIRECT_URL)
         self.assertFalse("redirect_to" in self.request.session)
         self.request.session[REDIRECT_TO_FIELD_NAME] = (
-            "http://%s\\@mattrobenolt.com" % self.request.get_host()  # noqa: W605
+            "http://%s\\@mattrobenolt.com" % self.request.get_host()
         )
         response = sudo(self.request)
         self.assertEqual(response["Location"], REDIRECT_URL)

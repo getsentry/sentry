@@ -13,6 +13,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import Redirect from 'sentry/utils/redirect';
 import testableTransition from 'sentry/utils/testableTransition';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
@@ -79,7 +80,7 @@ function Onboarding(props: Props) {
     window.clearTimeout(cornerVariantTimeoutRed.current);
 
     cornerVariantTimeoutRed.current = window.setTimeout(
-      () => cornerVariantControl.start(activeStepIndex === 0 ? 'top-right' : 'top-left'),
+      () => cornerVariantControl.start(stepIndex === 0 ? 'top-right' : 'top-left'),
       1000
     );
   };
@@ -91,11 +92,18 @@ function Onboarding(props: Props) {
     if (!stepObj) {
       return;
     }
+
     setContainerHasFooter(stepObj.hasFooter ?? false);
     cornerVariantControl.start(stepObj.cornerVariant);
   };
 
   useEffect(updateAnimationState, []);
+
+  if (!stepObj || stepIndex === -1) {
+    return (
+      <Redirect to={`/onboarding/${organization.slug}/${ONBOARDING_STEPS[0].id}/`} />
+    );
+  }
 
   const goToStep = (step: StepDescriptor) => {
     if (!stepObj) {
@@ -118,14 +126,13 @@ function Onboarding(props: Props) {
     browserHistory.push(`/onboarding/${props.params.orgId}/${nextStep.id}/`);
   };
 
-  const activeStepIndex = ONBOARDING_STEPS.findIndex(({id}) => props.params.step === id);
-
   const handleGoBack = () => {
     if (!stepObj) {
       return;
     }
 
-    const previousStep = ONBOARDING_STEPS[activeStepIndex - 1];
+    const previousStep = ONBOARDING_STEPS[stepIndex - 1];
+        
     if (stepObj.cornerVariant !== previousStep.cornerVariant) {
       cornerVariantControl.start('none');
     }
@@ -170,16 +177,13 @@ function Onboarding(props: Props) {
         </UpsellWrapper>
       </Header>
       <Container hasFooter={containerHasFooter}>
-        <Back
-          animate={activeStepIndex > 0 ? 'visible' : 'hidden'}
-          onClick={handleGoBack}
-        />
+        <Back animate={stepIndex > 0 ? 'visible' : 'hidden'} onClick={handleGoBack} />
         <AnimatePresence exitBeforeEnter onExitComplete={updateAnimationState}>
           <OnboardingStep key={stepObj.id} data-test-id={`onboarding-step-${stepObj.id}`}>
             {stepObj.Component && (
               <stepObj.Component
                 active
-                stepIndex={activeStepIndex}
+                stepIndex={stepIndex}
                 onComplete={() => goNextStep(stepObj)}
                 orgId={props.params.orgId}
                 organization={props.organization}
