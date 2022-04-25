@@ -1,13 +1,15 @@
-{% extends "sentry/emails/base.html" %} {% load i18n %} {% block main %}
+{% extends "sentry/emails/base.html" %}
+{% load i18n %}
+{% block main %}
 <h3>Finish Onboarding</h3>
 
 <p>Hey {{ recipient_name }},</p>
 
 <p>
-  Thanks for getting started with Sentry with your
-  <strong>{{ organization_name }}</strong> organization. Before you can access all the
-  debugging goodness Sentry offers, we need a few more details about your {{ platforms }} project{{num_platforms|pluralize}}. To complete the onboarding process, click this link on your
-  desktop/laptop.
+  Before you get started fixing all your broken and slow code, we need a few more details
+  about your {{ platforms }}
+  project{{num_platforms|pluralize}}. Click the button below when you're back at
+  your computer to complete the set up for <strong>{{ organization_name }}</strong>.
 </p>
 
 <p>
