@@ -284,6 +284,7 @@ describe('Performance > Trends', function () {
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
         context: data.routerContext,
+        organization: data.organization,
       }
     );
 
@@ -298,6 +299,7 @@ describe('Performance > Trends', function () {
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
         context: data.routerContext,
+        organization: data.organization,
       }
     );
 
@@ -313,6 +315,7 @@ describe('Performance > Trends', function () {
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
         context: data.routerContext,
+        organization: data.organization,
       }
     );
 
@@ -336,6 +339,7 @@ describe('Performance > Trends', function () {
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
         context: data.routerContext,
+        organization: data.organization,
       }
     );
 
@@ -365,6 +369,7 @@ describe('Performance > Trends', function () {
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
         context: data.routerContext,
+        organization: data.organization,
       }
     );
 
@@ -390,6 +395,7 @@ describe('Performance > Trends', function () {
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
         context: data.routerContext,
+        organization: data.organization,
       }
     );
 
@@ -419,6 +425,7 @@ describe('Performance > Trends', function () {
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
         context: data.routerContext,
+        organization: data.organization,
       }
     );
 
@@ -448,6 +455,7 @@ describe('Performance > Trends', function () {
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
         context: data.routerContext,
+        organization: data.organization,
       }
     );
 
@@ -472,6 +480,7 @@ describe('Performance > Trends', function () {
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
         context: data.routerContext,
+        organization: data.organization,
       }
     );
 
@@ -487,6 +496,7 @@ describe('Performance > Trends', function () {
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
         context: data.routerContext,
+        organization: data.organization,
       }
     );
 
@@ -502,6 +512,7 @@ describe('Performance > Trends', function () {
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
         context: data.routerContext,
+        organization: data.organization,
       }
     );
 
@@ -517,6 +528,7 @@ describe('Performance > Trends', function () {
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
         context: data.routerContext,
+        organization: data.organization,
       }
     );
 
@@ -539,6 +551,7 @@ describe('Performance > Trends', function () {
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
         context: data.routerContext,
+        organization: data.organization,
       }
     );
 
@@ -593,6 +606,7 @@ describe('Performance > Trends', function () {
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
         context: data.routerContext,
+        organization: data.organization,
       }
     );
 
@@ -664,6 +678,7 @@ describe('Performance > Trends', function () {
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
         context: data.routerContext,
+        organization: data.organization,
       }
     );
 
@@ -690,6 +705,7 @@ describe('Performance > Trends', function () {
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
         context: data.routerContext,
+        organization: data.organization,
       }
     );
 

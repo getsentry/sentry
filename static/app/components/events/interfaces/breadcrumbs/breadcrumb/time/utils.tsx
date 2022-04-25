@@ -2,7 +2,7 @@ import moment from 'moment';
 
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
-import {use24Hours} from 'sentry/utils/dates';
+import {shouldUse24Hours} from 'sentry/utils/dates';
 import {getDuration} from 'sentry/utils/formatters';
 
 const timeFormat = 'HH:mm:ss';
@@ -33,7 +33,7 @@ const getRelativeTime = (
 };
 
 const getAbsoluteTimeFormat = (format: string) => {
-  if (use24Hours()) {
+  if (shouldUse24Hours()) {
     return format;
   }
   return `${format} A`;

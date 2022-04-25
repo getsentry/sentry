@@ -89,10 +89,12 @@ function Onboarding(props: Props) {
 
   const [containerHasFooter, setContainerHasFooter] = useState<boolean>(false);
   const updateAnimationState = () => {
-    if (stepObj) {
-      setContainerHasFooter(stepObj.hasFooter ?? false);
-      cornerVariantControl.start(stepObj.cornerVariant);
+    if (!stepObj) {
+      return;
     }
+
+    setContainerHasFooter(stepObj.hasFooter ?? false);
+    cornerVariantControl.start(stepObj.cornerVariant);
   };
 
   useEffect(updateAnimationState, []);
@@ -104,6 +106,10 @@ function Onboarding(props: Props) {
   }
 
   const goToStep = (step: StepDescriptor) => {
+    if (!stepObj) {
+      return;
+    }
+
     if (step.cornerVariant !== stepObj.cornerVariant) {
       cornerVariantControl.start('none');
     }
@@ -121,7 +127,12 @@ function Onboarding(props: Props) {
   };
 
   const handleGoBack = () => {
+    if (!stepObj) {
+      return;
+    }
+
     const previousStep = ONBOARDING_STEPS[stepIndex - 1];
+
     if (stepObj.cornerVariant !== previousStep.cornerVariant) {
       cornerVariantControl.start('none');
     }
@@ -145,6 +156,9 @@ function Onboarding(props: Props) {
     );
   };
 
+  if (!stepObj || stepIndex === -1) {
+    return <div>Can't find</div>;
+  }
   return (
     <OnboardingWrapper data-test-id="targeted-onboarding">
       <SentryDocumentTitle title={stepObj.title} />

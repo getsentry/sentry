@@ -224,11 +224,11 @@ export function _VitalChart(props: _VitalChartProps) {
     utc,
     vitalFields,
   } = props;
+  const theme = useTheme();
 
   if (!_results || !vitalFields) {
     return null;
   }
-  const theme = useTheme();
 
   const chartOptions: Omit<LineChartProps, 'series'> = {
     grid,

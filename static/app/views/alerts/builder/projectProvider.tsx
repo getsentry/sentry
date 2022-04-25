@@ -30,11 +30,13 @@ function AlertBuilderProjectProvider(props: Props) {
   const useFirstProject = hasAlertWizardV3 && projectId === undefined;
 
   // calling useProjects() without args fetches all projects
-  const {projects, initiallyLoaded, fetching, fetchError} = useFirstProject
-    ? useProjects()
-    : useProjects({
-        slugs: [projectId],
-      });
+  const {projects, initiallyLoaded, fetching, fetchError} = useProjects(
+    useFirstProject
+      ? undefined
+      : {
+          slugs: [projectId],
+        }
+  );
   const project = useFirstProject
     ? projects.find(p => p)
     : projects.find(({slug}) => slug === projectId);

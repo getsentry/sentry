@@ -142,10 +142,11 @@ export function Chart(props: ChartProps) {
     disableChartPadding,
     colors,
   } = props;
+  const theme = useTheme();
+
   if (!chartData) {
     return null;
   }
-  const theme = useTheme();
 
   const series = {
     seriesName: t('Count'),

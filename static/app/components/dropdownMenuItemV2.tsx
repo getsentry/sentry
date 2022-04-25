@@ -146,10 +146,12 @@ const MenuItem = ({
   ...submenuTriggerProps
 }: Props) => {
   const [isHovering, setIsHovering] = useState(false);
-  const ref = submenuTriggerRef ?? useRef(null);
+  const ourRef = useRef(null);
   const isDisabled = state.disabledKeys.has(node.key);
   const isFocused = state.selectionManager.focusedKey === node.key;
   const item = node.value;
+
+  const ref = submenuTriggerRef ?? ourRef;
 
   const actionHandler = () => {
     if (item.to) {

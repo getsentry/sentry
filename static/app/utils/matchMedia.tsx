@@ -34,9 +34,13 @@ export function setupColorScheme(): void {
     ConfigStore.updateTheme('dark');
   }
 
+  // If matchmedia is not supported, keep whatever configStore.init theme was set to
+  if (!window.matchMedia) {
+    return;
+  }
+
   // Watch for changes in preferred color scheme
   const lightMediaQuery = window.matchMedia('(prefers-color-scheme: light)');
-
   const darkMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
   try {

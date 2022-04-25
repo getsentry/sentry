@@ -6,10 +6,6 @@ function useSessionStorage<T>(
   key: string,
   initialValue?: T
 ): [T | undefined, Dispatch<SetStateAction<T | undefined>>, () => void] {
-  if (!isBrowser) {
-    return [initialValue, () => {}, () => {}];
-  }
-
   const [state, setState] = useState<T | undefined>(() => {
     try {
       // Get from session storage by key
@@ -42,6 +38,10 @@ function useSessionStorage<T>(
   function removeItem() {
     sessionStorage.removeItem(key);
     setState(undefined);
+  }
+
+  if (!isBrowser) {
+    return [initialValue, () => {}, () => {}];
   }
 
   return [state, setState, removeItem];
