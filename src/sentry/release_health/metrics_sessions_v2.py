@@ -48,6 +48,7 @@ from sentry.snuba.metrics.datasource import get_series
 from sentry.snuba.metrics.naming_layer.public import SessionMetricKey
 from sentry.snuba.metrics.query import MetricField, OrderBy
 from sentry.snuba.metrics.query import QueryDefinition as MetricsQuery
+from sentry.snuba.metrics.utils import OrderByNotSupportedOverCompositeEntityException
 from sentry.snuba.sessions_v2 import (
     SNUBA_LIMIT,
     InvalidParams,
@@ -402,7 +403,10 @@ def run_sessions_query(
 
     # TODO: Stop passing project IDs everywhere
     projects = Project.objects.get_many_from_cache(project_ids)
-    metrics_results = get_series(projects, metrics_query)
+    try:
+        metrics_results = get_series(projects, metrics_query)
+    except OrderByNotSupportedOverCompositeEntityException:
+        raise InvalidParams(f"Cannot order by {query.raw_orderby[0]} with the current filters")
 
     input_groups = {
         GroupKey.from_input_dict(group["by"]): group for group in metrics_results["groups"]
@@ -548,8 +552,9 @@ def _parse_orderby(
 
     field = fields[orderby]
 
-    # Because we excluded groupBy session status, we should have a one-to-one mapping now
-    assert len(field.metric_fields) == 1
+    if len(field.metric_fields) != 1:
+        # This can still happen when we filter by session.status
+        raise InvalidParams(f"Cannot order by {field.name} with the current filters")
 
     return OrderBy(field.metric_fields[0], direction)
 
