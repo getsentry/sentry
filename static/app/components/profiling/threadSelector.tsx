@@ -1,6 +1,7 @@
 import {useCallback, useMemo} from 'react';
 
 import CompactSelect from 'sentry/components/forms/compactSelect';
+import {ControlProps, GeneralSelectValue} from 'sentry/components/forms/selectControl';
 import {IconList} from 'sentry/icons';
 import {SelectValue} from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -13,7 +14,7 @@ interface ThreadSelectorProps {
   profileGroup: ProfileGroup;
 }
 
-function ThreadMenuSelector({
+function ThreadMenuSelector<OptionType extends GeneralSelectValue = GeneralSelectValue>({
   activeProfileIndex,
   onProfileIndexChange,
   profileGroup,
@@ -29,7 +30,7 @@ function ThreadMenuSelector({
       .map(item => ({label: item.name, value: item.index}));
   }, [profileGroup]);
 
-  const handleChange = useCallback(
+  const handleChange = useCallback<NonNullable<ControlProps<OptionType>['onChange']>>(
     opt => {
       if (defined(opt)) {
         onProfileIndexChange(opt.value);
