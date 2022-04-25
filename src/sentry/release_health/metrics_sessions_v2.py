@@ -469,6 +469,8 @@ def _transform_conditions(
     conditions: ConditionGroup,
 ) -> Tuple[ConditionGroup, StatusFilter]:
     """Split conditions into metrics conditions and a filter on session.status"""
+    if not conditions:
+        return conditions, None
     where, status_filters = zip(*map(_transform_single_condition, conditions))
     where = [condition for condition in where if condition is not None]
     status_filters = [f for f in status_filters if f is not None]

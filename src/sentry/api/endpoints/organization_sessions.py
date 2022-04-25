@@ -48,7 +48,8 @@ class OrganizationSessionsEndpoint(OrganizationEventsEndpointBase):
             query_params,
             params,
             allowed_resolution=allowed_resolution,
-            restrict_columns=not release_health.is_metrics_based(),
+            # FIXME: This won't work with duplex backend
+            allow_session_status_query=release_health.is_metrics_based(),
         )
 
     @contextmanager
