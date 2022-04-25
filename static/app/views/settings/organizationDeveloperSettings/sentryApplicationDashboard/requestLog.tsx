@@ -17,12 +17,12 @@ import {IconChevron, IconFlag, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {SentryApp, SentryAppSchemaIssueLink, SentryAppWebhookRequest} from 'sentry/types';
-import {use24Hours} from 'sentry/utils/dates';
+import {shouldUse24Hours} from 'sentry/utils/dates';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 const ALL_EVENTS = t('All Events');
 const MAX_PER_PAGE = 10;
-const is24Hours = use24Hours();
+const is24Hours = shouldUse24Hours();
 
 const componentHasSelectUri = (issueLinkComponent: SentryAppSchemaIssueLink): boolean => {
   const hasSelectUri = (fields: any[]): boolean =>
