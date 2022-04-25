@@ -4,12 +4,11 @@ import range from 'lodash/range';
 import moment from 'moment';
 
 import {transformCrumbs} from 'sentry/components/events/interfaces/breadcrumbs/utils';
+import StackedContent from 'sentry/components/replays/stackedContent';
 import space from 'sentry/styles/space';
 import {Crumb, RawCrumb} from 'sentry/types/breadcrumbs';
 
 import {countColumns, formatTime, getCrumbsByColumn} from '../utils';
-
-import StackedContent from './stackedContent';
 
 const EVENT_STICK_MARKER_WIDTH = 2;
 
