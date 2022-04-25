@@ -1848,9 +1848,7 @@ describe('WidgetBuilder', function () {
     expect(await screen.findByText('Top 5 Events')).toBeInTheDocument();
   });
 
-  // Disabling for CI, but should run locally when making changes
-  // eslint-disable-next-line jest/no-disabled-tests
-  it.skip('Update table header values (field alias)', async function () {
+  it('Update table header values (field alias)', async function () {
     const handleSave = jest.fn();
 
     renderTestComponent({
@@ -1860,11 +1858,11 @@ describe('WidgetBuilder', function () {
 
     await screen.findByText('Table');
 
-    userEvent.type(screen.getByPlaceholderText('Alias'), 'First Alias{enter}');
+    userEvent.paste(screen.getByPlaceholderText('Alias'), 'First Alias');
 
     userEvent.click(screen.getByLabelText('Add a Column'));
 
-    userEvent.type(screen.getAllByPlaceholderText('Alias')[1], 'Second Alias{enter}');
+    userEvent.paste(screen.getAllByPlaceholderText('Alias')[1], 'Second Alias');
 
     userEvent.click(screen.getByText('Add Widget'));
 
@@ -1877,6 +1875,71 @@ describe('WidgetBuilder', function () {
         }),
       ]);
     });
+  });
+
+  it('does not wipe equation aliases when a column alias is updated', async function () {
+    renderTestComponent({
+      orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+    });
+
+    await screen.findByText('Table');
+
+    userEvent.click(screen.getByText('Add an Equation'));
+    userEvent.paste(screen.getAllByPlaceholderText('Alias')[1], 'This should persist');
+    userEvent.type(screen.getAllByPlaceholderText('Alias')[0], 'A');
+
+    expect(screen.getByText('This should persist')).toBeInTheDocument();
+  });
+
+  it('does not wipe equation aliases when a column selection is made', async function () {
+    renderTestComponent({
+      orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+    });
+
+    await screen.findByText('Table');
+
+    userEvent.click(screen.getByText('Add an Equation'));
+    userEvent.paste(screen.getAllByPlaceholderText('Alias')[1], 'This should persist');
+
+    await selectEvent.select(screen.getAllByText('count()')[1], /count_unique/);
+
+    expect(screen.getByText('This should persist')).toBeInTheDocument();
+  });
+
+  it('copies over the orderby from the previous query if adding another', async function () {
+    renderTestComponent({
+      orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+    });
+
+    userEvent.click(await screen.findByText('Table'));
+    userEvent.click(screen.getByText('Line Chart'));
+    await selectEvent.select(screen.getAllByText('count()')[0], 'count_unique(…)');
+
+    MockApiClient.clearMockResponses();
+    eventsStatsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: [],
+    });
+
+    userEvent.click(screen.getByText('Add Query'));
+
+    // Assert on two calls, one for each query
+    const expectedArgs = expect.objectContaining({
+      query: expect.objectContaining({
+        orderby: '-count_unique_user',
+      }),
+    });
+    expect(eventsStatsMock).toHaveBeenNthCalledWith(
+      1,
+      '/organizations/org-slug/events-stats/',
+      expectedArgs
+    );
+
+    expect(eventsStatsMock).toHaveBeenNthCalledWith(
+      2,
+      '/organizations/org-slug/events-stats/',
+      expectedArgs
+    );
   });
 
   describe('Issue Widgets', function () {

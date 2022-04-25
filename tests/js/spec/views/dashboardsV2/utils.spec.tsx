@@ -3,6 +3,7 @@ import {
   constructWidgetFromQuery,
   eventViewFromWidget,
   flattenErrors,
+  getDashboardsMEPQueryParams,
   getFieldsFromEquations,
   getNextEquationIndex,
   getWidgetDiscoverUrl,
@@ -250,6 +251,17 @@ describe('Dashboards util', () => {
       expect(flattenErrors(errorResponse, {})).toEqual({
         error: 'Dashboard title already taken.',
       });
+    });
+  });
+
+  describe('getDashboardsMEPQueryParams', function () {
+    it('returns correct params if enabled', function () {
+      expect(getDashboardsMEPQueryParams(true)).toEqual({
+        metricsEnhanced: '1',
+      });
+    });
+    it('returns empty object if disabled', function () {
+      expect(getDashboardsMEPQueryParams(false)).toEqual({});
     });
   });
 

@@ -213,6 +213,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
         newColumns[i] = {
           kind: 'equation',
           field: newEquation,
+          alias: newColumns[i].alias,
         };
       }
     }
@@ -510,7 +511,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
                 borderless
               />
             ) : (
-              <Button
+              <RemoveButton
                 data-test-id={`remove-column-${i}`}
                 aria-label={t('Remove column')}
                 onClick={() => this.removeColumn(i)}

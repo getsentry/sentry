@@ -1964,8 +1964,10 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
 
     def test_run_query_with_hour_interval(self):
         # See comment on resolve_time_column for explaination of this test
-        self.start = datetime.datetime(2015, 1, 1, 15, 30, 0, tzinfo=timezone.utc)
-        self.end = datetime.datetime(2015, 1, 2, 15, 30, 0, tzinfo=timezone.utc)
+        self.start = datetime.datetime.now(timezone.utc).replace(
+            hour=15, minute=30, second=0, microsecond=0
+        )
+        self.end = datetime.datetime.fromtimestamp(self.start.timestamp() + 86400, timezone.utc)
         self.params = {
             "organization_id": self.organization.id,
             "project_id": self.projects,
@@ -1986,9 +1988,10 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             selected_columns=["epm(3600)"],
         )
         result = query.run_query("test_query")
+        date_prefix = self.start.strftime("%Y-%m-%dT")
         assert result["data"] == [
-            {"time": "2015-01-01T15:00:00+00:00", "epm_3600": 2 / (3600 / 60)},
-            {"time": "2015-01-01T16:00:00+00:00", "epm_3600": 3 / (3600 / 60)},
+            {"time": f"{date_prefix}15:00:00+00:00", "epm_3600": 2 / (3600 / 60)},
+            {"time": f"{date_prefix}16:00:00+00:00", "epm_3600": 3 / (3600 / 60)},
         ]
         self.assertCountEqual(
             result["meta"],
@@ -2002,8 +2005,10 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         """The base MetricsQueryBuilder with a perfect 1d query will try to use granularity 86400 which is larger than
         the interval of 3600, in this case we want to make sure to use a smaller granularity to get the correct
         result"""
-        self.start = datetime.datetime(2015, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
-        self.end = datetime.datetime(2015, 1, 2, 0, 0, 0, tzinfo=timezone.utc)
+        self.start = datetime.datetime.now(timezone.utc).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        self.end = datetime.datetime.fromtimestamp(self.start.timestamp() + 86400, timezone.utc)
         self.params = {
             "organization_id": self.organization.id,
             "project_id": self.projects,
@@ -2024,9 +2029,10 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             selected_columns=["epm(3600)"],
         )
         result = query.run_query("test_query")
+        date_prefix = self.start.strftime("%Y-%m-%dT")
         assert result["data"] == [
-            {"time": "2015-01-01T00:00:00+00:00", "epm_3600": 3 / (3600 / 60)},
-            {"time": "2015-01-01T01:00:00+00:00", "epm_3600": 1 / (3600 / 60)},
+            {"time": f"{date_prefix}00:00:00+00:00", "epm_3600": 3 / (3600 / 60)},
+            {"time": f"{date_prefix}01:00:00+00:00", "epm_3600": 1 / (3600 / 60)},
         ]
         self.assertCountEqual(
             result["meta"],
