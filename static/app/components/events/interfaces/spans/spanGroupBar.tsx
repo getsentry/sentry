@@ -172,7 +172,8 @@ export function SpanGroupBar(props: Props) {
                   spanGrouping.forEach(spanObj => {
                     registerScrollFn(
                       spanTargetHash(spanObj.span.span_id),
-                      toggleSpanGroup
+                      toggleSpanGroup,
+                      true
                     );
                   });
                   return (
