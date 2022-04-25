@@ -378,9 +378,12 @@ def _get_filter_conditions(conditions: Sequence[Condition]) -> Any:
 
 
 def _parse_orderby(query: QueryDefinition) -> Optional[OrderBy]:
-    orderby = query.raw_orderby
-    if orderby is None:
+    orderbys = query.raw_orderby
+    if orderbys == []:
         return None
+    if len(orderbys) > 1:
+        raise InvalidParams("Cannot order by multiple fields")
+    orderby = orderbys[0]
 
     if "session.status" in query.raw_groupby:
         raise InvalidParams("Cannot use 'orderBy' when grouping by sessions.status")
