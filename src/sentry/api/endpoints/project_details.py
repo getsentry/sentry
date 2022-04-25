@@ -2,6 +2,7 @@ import math
 import time
 from datetime import timedelta
 from itertools import chain
+from uuid import uuid4
 
 from django.db import IntegrityError, transaction
 from django.utils import timezone
@@ -240,13 +241,24 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         except InvalidSourcesError as e:
             raise serializers.ValidationError(str(e))
 
-        sources_json = json.dumps(sources) if sources else ""
-
         # If no sources are added or modified, we're either only deleting sources or doing nothing.
         # This is always allowed.
         added_or_modified_sources = [s for s in sources if s not in orig_sources]
         if not added_or_modified_sources:
-            return sources_json
+            return json.dumps(sources) if sources else ""
+
+        # All modified sources should get a new UUID, as a way to bust caches.
+        # For example, symbolicator caches negative DIF lookups based on this id,
+        # and updating a source should take effect immediately instead of an
+        # hour later when caches expire.
+        for source in added_or_modified_sources:
+            # This should only apply to sources which are being fed to symbolicator.
+            # App Store Connect in particular is managed in a completely different
+            # way, and needs its `id` to stay valid for a longer time.
+            if source["type"] != "appStoreConnect":
+                source["id"] = uuid4()
+
+        sources_json = json.dumps(sources) if sources else ""
 
         # Adding sources is only allowed if custom symbol sources are enabled.
         has_sources = features.has(
