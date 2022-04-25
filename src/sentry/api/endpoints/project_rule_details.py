@@ -18,7 +18,7 @@ from sentry.models import (
     Team,
     User,
 )
-from sentry.rules.actions.base import trigger_alert_rule_action_creators
+from sentry.rules.actions.base import trigger_sentry_app_action_creators_for_issues
 from sentry.signals import alert_rule_edited
 from sentry.web.decorators import transaction_start
 
@@ -128,7 +128,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                 context = {"uuid": client.uuid}
                 return Response(context, status=202)
 
-            trigger_alert_rule_action_creators(kwargs.get("actions"))
+            trigger_sentry_app_action_creators_for_issues(kwargs.get("actions"))
 
             updated_rule = project_rules.Updater.run(rule=rule, request=request, **kwargs)
 

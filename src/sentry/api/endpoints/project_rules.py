@@ -16,7 +16,7 @@ from sentry.models import (
     Team,
     User,
 )
-from sentry.rules.actions.base import trigger_alert_rule_action_creators
+from sentry.rules.actions.base import trigger_sentry_app_action_creators_for_issues
 from sentry.signals import alert_rule_created
 from sentry.web.decorators import transaction_start
 
@@ -103,7 +103,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
                 tasks.find_channel_id_for_rule.apply_async(kwargs=kwargs)
                 return Response(uuid_context, status=202)
 
-            created_alert_rule_ui_component = trigger_alert_rule_action_creators(
+            created_alert_rule_ui_component = trigger_sentry_app_action_creators_for_issues(
                 kwargs.get("actions")
             )
             rule = project_rules.Creator.run(request=request, **kwargs)

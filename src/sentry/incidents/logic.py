@@ -1389,7 +1389,7 @@ def translate_aggregate_field(aggregate, reverse=False):
     return aggregate
 
 
-def validate_sentry_app_trigger_actions(validated_alert_rule_data):
+def trigger_sentry_app_action_creators_for_incidents(validated_alert_rule_data):
     from rest_framework import serializers
 
     from sentry.mediators import alert_rule_actions
