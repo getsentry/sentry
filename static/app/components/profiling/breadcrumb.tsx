@@ -73,7 +73,7 @@ function trailToCrumb(
       };
     }
     default:
-      throw new Error(`Unknown breadcrumb type: ${(trail as any).type}`);
+      throw new Error(`Unknown breadcrumb type: ${JSON.stringify(trail)}`);
   }
 }
 
