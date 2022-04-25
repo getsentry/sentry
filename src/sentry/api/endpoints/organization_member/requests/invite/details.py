@@ -108,7 +108,7 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationMemberEndpoint):
             save_team_assignments(member, result["teams"])
 
         if "approve" in request.data:
-            _, allowed_roles = get_allowed_roles(request, organization)
+            allowed_roles = get_allowed_roles(request, organization)
 
             serializer = ApproveInviteRequestSerializer(
                 data=request.data,

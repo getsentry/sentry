@@ -129,6 +129,20 @@ export function PerformanceLanding(props: Props) {
     );
   };
 
+  let pageFilters: React.ReactNode = organization.features.includes(
+    'selection-filters-v2'
+  ) ? (
+    <PageFilterBar condensed>
+      <ProjectPageFilter />
+      <EnvironmentPageFilter />
+      <DatePageFilter alignDropdown="left" />
+    </PageFilterBar>
+  ) : null;
+
+  if (showOnboarding) {
+    pageFilters = <SearchContainerWithFilter>{pageFilters}</SearchContainerWithFilter>;
+  }
+
   return (
     <StyledPageContent data-test-id="performance-landing-v3">
       <PageErrorProvider>
@@ -185,28 +199,25 @@ export function PerformanceLanding(props: Props) {
             <GlobalSdkUpdateAlert />
             <PageErrorAlert />
             {showOnboarding ? (
-              <Onboarding
-                organization={organization}
-                project={
-                  props.selection.projects.length > 0
-                    ? // If some projects selected, use the first selection
-                      projects.find(
-                        project => props.selection.projects[0].toString() === project.id
-                      ) || projects[0]
-                    : // Otherwise, use the first project in the org
-                      projects[0]
-                }
-              />
+              <Fragment>
+                {pageFilters}
+                <Onboarding
+                  organization={organization}
+                  project={
+                    props.selection.projects.length > 0
+                      ? // If some projects selected, use the first selection
+                        projects.find(
+                          project => props.selection.projects[0].toString() === project.id
+                        ) || projects[0]
+                      : // Otherwise, use the first project in the org
+                        projects[0]
+                  }
+                />
+              </Fragment>
             ) : (
               <Fragment>
-                {organization.features.includes('selection-filters-v2') && (
-                  <StyledPageFilterBar condensed>
-                    <ProjectPageFilter />
-                    <EnvironmentPageFilter />
-                    <DatePageFilter alignDropdown="left" />
-                  </StyledPageFilterBar>
-                )}
                 <SearchContainerWithFilter>
+                  {pageFilters}
                   <SearchBar
                     searchSource="performance_landing"
                     organization={organization}
@@ -255,14 +266,12 @@ const StyledHeading = styled(PageHeading)`
 
 const SearchContainerWithFilter = styled('div')`
   display: grid;
-  gap: ${space(0)};
+  grid-template-rows: auto auto;
+  gap: ${space(2)};
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: 1fr min-content;
+    grid-template-rows: auto;
+    grid-template-columns: auto 1fr;
   }
-`;
-
-const StyledPageFilterBar = styled(PageFilterBar)`
-  margin-bottom: ${space(1)};
 `;
