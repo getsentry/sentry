@@ -30,7 +30,7 @@ def get_request_builder_args(user: User, organization: Organization, platforms: 
         "subject": "Finish Onboarding",
         "type": "organization.onboarding-continuation-email",
         "context": context,
-        "template": "sentry/emails/requests/onboarding-continuation.txt",
+        "template": "sentry/emails/onboarding-continuation.txt",
         "html_template": "sentry/emails/onboarding-continuation.html",
     }
 

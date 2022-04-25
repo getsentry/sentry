@@ -11,7 +11,7 @@ class OrganizationOnboardingContinuation(APITestCase):
         super().setUp()
         self.login_as(self.user)
 
-    @mock.patch("sentry.utils.email.MessageBuilder")
+    @mock.patch("sentry.api.endpoints.organization_onboarding_continuation_email.MessageBuilder")
     def test_basic(self, builder):
         builder.return_value.send_async = mock.Mock()
         data = {"platforms": ["javascript", "python", "flutter"]}
@@ -19,7 +19,7 @@ class OrganizationOnboardingContinuation(APITestCase):
 
         expected_email_args = {
             "subject": "Finish Onboarding",
-            "template": "sentry/emails/requests/onboarding-continuation.txt",
+            "template": "sentry/emails/onboarding-continuation.txt",
             "html_template": "sentry/emails/onboarding-continuation.html",
             "type": "organization.onboarding-continuation-email",
             "context": {
