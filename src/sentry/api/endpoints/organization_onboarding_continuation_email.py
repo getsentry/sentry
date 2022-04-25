@@ -49,7 +49,7 @@ class OrganizationOnboardingContinuationEmail(OrganizationEndpoint):
                 request.user, organization, serializer.validated_data["platforms"]
             )
         )
-        msg.send_asyc([request.user.email])
+        msg.send_async([request.user.email])
         analytics.record(
             "onboarding_continuation.sent",
             organization_id=organization.id,

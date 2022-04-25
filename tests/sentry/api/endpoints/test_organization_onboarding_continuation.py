@@ -32,6 +32,7 @@ class OrganizationOnboardingContinuation(APITestCase):
         }
 
         builder.assert_called_with(**expected_email_args)
+        builder.return_value.send_async.assert_called_with([self.user.email])
 
     def test_validation_error(self):
         data = {"platforms": "not a list"}
