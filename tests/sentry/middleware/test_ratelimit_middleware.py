@@ -25,6 +25,7 @@ from sentry.testutils import APITestCase, TestCase
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class RatelimitMiddlewareTest(TestCase):
     middleware = RatelimitMiddleware(None)
     factory = fixture(RequestFactory)
@@ -113,6 +114,23 @@ class RatelimitMiddlewareTest(TestCase):
             self.middleware.process_view(request, self._test_endpoint, [], {})
             assert not request.will_be_rate_limited
 
+    @patch("sentry.middleware.ratelimit.get_rate_limit_value")
+    @override_settings(SENTRY_SELF_HOSTED=True)
+    def test_self_hosted_rate_limit_check(self, default_rate_limit_mock):
+        """Check that for self hosted installs we don't rate limit"""
+        request = self.factory.get("/")
+        default_rate_limit_mock.return_value = RateLimit(10, 100)
+        self.middleware.process_view(request, self._test_endpoint, [], {})
+        assert not request.will_be_rate_limited
+
+        default_rate_limit_mock.return_value = RateLimit(1, 1)
+        with freeze_time("2000-01-01") as frozen_time:
+            self.middleware.process_view(request, self._test_endpoint, [], {})
+            assert not request.will_be_rate_limited
+            frozen_time.tick(1)
+            self.middleware.process_view(request, self._test_endpoint, [], {})
+            assert not request.will_be_rate_limited
+
     def test_rate_limit_category(self):
         request = self.factory.get("/")
         request.META["REMOTE_ADDR"] = None
@@ -190,6 +208,7 @@ class RatelimitMiddlewareTest(TestCase):
         )
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class TestGetRateLimitValue(TestCase):
     def test_default_rate_limit_values(self):
         """Ensure that the default rate limits are called for endpoints without overrides"""
@@ -282,7 +301,9 @@ urlpatterns = [
 ]
 
 
-@override_settings(ROOT_URLCONF="tests.sentry.middleware.test_ratelimit_middleware")
+@override_settings(
+    ROOT_URLCONF="tests.sentry.middleware.test_ratelimit_middleware", SENTRY_SELF_HOSTED=False
+)
 class TestRatelimitHeader(APITestCase):
 
     endpoint = "ratelimit-header-endpoint"
@@ -342,7 +363,9 @@ class TestRatelimitHeader(APITestCase):
         assert int(response["X-Sentry-Rate-Limit-Limit"]) == 2
 
 
-@override_settings(ROOT_URLCONF="tests.sentry.middleware.test_ratelimit_middleware")
+@override_settings(
+    ROOT_URLCONF="tests.sentry.middleware.test_ratelimit_middleware", SENTRY_SELF_HOSTED=False
+)
 class TestConcurrentRateLimiter(APITestCase):
     endpoint = "concurrent-endpoint"
 
