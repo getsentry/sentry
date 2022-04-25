@@ -14,7 +14,6 @@ import space from 'sentry/styles/space';
 import {formatTime} from './utils';
 
 const SECOND = 1000;
-const SIZE_BUTTON = 'small';
 
 interface Props {
   speedOptions?: number[];
@@ -44,7 +43,7 @@ function ReplayPlayPauseBar() {
     <ButtonBar merged>
       <Button
         data-test-id="replay-back-10s"
-        size={SIZE_BUTTON}
+        size="xsmall"
         title={t('Go back 10 seconds')}
         icon={<IconRefresh size="sm" />}
         onClick={() => setCurrentTime(currentTime - 10 * SECOND)}
@@ -52,7 +51,7 @@ function ReplayPlayPauseBar() {
       />
       <Button
         data-test-id="replay-play-pause"
-        size={SIZE_BUTTON}
+        size="xsmall"
         title={isPlaying ? t('Pause the Replay') : t('Play the Replay')}
         icon={isPlaying ? <IconPause size="sm" /> : <IconPlay size="sm" />}
         onClick={() => togglePlayPause(!isPlaying)}
@@ -60,7 +59,7 @@ function ReplayPlayPauseBar() {
       />
       <Button
         data-test-id="replay-forward-10s"
-        size={SIZE_BUTTON}
+        size="xsmall"
         title={t('Go forward 10 seconds')}
         icon={<IconClockwise size="sm" />}
         onClick={() => setCurrentTime(currentTime + 10 * SECOND)}
@@ -88,7 +87,7 @@ function ReplayPlaybackSpeed({speedOptions}: {speedOptions: number[]}) {
       {speedOptions.map(opt => (
         <Button
           key={opt}
-          size={SIZE_BUTTON}
+          size="xsmall"
           barId={String(opt)}
           onClick={() => setSpeed(opt)}
           title={t('Set playback speed to %s', `${opt}x`)}
@@ -119,7 +118,7 @@ const ReplayControls = ({
           {/* TODO(replay): Need a better icon for the FastForward toggle */}
           <Button
             data-test-id="replay-fast-forward"
-            size={SIZE_BUTTON}
+            size="xsmall"
             title={t('Fast-forward idle moments')}
             aria-label={t('Fast-forward idle moments')}
             icon={<IconArrow size="sm" direction="right" />}
@@ -131,7 +130,7 @@ const ReplayControls = ({
 
           <Button
             data-test-id="replay-fullscreen"
-            size={SIZE_BUTTON}
+            size="xsmall"
             title={isFullscreen ? t('Exit full screen') : t('View in full screen')}
             aria-label={isFullscreen ? t('Exit full screen') : t('View in full screen')}
             icon={<IconResize size="sm" />}
@@ -168,6 +167,10 @@ const ButtonGrid = styled('div')`
 const TimelineRange = styled(RangeSlider)`
   flex-grow: 1;
   margin-top: ${space(1)};
+  input {
+    padding: 16px 0 16px;
+    margin: -8px 0 0px;
+  }
 `;
 
 export default ReplayControls;
