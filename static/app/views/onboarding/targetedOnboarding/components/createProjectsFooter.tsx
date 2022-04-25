@@ -64,6 +64,8 @@ export default function CreateProjectsFooter({
       const nextState: OnboardingState = {
         platformToProjectIdMap: persistedOnboardingState.platformToProjectIdMap,
         selectedPlatforms: platforms,
+        state: 'projects_selected',
+        url: 'setup-docs/',
       };
       responses.forEach(p => (nextState.platformToProjectIdMap[p.platform] = p.slug));
       setPersistedOnboardingState(nextState);

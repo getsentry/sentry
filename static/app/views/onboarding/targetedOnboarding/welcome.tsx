@@ -65,7 +65,7 @@ function TargetedOnboardingWelcome({organization, ...props}: StepProps) {
     if (clientState) {
       setClientState({
         ...clientState,
-        url: 'welcome/',
+        url: 'select-platform/',
         state: 'started',
       });
     }
