@@ -213,6 +213,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
         newColumns[i] = {
           kind: 'equation',
           field: newEquation,
+          alias: newColumns[i].alias,
         };
       }
     }
