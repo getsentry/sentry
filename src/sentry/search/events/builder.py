@@ -110,9 +110,6 @@ class QueryBuilder:
 
         self.params = params
 
-        # Has to be done early, since other conditions depend on start and end
-        self.resolve_time_conditions()
-
         self.organization_id = params.get("organization_id")
         self.auto_fields = auto_fields
         self.functions_acl = set() if functions_acl is None else functions_acl
@@ -179,6 +176,9 @@ class QueryBuilder:
         equations: Optional[List[str]] = None,
         orderby: Optional[List[str]] = None,
     ) -> None:
+        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_time_conditions"):
+            # Has to be done early, since other conditions depend on start and end
+            self.resolve_time_conditions()
         with sentry_sdk.start_span(op="QueryBuilder", description="resolve_conditions"):
             self.where, self.having = self.resolve_conditions(
                 query, use_aggregate_conditions=use_aggregate_conditions
