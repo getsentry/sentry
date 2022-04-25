@@ -444,7 +444,13 @@ class WidgetQueries extends React.Component<Props, State> {
         ) {
           requestData.topEvents = widget.limit ?? TOP_N;
           // Aggregates need to be in fields as well
-          requestData.field = [...query.columns, ...query.aggregates];
+          requestData.field = [
+            ...new Set([
+              ...query.columns,
+              ...query.aggregates,
+              ...(query.orderby ? [trimStart(query.orderby, '-')] : []),
+            ]),
+          ];
 
           // The "Other" series is only included when there is one
           // y-axis and one query
