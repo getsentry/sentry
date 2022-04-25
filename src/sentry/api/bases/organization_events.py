@@ -21,12 +21,19 @@ from sentry.models.group import Group
 from sentry.search.events.constants import TIMEOUT_ERROR_MESSAGE
 from sentry.search.events.fields import get_function_alias
 from sentry.search.events.filter import get_filter
-from sentry.snuba import discover
+from sentry.snuba import discover, metrics_enhanced_performance
 from sentry.utils import snuba
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import get_interval_from_range, get_rollup_from_request, parse_stats_period
 from sentry.utils.http import absolute_uri
 from sentry.utils.snuba import MAX_FIELDS, SnubaTSResult
+
+# Doesn't map 1:1 with real datasets, but rather what we present to users
+# ie. metricsEnhanced is not a real dataset
+DATASET_OPTIONS = {
+    "discover": discover,
+    "metricsEnhanced": metrics_enhanced_performance,
+}
 
 
 def resolve_axis_column(column: str, index: int = 0) -> str:
@@ -59,6 +66,12 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):  # type: ignore
             teams = Team.objects.get_for_user(organization, request.user)
 
         return [team.id for team in teams]
+
+    def get_dataset(self, request: Request) -> Any:
+        dataset_label = request.GET.get("dataset", "discover")
+        if dataset_label not in DATASET_OPTIONS:
+            raise ParseError(detail=f"dataset must be one of: {', '.join(DATASET_OPTIONS.keys())}")
+        return DATASET_OPTIONS[dataset_label]
 
     def get_snuba_params(
         self, request: Request, organization: Organization, check_global_views: bool = True
