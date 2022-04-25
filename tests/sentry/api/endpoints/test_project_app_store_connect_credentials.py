@@ -2,6 +2,7 @@ from unittest import mock
 
 import django.urls
 import pytest
+from django.test import override_settings
 
 import sentry.tasks.app_store_connect
 from sentry.api.endpoints.project_app_store_connect_credentials import (
@@ -140,6 +141,7 @@ class TestAppStoreConnectRefreshEndpoint:
         )
 
     @pytest.mark.django_db
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_rate_limited(self, client, default_user, mocked_dsym_download_task, refresh_url):
         client.login(username=default_user.username, password="admin")
         for i in range(5):
