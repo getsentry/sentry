@@ -1,8 +1,14 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
+import DatePageFilter from 'sentry/components/datePageFilter';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
+import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -54,7 +60,19 @@ export default function SpanDetailsContentWrapper(props: Props) {
             tab={Tab.Spans}
             spanSlug={spanSlug}
           />
-          <Layout.Title>{transactionName}</Layout.Title>
+          <Layout.Title>
+            <TransactionName>
+              {project && (
+                <IdBadge
+                  project={project}
+                  avatarSize={28}
+                  hideName
+                  avatarProps={{hasTooltip: true, tooltip: project.slug}}
+                />
+              )}
+              {transactionName}
+            </TransactionName>
+          </Layout.Title>
         </Layout.HeaderContent>
       </Layout.Header>
       <Layout.Body>
@@ -80,6 +98,8 @@ export default function SpanDetailsContentWrapper(props: Props) {
                   spanOps={[spanSlug.op]}
                   spanGroups={[spanSlug.group]}
                   cursor="0:0:1"
+                  minExclusiveTime={minExclusiveTime}
+                  maxExclusiveTime={maxExclusiveTime}
                 >
                   {suspectSpansResults => (
                     <SpanExamplesQuery
@@ -117,6 +137,13 @@ export default function SpanDetailsContentWrapper(props: Props) {
   );
 }
 
+const TransactionName = styled('div')`
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  grid-column-gap: ${space(1)};
+  align-items: center;
+`;
+
 type ContentProps = {
   eventView: EventView;
   location: Location;
@@ -149,6 +176,10 @@ function SpanDetailsContent(props: ContentProps) {
 
   return (
     <Fragment>
+      <StyledPageFilterBar condensed>
+        <EnvironmentPageFilter />
+        <DatePageFilter />
+      </StyledPageFilterBar>
       <SpanDetailsHeader
         spanSlug={spanSlug}
         totalCount={totalCount}
@@ -180,6 +211,10 @@ function SpanDetailsContent(props: ContentProps) {
     </Fragment>
   );
 }
+
+const StyledPageFilterBar = styled(PageFilterBar)`
+  margin-bottom: ${space(1)};
+`;
 
 function getSpansEventView(eventView: EventView): EventView {
   // TODO: There is a bug where if the sort is not avg occurrence,

@@ -5,10 +5,14 @@ import {Location} from 'history';
 
 import Alert from 'sentry/components/alert';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
+import DatePageFilter from 'sentry/components/datePageFilter';
 import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -206,11 +210,14 @@ class TrendsContent extends React.Component<Props, State> {
     );
     const query = getTransactionSearchQuery(location);
 
+    const hasPageFilters = organization.features.includes('selection-filters-v2');
+
     return (
       <PageFiltersContainer
         defaultSelection={{
           datetime: defaultTrendsSelectionDate,
         }}
+        hideGlobalHeader={hasPageFilters}
       >
         <Layout.Header>
           <Layout.HeaderContent>
@@ -231,6 +238,13 @@ class TrendsContent extends React.Component<Props, State> {
         <Layout.Body>
           <Layout.Main fullWidth>
             <DefaultTrends location={location} eventView={eventView} projects={projects}>
+              {hasPageFilters && (
+                <StyledPageFilterBar condensed>
+                  <ProjectPageFilter />
+                  <EnvironmentPageFilter />
+                  <DatePageFilter />
+                </StyledPageFilterBar>
+              )}
               <StyledSearchContainer>
                 <StyledSearchBar
                   searchSource="trends"
@@ -345,6 +359,10 @@ class DefaultTrends extends React.Component<DefaultTrendsProps> {
     return null;
   }
 }
+
+const StyledPageFilterBar = styled(PageFilterBar)`
+  margin-bottom: ${space(1)};
+`;
 
 const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;

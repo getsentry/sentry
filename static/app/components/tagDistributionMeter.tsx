@@ -158,7 +158,7 @@ export default class TagDistributionMeter extends React.Component<Props> {
             >
               <Tooltip title={tooltipHtml} containerDisplayMode="block">
                 {value.isOther ? (
-                  <OtherSegment />
+                  <OtherSegment aria-label={t('Other')} />
                 ) : (
                   <Segment
                     aria-label={t(

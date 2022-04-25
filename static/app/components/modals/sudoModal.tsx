@@ -2,6 +2,7 @@ import * as React from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
+import {logout} from 'sentry/actionCreators/account';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
@@ -28,6 +29,7 @@ type Props = WithRouterProps &
      * User is a superuser without an active su session
      */
     isSuperuser?: boolean;
+    needsReload?: boolean;
     /**
      * expects a function that returns a Promise
      */
@@ -57,8 +59,24 @@ class SudoModal extends React.Component<Props, State> {
     this.getAuthenticators();
   }
 
+  handleSubmit = async () => {
+    const {api, isSuperuser} = this.props;
+    const data = {
+      isSuperuserModal: isSuperuser,
+      superuserAccessCategory: 'cops_csm',
+      superuserReason: 'COPS and CSM use',
+    };
+    try {
+      await api.requestPromise('/auth/', {method: 'PUT', data});
+      this.handleSuccess();
+    } catch (err) {
+      this.handleError(err);
+    }
+  };
+
   handleSuccess = () => {
-    const {closeModal, isSuperuser, location, router, retryRequest} = this.props;
+    const {closeModal, isSuperuser, location, needsReload, router, retryRequest} =
+      this.props;
 
     if (!retryRequest) {
       closeModal();
@@ -67,6 +85,9 @@ class SudoModal extends React.Component<Props, State> {
 
     if (isSuperuser) {
       router.replace({pathname: location.pathname, state: {forceUpdate: new Date()}});
+      if (needsReload) {
+        window.location.reload();
+      }
       return;
     }
 
@@ -113,6 +134,16 @@ class SudoModal extends React.Component<Props, State> {
     }
   };
 
+  handleLogout = async () => {
+    const {api} = this.props;
+    try {
+      await logout(api);
+    } catch {
+      // ignore errors
+    }
+    window.location.assign('/auth/login/');
+  };
+
   async getAuthenticators() {
     const {api} = this.props;
 
@@ -129,6 +160,11 @@ class SudoModal extends React.Component<Props, State> {
     const {authenticators, error, errorType} = this.state;
     const user = ConfigStore.get('user');
     const isSelfHosted = ConfigStore.get('isSelfHosted');
+
+    if (errorType === ErrorCodes.invalidSSOSession) {
+      this.handleLogout();
+      return null;
+    }
 
     if (
       (!user.hasPasswordAuth && authenticators.length === 0) ||
@@ -156,6 +192,11 @@ class SudoModal extends React.Component<Props, State> {
               onSubmitSuccess={this.handleSuccess}
               onSubmitError={this.handleError}
               initialData={{isSuperuserModal: isSuperuser}}
+              extraButton={
+                <BackWrapper>
+                  <Button onClick={this.handleSubmit}>{t('COPS/CSM')}</Button>
+                </BackWrapper>
+              }
               resetOnError
             >
               {!isSelfHosted && <Hook name="component:superuser-access-category" />}
@@ -244,4 +285,9 @@ const StyledInputField = styled(InputField)`
 
 const StyledAlert = styled(Alert)`
   margin-bottom: 0;
+`;
+
+const BackWrapper = styled('div')`
+  width: 100%;
+  margin-left: ${space(4)};
 `;
