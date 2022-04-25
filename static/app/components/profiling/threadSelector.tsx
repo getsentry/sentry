@@ -30,7 +30,7 @@ function ThreadMenuSelector<OptionType extends GeneralSelectValue = GeneralSelec
       .map(item => ({label: item.name, value: item.index}));
   }, [profileGroup]);
 
-  const handleChange = useCallback<NonNullable<ControlProps<OptionType>['onChange']>>(
+  const handleChange: NonNullable<ControlProps<OptionType>['onChange']> = useCallback(
     opt => {
       if (defined(opt)) {
         onProfileIndexChange(opt.value);
