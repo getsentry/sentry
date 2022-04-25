@@ -995,15 +995,7 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
             {"sentryApp": ["Missing parameter: sentry_app_installation_uuid"]},
         )
 
-    @responses.activate
     def test_create_and_update_sentry_app_action_success(self):
-        responses.add(
-            method=responses.POST,
-            url="https://example.com/sentry/alert-rule",
-            status=200,
-            json={},
-        )
-
         serializer = AlertRuleTriggerActionSerializer(
             context=self.context,
             data={
