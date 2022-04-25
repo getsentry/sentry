@@ -152,6 +152,10 @@ type Props = WithRouterProps & {
    */
   excludeEnvironment?: boolean;
   /**
+   * A function to get documentation for a field
+   */
+  getFieldDoc?: (key: string) => React.ReactNode;
+  /**
    * List user's recent searches
    */
   hasRecentSearches?: boolean;
@@ -731,7 +735,7 @@ class SmartSearchBar extends React.Component<Props, State> {
    * Returns array of possible key values that substring match `query`
    */
   getTagKeys(query: string): [SearchItem[], ItemType] {
-    const {prepareQuery, supportedTagType} = this.props;
+    const {prepareQuery, supportedTagType, getFieldDoc} = this.props;
 
     const supportedTags = this.props.supportedTags ?? {};
 
@@ -751,7 +755,13 @@ class SmartSearchBar extends React.Component<Props, State> {
     }
 
     return [
-      tagKeys.map(value => ({value, desc: value})),
+      tagKeys
+        .map(value => ({
+          value,
+          desc: value,
+          documentation: getFieldDoc?.(value.slice(0, -1)) ?? '',
+        }))
+        .sort((a, b) => a.value.localeCompare(b.value)),
       supportedTagType ?? ItemType.TAG_KEY,
     ];
   }

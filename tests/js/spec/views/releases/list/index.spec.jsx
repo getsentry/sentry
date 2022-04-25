@@ -504,7 +504,7 @@ describe('ReleasesList', function () {
     wrapper.update();
 
     expect(wrapper.find('[data-test-id="search-autocomplete-item"]').at(0).text()).toBe(
-      'release.version:'
+      'release:'
     );
 
     wrapper.find('SmartSearchBar textarea').simulate('focus');
