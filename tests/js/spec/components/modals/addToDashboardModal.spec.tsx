@@ -268,4 +268,32 @@ describe('add to dashboard modal', () => {
       );
     });
   });
+
+  it('disables Add + Stay in Discover when a new dashboard is selected', async () => {
+    render(
+      <AddToDashboardModal
+        Header={stubEl}
+        Footer={stubEl as ModalRenderProps['Footer']}
+        Body={stubEl as ModalRenderProps['Body']}
+        CloseButton={stubEl}
+        closeModal={() => undefined}
+        organization={initialData.organization}
+        widget={widget}
+        selection={defaultSelection}
+        router={initialData.router}
+        widgetAsQueryParams={mockWidgetAsQueryParams}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Select Dashboard')).toBeEnabled();
+    });
+    await selectEvent.select(
+      screen.getByText('Select Dashboard'),
+      '+ Create New Dashboard'
+    );
+
+    expect(screen.getByRole('button', {name: 'Add + Stay in Discover'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Open in Widget Builder'})).toBeEnabled();
+  });
 });
