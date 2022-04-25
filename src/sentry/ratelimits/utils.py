@@ -125,12 +125,10 @@ def get_rate_limit_config(endpoint: Type[object]) -> RateLimitConfig | None:
 
 def get_rate_limit_value(
     http_method: str,
-    endpoint: Type[object],
     category: RateLimitCategory,
     rate_limit_config: RateLimitConfig | None,
 ) -> RateLimit | None:
     """Read the rate limit from the view function to be used for the rate limit check."""
-    # types are hashable in python, the type checker disagrees though
     if not rate_limit_config:
         return None
     return rate_limit_config.get_rate_limit(http_method, category)

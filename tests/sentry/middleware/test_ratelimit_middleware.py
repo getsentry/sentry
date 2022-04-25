@@ -223,13 +223,13 @@ class TestGetRateLimitValue(TestCase):
         rate_limit_config = get_rate_limit_config(view.view_class)
 
         assert get_rate_limit_value(
-            "GET", TestEndpoint, "ip", rate_limit_config
+            "GET", "ip", rate_limit_config
         ) == get_default_rate_limits_for_group("default", RateLimitCategory.IP)
         assert get_rate_limit_value(
-            "POST", TestEndpoint, "org", rate_limit_config
+            "POST", "org", rate_limit_config
         ) == get_default_rate_limits_for_group("default", RateLimitCategory.ORGANIZATION)
         assert get_rate_limit_value(
-            "DELETE", TestEndpoint, "user", rate_limit_config
+            "DELETE", "user", rate_limit_config
         ) == get_default_rate_limits_for_group("default", RateLimitCategory.USER)
 
     def test_override_rate_limit(self):
@@ -244,20 +244,16 @@ class TestGetRateLimitValue(TestCase):
         view = TestEndpoint.as_view()
         rate_limit_config = get_rate_limit_config(view.view_class)
 
-        assert get_rate_limit_value("GET", TestEndpoint, "ip", rate_limit_config) == RateLimit(
-            100, 5
-        )
+        assert get_rate_limit_value("GET", "ip", rate_limit_config) == RateLimit(100, 5)
         # get is not overriddent for user, hence we use the default
         assert get_rate_limit_value(
-            "GET", TestEndpoint, "user", rate_limit_config
+            "GET", "user", rate_limit_config
         ) == get_default_rate_limits_for_group("default", category=RateLimitCategory.USER)
         # get is not overriddent for IP, hence we use the default
         assert get_rate_limit_value(
-            "POST", TestEndpoint, "ip", rate_limit_config
+            "POST", "ip", rate_limit_config
         ) == get_default_rate_limits_for_group("default", category=RateLimitCategory.IP)
-        assert get_rate_limit_value("POST", TestEndpoint, "user", rate_limit_config) == RateLimit(
-            20, 4
-        )
+        assert get_rate_limit_value("POST", "user", rate_limit_config) == RateLimit(20, 4)
 
 
 class RateLimitHeaderTestEndpoint(Endpoint):

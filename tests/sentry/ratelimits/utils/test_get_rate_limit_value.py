@@ -17,13 +17,13 @@ class TestGetRateLimitValue(TestCase):
         rate_limit_config = get_rate_limit_config(_test_endpoint.view_class)
 
         assert get_rate_limit_value(
-            "GET", TestEndpoint, RateLimitCategory.IP, rate_limit_config
+            "GET", RateLimitCategory.IP, rate_limit_config
         ) == get_default_rate_limits_for_group("default", RateLimitCategory.IP)
         assert get_rate_limit_value(
-            "POST", TestEndpoint, RateLimitCategory.ORGANIZATION, rate_limit_config
+            "POST", RateLimitCategory.ORGANIZATION, rate_limit_config
         ) == get_default_rate_limits_for_group("default", RateLimitCategory.ORGANIZATION)
         assert get_rate_limit_value(
-            "DELETE", TestEndpoint, RateLimitCategory.USER, rate_limit_config
+            "DELETE", RateLimitCategory.USER, rate_limit_config
         ) == get_default_rate_limits_for_group("default", RateLimitCategory.USER)
 
     def test_override_rate_limit(self):
@@ -38,18 +38,18 @@ class TestGetRateLimitValue(TestCase):
         _test_endpoint = TestEndpoint.as_view()
         rate_limit_config = get_rate_limit_config(_test_endpoint.view_class)
 
+        assert get_rate_limit_value("GET", RateLimitCategory.IP, rate_limit_config) == RateLimit(
+            100, 5
+        )
         assert get_rate_limit_value(
-            "GET", TestEndpoint, RateLimitCategory.IP, rate_limit_config
-        ) == RateLimit(100, 5)
-        assert get_rate_limit_value(
-            "GET", TestEndpoint, RateLimitCategory.USER, rate_limit_config
+            "GET", RateLimitCategory.USER, rate_limit_config
         ) == get_default_rate_limits_for_group("default", RateLimitCategory.USER)
         assert get_rate_limit_value(
-            "POST", TestEndpoint, RateLimitCategory.IP, rate_limit_config
+            "POST", RateLimitCategory.IP, rate_limit_config
         ) == get_default_rate_limits_for_group("default", RateLimitCategory.IP)
-        assert get_rate_limit_value(
-            "POST", TestEndpoint, RateLimitCategory.USER, rate_limit_config
-        ) == RateLimit(20, 4)
+        assert get_rate_limit_value("POST", RateLimitCategory.USER, rate_limit_config) == RateLimit(
+            20, 4
+        )
 
     def test_inherit(self):
         class ParentEndpoint(Endpoint):
@@ -64,7 +64,7 @@ class TestGetRateLimitValue(TestCase):
         rate_limit_config = get_rate_limit_config(_child_endpoint.view_class)
 
         assert get_rate_limit_value(
-            "GET", ChildEndpoint, RateLimitCategory.IP, rate_limit_config
+            "GET", RateLimitCategory.IP, rate_limit_config
         ) == get_default_rate_limits_for_group("foo", RateLimitCategory.IP)
 
     def test_multiple_inheritance(self):
@@ -86,9 +86,9 @@ class TestGetRateLimitValue(TestCase):
         _child_endpoint_reverse = ChildEndpointReverse.as_view()
         rate_limit_config_reverse = get_rate_limit_config(_child_endpoint_reverse.view_class)
 
+        assert get_rate_limit_value("GET", RateLimitCategory.IP, rate_limit_config) == RateLimit(
+            100, 5
+        )
         assert get_rate_limit_value(
-            "GET", ChildEndpoint, RateLimitCategory.IP, rate_limit_config
-        ) == RateLimit(100, 5)
-        assert get_rate_limit_value(
-            "GET", ChildEndpointReverse, RateLimitCategory.IP, rate_limit_config_reverse
+            "GET", RateLimitCategory.IP, rate_limit_config_reverse
         ) == RateLimit(2, 4)

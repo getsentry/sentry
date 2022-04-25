@@ -70,7 +70,6 @@ class RatelimitMiddleware:
 
                 rate_limit = get_rate_limit_value(
                     http_method=request.method,
-                    endpoint=view_class,
                     category=RateLimitCategory(category_str),
                     rate_limit_config=rate_limit_config,
                 )
