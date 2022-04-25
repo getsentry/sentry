@@ -46,7 +46,9 @@ def get_allowed_roles(
             return ()
 
     if member and roles.get(acting_member.role).priority < roles.get(member.role).priority:
+        # Disallow the acting member from demoting another member who outranks them
         return ()
+
     return acting_member.get_allowed_roles_to_invite()
 
 
