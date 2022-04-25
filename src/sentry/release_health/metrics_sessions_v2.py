@@ -340,6 +340,17 @@ def run_sessions_query(
     for field in fields:
         field.extract_values(query.raw_groupby, input_groups, output_groups)
 
+    if not output_groups:
+        # Generate default groups to be consistent with original sessions_v2
+        # implementation. This can be removed when we have stopped comparing
+        # See also https://github.com/getsentry/sentry/pull/32157.
+        if not query.raw_groupby:
+            output_groups[GroupKey()]
+        elif ["session.status"] == query.raw_groupby:
+            for status in SessionStatus:
+                # Create entry in default dict:
+                output_groups[GroupKey(session_status=status.value)]
+
     # Convert group keys back to dictionaries:
     results["groups"] = [
         {"by": group_key.to_output_dict(), **group} for group_key, group in output_groups.items()  # type: ignore
