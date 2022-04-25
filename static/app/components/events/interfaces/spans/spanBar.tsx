@@ -146,15 +146,6 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     if (this.spanRowDOMRef.current) {
       this.connectObservers();
     }
-
-    // It is necessary to manually scroll this span into the view if this span is part of an autogroup, and it is anchored.
-    // The AnchorLinkManager will automatically expand the group, but the scrolling needs to be done here
-    if (
-      !isGapSpan(this.props.span) &&
-      location.hash === spanTargetHash(this.props.span.span_id)
-    ) {
-      this.scrollIntoView();
-    }
   }
 
   componentWillUnmount() {

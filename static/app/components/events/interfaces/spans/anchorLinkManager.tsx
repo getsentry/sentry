@@ -17,6 +17,7 @@ type Props = {
 export class Provider extends Component<Props> {
   componentDidMount() {
     this.scrollToHash(location.hash);
+    setTimeout(() => this.scrollToHash(location.hash));
   }
 
   scrollFns: Map<string, () => void> = new Map();
