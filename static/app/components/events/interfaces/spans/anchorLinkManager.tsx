@@ -29,7 +29,7 @@ export class Provider extends Component<Props> {
       // If the anchored span is part of a group, need to call scrollToHash again, since the initial fn() call will only expand the group.
       // The function gets registered again after the group is expanded, which will allow the page to scroll to the span
       if (isSpanInGroup) {
-        setTimeout(() => this.scrollToHash(location.hash));
+        setTimeout(() => this.scrollFns.get(hash)?.fn());
       }
     }
   };
