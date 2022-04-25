@@ -129,6 +129,20 @@ export function PerformanceLanding(props: Props) {
     );
   };
 
+  let pageFilters: React.ReactNode = organization.features.includes(
+    'selection-filters-v2'
+  ) ? (
+    <PageFilterBar condensed>
+      <ProjectPageFilter />
+      <EnvironmentPageFilter />
+      <DatePageFilter alignDropdown="left" />
+    </PageFilterBar>
+  ) : null;
+
+  if (showOnboarding) {
+    pageFilters = <SearchContainerWithFilter>{pageFilters}</SearchContainerWithFilter>;
+  }
+
   return (
     <StyledPageContent data-test-id="performance-landing-v3">
       <PageErrorProvider>
@@ -185,28 +199,25 @@ export function PerformanceLanding(props: Props) {
             <GlobalSdkUpdateAlert />
             <PageErrorAlert />
             {showOnboarding ? (
-              <Onboarding
-                organization={organization}
-                project={
-                  props.selection.projects.length > 0
-                    ? // If some projects selected, use the first selection
-                      projects.find(
-                        project => props.selection.projects[0].toString() === project.id
-                      ) || projects[0]
-                    : // Otherwise, use the first project in the org
-                      projects[0]
-                }
-              />
+              <Fragment>
+                {pageFilters}
+                <Onboarding
+                  organization={organization}
+                  project={
+                    props.selection.projects.length > 0
+                      ? // If some projects selected, use the first selection
+                        projects.find(
+                          project => props.selection.projects[0].toString() === project.id
+                        ) || projects[0]
+                      : // Otherwise, use the first project in the org
+                        projects[0]
+                  }
+                />
+              </Fragment>
             ) : (
               <Fragment>
                 <SearchContainerWithFilter>
-                  {organization.features.includes('selection-filters-v2') && (
-                    <PageFilterBar condensed>
-                      <ProjectPageFilter />
-                      <EnvironmentPageFilter />
-                      <DatePageFilter alignDropdown="left" />
-                    </PageFilterBar>
-                  )}
+                  {pageFilters}
                   <SearchBar
                     searchSource="performance_landing"
                     organization={organization}
