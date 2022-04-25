@@ -928,4 +928,159 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 class OrganizationSessionsEndpointMetricsTest(
     SessionMetricsTestCase, OrganizationSessionsEndpointTest
 ):
-    """Repeat with metrics backend"""
+    """Repeat all tests with metrics backend"""
+
+    @freeze_time(MOCK_DATETIME)
+    def test_orderby(self):
+
+        response = self.do_request(
+            {
+                "project": [-1],
+                "statsPeriod": "2d",
+                "interval": "1d",
+                "field": ["sum(session)"],
+                "orderBy": "foobar",
+            }
+        )
+        assert response.status_code == 400
+        assert response.data == {"detail": "'orderBy' must be one of the provided 'fields'"}
+
+        response = self.do_request(
+            {
+                "project": [-1],
+                "statsPeriod": "2d",
+                "interval": "1d",
+                "field": ["sum(session)"],
+                "orderBy": "count_unique(user)",  # wrong field
+            }
+        )
+        assert response.status_code == 400
+        assert response.data == {"detail": "'orderBy' must be one of the provided 'fields'"}
+
+        # Cannot sort by more than one field
+        response = self.do_request(
+            {
+                "project": [-1],
+                "statsPeriod": "2d",
+                "interval": "1d",
+                "field": ["sum(session)", "count_unique(user)"],
+                "orderBy": ["sum(session)", "count_unique(user)"],
+            }
+        )
+        assert response.status_code == 400
+        assert response.data == {"detail": "Cannot order by multiple fields"}
+
+        response = self.do_request(
+            {
+                "project": [-1],
+                "statsPeriod": "2d",
+                "interval": "1d",
+                "field": ["sum(session)"],
+                "orderBy": "sum(session)",  # misses group by, but why not
+            }
+        )
+        assert response.status_code == 200
+
+        response = self.do_request(
+            {
+                "project": [-1],
+                "statsPeriod": "2d",
+                "interval": "1d",
+                "field": ["sum(session)"],
+                "orderBy": "sum(session)",
+                "groupBy": ["session.status"],
+            }
+        )
+        assert response.status_code == 400
+        assert response.data == {"detail": "Cannot use 'orderBy' when grouping by sessions.status"}
+
+        response = self.do_request(
+            {
+                "project": [self.project.id, self.project3.id],
+                "statsPeriod": "2d",
+                "interval": "1d",
+                "field": ["sum(session)", "p95(session.duration)"],
+                "orderBy": "p95(session.duration)",
+                "groupBy": ["project", "release", "environment"],
+            }
+        )
+
+        expected_groups = [
+            {
+                "by": {
+                    "project": self.project.id,
+                    "release": "foo@1.0.0",
+                    "environment": "production",
+                },
+                "totals": {"sum(session)": 3, "p95(session.duration)": 25000.0},
+                "series": {"sum(session)": [0, 3], "p95(session.duration)": [None, 25000.0]},
+            },
+            {
+                "by": {
+                    "project": self.project3.id,
+                    "release": "foo@1.2.0",
+                    "environment": "production",
+                },
+                "totals": {"sum(session)": 1, "p95(session.duration)": 37000.0},
+                "series": {"sum(session)": [0, 1], "p95(session.duration)": [None, 37000.0]},
+            },
+            {
+                "by": {
+                    "project": self.project.id,
+                    "release": "foo@1.1.0",
+                    "environment": "production",
+                },
+                "totals": {"sum(session)": 1, "p95(session.duration)": 49000.0},
+                "series": {"sum(session)": [0, 1], "p95(session.duration)": [None, 49000.0]},
+            },
+            {
+                "by": {
+                    "project": self.project3.id,
+                    "release": "foo@1.0.0",
+                    "environment": "production",
+                },
+                "totals": {"sum(session)": 2, "p95(session.duration)": 79400.0},
+                "series": {"sum(session)": [0, 2], "p95(session.duration)": [None, 79400.0]},
+            },
+        ]
+        print(response.data)
+
+        # Not using `result_sorted` here, because we want to verify the order
+        assert response.status_code == 200, response.data
+        assert response.data["groups"] == expected_groups
+
+        # Sort descending
+        response = self.do_request(
+            {
+                "project": [self.project.id, self.project3.id],
+                "statsPeriod": "2d",
+                "interval": "1d",
+                "field": ["sum(session)", "p95(session.duration)"],
+                "orderBy": "-p95(session.duration)",
+                "groupBy": ["project", "release", "environment"],
+            }
+        )
+
+        assert response.status_code == 200
+        assert response.data["groups"] == list(reversed(expected_groups))
+
+        # Add some more code coverage
+        all_fields = [
+            "sum(session)",
+            "count_unique(user)",
+            "avg(session.duration)",
+        ]
+        for field in all_fields:
+            assert (
+                self.do_request(
+                    {
+                        "project": [self.project.id, self.project3.id],
+                        "statsPeriod": "2d",
+                        "interval": "1d",
+                        "field": all_fields,
+                        "orderBy": field,
+                        "groupBy": ["project", "release", "environment"],
+                    }
+                ).status_code
+                == 200
+            )

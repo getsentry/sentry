@@ -36,6 +36,7 @@ from sentry.snuba.metrics.naming_layer.public import SessionMetricKey
 from sentry.snuba.metrics.query import MetricField, OrderBy
 from sentry.snuba.sessions_v2 import (
     SNUBA_LIMIT,
+    InvalidParams,
     QueryDefinition,
     finite_or_none,
     get_timestamps,
@@ -299,11 +300,14 @@ def run_sessions_query(
     project_ids = filter_keys.pop("project_id")
     assert not filter_keys
 
-    # We only return the top-N groups, based on the first field that is being
-    # queried, assuming that those are the most relevant to the user.
-    # In a future iteration we might expose an `orderBy` query parameter.
-    primary_metric_field = _get_primary_field(fields, query.raw_groupby)
-    orderby = OrderBy(primary_metric_field, Direction.DESC)
+    orderby = _parse_orderby(query)
+    if orderby is None:
+        # We only return the top-N groups, based on the first field that is being
+        # queried, assuming that those are the most relevant to the user.
+        # In a future iteration we might expose an `orderBy` query parameter.
+        primary_metric_field = _get_primary_field(fields, query.raw_groupby)
+        orderby = OrderBy(primary_metric_field, Direction.DESC)
+
     max_groups = SNUBA_LIMIT // len(get_timestamps(query))
 
     metrics_query = MetricsQuery(
@@ -371,6 +375,35 @@ def _get_filter_conditions(conditions: Sequence[Condition]) -> Any:
     return json_to_snql(
         {"selected_columns": ["value"], "conditions": conditions}, entity=dummy_entity
     ).where
+
+
+def _parse_orderby(query: QueryDefinition) -> Optional[OrderBy]:
+    orderbys = query.raw_orderby
+    if orderbys == []:
+        return None
+    if len(orderbys) > 1:
+        raise InvalidParams("Cannot order by multiple fields")
+    orderby = orderbys[0]
+
+    if "session.status" in query.raw_groupby:
+        raise InvalidParams("Cannot use 'orderBy' when grouping by sessions.status")
+
+    direction = Direction.ASC
+    if orderby[0] == "-":
+        orderby = orderby[1:]
+        direction = Direction.DESC
+
+    assert query.raw_fields
+    if orderby not in query.raw_fields:
+        raise InvalidParams("'orderBy' must be one of the provided 'fields'")
+    field = COLUMN_MAP[orderby]
+
+    metric_fields = field.get_metric_fields(query.raw_groupby)
+
+    # Because we excluded groupBy session status, we should have a one-to-one mapping now
+    assert len(metric_fields) == 1
+
+    return OrderBy(metric_fields[0], direction)
 
 
 def _get_primary_field(fields: Sequence[Field], raw_groupby: Sequence[str]) -> MetricField:

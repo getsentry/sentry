@@ -257,6 +257,7 @@ class QueryDefinition:
         self.query = query.get("query", "")
         self.raw_fields = raw_fields = query.getlist("field", [])
         self.raw_groupby = raw_groupby = query.getlist("groupBy", [])
+        self.raw_orderby = query.getlist("orderBy")  # only respected by metrics implementation
 
         if len(raw_fields) == 0:
             raise InvalidField('Request is missing a "field"')
