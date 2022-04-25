@@ -494,11 +494,20 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             date_added=before_now(minutes=6).replace(tzinfo=pytz.UTC),
             owner=self.team.actor.get_actor_tuple(),
         )
+        alert_rule1 = self.create_alert_rule(
+            name="!1?zz",
+            organization=self.org,
+            projects=[self.project],
+            date_added=before_now(minutes=6).replace(tzinfo=pytz.UTC),
+            owner=self.team.actor.get_actor_tuple(),
+        )
+
         # Test Limit as 1, no cursor:
+        url = f"/api/0/organizations/{self.org.slug}/combined-rules/"
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             request_data = {"per_page": "1", "project": self.project.id, "sort": "name", "asc": 1}
             response = self.client.get(
-                path=f"/api/0/organizations/{self.org.slug}/combined-rules/",
+                path=url,
                 data=request_data,
                 content_type="application/json",
             )
@@ -511,7 +520,21 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         )
         next_cursor = links[1]["cursor"]
         # Cursor should have the title encoded
-        assert next_cursor == "%211%3F:1:0"
+        assert next_cursor == "%211%3Fzz:0:0"
+
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {
+                "cursor": next_cursor,
+                "per_page": "1",
+                "project": self.project.id,
+                "sort": "name",
+                "asc": 1,
+            }
+            response = self.client.get(path=url, data=request_data, content_type="application/json")
+        assert response.status_code == 200
+        result = json.loads(response.content)
+        assert len(result) == 1
+        assert result[0]["id"] == str(alert_rule1.id)
 
     def test_limit_as_1_with_paging(self):
         self.setup_project_and_rules()
