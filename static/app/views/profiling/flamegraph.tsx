@@ -1,8 +1,12 @@
 import {Fragment, useEffect, useState} from 'react';
+import styled from '@emotion/styled';
+import {Location} from 'history';
 
 import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
+import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Breadcrumb} from 'sentry/components/profiling/breadcrumb';
 import {Flamegraph} from 'sentry/components/profiling/flamegraph';
 import {FullScreenFlamegraphContainer} from 'sentry/components/profiling/fullScreenFlamegraphContainer';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -58,14 +62,10 @@ function FlamegraphView(props: FlamegraphViewProps): React.ReactElement {
   const [requestState, setRequestState] = useState<RequestState>('initial');
 
   useEffect(() => {
-    document.scrollingElement?.scrollTo(0, 0);
-  }, []);
-
-  useEffect(() => {
     if (!props.params.eventId || !props.params.projectId) {
-      return;
+      return undefined;
     }
-    api.clear();
+
     setRequestState('loading');
 
     fetchFlamegraphs(api, props.params.eventId, props.params.projectId, organization)
@@ -74,30 +74,66 @@ function FlamegraphView(props: FlamegraphViewProps): React.ReactElement {
         setRequestState('resolved');
       })
       .catch(() => setRequestState('errored'));
+
+    return () => {
+      api.clear();
+    };
   }, [props.params.eventId, props.params.projectId, api, organization]);
 
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
-      <FlamegraphStateProvider>
-        <FlamegraphThemeProvider>
-          <FullScreenFlamegraphContainer>
-            {requestState === 'errored' ? (
-              <Alert type="error" showIcon>
-                {t('Unable to load profiles')}
-              </Alert>
-            ) : requestState === 'loading' ? (
-              <Fragment>
-                <Flamegraph profiles={LoadingGroup} />
-                <LoadingIndicator />
-              </Fragment>
-            ) : requestState === 'resolved' && profiles ? (
-              <Flamegraph profiles={profiles} />
-            ) : null}
-          </FullScreenFlamegraphContainer>
-        </FlamegraphThemeProvider>
-      </FlamegraphStateProvider>
+      <Fragment>
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <Breadcrumb
+              location={props.location}
+              organization={organization}
+              trails={[
+                {type: 'profiling'},
+                {
+                  type: 'flamegraph',
+                  payload: {
+                    interactionName: profiles?.name ?? '',
+                    profileId: props.params.eventId ?? '',
+                    projectSlug: props.params.projectId ?? '',
+                  },
+                },
+              ]}
+            />
+          </Layout.HeaderContent>
+        </Layout.Header>
+        <FlamegraphStateProvider>
+          <FlamegraphThemeProvider>
+            <FullScreenFlamegraphContainer>
+              {requestState === 'errored' ? (
+                <Alert type="error" showIcon>
+                  {t('Unable to load profiles')}
+                </Alert>
+              ) : requestState === 'loading' ? (
+                <Fragment>
+                  <Flamegraph profiles={LoadingGroup} />
+                  <LoadingIndicatorContainer>
+                    <LoadingIndicator />
+                  </LoadingIndicatorContainer>
+                </Fragment>
+              ) : requestState === 'resolved' && profiles ? (
+                <Flamegraph profiles={profiles} />
+              ) : null}
+            </FullScreenFlamegraphContainer>
+          </FlamegraphThemeProvider>
+        </FlamegraphStateProvider>
+      </Fragment>
     </SentryDocumentTitle>
   );
 }
+
+const LoadingIndicatorContainer = styled('div')`
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+`;
 
 export default FlamegraphView;

@@ -110,8 +110,13 @@ class DashboardDetail extends Component<Props, State> {
     this.checkIfShouldMountWidgetViewerModal();
   }
 
-  componentDidUpdate() {
+  componentDidUpdate(prevProps: Props) {
     this.checkIfShouldMountWidgetViewerModal();
+
+    if (prevProps.initialState !== this.props.initialState) {
+      // Widget builder can toggle Edit state when saving
+      this.setState({dashboardState: this.props.initialState});
+    }
   }
 
   componentWillUnmount() {
@@ -126,7 +131,7 @@ class DashboardDetail extends Component<Props, State> {
       location,
       router,
     } = this.props;
-    const {seriesData, tableData} = this.state;
+    const {seriesData, tableData, issuesData, pageLinks, totalIssuesCount} = this.state;
     if (isWidgetViewerPath(location.pathname)) {
       const widget =
         defined(widgetId) &&
@@ -138,6 +143,9 @@ class DashboardDetail extends Component<Props, State> {
           widget,
           seriesData,
           tableData,
+          issuesData,
+          pageLinks,
+          totalIssuesCount,
           onClose: () => {
             // Filter out Widget Viewer Modal query params when exiting the Modal
             const query = omit(location.query, Object.values(WidgetViewerQueryField));
@@ -571,8 +579,8 @@ class DashboardDetail extends Component<Props, State> {
     }));
   };
 
-  renderWidgetBuilder(dashboard: DashboardDetails) {
-    const {children} = this.props;
+  renderWidgetBuilder() {
+    const {children, dashboard} = this.props;
     const {modifiedDashboard} = this.state;
 
     return isValidElement(children)
@@ -588,12 +596,10 @@ class DashboardDetail extends Component<Props, State> {
     const {modifiedDashboard, dashboardState, widgetLimitReached} = this.state;
     const {dashboardId} = params;
 
-    const hasPageFilters = organization.features.includes('selection-filters-v2');
-
     return (
       <PageFiltersContainer
         skipLoadLastUsed={organization.features.includes('global-views')}
-        hideGlobalHeader={hasPageFilters}
+        hideGlobalHeader
         defaultSelection={{
           datetime: {
             start: null,
@@ -625,13 +631,11 @@ class DashboardDetail extends Component<Props, State> {
                 widgetLimitReached={widgetLimitReached}
               />
             </StyledPageHeader>
-            {hasPageFilters && (
-              <DashboardPageFilterBar>
-                <ProjectPageFilter />
-                <EnvironmentPageFilter alignDropdown="right" />
-                <DatePageFilter alignDropdown="right" />
-              </DashboardPageFilterBar>
-            )}
+            <DashboardPageFilterBar condensed>
+              <ProjectPageFilter />
+              <EnvironmentPageFilter alignDropdown="left" />
+              <DatePageFilter alignDropdown="left" />
+            </DashboardPageFilterBar>
             <HookHeader organization={organization} />
             <Dashboard
               paramDashboardId={dashboardId}
@@ -679,13 +683,11 @@ class DashboardDetail extends Component<Props, State> {
       this.state;
     const {dashboardId} = params;
 
-    const hasPageFilters = organization.features.includes('selection-filters-v2');
-
     return (
       <SentryDocumentTitle title={dashboard.title} orgSlug={organization.slug}>
         <PageFiltersContainer
           skipLoadLastUsed={organization.features.includes('global-views')}
-          hideGlobalHeader={hasPageFilters}
+          hideGlobalHeader
           defaultSelection={{
             datetime: {
               start: null,
@@ -734,13 +736,11 @@ class DashboardDetail extends Component<Props, State> {
               </Layout.Header>
               <Layout.Body>
                 <Layout.Main fullWidth>
-                  {hasPageFilters && (
-                    <DashboardPageFilterBar>
-                      <ProjectPageFilter />
-                      <EnvironmentPageFilter alignDropdown="right" />
-                      <DatePageFilter alignDropdown="right" />
-                    </DashboardPageFilterBar>
-                  )}
+                  <DashboardPageFilterBar condensed>
+                    <ProjectPageFilter />
+                    <EnvironmentPageFilter alignDropdown="left" />
+                    <DatePageFilter alignDropdown="left" />
+                  </DashboardPageFilterBar>
                   <WidgetViewerContext.Provider value={{seriesData, setData}}>
                     <Dashboard
                       paramDashboardId={dashboardId}
@@ -768,10 +768,10 @@ class DashboardDetail extends Component<Props, State> {
   }
 
   render() {
-    const {organization, dashboard} = this.props;
+    const {organization} = this.props;
 
     if (this.isWidgetBuilderRouter) {
-      return this.renderWidgetBuilder(dashboard);
+      return this.renderWidgetBuilder();
     }
 
     if (organization.features.includes('dashboards-edit')) {
@@ -806,8 +806,6 @@ const StyledPageContent = styled(PageContent)`
 
 const DashboardPageFilterBar = styled(PageFilterBar)`
   margin-bottom: ${space(2)};
-  width: max-content;
-  max-width: 100%;
 `;
 
 export default withApi(withOrganization(DashboardDetail));

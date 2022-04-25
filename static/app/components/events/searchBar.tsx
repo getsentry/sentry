@@ -1,13 +1,11 @@
-import * as React from 'react';
+import {useEffect} from 'react';
 import {ClassNames} from '@emotion/react';
 import assign from 'lodash/assign';
 import flatten from 'lodash/flatten';
-import isEqual from 'lodash/isEqual';
 import memoize from 'lodash/memoize';
 import omit from 'lodash/omit';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
-import {Client} from 'sentry/api';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
 import {Organization, SavedSearchType, TagCollection} from 'sentry/types';
@@ -15,6 +13,7 @@ import {defined} from 'sentry/utils';
 import {
   Field,
   FIELD_TAGS,
+  getFieldDoc,
   isAggregateField,
   isEquation,
   isMeasurement,
@@ -22,7 +21,7 @@ import {
   TRACING_FIELDS,
 } from 'sentry/utils/discover/fields';
 import Measurements from 'sentry/utils/measurements/measurements';
-import withApi from 'sentry/utils/withApi';
+import useApi from 'sentry/utils/useApi';
 import withTags from 'sentry/utils/withTags';
 
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
@@ -31,35 +30,42 @@ const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
 );
 
 export type SearchBarProps = Omit<React.ComponentProps<typeof SmartSearchBar>, 'tags'> & {
-  api: Client;
   organization: Organization;
   tags: TagCollection;
   fields?: Readonly<Field[]>;
   includeSessionTagsValues?: boolean;
+  /**
+   * Used to define the max height of the menu in px.
+   */
+  maxMenuHeight?: number;
+  maxSearchItems?: React.ComponentProps<typeof SmartSearchBar>['maxSearchItems'];
   omitTags?: string[];
   projectIds?: number[] | Readonly<number[]>;
 };
 
-class SearchBar extends React.PureComponent<SearchBarProps> {
-  componentDidMount() {
+function SearchBar(props: SearchBarProps) {
+  const {
+    maxSearchItems,
+    organization,
+    tags,
+    omitTags,
+    fields,
+    projectIds,
+    includeSessionTagsValues,
+    maxMenuHeight,
+  } = props;
+
+  const api = useApi();
+
+  useEffect(() => {
     // Clear memoized data on mount to make tests more consistent.
-    this.getEventFieldValues.cache.clear?.();
-  }
+    getEventFieldValues.cache.clear?.();
+  }, [projectIds]);
 
-  componentDidUpdate(prevProps) {
-    if (!isEqual(this.props.projectIds, prevProps.projectIds)) {
-      // Clear memoized data when projects change.
-      this.getEventFieldValues.cache.clear?.();
-    }
-  }
-
-  /**
-   * Returns array of tag values that substring match `query`; invokes `callback`
-   * with data when ready
-   */
-  getEventFieldValues = memoize(
+  // Returns array of tag values that substring match `query`; invokes `callback`
+  // with data when ready
+  const getEventFieldValues = memoize(
     (tag, query, endpointParams): Promise<string[]> => {
-      const {api, organization, projectIds, includeSessionTagsValues} = this.props;
       const projectIdStrings = (projectIds as Readonly<number>[])?.map(String);
 
       if (isAggregateField(tag.key) || isMeasurement(tag.key)) {
@@ -92,18 +98,11 @@ class SearchBar extends React.PureComponent<SearchBarProps> {
     ({key}, query) => `${key}-${query}`
   );
 
-  /**
-   * Prepare query string (e.g. strip special characters like negation operator)
-   */
-  prepareQuery = query => query.replace(SEARCH_SPECIAL_CHARS_REGEXP, '');
-
-  getTagList(
+  const getTagList = (
     measurements: Parameters<
       React.ComponentProps<typeof Measurements>['children']
     >[0]['measurements']
-  ) {
-    const {fields, organization, tags, omitTags} = this.props;
-
+  ) => {
     const functionTags = fields
       ? Object.fromEntries(
           fields
@@ -128,36 +127,36 @@ class SearchBar extends React.PureComponent<SearchBarProps> {
     };
 
     return omit(combined, omitTags ?? []);
-  }
+  };
 
-  render() {
-    return (
-      <Measurements>
-        {({measurements}) => {
-          const tags = this.getTagList(measurements);
-          return (
-            <ClassNames>
-              {({css}) => (
-                <SmartSearchBar
-                  hasRecentSearches
-                  savedSearchType={SavedSearchType.EVENT}
-                  onGetTagValues={this.getEventFieldValues}
-                  supportedTags={tags}
-                  prepareQuery={this.prepareQuery}
-                  excludeEnvironment
-                  dropdownClassName={css`
-                    max-height: 300px;
-                    overflow-y: auto;
-                  `}
-                  {...this.props}
-                />
-              )}
-            </ClassNames>
-          );
-        }}
-      </Measurements>
-    );
-  }
+  return (
+    <Measurements>
+      {({measurements}) => (
+        <ClassNames>
+          {({css}) => (
+            <SmartSearchBar
+              hasRecentSearches
+              savedSearchType={SavedSearchType.EVENT}
+              onGetTagValues={getEventFieldValues}
+              supportedTags={getTagList(measurements)}
+              prepareQuery={query => {
+                // Prepare query string (e.g. strip special characters like negation operator)
+                return query.replace(SEARCH_SPECIAL_CHARS_REGEXP, '');
+              }}
+              maxSearchItems={maxSearchItems}
+              excludeEnvironment
+              dropdownClassName={css`
+                max-height: ${maxMenuHeight ?? 300}px;
+                overflow-y: auto;
+              `}
+              getFieldDoc={getFieldDoc}
+              {...props}
+            />
+          )}
+        </ClassNames>
+      )}
+    </Measurements>
+  );
 }
 
-export default withApi(withTags(SearchBar));
+export default withTags(SearchBar);

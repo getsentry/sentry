@@ -7,7 +7,6 @@ import PageFilterPinIndicator from 'sentry/components/organizations/pageFilters/
 import TimeRangeSelector, {
   ChangeData,
 } from 'sentry/components/organizations/timeRangeSelector';
-import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import {IconCalendar} from 'sentry/icons';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -72,7 +71,7 @@ function DatePageFilter({router, resetParamsOnChange, ...props}: Props) {
   };
 
   return (
-    <StyledPageTimeRangeSelector
+    <TimeRangeSelector
       organization={organization}
       start={start}
       end={end}
@@ -81,21 +80,11 @@ function DatePageFilter({router, resetParamsOnChange, ...props}: Props) {
       onUpdate={handleUpdate}
       customDropdownButton={customDropdownButton}
       showPin
+      detached
       {...props}
     />
   );
 }
-
-const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
-  flex-grow: 0;
-  flex-shrink: 0;
-  flex-basis: fit-content;
-  position: relative;
-  height: 100%;
-  background: ${p => p.theme.background};
-  border: none;
-  box-shadow: none;
-`;
 
 const TitleContainer = styled('div')`
   overflow: hidden;

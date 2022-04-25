@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
 import RadioGroup, {RadioGroupProps} from 'sentry/components/forms/controls/radioGroup';
-import {t} from 'sentry/locale';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {DisplayType} from 'sentry/views/dashboardsV2/types';
 
@@ -10,21 +11,21 @@ import {DataSet} from '../utils';
 import {BuildStep} from './buildStep';
 
 const DATASET_CHOICES: [DataSet, string][] = [
-  [DataSet.EVENTS, t('Events (Errors, transactions)')],
-  [DataSet.ISSUES, t('Issues (Status, assignee, etc.)')],
+  [DataSet.EVENTS, t('Errors and Transactions')],
+  [DataSet.ISSUES, t('Issues (States, Assignment, Time, etc.)')],
 ];
 
 interface Props {
   dataSet: DataSet;
   displayType: DisplayType;
+  hasReleaseHealthFeature: boolean;
   onChange: (dataSet: DataSet) => void;
-  widgetBuilderNewDesign: boolean;
 }
 
 export function DataSetStep({
   dataSet,
   onChange,
-  widgetBuilderNewDesign,
+  hasReleaseHealthFeature,
   displayType,
 }: Props) {
   const disabledChoices: RadioGroupProps<string>['disabledChoices'] = [];
@@ -48,15 +49,20 @@ export function DataSetStep({
   return (
     <BuildStep
       title={t('Choose your data set')}
-      description={t(
-        'This reflects the type of information you want to use. For a full list, read the docs.'
+      description={tct(
+        `This reflects the type of information you want to use. To learn more, [link: read the docs].`,
+        {
+          link: (
+            <ExternalLink href="https://docs.sentry.io/product/dashboards/custom-dashboards/#data-set-selection" />
+          ),
+        }
       )}
     >
       <DataSetChoices
         label="dataSet"
         value={dataSet}
         choices={
-          widgetBuilderNewDesign
+          hasReleaseHealthFeature
             ? [
                 ...DATASET_CHOICES,
                 [DataSet.RELEASE, t('Releases (sessions, crash rates)')],

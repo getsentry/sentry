@@ -12,7 +12,7 @@ import {Profile} from 'sentry/utils/profiling/profile/profile';
 import {wrapWithSpan} from 'sentry/utils/profiling/profile/utils';
 
 import {EventedProfile} from './eventedProfile';
-import {ProfileGroup} from './importProfile';
+import {ImportOptions, ProfileGroup} from './importProfile';
 
 export class ChromeTraceProfile extends EventedProfile {}
 
@@ -138,17 +138,22 @@ function buildProfile(
   }
 
   const firstTimestamp = beginQueue[beginQueue.length - 1].ts;
+  const lastTimestamp = endQueue[0]?.ts ?? beginQueue[0].ts;
 
   if (typeof firstTimestamp !== 'number') {
     throw new Error('First begin event contains no timestamp');
   }
 
+  if (typeof lastTimestamp !== 'number') {
+    throw new Error('Last end event contains no timestamp');
+  }
+
   const profile = new ChromeTraceProfile(
-    0,
-    0,
-    0,
+    lastTimestamp - firstTimestamp,
+    firstTimestamp,
+    lastTimestamp,
     `${processName}: ${threadName}`,
-    'milliseconds'
+    'microseconds' // the trace event format provides timestamps in microseconds
   );
 
   const stack: ChromeTrace.Event[] = [];
@@ -248,7 +253,8 @@ function createFrameInfoFromEvent(event: ChromeTrace.Event) {
 
 export function parseChromeTraceArrayFormat(
   input: ChromeTrace.ArrayFormat,
-  traceID: string
+  traceID: string,
+  options?: ImportOptions
 ): ProfileGroup {
   const profiles: Profile[] = [];
   const eventsByProcessAndThreadID = splitEventsByProcessAndTraceId(input);
@@ -256,6 +262,7 @@ export function parseChromeTraceArrayFormat(
   for (const processId in eventsByProcessAndThreadID) {
     for (const threadId in eventsByProcessAndThreadID[processId]) {
       wrapWithSpan(
+        options?.transaction,
         () =>
           profiles.push(
             buildProfile(

@@ -43,7 +43,7 @@ configureRtl({testIdAttribute: 'data-test-id'});
  * Enzyme configuration
  *
  * TODO(epurkhiser): We're using @wojtekmaj's react-17 enzyme adapter, until
- * the offical adapter has been released.
+ * the official adapter has been released.
  *
  * https://github.com/enzymejs/enzyme/issues/2429
  */
@@ -140,6 +140,9 @@ jest.mock('@sentry/react', () => {
       setTag: jest.fn(),
       setData: jest.fn(),
       setStatus: jest.fn(),
+      startChild: jest.fn().mockReturnValue({
+        finish: jest.fn(),
+      }),
     }),
   };
 });

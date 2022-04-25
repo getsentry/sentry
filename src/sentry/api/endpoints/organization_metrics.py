@@ -8,7 +8,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import InvalidParams
 from sentry.snuba.metrics import (
-    QueryDefinition,
+    APIQueryDefinition,
     get_metrics,
     get_series,
     get_single_metric_info,
@@ -44,7 +44,7 @@ class OrganizationMetricDetailsEndpoint(OrganizationEndpoint):
             metric = get_single_metric_info(projects, metric_name)
         except InvalidParams as e:
             raise ResourceDoesNotExist(e)
-        except DerivedMetricParseException as exc:
+        except (InvalidField, DerivedMetricParseException) as exc:
             raise ParseError(detail=str(exc))
 
         return Response(metric, status=200)
@@ -67,11 +67,10 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
             return Response(status=404)
 
         metric_names = request.GET.getlist("metric") or None
-
         projects = self.get_projects(request, organization)
         try:
             tags = get_tags(projects, metric_names)
-        except (InvalidParams, DerivedMetricParseException) as exc:
+        except (InvalidField, InvalidParams, DerivedMetricParseException) as exc:
             raise (ParseError(detail=str(exc)))
 
         return Response(tags, status=200)
@@ -90,7 +89,7 @@ class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
         projects = self.get_projects(request, organization)
         try:
             tag_values = get_tag_values(projects, tag_name, metric_names)
-        except (InvalidParams, DerivedMetricParseException) as exc:
+        except (InvalidField, InvalidParams, DerivedMetricParseException) as exc:
             msg = str(exc)
             # TODO: Use separate error type once we have real data
             if "Unknown tag" in msg:
@@ -118,10 +117,11 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
 
         def data_fn(offset: int, limit: int):
             try:
-                query = QueryDefinition(
-                    request.GET, paginator_kwargs={"limit": limit, "offset": offset}
+                query = APIQueryDefinition(
+                    projects, request.GET, paginator_kwargs={"limit": limit, "offset": offset}
                 )
-                data = get_series(projects, query)
+                data = get_series(projects, query.to_query_definition())
+                data["query"] = query.query
             except (
                 InvalidField,
                 InvalidParams,

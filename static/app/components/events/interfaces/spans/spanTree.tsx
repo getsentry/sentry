@@ -20,7 +20,7 @@ import {
   ParsedTraceType,
   SpanType,
 } from './types';
-import {getSpanID, getSpanOperation} from './utils';
+import {getSpanID, getSpanOperation, setSpansOnTransaction} from './utils';
 import WaterfallModel from './waterfallModel';
 
 type PropType = ScrollbarManagerChildrenProps & {
@@ -33,6 +33,10 @@ type PropType = ScrollbarManagerChildrenProps & {
 };
 
 class SpanTree extends React.Component<PropType> {
+  componentDidMount() {
+    setSpansOnTransaction(this.props.spans.length);
+  }
+
   shouldComponentUpdate(nextProps: PropType) {
     if (
       this.props.dragProps.isDragging !== nextProps.dragProps.isDragging ||
@@ -299,6 +303,7 @@ class SpanTree extends React.Component<PropType> {
             numOfSpans={numOfSpans}
             groupType={groupType}
             groupOccurrence={payload.groupOccurrence}
+            isEmbeddedTransactionTimeAdjusted={payload.isEmbeddedTransactionTimeAdjusted}
           />
         );
 

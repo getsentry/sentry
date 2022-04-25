@@ -27,7 +27,7 @@ describe('IssueListSearchBar', function () {
 
   beforeEach(function () {
     TagStore.reset();
-    TagStore.onLoadTagsSuccess(TestStubs.Tags());
+    TagStore.loadTagsSuccess(TestStubs.Tags());
     supportedTags = TagStore.getAllTags();
     // Add a tag that is preseeded with values.
     supportedTags.is = {

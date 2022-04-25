@@ -372,7 +372,7 @@ describe('OrganizationMemberDetail', function () {
       const modal = await mountGlobalModal();
       modal.find('Button[data-test-id="confirm-button"]').simulate('click');
 
-      deleteMocks.map(deleteMock => {
+      deleteMocks.forEach(deleteMock => {
         expect(deleteMock).toHaveBeenCalled();
       });
     });

@@ -14,15 +14,15 @@ import testableTransition from 'sentry/utils/testableTransition';
 type Props = {
   checkProjectHasFirstEvent: (project: Project) => boolean;
   projects: Project[];
+  selectProject: (newProjectId: string) => void;
   // A map from selected platform keys to the projects created by onboarding.
   selectedPlatformToProjectIdMap: {[key in PlatformKey]?: string};
-  setNewProject: (newProjectId: string) => void;
   activeProject?: Project;
 };
 function Sidebar({
   projects,
   activeProject,
-  setNewProject,
+  selectProject,
   checkProjectHasFirstEvent,
   selectedPlatformToProjectIdMap,
 }: Props) {
@@ -36,7 +36,7 @@ function Sidebar({
       <ProjectWrapper
         key={projectSlug}
         isActive={isActive}
-        onClick={() => project && setNewProject(project.id)}
+        onClick={() => project && selectProject(project.id)}
         disabled={!project}
       >
         <StyledPlatformIcon platform={platform} size={36} />

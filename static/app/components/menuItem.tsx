@@ -2,7 +2,7 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import Link from 'sentry/components/links/link';
+import Link, {LinkProps} from 'sentry/components/links/link';
 import space from 'sentry/styles/space';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 import {Theme} from 'sentry/utils/theme';
@@ -62,7 +62,7 @@ type MenuItemProps = {
   /**
    * A router target destination
    */
-  to?: React.ComponentProps<typeof Link>['to'];
+  to?: LinkProps['to'];
 
   /**
    * Renders a bottom border (excludes the last item)

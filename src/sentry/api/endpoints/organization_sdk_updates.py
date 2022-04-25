@@ -1,13 +1,12 @@
 from datetime import timedelta
-from distutils.version import LooseVersion
 from itertools import chain, groupby
 
 import sentry_sdk
 from django.utils import timezone
+from packaging import version
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.sdk_updates import SdkIndexState, SdkSetupState, get_suggested_updates
 from sentry.snuba import discover
@@ -30,7 +29,7 @@ def serialize(data, projects):
             {
                 "projectId": str(project_id),
                 "sdkName": sdk_name,
-                "sdkVersion": max((s["sdk.version"] for s in sdks), key=LooseVersion),
+                "sdkVersion": max((s["sdk.version"] for s in sdks), key=version.parse),
             }
             for sdk_name, sdks in groupby(sorted(sdks_used, key=by_sdk_name), key=by_sdk_name)
         ]
@@ -91,9 +90,6 @@ class OrganizationSdkUpdatesEndpoint(OrganizationEventsEndpointBase):
                     "project_id": [p.id for p in projects],
                 },
                 referrer="api.organization-sdk-updates",
-                use_snql=features.has(
-                    "organizations:performance-use-snql", organization, actor=request.user
-                ),
             )
 
         return Response(serialize(result["data"], projects))

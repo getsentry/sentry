@@ -1,10 +1,16 @@
 import styled from '@emotion/styled';
 
-const PageFilterBar = styled('div')`
+const PageFilterBar = styled('div')<{condensed?: boolean}>`
   display: flex;
   position: relative;
   border-radius: ${p => p.theme.borderRadius};
   height: ${p => p.theme.form.default.height}px;
+  ${p =>
+    p.condensed &&
+    `
+    max-width: 100%;
+    width: max-content;
+  `}
 
   &::after {
     content: '';
@@ -49,9 +55,9 @@ const PageFilterBar = styled('div')`
   }
 
   & > *:hover::after,
-  & > *:focus-within::after,
+  & > *[data-is-open='true']::after,
   & > *:hover + *:not(:first-child)::after,
-  & > *:focus-within + *:not(:first-child)::after {
+  & > *[data-is-open='true'] + *:not(:first-child)::after {
     display: none;
   }
 `;

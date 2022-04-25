@@ -64,7 +64,16 @@ describe('Dashboards > Detail', function () {
         body: TestStubs.EventsStats(),
       });
       MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/tags/',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
         url: '/organizations/org-slug/users/',
+        method: 'GET',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/tags/',
         method: 'GET',
         body: [],
       });
@@ -109,7 +118,7 @@ describe('Dashboards > Detail', function () {
           router={initialData.router}
           location={initialData.router.location}
         />,
-        {context: initialData.routerContext}
+        {context: initialData.routerContext, organization: initialData.organization}
       );
       await act(async () => {
         await tick();

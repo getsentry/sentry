@@ -1,9 +1,8 @@
 import flatMap from 'lodash/flatMap';
 import flatten from 'lodash/flatten';
 
-import FormSearchActions from 'sentry/actions/formSearchActions';
 import {Field, JsonFormObject} from 'sentry/components/forms/type';
-import {FormSearchField} from 'sentry/stores/formSearchStore';
+import FormSearchStore, {FormSearchField} from 'sentry/stores/formSearchStore';
 
 type Params = {
   fields: Record<string, Field>;
@@ -42,7 +41,6 @@ const createSearchMap = ({
 export function loadSearchMap() {
   // Load all form configuration files via webpack that export a named `route`
   // as well as either `fields` or `formGroups`
-  // @ts-ignore This fails on cloud builder, but not in CI...
   const context = require.context('../data/forms', true, /\.[tj]sx?$/);
 
   // Get a list of all form fields defined in `../data/forms`
@@ -68,8 +66,10 @@ export function loadSearchMap() {
           route: mod.route,
         });
       })
-      .filter(i => !!i)
+      .filter(function (i): i is FormSearchField[] {
+        return i !== null;
+      })
   );
 
-  FormSearchActions.loadSearchMap(allFormFields);
+  FormSearchStore.loadSearchMap(allFormFields);
 }

@@ -6,9 +6,11 @@ from django.urls import reverse
 from django.utils import timezone
 from pytz import utc
 from snuba_sdk.column import Column
+from snuba_sdk.conditions import InvalidConditionError
 from snuba_sdk.function import Function
 
 from sentry.discover.models import TeamKeyTransaction
+from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.models import ApiKey, ProjectTeam, ProjectTransactionThreshold, ReleaseStages
 from sentry.models.transaction_threshold import (
     ProjectTransactionThresholdOverride,
@@ -4697,12 +4699,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.data["data"][0]["environment"] == "staging"
         assert response.data["data"][0]["project.name"] == project.slug
 
-
-class OrganizationEventsV2EndpointTestWithSnql(OrganizationEventsV2EndpointTest):
-    def setUp(self):
-        super().setUp()
-        self.features["organizations:discover-use-snql"] = True
-
     def test_timestamp_different_from_params(self):
         project = self.create_project()
         fifteen_days_ago = iso_format(before_now(days=15))
@@ -4981,7 +4977,6 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         self.transaction_data = load_data("transaction", timestamp=before_now(minutes=1))
         self.features = {
             "organizations:performance-use-metrics": True,
-            "organizations:discover-use-snql": True,
         }
 
     def do_request(self, query, features=None):
@@ -5794,3 +5789,36 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         }
         response = self.do_request(query)
         assert response.status_code == 400, response.content
+
+    @mock.patch("sentry.snuba.metrics_enhanced_performance.MetricsQueryBuilder")
+    def test_failed_dry_run_does_not_error(self, mock_builder):
+        with self.feature("organizations:performance-dry-run-mep"):
+            mock_builder.side_effect = InvalidSearchQuery("Something bad")
+            query = {
+                "field": ["count()"],
+                "project": [self.project.id],
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            assert len(mock_builder.mock_calls) == 1
+            assert mock_builder.call_args.kwargs["dry_run"]
+
+            mock_builder.side_effect = IncompatibleMetricsQuery("Something bad")
+            query = {
+                "field": ["count()"],
+                "project": [self.project.id],
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            assert len(mock_builder.mock_calls) == 2
+            assert mock_builder.call_args.kwargs["dry_run"]
+
+            mock_builder.side_effect = InvalidConditionError("Something bad")
+            query = {
+                "field": ["count()"],
+                "project": [self.project.id],
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            assert len(mock_builder.mock_calls) == 3
+            assert mock_builder.call_args.kwargs["dry_run"]

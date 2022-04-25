@@ -1,6 +1,7 @@
 import type {Route, RouteComponentProps} from 'react-router';
 
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
+import type {Guide} from 'sentry/components/assistant/types';
 import type DateRange from 'sentry/components/organizations/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/organizations/timeRangeSelector/selectorItems';
 import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
@@ -32,7 +33,8 @@ export type Hooks = {_: any} & RouteHooks &
   FeatureDisabledHooks &
   InterfaceChromeHooks &
   OnboardingHooks &
-  SettingsHooks;
+  SettingsHooks &
+  CallbackHooks;
 
 export type HookName = keyof Hooks;
 
@@ -83,6 +85,8 @@ type FirstPartyIntegrationAdditionalCTAProps = {
   integrations: Integration[];
 };
 
+type GuideUpdateCallback = (nextGuide: Guide | null, opts: {dismissed?: boolean}) => void;
+
 /**
  * Component wrapping hooks
  */
@@ -99,6 +103,7 @@ export type ComponentHooks = {
   'component:header-selector-items': () => React.ComponentType<SelectorItemsProps>;
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
+  'component:superuser-access-category': React.FC<any>;
 };
 
 /**
@@ -200,6 +205,15 @@ export type SettingsHooks = {
   'settings:api-navigation-config': SettingsItemsHook;
   'settings:organization-navigation': OrganizationSettingsHook;
   'settings:organization-navigation-config': SettingsConfigHook;
+};
+
+/**
+ * Callback hooks.
+ * These hooks just call a function that has no return value
+ * and perform some sort of callback logic
+ */
+type CallbackHooks = {
+  'callback:on-guide-update': GuideUpdateCallback;
 };
 
 /**
