@@ -34,3 +34,12 @@ class SidebarTest(AcceptanceTestCase):
         self.browser.wait_until_test_id("search-docs-and-faqs")
         self.browser.click('[data-test-id="search-docs-and-faqs"]')
         self.browser.wait_until('input[label="Search for documentation, FAQs, blog posts..."]')
+
+    def test_sandbox_sidebar(self):
+        with self.settings(DEMO_MODE=True):
+            self.browser.get(self.path)
+            self.browser.wait_until_not(".loading")
+            self.browser.click('[data-test-id="sidebar-dropdown"]')
+            self.browser.move_to('[data-test-id="sidebar-switch-org"]')
+            self.browser.wait_until_test_id("sidebar-switch-org-menu")
+            self.browser.snapshot("sandbox sidebar - switch org expanded")

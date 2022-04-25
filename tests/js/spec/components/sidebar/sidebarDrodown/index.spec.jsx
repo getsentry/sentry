@@ -36,17 +36,15 @@ describe('SidebarDropdown', function () {
   });
   it('renders open sidebar', async function () {
     const config = {...ConfigStore.get('config'), singleOrganization: false};
-    const {container} = renderDropdown({collapsed: false, config});
+    renderDropdown({collapsed: false, config});
     userEvent.click(screen.getByTestId('sidebar-dropdown'));
-    expect(container).toSnapshot();
     expect(screen.getByText('Switch organization')).toBeInTheDocument();
   });
   it('sandbox/demo mode render open sidebar', async function () {
     ConfigStore.set('demoMode', true);
     const config = {...ConfigStore.get('config'), singleOrganization: false};
-    const {container} = renderDropdown({collapsed: false, config});
+    renderDropdown({collapsed: false, config});
     userEvent.click(screen.getByTestId('sidebar-dropdown'));
-    expect(container).toSnapshot();
     expect(screen.queryByText('Switch organization')).not.toBeInTheDocument();
   });
 });
