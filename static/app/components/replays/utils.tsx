@@ -1,3 +1,7 @@
+import moment from 'moment';
+
+import {Crumb} from 'sentry/types/breadcrumbs';
+
 function padZero(num: number, len = 2): string {
   let str = String(num);
   const threshold = Math.pow(10, len - 1);
@@ -73,4 +77,34 @@ export function countColumns(duration: number, width: number, minWidth: number =
 
   const remaining = (duration - timespan * cols) / timespan;
   return {timespan, cols, remaining};
+}
+
+/**
+ * Group Crumbs for display along the timeline.
+ *
+ * The timeline is broken down into columns (aka buckets, or time-slices).
+ * Columns translate to a fixed width on the screen, to prevent side-scrolling.
+ *
+ * This function groups crumbs into columns based on the number of columns available
+ * and the timestamp of the crumb.
+ */
+export function getCrumbsByColumn(crumbs: Crumb[], totalColumns: number) {
+  const startTime = crumbs[0]?.timestamp;
+  const endTime = crumbs[crumbs.length - 1]?.timestamp;
+
+  const startMilliSeconds = moment(startTime).valueOf();
+  const endMilliSeconds = moment(endTime).valueOf();
+
+  const duration = endMilliSeconds - startMilliSeconds;
+
+  const eventsByCol = crumbs.reduce<Map<number, Crumb[]>>((map, breadcrumb) => {
+    const {timestamp} = breadcrumb;
+    const timestampMilliSeconds = moment(timestamp).valueOf();
+    const sinceStart = timestampMilliSeconds - startMilliSeconds;
+    const column = Math.floor((sinceStart / duration) * (totalColumns - 1)) + 1;
+    map.set(column, [...Array.from(map.get(column) || []), breadcrumb]);
+    return map;
+  }, new Map());
+
+  return eventsByCol;
 }

@@ -7,7 +7,7 @@ import {transformCrumbs} from 'sentry/components/events/interfaces/breadcrumbs/u
 import space from 'sentry/styles/space';
 import {Crumb, RawCrumb} from 'sentry/types/breadcrumbs';
 
-import {countColumns, formatTime} from '../utils';
+import {countColumns, formatTime, getCrumbsByColumn} from '../utils';
 
 import StackedContent from './stackedContent';
 
@@ -102,23 +102,8 @@ const TickMarker = styled('li')<{lineStyle: LineStyle}>`
 `;
 
 function Events({crumbs, width}: {crumbs: Crumb[]; width: number}) {
-  const startTime = crumbs[0]?.timestamp;
-  const endTime = crumbs[crumbs.length - 1]?.timestamp;
-
-  const startMilliSeconds = moment(startTime).valueOf();
-  const endMilliSeconds = moment(endTime).valueOf();
-
   const totalColumns = Math.floor(width / EVENT_STICK_MARKER_WIDTH);
-  const duration = endMilliSeconds - startMilliSeconds;
-
-  const eventsByCol = crumbs.reduce<Map<number, Crumb[]>>((map, breadcrumb) => {
-    const {timestamp} = breadcrumb;
-    const timestampMilliSeconds = moment(timestamp).valueOf();
-    const sinceStart = timestampMilliSeconds - startMilliSeconds;
-    const column = Math.floor((sinceStart / duration) * (totalColumns - 1)) + 1;
-    map.set(column, [...Array.from(map.get(column) || []), breadcrumb]);
-    return map;
-  }, new Map());
+  const eventsByCol = getCrumbsByColumn(crumbs, totalColumns);
 
   return (
     <div style={{paddingTop: space(4)}}>
