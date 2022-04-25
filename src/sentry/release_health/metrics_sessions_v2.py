@@ -241,6 +241,7 @@ class CountField(Field):
                 self.status_to_metric_field[SessionStatus.CRASHED],
                 self.status_to_metric_field[SessionStatus.ERRORED],
             ]
+        return [MetricField(None, SessionMetricKey.ALL_USER.value)]
 
         return [self.get_all_field()]
 
