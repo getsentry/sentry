@@ -1641,6 +1641,19 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             ],
             entity="metrics_counters",
         )
+
+        # Can get session healthy even before all components exist
+        # (projects that send errored_preaggr usually do not send individual errors)
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["session.healthy"],
+            statsPeriod="6m",
+            interval="6m",
+        )
+        group = response.data["groups"][0]
+        assert group["totals"]["session.healthy"] == 4
+        assert group["series"]["session.healthy"] == [4]
+
         self._send_buckets(
             [
                 {
