@@ -74,6 +74,7 @@ import {Header} from './header';
 import {
   DataSet,
   DEFAULT_RESULTS_LIMIT,
+  getIsTimeseriesChart,
   getParsedDefaultWidgetQuery,
   getResultsLimit,
   mapErrors,
@@ -338,11 +339,7 @@ function WidgetBuilder({
     query: isEmpty(queryParamsWithoutSource) ? undefined : queryParamsWithoutSource,
   };
 
-  const isTimeseriesChart = [
-    DisplayType.LINE,
-    DisplayType.BAR,
-    DisplayType.AREA,
-  ].includes(state.displayType);
+  const isTimeseriesChart = getIsTimeseriesChart(state.displayType);
 
   const isTabularChart = [DisplayType.TABLE, DisplayType.TOP_N].includes(
     state.displayType
@@ -361,10 +358,6 @@ function WidgetBuilder({
       if (newDisplayType === DisplayType.TOP_N) {
         // TOP N display should only allow a single query
         normalized.splice(1);
-      }
-
-      if (widgetBuilderNewDesign && !isTabularChart && !isTimeseriesChart) {
-        newState.limit = undefined;
       }
 
       if (
@@ -434,6 +427,17 @@ function WidgetBuilder({
       }
 
       set(newState, 'queries', normalized);
+
+      if (widgetBuilderNewDesign) {
+        if (getIsTimeseriesChart(newDisplayType) && normalized[0].columns.length) {
+          newState.limit = Math.min(
+            getResultsLimit(normalized.length, normalized[0].columns.length),
+            DEFAULT_RESULTS_LIMIT
+          );
+        } else {
+          newState.limit = undefined;
+        }
+      }
 
       return {...newState, errors: undefined};
     });
