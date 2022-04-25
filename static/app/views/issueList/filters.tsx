@@ -47,7 +47,7 @@ function IssueListFilters({
         {hasPageFilters && (
           <PageFilterBar>
             <ProjectPageFilter />
-            <EnvironmentPageFilter alignDropdown="left" />
+            <EnvironmentPageFilter />
             <DatePageFilter alignDropdown="left" />
           </PageFilterBar>
         )}
