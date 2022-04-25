@@ -431,7 +431,7 @@ def run_sessions_query(
         elif ["session.status"] == query.raw_groupby:
             for status in SessionStatus:
                 # Create entry in default dict:
-                output_groups[GroupKey(session_status=status.value)]
+                output_groups[GroupKey(session_status=status)]
 
     return {
         "groups": [
@@ -442,7 +442,7 @@ def run_sessions_query(
         "start": isoformat_z(metrics_results["start"]),
         "end": isoformat_z(metrics_results["end"]),
         "intervals": [isoformat_z(ts) for ts in metrics_results["intervals"]],
-        "query": metrics_results.get("query", ""),
+        "query": query.query,
     }
 
 
