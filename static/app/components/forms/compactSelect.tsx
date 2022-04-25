@@ -200,7 +200,7 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
     const newValue = valueProp ?? internalValue;
     const newLabel = getLabel(newValue);
     setLabel(newLabel);
-  }, [valueProp ?? internalValue]);
+  }, [valueProp ?? internalValue, options]);
 
   // Calculate & update the trigger button's width, to be used as the
   // overlay's min-width
