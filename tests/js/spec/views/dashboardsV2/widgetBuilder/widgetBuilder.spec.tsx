@@ -2033,6 +2033,7 @@ describe('WidgetBuilder', function () {
             query: {
               environment: [],
               field: [`sum(session)`],
+              orderBy: '-sum(session)',
               groupBy: [],
               interval: '1h',
               project: [],

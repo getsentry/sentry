@@ -188,6 +188,7 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
         end,
         environment: environments,
         groupBy: query.columns,
+        orderBy: query.orderby,
         interval,
         project: projects,
         query: query.conditions,

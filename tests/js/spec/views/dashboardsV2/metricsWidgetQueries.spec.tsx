@@ -45,7 +45,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
         aggregates: [`count_unique(user)`],
         columns: [],
         name: 'sessions',
-        orderby: '',
+        orderby: '-count_unique(user)',
       },
     ],
     widgetType: WidgetType.METRICS,
@@ -243,6 +243,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           field: ['count_unique(user)'],
+          orderBy: '-count_unique(user)',
         }),
       })
     );
