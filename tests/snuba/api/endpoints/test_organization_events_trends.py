@@ -1020,30 +1020,3 @@ class OrganizationEventsTrendsAliasTest(TestCase):
         result = get_filter("confidence():>6", {"aliases": self.regression_aliases})
 
         assert result.having == [["t_test", "<", -6.0]]
-
-
-class OrganizationEventsTrendsEndpointTestWithSnql(OrganizationEventsTrendsEndpointTest):
-    def setUp(self):
-        super().setUp()
-        self.features = {
-            "organizations:performance-view": True,
-            "organizations:trends-use-snql": True,
-        }
-
-
-class OrganizationEventsTrendsStatsEndpointTestWithSnql(OrganizationEventsTrendsStatsEndpointTest):
-    def setUp(self):
-        super().setUp()
-        self.features = {
-            "organizations:performance-view": True,
-            "organizations:trends-use-snql": True,
-        }
-
-
-class OrganizationEventsTrendsPagingTestWithSnql(OrganizationEventsTrendsPagingTest):
-    def setUp(self):
-        super().setUp()
-        self.features = {
-            "organizations:performance-view": True,
-            "organizations:trends-use-snql": True,
-        }
