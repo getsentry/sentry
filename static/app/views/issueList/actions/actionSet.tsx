@@ -157,7 +157,7 @@ function ActionSet({
 
   const disabledMenuItems = [
     ...(mergeDisabled ? ['merge'] : []),
-    ...(canMarkReviewed ? ['mark-reviewed'] : []),
+    ...(canMarkReviewed ? [] : ['mark-reviewed']),
   ];
 
   return (
