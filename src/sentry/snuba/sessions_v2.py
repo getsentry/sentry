@@ -7,7 +7,6 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import pytz
 
-from sentry import release_health
 from sentry.api.utils import get_date_range_from_params
 from sentry.search.events.filter import get_filter
 from sentry.utils.dates import parse_stats_period, to_datetime, to_timestamp
@@ -260,7 +259,7 @@ class QueryDefinition:
         self.query = query.get("query", "")
         self.raw_fields = raw_fields = query.getlist("field", [])
         self.raw_groupby = raw_groupby = query.getlist("groupBy", [])
-        self.raw_orderby = query.get("orderBy")  # only respected by metrics implementation
+        self.raw_orderby = query.getlist("orderBy")  # only respected by metrics implementation
 
         if len(raw_fields) == 0:
             raise InvalidField('Request is missing a "field"')

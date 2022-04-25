@@ -422,6 +422,17 @@ def run_sessions_query(
     for field in fields.values():
         field.extract_values(input_groups, output_groups)
 
+    if not output_groups:
+        # Generate default groups to be consistent with original sessions_v2
+        # implementation. This can be removed when we have stopped comparing
+        # See also https://github.com/getsentry/sentry/pull/32157.
+        if not query.raw_groupby:
+            output_groups[GroupKey()]
+        elif ["session.status"] == query.raw_groupby:
+            for status in SessionStatus:
+                # Create entry in default dict:
+                output_groups[GroupKey(session_status=status.value)]
+
     return {
         "groups": [
             # Convert group keys back to dictionaries:
@@ -515,9 +526,12 @@ def _parse_session_status(status: Any) -> FrozenSet[SessionStatus]:
 def _parse_orderby(
     query: QueryDefinition, fields: Mapping[SessionsQueryFunction, Field]
 ) -> Optional[OrderBy]:
-    orderby = query.raw_orderby
-    if orderby is None:
+    orderbys = query.raw_orderby
+    if orderbys == []:
         return None
+    if len(orderbys) > 1:
+        raise InvalidParams("Cannot order by multiple fields")
+    orderby = orderbys[0]
 
     if "session.status" in query.raw_groupby:
         raise InvalidParams("Cannot use 'orderBy' when grouping by sessions.status")
@@ -530,6 +544,7 @@ def _parse_orderby(
     assert query.raw_fields
     if orderby not in query.raw_fields:
         raise InvalidParams("'orderBy' must be one of the provided 'fields'")
+
     field = fields[orderby]
 
     # Because we excluded groupBy session status, we should have a one-to-one mapping now

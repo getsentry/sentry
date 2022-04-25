@@ -956,6 +956,19 @@ class OrganizationSessionsEndpointMetricsTest(
         assert response.status_code == 400
         assert response.data == {"detail": "'orderBy' must be one of the provided 'fields'"}
 
+        # Cannot sort by more than one field
+        response = self.do_request(
+            {
+                "project": [-1],
+                "statsPeriod": "2d",
+                "interval": "1d",
+                "field": ["sum(session)", "count_unique(user)"],
+                "orderBy": ["sum(session)", "count_unique(user)"],
+            }
+        )
+        assert response.status_code == 400
+        assert response.data == {"detail": "Cannot order by multiple fields"}
+
         response = self.do_request(
             {
                 "project": [-1],
