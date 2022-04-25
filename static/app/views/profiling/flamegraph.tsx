@@ -1,9 +1,12 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
 import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
+import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Breadcrumb} from 'sentry/components/profiling/breadcrumb';
 import {Flamegraph} from 'sentry/components/profiling/flamegraph';
 import {FullScreenFlamegraphContainer} from 'sentry/components/profiling/fullScreenFlamegraphContainer';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -79,26 +82,47 @@ function FlamegraphView(props: FlamegraphViewProps): React.ReactElement {
 
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
-      <FlamegraphStateProvider>
-        <FlamegraphThemeProvider>
-          <FullScreenFlamegraphContainer>
-            {requestState === 'errored' ? (
-              <Alert type="error" showIcon>
-                {t('Unable to load profiles')}
-              </Alert>
-            ) : requestState === 'loading' ? (
-              <Fragment>
-                <Flamegraph profiles={LoadingGroup} />
-                <LoadingIndicatorContainer>
-                  <LoadingIndicator />
-                </LoadingIndicatorContainer>
-              </Fragment>
-            ) : requestState === 'resolved' && profiles ? (
-              <Flamegraph profiles={profiles} />
-            ) : null}
-          </FullScreenFlamegraphContainer>
-        </FlamegraphThemeProvider>
-      </FlamegraphStateProvider>
+      <Fragment>
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <Breadcrumb
+              location={props.location}
+              organization={organization}
+              trails={[
+                {type: 'profiling'},
+                {
+                  type: 'flamegraph',
+                  payload: {
+                    interactionName: profiles?.name ?? '',
+                    profileId: props.params.eventId ?? '',
+                    projectSlug: props.params.projectId ?? '',
+                  },
+                },
+              ]}
+            />
+          </Layout.HeaderContent>
+        </Layout.Header>
+        <FlamegraphStateProvider>
+          <FlamegraphThemeProvider>
+            <FullScreenFlamegraphContainer>
+              {requestState === 'errored' ? (
+                <Alert type="error" showIcon>
+                  {t('Unable to load profiles')}
+                </Alert>
+              ) : requestState === 'loading' ? (
+                <Fragment>
+                  <Flamegraph profiles={LoadingGroup} />
+                  <LoadingIndicatorContainer>
+                    <LoadingIndicator />
+                  </LoadingIndicatorContainer>
+                </Fragment>
+              ) : requestState === 'resolved' && profiles ? (
+                <Flamegraph profiles={profiles} />
+              ) : null}
+            </FullScreenFlamegraphContainer>
+          </FlamegraphThemeProvider>
+        </FlamegraphStateProvider>
+      </Fragment>
     </SentryDocumentTitle>
   );
 }
