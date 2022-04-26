@@ -9,9 +9,9 @@ from sentry.incidents.logic import (
     AlreadyDeletedError,
     delete_alert_rule,
     get_slack_actions_with_async_lookups,
-    trigger_sentry_app_action_creators_for_incidents,
 )
 from sentry.incidents.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
+from sentry.incidents.utils.sentry_apps import trigger_sentry_app_action_creators_for_incidents
 from sentry.integrations.slack import tasks
 
 
