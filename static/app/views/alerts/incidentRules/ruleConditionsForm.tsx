@@ -89,6 +89,14 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
     this.fetchData();
   }
 
+  componentDidUpdate(prevProps: Props) {
+    if (prevProps.project.id === this.props.project.id) {
+      return;
+    }
+
+    this.fetchData();
+  }
+
   formElemBaseStyle = {
     padding: `${space(0.5)}`,
     border: 'none',
@@ -245,53 +253,75 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
   }
 
   renderProjectSelector() {
-    const {project: selectedProject, location, router, projects, disabled} = this.props;
+    const {project: _selectedProject, projects, disabled} = this.props;
 
     return (
-      <SelectControl
-        isDisabled={disabled}
-        value={selectedProject.id}
-        styles={{
-          container: (provided: {[x: string]: string | number | boolean}) => ({
-            ...provided,
-            margin: `${space(0.5)}`,
-          }),
+      <FormField
+        name="projectId"
+        inline={false}
+        style={{
+          ...this.formElemBaseStyle,
+          minWidth: 300,
+          flex: 2,
         }}
-        options={projects.map(project => ({
-          label: project.slug,
-          value: project.id,
-          leadingItems: (
-            <IdBadge
-              project={project}
-              avatarProps={{consistentWidth: true}}
-              avatarSize={18}
-              disableLink
-              hideName
+        flexibleControlStateSize
+      >
+        {({onChange, onBlur, model}) => {
+          const selectedProject =
+            projects.find(({id}) => id === model.getValue('projectId')) ||
+            _selectedProject;
+
+          return (
+            <SelectControl
+              isDisabled={disabled}
+              value={selectedProject.id}
+              options={projects.map(project => ({
+                label: project.slug,
+                value: project.id,
+                leadingItems: (
+                  <IdBadge
+                    project={project}
+                    avatarProps={{consistentWidth: true}}
+                    avatarSize={18}
+                    disableLink
+                    hideName
+                  />
+                ),
+              }))}
+              onChange={({value}: {value: Project['id']}) => {
+                // if the current owner/team isn't part of project selected, update to the first available team
+                const nextSelectedProject =
+                  projects.find(({id}) => id === value) ?? selectedProject;
+                const ownerId: String | undefined = model
+                  .getValue('owner')
+                  ?.split(':')[1];
+                if (
+                  ownerId &&
+                  nextSelectedProject.teams.find(({id}) => id === ownerId) ===
+                    undefined &&
+                  nextSelectedProject.teams.length
+                ) {
+                  model.setValue('owner', `team:${nextSelectedProject.teams[0].id}`);
+                }
+                onChange(value, {});
+                onBlur(value, {});
+              }}
+              components={{
+                SingleValue: containerProps => (
+                  <components.ValueContainer {...containerProps}>
+                    <IdBadge
+                      project={selectedProject}
+                      avatarProps={{consistentWidth: true}}
+                      avatarSize={18}
+                      disableLink
+                    />
+                  </components.ValueContainer>
+                ),
+              }}
             />
-          ),
-        }))}
-        onChange={({label}: {label: Project['slug']}) =>
-          router.replace({
-            ...location,
-            query: {
-              ...location.query,
-              project: label,
-            },
-          })
-        }
-        components={{
-          SingleValue: containerProps => (
-            <components.ValueContainer {...containerProps}>
-              <IdBadge
-                project={selectedProject}
-                avatarProps={{consistentWidth: true}}
-                avatarSize={18}
-                disableLink
-              />
-            </components.ValueContainer>
-          ),
+          );
         }}
-      />
+      </FormField>
     );
   }
 
