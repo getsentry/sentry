@@ -167,6 +167,12 @@ const ButtonGrid = styled('div')`
 const TimelineRange = styled(RangeSlider)`
   flex-grow: 1;
   margin-top: ${space(1)};
+  input {
+    padding: ${space(2)} 0 ${space(2)};
+    margin: -${space(1)} 0 0px;
+    height: 3px;
+    cursor: pointer;
+  }
 `;
 
 export default ReplayControls;
