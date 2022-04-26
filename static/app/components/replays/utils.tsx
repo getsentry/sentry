@@ -1,5 +1,3 @@
-import moment from 'moment';
-
 import {Crumb} from 'sentry/types/breadcrumbs';
 
 function padZero(num: number, len = 2): string {
@@ -47,7 +45,9 @@ export function formatTime(ms: number): string {
  * @returns
  */
 export function countColumns(duration: number, width: number, minWidth: number = 50) {
-  const maxCols = Math.ceil(width / minWidth);
+  let maxCols = Math.floor(width / minWidth);
+  const remainder = duration - maxCols * width > 0 ? 1 : 0;
+  maxCols -= remainder;
 
   // List of all the possible time granularities to display
   // We could generate the list, which is basically a version of fizzbuzz, hard-coding is quicker.
@@ -92,16 +92,25 @@ export function getCrumbsByColumn(crumbs: Crumb[], totalColumns: number) {
   const startTime = crumbs[0]?.timestamp;
   const endTime = crumbs[crumbs.length - 1]?.timestamp;
 
-  const startMilliSeconds = moment(startTime).valueOf();
-  const endMilliSeconds = moment(endTime).valueOf();
+  // If there is only one crumb then we cannot do the math, return it in the first column
+  if (crumbs.length === 1 || startTime === endTime) {
+    return new Map([[0, crumbs]]);
+  }
+
+  const startMilliSeconds = +new Date(String(startTime));
+  const endMilliSeconds = +new Date(String(endTime));
 
   const duration = endMilliSeconds - startMilliSeconds;
+  const safeDuration = isNaN(duration) ? 1 : duration;
 
   const eventsByCol = crumbs.reduce<Map<number, Crumb[]>>((map, breadcrumb) => {
     const {timestamp} = breadcrumb;
-    const timestampMilliSeconds = moment(timestamp).valueOf();
-    const sinceStart = timestampMilliSeconds - startMilliSeconds;
-    const column = Math.floor((sinceStart / duration) * (totalColumns - 1)) + 1;
+    const timestampMilliSeconds = +new Date(String(timestamp));
+    const sinceStart = isNaN(timestampMilliSeconds)
+      ? 0
+      : timestampMilliSeconds - startMilliSeconds;
+    const column = Math.floor((sinceStart / safeDuration) * (totalColumns - 1)) + 1;
+
     map.set(column, [...Array.from(map.get(column) || []), breadcrumb]);
     return map;
   }, new Map());

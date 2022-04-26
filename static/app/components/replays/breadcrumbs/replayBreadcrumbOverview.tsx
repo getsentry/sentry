@@ -1,7 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import range from 'lodash/range';
-import moment from 'moment';
 
 import {transformCrumbs} from 'sentry/components/events/interfaces/breadcrumbs/utils';
 import StackedContent from 'sentry/components/replays/stackedContent';
@@ -63,15 +61,20 @@ function Ticks({
   const startTime = crumbs[0]?.timestamp;
   const endTime = crumbs[crumbs.length - 1]?.timestamp;
 
-  const startMilliSeconds = moment(startTime).valueOf();
-  const endMilliSeconds = moment(endTime).valueOf();
+  const startMilliSeconds = +new Date(String(startTime));
+  const endMilliSeconds = +new Date(String(endTime));
+
   const duration = endMilliSeconds - startMilliSeconds;
 
-  const {timespan, cols, remaining} = countColumns(duration, width, minWidth);
+  const {timespan, cols, remaining} = countColumns(
+    isNaN(duration) ? 0 : duration,
+    width,
+    minWidth
+  );
 
   return (
     <TimelineMarkerList totalColumns={cols} remainder={remaining}>
-      {range(0, cols).map((_, i) => (
+      {[...Array(cols)].map((_, i) => (
         <TickMarker key={i} lineStyle={lineStyle}>
           {showTimestamp && <small>{formatTime((i + 1) * timespan)}</small>}
         </TickMarker>
