@@ -52,7 +52,6 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
 
     def test_python_event(self):
         tags = [
-            ["level", "warning"],
             ["server_name", "web02.example.org"],
             ["environment", "staging"],
         ]
