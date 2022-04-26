@@ -258,9 +258,7 @@ class CountField(Field):
         return value
 
 
-class SessionsField(CountField):
-    name = "sum(session)"
-
+class SumSessionField(CountField):
     status_to_metric_field = {
         SessionStatus.HEALTHY: MetricField(None, SessionMetricKey.HEALTHY.value),
         SessionStatus.ABNORMAL: MetricField(None, SessionMetricKey.ABNORMAL.value),
@@ -279,9 +277,7 @@ class SessionsField(CountField):
         return old_value + new_value
 
 
-class UsersField(CountField):
-    name = "count_unique(user)"
-
+class CountUniqueUser(CountField):
     def __init__(
         self,
         name: str,
@@ -332,8 +328,8 @@ class DurationField(Field):
 
 
 FIELD_MAP: Mapping[SessionsQueryFunction, Type[Field]] = {
-    "sum(session)": SessionsField,
-    "count_unique(user)": UsersField,
+    "sum(session)": SumSessionField,
+    "count_unique(user)": CountUniqueUser,
     "avg(session.duration)": DurationField,
     "p50(session.duration)": DurationField,
     "p75(session.duration)": DurationField,
