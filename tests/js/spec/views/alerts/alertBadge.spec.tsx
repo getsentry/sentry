@@ -12,8 +12,4 @@ describe('AlertBadge', () => {
     render(<AlertBadge hideText status={IncidentStatus.CLOSED} />);
     expect(screen.queryByText('Resolved')).not.toBeInTheDocument();
   });
-  it('can be an issue badge', () => {
-    render(<AlertBadge isIssue />);
-    expect(screen.getByText('Issue')).toBeInTheDocument();
-  });
 });
