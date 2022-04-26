@@ -86,9 +86,7 @@ def get_group_with_redirect(id_or_qualified_short_id, queryset=None, organizatio
             queryset = queryset.filter(project__organization=organization)
         getter = queryset.get
 
-    if not (
-        isinstance(id_or_qualified_short_id, int) or id_or_qualified_short_id.isdigit()  # noqa
-    ):  # NOQA
+    if not (isinstance(id_or_qualified_short_id, int) or id_or_qualified_short_id.isdigit()):
         short_id = parse_short_id(id_or_qualified_short_id)
         if not short_id or not organization:
             raise Group.DoesNotExist()

@@ -3,6 +3,7 @@ from unittest.mock import Mock, patch
 from uuid import uuid4
 
 from dateutil.parser import parse as parse_datetime
+from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
 from freezegun import freeze_time
@@ -1632,6 +1633,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             response.data[0]["owners"][1]["type"] == GROUP_OWNER_TYPE[GroupOwnerType.OWNERSHIP_RULE]
         )
 
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_ratelimit(self):
         self.login_as(user=self.user)
         with freeze_time("2000-01-01"):
@@ -2988,6 +2990,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert tombstone.project == group1.project
         assert tombstone.data == group1.data
 
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_ratelimit(self):
         self.login_as(user=self.user)
         with freeze_time("2000-01-01"):
@@ -3165,6 +3168,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             assert not Group.objects.filter(id=group.id).exists()
             assert not GroupHash.objects.filter(group_id=group.id).exists()
 
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_ratelimit(self):
         self.login_as(user=self.user)
         with freeze_time("2000-01-01"):

@@ -37,6 +37,7 @@ from snuba_sdk import (
 from snuba_sdk.conditions import ConditionGroup
 from snuba_sdk.legacy import json_to_snql
 
+from sentry.api.utils import InvalidParams as UtilsInvalidParams
 from sentry.models.project import Project
 from sentry.release_health.base import (
     SessionsQueryFunction,
@@ -403,6 +404,8 @@ def run_sessions_query(
         metrics_results = get_series(projects, metrics_query)
     except OrderByNotSupportedOverCompositeEntityException:
         raise InvalidParams(f"Cannot order by {query.raw_orderby[0]} with the current filters")
+    except UtilsInvalidParams as e:
+        raise InvalidParams(e)
 
     input_groups = {
         GroupKey.from_input_dict(group["by"]): group for group in metrics_results["groups"]

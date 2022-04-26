@@ -394,7 +394,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
                 "statsPeriod": "1d",
                 "interval": "1d",
                 "field": ["sum(session)"],
-                "query": 'release:"foo@1.1.0" or release:"foo@1.2.0" or release:"foo@1.3.0"',
+                "query": 'release:"foo@1.1.0" or release:["foo@1.2.0", release:"foo@1.3.0"]',
                 "groupBy": ["release"],
             }
         )
@@ -427,6 +427,29 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         )
 
         assert response.status_code == 200, response.content
+
+    @freeze_time(MOCK_DATETIME)
+    def test_filter_unknown_release_in(self):
+        response = self.do_request(
+            {
+                "project": [-1],
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(session)"],
+                "query": "release:[foo@6.6.6]",
+                "groupBy": "session.status",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert result_sorted(response.data)["groups"] == [
+            {
+                "by": {"session.status": status},
+                "series": {"sum(session)": [0]},
+                "totals": {"sum(session)": 0},
+            }
+            for status in ("abnormal", "crashed", "errored", "healthy")
+        ]
 
     @freeze_time(MOCK_DATETIME)
     def test_groupby_project(self):
@@ -922,6 +945,20 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert result_sorted(response.data)["groups"] == []
+
+    @freeze_time(MOCK_DATETIME)
+    def test_mix_known_and_unknown_strings(self):
+        for query_string in ("environment:[production,foo]",):
+            response = self.do_request(
+                {
+                    "project": self.project.id,  # project without users
+                    "statsPeriod": "1d",
+                    "interval": "1d",
+                    "field": ["count_unique(user)", "sum(session)"],
+                    "query": query_string,
+                }
+            )
+            assert response.status_code == 200, response.data
 
 
 @patch("sentry.api.endpoints.organization_sessions.release_health", MetricsReleaseHealthBackend())

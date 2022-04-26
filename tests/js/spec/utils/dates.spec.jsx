@@ -4,7 +4,7 @@ import {
   intervalToMilliseconds,
   parsePeriodToHours,
   setDateToTime,
-  use24Hours,
+  shouldUse24Hours,
 } from 'sentry/utils/dates';
 
 describe('utils.dates', function () {
@@ -68,30 +68,30 @@ describe('utils.dates', function () {
       ConfigStore.set('user', TestStubs.User({}));
     });
 
-    describe('use24Hours()', function () {
+    describe('shouldUse24Hours()', function () {
       it('returns false if user preference is 12 hour clock', function () {
         const user = TestStubs.User();
         user.options.clock24Hours = false;
         ConfigStore.set('user', user);
-        expect(use24Hours()).toBe(false);
+        expect(shouldUse24Hours()).toBe(false);
       });
 
       it('returns true if user preference is 24 hour clock', function () {
         const user = TestStubs.User();
         user.options.clock24Hours = true;
         ConfigStore.set('user', user);
-        expect(use24Hours()).toBe(true);
+        expect(shouldUse24Hours()).toBe(true);
       });
     });
 
     describe('getTimeFormat()', function () {
-      it('does not use AM/PM if use24Hours is true', function () {
+      it('does not use AM/PM if shouldUse24Hours is true', function () {
         const user = TestStubs.User();
         user.options.clock24Hours = true;
         ConfigStore.set('user', user);
         expect(getTimeFormat()).toBe('HH:mm');
       });
-      it('uses AM/PM if use24Hours is false', function () {
+      it('uses AM/PM if shouldUse24Hours is false', function () {
         const user = TestStubs.User();
         user.options.clock24Hours = false;
         ConfigStore.set('user', user);

@@ -217,7 +217,7 @@ class WidgetCard extends React.Component<Props, State> {
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
       >
         <DashboardsMEPProvider>
-          <StyledPanel isDragging={false}>
+          <WidgetCardPanel isDragging={false}>
             <WidgetHeader>
               <Tooltip
                 title={widget.title}
@@ -256,7 +256,7 @@ class WidgetCard extends React.Component<Props, State> {
               </LazyLoad>
             )}
             {this.renderToolbar()}
-          </StyledPanel>
+          </WidgetCardPanel>
           <Feature organization={organization} features={['dashboards-mep']}>
             <DashboardsMEPConsumer>
               {({isMetricsData}) =>
@@ -294,7 +294,7 @@ const ErrorCard = styled(Placeholder)`
   margin-bottom: ${space(2)};
 `;
 
-const StyledPanel = styled(Panel, {
+export const WidgetCardPanel = styled(Panel, {
   shouldForwardProp: prop => prop !== 'isDragging',
 })<{
   isDragging: boolean;

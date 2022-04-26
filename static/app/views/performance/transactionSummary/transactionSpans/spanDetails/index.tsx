@@ -31,14 +31,13 @@ export default function SpanDetails(props: Props) {
   const spanSlug = parseSpanSlug(params.spanSlug);
 
   const organization = useOrganization();
+  const {projects} = useProjects();
 
   const projectId = decodeScalar(location.query.project);
   if (!defined(projectId) || !defined(transactionName) || !defined(spanSlug)) {
     redirectToPerformanceHomepage(organization, location);
     return null;
   }
-
-  const {projects} = useProjects();
 
   const project = projects.find(p => p.id === projectId);
   const eventView = generateSpansEventView({
