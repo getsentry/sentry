@@ -355,14 +355,16 @@ class Superuser:
             su_access_json = json.loads(request.body)
         except json.JSONDecodeError:
             metrics.incr(
-                "superuser.fail",
+                "superuser.failure",
                 sample_rate=1.0,
+                tags={"reason": SuperuserAccessFormInvalidJson.message},
             )
             raise SuperuserAccessFormInvalidJson()
         except AttributeError:
             metrics.incr(
-                "superuser.fail",
+                "superuser.failure",
                 sample_rate=1.0,
+                tags={"reason": EmptySuperuserAccessForm.message},
             )
             raise EmptySuperuserAccessForm()
 
@@ -384,10 +386,7 @@ class Superuser:
             )
             enable_and_log_superuser_access()
         except AttributeError:
-            metrics.incr(
-                "superuser.fail",
-                sample_rate=1.0,
-            )
+            metrics.incr("superuser.failure", sample_rate=1.0, tags={"reason": "Missing user info"})
             logger.error("superuser.superuser_access.missing_user_info")
 
     def set_logged_out(self):
