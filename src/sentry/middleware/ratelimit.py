@@ -4,6 +4,7 @@ import logging
 import uuid
 from typing import Callable
 
+from django.conf import settings
 from django.http.response import HttpResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -11,10 +12,11 @@ from rest_framework.response import Response
 from sentry.ratelimits import (
     above_rate_limit_check,
     finish_request,
+    get_rate_limit_config,
     get_rate_limit_key,
     get_rate_limit_value,
 )
-from sentry.ratelimits.config import ENFORCE_CONCURRENT_RATE_LIMITS
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimitCategory, RateLimitMeta, RateLimitType
 from sentry.utils import json, metrics
 
@@ -40,38 +42,52 @@ class RatelimitMiddleware:
 
     def process_view(self, request: Request, view_func, view_args, view_kwargs) -> Response | None:
         """Check if the endpoint call will violate."""
+
         with metrics.timer("middleware.ratelimit.process_view"):
             try:
                 # TODO: put these fields into their own object
                 request.will_be_rate_limited = False
+                if settings.SENTRY_SELF_HOSTED:
+                    return
                 request.rate_limit_category = None
                 request.rate_limit_uid = uuid.uuid4().hex
-                request.rate_limit_key = get_rate_limit_key(view_func, request)
+                view_class = getattr(view_func, "view_class", None)
+                if not view_class:
+                    return
+
+                rate_limit_config = get_rate_limit_config(view_class)
+                rate_limit_group = (
+                    rate_limit_config.group if rate_limit_config else RateLimitConfig().group
+                )
+                request.rate_limit_key = get_rate_limit_key(
+                    view_func, request, rate_limit_group, rate_limit_config
+                )
                 if request.rate_limit_key is None:
                     return
+
                 category_str = request.rate_limit_key.split(":", 1)[0]
                 request.rate_limit_category = category_str
 
                 rate_limit = get_rate_limit_value(
                     http_method=request.method,
-                    endpoint=view_func.view_class,
                     category=RateLimitCategory(category_str),
+                    rate_limit_config=rate_limit_config,
                 )
                 if rate_limit is None:
                     return
 
                 request.rate_limit_metadata = above_rate_limit_check(
-                    request.rate_limit_key, rate_limit, request.rate_limit_uid
+                    request.rate_limit_key, rate_limit, request.rate_limit_uid, rate_limit_group
                 )
                 # TODO: also limit by concurrent window once we have the data
                 rate_limit_cond = (
                     request.rate_limit_metadata.rate_limit_type != RateLimitType.NOT_LIMITED
-                    if ENFORCE_CONCURRENT_RATE_LIMITS
+                    if settings.ENFORCE_CONCURRENT_RATE_LIMITS
                     else request.rate_limit_metadata.rate_limit_type == RateLimitType.FIXED_WINDOW
                 )
                 if rate_limit_cond:
                     request.will_be_rate_limited = True
-                    enforce_rate_limit = getattr(view_func.view_class, "enforce_rate_limit", False)
+                    enforce_rate_limit = getattr(view_class, "enforce_rate_limit", False)
                     if enforce_rate_limit:
                         return HttpResponse(
                             json.dumps(

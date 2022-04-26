@@ -32,7 +32,7 @@ function BasePlayerRoot({className}: Props) {
   });
 
   // Create the `rrweb` instance which creates an iframe inside `viewEl`
-  useEffect(() => initRoot(viewEl.current), [viewEl.current]);
+  useEffect(() => initRoot(viewEl.current), [initRoot]);
 
   // Read the initial width & height where the player will be inserted, this is
   // so we can shrink the video into the available space.
@@ -43,7 +43,7 @@ function BasePlayerRoot({className}: Props) {
         width: windowEl.current?.clientWidth || 0,
         height: windowEl.current?.clientHeight || 0,
       }),
-    [windowEl.current]
+    []
   );
   useResizeObserver({ref: windowEl, onResize: updateWindowDimensions});
   // If your browser doesn't have ResizeObserver then set the size once.
@@ -71,11 +71,11 @@ function BasePlayerRoot({className}: Props) {
         viewEl.current.style.height = `${videoDimensions.height * scale}px`;
       }
     }
-  }, [windowDimensions, videoDimensions]);
+  }, [fixedHeight, windowDimensions, videoDimensions]);
 
   return (
     <Panel isFullscreen={isFullscreen}>
-      <Centered ref={windowEl} data-test-id="replay-window">
+      <Centered ref={windowEl} className="sr-block" data-test-id="replay-window">
         <div ref={viewEl} data-test-id="replay-view" className={className} />
         {fastForwardSpeed ? (
           <FastForwardBadge>

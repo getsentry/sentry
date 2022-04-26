@@ -232,6 +232,81 @@ class ProjectRuleDetailsTest(APITestCase):
         )
         assert resp.data["lastTriggered"] == datetime.now().replace(tzinfo=UTC)
 
+    def test_with_jira_action_error(self):
+        self.login_as(user=self.user)
+        self.integration = Integration.objects.create(
+            provider="jira", name="Jira", external_id="jira:1"
+        )
+        self.integration.add_organization(self.organization, self.user)
+
+        conditions = [
+            {"id": "sentry.rules.conditions.every_event.EveryEventCondition"},
+            {"id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter", "value": 10},
+        ]
+
+        actions = [
+            {
+                "id": "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
+                "integration": self.integration.id,
+                "customfield_epic_link": "EPIC-3",
+                "customfield_severity": "Medium",
+                "dynamic_form_fields": [
+                    {
+                        "choices": [
+                            ["EPIC-1", "Citizen Knope"],
+                            ["EPIC-2", "The Comeback Kid"],
+                            ["EPIC-3", {"key": None, "ref": None, "props": {}, "_owner": None}],
+                        ],
+                        "label": "Epic Link",
+                        "name": "customfield_epic_link",
+                        "required": False,
+                        "type": "select",
+                        "url": f"/extensions/jira/search/{self.organization.slug}/{self.integration.id}/",
+                    },
+                    {
+                        "choices": [
+                            ["Very High", "Very High"],
+                            ["High", "High"],
+                            ["Medium", "Medium"],
+                            ["Low", "Low"],
+                        ],
+                        "label": "Severity",
+                        "name": "customfield_severity",
+                        "required": True,
+                        "type": "select",
+                    },
+                ],
+            }
+        ]
+        data = {
+            "conditions": conditions,
+            "actions": actions,
+            "filter_match": "all",
+            "action_match": "all",
+            "frequency": 30,
+        }
+
+        rule = Rule.objects.create(project=self.project, label="foo", data=data)
+
+        url = reverse(
+            "sentry-api-0-project-rule-details",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+                "rule_id": rule.id,
+            },
+        )
+
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200
+
+        # Expect that the choices get filtered to match the API: Array<string, string>
+        assert response.data["actions"][0].get("dynamic_form_fields")[0].get("choices") == [
+            ["EPIC-1", "Citizen Knope"],
+            ["EPIC-2", "The Comeback Kid"],
+        ]
+
 
 class UpdateProjectRuleTest(APITestCase):
     @patch("sentry.signals.alert_rule_edited.send_robust")

@@ -12,6 +12,7 @@ from sentry.models import (
     Organization,
     OrganizationMember,
     OrganizationMemberTeam,
+    SentryAppInstallationToken,
     UserOption,
 )
 from sentry.testutils import APITestCase
@@ -115,6 +116,12 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
 
         role_ids = [role["id"] for role in response.data["roles"]]
         assert role_ids == ["member", "manager", "owner"]
+
+    def test_lists_team_roles(self):
+        response = self.get_success_response(self.organization.slug, "me")
+
+        role_ids = [role["id"] for role in response.data["teamRoles"]]
+        assert role_ids == ["contributor", "admin"]
 
 
 class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
@@ -368,6 +375,30 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
 
         owner_om = OrganizationMember.objects.get(organization=self.organization, user=owner)
         assert owner_om.role == "owner"
+
+    def test_with_internal_integration(self):
+        member = self.create_user("baz@example.com")
+        member_om = self.create_member(organization=self.organization, user=member, role="member")
+        self.create_internal_integration(
+            name="my_app",
+            organization=self.organization,
+            scopes=("member:admin",),
+            webhook_url="http://example.com",
+        )
+        # there should only be one record created so just grab the first one
+        token = SentryAppInstallationToken.objects.first()
+
+        response = self.client.put(
+            reverse(self.endpoint, args=[self.organization.slug, member_om.id]),
+            {"role": "admin"},
+            HTTP_AUTHORIZATION=f"Bearer {token.api_token.token}",
+        )
+
+        # The app token has no associated OrganizationMember and therefore no role.
+        # So we can't authorize it to promote to a role less than or equal to its
+        # own. This may be supported in the future. For now, assert that it provides
+        # a graceful authorization failure.
+        assert response.status_code == 403
 
 
 class DeleteOrganizationMemberTest(OrganizationMemberTestBase):

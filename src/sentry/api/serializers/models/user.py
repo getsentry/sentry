@@ -294,8 +294,9 @@ class DetailedSelfUserSerializer(UserSerializer):
         permissions = manytoone_to_dict(
             UserPermission.objects.filter(user__in=item_list), "user_id"
         )
-        # XXX(dcramer): theres def a way to write this query using djangos awkward orm magic to cache it using `UserRole`
-        # but at least someone can understand this direction of access/optimization
+        # XXX(dcramer): There is definitely a way to write this query using
+        #  Django's awkward ORM magic to cache it using `UserRole` but at least
+        #  someone can understand this direction of access/optimization.
         roles = {
             ur.user_id: ur.role.permissions
             for ur in UserRoleUser.objects.filter(user__in=item_list).select_related("role")
