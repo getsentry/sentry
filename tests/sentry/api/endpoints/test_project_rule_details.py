@@ -309,14 +309,18 @@ class ProjectRuleDetailsTest(APITestCase):
 
 
 class UpdateProjectRuleTest(APITestCase):
+    endpoint = "sentry-api-0-project-rule-details"
+    method = "PUT"
+
+    def setUp(self):
+        self.user = self.create_user()
+        self.organization = self.create_organization()
+        self.project = self.create_project(organization=self.organization)
+        self.rule = Rule.objects.create(project=self.project, label="foo")
+        self.login_as(self.user)
+
     @patch("sentry.signals.alert_rule_edited.send_robust")
     def test_simple(self, send_robust):
-        self.login_as(user=self.user)
-
-        project = self.create_project()
-
-        rule = Rule.objects.create(project=project, label="foo")
-
         conditions = [
             {
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
@@ -327,13 +331,13 @@ class UpdateProjectRuleTest(APITestCase):
         ]
 
         url = reverse(
-            "sentry-api-0-project-rule-details",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
-                "rule_id": rule.id,
+                "organization_slug": self.organization.slug,
+                "project_slug": self.project.slug,
+                "rule_id": self.rule.id,
             },
         )
+
         response = self.client.put(
             url,
             data={
@@ -345,6 +349,12 @@ class UpdateProjectRuleTest(APITestCase):
                 "conditions": conditions,
             },
             format="json",
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            self.rule.id,
+            status_code=200,
         )
 
         assert response.status_code == 200, response.content
@@ -1047,6 +1057,41 @@ class UpdateProjectRuleTest(APITestCase):
         assert call_kwargs["fields"] == kwargs["fields"]
 
         assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.UPDATED.value).exists()
+
+    @responses.activate
+    def test_update_sentry_app_with_success_response(self):
+        """
+        Ensures the success response from a Sentry App
+        Alert Rule Action is considered when updating.
+        """
+        responses.add(
+            method=responses.POST,
+            url="https://example.com/sentry/alert-rule",
+            status=202,
+            json={"message": self.success_message},
+        )
+
+        self.login_as(self.user)
+
+        project = self.create_project()
+
+        sentry_app = self.create_sentry_app(
+            name="foo",
+            organization=self.organization,
+            schema={
+                "elements": [
+                    self.create_alert_rule_action_schema(),
+                ]
+            },
+        )
+        install = self.create_sentry_app_installation(
+            slug="foo", organization=self.organization, user=self.user
+        )
+        sentry_app_settings = [
+            {"name": "title", "value": "test title"},
+            {"name": "description", "value": "test description"},
+        ]
+        rule = Rule.objects.create(project=project, label="foo")
 
 
 class DeleteProjectRuleTest(APITestCase):
