@@ -53,8 +53,10 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
             return Response([])
 
         referrer = request.GET.get("referrer")
-        performance_use_metrics = features.has(
+        use_metrics = features.has(
             "organizations:performance-use-metrics", organization=organization, actor=request.user
+        ) or features.has(
+            "organizations:dashboards-mep", organization=organization, actor=request.user
         )
         performance_dry_run_mep = features.has(
             "organizations:performance-dry-run-mep", organization=organization, actor=request.user
@@ -62,10 +64,10 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
 
         # This param will be deprecated in favour of dataset
         if "metricsEnhanced" in request.GET:
-            metrics_enhanced = request.GET.get("metricsEnhanced") == "1" and performance_use_metrics
+            metrics_enhanced = request.GET.get("metricsEnhanced") == "1" and use_metrics
             dataset = discover if not metrics_enhanced else metrics_enhanced_performance
         else:
-            dataset = self.get_dataset(request) if performance_use_metrics else discover
+            dataset = self.get_dataset(request) if use_metrics else discover
             metrics_enhanced = dataset != discover
 
         sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)

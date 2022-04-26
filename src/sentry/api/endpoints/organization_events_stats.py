@@ -76,6 +76,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
         feature_names = [
             "organizations:performance-chart-interpolation",
             "organizations:performance-use-metrics",
+            "organizations:dashboards-mep",
             "organizations:performance-dry-run-mep",
         ]
         batch_features = features.batch_has(
@@ -137,21 +138,19 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
             has_chart_interpolation = batch_features.get(
                 "organizations:performance-chart-interpolation", False
             )
-            performance_use_metrics = batch_features.get(
+            use_metrics = batch_features.get(
                 "organizations:performance-use-metrics", False
-            )
+            ) or batch_features.get("organizations:dashboards-mep", False)
             performance_dry_run_mep = batch_features.get(
                 "organizations:performance-dry-run-mep", False
             )
 
             # This param will be deprecated in favour of dataset
             if "metricsEnhanced" in request.GET:
-                metrics_enhanced = (
-                    request.GET.get("metricsEnhanced") == "1" and performance_use_metrics
-                )
+                metrics_enhanced = request.GET.get("metricsEnhanced") == "1" and use_metrics
                 dataset = discover if not metrics_enhanced else metrics_enhanced_performance
             else:
-                dataset = self.get_dataset(request) if performance_use_metrics else discover
+                dataset = self.get_dataset(request) if use_metrics else discover
                 metrics_enhanced = dataset != discover
 
             allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
