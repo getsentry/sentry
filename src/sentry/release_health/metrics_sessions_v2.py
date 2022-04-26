@@ -491,7 +491,8 @@ def _transform_single_condition(
             # HACK: metrics tags are never null. We should really
             # write our own parser for this.
             condition = replace(condition, lhs=Column("session.status"))
-        elif condition.lhs == Column("session.status"):
+
+        if condition.lhs == Column("session.status"):
             if condition.op == Op.EQ:
                 return None, _parse_session_status(condition.rhs)
             if condition.op == Op.NEQ:
