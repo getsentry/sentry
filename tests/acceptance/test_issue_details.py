@@ -25,7 +25,7 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         self.page = IssueDetailsPage(self.browser, self.client)
         self.dismiss_assistant()
 
-    def create_sample_event(self, platform, default=None, sample_name=None, time=None):
+    def create_sample_event(self, platform, default=None, sample_name=None, time=None, tags=None):
         event_data = load_data(platform, default=default, sample_name=sample_name)
         event_data["event_id"] = "d964fdbd649a4cf8bfc35d18082b6b0e"
 
@@ -33,6 +33,8 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         # event processing will mark old time values as processing errors.
         if time:
             event_data["received"] = time.isoformat()
+        if tags:
+            event_data["tags"] = tags
 
         # We need a fallback datetime for the event
         if time is None:
@@ -49,8 +51,12 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         return event
 
     def test_python_event(self):
-        self.create_sample_event(platform="python")
-        self.create_sample_event(platform="python")
+        tags = [
+            ["level", "warning"],
+            ["server_name", "web02.example.org"],
+            ["environment", "staging"],
+        ]
+        self.create_sample_event(platform="python", tags=tags)
         event = self.create_sample_event(platform="python")
         self.page.visit_issue(self.org.slug, event.group.id)
 
