@@ -4,7 +4,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 
 from sentry import analytics
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.models import Organization, User
 from sentry.utils.email import MessageBuilder
@@ -37,7 +37,8 @@ def get_request_builder_args(user: User, organization: Organization, platforms: 
 
 class OrganizationOnboardingContinuationEmail(OrganizationEndpoint):
     private = True
-    permission_classes = (OrganizationPermission,)
+    # let anyone in the org use this endpoint
+    permission_classes = ()
 
     def post(self, request: Request, organization: Organization):
         serializer = OnboardingContinuationSerializer(data=request.data)
