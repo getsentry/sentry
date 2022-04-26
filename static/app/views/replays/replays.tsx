@@ -2,6 +2,7 @@ import {Fragment, useEffect, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
+import Duration from 'sentry/components/duration';
 import FeatureBadge from 'sentry/components/featureBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
@@ -66,8 +67,17 @@ function Replays(props: Props) {
       id: '',
       name: '',
       version: 2,
-      fields: ['eventID', 'project', 'timestamp', 'user.display', 'url'],
-      orderby: getQueryParamAsString(query.sort) || '-timestamp',
+      fields: [
+        'eventID',
+        'project',
+        'user.display',
+        'url',
+        'max(timestamp)',
+        'min(timestamp)',
+        'equation|max(timestamp)-min(timestamp)',
+        'count_if(event.type,equals,error)',
+      ],
+      orderby: getQueryParamAsString(query.sort) || '-min_timestamp',
       environment: selection.environments,
       projects: selection.projects,
       query: `transaction:sentry-replay ${searchQuery}`, // future: change to replay event
@@ -128,9 +138,13 @@ function Replays(props: Props) {
         <StyledPanelItem>
           <TimeSinceWrapper>
             <StyledIconCalendarWrapper color="gray500" size="sm" />
-            <TimeSince date={replay.timestamp} />
+            <TimeSince date={replay.min_timestamp} />
           </TimeSinceWrapper>
         </StyledPanelItem>
+        <StyledPanelItem>
+          <Duration seconds={replay['equation[0]'] / 1000} fixedDigits={2} abbreviation />
+        </StyledPanelItem>
+        <StyledPanelItem>{replay.count_if_event_type_equals_error}</StyledPanelItem>
       </Fragment>
     ));
   };
@@ -141,7 +155,7 @@ function Replays(props: Props) {
   const sort: {
     field: string;
   } = {
-    field: getQueryParamAsString(query.sort) || '-timestamp',
+    field: getQueryParamAsString(query.sort) || '-min_timestamp',
   };
 
   const arrowDirection = sort.field.startsWith('-') ? 'down' : 'up';
@@ -184,7 +198,7 @@ function Replays(props: Props) {
                         aria-sort={
                           !sort.field.endsWith('timestamp')
                             ? 'none'
-                            : sort.field === '-timestamp'
+                            : sort.field === '-min_timestamp'
                             ? 'descending'
                             : 'ascending'
                         }
@@ -194,12 +208,16 @@ function Replays(props: Props) {
                             ...currentQuery,
                             // sort by timestamp should start by ascending on first click
                             sort:
-                              sort.field === '-timestamp' ? 'timestamp' : '-timestamp',
+                              sort.field === '-min_timestamp'
+                                ? 'min_timestamp'
+                                : '-min_timestamp',
                           },
                         }}
                       >
                         {t('Timestamp')} {sort.field.endsWith('timestamp') && sortArrow}
                       </SortLink>,
+                      t('Replay Duration'),
+                      t('Error Count'),
                     ]}
                   >
                     {data.tableData ? renderTable(data.tableData.data as Replay[]) : null}
@@ -229,10 +247,10 @@ const StyledPageContent = styled(PageContent)`
 `;
 
 const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: minmax(0, 1fr) max-content max-content;
+  grid-template-columns: minmax(0, 1fr) max-content max-content max-content max-content;
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: minmax(0, 1fr) max-content;
+    grid-template-columns: minmax(0, 1fr) max-content max-content max-content;
   }
 `;
 
