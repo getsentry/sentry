@@ -17,6 +17,7 @@ from snuba_sdk import (
     Limit,
     Offset,
     Op,
+    Or,
     OrderBy,
     Query,
 )
@@ -149,6 +150,33 @@ def get_entity_of_metric_mocked(_, metric_name):
                     Op.NOT_IN,
                     rhs=[SHARED_TAG_STRINGS["production"]],
                 )
+            ],
+        ),
+        (
+            "release:[foo]",
+            [
+                Condition(
+                    Column(name=resolve_tag_key(ORG_ID, "release")),
+                    Op.IN,
+                    rhs=[],
+                )
+            ],
+        ),
+        (
+            "release:myapp@2.0.0 or environment:[production,staging]",
+            [
+                Or(
+                    [
+                        Condition(
+                            Column(name=resolve_tag_key(ORG_ID, "release")), Op.IN, rhs=[10001]
+                        ),
+                        Condition(
+                            Column(name=resolve_tag_key(ORG_ID, "environment")),
+                            Op.IN,
+                            rhs=[resolve(ORG_ID, "production"), resolve(ORG_ID, "staging")],
+                        ),
+                    ]
+                ),
             ],
         ),
     ],

@@ -429,6 +429,29 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
 
     @freeze_time(MOCK_DATETIME)
+    def test_filter_unknown_release_in(self):
+        response = self.do_request(
+            {
+                "project": [-1],
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(session)"],
+                "query": "release:[foo@6.6.6]",
+                "groupBy": "session.status",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert result_sorted(response.data)["groups"] == [
+            {
+                "by": {"session.status": status},
+                "series": {"sum(session)": [0]},
+                "totals": {"sum(session)": 0},
+            }
+            for status in ("abnormal", "crashed", "errored", "healthy")
+        ]
+
+    @freeze_time(MOCK_DATETIME)
     def test_groupby_project(self):
         response = self.do_request(
             {
