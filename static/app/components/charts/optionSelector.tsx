@@ -7,21 +7,21 @@ import Truncate from 'sentry/components/truncate';
 import {SelectValue} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
-type BaseProps = {
+type BaseProps = React.ComponentProps<typeof CompactSelect> & {
   options: SelectValue<string>[];
   title: string;
   featureType?: 'alpha' | 'beta' | 'new';
 };
 
 type SingleProps = BaseProps & {
-  multiple?: false;
   onChange: (value: string) => void;
   selected: string;
+  multiple?: false;
 };
 type MultipleProps = BaseProps & {
+  multiple: true;
   onChange: (value: string[]) => void;
   selected: string[];
-  multiple: true;
 };
 
 function OptionSelector({
@@ -38,11 +38,18 @@ function OptionSelector({
     label: <Truncate value={String(opt.label)} maxLength={60} expandDirection="left" />,
   }));
 
+  function onValueChange(option) {
+    if (multiple && option.length > 3) {
+      return;
+    }
+    onChange(multiple ? option.map(o => o.value) : option.value);
+  }
+
   return (
     <CompactSelect
       options={mappedOptions}
       value={selected}
-      onChange={opt => onChange(multiple ? opt.map(o => o.value) : opt.value)}
+      onChange={onValueChange}
       isOptionDisabled={opt => opt.disabled}
       multiple={multiple}
       triggerProps={{

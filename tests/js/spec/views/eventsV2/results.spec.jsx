@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
 
+import {triggerPress} from 'sentry-test/utils';
 import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
@@ -293,10 +294,14 @@ describe('EventsV2 > Results', function () {
     const selector = wrapper.find('OptionSelector').last();
 
     // Open the selector
-    selector.find('StyledDropdownButton button').simulate('click');
+    act(() => {
+      triggerPress(selector.find('button[aria-haspopup="listbox"]'));
+    });
+    await tick();
+    wrapper.update();
 
     // Click one of the options.
-    selector.find('DropdownMenu MenuItem span').first().simulate('click');
+    wrapper.find('SelectOption').first().simulate('click');
     await tick();
     wrapper.update();
 
@@ -334,13 +339,14 @@ describe('EventsV2 > Results', function () {
     const selector = wrapper.find('OptionSelector').first();
 
     // Open the selector
-    selector.find('StyledDropdownButton button').simulate('click');
+    act(() => {
+      triggerPress(selector.find('button[aria-haspopup="listbox"]'));
+    });
+    await tick();
+    wrapper.update();
 
     // Click the 'default' option.
-    selector
-      .find('DropdownMenu MenuItem [data-test-id="option-default"]')
-      .first()
-      .simulate('click');
+    wrapper.find('SelectOption').first().simulate('click');
     await tick();
     wrapper.update();
 
@@ -376,16 +382,19 @@ describe('EventsV2 > Results', function () {
     const selector = wrapper.find('OptionSelector').first();
 
     // Open the selector
-    selector.find('StyledDropdownButton button').simulate('click');
+    act(() => {
+      triggerPress(selector.find('button[aria-haspopup="listbox"]'));
+    });
     await tick();
+    wrapper.update();
 
     // Make sure the top5 option isn't present
-    const options = selector
-      .find('DropdownMenu MenuItem')
+    const options = wrapper
+      .find('SelectOption [data-test-id]')
       .map(item => item.prop('data-test-id'));
-    expect(options).not.toContain('option-top5');
-    expect(options).not.toContain('option-dailytop5');
-    expect(options).toContain('option-default');
+    expect(options).not.toContain('top5');
+    expect(options).not.toContain('dailytop5');
+    expect(options).toContain('default');
     wrapper.unmount();
   });
 
