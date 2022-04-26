@@ -210,7 +210,7 @@ class APIQueryDefinition:
 
         self.orderby = self._parse_orderby(query_params)
         self.limit: Optional[Limit] = self._parse_limit(query_params, paginator_kwargs)
-        self.offset = self._parse_offset(query_params, paginator_kwargs)
+        self.offset: Optional[Offset] = self._parse_offset(query_params, paginator_kwargs)
 
         start, end, rollup = get_date_range(query_params)
         self.rollup = rollup
@@ -289,7 +289,7 @@ class APIQueryDefinition:
 
     def _parse_offset(self, query_params, paginator_kwargs):
         if self.orderby:
-            return paginator_kwargs.get("offset")
+            return Offset(paginator_kwargs.get("offset"))
         else:
             cursor = query_params.get("cursor")
             if cursor is not None:
@@ -432,7 +432,7 @@ class SnubaQueryBuilder:
             select=select,
             where=where,
             limit=limit or Limit(MAX_POINTS),
-            offset=Offset(offset or 0),
+            offset=offset or Offset(0),
             granularity=rollup,
             orderby=orderby,
         )
