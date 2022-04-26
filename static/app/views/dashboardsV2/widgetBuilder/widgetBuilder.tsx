@@ -13,6 +13,7 @@ import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesForm';
 import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
+import ListItem from 'sentry/components/list/listItem';
 import LoadingError from 'sentry/components/loadingError';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -1129,6 +1130,10 @@ const Body = styled(Layout.Body)`
   }
 `;
 
+// HACK: Since we add 30px of padding to the ListItems
+// there is 30px of overlap when the screen is just above 1200px.
+// When we're up to 1230px (1200 + 30 to account for the padding)
+// we decrease the width of ListItems by 30px
 const Main = styled(Layout.Main)`
   max-width: 1000px;
   flex: 1;
@@ -1137,6 +1142,12 @@ const Main = styled(Layout.Main)`
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     padding: ${space(4)};
+  }
+
+  @media (max-width: calc(${p => p.theme.breakpoints[2]} + ${space(4)})) {
+    ${ListItem} {
+      width: calc(100% - ${space(4)});
+    }
   }
 `;
 
