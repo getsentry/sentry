@@ -61,6 +61,12 @@ export function SortByStep({
   const orderBy = queries[0].orderby;
   const maxLimit = getResultsLimit(queries.length, queries[0].aggregates.length);
 
+  const isTimeseriesChart = [
+    DisplayType.LINE,
+    DisplayType.BAR,
+    DisplayType.AREA,
+  ].includes(displayType);
+
   useEffect(() => {
     if (!limit) {
       return;
@@ -105,6 +111,7 @@ export function SortByStep({
             )}
           <SortBySelectors
             widgetType={widgetType}
+            hasGroupBy={isTimeseriesChart && !!queries[0].columns.length}
             disabledReason={disabledReason}
             disabledSort={disabledSort}
             disabledSortDirection={disabledSortDirection}
