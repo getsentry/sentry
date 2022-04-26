@@ -104,7 +104,7 @@ function RuleListRow({
     const daysDiff = timeDiff && timeDiff / (1000 * 3600 * 24);
     // if an alert issue has been triggered within the last 14 days, have warning status
     const issueAlertStatus =
-      daysDiff && daysDiff < 14 ? IncidentStatus.WARNING : IncidentStatus.CLOSED;
+      daysDiff && daysDiff <= 14 ? IncidentStatus.WARNING : IncidentStatus.CLOSED;
 
     return (
       <FlexCenter>
