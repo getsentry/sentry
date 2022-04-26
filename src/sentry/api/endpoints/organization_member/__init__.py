@@ -28,28 +28,27 @@ def get_allowed_roles(
     organization: Organization,
     member: OrganizationMember | None = None,
 ) -> Collection[Role]:
+    """Get the set of roles that the request is allowed to manage.
+
+    In order to change another member's role, the returned set must include both
+    the starting role and the new role. That is, the set contains the roles that
+    the request is allowed to promote someone to and to demote someone from.
+    """
+
     if is_active_superuser(request):
         return roles.get_all()
     if not request.access.has_scope("member:admin"):
         return ()
 
-    if member:
-        acting_member = member
-    else:
+    if member is None:
         try:
-            acting_member = OrganizationMember.objects.get(
-                user=request.user, organization=organization
-            )
+            member = OrganizationMember.objects.get(user=request.user, organization=organization)
         except OrganizationMember.DoesNotExist:
             # This can happen if the request was authorized by an app integration
             # token whose proxy user does not have an OrganizationMember object.
             return ()
 
-    if member and roles.get(acting_member.role).priority < roles.get(member.role).priority:
-        # Disallow the acting member from demoting another member who outranks them
-        return ()
-
-    return acting_member.get_allowed_roles_to_invite()
+    return member.get_allowed_roles_to_invite()
 
 
 from .details import OrganizationMemberDetailsEndpoint
