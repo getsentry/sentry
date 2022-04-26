@@ -625,7 +625,7 @@ const GroupCheckBoxWrapper = styled('div')`
   align-items: center;
 
   & input[type='checkbox'] {
-    margin: 0;
+    margin: ${space(0.25)} 0 0 0;
     display: block;
   }
 `;
