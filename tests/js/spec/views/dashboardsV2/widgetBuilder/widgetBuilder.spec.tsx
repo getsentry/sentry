@@ -1574,6 +1574,47 @@ describe('WidgetBuilder', function () {
         );
       });
     });
+
+    it('sortBy is only visible on tabular visualizations or when there is a groupBy value selected on time-series visualizations', async function () {
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      // Sort by shall be visible on table visualization
+      expect(await screen.findByText('Sort by a column')).toBeInTheDocument();
+
+      // Update visualization to be a time-series
+      userEvent.click(screen.getByText('Table'));
+      userEvent.click(screen.getByText('Line Chart'));
+
+      // Time-series visualizations display GroupBy step
+      expect(await screen.findByText('Group your results')).toBeInTheDocument();
+
+      // SortBy step shall not be visible
+      expect(screen.queryByText('Sort by a y-axis')).not.toBeInTheDocument();
+
+      // Select GroupBy value
+      await selectEvent.select(await screen.findByText('Select group'), 'project');
+
+      // Now that at least one groupBy value is selected, the SortBy step shall be visible
+      expect(screen.getByText('Sort by a y-axis')).toBeInTheDocument();
+
+      // Remove GroupBy value
+      userEvent.click(screen.getByLabelText('Remove group'));
+
+      // SortBy step shall no longer be visible
+      expect(screen.queryByText('Sort by a y-axis')).not.toBeInTheDocument();
+
+      // Update visualization to be "Top 5 Events"
+      userEvent.click(screen.getByText('Line Chart'));
+      userEvent.click(screen.getByText('Top 5 Events'));
+
+      // Tabular visualizations display "Choose your columns" step
+      expect(await screen.findByText('Choose your columns')).toBeInTheDocument();
+
+      // SortBy step shall be visible
+      expect(screen.getByText('Sort by a y-axis')).toBeInTheDocument();
+    });
   });
 
   describe('Widget creation coming from other verticals', function () {

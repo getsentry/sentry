@@ -186,12 +186,6 @@ function WidgetBuilder({
     location.query.defaultWidgetQuery
   );
 
-  useEffect(() => {
-    if (objectIsEmpty(tags)) {
-      loadOrganizationTags(api, organization.slug, selection);
-    }
-  }, []);
-
   // Feature flag for new widget builder design. This feature is still a work in progress and not yet available internally.
   const widgetBuilderNewDesign = organization.features.includes(
     'new-widget-builder-experience-design'
@@ -267,6 +261,10 @@ function WidgetBuilder({
       organization,
       new_widget: !isEditing,
     });
+
+    if (objectIsEmpty(tags)) {
+      loadOrganizationTags(api, organization.slug, selection);
+    }
 
     if (isEditing && isValidWidgetIndex) {
       const widgetFromDashboard = filteredDashboardWidgets[widgetIndexNum];
@@ -899,6 +897,16 @@ function WidgetBuilder({
     return false;
   }
 
+  if (isEditing && !isValidWidgetIndex) {
+    return (
+      <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
+        <PageContent>
+          <LoadingError message={t('The widget you want to edit was not found.')} />
+        </PageContent>
+      </SentryDocumentTitle>
+    );
+  }
+
   const canAddSearchConditions =
     [DisplayType.LINE, DisplayType.AREA, DisplayType.BAR].includes(state.displayType) &&
     state.queries.length < 3;
@@ -929,15 +937,15 @@ function WidgetBuilder({
     ? fields.map((field, index) => explodeField({field, alias: fieldAliases[index]}))
     : [...explodedColumns, ...explodedAggregates];
 
-  if (isEditing && !isValidWidgetIndex) {
-    return (
-      <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
-        <PageContent>
-          <LoadingError message={t('The widget you want to edit was not found.')} />
-        </PageContent>
-      </SentryDocumentTitle>
-    );
-  }
+  const groupByValueSelected = currentWidget.queries.some(
+    query => query.columns.length > 0
+  );
+
+  // The SortBy field shall only be displayed in tabular visualizations and
+  // when at least one groupBy value is selected on time-series visualizations
+  const displaySortByStep =
+    (widgetBuilderNewDesign && isTimeseriesChart && groupByValueSelected) ||
+    isTabularChart;
 
   return (
     <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
@@ -1032,7 +1040,7 @@ function WidgetBuilder({
                       dataSet={state.dataSet}
                     />
                   )}
-                  {((widgetBuilderNewDesign && isTimeseriesChart) || isTabularChart) && (
+                  {displaySortByStep && (
                     <SortByStep
                       limit={state.limit}
                       displayType={state.displayType}
