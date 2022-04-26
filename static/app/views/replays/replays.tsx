@@ -251,6 +251,9 @@ const ReplayUserBadge = styled(UserBadge)`
   font-size: ${p => p.theme.fontSizeLarge};
   font-weight: 400;
   line-height: 1.2;
+  div[class*='StyledEmail'] {
+    line-height: normal;
+  }
 `;
 
 const TimeSinceWrapper = styled('div')`
