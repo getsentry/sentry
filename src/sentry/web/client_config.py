@@ -184,6 +184,7 @@ def get_client_config(request=None):
             ),
         },
         "demoMode": settings.DEMO_MODE,
+        "enableAnalytics": settings.ENABLE_ANALYTICS,
     }
     if user and user.is_authenticated:
         context.update(

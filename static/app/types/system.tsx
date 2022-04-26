@@ -116,6 +116,7 @@ export interface Config {
   distPrefix: string;
   dsn: string;
   dsn_requests: string;
+  enableAnalytics: boolean;
   features: Set<string>;
   gravatarBaseUrl: string;
   invitesEnabled: boolean;
