@@ -24,6 +24,7 @@ from typing import (
 from snuba_sdk import Condition, Direction, Granularity, Limit
 from snuba_sdk.legacy import json_to_snql
 
+from sentry.api.utils import InvalidParams as UtilsInvalidParams
 from sentry.models.project import Project
 from sentry.release_health.base import (
     SessionsQueryFunction,
@@ -327,7 +328,10 @@ def run_sessions_query(
 
     # TODO: Stop passing project IDs everywhere
     projects = Project.objects.get_many_from_cache(project_ids)
-    results = get_series(projects, metrics_query)
+    try:
+        results = get_series(projects, metrics_query)
+    except UtilsInvalidParams as e:
+        raise InvalidParams(e)
 
     input_groups = {GroupKey.from_input_dict(group["by"]): group for group in results["groups"]}
 
