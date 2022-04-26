@@ -10,9 +10,20 @@ from typing import Any, List, Mapping, Sequence, Set, Tuple
 
 import sentry_sdk
 from django.utils import timezone
-from snuba_sdk import Direction, Op
+from snuba_sdk import (
+    Column,
+    Condition,
+    Direction,
+    Entity,
+    Function,
+    Join,
+    Limit,
+    Op,
+    OrderBy,
+    Request,
+)
 from snuba_sdk.expressions import Expression
-from snuba_sdk.query import Column, Condition, Entity, Function, Join, Limit, OrderBy, Query
+from snuba_sdk.query import Query
 from snuba_sdk.relationships import Relationship
 
 from sentry import options
@@ -824,7 +835,6 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             having.append(Condition(sort_func, op, cursor.value))
 
         query = Query(
-            "events",
             match=Join([Relationship(e_event, "grouped", e_group)]),
             select=[
                 Column("id", e_group),
@@ -836,11 +846,10 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             orderby=[OrderBy(sort_func, direction=Direction.DESC)],
             limit=Limit(limit + 1),
         )
-
-        data = snuba.raw_snql_query(query, referrer="search.snuba.cdc_search.query")["data"]
+        request = Request(dataset="events", app_id="cdc", query=query)
+        data = snuba.raw_snql_query(request, referrer="search.snuba.cdc_search.query")["data"]
 
         hits_query = Query(
-            "events",
             match=Join([Relationship(e_event, "grouped", e_group)]),
             select=[
                 Function("uniq", [Column("id", e_group)], alias="count"),
@@ -849,9 +858,10 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         )
         hits = None
         if count_hits:
-            hits = snuba.raw_snql_query(hits_query, referrer="search.snuba.cdc_search.hits")[
-                "data"
-            ][0]["count"]
+            request = Request(dataset="events", app_id="cdc", query=hits_query)
+            hits = snuba.raw_snql_query(request, referrer="search.snuba.cdc_search.hits")["data"][
+                0
+            ]["count"]
 
         paginator_results = SequencePaginator(
             [(row["score"], row["g.id"]) for row in data],
