@@ -42,7 +42,7 @@ const BALANCE_RESULTS_PATH = path.resolve(
  * tests into n groups whose total test run times should be roughly equal
  *
  * The source results should be sorted with the slowest tests first. We insert
- * the test into the smallest group on each interation. This isn't perfect, but
+ * the test into the smallest group on each iteration. This isn't perfect, but
  * should be good enough.
  *
  * Returns a map of <testName, groupIndex>

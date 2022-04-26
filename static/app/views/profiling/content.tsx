@@ -4,11 +4,15 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import Alert from 'sentry/components/alert';
+import DatePageFilter from 'sentry/components/datePageFilter';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import PageHeading from 'sentry/components/pageHeading';
 import Pagination from 'sentry/components/pagination';
+import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import SmartSearchBar, {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
@@ -53,7 +57,7 @@ function ProfilingContent({location, selection}: ProfilingContentProps) {
 
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
-      <PageFiltersContainer>
+      <PageFiltersContainer hideGlobalHeader>
         <NoProjectMessage organization={organization}>
           <StyledPageContent>
             <Layout.Header>
@@ -63,6 +67,11 @@ function ProfilingContent({location, selection}: ProfilingContentProps) {
             </Layout.Header>
             <Layout.Body>
               <Layout.Main fullWidth>
+                <StyledPageFilterBar condensed>
+                  <ProjectPageFilter />
+                  <EnvironmentPageFilter />
+                  <DatePageFilter alignDropdown="left" />
+                </StyledPageFilterBar>
                 <SearchContainer>
                   <SmartSearchBar
                     organization={organization}
@@ -117,6 +126,10 @@ const StyledHeading = styled(PageHeading)`
 
 const SearchContainer = styled('div')`
   margin-bottom: ${space(2)};
+`;
+
+const StyledPageFilterBar = styled(PageFilterBar)`
+  margin-bottom: ${space(1)};
 `;
 
 export default withPageFilters(ProfilingContent);

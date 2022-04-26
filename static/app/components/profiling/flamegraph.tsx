@@ -14,15 +14,23 @@ import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
+import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import {Profile} from 'sentry/utils/profiling/profile/profile';
 
+function getTransactionConfigSpace(profiles: Profile[]): Rect {
+  const startedAt = Math.min(...profiles.map(p => p.startedAt));
+  const endedAt = Math.max(...profiles.map(p => p.endedAt));
+  return new Rect(startedAt, 0, endedAt - startedAt, 0);
+}
 interface FlamegraphProps {
   profiles: ProfileGroup;
 }
 
 function Flamegraph(props: FlamegraphProps): ReactElement {
   const flamegraphTheme = useFlamegraphTheme();
-  const [{sorting, view}, dispatch] = useFlamegraphPreferences();
+  const [{sorting, view, synchronizeXAxisWithTransaction}, dispatch] =
+    useFlamegraphPreferences();
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
 
   const [activeProfileIndex, setActiveProfileIndex] = useState<number | null>(null);
@@ -35,11 +43,20 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
     // if the activeProfileIndex is null, use the activeProfileIndex from the profile group
     const profileIndex = activeProfileIndex ?? profiles.activeProfileIndex;
 
-    return new FlamegraphModel(profiles.profiles[profileIndex], profileIndex, {
-      inverted: view === 'bottom up',
-      leftHeavy: sorting === 'left heavy',
-    });
-  }, [profiles, activeProfileIndex, sorting, view]);
+    const flamegraphModel = new FlamegraphModel(
+      profiles.profiles[profileIndex],
+      profileIndex,
+      {
+        inverted: view === 'bottom up',
+        leftHeavy: sorting === 'left heavy',
+        configSpace: synchronizeXAxisWithTransaction
+          ? getTransactionConfigSpace(profiles.profiles)
+          : undefined,
+      }
+    );
+
+    return flamegraphModel;
+  }, [profiles, activeProfileIndex, sorting, synchronizeXAxisWithTransaction, view]);
 
   const onImport = useCallback((profile: ProfileGroup) => {
     setActiveProfileIndex(null);
@@ -49,6 +66,11 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
   return (
     <Fragment>
       <FlamegraphToolbar>
+        <ThreadMenuSelector
+          profileGroup={props.profiles}
+          activeProfileIndex={flamegraph.profileIndex}
+          onProfileIndexChange={setActiveProfileIndex}
+        />
         <FlamegraphViewSelectMenu
           view={view}
           sorting={sorting}
@@ -58,11 +80,6 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
           onViewChange={v => {
             dispatch({type: 'set view', payload: v});
           }}
-        />
-        <ThreadMenuSelector
-          profileGroup={props.profiles}
-          activeProfileIndex={flamegraph.profileIndex}
-          onProfileIndexChange={setActiveProfileIndex}
         />
         <FlamegraphOptionsMenu canvasPoolManager={canvasPoolManager} />
       </FlamegraphToolbar>

@@ -303,6 +303,7 @@ class SpanTree extends React.Component<PropType> {
             numOfSpans={numOfSpans}
             groupType={groupType}
             groupOccurrence={payload.groupOccurrence}
+            isEmbeddedTransactionTimeAdjusted={payload.isEmbeddedTransactionTimeAdjusted}
           />
         );
 

@@ -13,7 +13,7 @@ def main():
     """
     with open("requirements-base.txt") as reqs_file:
         if any(not req.specifier for req in requirements.parse(reqs_file)):
-            print(
+            print(  # noqa: S002
                 "\n".join(
                     [
                         "You cannot use dependencies that are not on PyPI directly.",

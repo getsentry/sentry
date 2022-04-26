@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from functools import reduce
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 from urllib.parse import quote
 
 from jwt import ExpiredSignatureError
@@ -12,7 +12,7 @@ from rest_framework.response import Response
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializer
 from sentry.integrations.utils import AtlassianConnectValidationError, get_integration_from_request
-from sentry.models import ExternalIssue, Group, GroupLink
+from sentry.models import ExternalIssue, Group
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.http import absolute_uri
 from sentry.utils.sdk import configure_scope
@@ -86,13 +86,18 @@ def build_context(group: Group) -> Mapping[str, Any]:
 class JiraIssueHookView(JiraBaseHook):
     html_file = "sentry/integrations/jira-issue.html"
 
-    def handle_group(self, group: Group) -> Response:
-        context = build_context(group)
+    def handle_groups(self, groups: Sequence[Group]) -> Response:
+        response_context = {"groups": []}
+        for group in groups:
+            context = build_context(group)
+            response_context["groups"].append(context)
+
         logger.info(
             "issue_hook.response",
-            extra={"type": context["type"], "title_url": context["title_url"]},
+            extra={"issue_count": len(groups)},
         )
-        return self.get_response(context)
+
+        return self.get_response(response_context)
 
     def dispatch(self, request: Request, *args, **kwargs) -> Response:
         try:
@@ -119,26 +124,28 @@ class JiraIssueHookView(JiraBaseHook):
                 external_issue = ExternalIssue.objects.get(
                     integration_id=integration.id, key=issue_key
                 )
-                # TODO: handle multiple
-                group_link = GroupLink.objects.filter(
-                    linked_type=GroupLink.LinkedType.issue,
-                    linked_id=external_issue.id,
-                    relationship=GroupLink.Relationship.references,
+                organization = integration.organizations.filter(
+                    id=external_issue.organization_id
                 ).first()
-                if not group_link:
-                    raise GroupLink.DoesNotExist()
-                group = Group.objects.get(id=group_link.group_id)
-            except (ExternalIssue.DoesNotExist, GroupLink.DoesNotExist, Group.DoesNotExist) as e:
+                groups = Group.objects.get_groups_by_external_issue(
+                    integration=integration,
+                    organizations=[organization],
+                    external_issue_key=issue_key,
+                )
+            except (
+                ExternalIssue.DoesNotExist,
+                # Multiple ExternalIssues are returned if organizations share one integration.
+                # Since we cannot identify the organization from the request alone, for now, we just
+                # avoid crashing on the MultipleObjectsReturned error.
+                ExternalIssue.MultipleObjectsReturned,
+            ) as e:
                 scope.set_tag("failure", e.__class__.__name__)
                 set_badge(integration, issue_key, 0)
                 return self.get_response({"issue_not_linked": True})
 
-            scope.set_tag("organization.slug", group.organization.slug)
-            result = self.handle_group(group)
-            scope.set_tag("status_code", result.status_code)
+            scope.set_tag("organization.slug", organization.slug)
+            response = self.handle_groups(groups)
+            scope.set_tag("status_code", response.status_code)
 
-            # XXX(CEO): group_link_num is hardcoded as 1 now, but when we handle
-            #  displaying multiple linked issues this should be updated to the
-            #  actual count.
-            set_badge(integration, issue_key, 1)
-            return result
+            set_badge(integration, issue_key, len(groups))
+            return response

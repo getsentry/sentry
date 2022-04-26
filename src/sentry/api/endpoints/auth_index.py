@@ -13,11 +13,13 @@ from sentry.api.base import Endpoint
 from sentry.api.exceptions import SsoRequired
 from sentry.api.serializers import DetailedSelfUserSerializer, serialize
 from sentry.api.validators import AuthVerifyValidator
+from sentry.auth.authenticators.u2f import U2fInterface
 from sentry.auth.superuser import Superuser
 from sentry.models import Authenticator, Organization
 from sentry.utils import auth, json, metrics
 from sentry.utils.auth import has_completed_sso, initiate_login
 from sentry.utils.functional import extract_lazy_object
+from sentry.utils.settings import is_self_hosted
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -96,10 +98,18 @@ class AuthIndexEndpoint(Endpoint):
         validator.is_valid()
         authenticated = None
 
-        if (
-            request.user.has_usable_password()
-            or Authenticator.objects.filter(user_id=request.user.id, type=3).exists()
-        ):
+        def _require_password_or_u2f_check():
+            if not is_self_hosted():
+                # Don't need to check as its only for self-hosted users
+                return False
+            if request.user.has_usable_password():
+                return True
+            if Authenticator.objects.filter(
+                user_id=request.user.id, type=U2fInterface.type
+            ).exists():
+                return True
+
+        if _require_password_or_u2f_check():
             authenticated = self._verify_user_via_inputs(validator, request)
 
         if Superuser.org_id:
@@ -196,9 +206,15 @@ class AuthIndexEndpoint(Endpoint):
         try:
             # Must use the httprequest object instead of request
             auth.login(request._request, request.user)
-            metrics.incr("sudo_modal.success")
+            metrics.incr(
+                "sudo_modal.success",
+                sample_rate=1.0,
+            )
         except auth.AuthUserPasswordExpired:
-            metrics.incr("sudo_modal.failure")
+            metrics.incr(
+                "sudo_modal.failure",
+                sample_rate=1.0,
+            )
             return Response(
                 {
                     "code": "password-expired",
@@ -208,9 +224,15 @@ class AuthIndexEndpoint(Endpoint):
             )
 
         if request.user.is_superuser and request.data.get("isSuperuserModal"):
-            metrics.incr("superuser_modal.attempt")
+            metrics.incr(
+                "superuser_modal.attempt",
+                sample_rate=1.0,
+            )
             request.superuser.set_logged_in(request.user)
-            metrics.incr("superuser_modal.success")
+            metrics.incr(
+                "superuser_modal.success",
+                sample_rate=1.0,
+            )
 
         request.user = request._request.user
 

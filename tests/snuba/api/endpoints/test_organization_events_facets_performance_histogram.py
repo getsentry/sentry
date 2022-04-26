@@ -384,14 +384,3 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(
         assert tag_data[1]["tags_value"] == "orange"
         assert tag_data[1]["count"] == 10
         assert tag_data[1]["aggregate"] == 1500000.0
-
-
-class OrganizationEventsFacetsPerformanceHistogramEndpointTestWithSnql(
-    OrganizationEventsFacetsPerformanceHistogramEndpointTest
-):
-    feature_list = (
-        "organizations:discover-basic",
-        "organizations:global-views",
-        "organizations:performance-view",
-        "organizations:performance-use-snql",
-    )

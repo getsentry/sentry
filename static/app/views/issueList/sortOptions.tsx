@@ -56,12 +56,12 @@ const IssueListSortOptions = ({onSelect, sort, query, hasPageFilters}: Props) =>
       buttonProps={
         hasPageFilters
           ? {
-              borderless: true,
-              size: 'small',
-              icon: <IconSort />,
+              size: 'xsmall',
+              icon: <IconSort size="xs" />,
             }
           : {prefix: t('Sort by')}
       }
+      menuWidth={hasPageFilters ? '150px' : undefined}
       detached={hasPageFilters}
       label={getSortLabel(sortKey)}
     >
@@ -91,9 +91,5 @@ const StyledDropdownControl = styled(DropdownControl)`
 
   button {
     width: 100%;
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    order: 2;
   }
 `;

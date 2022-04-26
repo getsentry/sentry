@@ -4,9 +4,12 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
+import DatePageFilter from 'sentry/components/datePageFilter';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import Radio from 'sentry/components/radio';
@@ -153,6 +156,12 @@ const InnerContent = (
       />
       <StyledMain>
         <StyledActions>
+          {organization.features.includes('selection-filters-v2') && (
+            <StyledPageFilterBar condensed>
+              <EnvironmentPageFilter />
+              <DatePageFilter alignDropdown="left" />
+            </StyledPageFilterBar>
+          )}
           <StyledSearchBar
             organization={organization}
             projectIds={eventView.project}
@@ -293,6 +302,10 @@ const StyledSearchBar = styled(SearchBar)`
 `;
 
 const StyledActions = styled('div')`
+  margin-bottom: ${space(1)};
+`;
+
+const StyledPageFilterBar = styled(PageFilterBar)`
   margin-bottom: ${space(1)};
 `;
 

@@ -27,7 +27,7 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
         self.browser.snapshot(name="onboarding - welcome")
 
         # Platform selection step
-        self.browser.click('[data-test-id="welcome-next"]')
+        self.browser.click('[aria-label="Start"]')
         self.browser.wait_until('[data-test-id="onboarding-step-select-platform"]')
 
         self.browser.snapshot(name="onboarding - select platform")

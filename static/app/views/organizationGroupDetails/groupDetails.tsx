@@ -130,7 +130,7 @@ class GroupDetails extends Component<Props, State> {
       group_id: parseInt(params.groupId, 10),
       // Alert properties track if the user came from email/slack alerts
       alert_date:
-        typeof alert_date === 'string' ? getUtcDateString(alert_date) : undefined,
+        typeof alert_date === 'string' ? getUtcDateString(Number(alert_date)) : undefined,
       alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
       alert_type: typeof alert_type === 'string' ? alert_type : undefined,
     });
@@ -496,7 +496,7 @@ class GroupDetails extends Component<Props, State> {
   }
 
   renderContent(project: AvatarProject, group: Group) {
-    const {children, environments} = this.props;
+    const {children, environments, organization} = this.props;
     const {loadingEvent, eventError, event} = this.state;
 
     const {currentTab, baseUrl} = this.getCurrentRouteInfo(group);
@@ -509,14 +509,20 @@ class GroupDetails extends Component<Props, State> {
     };
 
     if (currentTab === Tab.DETAILS) {
-      childProps = {
-        ...childProps,
-        event,
-        loadingEvent,
-        eventError,
-        groupReprocessingStatus,
-        onRetry: () => this.remountComponent(),
-      };
+      if (group.id !== event?.groupID && !eventError) {
+        // if user pastes only the event id into the url, but it's from another group, redirect to correct group/event
+        const redirectUrl = `/organizations/${organization.slug}/issues/${event?.groupID}/events/${event?.id}/`;
+        this.props.router.push(redirectUrl);
+      } else {
+        childProps = {
+          ...childProps,
+          event,
+          loadingEvent,
+          eventError,
+          groupReprocessingStatus,
+          onRetry: () => this.remountComponent(),
+        };
+      }
     }
 
     if (currentTab === Tab.TAGS) {
@@ -579,6 +585,8 @@ class GroupDetails extends Component<Props, State> {
     const {organization} = this.props;
     const isSampleError = group?.tags.some(tag => tag.key === 'sample_event');
 
+    const hasPageFilters = organization.features.includes('selection-filters-v2');
+
     return (
       <Fragment>
         {isSampleError && project && (
@@ -593,6 +601,7 @@ class GroupDetails extends Component<Props, State> {
             lockedMessageSubject={t('issue')}
             showIssueStreamLink
             showProjectSettingsLink
+            hideGlobalHeader={hasPageFilters}
           >
             {this.renderPageContent()}
           </PageFiltersContainer>

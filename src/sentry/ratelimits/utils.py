@@ -38,7 +38,12 @@ def concurrent_limiter() -> ConcurrentRateLimiter:
     return _CONCURRENT_RATE_LIMITER
 
 
-def get_rate_limit_key(view_func: EndpointFunction, request: Request) -> str | None:
+def get_rate_limit_key(
+    view_func: EndpointFunction,
+    request: Request,
+    rate_limit_group: str,
+    rate_limit_config: RateLimitConfig | None = None,
+) -> str | None:
     """Construct a consistent global rate limit key using the arguments provided"""
     if not hasattr(view_func, "view_class") or request.path_info.startswith(
         settings.ANONYMOUS_STATIC_PREFIXES
@@ -46,7 +51,6 @@ def get_rate_limit_key(view_func: EndpointFunction, request: Request) -> str | N
         return None
 
     view = view_func.__qualname__
-    rate_limit_config = get_rate_limit_config(view_func.view_class)  # type: ignore
     http_method = request.method
 
     # This avoids touching user session, which means we avoid
@@ -93,13 +97,13 @@ def get_rate_limit_key(view_func: EndpointFunction, request: Request) -> str | N
     # If IP address doesn't exist, skip ratelimiting for now
     else:
         return None
-    group = rate_limit_config.group if rate_limit_config else "default"
+
     if rate_limit_config and rate_limit_config.has_custom_limit():
         # if there is a custom rate limit on the endpoint, we add view to the key
         # otherwise we just use what's default for the group
-        return f"{category}:{group}:{view}:{http_method}:{id}"
+        return f"{category}:{rate_limit_group}:{view}:{http_method}:{id}"
     else:
-        return f"{category}:{group}:{http_method}:{id}"
+        return f"{category}:{rate_limit_group}:{http_method}:{id}"
 
 
 def get_organization_id_from_token(token_id: str) -> int | None:
@@ -120,17 +124,19 @@ def get_rate_limit_config(endpoint: Type[object]) -> RateLimitConfig | None:
 
 
 def get_rate_limit_value(
-    http_method: str, endpoint: Type[object], category: RateLimitCategory
+    http_method: str,
+    category: RateLimitCategory,
+    rate_limit_config: RateLimitConfig | None,
 ) -> RateLimit | None:
     """Read the rate limit from the view function to be used for the rate limit check."""
-    # types are hashable in python, the type checker disagrees though
-    rate_limit_config = get_rate_limit_config(endpoint)
     if not rate_limit_config:
         return None
     return rate_limit_config.get_rate_limit(http_method, category)
 
 
-def above_rate_limit_check(key: str, rate_limit: RateLimit, request_uid: str) -> RateLimitMeta:
+def above_rate_limit_check(
+    key: str, rate_limit: RateLimit, request_uid: str, group: str
+) -> RateLimitMeta:
     # TODO: This is not as performant as it could be. The roundtrip betwwen the server and redis
     # is doubled because the fixd window limit and concurrent limit are two separate things with different
     # paths. Ideally there is just one lua script that does both and just says what kind of limit was hit
@@ -159,6 +165,7 @@ def above_rate_limit_check(key: str, rate_limit: RateLimit, request_uid: str) ->
         current=current,
         limit=rate_limit.limit,
         window=rate_limit.window,
+        group=group,
         reset_time=reset_time,
         remaining=remaining,
         concurrent_limit=rate_limit.concurrent_limit,

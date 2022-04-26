@@ -651,6 +651,11 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
             Condition(Column("org_id"), Op.EQ, self.organization.id),
         ]
 
+        for string in self.METRIC_STRINGS:
+            indexer.record(self.organization.id, string)
+
+        indexer.record(self.organization.id, "transaction")
+
     def setup_orderby_data(self):
         self.store_metric(
             100,
@@ -686,6 +691,26 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_default_conditions(self):
         query = MetricsQueryBuilder(self.params, "", selected_columns=[])
         self.assertCountEqual(query.where, self.default_conditions)
+
+    def test_column_resolution(self):
+        query = MetricsQueryBuilder(
+            self.params,
+            "",
+            selected_columns=["tags[transaction]", "transaction"],
+        )
+        self.assertCountEqual(
+            query.columns,
+            [
+                AliasedExpression(
+                    Column(f"tags[{indexer.resolve(self.organization.id, 'transaction')}]"),
+                    "tags[transaction]",
+                ),
+                AliasedExpression(
+                    Column(f"tags[{indexer.resolve(self.organization.id, 'transaction')}]"),
+                    "transaction",
+                ),
+            ],
+        )
 
     def test_simple_aggregates(self):
         query = MetricsQueryBuilder(
@@ -1283,7 +1308,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         data = result["data"][0]
         assert data["count"] == 6
 
-    def test_avg(self):
+    def test_avg_duration(self):
         for _ in range(3):
             self.store_metric(
                 150,
@@ -1297,12 +1322,35 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             self.params,
             "",
             selected_columns=[
-                "avg()",
+                "avg(transaction.duration)",
             ],
         )
         result = query.run_query("test_query")
         data = result["data"][0]
-        assert data["avg"] == 100
+        assert data["avg_transaction_duration"] == 100
+
+    def test_avg_span_http(self):
+        for _ in range(3):
+            self.store_metric(
+                150,
+                metric="spans.http",
+                timestamp=self.start + datetime.timedelta(minutes=5),
+            )
+            self.store_metric(
+                50,
+                metric="spans.http",
+                timestamp=self.start + datetime.timedelta(minutes=5),
+            )
+        query = MetricsQueryBuilder(
+            self.params,
+            "",
+            selected_columns=[
+                "avg(spans.http)",
+            ],
+        )
+        result = query.run_query("test_query")
+        data = result["data"][0]
+        assert data["avg_spans_http"] == 100
 
     def test_failure_rate(self):
         for _ in range(3):
@@ -1659,7 +1707,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         )
 
     @mock.patch("sentry.search.events.builder.raw_snql_query")
-    @mock.patch("sentry.sentry_metrics.indexer.resolve", return_value=-1)
+    @mock.patch("sentry.search.events.builder.indexer.resolve", return_value=-1)
     def test_dry_run_does_not_hit_indexer_or_clickhouse(self, mock_indexer, mock_query):
         query = MetricsQueryBuilder(
             self.params,
@@ -1677,6 +1725,31 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         query.run_query("test_query")
         assert not mock_indexer.called
         assert not mock_query.called
+
+    @mock.patch("sentry.search.events.builder.indexer.resolve", return_value=-1)
+    def test_multiple_references_only_resolve_index_once(self, mock_indexer):
+        MetricsQueryBuilder(
+            self.params,
+            f"project:{self.project.slug} transaction:foo_transaction transaction:foo_transaction",
+            selected_columns=[
+                "transaction",
+                "count_web_vitals(measurements.lcp, good)",
+                "count_web_vitals(measurements.lcp, good)",
+                "count_web_vitals(measurements.lcp, good)",
+                "count_web_vitals(measurements.lcp, good)",
+                "count_web_vitals(measurements.lcp, good)",
+            ],
+        )
+        self.assertCountEqual(
+            mock_indexer.mock_calls,
+            [
+                mock.call(self.organization.id, "transaction"),
+                mock.call(self.organization.id, "foo_transaction"),
+                mock.call(self.organization.id, constants.METRICS_MAP["measurements.lcp"]),
+                mock.call(self.organization.id, "measurement_rating"),
+                mock.call(self.organization.id, "good"),
+            ],
+        )
 
 
 class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
@@ -1891,8 +1964,10 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
 
     def test_run_query_with_hour_interval(self):
         # See comment on resolve_time_column for explaination of this test
-        self.start = datetime.datetime(2015, 1, 1, 15, 30, 0, tzinfo=timezone.utc)
-        self.end = datetime.datetime(2015, 1, 2, 15, 30, 0, tzinfo=timezone.utc)
+        self.start = datetime.datetime.now(timezone.utc).replace(
+            hour=15, minute=30, second=0, microsecond=0
+        )
+        self.end = datetime.datetime.fromtimestamp(self.start.timestamp() + 86400, timezone.utc)
         self.params = {
             "organization_id": self.organization.id,
             "project_id": self.projects,
@@ -1913,9 +1988,10 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             selected_columns=["epm(3600)"],
         )
         result = query.run_query("test_query")
+        date_prefix = self.start.strftime("%Y-%m-%dT")
         assert result["data"] == [
-            {"time": "2015-01-01T15:00:00+00:00", "epm_3600": 2 / (3600 / 60)},
-            {"time": "2015-01-01T16:00:00+00:00", "epm_3600": 3 / (3600 / 60)},
+            {"time": f"{date_prefix}15:00:00+00:00", "epm_3600": 2 / (3600 / 60)},
+            {"time": f"{date_prefix}16:00:00+00:00", "epm_3600": 3 / (3600 / 60)},
         ]
         self.assertCountEqual(
             result["meta"],
@@ -1929,8 +2005,10 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         """The base MetricsQueryBuilder with a perfect 1d query will try to use granularity 86400 which is larger than
         the interval of 3600, in this case we want to make sure to use a smaller granularity to get the correct
         result"""
-        self.start = datetime.datetime(2015, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
-        self.end = datetime.datetime(2015, 1, 2, 0, 0, 0, tzinfo=timezone.utc)
+        self.start = datetime.datetime.now(timezone.utc).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        self.end = datetime.datetime.fromtimestamp(self.start.timestamp() + 86400, timezone.utc)
         self.params = {
             "organization_id": self.organization.id,
             "project_id": self.projects,
@@ -1951,9 +2029,10 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             selected_columns=["epm(3600)"],
         )
         result = query.run_query("test_query")
+        date_prefix = self.start.strftime("%Y-%m-%dT")
         assert result["data"] == [
-            {"time": "2015-01-01T00:00:00+00:00", "epm_3600": 3 / (3600 / 60)},
-            {"time": "2015-01-01T01:00:00+00:00", "epm_3600": 1 / (3600 / 60)},
+            {"time": f"{date_prefix}00:00:00+00:00", "epm_3600": 3 / (3600 / 60)},
+            {"time": f"{date_prefix}01:00:00+00:00", "epm_3600": 1 / (3600 / 60)},
         ]
         self.assertCountEqual(
             result["meta"],
@@ -2036,3 +2115,12 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             query="transaction:foo_transaction",
             allow_metric_aggregates=False,
         )
+
+    def test_invalid_semver_filter(self):
+        with self.assertRaises(InvalidSearchQuery):
+            QueryBuilder(
+                Dataset.Discover,
+                self.params,
+                "user.email:foo@example.com release.build:[1.2.1]",
+                ["user.email", "release"],
+            )

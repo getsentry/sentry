@@ -10,6 +10,7 @@ __all__ = ("get_metrics", "get_tags", "get_tag_values", "get_series", "get_singl
 import logging
 from collections import defaultdict, deque
 from copy import copy
+from dataclasses import replace
 from operator import itemgetter
 from typing import Any, Dict, Mapping, Optional, Sequence, Set, Tuple, Union
 
@@ -23,9 +24,9 @@ from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics.fields import run_metrics_query
 from sentry.snuba.metrics.fields.base import get_derived_metrics, org_id_from_projects
 from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
+from sentry.snuba.metrics.query import QueryDefinition
 from sentry.snuba.metrics.query_builder import (
     ALLOWED_GROUPBY_COLUMNS,
-    QueryDefinition,
     SnubaQueryBuilder,
     SnubaResultConverter,
     get_intervals,
@@ -189,7 +190,7 @@ def _get_metrics_filter_ids(projects: Sequence[Project], metric_mris: Sequence[s
                     derived_metric_obj.naively_generate_singular_entity_constituents()
                 )
                 metric_mris_deque.extend(single_entity_constituents)
-    if None in metric_ids:
+    if None in metric_ids or -1 in metric_ids:
         # We are looking for tags that appear in all given metrics.
         # A tag cannot appear in a metric if the metric is not even indexed.
         raise MetricDoesNotExistInIndexer()
@@ -421,16 +422,15 @@ def get_tag_values(
 
 def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
     """Get time series for the given query"""
-    intervals = list(get_intervals(query))
+    intervals = list(get_intervals(query.start, query.end, query.granularity.granularity))
     results = {}
-    org_id = org_id_from_projects(projects)
     fields_in_entities = {}
 
     if not query.groupby:
         # When there is no groupBy columns specified, we don't want to go through running an
         # initial query first to get the groups because there are no groups, and it becomes just
         # one group which is basically identical to eliminating the orderBy altogether
-        query.orderby = None
+        query = replace(query, orderby=None)
 
     if query.orderby is not None:
         # ToDo(ahmed): Now that we have conditional aggregates as select statements, we might be
@@ -445,14 +445,12 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
 
         # Multi-field select with order by functionality. Currently only supports the
         # performance table.
-        original_query_fields = copy(query.fields)
+        original_select = copy(query.select)
 
         # The initial query has to contain only one field which is the same as the order by
         # field
-        orderby_expr, orderby_parsed = [
-            (key, value) for key, value in query.fields.items() if value == query.orderby[0]
-        ][0]
-        query.fields = {orderby_expr: orderby_parsed}
+        orderby_field = [field for field in query.select if field == query.orderby.field][0]
+        query = replace(query, select=[orderby_field])
 
         snuba_queries, _ = SnubaQueryBuilder(projects, query).get_snuba_queries()
         if len(snuba_queries) > 1:
@@ -485,8 +483,7 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
             # the group by tags from the first query so we basically remove the order by columns,
             # and reset the query fields to the original fields because in the second query,
             # we want to query for all the metrics in the request api call
-            query.orderby = None
-            query.fields = original_query_fields
+            query = replace(query, select=original_select, orderby=None)
 
             query_builder = SnubaQueryBuilder(projects, query)
             snuba_queries, fields_in_entities = query_builder.get_snuba_queries()
@@ -495,8 +492,10 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
             # will be used to filter down and order the results of the 2nd query.
             # For example, (project_id, transaction) is translated to (project_id, tags[3])
             groupby_tags = tuple(
-                resolve_tag_key(org_id, field) if field not in ALLOWED_GROUPBY_COLUMNS else field
-                for field in query.groupby
+                resolve_tag_key(query.org_id, field)
+                if field not in ALLOWED_GROUPBY_COLUMNS
+                else field
+                for field in (query.groupby or [])
             )
 
             # Dictionary that contains the conditions that are required to be added to the where
@@ -525,7 +524,8 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
                     where = []
                     for condition in snuba_query.where:
                         if not (
-                            isinstance(condition.lhs, Column)
+                            isinstance(condition, Condition)
+                            and isinstance(condition.lhs, Column)
                             and condition.lhs.name == "project_id"
                             and "project_id" in groupby_tags
                         ):
@@ -547,11 +547,7 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
                         ]
                     snuba_query = snuba_query.set_where(where)
 
-                    # Set the limit of the second query to be the provided limits multiplied by
-                    # the number of the metrics requested in the query in this specific entity
-                    snuba_query = snuba_query.set_limit(
-                        snuba_query.limit.limit * len(snuba_query.select)
-                    )
+                    # The initial query already selected the "page", so reset the offset
                     snuba_query = snuba_query.set_offset(0)
 
                     snuba_query_res = raw_snql_query(
@@ -609,7 +605,6 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
     return {
         "start": query.start,
         "end": query.end,
-        "query": query.query,
         "intervals": intervals,
         "groups": converter.translate_results(),
     }

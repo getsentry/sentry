@@ -10,6 +10,7 @@ export enum SentryInitRenderReactComponent {
   SETUP_WIZARD = 'SetupWizard',
   SYSTEM_ALERTS = 'SystemAlerts',
   U2F_SIGN = 'U2fSign',
+  SU_ACCESS_FORM = 'SuperuserAccessForm',
 }
 
 export type OnSentryInitConfiguration =
@@ -115,6 +116,7 @@ export interface Config {
   distPrefix: string;
   dsn: string;
   dsn_requests: string;
+  enableAnalytics: boolean;
   features: Set<string>;
   gravatarBaseUrl: string;
   invitesEnabled: boolean;

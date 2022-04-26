@@ -955,12 +955,11 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             interval="1h",
             includeTotals="0",
         )
-
         assert response.data["groups"] == [
             {"by": {}, "series": {"sum(sentry.sessions.session)": [1.0]}}
         ]
 
-        response = self.get_success_response(
+        response = self.get_response(
             self.organization.slug,
             field="sum(sentry.sessions.session)",
             statsPeriod="1h",
@@ -968,8 +967,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             includeSeries="0",
             includeTotals="0",
         )
-
-        assert response.data["groups"] == []
+        assert response.status_code == 400
 
 
 @freeze_time((timezone.now() - timedelta(days=2)).replace(hour=3, minute=26))
@@ -995,9 +993,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             self.organization.id, TransactionTagsKey.TRANSACTION_SATISFACTION.value
         )
         self.tx_user_metric = indexer.record(self.organization.id, TransactionMRI.USER.value)
-        self.tx_satisfaction = indexer.record(
-            self.organization.id, TransactionTagsKey.TRANSACTION_SATISFACTION.value
-        )
 
     @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
     @patch("sentry.snuba.metrics.fields.base.get_public_name_from_mri")
@@ -1143,7 +1138,30 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "timestamp": (user_ts // 60 - 4) * 60,
                     "tags": {
                         self.session_status_tag: indexer.record(org_id, "errored_preaggr"),
-                        self.release_tag: indexer.record(org_id, "foo"),
+                    },
+                    "type": "c",
+                    "value": 10,
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_metric,
+                    "timestamp": (user_ts // 60 - 4) * 60,
+                    "tags": {
+                        self.session_status_tag: indexer.record(org_id, "crashed"),
+                    },
+                    "type": "c",
+                    "value": 2,
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_metric,
+                    "timestamp": (user_ts // 60 - 4) * 60,
+                    "tags": {
+                        self.session_status_tag: indexer.record(org_id, "abnormal"),
                     },
                     "type": "c",
                     "value": 4,
@@ -1156,10 +1174,9 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "timestamp": user_ts,
                     "tags": {
                         self.session_status_tag: indexer.record(org_id, "init"),
-                        self.release_tag: indexer.record(org_id, "foo"),
                     },
                     "type": "c",
-                    "value": 10,
+                    "value": 15,
                     "retention_days": 90,
                 },
             ],
@@ -2086,6 +2103,53 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert len(response.data["groups"]) == 1
         assert response.data["groups"][0]["totals"] == {"transaction.miserable_user": 2}
 
+    def test_user_misery(self):
+        user_ts = time.time()
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.tx_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.tx_satisfaction: indexer.record(
+                            self.organization.id, TransactionSatisfactionTagValue.FRUSTRATED.value
+                        ),
+                    },
+                    "type": "s",
+                    "value": [3, 4],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.tx_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.tx_satisfaction: indexer.record(
+                            self.organization.id, TransactionSatisfactionTagValue.SATISFIED.value
+                        ),
+                    },
+                    "type": "s",
+                    "value": [5, 6],
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_sets",
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["transaction.user_misery"],
+            statsPeriod="1m",
+            interval="1m",
+        )
+        assert len(response.data["groups"]) == 1
+        assert response.data["groups"][0]["totals"] == {
+            "transaction.user_misery": 0.06478439425051336
+        }
+
     def test_session_duration_derived_alias(self):
         org_id = self.organization.id
         user_ts = time.time()
@@ -2166,7 +2230,58 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             histogramFrom="2",
         )
 
-        hist = [(2.0, 4.0, 2.0), (4.0, 6.0, 2.5)]
+        hist = [(2.0, 4.0, 2), (4.0, 6.0, 3)]
+
+        assert response.data["groups"] == [
+            {
+                "by": {},
+                "totals": {f"histogram({TransactionMetricKey.MEASUREMENTS_LCP.value})": hist},
+            }
+        ]
+
+    def test_histogram_zooming(self):
+        # Record some strings
+        org_id = self.organization.id
+        tag1 = indexer.record(org_id, "tag1")
+        value1 = indexer.record(org_id, "value1")
+        value2 = indexer.record(org_id, "value2")
+
+        self._send_buckets(
+            [
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.transaction_lcp_metric,
+                    "timestamp": int(time.time()),
+                    "type": "d",
+                    "value": numbers,
+                    "tags": {tag: value},
+                    "retention_days": 90,
+                }
+                for tag, value, numbers in (
+                    (tag1, value1, [1, 2, 3]),
+                    (tag1, value2, [10, 100, 1000]),
+                )
+            ],
+            entity="metrics_distributions",
+        )
+
+        # Note: everything is a string here on purpose to ensure we parse ints properly
+        response = self.get_success_response(
+            self.organization.slug,
+            field=f"histogram({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+            statsPeriod="1h",
+            interval="1h",
+            includeSeries="0",
+            histogramBuckets="2",
+            histogramTo="9",
+        )
+
+        # if zoom_histogram were not called, the variable-width
+        # HdrHistogram buckets returned from clickhouse would be so
+        # inaccurate that we would accidentally return something
+        # else: (5.0, 9.0, 1)
+        hist = [(1.0, 5.0, 3), (5.0, 9.0, 0)]
 
         assert response.data["groups"] == [
             {
@@ -2225,7 +2340,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             histogramBuckets="2",
             histogramFrom="2",
         )
-        hist = [(2.0, 5.5, 3.5), (5.5, 9.0, 4.0)]
+        hist = [(2.0, 5.5, 4), (5.5, 9.0, 4)]
         assert response.data["groups"] == [
             {
                 "by": {},
@@ -2243,7 +2358,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             histogramBuckets="2",
             histogramFrom="2",
         )
-        hist = [(2.0, 4.0, 2.0), (4.0, 6.0, 2.5)]
+        hist = [(2.0, 4.0, 2), (4.0, 6.0, 3)]
         assert response.data["groups"] == [
             {
                 "by": {},

@@ -56,8 +56,8 @@ describe('EnvironmentPageFilter', function () {
     });
 
     // Open the environment dropdown
-    expect(screen.getByText('All Environments')).toBeInTheDocument();
-    userEvent.click(screen.getByText('All Environments'));
+    expect(screen.getByText('All Env')).toBeInTheDocument();
+    userEvent.click(screen.getByText('All Env'));
 
     // Click the first environment's checkbox
     const envOptions = screen.getAllByTestId('checkbox-fancy');
@@ -85,14 +85,17 @@ describe('EnvironmentPageFilter', function () {
     );
 
     // Open the environment dropdown
-    expect(screen.getByText('All Environments')).toBeInTheDocument();
-    userEvent.click(screen.getByText('All Environments'));
+    expect(screen.getByText('All Env')).toBeInTheDocument();
+    userEvent.click(screen.getByText('All Env'));
 
     // Click the pin button
     const pinButton = screen.getByRole('button', {name: 'Lock filter'});
     userEvent.click(pinButton, undefined, {skipHover: true});
 
     await screen.findByRole('button', {name: 'Lock filter', pressed: true});
+
+    // Check if the pin indicator has been added
+    expect(screen.getByLabelText('Filter applied across pages')).toBeInTheDocument();
 
     expect(PageFiltersStore.getState()).toEqual(
       expect.objectContaining({
@@ -108,8 +111,8 @@ describe('EnvironmentPageFilter', function () {
     });
 
     // Open the environment dropdown
-    expect(screen.getByText('All Environments')).toBeInTheDocument();
-    userEvent.click(screen.getByText('All Environments'));
+    expect(screen.getByText('All Env')).toBeInTheDocument();
+    userEvent.click(screen.getByText('All Env'));
 
     // Click the first environment directly
     userEvent.click(screen.getByText('prod'));

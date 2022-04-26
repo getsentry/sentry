@@ -1017,11 +1017,3 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
             (0, 1, [("transaction.duration", 0)]),
         ]
         assert response.data == self.as_response_data(expected)
-
-
-class OrganizationEventsHistogramEndpointTestWithSnql(OrganizationEventsHistogramEndpointTest):
-    def setUp(self):
-        super().setUp()
-        self.min_ago = iso_format(before_now(minutes=1))
-        self.data = load_data("transaction")
-        self.features["organizations:performance-use-snql"] = True

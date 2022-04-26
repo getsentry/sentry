@@ -113,7 +113,7 @@ def get_client_config(request=None):
         user = getattr(request, "user", None) or AnonymousUser()
         messages = get_messages(request)
         session = getattr(request, "session", None)
-        is_superuser = is_active_superuser(request)
+        active_superuser = is_active_superuser(request)
         language_code = getattr(request, "LANGUAGE_CODE", "en")
 
         # User identity is used by the sentry SDK
@@ -127,7 +127,7 @@ def get_client_config(request=None):
         user_identity = {}
         messages = []
         session = None
-        is_superuser = False
+        active_superuser = False
         language_code = "en"
 
     enabled_features = []
@@ -140,7 +140,7 @@ def get_client_config(request=None):
 
     needs_upgrade = False
 
-    if is_superuser:
+    if active_superuser:
         needs_upgrade = _needs_upgrade()
 
     public_dsn = _get_public_dsn()
@@ -184,6 +184,7 @@ def get_client_config(request=None):
             ),
         },
         "demoMode": settings.DEMO_MODE,
+        "enableAnalytics": settings.ENABLE_ANALYTICS,
     }
     if user and user.is_authenticated:
         context.update(
