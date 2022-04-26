@@ -22,7 +22,7 @@ from rest_framework import serializers, status
 
 from sentry.api.exceptions import SentryAPIException
 from sentry.auth.system import is_system_auth
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.auth import has_completed_sso
 from sentry.utils.settings import is_self_hosted
 
@@ -336,6 +336,11 @@ class Superuser:
                 current_datetime=current_datetime,
             )
 
+            metrics.incr(
+                "superuser.success",
+                sample_rate=1.0,
+            )
+
             logger.info(
                 "superuser.logged-in",
                 extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": user.id},
@@ -349,8 +354,18 @@ class Superuser:
             # need to use json loads as the data is no longer in request.data
             su_access_json = json.loads(request.body)
         except json.JSONDecodeError:
+            metrics.incr(
+                "superuser.failure",
+                sample_rate=1.0,
+                tags={"reason": SuperuserAccessFormInvalidJson.code},
+            )
             raise SuperuserAccessFormInvalidJson()
         except AttributeError:
+            metrics.incr(
+                "superuser.failure",
+                sample_rate=1.0,
+                tags={"reason": EmptySuperuserAccessForm.code},
+            )
             raise EmptySuperuserAccessForm()
 
         su_access_info = SuperuserAccessSerializer(data=su_access_json)
@@ -371,6 +386,7 @@ class Superuser:
             )
             enable_and_log_superuser_access()
         except AttributeError:
+            metrics.incr("superuser.failure", sample_rate=1.0, tags={"reason": "missing-user-info"})
             logger.error("superuser.superuser_access.missing_user_info")
 
     def set_logged_out(self):
