@@ -102,11 +102,21 @@ describe('ReleasesList', function () {
 
   it('displays the right empty state', function () {
     let location;
+    const project = TestStubs.Project({
+      id: '3',
+      slug: 'test-slug',
+      name: 'test-name',
+      features: ['releases'],
+    });
+    const org = TestStubs.Organization({projects: [project]});
+    ProjectsStore.loadInitialData(org.projects);
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
       body: [],
     });
 
+    // does not have releases set up and no releases
     location = {query: {}};
     wrapper = createWrapper(
       <ReleasesList {...props} location={location} />,
@@ -123,48 +133,79 @@ describe('ReleasesList', function () {
     expect(wrapper.find('StyledPanel')).toHaveLength(0);
     expect(wrapper.find('ReleasesPromo').text()).toContain('Demystify Releases');
 
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/releases/`,
+      body: [],
+    });
+
+    // has releases set up and no releases
     location = {query: {query: 'abc'}};
-    wrapper = createWrapper(
-      <ReleasesList {...props} location={location} />,
+    let container = createWrapper(
+      <ReleasesList
+        {...props}
+        organization={org}
+        location={location}
+        selection={{...props.selection, projects: [3]}}
+      />,
       routerContext
     );
-    expect(wrapper.find('EmptyMessage').text()).toEqual(
+    expect(container.find('EmptyMessage').text()).toEqual(
       "There are no releases that match: 'abc'."
     );
 
     location = {query: {sort: ReleasesSortOption.SESSIONS, statsPeriod: '7d'}};
-    wrapper = createWrapper(
-      <ReleasesList {...props} location={location} />,
+    container = createWrapper(
+      <ReleasesList
+        {...props}
+        organization={org}
+        location={location}
+        selection={{...props.selection, projects: [3]}}
+      />,
       routerContext
     );
-    expect(wrapper.find('EmptyMessage').text()).toEqual(
+    expect(container.find('EmptyMessage').text()).toEqual(
       'There are no releases with data in the last 7 days.'
     );
 
     location = {query: {sort: ReleasesSortOption.USERS_24_HOURS, statsPeriod: '7d'}};
-    wrapper = createWrapper(
-      <ReleasesList {...props} location={location} />,
+    container = createWrapper(
+      <ReleasesList
+        {...props}
+        organization={org}
+        location={location}
+        selection={{...props.selection, projects: [3]}}
+      />,
       routerContext
     );
-    expect(wrapper.find('EmptyMessage').text()).toEqual(
+    expect(container.find('EmptyMessage').text()).toEqual(
       'There are no releases with active user data (users in the last 24 hours).'
     );
 
     location = {query: {sort: ReleasesSortOption.SESSIONS_24_HOURS, statsPeriod: '7d'}};
-    wrapper = createWrapper(
-      <ReleasesList {...props} location={location} />,
+    container = createWrapper(
+      <ReleasesList
+        {...props}
+        organization={org}
+        location={location}
+        selection={{...props.selection, projects: [3]}}
+      />,
       routerContext
     );
-    expect(wrapper.find('EmptyMessage').text()).toEqual(
+    expect(container.find('EmptyMessage').text()).toEqual(
       'There are no releases with active session data (sessions in the last 24 hours).'
     );
 
     location = {query: {sort: ReleasesSortOption.BUILD}};
-    wrapper = createWrapper(
-      <ReleasesList {...props} location={location} />,
+    container = createWrapper(
+      <ReleasesList
+        {...props}
+        organization={org}
+        location={location}
+        selection={{...props.selection, projects: [3]}}
+      />,
       routerContext
     );
-    expect(wrapper.find('EmptyMessage').text()).toEqual(
+    expect(container.find('EmptyMessage').text()).toEqual(
       'There are no releases with semantic versioning.'
     );
   });
@@ -463,7 +504,7 @@ describe('ReleasesList', function () {
     wrapper.update();
 
     expect(wrapper.find('[data-test-id="search-autocomplete-item"]').at(0).text()).toBe(
-      'release.version:'
+      'release:'
     );
 
     wrapper.find('SmartSearchBar textarea').simulate('focus');

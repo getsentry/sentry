@@ -1,10 +1,9 @@
 import {Component} from 'react';
 import {createPortal} from 'react-dom';
-import {Manager, Popper, Reference} from 'react-popper';
+import {Manager, Popper, PopperProps, Reference} from 'react-popper';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject} from 'history';
-import * as PopperJS from 'popper.js';
 
 import {GetActorPropsFn} from 'sentry/components/dropdownMenu';
 import MenuItem from 'sentry/components/menuItem';
@@ -129,7 +128,7 @@ class OperationSort extends Component<Props, State> {
   }
 
   renderMenu() {
-    const modifiers: PopperJS.Modifiers = {
+    const modifiers: PopperProps['modifiers'] = {
       hide: {
         enabled: false,
       },

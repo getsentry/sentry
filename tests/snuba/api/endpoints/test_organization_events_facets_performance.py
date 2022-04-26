@@ -263,14 +263,3 @@ class OrganizationEventsFacetsPerformanceEndpointTest(
         assert data[0]["comparison"] == 0
         assert data[0]["tags_key"] == "color"
         assert data[0]["tags_value"] == "purple"
-
-
-class OrganizationEventsFacetsPerformanceEndpointTestWithSnql(
-    OrganizationEventsFacetsPerformanceEndpointTest
-):
-    feature_list = (
-        "organizations:discover-basic",
-        "organizations:global-views",
-        "organizations:performance-view",
-        "organizations:performance-use-snql",
-    )

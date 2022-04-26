@@ -107,6 +107,7 @@ const ReplayPlayerContext = React.createContext<ReplayPlayerContextProps>({
 });
 
 type Props = {
+  children: React.ReactNode;
   events: eventWithTime[];
   value?: Partial<ReplayPlayerContextProps>;
 };
@@ -117,7 +118,7 @@ function useCurrentTime(callback: () => number) {
   return currentTime;
 }
 
-export function Provider({children, events, value = {}}: React.PropsWithChildren<Props>) {
+export function Provider({children, events, value = {}}: Props) {
   const theme = useTheme();
   const oldEvents = usePrevious(events);
   const replayerRef = useRef<Replayer>(null);
@@ -196,11 +197,11 @@ export function Provider({children, events, value = {}}: React.PropsWithChildren
     if (replayerRef.current && events) {
       initRoot(replayerRef.current.wrapper.parentElement as RootElem);
     }
-  }, [replayerRef.current, events]);
+  }, [events, initRoot]);
 
   const getCurrentTime = useCallback(
     () => (replayerRef.current ? Math.max(replayerRef.current.getCurrentTime(), 0) : 0),
-    [replayerRef.current]
+    []
   );
 
   const setCurrentTime = useCallback(
@@ -221,7 +222,7 @@ export function Provider({children, events, value = {}}: React.PropsWithChildren
         setIsPlaying(false);
       }
     },
-    [replayerRef.current, isPlaying]
+    [isPlaying]
   );
 
   const setSpeed = useCallback(
@@ -239,39 +240,33 @@ export function Provider({children, events, value = {}}: React.PropsWithChildren
       }
       setSpeedState(newSpeed);
     },
-    [replayerRef.current, isPlaying]
+    [isPlaying]
   );
 
-  const togglePlayPause = useCallback(
-    (play: boolean) => {
-      const replayer = replayerRef.current;
-      if (!replayer) {
-        return;
-      }
+  const togglePlayPause = useCallback((play: boolean) => {
+    const replayer = replayerRef.current;
+    if (!replayer) {
+      return;
+    }
 
-      if (play) {
-        replayer.play(getCurrentTime());
-      } else {
-        replayer.pause(getCurrentTime());
-      }
-      setIsPlaying(play);
-    },
-    [replayerRef.current]
-  );
+    if (play) {
+      replayer.play(getCurrentTime());
+    } else {
+      replayer.pause(getCurrentTime());
+    }
+    setIsPlaying(play);
+  }, []);
 
-  const toggleSkipInactive = useCallback(
-    (skip: boolean) => {
-      const replayer = replayerRef.current;
-      if (!replayer) {
-        return;
-      }
-      if (skip !== replayer.config.skipInactive) {
-        replayer.setConfig({skipInactive: skip});
-      }
-      setIsSkippingInactive(skip);
-    },
-    [replayerRef.current]
-  );
+  const toggleSkipInactive = useCallback((skip: boolean) => {
+    const replayer = replayerRef.current;
+    if (!replayer) {
+      return;
+    }
+    if (skip !== replayer.config.skipInactive) {
+      replayer.setConfig({skipInactive: skip});
+    }
+    setIsSkippingInactive(skip);
+  }, []);
 
   const currentTime = useCurrentTime(getCurrentTime);
 
