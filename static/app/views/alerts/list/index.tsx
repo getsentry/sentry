@@ -210,7 +210,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     return (
       <Fragment>
         {this.tryRenderOnboarding() ?? (
-          <PanelTable
+          <StyledPanelTable
             isLoading={showLoadingIndicator}
             isEmpty={incidentList?.length === 0}
             emptyMessage={t('No incidents exist for the current query.')}
@@ -244,7 +244,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
                 ))
               }
             </Projects>
-          </PanelTable>
+          </StyledPanelTable>
         )}
         <Pagination pageLinks={incidentListPageLinks} />
       </Fragment>
@@ -317,6 +317,10 @@ function IncidentsListContainer(props: Props) {
     </Feature>
   );
 }
+
+const StyledPanelTable = styled(PanelTable)`
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
 
 const StyledAlert = styled(Alert)`
   margin-bottom: ${space(1.5)};
