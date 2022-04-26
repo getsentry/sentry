@@ -686,4 +686,3 @@ const DropdownsWrapper = styled('div')`
 `;
 
 export default withProjects(withOrganization(withPageFilters(ReleasesList)));
-export {ReleasesList};
