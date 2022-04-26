@@ -93,7 +93,7 @@ function ReleaseCardProjectRow({
     ADOPTION_STAGE_LABELS[adoptionStage];
 
   return (
-    <ProjectRow>
+    <ProjectRow data-test-id="release-card-project-row">
       <ReleaseProjectsLayout showReleaseAdoptionStages={showReleaseAdoptionStages}>
         <ReleaseProjectColumn>
           <ProjectBadge project={project} avatarSize={16} />
