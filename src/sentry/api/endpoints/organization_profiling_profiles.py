@@ -1,9 +1,11 @@
-from typing import Any
+from typing import Any, Dict
 
+from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.exceptions import InvalidSearchQuery
@@ -15,15 +17,12 @@ from sentry.utils.profiling import (
 )
 
 
-class OrganizationProfilingProfilesEndpoint(OrganizationEndpoint):
-    def get(self, request: Request, organization: Organization) -> Response:
-        if not features.has("organizations:profiling", organization, actor=request.user):
-            return Response(status=404)
-
+class OrganizationProfilingBaseEndpoint(OrganizationEndpoint):  # type: ignore
+    def get_profiling_params(self, request: Request, organization: Organization) -> Dict[str, Any]:
         try:
-            params = parse_profile_filters(request.query_params.get("query", ""))
+            params: Dict[str, Any] = parse_profile_filters(request.query_params.get("query", ""))
         except InvalidSearchQuery as err:
-            return Response(str(err), status=400)
+            raise ParseError(detail=str(err))
 
         params.update(
             {
@@ -31,6 +30,19 @@ class OrganizationProfilingProfilesEndpoint(OrganizationEndpoint):
                 for key, value in self.get_filter_params(request, organization).items()
             }
         )
+
+        return params
+
+
+class OrganizationProfilingProfilesEndpoint(OrganizationProfilingBaseEndpoint):
+    def get(self, request: Request, organization: Organization) -> Response:
+        if not features.has("organizations:profiling", organization, actor=request.user):
+            return Response(status=404)
+
+        try:
+            params = self.get_profiling_params(request, organization)
+        except NoProjects:
+            return Response([])
 
         def data_fn(offset: int, limit: int) -> Any:
             params["offset"] = offset
@@ -48,22 +60,16 @@ class OrganizationProfilingProfilesEndpoint(OrganizationEndpoint):
         )
 
 
-class OrganizationProfilingFiltersEndpoint(OrganizationEndpoint):
+class OrganizationProfilingFiltersEndpoint(OrganizationProfilingBaseEndpoint):
     def get(self, request: Request, organization: Organization) -> Response:
         if not features.has("organizations:profiling", organization, actor=request.user):
             return Response(status=404)
 
         try:
-            params = parse_profile_filters(request.query_params.get("query", ""))
-        except InvalidSearchQuery as err:
-            return Response(str(err), status=400)
-
-        params.update(
-            {
-                key: value.isoformat() if key in {"start", "end"} else value
-                for key, value in self.get_filter_params(request, organization).items()
-            }
-        )
+            params = self.get_profiling_params(request, organization)
+            assert False, params
+        except NoProjects:
+            return Response([])
 
         return proxy_profiling_service(
             "GET", f"/organizations/{organization.id}/filters", params=params
