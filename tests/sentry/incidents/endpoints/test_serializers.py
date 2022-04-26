@@ -997,14 +997,17 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
 
     @responses.activate
     def test_sentry_app_action_creator_fails(self):
+        error_message = "Invalid channel."
         responses.add(
             method=responses.POST,
             url="https://example.com/sentry/alert-rule",
             status=400,
-            body="Invalid channel.",
+            json={"message": error_message},
         )
-        self.run_fail_validation_test(
-            {
+
+        serializer = AlertRuleTriggerActionSerializer(
+            context=self.context,
+            data={
                 "type": AlertRuleTriggerAction.get_registered_type(
                     AlertRuleTriggerAction.Type.SENTRY_APP
                 ).slug,
@@ -1016,8 +1019,10 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
                 "sentry_app_config": {"channel": "#santry"},
                 "sentry_app_installation_uuid": self.sentry_app_installation.uuid,
             },
-            {"sentryApp": ["Super Awesome App: Invalid channel."]},
         )
+        assert not serializer.is_valid()
+        error = serializer.errors.get("sentryApp")[0]
+        assert str(error) == f"Super Awesome App: {error_message}"
 
     @responses.activate
     def test_create_and_update_sentry_app_action_success(self):
