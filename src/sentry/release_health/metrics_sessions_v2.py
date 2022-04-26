@@ -353,7 +353,7 @@ def run_sessions_query(
     intervals = get_timestamps(query)
 
     conditions = _get_filter_conditions(query.conditions)
-    where, status_filter = _transform_conditions(conditions)
+    where, status_filter = _extract_status_filter_from_conditions(conditions)
     if status_filter == frozenset():
         # There was a condition that cannot be met, such as 'session:status:foo'
         # no need to query metrics, just return empty groups.
@@ -464,7 +464,7 @@ def _get_filter_conditions(conditions: Any) -> ConditionGroup:
     ).where
 
 
-def _transform_conditions(
+def _extract_status_filter_from_conditions(
     conditions: ConditionGroup,
 ) -> Tuple[ConditionGroup, StatusFilter]:
     """Split conditions into metrics conditions and a filter on session.status"""
