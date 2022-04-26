@@ -17,12 +17,14 @@ from snuba_sdk import (
     Limit,
     Offset,
     Op,
+    Or,
     OrderBy,
     Query,
 )
 
 from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics.indexer.mock import MockIndexer
+from sentry.sentry_metrics.indexer.strings import SHARED_TAG_STRINGS
 from sentry.sentry_metrics.utils import resolve, resolve_tag_key, resolve_weak
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics import (
@@ -129,6 +131,53 @@ def get_entity_of_metric_mocked(_, metric_name):
         (
             'transaction:"/bar/:orgId/"',
             [Condition(Column(name=resolve_tag_key(ORG_ID, "transaction")), Op.EQ, rhs=10002)],
+        ),
+        (
+            "release:[production,foo]",
+            [
+                Condition(
+                    Column(name=resolve_tag_key(ORG_ID, "release")),
+                    Op.IN,
+                    rhs=[SHARED_TAG_STRINGS["production"]],
+                )
+            ],
+        ),
+        (
+            "!release:[production,foo]",
+            [
+                Condition(
+                    Column(name=resolve_tag_key(ORG_ID, "release")),
+                    Op.NOT_IN,
+                    rhs=[SHARED_TAG_STRINGS["production"]],
+                )
+            ],
+        ),
+        (
+            "release:[foo]",
+            [
+                Condition(
+                    Column(name=resolve_tag_key(ORG_ID, "release")),
+                    Op.IN,
+                    rhs=[],
+                )
+            ],
+        ),
+        (
+            "release:myapp@2.0.0 or environment:[production,staging]",
+            [
+                Or(
+                    [
+                        Condition(
+                            Column(name=resolve_tag_key(ORG_ID, "release")), Op.IN, rhs=[10001]
+                        ),
+                        Condition(
+                            Column(name=resolve_tag_key(ORG_ID, "environment")),
+                            Op.IN,
+                            rhs=[resolve(ORG_ID, "production"), resolve(ORG_ID, "staging")],
+                        ),
+                    ]
+                ),
+            ],
         ),
     ],
 )
