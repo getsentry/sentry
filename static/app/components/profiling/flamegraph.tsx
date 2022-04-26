@@ -66,6 +66,11 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
   return (
     <Fragment>
       <FlamegraphToolbar>
+        <ThreadMenuSelector
+          profileGroup={props.profiles}
+          activeProfileIndex={flamegraph.profileIndex}
+          onProfileIndexChange={setActiveProfileIndex}
+        />
         <FlamegraphViewSelectMenu
           view={view}
           sorting={sorting}
@@ -75,11 +80,6 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
           onViewChange={v => {
             dispatch({type: 'set view', payload: v});
           }}
-        />
-        <ThreadMenuSelector
-          profileGroup={props.profiles}
-          activeProfileIndex={flamegraph.profileIndex}
-          onProfileIndexChange={setActiveProfileIndex}
         />
         <FlamegraphOptionsMenu canvasPoolManager={canvasPoolManager} />
       </FlamegraphToolbar>
