@@ -69,13 +69,12 @@ class IncidentRulesDetails extends AsyncView<Props, State> {
   }
 
   handleSubmitSuccess = () => {
-    const {router, project} = this.props;
-    const {orgId} = this.props.params;
+    const {router} = this.props;
+    const {orgId, ruleId} = this.props.params;
 
     metric.endTransaction({name: 'saveAlertRule'});
     router.push({
-      pathname: `/organizations/${orgId}/alerts/rules/`,
-      query: {project: project.id},
+      pathname: `/organizations/${orgId}/alerts/rules/details/${ruleId}/`,
     });
   };
 

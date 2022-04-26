@@ -13,6 +13,7 @@ import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesForm';
 import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
+import ListItem from 'sentry/components/list/listItem';
 import LoadingError from 'sentry/components/loadingError';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -74,6 +75,7 @@ import {Header} from './header';
 import {
   DataSet,
   DEFAULT_RESULTS_LIMIT,
+  getIsTimeseriesChart,
   getParsedDefaultWidgetQuery,
   getResultsLimit,
   mapErrors,
@@ -338,11 +340,7 @@ function WidgetBuilder({
     query: isEmpty(queryParamsWithoutSource) ? undefined : queryParamsWithoutSource,
   };
 
-  const isTimeseriesChart = [
-    DisplayType.LINE,
-    DisplayType.BAR,
-    DisplayType.AREA,
-  ].includes(state.displayType);
+  const isTimeseriesChart = getIsTimeseriesChart(state.displayType);
 
   const isTabularChart = [DisplayType.TABLE, DisplayType.TOP_N].includes(
     state.displayType
@@ -361,10 +359,6 @@ function WidgetBuilder({
       if (newDisplayType === DisplayType.TOP_N) {
         // TOP N display should only allow a single query
         normalized.splice(1);
-      }
-
-      if (widgetBuilderNewDesign && !isTabularChart && !isTimeseriesChart) {
-        newState.limit = undefined;
       }
 
       if (
@@ -434,6 +428,21 @@ function WidgetBuilder({
       }
 
       set(newState, 'queries', normalized);
+
+      if (widgetBuilderNewDesign) {
+        if (getIsTimeseriesChart(newDisplayType) && normalized[0].columns.length) {
+          // If a limit already exists (i.e. going between timeseries) then keep it,
+          // otherwise calculate a limit
+          newState.limit =
+            prevState.limit ??
+            Math.min(
+              getResultsLimit(normalized.length, normalized[0].columns.length),
+              DEFAULT_RESULTS_LIMIT
+            );
+        } else {
+          newState.limit = undefined;
+        }
+      }
 
       return {...newState, errors: undefined};
     });
@@ -537,6 +546,7 @@ function WidgetBuilder({
     isColumn = false
   ) {
     const fieldStrings = newFields.map(generateFieldAsString);
+
     const aggregateAliasFieldStrings =
       state.dataSet === DataSet.RELEASE
         ? fieldStrings.map(stripDerivedMetricsPrefix)
@@ -548,6 +558,9 @@ function WidgetBuilder({
 
     const newState = cloneDeep(state);
 
+    const disableSortBy =
+      widgetType === WidgetType.METRICS && fieldStrings.includes('session.status');
+
     const newQueries = state.queries.map(query => {
       const isDescending = query.orderby.startsWith('-');
       const orderbyAggregateAliasField = query.orderby.replace('-', '');
@@ -557,6 +570,10 @@ function WidgetBuilder({
           : getAggregateAlias(aggregate)
       );
       const newQuery = cloneDeep(query);
+
+      if (disableSortBy) {
+        newQuery.orderby = '';
+      }
 
       if (isColumn) {
         newQuery.fields = fieldStrings;
@@ -891,16 +908,6 @@ function WidgetBuilder({
     return false;
   }
 
-  if (isEditing && !isValidWidgetIndex) {
-    return (
-      <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
-        <PageContent>
-          <LoadingError message={t('The widget you want to edit was not found.')} />
-        </PageContent>
-      </SentryDocumentTitle>
-    );
-  }
-
   const canAddSearchConditions =
     [DisplayType.LINE, DisplayType.AREA, DisplayType.BAR].includes(state.displayType) &&
     state.queries.length < 3;
@@ -930,6 +937,16 @@ function WidgetBuilder({
   const explodedFields = defined(fields)
     ? fields.map((field, index) => explodeField({field, alias: fieldAliases[index]}))
     : [...explodedColumns, ...explodedAggregates];
+
+  if (isEditing && !isValidWidgetIndex) {
+    return (
+      <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
+        <PageContent>
+          <LoadingError message={t('The widget you want to edit was not found.')} />
+        </PageContent>
+      </SentryDocumentTitle>
+    );
+  }
 
   return (
     <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
@@ -1113,6 +1130,10 @@ const Body = styled(Layout.Body)`
   }
 `;
 
+// HACK: Since we add 30px of padding to the ListItems
+// there is 30px of overlap when the screen is just above 1200px.
+// When we're up to 1230px (1200 + 30 to account for the padding)
+// we decrease the width of ListItems by 30px
 const Main = styled(Layout.Main)`
   max-width: 1000px;
   flex: 1;
@@ -1122,30 +1143,30 @@ const Main = styled(Layout.Main)`
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     padding: ${space(4)};
   }
+
+  @media (max-width: calc(${p => p.theme.breakpoints[2]} + ${space(4)})) {
+    ${ListItem} {
+      width: calc(100% - ${space(4)});
+    }
+  }
 `;
 
 const Side = styled(Layout.Side)`
   padding: ${space(4)} ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+    border-top: 1px solid ${p => p.theme.gray200};
+    grid-row: 2/2;
+    grid-column: 1/-1;
+    max-width: 100%;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
     border-left: 1px solid ${p => p.theme.gray200};
 
     /* to be consistent with Layout.Body in other verticals */
     padding-right: ${space(4)};
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints[3]}) {
-    border-top: 1px solid ${p => p.theme.gray200};
-    grid-row: 2/2;
-    grid-column: 1/-1;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
     max-width: 400px;
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints[3]}) {
-    max-width: 100%;
   }
 `;
 
@@ -1153,7 +1174,7 @@ const MainWrapper = styled('div')`
   display: flex;
   flex-direction: column;
 
-  @media (max-width: ${p => p.theme.breakpoints[3]}) {
+  @media (max-width: ${p => p.theme.breakpoints[2]}) {
     grid-column: 1/-1;
   }
 `;
