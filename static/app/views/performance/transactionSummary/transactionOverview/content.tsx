@@ -468,9 +468,12 @@ function getTransactionsListSort(
 
 const Search = styled('div')`
   display: grid;
-  grid-template-columns: auto auto 1fr;
   gap: ${space(2)};
   margin-bottom: ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: auto auto 1fr;
+  }
 `;
 
 export default withProjects(SummaryContent);
