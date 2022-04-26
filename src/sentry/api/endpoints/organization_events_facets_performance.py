@@ -6,16 +6,15 @@ from django.http import Http404
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
-from snuba_sdk.column import Column
-from snuba_sdk.conditions import Condition, Op
+from snuba_sdk import Column, Condition, Function, Op
 
 from sentry import features, tagstore
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.search.events.filter import get_filter
+from sentry.search.events.builder import QueryBuilder
 from sentry.snuba import discover
 from sentry.utils.cursors import Cursor, CursorResult
-from sentry.utils.snuba import Dataset, raw_query
+from sentry.utils.snuba import Dataset
 
 ALLOWED_AGGREGATE_COLUMNS = {
     "transaction.duration",
@@ -253,30 +252,24 @@ def query_tag_data(
         op="discover.discover", description="facets.filter_transform"
     ) as span:
         span.set_data("query", filter_query)
-        snuba_filter = get_filter(filter_query, params)
-
-        # Resolve the public aliases into the discover dataset names.
-        snuba_filter, translated_columns = discover.resolve_discover_aliases(snuba_filter)
-
-    translated_aggregate_column = discover.resolve_discover_column(aggregate_column)
-
-    with sentry_sdk.start_span(op="discover.discover", description="facets.frequent_tags"):
-        # Get the average and count to use to filter the next request to facets
-        tag_data = discover.query(
+        tag_query = QueryBuilder(
+            dataset=Dataset.Discover,
+            params=params,
+            query=filter_query,
             selected_columns=[
                 "count()",
                 f"avg({aggregate_column}) as aggregate",
                 f"max({aggregate_column}) as max",
                 f"min({aggregate_column}) as min",
             ],
-            conditions=[
-                [translated_aggregate_column, "IS NOT NULL", None],
-            ],
-            query=filter_query,
-            params=params,
-            referrer=f"{referrer}.all_transactions",
-            limit=1,
         )
+        tag_query.where.append(
+            Condition(tag_query.resolve_column(aggregate_column), Op.IS_NOT_NULL)
+        )
+
+    with sentry_sdk.start_span(op="discover.discover", description="facets.frequent_tags"):
+        # Get the average and count to use to filter the next request to facets
+        tag_data = tag_query.run_query(f"{referrer}.all_transactions")
 
         if len(tag_data["data"]) != 1:
             return None
@@ -307,15 +300,6 @@ def query_top_tags(
     :return: Returns the row with the value, the aggregate and the count if the query was successful
              Returns None if query was not successful which causes the endpoint to return early
     """
-    with sentry_sdk.start_span(
-        op="discover.discover", description="facets.filter_transform"
-    ) as span:
-        span.set_data("query", filter_query)
-        snuba_filter = get_filter(filter_query, params)
-
-        # Resolve the public aliases into the discover dataset names.
-        snuba_filter, translated_columns = discover.resolve_discover_aliases(snuba_filter)
-
     translated_aggregate_column = discover.resolve_discover_column(aggregate_column)
 
     with sentry_sdk.start_span(op="discover.discover", description="facets.top_tags"):
@@ -341,10 +325,6 @@ def query_top_tags(
             query=filter_query,
             params=params,
             orderby=orderby,
-            conditions=[
-                [translated_aggregate_column, "IS NOT NULL", None],
-                ["tags_key", "IN", [tag_key]],
-            ],
             extra_snql_condition=[
                 Condition(Column(translated_aggregate_column), Op.IS_NOT_NULL),
                 Condition(Column("tags_key"), Op.EQ, tag_key),
@@ -380,20 +360,6 @@ def query_facet_performance(
     all_tag_keys: Optional[bool] = None,
     tag_key: Optional[bool] = None,
 ) -> Dict:
-    # TODO(snql): Migrate this off raw_query
-    with sentry_sdk.start_span(
-        op="discover.discover", description="facets.filter_transform"
-    ) as span:
-        span.set_data("query", filter_query)
-        snuba_filter = get_filter(filter_query, params)
-
-        # Resolve the public aliases into the discover dataset names.
-        snuba_filter, translated_columns = discover.resolve_discover_aliases(snuba_filter)
-    translated_aggregate_column = discover.resolve_discover_column(aggregate_column)
-
-    # Aggregate (avg) and count of all transactions for this query
-    transaction_aggregate = tag_data["aggregate"]
-
     # Dynamically sample so at least 50000 transactions are selected
     sample_start_count = 50000
     transaction_count = tag_data["count"]
@@ -409,71 +375,85 @@ def query_facet_performance(
     sample_rate = min(max(dynamic_sample_rate, 0), 1) if sampling_enabled else None
     frequency_sample_rate = sample_rate if sample_rate else 1
 
+    tag_key_limit = limit if tag_key else 1
+
+    with sentry_sdk.start_span(
+        op="discover.discover", description="facets.filter_transform"
+    ) as span:
+        span.set_data("query", filter_query)
+        tag_query = QueryBuilder(
+            dataset=Dataset.Discover,
+            params=params,
+            query=filter_query,
+            selected_columns=["count()", "tags_key", "tags_value"],
+            sample_rate=sample_rate,
+            turbo=sample_rate is not None,
+            limit=limit,
+            limitby=["tags_key", tag_key_limit] if not tag_key else None,
+        )
+    translated_aggregate_column = tag_query.resolve_column(aggregate_column)
+
+    # Aggregate (avg) and count of all transactions for this query
+    transaction_aggregate = tag_data["aggregate"]
+
     # Exclude tags that have high cardinality are are generally unrelated to performance
-    excluded_tags = [
-        "tags_key",
-        "NOT IN",
+    excluded_tags = Condition(
+        Column("tags_key"),
+        Op.NOT_IN,
         ["trace", "trace.ctx", "trace.span", "project", "browser", "celery_task_id", "url"],
-    ]
+    )
 
     with sentry_sdk.start_span(op="discover.discover", description="facets.aggregate_tags"):
         span.set_data("sample_rate", sample_rate)
         span.set_data("target_sample", target_sample)
-        conditions = snuba_filter.conditions
         aggregate_comparison = transaction_aggregate * 1.005 if transaction_aggregate else 0
-        having = [excluded_tags]
+        aggregate_column = Function("avg", [translated_aggregate_column], "aggregate")
+        tag_query.where.append(excluded_tags)
         if not all_tag_keys and not tag_key:
-            having.append(["aggregate", ">", aggregate_comparison])
+            tag_query.having.append(Condition(aggregate_column, Op.GT, aggregate_comparison))
 
-        resolved_orderby = [] if orderby is None else orderby
-
-        conditions.append([translated_aggregate_column, "IS NOT NULL", None])
+        tag_query.where.append(Condition(translated_aggregate_column, Op.IS_NOT_NULL))
 
         if tag_key:
-            conditions.append(["tags_key", "IN", [tag_key]])
+            tag_query.where.append(Condition(Column("tags_key"), Op.IN, [tag_key]))
 
-        tag_key_limit = limit if tag_key else 1
-
-        tag_selected_columns = [
+        tag_query.columns.extend(
             [
-                "divide",
-                [
-                    ["sum", [["minus", [translated_aggregate_column, transaction_aggregate]]]],
-                    frequency_sample_rate,
-                ],
-                "sumdelta",
-            ],
-            ["count", [], "count"],
-            [
-                "divide",
-                [["divide", [["count", []], frequency_sample_rate]], transaction_count],
-                "frequency",
-            ],
-            ["divide", ["aggregate", transaction_aggregate], "comparison"],
-            ["avg", [translated_aggregate_column], "aggregate"],
-        ]
-
-        limitby = [tag_key_limit, "tags_key"] if not tag_key else None
-
-        results = raw_query(
-            selected_columns=tag_selected_columns,
-            conditions=conditions,
-            start=snuba_filter.start,
-            end=snuba_filter.end,
-            filter_keys=snuba_filter.filter_keys,
-            orderby=resolved_orderby + ["tags_key", "tags_value"],
-            groupby=["tags_key", "tags_value"],
-            having=having,
-            dataset=Dataset.Discover,
-            referrer=f"{referrer}.tag_values".format(referrer, "tag_values"),
-            sample=sample_rate,
-            turbo=sample_rate is not None,
-            limitby=limitby,
-            limit=limit,
-            offset=offset,
+                Function(
+                    "divide",
+                    [
+                        Function(
+                            "sum",
+                            [
+                                Function(
+                                    "minus", [translated_aggregate_column, transaction_aggregate]
+                                )
+                            ],
+                        ),
+                        frequency_sample_rate,
+                    ],
+                    "sumdelta",
+                ),
+                Function(
+                    "divide",
+                    [
+                        Function("divide", [Function("count", [], "count"), frequency_sample_rate]),
+                        transaction_count,
+                    ],
+                    "frequency",
+                ),
+                Function("divide", [aggregate_column, transaction_aggregate], "comparison"),
+                aggregate_column,
+            ]
         )
 
-        results = discover.transform_results(results, {}, translated_columns, snuba_filter)
+        # Need to wait for the custom functions to be added first since they can be orderby options
+        tag_query.orderby = tag_query.resolve_orderby(
+            ([] if orderby is None else orderby) + ["tags_key", "tags_value"]
+        )
+
+        results = tag_query.run_query(f"{referrer}.tag_values".format(referrer, "tag_values"))
+        results = discover.transform_results(results, tag_query.function_alias_map, {}, None)
 
         return results
 
