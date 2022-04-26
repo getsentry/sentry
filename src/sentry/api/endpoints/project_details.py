@@ -256,7 +256,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             # App Store Connect in particular is managed in a completely different
             # way, and needs its `id` to stay valid for a longer time.
             if source["type"] != "appStoreConnect":
-                source["id"] = uuid4()
+                source["id"] = str(uuid4())
 
         sources_json = json.dumps(sources) if sources else ""
 
