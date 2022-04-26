@@ -18,7 +18,7 @@ import space from 'sentry/styles/space';
 import {Group, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {use24Hours} from 'sentry/utils/dates';
+import {shouldUse24Hours} from 'sentry/utils/dates';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
 import QuickTrace from './quickTrace';
@@ -98,7 +98,7 @@ class GroupEventToolbar extends Component<Props> {
   }
 
   render() {
-    const is24Hours = use24Hours();
+    const is24Hours = shouldUse24Hours();
     const evt = this.props.event;
 
     const {group, organization, location, project} = this.props;
@@ -136,7 +136,15 @@ class GroupEventToolbar extends Component<Props> {
           {t('Event')}{' '}
           <EventIdLink to={`${baseEventsPath}${evt.id}/`}>{evt.eventID}</EventIdLink>
           <LinkContainer>
-            <ExternalLink href={jsonUrl}>
+            <ExternalLink
+              href={jsonUrl}
+              onClick={() =>
+                trackAdvancedAnalyticsEvent('issue_details.event_json_clicked', {
+                  organization,
+                  group_id: parseInt(`${evt.groupID}`, 10),
+                })
+              }
+            >
               {'JSON'} (<FileSize bytes={evt.size} />)
             </ExternalLink>
           </LinkContainer>

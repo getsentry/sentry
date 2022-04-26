@@ -74,6 +74,7 @@ import {Header} from './header';
 import {
   DataSet,
   DEFAULT_RESULTS_LIMIT,
+  getIsTimeseriesChart,
   getParsedDefaultWidgetQuery,
   getResultsLimit,
   mapErrors,
@@ -191,19 +192,26 @@ function WidgetBuilder({
     }
   }, []);
 
-  const isEditing = defined(widgetIndex);
-  const widgetIndexNum = Number(widgetIndex);
-  const isValidWidgetIndex =
-    widgetIndexNum >= 0 &&
-    widgetIndexNum < dashboard.widgets.length &&
-    Number.isInteger(widgetIndexNum);
-  const orgSlug = organization.slug;
-
   // Feature flag for new widget builder design. This feature is still a work in progress and not yet available internally.
   const widgetBuilderNewDesign = organization.features.includes(
     'new-widget-builder-experience-design'
   );
-  const hasReleaseHealthFeature = organization.features.includes('dashboard-metrics');
+  const hasReleaseHealthFeature = organization.features.includes('dashboards-metrics');
+
+  const filteredDashboardWidgets = dashboard.widgets.filter(({widgetType}) => {
+    if (widgetType === WidgetType.METRICS) {
+      return hasReleaseHealthFeature;
+    }
+    return true;
+  });
+
+  const isEditing = defined(widgetIndex);
+  const widgetIndexNum = Number(widgetIndex);
+  const isValidWidgetIndex =
+    widgetIndexNum >= 0 &&
+    widgetIndexNum < filteredDashboardWidgets.length &&
+    Number.isInteger(widgetIndexNum);
+  const orgSlug = organization.slug;
 
   // Construct PageFilters object using statsPeriod/start/end props so we can
   // render widget graph using saved timeframe from Saved/Prebuilt Query
@@ -261,7 +269,7 @@ function WidgetBuilder({
     });
 
     if (isEditing && isValidWidgetIndex) {
-      const widgetFromDashboard = dashboard.widgets[widgetIndexNum];
+      const widgetFromDashboard = filteredDashboardWidgets[widgetIndexNum];
       setState({
         title: widgetFromDashboard.title,
         displayType: widgetFromDashboard.displayType,
@@ -331,11 +339,7 @@ function WidgetBuilder({
     query: isEmpty(queryParamsWithoutSource) ? undefined : queryParamsWithoutSource,
   };
 
-  const isTimeseriesChart = [
-    DisplayType.LINE,
-    DisplayType.BAR,
-    DisplayType.AREA,
-  ].includes(state.displayType);
+  const isTimeseriesChart = getIsTimeseriesChart(state.displayType);
 
   const isTabularChart = [DisplayType.TABLE, DisplayType.TOP_N].includes(
     state.displayType
@@ -354,10 +358,6 @@ function WidgetBuilder({
       if (newDisplayType === DisplayType.TOP_N) {
         // TOP N display should only allow a single query
         normalized.splice(1);
-      }
-
-      if (widgetBuilderNewDesign && !isTabularChart && !isTimeseriesChart) {
-        newState.limit = undefined;
       }
 
       if (
@@ -428,7 +428,40 @@ function WidgetBuilder({
 
       set(newState, 'queries', normalized);
 
+      if (widgetBuilderNewDesign) {
+        if (getIsTimeseriesChart(newDisplayType) && normalized[0].columns.length) {
+          // If a limit already exists (i.e. going between timeseries) then keep it,
+          // otherwise calculate a limit
+          newState.limit =
+            prevState.limit ??
+            Math.min(
+              getResultsLimit(normalized.length, normalized[0].columns.length),
+              DEFAULT_RESULTS_LIMIT
+            );
+        } else {
+          newState.limit = undefined;
+        }
+      }
+
       return {...newState, errors: undefined};
+    });
+  }
+
+  function getUpdateWidgetIndex() {
+    if (!widgetToBeUpdated) {
+      return -1;
+    }
+
+    return dashboard.widgets.findIndex(widget => {
+      if (defined(widget.id)) {
+        return widget.id === widgetToBeUpdated.id;
+      }
+
+      if (defined(widget.tempId)) {
+        return widget.tempId === widgetToBeUpdated.tempId;
+      }
+
+      return false;
     });
   }
 
@@ -484,6 +517,7 @@ function WidgetBuilder({
       query.fields = prevState.queries[0].fields;
       query.aggregates = prevState.queries[0].aggregates;
       query.columns = prevState.queries[0].columns;
+      query.orderby = prevState.queries[0].orderby;
       newState.queries.push(query);
       return newState;
     });
@@ -511,6 +545,7 @@ function WidgetBuilder({
     isColumn = false
   ) {
     const fieldStrings = newFields.map(generateFieldAsString);
+
     const aggregateAliasFieldStrings =
       state.dataSet === DataSet.RELEASE
         ? fieldStrings.map(stripDerivedMetricsPrefix)
@@ -522,6 +557,9 @@ function WidgetBuilder({
 
     const newState = cloneDeep(state);
 
+    const disableSortBy =
+      widgetType === WidgetType.METRICS && fieldStrings.includes('session.status');
+
     const newQueries = state.queries.map(query => {
       const isDescending = query.orderby.startsWith('-');
       const orderbyAggregateAliasField = query.orderby.replace('-', '');
@@ -531,6 +569,10 @@ function WidgetBuilder({
           : getAggregateAlias(aggregate)
       );
       const newQuery = cloneDeep(query);
+
+      if (disableSortBy) {
+        newQuery.orderby = '';
+      }
 
       if (isColumn) {
         newQuery.fields = fieldStrings;
@@ -665,7 +707,8 @@ function WidgetBuilder({
     }
 
     let nextWidgetList = [...dashboard.widgets];
-    nextWidgetList.splice(widgetIndexNum, 1);
+    const updateWidgetIndex = getUpdateWidgetIndex();
+    nextWidgetList.splice(updateWidgetIndex, 1);
     nextWidgetList = generateWidgetsAfterCompaction(nextWidgetList);
 
     onSave(nextWidgetList);
@@ -706,7 +749,7 @@ function WidgetBuilder({
 
     if (!!widgetToBeUpdated) {
       let nextWidgetList = [...dashboard.widgets];
-      const updateIndex = nextWidgetList.indexOf(widgetToBeUpdated);
+      const updateWidgetIndex = getUpdateWidgetIndex();
       const nextWidgetData = {...widgetData, id: widgetToBeUpdated.id};
 
       // Only modify and re-compact if the default height has changed
@@ -714,10 +757,10 @@ function WidgetBuilder({
         getDefaultWidgetHeight(widgetToBeUpdated.displayType) !==
         getDefaultWidgetHeight(widgetData.displayType)
       ) {
-        nextWidgetList[updateIndex] = enforceWidgetHeightValues(nextWidgetData);
+        nextWidgetList[updateWidgetIndex] = enforceWidgetHeightValues(nextWidgetData);
         nextWidgetList = generateWidgetsAfterCompaction(nextWidgetList);
       } else {
-        nextWidgetList[updateIndex] = nextWidgetData;
+        nextWidgetList[updateWidgetIndex] = nextWidgetData;
       }
 
       onSave(nextWidgetList);
@@ -864,16 +907,6 @@ function WidgetBuilder({
     return false;
   }
 
-  if (isEditing && !isValidWidgetIndex) {
-    return (
-      <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
-        <PageContent>
-          <LoadingError message={t('The widget you want to edit was not found.')} />
-        </PageContent>
-      </SentryDocumentTitle>
-    );
-  }
-
   const canAddSearchConditions =
     [DisplayType.LINE, DisplayType.AREA, DisplayType.BAR].includes(state.displayType) &&
     state.queries.length < 3;
@@ -903,6 +936,16 @@ function WidgetBuilder({
   const explodedFields = defined(fields)
     ? fields.map((field, index) => explodeField({field, alias: fieldAliases[index]}))
     : [...explodedColumns, ...explodedAggregates];
+
+  if (isEditing && !isValidWidgetIndex) {
+    return (
+      <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
+        <PageContent>
+          <LoadingError message={t('The widget you want to edit was not found.')} />
+        </PageContent>
+      </SentryDocumentTitle>
+    );
+  }
 
   return (
     <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>

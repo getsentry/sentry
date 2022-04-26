@@ -279,25 +279,37 @@ export function getWidgetIssueUrl(
 }
 
 export function flattenErrors(
-  data: ValidationError,
+  data: ValidationError | string,
   update: FlatValidationError
 ): FlatValidationError {
-  Object.keys(data).forEach((key: string) => {
-    const value = data[key];
-    if (typeof value === 'string') {
-      update[key] = value;
-      return;
-    }
-    // Recurse into nested objects.
-    if (Array.isArray(value) && typeof value[0] === 'string') {
-      update[key] = value[0];
-      return;
-    }
-    if (Array.isArray(value) && typeof value[0] === 'object') {
-      (value as ValidationError[]).map(item => flattenErrors(item, update));
-    } else {
-      flattenErrors(value as ValidationError, update);
-    }
-  });
+  if (typeof data === 'string') {
+    update.error = data;
+  } else {
+    Object.keys(data).forEach((key: string) => {
+      const value = data[key];
+      if (typeof value === 'string') {
+        update[key] = value;
+        return;
+      }
+      // Recurse into nested objects.
+      if (Array.isArray(value) && typeof value[0] === 'string') {
+        update[key] = value[0];
+        return;
+      }
+      if (Array.isArray(value) && typeof value[0] === 'object') {
+        (value as ValidationError[]).map(item => flattenErrors(item, update));
+      } else {
+        flattenErrors(value as ValidationError, update);
+      }
+    });
+  }
   return update;
+}
+
+export function getDashboardsMEPQueryParams(isMEPEnabled: boolean) {
+  return isMEPEnabled
+    ? {
+        metricsEnhanced: '1',
+      }
+    : {};
 }

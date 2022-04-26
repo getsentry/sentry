@@ -60,6 +60,7 @@ from sentry.snuba.metrics.fields.snql import (
 )
 from sentry.snuba.metrics.naming_layer.mapping import get_public_name_from_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
+from sentry.snuba.metrics.query import QueryDefinition
 from sentry.snuba.metrics.utils import (
     DEFAULT_AGGREGATES,
     GRANULARITY,
@@ -93,9 +94,6 @@ __all__ = (
 
 SnubaDataType = Dict[str, Any]
 PostQueryFuncReturnType = Optional[Union[Tuple[Any, ...], ClickhouseHistogram, int, float]]
-
-if TYPE_CHECKING:
-    from sentry.snuba.metrics.query_builder import QueryDefinition
 
 
 def run_metrics_query(
@@ -670,7 +668,12 @@ class SingularEntityDerivedMetric(DerivedMetricExpression):
     def run_post_query_function(
         self, data: SnubaDataType, query_definition: QueryDefinition, idx: Optional[int] = None
     ) -> Any:
-        compute_func_args = [data[self.metric_mri] if idx is None else data[self.metric_mri][idx]]
+        try:
+            compute_func_args = [
+                data[self.metric_mri] if idx is None else data[self.metric_mri][idx]
+            ]
+        except KeyError:
+            compute_func_args = [self.generate_default_null_values()]
         result = self.post_query_func(*compute_func_args)
         if isinstance(result, tuple) and len(result) == 1:
             result = result[0]
@@ -957,7 +960,7 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             metric_mri=SessionMRI.HEALTHY.value,
             metrics=[
                 SessionMRI.ALL.value,
-                SessionMRI.ERRORED.value,
+                SessionMRI.ERRORED_ALL.value,
             ],
             unit="sessions",
             post_query_func=lambda init, errored: max(0, init - errored),
@@ -1064,7 +1067,7 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
 }
 
 
-DERIVED_OPS: Mapping[str, DerivedOp] = {
+DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
     derived_op.op: derived_op
     for derived_op in [
         DerivedOp(
@@ -1090,7 +1093,9 @@ DERIVED_ALIASES: Mapping[str, AliasedDerivedMetric] = {
 }
 
 
-def metric_object_factory(op: Optional[str], metric_mri: str) -> MetricExpressionBase:
+def metric_object_factory(
+    op: Optional[MetricOperationType], metric_mri: str
+) -> MetricExpressionBase:
     """Returns an appropriate instance of MetricsFieldBase object"""
     if op in DERIVED_OPS and metric_mri in DERIVED_METRICS:
         raise InvalidParams("derived ops cannot be used on derived metrics")
