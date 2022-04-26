@@ -94,6 +94,13 @@ def parse_field(field: str, query_params) -> MetricField:
     return MetricField(operation, metric_name)
 
 
+# Allow these snuba functions.
+# These are only allowed because the parser in metrics_sessions_v2
+# generates them. Long term we should not allow any functions, but rather
+# a limited expression language with only AND, OR, IN and NOT IN
+FUNCTION_ALLOWLIST = ("and", "or", "equals", "in")
+
+
 def resolve_tags(org_id: int, input_: Any) -> Any:
     """Translate tags in snuba condition
 
@@ -108,9 +115,16 @@ def resolve_tags(org_id: int, input_: Any) -> Any:
         # Lists are either arguments to IN or NOT IN. In both cases, we can
         # drop unknown strings:
         return [x for x in elements if x != STRING_NOT_FOUND]
-    if isinstance(input_, Function) and input_.function == "ifNull":
-        # This was wrapped automatically by QueryBuilder, remove wrapper
-        return resolve_tags(org_id, input_.parameters[0])
+    if isinstance(input_, Function):
+        if input_.function == "ifNull":
+            # This was wrapped automatically by QueryBuilder, remove wrapper
+            return resolve_tags(org_id, input_.parameters[0])
+        elif input_.function in FUNCTION_ALLOWLIST:
+            return Function(
+                function=input_.function,
+                parameters=input_.parameters
+                and [resolve_tags(org_id, item) for item in input_.parameters],
+            )
     if (
         isinstance(input_, Or)
         and len(input_.conditions) == 2
@@ -141,6 +155,8 @@ def resolve_tags(org_id: int, input_: Any) -> Any:
         return Column(name=resolve_tag_key(org_id, name))
     if isinstance(input_, str):
         return resolve_weak(org_id, input_)
+    if isinstance(input_, int):
+        return input_
 
     raise InvalidParams("Unable to resolve conditions")
 

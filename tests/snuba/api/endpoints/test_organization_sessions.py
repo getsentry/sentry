@@ -394,7 +394,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
                 "statsPeriod": "1d",
                 "interval": "1d",
                 "field": ["sum(session)"],
-                "query": 'release:"foo@1.1.0" or release:"foo@1.2.0" or release:"foo@1.3.0"',
+                "query": 'release:"foo@1.1.0" or release:["foo@1.2.0", release:"foo@1.3.0"]',
                 "groupBy": ["release"],
             }
         )

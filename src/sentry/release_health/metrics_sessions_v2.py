@@ -21,18 +21,20 @@ from typing import (
     cast,
 )
 
-from snuba_sdk import Direction, Granularity, Limit
+from snuba_sdk import Condition, Direction, Granularity, Limit
+from snuba_sdk.legacy import json_to_snql
 
+from sentry.api.utils import InvalidParams as UtilsInvalidParams
 from sentry.models.project import Project
 from sentry.release_health.base import (
     SessionsQueryFunction,
     SessionsQueryResult,
     SessionsQueryValue,
 )
+from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics.datasource import get_series
 from sentry.snuba.metrics.naming_layer.public import SessionMetricKey
 from sentry.snuba.metrics.query import MetricField, OrderBy
-from sentry.snuba.metrics.query_builder import parse_query
 from sentry.snuba.sessions_v2 import (
     SNUBA_LIMIT,
     InvalidParams,
@@ -316,7 +318,7 @@ def run_sessions_query(
         query.start,
         query.end,
         Granularity(query.rollup),
-        where=_get_filter_conditions(query.query),
+        where=_get_filter_conditions(query.conditions),
         groupby=list(
             {column for field in fields for column in field.get_groupby(query.raw_groupby)}
         ),
@@ -326,7 +328,10 @@ def run_sessions_query(
 
     # TODO: Stop passing project IDs everywhere
     projects = Project.objects.get_many_from_cache(project_ids)
-    results = get_series(projects, metrics_query)
+    try:
+        results = get_series(projects, metrics_query)
+    except UtilsInvalidParams as e:
+        raise InvalidParams(e)
 
     input_groups = {GroupKey.from_input_dict(group["by"]): group for group in results["groups"]}
 
@@ -368,9 +373,12 @@ def run_sessions_query(
     return cast(SessionsQueryResult, results)
 
 
-def _get_filter_conditions(query_string: str) -> Any:
-    """Parse given conditions to snql"""
-    return parse_query(query_string)
+def _get_filter_conditions(conditions: Sequence[Condition]) -> Any:
+    """Translate given conditions to snql"""
+    dummy_entity = EntityKey.MetricsSets.value
+    return json_to_snql(
+        {"selected_columns": ["value"], "conditions": conditions}, entity=dummy_entity
+    ).where
 
 
 def _parse_orderby(query: QueryDefinition) -> Optional[OrderBy]:
