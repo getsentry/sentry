@@ -1,10 +1,9 @@
+from sentry.sentry_metrics.indexer.base import KeyCollection, KeyResult, KeyResults
 from sentry.sentry_metrics.indexer.cache import indexer_cache
 from sentry.sentry_metrics.indexer.models import MetricsKeyIndexer, StringIndexer
 from sentry.sentry_metrics.indexer.postgres import PGStringIndexer
 from sentry.sentry_metrics.indexer.postgres_v2 import (
-    KeyCollection,
-    KeyResult,
-    KeyResults,
+    FetchType,
     PGStringIndexerV2,
     StaticStringsIndexerDecorator,
 )
@@ -93,7 +92,7 @@ class PostgresIndexerV2Test(TestCase):
             indexer_cache.get_many([f"{org1_id}:{string}" for string in self.strings]).values()
         ) == [None, None, None]
 
-        results = PGStringIndexerV2().bulk_record(org_strings=org_strings).mapping
+        results = PGStringIndexerV2().bulk_record(org_strings=org_strings).results
 
         org1_string_ids = list(
             StringIndexer.objects.filter(
@@ -248,7 +247,7 @@ class KeyResultsTest(TestCase):
         assert key_results.get_unmapped_keys(collection).mapping == org_strings
 
         key_result = KeyResult(1, "a", 10)
-        key_results.add_key_results([key_result])
+        key_results.add_key_results([key_result], FetchType.DB_READ)
 
         assert key_results.get_mapped_key_strings_to_ints() == {"1:a": 10}
         assert key_results.get_mapped_results() == {1: {"a": 10}}
@@ -262,7 +261,7 @@ class KeyResultsTest(TestCase):
             KeyResult(2, "e", 13),
             KeyResult(2, "f", 14),
         ]
-        key_results.add_key_results(key_result_list)
+        key_results.add_key_results(key_result_list, FetchType.DB_READ)
 
         assert key_results.get_mapped_key_strings_to_ints() == {
             "1:a": 10,
