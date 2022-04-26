@@ -423,6 +423,29 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
         member_om.refresh_from_db()
         assert member_om.role == "member"
 
+    def test_internal_integration_cannot_lower_superior_role(self):
+        member = self.create_user("baz@example.com")
+        member_om = self.create_member(organization=self.organization, user=member, role="manager")
+
+        scopes = ["member:admin"]
+        scopes += organization_roles.get("admin").scopes
+        integration = self.create_internal_integration(
+            organization=self.organization, scopes=scopes
+        )
+        token = SentryAppInstallationToken.objects.get(
+            sentry_app_installation__sentry_app=integration
+        )
+
+        response = self.client.put(
+            reverse(self.endpoint, args=[self.organization.slug, member_om.id]),
+            {"role": "admin"},
+            HTTP_AUTHORIZATION=f"Bearer {token.api_token.token}",
+        )
+
+        assert response.status_code == 403
+        member_om.refresh_from_db()
+        assert member_om.role == "manager"
+
 
 class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
     method = "delete"
