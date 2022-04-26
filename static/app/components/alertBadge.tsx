@@ -14,19 +14,14 @@ import {IncidentStatus} from 'sentry/views/alerts/types';
 
 type Props = {
   hideText?: boolean;
-  isIssue?: boolean;
   status?: IncidentStatus;
 };
 
-function AlertBadge({status, hideText = false, isIssue}: Props) {
+function AlertBadge({status, hideText = false}: Props) {
   let statusText = t('Resolved');
   let Icon = IconCheckmark;
   let color: Color = 'green300';
-  if (isIssue) {
-    statusText = t('Issue');
-    Icon = IconIssues;
-    color = 'gray300';
-  } else if (status === IncidentStatus.CRITICAL) {
+  if (status === IncidentStatus.CRITICAL) {
     statusText = t('Critical');
     Icon = IconFire;
     color = 'red300';

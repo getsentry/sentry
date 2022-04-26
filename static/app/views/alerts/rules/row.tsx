@@ -62,7 +62,15 @@ function RuleListRow({
 
   function renderLastIncidentDate(): React.ReactNode {
     if (isIssueAlert(rule)) {
-      return null;
+      if (!rule.lastTriggered) {
+        return '-';
+      }
+      return (
+        <div>
+          {t('Triggered ')}
+          <TimeSince date={rule.lastTriggered} />
+        </div>
+      );
     }
 
     if (!rule.latestIncident) {
@@ -83,6 +91,43 @@ function RuleListRow({
         {t('Resolved ')}
         <TimeSince date={rule.latestIncident.dateClosed!} />
       </div>
+    );
+  }
+
+  function renderAlertBadgeStatus(): React.ReactNode {
+    const lastTriggeredDate =
+      isIssueAlert(rule) && rule.lastTriggered
+        ? new Date(rule.lastTriggered).getTime()
+        : null;
+    const now = new Date().getTime();
+    const timeDiff = lastTriggeredDate && now - lastTriggeredDate;
+    const daysDiff = timeDiff && timeDiff / (1000 * 3600 * 24);
+    // if an alert issue has been triggered within the last 14 days, have warning status
+    const issueAlertStatus =
+      daysDiff && daysDiff < 14 ? IncidentStatus.WARNING : IncidentStatus.CLOSED;
+
+    return (
+      <FlexCenter>
+        <Tooltip
+          title={
+            isIssueAlert(rule)
+              ? tct('Issue Alert Status: [status]', {
+                  status: IssueStatusText[issueAlertStatus],
+                })
+              : tct('Metric Alert Status: [status]', {
+                  status:
+                    IssueStatusText[
+                      rule?.latestIncident?.status ?? IncidentStatus.CLOSED
+                    ],
+                })
+          }
+        >
+          <AlertBadge
+            status={isIssueAlert(rule) ? issueAlertStatus : rule?.latestIncident?.status}
+            hideText
+          />
+        </Tooltip>
+      </FlexCenter>
     );
   }
 
@@ -197,31 +242,10 @@ function RuleListRow({
   return (
     <ErrorBoundary>
       <AlertNameWrapper isIssueAlert={isIssueAlert(rule)}>
-        <FlexCenter>
-          <Tooltip
-            title={
-              isIssueAlert(rule)
-                ? t('Issue Alert')
-                : tct('Metric Alert Status: [status]', {
-                    status:
-                      IssueStatusText[
-                        rule?.latestIncident?.status ?? IncidentStatus.CLOSED
-                      ],
-                  })
-            }
-          >
-            <AlertBadge
-              status={rule?.latestIncident?.status}
-              isIssue={isIssueAlert(rule)}
-              hideText
-            />
-          </Tooltip>
-        </FlexCenter>
+        {renderAlertBadgeStatus()}
         <AlertNameAndStatus>
           <AlertName>{alertLink}</AlertName>
-          <AlertIncidentDate>
-            {!isIssueAlert(rule) && renderLastIncidentDate()}
-          </AlertIncidentDate>
+          <AlertIncidentDate>{renderLastIncidentDate()}</AlertIncidentDate>
         </AlertNameAndStatus>
       </AlertNameWrapper>
       <FlexCenter>{renderAlertRuleStatus()}</FlexCenter>
