@@ -13,6 +13,7 @@ import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesForm';
 import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
+import ListItem from 'sentry/components/list/listItem';
 import LoadingError from 'sentry/components/loadingError';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -1129,6 +1130,10 @@ const Body = styled(Layout.Body)`
   }
 `;
 
+// HACK: Since we add 30px of padding to the ListItems
+// there is 30px of overlap when the screen is just above 1200px.
+// When we're up to 1230px (1200 + 30 to account for the padding)
+// we decrease the width of ListItems by 30px
 const Main = styled(Layout.Main)`
   max-width: 1000px;
   flex: 1;
@@ -1138,30 +1143,30 @@ const Main = styled(Layout.Main)`
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     padding: ${space(4)};
   }
+
+  @media (max-width: calc(${p => p.theme.breakpoints[2]} + ${space(4)})) {
+    ${ListItem} {
+      width: calc(100% - ${space(4)});
+    }
+  }
 `;
 
 const Side = styled(Layout.Side)`
   padding: ${space(4)} ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+    border-top: 1px solid ${p => p.theme.gray200};
+    grid-row: 2/2;
+    grid-column: 1/-1;
+    max-width: 100%;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
     border-left: 1px solid ${p => p.theme.gray200};
 
     /* to be consistent with Layout.Body in other verticals */
     padding-right: ${space(4)};
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints[3]}) {
-    border-top: 1px solid ${p => p.theme.gray200};
-    grid-row: 2/2;
-    grid-column: 1/-1;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
     max-width: 400px;
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints[3]}) {
-    max-width: 100%;
   }
 `;
 
@@ -1169,7 +1174,7 @@ const MainWrapper = styled('div')`
   display: flex;
   flex-direction: column;
 
-  @media (max-width: ${p => p.theme.breakpoints[3]}) {
+  @media (max-width: ${p => p.theme.breakpoints[2]}) {
     grid-column: 1/-1;
   }
 `;
