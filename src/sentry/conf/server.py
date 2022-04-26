@@ -2613,3 +2613,6 @@ DEVSERVER_LOGS_ALLOWLIST = None
 LOG_API_ACCESS = not IS_DEV or os.environ.get("SENTRY_LOG_API_ACCESS")
 
 VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = True
+
+# determines if we enable analytics or not
+ENABLE_ANALYTICS = False
