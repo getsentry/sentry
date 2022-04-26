@@ -2,6 +2,7 @@ import * as React from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
+import trimStart from 'lodash/trimStart';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import {Client} from 'sentry/api';
@@ -16,6 +17,7 @@ import {
 } from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {TableData, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {isEquation} from 'sentry/utils/discover/fields';
 import {
   DiscoverQueryRequestParams,
   doDiscoverQuery,
@@ -26,6 +28,7 @@ import {DEFAULT_TABLE_LIMIT, DisplayType, Widget, WidgetQuery} from '../types';
 import {
   eventViewFromWidget,
   getDashboardsMEPQueryParams,
+  getNumEquations,
   getWidgetInterval,
 } from '../utils';
 
@@ -447,6 +450,20 @@ class WidgetQueries extends React.Component<Props, State> {
           // y-axis and one query
           requestData.excludeOther =
             query.aggregates.length !== 1 || widget.queries.length !== 1;
+
+          if (isEquation(trimStart(query.orderby, '-'))) {
+            const nextEquationIndex = getNumEquations(query.aggregates);
+            const isDescending = query.orderby.startsWith('-');
+            const prefix = isDescending ? '-' : '';
+
+            // Construct the alias form of the equation and inject it into the request
+            requestData.orderby = `${prefix}equation[${nextEquationIndex}]`;
+            requestData.field = [
+              ...query.columns,
+              ...query.aggregates,
+              trimStart(query.orderby, '-'),
+            ];
+          }
         }
       }
       return doEventsRequest(api, requestData);

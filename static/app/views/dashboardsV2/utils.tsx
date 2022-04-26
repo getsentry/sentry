@@ -313,3 +313,7 @@ export function getDashboardsMEPQueryParams(isMEPEnabled: boolean) {
       }
     : {};
 }
+
+export function getNumEquations(possibleEquations: string[]) {
+  return possibleEquations.filter(isEquation).length;
+}

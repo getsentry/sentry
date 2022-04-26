@@ -192,4 +192,22 @@ describe('ArithmeticInput', function () {
     const option = wrapper.find('DropdownListItem');
     expect(option).toHaveLength(0);
   });
+
+  it('can hide Fields options', function () {
+    wrapper = mountWithTheme(
+      <ArithmeticInput
+        name="refinement"
+        type="text"
+        required
+        value=""
+        onUpdate={() => {}}
+        options={[]}
+        hideFieldOptions
+      />
+    );
+
+    const optionGroupHeaders = wrapper.find('header');
+    expect(optionGroupHeaders).toHaveLength(1);
+    expect(optionGroupHeaders.text()).toBe('Operators');
+  });
 });

@@ -5,6 +5,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import isEmpty from 'lodash/isEmpty';
 import omit from 'lodash/omit';
 import set from 'lodash/set';
+import trimStart from 'lodash/trimStart';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -36,8 +37,10 @@ import {
   getAggregateAlias,
   getColumnsAndAggregates,
   getColumnsAndAggregatesAsStrings,
+  isEquation,
   QueryFieldValue,
   stripDerivedMetricsPrefix,
+  stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
@@ -563,7 +566,7 @@ function WidgetBuilder({
 
     const newQueries = state.queries.map(query => {
       const isDescending = query.orderby.startsWith('-');
-      const orderbyAggregateAliasField = query.orderby.replace('-', '');
+      const orderbyAggregateAliasField = trimStart(query.orderby, '-');
       const prevAggregateAliasFieldStrings = query.aggregates.map(aggregate =>
         state.dataSet === DataSet.RELEASE
           ? stripDerivedMetricsPrefix(aggregate)
@@ -604,10 +607,14 @@ function WidgetBuilder({
       ) {
         if (prevAggregateAliasFieldStrings.length === newFields.length) {
           // The Field that was used in orderby has changed. Get the new field.
-          const newOrderByValue =
+          let newOrderByValue =
             aggregateAliasFieldStrings[
               prevAggregateAliasFieldStrings.indexOf(orderbyAggregateAliasField)
             ];
+
+          if (!stripEquationPrefix(newOrderByValue ?? '')) {
+            newOrderByValue = '';
+          }
 
           if (isDescending) {
             newQuery.orderby = `-${newOrderByValue}`;
@@ -615,7 +622,12 @@ function WidgetBuilder({
             newQuery.orderby = newOrderByValue;
           }
         } else {
-          newQuery.orderby = widgetBuilderNewDesign ? aggregateAliasFieldStrings[0] : '';
+          newQuery.orderby = widgetBuilderNewDesign
+            ? ((aggregateAliasFieldStrings.includes(orderbyAggregateAliasField) ||
+                isEquation(orderbyAggregateAliasField)) &&
+                newQuery.orderby) ||
+              `${isDescending ? '-' : ''}${aggregateAliasFieldStrings[0]}`
+            : '';
         }
       }
 
