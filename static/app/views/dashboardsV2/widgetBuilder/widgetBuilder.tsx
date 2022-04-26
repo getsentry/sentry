@@ -1143,25 +1143,19 @@ const Main = styled(Layout.Main)`
 const Side = styled(Layout.Side)`
   padding: ${space(4)} ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+    border-top: 1px solid ${p => p.theme.gray200};
+    grid-row: 2/2;
+    grid-column: 1/-1;
+    max-width: 100%;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
     border-left: 1px solid ${p => p.theme.gray200};
 
     /* to be consistent with Layout.Body in other verticals */
     padding-right: ${space(4)};
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints[3]}) {
-    border-top: 1px solid ${p => p.theme.gray200};
-    grid-row: 2/2;
-    grid-column: 1/-1;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
     max-width: 400px;
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints[3]}) {
-    max-width: 100%;
   }
 `;
 
@@ -1169,7 +1163,7 @@ const MainWrapper = styled('div')`
   display: flex;
   flex-direction: column;
 
-  @media (max-width: ${p => p.theme.breakpoints[3]}) {
+  @media (max-width: ${p => p.theme.breakpoints[2]}) {
     grid-column: 1/-1;
   }
 `;
