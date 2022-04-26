@@ -212,7 +212,7 @@ class Field(ABC):
 
     def accumulate(self, old_value: Scalar, new_value: Scalar) -> Scalar:
         """Combine two numbers for the same target.
-        Only needed by SumSessionField, default is the new value"""
+        Default is the new value"""
         return new_value
 
 
@@ -492,7 +492,7 @@ def _transform_single_condition(
             # HACK: metrics tags are never null. We should really
             # write our own parser for this.
             condition = replace(condition, lhs=Column("session.status"))
-        if condition.lhs == Column("session.status"):
+        elif condition.lhs == Column("session.status"):
             if condition.op == Op.EQ:
                 return None, _parse_session_status(condition.rhs)
             if condition.op == Op.NEQ:
