@@ -548,6 +548,7 @@ function WidgetBuilder({
     isColumn = false
   ) {
     const fieldStrings = newFields.map(generateFieldAsString);
+
     const aggregateAliasFieldStrings =
       state.dataSet === DataSet.RELEASE
         ? fieldStrings.map(stripDerivedMetricsPrefix)
@@ -559,6 +560,9 @@ function WidgetBuilder({
 
     const newState = cloneDeep(state);
 
+    const disableSortBy =
+      widgetType === WidgetType.METRICS && fieldStrings.includes('session.status');
+
     const newQueries = state.queries.map(query => {
       const isDescending = query.orderby.startsWith('-');
       const orderbyAggregateAliasField = trimStart(query.orderby, '-');
@@ -568,6 +572,10 @@ function WidgetBuilder({
           : getAggregateAlias(aggregate)
       );
       const newQuery = cloneDeep(query);
+
+      if (disableSortBy) {
+        newQuery.orderby = '';
+      }
 
       if (isColumn) {
         newQuery.fields = fieldStrings;

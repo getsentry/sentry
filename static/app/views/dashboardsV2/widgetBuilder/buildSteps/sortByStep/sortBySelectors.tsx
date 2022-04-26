@@ -26,14 +26,19 @@ interface Props {
   sortByOptions: SelectValue<string>[];
   values: Values;
   widgetType: WidgetType;
+  disabledReason?: string;
+  disabledSort?: boolean;
+  disabledSortDirection?: boolean;
   hasGroupBy?: boolean;
 }
 
 export function SortBySelectors({
   values,
   sortByOptions,
-  widgetType,
   onChange,
+  disabledReason,
+  disabledSort,
+  disabledSortDirection,
   hasGroupBy,
 }: Props) {
   const [showCustomEquation, setShowCustomEquation] = useState(false);
@@ -53,78 +58,84 @@ export function SortBySelectors({
   }, [values.sortBy]);
 
   return (
-    <Wrapper>
-      <Tooltip
-        title={
-          widgetType === WidgetType.ISSUE
-            ? t('Issues dataset does not yet support descending order')
-            : undefined
-        }
-        disabled={widgetType !== WidgetType.ISSUE}
-      >
-        <SelectControl
-          name="sortDirection"
-          menuPlacement="auto"
-          disabled={widgetType === WidgetType.ISSUE}
-          options={Object.keys(sortDirections).map(value => ({
-            label: sortDirections[value],
-            value,
-          }))}
-          value={values.sortDirection}
-          onChange={(option: SelectValue<SortDirection>) => {
-            onChange({
-              sortBy: values.sortBy,
-              sortDirection: option.value,
-            });
-          }}
-        />
-      </Tooltip>
-      <SelectControl
-        name="sortBy"
-        menuPlacement="auto"
-        placeholder={`${t('Select a column')}\u{2026}`}
-        value={showCustomEquation ? CUSTOM_EQUATION_VALUE : values.sortBy}
-        options={[
-          ...uniqBy(sortByOptions, ({value}) => value),
-          ...(hasGroupBy
-            ? [{value: CUSTOM_EQUATION_VALUE, label: t('Custom Equation')}]
-            : []),
-        ]}
-        onChange={(option: SelectValue<string>) => {
-          const isSortingByCustomEquation = option.value === CUSTOM_EQUATION_VALUE;
-          setShowCustomEquation(isSortingByCustomEquation);
-          if (isSortingByCustomEquation) {
-            onChange(customEquation);
-            return;
-          }
-
-          onChange({
-            sortBy: option.value,
-            sortDirection: values.sortDirection,
-          });
-        }}
-      />
-      {showCustomEquation && (
-        <ArithmeticInputWrapper>
-          <ArithmeticInput
-            name="arithmetic"
-            type="text"
-            required
-            placeholder={t('Enter Equation')}
-            value={getEquation(customEquation.sortBy)}
-            onUpdate={value => {
-              const newValue = {
-                sortBy: `${EQUATION_PREFIX}${value}`,
-                sortDirection: values.sortDirection,
-              };
-              onChange(newValue);
-              setCustomEquation(newValue);
+    <Tooltip title={disabledReason} disabled={!(disabledSortDirection && disabledSort)}>
+      <Wrapper>
+        <Tooltip
+          title={disabledReason}
+          disabled={!disabledSortDirection || (disabledSortDirection && disabledSort)}
+        >
+          <SelectControl
+            name="sortDirection"
+            aria-label="Sort direction"
+            menuPlacement="auto"
+            disabled={disabledSortDirection}
+            options={Object.keys(sortDirections).map(value => ({
+              label: sortDirections[value],
+              value,
+            }))}
+            value={values.sortDirection}
+            onChange={(option: SelectValue<SortDirection>) => {
+              onChange({
+                sortBy: values.sortBy,
+                sortDirection: option.value,
+              });
             }}
-            hideFieldOptions
           />
-        </ArithmeticInputWrapper>
-      )}
-    </Wrapper>
+        </Tooltip>
+        <Tooltip
+          title={disabledReason}
+          disabled={!disabledSort || (disabledSortDirection && disabledSort)}
+        >
+          <SelectControl
+            name="sortBy"
+            aria-label="Sort by"
+            menuPlacement="auto"
+            disabled={disabledSort}
+            placeholder={`${t('Select a column')}\u{2026}`}
+            value={showCustomEquation ? CUSTOM_EQUATION_VALUE : values.sortBy}
+            options={[
+              ...uniqBy(sortByOptions, ({value}) => value),
+              ...(hasGroupBy
+                ? [{value: CUSTOM_EQUATION_VALUE, label: t('Custom Equation')}]
+                : []),
+            ]}
+            onChange={(option: SelectValue<string>) => {
+              const isSortingByCustomEquation = option.value === CUSTOM_EQUATION_VALUE;
+              setShowCustomEquation(isSortingByCustomEquation);
+              if (isSortingByCustomEquation) {
+                onChange(customEquation);
+                return;
+              }
+
+              onChange({
+                sortBy: option.value,
+                sortDirection: values.sortDirection,
+              });
+            }}
+          />
+        </Tooltip>
+        {showCustomEquation && (
+          <ArithmeticInputWrapper>
+            <ArithmeticInput
+              name="arithmetic"
+              type="text"
+              required
+              placeholder={t('Enter Equation')}
+              value={getEquation(customEquation.sortBy)}
+              onUpdate={value => {
+                const newValue = {
+                  sortBy: `${EQUATION_PREFIX}${value}`,
+                  sortDirection: values.sortDirection,
+                };
+                onChange(newValue);
+                setCustomEquation(newValue);
+              }}
+              hideFieldOptions
+            />
+          </ArithmeticInputWrapper>
+        )}
+      </Wrapper>
+    </Tooltip>
   );
 }
 

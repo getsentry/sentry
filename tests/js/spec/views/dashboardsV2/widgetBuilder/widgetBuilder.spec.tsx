@@ -2213,6 +2213,27 @@ describe('WidgetBuilder', function () {
       expect(screen.queryByText('session.status')).not.toBeInTheDocument();
     });
 
+    it('does not allow sort by when session.status is selected', async function () {
+      renderTestComponent({
+        orgFeatures: releaseHealthFeatureFlags,
+      });
+
+      expect(
+        await screen.findByText('Releases (sessions, crash rates)')
+      ).toBeInTheDocument();
+
+      userEvent.click(screen.getByLabelText(/releases/i));
+
+      expect(screen.getByText('High to low')).toBeEnabled();
+      expect(screen.getByText('sum(session)')).toBeInTheDocument();
+
+      userEvent.click(screen.getByLabelText('Add a Column'));
+      await selectEvent.select(screen.getByText('(Required)'), 'session.status');
+
+      expect(screen.getByRole('textbox', {name: 'Sort direction'})).toBeDisabled();
+      expect(screen.getByRole('textbox', {name: 'Sort by'})).toBeDisabled();
+    });
+
     it('makes the appropriate sessions call', async function () {
       renderTestComponent({
         orgFeatures: releaseHealthFeatureFlags,
