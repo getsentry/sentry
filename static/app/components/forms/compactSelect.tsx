@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import {components as selectComponents} from 'react-select';
 import styled from '@emotion/styled';
 import {useButton} from '@react-aria/button';
@@ -10,7 +10,7 @@ import {
   useOverlay,
   useOverlayPosition,
 } from '@react-aria/overlays';
-import {mergeProps} from '@react-aria/utils';
+import {mergeProps, useResizeObserver} from '@react-aria/utils';
 import {useMenuTriggerState} from '@react-stately/menu';
 
 import Badge from 'sentry/components/badge';
@@ -178,41 +178,51 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
   // Keep an internal copy of the current select value and update the control
   // button's label when the value changes
   const [internalValue, setInternalValue] = useState(valueProp ?? defaultValue);
-  const [label, setLabel] = useState(getLabel(valueProp ?? null));
 
   // Update the button label when the value changes
-  function getLabel(newValue): React.ReactNode {
+  const getLabel = useCallback((): React.ReactNode => {
+    const newValue = valueProp ?? internalValue;
     const valueSet = Array.isArray(newValue) ? newValue : [newValue];
-    const optionSet = valueSet
+    const selectedOptions = valueSet
       .map(val => getSelectedOptions<OptionType>(options, val))
       .flat();
-    const firstOptionLabel = optionSet[0]?.label ?? '';
 
     return (
       <Fragment>
-        <ButtonLabel>{firstOptionLabel}</ButtonLabel>
-        {optionSet.length > 1 && <StyledBadge text={`+${optionSet.length - 1}`} />}
+        <ButtonLabel>{selectedOptions[0]?.label ?? ''}</ButtonLabel>
+        {selectedOptions.length > 1 && (
+          <StyledBadge text={`+${selectedOptions.length - 1}`} />
+        )}
       </Fragment>
     );
-  }
+  }, [options, valueProp, internalValue]);
 
+  const [label, setLabel] = useState<React.ReactNode>(null);
   useEffect(() => {
-    const newValue = valueProp ?? internalValue;
-    const newLabel = getLabel(newValue);
-    setLabel(newLabel);
-  }, [valueProp ?? internalValue, options]);
+    setLabel(getLabel());
+  }, [getLabel]);
 
-  // Calculate & update the trigger button's width, to be used as the
-  // overlay's min-width
+  // Calculate the current trigger element's width. This will be used as
+  // the min width for the menu.
   const [triggerWidth, setTriggerWidth] = useState<number>();
+  // Update triggerWidth when its size changes using useResizeObserver
+  const updateTriggerWidth = useCallback(async () => {
+    // Wait until the trigger element finishes rendering, otherwise
+    // ResizeObserver might throw an infinite loop error.
+    await new Promise(resolve => window.setTimeout(resolve));
+
+    const newTriggerWidth = triggerRef.current?.offsetWidth;
+    newTriggerWidth && setTriggerWidth(newTriggerWidth);
+  }, [triggerRef]);
+  useResizeObserver({ref: triggerRef, onResize: updateTriggerWidth});
+  // If ResizeObserver is not available, manually update the width
+  // when any of [trigger, triggerLabel, triggerProps] changes.
   useEffect(() => {
-    // Wait until the trigger label has been updated before calculating the
-    // new width
-    setTimeout(() => {
-      const newTriggerWidth = triggerRef.current?.offsetWidth;
-      newTriggerWidth ?? setTriggerWidth(newTriggerWidth);
-    }, 0);
-  }, [triggerRef.current, internalValue]);
+    if (typeof window.ResizeObserver !== 'undefined') {
+      return;
+    }
+    updateTriggerWidth();
+  }, [updateTriggerWidth]);
 
   function onValueChange(option) {
     const newValue = Array.isArray(option) ? option.map(opt => opt.value) : option?.value;
