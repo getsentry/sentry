@@ -923,6 +923,20 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert result_sorted(response.data)["groups"] == []
 
+    @freeze_time(MOCK_DATETIME)
+    def test_mix_known_and_unknown_strings(self):
+        for query_string in ("environment:[production,foo]",):
+            response = self.do_request(
+                {
+                    "project": self.project.id,  # project without users
+                    "statsPeriod": "1d",
+                    "interval": "1d",
+                    "field": ["count_unique(user)", "sum(session)"],
+                    "query": query_string,
+                }
+            )
+            assert response.status_code == 200, response.data
+
 
 @patch("sentry.api.endpoints.organization_sessions.release_health", MetricsReleaseHealthBackend())
 class OrganizationSessionsEndpointMetricsTest(
@@ -1043,7 +1057,6 @@ class OrganizationSessionsEndpointMetricsTest(
                 "series": {"sum(session)": [0, 2], "p95(session.duration)": [None, 79400.0]},
             },
         ]
-        print(response.data)
 
         # Not using `result_sorted` here, because we want to verify the order
         assert response.status_code == 200, response.data
