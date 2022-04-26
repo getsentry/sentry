@@ -1458,5 +1458,5 @@ def get_filtered_actions(
         rewrite_trigger_action_fields(action)
         for trigger in validated_alert_rule_data.get("triggers", [])
         for action in trigger.get("actions", [])
-        if STRING_TO_ACTION_TYPE[action["type"]] == action_type
+        if STRING_TO_ACTION_TYPE.get(action.get("type")) == action_type
     ]
