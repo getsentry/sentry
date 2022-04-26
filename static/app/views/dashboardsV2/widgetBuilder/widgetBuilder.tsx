@@ -946,9 +946,10 @@ function WidgetBuilder({
     ? fields.map((field, index) => explodeField({field, alias: fieldAliases[index]}))
     : [...explodedColumns, ...explodedAggregates];
 
-  const groupByValueSelected = currentWidget.queries.some(
-    query => query.columns.length > 0
-  );
+  const groupByValueSelected = currentWidget.queries.some(query => {
+    const noEmptyColumns = query.columns.filter(column => !!column);
+    return noEmptyColumns.length > 0;
+  });
 
   // The SortBy field shall only be displayed in tabular visualizations or
   // on time-series visualizations when at least one groupBy value is selected

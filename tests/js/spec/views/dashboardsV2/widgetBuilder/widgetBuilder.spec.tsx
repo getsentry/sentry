@@ -1590,17 +1590,21 @@ describe('WidgetBuilder', function () {
       // Time-series visualizations display GroupBy step
       expect(await screen.findByText('Group your results')).toBeInTheDocument();
 
+      // Do not show sortBy when empty columns (groupBys) are added
+      userEvent.click(screen.getByText('Add Group'));
+      expect(screen.getAllByText('Select group')).toHaveLength(2);
+
       // SortBy step shall not be visible
       expect(screen.queryByText('Sort by a y-axis')).not.toBeInTheDocument();
 
       // Select GroupBy value
-      await selectEvent.select(await screen.findByText('Select group'), 'project');
+      await selectEvent.select(screen.getAllByText('Select group')[0], 'project');
 
       // Now that at least one groupBy value is selected, the SortBy step shall be visible
       expect(screen.getByText('Sort by a y-axis')).toBeInTheDocument();
 
-      // Remove GroupBy value
-      userEvent.click(screen.getByLabelText('Remove group'));
+      // Remove selected GroupBy value
+      userEvent.click(screen.getAllByLabelText('Remove group')[0]);
 
       // SortBy step shall no longer be visible
       expect(screen.queryByText('Sort by a y-axis')).not.toBeInTheDocument();
