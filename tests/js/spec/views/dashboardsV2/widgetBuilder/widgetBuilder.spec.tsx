@@ -1636,6 +1636,33 @@ describe('WidgetBuilder', function () {
       );
     });
 
+    it('persists the state when updating y-axes', async function () {
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        query: {
+          source: DashboardWidgetSource.DASHBOARDS,
+          displayType: DisplayType.LINE,
+        },
+      });
+
+      await selectEvent.select(await screen.findByText('Select group'), 'project');
+      expect(screen.getAllByText('count()')).toHaveLength(2);
+      await selectEvent.select(screen.getAllByText('count()')[1], 'Custom Equation');
+      userEvent.paste(
+        screen.getByPlaceholderText('Enter Equation'),
+        'count_unique(user) * 2'
+      );
+      userEvent.keyboard('{enter}');
+
+      // Add a y-axis
+      userEvent.click(screen.getByText('Add Overlay'));
+
+      // The equation should still be visible
+      expect(screen.getByPlaceholderText('Enter Equation')).toHaveValue(
+        'count_unique(user) * 2'
+      );
+    });
+
     it('displays the custom equation if the widget has it saved', async function () {
       const widget: Widget = {
         id: '1',
