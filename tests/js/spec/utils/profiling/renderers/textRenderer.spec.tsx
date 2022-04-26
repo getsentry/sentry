@@ -5,7 +5,7 @@ import {LightFlamegraphTheme as Theme} from 'sentry/utils/profiling/flamegraph/f
 import {Rect, trimTextCenter} from 'sentry/utils/profiling/gl/utils';
 import {EventedProfile} from 'sentry/utils/profiling/profile/eventedProfile';
 import {createFrameIndex} from 'sentry/utils/profiling/profile/utils';
-import {isOutsideView, TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
+import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
 
 const makeBaseFlamegraph = (): Flamegraph => {
   const profile = EventedProfile.FromProfile(
@@ -29,20 +29,6 @@ const makeBaseFlamegraph = (): Flamegraph => {
 };
 
 describe('TextRenderer', () => {
-  it('skips drawing if the text is outside the view', () => {
-    const view = new Rect(0, 0, 1, 1);
-
-    const frameLeftOutsideOfView = new Rect(-1.1, 0, 1, 1);
-    const frameRightOutsideOfView = new Rect(1, 1.1, 1, 1);
-    const frameAboveView = new Rect(0, -1.1, 1, 1);
-    const frameBelowView = new Rect(0, 1.1, 1, 1);
-
-    expect(isOutsideView(frameLeftOutsideOfView, view)).toBe(true);
-    expect(isOutsideView(frameRightOutsideOfView, view)).toBe(true);
-    expect(isOutsideView(frameAboveView, view)).toBe(true);
-    expect(isOutsideView(frameBelowView, view)).toBe(true);
-  });
-
   it('invalidates cache if cached measurements do not match new measurements', () => {
     const context: Partial<CanvasRenderingContext2D> = {
       measureText: jest

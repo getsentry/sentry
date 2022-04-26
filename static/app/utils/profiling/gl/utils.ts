@@ -289,32 +289,11 @@ export class Rect {
   // When we transform rectangles with a 3x3 matrix, we scale width with m00 and height with m11, then translate
   // the origin of the rect separately with m02 and m12.
   transformRect(transform: mat3): Rect {
-    const configSpaceOrigin = vec2.fromValues(this.x, this.y);
-    const configSpaceSize = vec2.fromValues(this.width, this.height);
-
-    // prettier-ignore
-    const [
-      m00, m01, _m02,
-      m10, m11, _m12,
-      m20, m21, _m22
-    ] = transform
-
-    // prettier-ignore
-    const newConfigSpaceSize = [
-      configSpaceSize[0] * m00 + configSpaceSize[1] * m01, // X
-      configSpaceSize[0] * m10 + configSpaceSize[1] * m11  // Y
-    ]
-    // prettier-ignore
-    const newConfigSpaceOrigin = [
-      configSpaceOrigin[0] * m00 + configSpaceOrigin[1] * m01 + m20, // X
-      configSpaceOrigin[0] * m10 + configSpaceOrigin[1] * m11 + m21  // Y
-    ]
-
     return new Rect(
-      newConfigSpaceOrigin[0],
-      newConfigSpaceOrigin[1],
-      newConfigSpaceSize[0],
-      newConfigSpaceSize[1]
+      this.x * transform[0] + this.y * transform[1] + transform[6],
+      this.x * transform[1] + this.y * transform[4] + transform[7],
+      this.width * transform[0] + this.height * transform[1],
+      this.width * transform[3] + this.height * transform[4]
     );
   }
 
