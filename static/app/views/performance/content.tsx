@@ -76,13 +76,13 @@ function PerformanceContent({selection, location, demoMode}: Props) {
     return undefined;
   }
 
-  const onBoardingProject = getOnboardingProject();
+  const onboardingProject = getOnboardingProject();
 
   useEffect(() => {
     if (!mounted.current) {
       trackAdvancedAnalyticsEvent('performance_views.overview.view', {
         organization,
-        show_onboarding: onBoardingProject !== undefined,
+        show_onboarding: onboardingProject !== undefined,
       });
       loadOrganizationTags(api, organization.slug, selection);
       addRoutePerformanceContext(selection);
@@ -143,7 +143,7 @@ function PerformanceContent({selection, location, demoMode}: Props) {
               setError={setError}
               handleSearch={handleSearch}
               handleTrendsClick={() => handleTrendsClick({location, organization})}
-              onBoardingProject={onBoardingProject}
+              onboardingProject={onboardingProject}
               organization={organization}
               location={location}
               projects={projects}

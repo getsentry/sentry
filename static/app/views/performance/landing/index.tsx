@@ -55,7 +55,7 @@ type Props = {
   handleSearch: (searchQuery: string) => void;
   handleTrendsClick: () => void;
   location: Location;
-  onBoardingProject: Project | undefined;
+  onboardingProject: Project | undefined;
   organization: Organization;
   projects: Project[];
   selection: PageFilters;
@@ -78,7 +78,7 @@ export function PerformanceLanding(props: Props) {
     projects,
     handleSearch,
     handleTrendsClick,
-    onBoardingProject,
+    onboardingProject,
   } = props;
 
   const {teams, initiallyLoaded} = useTeams({provideUserTeams: true});
@@ -90,7 +90,7 @@ export function PerformanceLanding(props: Props) {
     eventView
   );
   const landingDisplay = paramLandingDisplay ?? defaultLandingDisplayForProjects;
-  const showOnboarding = onBoardingProject !== undefined;
+  const showOnboarding = onboardingProject !== undefined;
 
   useEffect(() => {
     if (hasMounted.current) {
@@ -200,7 +200,7 @@ export function PerformanceLanding(props: Props) {
             {showOnboarding ? (
               <Fragment>
                 {pageFilters}
-                <Onboarding organization={organization} project={onBoardingProject} />
+                <Onboarding organization={organization} project={onboardingProject} />
               </Fragment>
             ) : (
               <Fragment>
