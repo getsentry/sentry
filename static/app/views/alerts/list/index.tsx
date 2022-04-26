@@ -52,15 +52,18 @@ type State = {
 class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state']> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {params, location} = this.props;
-    const {query} = location;
+    const {query: queryParams} = location;
 
-    const status = getQueryStatus(query.status);
-    // Filtering by one status, both does nothing
-    if (status.length === 1) {
+    const query = {...queryParams};
+    const status = getQueryStatus(queryParams.status);
+    // Filtering by all does nothing
+    if (status !== 'all') {
       query.status = status;
+    } else {
+      query.status = undefined;
     }
 
-    query.team = getTeamParams(query.team);
+    query.team = getTeamParams(queryParams.team);
     query.expand = ['original_alert_rule'];
 
     return [['incidentList', `/organizations/${params?.orgId}/incidents/`, {query}]];
@@ -139,27 +142,31 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     });
   };
 
-  handleChangeFilter = (sectionId: string, activeFilters: Set<string>) => {
+  handleChangeFilter = (activeFilters: Set<string>) => {
     const {router, location} = this.props;
     const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
 
-    let team = currentQuery.team;
-    if (sectionId === 'teams') {
-      team = activeFilters.size ? [...activeFilters] : '';
-    }
-
-    let status = currentQuery.status;
-    if (sectionId === 'status') {
-      status = activeFilters.size ? [...activeFilters] : '';
-    }
+    const team = activeFilters.size ? [...activeFilters] : '';
 
     router.push({
       pathname: location.pathname,
       query: {
         ...currentQuery,
-        status,
         // Preserve empty team query parameter
         team: team.length === 0 ? '' : team,
+      },
+    });
+  };
+
+  handleChangeStatus = (value: string): void => {
+    const {router, location} = this.props;
+    const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
+
+    router.push({
+      pathname: location.pathname,
+      query: {
+        ...currentQuery,
+        status: value === 'all' ? undefined : value,
       },
     });
   };
@@ -279,6 +286,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
                     location={location}
                     onChangeFilter={this.handleChangeFilter}
                     onChangeSearch={this.handleChangeSearch}
+                    onChangeStatus={this.handleChangeStatus}
                     hasStatusFilters
                   />
                 </Fragment>

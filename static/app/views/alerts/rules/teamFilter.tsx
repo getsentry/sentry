@@ -12,11 +12,10 @@ import useTeams from 'sentry/utils/useTeams';
 
 import Filter from './filter';
 
-type Props = {
-  handleChangeFilter: (sectionId: string, activeFilters: Set<string>) => void;
+interface Props {
+  handleChangeFilter: (activeFilters: Set<string>) => void;
   selectedTeams: Set<string>;
   fullWidth?: boolean;
-  selectedStatus?: Set<string>;
   /**
    * only show teams user is a member of
    */
@@ -29,13 +28,10 @@ type Props = {
    * show My Teams as the default dropdown description
    */
   showMyTeamsDescription?: boolean;
-  showStatus?: boolean;
-};
+}
 
 function TeamFilter({
   selectedTeams,
-  showStatus = false,
-  selectedStatus = new Set(),
   handleChangeFilter,
   fullWidth = false,
   showIsMemberTeams = false,
@@ -46,21 +42,6 @@ function TeamFilter({
   const debouncedSearch = debounce(onSearch, DEFAULT_DEBOUNCE_DURATION);
   const [teamFilterSearch, setTeamFilterSearch] = useState<string | undefined>();
   const isSuperuser = isActiveSuperuser();
-
-  const statusOptions = [
-    {
-      label: t('Unresolved'),
-      value: 'open',
-      checked: selectedStatus.has('open'),
-      filtered: false,
-    },
-    {
-      label: t('Resolved'),
-      value: 'closed',
-      checked: selectedStatus.has('closed'),
-      filtered: false,
-    },
-  ];
 
   const additionalOptions = [
     {
@@ -111,24 +92,9 @@ function TeamFilter({
         </InputWrapper>
       }
       onFilterChange={handleChangeFilter}
-      dropdownSections={[
-        ...(showStatus
-          ? [
-              {
-                id: 'status',
-                label: t('Status'),
-                items: statusOptions,
-              },
-            ]
-          : []),
-        {
-          id: 'teams',
-          label: t('Teams'),
-          items: showMyTeamsAndUnassigned
-            ? [...additionalOptions, ...teamItems]
-            : [...teamItems],
-        },
-      ]}
+      items={
+        showMyTeamsAndUnassigned ? [...additionalOptions, ...teamItems] : [...teamItems]
+      }
     />
   );
 }
