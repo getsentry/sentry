@@ -25,7 +25,7 @@ function SelectOption(props: Props) {
 
   return (
     <selectComponents.Option className="select-option" {...props}>
-      <Tooltip containerDisplayMode="block" title={tooltip} {...tooltipOptions}>
+      <Tooltip skipWrapper title={tooltip} {...tooltipOptions}>
         <InnerWrap isFocused={isFocused} isDisabled={isDisabled} data-test-id={value}>
           <Indent isMulti={isMulti} centerCheckWrap={verticallyCenterCheckWrap}>
             <CheckWrap isMulti={isMulti} isSelected={isSelected}>
