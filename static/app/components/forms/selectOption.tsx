@@ -16,7 +16,7 @@ function SelectOption(props: Props) {
     value,
     details,
     tooltip,
-    tooltipDelay,
+    tooltipOptions = {delay: 500},
     leadingItems,
     trailingItems,
     leadingItemsSpanFullHeight,
@@ -25,7 +25,7 @@ function SelectOption(props: Props) {
 
   return (
     <selectComponents.Option className="select-option" {...props}>
-      <Tooltip containerDisplayMode="block" title={tooltip} delay={tooltipDelay ?? 500}>
+      <Tooltip containerDisplayMode="block" title={tooltip} {...tooltipOptions}>
         <InnerWrap isFocused={isFocused} isDisabled={isDisabled} data-test-id={value}>
           <Indent isMulti={isMulti} centerCheckWrap={verticallyCenterCheckWrap}>
             <CheckWrap isMulti={isMulti} isSelected={isSelected}>
