@@ -8,7 +8,10 @@ from snuba_sdk import Column, Condition, Function, Op
 
 from sentry.release_health.duplex import compare_results
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
-from sentry.release_health.metrics_sessions_v2 import SessionStatus, _transform_conditions
+from sentry.release_health.metrics_sessions_v2 import (
+    SessionStatus,
+    _extract_status_filter_from_conditions,
+)
 from sentry.release_health.sessions import SessionsReleaseHealthBackend
 from sentry.snuba.sessions_v2 import InvalidParams
 from sentry.testutils.cases import APITestCase, SnubaTestCase
@@ -137,14 +140,14 @@ def _session_groupby_powerset() -> Iterable[str]:
     ],
 )
 def test_transform_conditions(input, expected_output, expected_status_filter):
-    output, status_filter = _transform_conditions(input)
+    output, status_filter = _extract_status_filter_from_conditions(input)
     assert output == expected_output
     assert status_filter == expected_status_filter
 
 
 @pytest.mark.parametrize("input", [[Condition(Column("release"), Op.EQ, "foo")]])
 def test_transform_conditions_nochange(input):
-    output, status_filter = _transform_conditions(input)
+    output, status_filter = _extract_status_filter_from_conditions(input)
     assert input == output
     assert status_filter is None
 
@@ -168,4 +171,4 @@ def test_transform_conditions_nochange(input):
     ],
 )
 def test_transform_conditions_illegal(input):
-    pytest.raises(InvalidParams, _transform_conditions, input)
+    pytest.raises(InvalidParams, _extract_status_filter_from_conditions, input)
