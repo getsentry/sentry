@@ -13,7 +13,7 @@ on:
 jobs:
   visual-diff:
     # Only execute this check when a PR is opened from a fork rather than the upstream repo & master pushes
-    if: github.event.workflow_run.head_repository.full_name != 'getsentry/sentry' || github.ref == 'refs/heads/master'
+    if: github.event.workflow_run.head_repository.full_name != 'getsentry/sentry' || github.event.workflow_run.head_branch == 'master'
     runs-on: ubuntu-20.04
     timeout-minutes: 20
 
