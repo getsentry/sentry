@@ -941,8 +941,8 @@ function WidgetBuilder({
     query => query.columns.length > 0
   );
 
-  // The SortBy field shall only be displayed in tabular visualizations and
-  // when at least one groupBy value is selected on time-series visualizations
+  // The SortBy field shall only be displayed in tabular visualizations or
+  // on time-series visualizations when at least one groupBy value is selected
   const displaySortByStep =
     (widgetBuilderNewDesign && isTimeseriesChart && groupByValueSelected) ||
     isTabularChart;
