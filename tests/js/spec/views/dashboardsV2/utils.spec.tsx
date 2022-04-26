@@ -5,7 +5,7 @@ import {
   flattenErrors,
   getDashboardsMEPQueryParams,
   getFieldsFromEquations,
-  getNextEquationIndex,
+  getNumEquations,
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
 } from 'sentry/views/dashboardsV2/utils';
@@ -265,14 +265,14 @@ describe('Dashboards util', () => {
     });
   });
 
-  describe('getNextEquationIndex', function () {
+  describe('getNumEquations', function () {
     it('returns 0 if there are no equations', function () {
-      expect(getNextEquationIndex(['count()', 'epm()', 'count_unique(user)'])).toBe(0);
+      expect(getNumEquations(['count()', 'epm()', 'count_unique(user)'])).toBe(0);
     });
 
     it('returns the count of equations if there are multiple', function () {
       expect(
-        getNextEquationIndex([
+        getNumEquations([
           'count()',
           'equation|count_unique(user) * 2',
           'count_unique(user)',
@@ -282,7 +282,7 @@ describe('Dashboards util', () => {
     });
 
     it('returns 0 if the possible equations array is empty', function () {
-      expect(getNextEquationIndex([])).toBe(0);
+      expect(getNumEquations([])).toBe(0);
     });
   });
 });

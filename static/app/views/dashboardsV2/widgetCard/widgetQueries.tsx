@@ -28,7 +28,7 @@ import {DEFAULT_TABLE_LIMIT, DisplayType, Widget, WidgetQuery} from '../types';
 import {
   eventViewFromWidget,
   getDashboardsMEPQueryParams,
-  getNextEquationIndex,
+  getNumEquations,
   getWidgetInterval,
 } from '../utils';
 
@@ -452,7 +452,7 @@ class WidgetQueries extends React.Component<Props, State> {
             query.aggregates.length !== 1 || widget.queries.length !== 1;
 
           if (isEquation(trimStart(query.orderby, '-'))) {
-            const nextEquationIndex = getNextEquationIndex(query.aggregates);
+            const nextEquationIndex = getNumEquations(query.aggregates);
             const isDescending = query.orderby.startsWith('-');
             const prefix = isDescending ? '-' : '';
 

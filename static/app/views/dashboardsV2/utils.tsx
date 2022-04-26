@@ -314,6 +314,6 @@ export function getDashboardsMEPQueryParams(isMEPEnabled: boolean) {
     : {};
 }
 
-export function getNextEquationIndex(possibleEquations: string[]) {
+export function getNumEquations(possibleEquations: string[]) {
   return possibleEquations.filter(isEquation).length;
 }
