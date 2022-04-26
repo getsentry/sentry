@@ -1759,6 +1759,22 @@ describe('WidgetBuilder', function () {
         );
       });
     });
+
+    it('does not show the Custom Equation input if the only y-axis left is an empty equation', async function () {
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        query: {
+          source: DashboardWidgetSource.DASHBOARDS,
+          displayType: DisplayType.LINE,
+        },
+      });
+
+      await selectEvent.select(await screen.findByText('Select group'), 'project');
+      userEvent.click(screen.getByText('Add an Equation'));
+      userEvent.click(screen.getAllByLabelText('Remove this Y-Axis')[0]);
+
+      expect(screen.queryByPlaceholderText('Enter Equation')).not.toBeInTheDocument();
+    });
   });
 
   describe('Widget creation coming from other verticals', function () {

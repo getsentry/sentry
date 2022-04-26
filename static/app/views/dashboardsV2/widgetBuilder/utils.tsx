@@ -341,6 +341,10 @@ export function filterPrimaryOptions({
 }
 
 export function getResultsLimit(numQueries, numYAxes) {
+  if (numQueries === 0 || numYAxes === 0) {
+    return DEFAULT_RESULTS_LIMIT;
+  }
+
   return Math.floor(RESULTS_LIMIT / (numQueries * numYAxes));
 }
 

@@ -39,6 +39,7 @@ import {
   isEquation,
   QueryFieldValue,
   stripDerivedMetricsPrefix,
+  stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
@@ -597,10 +598,14 @@ function WidgetBuilder({
       ) {
         if (prevAggregateAliasFieldStrings.length === newFields.length) {
           // The Field that was used in orderby has changed. Get the new field.
-          const newOrderByValue =
+          let newOrderByValue =
             aggregateAliasFieldStrings[
               prevAggregateAliasFieldStrings.indexOf(orderbyAggregateAliasField)
             ];
+
+          if (!stripEquationPrefix(newOrderByValue ?? '')) {
+            newOrderByValue = '';
+          }
 
           if (isDescending) {
             newQuery.orderby = `-${newOrderByValue}`;
