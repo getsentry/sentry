@@ -224,15 +224,7 @@ class AuthIndexEndpoint(Endpoint):
             )
 
         if request.user.is_superuser and request.data.get("isSuperuserModal"):
-            metrics.incr(
-                "superuser_modal.attempt",
-                sample_rate=1.0,
-            )
             request.superuser.set_logged_in(request.user)
-            metrics.incr(
-                "superuser_modal.success",
-                sample_rate=1.0,
-            )
 
         request.user = request._request.user
 

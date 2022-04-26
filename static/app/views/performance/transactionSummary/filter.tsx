@@ -147,8 +147,6 @@ const FilterLabel = styled('span')`
 const Wrapper = styled('div')`
   position: relative;
   display: flex;
-
-  margin-right: ${space(1)};
 `;
 
 const StyledDropdownButton = styled(DropdownButton)<{hasDarkBorderBottomColor?: boolean}>`
