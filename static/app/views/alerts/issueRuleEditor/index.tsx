@@ -178,7 +178,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       params: {ruleId, orgId},
     } = this.props;
     // project in state isn't initialized when getEndpoints is first called
-    const project = this.state.project ?? this.props.project;
+    const project = this.state?.project ?? this.props.project;
 
     const endpoints = [
       ['environments', `/projects/${orgId}/${project.slug}/environments/`],
