@@ -2,6 +2,7 @@ import bisect
 import functools
 import math
 from datetime import datetime
+from urllib.parse import quote, unquote
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import connections
@@ -579,12 +580,15 @@ class CombinedQuerysetPaginator:
         return self.model_key_map.get(type(item))[0]
 
     def _prep_value(self, item, key, for_prev):
+        """
+        Formats values for use in the cursor
+        """
         value = getattr(item, key)
         value_type = type(value)
         if isinstance(value, float):
             return math.floor(value) if self._is_asc(for_prev) else math.ceil(value)
         elif value_type is str and self.case_insensitive:
-            return value.lower()
+            return quote(value.lower())
         return value
 
     def get_item_key(self, item, for_prev=False):
@@ -604,6 +608,8 @@ class CombinedQuerysetPaginator:
             value = cursor.value
             if isinstance(value, float):
                 return math.floor(value) if self._is_asc(cursor.is_prev) else math.ceil(value)
+            if isinstance(value, str):
+                return unquote(value)
             return value
 
     def _is_asc(self, is_prev):

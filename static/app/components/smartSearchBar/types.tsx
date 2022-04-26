@@ -23,6 +23,7 @@ export type SearchItem = {
   value: string;
   active?: boolean;
   children?: React.ReactNode[];
+  documentation?: React.ReactNode;
   ignoreMaxSearchItems?: boolean;
   title?: string;
   type?: ItemType;

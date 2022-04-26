@@ -35,6 +35,7 @@ urlpatterns = [
 
 @override_settings(ROOT_URLCONF="tests.sentry.ratelimits.utils.test_enforce_rate_limit")
 class EnforceRateLimitTest(APITestCase):
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_enforced_rate_limit(self):
         """Endpoints with enforce_rate_limit enabled should result in 429s"""
         self.endpoint = "enforced-endpoint"

@@ -20,7 +20,9 @@ import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import getUrlPathname from 'sentry/utils/getUrlPathname';
+import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
+import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -41,10 +43,13 @@ const getQueryParamAsString = query => {
   return Array.isArray(query) ? query.join(' ') : query;
 };
 
+const columns = [t('Session'), t('Project')];
+
 function Replays(props: Props) {
   const location = useLocation();
   const organization = useOrganization();
   const {projects} = useProjects();
+  const isScreenLarge = useMedia(`(min-width: ${theme.breakpoints[0]})`);
 
   const [searchQuery, setSearchQuery] = useState<string>(
     getQueryParamAsString(location.query.query)
@@ -88,38 +93,44 @@ function Replays(props: Props) {
   const renderTable = (replayList: Array<Replay>) => {
     return replayList?.map(replay => (
       <Fragment key={replay.id}>
-        <Link
-          to={`/organizations/${organization.slug}/replays/${generateEventSlug({
-            project: replay.project,
-            id: replay.id,
-          })}/`}
-        >
-          <ReplayUserBadge
-            avatarSize={32}
-            displayName={replay['user.display']}
-            user={{
-              username: replay['user.display'],
-              id: replay['user.display'],
-              ip_address: replay['user.display'],
-              name: replay['user.display'],
-              email: replay['user.display'],
-            }}
-            // this is the subheading for the avatar, so displayEmail in this case is a misnomer
-            displayEmail={getUrlPathname(replay.url) ?? ''}
-          />
-        </Link>
-        <ProjectBadge
-          project={
-            projects.find(p => p.slug === replay.project) || {slug: replay.project}
+        <ReplayUserBadge
+          avatarSize={32}
+          displayName={
+            <Link
+              to={`/organizations/${organization.slug}/replays/${generateEventSlug({
+                project: replay.project,
+                id: replay.id,
+              })}/`}
+            >
+              {replay['user.display']}
+            </Link>
           }
-          avatarSize={16}
+          user={{
+            username: replay['user.display'],
+            id: replay['user.display'],
+            ip_address: replay['user.display'],
+            name: replay['user.display'],
+            email: replay['user.display'],
+          }}
+          // this is the subheading for the avatar, so displayEmail in this case is a misnomer
+          displayEmail={getUrlPathname(replay.url) ?? ''}
         />
-        <div>
+        {isScreenLarge && (
+          <StyledPanelItem>
+            <ProjectBadge
+              project={
+                projects.find(p => p.slug === replay.project) || {slug: replay.project}
+              }
+              avatarSize={16}
+            />
+          </StyledPanelItem>
+        )}
+        <StyledPanelItem>
           <TimeSinceWrapper>
             <StyledIconCalendarWrapper color="gray500" size="sm" />
             <TimeSince date={replay.timestamp} />
           </TimeSinceWrapper>
-        </div>
+        </StyledPanelItem>
       </Fragment>
     ));
   };
@@ -160,12 +171,13 @@ function Replays(props: Props) {
                     organization={organization}
                     handleSearchQuery={handleSearchQuery}
                   />
-                  <PanelTable
+                  <StyledPanelTable
                     isLoading={data.isLoading}
                     isEmpty={data.tableData?.data.length === 0}
                     headers={[
-                      t('Session'),
-                      t('Project'),
+                      ...(!isScreenLarge
+                        ? columns.filter(col => col === t('Session'))
+                        : columns),
                       <SortLink
                         key="timestamp"
                         role="columnheader"
@@ -191,7 +203,7 @@ function Replays(props: Props) {
                     ]}
                   >
                     {data.tableData ? renderTable(data.tableData.data as Replay[]) : null}
-                  </PanelTable>
+                  </StyledPanelTable>
                   <Pagination pageLinks={data.pageLinks} />
                 </Fragment>
               );
@@ -205,13 +217,23 @@ function Replays(props: Props) {
 
 const StyledPageHeader = styled(PageHeader)`
   background-color: ${p => p.theme.surface100};
+  min-width: max-content;
   margin-top: ${space(1.5)};
   margin-left: ${space(4)};
 `;
 
 const StyledPageContent = styled(PageContent)`
+  padding: ${space(1.5)} ${space(2)};
   box-shadow: 0px 0px 1px ${p => p.theme.gray200};
-  background-color: ${p => p.theme.white};
+  background-color: ${p => p.theme.background};
+`;
+
+const StyledPanelTable = styled(PanelTable)`
+  grid-template-columns: minmax(0, 1fr) max-content max-content;
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: minmax(0, 1fr) max-content;
+  }
 `;
 
 const HeaderTitle = styled(PageHeading)`
@@ -221,16 +243,21 @@ const HeaderTitle = styled(PageHeading)`
   flex: 1;
 `;
 
+const StyledPanelItem = styled('div')`
+  margin-top: ${space(0.75)};
+`;
+
 const ReplayUserBadge = styled(UserBadge)`
-  font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.linkColor};
+  font-size: ${p => p.theme.fontSizeLarge};
+  font-weight: 400;
+  line-height: 1.2;
 `;
 
 const TimeSinceWrapper = styled('div')`
   display: grid;
   grid-template-columns: repeat(2, minmax(auto, max-content));
   align-items: center;
-  gap: ${space(1.5)};
+  gap: ${space(1)};
 `;
 
 const StyledIconCalendarWrapper = styled(IconCalendar)`

@@ -115,13 +115,12 @@ type ChartProps = {
 };
 
 export function Chart(props: ChartProps) {
+  const theme = useTheme();
   const {chartData, zoomProps} = props;
 
   if (!chartData) {
     return <Placeholder height="200px" />;
   }
-
-  const theme = useTheme();
 
   const chartOptions = {
     grid: {
