@@ -524,7 +524,8 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
                     where = []
                     for condition in snuba_query.where:
                         if not (
-                            isinstance(condition.lhs, Column)
+                            isinstance(condition, Condition)
+                            and isinstance(condition.lhs, Column)
                             and condition.lhs.name == "project_id"
                             and "project_id" in groupby_tags
                         ):
