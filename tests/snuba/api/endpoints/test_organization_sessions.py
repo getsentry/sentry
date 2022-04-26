@@ -961,6 +961,58 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             )
             assert response.status_code == 200, response.data
 
+    @freeze_time(MOCK_DATETIME)
+    def test_pagination(self):
+        from sentry.api.endpoints.organization_sessions import release_health
+
+        def do_request(cursor):
+            return self.do_request(
+                {
+                    "project": self.project.id,  # project without users
+                    "statsPeriod": "1d",
+                    "interval": "1d",
+                    "field": ["count_unique(user)", "sum(session)"],
+                    "query": "",
+                    "groupBy": "release",
+                    "orderBy": "sum(session)",
+                    "per_page": 1,
+                    **({"cursor": cursor} if cursor else {}),
+                }
+            )
+
+        response = do_request(None)
+
+        assert response.status_code == 200, response.data
+        assert len(response.data["groups"]) == 1
+        if release_health.is_metrics_based():
+            # XXX: orderBy does not work on sessions
+            assert response.data["groups"] == [
+                {
+                    "by": {"release": "foo@1.1.0"},
+                    "series": {"count_unique(user)": [0], "sum(session)": [1]},
+                    "totals": {"count_unique(user)": 0, "sum(session)": 1},
+                }
+            ]
+        links = {link["rel"]: link for url, link in parse_link_header(response["Link"]).items()}
+        assert links["previous"]["results"] == "false"
+        assert links["next"]["results"] == "true"
+
+        response = do_request(links["next"]["cursor"])
+        assert response.status_code == 200, response.data
+        assert len(response.data["groups"]) == 1
+        if release_health.is_metrics_based():
+            # XXX: orderBy does not work on sessions
+            assert response.data["groups"] == [
+                {
+                    "by": {"release": "foo@1.0.0"},
+                    "series": {"count_unique(user)": [0], "sum(session)": [3]},
+                    "totals": {"count_unique(user)": 0, "sum(session)": 3},
+                }
+            ]
+        links = {link["rel"]: link for url, link in parse_link_header(response["Link"]).items()}
+        assert links["previous"]["results"] == "true"
+        assert links["next"]["results"] == "false"
+
 
 @patch("sentry.api.endpoints.organization_sessions.release_health", MetricsReleaseHealthBackend())
 class OrganizationSessionsEndpointMetricsTest(
@@ -1121,47 +1173,3 @@ class OrganizationSessionsEndpointMetricsTest(
                 ).status_code
                 == 200
             )
-
-    @freeze_time(MOCK_DATETIME)
-    def test_pagination(self):
-        def do_request(cursor):
-            return self.do_request(
-                {
-                    "project": self.project.id,  # project without users
-                    "statsPeriod": "1d",
-                    "interval": "1d",
-                    "field": ["count_unique(user)", "sum(session)"],
-                    "query": "",
-                    "groupBy": "release",
-                    "orderBy": "sum(session)",
-                    "per_page": 1,
-                    **({"cursor": cursor} if cursor else {}),
-                }
-            )
-
-        response = do_request(None)
-
-        assert response.status_code == 200, response.data
-        assert response.data["groups"] == [
-            {
-                "by": {"release": "foo@1.1.0"},
-                "series": {"count_unique(user)": [0], "sum(session)": [1]},
-                "totals": {"count_unique(user)": 0, "sum(session)": 1},
-            }
-        ]
-        links = {link["rel"]: link for url, link in parse_link_header(response["Link"]).items()}
-        assert links["previous"]["results"] == "false"
-        assert links["next"]["results"] == "true"
-
-        response = do_request(links["next"]["cursor"])
-        assert response.status_code == 200, response.data
-        assert response.data["groups"] == [
-            {
-                "by": {"release": "foo@1.0.0"},
-                "series": {"count_unique(user)": [0], "sum(session)": [3]},
-                "totals": {"count_unique(user)": 0, "sum(session)": 3},
-            }
-        ]
-        links = {link["rel"]: link for url, link in parse_link_header(response["Link"]).items()}
-        assert links["previous"]["results"] == "true"
-        assert links["next"]["results"] == "false"
