@@ -5,7 +5,7 @@ import {mat3, vec2} from 'gl-matrix';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {useFlamegraphPreferencesValue} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
-import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/useFlamegraphState';
+import {useFlamegraphState} from 'sentry/utils/profiling/flamegraph/useFlamegraphState';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Rect, watchForResize} from 'sentry/utils/profiling/gl/utils';
@@ -28,7 +28,7 @@ function FlamegraphZoomViewMinimap({
     'pan' | 'click' | 'zoom' | 'scroll' | 'select' | null
   >(null);
 
-  const [dispatch] = useDispatchFlamegraphState();
+  const [flamegraphState, dispatch] = useFlamegraphState();
   const flamegraphPreferences = useFlamegraphPreferencesValue();
 
   const [flamegraphMiniMapCanvasRef, setFlamegraphMiniMapRef] =
@@ -57,6 +57,17 @@ function FlamegraphZoomViewMinimap({
         },
       });
 
+      // If we have previous position on the flamechart, apply it
+      if (
+        (!previousRenderer || previousRenderer.flamegraph.isEmpty) &&
+        !flamegraphState.position.view.isEmpty()
+      ) {
+        renderer.setConfigView(
+          flamegraphState.position.view.withHeight(renderer.configView.height)
+        );
+        return renderer;
+      }
+      // If config spaces do not match, do nothing, this is a fresh new view
       if (!previousRenderer?.configSpace.equals(renderer.configSpace)) {
         return renderer;
       }
@@ -83,7 +94,9 @@ function FlamegraphZoomViewMinimap({
            * that can be carried over.
            */
         } else {
-          renderer.setConfigView(previousRenderer.configView);
+          renderer.setConfigView(
+            previousRenderer.configView.withHeight(renderer.configView.height)
+          );
         }
       }
 

@@ -231,6 +231,40 @@ export class Rect {
     return this.top + this.height;
   }
 
+  static decode(query: string | ReadonlyArray<string> | null | undefined): Rect | null {
+    let maybeEncodedRect = query;
+
+    if (typeof query === 'string') {
+      maybeEncodedRect = query.split(',');
+    }
+
+    if (!Array.isArray(maybeEncodedRect)) {
+      return null;
+    }
+
+    if (maybeEncodedRect.length !== 4) {
+      return null;
+    }
+
+    const rect = new Rect(
+      ...(maybeEncodedRect.map(p => parseFloat(p)) as [number, number, number, number])
+    );
+
+    if (rect.isValid()) {
+      return rect;
+    }
+
+    return null;
+  }
+
+  static encode(rect: Rect): string {
+    return rect.toString();
+  }
+
+  toString() {
+    return [this.x, this.y, this.width, this.height].map(n => Math.round(n)).join(',');
+  }
+
   toMatrix(): mat3 {
     const {width: w, height: h, x, y} = this;
     // it's easier to display a matrix as a 3x3 array. WebGl matrices are row first and not column first

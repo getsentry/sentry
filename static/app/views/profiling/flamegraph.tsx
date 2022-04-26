@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
@@ -14,11 +14,18 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {Trace} from 'sentry/types/profiling/core';
-import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider';
+import {DeepPartial} from 'sentry/types/utils';
+import {
+  decodeFlamegraphStateFromQueryParams,
+  FlamegraphState,
+  FlamegraphStateProvider,
+  FlamegraphStateQueryParamSync,
+} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
 import {importProfile, ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {Profile} from 'sentry/utils/profiling/profile/profile';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type InitialState = {type: 'initial'};
@@ -72,10 +79,35 @@ interface FlamegraphViewProps {
 function FlamegraphView(props: FlamegraphViewProps): React.ReactElement {
   const api = useApi();
   const organization = useOrganization();
+  const location = useLocation();
 
   const [requestState, setRequestState] = useState<RequestState<ProfileGroup>>({
     type: 'initial',
   });
+
+  const initialFlamegraphPreferencesState = useMemo((): DeepPartial<FlamegraphState> => {
+    if (requestState.type !== 'resolved') {
+      return decodeFlamegraphStateFromQueryParams(location.query);
+    }
+
+    const decodedState = decodeFlamegraphStateFromQueryParams(location.query);
+
+    return {
+      ...decodedState,
+      profiles: {
+        activeProfileIndex:
+          decodedState?.profiles?.activeProfileIndex ??
+          requestState.data.activeProfileIndex ??
+          0,
+      },
+    };
+  }, [requestState, location.query]);
+
+  // Sometimes the page we are coming from had scrollTop > 0, so we need to
+  // force restore it to top of page because scrolling on a flamegraph does not scroll the page
+  useEffect(() => {
+    document.scrollingElement?.scrollTo(0, 0);
+  }, []);
 
   useEffect(() => {
     if (!props.params.eventId || !props.params.projectId) {
@@ -126,7 +158,8 @@ function FlamegraphView(props: FlamegraphViewProps): React.ReactElement {
             />
           </Layout.HeaderContent>
         </Layout.Header>
-        <FlamegraphStateProvider>
+        <FlamegraphStateProvider initialState={initialFlamegraphPreferencesState}>
+          <FlamegraphStateQueryParamSync />
           <FlamegraphThemeProvider>
             <FlamegraphContainer>
               {requestState.type === 'errored' ? (
@@ -141,7 +174,7 @@ function FlamegraphView(props: FlamegraphViewProps): React.ReactElement {
                   </LoadingIndicatorContainer>
                 </Fragment>
               ) : requestState.type === 'resolved' ? (
-                <Flamegraph profiles={requestState.data} />
+                <Flamegraph profiles={requestState.data} onImport={onImport} />
               ) : null}
             </FlamegraphContainer>
           </FlamegraphThemeProvider>

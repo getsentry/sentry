@@ -68,6 +68,18 @@ function FlamegraphZoomView({
           {draw_border: true}
         );
 
+        // If we have previous position on the flamechart, apply it
+        if (
+          (!previousRenderer || previousRenderer.flamegraph.isEmpty) &&
+          !flamegraphState.position.view.isEmpty()
+        ) {
+          renderer.setConfigView(
+            flamegraphState.position.view.withHeight(renderer.configView.height)
+          );
+          return renderer;
+        }
+
+        // If config spaces do not match, do nothing, this is a fresh new view
         if (!previousRenderer?.configSpace.equals(renderer.configSpace)) {
           return renderer;
         }
@@ -92,7 +104,9 @@ function FlamegraphZoomView({
             // on a different shape. In this case, there's no obvious position
             // that can be carried over.
           } else {
-            renderer.setConfigView(previousRenderer.configView);
+            renderer.setConfigView(
+              previousRenderer.configView.withHeight(renderer.configView.height)
+            );
           }
         }
 
@@ -102,10 +116,10 @@ function FlamegraphZoomView({
       return null;
     },
     [
-      flamegraphCanvasRef,
-      flamegraphTheme,
       flamegraph,
       canvasPoolManager,
+      flamegraphTheme,
+      flamegraphCanvasRef,
       flamegraphPreferences.colorCoding,
     ]
   );
@@ -185,6 +199,9 @@ function FlamegraphZoomView({
           }
         }
 
+        // If we are undoing/redoing, clear all interaction states
+        beforeInteractionConfigView.current = null;
+        setLastInteraction(null);
         dispatchFlamegraphState({type: action});
       }
     };
@@ -205,6 +222,7 @@ function FlamegraphZoomView({
 
   const previousInteraction = usePrevious(lastInteraction);
   const beforeInteractionConfigView = useRef<Rect | null>(null);
+
   useEffect(() => {
     if (!flamegraphRenderer) {
       return;
@@ -352,6 +370,7 @@ function FlamegraphZoomView({
 
     const onResetZoom = () => {
       flamegraphRenderer.resetConfigView();
+      dispatch({type: 'checkpoint', payload: flamegraphRenderer.configView.clone()});
       setConfigSpaceCursor(null);
       scheduler.draw();
     };

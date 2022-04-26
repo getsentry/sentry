@@ -106,7 +106,6 @@ function BoundTooltip({
   // If users screen is on right half of the screen, then we have more space to position on the left and vice versa
   // since default is right, we only need to handle 1 case
   if (cursorHorizontalPosition > mid) {
-    // console.log('Cursor over mid');
     cursorHorizontalPosition -= tooltipBounds.width;
   }
 

@@ -577,6 +577,8 @@ class FlamegraphRenderer {
     const physicalToConfig = mat3.invert(mat3.create(), configViewToPhysicalSpace);
     const configSpacePixel = physicalSpacePixel.transformRect(physicalToConfig);
 
+    // Reset the uniform values from previous draw
+    this.gl.uniform1i(this.uniforms.u_is_search_result, 0);
     this.gl.uniform2f(
       this.uniforms.u_border_width,
       configSpacePixel.width,
@@ -612,7 +614,6 @@ class FlamegraphRenderer {
       this.gl.uniform1i(this.uniforms.u_is_search_result, 0);
       for (let i = 0; i < length; i++) {
         const vertexOffset = i * VERTICES;
-
         this.gl.drawArrays(this.gl.TRIANGLES, vertexOffset, VERTICES);
       }
     }

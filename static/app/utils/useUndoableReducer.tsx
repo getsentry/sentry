@@ -1,4 +1,4 @@
-import {ReducerAction, ReducerState, useReducer} from 'react';
+import {ReducerAction, ReducerState, useMemo, useReducer} from 'react';
 
 export type UndoableNode<S> = {
   current: S;
@@ -80,7 +80,9 @@ export function useUndoableReducer<
     previousState: ReducerState<R> | undefined;
   }
 ] {
-  const [state, dispatch] = useReducer(makeUndoableReducer(reducer), {
+  // In dev, react will test the purity of the reducer, so it may sometimes fire actions multiple times.
+  const finalReducer = useMemo(() => makeUndoableReducer(reducer), [reducer]);
+  const [state, dispatch] = useReducer(finalReducer, {
     current: initialState,
     previous: undefined,
     next: undefined,

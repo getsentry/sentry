@@ -10,6 +10,7 @@ export class Flamegraph {
   profile: Profile;
   frames: FlamegraphFrame[] = [];
 
+  isEmpty: boolean = false;
   profileIndex: number;
 
   inverted?: boolean = false;
@@ -22,10 +23,12 @@ export class Flamegraph {
   frameIndex: Record<string, FlamegraphFrame> = {};
 
   static Empty(): Flamegraph {
-    return new Flamegraph(Profile.Empty(), 0, {
+    const flamegraph = new Flamegraph(Profile.Empty(), 0, {
       inverted: false,
       leftHeavy: false,
     });
+    flamegraph.isEmpty = true;
+    return flamegraph;
   }
 
   static From(from: Flamegraph, {inverted = false, leftHeavy = false}): Flamegraph {
@@ -39,7 +42,11 @@ export class Flamegraph {
       inverted = false,
       leftHeavy = false,
       configSpace,
-    }: {configSpace?: Rect; inverted?: boolean; leftHeavy?: boolean} = {}
+    }: {
+      configSpace?: Rect;
+      inverted?: boolean;
+      leftHeavy?: boolean;
+    } = {}
   ) {
     this.inverted = inverted;
     this.leftHeavy = leftHeavy;
