@@ -15,7 +15,7 @@ import {Organization, PageFilters, SelectValue} from 'sentry/types';
 import usePrevious from 'sentry/utils/usePrevious';
 import {DisplayType, Widget} from 'sentry/views/dashboardsV2/types';
 
-import WidgetCard from '../../widgetCard';
+import WidgetCard, {WidgetCardPanel} from '../../widgetCard';
 import {displayTypes} from '../utils';
 
 import {BuildStep} from './buildStep';
@@ -98,6 +98,7 @@ export function VisualizationStep({
           isSorting={false}
           currentWidgetDragging={false}
           noLazyLoad
+          showStoredAlert
         />
       </VisualizationWrapper>
     </BuildStep>
@@ -106,15 +107,20 @@ export function VisualizationStep({
 
 const VisualizationWrapper = styled('div')<{displayType: DisplayType}>`
   padding-right: ${space(2)};
+  ${WidgetCardPanel} {
+    height: initial;
+  }
   ${p =>
     p.displayType === DisplayType.TABLE &&
     css`
+      overflow: hidden;
       ${TableCell} {
         /* 24px ActorContainer height + 16px top and bottom padding + 1px border = 41px */
         height: 41px;
       }
-      /* total size of a table, if it would display 5 rows of content */
-      height: 300px;
-      overflow: hidden;
+      ${WidgetCardPanel} {
+        /* total size of a table, if it would display 5 rows of content */
+        height: 301px;
+      }
     `};
 `;

@@ -66,6 +66,7 @@ describe('VisualizationStep', function () {
         'dashboards-edit',
         'global-views',
         'new-widget-builder-experience-design',
+        'dashboards-mep',
       ],
     },
     router: {
@@ -116,5 +117,45 @@ describe('VisualizationStep', function () {
     });
 
     await waitFor(() => expect(eventsv2Mock).toHaveBeenCalledTimes(2));
+  });
+
+  it('displays stored data alert', async function () {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/eventsv2/`,
+      method: 'GET',
+      statusCode: 200,
+      body: {
+        meta: {isMetricsData: false},
+        data: [],
+      },
+    });
+
+    render(
+      <WidgetBuilder
+        route={{}}
+        router={router}
+        routes={router.routes}
+        routeParams={router.params}
+        location={router.location}
+        dashboard={{
+          id: 'new',
+          title: 'Dashboard',
+          createdBy: undefined,
+          dateCreated: '2020-01-01T00:00:00.000Z',
+          widgets: [],
+        }}
+        onSave={jest.fn()}
+        params={{
+          orgId: organization.slug,
+          dashboardId: 'new',
+        }}
+      />,
+      {
+        context: routerContext,
+        organization,
+      }
+    );
+
+    await screen.findByText(/we've automatically adjusted your results/i);
   });
 });
