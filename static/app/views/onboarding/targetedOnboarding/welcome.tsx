@@ -134,12 +134,18 @@ function TargetedOnboardingWelcome({organization, ...props}: StepProps) {
             {t("Gee, I've used Sentry before.")}
             <br />
             <Link
-              onClick={() =>
+              onClick={() => {
                 trackAdvancedAnalyticsEvent('growth.onboarding_clicked_skip', {
                   organization,
                   source,
-                })
-              }
+                });
+                if (clientState) {
+                  setClientState({
+                    ...clientState,
+                    state: 'skipped',
+                  });
+                }
+              }}
               to={`/organizations/${organization.slug}/issues/`}
             >
               {t('Skip onboarding.')}
