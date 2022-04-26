@@ -41,6 +41,23 @@ export function SortByStep({
   limit,
   onLimitChange,
 }: Props) {
+  const fields = queries[0].columns;
+
+  let disabledSort = false;
+  let disabledSortDirection = false;
+  let disabledReason: string | undefined = undefined;
+
+  if (widgetType === WidgetType.METRICS && fields.includes('session.status')) {
+    disabledSort = true;
+    disabledSortDirection = true;
+    disabledReason = t('Sorting currently not supported with session.status');
+  }
+
+  if (widgetType === WidgetType.ISSUE) {
+    disabledSortDirection = true;
+    disabledReason = t('Issues dataset does not yet support descending order');
+  }
+
   const orderBy = queries[0].orderby;
   const maxLimit = getResultsLimit(queries.length, queries[0].aggregates.length);
 
@@ -88,6 +105,9 @@ export function SortByStep({
             )}
           <SortBySelectors
             widgetType={widgetType}
+            disabledReason={disabledReason}
+            disabledSort={disabledSort}
+            disabledSortDirection={disabledSortDirection}
             sortByOptions={
               dataSet === DataSet.ISSUES
                 ? generateIssueWidgetOrderOptions(
