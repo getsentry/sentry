@@ -1,8 +1,11 @@
-from unittest import mock
-
 from django.utils import timezone
 
-from sentry.audit_log import AuditLogEvent, AuditLogEventManager, AuditLogEventNotRegistered
+from sentry.audit_log import (
+    AuditLogEvent,
+    AuditLogEventManager,
+    AuditLogEventNotRegistered,
+    DuplicateAuditLogEvent,
+)
 from sentry.models import AuditLogEntry, AuditLogEntryEvent
 from sentry.testutils import TestCase
 
@@ -32,11 +35,11 @@ class AuditLogEventManagerTest(TestCase):
 
         assert test_manager.get_event_id(name="TEST_LOG_ENTRY") == 500
         assert "test-log.entry" in test_manager.get_api_names()
+        assert test_manager.get_event_id_from_api_name("test-log.entry") == 500
 
         assert log_event.render(log_entry) == "test member my_email@mail.com is admin"
 
-    @mock.patch("sentry.audit_log.manager.capture_exception")
-    def test_duplicate_event_id(self, mock_capture_exception):
+    def test_duplicate_event_id(self):
         test_manager = AuditLogEventManager()
 
         test_manager.add(
@@ -47,22 +50,21 @@ class AuditLogEventManagerTest(TestCase):
                 template="test member {email} is {role}",
             )
         )
-        test_manager.add(
-            AuditLogEvent(
-                event_id=500,
-                name="TEST_DUPLICATE",
-                api_name="test.duplicate",
-                template="test duplicate",
+        with self.assertRaises(DuplicateAuditLogEvent):
+            test_manager.add(
+                AuditLogEvent(
+                    event_id=500,
+                    name="TEST_DUPLICATE",
+                    api_name="test.duplicate",
+                    template="test duplicate",
+                )
             )
-        )
-        assert mock_capture_exception.called
         assert test_manager.get_event_id(name="TEST_LOG_ENTRY") == 500
 
         with self.assertRaises(AuditLogEventNotRegistered):
             test_manager.get_event_id(name="TEST_DUPLICATE")
 
-    @mock.patch("sentry.audit_log.manager.capture_exception")
-    def test_duplicate_event(self, mock_capture_exception):
+    def test_duplicate_event(self):
         test_manager = AuditLogEventManager()
 
         test_manager.add(
@@ -73,15 +75,15 @@ class AuditLogEventManagerTest(TestCase):
                 template="test member {email} is {role}",
             )
         )
-        test_manager.add(
-            AuditLogEvent(
-                event_id=501,
-                name="TEST_LOG_ENTRY",
-                api_name="test.duplicate",
-                template="test duplicate",
+        with self.assertRaises(DuplicateAuditLogEvent):
+            test_manager.add(
+                AuditLogEvent(
+                    event_id=501,
+                    name="TEST_LOG_ENTRY",
+                    api_name="test.duplicate",
+                    template="test duplicate",
+                )
             )
-        )
-        assert mock_capture_exception.called
         assert test_manager.get_event_id(name="TEST_LOG_ENTRY") == 500
         assert "test.duplicate" not in test_manager.get_api_names()
 
