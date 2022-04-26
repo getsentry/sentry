@@ -188,7 +188,7 @@ function useReplayEvent({eventSlug, location, orgId}: Options): Result {
     }
   }
 
-  useEffect(() => void loadEvents(), [loadEvents, orgId, eventSlug, retry]);
+  useEffect(() => void loadEvents(), [orgId, eventSlug, retry]);
 
   const onRetry = useCallback(() => {
     setRetry(true);
