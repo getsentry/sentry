@@ -21,8 +21,7 @@ from typing import (
     cast,
 )
 
-from snuba_sdk import Condition, Direction, Granularity, Limit
-from snuba_sdk.legacy import json_to_snql
+from snuba_sdk import Direction, Granularity, Limit
 
 from sentry.models.project import Project
 from sentry.release_health.base import (
@@ -30,10 +29,10 @@ from sentry.release_health.base import (
     SessionsQueryResult,
     SessionsQueryValue,
 )
-from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics.datasource import get_series
 from sentry.snuba.metrics.naming_layer.public import SessionMetricKey
 from sentry.snuba.metrics.query import MetricField, OrderBy
+from sentry.snuba.metrics.query_builder import parse_query
 from sentry.snuba.sessions_v2 import (
     SNUBA_LIMIT,
     InvalidParams,
@@ -317,7 +316,7 @@ def run_sessions_query(
         query.start,
         query.end,
         Granularity(query.rollup),
-        where=_get_filter_conditions(query.conditions),
+        where=_get_filter_conditions(query.query),
         groupby=list(
             {column for field in fields for column in field.get_groupby(query.raw_groupby)}
         ),
@@ -369,12 +368,9 @@ def run_sessions_query(
     return cast(SessionsQueryResult, results)
 
 
-def _get_filter_conditions(conditions: Sequence[Condition]) -> Any:
-    """Translate given conditions to snql"""
-    dummy_entity = EntityKey.MetricsSets.value
-    return json_to_snql(
-        {"selected_columns": ["value"], "conditions": conditions}, entity=dummy_entity
-    ).where
+def _get_filter_conditions(query_string: str) -> Any:
+    """Parse given conditions to snql"""
+    return parse_query(query_string)
 
 
 def _parse_orderby(query: QueryDefinition) -> Optional[OrderBy]:
