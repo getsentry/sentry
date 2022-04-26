@@ -3,6 +3,7 @@ from sentry.sentry_metrics.indexer.cache import indexer_cache
 from sentry.sentry_metrics.indexer.models import MetricsKeyIndexer, StringIndexer
 from sentry.sentry_metrics.indexer.postgres import PGStringIndexer
 from sentry.sentry_metrics.indexer.postgres_v2 import (
+    FetchType,
     PGStringIndexerV2,
     StaticStringsIndexerDecorator,
 )
@@ -68,6 +69,10 @@ class StaticStringsIndexerTest(TestCase):
 
         assert results[2]["1.0.0"] == v1.id
         assert results[3]["2.0.0"] == v2.id
+
+        meta = results.get_fetch_metadata()
+        assert set(meta[FetchType.HARDCODED].values()) == {"release", "production", "environment"}
+        assert set(meta[FetchType.FIRST_SEEN].values()) == {"1.0.0", "2.0.0"}
 
 
 class PostgresIndexerV2Test(TestCase):
@@ -169,6 +174,12 @@ class PostgresIndexerV2Test(TestCase):
         for string, id in results[org_id].items():
             assert expected_mapping[string] == id
 
+        fetch_meta = results.get_fetch_metadata()
+        assert {"v1.2.0", "v1.2.1", "v1.2.2"} == {
+            v for _, v in fetch_meta[FetchType.CACHE_HIT].items()
+        }
+        assert {"v1.2.3"} == set(fetch_meta[FetchType.FIRST_SEEN].values())
+
     def test_already_cached_plus_read_results(self) -> None:
         """
         Test that we correctly combine cached results with read results
@@ -192,6 +203,10 @@ class PostgresIndexerV2Test(TestCase):
         assert results[org_id]["beep"] == 10
         assert results[org_id]["boop"] == 11
         assert results[org_id]["bam"] == bam.id
+
+        fetch_meta = results.get_fetch_metadata()
+        assert {"beep", "boop"} == {v for _, v in fetch_meta[FetchType.CACHE_HIT].items()}
+        assert {"bam"} == set(fetch_meta[FetchType.DB_READ].values())
 
     def test_get_db_records(self):
         """
