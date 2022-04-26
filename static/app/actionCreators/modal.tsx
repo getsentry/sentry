@@ -308,3 +308,16 @@ export async function openWidgetViewerModal({
     onClose,
   });
 }
+
+export async function openCreateNewIntegrationModal(
+  options: CreateNewIntegrationModalOptions
+) {
+  const mod = await import('sentry/components/modals/createNewIntegrationModal');
+  const {default: Modal} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />);
+}
+
+type CreateNewIntegrationModalOptions = {
+  orgId: string;
+};
