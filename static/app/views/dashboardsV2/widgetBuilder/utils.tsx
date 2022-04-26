@@ -1,4 +1,5 @@
 import isEqual from 'lodash/isEqual';
+import trimStart from 'lodash/trimStart';
 
 import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesForm';
 import {t} from 'sentry/locale';
@@ -7,6 +8,7 @@ import {
   aggregateFunctionOutputType,
   aggregateOutputType,
   getAggregateAlias,
+  isEquation,
   isLegalYAxisType,
   stripDerivedMetricsPrefix,
 } from 'sentry/utils/discover/fields';
@@ -134,8 +136,12 @@ export function normalizeQueries({
           ? stripDerivedMetricsPrefix(queries[0].orderby)
           : queries[0].orderby;
 
+      // Ignore the orderby if it is a raw equation and we're switching to a table
+      // or Top-N chart, a custom equation should be reset since it only applies when
+      // grouping in timeseries charts
+      const ignoreOrderBy = isEquation(trimStart(queryOrderBy, '-')) && isTabularChart;
       const orderBy =
-        getAggregateAlias(queryOrderBy) ||
+        (!ignoreOrderBy && getAggregateAlias(queryOrderBy)) ||
         (widgetType === WidgetType.ISSUE
           ? IssueSortOptions.DATE
           : generateOrderOptions({
@@ -343,6 +349,10 @@ export function filterPrimaryOptions({
 }
 
 export function getResultsLimit(numQueries: number, numYAxes: number) {
+  if (numQueries === 0 || numYAxes === 0) {
+    return DEFAULT_RESULTS_LIMIT;
+  }
+
   return Math.floor(RESULTS_LIMIT / (numQueries * numYAxes));
 }
 
