@@ -170,6 +170,7 @@ const TimelineRange = styled(RangeSlider)`
   input {
     padding: ${space(2)} 0 ${space(2)};
     margin: -${space(1)} 0 0px;
+    height: 3px;
     cursor: pointer;
   }
 `;
