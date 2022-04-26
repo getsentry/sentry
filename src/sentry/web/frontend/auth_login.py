@@ -23,6 +23,7 @@ from sentry.utils.auth import (
     is_valid_redirect,
     login,
 )
+from sentry.utils.client_state import get_client_state_redirect_uri
 from sentry.utils.sdk import capture_exception
 from sentry.utils.urls import add_params_to_url
 from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
@@ -106,6 +107,9 @@ class AuthLoginView(BaseView):
         next_uri_fallback = None
         if request.session.get("_next") is not None:
             next_uri_fallback = request.session.pop("_next")
+        organization = self.get_active_organization(request)
+        if organization:
+            next_uri_fallback = get_client_state_redirect_uri(organization.slug, next_uri_fallback)
         return request.GET.get(REDIRECT_FIELD_NAME, next_uri_fallback)
 
     def get_post_register_url(self, request: Request):

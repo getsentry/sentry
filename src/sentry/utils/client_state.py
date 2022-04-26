@@ -36,3 +36,16 @@ def get_client_state(category, organization, user, client=None):
     if not value:
         return None
     return json.loads(value)
+
+
+def get_client_state_redirect_uri(organization_slug, fallback_url):
+    if organization_slug:
+        state = get_client_state("onboarding", organization_slug, None)
+        if (
+            state
+            and state.get("state") != "finished"
+            and state.get("state") != "skipped"
+            and state.get("url")
+        ):
+            return f'/onboarding/{organization_slug}/{state["url"]}'
+    return fallback_url
