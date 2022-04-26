@@ -67,7 +67,6 @@ class OrganizationProfilingFiltersEndpoint(OrganizationProfilingBaseEndpoint):
 
         try:
             params = self.get_profiling_params(request, organization)
-            assert False, params
         except NoProjects:
             return Response([])
 
