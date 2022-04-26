@@ -46,20 +46,10 @@ def get_allowed_roles(
         except OrganizationMember.DoesNotExist:
             # This can happen if the request was authorized by an app integration
             # token whose proxy user does not have an OrganizationMember object.
-            return _get_allowed_roles_by_access(request)
+            # Allow it to manage a role if it has access to all the same scopes.
+            return [role for role in roles.get_all() if role.scopes.issubset(request.access.scopes)]
 
     return member.get_allowed_roles_to_invite()
-
-
-def _get_allowed_roles_by_access(request: Request) -> Collection[Role]:
-    """Infer allowed roles by the request's total set of scopes.
-
-    For use when the request was authorized by a token (such as from an app
-    integration) that doesn't correspond to a user's organization membership,
-    which means we can't compare to a member's role. Allow such a token to assign a
-    role if the token has access to all of that role's scopes.
-    """
-    return [role for role in roles.get_all() if role.scopes.issubset(request.access.scopes)]
 
 
 from .details import OrganizationMemberDetailsEndpoint
