@@ -168,8 +168,9 @@ const TimelineRange = styled(RangeSlider)`
   flex-grow: 1;
   margin-top: ${space(1)};
   input {
-    padding: 16px 0 16px;
-    margin: -8px 0 0px;
+    padding: ${space(2)} 0 ${space(2)};
+    margin: -${space(1)} 0 0px;
+    cursor: pointer;
   }
 `;
 
