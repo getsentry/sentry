@@ -98,6 +98,10 @@ const TimelineMarkerList = styled('ul')<{remainder: number; totalColumns: number
   place-items: stretch;
 `;
 
+const OffsetTimelineMarkerList = styled(TimelineMarkerList)`
+  padding-top: ${space(4)};
+`;
+
 const TickMarker = styled('li')<{lineStyle: LineStyle}>`
   border-right: 2px ${p => p.lineStyle} ${p => p.theme.gray100};
   text-align: right;
@@ -108,15 +112,13 @@ function Events({crumbs, width}: {crumbs: Crumb[]; width: number}) {
   const eventsByCol = getCrumbsByColumn(crumbs, totalColumns);
 
   return (
-    <div style={{paddingTop: space(4)}}>
-      <TimelineMarkerList totalColumns={totalColumns} remainder={0}>
-        {Array.from(eventsByCol.entries()).map(([column, breadcrumbs]) => (
-          <EventColumn key={column} column={column}>
-            <EventMarkerList breadcrumbs={breadcrumbs} />
-          </EventColumn>
-        ))}
-      </TimelineMarkerList>
-    </div>
+    <OffsetTimelineMarkerList totalColumns={totalColumns} remainder={0}>
+      {Array.from(eventsByCol.entries()).map(([column, breadcrumbs]) => (
+        <EventColumn key={column} column={column}>
+          <EventMarkerList breadcrumbs={breadcrumbs} />
+        </EventColumn>
+      ))}
+    </OffsetTimelineMarkerList>
   );
 }
 
