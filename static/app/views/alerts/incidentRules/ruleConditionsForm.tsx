@@ -5,7 +5,6 @@ import {components} from 'react-select';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -91,7 +90,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    if (isEqual(prevProps.project, this.props.project)) {
+    if (prevProps.project.id === this.props.project.id) {
       return;
     }
 
