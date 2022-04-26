@@ -212,7 +212,9 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
 
         # TODO(dam): Add validation for metrics fields/queries
         try:
-            builder.columns = builder.resolve_select(fields, equations)
+            builder.columns = builder.resolve_select(
+                list({*fields, *columns, *aggregates}), equations
+            )
         except (InvalidSearchQuery, ArithmeticError) as err:
             # We don't know if the widget that this query belongs to is an
             # Issue widget or Discover widget. Pass the error back to the
