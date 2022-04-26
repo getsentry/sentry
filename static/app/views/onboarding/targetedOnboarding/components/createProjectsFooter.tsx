@@ -21,7 +21,8 @@ import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useTeams from 'sentry/utils/useTeams';
 
-import {OnboardingState, usePersistedOnboardingState} from '../types';
+import {OnboardingState} from '../types';
+import {usePersistedOnboardingState} from '../utils';
 
 import GenericFooter from './genericFooter';
 
@@ -70,6 +71,7 @@ export default function CreateProjectsFooter({
       responses.map(ProjectActions.createSuccess);
       trackAdvancedAnalyticsEvent('growth.onboarding_set_up_your_projects', {
         platforms: platforms.join(','),
+        platform_count: platforms.length,
         organization,
       });
       clearIndicators();
@@ -119,6 +121,10 @@ const SelectionWrapper = styled(motion.div)`
   flex-direction: column;
   justify-content: center;
   align-items: center;
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: none;
+  }
 `;
 
 SelectionWrapper.defaultProps = {

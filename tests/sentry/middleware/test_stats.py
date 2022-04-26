@@ -1,11 +1,26 @@
 from unittest.mock import patch
 
-from django.test import RequestFactory
+from django.test import RequestFactory, override_settings
 from exam import fixture
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
 
+from sentry.api.base import Endpoint
+from sentry.middleware.ratelimit import RatelimitMiddleware
 from sentry.middleware.stats import RequestTimingMiddleware, add_request_metric_tags
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.faux import Mock
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
+
+
+class RateLimitedEndpoint(Endpoint):
+    permission_classes = (AllowAny,)
+
+    enforce_rate_limit = True
+    rate_limits = {"GET": {RateLimitCategory.IP: RateLimit(0, 10)}}
+
+    def get(self):
+        return Response({"ok": True})
 
 
 class RequestTimingMiddlewareTest(TestCase):
@@ -23,7 +38,36 @@ class RequestTimingMiddlewareTest(TestCase):
         incr.assert_called_with(
             "view.response",
             instance=request._view_path,
-            tags={"method": "GET", "status_code": 200, "ui_request": False},
+            tags={
+                "method": "GET",
+                "status_code": 200,
+                "ui_request": False,
+                "rate_limit_type": None,
+            },
+            skip_internal=False,
+        )
+
+    @patch("sentry.utils.metrics.incr")
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    def test_records_default_api_metrics_with_rate_limit_type(self, incr):
+        rate_limit_middleware = RatelimitMiddleware(None)
+        test_endpoint = RateLimitedEndpoint.as_view()
+        request = self.factory.get("/")
+        request._view_path = "/"
+        response = Mock(status_code=429)
+
+        rate_limit_middleware.process_view(request, test_endpoint, [], {})
+        self.middleware.process_response(request, response)
+
+        incr.assert_called_with(
+            "view.response",
+            instance=request._view_path,
+            tags={
+                "method": "GET",
+                "status_code": 429,
+                "ui_request": False,
+                "rate_limit_type": "fixed_window",
+            },
             skip_internal=False,
         )
 
@@ -39,7 +83,7 @@ class RequestTimingMiddlewareTest(TestCase):
         incr.assert_called_with(
             "view.response",
             instance=request._view_path,
-            tags={"method": "GET", "status_code": 200, "ui_request": True},
+            tags={"method": "GET", "status_code": 200, "ui_request": True, "rate_limit_type": None},
             skip_internal=False,
         )
 
@@ -56,7 +100,13 @@ class RequestTimingMiddlewareTest(TestCase):
         incr.assert_called_with(
             "view.response",
             instance=request._view_path,
-            tags={"method": "GET", "status_code": 200, "ui_request": False, "a": "b"},
+            tags={
+                "method": "GET",
+                "status_code": 200,
+                "ui_request": False,
+                "a": "b",
+                "rate_limit_type": None,
+            },
             skip_internal=False,
         )
 
@@ -74,6 +124,12 @@ class RequestTimingMiddlewareTest(TestCase):
         incr.assert_called_with(
             "view.response",
             instance=request._view_path,
-            tags={"method": "GET", "status_code": 200, "ui_request": False, "foo": "bar"},
+            tags={
+                "method": "GET",
+                "status_code": 200,
+                "ui_request": False,
+                "foo": "bar",
+                "rate_limit_type": None,
+            },
             skip_internal=False,
         )

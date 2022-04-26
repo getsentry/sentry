@@ -270,6 +270,7 @@ class TeamStability extends AsyncComponent<Props, State> {
                       showTimeInTooltip
                       series={this.getMiniBarChartSeries(project, response)}
                       height={25}
+                      tooltipFormatter={(value: number) => `${value.toLocaleString()}%`}
                     />
                   )}
                 </div>

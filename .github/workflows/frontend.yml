@@ -15,6 +15,8 @@ jobs:
     outputs:
       eslint_config: ${{ steps.changes.outputs.eslint_config }}
       frontend: ${{ steps.changes.outputs.frontend }}
+      frontend_components_modified_lintable: ${{ steps.changes.outputs.frontend_components_modified_lintable }}
+      frontend_components_modified_lintable_files: ${{ steps.changes.outputs.frontend_components_modified_lintable_files }}
       frontend_modified_lintable_files: ${{ steps.changes.outputs.frontend_modified_lintable_files }}
       yarn_lockfile: ${{ steps.changes.outputs.yarn_lockfile }}
     steps:
@@ -26,6 +28,7 @@ jobs:
         with:
           token: ${{ github.token }}
           filters: .github/file-filters.yml
+          list-files: shell
 
   typescript-and-lint:
     needs: files-changed
@@ -124,10 +127,19 @@ jobs:
           github-token: ${{ steps.token.outputs.token }}
 
       - name: tsc
+        id: tsc
         if: steps.dependencies.outcome == 'success' && needs.files-changed.outputs.frontend == 'true'
         run: |
           set -o pipefail
-          yarn tsc -p config/tsconfig.build.json --diagnostics | tee /tmp/typescript-monitor.log && yarn run ts-node .github/workflows/scripts/monitor-typescript.ts
+          yarn tsc -p config/tsconfig.build.json --diagnostics --generateTrace /tmp/trace | tee /tmp/typescript-monitor.log
+
+      - name: monitor-tsc
+        continue-on-error: true
+        if: steps.tsc.outcome == 'success'
+        env:
+          GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          GITHUB_PR_REF: ${{ github.event.pull_request.head.ref || github.ref }}
+        run: yarn run ts-node .github/workflows/scripts/monitor-typescript.ts
 
       - name: storybook
         if: github.ref != 'refs/heads/master' && needs.files-changed.outputs.frontend == 'true'
@@ -137,7 +149,6 @@ jobs:
           yarn storybook-build
 
   webpack:
-    if: needs.files-changed.outputs.frontend != 'true'
     needs: files-changed
     runs-on: ubuntu-20.04
     steps:
@@ -180,6 +191,12 @@ jobs:
   frontend-required-check:
     needs: [typescript-and-lint, webpack]
     name: Frontend
+    # This is necessary since a failed/skipped dependent job would cause this job to be skipped
+    if: always()
     runs-on: ubuntu-20.04
     steps:
-      - run: 'echo "All required checks have passed and we meet the requirements." '
+      # If any jobs we depend on fail, we will fail since this checks triggers Visual Snapshots which is a required check
+      - name: Check for failures
+        if: contains(needs.*.result, 'failure')
+        run: |
+          echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1

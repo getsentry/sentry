@@ -10,7 +10,8 @@ import testableTransition from 'sentry/utils/testableTransition';
 import StepHeading from 'sentry/views/onboarding/components/stepHeading';
 
 import CreateProjectsFooter from './components/createProjectsFooter';
-import {StepProps, usePersistedOnboardingState} from './types';
+import {StepProps} from './types';
+import {usePersistedOnboardingState} from './utils';
 
 function OnboardingPlatform(props: StepProps) {
   const [selectedPlatforms, setSelectedPlatforms] = useState<PlatformKey[]>([]);
@@ -32,7 +33,7 @@ function OnboardingPlatform(props: StepProps) {
   return (
     <Wrapper>
       <StepHeading step={props.stepIndex}>
-        {t('Select all your projects platform')}
+        {t('Select the platforms you want to monitor')}
       </StepHeading>
       <motion.div
         transition={testableTransition()}
@@ -44,8 +45,8 @@ function OnboardingPlatform(props: StepProps) {
       >
         <p>
           {tct(
-            `Variety is the spice of application monitoring. Sentry SDKs integrate
-           with most languages and platforms your developer heart desires.
+            `Variety is the spice of application monitoring.
+           Get started by selecting platforms for your Front End, Back End and/or Mobile applications.
            [link:View the full list].`,
             {link: <ExternalLink href="https://docs.sentry.io/platforms/" />}
           )}

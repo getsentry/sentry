@@ -1,16 +1,21 @@
+import {useCallback, useEffect, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
+import isEqual from 'lodash/isEqual';
 
 import {TableCell} from 'sentry/components/charts/simpleTableChart';
 import Field from 'sentry/components/forms/field';
 import SelectControl from 'sentry/components/forms/selectControl';
 import {PanelAlert} from 'sentry/components/panels';
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters, SelectValue} from 'sentry/types';
+import usePrevious from 'sentry/utils/usePrevious';
 import {DisplayType, Widget} from 'sentry/views/dashboardsV2/types';
 
-import WidgetCard from '../../widgetCard';
+import WidgetCard, {WidgetCardPanel} from '../../widgetCard';
 import {displayTypes} from '../utils';
 
 import {BuildStep} from './buildStep';
@@ -21,7 +26,6 @@ interface Props {
   organization: Organization;
   pageFilters: PageFilters;
   widget: Widget;
-  widgetBuilderNewDesign: boolean;
   error?: string;
 }
 
@@ -33,6 +37,32 @@ export function VisualizationStep({
   onChange,
   widget,
 }: Props) {
+  const [debouncedWidget, setDebouncedWidget] = useState(widget);
+
+  const previousWidget = usePrevious(widget);
+
+  const debounceWidget = useCallback(
+    debounce((value: Widget, shouldCancelUpdates: boolean) => {
+      if (shouldCancelUpdates) {
+        return;
+      }
+      setDebouncedWidget(value);
+    }, DEFAULT_DEBOUNCE_DURATION),
+    []
+  );
+
+  useEffect(() => {
+    let shouldCancelUpdates = false;
+
+    if (!isEqual(previousWidget, widget)) {
+      debounceWidget(widget, shouldCancelUpdates);
+    }
+
+    return () => {
+      shouldCancelUpdates = true;
+    };
+  }, [widget, previousWidget]);
+
   return (
     <BuildStep
       title={t('Choose your visualization')}
@@ -57,7 +87,7 @@ export function VisualizationStep({
         <WidgetCard
           organization={organization}
           selection={pageFilters}
-          widget={widget}
+          widget={debouncedWidget}
           isEditing={false}
           widgetLimitReached={false}
           renderErrorMessage={errorMessage =>
@@ -68,6 +98,7 @@ export function VisualizationStep({
           isSorting={false}
           currentWidgetDragging={false}
           noLazyLoad
+          showStoredAlert
         />
       </VisualizationWrapper>
     </BuildStep>
@@ -76,15 +107,20 @@ export function VisualizationStep({
 
 const VisualizationWrapper = styled('div')<{displayType: DisplayType}>`
   padding-right: ${space(2)};
+  ${WidgetCardPanel} {
+    height: initial;
+  }
   ${p =>
     p.displayType === DisplayType.TABLE &&
     css`
+      overflow: hidden;
       ${TableCell} {
         /* 24px ActorContainer height + 16px top and bottom padding + 1px border = 41px */
         height: 41px;
       }
-      /* total size of a table, if it would display 5 rows of content */
-      height: 300px;
-      overflow: hidden;
+      ${WidgetCardPanel} {
+        /* total size of a table, if it would display 5 rows of content */
+        height: 301px;
+      }
     `};
 `;

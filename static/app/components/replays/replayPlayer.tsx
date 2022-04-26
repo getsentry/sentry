@@ -2,27 +2,34 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 
-import {Panel} from 'sentry/components/panels';
-import {Consumer as ReplayContextProvider} from 'sentry/components/replays/replayContext';
+import {Panel as _Panel} from 'sentry/components/panels';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
+import useFullscreen from 'sentry/components/replays/useFullscreen';
+import Tooltip from 'sentry/components/tooltip';
+import {IconArrow} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 
 interface Props {
   className?: string;
 }
 
-type Dimensions = {height: number; width: number};
-type RootElem = null | HTMLDivElement;
+function BasePlayerRoot({className}: Props) {
+  const {isFullscreen} = useFullscreen();
 
-type RootProps = {
-  initRoot: (root: RootElem) => void;
-  videoDimensions: Dimensions;
-  className?: string;
-};
+  // In fullscreen we need to consider the max-height that the player is able
+  // to full up, on a page that scrolls we only consider the max-width.
+  const fixedHeight = isFullscreen;
 
-function BasePlayerRoot({className, initRoot, videoDimensions}: RootProps) {
+  const {initRoot, dimensions: videoDimensions, fastForwardSpeed} = useReplayContext();
+
   const windowEl = useRef<HTMLDivElement>(null);
   const viewEl = useRef<HTMLDivElement>(null);
 
-  const [windowDimensions, setWindowDimensions] = useState<Dimensions>();
+  const [windowDimensions, setWindowDimensions] = useState({
+    width: 0,
+    height: 0,
+  });
 
   // Create the `rrweb` instance which creates an iframe inside `viewEl`
   useEffect(() => initRoot(viewEl.current), [viewEl.current]);
@@ -33,9 +40,9 @@ function BasePlayerRoot({className, initRoot, videoDimensions}: RootProps) {
   const updateWindowDimensions = useCallback(
     () =>
       setWindowDimensions({
-        width: windowEl.current?.clientWidth,
-        height: windowEl.current?.clientHeight,
-      } as Dimensions),
+        width: windowEl.current?.clientWidth || 0,
+        height: windowEl.current?.clientHeight || 0,
+      }),
     [windowEl.current]
   );
   useResizeObserver({ref: windowEl, onResize: updateWindowDimensions});
@@ -50,8 +57,15 @@ function BasePlayerRoot({className, initRoot, videoDimensions}: RootProps) {
   // Update the scale of the view whenever dimensions have changed.
   useEffect(() => {
     if (viewEl.current) {
-      const scale = Math.min((windowDimensions?.width || 0) / videoDimensions.width, 1);
+      const scale = fixedHeight
+        ? Math.min(
+            windowDimensions.width / videoDimensions.width,
+            windowDimensions.height / videoDimensions.height,
+            1
+          )
+        : Math.min(windowDimensions.width / videoDimensions.width, 1);
       if (scale) {
+        viewEl.current.style['transform-origin'] = 'top left';
         viewEl.current.style.transform = `scale(${scale})`;
         viewEl.current.style.width = `${videoDimensions.width * scale}px`;
         viewEl.current.style.height = `${videoDimensions.height * scale}px`;
@@ -60,18 +74,67 @@ function BasePlayerRoot({className, initRoot, videoDimensions}: RootProps) {
   }, [windowDimensions, videoDimensions]);
 
   return (
-    <div ref={windowEl} data-test-id="replay-window">
-      <div ref={viewEl} data-test-id="replay-view" className={className} />
-    </div>
+    <Panel isFullscreen={isFullscreen}>
+      <Centered ref={windowEl} className="sr-block" data-test-id="replay-window">
+        <div ref={viewEl} data-test-id="replay-view" className={className} />
+        {fastForwardSpeed ? (
+          <FastForwardBadge>
+            <FastForwardTooltip title={t('Fast forwarding')}>
+              <IconArrow size="sm" direction="right" />
+              {fastForwardSpeed}x
+            </FastForwardTooltip>
+          </FastForwardBadge>
+        ) : null}
+      </Centered>
+    </Panel>
   );
 }
 
-// Base styles, to make the player work
-const PlayerRoot = styled(BasePlayerRoot)`
-  /* Make sure the replayer fits inside it's container */
-  transform-origin: top left;
+const FastForwardBadge = styled('div')`
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  background: ${p => p.theme.gray300};
+  color: ${p => p.theme.white};
+  padding: ${space(0.5)} ${space(1)};
+  border-bottom-left-radius: ${p => p.theme.borderRadius};
+  border-top-right-radius: ${p => p.theme.borderRadius};
+`;
 
-  /* Fix the replayer layout so layers are stacked properly */
+const FastForwardTooltip = styled(Tooltip)`
+  display: grid;
+  grid-template-columns: max-content max-content;
+  gap: ${space(0.5)};
+  align-items: center;
+`;
+
+const Panel = styled(_Panel)<{isFullscreen: boolean}>`
+  /*
+  Disable the <Panel> styles when in fullscreen mode.
+  If we add/remove DOM nodes then the Replayer instance will have a stale iframe ref
+  */
+  ${p => (p.isFullscreen ? 'border: none; background: transparent;' : '')}
+
+  iframe {
+    /* Match the iframe corners to the <Panel> */
+    border-radius: ${p => p.theme.borderRadius};
+  }
+`;
+
+// Center the viewEl inside the windowEl.
+// This is useful when the window is inside a container that has large fixed
+// dimensions, like when in fullscreen mode.
+const Centered = styled('div')`
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+// Base styles, to make the Replayer instance work
+const PlayerRoot = styled(BasePlayerRoot)`
   .replayer-wrapper > .replayer-mouse-tail {
     position: absolute;
     pointer-events: none;
@@ -80,12 +143,6 @@ const PlayerRoot = styled(BasePlayerRoot)`
   /* Override default user-agent styles */
   .replayer-wrapper > iframe {
     border: none;
-  }
-`;
-
-const PlayerPanel = styled(Panel)`
-  iframe {
-    border-radius: ${p => p.theme.borderRadius};
   }
 `;
 
@@ -168,18 +225,4 @@ const SentryPlayerRoot = styled(PlayerRoot)`
   }
 `;
 
-export default function ReplayPlayer({className}: Props) {
-  return (
-    <ReplayContextProvider>
-      {({initRoot, dimensions}) => (
-        <PlayerPanel>
-          <SentryPlayerRoot
-            className={className}
-            initRoot={initRoot}
-            videoDimensions={dimensions}
-          />
-        </PlayerPanel>
-      )}
-    </ReplayContextProvider>
-  );
-}
+export default SentryPlayerRoot;

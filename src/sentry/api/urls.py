@@ -292,6 +292,9 @@ from .endpoints.organization_metrics import (
     OrganizationMetricsTagsEndpoint,
 )
 from .endpoints.organization_monitors import OrganizationMonitorsEndpoint
+from .endpoints.organization_onboarding_continuation_email import (
+    OrganizationOnboardingContinuationEmail,
+)
 from .endpoints.organization_onboarding_tasks import OrganizationOnboardingTaskEndpoint
 from .endpoints.organization_pinned_searches import OrganizationPinnedSearchEndpoint
 from .endpoints.organization_processingissues import OrganizationProcessingIssuesEndpoint
@@ -345,6 +348,7 @@ from .endpoints.project_agnostic_rule_conditions import ProjectAgnosticRuleCondi
 from .endpoints.project_app_store_connect_credentials import (
     AppStoreConnectAppsEndpoint,
     AppStoreConnectCreateCredentialsEndpoint,
+    AppStoreConnectRefreshEndpoint,
     AppStoreConnectStatusEndpoint,
     AppStoreConnectUpdateCredentialsEndpoint,
 )
@@ -1324,6 +1328,11 @@ urlpatterns = [
                     name="sentry-api-0-organization-member-team-details",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/onboarding-continuation-email/$",
+                    OrganizationOnboardingContinuationEmail.as_view(),
+                    name="sentry-api-0-organization-onboarding-continuation-email",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/processingissues/$",
                     OrganizationProcessingIssuesEndpoint.as_view(),
                     name="sentry-api-0-organization-processing-issues",
@@ -2165,6 +2174,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/(?P<credentials_id>[^\/]+)/$",
                     AppStoreConnectUpdateCredentialsEndpoint.as_view(),
                     name="sentry-api-0-project-appstoreconnect-credentials-update",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/(?P<credentials_id>[^\/]+)/refresh/$",
+                    AppStoreConnectRefreshEndpoint.as_view(),
+                    name="sentry-api-0-project-appstoreconnect-refresh",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/profiling/profiles/(?P<profile_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",

@@ -244,6 +244,7 @@ const generateAliases = (colors: BaseColors) => ({
    */
   linkColor: colors.blue300,
   linkHoverColor: colors.blue300,
+  linkFocus: colors.blue300,
 
   /**
    * Form placeholder text color
@@ -507,17 +508,6 @@ const generateButtonTheme = (colors: BaseColors, alias: Aliases) => ({
     focusBorder: alias.focusBorder,
     focusShadow: alias.focus,
   },
-  success: {
-    color: colors.white,
-    colorActive: colors.white,
-    background: colors.green300,
-    backgroundActive: colors.green400,
-    border: colors.green300,
-    borderActive: colors.green300,
-    borderTranslucent: colors.green300,
-    focusBorder: colors.green300,
-    focusShadow: colors.green200,
-  },
   danger: {
     color: colors.white,
     colorActive: colors.white,
@@ -561,6 +551,14 @@ const generateButtonTheme = (colors: BaseColors, alias: Aliases) => ({
     borderTranslucent: alias.translucentBorder,
     focusBorder: alias.focusBorder,
     focusShadow: alias.focus,
+  },
+});
+
+const generateUtils = (colors: BaseColors) => ({
+  tooltipUnderline: {
+    textDecoration: `underline dotted ${colors.gray300}`,
+    textDecorationThickness: '0.75px',
+    textUnderlineOffset: '1.25px',
   },
 });
 
@@ -812,6 +810,7 @@ export const lightTheme = {
     ...darkColors,
     ...darkAliases,
   },
+  ...generateUtils(lightColors),
   alert: generateAlertTheme(lightColors, lightAliases),
   badge: generateBadgeTheme(lightColors),
   button: generateButtonTheme(lightColors, lightAliases),
@@ -834,6 +833,7 @@ export const darkTheme: Theme = {
     ...lightColors,
     ...lightAliases,
   },
+  ...generateUtils(darkColors),
   alert: generateAlertTheme(darkColors, darkAliases),
   badge: generateBadgeTheme(darkColors),
   button: generateButtonTheme(darkColors, darkAliases),

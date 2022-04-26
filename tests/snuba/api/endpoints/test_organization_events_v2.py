@@ -4699,12 +4699,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.data["data"][0]["environment"] == "staging"
         assert response.data["data"][0]["project.name"] == project.slug
 
-
-class OrganizationEventsV2EndpointTestWithSnql(OrganizationEventsV2EndpointTest):
-    def setUp(self):
-        super().setUp()
-        self.features["organizations:discover-use-snql"] = True
-
     def test_timestamp_different_from_params(self):
         project = self.create_project()
         fifteen_days_ago = iso_format(before_now(days=15))
@@ -4983,7 +4977,6 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         self.transaction_data = load_data("transaction", timestamp=before_now(minutes=1))
         self.features = {
             "organizations:performance-use-metrics": True,
-            "organizations:discover-use-snql": True,
         }
 
     def do_request(self, query, features=None):
@@ -5001,11 +4994,22 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
     def test_no_projects(self):
         response = self.do_request(
             {
-                "metricsEnhanced": "1",
+                "dataset": "metricsEnhanced",
             }
         )
 
         assert response.status_code == 200, response.content
+
+    def test_invalid_dataset(self):
+        response = self.do_request(
+            {
+                "dataset": "aFakeDataset",
+                "project": self.project.id,
+            }
+        )
+
+        assert response.status_code == 400, response.content
+        assert response.data["detail"] == "dataset must be one of: discover, metricsEnhanced"
 
     def test_out_of_retention(self):
         self.create_project()
@@ -5016,7 +5020,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                 "query": "event.type:transaction",
                 "start": iso_format(before_now(days=20)),
                 "end": iso_format(before_now(days=15)),
-                "metricsEnhanced": "1",
+                "dataset": "metricsEnhanced",
             }
             response = self.do_request(query)
         assert response.status_code == 400, response.content
@@ -5028,7 +5032,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                 "field": ["epm()"],
                 "query": "hi \n there",
                 "project": self.project.id,
-                "metricsEnhanced": "1",
+                "dataset": "metricsEnhanced",
             }
         )
         assert response.status_code == 400, response.content
@@ -5048,7 +5052,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             {
                 "field": ["project.name", "environment", "epm()"],
                 "query": "event.type:transaction",
-                "metricsEnhanced": "1",
+                "dataset": "metricsEnhanced",
                 "per_page": 50,
             }
         )
@@ -5078,7 +5082,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             {
                 "field": ["title", "p50()"],
                 "query": "event.type:transaction",
-                "metricsEnhanced": "1",
+                "dataset": "metricsEnhanced",
                 "per_page": 50,
             }
         )
@@ -5111,7 +5115,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             {
                 "field": ["transaction", "project", "p50(transaction.duration)"],
                 "query": "event.type:transaction p50(transaction.duration):<50",
-                "metricsEnhanced": "1",
+                "dataset": "metricsEnhanced",
                 "per_page": 50,
             }
         )
@@ -5145,7 +5149,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             {
                 "field": ["transaction", "project", "p50(transaction.duration)"],
                 "query": "event.type:transaction p50(transaction.duration):<50",
-                "metricsEnhanced": "1",
+                "dataset": "metricsEnhanced",
                 "preventMetricAggregates": "1",
                 "per_page": 50,
             }
@@ -5176,7 +5180,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             {
                 "field": ["transaction", "project", "p50(transaction.duration)"],
                 "query": "event.type:transaction p75(transaction.duration):<50",
-                "metricsEnhanced": "1",
+                "dataset": "metricsEnhanced",
                 "per_page": 50,
             }
         )
@@ -5205,7 +5209,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             {
                 "field": ["test", "p50(transaction.duration)"],
                 "query": "event.type:transaction",
-                "metricsEnhanced": "1",
+                "dataset": "metricsEnhanced",
                 "per_page": 50,
             }
         )
@@ -5269,7 +5273,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                     "user_misery()",
                 ],
                 "query": "event.type:transaction",
-                "metricsEnhanced": "1",
+                "dataset": "metricsEnhanced",
                 "per_page": 50,
             }
         )
@@ -5318,7 +5322,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                 "p95()",
             ],
             "per_page": 50,
-            "metricsEnhanced": "1",
+            "dataset": "metricsEnhanced",
         }
         response = self.do_request(query)
 
@@ -5373,7 +5377,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                 "p95()",
             ],
             "per_page": 50,
-            "metricsEnhanced": "1",
+            "dataset": "metricsEnhanced",
         }
 
         query["orderby"] = ["team_key_transaction", "p95()"]
@@ -5407,7 +5411,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                 "p95()",
             ],
             "per_page": 50,
-            "metricsEnhanced": "1",
+            "dataset": "metricsEnhanced",
         }
 
         query["orderby"] = ["team_key_transaction", "p95()"]
@@ -5463,7 +5467,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                 "p95()",
             ],
             "per_page": 50,
-            "metricsEnhanced": "1",
+            "dataset": "metricsEnhanced",
         }
 
         # test ascending order
@@ -5541,7 +5545,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                 "p95()",
             ],
             "per_page": 50,
-            "metricsEnhanced": "1",
+            "dataset": "metricsEnhanced",
         }
 
         # key transactions
@@ -5649,7 +5653,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                     "failure_rate()",
                     "p95()",
                 ],
-                "metricsEnhanced": "1",
+                "dataset": "metricsEnhanced",
                 "per_page": 50,
             }
 
@@ -5708,7 +5712,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                     "count_web_vitals(measurements.cls, good)",
                 ],
                 "query": "event.type:transaction",
-                "metricsEnhanced": "1",
+                "dataset": "metricsEnhanced",
                 "per_page": 50,
             }
         )
@@ -5742,7 +5746,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             {
                 "field": ["transaction", "count_web_vitals(measurements.lcp, poor)"],
                 "query": "event.type:transaction",
-                "metricsEnhanced": "1",
+                "dataset": "metricsEnhanced",
                 "per_page": 50,
             }
         )
@@ -5762,7 +5766,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                 "count_web_vitals(measurements.foo, poor)",
             ],
             "project": [self.project.id],
-            "metricsEnhanced": "1",
+            "dataset": "metricsEnhanced",
         }
         response = self.do_request(query)
         assert response.status_code == 400, response.content
@@ -5772,7 +5776,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                 "count_web_vitals(tags[lcp], poor)",
             ],
             "project": [self.project.id],
-            "metricsEnhanced": "1",
+            "dataset": "metricsEnhanced",
         }
         response = self.do_request(query)
         assert response.status_code == 400, response.content
@@ -5782,7 +5786,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                 "count_web_vitals(transaction.duration, poor)",
             ],
             "project": [self.project.id],
-            "metricsEnhanced": "1",
+            "dataset": "metricsEnhanced",
         }
         response = self.do_request(query)
         assert response.status_code == 400, response.content
@@ -5792,7 +5796,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                 "count_web_vitals(measurements.lcp, bad)",
             ],
             "project": [self.project.id],
-            "metricsEnhanced": "1",
+            "dataset": "metricsEnhanced",
         }
         response = self.do_request(query)
         assert response.status_code == 400, response.content

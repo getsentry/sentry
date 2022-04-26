@@ -17,6 +17,7 @@ import {SidebarPanelKey} from './sidebar/types';
 import Button from './button';
 
 interface InnerGlobalSdkSuggestionsProps extends AlertProps {
+  className?: string;
   sdkUpdates?: ProjectSdkUpdates[] | null;
   selection?: PageFilters;
 }
@@ -90,6 +91,7 @@ function InnerGlobalSdkUpdateAlert(
     <Alert
       type="info"
       showIcon
+      className={props.className}
       trailingItems={
         <Fragment>
           <Button

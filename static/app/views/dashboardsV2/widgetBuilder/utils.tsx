@@ -1,4 +1,5 @@
 import isEqual from 'lodash/isEqual';
+import trimStart from 'lodash/trimStart';
 
 import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesForm';
 import {t} from 'sentry/locale';
@@ -7,6 +8,7 @@ import {
   aggregateFunctionOutputType,
   aggregateOutputType,
   getAggregateAlias,
+  isEquation,
   isLegalYAxisType,
   stripDerivedMetricsPrefix,
 } from 'sentry/utils/discover/fields';
@@ -27,7 +29,7 @@ import {FlatValidationError, ValidationError} from '../utils';
 
 // Used in the widget builder to limit the number of lines plotted in the chart
 export const DEFAULT_RESULTS_LIMIT = 5;
-export const RESULTS_LIMIT = 10;
+const RESULTS_LIMIT = 10;
 
 // Both dashboards and widgets use the 'new' keyword when creating
 export const NEW_DASHBOARD_ID = 'new';
@@ -94,12 +96,7 @@ export function normalizeQueries({
   widgetBuilderNewDesign?: boolean;
   widgetType?: Widget['widgetType'];
 }): Widget['queries'] {
-  const isTimeseriesChart = [
-    DisplayType.LINE,
-    DisplayType.AREA,
-    DisplayType.BAR,
-  ].includes(displayType);
-
+  const isTimeseriesChart = getIsTimeseriesChart(displayType);
   const isTabularChart = [DisplayType.TABLE, DisplayType.TOP_N].includes(displayType);
 
   if (
@@ -131,8 +128,12 @@ export function normalizeQueries({
           ? stripDerivedMetricsPrefix(queries[0].orderby)
           : queries[0].orderby;
 
+      // Ignore the orderby if it is a raw equation and we're switching to a table
+      // or Top-N chart, a custom equation should be reset since it only applies when
+      // grouping in timeseries charts
+      const ignoreOrderBy = isEquation(trimStart(queryOrderBy, '-')) && isTabularChart;
       const orderBy =
-        getAggregateAlias(queryOrderBy) ||
+        (!ignoreOrderBy && getAggregateAlias(queryOrderBy)) ||
         (widgetType === WidgetType.ISSUE
           ? IssueSortOptions.DATE
           : generateOrderOptions({
@@ -337,4 +338,16 @@ export function filterPrimaryOptions({
   return [FieldValueKind.FUNCTION, FieldValueKind.NUMERIC_METRICS].includes(
     option.value.kind
   );
+}
+
+export function getResultsLimit(numQueries, numYAxes) {
+  if (numQueries === 0 || numYAxes === 0) {
+    return DEFAULT_RESULTS_LIMIT;
+  }
+
+  return Math.floor(RESULTS_LIMIT / (numQueries * numYAxes));
+}
+
+export function getIsTimeseriesChart(displayType: DisplayType) {
+  return [DisplayType.LINE, DisplayType.AREA, DisplayType.BAR].includes(displayType);
 }

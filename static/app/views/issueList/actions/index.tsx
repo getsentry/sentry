@@ -27,10 +27,12 @@ type Props = {
   groupIds: string[];
   onDelete: () => void;
   onSelectStatsPeriod: (period: string) => void;
+  onSortChange: (sort: string) => void;
   organization: Organization;
   query: string;
   queryCount: number;
   selection: PageFilters;
+  sort: string;
   statsPeriod: string;
   onActionTaken?: (itemIds: string[]) => void;
   onMarkReviewed?: (itemIds: string[]) => void;
@@ -268,6 +270,9 @@ class IssueListActions extends React.Component<Props, State> {
           </ActionsCheckbox>
           {!displayReprocessingActions && (
             <ActionSet
+              sort={this.props.sort}
+              onSortChange={this.props.onSortChange}
+              hasPageFilters={organization.features.includes('selection-filters-v2')}
               orgSlug={organization.slug}
               queryCount={queryCount}
               query={query}
