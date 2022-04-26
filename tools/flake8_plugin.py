@@ -2,45 +2,14 @@ import ast
 from collections import namedtuple
 from functools import partial
 
-import pycodestyle
-
-__version__ = "2.0.0"
-
-
-# We don't want Python 3 code to have Python 2 compatability futures.
-# Refer to Lib/__future__.py in CPython source.
-DISALLOWED_FUTURES = (
-    "absolute_import",
-    "division",
-    "print_function",
-    "unicode_literals",
-)
-
 
 class SentryVisitor(ast.NodeVisitor):
     NODE_WINDOW_SIZE = 4
 
-    def __init__(self, filename, lines):
+    def __init__(self):
         self.errors = []
-        self.filename = filename
-        self.lines = lines
-        self.node_stack = []
-        self.node_window = []
-
-    def visit(self, node):
-        self.node_stack.append(node)
-        self.node_window.append(node)
-        self.node_window = self.node_window[-self.NODE_WINDOW_SIZE :]
-        super().visit(node)
-        self.node_stack.pop()
 
     def visit_ImportFrom(self, node):
-        if node.module == "__future__":
-            for nameproxy in node.names:
-                if nameproxy.name in DISALLOWED_FUTURES:
-                    self.errors.append(S005(node.lineno, node.col_offset))
-                    break
-
         if node.module in S003.modules:
             for nameproxy in node.names:
                 if nameproxy.name in S003.names:
@@ -74,8 +43,7 @@ class SentryVisitor(ast.NodeVisitor):
         self.check_print(node)
 
     def check_print(self, node):
-        if not self.filename.startswith("tests/"):
-            self.errors.append(S002(lineno=node.lineno, col=node.col_offset))
+        self.errors.append(S002(lineno=node.lineno, col=node.col_offset))
 
     def compose_call_path(self, node):
         if isinstance(node, ast.Attribute):
@@ -87,45 +55,17 @@ class SentryVisitor(ast.NodeVisitor):
 
 class SentryCheck:
     name = "sentry-flake8"
-    version = __version__
+    version = "0"
 
-    def __init__(self, tree=None, filename=None, lines=None, visitor=SentryVisitor):
+    def __init__(self, tree: ast.AST) -> None:
         self.tree = tree
-        self.filename = filename
-        self.lines = lines
-        self.visitor = visitor
 
     def run(self):
-        if not self.tree or not self.lines:
-            self.load_file()
-
-        visitor = self.visitor(filename=self.filename, lines=self.lines)
+        visitor = SentryVisitor()
         visitor.visit(self.tree)
 
         for e in visitor.errors:
-            try:
-                if pycodestyle.noqa(self.lines[e.lineno - 1]):
-                    continue
-            except IndexError:
-                pass
-
             yield self.adapt_error(e)
-
-    def load_file(self):
-        """
-        Loads the file in a way that auto-detects source encoding and deals
-        with broken terminal encodings for stdin.
-        Stolen from flake8_import_order because it's good.
-        """
-
-        if self.filename in ("stdin", "-", None):
-            self.filename = "stdin"
-            self.lines = pycodestyle.stdin_get_value().splitlines(True)
-        else:
-            self.lines = pycodestyle.readlines(self.filename)
-
-        if not self.tree:
-            self.tree = ast.parse("".join(self.lines))
 
     @classmethod
     def adapt_error(cls, e):
@@ -171,7 +111,3 @@ S004 = Error(
 )
 S004.methods = {"escape"}
 S004.invalid_paths = {"cgi", "html"}
-
-S005 = Error(
-    message=f"S005: The following __future__ are not allowed: {', '.join(DISALLOWED_FUTURES)}"
-)

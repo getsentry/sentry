@@ -42,7 +42,7 @@ _Button.argTypes = {
   priority: {
     control: {
       type: 'select',
-      options: ['default', 'primary', 'danger', 'link', 'success', 'form'],
+      options: ['default', 'primary', 'danger', 'link', 'form'],
     },
   },
   size: {
@@ -65,11 +65,6 @@ export const Overview = ({busy}) => (
       <Item>
         <Button title="Tooltip" priority="primary" onClick={action('click primary')}>
           Primary Button
-        </Button>
-      </Item>
-      <Item>
-        <Button priority="success" onClick={action('click success')}>
-          Success Button
         </Button>
       </Item>
       <Item>

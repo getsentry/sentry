@@ -453,8 +453,6 @@ SESSION_COOKIE_NAME = "sentrysid"
 # See here: https://docs.djangoproject.com/en/2.1/ref/settings/#session-cookie-samesite
 SESSION_COOKIE_SAMESITE = None
 
-SESSION_SERIALIZER = "sentry.utils.transitional_serializer.TransitionalSerializer"
-
 BITBUCKET_CONSUMER_KEY = ""
 BITBUCKET_CONSUMER_SECRET = ""
 
@@ -1356,8 +1354,11 @@ SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE_OPTIONS = {}
 
 # Rate limiting backend
 SENTRY_RATELIMITER = "sentry.ratelimits.base.RateLimiter"
-SENTRY_RATELIMITER_ENABLED = True
+SENTRY_RATELIMITER_ENABLED = False
 SENTRY_RATELIMITER_OPTIONS = {}
+SENTRY_RATELIMITER_DEFAULT = 999
+SENTRY_CONCURRENT_RATE_LIMIT_DEFAULT = 999
+ENFORCE_CONCURRENT_RATE_LIMITS = False
 
 # The default value for project-level quotas
 SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE = "90%"
