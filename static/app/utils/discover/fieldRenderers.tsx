@@ -15,7 +15,7 @@ import Tooltip from 'sentry/components/tooltip';
 import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import {AvatarProject, Organization, Project} from 'sentry/types';
 import {defined, isUrl} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import EventView, {EventData, MetaType} from 'sentry/utils/discover/eventView';
@@ -31,13 +31,12 @@ import {
 import {getShortEventId} from 'sentry/utils/events';
 import {formatFloat, formatPercentage} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import Projects from 'sentry/utils/projects';
 import {
   filterToLocationQuery,
   SpanOperationBreakdownFilter,
   stringToFilter,
 } from 'sentry/views/performance/transactionSummary/filter';
-
-import useProjects from '../useProjects';
 
 import ArrayValue from './arrayValue';
 import {
@@ -297,20 +296,24 @@ const SPECIAL_FIELDS: SpecialFields = {
   project: {
     sortField: 'project',
     renderFunc: (data, {organization}) => {
-      let project: Project | undefined;
-      if (typeof data.project === 'number') {
-        const {projects} = useProjects({orgId: organization.id});
-        project = projects.find(p => p.id === data.project.toString());
-      } else {
-        const {projects} = useProjects({slugs: [data.project], orgId: organization.id});
-        project = projects.find(p => p.slug === data.project);
-      }
       return (
         <Container>
-          <ProjectBadge
-            project={project ? project : {slug: data.project}}
-            avatarSize={16}
-          />
+          <Projects orgId={organization.slug}>
+            {({projects}) => {
+              let project: Project | AvatarProject | undefined;
+              if (typeof data.project === 'number') {
+                project = projects.find(p => p.id === data.project.toString());
+              } else {
+                project = projects.find(p => p.slug === data.project);
+              }
+              return (
+                <ProjectBadge
+                  project={project ? project : {slug: data.project}}
+                  avatarSize={16}
+                />
+              );
+            }}
+          </Projects>
         </Container>
       );
     },
