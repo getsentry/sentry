@@ -1,9 +1,9 @@
 import {browserHistory} from 'react-router';
 
-import {triggerPress} from 'sentry-test/utils';
 import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
+import {triggerPress} from 'sentry-test/utils';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import Results from 'sentry/views/eventsV2/results';
