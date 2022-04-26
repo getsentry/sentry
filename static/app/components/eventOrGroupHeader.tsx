@@ -10,6 +10,7 @@ import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import Tooltip from 'sentry/components/tooltip';
 import {IconMute, IconStar} from 'sentry/icons';
 import {tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {Group, GroupTombstone, Level, Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {getLocation, getMessage} from 'sentry/utils/events';
@@ -215,23 +216,25 @@ const Message = styled('div')`
 
 const IconWrapper = styled('span')`
   position: relative;
-  display: flex;
-  margin-right: 5px;
+  top: 1px;
+  display: inline-flex;
+  margin-right: ${space(0.75)};
 `;
 
 const GroupLevel = styled('div')<{level: Level}>`
   position: absolute;
   left: -1px;
-  width: 9px;
+  top: 15px;
+  width: ${space(1)};
   height: 15px;
-  border-radius: 0 3px 3px 0;
+  border-radius: 0 ${space(0.5)} ${space(0.5)} 0;
 
   background-color: ${p => p.theme.level[p.level] ?? p.theme.level.default};
 
   & span {
     display: block;
-    width: 9px;
-    height: 15px;
+    width: ${space(1)};
+    height: ${space(2)};
   }
 `;
 
