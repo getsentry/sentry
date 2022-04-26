@@ -428,7 +428,10 @@ function WidgetBuilder({
       set(newState, 'queries', normalized);
 
       if (widgetBuilderNewDesign) {
-        if (getIsTimeseriesChart(newDisplayType) && normalized[0].columns.length) {
+        if (
+          getIsTimeseriesChart(newDisplayType) &&
+          normalized[0].columns.filter(column => !!column).length
+        ) {
           // If a limit already exists (i.e. going between timeseries) then keep it,
           // otherwise calculate a limit
           newState.limit =
@@ -653,6 +656,7 @@ function WidgetBuilder({
 
     const newState = cloneDeep(state);
 
+    // TODO(NAR): Please fix order by here too
     const newQueries = state.queries.map(query => {
       const newQuery = cloneDeep(query);
       newQuery.columns = fieldStrings;
@@ -662,22 +666,21 @@ function WidgetBuilder({
     set(newState, 'userHasModified', true);
     set(newState, 'queries', newQueries);
 
-    if (widgetBuilderNewDesign && isTimeseriesChart) {
-      const groupByFields = newState.queries[0].columns.filter(
-        field => !(field === 'equation|')
+    const groupByFields = newState.queries[0].columns.filter(
+      field => !(field === 'equation|')
+    );
+
+    if (groupByFields.length === 0) {
+      set(newState, 'limit', undefined);
+    } else {
+      set(
+        newState,
+        'limit',
+        Math.min(
+          newState.limit ?? DEFAULT_RESULTS_LIMIT,
+          getResultsLimit(newQueries.length, newQueries[0].aggregates.length)
+        )
       );
-      if (groupByFields.length === 0) {
-        set(newState, 'limit', undefined);
-      } else {
-        set(
-          newState,
-          'limit',
-          Math.min(
-            newState.limit ?? DEFAULT_RESULTS_LIMIT,
-            getResultsLimit(newQueries.length, newQueries[0].aggregates.length)
-          )
-        );
-      }
     }
 
     setState(newState);

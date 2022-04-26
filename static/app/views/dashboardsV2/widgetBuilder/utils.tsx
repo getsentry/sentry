@@ -121,6 +121,14 @@ export function normalizeQueries({
         query.fields = fields.filter(field => !columns.includes(field));
       }
 
+      if (
+        getIsTimeseriesChart(displayType) &&
+        !query.columns.filter(column => !!column).length
+      ) {
+        query.orderby = '';
+        return query;
+      }
+
       const queryOrderBy =
         widgetType === WidgetType.METRICS
           ? stripDerivedMetricsPrefix(queries[0].orderby)
@@ -334,7 +342,7 @@ export function filterPrimaryOptions({
   );
 }
 
-export function getResultsLimit(numQueries, numYAxes) {
+export function getResultsLimit(numQueries: number, numYAxes: number) {
   return Math.floor(RESULTS_LIMIT / (numQueries * numYAxes));
 }
 
