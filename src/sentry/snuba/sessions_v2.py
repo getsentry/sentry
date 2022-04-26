@@ -253,11 +253,20 @@ class QueryDefinition:
     `fields` and `groupby` definitions as [`ColumnDefinition`] objects.
     """
 
-    def __init__(self, query, params, allowed_resolution: AllowedResolution):
+    def __init__(
+        self,
+        query,
+        params,
+        allowed_resolution: AllowedResolution,
+        limit: Optional[int] = 0,
+        offset: Optional[int] = 0,
+    ):
         self.query = query.get("query", "")
         self.raw_fields = raw_fields = query.getlist("field", [])
         self.raw_groupby = raw_groupby = query.getlist("groupBy", [])
         self.raw_orderby = query.getlist("orderBy")  # only respected by metrics implementation
+        self.limit = limit
+        self.offset = offset
 
         if len(raw_fields) == 0:
             raise InvalidField('Request is missing a "field"')
@@ -451,7 +460,8 @@ def _run_sessions_query(query):
         end=query.end,
         rollup=query.rollup,
         orderby=orderby,
-        limit=max_groups,
+        limit=min(query.limit or max_groups, max_groups),
+        offset=query.offset or 0,
         referrer="sessions.totals",
     )
 

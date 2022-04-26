@@ -21,7 +21,7 @@ from typing import (
     cast,
 )
 
-from snuba_sdk import Condition, Direction, Granularity, Limit
+from snuba_sdk import Condition, Direction, Granularity, Limit, Offset
 from snuba_sdk.legacy import json_to_snql
 
 from sentry.api.utils import InvalidParams as UtilsInvalidParams
@@ -323,7 +323,8 @@ def run_sessions_query(
             {column for field in fields for column in field.get_groupby(query.raw_groupby)}
         ),
         orderby=orderby,
-        limit=Limit(max_groups),
+        limit=Limit(min(query.limit or max_groups, max_groups)),
+        offset=Offset(query.offset or 0),
     )
 
     # TODO: Stop passing project IDs everywhere
