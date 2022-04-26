@@ -8,7 +8,6 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Breadcrumb} from 'sentry/components/profiling/breadcrumb';
 import {Flamegraph} from 'sentry/components/profiling/flamegraph';
-import {FullScreenFlamegraphContainer} from 'sentry/components/profiling/fullScreenFlamegraphContainer';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
@@ -104,7 +103,7 @@ function FlamegraphView(props: FlamegraphViewProps): React.ReactElement {
         </Layout.Header>
         <FlamegraphStateProvider>
           <FlamegraphThemeProvider>
-            <FullScreenFlamegraphContainer>
+            <FlamegraphContainer>
               {requestState === 'errored' ? (
                 <Alert type="error" showIcon>
                   {t('Unable to load profiles')}
@@ -119,7 +118,7 @@ function FlamegraphView(props: FlamegraphViewProps): React.ReactElement {
               ) : requestState === 'resolved' && profiles ? (
                 <Flamegraph profiles={profiles} />
               ) : null}
-            </FullScreenFlamegraphContainer>
+            </FlamegraphContainer>
           </FlamegraphThemeProvider>
         </FlamegraphStateProvider>
       </Fragment>
@@ -134,6 +133,21 @@ const LoadingIndicatorContainer = styled('div')`
   justify-content: center;
   width: 100%;
   height: 100%;
+`;
+
+const FlamegraphContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 100%;
+
+  /*
+   * The footer component is a sibling of this div.
+   * Remove it so the flamegraph can take up the
+   * entire screen.
+   */
+  ~ footer {
+    display: none;
+  }
 `;
 
 export default FlamegraphView;
