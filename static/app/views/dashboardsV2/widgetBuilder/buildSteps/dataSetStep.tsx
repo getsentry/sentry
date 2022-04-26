@@ -79,8 +79,7 @@ export function DataSetStep({
 }
 
 const DataSetChoices = styled(RadioGroup)`
+  display: flex;
+  flex-wrap: wrap;
   gap: ${space(2)};
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    grid-auto-flow: column;
-  }
 `;
