@@ -5,6 +5,7 @@ import DetailedError from 'sentry/components/errors/detailedError';
 import NotFound from 'sentry/components/errors/notFound';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import ReplayBreadcrumbOverview from 'sentry/components/replays/breadcrumbs/replayBreadcrumbOverview';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayController from 'sentry/components/replays/replayController';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
@@ -94,7 +95,7 @@ function ReplayDetails() {
             <UserActionsNavigator event={event} entry={breadcrumbEntry} />
           </Layout.Side>
           <Layout.Main fullWidth>
-            {/* TODO(replay): Insert Event Timeline here */}
+            <BreadcrumbTimeline crumbs={breadcrumbEntry?.data.values || []} />
             <FocusArea event={event} eventWithSpans={mergedReplayEvent} />
           </Layout.Main>
         </Layout.Body>
@@ -109,6 +110,10 @@ const ReplayLayout = styled(Layout.Main)`
     grid-template-rows: auto max-content;
     background: ${p => p.theme.gray500};
   }
+`;
+
+const BreadcrumbTimeline = styled(ReplayBreadcrumbOverview)`
+  max-height: 5em;
 `;
 
 export default ReplayDetails;
