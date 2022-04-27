@@ -27,7 +27,7 @@ class SimpleIndexer(StringIndexer):
                     strings_to_ints[string] = SHARED_STRINGS[string]
                 else:
                     strings_to_ints[string] = self._record(org_id, string)
-            acc.add_key_result(KeyResult(org_id, string, strings_to_ints[string]))
+                acc.add_key_result(KeyResult(org_id, string, strings_to_ints[string]))
 
         return acc
 
