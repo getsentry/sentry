@@ -22,6 +22,7 @@ import Stepper from './components/stepper';
 import PlatformSelection from './platform';
 import SetupDocs from './setupDocs';
 import {StepDescriptor} from './types';
+import {usePersistedOnboardingState} from './utils';
 import TargetedOnboardingWelcome from './welcome';
 
 type RouteParams = {
@@ -63,6 +64,7 @@ function Onboarding(props: Props) {
     params: {step: stepId},
   } = props;
   const cornerVariantTimeoutRed = useRef<number | undefined>(undefined);
+  const [clientState, setClientState] = usePersistedOnboardingState();
 
   useEffect(() => {
     return () => {
@@ -129,12 +131,18 @@ function Onboarding(props: Props) {
     const source = `targeted-onboarding-${stepId}`;
     return (
       <SkipOnboardingLink
-        onClick={() =>
+        onClick={() => {
           trackAdvancedAnalyticsEvent('growth.onboarding_clicked_skip', {
             organization,
             source,
-          })
-        }
+          });
+          if (clientState) {
+            setClientState({
+              ...clientState,
+              state: 'skipped',
+            });
+          }
+        }}
         to={`/organizations/${organization.slug}/issues/`}
       >
         {t('Skip Onboarding')}
