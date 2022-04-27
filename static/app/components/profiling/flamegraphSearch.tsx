@@ -152,7 +152,7 @@ function FlamegraphSearch({
     if (frames[search.index]) {
       onZoomIntoFrame(frames[search.index]);
     }
-  }, [search.results, search.index]);
+  }, [search.results, search.index, onZoomIntoFrame]);
 
   const handleChange: (value: string) => void = useCallback(
     value => {
@@ -187,7 +187,7 @@ function FlamegraphSearch({
       type: 'set search index position',
       payload: search.index + 1,
     });
-  }, [search.results, search.index]);
+  }, [search.results, search.index, dispatchSearch]);
 
   const onPreviousSearchClick = useCallback(() => {
     const frames = memoizedSortFrameResults(search.results);
@@ -207,7 +207,7 @@ function FlamegraphSearch({
       type: 'set search index position',
       payload: search.index - 1,
     });
-  }, [search.results, search.index]);
+  }, [search.results, search.index, dispatchSearch]);
 
   const handleKeyDown = useCallback(
     (evt: React.KeyboardEvent<HTMLInputElement>) => {
