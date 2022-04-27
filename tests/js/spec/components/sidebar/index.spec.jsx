@@ -137,7 +137,7 @@ describe('Sidebar', function () {
       rerender(getElement({location: {...router.location, pathname: 'new-path-name'}}));
 
       expect(screen.queryByText("What's new in Sentry")).not.toBeInTheDocument();
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await tick();
     });
 
     it('can have onboarding feature', async function () {
@@ -155,7 +155,7 @@ describe('Sidebar', function () {
 
       userEvent.click(quickStart);
       expect(screen.queryByText('Capture your first error')).not.toBeInTheDocument();
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await tick();
     });
 
     it('displays empty panel when there are no Broadcasts', async function () {
@@ -176,7 +176,7 @@ describe('Sidebar', function () {
       // Close the sidebar
       userEvent.click(screen.getByText("What's new"));
       expect(screen.queryByText("What's new in Sentry")).not.toBeInTheDocument();
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await tick();
     });
 
     it('can display Broadcasts panel and mark as seen', async function () {
@@ -209,7 +209,7 @@ describe('Sidebar', function () {
       // Close the sidebar
       userEvent.click(screen.getByText("What's new"));
       expect(screen.queryByText("What's new in Sentry")).not.toBeInTheDocument();
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await tick();
     });
 
     it('can unmount Sidebar (and Broadcasts) and kills Broadcast timers', async function () {
