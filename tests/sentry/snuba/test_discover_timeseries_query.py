@@ -603,6 +603,5 @@ class TopEventsTimeseriesQueryTest(TimeseriesBase):
             limit=10000,
             auto_aggregations=True,
             use_aggregate_conditions=True,
-            use_snql=False,
             include_equation_fields=True,
         )
