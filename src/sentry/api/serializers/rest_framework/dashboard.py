@@ -17,6 +17,7 @@ from sentry.models import (
     DashboardWidgetTypes,
 )
 from sentry.search.events.builder import UnresolvedQuery
+from sentry.search.events.fields import is_function
 from sentry.snuba.dataset import Dataset
 from sentry.utils.dates import parse_stats_period
 
@@ -145,17 +146,23 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
         aggregates = self._get_attr(data, "aggregates", []).copy()
         fields = columns + aggregates
 
-        injected_orderby_equation = None
-        if is_equation(orderby.lstrip("-")):
-            injected_orderby_equation = orderby.lstrip("-")
+        # Handle the orderby since it can be a value that's not included in fields
+        # e.g. a custom equation, or a function that isn't plotted as a y-axis
+        injected_orderby_equation, orderby_prefix = None, None
+        stripped_orderby = orderby.lstrip("-")
+        if is_equation(stripped_orderby):
+            # The orderby is a custom equation and needs to be added to fields
+            injected_orderby_equation = stripped_orderby
             fields.append(injected_orderby_equation)
-            equations, fields = categorize_columns(fields)
             orderby_prefix = "-" if orderby.startswith("-") else ""
+        elif is_function(stripped_orderby) and stripped_orderby not in fields:
+            fields.append(stripped_orderby)
 
+        equations, fields = categorize_columns(fields)
+
+        if injected_orderby_equation is not None and orderby_prefix is not None:
             # Subtract one because the equation is injected to fields
             orderby = f"{orderby_prefix}equation[{len(equations) - 1}]"
-        else:
-            equations, fields = categorize_columns(fields)
 
         try:
             parse_search_query(conditions)
