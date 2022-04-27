@@ -480,7 +480,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert response.status_code == 400, response.data
         assert "queries" in response.data, response.data
 
-    def test_save_with_no_fields_and_orderby(self):
+    def test_save_with_orderby_from_columns(self):
         data = {
             "title": "Test Query",
             "displayType": "line",
@@ -503,3 +503,52 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             data=data,
         )
         assert response.status_code == 200, response.data
+
+    def test_save_with_orderby_not_from_columns_or_aggregates(self):
+        data = {
+            "title": "Test Query",
+            "displayType": "line",
+            "widgetType": "discover",
+            "limit": 5,
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "fields": [],
+                    "columns": ["project"],
+                    "aggregates": ["count()"],
+                    "orderby": "-epm()",
+                }
+            ],
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 200, response.data
+
+    def test_save_with_invalid_orderby_not_from_columns_or_aggregates(self):
+        data = {
+            "title": "Test Query",
+            "displayType": "line",
+            "widgetType": "discover",
+            "limit": 5,
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "fields": [],
+                    "columns": ["project"],
+                    "aggregates": ["count()"],
+                    "orderby": "-eeeeeeeepm()",
+                }
+            ],
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 400, response.data
+        assert "queries" in response.data, response.data
