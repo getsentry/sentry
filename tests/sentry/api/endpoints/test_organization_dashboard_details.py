@@ -541,7 +541,15 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "title": "Invalid fields",
                     "displayType": "line",
                     "interval": "5m",
-                    "queries": [{"name": "Errors", "fields": ["wrong()"], "conditions": ""}],
+                    "queries": [
+                        {
+                            "name": "Errors",
+                            "fields": ["wrong()"],
+                            "columns": [],
+                            "aggregates": ["wrong()"],
+                            "conditions": "",
+                        }
+                    ],
                 },
             ],
         }
@@ -557,7 +565,15 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                 {
                     "title": "Invalid fields",
                     "displayType": "line",
-                    "queries": [{"name": "Errors", "fields": ["p95(user)"], "conditions": ""}],
+                    "queries": [
+                        {
+                            "name": "Errors",
+                            "fields": ["p95(user)"],
+                            "columns": [],
+                            "aggregates": ["p95(user)"],
+                            "conditions": "",
+                        }
+                    ],
                 },
             ],
         }
@@ -764,7 +780,15 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "id": str(self.widget_1.id),
                     "title": "Invalid fields",
                     "displayType": "line",
-                    "queries": [{"name": "Errors", "fields": ["p95(user)"], "conditions": ""}],
+                    "queries": [
+                        {
+                            "name": "Errors",
+                            "fields": ["p95(user)"],
+                            "columns": [],
+                            "aggregates": ["p95(user)"],
+                            "conditions": "",
+                        }
+                    ],
                 },
             ],
         }
