@@ -309,7 +309,11 @@ export function flattenErrors(
 export function getDashboardsMEPQueryParams(isMEPEnabled: boolean) {
   return isMEPEnabled
     ? {
-        metricsEnhanced: '1',
+        dataset: 'metricsEnhanced',
       }
     : {};
+}
+
+export function getNumEquations(possibleEquations: string[]) {
+  return possibleEquations.filter(isEquation).length;
 }

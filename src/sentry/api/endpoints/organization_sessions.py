@@ -66,7 +66,12 @@ class OrganizationSessionsEndpoint(OrganizationEventsEndpointBase):
             allowed_resolution = AllowedResolution.one_hour
 
         return QueryDefinition(
-            query_params, params, allowed_resolution=allowed_resolution, offset=offset, limit=limit
+            query_params,
+            params,
+            allowed_resolution=allowed_resolution,
+            # FIXME: This won't work with duplex backend
+            allow_session_status_query=release_health.is_metrics_based(),
+            offset=offset, limit=limit
         )
 
     @contextmanager

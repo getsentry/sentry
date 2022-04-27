@@ -224,8 +224,9 @@ CONDITION_COLUMNS = ["project", "environment", "release"]
 FILTER_KEY_COLUMNS = ["project_id"]
 
 
-def resolve_column(col):
-    if col in CONDITION_COLUMNS:
+def resolve_column(col, extra_columns=None):
+    condition_columns = CONDITION_COLUMNS + (extra_columns or [])
+    if col in condition_columns:
         return col
     raise InvalidField(f'Invalid query field: "{col}"')
 
@@ -258,6 +259,7 @@ class QueryDefinition:
         query,
         params,
         allowed_resolution: AllowedResolution,
+        allow_session_status_query: bool = False,
         limit: Optional[int] = 0,
         offset: Optional[int] = 0,
     ):
@@ -312,7 +314,14 @@ class QueryDefinition:
 
         # this makes sure that literals in complex queries are properly quoted,
         # and unknown fields are raised as errors
-        conditions = [resolve_condition(c, resolve_column) for c in snuba_filter.conditions]
+        if allow_session_status_query:
+            # NOTE: "''" is added because we use the event search parser, which
+            # resolves "session.status" to ifNull(..., "''")
+            column_resolver = lambda col: resolve_column(col, ["session.status", "''"])
+        else:
+            column_resolver = resolve_column
+
+        conditions = [resolve_condition(c, column_resolver) for c in snuba_filter.conditions]
         filter_keys = {
             resolve_filter_key(key): value for key, value in snuba_filter.filter_keys.items()
         }
