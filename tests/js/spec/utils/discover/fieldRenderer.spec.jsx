@@ -63,6 +63,11 @@ describe('getFieldRenderer', function () {
       url: `/organizations/${organization.slug}/key-transactions/`,
       method: 'DELETE',
     });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [project],
+    });
   });
 
   it('can render string fields', function () {
@@ -226,6 +231,23 @@ describe('getFieldRenderer', function () {
       renderer(data, {location, organization}),
       context.routerContext
     );
+
+    const value = wrapper.find('ProjectBadge');
+    expect(value).toHaveLength(1);
+    expect(value.text()).toEqual(project.slug);
+  });
+
+  it('can render project id as an avatar', async function () {
+    const renderer = getFieldRenderer('project', {project: 'number'});
+
+    data = {...data, project: parseInt(project.id, 10)};
+
+    const wrapper = mountWithTheme(
+      renderer(data, {location, organization}),
+      context.routerContext
+    );
+
+    await tick();
 
     const value = wrapper.find('ProjectBadge');
     expect(value).toHaveLength(1);
