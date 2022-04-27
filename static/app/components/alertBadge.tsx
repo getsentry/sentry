@@ -1,12 +1,6 @@
 import styled from '@emotion/styled';
 
-import {
-  IconCheckmark,
-  IconDiamond,
-  IconExclamation,
-  IconFire,
-  IconIssues,
-} from 'sentry/icons';
+import {IconCheckmark, IconDiamond, IconExclamation, IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Color} from 'sentry/utils/theme';
@@ -56,7 +50,7 @@ const AlertIconWrapper = styled('div')<{color: Color; icon: React.ReactNode}>`
   position: relative;
 
   svg:last-child {
-    width: ${p => (p.icon === IconIssues ? '13px' : '16px')};
+    width: 16px;
     z-index: 2;
     position: absolute;
     top: 0;
