@@ -112,9 +112,9 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
     id = serializers.CharField(required=False)
     fields = serializers.ListField(child=serializers.CharField(), required=False)
     aggregates = serializers.ListField(
-        child=serializers.CharField(), required=False, allow_null=True
+        child=serializers.CharField(), required=True, allow_null=True
     )
-    columns = serializers.ListField(child=serializers.CharField(), required=False, allow_null=True)
+    columns = serializers.ListField(child=serializers.CharField(), required=True, allow_null=True)
     field_aliases = serializers.ListField(
         child=serializers.CharField(allow_blank=True), required=False, allow_null=True
     )

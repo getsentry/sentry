@@ -16,7 +16,13 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             "title": "Errors over time",
             "displayType": "line",
             "queries": [
-                {"name": "errors", "conditions": "event.type:error", "fields": ["count()"]},
+                {
+                    "name": "errors",
+                    "conditions": "event.type:error",
+                    "fields": ["count()"],
+                    "columns": [],
+                    "aggregates": ["count()"],
+                },
                 {
                     "name": "errors",
                     "conditions": "(level:error OR title:*Error*) !release:latest",
@@ -43,7 +49,13 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             "title": "Invalid query",
             "displayType": "line",
             "queries": [
-                {"name": "errors", "conditions": "event.type: tag:foo", "fields": ["count()"]}
+                {
+                    "name": "errors",
+                    "conditions": "event.type: tag:foo",
+                    "fields": ["count()"],
+                    "columns": [],
+                    "aggregates": ["count()"],
+                }
             ],
         }
         response = self.do_request(
