@@ -37,7 +37,6 @@ const Stack = styled('div')`
   height: 100%;
   display: grid;
   grid-template: 1 / 1;
-
   > * {
     grid-area: 1 /1;
   }
