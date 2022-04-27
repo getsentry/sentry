@@ -259,6 +259,8 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
             retval = cache.get(cache_key, version=self.cache_version)
             if retval is None:
                 result = self.using_replica().get(**kwargs) if use_replica else self.get(**kwargs)
+                # need to satisfy mypy
+                assert result
                 # Ensure we're pushing it into the cache
                 self.__post_save(instance=result)
                 if local_cache is not None:
