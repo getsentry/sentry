@@ -53,14 +53,10 @@ const IssueListSortOptions = ({onSelect, sort, query, hasPageFilters}: Props) =>
 
   return (
     <StyledDropdownControl
-      buttonProps={
-        hasPageFilters
-          ? {
-              size: 'xsmall',
-              icon: <IconSort size="xs" />,
-            }
-          : {prefix: t('Sort by')}
-      }
+      buttonProps={{
+        size: 'xsmall',
+        icon: <IconSort size="xs" />,
+      }}
       menuWidth={hasPageFilters ? '150px' : undefined}
       detached={hasPageFilters}
       label={getSortLabel(sortKey)}
