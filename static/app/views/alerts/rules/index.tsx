@@ -40,7 +40,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     const {params, location} = this.props;
     const {query} = location;
 
-    query.expand = ['latestIncident'];
+    query.expand = ['latestIncident', 'lastTriggered'];
     query.team = getTeamParams(query.team);
 
     if (!query.sort) {
