@@ -1820,6 +1820,48 @@ describe('WidgetBuilder', function () {
 
       expect(screen.queryByPlaceholderText('Enter Equation')).not.toBeInTheDocument();
     });
+
+    it('persists a sort by a grouping when changing y-axes', async function () {
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        query: {
+          source: DashboardWidgetSource.DASHBOARDS,
+          displayType: DisplayType.LINE,
+        },
+      });
+
+      await selectEvent.select(await screen.findByText('count()'), /count_unique/);
+      await selectEvent.select(screen.getByText('Select group'), 'project');
+      await selectEvent.select(screen.getByText('count_unique(user)'), 'project');
+
+      await selectEvent.select(screen.getByText('count_unique(…)'), 'count()');
+
+      // project should appear in the group by field, as well as the sort field
+      expect(screen.getAllByText('project')).toHaveLength(2);
+    });
+
+    it('persists sort by a y-axis when grouping changes', async function () {
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        query: {
+          source: DashboardWidgetSource.DASHBOARDS,
+          displayType: DisplayType.LINE,
+        },
+      });
+
+      userEvent.click(await screen.findByText('Add Overlay'));
+      await selectEvent.select(screen.getByText('(Required)'), /count_unique/);
+      await selectEvent.select(await screen.findByText('Select group'), 'project');
+
+      // Change the sort by to count_unique
+      await selectEvent.select(screen.getAllByText('count()')[1], /count_unique/);
+
+      // Change the grouping
+      await selectEvent.select(screen.getByText('project'), 'environment');
+
+      // count_unique(user) should still be the sorting field
+      expect(await screen.findByText('count_unique(user)')).toBeInTheDocument();
+    });
   });
 
   describe('Widget creation coming from other verticals', function () {
@@ -2002,6 +2044,7 @@ describe('WidgetBuilder', function () {
     userEvent.click(await screen.findByText('Table'));
     userEvent.click(screen.getByText('Line Chart'));
     await selectEvent.select(screen.getAllByText('count()')[0], 'count_unique(…)');
+    await selectEvent.select(screen.getByText('Select group'), 'project');
 
     MockApiClient.clearMockResponses();
     eventsStatsMock = MockApiClient.addMockResponse({
@@ -2300,7 +2343,6 @@ describe('WidgetBuilder', function () {
             query: {
               environment: [],
               field: [`sum(session)`],
-              orderBy: '-sum(session)',
               groupBy: [],
               interval: '1h',
               project: [],

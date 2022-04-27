@@ -64,6 +64,7 @@ import {
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 import {DEFAULT_STATS_PERIOD} from '../data';
+import {getNumEquations} from '../utils';
 
 import {ColumnsStep} from './buildSteps/columnsStep';
 import {DashboardStep} from './buildSteps/dashboardStep';
@@ -606,8 +607,11 @@ function WidgetBuilder({
         !aggregateAliasFieldStrings.includes(orderbyAggregateAliasField) &&
         query.orderby !== ''
       ) {
-        if (prevAggregateAliasFieldStrings.length === newFields.length) {
-          // The Field that was used in orderby has changed. Get the new field.
+        if (
+          prevAggregateAliasFieldStrings.length === newFields.length &&
+          prevAggregateAliasFieldStrings.includes(orderbyAggregateAliasField)
+        ) {
+          // The aggregate that was used in orderby has changed. Get the new field.
           let newOrderByValue =
             aggregateAliasFieldStrings[
               prevAggregateAliasFieldStrings.indexOf(orderbyAggregateAliasField)
@@ -617,17 +621,23 @@ function WidgetBuilder({
             newOrderByValue = '';
           }
 
-          if (isDescending) {
-            newQuery.orderby = `-${newOrderByValue}`;
-          } else {
-            newQuery.orderby = newOrderByValue;
-          }
+          newQuery.orderby = `${isDescending ? '-' : ''}${newOrderByValue}`;
         } else {
+          const isFromAggregates = aggregateAliasFieldStrings.includes(
+            orderbyAggregateAliasField
+          );
+          const isCustomEquation = isEquation(orderbyAggregateAliasField);
+          const isUsedInGrouping = newQuery.columns.includes(orderbyAggregateAliasField);
+
+          const keepCurrentOrderby =
+            isFromAggregates || isCustomEquation || isUsedInGrouping;
+          const firstAggregateAlias = isEquation(aggregateAliasFieldStrings[0])
+            ? `equation[${getNumEquations(aggregateAliasFieldStrings) - 1}]`
+            : aggregateAliasFieldStrings[0];
+
           newQuery.orderby = widgetBuilderNewDesign
-            ? ((aggregateAliasFieldStrings.includes(orderbyAggregateAliasField) ||
-                isEquation(orderbyAggregateAliasField)) &&
-                newQuery.orderby) ||
-              `${isDescending ? '-' : ''}${aggregateAliasFieldStrings[0]}`
+            ? (keepCurrentOrderby && newQuery.orderby) ||
+              `${isDescending ? '-' : ''}${firstAggregateAlias}`
             : '';
         }
       }
@@ -668,10 +678,27 @@ function WidgetBuilder({
 
     const newState = cloneDeep(state);
 
-    // TODO(NAR): Please fix order by here too
     const newQueries = state.queries.map(query => {
       const newQuery = cloneDeep(query);
       newQuery.columns = fieldStrings;
+      const orderby = trimStart(newQuery.orderby, '-');
+      const aggregateAliasFieldStrings = newQuery.aggregates.map(getAggregateAlias);
+
+      if (!fieldStrings.length) {
+        // The grouping was cleared, so clear the orderby
+        newQuery.orderby = '';
+      } else if (
+        !aggregateAliasFieldStrings.includes(orderby) &&
+        !newQuery.columns.includes(orderby)
+      ) {
+        // If the orderby isn't contained in either aggregates or columns, choose the first aggregate
+        const isDescending = newQuery.orderby.startsWith('-');
+        const prefix = orderby && !isDescending ? '' : '-';
+        const firstAggregateAlias = isEquation(aggregateAliasFieldStrings[0])
+          ? `equation[${getNumEquations(aggregateAliasFieldStrings) - 1}]`
+          : aggregateAliasFieldStrings[0];
+        newQuery.orderby = `${prefix}${firstAggregateAlias}`;
+      }
       return newQuery;
     });
 
