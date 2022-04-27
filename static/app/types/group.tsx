@@ -38,6 +38,7 @@ export type SavedSearch = {
 export enum SavedSearchType {
   ISSUE = 0,
   EVENT = 1,
+  RELEASE = 2,
 }
 
 // endpoint: /api/0/issues/:issueId/attachments/?limit=50

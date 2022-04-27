@@ -7,7 +7,7 @@ import {SearchBarProps} from 'sentry/components/events/searchBar';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH, NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {Organization, Tag, TagValue} from 'sentry/types';
+import {Organization, SavedSearchType, Tag, TagValue} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import {WidgetQuery} from 'sentry/views/dashboardsV2/types';
 import {
@@ -79,6 +79,8 @@ export function ReleaseSearchBar({orgSlug, query, projectIds, onSearch, onBlur}:
           maxSearchItems={MAX_SEARCH_ITEMS}
           searchSource="widget_builder"
           query={query.conditions}
+          savedSearchType={SavedSearchType.RELEASE}
+          hasRecentSearches
         />
       )}
     </ClassNames>
