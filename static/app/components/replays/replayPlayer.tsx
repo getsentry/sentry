@@ -32,7 +32,7 @@ function BasePlayerRoot({className}: Props) {
   });
 
   // Create the `rrweb` instance which creates an iframe inside `viewEl`
-  useEffect(() => initRoot(viewEl.current), [initRoot]);
+  useEffect(() => initRoot(viewEl.current), [viewEl.current]);
 
   // Read the initial width & height where the player will be inserted, this is
   // so we can shrink the video into the available space.
@@ -43,7 +43,7 @@ function BasePlayerRoot({className}: Props) {
         width: windowEl.current?.clientWidth || 0,
         height: windowEl.current?.clientHeight || 0,
       }),
-    []
+    [windowEl.current]
   );
   useResizeObserver({ref: windowEl, onResize: updateWindowDimensions});
   // If your browser doesn't have ResizeObserver then set the size once.
@@ -71,7 +71,7 @@ function BasePlayerRoot({className}: Props) {
         viewEl.current.style.height = `${videoDimensions.height * scale}px`;
       }
     }
-  }, [fixedHeight, windowDimensions, videoDimensions]);
+  }, [windowDimensions, videoDimensions]);
 
   return (
     <Panel isFullscreen={isFullscreen}>
@@ -135,6 +135,9 @@ const Centered = styled('div')`
 
 // Base styles, to make the Replayer instance work
 const PlayerRoot = styled(BasePlayerRoot)`
+  .replayer-wrapper {
+    background: white;
+  }
   .replayer-wrapper > .replayer-mouse-tail {
     position: absolute;
     pointer-events: none;
