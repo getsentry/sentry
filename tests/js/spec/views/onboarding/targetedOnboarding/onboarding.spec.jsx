@@ -18,7 +18,9 @@ describe('Onboarding', function () {
     });
     render(
       <OrganizationContext.Provider value={organization}>
-        <Onboarding {...router} />
+        <PersistedStoreProvider>
+          <Onboarding {...router} />
+        </PersistedStoreProvider>
       </OrganizationContext.Provider>,
       {
         context: routerContext,

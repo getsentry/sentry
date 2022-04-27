@@ -86,7 +86,7 @@ type UsePersistedCategory<T> = [T | null, (nextState: T | null) => void];
 export function usePersistedStoreCategory<C extends keyof PersistedStore>(
   category: C
 ): UsePersistedCategory<PersistedStore[C]> {
-  const api = useApi();
+  const api = useApi({persistInFlight: true});
   const organization = useOrganization();
   const [state, setState] = usePersistedStore();
 

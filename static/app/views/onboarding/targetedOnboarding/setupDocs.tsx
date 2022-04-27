@@ -42,7 +42,7 @@ type Props = {
 
 function SetupDocs({organization, projects, search}: Props) {
   const api = useApi();
-  const [clientState] = usePersistedOnboardingState();
+  const [clientState, setClientState] = usePersistedOnboardingState();
   const selectedProjectsSet = new Set(
     clientState?.selectedPlatforms.map(
       platform => clientState.platformToProjectIdMap[platform]
@@ -75,11 +75,11 @@ function SetupDocs({organization, projects, search}: Props) {
   const project = projects[projectIndex];
 
   useEffect(() => {
-    if (clientState && !project) {
+    if (clientState && !project && projects.length > 0) {
       // Can't find a project to show, probably because all projects are either deleted or finished.
       browserHistory.push('/');
     }
-  }, [clientState, project]);
+  }, [clientState, project, projects]);
 
   const currentPlatform = loadedPlatform ?? project?.platform ?? 'other';
 
@@ -119,6 +119,13 @@ function SetupDocs({organization, projects, search}: Props) {
       project_id: newProjectId,
     });
     browserHistory.push(`${window.location.pathname}?${searchParams}`);
+    if (clientState) {
+      setClientState({
+        ...clientState,
+        state: 'projects_selected',
+        url: `setup-docs/?${searchParams}`,
+      });
+    }
   };
 
   const selectProject = (newProjectId: string) => {
@@ -208,7 +215,9 @@ function SetupDocs({organization, projects, search}: Props) {
           isLast={
             !!clientState &&
             project.slug ===
-              clientState.selectedPlatforms[clientState.selectedPlatforms.length - 1]
+              clientState.platformToProjectIdMap[
+                clientState.selectedPlatforms[clientState.selectedPlatforms.length - 1]
+              ]
           }
           hasFirstEvent={checkProjectHasFirstEvent(project)}
           onClickSetupLater={() => {
@@ -231,6 +240,11 @@ function SetupDocs({organization, projects, search}: Props) {
               nextPlatform && clientState.platformToProjectIdMap[nextPlatform];
             const nextProject = projects.find(p => p.slug === nextProjectSlug);
             if (!nextProject) {
+              // We're done here.
+              setClientState({
+                ...clientState,
+                state: 'finished',
+              });
               // TODO: integrations
               browserHistory.push(orgIssuesURL);
               return;
