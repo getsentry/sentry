@@ -25,7 +25,6 @@ import useProjects from 'sentry/utils/useProjects';
 import {SetStateAction} from '../types';
 
 import OpsFilter from './opsFilter';
-import {Actions} from './styles';
 import SuspectSpansTable from './suspectSpansTable';
 import {SpanSort, SpansTotalValues} from './types';
 import {
@@ -94,11 +93,15 @@ function SpansContent(props: Props) {
 
   return (
     <Layout.Main fullWidth>
+<<<<<<< HEAD
       <StyledPageFilterBar condensed>
         <EnvironmentPageFilter />
         <DatePageFilter alignDropdown="left" />
       </StyledPageFilterBar>
       <Actions>
+=======
+      <FilterActions>
+>>>>>>> 996f86ea73 (fixing performance headers across pages)
         <OpsFilter
           location={location}
           eventView={eventView}
@@ -106,6 +109,12 @@ function SpansContent(props: Props) {
           handleOpChange={handleChange('spanOp')}
           transactionName={transactionName}
         />
+        {organization.features.includes('selection-filters-v2') && (
+          <PageFilterBar condensed>
+            <EnvironmentPageFilter />
+            <DatePageFilter alignDropdown="left" />
+          </PageFilterBar>
+        )}
         <SearchBar
           organization={organization}
           projectIds={eventView.project}
@@ -125,7 +134,7 @@ function SpansContent(props: Props) {
             </DropdownItem>
           ))}
         </DropdownControl>
-      </Actions>
+      </FilterActions>
       <DiscoverQuery
         eventView={totalsView}
         orgSlug={organization.slug}
@@ -170,15 +179,21 @@ function SpansContent(props: Props) {
   );
 }
 
-const StyledPageFilterBar = styled(PageFilterBar)`
-  margin-bottom: ${space(1)};
-`;
-
 function getSpansEventView(eventView: EventView, sort: SpanSort): EventView {
   eventView = eventView.clone();
   const fields = SPAN_SORT_TO_FIELDS[sort];
   eventView.fields = fields ? fields.map(field => ({field})) : [];
   return eventView;
 }
+
+const FilterActions = styled('div')`
+  display: grid;
+  gap: ${space(2)};
+  margin-bottom: ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: auto auto 1fr auto;
+  }
+`;
 
 export default SpansContent;

@@ -176,10 +176,10 @@ function SpanDetailsContent(props: ContentProps) {
 
   return (
     <Fragment>
-      <StyledPageFilterBar condensed>
+      <PageFilterBar condensed>
         <EnvironmentPageFilter />
         <DatePageFilter />
-      </StyledPageFilterBar>
+      </PageFilterBar>
       <SpanDetailsHeader
         spanSlug={spanSlug}
         totalCount={totalCount}
@@ -211,10 +211,6 @@ function SpanDetailsContent(props: ContentProps) {
     </Fragment>
   );
 }
-
-const StyledPageFilterBar = styled(PageFilterBar)`
-  margin-bottom: ${space(1)};
-`;
 
 function getSpansEventView(eventView: EventView): EventView {
   // TODO: There is a bug where if the sort is not avg occurrence,

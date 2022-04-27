@@ -87,13 +87,12 @@ function VitalsContent(props: Props) {
                       )}
                     </Alert>
                   )}
-
-                  <StyledPageFilterBar condensed>
-                    <EnvironmentPageFilter />
-                    <DatePageFilter alignDropdown="left" />
-                  </StyledPageFilterBar>
-                  <StyledActions>
-                    <StyledSearchBar
+                  <FilterActions>
+                    <PageFilterBar condensed>
+                      <EnvironmentPageFilter />
+                      <DatePageFilter alignDropdown="left" />
+                    </PageFilterBar>
+                    <SearchBar
                       organization={organization}
                       projectIds={eventView.project}
                       query={query}
@@ -138,7 +137,7 @@ function VitalsContent(props: Props) {
                     >
                       {t('Reset View')}
                     </Button>
-                  </StyledActions>
+                  </FilterActions>
                   <VitalsPanel
                     organization={organization}
                     location={location}
@@ -156,20 +155,14 @@ function VitalsContent(props: Props) {
   );
 }
 
-const StyledSearchBar = styled(SearchBar)`
-  flex-grow: 1;
-`;
-
-const StyledActions = styled('div')`
+const FilterActions = styled('div')`
   display: grid;
   gap: ${space(2)};
-  grid-template-columns: auto max-content max-content;
-  align-items: center;
-  margin-bottom: ${space(3)};
-`;
+  margin-bottom: ${space(2)};
 
-const StyledPageFilterBar = styled(PageFilterBar)`
-  margin-bottom: ${space(1)};
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: auto 1fr auto auto;
+  }
 `;
 
 export default VitalsContent;

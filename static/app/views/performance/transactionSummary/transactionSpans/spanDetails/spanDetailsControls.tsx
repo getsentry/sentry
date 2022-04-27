@@ -47,7 +47,7 @@ export default function SpanDetailsControls({
   const isZoomed = () => Object.values(ZoomKeys).some(key => location.query[key]);
 
   return (
-    <StyledActions>
+    <FilterActions>
       <SearchBar
         placeholder={t('Filter Transactions')}
         organization={organization}
@@ -59,15 +59,16 @@ export default function SpanDetailsControls({
       <Button onClick={handleResetView} disabled={!isZoomed()}>
         {t('Reset View')}
       </Button>
-    </StyledActions>
+    </FilterActions>
   );
 }
 
-const StyledActions = styled('div')`
+const FilterActions = styled('div')`
   display: grid;
   gap: ${space(2)};
-  grid-template-columns: auto max-content;
-  grid-template-rows: auto;
-  align-items: center;
   margin-bottom: ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: 1fr auto;
+  }
 `;
