@@ -1,7 +1,6 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
-import moment from 'moment';
 
 import Access from 'sentry/components/acl/access';
 import AlertBadge from 'sentry/components/alertBadge';
@@ -92,41 +91,6 @@ function RuleListRow({
         {t('Resolved ')}
         <TimeSince date={rule.latestIncident.dateClosed!} />
       </div>
-    );
-  }
-
-  function renderAlertBadgeStatus(): React.ReactNode {
-    const lastTriggeredDate =
-      isIssueAlert(rule) && rule.lastTriggered
-        ? new Date(rule.lastTriggered).getTime()
-        : null;
-    const daysDiff = moment().diff(lastTriggeredDate, 'days');
-    // if an alert issue has been triggered within the last 14 days, have warning status
-    const issueAlertStatus =
-      daysDiff <= 14 ? IncidentStatus.WARNING : IncidentStatus.CLOSED;
-
-    return (
-      <FlexCenter>
-        <Tooltip
-          title={
-            isIssueAlert(rule)
-              ? tct('Issue Alert Status: [status]', {
-                  status: IssueStatusText[issueAlertStatus],
-                })
-              : tct('Metric Alert Status: [status]', {
-                  status:
-                    IssueStatusText[
-                      rule?.latestIncident?.status ?? IncidentStatus.CLOSED
-                    ],
-                })
-          }
-        >
-          <AlertBadge
-            status={isIssueAlert(rule) ? issueAlertStatus : rule?.latestIncident?.status}
-            hideText
-          />
-        </Tooltip>
-      </FlexCenter>
     );
   }
 
@@ -241,14 +205,32 @@ function RuleListRow({
   return (
     <ErrorBoundary>
       <AlertNameWrapper isIssueAlert={isIssueAlert(rule)}>
-        {renderAlertBadgeStatus()}
+        <FlexCenter>
+          <Tooltip
+            title={
+              isIssueAlert(rule)
+                ? t('Issue Alert Status: [status]')
+                : tct('Metric Alert Status: [status]', {
+                    status:
+                      IssueStatusText[
+                        rule?.latestIncident?.status ?? IncidentStatus.CLOSED
+                      ],
+                  })
+            }
+          >
+            <AlertBadge
+              status={rule?.latestIncident?.status}
+              isIssue={isIssueAlert(rule)}
+              hideText
+            />
+          </Tooltip>
+        </FlexCenter>
         <AlertNameAndStatus>
           <AlertName>{alertLink}</AlertName>
           <AlertIncidentDate>{renderLastIncidentDate()}</AlertIncidentDate>
         </AlertNameAndStatus>
       </AlertNameWrapper>
       <FlexCenter>{renderAlertRuleStatus()}</FlexCenter>
-
       <FlexCenter>
         <ProjectBadgeContainer>
           <ProjectBadge

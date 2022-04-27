@@ -1,6 +1,12 @@
 import styled from '@emotion/styled';
 
-import {IconCheckmark, IconDiamond, IconExclamation, IconFire} from 'sentry/icons';
+import {
+  IconCheckmark,
+  IconDiamond,
+  IconExclamation,
+  IconFire,
+  IconIssues,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Color} from 'sentry/utils/theme';
@@ -8,14 +14,19 @@ import {IncidentStatus} from 'sentry/views/alerts/types';
 
 type Props = {
   hideText?: boolean;
+  isIssue?: boolean;
   status?: IncidentStatus;
 };
 
-function AlertBadge({status, hideText = false}: Props) {
+function AlertBadge({status, hideText = false, isIssue}: Props) {
   let statusText = t('Resolved');
   let Icon = IconCheckmark;
   let color: Color = 'green300';
-  if (status === IncidentStatus.CRITICAL) {
+  if (isIssue) {
+    statusText = t('Issue');
+    Icon = IconIssues;
+    color = 'gray300';
+  } else if (status === IncidentStatus.CRITICAL) {
     statusText = t('Critical');
     Icon = IconFire;
     color = 'red300';
@@ -50,7 +61,7 @@ const AlertIconWrapper = styled('div')<{color: Color; icon: React.ReactNode}>`
   position: relative;
 
   svg:last-child {
-    width: 16px;
+    width: ${p => (p.icon === IconIssues ? '13px' : '16px')};
     z-index: 2;
     position: absolute;
     top: 0;
