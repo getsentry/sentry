@@ -71,12 +71,10 @@ const generateIntegrationFeatures = p =>
     gatedFeatureGroups: [],
   });
 
-const defaultFeatureGateComponents = {
+const defaultFeatureGateComponents: ReturnType<Hooks['integrations:feature-gates']> = {
   IntegrationFeatures: generateIntegrationFeatures,
-  IntegrationDirectoryFeatures: generateIntegrationFeatures,
   FeatureList: generateFeaturesList,
-  IntegrationDirectoryFeatureList: generateFeaturesList,
-} as ReturnType<Hooks['integrations:feature-gates']>;
+};
 
 export const getIntegrationFeatureGate = () => {
   const defaultHook = () => defaultFeatureGateComponents;

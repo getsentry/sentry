@@ -521,8 +521,6 @@ type IntegrationsFeatureGatesHook = () => {
    * This component renders the list of integration features.
    */
   FeatureList: React.ComponentType<IntegrationFeatureListProps>;
-  IntegrationDirectoryFeatureList: React.ComponentType<IntegrationFeatureListProps>;
-  IntegrationDirectoryFeatures: React.ComponentType<IntegrationFeaturesProps>;
   /**
    * This is a render-prop style component that given a set of integration
    * features will call the children function with gating details about the
