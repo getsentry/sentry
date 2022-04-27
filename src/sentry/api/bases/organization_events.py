@@ -397,26 +397,16 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                         )
                 serialized_result = results
             elif is_multiple_axis:
+                serialized_result = self.serialize_multiple_axis(
+                    serializer,
+                    result,
+                    columns,
+                    query_columns,
+                    allow_partial_buckets,
+                    zerofill_results=zerofill_results,
+                )
                 if top_events > 0:
-                    serialized_result = {
-                        "": self.serialize_multiple_axis(
-                            serializer,
-                            result,
-                            columns,
-                            query_columns,
-                            allow_partial_buckets,
-                            zerofill_results=zerofill_results,
-                        )
-                    }
-                else:
-                    serialized_result = self.serialize_multiple_axis(
-                        serializer,
-                        result,
-                        columns,
-                        query_columns,
-                        allow_partial_buckets,
-                        zerofill_results=zerofill_results,
-                    )
+                    serialized_result = {"": serialized_result}
             else:
                 extra_columns = None
                 if comparison_delta:
