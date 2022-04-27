@@ -75,11 +75,11 @@ function SetupDocs({organization, projects, search}: Props) {
   const project = projects[projectIndex];
 
   useEffect(() => {
-    if (clientState && !project) {
+    if (clientState && !project && projects.length > 0) {
       // Can't find a project to show, probably because all projects are either deleted or finished.
       browserHistory.push('/');
     }
-  }, [clientState, project]);
+  }, [clientState, project, projects]);
 
   const currentPlatform = loadedPlatform ?? project?.platform ?? 'other';
 

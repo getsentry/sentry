@@ -58,7 +58,9 @@ export default function CreateProjectsFooter({
         platforms
           .filter(platform => !persistedOnboardingState.platformToProjectIdMap[platform])
           .map(platform =>
-            createProject(api, organization.slug, teams[0].slug, platform, platform)
+            createProject(api, organization.slug, teams[0].slug, platform, platform, {
+              defaultRules: false,
+            })
           )
       );
       const nextState: OnboardingState = {
@@ -70,7 +72,7 @@ export default function CreateProjectsFooter({
       responses.forEach(p => (nextState.platformToProjectIdMap[p.platform] = p.slug));
       setPersistedOnboardingState(nextState);
 
-      responses.map(ProjectActions.createSuccess);
+      responses.forEach(ProjectActions.createSuccess);
       trackAdvancedAnalyticsEvent('growth.onboarding_set_up_your_projects', {
         platforms: platforms.join(','),
         platform_count: platforms.length,
@@ -110,6 +112,7 @@ export default function CreateProjectsFooter({
           priority="primary"
           onClick={createProjects}
           disabled={platforms.length === 0}
+          data-test-id="platform-select-next"
         >
           {tn('Create Project', 'Create Projects', platforms.length)}
         </Button>
