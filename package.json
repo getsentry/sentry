@@ -53,7 +53,7 @@
     "@types/react-router": "^3.0.22",
     "@types/react-select": "3.0.8",
     "@types/react-sparklines": "^1.7.2",
-    "@types/react-virtualized": "^9.21.20",
+    "@types/react-virtualized": "^9.21.21",
     "@types/reflux": "0.4.1",
     "@types/scroll-to-element": "^2.0.2",
     "@types/webpack-dev-server": "^3.11.4",
