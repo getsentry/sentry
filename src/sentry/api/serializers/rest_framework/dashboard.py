@@ -7,7 +7,7 @@ from rest_framework import serializers
 from sentry.api.issue_search import parse_search_query
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
-from sentry.discover.arithmetic import ArithmeticError, categorize_columns, is_equation_alias
+from sentry.discover.arithmetic import ArithmeticError, categorize_columns
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
     Dashboard,
@@ -17,6 +17,7 @@ from sentry.models import (
     DashboardWidgetTypes,
 )
 from sentry.search.events.builder import UnresolvedQuery
+from sentry.search.events.fields import is_function
 from sentry.snuba.dataset import Dataset
 from sentry.utils.dates import parse_stats_period
 
@@ -154,12 +155,12 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
             injected_orderby_equation = stripped_orderby
             fields.append(injected_orderby_equation)
             orderby_prefix = "-" if orderby.startswith("-") else ""
-        elif not is_equation_alias(stripped_orderby) and stripped_orderby not in fields:
+        elif is_function(stripped_orderby) and stripped_orderby not in fields:
             fields.append(stripped_orderby)
 
         equations, fields = categorize_columns(fields)
 
-        if injected_orderby_equation and orderby_prefix:
+        if injected_orderby_equation is not None and orderby_prefix is not None:
             # Subtract one because the equation is injected to fields
             orderby = f"{orderby_prefix}equation[{len(equations) - 1}]"
 
