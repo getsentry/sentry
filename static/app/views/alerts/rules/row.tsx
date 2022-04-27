@@ -62,7 +62,15 @@ function RuleListRow({
 
   function renderLastIncidentDate(): React.ReactNode {
     if (isIssueAlert(rule)) {
-      return null;
+      if (!rule.lastTriggered) {
+        return '-';
+      }
+      return (
+        <div>
+          {t('Triggered ')}
+          <TimeSince date={rule.lastTriggered} />
+        </div>
+      );
     }
 
     if (!rule.latestIncident) {
@@ -219,13 +227,10 @@ function RuleListRow({
         </FlexCenter>
         <AlertNameAndStatus>
           <AlertName>{alertLink}</AlertName>
-          <AlertIncidentDate>
-            {!isIssueAlert(rule) && renderLastIncidentDate()}
-          </AlertIncidentDate>
+          <AlertIncidentDate>{renderLastIncidentDate()}</AlertIncidentDate>
         </AlertNameAndStatus>
       </AlertNameWrapper>
       <FlexCenter>{renderAlertRuleStatus()}</FlexCenter>
-
       <FlexCenter>
         <ProjectBadgeContainer>
           <ProjectBadge

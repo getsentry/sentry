@@ -198,7 +198,7 @@ describe('AlertRulesList', () => {
       expect.objectContaining({
         query: {
           name: testQuery,
-          expand: ['latestIncident'],
+          expand: ['latestIncident', 'lastTriggered'],
           sort: ['incident_status', 'date_triggered'],
           team: ['myteams', 'unassigned'],
         },
@@ -224,7 +224,7 @@ describe('AlertRulesList', () => {
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
         query: {
-          expand: ['latestIncident'],
+          expand: ['latestIncident', 'lastTriggered'],
           sort: ['incident_status', 'date_triggered'],
           team: '',
         },
@@ -253,7 +253,7 @@ describe('AlertRulesList', () => {
       '/organizations/org-slug/combined-rules/',
       expect.objectContaining({
         query: {
-          expand: ['latestIncident'],
+          expand: ['latestIncident', 'lastTriggered'],
           sort: ['incident_status', 'date_triggered'],
           team: ['myteams', 'unassigned'],
         },
@@ -273,7 +273,7 @@ describe('AlertRulesList', () => {
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
         query: {
-          expand: ['latestIncident'],
+          expand: ['latestIncident', 'lastTriggered'],
           sort: ['incident_status', 'date_triggered'],
           team: '',
           cursor: '0:100:0',
