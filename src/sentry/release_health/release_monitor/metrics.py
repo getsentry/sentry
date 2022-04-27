@@ -24,7 +24,7 @@ from sentry.sentry_metrics.utils import resolve_tag_key
 from sentry.snuba.dataset import Dataset, EntityKey
 
 # from sentry.snuba.metrics import QueryDefinition, MetricField, get_series, OrderBy as MetricsOrderBy, MetricOperationType
-from sentry.snuba.metrics.naming_layer import SessionMRI
+from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.utils import metrics
 from sentry.utils.snuba import raw_snql_query
 
