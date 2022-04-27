@@ -104,10 +104,6 @@ function ReplayDetails() {
 }
 
 const ReplayLayout = styled(Layout.Main)`
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-
   :fullscreen {
     display: grid;
     grid-template-rows: auto max-content;
