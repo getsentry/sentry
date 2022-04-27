@@ -1,6 +1,7 @@
 import React, {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import trimStart from 'lodash/trimStart';
+import uniqBy from 'lodash/uniqBy';
 
 import SelectControl from 'sentry/components/forms/selectControl';
 import Tooltip from 'sentry/components/tooltip';
@@ -56,6 +57,7 @@ export function SortBySelectors({
   hasGroupBy,
   tags,
   filterPrimaryOptions,
+  displayType,
 }: Props) {
   const organization = useOrganization();
   const [showCustomEquation, setShowCustomEquation] = useState(false);
@@ -99,10 +101,8 @@ export function SortBySelectors({
             }}
           />
         </Tooltip>
-        <Tooltip
-          title={disabledReason}
-          disabled={!disabledSort || (disabledSortDirection && disabledSort)}
-        >
+        {widgetType === WidgetType.DISCOVER &&
+        ![DisplayType.TABLE, DisplayType.TOP_N].includes(displayType) ? (
           <Measurements>
             {({measurements}) => (
               <QueryField
@@ -141,20 +141,43 @@ export function SortBySelectors({
                   });
                 }}
                 filterPrimaryOptions={filterPrimaryOptions}
-                // filterPrimaryOptions={option =>
-                //   filterPrimaryOptions({
-                //     option,
-                //     widgetType,
-                //     displayType,
-                //   })
-                // }
-                // filterAggregateParameters={filterAggregateParameters(fieldValue)}
-                // otherColumns={aggregates}
-                // noFieldsMessage={noFieldsMessage}
               />
             )}
           </Measurements>
-        </Tooltip>
+        ) : (
+          <Tooltip
+            title={disabledReason}
+            disabled={!disabledSort || (disabledSortDirection && disabledSort)}
+          >
+            <SelectControl
+              name="sortBy"
+              aria-label="Sort by"
+              menuPlacement="auto"
+              disabled={disabledSort}
+              placeholder={`${t('Select a column')}\u{2026}`}
+              value={showCustomEquation ? CUSTOM_EQUATION_VALUE : values.sortBy}
+              options={[
+                ...uniqBy(sortByOptions, ({value}) => value),
+                ...(hasGroupBy
+                  ? [{value: CUSTOM_EQUATION_VALUE, label: t('Custom Equation')}]
+                  : []),
+              ]}
+              onChange={(option: SelectValue<string>) => {
+                const isSortingByCustomEquation = option.value === CUSTOM_EQUATION_VALUE;
+                setShowCustomEquation(isSortingByCustomEquation);
+                if (isSortingByCustomEquation) {
+                  onChange(customEquation);
+                  return;
+                }
+
+                onChange({
+                  sortBy: option.value,
+                  sortDirection: values.sortDirection,
+                });
+              }}
+            />
+          </Tooltip>
+        )}
         {showCustomEquation && (
           <ArithmeticInputWrapper>
             <ArithmeticInput

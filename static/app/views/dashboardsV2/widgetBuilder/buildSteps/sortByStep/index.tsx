@@ -10,13 +10,13 @@ import space from 'sentry/styles/space';
 import {Organization, SelectValue, TagCollection} from 'sentry/types';
 import {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {generateIssueWidgetOrderOptions} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/utils';
+import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 import {DataSet, getResultsLimit, SortDirection} from '../../utils';
 import {BuildStep} from '../buildStep';
 
 import {SortBySelectors} from './sortBySelectors';
-import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
 interface Props {
   dataSet: DataSet;
@@ -148,7 +148,6 @@ export function SortByStep({
             }}
             tags={tags}
             filterPrimaryOptions={option => {
-              console.log(option);
               if (option.value.kind === FieldValueKind.FUNCTION) {
                 return true;
               }
