@@ -15,6 +15,7 @@ from sentry.models import (
     RuleFireHistory,
     RuleStatus,
     SentryAppComponent,
+    User,
 )
 from sentry.testutils import APITestCase
 from sentry.utils import json
@@ -314,10 +315,67 @@ class UpdateProjectRuleTest(APITestCase):
 
     def setUp(self):
         self.user = self.create_user()
-        self.organization = self.create_organization()
+        self.organization = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.organization)
         self.rule = Rule.objects.create(project=self.project, label="foo")
+        self.slack_integration = Integration.objects.create(
+            provider="slack",
+            name="Awesome Team",
+            external_id="TXXXXXXX1",
+            metadata={
+                "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "installation_type": "born_as_bot",
+            },
+        )
+        self.slack_integration.add_organization(self.organization, self.user)
+        self.sentry_app = self.create_sentry_app(
+            name="Pied Piper",
+            organization=self.organization,
+            schema={"elements": [self.create_alert_rule_action_schema()]},
+        )
+        self.sentry_app_installation = self.create_sentry_app_installation(
+            slug=self.sentry_app.slug, organization=self.organization
+        )
+        self.sentry_app_settings_payload = [
+            {"name": "title", "value": "Team Rocket"},
+            {"name": "summary", "value": "We're blasting off again."},
+        ]
+
         self.login_as(self.user)
+
+    def assert_rule_from_payload(self, rule, payload):
+        rule.refresh_from_db()
+        assert rule.label == payload.get("name")
+
+        owner_id = payload.get("owner")
+        if owner_id:
+            assert rule.owner == User.objects.get(id=owner_id).actor
+        else:
+            assert rule.owner is None
+
+        environment = payload.get("environment")
+        if environment:
+            assert (
+                rule.environment_id
+                == Environment.objects.get(projects=rule.project, name=environment).id
+            )
+        else:
+            assert rule.environment_id is None
+        assert rule.data["action_match"] == payload.get("actionMatch")
+        assert rule.data["filter_match"] == payload.get("filterMatch")
+        # For actions/conditions/filters, payload may only have a subset of the dict in rule.data
+        for payload_action in payload.get("actions", []):
+            assert any(
+                payload_action.items() <= rule_action.items()
+                for rule_action in rule.data["actions"]
+            )
+        payload_conditions = payload.get("conditions", []) + payload.get("filters", [])
+        for payload_condition in payload_conditions:
+            assert any(
+                payload_condition.items() <= rule_condition.items()
+                for rule_condition in rule.data["conditions"]
+            )
+        assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.UPDATED.value).exists()
 
     @patch("sentry.signals.alert_rule_edited.send_robust")
     def test_simple(self, send_robust):
@@ -329,58 +387,22 @@ class UpdateProjectRuleTest(APITestCase):
                 "value": "bar",
             }
         ]
-
-        url = reverse(
-            kwargs={
-                "organization_slug": self.organization.slug,
-                "project_slug": self.project.slug,
-                "rule_id": self.rule.id,
-            },
-        )
-
-        response = self.client.put(
-            url,
-            data={
-                "name": "hello world",
-                "owner": self.user.id,
-                "actionMatch": "any",
-                "filterMatch": "any",
-                "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
-                "conditions": conditions,
-            },
-            format="json",
-        )
+        payload = {
+            "name": "hello world",
+            "owner": self.user.id,
+            "actionMatch": "any",
+            "filterMatch": "any",
+            "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
+            "conditions": conditions,
+        }
         response = self.get_success_response(
-            self.organization.slug,
-            self.project.slug,
-            self.rule.id,
-            status_code=200,
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
         )
-
-        assert response.status_code == 200, response.content
-        assert response.data["id"] == str(rule.id)
-
-        rule = Rule.objects.get(id=rule.id)
-        assert rule.label == "hello world"
-        assert rule.owner == self.user.actor
-        assert rule.environment_id is None
-        assert rule.data["action_match"] == "any"
-        assert rule.data["filter_match"] == "any"
-        assert rule.data["actions"] == [
-            {"id": "sentry.rules.actions.notify_event.NotifyEventAction"}
-        ]
-        assert rule.data["conditions"] == conditions
-
-        assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.UPDATED.value).exists()
+        assert response.data["id"] == str(self.rule.id)
+        self.assert_rule_from_payload(self.rule, payload)
         assert send_robust.called
 
     def test_no_owner(self):
-        self.login_as(user=self.user)
-
-        project = self.create_project()
-
-        rule = Rule.objects.create(project=project, label="foo")
-
         conditions = [
             {
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
@@ -389,220 +411,116 @@ class UpdateProjectRuleTest(APITestCase):
                 "value": "bar",
             }
         ]
-
-        url = reverse(
-            "sentry-api-0-project-rule-details",
-            kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
-                "rule_id": rule.id,
-            },
+        payload = {
+            "name": "hello world",
+            "owner": None,
+            "actionMatch": "any",
+            "filterMatch": "any",
+            "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
+            "conditions": conditions,
+        }
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
         )
-        response = self.client.put(
-            url,
-            data={
-                "name": "hello world",
-                "owner": None,
-                "actionMatch": "any",
-                "filterMatch": "any",
-                "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
-                "conditions": conditions,
-            },
-            format="json",
-        )
-
-        assert response.status_code == 200, response.content
-        assert response.data["id"] == str(rule.id)
-
-        rule = Rule.objects.get(id=rule.id)
-        assert rule.label == "hello world"
-        assert rule.owner is None
-        assert rule.environment_id is None
-        assert rule.data["action_match"] == "any"
-        assert rule.data["filter_match"] == "any"
-        assert rule.data["actions"] == [
-            {"id": "sentry.rules.actions.notify_event.NotifyEventAction"}
-        ]
-        assert rule.data["conditions"] == conditions
-        assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.UPDATED.value).exists()
+        assert response.data["id"] == str(self.rule.id)
+        self.assert_rule_from_payload(self.rule, payload)
 
     def test_update_name(self):
-        self.login_as(user=self.user)
+        conditions = [
+            {
+                "interval": "1h",
+                "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+                "value": 666,
+                "name": "The issue is seen more than 30 times in 1m",
+            }
+        ]
+        actions = [
+            {
+                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                "name": "Send a notification (for all legacy integrations)",
+            }
+        ]
+        payload = {
+            "name": "test",
+            "environment": None,
+            "actionMatch": "all",
+            "filterMatch": "all",
+            "frequency": 30,
+            "conditions": conditions,
+            "actions": actions,
+        }
 
-        project = self.create_project()
-
-        rule = Rule.objects.create(project=project, label="foo")
-
-        url = reverse(
-            "sentry-api-0-project-rule-details",
-            kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
-                "rule_id": rule.id,
-            },
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
         )
-
-        response = self.client.put(
-            url,
-            data={
-                "environment": None,
-                "actionMatch": "all",
-                "filterMatch": "all",
-                "frequency": 30,
-                "name": "test",
-                "conditions": [
-                    {
-                        "interval": "1h",
-                        "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
-                        "value": 666,
-                        "name": "The issue is seen more than 30 times in 1m",
-                    }
-                ],
-                "id": rule.id,
-                "actions": [
-                    {
-                        "id": "sentry.rules.actions.notify_event.NotifyEventAction",
-                        "name": "Send a notification (for all legacy integrations)",
-                    }
-                ],
-                "dateCreated": "2018-04-24T23:37:21.246Z",
-            },
-            format="json",
-        )
-
-        assert response.status_code == 200, response.content
         assert (
             response.data["conditions"][0]["name"] == "The issue is seen more than 666 times in 1h"
         )
-
-        assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.UPDATED.value).exists()
+        self.assert_rule_from_payload(self.rule, payload)
 
     def test_with_environment(self):
-        self.login_as(user=self.user)
 
-        project = self.create_project()
+        environment = Environment.get_or_create(self.project, "production")
 
-        Environment.get_or_create(project, "production")
+        payload = {
+            "name": "hello world",
+            "environment": environment.name,
+            "actionMatch": "any",
+            "filterMatch": "any",
+            "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
+            "conditions": [
+                {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
+            ],
+        }
 
-        rule = Rule.objects.create(project=project, label="foo")
-
-        url = reverse(
-            "sentry-api-0-project-rule-details",
-            kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
-                "rule_id": rule.id,
-            },
-        )
-        response = self.client.put(
-            url,
-            data={
-                "name": "hello world",
-                "environment": "production",
-                "actionMatch": "any",
-                "filterMatch": "any",
-                "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
-                "conditions": [
-                    {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
-                ],
-            },
-            format="json",
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
         )
 
-        assert response.status_code == 200, response.content
-        assert response.data["id"] == str(rule.id)
+        assert response.data["id"] == str(self.rule.id)
         assert response.data["environment"] == "production"
-
-        rule = Rule.objects.get(id=rule.id)
-        assert rule.label == "hello world"
-        assert rule.environment_id == Environment.get_or_create(rule.project, "production").id
+        self.assert_rule_from_payload(self.rule, payload)
 
     def test_with_null_environment(self):
-        self.login_as(user=self.user)
 
-        project = self.create_project()
+        environment = Environment.get_or_create(self.project, "production")
+        self.rule.environment_id = environment.id
+        self.rule.save()
 
-        rule = Rule.objects.create(
-            project=project,
-            environment_id=Environment.get_or_create(project, "production").id,
-            label="foo",
+        payload = {
+            "name": "hello world",
+            "environment": None,
+            "actionMatch": "any",
+            "filterMatch": "any",
+            "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
+            "conditions": [
+                {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
+            ],
+        }
+
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
         )
-
-        url = reverse(
-            "sentry-api-0-project-rule-details",
-            kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
-                "rule_id": rule.id,
-            },
-        )
-        response = self.client.put(
-            url,
-            data={
-                "name": "hello world",
-                "environment": None,
-                "actionMatch": "any",
-                "filterMatch": "any",
-                "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
-                "conditions": [
-                    {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
-                ],
-            },
-            format="json",
-        )
-
-        assert response.status_code == 200, response.content
-        assert response.data["id"] == str(rule.id)
+        assert response.data["id"] == str(self.rule.id)
         assert response.data["environment"] is None
-
-        rule = Rule.objects.get(id=rule.id)
-        assert rule.label == "hello world"
-        assert rule.environment_id is None
+        self.assert_rule_from_payload(self.rule, payload)
 
     @responses.activate
     def test_update_channel_slack(self):
-        self.login_as(user=self.user)
-
-        project = self.create_project()
-        integration = Integration.objects.create(
-            provider="slack",
-            name="Awesome Team",
-            external_id="TXXXXXXX1",
-            metadata={
-                "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
-                "installation_type": "born_as_bot",
-            },
-        )
-        integration.add_organization(project.organization, self.user)
-
         conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
-
         actions = [
             {
                 "channel_id": "old_channel_id",
-                "workspace": integration.id,
+                "workspace": self.slack_integration.id,
                 "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
                 "channel": "#old_channel_name",
             }
         ]
-
-        rule = Rule.objects.create(
-            project=project,
-            data={"conditions": [conditions], "actions": [actions]},
-        )
+        self.rule.data = {"conditions": conditions, "actions": actions}
+        self.rule.save()
 
         actions[0]["channel"] = "#new_channel_name"
         actions[0]["channel_id"] = "new_channel_id"
-
-        url = reverse(
-            "sentry-api-0-project-rule-details",
-            kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
-                "rule_id": rule.id,
-            },
-        )
-
         channels = {
             "ok": "true",
             "channels": [
@@ -626,63 +544,33 @@ class UpdateProjectRuleTest(APITestCase):
             body=json.dumps({"ok": channels["ok"], "channel": channels["channels"][1]}),
         )
 
-        response = self.client.put(
-            url,
-            data={
-                "name": "#new_channel_name",
-                "actionMatch": "any",
-                "filterMatch": "any",
-                "actions": actions,
-                "conditions": conditions,
-                "frequency": 30,
-            },
-            format="json",
+        payload = {
+            "name": "#new_channel_name",
+            "actionMatch": "any",
+            "filterMatch": "any",
+            "actions": actions,
+            "conditions": conditions,
+            "frequency": 30,
+        }
+        self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
         )
-
-        assert response.status_code == 200, response.content
-        rule = Rule.objects.get(id=response.data["id"])
-        assert rule.label == "#new_channel_name"
-        assert rule.data["actions"][0]["channel_id"] == "new_channel_id"
+        # TODO(Leander): Figure out a way to just run assert_from_payload)
+        assert self.rule.data["actions"][0]["channel_id"] == "new_channel_id"
 
     @responses.activate
     def test_update_channel_slack_workspace_fail(self):
-        self.login_as(user=self.user)
-
-        project = self.create_project()
-        integration = Integration.objects.create(
-            provider="slack",
-            name="Awesome Team",
-            external_id="TXXXXXXX1",
-            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
-        )
-        integration.add_organization(project.organization, self.user)
-
         conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
-
         actions = [
             {
                 "channel_id": "old_channel_id",
-                "workspace": integration.id,
+                "workspace": self.slack_integration.id,
                 "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
                 "channel": "#old_channel_name",
             }
         ]
-
-        rule = Rule.objects.create(
-            project=project,
-            data={"conditions": [conditions], "actions": [actions]},
-        )
-
-        actions[0]["channel"] = "#new_channel_name"
-
-        url = reverse(
-            "sentry-api-0-project-rule-details",
-            kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
-                "rule_id": rule.id,
-            },
-        )
+        self.rule.data = {"conditions": conditions, "actions": actions}
+        self.rule.save()
 
         channels = {
             "ok": "true",
@@ -706,278 +594,138 @@ class UpdateProjectRuleTest(APITestCase):
             body=json.dumps({"ok": channels["ok"], "channel": channels["channels"][0]}),
         )
 
-        response = self.client.put(
-            url,
-            data={
-                "name": "#new_channel_name",
-                "actionMatch": "any",
-                "filterMatch": "any",
-                "actions": actions,
-                "conditions": conditions,
-                "frequency": 30,
-            },
-            format="json",
+        actions[0]["channel"] = "#new_channel_name"
+        payload = {
+            "name": "#new_channel_name",
+            "actionMatch": "any",
+            "filterMatch": "any",
+            "actions": actions,
+            "conditions": conditions,
+            "frequency": 30,
+        }
+        self.get_error_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=400, **payload
         )
-
-        assert response.status_code == 400, response.content
 
     @responses.activate
     def test_slack_channel_id_saved(self):
-        self.login_as(user=self.user)
-
-        project = self.create_project()
-
-        rule = Rule.objects.create(
-            project=project,
-            environment_id=Environment.get_or_create(project, "production").id,
-            label="foo",
-        )
-        integration = Integration.objects.create(
-            provider="slack",
-            name="Awesome Team",
-            external_id="TXXXXXXX1",
-            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
-        )
-        integration.add_organization(project.organization, self.user)
-
-        url = reverse(
-            "sentry-api-0-project-rule-details",
-            kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
-                "rule_id": rule.id,
-            },
-        )
+        self.rule.environment_id = Environment.get_or_create(self.project, "production").id
+        self.rule.save()
+        channel_id = "CSVK0921"
         responses.add(
             method=responses.GET,
             url="https://slack.com/api/conversations.info",
             status=200,
             content_type="application/json",
             body=json.dumps(
-                {"ok": "true", "channel": {"name": "team-team-team", "id": "CSVK0921"}}
+                {"ok": "true", "channel": {"name": "team-team-team", "id": channel_id}}
             ),
         )
-        response = self.client.put(
-            url,
-            data={
-                "name": "hello world",
-                "environment": None,
-                "actionMatch": "any",
-                "actions": [
-                    {
-                        "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
-                        "name": "Send a notification to the funinthesun Slack workspace to #team-team-team and show tags [] in notification",
-                        "workspace": integration.id,
-                        "channel": "#team-team-team",
-                        "channel_id": "CSVK0921",
-                    }
-                ],
-                "conditions": [
-                    {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
-                ],
-            },
-            format="json",
+        payload = {
+            "name": "hello world",
+            "environment": None,
+            "actionMatch": "any",
+            "actions": [
+                {
+                    "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+                    "name": "Send a notification to the funinthesun Slack workspace to #team-team-team and show tags [] in notification",
+                    "workspace": self.slack_integration.id,
+                    "channel": "#team-team-team",
+                    "channel_id": channel_id,
+                }
+            ],
+            "conditions": [
+                {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
+            ],
+        }
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
         )
-
-        assert response.status_code == 200, response.content
-        assert response.data["id"] == str(rule.id)
-        assert response.data["actions"][0]["channel_id"] == "CSVK0921"
+        assert response.data["id"] == str(self.rule.id)
+        assert response.data["actions"][0]["channel_id"] == channel_id
 
     def test_invalid_rule_node_type(self):
-        self.login_as(user=self.user)
-
-        project = self.create_project()
-
-        rule = Rule.objects.create(project=project, label="foo")
-
-        url = reverse(
-            "sentry-api-0-project-rule-details",
-            kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
-                "rule_id": rule.id,
-            },
+        payload = {
+            "name": "hello world",
+            "actionMatch": "any",
+            "filterMatch": "any",
+            "conditions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
+            "actions": [],
+        }
+        self.get_error_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=400, **payload
         )
-        response = self.client.put(
-            url,
-            data={
-                "name": "hello world",
-                "actionMatch": "any",
-                "filterMatch": "any",
-                "conditions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
-                "actions": [],
-            },
-            format="json",
-        )
-
-        assert response.status_code == 400, response.content
 
     def test_invalid_rule_node(self):
-        self.login_as(user=self.user)
-
-        project = self.create_project()
-
-        rule = Rule.objects.create(project=project, label="foo")
-
-        url = reverse(
-            "sentry-api-0-project-rule-details",
-            kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
-                "rule_id": rule.id,
-            },
+        payload = {
+            "name": "hello world",
+            "actionMatch": "any",
+            "filterMatch": "any",
+            "conditions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
+            "actions": [{"id": "foo"}],
+        }
+        self.get_error_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=400, **payload
         )
-        response = self.client.put(
-            url,
-            data={
-                "name": "hello world",
-                "actionMatch": "any",
-                "filterMatch": "any",
-                "conditions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
-                "actions": [{"id": "foo"}],
-            },
-            format="json",
-        )
-
-        assert response.status_code == 400, response.content
 
     def test_rule_form_not_valid(self):
-        self.login_as(user=self.user)
-
-        project = self.create_project()
-
-        rule = Rule.objects.create(project=project, label="foo")
-
-        url = reverse(
-            "sentry-api-0-project-rule-details",
-            kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
-                "rule_id": rule.id,
-            },
+        payload = {
+            "name": "hello world",
+            "actionMatch": "any",
+            "filterMatch": "any",
+            "conditions": [{"id": "sentry.rules.conditions.tagged_event.TaggedEventCondition"}],
+            "actions": [],
+        }
+        self.get_error_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=400, **payload
         )
-        response = self.client.put(
-            url,
-            data={
-                "name": "hello world",
-                "actionMatch": "any",
-                "filterMatch": "any",
-                "conditions": [{"id": "sentry.rules.conditions.tagged_event.TaggedEventCondition"}],
-                "actions": [],
-            },
-            format="json",
-        )
-
-        assert response.status_code == 400, response.content
 
     def test_rule_form_owner_perms(self):
-        self.login_as(user=self.user)
-
-        project = self.create_project()
-
-        rule = Rule.objects.create(project=project, label="foo")
-
-        url = reverse(
-            "sentry-api-0-project-rule-details",
-            kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
-                "rule_id": rule.id,
-            },
+        new_user = self.create_user()
+        payload = {
+            "name": "hello world",
+            "actionMatch": "any",
+            "filterMatch": "any",
+            "conditions": [{"id": "sentry.rules.conditions.tagged_event.TaggedEventCondition"}],
+            "actions": [],
+            "owner": new_user.actor.get_actor_identifier(),
+        }
+        response = self.get_error_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=400, **payload
         )
-        other_user = self.create_user()
-        response = self.client.put(
-            url,
-            data={
-                "name": "hello world",
-                "actionMatch": "any",
-                "filterMatch": "any",
-                "conditions": [{"id": "sentry.rules.conditions.tagged_event.TaggedEventCondition"}],
-                "actions": [],
-                "owner": other_user.actor.get_actor_identifier(),
-            },
-            format="json",
-        )
-
-        assert response.status_code == 400, response.content
         assert str(response.data["owner"][0]) == "User is not a member of this organization"
 
     def test_rule_form_missing_action(self):
-        self.login_as(user=self.user)
-
-        project = self.create_project()
-
-        rule = Rule.objects.create(project=project, label="foo")
-
-        url = reverse(
-            "sentry-api-0-project-rule-details",
-            kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
-                "rule_id": rule.id,
-            },
+        payload = {
+            "name": "hello world",
+            "actionMatch": "any",
+            "filterMatch": "any",
+            "action": [],
+            "conditions": [{"id": "sentry.rules.conditions.tagged_event.TaggedEventCondition"}],
+        }
+        self.get_error_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=400, **payload
         )
-        response = self.client.put(
-            url,
-            data={
-                "name": "hello world",
-                "actionMatch": "any",
-                "filterMatch": "any",
-                "action": [],
-                "conditions": [{"id": "sentry.rules.conditions.tagged_event.TaggedEventCondition"}],
-            },
-            format="json",
-        )
-
-        assert response.status_code == 400, response.content
 
     def test_update_filters(self):
-        self.login_as(user=self.user)
-
-        project = self.create_project()
-
-        rule = Rule.objects.create(project=project, label="foo")
-
         conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
         filters = [
             {"id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter", "value": 10}
         ]
-
-        url = reverse(
-            "sentry-api-0-project-rule-details",
-            kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
-                "rule_id": rule.id,
-            },
+        payload = {
+            "name": "hello world",
+            "actionMatch": "any",
+            "filterMatch": "any",
+            "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
+            "conditions": conditions,
+            "filters": filters,
+        }
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
         )
-        response = self.client.put(
-            url,
-            data={
-                "name": "hello world",
-                "actionMatch": "any",
-                "filterMatch": "any",
-                "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
-                "conditions": conditions,
-                "filters": filters,
-            },
-            format="json",
-        )
+        assert response.data["id"] == str(self.rule.id)
 
-        assert response.status_code == 200, response.content
-        assert response.data["id"] == str(rule.id)
-
-        rule = Rule.objects.get(id=rule.id)
-        assert rule.label == "hello world"
-        assert rule.environment_id is None
-        assert rule.data["action_match"] == "any"
-        assert rule.data["filter_match"] == "any"
-        assert rule.data["actions"] == [
-            {"id": "sentry.rules.actions.notify_event.NotifyEventAction"}
-        ]
-        assert rule.data["conditions"] == conditions + filters
-
-        assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.UPDATED.value).exists()
+        self.assert_rule_from_payload(self.rule, payload)
 
     @patch("sentry.mediators.alert_rule_actions.AlertRuleActionCreator.run")
     def test_update_alert_rule_action(self, mock_alert_rule_action_creator):
@@ -985,78 +733,39 @@ class UpdateProjectRuleTest(APITestCase):
         Ensures that Sentry Apps with schema forms (UI components)
         receive a payload when an alert rule is updated with them.
         """
-        self.login_as(user=self.user)
-
-        project = self.create_project()
-
-        rule = Rule.objects.create(project=project, label="my super cool rule")
-
-        sentry_app = self.create_sentry_app(
-            name="Pied Piper",
-            organization=project.organization,
-            schema={"elements": [self.create_alert_rule_action_schema()]},
-        )
-        install = self.create_sentry_app_installation(
-            slug="pied-piper", organization=project.organization
-        )
-
-        sentry_app_component = SentryAppComponent.objects.get(
-            sentry_app=sentry_app, type="alert-rule-action"
-        )
-
         actions = [
             {
                 "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
-                "settings": [
-                    {"name": "title", "value": "Team Rocket"},
-                    {"name": "summary", "value": "We're blasting off again."},
-                ],
-                "sentryAppInstallationUuid": install.uuid,
+                "settings": self.sentry_app_settings_payload,
+                "sentryAppInstallationUuid": self.sentry_app_installation.uuid,
                 "hasSchemaFormConfig": True,
             },
         ]
 
-        url = reverse(
-            "sentry-api-0-project-rule-details",
-            kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
-                "rule_id": rule.id,
-            },
+        payload = {
+            "name": "my super cool rule",
+            "actionMatch": "any",
+            "filterMatch": "any",
+            "actions": actions,
+            "conditions": [],
+            "filters": [],
+        }
+
+        sentry_app_component = SentryAppComponent.objects.get(
+            sentry_app=self.sentry_app, type="alert-rule-action"
         )
         with patch(
             "sentry.mediators.sentry_app_components.Preparer.run", return_value=sentry_app_component
         ):
-            response = self.client.put(
-                url,
-                data={
-                    "name": "my super cool rule",
-                    "actionMatch": "any",
-                    "filterMatch": "any",
-                    "actions": actions,
-                    "conditions": [],
-                    "filters": [],
-                },
-                format="json",
+            response = self.get_success_response(
+                self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
             )
-
-        assert response.status_code == 200, response.content
-        assert response.data["id"] == str(rule.id)
-
-        rule = Rule.objects.get(id=rule.id)
-        assert rule.data["actions"] == actions
-
-        kwargs = {
-            "install": install,
-            "fields": actions[0].get("settings"),
-        }
+        assert response.data["id"] == str(self.rule.id)
+        self.assert_rule_from_payload(self.rule, payload)
 
         call_kwargs = mock_alert_rule_action_creator.call_args[1]
-
-        assert call_kwargs["install"].id == kwargs["install"].id
-        assert call_kwargs["fields"] == kwargs["fields"]
-
-        assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.UPDATED.value).exists()
+        assert call_kwargs["install"].id == self.sentry_app_installation.id
+        assert call_kwargs["fields"] == self.sentry_app_settings_payload
 
     @responses.activate
     def test_update_sentry_app_with_success_response(self):
@@ -1064,34 +773,13 @@ class UpdateProjectRuleTest(APITestCase):
         Ensures the success response from a Sentry App
         Alert Rule Action is considered when updating.
         """
+        success_message = "1.21 gigawatts!"
         responses.add(
             method=responses.POST,
             url="https://example.com/sentry/alert-rule",
             status=202,
-            json={"message": self.success_message},
+            json={"message": success_message},
         )
-
-        self.login_as(self.user)
-
-        project = self.create_project()
-
-        sentry_app = self.create_sentry_app(
-            name="foo",
-            organization=self.organization,
-            schema={
-                "elements": [
-                    self.create_alert_rule_action_schema(),
-                ]
-            },
-        )
-        install = self.create_sentry_app_installation(
-            slug="foo", organization=self.organization, user=self.user
-        )
-        sentry_app_settings = [
-            {"name": "title", "value": "test title"},
-            {"name": "description", "value": "test description"},
-        ]
-        rule = Rule.objects.create(project=project, label="foo")
 
 
 class DeleteProjectRuleTest(APITestCase):
