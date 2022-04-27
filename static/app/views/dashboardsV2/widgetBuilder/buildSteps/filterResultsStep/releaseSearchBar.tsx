@@ -79,7 +79,7 @@ export function ReleaseSearchBar({orgSlug, query, projectIds, onSearch, onBlur}:
           maxSearchItems={MAX_SEARCH_ITEMS}
           searchSource="widget_builder"
           query={query.conditions}
-          savedSearchType={SavedSearchType.RELEASE}
+          savedSearchType={SavedSearchType.SESSION}
           hasRecentSearches
         />
       )}
