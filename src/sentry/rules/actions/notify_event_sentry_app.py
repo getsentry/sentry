@@ -9,7 +9,7 @@ from sentry.api.serializers.models.sentry_app_component import SentryAppAlertRul
 from sentry.eventstore.models import Event
 from sentry.models import Project, SentryApp, SentryAppComponent, SentryAppInstallation
 from sentry.rules import EventState
-from sentry.rules.actions.base import EventAction
+from sentry.rules.actions.base import SentryAppEventAction
 from sentry.rules.base import CallbackFuture
 from sentry.tasks.sentry_apps import notify_sentry_app
 
@@ -29,7 +29,7 @@ def validate_field(value: str | None, field: Mapping[str, Any], app_name: str) -
             )
 
 
-class NotifyEventSentryAppAction(EventAction):
+class NotifyEventSentryAppAction(SentryAppEventAction):
     """
     Used for notifying a *specific* sentry app with a custom webhook payload
     (i.e. specified UI components).
@@ -39,6 +39,28 @@ class NotifyEventSentryAppAction(EventAction):
     actionType = "sentryapp"
     # Required field for EventAction, value is ignored
     label = ""
+
+    def _get_sentry_app(self, event: Event) -> SentryApp | None:
+        extra = {"event_id": event.event_id}
+
+        sentry_app_installation_uuid = self.get_option("sentryAppInstallationUuid")
+        if not sentry_app_installation_uuid:
+            self.logger.info("rules.fail.is_configured", extra=extra)
+            return None
+
+        try:
+            return SentryApp.objects.get(installations__uuid=sentry_app_installation_uuid)
+        except SentryApp.DoesNotExist:
+            self.logger.info("rules.fail.no_app", extra=extra)
+
+        return None
+
+    def _get_setting_value(self, field_name: str) -> str | None:
+        incoming_settings = self.data.get("settings", [])
+        return next(
+            (setting["value"] for setting in incoming_settings if setting["name"] == field_name),
+            None,
+        )
 
     def get_custom_actions(self, project: Project) -> Sequence[Mapping[str, Any]]:
         action_list = []
@@ -57,28 +79,6 @@ class NotifyEventSentryAppAction(EventAction):
                 action_list.append(action_details)
 
         return action_list
-
-    def get_sentry_app(self, event: Event) -> SentryApp | None:
-        extra = {"event_id": event.event_id}
-
-        sentry_app_installation_uuid = self.get_option("sentryAppInstallationUuid")
-        if not sentry_app_installation_uuid:
-            self.logger.info("rules.fail.is_configured", extra=extra)
-            return None
-
-        try:
-            return SentryApp.objects.get(installations__uuid=sentry_app_installation_uuid)
-        except SentryApp.DoesNotExist:
-            self.logger.info("rules.fail.no_app", extra=extra)
-
-        return None
-
-    def get_setting_value(self, field_name: str) -> str | None:
-        incoming_settings = self.data.get("settings", [])
-        return next(
-            (setting["value"] for setting in incoming_settings if setting["name"] == field_name),
-            None,
-        )
 
     def self_validate(self) -> None:
         sentry_app_installation_uuid = self.data.get("sentryAppInstallationUuid")
@@ -116,7 +116,7 @@ class NotifyEventSentryAppAction(EventAction):
         schema = alert_rule_component.schema.get("settings", {})
         for required_field in schema.get("required_fields", []):
             field_name = required_field.get("name")
-            field_value = self.get_setting_value(field_name)
+            field_value = self._get_setting_value(field_name)
             if not field_value:
                 raise ValidationError(
                     f"{sentry_app.name} is missing required settings field: '{field_name}'"
@@ -127,7 +127,7 @@ class NotifyEventSentryAppAction(EventAction):
         # Ensure optional fields are valid
         for optional_field in schema.get("optional_fields", []):
             field_name = optional_field.get("name")
-            field_value = self.get_setting_value(field_name)
+            field_value = self._get_setting_value(field_name)
             validate_field(field_value, optional_field, sentry_app.name)
             valid_fields.add(field_name)
 
@@ -140,7 +140,7 @@ class NotifyEventSentryAppAction(EventAction):
             )
 
     def after(self, event: Event, state: EventState) -> Generator[CallbackFuture, None, None]:
-        sentry_app = self.get_sentry_app(event)
+        sentry_app = self._get_sentry_app(event)
         yield self.future(
             notify_sentry_app,
             sentry_app=sentry_app,
