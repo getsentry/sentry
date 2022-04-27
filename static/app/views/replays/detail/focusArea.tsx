@@ -37,7 +37,6 @@ function ActiveTab({active, event, eventWithSpans}: Props & {active: TabBarId}) 
       return eventWithSpans ? (
         <div id="performance">
           <EventEntry
-            id="performance"
             key={`${eventWithSpans.id}`}
             projectSlug={getProjectSlug(eventWithSpans)}
             // group={group}
