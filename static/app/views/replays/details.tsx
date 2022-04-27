@@ -38,7 +38,7 @@ function ReplayDetails() {
     orgId,
   });
 
-  const {ref: fullscreenRef, toggle: toggleFullscreen} = useFullscreen();
+  const {ref: fullscreenRef, isFullscreen, toggle: toggleFullscreen} = useFullscreen();
 
   if (fetching) {
     return (
@@ -85,7 +85,9 @@ function ReplayDetails() {
       <ReplayContextProvider events={rrwebEvents}>
         <Layout.Body>
           <ReplayLayout ref={fullscreenRef}>
-            <ReplayPlayer />
+            {/* In fullscreen we need to consider the max-height that the player is able
+            to full up, on a page that scrolls we only consider the max-width. */}
+            <ReplayPlayer fixedHeight={isFullscreen} />
             <ReplayController toggleFullscreen={toggleFullscreen} />
           </ReplayLayout>
           <Layout.Side>

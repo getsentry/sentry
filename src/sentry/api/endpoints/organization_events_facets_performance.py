@@ -15,7 +15,7 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.search.events.filter import get_filter
 from sentry.snuba import discover
 from sentry.utils.cursors import Cursor, CursorResult
-from sentry.utils.snuba import Dataset
+from sentry.utils.snuba import Dataset, raw_query
 
 ALLOWED_AGGREGATE_COLUMNS = {
     "transaction.duration",
@@ -380,6 +380,7 @@ def query_facet_performance(
     all_tag_keys: Optional[bool] = None,
     tag_key: Optional[bool] = None,
 ) -> Dict:
+    # TODO(snql): Migrate this off raw_query
     with sentry_sdk.start_span(
         op="discover.discover", description="facets.filter_transform"
     ) as span:
@@ -454,7 +455,7 @@ def query_facet_performance(
 
         limitby = [tag_key_limit, "tags_key"] if not tag_key else None
 
-        results = discover.raw_query(
+        results = raw_query(
             selected_columns=tag_selected_columns,
             conditions=conditions,
             start=snuba_filter.start,
