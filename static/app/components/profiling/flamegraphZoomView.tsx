@@ -133,7 +133,7 @@ function FlamegraphZoomView({
       return null;
     }
     return new SelectedFrameRenderer(flamegraphOverlayCanvasRef);
-  }, [flamegraphOverlayCanvasRef, flamegraph, flamegraphTheme]);
+  }, [flamegraphOverlayCanvasRef]);
 
   const hoveredNode = useMemo(() => {
     if (!configSpaceCursor || !flamegraphRenderer) {
@@ -144,7 +144,7 @@ function FlamegraphZoomView({
 
   useEffect(() => {
     scheduler.draw();
-  }, [flamegraphState.search.results]);
+  }, [scheduler]);
 
   useEffect(() => {
     const onKeyDown = (evt: KeyboardEvent) => {
@@ -198,7 +198,14 @@ function FlamegraphZoomView({
     return () => {
       document.removeEventListener('keydown', onKeyDown);
     };
-  }, [flamegraphRenderer, previousState, nextState, scheduler]);
+  }, [
+    flamegraphRenderer,
+    canvasPoolManager,
+    dispatchFlamegraphState,
+    previousState,
+    nextState,
+    scheduler,
+  ]);
 
   const previousInteraction = usePrevious(lastInteraction);
   const beforeInteractionConfigView = useRef<Rect | null>(null);
@@ -219,7 +226,7 @@ function FlamegraphZoomView({
     ) {
       dispatch({type: 'checkpoint', payload: flamegraphRenderer.configView.clone()});
     }
-  }, [lastInteraction, flamegraphRenderer]);
+  }, [lastInteraction, flamegraphRenderer, dispatch, previousInteraction]);
 
   useEffect(() => {
     if (!flamegraphRenderer) {
@@ -328,6 +335,7 @@ function FlamegraphZoomView({
     gridRenderer,
     selectedNode,
     hoveredNode,
+    selectedFrameRenderer,
   ]);
 
   useEffect(() => {
@@ -355,7 +363,7 @@ function FlamegraphZoomView({
       flamegraphRenderer.setConfigView(
         new Rect(
           frame.start,
-          flamegraph.inverted
+          flamegraphRenderer.flamegraph.inverted
             ? flamegraphRenderer.configSpace.height -
               flamegraphRenderer.configView.height -
               frame.depth +
@@ -402,7 +410,13 @@ function FlamegraphZoomView({
       }
     );
     return () => observer.disconnect();
-  }, [scheduler, flamegraphCanvasRef, flamegraphOverlayCanvasRef, flamegraphRenderer]);
+  }, [
+    canvasPoolManager,
+    scheduler,
+    flamegraphCanvasRef,
+    flamegraphOverlayCanvasRef,
+    flamegraphRenderer,
+  ]);
 
   useEffect(() => {
     canvasPoolManager.registerScheduler(scheduler);
@@ -462,7 +476,6 @@ function FlamegraphZoomView({
       selectedNode,
       hoveredNode,
       canvasPoolManager,
-      startPanVector,
       lastInteraction,
     ]
   );
@@ -518,7 +531,7 @@ function FlamegraphZoomView({
 
       setStartPanVector(physicalMousePos);
     },
-    [flamegraphRenderer, startPanVector]
+    [flamegraphRenderer, startPanVector, canvasPoolManager]
   );
 
   const onCanvasMouseMove = useCallback(
@@ -540,13 +553,7 @@ function FlamegraphZoomView({
         setLastInteraction(null);
       }
     },
-    [
-      flamegraphRenderer,
-      setConfigSpaceCursor,
-      onMouseDrag,
-      lastInteraction,
-      startPanVector,
-    ]
+    [flamegraphRenderer, setConfigSpaceCursor, onMouseDrag, startPanVector]
   );
 
   const onCanvasMouseLeave = useCallback(() => {
