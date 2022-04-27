@@ -146,17 +146,35 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     if (this.spanRowDOMRef.current) {
       this.connectObservers();
     }
+
+    if (this.spanTitleRef.current) {
+      this.spanTitleRef.current.addEventListener('wheel', this.preventDefault);
+    }
   }
 
   componentWillUnmount() {
     this._mounted = false;
     this.disconnectObservers();
+
+    if (this.spanTitleRef.current) {
+      this.spanTitleRef.current.removeEventListener('wheel', this.preventDefault);
+    }
   }
 
   spanRowDOMRef = React.createRef<HTMLDivElement>();
+  spanTitleRef = React.createRef<HTMLDivElement>();
   intersectionObserver?: IntersectionObserver = void 0;
   zoomLevel: number = 1; // assume initial zoomLevel is 100%
   _mounted: boolean = false;
+
+  preventDefault = (event: WheelEvent) => {
+    // https://stackoverflow.com/q/57358640
+    // https://github.com/facebook/react/issues/14856
+    if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
+      return;
+    }
+    event.preventDefault();
+  };
 
   toggleDisplayDetail = () => {
     this.setState(state => ({
@@ -864,6 +882,13 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
           onClick={() => {
             this.toggleDisplayDetail();
           }}
+          onWheel={event => {
+            event.preventDefault();
+            event.stopPropagation();
+            const {onWheel} = scrollbarManagerChildrenProps;
+            onWheel(event.deltaX);
+          }}
+          ref={this.spanTitleRef}
         >
           {this.renderTitle(scrollbarManagerChildrenProps, errors)}
         </RowCell>
