@@ -7,6 +7,7 @@ import pytz
 from django.urls import reverse
 from django.utils import timezone
 from exam import fixture
+from rest_framework import status
 
 from sentry.api.endpoints.organization_releases import (
     ReleaseHeadCommitSerializer,
@@ -1030,6 +1031,9 @@ class OrganizationReleasesStatsTest(APITestCase):
 
 
 class OrganizationReleaseCreateTest(APITestCase):
+    endpoint = "sentry-api-0-organization-release-details"
+    method = "post"
+
     def test_minimal(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
@@ -1644,6 +1648,40 @@ class OrganizationReleaseCreateTest(APITestCase):
         )
         assert response.status_code == 400
         assert response.data == {"refs": ["Invalid repository names: not_a_repo"]}
+
+    def test_date_released_empty(self):
+        self.login_as(self.user)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            version="1.2.1",
+            projects=[self.project.slug],
+            status_code=status.HTTP_201_CREATED,
+        )
+        release = Release.objects.get(
+            version=response.data["version"], organization=self.organization
+        )
+
+        assert response.data["dateReleased"] is None
+        assert release.date_released is None
+
+    def test_date_released(self):
+        expected_datetime = datetime(2022, 4, 11, 19, 20, tzinfo=pytz.utc)
+        self.login_as(self.user)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            version="1.2.1",
+            projects=[self.project.slug],
+            dateReleased="2022-04-11T21:20:00+02:00",
+            status_code=status.HTTP_201_CREATED,
+        )
+        release = Release.objects.get(
+            version=response.data["version"], organization=self.organization
+        )
+
+        assert response.data["dateReleased"] == expected_datetime
+        assert release.date_released == expected_datetime
 
 
 class OrganizationReleaseCommitRangesTest(SetRefsTestCase):

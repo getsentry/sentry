@@ -24,6 +24,8 @@ from sentry.testutils import APITestCase
 
 
 class ReleaseDetailsTest(APITestCase):
+    endpoint = "sentry-api-0-organization-release-details"
+
     def setUp(self):
         super().setUp()
         self.user1 = self.create_user(is_staff=False, is_superuser=False)
@@ -619,6 +621,32 @@ class ReleaseDetailsTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert "adoptionStages" in response.data
+
+    def test_date_released_empty(self):
+        self.login_as(self.user)
+
+        release = Release.objects.create(
+            organization_id=self.organization.id,
+            version="1",
+        )
+        release.add_project(self.project)
+
+        response = self.get_success_response(self.organization.slug, release.version)
+        assert response.data["dateReleased"] is None
+
+    def test_date_released(self):
+        expected_datetime = datetime(2022, 4, 11, 19, 20, tzinfo=pytz.utc)
+        self.login_as(self.user)
+
+        release = Release.objects.create(
+            organization_id=self.organization.id,
+            version="1",
+            date_released=expected_datetime,
+        )
+        release.add_project(self.project)
+
+        response = self.get_success_response(self.organization.slug, release.version)
+        assert response.data["dateReleased"] == expected_datetime
 
 
 class UpdateReleaseDetailsTest(APITestCase):
