@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Any, Iterable, List, MutableMapping, Sequence
+from typing import Any, Iterable, List, Mapping, MutableMapping, Sequence
 
 import sentry_sdk
 from django.db import connection
@@ -473,6 +473,48 @@ class ProjectWithTeamSerializer(ProjectSerializer):
             pass
         data["teams"] = attrs["teams"]
         return data
+
+
+class TeamResponseDict(TypedDict):
+    id: str
+    name: str
+    slug: str
+
+
+class EventProcessingDict(TypedDict):
+    symbolicationDegraded: bool
+
+
+class LatestReleaseDict(TypedDict):
+    version: str
+
+
+class _OrganizationProjectResponseDictOptional(TypedDict, total=False):
+    latestDeploys: Mapping[str, Mapping[str, str]]
+    latestRelease: LatestReleaseDict
+    environments: List[str]
+    firstEvent: str
+    stats: Any
+    transactionStats: Any
+    sessionStats: Any
+
+
+class OrganizationProjectResponseDict(_OrganizationProjectResponseDictOptional):
+    team: TeamResponseDict
+    teams: List[TeamResponseDict]
+    id: str
+    name: str
+    slug: str
+    isBookmarked: bool
+    isMember: bool
+    hasAccess: bool
+    dateCreated: str
+    eventProcessing: EventProcessingDict
+    features: List[str]
+    firstTransactionEvent: bool
+    hasSessions: bool
+    platform: str
+    platforms: List[str]
 
 
 class ProjectSummarySerializer(ProjectWithTeamSerializer):
