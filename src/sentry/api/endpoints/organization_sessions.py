@@ -71,7 +71,8 @@ class OrganizationSessionsEndpoint(OrganizationEventsEndpointBase):
             allowed_resolution=allowed_resolution,
             # FIXME: This won't work with duplex backend
             allow_session_status_query=release_health.is_metrics_based(),
-            offset=offset, limit=limit
+            offset=offset,
+            limit=limit,
         )
 
     @contextmanager
