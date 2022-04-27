@@ -75,6 +75,7 @@ from sentry.snuba.metrics.utils import (
     MetricOperationType,
     MetricType,
     NotSupportedOverCompositeEntityException,
+    OrderByNotSupportedOverCompositeEntityException,
     combine_dictionary_of_list_values,
 )
 from sentry.utils.snuba import raw_snql_query
@@ -704,7 +705,7 @@ class CompositeEntityDerivedMetric(DerivedMetricExpression):
         projects: Sequence[Project],
         query_definition: QueryDefinition,
     ) -> List[OrderBy]:
-        raise NotSupportedOverCompositeEntityException(
+        raise OrderByNotSupportedOverCompositeEntityException(
             f"It is not possible to orderBy field "
             f"{get_public_name_from_mri(self.metric_mri)} as it does not "
             f"have a direct mapping to a query alias"
