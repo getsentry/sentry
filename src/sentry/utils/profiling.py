@@ -4,7 +4,7 @@ import google.auth.transport.requests
 import google.oauth2.id_token
 from django.conf import settings
 from django.http import HttpResponse
-from parsimonious.exceptions import ParseError  # type: ignore
+from parsimonious.exceptions import ParseError
 from requests import Response
 
 from sentry.api.event_search import SearchFilter, parse_search_query
