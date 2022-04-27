@@ -309,7 +309,7 @@ export function flattenErrors(
 export function getDashboardsMEPQueryParams(isMEPEnabled: boolean) {
   return isMEPEnabled
     ? {
-        metricsEnhanced: '1',
+        dataset: 'metricsEnhanced',
       }
     : {};
 }
