@@ -257,7 +257,7 @@ describe('Dashboards util', () => {
   describe('getDashboardsMEPQueryParams', function () {
     it('returns correct params if enabled', function () {
       expect(getDashboardsMEPQueryParams(true)).toEqual({
-        metricsEnhanced: '1',
+        dataset: 'metricsEnhanced',
       });
     });
     it('returns empty object if disabled', function () {

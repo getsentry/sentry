@@ -856,7 +856,7 @@ describe('Dashboards > WidgetQueries', function () {
     expect(mock).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',
       expect.objectContaining({
-        query: expect.objectContaining({metricsEnhanced: '1'}),
+        query: expect.objectContaining({dataset: 'metricsEnhanced'}),
       })
     );
 
@@ -902,7 +902,7 @@ describe('Dashboards > WidgetQueries', function () {
     expect(mock).toHaveBeenCalledWith(
       '/organizations/org-slug/eventsv2/',
       expect.objectContaining({
-        query: expect.objectContaining({metricsEnhanced: '1'}),
+        query: expect.objectContaining({dataset: 'metricsEnhanced'}),
       })
     );
 
