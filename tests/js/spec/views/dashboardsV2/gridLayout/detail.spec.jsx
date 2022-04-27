@@ -444,7 +444,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-basic',
             'dashboards-edit',
             'discover-query',
-            'widget-library',
           ],
           projects: [TestStubs.Project()],
         }),
