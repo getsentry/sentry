@@ -969,7 +969,6 @@ class OrganizationSessionsEndpointMetricsTest(
 
     @freeze_time(MOCK_DATETIME)
     def test_orderby(self):
-
         response = self.do_request(
             {
                 "project": [-1],
@@ -1120,3 +1119,100 @@ class OrganizationSessionsEndpointMetricsTest(
                 ).status_code
                 == 200
             )
+
+    @freeze_time(MOCK_DATETIME)
+    def test_filter_by_session_status(self):
+        default_request = {
+            "project": [-1],
+            "statsPeriod": "1d",
+            "interval": "1d",
+        }
+
+        def req(**kwargs):
+            return self.do_request(dict(default_request, **kwargs))
+
+        response = req(field=["sum(session)"], query="session.status:bogus")
+        assert response.status_code == 200, response.content
+        assert result_sorted(response.data)["groups"] == []
+
+        response = req(field=["sum(session)"], query="!session.status:healthy")
+        assert response.status_code == 200, response.content
+        assert result_sorted(response.data)["groups"] == [
+            {"by": {}, "series": {"sum(session)": [3]}, "totals": {"sum(session)": 3}}
+        ]
+
+        # sum(session) filtered by multiple statuses adds them
+        response = req(field=["sum(session)"], query="session.status:[healthy, errored]")
+        assert response.status_code == 200, response.content
+        assert result_sorted(response.data)["groups"] == [
+            {"by": {}, "series": {"sum(session)": [8]}, "totals": {"sum(session)": 8}}
+        ]
+
+        response = req(
+            field=["sum(session)"],
+            query="session.status:[healthy, errored]",
+            groupBy="session.status",
+        )
+        assert response.status_code == 200, response.content
+        assert result_sorted(response.data)["groups"] == [
+            {
+                "by": {"session.status": "errored"},
+                "totals": {"sum(session)": 2},
+                "series": {"sum(session)": [2]},
+            },
+            {
+                "by": {"session.status": "healthy"},
+                "totals": {"sum(session)": 6},
+                "series": {"sum(session)": [6]},
+            },
+        ]
+
+        response = req(field=["sum(session)"], query="session.status:healthy release:foo@1.1.0")
+        assert response.status_code == 200, response.content
+        assert result_sorted(response.data)["groups"] == [
+            {"by": {}, "series": {"sum(session)": [1]}, "totals": {"sum(session)": 1}}
+        ]
+
+        response = req(field=["sum(session)"], query="session.status:healthy OR release:foo@1.1.0")
+        assert response.status_code == 400, response.data
+        assert response.data == {"detail": "Unable to parse condition with session.status"}
+
+        # count_unique(user) does not work with multiple session statuses selected
+        response = req(field=["count_unique(user)"], query="session.status:[healthy, errored]")
+        assert response.status_code == 400, response.data
+        assert response.data == {
+            "detail": "Cannot filter count_unique by multiple session.status unless it is in groupBy"
+        }
+
+        response = req(field=["p95(session.duration)"], query="session.status:abnormal")
+        assert response.status_code == 200, response.content
+        assert result_sorted(response.data)["groups"] == []
+
+    @freeze_time(MOCK_DATETIME)
+    def test_filter_by_session_status_with_orderby(self):
+        default_request = {
+            "project": [-1],
+            "statsPeriod": "1d",
+            "interval": "1d",
+        }
+
+        def req(**kwargs):
+            return self.do_request(dict(default_request, **kwargs))
+
+        response = req(
+            field=["sum(session)"],
+            query="session.status:[abnormal,crashed]",
+            groupBy="release",
+            orderBy="sum(session)",
+        )
+        assert response.status_code == 400, response.content
+        assert response.data == {"detail": "Cannot order by sum(session) with the current filters"}
+
+        response = req(
+            field=["sum(session)"],
+            query="session.status:healthy",
+            groupBy="release",
+            orderBy="sum(session)",
+        )
+        assert response.status_code == 400, response.content
+        assert response.data == {"detail": "Cannot order by sum(session) with the current filters"}

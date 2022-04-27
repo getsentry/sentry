@@ -26,6 +26,7 @@ __all__ = (
     "MetricDoesNotExistException",
     "MetricDoesNotExistInIndexer",
     "NotSupportedOverCompositeEntityException",
+    "OrderByNotSupportedOverCompositeEntityException",
     "MetricEntity",
     "UNALLOWED_TAGS",
     "combine_dictionary_of_list_values",
@@ -205,4 +206,8 @@ class DerivedMetricParseException(DerivedMetricException):
 
 
 class NotSupportedOverCompositeEntityException(DerivedMetricException):
+    ...
+
+
+class OrderByNotSupportedOverCompositeEntityException(NotSupportedOverCompositeEntityException):
     ...
