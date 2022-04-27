@@ -1,0 +1,57 @@
+{
+  "values": [
+        {
+            "type": "default",
+            "timestamp": "2022-04-14T14:19:47.326000Z",
+            "level": "info",
+            "message": "d2ce61d15ac0466a846ab1cc1a19720a",
+            "category": "sentry.transaction",
+            "data": null,
+            "event_id": "d2ce61d15ac0466a846ab1cc1a19720a"
+        },
+        {
+            "type": "default",
+            "timestamp": "2022-04-14T14:19:49.249000Z",
+            "level": "info",
+            "message": "Content is cached for offline use.",
+            "category": "console",
+            "data": {
+                "arguments": [
+                    "Content is cached for offline use."
+                ],
+                "logger": "console"
+            },
+            "event_id": null
+        },
+        {
+            "type": "default",
+            "timestamp": "2022-04-14T14:19:51.512000Z",
+            "level": "info",
+            "message": "div > div.row > form > div.col-md-2 > button.btn.btn-default",
+            "category": "ui.click",
+            "data": null,
+            "event_id": null
+        },
+        {
+            "type": "default",
+            "timestamp": "2022-04-14T14:19:57.326000Z",
+            "level": "info",
+            "message": "div > div.row > form > div.col-md-2 > button.btn.btn-default",
+            "category": "ui.click",
+            "data": null,
+            "event_id": null
+        },
+        {
+            "type": "http",
+            "timestamp": "2022-04-14T14:20:13.036000Z",
+            "level": "error",
+            "message": null,
+            "category": "fetch",
+            "data": {
+                "method": "POST",
+                "url": "https://us-central1-sourcemapsio.cloudfunctions.net/validateGeneratedFile?url=http%3A%2F%2Fcode.jquery.com%2Fjquery-1.9.1.min.js"
+            },
+            "event_id": null
+        }
+    ]
+}
