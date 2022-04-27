@@ -57,7 +57,6 @@ export function FlamegraphStateProvider(
       synchronizeXAxisWithTransaction: false,
     },
     search: {
-      open: false,
       index: null,
       results: null,
       query: '',
