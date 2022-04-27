@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Any, Iterable, List, Mapping, MutableMapping, Sequence
+from typing import Any, Dict, Iterable, List, MutableMapping, Optional, Sequence, cast
 
 import sentry_sdk
 from django.db import connection
@@ -437,6 +437,11 @@ class ProjectWithOrganizationSerializer(ProjectSerializer):
         return data
 
 
+class ProjectWithTeamResponseDict(ProjectSerializerResponse):
+    team: TeamResponseDict
+    teams: List[TeamResponseDict]
+
+
 class ProjectWithTeamSerializer(ProjectSerializer):
     def get_attrs(
         self, item_list: Sequence[Project], user: User, **kwargs: Any
@@ -464,8 +469,8 @@ class ProjectWithTeamSerializer(ProjectSerializer):
             attrs[item]["teams"] = teams_by_project_id[item.id]
         return attrs
 
-    def serialize(self, obj, attrs, user):
-        data = super().serialize(obj, attrs, user)
+    def serialize(self, obj, attrs, user) -> ProjectWithTeamResponseDict:
+        data = cast(ProjectWithTeamResponseDict, super().serialize(obj, attrs, user))
         # TODO(jess): remove this when this is deprecated
         try:
             data["team"] = attrs["teams"][0]
@@ -473,6 +478,9 @@ class ProjectWithTeamSerializer(ProjectSerializer):
             pass
         data["teams"] = attrs["teams"]
         return data
+
+
+##########
 
 
 class TeamResponseDict(TypedDict):
@@ -490,17 +498,14 @@ class LatestReleaseDict(TypedDict):
 
 
 class _OrganizationProjectResponseDictOptional(TypedDict, total=False):
-    latestDeploys: Mapping[str, Mapping[str, str]]
-    latestRelease: LatestReleaseDict
-    environments: List[str]
-    firstEvent: str
+    latestDeploys: Optional[Dict[str, Dict[str, str]]]
     stats: Any
     transactionStats: Any
     sessionStats: Any
 
 
 class OrganizationProjectResponseDict(_OrganizationProjectResponseDictOptional):
-    team: TeamResponseDict
+    team: Optional[TeamResponseDict]
     teams: List[TeamResponseDict]
     id: str
     name: str
@@ -513,8 +518,15 @@ class OrganizationProjectResponseDict(_OrganizationProjectResponseDictOptional):
     features: List[str]
     firstTransactionEvent: bool
     hasSessions: bool
-    platform: str
+    platform: Optional[str]
     platforms: List[str]
+    hasUserReports: bool
+    firstEvent: Optional[str]
+    environments: List[str]
+    latestRelease: Optional[LatestReleaseDict]
+
+
+##########
 
 
 class ProjectSummarySerializer(ProjectWithTeamSerializer):
@@ -614,8 +626,8 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
 
         return attrs
 
-    def serialize(self, obj, attrs, user):
-        context = {
+    def serialize(self, obj, attrs, user) -> OrganizationProjectResponseDict:  # type: ignore
+        context: OrganizationProjectResponseDict = {
             "team": attrs["teams"][0] if attrs["teams"] else None,
             "teams": attrs["teams"],
             "id": str(obj.id),

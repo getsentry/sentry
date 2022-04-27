@@ -1,3 +1,5 @@
+from typing import List
+
 from django.db.models import Q
 from drf_spectacular.utils import OpenApiExample, extend_schema
 from rest_framework.request import Request
@@ -30,7 +32,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
         request=None,
         responses={
             200: inline_sentry_response_serializer(
-                "Successful Response", OrganizationProjectResponseDict
+                "OrganizationProjectResponseDict", List[OrganizationProjectResponseDict]
             ),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
@@ -39,37 +41,39 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
         examples=[
             OpenApiExample(
                 "Success",
-                value={
-                    "dateCreated": "2018-11-06T21:19:58.536Z",
-                    "firstEvent": None,
-                    "hasAccess": True,
-                    "id": "3",
-                    "isBookmarked": False,
-                    "isMember": True,
-                    "latestDeploys": None,
-                    "name": "Prime Mover",
-                    "platform": "",
-                    "platforms": [],
-                    "slug": "prime-mover",
-                    "team": {
-                        "id": "2",
-                        "name": "Powerful Abolitionist",
-                        "slug": "powerful-abolitionist",
-                    },
-                    "teams": [
-                        {
+                value=[
+                    {
+                        "dateCreated": "2018-11-06T21:19:58.536Z",
+                        "firstEvent": None,
+                        "hasAccess": True,
+                        "id": "3",
+                        "isBookmarked": False,
+                        "isMember": True,
+                        "name": "Prime Mover",
+                        "platform": "",
+                        "platforms": [],
+                        "slug": "prime-mover",
+                        "team": {
                             "id": "2",
                             "name": "Powerful Abolitionist",
                             "slug": "powerful-abolitionist",
-                        }
-                    ],
-                    "environments": ["local"],
-                    "eventProcessing": {"symbolicationDegraded": False},
-                    "features": ["releases"],
-                    "firstTransactionEvent": True,
-                    "hasSessions": True,
-                    "latestRelease": None,
-                },
+                        },
+                        "teams": [
+                            {
+                                "id": "2",
+                                "name": "Powerful Abolitionist",
+                                "slug": "powerful-abolitionist",
+                            }
+                        ],
+                        "environments": ["local"],
+                        "eventProcessing": {"symbolicationDegraded": False},
+                        "features": ["releases"],
+                        "firstTransactionEvent": True,
+                        "hasSessions": True,
+                        "latestRelease": None,
+                        "hasUserReports": False,
+                    }
+                ],
             )
         ],
     )
