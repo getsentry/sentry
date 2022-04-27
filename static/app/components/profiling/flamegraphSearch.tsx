@@ -35,6 +35,8 @@ function frameSearch(
   if (isRegExpString(query)) {
     const [_, lookup, flags] = parseRegExp(query) ?? [];
 
+    let matches = 0;
+
     try {
       if (!lookup) {
         throw new Error('Invalid RegExp');
@@ -51,10 +53,15 @@ function frameSearch(
               String(frame.start)
             }`
           ] = frame;
+          matches += 1;
         }
       }
     } catch (e) {
       Sentry.captureMessage(e.message);
+    }
+
+    if (matches <= 0) {
+      return null;
     }
 
     return results;
