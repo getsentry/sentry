@@ -127,6 +127,8 @@ export function normalizeQueries({
         getIsTimeseriesChart(displayType) &&
         !query.columns.filter(column => !!column).length
       ) {
+        // The orderby is only applicable for timeseries charts when there's a
+        // grouping selected, if all fields are empty then we also reset the orderby
         query.orderby = '';
         return query;
       }
