@@ -14,7 +14,6 @@ from sentry.models import (
     RuleActivityType,
     RuleFireHistory,
     RuleStatus,
-    SentryAppComponent,
     User,
 )
 from sentry.testutils import APITestCase
@@ -727,12 +726,14 @@ class UpdateProjectRuleTest(APITestCase):
 
         self.assert_rule_from_payload(self.rule, payload)
 
-    @patch("sentry.mediators.alert_rule_actions.AlertRuleActionCreator.run")
-    def test_update_alert_rule_action(self, mock_alert_rule_action_creator):
-        """
-        Ensures that Sentry Apps with schema forms (UI components)
-        receive a payload when an alert rule is updated with them.
-        """
+    @responses.activate
+    def test_update_sentry_app_action_success(self):
+        responses.add(
+            method=responses.POST,
+            url="https://example.com/sentry/alert-rule",
+            status=202,
+            json={},
+        )
         actions = [
             {
                 "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
@@ -750,36 +751,42 @@ class UpdateProjectRuleTest(APITestCase):
             "conditions": [],
             "filters": [],
         }
-
-        sentry_app_component = SentryAppComponent.objects.get(
-            sentry_app=self.sentry_app, type="alert-rule-action"
+        self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
         )
-        with patch(
-            "sentry.mediators.sentry_app_components.Preparer.run", return_value=sentry_app_component
-        ):
-            response = self.get_success_response(
-                self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
-            )
-        assert response.data["id"] == str(self.rule.id)
         self.assert_rule_from_payload(self.rule, payload)
-
-        call_kwargs = mock_alert_rule_action_creator.call_args[1]
-        assert call_kwargs["install"].id == self.sentry_app_installation.id
-        assert call_kwargs["fields"] == self.sentry_app_settings_payload
+        assert len(responses.calls) == 1
 
     @responses.activate
-    def test_update_sentry_app_with_success_response(self):
-        """
-        Ensures the success response from a Sentry App
-        Alert Rule Action is considered when updating.
-        """
-        success_message = "1.21 gigawatts!"
+    def test_update_sentry_app_action_failure(self):
+        error_message = "Something is totally broken :'("
         responses.add(
             method=responses.POST,
             url="https://example.com/sentry/alert-rule",
-            status=202,
-            json={"message": success_message},
+            status=500,
+            json={"message": error_message},
         )
+        actions = [
+            {
+                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+                "settings": self.sentry_app_settings_payload,
+                "sentryAppInstallationUuid": self.sentry_app_installation.uuid,
+                "hasSchemaFormConfig": True,
+            },
+        ]
+        payload = {
+            "name": "my super cool rule",
+            "actionMatch": "any",
+            "filterMatch": "any",
+            "actions": actions,
+            "conditions": [],
+            "filters": [],
+        }
+        response = self.get_error_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=400, **payload
+        )
+        assert len(responses.calls) == 1
+        assert error_message in response.json().get("actions")[0]
 
 
 class DeleteProjectRuleTest(APITestCase):
