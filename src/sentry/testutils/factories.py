@@ -41,6 +41,7 @@ from sentry.mediators import (
     sentry_app_installations,
     sentry_apps,
     service_hooks,
+    token_exchange,
 )
 from sentry.models import (
     Activity,
@@ -759,8 +760,17 @@ class Factories:
             organization=organization,
             user=(user or Factories.create_user()),
         )
+
         install.status = SentryAppInstallationStatus.INSTALLED if status is None else status
         install.save()
+
+        if install.sentry_app.status != SentryAppStatus.INTERNAL:
+            token_exchange.GrantExchanger.run(
+                install=install,
+                code=install.api_grant.code,
+                client_id=install.sentry_app.application.client_id,
+                user=install.sentry_app.proxy_user,
+            )
         return install
 
     @staticmethod
