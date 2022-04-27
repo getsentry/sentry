@@ -226,7 +226,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                     "count_web_vitals",
                     required_args=[
                         NumericColumn("column"),
-                        SnQLStringArg("quality", allowed_strings=["good", "meh", "poor"]),
+                        SnQLStringArg("quality", allowed_strings=["good", "meh", "poor", "any"]),
                     ],
                     snql_aggregate=self._resolve_web_vital_function,
                     default_result_type="integer",
@@ -1136,7 +1136,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                 ],
                 alias,
             )
-        else:
+        elif quality == "poor":
             return Function(
                 "countIf",
                 [
@@ -1145,6 +1145,20 @@ class DiscoverDatasetConfig(DatasetConfig):
                         [
                             column,
                             VITAL_THRESHOLDS[column.key]["poor"],
+                        ],
+                    )
+                ],
+                alias,
+            )
+        elif quality == "any":
+            return Function(
+                "countIf",
+                [
+                    Function(
+                        "greater",
+                        [
+                            column,
+                            0,
                         ],
                     )
                 ],
