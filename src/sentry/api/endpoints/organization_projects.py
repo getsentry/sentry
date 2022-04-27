@@ -1,4 +1,4 @@
-from typing import List
+from typing import Any, List, Optional
 
 from django.db.models import Q
 from drf_spectacular.utils import OpenApiExample, extend_schema
@@ -44,15 +44,16 @@ class OrganizationProjectResponseDict(TypedDict):
     isMember: bool
     hasAccess: bool
     dateCreated: str
-    environments: List[str]
+    environments: Optional[List[str]]
     eventProcessing: EventProcessingDict
     features: List[str]
-    firstEvent: str
+    firstEvent: Optional[str]
     firstTransactionEvent: bool
     hasSessions: bool
     platform: str
     platforms: List[str]
-    latestRelease: LatestReleaseDict
+    latestRelease: Optional[LatestReleaseDict]
+    latestDeploys: Optional[Any]
 
 
 @extend_schema(tags=["Organizations"])
@@ -83,7 +84,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                     "isMember": True,
                     "latestDeploys": None,
                     "name": "Prime Mover",
-                    "platform": None,
+                    "platform": "",
                     "platforms": [],
                     "slug": "prime-mover",
                     "team": {
@@ -98,6 +99,12 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                             "slug": "powerful-abolitionist",
                         }
                     ],
+                    "environments": ["local"],
+                    "eventProcessing": {"symbolicationDegraded": False},
+                    "features": ["releases"],
+                    "firstTransactionEvent": True,
+                    "hasSessions": True,
+                    "latestRelease": None,
                 },
             )
         ],
