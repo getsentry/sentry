@@ -11,18 +11,17 @@ import {countColumns, formatTime, getCrumbsByColumn} from '../utils';
 const EVENT_STICK_MARKER_WIDTH = 2;
 
 interface Props {
-  data: {
-    values: Array<RawCrumb>;
-  };
+  crumbs: Array<RawCrumb>;
+  className?: string;
 }
 
 type LineStyle = 'dotted' | 'solid' | 'none';
 
-function ReplayBreadcrumbOverview({data}: Props) {
-  const transformedCrumbs = transformCrumbs(data.values);
+function ReplayBreadcrumbOverview({crumbs, className}: Props) {
+  const transformedCrumbs = transformCrumbs(crumbs);
 
   return (
-    <StackedContent>
+    <StackedContent className={className}>
       {({width}) => (
         <React.Fragment>
           <Ticks

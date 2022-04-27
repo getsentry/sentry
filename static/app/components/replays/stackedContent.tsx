@@ -6,6 +6,7 @@ type Dimensions = {height: number; width: number};
 
 type Props = {
   children: (props: Dimensions) => React.ReactElement | null;
+  className?: string;
 };
 
 /**
@@ -16,7 +17,7 @@ type Props = {
  * Injest the width/height of the container, so children can adjust and expand
  * to fill the whole area.
  */
-function StackedContent({children}: Props) {
+function StackedContent({children, className}: Props) {
   const el = useRef<HTMLDivElement>(null);
 
   const [dimensions, setDimensions] = useState({height: 0, width: 0});
@@ -30,7 +31,11 @@ function StackedContent({children}: Props) {
 
   useResizeObserver({ref: el, onResize});
 
-  return <Stack ref={el}>{children(dimensions)}</Stack>;
+  return (
+    <Stack className={className} ref={el}>
+      {children(dimensions)}
+    </Stack>
+  );
 }
 
 const Stack = styled('div')`
