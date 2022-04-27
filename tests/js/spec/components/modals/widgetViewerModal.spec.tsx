@@ -861,7 +861,7 @@ describe('Modals -> WidgetViewerModal', function () {
     };
     const mockWidget = {
       id: '1',
-      title: 'Releases Widget',
+      title: 'Release Widget',
       displayType: DisplayType.LINE,
       interval: '5m',
       queries: [mockQuery],
@@ -880,7 +880,7 @@ describe('Modals -> WidgetViewerModal', function () {
 
     it('renders widget title', async function () {
       await renderModal({initialData, widget: mockWidget});
-      expect(screen.getByText('Releases Widget')).toBeInTheDocument();
+      expect(screen.getByText('Release Widget')).toBeInTheDocument();
     });
 
     it('renders Edit', async function () {
@@ -896,7 +896,7 @@ describe('Modals -> WidgetViewerModal', function () {
       expect(screen.getByText('6.3k')).toBeInTheDocument();
     });
 
-    it('renders Releases widget viewer', async function () {
+    it('renders Release widget viewer', async function () {
       const {container} = await renderModal({initialData, widget: mockWidget});
       expect(container).toSnapshot();
     });

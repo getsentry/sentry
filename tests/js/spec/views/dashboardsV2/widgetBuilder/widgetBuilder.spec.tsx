@@ -2317,7 +2317,7 @@ describe('WidgetBuilder', function () {
 
     it('does not display "add an equation" button', async function () {
       const widget: Widget = {
-        title: 'Releases Widget',
+        title: 'Release Widget',
         displayType: DisplayType.TABLE,
         widgetType: WidgetType.RELEASE,
         queries: [

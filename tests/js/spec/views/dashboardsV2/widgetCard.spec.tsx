@@ -10,7 +10,7 @@ import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 import ReleaseWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/releaseWidgetQueries';
 
 jest.mock('sentry/components/charts/simpleTableChart');
-jest.mock('sentry/views/dashboardsV2/widgetCard/releasesWidgetQueries');
+jest.mock('sentry/views/dashboardsV2/widgetCard/releaseWidgetQueries');
 
 describe('Dashboards > WidgetCard', function () {
   const {router, organization, routerContext} = initializeOrg({
@@ -495,9 +495,9 @@ describe('Dashboards > WidgetCard', function () {
     );
   });
 
-  it('calls releases queries', function () {
+  it('calls release queries', function () {
     const widget: Widget = {
-      title: 'Releases Widget',
+      title: 'Release Widget',
       interval: '5m',
       displayType: DisplayType.LINE,
       widgetType: WidgetType.RELEASE,

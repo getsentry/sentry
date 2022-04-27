@@ -538,7 +538,7 @@ class Dashboard extends Component<Props, State> {
     const {layouts, isMobile} = this.state;
     const {isEditing, dashboard, organization, widgetLimitReached} = this.props;
     let {widgets} = dashboard;
-    // Filter out any issue/releases widgets if the user does not have the feature flag
+    // Filter out any issue/release widgets if the user does not have the feature flag
     widgets = widgets.filter(({widgetType}) => {
       if (widgetType === WidgetType.RELEASE) {
         return organization.features.includes('dashboards-releases');
@@ -593,7 +593,7 @@ class Dashboard extends Component<Props, State> {
   renderDndDashboard = () => {
     const {isEditing, onUpdate, dashboard, organization, widgetLimitReached} = this.props;
     let {widgets} = dashboard;
-    // Filter out any issue/releases widgets if the user does not have the feature flag
+    // Filter out any issue/release widgets if the user does not have the feature flag
     widgets = widgets.filter(({widgetType}) => {
       if (widgetType === WidgetType.RELEASE) {
         return organization.features.includes('dashboards-releases');
