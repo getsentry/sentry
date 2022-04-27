@@ -12,15 +12,16 @@ const EVENT_STICK_MARKER_WIDTH = 2;
 
 interface Props {
   crumbs: Array<RawCrumb>;
+  className?: string;
 }
 
 type LineStyle = 'dotted' | 'solid' | 'none';
 
-function ReplayBreadcrumbOverview({crumbs}: Props) {
+function ReplayBreadcrumbOverview({crumbs, className}: Props) {
   const transformedCrumbs = transformCrumbs(crumbs);
 
   return (
-    <StackedContent>
+    <StackedContent className={className}>
       {({width}) => (
         <React.Fragment>
           <Ticks

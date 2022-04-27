@@ -12,6 +12,7 @@ import ReplayPlayer from 'sentry/components/replays/replayPlayer';
 import useFullscreen from 'sentry/components/replays/useFullscreen';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
+import space from 'sentry/styles/space';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 
 import DetailLayout from './detail/detailLayout';
@@ -114,6 +115,7 @@ const ReplayLayout = styled(Layout.Main)`
 
 const BreadcrumbTimeline = styled(ReplayBreadcrumbOverview)`
   max-height: 5em;
+  margin-bottom: ${space(2)};
 `;
 
 export default ReplayDetails;
