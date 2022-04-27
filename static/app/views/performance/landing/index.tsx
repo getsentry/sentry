@@ -55,11 +55,11 @@ type Props = {
   handleSearch: (searchQuery: string) => void;
   handleTrendsClick: () => void;
   location: Location;
+  onboardingProject: Project | undefined;
   organization: Organization;
   projects: Project[];
   selection: PageFilters;
   setError: (msg: string | undefined) => void;
-  shouldShowOnboarding: boolean;
 };
 
 const fieldToViewMap: Record<LandingDisplayField, FC<Props>> = {
@@ -78,7 +78,7 @@ export function PerformanceLanding(props: Props) {
     projects,
     handleSearch,
     handleTrendsClick,
-    shouldShowOnboarding,
+    onboardingProject,
   } = props;
 
   const {teams, initiallyLoaded} = useTeams({provideUserTeams: true});
@@ -90,6 +90,7 @@ export function PerformanceLanding(props: Props) {
     eventView
   );
   const landingDisplay = paramLandingDisplay ?? defaultLandingDisplayForProjects;
+  const showOnboarding = onboardingProject !== undefined;
 
   useEffect(() => {
     if (hasMounted.current) {
@@ -108,8 +109,6 @@ export function PerformanceLanding(props: Props) {
   }, []);
 
   const filterString = getTransactionSearchQuery(location, eventView.query);
-
-  const showOnboarding = shouldShowOnboarding;
 
   const ViewComponent = fieldToViewMap[landingDisplay.field];
 
@@ -201,18 +200,7 @@ export function PerformanceLanding(props: Props) {
             {showOnboarding ? (
               <Fragment>
                 {pageFilters}
-                <Onboarding
-                  organization={organization}
-                  project={
-                    props.selection.projects.length > 0
-                      ? // If some projects selected, use the first selection
-                        projects.find(
-                          project => props.selection.projects[0].toString() === project.id
-                        ) || projects[0]
-                      : // Otherwise, use the first project in the org
-                        projects[0]
-                  }
-                />
+                <Onboarding organization={organization} project={onboardingProject} />
               </Fragment>
             ) : (
               <Fragment>

@@ -26,7 +26,7 @@ const WrappedComponent = ({data}) => {
           eventView={eventView}
           projects={data.projects}
           selection={eventView.getPageFilters()}
-          shouldShowOnboarding={false}
+          onboardingProject={undefined}
           handleSearch={() => {}}
           handleTrendsClick={() => {}}
           setError={() => {}}
