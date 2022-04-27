@@ -1,6 +1,7 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
+import moment from 'moment';
 
 import Access from 'sentry/components/acl/access';
 import AlertBadge from 'sentry/components/alertBadge';
@@ -99,12 +100,10 @@ function RuleListRow({
       isIssueAlert(rule) && rule.lastTriggered
         ? new Date(rule.lastTriggered).getTime()
         : null;
-    const now = new Date().getTime();
-    const timeDiff = lastTriggeredDate && now - lastTriggeredDate;
-    const daysDiff = timeDiff && timeDiff / (1000 * 3600 * 24);
+    const daysDiff = moment().diff(lastTriggeredDate, 'days');
     // if an alert issue has been triggered within the last 14 days, have warning status
     const issueAlertStatus =
-      daysDiff && daysDiff <= 14 ? IncidentStatus.WARNING : IncidentStatus.CLOSED;
+      daysDiff <= 14 ? IncidentStatus.WARNING : IncidentStatus.CLOSED;
 
     return (
       <FlexCenter>
