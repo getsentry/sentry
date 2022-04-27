@@ -3,11 +3,8 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
-import DatePageFilter from 'sentry/components/datePageFilter';
-import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
@@ -176,15 +173,6 @@ function SpanDetailsContent(props: ContentProps) {
 
   return (
     <Fragment>
-      <PageFilterBar condensed>
-        <EnvironmentPageFilter />
-        <DatePageFilter />
-      </PageFilterBar>
-      <SpanDetailsHeader
-        spanSlug={spanSlug}
-        totalCount={totalCount}
-        suspectSpan={suspectSpan}
-      />
       <Feature features={['performance-span-histogram-view']}>
         <SpanDetailsControls
           organization={organization}
@@ -192,6 +180,11 @@ function SpanDetailsContent(props: ContentProps) {
           eventView={eventView}
         />
       </Feature>
+      <SpanDetailsHeader
+        spanSlug={spanSlug}
+        totalCount={totalCount}
+        suspectSpan={suspectSpan}
+      />
       <SpanChart
         totalCount={transactionCountContainingSpan}
         organization={organization}

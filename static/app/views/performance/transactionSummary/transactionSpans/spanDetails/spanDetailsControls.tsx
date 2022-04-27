@@ -3,7 +3,10 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import Button from 'sentry/components/button';
+import DatePageFilter from 'sentry/components/datePageFilter';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -48,6 +51,10 @@ export default function SpanDetailsControls({
 
   return (
     <FilterActions>
+      <PageFilterBar condensed>
+        <EnvironmentPageFilter />
+        <DatePageFilter />
+      </PageFilterBar>
       <SearchBar
         placeholder={t('Filter Transactions')}
         organization={organization}
@@ -69,6 +76,6 @@ const FilterActions = styled('div')`
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: auto 1fr auto;
   }
 `;
