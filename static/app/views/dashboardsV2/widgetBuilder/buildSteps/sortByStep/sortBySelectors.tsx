@@ -33,8 +33,7 @@ interface Values {
 
 interface Props {
   displayType: DisplayType;
-  // TODO: type
-  filterPrimaryOptions: any;
+  filterPrimaryOptions: React.ComponentProps<typeof QueryField>['filterPrimaryOptions'];
   onChange: (values: Values) => void;
   sortByOptions: SelectValue<string>[];
   tags: TagCollection;
@@ -117,6 +116,7 @@ export function SortBySelectors({
                         'field:custom-equation': {
                           label: 'Custom Equation',
                           value: {
+                            // TODO(nar): This shouldn't be rendering a chip
                             kind: FieldValueKind.FIELD,
                             meta: {name: 'custom-equation', dataType: 'string'},
                           },
