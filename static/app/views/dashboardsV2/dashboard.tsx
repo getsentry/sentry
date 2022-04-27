@@ -252,26 +252,16 @@ class Dashboard extends Component<Props, State> {
       organization,
     });
 
-    if (organization.features.includes('widget-library')) {
-      trackAdvancedAnalyticsEvent('dashboards_views.widget_library.opened', {
-        organization,
-      });
-      openAddDashboardWidgetModal({
-        organization,
-        dashboard,
-        selection,
-        onAddWidget: handleAddCustomWidget,
-        onAddLibraryWidget: (widgets: Widget[]) => handleUpdateWidgetList(widgets),
-        source: DashboardWidgetSource.LIBRARY,
-      });
-      return;
-    }
+    trackAdvancedAnalyticsEvent('dashboards_views.widget_library.opened', {
+      organization,
+    });
     openAddDashboardWidgetModal({
       organization,
       dashboard,
       selection,
       onAddWidget: handleAddCustomWidget,
-      source: DashboardWidgetSource.DASHBOARDS,
+      onAddLibraryWidget: (widgets: Widget[]) => handleUpdateWidgetList(widgets),
+      source: DashboardWidgetSource.LIBRARY,
     });
   };
 

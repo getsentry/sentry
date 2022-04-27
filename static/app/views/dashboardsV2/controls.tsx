@@ -130,13 +130,11 @@ function Controls({
               }}
               icon={<IconEdit />}
               disabled={!hasFeature}
-              priority={
-                organization.features.includes('widget-library') ? 'default' : 'primary'
-              }
+              priority="default"
             >
               {t('Edit Dashboard')}
             </Button>
-            {organization.features.includes('widget-library') && hasFeature ? (
+            {hasFeature ? (
               <Tooltip
                 title={tct('Max widgets ([maxWidgets]) per dashboard reached.', {
                   maxWidgets: MAX_WIDGETS,
