@@ -18,22 +18,22 @@ function FocusButtons({active, setActive}: Props) {
   return (
     <NavTabs underlined>
       <li className={active === 'console' ? 'active' : ''}>
-        <a href="#" onClick={select('console')}>
+        <a href="#console" onClick={select('console')}>
           {t('Console')}
         </a>
       </li>
       <li className={active === 'performance' ? 'active' : ''}>
-        <a href="#" onClick={select('performance')}>
+        <a href="#performance" onClick={select('performance')}>
           {t('Performance')}
         </a>
       </li>
       <li className={active === 'errors' ? 'active' : ''}>
-        <a href="#" onClick={select('errors')}>
+        <a href="#errors" onClick={select('errors')}>
           {t('Errors')}
         </a>
       </li>
       <li className={active === 'tags' ? 'active' : ''}>
-        <a href="#" onClick={select('tags')}>
+        <a href="#tags" onClick={select('tags')}>
           {t('Tags')}
         </a>
       </li>

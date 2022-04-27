@@ -32,24 +32,31 @@ function ActiveTab({active, event, eventWithSpans}: Props & {active: TabBarId}) 
 
   switch (active) {
     case 'console':
-      return null;
+      return <div id="console">TODO: Add a console view</div>;
     case 'performance':
       return eventWithSpans ? (
-        <EventEntry
-          key={`${eventWithSpans.id}`}
-          projectSlug={getProjectSlug(eventWithSpans)}
-          // group={group}
-          organization={organization}
-          event={eventWithSpans}
-          entry={eventWithSpans.entries[0]}
-          route={routes[routes.length - 1]}
-          router={router}
-        />
+        <div id="performance">
+          <EventEntry
+            id="performance"
+            key={`${eventWithSpans.id}`}
+            projectSlug={getProjectSlug(eventWithSpans)}
+            // group={group}
+            organization={organization}
+            event={eventWithSpans}
+            entry={eventWithSpans.entries[0]}
+            route={routes[routes.length - 1]}
+            router={router}
+          />
+        </div>
       ) : null;
     case 'errors':
-      return null;
+      return <div id="errors">TODO: Add an errors view</div>;
     case 'tags':
-      return <TagsTable generateUrl={() => ''} event={event} query="" />;
+      return (
+        <div id="tags">
+          <TagsTable generateUrl={() => ''} event={event} query="" />
+        </div>
+      );
     default:
       return null;
   }
