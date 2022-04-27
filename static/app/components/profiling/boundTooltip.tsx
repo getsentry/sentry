@@ -12,7 +12,7 @@ const useCachedMeasure = (string: string, font: string): Rect => {
     const context = getContext(document.createElement('canvas'), '2d');
     context.font = font;
     return context;
-  }, []);
+  }, [font]);
 
   return useMemo(() => {
     if (cache.current[string]) {

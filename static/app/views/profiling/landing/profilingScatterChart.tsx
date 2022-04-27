@@ -89,7 +89,7 @@ function ProfilingScatterChart({
         projects,
         theme,
       }),
-    [location, datetime, theme, data]
+    [location, datetime, theme, data, organization, projects]
   );
 
   const handleColorEncodingChange = useCallback(
