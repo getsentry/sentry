@@ -40,11 +40,10 @@ class OrganizationAuditLogsEndpoint(OrganizationEndpoint):
         if "actor" in query:
             queryset = queryset.filter(actor=query["actor"])
 
-        if "event" in query:
-            if query["event"] is None:
-                queryset = queryset.none()
-            else:
-                queryset = queryset.filter(event=query["event"])
+        if "event" in query and query.get("event") is not None:
+            queryset = queryset.filter(event=query["event"])
+        if query.get("event") is None:
+            queryset = queryset.none()
 
         return self.paginate(
             request=request,
