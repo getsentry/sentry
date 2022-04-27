@@ -108,9 +108,6 @@
     "/api/0/organizations/{organization_slug}/": {
       "$ref": "paths/organizations/details.json"
     },
-    "/api/0/organizations/{organization_slug}/projects/": {
-      "$ref": "paths/organizations/projects.json"
-    },
     "/api/0/organizations/{organization_slug}/repos/": {
       "$ref": "paths/organizations/repos.json"
     },

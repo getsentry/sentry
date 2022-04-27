@@ -1,29 +1,110 @@
+from typing import List
+
 from django.db.models import Q
+from drf_spectacular.utils import OpenApiExample, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
+from typing_extensions import TypedDict
 
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import ProjectSummarySerializer
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOTFOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.parameters import CURSOR_QUERY_PARAM, GLOBAL_PARAMS
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models import Project, ProjectStatus, Team
 from sentry.search.utils import tokenize_query
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '14d', and '30d'"
 
 
+class TeamResponseDict(TypedDict):
+    id: str
+    name: str
+    slug: str
+
+
+class EventProcessingDict(TypedDict):
+    symbolicationDegraded: bool
+
+
+class LatestReleaseDict(TypedDict):
+    version: str
+
+
+class OrganizationProjectResponseDict(TypedDict):
+    team: TeamResponseDict
+    teams: List[TeamResponseDict]
+    id: str
+    name: str
+    slug: str
+    isBookmarked: bool
+    isMember: bool
+    hasAccess: bool
+    dateCreated: str
+    environments: List[str]
+    eventProcessing: EventProcessingDict
+    features: List[str]
+    firstEvent: str
+    firstTransactionEvent: bool
+    hasSessions: bool
+    platform: str
+    platforms: List[str]
+    latestRelease: LatestReleaseDict
+
+
+@extend_schema(tags=["Organizations"])
 class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
+    public = {"GET"}
+
+    @extend_schema(
+        operation_id="List an Organization's Projects",
+        parameters=[GLOBAL_PARAMS.ORG_SLUG, CURSOR_QUERY_PARAM],
+        request=None,
+        responses={
+            200: inline_sentry_response_serializer(
+                "Successful Response", OrganizationProjectResponseDict
+            ),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOTFOUND,
+        },
+        examples=[
+            OpenApiExample(
+                "Successful Response",
+                value={
+                    "dateCreated": "2018-11-06T21:19:58.536Z",
+                    "firstEvent": None,
+                    "hasAccess": True,
+                    "id": "3",
+                    "isBookmarked": False,
+                    "isMember": True,
+                    "latestDeploys": None,
+                    "name": "Prime Mover",
+                    "platform": None,
+                    "platforms": [],
+                    "slug": "prime-mover",
+                    "team": {
+                        "id": "2",
+                        "name": "Powerful Abolitionist",
+                        "slug": "powerful-abolitionist",
+                    },
+                    "teams": [
+                        {
+                            "id": "2",
+                            "name": "Powerful Abolitionist",
+                            "slug": "powerful-abolitionist",
+                        }
+                    ],
+                },
+            )
+        ],
+    )
     def get(self, request: Request, organization) -> Response:
         """
-        List an Organization's Projects
-        ```````````````````````````````
-
         Return a list of projects bound to a organization.
-
-        :pparam string organization_slug: the slug of the organization for
-                                          which the projects should be listed.
-        :auth: required
         """
         stats_period = request.GET.get("statsPeriod")
         collapse = request.GET.getlist("collapse", [])
