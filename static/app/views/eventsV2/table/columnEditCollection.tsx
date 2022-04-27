@@ -596,7 +596,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
             >
               {t('Add a Column')}
             </Button>
-            {source !== WidgetType.ISSUE && source !== WidgetType.METRICS && (
+            {source !== WidgetType.ISSUE && source !== WidgetType.RELEASE && (
               <Button
                 size="small"
                 aria-label={t('Add an Equation')}

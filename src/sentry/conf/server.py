@@ -1049,7 +1049,7 @@ SENTRY_FEATURES = {
     # Enable metrics enhanced performance in dashboards
     "organizations:dashboards-mep": False,
     # Enable metrics in dashboards
-    "organizations:dashboards-metrics": False,
+    "organizations:dashboards-releases": False,
     # Enable widget viewer modal in dashboards
     "organizations:widget-viewer-modal": False,
     # Enable experimental performance improvements.

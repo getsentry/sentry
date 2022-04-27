@@ -45,7 +45,7 @@ export function YAxisSelector({
   noFieldsMessage,
 }: Props) {
   const organization = useOrganization();
-  const isMetricWidget = widgetType === WidgetType.METRICS;
+  const isMetricWidget = widgetType === WidgetType.RELEASE;
 
   function handleAddOverlay(event: React.MouseEvent) {
     event.preventDefault();

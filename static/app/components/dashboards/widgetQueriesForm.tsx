@@ -39,7 +39,7 @@ export const generateOrderOptions = ({
   widgetType: WidgetType;
   widgetBuilderNewDesign?: boolean;
 }): SelectValue<string>[] => {
-  const isMetrics = widgetType === WidgetType.METRICS;
+  const isMetrics = widgetType === WidgetType.RELEASE;
   const options: SelectValue<string>[] = [];
   let equations = 0;
   (isMetrics ? aggregates.map(stripDerivedMetricsPrefix) : [...aggregates, ...columns])
@@ -121,7 +121,7 @@ class WidgetQueriesForm extends React.Component<Props> {
   renderSearchBar(widgetQuery: WidgetQuery, queryIndex: number) {
     const {organization, selection, widgetType} = this.props;
 
-    return widgetType === WidgetType.METRICS ? (
+    return widgetType === WidgetType.RELEASE ? (
       <ReleaseSearchBar
         orgSlug={organization.slug}
         query={widgetQuery}
@@ -187,7 +187,7 @@ class WidgetQueriesForm extends React.Component<Props> {
       widgetType = WidgetType.DISCOVER,
     } = this.props;
 
-    const isMetrics = widgetType === WidgetType.METRICS;
+    const isMetrics = widgetType === WidgetType.RELEASE;
 
     const hideLegendAlias = ['table', 'world_map', 'big_number'].includes(displayType);
     const query = queries[0];

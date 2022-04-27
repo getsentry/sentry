@@ -108,7 +108,7 @@ describe('WidgetBuilder', function () {
 
   let eventsStatsMock: jest.Mock | undefined;
   let eventsv2Mock: jest.Mock | undefined;
-  let metricsDataMock: jest.Mock | undefined;
+  let sessionsDataMock: jest.Mock | undefined;
   let tagsMock: jest.Mock | undefined;
 
   beforeEach(function () {
@@ -181,15 +181,10 @@ describe('WidgetBuilder', function () {
       body: [],
     });
 
-    MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/metrics/tags/`,
-      body: [{key: 'environment'}, {key: 'release'}, {key: 'session.status'}],
-    });
-
-    metricsDataMock = MockApiClient.addMockResponse({
+    sessionsDataMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/sessions/`,
-      body: TestStubs.MetricsField({
+      body: TestStubs.SessionsField({
         field: `sum(session)`,
       }),
     });
@@ -2127,10 +2122,10 @@ describe('WidgetBuilder', function () {
     const releaseHealthFeatureFlags = [
       ...defaultOrgFeatures,
       'new-widget-builder-experience-design',
-      'dashboards-metrics',
+      'dashboards-releases',
     ];
 
-    it('does not show the Release Health data set if there is no dashboards-metrics flag', async function () {
+    it('does not show the Release Health data set if there is no dashboards-releases flag', async function () {
       renderTestComponent({
         orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
       });
@@ -2141,7 +2136,7 @@ describe('WidgetBuilder', function () {
       ).not.toBeInTheDocument();
     });
 
-    it('shows the Release Health data set if there is the dashboards-metrics flag', async function () {
+    it('shows the Release Health data set if there is the dashboards-releases flag', async function () {
       renderTestComponent({
         orgFeatures: releaseHealthFeatureFlags,
       });
@@ -2168,7 +2163,7 @@ describe('WidgetBuilder', function () {
       await waitFor(() => expect(screen.getByLabelText(/releases/i)).toBeChecked());
     });
 
-    it('displays metrics tags', async function () {
+    it('displays releases tags', async function () {
       renderTestComponent({
         orgFeatures: releaseHealthFeatureFlags,
       });
@@ -2249,7 +2244,7 @@ describe('WidgetBuilder', function () {
       userEvent.click(screen.getByText('Line Chart'));
 
       await waitFor(() =>
-        expect(metricsDataMock).toHaveBeenLastCalledWith(
+        expect(sessionsDataMock).toHaveBeenLastCalledWith(
           `/organizations/org-slug/sessions/`,
           expect.objectContaining({
             query: {
@@ -2275,7 +2270,7 @@ describe('WidgetBuilder', function () {
         await screen.findByText('Releases (sessions, crash rates)')
       ).toBeInTheDocument();
 
-      // change data set to metrics
+      // change data set to releases
       userEvent.click(screen.getByLabelText(/releases/i));
 
       userEvent.click(screen.getByText('Table'));
@@ -2305,8 +2300,7 @@ describe('WidgetBuilder', function () {
       await waitFor(() => {
         expect(handleSave).toHaveBeenCalledWith([
           expect.objectContaining({
-            // TODO(adam): Update widget type to be 'release'
-            widgetType: WidgetType.METRICS,
+            widgetType: WidgetType.RELEASE,
             queries: [
               expect.objectContaining({
                 aggregates: [`sum(session)`],
@@ -2323,9 +2317,9 @@ describe('WidgetBuilder', function () {
 
     it('does not display "add an equation" button', async function () {
       const widget: Widget = {
-        title: 'Metrics Widget',
+        title: 'Releases Widget',
         displayType: DisplayType.TABLE,
-        widgetType: WidgetType.METRICS,
+        widgetType: WidgetType.RELEASE,
         queries: [
           {
             name: 'errors',

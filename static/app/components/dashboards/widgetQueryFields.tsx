@@ -51,7 +51,7 @@ function WidgetQueryFields({
   onChange,
   style,
 }: Props) {
-  const isMetricWidget = widgetType === WidgetType.METRICS;
+  const isMetricWidget = widgetType === WidgetType.RELEASE;
 
   // Handle new fields being added.
   function handleAdd(event: React.MouseEvent) {
@@ -110,7 +110,7 @@ function WidgetQueryFields({
   const doNotValidateYAxis = displayType === 'big_number';
 
   const filterPrimaryOptions = option => {
-    if (widgetType === WidgetType.METRICS) {
+    if (widgetType === WidgetType.RELEASE) {
       if (displayType === DisplayType.TABLE) {
         return [
           FieldValueKind.FUNCTION,

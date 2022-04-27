@@ -163,7 +163,7 @@ export function getWidgetInterval(
   const desiredPeriod = parsePeriodToHours(interval);
   const selectedRange = getDiffInMinutes(datetimeObj);
 
-  if (widget.widgetType === WidgetType.METRICS) {
+  if (widget.widgetType === WidgetType.RELEASE) {
     // Lower fidelity for Release Health widgets because of what
     // the sessions endpoint can currently support.
     interval = getInterval(datetimeObj, 'medium');

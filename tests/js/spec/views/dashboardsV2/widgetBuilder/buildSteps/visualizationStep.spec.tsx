@@ -3,7 +3,6 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {Organization} from 'sentry/types';
-import {SessionMetric} from 'sentry/utils/metrics/fields';
 import {DashboardWidgetSource} from 'sentry/views/dashboardsV2/types';
 import WidgetBuilder from 'sentry/views/dashboardsV2/widgetBuilder';
 
@@ -34,23 +33,6 @@ function mockRequests(orgSlug: Organization['slug']) {
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/projects/',
     method: 'GET',
-    body: [],
-  });
-
-  MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/metrics/meta/`,
-    body: [
-      {
-        name: SessionMetric.SESSION,
-        type: 'counter',
-        operations: ['sum'],
-        unit: null,
-      },
-    ],
-  });
-
-  MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/metrics/tags/`,
     body: [],
   });
 

@@ -2,7 +2,7 @@ import round from 'lodash/round';
 
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import {Organization, SessionField} from 'sentry/types';
+import {Organization, SessionFieldWithOperation} from 'sentry/types';
 import {IssueAlertRule} from 'sentry/types/alerts';
 import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -166,8 +166,8 @@ export function isSessionAggregate(aggregate: string) {
 }
 
 export const SESSION_AGGREGATE_TO_FIELD = {
-  [SessionsAggregate.CRASH_FREE_SESSIONS]: SessionField.SESSIONS,
-  [SessionsAggregate.CRASH_FREE_USERS]: SessionField.USERS,
+  [SessionsAggregate.CRASH_FREE_SESSIONS]: SessionFieldWithOperation.SESSIONS,
+  [SessionsAggregate.CRASH_FREE_USERS]: SessionFieldWithOperation.USERS,
 };
 
 export function alertAxisFormatter(value: number, seriesName: string, aggregate: string) {
