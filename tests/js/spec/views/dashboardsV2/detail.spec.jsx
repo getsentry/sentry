@@ -357,7 +357,7 @@ describe('Dashboards > Detail', function () {
       wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
 
       const card = wrapper.find('WidgetCard').first();
-      card.find('StyledPanel').simulate('mouseOver');
+      card.find('WidgetCardPanel').simulate('mouseOver');
 
       // Remove the second and third widgets
       wrapper
@@ -411,7 +411,7 @@ describe('Dashboards > Detail', function () {
       wrapper.update();
 
       const card = wrapper.find('WidgetCard').first();
-      card.find('StyledPanel').simulate('mouseOver');
+      card.find('WidgetCardPanel').simulate('mouseOver');
 
       // Edit the first widget
       wrapper

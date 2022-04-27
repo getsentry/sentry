@@ -206,7 +206,7 @@ def devserver(
                 # have a proxy/load-balancer in front in dev mode.
                 "http": f"{host}:{port}",
                 "protocol": "uwsgi",
-                # This is needed to prevent https://git.io/fj7Lw
+                # This is needed to prevent https://github.com/getsentry/sentry/blob/c6f9660e37fcd9c1bbda8ff4af1dcfd0442f5155/src/sentry/services/http.py#L70
                 "uwsgi-socket": None,
             }
         )

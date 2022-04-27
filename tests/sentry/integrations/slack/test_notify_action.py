@@ -312,7 +312,7 @@ class SlackNotifyActionTest(RuleTestCase):
 
         form = rule.get_form_instance()
         assert not form.is_valid()
-        assert ["Slack workspace is a required field."] in form.errors.values()
+        assert ["Slack: Workspace is a required field."] in form.errors.values()
 
     @responses.activate
     def test_display_name_conflict(self):
@@ -347,7 +347,7 @@ class SlackNotifyActionTest(RuleTestCase):
         form = rule.get_form_instance()
         assert not form.is_valid()
         assert [
-            'Multiple users were found with display name "@morty". Please use your username, found at sentry.slack.com/account/settings#username.'
+            "Slack: Multiple users were found with display name '@morty'. Please use your username, found at sentry.slack.com/account/settings#username."
         ] in form.errors.values()
 
     def test_disabled_org_integration(self):

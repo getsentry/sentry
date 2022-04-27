@@ -1,0 +1,7 @@
+version: 3
+project:
+
+  # This defaults to the git origin, which varies between ssh/https, resulting
+  # in duplicate projects.
+
+  id: sentry
