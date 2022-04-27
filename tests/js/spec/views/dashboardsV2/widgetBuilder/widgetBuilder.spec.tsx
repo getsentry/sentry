@@ -1851,7 +1851,7 @@ describe('WidgetBuilder', function () {
 
       userEvent.click(await screen.findByText('Add Overlay'));
       await selectEvent.select(screen.getByText('(Required)'), /count_unique/);
-      await selectEvent.select(await screen.findByText('Select group'), 'project');
+      await selectEvent.select(screen.getByText('Select group'), 'project');
 
       // Change the sort by to count_unique
       await selectEvent.select(screen.getAllByText('count()')[1], /count_unique/);
@@ -1874,12 +1874,35 @@ describe('WidgetBuilder', function () {
 
       userEvent.click(await screen.findByText('Add Overlay'));
       await selectEvent.select(screen.getByText('(Required)'), /count_unique/);
-      await selectEvent.select(await screen.findByText('Select group'), 'project');
+      await selectEvent.select(screen.getByText('Select group'), 'project');
 
       userEvent.click(screen.getAllByLabelText('Remove this Y-Axis')[0]);
 
       // count_unique(user) should now be the sorting field
-      expect(await screen.findByText('count_unique(user)')).toBeInTheDocument();
+      expect(screen.getByText('count_unique(user)')).toBeInTheDocument();
+    });
+
+    it('does not remove the Custom Equation field if a grouping is updated', async function () {
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        query: {
+          source: DashboardWidgetSource.DASHBOARDS,
+          displayType: DisplayType.LINE,
+        },
+      });
+
+      await selectEvent.select(await screen.findByText('Select group'), 'project');
+      await selectEvent.select(screen.getAllByText('count()')[1], 'Custom Equation');
+      userEvent.paste(
+        screen.getByPlaceholderText('Enter Equation'),
+        'count_unique(user) * 2'
+      );
+      userEvent.keyboard('{enter}');
+
+      userEvent.click(screen.getByText('Add Group'));
+      expect(screen.getByPlaceholderText('Enter Equation')).toHaveValue(
+        'count_unique(user) * 2'
+      );
     });
   });
 

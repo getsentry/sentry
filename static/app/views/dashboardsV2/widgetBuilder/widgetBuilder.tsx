@@ -688,8 +688,10 @@ function WidgetBuilder({
         // The grouping was cleared, so clear the orderby
         newQuery.orderby = '';
       } else if (
+        aggregateAliasFieldStrings.length &&
         !aggregateAliasFieldStrings.includes(orderby) &&
-        !newQuery.columns.includes(orderby)
+        !newQuery.columns.includes(orderby) &&
+        !isEquation(orderby)
       ) {
         // If the orderby isn't contained in either aggregates or columns, choose the first aggregate
         const isDescending = newQuery.orderby.startsWith('-');
