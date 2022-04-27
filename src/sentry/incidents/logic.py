@@ -1,7 +1,7 @@
 import logging
 from copy import deepcopy
 from datetime import datetime, timedelta
-from typing import Dict, Optional, Union
+from typing import Any, Dict, Mapping, Optional, Union
 
 from django.db import transaction
 from django.db.models.signals import post_save
@@ -1382,6 +1382,7 @@ def translate_aggregate_field(aggregate, reverse=False):
     return aggregate
 
 
+# TODO(Ecosystem): Convert to using get_filtered_actions
 def get_slack_actions_with_async_lookups(organization, user, data):
     try:
         from sentry.incidents.serializers import AlertRuleTriggerActionSerializer
@@ -1446,3 +1447,16 @@ def rewrite_trigger_action_fields(action_data):
     if "settings" in action_data:
         action_data["sentry_app_config"] = action_data.pop("settings")
     return action_data
+
+
+def get_filtered_actions(
+    validated_alert_rule_data: Mapping[str, Any], action_type: AlertRuleTriggerAction.Type
+):
+    from sentry.incidents.serializers import STRING_TO_ACTION_TYPE
+
+    return [
+        rewrite_trigger_action_fields(action)
+        for trigger in validated_alert_rule_data.get("triggers", [])
+        for action in trigger.get("actions", [])
+        if STRING_TO_ACTION_TYPE.get(action.get("type")) == action_type
+    ]
