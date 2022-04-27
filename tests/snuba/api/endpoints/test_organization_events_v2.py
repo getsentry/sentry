@@ -165,10 +165,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             == "Wildcard conditions are not permitted on `trace.parent_span` field"
         )
 
-    @mock.patch("sentry.snuba.discover.raw_query")
     @mock.patch("sentry.search.events.builder.raw_snql_query")
-    def test_handling_snuba_errors(self, mock_snql_query, mock_query):
-        mock_query.side_effect = RateLimitExceeded("test")
+    def test_handling_snuba_errors(self, mock_snql_query):
         mock_snql_query.side_effect = RateLimitExceeded("test")
 
         project = self.create_project()
@@ -182,7 +180,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, response.content
         assert response.data["detail"] == constants.TIMEOUT_ERROR_MESSAGE
 
-        mock_query.side_effect = QueryExecutionError("test")
         mock_snql_query.side_effect = QueryExecutionError("test")
 
         query = {"field": ["id", "timestamp"], "orderby": ["-timestamp", "-id"]}
@@ -190,7 +187,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 500, response.content
         assert response.data["detail"] == "Internal error. Your query failed to run."
 
-        mock_query.side_effect = QueryIllegalTypeOfArgument("test")
         mock_snql_query.side_effect = QueryIllegalTypeOfArgument("test")
 
         query = {"field": ["id", "timestamp"], "orderby": ["-timestamp", "-id"]}

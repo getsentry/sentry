@@ -16,7 +16,6 @@ class DiscoverProcessorTest(TestCase, SnubaTestCase):
             "project": [self.project1.id, self.project2.id],
             "field": ["count(id)", "fake(field)", "issue"],
             "query": "",
-            "use_snql": False,
         }
 
     def test_get_projects(self):
