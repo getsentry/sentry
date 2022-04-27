@@ -292,6 +292,9 @@ from .endpoints.organization_metrics import (
     OrganizationMetricsTagsEndpoint,
 )
 from .endpoints.organization_monitors import OrganizationMonitorsEndpoint
+from .endpoints.organization_onboarding_continuation_email import (
+    OrganizationOnboardingContinuationEmail,
+)
 from .endpoints.organization_onboarding_tasks import OrganizationOnboardingTaskEndpoint
 from .endpoints.organization_pinned_searches import OrganizationPinnedSearchEndpoint
 from .endpoints.organization_processingissues import OrganizationProcessingIssuesEndpoint
@@ -1323,6 +1326,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/teams/(?P<team_slug>[^\/]+)/$",
                     OrganizationMemberTeamDetailsEndpoint.as_view(),
                     name="sentry-api-0-organization-member-team-details",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/onboarding-continuation-email/$",
+                    OrganizationOnboardingContinuationEmail.as_view(),
+                    name="sentry-api-0-organization-onboarding-continuation-email",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/processingissues/$",

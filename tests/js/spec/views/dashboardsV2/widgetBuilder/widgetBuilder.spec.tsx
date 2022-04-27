@@ -1574,6 +1574,207 @@ describe('WidgetBuilder', function () {
         );
       });
     });
+
+    it('allows for sorting by a custom equation', async function () {
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        query: {
+          source: DashboardWidgetSource.DASHBOARDS,
+          displayType: DisplayType.LINE,
+        },
+      });
+
+      await selectEvent.select(await screen.findByText('Select group'), 'project');
+      expect(screen.getAllByText('count()')).toHaveLength(2);
+      await selectEvent.select(screen.getAllByText('count()')[1], 'Custom Equation');
+      userEvent.paste(
+        screen.getByPlaceholderText('Enter Equation'),
+        'count_unique(user) * 2'
+      );
+      userEvent.keyboard('{enter}');
+
+      await waitFor(() => {
+        expect(eventsStatsMock).toHaveBeenCalledWith(
+          '/organizations/org-slug/events-stats/',
+          expect.objectContaining({
+            query: expect.objectContaining({
+              field: expect.arrayContaining(['equation|count_unique(user) * 2']),
+              orderby: '-equation[0]',
+            }),
+          })
+        );
+      });
+    });
+
+    it('persists the state when toggling between sorting options', async function () {
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        query: {
+          source: DashboardWidgetSource.DASHBOARDS,
+          displayType: DisplayType.LINE,
+        },
+      });
+
+      await selectEvent.select(await screen.findByText('Select group'), 'project');
+      expect(screen.getAllByText('count()')).toHaveLength(2);
+      await selectEvent.select(screen.getAllByText('count()')[1], 'Custom Equation');
+      userEvent.paste(
+        screen.getByPlaceholderText('Enter Equation'),
+        'count_unique(user) * 2'
+      );
+      userEvent.keyboard('{enter}');
+
+      // Switch away from the Custom Equation
+      expect(screen.getByText('project')).toBeInTheDocument();
+      await selectEvent.select(screen.getByText('Custom Equation'), 'project');
+      expect(screen.getAllByText('project')).toHaveLength(2);
+
+      // Switch back, the equation should still be visible
+      await selectEvent.select(screen.getAllByText('project')[1], 'Custom Equation');
+      expect(screen.getByPlaceholderText('Enter Equation')).toHaveValue(
+        'count_unique(user) * 2'
+      );
+    });
+
+    it('persists the state when updating y-axes', async function () {
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        query: {
+          source: DashboardWidgetSource.DASHBOARDS,
+          displayType: DisplayType.LINE,
+        },
+      });
+
+      await selectEvent.select(await screen.findByText('Select group'), 'project');
+      expect(screen.getAllByText('count()')).toHaveLength(2);
+      await selectEvent.select(screen.getAllByText('count()')[1], 'Custom Equation');
+      userEvent.paste(
+        screen.getByPlaceholderText('Enter Equation'),
+        'count_unique(user) * 2'
+      );
+      userEvent.keyboard('{enter}');
+
+      // Add a y-axis
+      userEvent.click(screen.getByText('Add Overlay'));
+
+      // The equation should still be visible
+      expect(screen.getByPlaceholderText('Enter Equation')).toHaveValue(
+        'count_unique(user) * 2'
+      );
+    });
+
+    it('displays the custom equation if the widget has it saved', async function () {
+      const widget: Widget = {
+        id: '1',
+        title: 'Test Widget',
+        interval: '5m',
+        displayType: DisplayType.LINE,
+        queries: [
+          {
+            name: '',
+            conditions: '',
+            fields: ['count()', 'project'],
+            aggregates: ['count()'],
+            columns: ['project'],
+            orderby: '-equation|count_unique(user) * 2',
+          },
+        ],
+      };
+
+      const dashboard: DashboardDetails = {
+        id: '1',
+        title: 'Dashboard',
+        createdBy: undefined,
+        dateCreated: '2020-01-01T00:00:00.000Z',
+        widgets: [widget],
+      };
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        query: {
+          source: DashboardWidgetSource.DASHBOARDS,
+          displayType: DisplayType.LINE,
+        },
+        params: {
+          widgetIndex: '0',
+        },
+        dashboard,
+      });
+
+      expect(await screen.findByPlaceholderText('Enter Equation')).toHaveValue(
+        'count_unique(user) * 2'
+      );
+    });
+
+    it('displays Operators in the input dropdown', async function () {
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        query: {
+          source: DashboardWidgetSource.DASHBOARDS,
+          displayType: DisplayType.LINE,
+        },
+      });
+
+      await selectEvent.select(await screen.findByText('Select group'), 'project');
+      expect(screen.getAllByText('count()')).toHaveLength(2);
+      await selectEvent.select(screen.getAllByText('count()')[1], 'Custom Equation');
+      selectEvent.openMenu(screen.getByPlaceholderText('Enter Equation'));
+
+      expect(screen.getByText('Operators')).toBeInTheDocument();
+      expect(screen.queryByText('Fields')).not.toBeInTheDocument();
+    });
+
+    it('hides Custom Equation input and resets orderby when switching to table', async function () {
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        query: {
+          source: DashboardWidgetSource.DASHBOARDS,
+          displayType: DisplayType.LINE,
+        },
+      });
+
+      await selectEvent.select(await screen.findByText('Select group'), 'project');
+      expect(screen.getAllByText('count()')).toHaveLength(2);
+      await selectEvent.select(screen.getAllByText('count()')[1], 'Custom Equation');
+      userEvent.paste(
+        screen.getByPlaceholderText('Enter Equation'),
+        'count_unique(user) * 2'
+      );
+      userEvent.keyboard('{enter}');
+
+      // Switch the display type to Table
+      userEvent.click(screen.getByText('Line Chart'));
+      userEvent.click(screen.getByText('Table'));
+
+      expect(screen.getAllByText('count()')).toHaveLength(2);
+      expect(screen.queryByPlaceholderText('Enter Equation')).not.toBeInTheDocument();
+
+      await waitFor(() => {
+        expect(eventsStatsMock).toHaveBeenCalledWith(
+          '/organizations/org-slug/events-stats/',
+          expect.objectContaining({
+            query: expect.objectContaining({
+              orderby: '-count',
+            }),
+          })
+        );
+      });
+    });
+
+    it('does not show the Custom Equation input if the only y-axis left is an empty equation', async function () {
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        query: {
+          source: DashboardWidgetSource.DASHBOARDS,
+          displayType: DisplayType.LINE,
+        },
+      });
+
+      await selectEvent.select(await screen.findByText('Select group'), 'project');
+      userEvent.click(screen.getByText('Add an Equation'));
+      userEvent.click(screen.getAllByLabelText('Remove this Y-Axis')[0]);
+
+      expect(screen.queryByPlaceholderText('Enter Equation')).not.toBeInTheDocument();
+    });
   });
 
   describe('Widget creation coming from other verticals', function () {
@@ -1653,9 +1854,44 @@ describe('WidgetBuilder', function () {
     });
   });
 
-  // Disabling for CI, but should run locally when making changes
-  // eslint-disable-next-line jest/no-disabled-tests
-  it.skip('Update table header values (field alias)', async function () {
+  it('opens top-N widgets as top-N display', async function () {
+    const widget: Widget = {
+      id: '1',
+      title: 'Errors over time',
+      interval: '5m',
+      displayType: DisplayType.TOP_N,
+      queries: [
+        {
+          name: '',
+          conditions: '',
+          fields: ['count()', 'count_unique(id)'],
+          aggregates: ['count()', 'count_unique(id)'],
+          columns: [],
+          orderby: '-count',
+        },
+      ],
+    };
+
+    const dashboard: DashboardDetails = {
+      id: '1',
+      title: 'Dashboard',
+      createdBy: undefined,
+      dateCreated: '2020-01-01T00:00:00.000Z',
+      widgets: [widget],
+    };
+
+    renderTestComponent({
+      orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      dashboard,
+      params: {
+        widgetIndex: '0',
+      },
+    });
+
+    expect(await screen.findByText('Top 5 Events')).toBeInTheDocument();
+  });
+
+  it('Update table header values (field alias)', async function () {
     const handleSave = jest.fn();
 
     renderTestComponent({
@@ -1665,11 +1901,11 @@ describe('WidgetBuilder', function () {
 
     await screen.findByText('Table');
 
-    userEvent.type(screen.getByPlaceholderText('Alias'), 'First Alias{enter}');
+    userEvent.paste(screen.getByPlaceholderText('Alias'), 'First Alias');
 
     userEvent.click(screen.getByLabelText('Add a Column'));
 
-    userEvent.type(screen.getAllByPlaceholderText('Alias')[1], 'Second Alias{enter}');
+    userEvent.paste(screen.getAllByPlaceholderText('Alias')[1], 'Second Alias');
 
     userEvent.click(screen.getByText('Add Widget'));
 
@@ -1682,6 +1918,71 @@ describe('WidgetBuilder', function () {
         }),
       ]);
     });
+  });
+
+  it('does not wipe equation aliases when a column alias is updated', async function () {
+    renderTestComponent({
+      orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+    });
+
+    await screen.findByText('Table');
+
+    userEvent.click(screen.getByText('Add an Equation'));
+    userEvent.paste(screen.getAllByPlaceholderText('Alias')[1], 'This should persist');
+    userEvent.type(screen.getAllByPlaceholderText('Alias')[0], 'A');
+
+    expect(screen.getByText('This should persist')).toBeInTheDocument();
+  });
+
+  it('does not wipe equation aliases when a column selection is made', async function () {
+    renderTestComponent({
+      orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+    });
+
+    await screen.findByText('Table');
+
+    userEvent.click(screen.getByText('Add an Equation'));
+    userEvent.paste(screen.getAllByPlaceholderText('Alias')[1], 'This should persist');
+
+    await selectEvent.select(screen.getAllByText('count()')[1], /count_unique/);
+
+    expect(screen.getByText('This should persist')).toBeInTheDocument();
+  });
+
+  it('copies over the orderby from the previous query if adding another', async function () {
+    renderTestComponent({
+      orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+    });
+
+    userEvent.click(await screen.findByText('Table'));
+    userEvent.click(screen.getByText('Line Chart'));
+    await selectEvent.select(screen.getAllByText('count()')[0], 'count_unique(…)');
+
+    MockApiClient.clearMockResponses();
+    eventsStatsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: [],
+    });
+
+    userEvent.click(screen.getByText('Add Query'));
+
+    // Assert on two calls, one for each query
+    const expectedArgs = expect.objectContaining({
+      query: expect.objectContaining({
+        orderby: '-count_unique_user',
+      }),
+    });
+    expect(eventsStatsMock).toHaveBeenNthCalledWith(
+      1,
+      '/organizations/org-slug/events-stats/',
+      expectedArgs
+    );
+
+    expect(eventsStatsMock).toHaveBeenNthCalledWith(
+      2,
+      '/organizations/org-slug/events-stats/',
+      expectedArgs
+    );
   });
 
   describe('Issue Widgets', function () {
@@ -1823,9 +2124,35 @@ describe('WidgetBuilder', function () {
   });
 
   describe('Release Widgets', function () {
-    it('maintains the selected dataset when display type is changed', async function () {
+    const releaseHealthFeatureFlags = [
+      ...defaultOrgFeatures,
+      'new-widget-builder-experience-design',
+      'dashboards-metrics',
+    ];
+
+    it('does not show the Release Health data set if there is no dashboards-metrics flag', async function () {
       renderTestComponent({
         orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      expect(await screen.findByText('Errors and Transactions')).toBeInTheDocument();
+      expect(
+        screen.queryByText('Releases (sessions, crash rates)')
+      ).not.toBeInTheDocument();
+    });
+
+    it('shows the Release Health data set if there is the dashboards-metrics flag', async function () {
+      renderTestComponent({
+        orgFeatures: releaseHealthFeatureFlags,
+      });
+
+      expect(await screen.findByText('Errors and Transactions')).toBeInTheDocument();
+      expect(screen.getByText('Releases (sessions, crash rates)')).toBeInTheDocument();
+    });
+
+    it('maintains the selected dataset when display type is changed', async function () {
+      renderTestComponent({
+        orgFeatures: releaseHealthFeatureFlags,
       });
 
       expect(
@@ -1843,7 +2170,7 @@ describe('WidgetBuilder', function () {
 
     it('displays metrics tags', async function () {
       renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        orgFeatures: releaseHealthFeatureFlags,
       });
 
       expect(
@@ -1868,7 +2195,7 @@ describe('WidgetBuilder', function () {
 
     it('does not display tags as params', async function () {
       renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        orgFeatures: releaseHealthFeatureFlags,
       });
 
       expect(
@@ -1886,9 +2213,30 @@ describe('WidgetBuilder', function () {
       expect(screen.queryByText('session.status')).not.toBeInTheDocument();
     });
 
+    it('does not allow sort by when session.status is selected', async function () {
+      renderTestComponent({
+        orgFeatures: releaseHealthFeatureFlags,
+      });
+
+      expect(
+        await screen.findByText('Releases (sessions, crash rates)')
+      ).toBeInTheDocument();
+
+      userEvent.click(screen.getByLabelText(/releases/i));
+
+      expect(screen.getByText('High to low')).toBeEnabled();
+      expect(screen.getByText('sum(session)')).toBeInTheDocument();
+
+      userEvent.click(screen.getByLabelText('Add a Column'));
+      await selectEvent.select(screen.getByText('(Required)'), 'session.status');
+
+      expect(screen.getByRole('textbox', {name: 'Sort direction'})).toBeDisabled();
+      expect(screen.getByRole('textbox', {name: 'Sort by'})).toBeDisabled();
+    });
+
     it('makes the appropriate sessions call', async function () {
       renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        orgFeatures: releaseHealthFeatureFlags,
       });
 
       expect(
@@ -1907,6 +2255,7 @@ describe('WidgetBuilder', function () {
             query: {
               environment: [],
               field: [`sum(session)`],
+              orderBy: '-sum(session)',
               groupBy: [],
               interval: '1h',
               project: [],
@@ -1919,7 +2268,7 @@ describe('WidgetBuilder', function () {
 
     it('displays the correct options for area chart', async function () {
       renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        orgFeatures: releaseHealthFeatureFlags,
       });
 
       expect(
@@ -1947,7 +2296,7 @@ describe('WidgetBuilder', function () {
 
       renderTestComponent({
         onSave: handleSave,
-        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        orgFeatures: releaseHealthFeatureFlags,
       });
 
       userEvent.click(await screen.findByText('Releases (sessions, crash rates)'));
@@ -2000,7 +2349,7 @@ describe('WidgetBuilder', function () {
       };
 
       renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        orgFeatures: releaseHealthFeatureFlags,
         dashboard,
         params: {
           widgetIndex: '0',
@@ -2021,7 +2370,7 @@ describe('WidgetBuilder', function () {
         query: {
           source: DashboardWidgetSource.DISCOVERV2,
         },
-        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        orgFeatures: releaseHealthFeatureFlags,
       });
 
       userEvent.click(await screen.findByText('Table'));
@@ -2051,7 +2400,7 @@ describe('WidgetBuilder', function () {
     // eslint-disable-next-line jest/no-disabled-tests
     it.skip('renders with a release search bar', async function () {
       renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        orgFeatures: releaseHealthFeatureFlags,
       });
 
       userEvent.type(
@@ -2211,6 +2560,31 @@ describe('WidgetBuilder', function () {
         expect(screen.queryByLabelText('Remove group')).not.toBeInTheDocument()
       );
     });
+
+    it("display 'remove' and 'drag to reorder' buttons", async function () {
+      renderTestComponent({
+        query: {displayType: 'line'},
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      await screen.findByText('Select group');
+
+      expect(screen.queryByLabelText('Remove group')).not.toBeInTheDocument();
+
+      await selectEvent.select(screen.getByText('Select group'), 'project');
+
+      expect(screen.getByLabelText('Remove group')).toBeInTheDocument();
+      expect(screen.queryByLabelText('Drag to reorder')).not.toBeInTheDocument();
+
+      userEvent.click(screen.getByText('Add Group'));
+
+      expect(screen.getAllByLabelText('Remove group')).toHaveLength(2);
+      expect(screen.getAllByLabelText('Drag to reorder')).toHaveLength(2);
+    });
+
+    it.todo(
+      'Since simulate drag and drop with RTL is not recommended because of browser layout, remember to create acceptance test for this'
+    );
   });
 
   describe('limit field', function () {
@@ -2279,6 +2653,152 @@ describe('WidgetBuilder', function () {
 
       await waitFor(() =>
         expect(screen.queryByText('Limit to 5 results')).not.toBeInTheDocument()
+      );
+    });
+
+    it('applies a limit when switching from a table to timeseries chart with grouping', async function () {
+      const widget: Widget = {
+        displayType: DisplayType.TABLE,
+        interval: '1d',
+        queries: [
+          {
+            name: 'Test Widget',
+            fields: ['count()', 'count_unique(user)', 'epm()', 'project'],
+            columns: ['project'],
+            aggregates: ['count()', 'count_unique(user)', 'epm()'],
+            conditions: '',
+            orderby: '',
+          },
+        ],
+        title: 'Transactions',
+        id: '1',
+      };
+
+      const dashboard: DashboardDetails = {
+        id: '1',
+        title: 'Dashboard',
+        createdBy: undefined,
+        dateCreated: '2020-01-01T00:00:00.000Z',
+        widgets: [widget],
+      };
+
+      renderTestComponent({
+        dashboard,
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        params: {
+          widgetIndex: '0',
+        },
+      });
+
+      userEvent.click(await screen.findByText('Table'));
+      userEvent.click(screen.getByText('Line Chart'));
+
+      expect(screen.getByText('Limit to 3 results')).toBeInTheDocument();
+      expect(eventsStatsMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            topEvents: 3,
+          }),
+        })
+      );
+    });
+
+    it('persists the limit when switching between timeseries charts', async function () {
+      const widget: Widget = {
+        displayType: DisplayType.AREA,
+        interval: '1d',
+        queries: [
+          {
+            name: 'Test Widget',
+            fields: ['count()', 'count_unique(user)', 'epm()', 'project'],
+            columns: ['project'],
+            aggregates: ['count()', 'count_unique(user)', 'epm()'],
+            conditions: '',
+            orderby: '',
+          },
+        ],
+        title: 'Transactions',
+        id: '1',
+        limit: 1,
+      };
+
+      const dashboard: DashboardDetails = {
+        id: '1',
+        title: 'Dashboard',
+        createdBy: undefined,
+        dateCreated: '2020-01-01T00:00:00.000Z',
+        widgets: [widget],
+      };
+
+      renderTestComponent({
+        dashboard,
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        params: {
+          widgetIndex: '0',
+        },
+      });
+
+      userEvent.click(await screen.findByText('Area Chart'));
+      userEvent.click(screen.getByText('Line Chart'));
+
+      expect(screen.getByText('Limit to 1 result')).toBeInTheDocument();
+      expect(eventsStatsMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            topEvents: 1,
+          }),
+        })
+      );
+    });
+
+    it('unsets the limit when going from timeseries to table', async function () {
+      const widget: Widget = {
+        displayType: DisplayType.AREA,
+        interval: '1d',
+        queries: [
+          {
+            name: 'Test Widget',
+            fields: ['count()', 'count_unique(user)', 'epm()', 'project'],
+            columns: ['project'],
+            aggregates: ['count()', 'count_unique(user)', 'epm()'],
+            conditions: '',
+            orderby: '',
+          },
+        ],
+        title: 'Transactions',
+        id: '1',
+        limit: 1,
+      };
+
+      const dashboard: DashboardDetails = {
+        id: '1',
+        title: 'Dashboard',
+        createdBy: undefined,
+        dateCreated: '2020-01-01T00:00:00.000Z',
+        widgets: [widget],
+      };
+
+      renderTestComponent({
+        dashboard,
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        params: {
+          widgetIndex: '0',
+        },
+      });
+
+      userEvent.click(await screen.findByText('Area Chart'));
+      userEvent.click(screen.getByText('Table'));
+
+      expect(screen.queryByText('Limit to 1 result')).not.toBeInTheDocument();
+      expect(eventsv2Mock).toHaveBeenCalledWith(
+        '/organizations/org-slug/eventsv2/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            topEvents: undefined,
+          }),
+        })
       );
     });
   });

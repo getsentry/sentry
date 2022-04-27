@@ -9,7 +9,6 @@ import MemberListStore from 'sentry/stores/memberListStore';
 import space from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
 import {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import {SessionMetric} from 'sentry/utils/metrics/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
 
 jest.mock('echarts-for-react/lib/core', () => {
@@ -853,7 +852,7 @@ describe('Modals -> WidgetViewerModal', function () {
     let sessionsMock;
     const mockQuery = {
       conditions: '',
-      fields: [`sum(${SessionMetric.SESSION})`],
+      fields: [`sum(session)`],
       columns: [],
       aggregates: [],
       id: '1',
@@ -863,7 +862,7 @@ describe('Modals -> WidgetViewerModal', function () {
     const mockWidget = {
       id: '1',
       title: 'Metrics Widget',
-      displayType: DisplayType.TOP_N,
+      displayType: DisplayType.LINE,
       interval: '5m',
       queries: [mockQuery],
       widgetType: WidgetType.METRICS,
@@ -871,9 +870,7 @@ describe('Modals -> WidgetViewerModal', function () {
     beforeEach(function () {
       sessionsMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/sessions/',
-        body: TestStubs.SessionsField({
-          field: `sum(${SessionMetric.SESSION})`,
-        }),
+        body: TestStubs.SesssionTotalCountByReleaseIn24h(),
       });
     });
     it('does a sessions query', async function () {
@@ -893,13 +890,48 @@ describe('Modals -> WidgetViewerModal', function () {
 
     it('renders table header and body', async function () {
       await renderModal({initialData, widget: mockWidget});
-      expect(screen.getByText('sum(sentry.sessions.session)')).toBeInTheDocument();
-      expect(screen.getByText('492')).toBeInTheDocument();
+      expect(screen.getByText('release')).toBeInTheDocument();
+      expect(screen.getByText('e102abb2c46e')).toBeInTheDocument();
+      expect(screen.getByText('sum(session)')).toBeInTheDocument();
+      expect(screen.getByText('6.3k')).toBeInTheDocument();
     });
 
     it('renders Metrics widget viewer', async function () {
       const {container} = await renderModal({initialData, widget: mockWidget});
       expect(container).toSnapshot();
+    });
+
+    it('makes a new sessions request after sorting by a table column', async function () {
+      const {rerender} = await renderModal({
+        initialData,
+        widget: mockWidget,
+        tableData: [],
+        seriesData: [],
+      });
+      expect(sessionsMock).toHaveBeenCalledTimes(1);
+      userEvent.click(screen.getByText(`sum(session)`));
+      expect(initialData.router.push).toHaveBeenCalledWith({
+        query: {sort: '-sum(session)'},
+      });
+      // Need to manually set the new router location and rerender to simulate the sortable column click
+      initialData.router.location.query = {sort: '-sum(session)'};
+      rerender(
+        <WidgetViewerModal
+          Header={stubEl}
+          Footer={stubEl as ModalRenderProps['Footer']}
+          Body={stubEl as ModalRenderProps['Body']}
+          CloseButton={stubEl}
+          closeModal={() => undefined}
+          organization={initialData.organization}
+          widget={mockWidget}
+          onEdit={() => undefined}
+          seriesData={[]}
+          tableData={[]}
+        />
+      );
+      await waitFor(() => {
+        expect(sessionsMock).toHaveBeenCalledTimes(2);
+      });
     });
   });
 });

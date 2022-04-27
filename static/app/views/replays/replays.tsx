@@ -1,5 +1,5 @@
-import * as React from 'react';
-import {withRouter, WithRouterProps} from 'react-router';
+import {Fragment, useEffect, useState} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import FeatureBadge from 'sentry/components/featureBadge';
@@ -15,186 +15,225 @@ import {IconArrow, IconCalendar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageContent, PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
-import {NewQuery, Organization, PageFilters} from 'sentry/types';
+import {NewQuery, PageFilters} from 'sentry/types';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
-import Projects from 'sentry/utils/projects';
-import withOrganization from 'sentry/utils/withOrganization';
+import getUrlPathname from 'sentry/utils/getUrlPathname';
+import theme from 'sentry/utils/theme';
+import {useLocation} from 'sentry/utils/useLocation';
+import useMedia from 'sentry/utils/useMedia';
+import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import AsyncView from 'sentry/views/asyncView';
 
 import ReplaysFilters from './filters';
 import {Replay} from './types';
 
-type Props = AsyncView['props'] &
-  WithRouterProps<{orgId: string}> & {
-    organization: Organization;
-    selection: PageFilters;
-    statsPeriod?: string | undefined; // revisit i'm sure i'm doing statsperiod wrong
-  };
+type Props = {
+  selection: PageFilters;
+};
 
-class Replays extends React.Component<Props> {
-  getEventView() {
-    const {location, selection} = this.props;
+// certain query params can be either a string or an array of strings
+// so if we have an array we reduce it down to a string
+const getQueryParamAsString = query => {
+  if (!query) {
+    return '';
+  }
+  return Array.isArray(query) ? query.join(' ') : query;
+};
+
+const columns = [t('Session'), t('Project')];
+
+function Replays(props: Props) {
+  const location = useLocation();
+  const organization = useOrganization();
+  const {projects} = useProjects();
+  const isScreenLarge = useMedia(`(min-width: ${theme.breakpoints[0]})`);
+
+  const [searchQuery, setSearchQuery] = useState<string>(
+    getQueryParamAsString(location.query.query)
+  );
+
+  useEffect(() => {
+    setSearchQuery(getQueryParamAsString(location.query.query));
+  }, [location.query.query]);
+
+  const getEventView = () => {
+    const {selection} = props;
     const {query} = location;
-
     const eventQueryParams: NewQuery = {
       id: '',
       name: '',
       version: 2,
       fields: ['eventID', 'project', 'timestamp', 'user.display', 'url'],
-      orderby: query.sort || '-timestamp',
+      orderby: getQueryParamAsString(query.sort) || '-timestamp',
       environment: selection.environments,
       projects: selection.projects,
-      query: 'transaction:sentry-replay', // future: change to replay event
+      query: `transaction:sentry-replay ${searchQuery}`, // future: change to replay event
     };
 
     if (selection.datetime.period) {
       eventQueryParams.range = selection.datetime.period;
     }
     return EventView.fromNewQueryWithLocation(eventQueryParams, location);
-  }
+  };
 
-  getTitle() {
-    return `Replays - ${this.props.params.orgId}`;
-  }
+  const handleSearchQuery = (query: string) => {
+    browserHistory.push({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        cursor: undefined,
+        query: String(query).trim() || undefined,
+      },
+    });
+  };
 
-  renderTable(replayList: Array<Replay>) {
-    const {organization} = this.props;
+  const renderTable = (replayList: Array<Replay>) => {
     return replayList?.map(replay => (
-      <React.Fragment key={replay.id}>
-        <Link
-          to={`/organizations/${organization.slug}/replays/${generateEventSlug({
-            project: replay.project,
-            id: replay.id,
-          })}/`}
-        >
-          <ReplayUserBadge
-            avatarSize={32}
-            displayName={replay['user.display']}
-            user={{
-              username: replay['user.display'],
-              id: replay['user.display'],
-              ip_address: replay['user.display'],
-              name: replay['user.display'],
-              email: replay['user.display'],
-            }}
-            // this is the subheading for the avatar, so displayEmail in this case is a misnomer
-            displayEmail={replay.url?.split('?')[0] || ''}
-          />
-        </Link>
-        <Projects orgId={organization.slug} slugs={[replay.project]}>
-          {({projects}) => {
-            const project = projects.find(p => p.slug === replay.project);
-            return (
-              <ProjectBadge
-                project={project ? project : {slug: replay.project}}
-                avatarSize={16}
-              />
-            );
+      <Fragment key={replay.id}>
+        <ReplayUserBadge
+          avatarSize={32}
+          displayName={
+            <Link
+              to={`/organizations/${organization.slug}/replays/${generateEventSlug({
+                project: replay.project,
+                id: replay.id,
+              })}/`}
+            >
+              {replay['user.display']}
+            </Link>
+          }
+          user={{
+            username: replay['user.display'],
+            id: replay['user.display'],
+            ip_address: replay['user.display'],
+            name: replay['user.display'],
+            email: replay['user.display'],
           }}
-        </Projects>
-
-        <div>
+          // this is the subheading for the avatar, so displayEmail in this case is a misnomer
+          displayEmail={getUrlPathname(replay.url) ?? ''}
+        />
+        {isScreenLarge && (
+          <StyledPanelItem>
+            <ProjectBadge
+              project={
+                projects.find(p => p.slug === replay.project) || {slug: replay.project}
+              }
+              avatarSize={16}
+            />
+          </StyledPanelItem>
+        )}
+        <StyledPanelItem>
           <TimeSinceWrapper>
             <StyledIconCalendarWrapper color="gray500" size="sm" />
             <TimeSince date={replay.timestamp} />
           </TimeSinceWrapper>
-        </div>
-      </React.Fragment>
+        </StyledPanelItem>
+      </Fragment>
     ));
-  }
+  };
 
-  render() {
-    const {organization, location} = this.props;
-    const {query} = location;
-    const {cursor: _cursor, page: _page, ...currentQuery} = query;
+  const {query} = location;
+  const {cursor: _cursor, page: _page, ...currentQuery} = query;
 
-    const sort: {
-      field: string;
-    } = {
-      field: query.sort || '-timestamp',
-    };
+  const sort: {
+    field: string;
+  } = {
+    field: getQueryParamAsString(query.sort) || '-timestamp',
+  };
 
-    const arrowDirection = sort.field.startsWith('-') ? 'down' : 'up';
-    const sortArrow = <IconArrow color="gray300" size="xs" direction={arrowDirection} />;
+  const arrowDirection = sort.field.startsWith('-') ? 'down' : 'up';
+  const sortArrow = <IconArrow color="gray300" size="xs" direction={arrowDirection} />;
 
-    return (
-      <React.Fragment>
-        <StyledPageHeader>
-          <HeaderTitle>
-            <div>
-              {t('Replays')} <FeatureBadge type="alpha" />
-            </div>
-          </HeaderTitle>
-        </StyledPageHeader>
-        <PageFiltersContainer hideGlobalHeader resetParamsOnChange={['cursor']}>
-          <StyledPageContent>
-            <DiscoverQuery
-              eventView={this.getEventView()}
-              location={this.props.location}
-              orgSlug={organization.slug}
-            >
-              {data => {
-                return (
-                  <React.Fragment>
-                    <ReplaysFilters />
-                    <PanelTable
-                      isLoading={data.isLoading}
-                      isEmpty={data.tableData?.data.length === 0}
-                      headers={[
-                        t('Session'),
-                        t('Project'),
-                        <SortLink
-                          key="timestamp"
-                          role="columnheader"
-                          aria-sort={
-                            !sort.field.endsWith('timestamp')
-                              ? 'none'
-                              : sort.field === '-timestamp'
-                              ? 'descending'
-                              : 'ascending'
-                          }
-                          to={{
-                            pathname: location.pathname,
-                            query: {
-                              ...currentQuery,
-                              // sort by timestamp should start by ascending on first click
-                              sort:
-                                sort.field === '-timestamp' ? 'timestamp' : '-timestamp',
-                            },
-                          }}
-                        >
-                          {t('Timestamp')} {sort.field.endsWith('timestamp') && sortArrow}
-                        </SortLink>,
-                      ]}
-                    >
-                      {data.tableData
-                        ? this.renderTable(data.tableData.data as Replay[])
-                        : null}
-                    </PanelTable>
-                    <Pagination pageLinks={data.pageLinks} />
-                  </React.Fragment>
-                );
-              }}
-            </DiscoverQuery>
-          </StyledPageContent>
-        </PageFiltersContainer>
-      </React.Fragment>
-    );
-  }
+  return (
+    <Fragment>
+      <StyledPageHeader>
+        <HeaderTitle>
+          <div>
+            {t('Replays')} <FeatureBadge type="alpha" />
+          </div>
+        </HeaderTitle>
+      </StyledPageHeader>
+      <PageFiltersContainer hideGlobalHeader resetParamsOnChange={['cursor']}>
+        <StyledPageContent>
+          <DiscoverQuery
+            eventView={getEventView()}
+            location={location}
+            orgSlug={organization.slug}
+          >
+            {data => {
+              return (
+                <Fragment>
+                  <ReplaysFilters
+                    query={searchQuery}
+                    organization={organization}
+                    handleSearchQuery={handleSearchQuery}
+                  />
+                  <StyledPanelTable
+                    isLoading={data.isLoading}
+                    isEmpty={data.tableData?.data.length === 0}
+                    headers={[
+                      ...(!isScreenLarge
+                        ? columns.filter(col => col === t('Session'))
+                        : columns),
+                      <SortLink
+                        key="timestamp"
+                        role="columnheader"
+                        aria-sort={
+                          !sort.field.endsWith('timestamp')
+                            ? 'none'
+                            : sort.field === '-timestamp'
+                            ? 'descending'
+                            : 'ascending'
+                        }
+                        to={{
+                          pathname: location.pathname,
+                          query: {
+                            ...currentQuery,
+                            // sort by timestamp should start by ascending on first click
+                            sort:
+                              sort.field === '-timestamp' ? 'timestamp' : '-timestamp',
+                          },
+                        }}
+                      >
+                        {t('Timestamp')} {sort.field.endsWith('timestamp') && sortArrow}
+                      </SortLink>,
+                    ]}
+                  >
+                    {data.tableData ? renderTable(data.tableData.data as Replay[]) : null}
+                  </StyledPanelTable>
+                  <Pagination pageLinks={data.pageLinks} />
+                </Fragment>
+              );
+            }}
+          </DiscoverQuery>
+        </StyledPageContent>
+      </PageFiltersContainer>
+    </Fragment>
+  );
 }
 
 const StyledPageHeader = styled(PageHeader)`
   background-color: ${p => p.theme.surface100};
+  min-width: max-content;
   margin-top: ${space(1.5)};
   margin-left: ${space(4)};
 `;
 
 const StyledPageContent = styled(PageContent)`
+  padding: ${space(1.5)} ${space(2)};
   box-shadow: 0px 0px 1px ${p => p.theme.gray200};
-  background-color: ${p => p.theme.white};
+  background-color: ${p => p.theme.background};
+`;
+
+const StyledPanelTable = styled(PanelTable)`
+  grid-template-columns: minmax(0, 1fr) max-content max-content;
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: minmax(0, 1fr) max-content;
+  }
 `;
 
 const HeaderTitle = styled(PageHeading)`
@@ -204,16 +243,21 @@ const HeaderTitle = styled(PageHeading)`
   flex: 1;
 `;
 
+const StyledPanelItem = styled('div')`
+  margin-top: ${space(0.75)};
+`;
+
 const ReplayUserBadge = styled(UserBadge)`
-  font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.linkColor};
+  font-size: ${p => p.theme.fontSizeLarge};
+  font-weight: 400;
+  line-height: 1.2;
 `;
 
 const TimeSinceWrapper = styled('div')`
   display: grid;
   grid-template-columns: repeat(2, minmax(auto, max-content));
   align-items: center;
-  gap: ${space(1.5)};
+  gap: ${space(1)};
 `;
 
 const StyledIconCalendarWrapper = styled(IconCalendar)`
@@ -233,4 +277,4 @@ const SortLink = styled(Link)`
   }
 `;
 
-export default withRouter(withPageFilters(withOrganization(Replays)));
+export default withPageFilters(Replays);

@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 import {PlatformIcon} from 'platformicons';
 
+import Button from 'sentry/components/button';
 import Card from 'sentry/components/card';
 import Link from 'sentry/components/links/link';
 import {IconChevron, IconClose, IconEllipsis} from 'sentry/icons';
@@ -21,15 +22,25 @@ type Props = {
   org: Organization;
 };
 
-function OnboardingViewTask({org}: Props) {
-  if (!org?.experiments.TargetedOnboardingMultiSelectExperiment) {
+// Warning: OnboardingViewTask and InternalOnboardingViewTask were split into two because useProjects
+// hook was being conditionally called. This is no longer allowed and we need to lift the return into
+// a separate component higher in the tree.
+function OnboardingViewTask(props: Props) {
+  if (!props.org?.experiments.TargetedOnboardingMultiSelectExperiment) {
     return null;
   }
-  const {projects: allProjects} = useProjects({orgId: org.id});
+
+  return <InternalOnboardingViewTask {...props} />;
+}
+
+function InternalOnboardingViewTask({org}: Props) {
   const [onboardingState, setOnboardingState] = usePersistedOnboardingState();
+  const {projects: allProjects} = useProjects({orgId: org.id});
+
   if (!onboardingState) {
     return null;
   }
+
   const handleSkip = () => {
     setOnboardingState({
       ...onboardingState,
@@ -85,7 +96,15 @@ function OnboardingViewTask({org}: Props) {
             )}
           </OnboardingTaskProjectList>
           <SkipConfirm onSkip={handleSkip}>
-            {({skip}) => <StyledIconClose size="xs" onClick={skip} />}
+            {({skip}) => (
+              <CloseButton
+                borderless
+                size="zero"
+                aria-label={t('Close')}
+                icon={<IconClose size="xs" />}
+                onClick={skip}
+              />
+            )}
           </SkipConfirm>
         </TaskCard>
       )}
@@ -170,7 +189,7 @@ const PulsingIndicatorText = styled('span')`
   font-size: ${p => p.theme.fontSizeMedium};
   margin: 0 ${space(1)};
 `;
-const StyledIconClose = styled(IconClose)`
+const CloseButton = styled(Button)`
   position: absolute;
   right: ${space(1.5)};
   top: ${space(1.5)};

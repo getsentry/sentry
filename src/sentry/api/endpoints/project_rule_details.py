@@ -63,6 +63,16 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                 del action["_sentry_app_installation"]
                 del action["_sentry_app_component"]
 
+            # TODO(nisanthan): This is a temporary fix. We need to save both the label and value of the selected choice and not save all the choices.
+            if action.get("id") == "sentry.integrations.jira.notify_action.JiraCreateTicketAction":
+                for field in action.get("dynamic_form_fields", []):
+                    if field.get("choices"):
+                        field["choices"] = [
+                            p
+                            for p in field.get("choices", [])
+                            if isinstance(p[0], str) and isinstance(p[1], str)
+                        ]
+
         if len(errors):
             serialized_rule["errors"] = errors
 

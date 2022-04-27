@@ -5,11 +5,14 @@ import {Location} from 'history';
 import omit from 'lodash/omit';
 
 import Feature from 'sentry/components/acl/feature';
+import DatePageFilter from 'sentry/components/datePageFilter';
 import TransactionsList, {
   DropdownOption,
 } from 'sentry/components/discover/transactionsList';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -269,17 +272,21 @@ function SummaryContent({
             currentFilter={spanOperationBreakdownFilter}
             onChangeFilter={onChangeFilter}
           />
-          <SearchBarContainer>
-            <SearchBar
-              searchSource="transaction_summary"
-              organization={organization}
-              projectIds={eventView.project}
-              query={query}
-              fields={eventView.fields}
-              onSearch={handleSearch}
-              maxQueryLength={MAX_QUERY_LENGTH}
-            />
-          </SearchBarContainer>
+          {organization.features.includes('selection-filters-v2') && (
+            <PageFilterBar condensed>
+              <EnvironmentPageFilter />
+              <DatePageFilter alignDropdown="left" />
+            </PageFilterBar>
+          )}
+          <SearchBar
+            searchSource="transaction_summary"
+            organization={organization}
+            projectIds={eventView.project}
+            query={query}
+            fields={eventView.fields}
+            onSearch={handleSearch}
+            maxQueryLength={MAX_QUERY_LENGTH}
+          />
           <MetricsEventsDropdown />
         </Search>
         <TransactionSummaryCharts
@@ -460,13 +467,13 @@ function getTransactionsListSort(
 }
 
 const Search = styled('div')`
-  display: flex;
-  width: 100%;
-  margin-bottom: ${space(3)};
-`;
+  display: grid;
+  gap: ${space(2)};
+  margin-bottom: ${space(2)};
 
-const SearchBarContainer = styled('div')`
-  flex-grow: 1;
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: auto auto 1fr;
+  }
 `;
 
 export default withProjects(SummaryContent);

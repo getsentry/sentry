@@ -1,11 +1,13 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
 import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
+import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Breadcrumb} from 'sentry/components/profiling/breadcrumb';
 import {Flamegraph} from 'sentry/components/profiling/flamegraph';
-import {FullScreenFlamegraphContainer} from 'sentry/components/profiling/fullScreenFlamegraphContainer';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
@@ -59,10 +61,6 @@ function FlamegraphView(props: FlamegraphViewProps): React.ReactElement {
   const [requestState, setRequestState] = useState<RequestState>('initial');
 
   useEffect(() => {
-    document.scrollingElement?.scrollTo(0, 0);
-  }, []);
-
-  useEffect(() => {
     if (!props.params.eventId || !props.params.projectId) {
       return undefined;
     }
@@ -83,26 +81,47 @@ function FlamegraphView(props: FlamegraphViewProps): React.ReactElement {
 
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
-      <FlamegraphStateProvider>
-        <FlamegraphThemeProvider>
-          <FullScreenFlamegraphContainer>
-            {requestState === 'errored' ? (
-              <Alert type="error" showIcon>
-                {t('Unable to load profiles')}
-              </Alert>
-            ) : requestState === 'loading' ? (
-              <Fragment>
-                <Flamegraph profiles={LoadingGroup} />
-                <LoadingIndicatorContainer>
-                  <LoadingIndicator />
-                </LoadingIndicatorContainer>
-              </Fragment>
-            ) : requestState === 'resolved' && profiles ? (
-              <Flamegraph profiles={profiles} />
-            ) : null}
-          </FullScreenFlamegraphContainer>
-        </FlamegraphThemeProvider>
-      </FlamegraphStateProvider>
+      <Fragment>
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <Breadcrumb
+              location={props.location}
+              organization={organization}
+              trails={[
+                {type: 'profiling'},
+                {
+                  type: 'flamegraph',
+                  payload: {
+                    interactionName: profiles?.name ?? '',
+                    profileId: props.params.eventId ?? '',
+                    projectSlug: props.params.projectId ?? '',
+                  },
+                },
+              ]}
+            />
+          </Layout.HeaderContent>
+        </Layout.Header>
+        <FlamegraphStateProvider>
+          <FlamegraphThemeProvider>
+            <FlamegraphContainer>
+              {requestState === 'errored' ? (
+                <Alert type="error" showIcon>
+                  {t('Unable to load profiles')}
+                </Alert>
+              ) : requestState === 'loading' ? (
+                <Fragment>
+                  <Flamegraph profiles={LoadingGroup} />
+                  <LoadingIndicatorContainer>
+                    <LoadingIndicator />
+                  </LoadingIndicatorContainer>
+                </Fragment>
+              ) : requestState === 'resolved' && profiles ? (
+                <Flamegraph profiles={profiles} />
+              ) : null}
+            </FlamegraphContainer>
+          </FlamegraphThemeProvider>
+        </FlamegraphStateProvider>
+      </Fragment>
     </SentryDocumentTitle>
   );
 }
@@ -114,6 +133,21 @@ const LoadingIndicatorContainer = styled('div')`
   justify-content: center;
   width: 100%;
   height: 100%;
+`;
+
+const FlamegraphContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 100%;
+
+  /*
+   * The footer component is a sibling of this div.
+   * Remove it so the flamegraph can take up the
+   * entire screen.
+   */
+  ~ footer {
+    display: none;
+  }
 `;
 
 export default FlamegraphView;

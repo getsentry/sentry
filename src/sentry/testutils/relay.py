@@ -31,7 +31,7 @@ def ensure_relay_is_registered():
             )
     except:  # NOQA
         # relay already registered  probably the first test (registration happened at Relay handshake time)
-        pass  # NOQA
+        pass
 
 
 class RelayStoreHelper:
@@ -170,9 +170,9 @@ class RelayStoreHelper:
         )
 
         self.settings = settings
-        self.get_relay_store_url = get_relay_store_url  # noqa
-        self.get_relay_minidump_url = get_relay_minidump_url  # noqa
-        self.get_relay_unreal_url = get_relay_unreal_url  # noqa
-        self.get_relay_security_url = get_relay_security_url  # noqa
-        self.get_relay_attachments_url = get_relay_attachments_url  # noqa
-        self.wait_for_ingest_consumer = wait_for_ingest_consumer(settings)  # noqa
+        self.get_relay_store_url = get_relay_store_url
+        self.get_relay_minidump_url = get_relay_minidump_url
+        self.get_relay_unreal_url = get_relay_unreal_url
+        self.get_relay_security_url = get_relay_security_url
+        self.get_relay_attachments_url = get_relay_attachments_url
+        self.wait_for_ingest_consumer = wait_for_ingest_consumer(settings)

@@ -12,12 +12,12 @@ from sentry.snuba import discover
 from sentry.utils.snuba import SnubaTSResult
 
 
-def resolve_tags(results: Any, metrics_query: MetricsQueryBuilder) -> Any:
+def resolve_tags(results: Any, query_definition: MetricsQueryBuilder) -> Any:
     """Go through the results of a metrics query and reverse resolve its tags"""
     tags: List[str] = []
 
     with sentry_sdk.start_span(op="mep", description="resolve_tags"):
-        for column in metrics_query.columns:
+        for column in query_definition.columns:
             if (
                 isinstance(column, AliasedExpression)
                 and column.exp.subscriptable == "tags"
@@ -50,7 +50,7 @@ def query(
     conditions=None,
     extra_snql_condition=None,
     functions_acl=None,
-    use_snql=False,
+    use_snql=True,
     dry_run=False,
 ):
     metrics_compatible = not equations or dry_run
@@ -147,7 +147,7 @@ def timeseries_query(
     allow_metric_aggregates=True,
     comparison_delta: Optional[timedelta] = None,
     functions_acl: Optional[List[str]] = None,
-    use_snql: Optional[bool] = False,
+    use_snql: Optional[bool] = True,
     dry_run: bool = False,
 ) -> SnubaTSResult:
     """
