@@ -247,6 +247,8 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                         {
                             "name": "Transactions",
                             "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
                             "conditions": "event.type:transaction",
                         }
                     ],
@@ -257,7 +259,13 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                     "interval": "5m",
                     "title": "Error count()",
                     "queries": [
-                        {"name": "Errors", "fields": ["count()"], "conditions": "event.type:error"}
+                        {
+                            "name": "Errors",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:error",
+                        }
                     ],
                     "layout": {"x": 1, "y": 0, "w": 1, "h": 1, "minH": 2},
                 },
@@ -294,6 +302,8 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                         {
                             "name": "Transactions",
                             "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
                             "conditions": "event.type:transaction",
                         }
                     ],
@@ -326,6 +336,8 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                         {
                             "name": "Transactions",
                             "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
                             "conditions": "event.type:transaction",
                         }
                     ],
@@ -363,6 +375,8 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                         {
                             "name": "Transactions",
                             "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
                             "conditions": "event.type:transaction",
                         }
                     ],
@@ -382,6 +396,8 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                 {
                     "name": "Transactions",
                     "fields": ["count()"],
+                    "columns": [],
+                    "aggregates": ["count()"],
                     "conditions": "event.type:transaction",
                 }
             ],
@@ -423,6 +439,8 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                         {
                             "name": "Transactions",
                             "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
                             "conditions": "event.type:transaction",
                         }
                     ],
@@ -445,6 +463,8 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                         {
                             "name": "Transactions",
                             "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
                             "conditions": "event.type:transaction",
                         }
                     ],
@@ -454,45 +474,6 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         }
         response = self.do_request("post", self.url, data=data)
         assert response.status_code == 400, response.data
-
-    def test_post_widgets_with_null_columns_and_aggregates_succeeds_and_sets_value(self):
-        data = {
-            "title": "Dashboard with null agg and cols",
-            "widgets": [
-                {
-                    "displayType": "line",
-                    "interval": "5m",
-                    "title": "Transaction count()",
-                    "queries": [
-                        {
-                            "name": "Transactions",
-                            "fields": ["count()"],
-                            "columns": None,
-                            "aggregates": None,
-                            "conditions": "event.type:transaction",
-                        }
-                    ],
-                    "layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2},
-                },
-            ],
-        }
-        response = self.do_request("post", self.url, data=data)
-        assert response.status_code == 201, response.data
-        dashboard = Dashboard.objects.get(
-            organization=self.organization, title="Dashboard with null agg and cols"
-        )
-        assert dashboard.created_by == self.user
-
-        widgets = self.get_widgets(dashboard.id)
-        assert len(widgets) == 1
-
-        for expected_widget, actual_widget in zip(data["widgets"], widgets):
-            self.assert_serialized_widget(expected_widget, actual_widget)
-            queries = actual_widget.dashboardwidgetquery_set.all()
-            for expected_query, actual_query in zip(expected_widget["queries"], queries):
-                expected_query["columns"] = []
-                expected_query["aggregates"] = ["count()"]
-                self.assert_serialized_widget_query(expected_query, actual_query)
 
     def test_add_widget_with_limit(self):
         data = {
@@ -507,6 +488,8 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                         {
                             "name": "Transactions",
                             "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
                             "conditions": "event.type:transaction",
                         }
                     ],
@@ -517,7 +500,13 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                     "limit": 5,
                     "title": "Error count()",
                     "queries": [
-                        {"name": "Errors", "fields": ["count()"], "conditions": "event.type:error"}
+                        {
+                            "name": "Errors",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:error",
+                        }
                     ],
                 },
             ],
@@ -545,6 +534,8 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                         {
                             "name": "Transactions",
                             "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
                             "conditions": "event.type:transaction",
                         }
                     ],
@@ -568,6 +559,8 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                         {
                             "name": "Transactions",
                             "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
                             "conditions": "event.type:transaction",
                         }
                     ],
