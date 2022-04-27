@@ -11,6 +11,7 @@ import EventMessage from 'sentry/components/events/eventMessage';
 import FeatureBadge from 'sentry/components/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import ReplayBreadcrumbOverview from 'sentry/components/replays/breadcrumbs/replayBreadcrumbOverview';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayController from 'sentry/components/replays/replayController';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
@@ -180,6 +181,7 @@ function ReplayLoader(props: ReplayLoaderProps) {
             to full up, on a page that scrolls we only consider the max-width. */}
             <ReplayPlayer fixedHeight={isFullscreen} />
             <ReplayController toggleFullscreen={toggleFullscreen} />
+            {breadcrumbEntry && <ReplayBreadcrumbOverview data={breadcrumbEntry.data} />}
           </FullscreenWrapper>
         </ReplayContextProvider>
 
