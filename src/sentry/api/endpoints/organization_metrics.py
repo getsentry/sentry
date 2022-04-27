@@ -16,7 +16,7 @@ from sentry.snuba.metrics import (
     get_tags,
 )
 from sentry.snuba.metrics.utils import DerivedMetricException, DerivedMetricParseException
-from sentry.snuba.sessions_v2 import InvalidField
+from sentry.snuba.sessions_v2 import SNUBA_LIMIT, InvalidField
 from sentry.utils.cursors import Cursor, CursorResult
 
 
@@ -107,8 +107,6 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
     Based on `OrganizationSessionsEndpoint`.
     """
 
-    default_per_page = 50
-
     def get(self, request: Request, organization) -> Response:
         if not features.has("organizations:metrics", organization, actor=request.user):
             return Response(status=404)
@@ -133,8 +131,8 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
         return self.paginate(
             request,
             paginator=MetricsDataSeriesPaginator(data_fn=data_fn),
-            default_per_page=self.default_per_page,
-            max_per_page=100,
+            default_per_page=SNUBA_LIMIT,
+            max_per_page=SNUBA_LIMIT,
         )
 
 

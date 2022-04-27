@@ -460,8 +460,7 @@ def _run_sessions_query(query):
         end=query.end,
         rollup=query.rollup,
         orderby=orderby,
-        limit=min(query.limit or max_groups, max_groups),
-        offset=query.offset or 0,
+        limit=max_groups,
         referrer="sessions.totals",
     )
 

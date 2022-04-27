@@ -10,14 +10,18 @@ from sentry import features, release_health
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.models import Organization
-from sentry.snuba.sessions_v2 import AllowedResolution, InvalidField, InvalidParams, QueryDefinition
+from sentry.snuba.sessions_v2 import (
+    SNUBA_LIMIT,
+    AllowedResolution,
+    InvalidField,
+    InvalidParams,
+    QueryDefinition,
+)
 from sentry.utils.cursors import Cursor, CursorResult
 
 
 # NOTE: this currently extends `OrganizationEventsEndpointBase` for `handle_query_errors` only, which should ideally be decoupled from the base class.
 class OrganizationSessionsEndpoint(OrganizationEventsEndpointBase):
-    default_per_page = 50
-
     def get(self, request: Request, organization) -> Response:
         def data_fn(offset: int, limit: int):
             with self.handle_query_errors():
@@ -35,8 +39,8 @@ class OrganizationSessionsEndpoint(OrganizationEventsEndpointBase):
         return self.paginate(
             request,
             paginator=SessionsDataSeriesPaginator(data_fn=data_fn),
-            default_per_page=self.default_per_page,
-            max_per_page=100,
+            default_per_page=SNUBA_LIMIT,
+            max_per_page=SNUBA_LIMIT,
         )
 
     def build_sessions_query(

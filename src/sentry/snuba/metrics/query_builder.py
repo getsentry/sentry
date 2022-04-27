@@ -289,7 +289,10 @@ class APIQueryDefinition:
 
     def _parse_offset(self, query_params, paginator_kwargs):
         if self.orderby:
-            return Offset(paginator_kwargs.get("offset"))
+            offset = paginator_kwargs.get("offset")
+            if offset:
+                return Offset(offset)
+            return None
         else:
             cursor = query_params.get("cursor")
             if cursor is not None:
