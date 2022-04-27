@@ -1,6 +1,6 @@
 import uuid
 from itertools import chain
-from typing import List
+from typing import TYPE_CHECKING, List
 
 from django.db import models
 from django.db.models import OuterRef, QuerySet, Subquery
@@ -13,7 +13,9 @@ from sentry.db.models import (
     ParanoidManager,
     ParanoidModel,
 )
-from sentry.models import ApiToken
+
+if TYPE_CHECKING:
+    from sentry.models import ApiToken, Project
 
 
 def default_uuid():
@@ -34,7 +36,7 @@ class SentryAppInstallationForProviderManager(ParanoidManager):
     def get_by_api_token(self, token_id: str) -> QuerySet:
         return self.filter(status=SentryAppInstallationStatus.INSTALLED, api_token_id=token_id)
 
-    def get_projects(self, token: ApiToken) -> QuerySet:
+    def get_projects(self, token: ApiToken) -> QuerySet[Project]:
         from sentry.models import Project, SentryAppInstallationToken
 
         try:
