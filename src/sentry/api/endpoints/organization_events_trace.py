@@ -207,8 +207,6 @@ def child_sort_key(item: TraceEvent) -> List[int]:
 def query_trace_data(
     trace_id: str, params: Mapping[str, str]
 ) -> Tuple[Sequence[SnubaTransaction], Sequence[SnubaError]]:
-    transaction_query: QueryBuilder
-    error_query: QueryBuilder
     transaction_query = QueryBuilder(
         Dataset.Transactions,
         params,
