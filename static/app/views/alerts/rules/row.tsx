@@ -209,7 +209,7 @@ function RuleListRow({
           <Tooltip
             title={
               isIssueAlert(rule)
-                ? t('Issue Alert Status: [status]')
+                ? t('Issue Alert')
                 : tct('Metric Alert Status: [status]', {
                     status:
                       IssueStatusText[
