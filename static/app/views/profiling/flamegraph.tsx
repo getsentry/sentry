@@ -1,5 +1,6 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 
 import {Client} from 'sentry/api';
@@ -72,7 +73,10 @@ function FlamegraphView(props: FlamegraphViewProps): React.ReactElement {
         setProfiles(importedFlamegraphs);
         setRequestState('resolved');
       })
-      .catch(() => setRequestState('errored'));
+      .catch(err => {
+        Sentry.captureException(err);
+        setRequestState('errored');
+      });
 
     return () => {
       api.clear();
