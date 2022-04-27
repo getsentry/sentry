@@ -1,3 +1,5 @@
+import {act} from 'react-dom/test-utils';
+
 import {selectDropdownMenuItem} from 'sentry-test/dropdownMenu';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -409,7 +411,11 @@ describe('IssueListActions', function () {
     });
 
     it('acknowledges group', async function () {
-      wrapper.find('IssueListActions').setState({anySelected: true});
+      await act(async () => {
+        wrapper.find('IssueListActions').setState({anySelected: true});
+        await tick();
+        wrapper.update();
+      });
       SelectedGroupStore.add(['1', '2', '3']);
       SelectedGroupStore.toggleSelectAll();
       const inbox = {
@@ -435,7 +441,11 @@ describe('IssueListActions', function () {
     });
 
     it('mark reviewed disabled for group that is already reviewed', async function () {
-      wrapper.find('IssueListActions').setState({anySelected: true});
+      await act(async () => {
+        wrapper.find('IssueListActions').setState({anySelected: true});
+        await tick();
+        wrapper.update();
+      });
       SelectedGroupStore.add(['1']);
       SelectedGroupStore.toggleSelectAll();
       GroupStore.loadInitialData([TestStubs.Group({id: '1', inbox: null})]);
