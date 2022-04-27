@@ -2078,7 +2078,7 @@ describe('WidgetBuilder', function () {
 
       userEvent.click(await screen.findByText('Issues (States, Assignment, Time, etc.)'));
       userEvent.paste(
-        screen.getByPlaceholderText('Search for events, users, tags, and more'),
+        screen.getByPlaceholderText('Search for issues, status, assigned, and more'),
         'is:',
         {
           clipboardData: {getData: () => ''},

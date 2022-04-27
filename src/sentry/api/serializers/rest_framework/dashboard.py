@@ -141,9 +141,10 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
         conditions = self._get_attr(data, "conditions", "")
         orderby = self._get_attr(data, "orderby", "")
         is_table = is_table_display_type(self.context.get("displayType"))
+        columns = self._get_attr(data, "columns", []).copy()
+        aggregates = self._get_attr(data, "aggregates", []).copy()
+        fields = columns + aggregates
 
-        # TODO(dam): Use columns and aggregates for validation
-        fields = self._get_attr(data, "fields", []).copy()
         injected_orderby_equation = None
         if is_equation(orderby.lstrip("-")):
             injected_orderby_equation = orderby.lstrip("-")
@@ -155,24 +156,6 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
             orderby = f"{orderby_prefix}equation[{len(equations) - 1}]"
         else:
             equations, fields = categorize_columns(fields)
-
-        # TODO(dam): Temp code while we are sure adoption
-        # of frontend code that sends this data is high enough
-        columns = self._get_attr(data, "columns", []).copy()
-        aggregates = self._get_attr(data, "aggregates", []).copy()
-
-        if not columns and not aggregates:
-            # If the orderby is an equation, it was injected into the fields
-            # so it needs to be ignored when filling out columns and aggregates
-            iterable_fields = fields[:-1] if injected_orderby_equation else fields
-            for field in iterable_fields:
-                if is_aggregate(field):
-                    aggregates.append(field)
-                else:
-                    columns.append(field)
-
-            data["columns"] = columns
-            data["aggregates"] = aggregates
 
         try:
             parse_search_query(conditions)
