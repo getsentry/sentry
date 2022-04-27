@@ -224,8 +224,9 @@ CONDITION_COLUMNS = ["project", "environment", "release"]
 FILTER_KEY_COLUMNS = ["project_id"]
 
 
-def resolve_column(col):
-    if col in CONDITION_COLUMNS:
+def resolve_column(col, extra_columns=None):
+    condition_columns = CONDITION_COLUMNS + (extra_columns or [])
+    if col in condition_columns:
         return col
     raise InvalidField(f'Invalid query field: "{col}"')
 
@@ -253,10 +254,17 @@ class QueryDefinition:
     `fields` and `groupby` definitions as [`ColumnDefinition`] objects.
     """
 
-    def __init__(self, query, params, allowed_resolution: AllowedResolution):
+    def __init__(
+        self,
+        query,
+        params,
+        allowed_resolution: AllowedResolution,
+        allow_session_status_query: bool = False,
+    ):
         self.query = query.get("query", "")
         self.raw_fields = raw_fields = query.getlist("field", [])
         self.raw_groupby = raw_groupby = query.getlist("groupBy", [])
+        self.raw_orderby = query.getlist("orderBy")  # only respected by metrics implementation
 
         if len(raw_fields) == 0:
             raise InvalidField('Request is missing a "field"')
@@ -283,7 +291,7 @@ class QueryDefinition:
         query_columns = set()
         for i, field in enumerate(self.fields.values()):
             columns = field.get_snuba_columns(raw_groupby)
-            if i == 0:
+            if i == 0 or field == "sum(session)":  # Prefer first, but sum(session) always wins
                 self.primary_column = columns[0]  # Will be used in order by
             query_columns.update(columns)
         for groupby in self.groupby:
@@ -302,7 +310,14 @@ class QueryDefinition:
 
         # this makes sure that literals in complex queries are properly quoted,
         # and unknown fields are raised as errors
-        conditions = [resolve_condition(c, resolve_column) for c in snuba_filter.conditions]
+        if allow_session_status_query:
+            # NOTE: "''" is added because we use the event search parser, which
+            # resolves "session.status" to ifNull(..., "''")
+            column_resolver = lambda col: resolve_column(col, ["session.status", "''"])
+        else:
+            column_resolver = resolve_column
+
+        conditions = [resolve_condition(c, column_resolver) for c in snuba_filter.conditions]
         filter_keys = {
             resolve_filter_key(key): value for key, value in snuba_filter.filter_keys.items()
         }
@@ -573,15 +588,15 @@ def massage_sessions_result(
         groups.append(group)
 
     return {
-        "start": _isoformat_z(query.start),
-        "end": _isoformat_z(query.end),
+        "start": isoformat_z(query.start),
+        "end": isoformat_z(query.end),
         "query": query.query,
         "intervals": timestamps,
         "groups": groups,
     }
 
 
-def _isoformat_z(date):
+def isoformat_z(date):
     return datetime.utcfromtimestamp(int(to_timestamp(date))).isoformat() + "Z"
 
 

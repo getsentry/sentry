@@ -13,6 +13,7 @@ import {defined} from 'sentry/utils';
 import {
   Field,
   FIELD_TAGS,
+  getFieldDoc,
   isAggregateField,
   isEquation,
   isMeasurement,
@@ -148,6 +149,7 @@ function SearchBar(props: SearchBarProps) {
                 max-height: ${maxMenuHeight ?? 300}px;
                 overflow-y: auto;
               `}
+              getFieldDoc={getFieldDoc}
               {...props}
             />
           )}

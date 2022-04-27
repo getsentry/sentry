@@ -524,7 +524,8 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
                     where = []
                     for condition in snuba_query.where:
                         if not (
-                            isinstance(condition.lhs, Column)
+                            isinstance(condition, Condition)
+                            and isinstance(condition.lhs, Column)
                             and condition.lhs.name == "project_id"
                             and "project_id" in groupby_tags
                         ):
@@ -546,11 +547,7 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
                         ]
                     snuba_query = snuba_query.set_where(where)
 
-                    # Set the limit of the second query to be the provided limits multiplied by
-                    # the number of the metrics requested in the query in this specific entity
-                    snuba_query = snuba_query.set_limit(
-                        snuba_query.limit.limit * len(snuba_query.select)
-                    )
+                    # The initial query already selected the "page", so reset the offset
                     snuba_query = snuba_query.set_offset(0)
 
                     snuba_query_res = raw_snql_query(

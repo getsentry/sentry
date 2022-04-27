@@ -305,3 +305,15 @@ export function flattenErrors(
   }
   return update;
 }
+
+export function getDashboardsMEPQueryParams(isMEPEnabled: boolean) {
+  return isMEPEnabled
+    ? {
+        dataset: 'metricsEnhanced',
+      }
+    : {};
+}
+
+export function getNumEquations(possibleEquations: string[]) {
+  return possibleEquations.filter(isEquation).length;
+}

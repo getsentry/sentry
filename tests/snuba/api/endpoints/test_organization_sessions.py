@@ -394,7 +394,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
                 "statsPeriod": "1d",
                 "interval": "1d",
                 "field": ["sum(session)"],
-                "query": 'release:"foo@1.1.0" or release:"foo@1.2.0" or release:"foo@1.3.0"',
+                "query": 'release:"foo@1.1.0" or release:["foo@1.2.0", release:"foo@1.3.0"]',
                 "groupBy": ["release"],
             }
         )
@@ -427,6 +427,29 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         )
 
         assert response.status_code == 200, response.content
+
+    @freeze_time(MOCK_DATETIME)
+    def test_filter_unknown_release_in(self):
+        response = self.do_request(
+            {
+                "project": [-1],
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(session)"],
+                "query": "release:[foo@6.6.6]",
+                "groupBy": "session.status",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert result_sorted(response.data)["groups"] == [
+            {
+                "by": {"session.status": status},
+                "series": {"sum(session)": [0]},
+                "totals": {"sum(session)": 0},
+            }
+            for status in ("abnormal", "crashed", "errored", "healthy")
+        ]
 
     @freeze_time(MOCK_DATETIME)
     def test_groupby_project(self):
@@ -674,6 +697,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         groups = result_sorted(response.data)["groups"]
         assert len(groups) == 1, groups
         group = groups[0]
+        assert group["by"] == {}
 
         assert group["totals"] == pytest.approx(expected)
         for key, series in group["series"].items():
@@ -706,6 +730,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         seen = set()  # Make sure all session statuses are listed
         for group in result_sorted(response.data)["groups"]:
             seen.add(group["by"].get("session.status"))
+
             if group["by"] == {"session.status": "healthy"}:
                 assert group["totals"] == pytest.approx(expected)
                 for key, series in group["series"].items():
@@ -921,9 +946,273 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert result_sorted(response.data)["groups"] == []
 
+    @freeze_time(MOCK_DATETIME)
+    def test_mix_known_and_unknown_strings(self):
+        for query_string in ("environment:[production,foo]",):
+            response = self.do_request(
+                {
+                    "project": self.project.id,  # project without users
+                    "statsPeriod": "1d",
+                    "interval": "1d",
+                    "field": ["count_unique(user)", "sum(session)"],
+                    "query": query_string,
+                }
+            )
+            assert response.status_code == 200, response.data
+
 
 @patch("sentry.api.endpoints.organization_sessions.release_health", MetricsReleaseHealthBackend())
 class OrganizationSessionsEndpointMetricsTest(
     SessionMetricsTestCase, OrganizationSessionsEndpointTest
 ):
-    """Repeat with metrics backend"""
+    """Repeat all tests with metrics backend"""
+
+    @freeze_time(MOCK_DATETIME)
+    def test_orderby(self):
+        response = self.do_request(
+            {
+                "project": [-1],
+                "statsPeriod": "2d",
+                "interval": "1d",
+                "field": ["sum(session)"],
+                "orderBy": "foobar",
+            }
+        )
+        assert response.status_code == 400
+        assert response.data == {"detail": "'orderBy' must be one of the provided 'fields'"}
+
+        response = self.do_request(
+            {
+                "project": [-1],
+                "statsPeriod": "2d",
+                "interval": "1d",
+                "field": ["sum(session)"],
+                "orderBy": "count_unique(user)",  # wrong field
+            }
+        )
+        assert response.status_code == 400
+        assert response.data == {"detail": "'orderBy' must be one of the provided 'fields'"}
+
+        # Cannot sort by more than one field
+        response = self.do_request(
+            {
+                "project": [-1],
+                "statsPeriod": "2d",
+                "interval": "1d",
+                "field": ["sum(session)", "count_unique(user)"],
+                "orderBy": ["sum(session)", "count_unique(user)"],
+            }
+        )
+        assert response.status_code == 400
+        assert response.data == {"detail": "Cannot order by multiple fields"}
+
+        response = self.do_request(
+            {
+                "project": [-1],
+                "statsPeriod": "2d",
+                "interval": "1d",
+                "field": ["sum(session)"],
+                "orderBy": "sum(session)",  # misses group by, but why not
+            }
+        )
+        assert response.status_code == 200
+
+        response = self.do_request(
+            {
+                "project": [-1],
+                "statsPeriod": "2d",
+                "interval": "1d",
+                "field": ["sum(session)"],
+                "orderBy": "sum(session)",
+                "groupBy": ["session.status"],
+            }
+        )
+        assert response.status_code == 400
+        assert response.data == {"detail": "Cannot use 'orderBy' when grouping by sessions.status"}
+
+        response = self.do_request(
+            {
+                "project": [self.project.id, self.project3.id],
+                "statsPeriod": "2d",
+                "interval": "1d",
+                "field": ["sum(session)", "p95(session.duration)"],
+                "orderBy": "p95(session.duration)",
+                "groupBy": ["project", "release", "environment"],
+            }
+        )
+
+        expected_groups = [
+            {
+                "by": {
+                    "project": self.project.id,
+                    "release": "foo@1.0.0",
+                    "environment": "production",
+                },
+                "totals": {"sum(session)": 3, "p95(session.duration)": 25000.0},
+                "series": {"sum(session)": [0, 3], "p95(session.duration)": [None, 25000.0]},
+            },
+            {
+                "by": {
+                    "project": self.project3.id,
+                    "release": "foo@1.2.0",
+                    "environment": "production",
+                },
+                "totals": {"sum(session)": 1, "p95(session.duration)": 37000.0},
+                "series": {"sum(session)": [0, 1], "p95(session.duration)": [None, 37000.0]},
+            },
+            {
+                "by": {
+                    "project": self.project.id,
+                    "release": "foo@1.1.0",
+                    "environment": "production",
+                },
+                "totals": {"sum(session)": 1, "p95(session.duration)": 49000.0},
+                "series": {"sum(session)": [0, 1], "p95(session.duration)": [None, 49000.0]},
+            },
+            {
+                "by": {
+                    "project": self.project3.id,
+                    "release": "foo@1.0.0",
+                    "environment": "production",
+                },
+                "totals": {"sum(session)": 2, "p95(session.duration)": 79400.0},
+                "series": {"sum(session)": [0, 2], "p95(session.duration)": [None, 79400.0]},
+            },
+        ]
+
+        # Not using `result_sorted` here, because we want to verify the order
+        assert response.status_code == 200, response.data
+        assert response.data["groups"] == expected_groups
+
+        # Sort descending
+        response = self.do_request(
+            {
+                "project": [self.project.id, self.project3.id],
+                "statsPeriod": "2d",
+                "interval": "1d",
+                "field": ["sum(session)", "p95(session.duration)"],
+                "orderBy": "-p95(session.duration)",
+                "groupBy": ["project", "release", "environment"],
+            }
+        )
+
+        assert response.status_code == 200
+        assert response.data["groups"] == list(reversed(expected_groups))
+
+        # Add some more code coverage
+        all_fields = [
+            "sum(session)",
+            "count_unique(user)",
+            "avg(session.duration)",
+        ]
+        for field in all_fields:
+            assert (
+                self.do_request(
+                    {
+                        "project": [self.project.id, self.project3.id],
+                        "statsPeriod": "2d",
+                        "interval": "1d",
+                        "field": all_fields,
+                        "orderBy": field,
+                        "groupBy": ["project", "release", "environment"],
+                    }
+                ).status_code
+                == 200
+            )
+
+    @freeze_time(MOCK_DATETIME)
+    def test_filter_by_session_status(self):
+        default_request = {
+            "project": [-1],
+            "statsPeriod": "1d",
+            "interval": "1d",
+        }
+
+        def req(**kwargs):
+            return self.do_request(dict(default_request, **kwargs))
+
+        response = req(field=["sum(session)"], query="session.status:bogus")
+        assert response.status_code == 200, response.content
+        assert result_sorted(response.data)["groups"] == []
+
+        response = req(field=["sum(session)"], query="!session.status:healthy")
+        assert response.status_code == 200, response.content
+        assert result_sorted(response.data)["groups"] == [
+            {"by": {}, "series": {"sum(session)": [3]}, "totals": {"sum(session)": 3}}
+        ]
+
+        # sum(session) filtered by multiple statuses adds them
+        response = req(field=["sum(session)"], query="session.status:[healthy, errored]")
+        assert response.status_code == 200, response.content
+        assert result_sorted(response.data)["groups"] == [
+            {"by": {}, "series": {"sum(session)": [8]}, "totals": {"sum(session)": 8}}
+        ]
+
+        response = req(
+            field=["sum(session)"],
+            query="session.status:[healthy, errored]",
+            groupBy="session.status",
+        )
+        assert response.status_code == 200, response.content
+        assert result_sorted(response.data)["groups"] == [
+            {
+                "by": {"session.status": "errored"},
+                "totals": {"sum(session)": 2},
+                "series": {"sum(session)": [2]},
+            },
+            {
+                "by": {"session.status": "healthy"},
+                "totals": {"sum(session)": 6},
+                "series": {"sum(session)": [6]},
+            },
+        ]
+
+        response = req(field=["sum(session)"], query="session.status:healthy release:foo@1.1.0")
+        assert response.status_code == 200, response.content
+        assert result_sorted(response.data)["groups"] == [
+            {"by": {}, "series": {"sum(session)": [1]}, "totals": {"sum(session)": 1}}
+        ]
+
+        response = req(field=["sum(session)"], query="session.status:healthy OR release:foo@1.1.0")
+        assert response.status_code == 400, response.data
+        assert response.data == {"detail": "Unable to parse condition with session.status"}
+
+        # count_unique(user) does not work with multiple session statuses selected
+        response = req(field=["count_unique(user)"], query="session.status:[healthy, errored]")
+        assert response.status_code == 400, response.data
+        assert response.data == {
+            "detail": "Cannot filter count_unique by multiple session.status unless it is in groupBy"
+        }
+
+        response = req(field=["p95(session.duration)"], query="session.status:abnormal")
+        assert response.status_code == 200, response.content
+        assert result_sorted(response.data)["groups"] == []
+
+    @freeze_time(MOCK_DATETIME)
+    def test_filter_by_session_status_with_orderby(self):
+        default_request = {
+            "project": [-1],
+            "statsPeriod": "1d",
+            "interval": "1d",
+        }
+
+        def req(**kwargs):
+            return self.do_request(dict(default_request, **kwargs))
+
+        response = req(
+            field=["sum(session)"],
+            query="session.status:[abnormal,crashed]",
+            groupBy="release",
+            orderBy="sum(session)",
+        )
+        assert response.status_code == 400, response.content
+        assert response.data == {"detail": "Cannot order by sum(session) with the current filters"}
+
+        response = req(
+            field=["sum(session)"],
+            query="session.status:healthy",
+            groupBy="release",
+            orderBy="sum(session)",
+        )
+        assert response.status_code == 400, response.content
+        assert response.data == {"detail": "Cannot order by sum(session) with the current filters"}

@@ -995,39 +995,7 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
             {"sentryApp": ["Missing parameter: sentry_app_installation_uuid"]},
         )
 
-    @responses.activate
-    def test_sentry_app_action_creator_fails(self):
-        responses.add(
-            method=responses.POST,
-            url="https://example.com/sentry/alert-rule",
-            status=400,
-            body="Invalid channel.",
-        )
-        self.run_fail_validation_test(
-            {
-                "type": AlertRuleTriggerAction.get_registered_type(
-                    AlertRuleTriggerAction.Type.SENTRY_APP
-                ).slug,
-                "target_type": ACTION_TARGET_TYPE_TO_STRING[
-                    AlertRuleTriggerAction.TargetType.SENTRY_APP
-                ],
-                "target_identifier": "1",
-                "sentry_app": self.sentry_app.id,
-                "sentry_app_config": {"channel": "#santry"},
-                "sentry_app_installation_uuid": self.sentry_app_installation.uuid,
-            },
-            {"sentryApp": ["Super Awesome App: Invalid channel."]},
-        )
-
-    @responses.activate
     def test_create_and_update_sentry_app_action_success(self):
-        responses.add(
-            method=responses.POST,
-            url="https://example.com/sentry/alert-rule",
-            status=200,
-            json={},
-        )
-
         serializer = AlertRuleTriggerActionSerializer(
             context=self.context,
             data={

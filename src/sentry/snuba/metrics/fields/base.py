@@ -75,6 +75,7 @@ from sentry.snuba.metrics.utils import (
     MetricOperationType,
     MetricType,
     NotSupportedOverCompositeEntityException,
+    OrderByNotSupportedOverCompositeEntityException,
     combine_dictionary_of_list_values,
 )
 from sentry.utils.snuba import raw_snql_query
@@ -668,7 +669,12 @@ class SingularEntityDerivedMetric(DerivedMetricExpression):
     def run_post_query_function(
         self, data: SnubaDataType, query_definition: QueryDefinition, idx: Optional[int] = None
     ) -> Any:
-        compute_func_args = [data[self.metric_mri] if idx is None else data[self.metric_mri][idx]]
+        try:
+            compute_func_args = [
+                data[self.metric_mri] if idx is None else data[self.metric_mri][idx]
+            ]
+        except KeyError:
+            compute_func_args = [self.generate_default_null_values()]
         result = self.post_query_func(*compute_func_args)
         if isinstance(result, tuple) and len(result) == 1:
             result = result[0]
@@ -699,7 +705,7 @@ class CompositeEntityDerivedMetric(DerivedMetricExpression):
         projects: Sequence[Project],
         query_definition: QueryDefinition,
     ) -> List[OrderBy]:
-        raise NotSupportedOverCompositeEntityException(
+        raise OrderByNotSupportedOverCompositeEntityException(
             f"It is not possible to orderBy field "
             f"{get_public_name_from_mri(self.metric_mri)} as it does not "
             f"have a direct mapping to a query alias"
@@ -955,7 +961,7 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             metric_mri=SessionMRI.HEALTHY.value,
             metrics=[
                 SessionMRI.ALL.value,
-                SessionMRI.ERRORED.value,
+                SessionMRI.ERRORED_ALL.value,
             ],
             unit="sessions",
             post_query_func=lambda init, errored: max(0, init - errored),

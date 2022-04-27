@@ -75,8 +75,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
     def get_features(self, organization: Organization, request: Request) -> Mapping[str, bool]:
         feature_names = [
             "organizations:performance-chart-interpolation",
-            "organizations:discover-use-snql",
             "organizations:performance-use-metrics",
+            "organizations:dashboards-mep",
             "organizations:performance-dry-run-mep",
         ]
         batch_features = features.batch_has(
@@ -135,18 +135,24 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                 else "api.organization-event-stats"
             )
             batch_features = self.get_features(organization, request)
-            discover_snql = batch_features.get("organizations:discover-use-snql", False)
             has_chart_interpolation = batch_features.get(
                 "organizations:performance-chart-interpolation", False
             )
-            performance_use_metrics = batch_features.get(
+            use_metrics = batch_features.get(
                 "organizations:performance-use-metrics", False
-            )
+            ) or batch_features.get("organizations:dashboards-mep", False)
             performance_dry_run_mep = batch_features.get(
                 "organizations:performance-dry-run-mep", False
             )
 
-            metrics_enhanced = request.GET.get("metricsEnhanced") == "1" and performance_use_metrics
+            # This param will be deprecated in favour of dataset
+            if "metricsEnhanced" in request.GET:
+                metrics_enhanced = request.GET.get("metricsEnhanced") == "1" and use_metrics
+                dataset = discover if not metrics_enhanced else metrics_enhanced_performance
+            else:
+                dataset = self.get_dataset(request) if use_metrics else discover
+                metrics_enhanced = dataset != discover
+
             allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
             sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
 
@@ -173,9 +179,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                     allow_empty=False,
                     zerofill_results=zerofill_results,
                     include_other=include_other,
-                    use_snql=discover_snql,
                 )
-            dataset = discover if not metrics_enhanced else metrics_enhanced_performance
             query_details = {
                 "selected_columns": query_columns,
                 "query": query,
@@ -185,7 +189,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                 "zerofill_results": zerofill_results,
                 "comparison_delta": comparison_delta,
                 "allow_metric_aggregates": allow_metric_aggregates,
-                "use_snql": discover_snql,
             }
             if not metrics_enhanced and performance_dry_run_mep:
                 sentry_sdk.set_tag("query.mep_compatible", False)
