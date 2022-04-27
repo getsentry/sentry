@@ -30,7 +30,7 @@ function frameSearch(
   query: string,
   frames: ReadonlyArray<FlamegraphFrame>,
   index: Fuse<FlamegraphFrame>
-): Record<string, FlamegraphFrame> {
+): Record<string, FlamegraphFrame> | null {
   const results = {};
   if (isRegExpString(query)) {
     const [_, lookup, flags] = parseRegExp(query) ?? [];
@@ -61,6 +61,10 @@ function frameSearch(
   }
 
   const fuseResults = index.search(query);
+
+  if (fuseResults.length <= 0) {
+    return null;
+  }
 
   for (let i = 0; i < fuseResults.length; i++) {
     const frame = fuseResults[i];
