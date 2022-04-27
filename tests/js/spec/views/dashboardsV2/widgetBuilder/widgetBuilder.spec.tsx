@@ -1862,6 +1862,25 @@ describe('WidgetBuilder', function () {
       // count_unique(user) should still be the sorting field
       expect(await screen.findByText('count_unique(user)')).toBeInTheDocument();
     });
+
+    it('falls back to the first aggregate to sort by when the sorting aggregate is removed', async function () {
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        query: {
+          source: DashboardWidgetSource.DASHBOARDS,
+          displayType: DisplayType.LINE,
+        },
+      });
+
+      userEvent.click(await screen.findByText('Add Overlay'));
+      await selectEvent.select(screen.getByText('(Required)'), /count_unique/);
+      await selectEvent.select(await screen.findByText('Select group'), 'project');
+
+      userEvent.click(screen.getAllByLabelText('Remove this Y-Axis')[0]);
+
+      // count_unique(user) should now be the sorting field
+      expect(await screen.findByText('count_unique(user)')).toBeInTheDocument();
+    });
   });
 
   describe('Widget creation coming from other verticals', function () {
