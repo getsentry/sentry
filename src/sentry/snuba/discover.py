@@ -7,6 +7,8 @@ from typing import Dict, Optional, Sequence
 
 import sentry_sdk
 from dateutil.parser import parse as parse_datetime
+from snuba_sdk.conditions import Condition, Op
+from snuba_sdk.function import Function
 
 from sentry import options
 from sentry.discover.arithmetic import categorize_columns, resolve_equation_list
@@ -1413,6 +1415,13 @@ def spans_histogram_query(
     )
     if extra_condition is not None:
         builder.add_conditions(extra_condition)
+
+    builder.add_conditions(
+        [
+            Condition(Function("has", [builder.column("spans_op"), span.op]), Op.EQ, 1),
+            Condition(Function("has", [builder.column("spans_group"), span.group]), Op.EQ, 1),
+        ]
+    )
     results = builder.run_query(referrer)
 
     if not normalize_results:
