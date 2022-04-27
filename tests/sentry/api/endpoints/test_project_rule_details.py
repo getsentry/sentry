@@ -20,6 +20,40 @@ from sentry.testutils import APITestCase
 from sentry.utils import json
 
 
+class ProjectRuleDetailsBaseTestCase(APITestCase):
+    endpoint = "sentry-api-0-project-rule-details"
+
+    def setUp(self):
+        self.user = self.create_user()
+        self.organization = self.create_organization(owner=self.user)
+        self.project = self.create_project(organization=self.organization)
+        self.rule = Rule.objects.create(project=self.project, label="foo")
+        self.slack_integration = Integration.objects.create(
+            provider="slack",
+            name="Awesome Team",
+            external_id="TXXXXXXX1",
+            metadata={
+                "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "installation_type": "born_as_bot",
+            },
+        )
+        self.slack_integration.add_organization(self.organization, self.user)
+        self.sentry_app = self.create_sentry_app(
+            name="Pied Piper",
+            organization=self.organization,
+            schema={"elements": [self.create_alert_rule_action_schema()]},
+        )
+        self.sentry_app_installation = self.create_sentry_app_installation(
+            slug=self.sentry_app.slug, organization=self.organization
+        )
+        self.sentry_app_settings_payload = [
+            {"name": "title", "value": "Team Rocket"},
+            {"name": "summary", "value": "We're blasting off again."},
+        ]
+
+        self.login_as(self.user)
+
+
 class ProjectRuleDetailsTest(APITestCase):
     endpoint = "sentry-api-0-project-rule-details"
 
@@ -308,39 +342,8 @@ class ProjectRuleDetailsTest(APITestCase):
         ]
 
 
-class UpdateProjectRuleTest(APITestCase):
-    endpoint = "sentry-api-0-project-rule-details"
+class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
     method = "PUT"
-
-    def setUp(self):
-        self.user = self.create_user()
-        self.organization = self.create_organization(owner=self.user)
-        self.project = self.create_project(organization=self.organization)
-        self.rule = Rule.objects.create(project=self.project, label="foo")
-        self.slack_integration = Integration.objects.create(
-            provider="slack",
-            name="Awesome Team",
-            external_id="TXXXXXXX1",
-            metadata={
-                "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
-                "installation_type": "born_as_bot",
-            },
-        )
-        self.slack_integration.add_organization(self.organization, self.user)
-        self.sentry_app = self.create_sentry_app(
-            name="Pied Piper",
-            organization=self.organization,
-            schema={"elements": [self.create_alert_rule_action_schema()]},
-        )
-        self.sentry_app_installation = self.create_sentry_app_installation(
-            slug=self.sentry_app.slug, organization=self.organization
-        )
-        self.sentry_app_settings_payload = [
-            {"name": "title", "value": "Team Rocket"},
-            {"name": "summary", "value": "We're blasting off again."},
-        ]
-
-        self.login_as(self.user)
 
     def assert_rule_from_payload(self, rule, payload):
         rule.refresh_from_db()
@@ -789,27 +792,15 @@ class UpdateProjectRuleTest(APITestCase):
         assert error_message in response.json().get("actions")[0]
 
 
-class DeleteProjectRuleTest(APITestCase):
+class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
+    method = "DELETE"
+
     def test_simple(self):
-        self.login_as(user=self.user)
-
-        project = self.create_project()
-
-        rule = Rule.objects.create(project=project, label="foo")
-
-        url = reverse(
-            "sentry-api-0-project-rule-details",
-            kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
-                "rule_id": rule.id,
-            },
+        self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=202
         )
-        response = self.client.delete(url)
-
-        assert response.status_code == 202, response.content
-
-        rule = Rule.objects.get(id=rule.id)
-        assert rule.status == RuleStatus.PENDING_DELETION
-
-        assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.DELETED.value).exists()
+        self.rule.refresh_from_db()
+        assert self.rule.status == RuleStatus.PENDING_DELETION
+        assert RuleActivity.objects.filter(
+            rule=self.rule, type=RuleActivityType.DELETED.value
+        ).exists()
