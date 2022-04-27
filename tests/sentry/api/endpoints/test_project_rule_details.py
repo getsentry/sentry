@@ -1,13 +1,16 @@
 from datetime import datetime
+from typing import Any, Mapping
 from unittest.mock import patch
 
 import responses
 from freezegun import freeze_time
 from pytz import UTC
 
+from sentry.integrations.slack.utils.channel import strip_channel_name
 from sentry.models import (
     Environment,
     Integration,
+    Rule,
     RuleActivity,
     RuleActivityType,
     RuleFireHistory,
@@ -15,28 +18,62 @@ from sentry.models import (
     User,
 )
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers import install_slack
 from sentry.utils import json
+
+
+def assert_rule_from_payload(rule: Rule, payload: Mapping[str, Any]) -> None:
+    """
+    Helper function to assert every field on a Rule was modified correctly from the incoming payload
+    """
+    rule.refresh_from_db()
+    assert rule.label == payload.get("name")
+
+    owner_id = payload.get("owner")
+    if owner_id:
+        assert rule.owner == User.objects.get(id=owner_id).actor
+    else:
+        assert rule.owner is None
+
+    environment = payload.get("environment")
+    if environment:
+        assert (
+            rule.environment_id
+            == Environment.objects.get(projects=rule.project, name=environment).id
+        )
+    else:
+        assert rule.environment_id is None
+    assert rule.data["action_match"] == payload.get("actionMatch")
+    assert rule.data["filter_match"] == payload.get("filterMatch")
+    # For actions/conditions/filters, payload might only have a portion of the rule data so we use
+    # any(a.items() <= b.items()) to check if the payload dict is a subset of the rule.data dict
+    # E.g. payload["actions"] = [{"name": "Test1"}], rule.data["actions"] = [{"name": "Test1", "id": 1}]
+    for payload_action in payload.get("actions", []):
+        # The Slack payload will contain '#channel' or '@user', but we save 'channel' or 'user' on the Rule
+        if (
+            payload_action["id"]
+            == "sentry.integrations.slack.notify_action.SlackNotifyServiceAction"
+        ):
+            payload_action["channel"] = strip_channel_name(payload_action["channel"])
+        assert any(
+            payload_action.items() <= rule_action.items() for rule_action in rule.data["actions"]
+        )
+    payload_conditions = payload.get("conditions", []) + payload.get("filters", [])
+    for payload_condition in payload_conditions:
+        assert any(
+            payload_condition.items() <= rule_condition.items()
+            for rule_condition in rule.data["conditions"]
+        )
+    assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.UPDATED.value).exists()
 
 
 class ProjectRuleDetailsBaseTestCase(APITestCase):
     endpoint = "sentry-api-0-project-rule-details"
 
     def setUp(self):
-        self.user = self.create_user()
-        self.organization = self.create_organization(owner=self.user)
-        self.project = self.create_project(organization=self.organization)
         self.rule = self.create_project_rule(project=self.project)
         self.environment = self.create_environment(self.project, name="production")
-        self.slack_integration = Integration.objects.create(
-            provider="slack",
-            name="Awesome Team",
-            external_id="TXXXXXXX1",
-            metadata={
-                "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
-                "installation_type": "born_as_bot",
-            },
-        )
-        self.slack_integration.add_organization(self.organization, self.user)
+        self.slack_integration = install_slack(organization=self.organization)
         self.jira_integration = Integration.objects.create(
             provider="jira", name="Jira", external_id="jira:1"
         )
@@ -53,7 +90,6 @@ class ProjectRuleDetailsBaseTestCase(APITestCase):
             {"name": "title", "value": "Team Rocket"},
             {"name": "summary", "value": "We're blasting off again."},
         ]
-
         self.login_as(self.user)
 
 
@@ -222,40 +258,6 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
 class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
     method = "PUT"
 
-    def assert_rule_from_payload(self, rule, payload):
-        rule.refresh_from_db()
-        assert rule.label == payload.get("name")
-
-        owner_id = payload.get("owner")
-        if owner_id:
-            assert rule.owner == User.objects.get(id=owner_id).actor
-        else:
-            assert rule.owner is None
-
-        environment = payload.get("environment")
-        if environment:
-            assert (
-                rule.environment_id
-                == Environment.objects.get(projects=rule.project, name=environment).id
-            )
-        else:
-            assert rule.environment_id is None
-        assert rule.data["action_match"] == payload.get("actionMatch")
-        assert rule.data["filter_match"] == payload.get("filterMatch")
-        # For actions/conditions/filters, payload may only have a subset of the dict in rule.data
-        for payload_action in payload.get("actions", []):
-            assert any(
-                payload_action.items() <= rule_action.items()
-                for rule_action in rule.data["actions"]
-            )
-        payload_conditions = payload.get("conditions", []) + payload.get("filters", [])
-        for payload_condition in payload_conditions:
-            assert any(
-                payload_condition.items() <= rule_condition.items()
-                for rule_condition in rule.data["conditions"]
-            )
-        assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.UPDATED.value).exists()
-
     @patch("sentry.signals.alert_rule_edited.send_robust")
     def test_simple(self, send_robust):
         conditions = [
@@ -278,7 +280,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
         )
         assert response.data["id"] == str(self.rule.id)
-        self.assert_rule_from_payload(self.rule, payload)
+        assert_rule_from_payload(self.rule, payload)
         assert send_robust.called
 
     def test_no_owner(self):
@@ -302,7 +304,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
         )
         assert response.data["id"] == str(self.rule.id)
-        self.assert_rule_from_payload(self.rule, payload)
+        assert_rule_from_payload(self.rule, payload)
 
     def test_update_name(self):
         conditions = [
@@ -335,7 +337,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert (
             response.data["conditions"][0]["name"] == "The issue is seen more than 666 times in 1h"
         )
-        self.assert_rule_from_payload(self.rule, payload)
+        assert_rule_from_payload(self.rule, payload)
 
     def test_with_environment(self):
         payload = {
@@ -353,11 +355,10 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         )
         assert response.data["id"] == str(self.rule.id)
         assert response.data["environment"] == self.environment.name
-        self.assert_rule_from_payload(self.rule, payload)
+        assert_rule_from_payload(self.rule, payload)
 
     def test_with_null_environment(self):
-        self.rule.environment_id = self.environment.id
-        self.rule.save()
+        self.rule.update(environment_id=self.environment.id)
 
         payload = {
             "name": "hello world",
@@ -375,7 +376,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         )
         assert response.data["id"] == str(self.rule.id)
         assert response.data["environment"] is None
-        self.assert_rule_from_payload(self.rule, payload)
+        assert_rule_from_payload(self.rule, payload)
 
     @responses.activate
     def test_update_channel_slack(self):
@@ -383,13 +384,12 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         actions = [
             {
                 "channel_id": "old_channel_id",
-                "workspace": self.slack_integration.id,
+                "workspace": str(self.slack_integration.id),
                 "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
                 "channel": "#old_channel_name",
             }
         ]
-        self.rule.data = {"conditions": conditions, "actions": actions}
-        self.rule.save()
+        self.rule.update(data={"conditions": conditions, "actions": actions})
 
         actions[0]["channel"] = "#new_channel_name"
         actions[0]["channel_id"] = "new_channel_id"
@@ -427,8 +427,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         self.get_success_response(
             self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
         )
-        # TODO(Leander): Figure out a way to just run assert_from_payload)
-        assert self.rule.data["actions"][0]["channel_id"] == "new_channel_id"
+        assert_rule_from_payload(self.rule, payload)
 
     @responses.activate
     def test_update_channel_slack_workspace_fail(self):
@@ -436,13 +435,12 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         actions = [
             {
                 "channel_id": "old_channel_id",
-                "workspace": self.slack_integration.id,
+                "workspace": str(self.slack_integration.id),
                 "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
                 "channel": "#old_channel_name",
             }
         ]
-        self.rule.data = {"conditions": conditions, "actions": actions}
-        self.rule.save()
+        self.rule.update(data={"conditions": conditions, "actions": actions})
 
         channels = {
             "ok": "true",
@@ -481,8 +479,6 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
 
     @responses.activate
     def test_slack_channel_id_saved(self):
-        self.rule.environment_id = self.environment.id
-        self.rule.save()
         channel_id = "CSVK0921"
         responses.add(
             method=responses.GET,
@@ -501,7 +497,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
                 {
                     "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
                     "name": "Send a notification to the funinthesun Slack workspace to #team-team-team and show tags [] in notification",
-                    "workspace": self.slack_integration.id,
+                    "workspace": str(self.slack_integration.id),
                     "channel": "#team-team-team",
                     "channel_id": channel_id,
                 }
@@ -597,7 +593,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         )
         assert response.data["id"] == str(self.rule.id)
 
-        self.assert_rule_from_payload(self.rule, payload)
+        assert_rule_from_payload(self.rule, payload)
 
     @responses.activate
     def test_update_sentry_app_action_success(self):
@@ -626,7 +622,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         self.get_success_response(
             self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
         )
-        self.assert_rule_from_payload(self.rule, payload)
+        assert_rule_from_payload(self.rule, payload)
         assert len(responses.calls) == 1
 
     @responses.activate

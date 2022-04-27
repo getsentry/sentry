@@ -1,10 +1,14 @@
+from __future__ import annotations
+
 from copy import deepcopy
+from typing import Any, Mapping, Sequence
 from unittest.mock import patch
 
 import responses
 
-from sentry.models import Environment, Integration, Rule, RuleActivity, RuleActivityType
+from sentry.models import Environment, Rule, RuleActivity, RuleActivityType
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers import install_slack
 from sentry.utils import json
 
 
@@ -12,20 +16,8 @@ class ProjectRuleBaseTestCase(APITestCase):
     endpoint = "sentry-api-0-project-rules"
 
     def setUp(self):
-        self.user = self.create_user()
-        self.organization = self.create_organization(owner=self.user)
-        self.project = self.create_project(organization=self.organization)
         self.rule = self.create_project_rule(project=self.project)
-        self.slack_integration = Integration.objects.create(
-            provider="slack",
-            name="Awesome Team",
-            external_id="TXXXXXXX1",
-            metadata={
-                "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
-                "installation_type": "born_as_bot",
-            },
-        )
-        self.slack_integration.add_organization(self.organization, self.user)
+        self.slack_integration = install_slack(organization=self.organization)
         self.sentry_app = self.create_sentry_app(
             name="Pied Piper",
             organization=self.organization,
@@ -54,15 +46,15 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
 
     def run_test(
         self,
-        actions,
-        expected_conditions=None,
-        filters=None,
-        name="hello world",
-        action_match="any",
-        filter_match="any",
-        frequency=30,
-        conditions=None,
-        **kwargs,
+        actions: Sequence[Mapping[str, Any]] | None = None,
+        conditions: Sequence[Mapping[str, Any]] | None = None,
+        filters: Sequence[Mapping[str, Any]] | None = None,
+        expected_conditions: Sequence[Mapping[str, Any]] | None = None,
+        name: str | None = "hello world",
+        action_match: str | None = "any",
+        filter_match: str | None = "any",
+        frequency: int | None = 30,
+        **kwargs: Any,
     ):
         owner = self.user.actor.get_actor_identifier()
         query_args = {}
@@ -159,7 +151,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
                 {
                     "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
                     "name": "Send a notification to the funinthesun Slack workspace to #team-team-team and show tags [] in notification",
-                    "workspace": self.slack_integration.id,
+                    "workspace": str(self.slack_integration.id),
                     "channel": "#team-team-team",
                     "input_channel_id": channel_id,
                 }

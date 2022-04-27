@@ -68,11 +68,11 @@ class SentryAppEventAction(EventAction, abc.ABC):
 
     @abc.abstractmethod
     def get_custom_actions(self, project: Project) -> Sequence[Mapping[str, Any]]:
-        raise NotImplementedError()
+        pass
 
     @abc.abstractmethod
     def self_validate(self) -> None:
-        raise NotImplementedError()
+        pass
 
 
 def trigger_sentry_app_action_creators_for_issues(
