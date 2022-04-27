@@ -1415,6 +1415,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             "transaction": indexer.resolve(self.organization.id, "baz_transaction"),
             "project": self.project.slug,
             "p95_transaction_duration": 200,
+            "count_unique_user": 0,
         }
         self.assertCountEqual(
             result["meta"],

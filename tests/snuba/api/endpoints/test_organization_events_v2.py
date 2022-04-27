@@ -5833,3 +5833,45 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             assert response.status_code == 200, response.content
             assert len(mock_builder.mock_calls) == 3
             assert mock_builder.call_args.kwargs["dry_run"]
+
+    def test_count_unique_user_returns_zero(self):
+        self.store_metric(
+            50,
+            metric="user",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_metric(
+            50,
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_metric(
+            100,
+            tags={"transaction": "bar_transaction"},
+            timestamp=self.min_ago,
+        )
+
+        query = {
+            "project": [self.project.id],
+            "orderby": "p50()",
+            "field": [
+                "transaction",
+                "count_unique(user)",
+                "p50()",
+            ],
+            "dataset": "metricsEnhanced",
+            "per_page": 50,
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 2
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert data[0]["transaction"] == "foo_transaction"
+        assert data[0]["count_unique_user"] == 1
+        assert data[1]["transaction"] == "bar_transaction"
+        assert data[1]["count_unique_user"] == 0
+        assert meta["isMetricsData"]
