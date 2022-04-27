@@ -7,7 +7,7 @@ from rest_framework import serializers
 from sentry.api.issue_search import parse_search_query
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
-from sentry.discover.arithmetic import ArithmeticError, categorize_columns
+from sentry.discover.arithmetic import ArithmeticError, categorize_columns, is_equation_alias
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
     Dashboard,
@@ -145,17 +145,23 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
         aggregates = self._get_attr(data, "aggregates", []).copy()
         fields = columns + aggregates
 
-        injected_orderby_equation = None
-        if is_equation(orderby.lstrip("-")):
-            injected_orderby_equation = orderby.lstrip("-")
+        # Handle the orderby since it can be a value that's not included in fields
+        # e.g. a custom equation, or a function that isn't plotted as a y-axis
+        injected_orderby_equation, orderby_prefix = None, None
+        stripped_orderby = orderby.lstrip("-")
+        if is_equation(stripped_orderby):
+            # The orderby is a custom equation and needs to be added to fields
+            injected_orderby_equation = stripped_orderby
             fields.append(injected_orderby_equation)
-            equations, fields = categorize_columns(fields)
             orderby_prefix = "-" if orderby.startswith("-") else ""
+        elif not is_equation_alias(stripped_orderby) and stripped_orderby not in fields:
+            fields.append(stripped_orderby)
 
+        equations, fields = categorize_columns(fields)
+
+        if injected_orderby_equation and orderby_prefix:
             # Subtract one because the equation is injected to fields
             orderby = f"{orderby_prefix}equation[{len(equations) - 1}]"
-        else:
-            equations, fields = categorize_columns(fields)
 
         try:
             parse_search_query(conditions)
