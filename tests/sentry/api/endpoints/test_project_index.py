@@ -1,6 +1,8 @@
 from django.urls import reverse
 
+from sentry.mediators.token_exchange import GrantExchanger
 from sentry.models import Project, ProjectStatus, SentryAppInstallationToken
+from sentry.models.apitoken import ApiToken
 from sentry.testutils import APITestCase
 
 
@@ -154,6 +156,54 @@ class ProjectsListTest(APITestCase):
 
         # Delete the token
         SentryAppInstallationToken.objects.all().delete()
+
+        path = reverse(self.endpoint)
+        response = self.client.get(path, HTTP_AUTHORIZATION=f"Bearer {token}")
+        assert response.status_code == 401
+
+    def test_valid_with_public_integration(self):
+        project = self.create_project(organization=self.organization, teams=[self.team])
+        sentry_app = self.create_sentry_app(
+            scopes=("project:read",),
+            published=False,
+            verify_install=False,
+            name="Super Awesome App",
+        )
+        installation = self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=self.organization, user=self.user
+        )
+
+        token = GrantExchanger.run(
+            install=installation,
+            code=installation.api_grant.code,
+            client_id=sentry_app.application.client_id,
+            user=sentry_app.proxy_user,
+        )
+        # there should only be one record created so just grab the first one
+        path = reverse(self.endpoint)
+        response = self.client.get(path, HTTP_AUTHORIZATION=f"Bearer {token}")
+        assert project.name.encode("utf-8") in response.content
+
+    def test_deleted_token_with_public_integration(self):
+        self.create_project(organization=self.organization, teams=[self.team])
+        sentry_app = self.create_sentry_app(
+            scopes=("project:read",),
+            published=False,
+            verify_install=False,
+            name="Super Awesome App",
+        )
+        installation = self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=self.organization, user=self.user
+        )
+
+        token = GrantExchanger.run(
+            install=installation,
+            code=installation.api_grant.code,
+            client_id=sentry_app.application.client_id,
+            user=sentry_app.proxy_user,
+        )
+
+        ApiToken.objects.all().delete()
 
         path = reverse(self.endpoint)
         response = self.client.get(path, HTTP_AUTHORIZATION=f"Bearer {token}")

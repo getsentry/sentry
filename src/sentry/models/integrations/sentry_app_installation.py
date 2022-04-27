@@ -6,13 +6,14 @@ from django.db import models
 from django.db.models import OuterRef, QuerySet, Subquery
 from django.utils import timezone
 
-from sentry.constants import SentryAppInstallationStatus
+from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     ParanoidManager,
     ParanoidModel,
 )
+from sentry.models import ApiToken
 
 
 def default_uuid():
@@ -32,6 +33,22 @@ class SentryAppInstallationForProviderManager(ParanoidManager):
 
     def get_by_api_token(self, token_id: str) -> QuerySet:
         return self.filter(status=SentryAppInstallationStatus.INSTALLED, api_token_id=token_id)
+
+    def get_projects(self, token: ApiToken) -> QuerySet:
+        from sentry.models import Project, SentryAppInstallationToken
+
+        try:
+            installation = self.get_by_api_token(token.id).first()
+        except SentryAppInstallation.DoesNotExist:
+            installation = None
+
+        if not installation:
+            return Project.objects.none()
+
+        if installation.sentry_app.status == SentryAppStatus.INTERNAL:
+            return SentryAppInstallationToken.objects.get_projects(token)
+
+        return Project.objects.filter(organization_id=installation.organization_id)
 
     def get_related_sentry_app_components(
         self,
