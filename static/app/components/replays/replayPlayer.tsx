@@ -1,27 +1,26 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 
 import {Panel as _Panel} from 'sentry/components/panels';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import useFullscreen from 'sentry/components/replays/useFullscreen';
-import Tooltip from 'sentry/components/tooltip';
-import {IconArrow} from 'sentry/icons';
-import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+
+import BufferingOverlay from './player/bufferingOverlay';
+import FastForwardBadge from './player/fastForwardBadge';
+import StackedContent from './stackedContent';
 
 interface Props {
   className?: string;
+  fixedHeight?: boolean;
 }
 
-function BasePlayerRoot({className}: Props) {
-  const {isFullscreen} = useFullscreen();
-
-  // In fullscreen we need to consider the max-height that the player is able
-  // to full up, on a page that scrolls we only consider the max-width.
-  const fixedHeight = isFullscreen;
-
-  const {initRoot, dimensions: videoDimensions, fastForwardSpeed} = useReplayContext();
+function BasePlayerRoot({className, fixedHeight = false}: Props) {
+  const {
+    initRoot,
+    dimensions: videoDimensions,
+    fastForwardSpeed,
+    isBuffering,
+  } = useReplayContext();
 
   const windowEl = useRef<HTMLDivElement>(null);
   const viewEl = useRef<HTMLDivElement>(null);
@@ -74,46 +73,28 @@ function BasePlayerRoot({className}: Props) {
   }, [windowDimensions, videoDimensions]);
 
   return (
-    <Panel isFullscreen={isFullscreen}>
+    <Panel fixedHeight={fixedHeight}>
       <Centered ref={windowEl} className="sr-block" data-test-id="replay-window">
-        <div ref={viewEl} data-test-id="replay-view" className={className} />
-        {fastForwardSpeed ? (
-          <FastForwardBadge>
-            <FastForwardTooltip title={t('Fast forwarding')}>
-              <IconArrow size="sm" direction="right" />
-              {fastForwardSpeed}x
-            </FastForwardTooltip>
-          </FastForwardBadge>
-        ) : null}
+        <StackedContent>
+          {() => (
+            <React.Fragment>
+              <div ref={viewEl} data-test-id="replay-view" className={className} />
+              {fastForwardSpeed ? <FastForwardBadge speed={fastForwardSpeed} /> : null}
+              {isBuffering ? <BufferingOverlay /> : null}
+            </React.Fragment>
+          )}
+        </StackedContent>
       </Centered>
     </Panel>
   );
 }
 
-const FastForwardBadge = styled('div')`
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  background: ${p => p.theme.gray300};
-  color: ${p => p.theme.white};
-  padding: ${space(0.5)} ${space(1)};
-  border-bottom-left-radius: ${p => p.theme.borderRadius};
-  border-top-right-radius: ${p => p.theme.borderRadius};
-`;
-
-const FastForwardTooltip = styled(Tooltip)`
-  display: grid;
-  grid-template-columns: max-content max-content;
-  gap: ${space(0.5)};
-  align-items: center;
-`;
-
-const Panel = styled(_Panel)<{isFullscreen: boolean}>`
+const Panel = styled(_Panel)<{fixedHeight: boolean}>`
   /*
   Disable the <Panel> styles when in fullscreen mode.
   If we add/remove DOM nodes then the Replayer instance will have a stale iframe ref
   */
-  ${p => (p.isFullscreen ? 'border: none; background: transparent;' : '')}
+  ${p => (p.fixedHeight ? 'border: none; background: transparent;' : '')}
 
   iframe {
     /* Match the iframe corners to the <Panel> */

@@ -51,6 +51,11 @@ type ReplayPlayerContextProps = {
   initRoot: (root: RootElem) => void;
 
   /**
+   * Set to true while the library is reconstructing the DOM
+   */
+  isBuffering: boolean;
+
+  /**
    * Whether the video is currently playing
    */
   isPlaying: boolean;
@@ -97,6 +102,7 @@ const ReplayPlayerContext = React.createContext<ReplayPlayerContextProps>({
   events: [],
   fastForwardSpeed: 0,
   initRoot: () => {},
+  isBuffering: false,
   isPlaying: false,
   isSkippingInactive: false,
   setCurrentTime: () => {},
@@ -127,6 +133,8 @@ export function Provider({children, events, value = {}}: Props) {
   const [isSkippingInactive, setIsSkippingInactive] = useState(false);
   const [speed, setSpeedState] = useState(1);
   const [fastForwardSpeed, setFFSpeed] = useState(0);
+  const [buffer, setBufferTime] = useState({target: -1, previous: -1});
+  const playTimer = useRef<number | undefined>(undefined);
 
   const forceDimensions = (dimension: Dimensions) => {
     setDimensions(dimension);
@@ -211,14 +219,24 @@ export function Provider({children, events, value = {}}: Props) {
         return;
       }
 
+      // Sometimes rrweb doesn't get to the exact target time, as long as it has
+      // changed away from the previous time then we can hide then buffering message.
+      setBufferTime({target: time, previous: getCurrentTime()});
+
+      // Clear previous timers. Without this (but with the setTimeout) multiple
+      // requests to set the currentTime could finish out of order and cause jumping.
+      if (playTimer.current) {
+        window.clearTimeout(playTimer.current);
+      }
+
       // TODO: it might be nice to always just pause() here
       // Why? People can drag the scrobber, or click 'back 10s' and then be in a
       // paused state to inspect things.
       if (isPlaying) {
-        replayer.play(time);
+        playTimer.current = window.setTimeout(() => replayer.play(time), 0);
         setIsPlaying(true);
       } else {
-        replayer.pause(time);
+        playTimer.current = window.setTimeout(() => replayer.pause(time), 0);
         setIsPlaying(false);
       }
     },
@@ -274,7 +292,16 @@ export function Provider({children, events, value = {}}: Props) {
     [replayerRef.current]
   );
 
-  const currentTime = useCurrentTime(getCurrentTime);
+  const currentPlayerTime = useCurrentTime(getCurrentTime);
+
+  const [isBuffering, currentTime] =
+    buffer.target !== -1 && buffer.previous === currentPlayerTime
+      ? [true, buffer.target]
+      : [false, currentPlayerTime];
+
+  if (!isBuffering && buffer.target !== -1) {
+    setBufferTime({target: -1, previous: -1});
+  }
 
   return (
     <ReplayPlayerContext.Provider
@@ -285,6 +312,7 @@ export function Provider({children, events, value = {}}: Props) {
         events,
         fastForwardSpeed,
         initRoot,
+        isBuffering,
         isPlaying,
         isSkippingInactive,
         setCurrentTime,
