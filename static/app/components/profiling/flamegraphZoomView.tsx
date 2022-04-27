@@ -143,10 +143,6 @@ function FlamegraphZoomView({
   }, [configSpaceCursor, flamegraphRenderer]);
 
   useEffect(() => {
-    scheduler.draw();
-  }, [scheduler]);
-
-  useEffect(() => {
     const onKeyDown = (evt: KeyboardEvent) => {
       if (!flamegraphRenderer) {
         return;
@@ -238,6 +234,7 @@ function FlamegraphZoomView({
     };
 
     scheduler.registerBeforeFrameCallback(drawRectangles);
+    scheduler.draw();
 
     return () => {
       scheduler.unregisterBeforeFrameCallback(drawRectangles);
