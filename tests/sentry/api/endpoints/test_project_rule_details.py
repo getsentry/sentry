@@ -58,8 +58,6 @@ class ProjectRuleDetailsBaseTestCase(APITestCase):
 
 
 class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
-    endpoint = "sentry-api-0-project-rule-details"
-
     def test_simple(self):
         response = self.get_success_response(
             self.organization.slug, self.project.slug, self.rule.id, status_code=200
@@ -607,7 +605,6 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             method=responses.POST,
             url="https://example.com/sentry/alert-rule",
             status=202,
-            json={},
         )
         actions = [
             {
