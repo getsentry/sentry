@@ -153,7 +153,7 @@ class GroupHeader extends React.Component<Props, State> {
               <TitleWrapper>
                 <StyledIdBadge
                   project={project}
-                  avatarSize={28}
+                  avatarSize={24}
                   hideName
                   avatarProps={{hasTooltip: true, tooltip: project.slug}}
                 />
