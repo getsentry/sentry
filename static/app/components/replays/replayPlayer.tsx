@@ -135,6 +135,9 @@ const Centered = styled('div')`
 
 // Base styles, to make the Replayer instance work
 const PlayerRoot = styled(BasePlayerRoot)`
+  .replayer-wrapper {
+    background: white;
+  }
   .replayer-wrapper > .replayer-mouse-tail {
     position: absolute;
     pointer-events: none;
