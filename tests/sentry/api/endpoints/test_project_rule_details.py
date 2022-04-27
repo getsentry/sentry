@@ -2,14 +2,12 @@ from datetime import datetime
 from unittest.mock import patch
 
 import responses
-from django.urls import reverse
 from freezegun import freeze_time
 from pytz import UTC
 
 from sentry.models import (
     Environment,
     Integration,
-    Rule,
     RuleActivity,
     RuleActivityType,
     RuleFireHistory,
@@ -27,7 +25,8 @@ class ProjectRuleDetailsBaseTestCase(APITestCase):
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.organization)
-        self.rule = Rule.objects.create(project=self.project, label="foo")
+        self.rule = self.create_project_rule(project=self.project)
+        self.environment = self.create_environment(self.project, name="production")
         self.slack_integration = Integration.objects.create(
             provider="slack",
             name="Awesome Team",
@@ -38,6 +37,10 @@ class ProjectRuleDetailsBaseTestCase(APITestCase):
             },
         )
         self.slack_integration.add_organization(self.organization, self.user)
+        self.jira_integration = Integration.objects.create(
+            provider="jira", name="Jira", external_id="jira:1"
+        )
+        self.jira_integration.add_organization(self.organization, self.user)
         self.sentry_app = self.create_sentry_app(
             name="Pied Piper",
             organization=self.organization,
@@ -54,104 +57,28 @@ class ProjectRuleDetailsBaseTestCase(APITestCase):
         self.login_as(self.user)
 
 
-class ProjectRuleDetailsTest(APITestCase):
+class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
     endpoint = "sentry-api-0-project-rule-details"
 
     def test_simple(self):
-        self.login_as(user=self.user)
-
-        team = self.create_team()
-        project1 = self.create_project(teams=[team], name="foo", fire_project_created=True)
-        self.create_project(teams=[team], name="bar", fire_project_created=True)
-
-        rule = project1.rule_set.all()[0]
-
-        url = reverse(
-            "sentry-api-0-project-rule-details",
-            kwargs={
-                "organization_slug": project1.organization.slug,
-                "project_slug": project1.slug,
-                "rule_id": rule.id,
-            },
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200
         )
-        response = self.client.get(url, format="json")
-
-        assert response.status_code == 200, response.content
-        assert response.data["id"] == str(rule.id)
+        assert response.data["id"] == str(self.rule.id)
         assert response.data["environment"] is None
 
     def test_non_existing_rule(self):
-        self.login_as(user=self.user)
-
-        team = self.create_team()
-        project1 = self.create_project(teams=[team], name="foo", fire_project_created=True)
-        self.create_project(teams=[team], name="bar", fire_project_created=True)
-
-        url = reverse(
-            "sentry-api-0-project-rule-details",
-            kwargs={
-                "organization_slug": project1.organization.slug,
-                "project_slug": project1.slug,
-                "rule_id": 12345,
-            },
-        )
-        response = self.client.get(url, format="json")
-
-        assert response.status_code == 404
+        self.get_error_response(self.organization.slug, self.project.slug, 12345, status_code=404)
 
     def test_with_environment(self):
-        self.login_as(user=self.user)
-
-        team = self.create_team()
-        project1 = self.create_project(teams=[team], name="foo", fire_project_created=True)
-        self.create_project(teams=[team], name="bar", fire_project_created=True)
-
-        rule = project1.rule_set.all()[0]
-        rule.update(environment_id=Environment.get_or_create(rule.project, "production").id)
-
-        url = reverse(
-            "sentry-api-0-project-rule-details",
-            kwargs={
-                "organization_slug": project1.organization.slug,
-                "project_slug": project1.slug,
-                "rule_id": rule.id,
-            },
+        self.rule.update(environment_id=self.environment.id)
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200
         )
-        response = self.client.get(url, format="json")
-
-        assert response.status_code == 200, response.content
-        assert response.data["id"] == str(rule.id)
-        assert response.data["environment"] == "production"
-
-    def test_with_null_environment(self):
-        self.login_as(user=self.user)
-
-        team = self.create_team()
-        project1 = self.create_project(teams=[team], name="foo", fire_project_created=True)
-        self.create_project(teams=[team], name="bar", fire_project_created=True)
-
-        rule = project1.rule_set.all()[0]
-        rule.update(environment_id=None)
-
-        url = reverse(
-            "sentry-api-0-project-rule-details",
-            kwargs={
-                "organization_slug": project1.organization.slug,
-                "project_slug": project1.slug,
-                "rule_id": rule.id,
-            },
-        )
-        response = self.client.get(url, format="json")
-
-        assert response.status_code == 200, response.content
-        assert response.data["id"] == str(rule.id)
-        assert response.data["environment"] is None
+        assert response.data["id"] == str(self.rule.id)
+        assert response.data["environment"] == self.environment.name
 
     def test_with_filters(self):
-        self.login_as(user=self.user)
-
-        project = self.create_project()
-
         conditions = [
             {"id": "sentry.rules.conditions.every_event.EveryEventCondition"},
             {"id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter", "value": 10},
@@ -164,21 +91,12 @@ class ProjectRuleDetailsTest(APITestCase):
             "action_match": "all",
             "frequency": 30,
         }
+        self.rule.update(data=data)
 
-        rule = Rule.objects.create(project=project, label="foo", data=data)
-
-        url = reverse(
-            "sentry-api-0-project-rule-details",
-            kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
-                "rule_id": rule.id,
-            },
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200
         )
-        response = self.client.get(url, format="json")
-
-        assert response.status_code == 200, response.content
-        assert response.data["id"] == str(rule.id)
+        assert response.data["id"] == str(self.rule.id)
 
         # ensure that conditions and filters are split up correctly
         assert len(response.data["conditions"]) == 1
@@ -188,19 +106,6 @@ class ProjectRuleDetailsTest(APITestCase):
 
     @responses.activate
     def test_with_unresponsive_sentryapp(self):
-        self.login_as(user=self.user)
-
-        self.sentry_app = self.create_sentry_app(
-            organization=self.organization,
-            published=True,
-            verify_install=False,
-            name="Super Awesome App",
-            schema={"elements": [self.create_alert_rule_action_schema()]},
-        )
-        self.installation = self.create_sentry_app_installation(
-            slug=self.sentry_app.slug, organization=self.organization, user=self.user
-        )
-
         conditions = [
             {"id": "sentry.rules.conditions.every_event.EveryEventCondition"},
             {"id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter", "value": 10},
@@ -209,7 +114,7 @@ class ProjectRuleDetailsTest(APITestCase):
         actions = [
             {
                 "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
-                "sentryAppInstallationUuid": self.installation.uuid,
+                "sentryAppInstallationUuid": self.sentry_app_installation.uuid,
                 "settings": [
                     {"name": "title", "value": "An alert"},
                     {"summary": "Something happened here..."},
@@ -225,63 +130,47 @@ class ProjectRuleDetailsTest(APITestCase):
             "action_match": "all",
             "frequency": 30,
         }
+        self.rule.update(data=data)
 
-        rule = Rule.objects.create(project=self.project, label="foo", data=data)
-
-        url = reverse(
-            "sentry-api-0-project-rule-details",
-            kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
-                "rule_id": rule.id,
-            },
-        )
         responses.add(responses.GET, "http://example.com/sentry/members", json={}, status=404)
-
-        response = self.client.get(url, format="json")
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200
+        )
         assert len(responses.calls) == 1
 
         assert response.status_code == 200
         # Returns errors while fetching
         assert len(response.data["errors"]) == 1
-        assert response.data["errors"][0] == {
-            "detail": "Could not fetch details from Super Awesome App"
-        }
+        assert self.sentry_app.name in response.data["errors"][0]["detail"]
 
         # Disables the SentryApp
-        assert response.data["actions"][0]["sentryAppInstallationUuid"] == self.installation.uuid
+        assert (
+            response.data["actions"][0]["sentryAppInstallationUuid"]
+            == self.sentry_app_installation.uuid
+        )
         assert response.data["actions"][0]["disabled"] is True
 
     @freeze_time()
     def test_last_triggered(self):
-        self.login_as(user=self.user)
-        rule = self.create_project_rule()
-        resp = self.get_success_response(
-            self.organization.slug, self.project.slug, rule.id, expand=["lastTriggered"]
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, expand=["lastTriggered"]
         )
-        assert resp.data["lastTriggered"] is None
-        RuleFireHistory.objects.create(project=self.project, rule=rule, group=self.group)
-        resp = self.get_success_response(
-            self.organization.slug, self.project.slug, rule.id, expand=["lastTriggered"]
+        assert response.data["lastTriggered"] is None
+        RuleFireHistory.objects.create(project=self.project, rule=self.rule, group=self.group)
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, expand=["lastTriggered"]
         )
-        assert resp.data["lastTriggered"] == datetime.now().replace(tzinfo=UTC)
+        assert response.data["lastTriggered"] == datetime.now().replace(tzinfo=UTC)
 
     def test_with_jira_action_error(self):
-        self.login_as(user=self.user)
-        self.integration = Integration.objects.create(
-            provider="jira", name="Jira", external_id="jira:1"
-        )
-        self.integration.add_organization(self.organization, self.user)
-
         conditions = [
             {"id": "sentry.rules.conditions.every_event.EveryEventCondition"},
             {"id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter", "value": 10},
         ]
-
         actions = [
             {
                 "id": "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
-                "integration": self.integration.id,
+                "integration": self.jira_integration.id,
                 "customfield_epic_link": "EPIC-3",
                 "customfield_severity": "Medium",
                 "dynamic_form_fields": [
@@ -295,7 +184,7 @@ class ProjectRuleDetailsTest(APITestCase):
                         "name": "customfield_epic_link",
                         "required": False,
                         "type": "select",
-                        "url": f"/extensions/jira/search/{self.organization.slug}/{self.integration.id}/",
+                        "url": f"/extensions/jira/search/{self.organization.slug}/{self.jira_integration.id}/",
                     },
                     {
                         "choices": [
@@ -320,21 +209,11 @@ class ProjectRuleDetailsTest(APITestCase):
             "frequency": 30,
         }
 
-        rule = Rule.objects.create(project=self.project, label="foo", data=data)
+        self.rule.update(data=data)
 
-        url = reverse(
-            "sentry-api-0-project-rule-details",
-            kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
-                "rule_id": rule.id,
-            },
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200
         )
-
-        response = self.client.get(url, format="json")
-
-        assert response.status_code == 200
-
         # Expect that the choices get filtered to match the API: Array<string, string>
         assert response.data["actions"][0].get("dynamic_form_fields")[0].get("choices") == [
             ["EPIC-1", "Citizen Knope"],
@@ -461,12 +340,9 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         self.assert_rule_from_payload(self.rule, payload)
 
     def test_with_environment(self):
-
-        environment = Environment.get_or_create(self.project, "production")
-
         payload = {
             "name": "hello world",
-            "environment": environment.name,
+            "environment": self.environment.name,
             "actionMatch": "any",
             "filterMatch": "any",
             "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
@@ -474,19 +350,15 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
                 {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
             ],
         }
-
         response = self.get_success_response(
             self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
         )
-
         assert response.data["id"] == str(self.rule.id)
-        assert response.data["environment"] == "production"
+        assert response.data["environment"] == self.environment.name
         self.assert_rule_from_payload(self.rule, payload)
 
     def test_with_null_environment(self):
-
-        environment = Environment.get_or_create(self.project, "production")
-        self.rule.environment_id = environment.id
+        self.rule.environment_id = self.environment.id
         self.rule.save()
 
         payload = {
@@ -611,7 +483,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
 
     @responses.activate
     def test_slack_channel_id_saved(self):
-        self.rule.environment_id = Environment.get_or_create(self.project, "production").id
+        self.rule.environment_id = self.environment.id
         self.rule.save()
         channel_id = "CSVK0921"
         responses.add(
