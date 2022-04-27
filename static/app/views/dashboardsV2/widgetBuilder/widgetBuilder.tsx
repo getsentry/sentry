@@ -568,7 +568,7 @@ function WidgetBuilder({
 
     const newQueries = state.queries.map(query => {
       const isDescending = query.orderby.startsWith('-');
-      const orderbyAggregateAliasField = trimStart(query.orderby, '-');
+      const rawOrderby = trimStart(query.orderby, '-');
       const prevAggregateAliasFieldStrings = query.aggregates.map(aggregate =>
         state.dataSet === DataSet.RELEASE
           ? stripDerivedMetricsPrefix(aggregate)
@@ -603,18 +603,15 @@ function WidgetBuilder({
         newQuery.columns = columnsAndAggregates?.columns ?? [];
       }
 
-      if (
-        !aggregateAliasFieldStrings.includes(orderbyAggregateAliasField) &&
-        query.orderby !== ''
-      ) {
+      if (!aggregateAliasFieldStrings.includes(rawOrderby) && query.orderby !== '') {
         if (
           prevAggregateAliasFieldStrings.length === newFields.length &&
-          prevAggregateAliasFieldStrings.includes(orderbyAggregateAliasField)
+          prevAggregateAliasFieldStrings.includes(rawOrderby)
         ) {
           // The aggregate that was used in orderby has changed. Get the new field.
           let newOrderByValue =
             aggregateAliasFieldStrings[
-              prevAggregateAliasFieldStrings.indexOf(orderbyAggregateAliasField)
+              prevAggregateAliasFieldStrings.indexOf(rawOrderby)
             ];
 
           if (!stripEquationPrefix(newOrderByValue ?? '')) {
@@ -623,11 +620,9 @@ function WidgetBuilder({
 
           newQuery.orderby = `${isDescending ? '-' : ''}${newOrderByValue}`;
         } else {
-          const isFromAggregates = aggregateAliasFieldStrings.includes(
-            orderbyAggregateAliasField
-          );
-          const isCustomEquation = isEquation(orderbyAggregateAliasField);
-          const isUsedInGrouping = newQuery.columns.includes(orderbyAggregateAliasField);
+          const isFromAggregates = aggregateAliasFieldStrings.includes(rawOrderby);
+          const isCustomEquation = isEquation(rawOrderby);
+          const isUsedInGrouping = newQuery.columns.includes(rawOrderby);
 
           const keepCurrentOrderby =
             isFromAggregates || isCustomEquation || isUsedInGrouping;
