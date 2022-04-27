@@ -5,6 +5,7 @@ import {
   flattenErrors,
   getDashboardsMEPQueryParams,
   getFieldsFromEquations,
+  getNumEquations,
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
 } from 'sentry/views/dashboardsV2/utils';
@@ -231,6 +232,7 @@ describe('Dashboards util', () => {
       );
     });
   });
+
   describe('flattenErrors', function () {
     it('flattens nested errors', () => {
       const errorResponse = {
@@ -251,14 +253,36 @@ describe('Dashboards util', () => {
       });
     });
   });
+
   describe('getDashboardsMEPQueryParams', function () {
     it('returns correct params if enabled', function () {
       expect(getDashboardsMEPQueryParams(true)).toEqual({
-        metricsEnhanced: '1',
+        dataset: 'metricsEnhanced',
       });
     });
     it('returns empty object if disabled', function () {
       expect(getDashboardsMEPQueryParams(false)).toEqual({});
+    });
+  });
+
+  describe('getNumEquations', function () {
+    it('returns 0 if there are no equations', function () {
+      expect(getNumEquations(['count()', 'epm()', 'count_unique(user)'])).toBe(0);
+    });
+
+    it('returns the count of equations if there are multiple', function () {
+      expect(
+        getNumEquations([
+          'count()',
+          'equation|count_unique(user) * 2',
+          'count_unique(user)',
+          'equation|count_unique(user) * 3',
+        ])
+      ).toBe(2);
+    });
+
+    it('returns 0 if the possible equations array is empty', function () {
+      expect(getNumEquations([])).toBe(0);
     });
   });
 });

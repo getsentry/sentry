@@ -51,6 +51,7 @@ from sentry.search.utils import parse_release
 from sentry.utils.compat import filter
 from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import FUNCTION_TO_OPERATOR, OPERATOR_TO_FUNCTION, SNUBA_AND, SNUBA_OR
+from sentry.utils.strings import oxfordize_list
 from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCARD_NOT_ALLOWED
 
 
@@ -62,7 +63,7 @@ def translate_transaction_status(val: str) -> str:
     if val not in SPAN_STATUS_NAME_TO_CODE:
         raise InvalidSearchQuery(
             f"Invalid value {val} for transaction.status condition. Accepted "
-            f"values are {', '.join(SPAN_STATUS_NAME_TO_CODE.keys())}"
+            f"values are {oxfordize_list([str(key) for key in SPAN_STATUS_NAME_TO_CODE.keys()])}"
         )
     return SPAN_STATUS_NAME_TO_CODE[val]
 
@@ -961,7 +962,7 @@ def format_search_filter(term, params):
         missing = [slug for slug in slugs if slug not in projects]
         if missing and term.operator in EQUALITY_OPERATORS:
             raise InvalidSearchQuery(
-                f"Invalid query. Project(s) {', '.join(missing)} do not exist or are not actively selected."
+                f"Invalid query. Project(s) {oxfordize_list(missing)} do not exist or are not actively selected."
             )
         project_ids = list(sorted(projects.values()))
         if project_ids:
