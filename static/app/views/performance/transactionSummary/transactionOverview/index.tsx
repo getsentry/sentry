@@ -58,7 +58,7 @@ function TransactionOverview(props: Props) {
   useEffect(() => {
     loadOrganizationTags(api, organization.slug, selection);
     addRoutePerformanceContext(selection);
-  }, [selection]);
+  }, [api, organization, selection]);
 
   return (
     <MEPSettingProvider>
