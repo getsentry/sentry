@@ -143,7 +143,7 @@ class KeyResults:
     def get_fetch_metadata(self) -> Mapping[FetchType, Mapping[int, str]]:
         return self.meta
 
-    def merge(self, other: KRs) -> KRs:
+    def merge(self, other: "KeyResults") -> "KeyResults":
         for org_id, strings in other.results.items():
             self.results[org_id].update(strings)
 
