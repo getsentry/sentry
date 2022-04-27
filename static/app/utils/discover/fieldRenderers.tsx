@@ -296,9 +296,10 @@ const SPECIAL_FIELDS: SpecialFields = {
   project: {
     sortField: 'project',
     renderFunc: (data, {organization}) => {
+      const slugs = typeof data.project === 'number' ? undefined : [data.project];
       return (
         <Container>
-          <Projects orgId={organization.slug}>
+          <Projects orgId={organization.slug} slugs={slugs}>
             {({projects}) => {
               let project: Project | AvatarProject | undefined;
               if (typeof data.project === 'number') {
