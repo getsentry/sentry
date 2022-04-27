@@ -64,7 +64,7 @@ class AuditLogEventManagerTest(TestCase):
         with self.assertRaises(AuditLogEventNotRegistered):
             test_manager.get_event_id(name="TEST_DUPLICATE")
 
-    def test_duplicate_event(self):
+    def test_duplicate_event_name(self):
         test_manager = AuditLogEventManager()
 
         test_manager.add(
@@ -86,6 +86,31 @@ class AuditLogEventManagerTest(TestCase):
             )
         assert test_manager.get_event_id(name="TEST_LOG_ENTRY") == 500
         assert "test.duplicate" not in test_manager.get_api_names()
+
+        with self.assertRaises(AuditLogEventNotRegistered):
+            test_manager.get(501)
+
+    def test_duplicate_api_name(self):
+        test_manager = AuditLogEventManager()
+
+        test_manager.add(
+            AuditLogEvent(
+                event_id=500,
+                name="TEST_LOG_ENTRY",
+                api_name="test-log.entry",
+                template="test member {email} is {role}",
+            )
+        )
+        with self.assertRaises(DuplicateAuditLogEvent):
+            test_manager.add(
+                AuditLogEvent(
+                    event_id=501,
+                    name="TEST_DUPLICATE",
+                    api_name="test-log.entry",
+                    template="test duplicate",
+                )
+            )
+        assert test_manager.get_event_id_from_api_name(api_name="test-log.entry") == 500
 
         with self.assertRaises(AuditLogEventNotRegistered):
             test_manager.get(501)

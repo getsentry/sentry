@@ -86,9 +86,10 @@ class AuditLogEventManager:
         if (
             audit_log_event.name in self._event_registry
             or audit_log_event.event_id in self._event_id_lookup
+            or audit_log_event.api_name in self._api_name_lookup
         ):
             raise DuplicateAuditLogEvent(
-                f"Duplicate audit log: {audit_log_event.name} with ID {audit_log_event.event_id}"
+                f"Duplicate audit log: {audit_log_event.name} with ID {audit_log_event.event_id} and api name {audit_log_event.api_name}"
             )
 
         self._event_registry[audit_log_event.name] = audit_log_event
