@@ -7,7 +7,7 @@ import space from 'sentry/styles/space';
 /**
  * Base container for 66/33 containers.
  */
-export const Body = styled('div')`
+export const Body = styled('div')<{rowGap?: boolean}>`
   padding: ${space(2)};
   margin: 0;
   background-color: ${p => p.theme.background};
@@ -21,7 +21,7 @@ export const Body = styled('div')`
     display: grid;
     grid-template-columns: minmax(100px, auto) 325px;
     align-content: start;
-    gap: ${space(3)};
+    gap: ${p => (p.rowGap ? space(3) : `0 ${space(3)}`)};
   }
 `;
 

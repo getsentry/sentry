@@ -259,7 +259,7 @@ class ProjectDetail extends AsyncView<Props, State> {
               </Layout.HeaderActions>
             </Layout.Header>
 
-            <Layout.Body>
+            <Body rowGap={false}>
               {project && <StyledGlobalEventProcessingAlert projects={[project]} />}
               <Layout.Main fullWidth>
                 <StyledSdkUpdatesAlert />
@@ -274,6 +274,7 @@ class ProjectDetail extends AsyncView<Props, State> {
                     query={query}
                     onSearch={this.handleSearch}
                     tagValueLoader={this.tagValueLoader}
+                    hasBottomMargin={false}
                   />
                 </ProjectFiltersWrapper>
 
@@ -335,7 +336,7 @@ class ProjectDetail extends AsyncView<Props, State> {
                   location={location}
                 />
               </Layout.Side>
-            </Layout.Body>
+            </Body>
           </StyledPageContent>
         </NoProjectMessage>
       </PageFiltersContainer>
@@ -347,13 +348,17 @@ const StyledPageContent = styled(PageContent)`
   padding: 0;
 `;
 
+const Body = styled(Layout.Body)`
+  padding-top: ${space(2)} !important;
+`;
+
 const ProjectFiltersWrapper = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
 const StyledSdkUpdatesAlert = styled(GlobalSdkUpdateAlert)`
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    margin-bottom: 0;
+    margin-bottom: ${space(2)};
   }
 `;
 
