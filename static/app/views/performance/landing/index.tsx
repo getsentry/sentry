@@ -128,15 +128,13 @@ export function PerformanceLanding(props: Props) {
     );
   };
 
-  let pageFilters: React.ReactNode = organization.features.includes(
-    'selection-filters-v2'
-  ) ? (
+  let pageFilters: React.ReactNode = (
     <PageFilterBar condensed>
       <ProjectPageFilter />
       <EnvironmentPageFilter />
       <DatePageFilter alignDropdown="left" />
     </PageFilterBar>
-  ) : null;
+  );
 
   if (showOnboarding) {
     pageFilters = <SearchContainerWithFilter>{pageFilters}</SearchContainerWithFilter>;
