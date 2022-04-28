@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import FeatureBadge from 'sentry/components/featureBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import UserBadge from 'sentry/components/idBadge/userBadge';
+import UserBadge, {StyledNameAndEmail} from 'sentry/components/idBadge/userBadge';
 import Link from 'sentry/components/links/link';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import PageHeading from 'sentry/components/pageHeading';
@@ -251,7 +251,7 @@ const ReplayUserBadge = styled(UserBadge)`
   font-size: ${p => p.theme.fontSizeLarge};
   font-weight: 400;
   line-height: 1.2;
-  div[class*='StyledEmail'] {
+  ${StyledNameAndEmail} {
     line-height: normal;
   }
 `;
