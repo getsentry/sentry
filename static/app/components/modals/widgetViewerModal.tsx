@@ -58,7 +58,7 @@ import {
   renderDiscoverGridHeaderCell,
   renderGridBodyCell,
   renderIssueGridHeaderCell,
-  renderMetricsGridHeaderCell,
+  renderReleaseGridHeaderCell,
 } from './widgetViewerModal/widgetViewerTableCell';
 
 export type WidgetViewerModalOptions = {
@@ -510,7 +510,7 @@ function WidgetViewerModal(props: Props) {
     );
   };
 
-  const renderMetricsTable: ReleaseWidgetQueries['props']['children'] = ({
+  const renderReleaseTable: ReleaseWidgetQueries['props']['children'] = ({
     tableResults,
     loading,
     pageLinks,
@@ -525,7 +525,7 @@ function WidgetViewerModal(props: Props) {
           columnOrder={columnOrder}
           columnSortBy={columnSortBy}
           grid={{
-            renderHeadCell: renderMetricsGridHeaderCell({
+            renderHeadCell: renderReleaseGridHeaderCell({
               ...props,
               widget: tableWidget,
               tableData: tableResults?.[0],
@@ -627,7 +627,7 @@ function WidgetViewerModal(props: Props) {
         );
       case WidgetType.RELEASE:
         if (tableData && chartUnmodified && widget.displayType === DisplayType.TABLE) {
-          return renderMetricsTable({
+          return renderReleaseTable({
             tableResults: tableData,
             loading: false,
             pageLinks: defaultPageLinks,
@@ -647,7 +647,7 @@ function WidgetViewerModal(props: Props) {
             includeAllArgs
             cursor={cursor}
           >
-            {renderMetricsTable}
+            {renderReleaseTable}
           </ReleaseWidgetQueries>
         );
       case WidgetType.DISCOVER:

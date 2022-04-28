@@ -243,7 +243,7 @@ export const renderPrependColumns =
     ];
   };
 
-export const renderMetricsGridHeaderCell =
+export const renderReleaseGridHeaderCell =
   ({location, widget, tableData, organization, onHeaderClick}: Props) =>
   (column: TableColumn<keyof TableDataRow>, _columnIndex: number): React.ReactNode => {
     const tableMeta = tableData?.meta;

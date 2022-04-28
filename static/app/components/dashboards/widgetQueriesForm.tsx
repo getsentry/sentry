@@ -39,10 +39,10 @@ export const generateOrderOptions = ({
   widgetType: WidgetType;
   widgetBuilderNewDesign?: boolean;
 }): SelectValue<string>[] => {
-  const isMetrics = widgetType === WidgetType.RELEASE;
+  const isRelease = widgetType === WidgetType.RELEASE;
   const options: SelectValue<string>[] = [];
   let equations = 0;
-  (isMetrics ? aggregates.map(stripDerivedMetricsPrefix) : [...aggregates, ...columns])
+  (isRelease ? aggregates.map(stripDerivedMetricsPrefix) : [...aggregates, ...columns])
     .filter(field => !!field)
     .forEach(field => {
       let alias = getAggregateAlias(field);
@@ -54,18 +54,18 @@ export const generateOrderOptions = ({
       }
 
       if (widgetBuilderNewDesign) {
-        options.push({label, value: isMetrics ? field : alias});
+        options.push({label, value: isRelease ? field : alias});
         return;
       }
 
       options.push({
         label: t('%s asc', label),
-        value: isMetrics ? field : alias,
+        value: isRelease ? field : alias,
       });
 
       options.push({
         label: t('%s desc', label),
-        value: isMetrics ? `-${field}` : `-${alias}`,
+        value: isRelease ? `-${field}` : `-${alias}`,
       });
     });
 
@@ -187,7 +187,7 @@ class WidgetQueriesForm extends React.Component<Props> {
       widgetType = WidgetType.DISCOVER,
     } = this.props;
 
-    const isMetrics = widgetType === WidgetType.RELEASE;
+    const isRelease = widgetType === WidgetType.RELEASE;
 
     const hideLegendAlias = ['table', 'world_map', 'big_number'].includes(displayType);
     const query = queries[0];
@@ -262,7 +262,7 @@ class WidgetQueriesForm extends React.Component<Props> {
             const {aggregates, columns} = getColumnsAndAggregatesAsStrings(fields);
             const fieldStrings = fields.map(field => generateFieldAsString(field));
 
-            const aggregateAliasFieldStrings = isMetrics
+            const aggregateAliasFieldStrings = isRelease
               ? fieldStrings
               : fieldStrings.map(field => getAggregateAlias(field));
 
@@ -278,7 +278,7 @@ class WidgetQueriesForm extends React.Component<Props> {
                   ? widgetQuery.fields
                   : [...widgetQuery.columns, ...widgetQuery.aggregates];
                 const prevAggregateAliasFieldStrings = prevAggregateAliasFields.map(
-                  field => (isMetrics ? field : getAggregateAlias(field))
+                  field => (isRelease ? field : getAggregateAlias(field))
                 );
                 if (
                   !aggregateAliasFieldStrings.includes(orderbyAggregateAliasField) &&
