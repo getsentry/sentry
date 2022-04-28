@@ -21,7 +21,7 @@ function SelectOption(props: Props) {
     trailingItems,
     leadingItemsSpanFullHeight,
     trailingItemsSpanFullHeight,
-    selectionMode = 'single',
+    selectionMode,
   } = data;
 
   const isMultiple = defined(selectionMode) ? selectionMode === 'multiple' : isMulti;

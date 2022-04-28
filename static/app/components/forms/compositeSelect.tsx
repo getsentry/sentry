@@ -107,12 +107,24 @@ function CompositeSelect<OptionType extends GeneralSelectValue = GeneralSelectVa
 
       // If the section allows only single selection, then replace whatever the
       // old value is with the new one.
-      newValues[parentSectionIndex] = option.value;
+      if (option.value) {
+        newValues[parentSectionIndex] = option.value;
+      }
     });
 
-    newValues.forEach((value, sectionIndex) => {
-      if (!valueIsEqual(values[sectionIndex], value)) {
-        sections[sectionIndex].onChange?.(value);
+    sections.forEach((section, i) => {
+      // Prevent sections with single selection from losing their values. This might
+      // happen if the user clicks on an already-selected option.
+      if (!section.multiple && !newValues[i]) {
+        newValues[i] = values[i];
+        // Return an empty array for sections with multiple selection without any value.
+      } else if (!newValues[i]) {
+        newValues[i] = [];
+      }
+
+      // Trigger the onChange callback for sections whose values have changed.
+      if (!valueIsEqual(values[i], newValues[i])) {
+        sections[i].onChange?.(newValues[i]);
       }
     });
 
