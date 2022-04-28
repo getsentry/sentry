@@ -9,6 +9,7 @@ import {FlamegraphFrame} from './flamegraphFrame';
 export class Flamegraph {
   profile: Profile;
   frames: FlamegraphFrame[] = [];
+  roots: FlamegraphFrame[] = [];
 
   profileIndex: number;
 
@@ -47,6 +48,8 @@ export class Flamegraph {
     // @TODO check if we can not keep a reference to the profile
     this.profile = profile;
     this.profileIndex = profileIndex;
+
+    this.roots = [];
 
     // If a custom config space is provided, use it and draw the chart in it
     this.frames = leftHeavy
@@ -103,6 +106,10 @@ export class Flamegraph {
       }
 
       stack.push(frame);
+
+      if (stack.length === 1) {
+        this.roots.push(frame);
+      }
       idx++;
     };
 
@@ -159,6 +166,10 @@ export class Flamegraph {
       }
 
       stack.push(frame);
+
+      if (stack.length === 1) {
+        this.roots.push(frame);
+      }
       idx++;
     };
 
