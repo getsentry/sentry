@@ -44,8 +44,8 @@ function MemoryChart({memorySpans}) {
   const series = [
     {
       seriesName: t('Used Heap Memory'),
-      data: memorySpans.map((memEvent, i) => ({
-        value: memEvent.data.memory.usedJSHeapSize,
+      data: memorySpans.map((span, i) => ({
+        value: span.data.memory.usedJSHeapSize,
         name: i,
       })),
       stack: 'heap-memory',
@@ -57,8 +57,8 @@ function MemoryChart({memorySpans}) {
     },
     {
       seriesName: t('Free Heap Memory'),
-      data: memorySpans.map((memEvent, i) => ({
-        value: memEvent.data.memory.totalJSHeapSize - memEvent.data.memory.usedJSHeapSize,
+      data: memorySpans.map((span, i) => ({
+        value: span.data.memory.totalJSHeapSize - span.data.memory.usedJSHeapSize,
         name: i,
       })),
       stack: 'heap-memory',
@@ -69,11 +69,14 @@ function MemoryChart({memorySpans}) {
       },
     },
   ];
-
-  return (
+  return memorySpans.length > 0 ? (
     <MemoryChartWrapper>
       <AreaChart series={series} {...chartOptions} />
     </MemoryChartWrapper>
+  ) : (
+    <NoMemoryMessageWrapper>
+      {t('No memory metrics exist for replay.')}
+    </NoMemoryMessageWrapper>
   );
 }
 
@@ -81,6 +84,12 @@ const MemoryChartWrapper = styled('div')`
   margin-top: -${space(0.75)};
   border-radius: ${space(0.5)};
   border: 1px solid ${p => p.theme.gray200};
+`;
+
+const NoMemoryMessageWrapper = styled('div')`
+  font-weight: 600;
+  font-size: ${p => p.theme.fontSizeLarge};
+  padding: ${space(2)};
 `;
 
 export default MemoryChart;
