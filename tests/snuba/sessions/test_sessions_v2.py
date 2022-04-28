@@ -6,6 +6,8 @@ import pytz
 from django.http import QueryDict
 from freezegun import freeze_time
 
+from sentry.release_health.base import SessionsQueryConfig
+
 # from sentry.testutils import TestCase
 from sentry.snuba.sessions_v2 import (
     AllowedResolution,
@@ -18,10 +20,12 @@ from sentry.snuba.sessions_v2 import (
 
 
 def _make_query(qs, allow_minute_resolution=True):
-    allowed_resolution = (
-        AllowedResolution.one_minute if allow_minute_resolution else AllowedResolution.one_hour
+    query_config = SessionsQueryConfig(
+        (AllowedResolution.one_minute if allow_minute_resolution else AllowedResolution.one_hour),
+        allow_session_status_query=False,
+        restrict_date_range=True,
     )
-    return QueryDefinition(QueryDict(qs), {}, allowed_resolution)
+    return QueryDefinition(QueryDict(qs), {}, query_config)
 
 
 def result_sorted(result):
