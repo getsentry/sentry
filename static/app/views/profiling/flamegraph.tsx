@@ -1,5 +1,6 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 
 import {Client} from 'sentry/api';
@@ -19,7 +20,21 @@ import {Profile} from 'sentry/utils/profiling/profile/profile';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
-type RequestState = 'initial' | 'loading' | 'resolved' | 'errored';
+type InitialState = {type: 'initial'};
+
+type LoadingState = {type: 'loading'};
+
+type ResolvedState<T> = {
+  data: T;
+  type: 'resolved';
+};
+
+type ErroredState = {
+  error: string;
+  type: 'errored';
+};
+
+type RequestState<T> = InitialState | LoadingState | ResolvedState<T> | ErroredState;
 
 function fetchFlamegraphs(
   api: Client,
@@ -57,22 +72,26 @@ function FlamegraphView(props: FlamegraphViewProps): React.ReactElement {
   const api = useApi();
   const organization = useOrganization();
 
-  const [profiles, setProfiles] = useState<ProfileGroup | null>(null);
-  const [requestState, setRequestState] = useState<RequestState>('initial');
+  const [requestState, setRequestState] = useState<RequestState<ProfileGroup>>({
+    type: 'initial',
+  });
 
   useEffect(() => {
     if (!props.params.eventId || !props.params.projectId) {
       return undefined;
     }
 
-    setRequestState('loading');
+    setRequestState({type: 'loading'});
 
     fetchFlamegraphs(api, props.params.eventId, props.params.projectId, organization)
       .then(importedFlamegraphs => {
-        setProfiles(importedFlamegraphs);
-        setRequestState('resolved');
+        setRequestState({type: 'resolved', data: importedFlamegraphs});
       })
-      .catch(() => setRequestState('errored'));
+      .catch(err => {
+        const message = err.toString() || t('Error: Unable to load profiles');
+        setRequestState({type: 'errored', error: message});
+        Sentry.captureException(err);
+      });
 
     return () => {
       api.clear();
@@ -92,7 +111,8 @@ function FlamegraphView(props: FlamegraphViewProps): React.ReactElement {
                 {
                   type: 'flamegraph',
                   payload: {
-                    interactionName: profiles?.name ?? '',
+                    interactionName:
+                      requestState.type === 'resolved' ? requestState.data.name : '',
                     profileId: props.params.eventId ?? '',
                     projectSlug: props.params.projectId ?? '',
                   },
@@ -104,19 +124,19 @@ function FlamegraphView(props: FlamegraphViewProps): React.ReactElement {
         <FlamegraphStateProvider>
           <FlamegraphThemeProvider>
             <FlamegraphContainer>
-              {requestState === 'errored' ? (
+              {requestState.type === 'errored' ? (
                 <Alert type="error" showIcon>
-                  {t('Unable to load profiles')}
+                  {requestState.error}
                 </Alert>
-              ) : requestState === 'loading' ? (
+              ) : requestState.type === 'loading' ? (
                 <Fragment>
                   <Flamegraph profiles={LoadingGroup} />
                   <LoadingIndicatorContainer>
                     <LoadingIndicator />
                   </LoadingIndicatorContainer>
                 </Fragment>
-              ) : requestState === 'resolved' && profiles ? (
-                <Flamegraph profiles={profiles} />
+              ) : requestState.type === 'resolved' ? (
+                <Flamegraph profiles={requestState.data} />
               ) : null}
             </FlamegraphContainer>
           </FlamegraphThemeProvider>

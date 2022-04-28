@@ -170,15 +170,17 @@ describe('makeUndoableReducer', () => {
       useReducer(makeUndoableReducer(combinedReducers), {
         previous: undefined,
         current: {
+          profiles: {
+            activeProfileIndex: 0,
+          },
           position: {view: Rect.Empty()},
           preferences: {
             colorCoding: 'by symbol name',
             sorting: 'call order',
             view: 'top down',
-            synchronizeXAxisWithTransaction: false,
+            xAxis: 'standalone',
           },
           search: {
-            open: false,
             index: null,
             results: null,
             query: '',

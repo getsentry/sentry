@@ -37,6 +37,7 @@ interface Props<OptionType>
    * Pass class name to the outer wrap
    */
   className?: string;
+  onChangeValueMap?: (value: OptionType[]) => ControlProps<OptionType>['value'];
   /**
    * Tag name for the outer wrap, defaults to `div`
    */
@@ -123,6 +124,7 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
   isSearchable = false,
   multiple,
   placeholder = 'Search…',
+  onChangeValueMap,
   // Trigger button & wrapper props
   trigger,
   triggerLabel,
@@ -225,7 +227,8 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
   }, [updateTriggerWidth]);
 
   function onValueChange(option) {
-    const newValue = Array.isArray(option) ? option.map(opt => opt.value) : option?.value;
+    const valueMap = onChangeValueMap ?? (opts => opts.map(opt => opt.value));
+    const newValue = Array.isArray(option) ? valueMap(option) : option?.value;
     setInternalValue(newValue);
     onChange?.(option);
 

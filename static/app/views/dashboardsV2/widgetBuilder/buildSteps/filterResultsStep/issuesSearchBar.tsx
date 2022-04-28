@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import {SearchBarProps} from 'sentry/components/events/searchBar';
 import {t} from 'sentry/locale';
-import {Organization, PageFilters, TagCollection} from 'sentry/types';
+import {Organization, PageFilters, SavedSearchType, TagCollection} from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
 import useApi from 'sentry/utils/useApi';
 import withIssueTags from 'sentry/utils/withIssueTags';
@@ -63,6 +63,7 @@ function IssuesSearchBarContainer({
           tagValueLoader={tagValueLoader}
           onSidebarToggle={() => undefined}
           maxSearchItems={MAX_SEARCH_ITEMS}
+          savedSearchType={SavedSearchType.ISSUE}
           dropdownClassName={css`
             max-height: ${MAX_MENU_HEIGHT}px;
             overflow-y: auto;

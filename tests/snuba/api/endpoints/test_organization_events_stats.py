@@ -1306,6 +1306,36 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         # Instead, we return a single zero-filled series for an empty graph.
         assert [attrs for time, attrs in data] == [[{"count": 0}], [{"count": 0}]]
 
+    def test_no_top_events_with_multi_axis(self):
+        project = self.create_project()
+        with self.feature(self.enabled_features):
+            response = self.client.get(
+                self.url,
+                data={
+                    # make sure to query the project with 0 events
+                    "project": project.id,
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "interval": "1h",
+                    "yAxis": ["count()", "count_unique(user)"],
+                    "orderby": ["-count()"],
+                    "field": ["count()", "count_unique(user)", "message", "user.email"],
+                    "topEvents": 5,
+                },
+                format="json",
+            )
+
+        assert response.status_code == 200
+        data = response.data[""]
+        assert [attrs for time, attrs in data["count()"]["data"]] == [
+            [{"count": 0}],
+            [{"count": 0}],
+        ]
+        assert [attrs for time, attrs in data["count_unique(user)"]["data"]] == [
+            [{"count": 0}],
+            [{"count": 0}],
+        ]
+
     def test_simple_top_events(self):
         with self.feature(self.enabled_features):
             response = self.client.get(

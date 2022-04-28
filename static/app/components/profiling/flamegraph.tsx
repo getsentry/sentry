@@ -29,8 +29,7 @@ interface FlamegraphProps {
 
 function Flamegraph(props: FlamegraphProps): ReactElement {
   const flamegraphTheme = useFlamegraphTheme();
-  const [{sorting, view, synchronizeXAxisWithTransaction}, dispatch] =
-    useFlamegraphPreferences();
+  const [{sorting, view, xAxis}, dispatch] = useFlamegraphPreferences();
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
 
   const [activeProfileIndex, setActiveProfileIndex] = useState<number | null>(null);
@@ -49,14 +48,15 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       {
         inverted: view === 'bottom up',
         leftHeavy: sorting === 'left heavy',
-        configSpace: synchronizeXAxisWithTransaction
-          ? getTransactionConfigSpace(profiles.profiles)
-          : undefined,
+        configSpace:
+          xAxis === 'transaction'
+            ? getTransactionConfigSpace(profiles.profiles)
+            : undefined,
       }
     );
 
     return flamegraphModel;
-  }, [profiles, activeProfileIndex, sorting, synchronizeXAxisWithTransaction, view]);
+  }, [profiles, activeProfileIndex, sorting, xAxis, view]);
 
   const onImport = useCallback((profile: ProfileGroup) => {
     setActiveProfileIndex(null);
@@ -81,6 +81,10 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
             dispatch({type: 'set view', payload: v});
           }}
         />
+        <FlamegraphSearch
+          flamegraphs={[flamegraph]}
+          canvasPoolManager={canvasPoolManager}
+        />
         <FlamegraphOptionsMenu canvasPoolManager={canvasPoolManager} />
       </FlamegraphToolbar>
 
@@ -95,11 +99,6 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
           <FlamegraphZoomView
             key={`${profiles.traceID}-${flamegraph.profileIndex}`}
             flamegraph={flamegraph}
-            canvasPoolManager={canvasPoolManager}
-          />
-          <FlamegraphSearch
-            placement="top"
-            flamegraphs={[flamegraph]}
             canvasPoolManager={canvasPoolManager}
           />
         </ProfileDragDropImport>
