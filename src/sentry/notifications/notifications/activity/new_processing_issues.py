@@ -50,7 +50,8 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         return f"Processing Issues on {self.project.slug}"
 
-    def get_title(self) -> str:
+    @property
+    def title(self) -> str:
         return self.get_subject()
 
     def get_category(self) -> str:

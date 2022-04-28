@@ -8,10 +8,8 @@ from .base import GroupActivityNotification
 
 
 class AssignedActivityNotification(GroupActivityNotification):
+    title = "Assigned"
     referrer_base = "assigned-activity"
-
-    def get_activity_name(self) -> str:
-        return "Assigned"
 
     def get_description(self) -> tuple[str, Mapping[str, Any], Mapping[str, Any]]:
         activity = self.activity

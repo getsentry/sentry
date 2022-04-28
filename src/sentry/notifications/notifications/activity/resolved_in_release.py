@@ -9,10 +9,8 @@ from .base import GroupActivityNotification
 
 
 class ResolvedInReleaseActivityNotification(GroupActivityNotification):
+    title = "Resolved Issue"
     referrer_base = "resolved-in-release-activity"
-
-    def get_activity_name(self) -> str:
-        return "Resolved Issue"
 
     def get_description(self) -> tuple[str, Mapping[str, Any], Mapping[str, Any]]:
         data = self.activity.data

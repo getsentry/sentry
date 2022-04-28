@@ -29,15 +29,18 @@ class ActivityNotification(ProjectNotification, abc.ABC):
         super().__init__(activity.project)
         self.activity = activity
 
-    def get_title(self) -> str:
-        raise NotImplementedError
+    @property
+    @abc.abstractmethod
+    def title(self) -> str:
+        """The header for Workflow notifications."""
+        pass
 
     def get_base_context(self) -> MutableMapping[str, Any]:
         """The most basic context shared by every notification type."""
         return {
             "data": self.activity.data,
             "author": self.activity.user,
-            "title": self.get_title(),
+            "title": self.title,
             "project": self.project,
             "project_link": self.get_project_link(),
             **super().get_base_context(),
@@ -80,14 +83,8 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
         super().__init__(activity)
         self.group = activity.group
 
-    def get_activity_name(self) -> str:
-        raise NotImplementedError
-
     def get_description(self) -> tuple[str, Mapping[str, Any], Mapping[str, Any]]:
         raise NotImplementedError
-
-    def get_title(self) -> str:
-        return self.get_activity_name()
 
     def get_group_link(self) -> str:
         # method only used for emails
@@ -119,7 +116,6 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
         description, params, html_params = self.get_description()
         return {
             **self.get_base_context(),
-            "activity_name": self.get_activity_name(),
             "text_description": self.description_as_text(description, params),
             "html_description": self.description_as_html(description, html_params or params),
         }
