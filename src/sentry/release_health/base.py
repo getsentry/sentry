@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime
+from enum import Enum
 from typing import (
     TYPE_CHECKING,
     Literal,
@@ -14,6 +16,7 @@ from typing import (
     Union,
 )
 
+# from sentry.models.organization import Organization
 from sentry.utils.services import Service
 
 if TYPE_CHECKING:
@@ -45,6 +48,21 @@ GroupByFieldName = Literal[
     "session.status",
 ]
 FilterFieldName = Literal["project", "release", "environment"]
+
+
+class AllowedResolution(Enum):
+    one_hour = (3600, "one hour")
+    one_minute = (60, "one minute")
+    ten_seconds = (10, "ten seconds")
+
+
+@dataclass(frozen=True)
+class SessionsQueryConfig:
+    """Backend-dependent config for sessions_v2 query"""
+
+    allowed_resolution: AllowedResolution
+    allow_session_status_query: bool
+    restrict_date_range: bool
 
 
 class SessionsQuery(TypedDict):
@@ -290,6 +308,14 @@ class ReleaseHealthBackend(Service):
             that. Omit if you're not sure.
         """
 
+        raise NotImplementedError()
+
+    from sentry.models import Organization
+
+    def sessions_query_config(
+        self, organization: Organization, start: datetime
+    ) -> SessionsQueryConfig:
+        """Return the backend-dependent config for sessions_v2.QueryDefinition"""
         raise NotImplementedError()
 
     def run_sessions_query(
