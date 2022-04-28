@@ -50,9 +50,7 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
                 "integration": self.integration.model.id,
             }
         )
-        debug_data_capture = azuredevops_rule.data  # noqa: F841
-        debug_rule_obj = Rule.objects.create(project=self.project, label="test rule")
-        azuredevops_rule.rule = debug_rule_obj
+        azuredevops_rule.rule = Rule.objects.create(project=self.project, label="test rule")
         responses.reset()
         responses.add(
             responses.PATCH,
@@ -61,16 +59,12 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
             content_type="application/json",
         )
 
-        debug_response_urls = [mock.url for mock in responses._default_mock._matches]  # noqa: F841
-
-        debug_state = self.get_state()
-        after_res = azuredevops_rule.after(event=event, state=debug_state)
+        after_res = azuredevops_rule.after(event=event, state=self.get_state())
         results = list(after_res)
         assert len(results) == 1
 
         # Trigger rule callback
-        debug_kwargs = results[0].kwargs
-        rule_future = RuleFuture(rule=azuredevops_rule, kwargs=debug_kwargs)
+        rule_future = RuleFuture(rule=azuredevops_rule, kwargs=results[0].kwargs)
         results[0].callback(event, futures=[rule_future])
         data = json.loads(responses.calls[0].response.text)
 
