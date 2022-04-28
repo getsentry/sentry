@@ -24,6 +24,7 @@ def get_client_state_key(organization, category, user):
         return f"client-state:{category}:{organization}:{user.id}"
     elif scope == "org":
         return f"client-state:{category}:{organization}"
+    return None
 
 
 def get_client_state(category, organization, user, client=None):
