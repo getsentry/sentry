@@ -76,8 +76,8 @@ class EventDataSection extends React.Component<Props> {
           <SectionHeader id={type} isCentered={isCentered}>
             <Title>
               {showPermalink ? (
-                <Permalink href={'#' + type} className="permalink">
-                  <StyledIconAnchor />
+                <Permalink href={`#${type}`} className="permalink">
+                  <StyledIconAnchor size="xs" color="subText" />
                   {titleNode}
                 </Permalink>
               ) : (
@@ -116,17 +116,29 @@ const Title = styled('div')`
 `;
 
 const StyledIconAnchor = styled(IconAnchor)`
-  display: none;
   position: absolute;
-  top: 4px;
-  left: -22px;
+  top: 8px;
+  left: -16px;
+  opacity: 0;
+  transition: opacity 100ms;
 `;
 
 const Permalink = styled('a')`
   width: 100%;
+  position: relative;
+
+  /* Improved hitbox for the anchor icon */
+  &:after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 16px;
+    top: 6px;
+    left: -20px;
+  }
+
   :hover ${StyledIconAnchor} {
-    display: block;
-    color: ${p => p.theme.gray300};
+    opacity: 1;
   }
 `;
 
