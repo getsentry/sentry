@@ -143,7 +143,7 @@ export function normalizeQueries({
       // grouping in timeseries charts
       const ignoreOrderBy = isEquation(trimStart(queryOrderBy, '-')) && isTabularChart;
       const orderBy =
-        (!ignoreOrderBy && getAggregateAlias(queryOrderBy)) ||
+        (!ignoreOrderBy && getAggregateAlias(trimStart(queryOrderBy, '-'))) ||
         (widgetType === WidgetType.ISSUE
           ? IssueSortOptions.DATE
           : generateOrderOptions({
