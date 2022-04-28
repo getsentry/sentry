@@ -252,11 +252,8 @@ describe('IncidentsList', () => {
       ],
     });
     TeamStore.getById = jest.fn().mockReturnValue(team);
-    const org = {
-      features: ['incidents', 'team-alerts-ownership'],
-    };
 
-    renderComponent({organization: org});
+    renderComponent();
     expect(await screen.findByText(team.name)).toBeInTheDocument();
   });
 });
