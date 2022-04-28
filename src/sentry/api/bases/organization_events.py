@@ -405,7 +405,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     allow_partial_buckets,
                     zerofill_results=zerofill_results,
                 )
-                if top_events > 0:
+                if top_events > 0 and isinstance(result, SnubaTSResult):
                     serialized_result = {"": serialized_result}
             else:
                 extra_columns = None
