@@ -242,6 +242,15 @@ class TrendsContent extends React.Component<Props, State> {
                   <EnvironmentPageFilter />
                   <DatePageFilter />
                 </PageFilterBar>
+                <StyledSearchBar
+                  searchSource="trends"
+                  organization={organization}
+                  projectIds={trendView.project}
+                  query={query}
+                  fields={fields}
+                  onSearch={this.handleSearch}
+                  maxQueryLength={MAX_QUERY_LENGTH}
+                />
                 <DropdownControl
                   data-test-id="trends-dropdown"
                   buttonProps={{prefix: t('Percentile')}}
@@ -275,15 +284,6 @@ class TrendsContent extends React.Component<Props, State> {
                     </DropdownItem>
                   ))}
                 </DropdownControl>
-                <StyledSearchBar
-                  searchSource="trends"
-                  organization={organization}
-                  projectIds={trendView.project}
-                  query={query}
-                  fields={fields}
-                  onSearch={this.handleSearch}
-                  maxQueryLength={MAX_QUERY_LENGTH}
-                />
               </FilterActions>
               <ListContainer>
                 <ChangedTransactions
@@ -358,14 +358,25 @@ const FilterActions = styled('div')`
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: 1fr auto auto;
-    grid-template-rows: auto auto;
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    grid-template-columns: repeat(3, min-content);
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    grid-template-columns: auto 1fr auto auto;
   }
 `;
 
 const StyledSearchBar = styled(SearchBar)`
-  grid-column: 1/4;
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    order: 1;
+    grid-column: 1/5;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    order: initial;
+    grid-column: auto;
+  }
 `;
 
 const ListContainer = styled('div')`
