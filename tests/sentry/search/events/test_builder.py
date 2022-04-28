@@ -1719,7 +1719,6 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             allow_metric_aggregates=False,
             use_aggregate_conditions=True,
         ).run_query("test")
-        print(result["data"])
         assert len(result["data"]) == 1
         data = result["data"][0]
         assert data["count_unique_user"] == 0
