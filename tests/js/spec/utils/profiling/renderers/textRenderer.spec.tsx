@@ -113,18 +113,12 @@ describe('TextRenderer', () => {
     const textRenderer = new TextRenderer(canvas as HTMLCanvasElement, flamegraph, Theme);
 
     textRenderer.draw(
-      new Rect(0, 1.1, 200, 2),
+      new Rect(0, 0, 200, 2),
       flamegraph.configSpace,
       mat3.identity(mat3.create())
     );
 
-    expect(context.fillText).toHaveBeenCalledTimes(1);
-    expect(context.fillText).toHaveBeenCalledWith(
-      'f1',
-      100 + Theme.SIZES.BAR_PADDING,
-      // depth + 1 - half font size
-      1 + Theme.SIZES.BAR_HEIGHT - Theme.SIZES.BAR_FONT_SIZE / 2 // center text vertically inside the rect
-    );
+    expect(context.fillText).toHaveBeenCalledTimes(2);
   });
   it("trims output text if it doesn't fit", () => {
     const longFrameName =
