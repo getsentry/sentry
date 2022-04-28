@@ -20,8 +20,8 @@ import {
   IconLab,
   IconLightning,
   IconList,
+  IconPlay,
   IconProject,
-  IconRefresh,
   IconReleases,
   IconSettings,
   IconSiren,
@@ -295,7 +295,7 @@ function Sidebar({location, organization}: Props) {
         onClick={(_id, evt) =>
           navigateWithPageFilters(`/organizations/${organization.slug}/replays/`, evt)
         }
-        icon={<IconRefresh size="md" />}
+        icon={<IconPlay size="md" />}
         label={t('Replays')}
         to={`/organizations/${organization.slug}/replays/`}
         id="replays"
