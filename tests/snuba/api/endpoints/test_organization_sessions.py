@@ -1269,6 +1269,38 @@ class OrganizationSessionsEndpointMetricsTest(
             ],
             groupBy=["release", "environment"],
             orderBy=["crash_free_rate(session)"],
+            query="release:foo@1.0.0",
         )
         assert response.status_code == 200, response.content
-        assert response.data["groups"] == []
+        assert response.data["groups"] == [
+            {
+                "by": {"environment": "production", "release": "foo@1.0.0"},
+                "series": {
+                    "crash_free_rate(session)": [0.8333333333333334],
+                    "crash_free_rate(user)": [1.0],
+                    "crash_rate(session)": [0.16666666666666666],
+                    "crash_rate(user)": [0.0],
+                },
+                "totals": {
+                    "crash_free_rate(session)": 0.8333333333333334,
+                    "crash_free_rate(user)": 1.0,
+                    "crash_rate(session)": 0.16666666666666666,
+                    "crash_rate(user)": 0.0,
+                },
+            },
+            {
+                "by": {"environment": "development", "release": "foo@1.0.0"},
+                "series": {
+                    "crash_free_rate(session)": [1.0],
+                    "crash_free_rate(user)": [None],
+                    "crash_rate(session)": [0.0],
+                    "crash_rate(user)": [None],
+                },
+                "totals": {
+                    "crash_free_rate(session)": 1.0,
+                    "crash_free_rate(user)": None,
+                    "crash_rate(session)": 0.0,
+                    "crash_rate(user)": None,
+                },
+            },
+        ]

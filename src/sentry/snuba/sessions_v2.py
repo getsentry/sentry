@@ -272,6 +272,12 @@ class QueryDefinition:
         self.fields = {}
         for key in raw_fields:
             if key not in COLUMN_MAP:
+                from sentry.release_health.metrics_sessions_v2 import FIELD_MAP
+
+                if key in FIELD_MAP:
+                    # HACK : Do not raise an error for metrics-only fields,
+                    # Simply ignore them instead.
+                    continue
                 raise InvalidField(f'Invalid field: "{key}"')
             self.fields[key] = COLUMN_MAP[key]
 
