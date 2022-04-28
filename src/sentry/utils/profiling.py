@@ -48,7 +48,8 @@ def proxy_profiling_service(
         status=profiling_response.status_code,
     )
     for h in ["Content-Type", "Content-Encoding", "Vary"]:
-        response[h] = profiling_response.headers[h]
+        if h in profiling_response.headers:
+            response[h] = profiling_response.headers[h]
     return response
 
 
