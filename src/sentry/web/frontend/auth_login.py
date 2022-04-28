@@ -107,11 +107,6 @@ class AuthLoginView(BaseView):
         next_uri_fallback = None
         if request.session.get("_next") is not None:
             next_uri_fallback = request.session.pop("_next")
-
-        # If the active org has an ongoing onboarding session, redirect to onboarding after login
-        organization = self.get_active_organization(request)
-        if organization:
-            next_uri_fallback = get_client_state_redirect_uri(organization.slug, next_uri_fallback)
         return request.GET.get(REDIRECT_FIELD_NAME, next_uri_fallback)
 
     def get_post_register_url(self, request: Request):
@@ -235,6 +230,13 @@ class AuthLoginView(BaseView):
                         else:
                             if om.user is None:
                                 request.session.pop("_next", None)
+
+                # On login, redirect to onboarding
+                active_org = self.get_active_organization(request)
+                if active_org:
+                    onboarding_redirect = get_client_state_redirect_uri(active_org.slug, None)
+                    if onboarding_redirect:
+                        request.session["_next"] = onboarding_redirect
 
                 return self.redirect(get_login_redirect(request))
             else:
