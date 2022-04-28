@@ -332,7 +332,7 @@ function BaseChartUnwrapped({
 
   autoHeightResize = false,
   height = 200,
-  width = 'auto',
+  width,
   renderer = 'svg',
   notMerge = true,
   lazyUpdate = false,
@@ -534,7 +534,7 @@ function BaseChartUnwrapped({
         onEvents={eventsMap}
         style={chartStyles}
         opts={{
-          height: autoHeightResize ? 'auto' : height,
+          height: autoHeightResize ? undefined : height,
           width,
           renderer,
           devicePixelRatio,
