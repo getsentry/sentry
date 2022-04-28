@@ -387,37 +387,41 @@ def process_messages(
 
     org_strings = defaultdict(set)
     strings = set()
+    skipped_offsets = set()
     with metrics.timer("process_messages.parse_outer_message"):
         parsed_payloads_by_offset = {
             msg.offset: json.loads(msg.payload.value.decode("utf-8"), use_rapid_json=True)
             for msg in outer_message.payload
         }
-        for message in parsed_payloads_by_offset.values():
+        for offset, message in parsed_payloads_by_offset.items():
             metric_name = message["name"]
             org_id = message["org_id"]
             tags = message.get("tags", {})
 
             if not valid_metric_name(metric_name):
-                logger.error(
+                logger.warning(
                     "process_messages.invalid_metric_name",
-                    extra={"org_id": org_id, "metric_name": metric_name},
+                    extra={"org_id": org_id, "metric_name": metric_name, "offset": offset},
                 )
-                return []
+                skipped_offsets.add(offset)
+                continue
 
             is_valid, invalid_strs = valid_metric_tags(tags)
 
             if not is_valid:
                 # sentry doesn't seem to actually capture nested logger.error extra args
                 sentry_sdk.set_extra("all_metric_tags", tags)
-                logger.error(
+                logger.warning(
                     "process_messages.invalid_tags",
                     extra={
                         "org_id": org_id,
                         "metric_name": metric_name,
                         "invalid_tags": invalid_strs,
+                        "offset": offset,
                     },
                 )
-                return []
+                skipped_offsets.add(offset)
+                continue
 
             parsed_strings = {
                 metric_name,
@@ -436,6 +440,9 @@ def process_messages(
 
     with metrics.timer("process_messages.reconstruct_messages"):
         for message in outer_message.payload:
+            if message.offset in skipped_offsets:
+                logger.info("process_message.offset_skipped", extra={"offset": message.offset})
+                continue
             parsed_payload_value = parsed_payloads_by_offset[message.offset]
             new_payload_value = deepcopy(parsed_payload_value)
 

@@ -2,6 +2,7 @@ import logging
 import time
 from datetime import datetime, timezone
 from typing import Dict, List, Mapping, MutableMapping, Union
+from unittest import mock
 from unittest.mock import Mock, call, patch
 
 import pytest
@@ -255,6 +256,82 @@ def test_process_messages(mock_indexer) -> None:
     assert new_batch == expected_new_batch
 
 
+invalid_payloads = [
+    (
+        {
+            "name": SessionMRI.ERROR.value,
+            "tags": {
+                "environment": "production" * 21,
+                "session.status": "errored",
+            },
+            "timestamp": ts,
+            "type": "s",
+            "value": [3],
+            "org_id": 1,
+            "project_id": 3,
+        },
+        "invalid_tags",
+    ),
+    (
+        {
+            "name": SessionMRI.ERROR.value * 21,
+            "tags": {
+                "environment": "production",
+                "session.status": "errored",
+            },
+            "timestamp": ts,
+            "type": "s",
+            "value": [3],
+            "org_id": 1,
+            "project_id": 3,
+        },
+        "invalid_metric_name",
+    ),
+]
+
+
+@pytest.mark.parametrize("invalid_payload, error_text", invalid_payloads)
+def test_process_messages_invalid_messages(invalid_payload, error_text, caplog) -> None:
+    """
+    Invalid messages
+    """
+    message_payloads = [counter_payload, invalid_payload]
+    message_batch = [
+        Message(
+            Partition(Topic("topic"), 0),
+            i + 1,
+            KafkaPayload(None, json.dumps(payload).encode("utf-8"), []),
+            datetime.now(),
+        )
+        for i, payload in enumerate(message_payloads)
+    ]
+    # the outer message uses the last message's partition, offset, and timestamp
+    last = message_batch[-1]
+    outer_message = Message(last.partition, last.offset, message_batch, last.timestamp)
+
+    with caplog.at_level(logging.WARNING), mock.patch(
+        "sentry.sentry_metrics.multiprocess.get_indexer", return_value=MockIndexer()
+    ):
+        new_batch = process_messages(outer_message=outer_message)
+
+    # we expect just the valid counter_payload msg to be left
+    expected_msg = message_batch[0]
+    expected_new_batch = [
+        Message(
+            expected_msg.partition,
+            expected_msg.offset,
+            KafkaPayload(
+                None,
+                json.dumps(__translated_payload(counter_payload)).encode("utf-8"),
+                [],
+            ),
+            expected_msg.timestamp,
+        )
+    ]
+    assert new_batch == expected_new_batch
+    assert error_text in caplog.text
+
+
 def test_produce_step() -> None:
     topic = Topic("snuba-metrics")
     partition = Partition(topic, 0)
@@ -329,58 +406,3 @@ def test_produce_step() -> None:
 
     produce_step.close()
     produce_step.join()
-
-
-invalid_payloads = [
-    (
-        {
-            "name": SessionMRI.ERROR.value,
-            "tags": {
-                "environment": "production" * 21,
-                "session.status": "errored",
-            },
-            "timestamp": ts,
-            "type": "s",
-            "value": [3],
-            "org_id": 1,
-            "project_id": 3,
-        },
-        "invalid_tags",
-    ),
-    (
-        {
-            "name": SessionMRI.ERROR.value * 21,
-            "tags": {
-                "environment": "production",
-                "session.status": "errored",
-            },
-            "timestamp": ts,
-            "type": "s",
-            "value": [3],
-            "org_id": 1,
-            "project_id": 3,
-        },
-        "invalid_metric_name",
-    ),
-]
-
-
-@pytest.mark.parametrize("invalid_payload, error_text", invalid_payloads)
-def test_process_messages_invalid_tag_value(invalid_payload, error_text, caplog) -> None:
-    message_batch = [
-        Message(
-            Partition(Topic("topic"), 0),
-            1,
-            KafkaPayload(None, json.dumps(invalid_payload).encode("utf-8"), []),
-            datetime.now(),
-        )
-    ]
-
-    # the outer message uses the last message's partition, offset, and timestamp
-    last = message_batch[-1]
-    outer_message = Message(last.partition, last.offset, message_batch, last.timestamp)
-
-    with caplog.at_level(logging.ERROR):
-        new_batch = process_messages(outer_message=outer_message)
-    assert new_batch == []
-    assert error_text in caplog.text
