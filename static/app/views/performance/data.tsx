@@ -786,6 +786,7 @@ export function generatePerformanceVitalDetailView(location: Location): EventVie
       getVitalDetailTableMehStatusFunction(vitalName),
     ],
     version: 2,
+    yAxis: [`p75(${vitalName})`],
   };
 
   if (!query.statsPeriod && !hasStartAndEnd) {
