@@ -144,13 +144,16 @@ class KeyResults:
         return self.meta
 
     def merge(self, other: "KeyResults") -> "KeyResults":
-        for org_id, strings in other.results.items():
-            self.results[org_id].update(strings)
+        new_results: "KeyResults" = KeyResults()
 
-        for fetch_type in other.meta.keys():
-            self.meta[fetch_type].update(other.meta[fetch_type].items())
+        for org_id, strings in [*other.results.items(), *self.results.items()]:
+            new_results.results[org_id].update(strings)
 
-        return self
+        for fetch_type in [*self.meta.keys(), *other.meta.keys()]:
+            new_results.meta[fetch_type].update(other.meta[fetch_type].items())
+            new_results.meta[fetch_type].update(self.meta[fetch_type].items())
+
+        return new_results
 
     # For brevity, allow callers to address the mapping directly
     def __getitem__(self, org_id: int) -> Mapping[str, int]:
