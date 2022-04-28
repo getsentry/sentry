@@ -7,7 +7,7 @@ import space from 'sentry/styles/space';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
 
 function FlamegraphXAxisOptionsMenu(): React.ReactElement {
-  const [{synchronizeXAxisWithTransaction}, dispatch] = useFlamegraphPreferences();
+  const [{xAxis}, dispatch] = useFlamegraphPreferences();
 
   return (
     <OptionsMenuContainer>
@@ -19,29 +19,29 @@ function FlamegraphXAxisOptionsMenu(): React.ReactElement {
             prefix={t('X Axis')}
             size="xsmall"
           >
-            {synchronizeXAxisWithTransaction ? 'Transaction' : 'Standalone'}
+            {xAxis ? 'Transaction' : 'Standalone'}
           </DropdownButton>
         )}
       >
         <DropdownItem
           onSelect={() =>
             dispatch({
-              type: 'set synchronizeXAxisWithTransaction',
-              payload: false,
+              type: 'set xAxis',
+              payload: 'standalone',
             })
           }
-          isActive={!synchronizeXAxisWithTransaction}
+          isActive={xAxis === 'standalone'}
         >
           Standalone
         </DropdownItem>
         <DropdownItem
           onSelect={() =>
             dispatch({
-              type: 'set synchronizeXAxisWithTransaction',
-              payload: true,
+              type: 'set xAxis',
+              payload: 'transaction',
             })
           }
-          isActive={synchronizeXAxisWithTransaction}
+          isActive={xAxis === 'transaction'}
         >
           Transaction
         </DropdownItem>

@@ -5,8 +5,8 @@ export interface FlamegraphPreferences {
     | 'by library'
     | 'by recursion';
   sorting: 'left heavy' | 'call order';
-  synchronizeXAxisWithTransaction: boolean;
   view: 'top down' | 'bottom up';
+  xAxis: 'standalone' | 'transaction';
 }
 
 type FlamegraphPreferencesAction =
@@ -14,8 +14,8 @@ type FlamegraphPreferencesAction =
   | {payload: FlamegraphPreferences['sorting']; type: 'set sorting'}
   | {payload: FlamegraphPreferences['view']; type: 'set view'}
   | {
-      payload: FlamegraphPreferences['synchronizeXAxisWithTransaction'];
-      type: 'set synchronizeXAxisWithTransaction';
+      payload: FlamegraphPreferences['xAxis'];
+      type: 'set xAxis';
     };
 
 export function flamegraphPreferencesReducer(
@@ -41,8 +41,8 @@ export function flamegraphPreferencesReducer(
         view: action.payload,
       };
     }
-    case 'set synchronizeXAxisWithTransaction': {
-      return {...state, synchronizeXAxisWithTransaction: action.payload};
+    case 'set xAxis': {
+      return {...state, xAxis: action.payload};
     }
     default: {
       return state;
