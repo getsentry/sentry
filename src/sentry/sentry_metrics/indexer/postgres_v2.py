@@ -53,12 +53,17 @@ class PGStringIndexerV2(StringIndexer):
         Then the work to get the ids (either from cache, db, etc)
             .... # work to add results to KeyResults()
 
-        Those results will be added to `mapped_results`
+        Those results will be added to `mapped_results` which can
+        be retrieved
             key_results.get_mapped_results()
 
-        And any remaining unmapped keys get turned into a new
+        Remaining unmapped keys get turned into a new
         KeyCollection for the next step:
             new_keys = key_results.get_unmapped_keys(mapping)
+
+        When the last step is reached or a step resolves all the remaining
+        unmapped keys the key_results objects are merged and returned:
+            e.g. return cache_key_results.merge(db_read_key_results)
         """
         cache_keys = KeyCollection(org_strings)
         cache_key_strs = cache_keys.as_strings()
