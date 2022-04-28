@@ -51,12 +51,10 @@ const StyledUserBadge = styled('div')`
   align-items: center;
 `;
 
-// the line-height incorrectly cuts off letters like g, p, q, y
-// at the bottom, so it's exported to be overridden to correct it.
-export const StyledNameAndEmail = styled('div')`
+const StyledNameAndEmail = styled('div')`
   flex-shrink: 1;
   min-width: 0;
-  line-height: 1;
+  line-height: normal;
 `;
 
 const StyledEmail = styled('div')`
