@@ -9,16 +9,10 @@ from rest_framework.response import Response
 from sentry import release_health
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.models import Organization
-from sentry.snuba.sessions_v2 import (
-    SNUBA_LIMIT,
-    AllowedResolution,
-    InvalidField,
-    InvalidParams,
-    QueryDefinition,
-)
-from sentry.utils.cursors import Cursor, CursorResult
 from sentry.api.utils import get_date_range_from_params
+from sentry.models import Organization
+from sentry.snuba.sessions_v2 import SNUBA_LIMIT, InvalidField, InvalidParams, QueryDefinition
+from sentry.utils.cursors import Cursor, CursorResult
 
 
 # NOTE: this currently extends `OrganizationEventsEndpointBase` for `handle_query_errors` only, which should ideally be decoupled from the base class.
