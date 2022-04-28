@@ -123,6 +123,16 @@ export function normalizeQueries({
         query.fields = fields.filter(field => !columns.includes(field));
       }
 
+      if (
+        getIsTimeseriesChart(displayType) &&
+        !query.columns.filter(column => !!column).length
+      ) {
+        // The orderby is only applicable for timeseries charts when there's a
+        // grouping selected, if all fields are empty then we also reset the orderby
+        query.orderby = '';
+        return query;
+      }
+
       const queryOrderBy =
         widgetType === WidgetType.METRICS
           ? stripDerivedMetricsPrefix(queries[0].orderby)
@@ -340,7 +350,7 @@ export function filterPrimaryOptions({
   );
 }
 
-export function getResultsLimit(numQueries, numYAxes) {
+export function getResultsLimit(numQueries: number, numYAxes: number) {
   if (numQueries === 0 || numYAxes === 0) {
     return DEFAULT_RESULTS_LIMIT;
   }
