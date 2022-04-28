@@ -7,7 +7,7 @@ const DEFAULT: SliderDataZoomComponentOption = {
   showDetail: false,
   left: 0,
   right: 6,
-  bottom: 20,
+  bottom: 8,
 };
 
 export default function DataZoomSlider(

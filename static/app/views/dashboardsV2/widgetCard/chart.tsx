@@ -387,7 +387,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
         left: 0,
         right: 4,
         top: '40px',
-        bottom: showSlider ? '70px' : 0,
+        bottom: showSlider ? '60px' : 0,
       },
       seriesOptions: {
         showSymbol: false,

@@ -158,6 +158,7 @@ function WidgetViewerModal(props: Props) {
     totalIssuesCount,
     pageLinks: defaultPageLinks,
   } = props;
+  const shouldShowSlider = organization.features.includes('widget-viewer-modal-minimap');
   // Get widget zoom from location
   // We use the start and end query params for just the initial state
   const start = decodeScalar(location.query[WidgetViewerQueryField.START]);
@@ -713,7 +714,8 @@ function WidgetViewerModal(props: Props) {
             height={
               widget.displayType !== DisplayType.BIG_NUMBER
                 ? HALF_CONTAINER_HEIGHT +
-                  ([
+                  (shouldShowSlider &&
+                  [
                     DisplayType.AREA,
                     DisplayType.LINE,
                     DisplayType.BAR,
@@ -739,7 +741,7 @@ function WidgetViewerModal(props: Props) {
                 onLegendSelectChanged={onLegendSelectChanged}
                 legendOptions={{selected: disabledLegends}}
                 expandNumbers
-                showSlider
+                showSlider={shouldShowSlider}
                 noPadding
                 chartZoomOptions={chartZoomOptions.current}
               />
@@ -758,7 +760,7 @@ function WidgetViewerModal(props: Props) {
                 onLegendSelectChanged={onLegendSelectChanged}
                 legendOptions={{selected: disabledLegends}}
                 expandNumbers
-                showSlider
+                showSlider={shouldShowSlider}
                 noPadding
                 chartZoomOptions={chartZoomOptions.current}
               />
@@ -970,6 +972,7 @@ export const modalCss = css`
 const Container = styled('div')<{height?: number | null}>`
   height: ${p => (p.height ? `${p.height}px` : 'auto')};
   position: relative;
+  padding-bottom: ${space(3)};
 `;
 
 const QueryContainer = styled('div')`
