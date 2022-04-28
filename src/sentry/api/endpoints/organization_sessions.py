@@ -6,7 +6,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, release_health
+from sentry import release_health
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.models import Organization
@@ -18,6 +18,7 @@ from sentry.snuba.sessions_v2 import (
     QueryDefinition,
 )
 from sentry.utils.cursors import Cursor, CursorResult
+from sentry.api.utils import get_date_range_from_params
 
 
 # NOTE: this currently extends `OrganizationEventsEndpointBase` for `handle_query_errors` only, which should ideally be decoupled from the base class.
@@ -56,23 +57,15 @@ class OrganizationSessionsEndpoint(OrganizationEventsEndpointBase):
         if not release_health.is_metrics_based() and request.GET.get("interval") == "10s":
             query_params["interval"] = "1m"
 
-        if release_health.is_metrics_based():
-            allowed_resolution = AllowedResolution.ten_seconds
-        elif features.has(
-            "organizations:minute-resolution-sessions", organization, actor=request.user
-        ):
-            allowed_resolution = AllowedResolution.one_minute
-        else:
-            allowed_resolution = AllowedResolution.one_hour
+        start, _ = get_date_range_from_params(query_params)
+        query_config = release_health.sessions_query_config(organization, start)
 
         return QueryDefinition(
             query_params,
             params,
-            allowed_resolution=allowed_resolution,
-            # FIXME: This won't work with duplex backend
-            allow_session_status_query=release_health.is_metrics_based(),
             offset=offset,
             limit=limit,
+            query_config=query_config,
         )
 
     @contextmanager

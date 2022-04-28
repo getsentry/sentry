@@ -1263,3 +1263,13 @@ class OrganizationSessionsEndpointMetricsTest(
         links = {link["rel"]: link for url, link in parse_link_header(response["Link"]).items()}
         assert links["previous"]["results"] == "true"
         assert links["next"]["results"] == "false"
+    def test_unrestricted_date_range(self):
+        response = self.do_request(
+            {
+                "project": [-1],
+                "statsPeriod": "7h",
+                "interval": "5m",
+                "field": ["sum(session)"],
+            }
+        )
+        assert response.status_code == 200
