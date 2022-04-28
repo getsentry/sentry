@@ -210,16 +210,12 @@ export function alertDetailsLink(organization: Organization, incident: Incident)
 /**
  * Noramlizes a status string
  */
-export function getQueryStatus(status: string | string[]): string[] {
-  if (Array.isArray(status)) {
-    return status;
+export function getQueryStatus(status: string | string[]): string {
+  if (Array.isArray(status) || status === '') {
+    return 'all';
   }
 
-  if (status === '') {
-    return [];
-  }
-
-  return ['open', 'closed'].includes(status) ? [status] : [];
+  return ['open', 'closed'].includes(status) ? status : 'all';
 }
 
 const ALERT_LIST_QUERY_DEFAULT_TEAMS = ['myteams', 'unassigned'];
