@@ -64,13 +64,13 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
 
         # Welcome step
         self.browser.wait_until('[data-test-id="onboarding-step-welcome"]')
-        self.browser.snapshot(name="onboarding - welcome")
+        self.browser.snapshot(name="onboarding - new - welcome")
 
         # Platform selection step
         self.browser.click('[aria-label="Start"]')
         self.browser.wait_until('[data-test-id="onboarding-step-select-platform"]')
 
-        self.browser.snapshot(name="onboarding - select platform")
+        self.browser.snapshot(name="onboarding - new - select platform")
 
         # Select and create node JS project
         self.browser.click('[data-test-id="platform-node"]')
@@ -93,4 +93,4 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
 
         # The homepage should redirect to onboarding
         self.browser.get("/")
-        self.browser.wait_until('[data-test-id="onboarding-step-get-started"]')
+        self.browser.wait_until('[data-test-id="onboarding-step-setup-docs"]')
