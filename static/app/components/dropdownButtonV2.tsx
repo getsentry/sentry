@@ -47,11 +47,7 @@ const DropdownButton = forwardRef<
       {prefix && <LabelText>{prefix}</LabelText>}
       {children}
       {showChevron && (
-        <StyledChevron
-          size="10px"
-          direction={isOpen ? 'up' : 'down'}
-          aria-hidden="true"
-        />
+        <StyledChevron size="xs" direction={isOpen ? 'up' : 'down'} aria-hidden="true" />
       )}
     </StyledButton>
   )

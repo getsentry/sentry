@@ -116,7 +116,7 @@ function importSchema(
 
   return {
     traceID,
-    name: input.name,
+    name: input.transactionName,
     activeProfileIndex: input.activeProfileIndex ?? 0,
     profiles: input.profiles.map(profile =>
       importSingleProfile(profile, frameIndex, options)

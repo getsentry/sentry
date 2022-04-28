@@ -419,10 +419,9 @@ class QueryBuilder:
 
         sentry_sdk.set_tag("query.has_equations", equations is not None and len(equations) > 0)
         if equations:
-            _, stripped_columns, parsed_equations = resolve_equation_list(
+            stripped_columns, parsed_equations = resolve_equation_list(
                 equations,
                 stripped_columns,
-                use_snql=True,
                 **self.equation_config,
             )
             for index, parsed_equation in enumerate(parsed_equations):
@@ -1909,7 +1908,28 @@ class MetricsQueryBuilder(QueryBuilder):
         result["data"] = list(value_map.values())
         result["meta"] = [{"name": key, "type": value} for key, value in meta_dict.items()]
 
+        # Data might be missing for fields after merging the requests, eg a transaction with no users
+        for row in result["data"]:
+            for meta in result["meta"]:
+                if meta["name"] not in row:
+                    row[meta["name"]] = self.get_default_value(meta["type"])
+
         return result
+
+    @staticmethod
+    def get_default_value(meta_type: str) -> Any:
+        """Given a meta type return the expected default type
+
+        for example with a UInt64 (like a count_unique) return 0
+        """
+        if (
+            meta_type.startswith("Int")
+            or meta_type.startswith("UInt")
+            or meta_type.startswith("Float")
+        ):
+            return 0
+        else:
+            return None
 
 
 class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):

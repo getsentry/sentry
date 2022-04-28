@@ -4,6 +4,7 @@ from unittest import mock
 
 from django.utils import timezone
 from django.utils.encoding import force_text
+from freezegun import freeze_time
 
 from sentry.buffer.redis import RedisBuffer
 from sentry.models import Group, Project
@@ -85,6 +86,22 @@ class RedisBufferTest(TestCase):
         signal_only = None
         self.buf.process("foo")
         process.assert_called_once_with(Group, columns, filters, extra, signal_only)
+
+    @freeze_time()
+    def test_group_cache_updated(self):
+        # Make sure group is stored in the cache and keep track of times_seen at the time
+        orig_times_seen = Group.objects.get_from_cache(id=self.group.id).times_seen
+        times_seen_incr = 5
+        self.buf.incr(
+            Group,
+            {"times_seen": times_seen_incr},
+            {"pk": self.group.id},
+            {"last_seen": timezone.now()},
+        )
+        with self.tasks(), mock.patch("sentry.buffer", self.buf):
+            self.buf.process_pending()
+        group = Group.objects.get_from_cache(id=self.group.id)
+        assert group.times_seen == orig_times_seen + times_seen_incr
 
     def test_get(self):
         model = mock.Mock()

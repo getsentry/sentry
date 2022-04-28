@@ -1,5 +1,6 @@
 from sentry.coreapi import APIError
 from sentry.mediators import Mediator, Param, external_requests
+from sentry.mediators.external_requests.alert_rule_action_requester import AlertRuleActionResult
 from sentry.models import SentryAppComponent
 from sentry.utils.cache import memoize
 
@@ -8,7 +9,7 @@ class AlertRuleActionCreator(Mediator):
     install = Param("sentry.models.SentryAppInstallation")
     fields = Param(object, default=[])  # array of dicts
 
-    def call(self):
+    def call(self) -> AlertRuleActionResult:
         uri = self._fetch_sentry_app_uri()
         self._make_external_request(uri)
         return self.response

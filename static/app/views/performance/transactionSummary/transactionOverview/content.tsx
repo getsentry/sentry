@@ -266,29 +266,27 @@ function SummaryContent({
   return (
     <React.Fragment>
       <Layout.Main>
-        {organization.features.includes('selection-filters-v2') && (
-          <StyledPageFilterBar condensed>
-            <EnvironmentPageFilter />
-            <DatePageFilter alignDropdown="left" />
-          </StyledPageFilterBar>
-        )}
         <Search>
           <Filter
             organization={organization}
             currentFilter={spanOperationBreakdownFilter}
             onChangeFilter={onChangeFilter}
           />
-          <SearchBarContainer>
-            <SearchBar
-              searchSource="transaction_summary"
-              organization={organization}
-              projectIds={eventView.project}
-              query={query}
-              fields={eventView.fields}
-              onSearch={handleSearch}
-              maxQueryLength={MAX_QUERY_LENGTH}
-            />
-          </SearchBarContainer>
+          {organization.features.includes('selection-filters-v2') && (
+            <PageFilterBar condensed>
+              <EnvironmentPageFilter />
+              <DatePageFilter alignDropdown="left" />
+            </PageFilterBar>
+          )}
+          <SearchBar
+            searchSource="transaction_summary"
+            organization={organization}
+            projectIds={eventView.project}
+            query={query}
+            fields={eventView.fields}
+            onSearch={handleSearch}
+            maxQueryLength={MAX_QUERY_LENGTH}
+          />
           <MetricsEventsDropdown />
         </Search>
         <TransactionSummaryCharts
@@ -468,18 +466,14 @@ function getTransactionsListSort(
   return {selected: selectedSort, options: sortOptions};
 }
 
-const StyledPageFilterBar = styled(PageFilterBar)`
-  margin-bottom: ${space(1)};
-`;
-
 const Search = styled('div')`
-  display: flex;
-  width: 100%;
-  margin-bottom: ${space(3)};
-`;
+  display: grid;
+  gap: ${space(2)};
+  margin-bottom: ${space(2)};
 
-const SearchBarContainer = styled('div')`
-  flex-grow: 1;
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: auto auto 1fr;
+  }
 `;
 
 export default withProjects(SummaryContent);

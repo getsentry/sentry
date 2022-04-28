@@ -165,10 +165,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             == "Wildcard conditions are not permitted on `trace.parent_span` field"
         )
 
-    @mock.patch("sentry.snuba.discover.raw_query")
     @mock.patch("sentry.search.events.builder.raw_snql_query")
-    def test_handling_snuba_errors(self, mock_snql_query, mock_query):
-        mock_query.side_effect = RateLimitExceeded("test")
+    def test_handling_snuba_errors(self, mock_snql_query):
         mock_snql_query.side_effect = RateLimitExceeded("test")
 
         project = self.create_project()
@@ -182,7 +180,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, response.content
         assert response.data["detail"] == constants.TIMEOUT_ERROR_MESSAGE
 
-        mock_query.side_effect = QueryExecutionError("test")
         mock_snql_query.side_effect = QueryExecutionError("test")
 
         query = {"field": ["id", "timestamp"], "orderby": ["-timestamp", "-id"]}
@@ -190,7 +187,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 500, response.content
         assert response.data["detail"] == "Internal error. Your query failed to run."
 
-        mock_query.side_effect = QueryIllegalTypeOfArgument("test")
         mock_snql_query.side_effect = QueryIllegalTypeOfArgument("test")
 
         query = {"field": ["id", "timestamp"], "orderby": ["-timestamp", "-id"]}
@@ -5868,3 +5864,45 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             assert response.status_code == 200, response.content
             assert len(mock_builder.mock_calls) == 3
             assert mock_builder.call_args.kwargs["dry_run"]
+
+    def test_count_unique_user_returns_zero(self):
+        self.store_metric(
+            50,
+            metric="user",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_metric(
+            50,
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_metric(
+            100,
+            tags={"transaction": "bar_transaction"},
+            timestamp=self.min_ago,
+        )
+
+        query = {
+            "project": [self.project.id],
+            "orderby": "p50()",
+            "field": [
+                "transaction",
+                "count_unique(user)",
+                "p50()",
+            ],
+            "dataset": "metricsEnhanced",
+            "per_page": 50,
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 2
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert data[0]["transaction"] == "foo_transaction"
+        assert data[0]["count_unique_user"] == 1
+        assert data[1]["transaction"] == "bar_transaction"
+        assert data[1]["count_unique_user"] == 0
+        assert meta["isMetricsData"]

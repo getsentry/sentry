@@ -27,7 +27,6 @@ def query(
     conditions=None,
     extra_snql_condition=None,
     functions_acl=None,
-    use_snql=True,
     dry_run=False,
 ):
     metrics_query
@@ -91,7 +90,6 @@ def query(
             conditions=conditions,
             extra_snql_condition=extra_snql_condition,
             functions_acl=functions_acl,
-            use_snql=use_snql,
         )
         results["meta"]["isMetricsData"] = False
 
@@ -110,7 +108,6 @@ def timeseries_query(
     allow_metric_aggregates=True,
     comparison_delta: Optional[timedelta] = None,
     functions_acl: Optional[List[str]] = None,
-    use_snql: Optional[bool] = True,
     dry_run: bool = False,
 ) -> SnubaTSResult:
     """
@@ -168,6 +165,5 @@ def timeseries_query(
             zerofill_results,
             comparison_delta,
             functions_acl,
-            use_snql,
         )
     return SnubaTSResult()

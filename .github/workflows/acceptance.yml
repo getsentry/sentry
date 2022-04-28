@@ -324,8 +324,8 @@ jobs:
       - name: Diff snapshots
         id: visual-snapshots-diff
         uses: getsentry/action-visual-snapshot@v2
-        # Do not execute on forks or on master. Forks are handled in visual-diff.yml
-        if: github.head_repository.full_name == 'getsentry/sentry' && github.ref != 'refs/heads/master'
+        # Forks are handled in visual-diff.yml
+        if: github.event.pull_request.head.repo.full_name == 'getsentry/sentry'
         with:
           api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
           gcs-bucket: 'sentry-visual-snapshots'
