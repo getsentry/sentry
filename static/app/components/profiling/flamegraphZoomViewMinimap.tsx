@@ -185,7 +185,7 @@ function FlamegraphZoomViewMinimap({
       flamegraphMiniMapRenderer.setConfigView(
         new Rect(
           frame.start,
-          flamegraph.inverted
+          flamegraphMiniMapRenderer.flamegraph.inverted
             ? flamegraphMiniMapRenderer.configSpace.height -
               flamegraphMiniMapRenderer.configView.height -
               frame.depth +
@@ -215,6 +215,7 @@ function FlamegraphZoomViewMinimap({
 
   const previousInteraction = usePrevious(lastInteraction);
   const beforeInteractionConfigView = useRef<Rect | null>(null);
+
   useEffect(() => {
     if (!flamegraphMiniMapRenderer) {
       return;
@@ -235,7 +236,7 @@ function FlamegraphZoomViewMinimap({
         payload: flamegraphMiniMapRenderer.configView.clone(),
       });
     }
-  }, [lastInteraction, flamegraphMiniMapRenderer]);
+  }, [lastInteraction, flamegraphMiniMapRenderer, dispatch, previousInteraction]);
 
   const [startDragVector, setStartDragConfigSpaceCursor] = useState<vec2 | null>(null);
   const [lastDragVector, setLastDragVector] = useState<vec2 | null>(null);
@@ -268,7 +269,7 @@ function FlamegraphZoomViewMinimap({
   useEffect(() => {
     canvasPoolManager.registerScheduler(scheduler);
     return () => canvasPoolManager.unregisterScheduler(scheduler);
-  }, [scheduler]);
+  }, [scheduler, canvasPoolManager]);
 
   const onMouseDrag = useCallback(
     (evt: React.MouseEvent<HTMLCanvasElement>) => {

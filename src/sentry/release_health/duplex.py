@@ -48,6 +48,7 @@ from sentry.release_health.base import (
     ReleaseName,
     ReleasesAdoption,
     ReleaseSessionsTimeBounds,
+    SessionsQueryConfig,
     SessionsQueryResult,
     StatsPeriod,
 )
@@ -935,6 +936,21 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             now,
             org_id,
         )
+
+    def sessions_query_config(
+        self, organization: Organization, start: datetime
+    ) -> SessionsQueryConfig:
+        # Same should compare condition as run_sessions_query:
+        should_compare = _coerce_utc(start) > self.metrics_start
+        if should_compare and features.has(
+            "organizations:release-health-return-metrics", organization
+        ):
+            # Note: This is not watertight. If metrics_result in _dispatch_call_inner
+            # is None because of a crash, we return sessions data, but with the metrics-based
+            # config.
+            return self.metrics.sessions_query_config(organization, start)
+        else:
+            return self.sessions.sessions_query_config(organization, start)
 
     def run_sessions_query(
         self,
