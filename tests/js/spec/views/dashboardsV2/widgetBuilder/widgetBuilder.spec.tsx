@@ -1905,12 +1905,12 @@ describe('WidgetBuilder', function () {
       );
     });
 
-    it.only.each`
+    it.each`
       directionPrefix | expectedOrderSelection
       ${'-'}          | ${'High to low'}
       ${''}           | ${'Low to high'}
     `(
-      `opens a widget with the '$expectedOrderSelection' sort order when the widget is saved with that direction`,
+      `opens a widget with the '$expectedOrderSelection' sort order when the widget was saved with that direction`,
       async function ({directionPrefix, expectedOrderSelection}) {
         const widget: Widget = {
           id: '1',
@@ -1921,10 +1921,10 @@ describe('WidgetBuilder', function () {
             {
               name: '',
               conditions: '',
-              fields: ['count()'],
-              aggregates: ['count()'],
+              fields: ['count_unique(user)'],
+              aggregates: ['count_unique(user)'],
               columns: ['project'],
-              orderby: `${directionPrefix}count`,
+              orderby: `${directionPrefix}count_unique_user`,
             },
           ],
         };

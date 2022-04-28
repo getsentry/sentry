@@ -153,11 +153,14 @@ export function normalizeQueries({
               aggregates: queries[0].aggregates,
             })[0].value);
 
+      const isDescending =
+        (widgetType === WidgetType.DISCOVER &&
+          !orderBy.startsWith('-') &&
+          queryOrderBy.startsWith('-')) ||
+        !query.orderby;
+
       // Issues data set doesn't support order by descending
-      query.orderby =
-        widgetType === WidgetType.DISCOVER && !orderBy.startsWith('-')
-          ? `-${String(orderBy)}`
-          : String(orderBy);
+      query.orderby = isDescending ? `-${String(orderBy)}` : String(orderBy);
 
       return query;
     });
