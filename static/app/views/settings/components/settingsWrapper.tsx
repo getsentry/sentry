@@ -12,8 +12,7 @@ function SettingsWrapper({location, children}: Props) {
   useScrollToTop({
     location,
     disable: (newLocation, prevLocation) =>
-      newLocation.pathname === prevLocation.pathname &&
-      newLocation.query?.query !== prevLocation.query?.query,
+      newLocation.pathname === prevLocation.pathname,
   });
 
   return <StyledSettingsWrapper>{children}</StyledSettingsWrapper>;
