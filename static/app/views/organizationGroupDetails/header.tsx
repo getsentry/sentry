@@ -153,7 +153,10 @@ class GroupHeader extends React.Component<Props, State> {
             <div className="col-sm-7">
               <StyledBreadcrumbs
                 crumbs={[
-                  {label: 'Issues', to: `/organizations/${orgId}/issues/`},
+                  {
+                    label: 'Issues',
+                    to: `/organizations/${orgId}/issues/?project=${project.id}`,
+                  },
                   {
                     label: 'Issue Details',
                   },
