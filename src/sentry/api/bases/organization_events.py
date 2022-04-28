@@ -1,6 +1,6 @@
 from contextlib import contextmanager
-from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, Generator, Optional, Sequence, Union, cast
+from datetime import timedelta
+from typing import Any, Callable, Dict, Generator, Optional, Sequence, cast
 
 import sentry_sdk
 from django.utils import timezone
@@ -20,7 +20,6 @@ from sentry.models import Organization, Project, Team
 from sentry.models.group import Group
 from sentry.search.events.constants import TIMEOUT_ERROR_MESSAGE
 from sentry.search.events.fields import get_function_alias
-from sentry.search.events.filter import get_filter
 from sentry.snuba import discover, metrics_enhanced_performance
 from sentry.utils import snuba
 from sentry.utils.cursors import Cursor
@@ -110,32 +109,6 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):  # type: ignore
         if orderby:
             return orderby
         return None
-
-    def get_snuba_query_args_legacy(
-        self, request: Request, organization: Organization
-    ) -> Dict[
-        str,
-        Union[
-            Optional[datetime],
-            Sequence[Sequence[Union[str, str, Any]]],
-            Optional[Dict[str, Sequence[int]]],
-        ],
-    ]:
-        params = self.get_filter_params(request, organization)
-        query = request.GET.get("query")
-        try:
-            _filter = get_filter(query, params)
-        except InvalidSearchQuery as e:
-            raise ParseError(detail=str(e))
-
-        snuba_args = {
-            "start": _filter.start,
-            "end": _filter.end,
-            "conditions": _filter.conditions,
-            "filter_keys": _filter.filter_keys,
-        }
-
-        return snuba_args
 
     def quantize_date_params(self, request: Request, params: Dict[str, Any]) -> Dict[str, Any]:
         # We only need to perform this rounding on relative date periods

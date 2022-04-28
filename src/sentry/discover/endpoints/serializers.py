@@ -12,8 +12,8 @@ from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.models import MAX_TEAM_KEY_TRANSACTIONS, TeamKeyTransaction
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Team
-from sentry.search.events.filter import get_filter
-from sentry.utils.snuba import SENTRY_SNUBA_MAP
+from sentry.search.events.builder import QueryBuilder
+from sentry.utils.snuba import SENTRY_SNUBA_MAP, Dataset
 
 
 class DiscoverQuerySerializer(serializers.Serializer):
@@ -218,7 +218,14 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
 
         if "query" in query:
             try:
-                get_filter(query["query"], self.context["params"])
+                builder = QueryBuilder(
+                    dataset=Dataset.Discover,
+                    params=self.context["params"],
+                    query=query["query"],
+                    selected_columns=query["fields"],
+                    orderby=query.get("orderby"),
+                )
+                builder.get_snql_query().validate()
             except InvalidSearchQuery as err:
                 raise serializers.ValidationError(f"Cannot save invalid query: {err}")
 
