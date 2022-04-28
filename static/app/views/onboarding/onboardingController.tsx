@@ -1,4 +1,4 @@
-import {ComponentPropsWithoutRef} from 'react';
+import {ComponentPropsWithoutRef, useEffect} from 'react';
 
 import {logExperiment} from 'sentry/utils/analytics';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -9,10 +9,12 @@ import Onboarding from './onboarding';
 type Props = Omit<ComponentPropsWithoutRef<typeof Onboarding>, 'projects'>;
 
 function OnboardingController({...rest}: Props) {
-  logExperiment({
-    key: 'TargetedOnboardingMultiSelectExperiment',
-    organization: rest.organization,
-  });
+  useEffect(() => {
+    logExperiment({
+      key: 'TargetedOnboardingMultiSelectExperiment',
+      organization: rest.organization,
+    });
+  }, [rest.organization]);
   if (rest.organization?.experiments.TargetedOnboardingMultiSelectExperiment) {
     return <TargetedOnboarding {...rest} />;
   }

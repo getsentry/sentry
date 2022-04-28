@@ -23,6 +23,7 @@ from sentry.utils.auth import (
     is_valid_redirect,
     login,
 )
+from sentry.utils.client_state import get_client_state_redirect_uri
 from sentry.utils.sdk import capture_exception
 from sentry.utils.urls import add_params_to_url
 from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
@@ -229,6 +230,13 @@ class AuthLoginView(BaseView):
                         else:
                             if om.user is None:
                                 request.session.pop("_next", None)
+
+                # On login, redirect to onboarding
+                active_org = self.get_active_organization(request)
+                if active_org:
+                    onboarding_redirect = get_client_state_redirect_uri(active_org.slug, None)
+                    if onboarding_redirect:
+                        request.session["_next"] = onboarding_redirect
 
                 return self.redirect(get_login_redirect(request))
             else:
