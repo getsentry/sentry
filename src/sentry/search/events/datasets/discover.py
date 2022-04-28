@@ -1155,7 +1155,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                 "countIf",
                 [
                     Function(
-                        "greater",
+                        "greaterOrEquals",
                         [
                             column,
                             0,
