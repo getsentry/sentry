@@ -73,8 +73,9 @@ export function SortBySelectors({
       });
     }
     setShowCustomEquation(isSortingByEquation);
-  }, [values.sortBy]);
+  }, [values.sortBy, values.sortDirection]);
 
+  // console.log(values.sortBy, explodeField({field: values.sortBy}));
   return (
     <Tooltip title={disabledReason} disabled={!(disabledSortDirection && disabledSort)}>
       <Wrapper>
@@ -155,21 +156,9 @@ export function SortBySelectors({
               menuPlacement="auto"
               disabled={disabledSort}
               placeholder={`${t('Select a column')}\u{2026}`}
-              value={showCustomEquation ? CUSTOM_EQUATION_VALUE : values.sortBy}
-              options={[
-                ...uniqBy(sortByOptions, ({value}) => value),
-                ...(hasGroupBy
-                  ? [{value: CUSTOM_EQUATION_VALUE, label: t('Custom Equation')}]
-                  : []),
-              ]}
+              value={values.sortBy}
+              options={uniqBy(sortByOptions, ({value}) => value)}
               onChange={(option: SelectValue<string>) => {
-                const isSortingByCustomEquation = option.value === CUSTOM_EQUATION_VALUE;
-                setShowCustomEquation(isSortingByCustomEquation);
-                if (isSortingByCustomEquation) {
-                  onChange(customEquation);
-                  return;
-                }
-
                 onChange({
                   sortBy: option.value,
                   sortDirection: values.sortDirection,
