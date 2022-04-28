@@ -8,6 +8,7 @@ import {truncate} from '@sentry/utils';
 import type {DataZoomComponentOption} from 'echarts';
 import {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
+import isEqual from 'lodash/isEqual';
 import moment from 'moment';
 
 import {fetchTotalCount} from 'sentry/actionCreators/events';
@@ -100,7 +101,8 @@ const MemoizedWidgetCardChartContainer = React.memo(
       (props.location.query[WidgetViewerQueryField.SORT] ===
         prevProps.location.query[WidgetViewerQueryField.SORT] ||
         (props.widget.displayType !== DisplayType.TOP_N &&
-          props.widget.limit !== undefined))
+          props.widget.limit !== undefined)) &&
+      isEqual(props.chartZoomOptions, prevProps.chartZoomOptions)
     );
   }
 );
@@ -111,7 +113,8 @@ const MemoizedWidgetCardChart = React.memo(WidgetCardChart, (prevProps, props) =
     (props.location.query[WidgetViewerQueryField.SORT] ===
       prevProps.location.query[WidgetViewerQueryField.SORT] ||
       (props.widget.displayType !== DisplayType.TOP_N &&
-        props.widget.limit !== undefined))
+        props.widget.limit !== undefined)) &&
+    isEqual(props.chartZoomOptions, prevProps.chartZoomOptions)
   );
 });
 
@@ -174,6 +177,10 @@ function WidgetViewerModal(props: Props) {
 
   const [chartUnmodified, setChartUnmodified] = React.useState<boolean>(true);
 
+  const [chartZoomOptions, setChartZoomOptions] = React.useState<DataZoomComponentOption>(
+    {start: 0, end: 100}
+  );
+
   const [modalTableSelection, setModalTableSelection] =
     React.useState<PageFilters>(locationPageFilter);
   const modalChartSelection = React.useMemo(() => modalTableSelection, [selection]);
@@ -183,6 +190,14 @@ function WidgetViewerModal(props: Props) {
   React.useEffect(() => {
     if (location.action === 'POP') {
       setModalTableSelection(locationPageFilter);
+      if (start && end) {
+        setChartZoomOptions({
+          startValue: moment.utc(start).unix() * 1000,
+          endValue: moment.utc(end).unix() * 1000,
+        });
+      } else {
+        setChartZoomOptions({start: 0, end: 100});
+      }
     }
   }, [location]);
 
@@ -569,8 +584,6 @@ function WidgetViewerModal(props: Props) {
     );
   };
 
-  const chartZoomOptions = React.useRef<DataZoomComponentOption>({start: 0, end: 100});
-
   const onZoom: AugmentedEChartDataZoomHandler = (evt, chart) => {
     // @ts-ignore getModel() is private but we need this to retrieve datetime values of zoomed in region
     const model = chart.getModel();
@@ -582,23 +595,16 @@ function WidgetViewerModal(props: Props) {
     const seriesEndTime = seriesEnd ? new Date(seriesEnd).getTime() : undefined;
     // Slider zoom events don't contain the raw date time value, only the percentage
     // We use the percentage with the start and end of the series to calculate the adjusted zoom
-    const startPercentage = model._payload.start;
-    const endPercentage = model._payload.end;
     if (startValue === undefined || endValue === undefined) {
       if (seriesStartTime && seriesEndTime) {
         const diff = seriesEndTime - seriesStartTime;
-        startValue = diff * startPercentage * 0.01 + seriesStartTime;
-        endValue = diff * endPercentage * 0.01 + seriesStartTime;
-        chartZoomOptions.current.start = startPercentage;
-        chartZoomOptions.current.end = endPercentage;
+        startValue = diff * model._payload.start * 0.01 + seriesStartTime;
+        endValue = diff * model._payload.end * 0.01 + seriesStartTime;
       } else {
         return;
       }
-    } else if (seriesStartTime && seriesEndTime) {
-      const diff = seriesEndTime - seriesStartTime;
-      chartZoomOptions.current.start = (100 * (startValue - seriesStartTime)) / diff;
-      chartZoomOptions.current.end = (100 * (endValue - seriesStartTime)) / diff;
     }
+    setChartZoomOptions({startValue, endValue});
     const newStart = getUtcDateString(moment.utc(startValue));
     const newEnd = getUtcDateString(moment.utc(endValue));
     setModalTableSelection({
@@ -743,7 +749,7 @@ function WidgetViewerModal(props: Props) {
                 expandNumbers
                 showSlider={shouldShowSlider}
                 noPadding
-                chartZoomOptions={chartZoomOptions.current}
+                chartZoomOptions={chartZoomOptions}
               />
             ) : (
               <MemoizedWidgetCardChartContainer
@@ -762,7 +768,7 @@ function WidgetViewerModal(props: Props) {
                 expandNumbers
                 showSlider={shouldShowSlider}
                 noPadding
-                chartZoomOptions={chartZoomOptions.current}
+                chartZoomOptions={chartZoomOptions}
               />
             )}
           </Container>
