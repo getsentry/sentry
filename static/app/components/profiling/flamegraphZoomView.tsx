@@ -65,7 +65,8 @@ function FlamegraphZoomView({
             0,
             flamegraphTheme.SIZES.TIMELINE_HEIGHT * window.devicePixelRatio
           ),
-          {draw_border: true}
+          {draw_border: true},
+          'flamegraph'
         );
 
         if (!previousRenderer?.configSpace.equals(renderer.configSpace)) {
@@ -73,21 +74,7 @@ function FlamegraphZoomView({
         }
 
         if (previousRenderer?.flamegraph.profile === renderer.flamegraph.profile) {
-          if (previousRenderer.flamegraph.inverted !== renderer.flamegraph.inverted) {
-            // Preserve the position where the user just was before they toggled
-            // inverted. This means that the horizontal position is unchanged
-            // while the vertical position needs to determined based on the
-            // current position.
-            renderer.setConfigView(
-              previousRenderer.configView.translateY(
-                previousRenderer.configSpace.height -
-                  previousRenderer.configView.height -
-                  previousRenderer.configView.y
-              )
-            );
-          } else if (
-            previousRenderer.flamegraph.leftHeavy !== renderer.flamegraph.leftHeavy
-          ) {
+          if (previousRenderer.flamegraph.leftHeavy !== renderer.flamegraph.leftHeavy) {
             // When the user toggles left heavy, the entire flamegraph will take
             // on a different shape. In this case, there's no obvious position
             // that can be carried over.
@@ -260,9 +247,7 @@ function FlamegraphZoomView({
         selectedFrameRenderer.draw(
           new Rect(
             selectedNode.start,
-            flamegraph.inverted
-              ? flamegraphRenderer.configSpace.height - selectedNode.depth - 1
-              : selectedNode.depth,
+            selectedNode.depth,
             selectedNode.end - selectedNode.start,
             1
           ),
@@ -270,7 +255,6 @@ function FlamegraphZoomView({
             BORDER_COLOR: flamegraphRenderer.theme.COLORS.SELECTED_FRAME_BORDER_COLOR,
             BORDER_WIDTH: flamegraphRenderer.theme.SIZES.FRAME_BORDER_WIDTH,
           },
-          selectedFrameRenderer.context,
           flamegraphRenderer.configViewToPhysicalSpace
         );
       }
@@ -279,9 +263,7 @@ function FlamegraphZoomView({
         selectedFrameRenderer.draw(
           new Rect(
             hoveredNode.start,
-            flamegraph.inverted
-              ? flamegraphRenderer.configSpace.height - hoveredNode.depth - 1
-              : hoveredNode.depth,
+            hoveredNode.depth,
             hoveredNode.end - hoveredNode.start,
             1
           ),
@@ -289,7 +271,6 @@ function FlamegraphZoomView({
             BORDER_COLOR: flamegraphRenderer.theme.COLORS.HOVERED_FRAME_BORDER_COLOR,
             BORDER_WIDTH: flamegraphRenderer.theme.SIZES.HOVERED_FRAME_BORDER_WIDTH,
           },
-          selectedFrameRenderer.context,
           flamegraphRenderer.configViewToPhysicalSpace
         );
       }
@@ -298,7 +279,6 @@ function FlamegraphZoomView({
     const drawText = () => {
       textRenderer.draw(
         flamegraphRenderer.configView,
-        flamegraphRenderer.configSpace,
         flamegraphRenderer.configViewToPhysicalSpace
       );
     };
@@ -307,7 +287,8 @@ function FlamegraphZoomView({
       gridRenderer.draw(
         flamegraphRenderer.configView,
         flamegraphRenderer.physicalSpace,
-        flamegraphRenderer.configViewToPhysicalSpace
+        flamegraphRenderer.configViewToPhysicalSpace,
+        flamegraphRenderer.logicalSpaceToConfigView
       );
     };
 
@@ -360,12 +341,7 @@ function FlamegraphZoomView({
       flamegraphRenderer.setConfigView(
         new Rect(
           frame.start,
-          flamegraphRenderer.flamegraph.inverted
-            ? flamegraphRenderer.configSpace.height -
-              flamegraphRenderer.configView.height -
-              frame.depth +
-              1
-            : frame.depth,
+          frame.depth,
           frame.end - frame.start,
           flamegraphRenderer.configView.height
         )
@@ -681,7 +657,7 @@ function FlamegraphZoomView({
         <BoundTooltip
           bounds={canvasBounds}
           cursor={configSpaceCursor}
-          configViewToPhysicalSpace={flamegraphRenderer?.configViewToPhysicalSpace}
+          configViewToPhysicalSpace={flamegraphRenderer.configViewToPhysicalSpace}
         >
           {hoveredNode?.frame?.name}
         </BoundTooltip>

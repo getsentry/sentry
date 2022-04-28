@@ -51,7 +51,7 @@ class TextRenderer {
     }
   }
 
-  draw(configViewSpace: Rect, configSpace: Rect, configViewToPhysicalSpace: mat3): void {
+  draw(configViewSpace: Rect, configViewToPhysicalSpace: mat3): void {
     this.maybeInvalidateCache();
 
     this.context.font = `${this.theme.SIZES.BAR_FONT_SIZE * window.devicePixelRatio}px ${
@@ -80,12 +80,7 @@ class TextRenderer {
       const pinnedEnd = Math.min(frame.end, configViewSpace.right);
 
       // This rect gets discarded after each render which is wasteful
-      const offsetFrame = new Rect(
-        pinnedStart,
-        this.flamegraph.inverted ? configSpace.height - frame.depth - 1 : frame.depth,
-        pinnedEnd - pinnedStart,
-        1
-      );
+      const offsetFrame = new Rect(pinnedStart, frame.depth, pinnedEnd - pinnedStart, 1);
 
       // Transform frame to physical space coordinates
       const frameInPhysicalSpace = offsetFrame.transformRect(configViewToPhysicalSpace);
