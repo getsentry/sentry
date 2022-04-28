@@ -446,7 +446,7 @@ class TransactionBar extends React.Component<Props, State> {
             return null;
           }
 
-          registerScrollFn(`#txn-${transaction.event_id}`, this.scrollIntoView);
+          registerScrollFn(`#txn-${transaction.event_id}`, this.scrollIntoView, false);
 
           if (!isVisible || !showDetail) {
             return null;
