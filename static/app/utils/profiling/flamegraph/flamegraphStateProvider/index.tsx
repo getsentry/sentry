@@ -14,7 +14,13 @@ import {
 
 import {useFlamegraphStateValue} from '../useFlamegraphState';
 
-import {flamegraphPreferencesReducer} from './flamegraphPreferences';
+import {
+  FlamegraphAxisOptions,
+  FlamegraphColorCodings,
+  flamegraphPreferencesReducer,
+  FlamegraphSorting,
+  FlamegraphViewOptions,
+} from './flamegraphPreferences';
 import {flamegraphProfilesReducer} from './flamegraphProfiles';
 import {flamegraphSearchReducer} from './flamegraphSearch';
 import {flamegraphZoomPositionReducer} from './flamegraphZoomPosition';
@@ -28,30 +34,35 @@ type PossibleQuery =
 function isColorCoding(
   value: PossibleQuery['colorCoding'] | FlamegraphState['preferences']['colorCoding']
 ): value is FlamegraphState['preferences']['colorCoding'] {
-  return (
-    value === 'by symbol name' ||
-    value === 'by library' ||
-    value === 'by recursion' ||
-    value === 'by system / application'
-  );
+  const values: FlamegraphColorCodings = [
+    'by symbol name',
+    'by system / application',
+    'by library',
+    'by recursion',
+  ];
+
+  return values.includes(value as any);
 }
 
 function isSorting(
   value: PossibleQuery['sorting'] | FlamegraphState['preferences']['sorting']
 ): value is FlamegraphState['preferences']['sorting'] {
-  return value === 'left heavy' || value === 'call order';
+  const values: FlamegraphSorting = ['left heavy', 'call order'];
+  return values.includes(value as any);
 }
 
 function isView(
   value: PossibleQuery['view'] | FlamegraphState['preferences']['view']
 ): value is FlamegraphState['preferences']['view'] {
-  return value === 'top down' || value === 'bottom up';
+  const values: FlamegraphViewOptions = ['top down', 'bottom up'];
+  return values.includes(value as any);
 }
 
 function isXAxis(
   value: PossibleQuery['xAxis'] | FlamegraphState['preferences']['xAxis']
 ): value is FlamegraphState['preferences']['xAxis'] {
-  return value === 'standalone' || value === 'transaction';
+  const values: FlamegraphAxisOptions = ['standalone', 'transaction'];
+  return values.includes(value as any);
 }
 
 export function decodeFlamegraphStateFromQueryParams(
