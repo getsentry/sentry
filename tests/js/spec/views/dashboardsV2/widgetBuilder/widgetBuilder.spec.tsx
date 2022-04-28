@@ -1084,7 +1084,7 @@ describe('WidgetBuilder', function () {
     expect(handleSave).toHaveBeenCalledTimes(1);
   });
 
-  it('persists the global selection header period when updating a widget', async () => {
+  it('persists the page filter period when updating a widget', async () => {
     const widget: Widget = {
       id: '1',
       title: 'Errors over time',
@@ -1116,7 +1116,7 @@ describe('WidgetBuilder', function () {
     });
 
     await screen.findByText('Update Widget');
-    await screen.findByText('Last 90 days');
+    await screen.findByText('90D');
 
     userEvent.click(screen.getByText('Update Widget'));
 
