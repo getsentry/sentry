@@ -175,7 +175,7 @@ describe('makeUndoableReducer', () => {
             colorCoding: 'by symbol name',
             sorting: 'call order',
             view: 'top down',
-            synchronizeXAxisWithTransaction: false,
+            xAxis: 'standalone',
           },
           search: {
             index: null,
