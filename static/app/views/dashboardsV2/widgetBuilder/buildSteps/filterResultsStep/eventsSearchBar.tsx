@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import SearchBar, {SearchBarProps} from 'sentry/components/events/searchBar';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
-import {Organization} from 'sentry/types';
+import {Organization, SavedSearchType} from 'sentry/types';
 import {WidgetQuery} from 'sentry/views/dashboardsV2/types';
 import {
   MAX_MENU_HEIGHT,
@@ -37,6 +37,7 @@ export function EventsSearchBar({
       maxQueryLength={MAX_QUERY_LENGTH}
       maxSearchItems={MAX_SEARCH_ITEMS}
       maxMenuHeight={MAX_MENU_HEIGHT}
+      savedSearchType={SavedSearchType.EVENT}
     />
   );
 }
