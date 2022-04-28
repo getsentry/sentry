@@ -1904,6 +1904,50 @@ describe('WidgetBuilder', function () {
         'count_unique(user) * 2'
       );
     });
+
+    it.only.each`
+      directionPrefix | expectedOrderSelection
+      ${'-'}          | ${'High to low'}
+      ${''}           | ${'Low to high'}
+    `(
+      `opens a widget with the '$expectedOrderSelection' sort order when the widget is saved with that direction`,
+      async function ({directionPrefix, expectedOrderSelection}) {
+        const widget: Widget = {
+          id: '1',
+          title: 'Test Widget',
+          interval: '5m',
+          displayType: DisplayType.LINE,
+          queries: [
+            {
+              name: '',
+              conditions: '',
+              fields: ['count()'],
+              aggregates: ['count()'],
+              columns: ['project'],
+              orderby: `${directionPrefix}count`,
+            },
+          ],
+        };
+
+        const dashboard: DashboardDetails = {
+          id: '1',
+          title: 'Dashboard',
+          createdBy: undefined,
+          dateCreated: '2020-01-01T00:00:00.000Z',
+          widgets: [widget],
+        };
+
+        renderTestComponent({
+          orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+          dashboard,
+          params: {
+            widgetIndex: '0',
+          },
+        });
+
+        await screen.findByText(expectedOrderSelection);
+      }
+    );
   });
 
   describe('Widget creation coming from other verticals', function () {
