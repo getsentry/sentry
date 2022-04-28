@@ -1,4 +1,5 @@
 from drf_spectacular.utils import OpenApiParameter
+from rest_framework import serializers
 
 
 class GLOBAL_PARAMS:
@@ -42,4 +43,11 @@ class ISSUE_ALERT_PARAMS:
         required=True,
         type=int,
         description="The id of the rule you'd like to query",
+    )
+
+
+class CURSOR_QUERY_PARAM(serializers.Serializer):  # type: ignore
+    cursor = serializers.CharField(
+        help_text="A pointer to the last object fetched and its' sort order; used to retrieve the next or previous results.",
+        required=False,
     )
