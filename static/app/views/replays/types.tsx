@@ -1,6 +1,6 @@
 export type Replay = {
   eventID: string;
-  id: string; // Automatically included in the query
+  id: string;
   project: string;
   timestamp: string;
   url: string;

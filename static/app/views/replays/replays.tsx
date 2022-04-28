@@ -67,6 +67,7 @@ function Replays(props: Props) {
       name: '',
       version: 2,
       fields: [
+        // 'id' is always returned, don't need to list it here.
         'eventID',
         'project',
         'timestamp',
