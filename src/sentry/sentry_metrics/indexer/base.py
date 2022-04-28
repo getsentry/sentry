@@ -24,7 +24,6 @@ class FetchType(Enum):
 
 
 KR = TypeVar("KR", bound="KeyResult")
-KRs = TypeVar("KRs", bound="KeyResults")
 
 
 @dataclass(frozen=True)
