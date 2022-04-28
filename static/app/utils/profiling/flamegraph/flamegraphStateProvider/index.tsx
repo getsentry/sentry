@@ -131,7 +131,6 @@ export function FlamegraphStateQueryParamSync() {
   useEffect(() => {
     browserHistory.push({
       ...location,
-      pathname: location.pathname,
       query: {
         ...location.query,
         ...encodeFlamegraphStateToQueryParams(state),
