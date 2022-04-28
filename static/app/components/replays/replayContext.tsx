@@ -1,10 +1,12 @@
 import React, {useCallback, useContext, useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {Replayer, ReplayerEvents} from 'rrweb';
-import type {eventWithTime} from 'rrweb/typings/types';
+import type {eventWithTime, ReplayPlugin} from 'rrweb/typings/types';
 
 import usePrevious from 'sentry/utils/usePrevious';
+import type {HighlightsByTime} from 'sentry/views/replays/types';
 
+import {HighlightReplayPlugin} from './highlightReplayPlugin';
 import useRAF from './useRAF';
 
 type Dimensions = {height: number; width: number};
@@ -115,6 +117,7 @@ const ReplayPlayerContext = React.createContext<ReplayPlayerContextProps>({
 type Props = {
   children: React.ReactNode;
   events: eventWithTime[];
+  highlights: HighlightsByTime;
 
   /**
    * Time, in seconds, when the video should start
@@ -133,7 +136,13 @@ function useCurrentTime(callback: () => number) {
   return currentTime;
 }
 
-export function Provider({children, events, initialTimeOffset = 0, value = {}}: Props) {
+export function Provider({
+  children,
+  events,
+  highlights,
+  initialTimeOffset = 0,
+  value = {},
+}: Props) {
   const theme = useTheme();
   const oldEvents = usePrevious(events);
   const replayerRef = useRef<Replayer>(null);
@@ -181,10 +190,12 @@ export function Provider({children, events, initialTimeOffset = 0, value = {}}: 
         }
       }
 
+      const highlightReplayPlugin: ReplayPlugin = new HighlightReplayPlugin({highlights});
+
       // eslint-disable-next-line no-new
       const inst = new Replayer(events, {
         root,
-        // blockClass: 'rr-block',
+        blockClass: 'sr-block',
         // liveMode: false,
         // triggerFocus: false,
         mouseTail: {
@@ -194,7 +205,7 @@ export function Provider({children, events, initialTimeOffset = 0, value = {}}: 
           strokeStyle: theme.purple200,
         },
         // unpackFn: _ => _,
-        // plugins: [],
+        plugins: [highlightReplayPlugin],
       });
 
       // @ts-expect-error: rrweb types event handlers with `unknown` parameters
@@ -210,7 +221,7 @@ export function Provider({children, events, initialTimeOffset = 0, value = {}}: 
       // @ts-expect-error
       replayerRef.current = inst;
     },
-    [events, oldEvents, theme.purple200]
+    [events, oldEvents, theme.purple200, highlights]
   );
 
   useEffect(() => {
