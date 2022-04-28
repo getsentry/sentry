@@ -275,12 +275,10 @@ function AnomaliesContent(props: Props) {
   }
   return (
     <Layout.Main fullWidth>
-      {organization.features.includes('selection-filters-v2') && (
-        <StyledPageFilterBar condensed>
-          <EnvironmentPageFilter />
-          <DatePageFilter alignDropdown="left" />
-        </StyledPageFilterBar>
-      )}
+      <StyledPageFilterBar condensed>
+        <EnvironmentPageFilter />
+        <DatePageFilter alignDropdown="left" />
+      </StyledPageFilterBar>
       <SearchBar
         organization={organization}
         projectIds={eventView.project}

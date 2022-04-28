@@ -101,9 +101,7 @@ class VitalDetail extends Component<Props, State> {
     return (
       <SentryDocumentTitle title={this.getDocumentTitle()} orgSlug={organization.slug}>
         <PerformanceEventViewProvider value={{eventView: this.state.eventView}}>
-          <PageFiltersContainer
-            hideGlobalHeader={organization.features.includes('selection-filters-v2')}
-          >
+          <PageFiltersContainer hideGlobalHeader>
             <StyledPageContent>
               <NoProjectMessage organization={organization}>
                 <VitalDetailContent

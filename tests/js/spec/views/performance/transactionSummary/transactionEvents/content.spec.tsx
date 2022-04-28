@@ -1,5 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {act} from 'sentry-test/reactTestingLibrary';
 
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -9,6 +10,7 @@ import {
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
   WebVital,
 } from 'sentry/utils/discover/fields';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import EventsPageContent from 'sentry/views/performance/transactionSummary/transactionEvents/content';
 import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
@@ -38,7 +40,7 @@ function initializeData({features: additionalFeatures = []}: Data = {}) {
     project: 1,
     projects: [],
   });
-  ProjectsStore.loadInitialData(initialData.organization.projects);
+  act(() => void ProjectsStore.loadInitialData(initialData.organization.projects));
   return initialData;
 }
 
@@ -157,17 +159,19 @@ describe('Performance Transaction Events Content', function () {
 
   it('basic rendering', async function () {
     const wrapper = mountWithTheme(
-      <EventsPageContent
-        eventView={eventView}
-        organization={organization}
-        location={initialData.router.location}
-        transactionName={transactionName}
-        spanOperationBreakdownFilter={SpanOperationBreakdownFilter.None}
-        onChangeSpanOperationBreakdownFilter={() => {}}
-        eventsDisplayFilterName={EventsDisplayFilterName.p100}
-        onChangeEventsDisplayFilter={() => {}}
-        setError={() => {}}
-      />,
+      <OrganizationContext.Provider value={organization}>
+        <EventsPageContent
+          eventView={eventView}
+          organization={organization}
+          location={initialData.router.location}
+          transactionName={transactionName}
+          spanOperationBreakdownFilter={SpanOperationBreakdownFilter.None}
+          onChangeSpanOperationBreakdownFilter={() => {}}
+          eventsDisplayFilterName={EventsDisplayFilterName.p100}
+          onChangeEventsDisplayFilter={() => {}}
+          setError={() => {}}
+        />
+      </OrganizationContext.Provider>,
       initialData.routerContext
     );
     await tick();
@@ -191,18 +195,20 @@ describe('Performance Transaction Events Content', function () {
 
   it('rendering with webvital selected', async function () {
     const wrapper = mountWithTheme(
-      <EventsPageContent
-        eventView={eventView}
-        organization={organization}
-        location={initialData.router.location}
-        transactionName={transactionName}
-        spanOperationBreakdownFilter={SpanOperationBreakdownFilter.None}
-        onChangeSpanOperationBreakdownFilter={() => {}}
-        eventsDisplayFilterName={EventsDisplayFilterName.p100}
-        onChangeEventsDisplayFilter={() => {}}
-        webVital={WebVital.LCP}
-        setError={() => {}}
-      />,
+      <OrganizationContext.Provider value={organization}>
+        <EventsPageContent
+          eventView={eventView}
+          organization={organization}
+          location={initialData.router.location}
+          transactionName={transactionName}
+          spanOperationBreakdownFilter={SpanOperationBreakdownFilter.None}
+          onChangeSpanOperationBreakdownFilter={() => {}}
+          eventsDisplayFilterName={EventsDisplayFilterName.p100}
+          onChangeEventsDisplayFilter={() => {}}
+          webVital={WebVital.LCP}
+          setError={() => {}}
+        />
+      </OrganizationContext.Provider>,
       initialData.routerContext
     );
     await tick();

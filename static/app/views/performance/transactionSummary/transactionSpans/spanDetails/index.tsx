@@ -65,7 +65,7 @@ export default function SpanDetails(props: Props) {
           showProjectSettingsLink
           relativeDateOptions={SPAN_RELATIVE_PERIODS}
           maxPickableDays={SPAN_RETENTION_DAYS}
-          hideGlobalHeader={organization.features.includes('selection-filters-v2')}
+          hideGlobalHeader
         >
           <StyledPageContent>
             <NoProjectMessage organization={organization}>

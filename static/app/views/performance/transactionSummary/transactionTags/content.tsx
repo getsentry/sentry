@@ -156,12 +156,10 @@ const InnerContent = (
       />
       <StyledMain>
         <StyledActions>
-          {organization.features.includes('selection-filters-v2') && (
-            <StyledPageFilterBar condensed>
-              <EnvironmentPageFilter />
-              <DatePageFilter alignDropdown="left" />
-            </StyledPageFilterBar>
-          )}
+          <StyledPageFilterBar condensed>
+            <EnvironmentPageFilter />
+            <DatePageFilter alignDropdown="left" />
+          </StyledPageFilterBar>
           <StyledSearchBar
             organization={organization}
             projectIds={eventView.project}

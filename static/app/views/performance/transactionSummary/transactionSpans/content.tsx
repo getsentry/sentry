@@ -94,12 +94,10 @@ function SpansContent(props: Props) {
 
   return (
     <Layout.Main fullWidth>
-      {organization.features.includes('selection-filters-v2') && (
-        <StyledPageFilterBar condensed>
-          <EnvironmentPageFilter />
-          <DatePageFilter alignDropdown="left" />
-        </StyledPageFilterBar>
-      )}
+      <StyledPageFilterBar condensed>
+        <EnvironmentPageFilter />
+        <DatePageFilter alignDropdown="left" />
+      </StyledPageFilterBar>
       <Actions>
         <OpsFilter
           location={location}
