@@ -66,7 +66,18 @@ function Replays(props: Props) {
       id: '',
       name: '',
       version: 2,
-      fields: ['eventID', 'project', 'timestamp', 'user.display', 'url'],
+      fields: [
+        'eventID',
+        'project',
+        'timestamp',
+        'url',
+        'user.display',
+        'user.email',
+        'user.id',
+        'user.ip_address',
+        'user.name',
+        'user.username',
+      ],
       orderby: getQueryParamAsString(query.sort) || '-timestamp',
       environment: selection.environments,
       projects: selection.projects,
@@ -93,7 +104,7 @@ function Replays(props: Props) {
   const renderTable = (replayList: Array<Replay>) => {
     return replayList?.map(replay => (
       <Fragment key={replay.id}>
-        <ReplayUserBadge
+        <UserBadge
           avatarSize={32}
           displayName={
             <Link
@@ -106,11 +117,11 @@ function Replays(props: Props) {
             </Link>
           }
           user={{
-            username: replay['user.display'],
-            id: replay['user.display'],
-            ip_address: replay['user.display'],
-            name: replay['user.display'],
-            email: replay['user.display'],
+            username: replay['user.username'] ?? '',
+            id: replay['user.id'] ?? '',
+            ip_address: replay['user.ip_address'] ?? '',
+            name: replay['user.name'] ?? '',
+            email: replay['user.email'] ?? '',
           }}
           // this is the subheading for the avatar, so displayEmail in this case is a misnomer
           displayEmail={getUrlPathname(replay.url) ?? ''}
@@ -245,12 +256,6 @@ const HeaderTitle = styled(PageHeading)`
 
 const StyledPanelItem = styled('div')`
   margin-top: ${space(0.75)};
-`;
-
-const ReplayUserBadge = styled(UserBadge)`
-  font-size: ${p => p.theme.fontSizeLarge};
-  font-weight: 400;
-  line-height: 1.2;
 `;
 
 const TimeSinceWrapper = styled('div')`

@@ -2,15 +2,14 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
-import EventMessage from 'sentry/components/events/eventMessage';
 import FeatureBadge from 'sentry/components/featureBadge';
+import UserBadge from 'sentry/components/idBadge/userBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {Event} from 'sentry/types/event';
-import {getMessage} from 'sentry/utils/events';
+import {generateEventSlug} from 'sentry/utils/discover/urls';
+import getUrlPathname from 'sentry/utils/getUrlPathname';
 
 type Props = {
   children: React.ReactNode;
@@ -30,9 +29,21 @@ function DetailLayout({children, event, orgId}: Props) {
               crumbs={[
                 {
                   to: `/organizations/${orgId}/replays/`,
-                  label: t('Replays'),
+                  label: (
+                    <React.Fragment>
+                      {t('Replays')}
+                      <FeatureBadge type="alpha" />
+                    </React.Fragment>
+                  ),
                 },
-                {label: t('Replay Details')}, // TODO(replay): put replay ID or something here
+                {
+                  label: event
+                    ? generateEventSlug({
+                        project: event.projectSlug,
+                        id: event.id,
+                      })
+                    : t('Replay'),
+                },
               ]}
             />
             <EventHeader event={event} />
@@ -48,33 +59,30 @@ function EventHeader({event}: Pick<Props, 'event'>) {
   if (!event) {
     return null;
   }
-  const message = getMessage(event);
+
+  const urlTag = event.tags.find(({key}) => key === 'url');
+  const pathname = getUrlPathname(urlTag?.value ?? '') ?? '';
+
   return (
     <EventHeaderContainer data-test-id="event-header">
-      <TitleWrapper>
-        <EventOrGroupTitle data={event} />
-        <FeatureBadge type="alpha" />
-      </TitleWrapper>
-      {message && (
-        <MessageWrapper>
-          <EventMessage message={message} />
-        </MessageWrapper>
-      )}
+      <UserBadge
+        avatarSize={32}
+        user={{
+          username: event.user?.username ?? '',
+          id: event.user?.id ?? '',
+          ip_address: event.user?.ip_address ?? '',
+          name: event.user?.name ?? '',
+          email: event.user?.email ?? '',
+        }}
+        // this is the subheading for the avatar, so displayEmail in this case is a misnomer
+        displayEmail={pathname}
+      />
     </EventHeaderContainer>
   );
 }
 
 const EventHeaderContainer = styled('div')`
   max-width: ${p => p.theme.breakpoints[0]};
-`;
-
-const TitleWrapper = styled('div')`
-  font-size: ${p => p.theme.headerFontSize};
-  margin-top: ${space(3)};
-`;
-
-const MessageWrapper = styled('div')`
-  margin-top: ${space(1)};
 `;
 
 export default DetailLayout;
