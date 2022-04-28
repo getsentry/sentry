@@ -7,7 +7,6 @@ import {Organization, TagCollection} from 'sentry/types';
 import {
   aggregateFunctionOutputType,
   aggregateOutputType,
-  getAggregateAlias,
   isEquation,
   isLegalYAxisType,
   stripDerivedMetricsPrefix,
@@ -143,7 +142,7 @@ export function normalizeQueries({
       // grouping in timeseries charts
       const ignoreOrderBy = isEquation(trimStart(queryOrderBy, '-')) && isTabularChart;
       const orderBy =
-        (!ignoreOrderBy && getAggregateAlias(queryOrderBy)) ||
+        (!ignoreOrderBy && queryOrderBy) ||
         (widgetType === WidgetType.ISSUE
           ? IssueSortOptions.DATE
           : generateOrderOptions({
