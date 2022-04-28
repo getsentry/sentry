@@ -269,7 +269,6 @@ class KeyResultsTest(TestCase):
         assert key_results.get_unmapped_keys(collection).mapping == {1: {"b", "c"}, 2: {"e", "f"}}
 
         key_result_list = [
-            KeyResult(1, "a", 10),
             KeyResult(1, "b", 11),
             KeyResult(1, "c", 12),
             KeyResult(2, "e", 13),
@@ -290,3 +289,52 @@ class KeyResultsTest(TestCase):
         }
 
         assert key_results.get_unmapped_keys(collection).mapping == {}
+
+    def test_merges_with_metadata(self):
+        org_id = 1
+        cache_mappings = {"cache1": 1, "cache2": 2}
+        read_mappings = {"read3": 3, "read4": 4}
+        hardcode_mappings = {"hardcode5": 5, "hardcode6": 6}
+        write_mappings = {"write7": 7, "write8": 8}
+
+        mappings = {
+            *cache_mappings,
+            *read_mappings,
+            *hardcode_mappings,
+            *write_mappings,
+        }
+
+        kr_cache = KeyResults()
+        kr_dbread = KeyResults()
+        kr_hardcoded = KeyResults()
+        kr_write = KeyResults()
+        assert kr_cache.results == {} and kr_cache.meta == {}
+        assert kr_dbread.results == {} and kr_dbread.meta == {}
+        assert kr_hardcoded.results == {} and kr_hardcoded.meta == {}
+        assert kr_write.results == {} and kr_write.meta == {}
+
+        kr_cache.add_key_results(
+            [KeyResult(org_id=org_id, string=k, id=v) for k, v in cache_mappings.items()],
+            FetchType.CACHE_HIT,
+        )
+        kr_dbread.add_key_results(
+            [KeyResult(org_id=org_id, string=k, id=v) for k, v in read_mappings.items()],
+            FetchType.DB_READ,
+        )
+        kr_hardcoded.add_key_results(
+            [KeyResult(org_id=org_id, string=k, id=v) for k, v in hardcode_mappings.items()],
+            FetchType.HARDCODED,
+        )
+        kr_write.add_key_results(
+            [KeyResult(org_id=org_id, string=k, id=v) for k, v in write_mappings.items()],
+            FetchType.FIRST_SEEN,
+        )
+
+        kr_merged = kr_cache.merge(kr_dbread).merge(kr_hardcoded).merge(kr_write)
+
+        assert len(kr_merged.get_mapped_results()[org_id]) == len(mappings)
+        fetch_metadata = kr_merged.get_fetch_metadata()
+        assert fetch_metadata[FetchType.DB_READ].keys() == set(read_mappings.values())
+        assert fetch_metadata[FetchType.HARDCODED].keys() == set(hardcode_mappings.values())
+        assert fetch_metadata[FetchType.FIRST_SEEN].keys() == set(write_mappings.values())
+        assert fetch_metadata[FetchType.CACHE_HIT].keys() == set(cache_mappings.values())
