@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo} from 'react';
+import {useCallback, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import Fuse from 'fuse.js';
@@ -193,7 +193,7 @@ function FlamegraphSearch({
         query: search.query,
       },
     });
-  }, [searchIndex, allFrames]);
+  }, [searchIndex, allFrames, search.query, search.results, dispatchSearch]);
 
   const onNextSearchClick = useCallback(() => {
     const frames = memoizedSortFrameResults(search.results);

@@ -33,7 +33,6 @@ function FlamegraphZoomView({
   canvasPoolManager,
 }: FlamegraphZoomViewProps): React.ReactElement {
   const flamegraphTheme = useFlamegraphTheme();
-
   const [lastInteraction, setLastInteraction] = useState<
     'pan' | 'click' | 'zoom' | 'scroll' | null
   >(null);
@@ -41,12 +40,12 @@ function FlamegraphZoomView({
   const [dispatch, {previousState, nextState}] = useDispatchFlamegraphState();
   const flamegraphPreferences = useFlamegraphPreferencesValue();
 
+  const scheduler = useMemo(() => new CanvasScheduler(), []);
+
   const [flamegraphCanvasRef, setFlamegraphCanvasRef] =
     useState<HTMLCanvasElement | null>(null);
   const [flamegraphOverlayCanvasRef, setFlamegraphOverlayCanvasRef] =
     useState<HTMLCanvasElement | null>(null);
-
-  const scheduler = useMemo(() => new CanvasScheduler(), []);
 
   const [flamegraphState, dispatchFlamegraphState] = useFlamegraphState();
   const [canvasBounds, setCanvasBounds] = useState<Rect>(Rect.Empty());
@@ -123,6 +122,14 @@ function FlamegraphZoomView({
       flamegraphPreferences.colorCoding,
     ]
   );
+
+  useEffect(() => {
+    return () => {
+      if (flamegraphRenderer) {
+        setSelectedNode(null);
+      }
+    };
+  }, [flamegraphRenderer]);
 
   const textRenderer: TextRenderer | null = useMemo(() => {
     if (!flamegraphOverlayCanvasRef) {
@@ -278,7 +285,7 @@ function FlamegraphZoomView({
         selectedFrameRenderer.draw(
           new Rect(
             selectedNode.start,
-            flamegraph.inverted
+            flamegraphRenderer.flamegraph.inverted
               ? flamegraphRenderer.configSpace.height - selectedNode.depth - 1
               : selectedNode.depth,
             selectedNode.end - selectedNode.start,
@@ -297,7 +304,7 @@ function FlamegraphZoomView({
         selectedFrameRenderer.draw(
           new Rect(
             hoveredNode.start,
-            flamegraph.inverted
+            flamegraphRenderer.flamegraph.inverted
               ? flamegraphRenderer.configSpace.height - hoveredNode.depth - 1
               : hoveredNode.depth,
             hoveredNode.end - hoveredNode.start,
@@ -344,7 +351,6 @@ function FlamegraphZoomView({
     };
   }, [
     scheduler,
-    flamegraph,
     flamegraphRenderer,
     textRenderer,
     gridRenderer,
@@ -407,7 +413,7 @@ function FlamegraphZoomView({
       scheduler.off('resetZoom', onResetZoom);
       scheduler.off('zoomIntoFrame', onZoomIntoFrame);
     };
-  }, [scheduler, flamegraphRenderer]);
+  }, [scheduler, flamegraphRenderer, dispatch]);
 
   useEffect(() => {
     if (!flamegraphCanvasRef || !flamegraphOverlayCanvasRef || !flamegraphRenderer) {
@@ -421,7 +427,9 @@ function FlamegraphZoomView({
         setCanvasBounds(new Rect(bounds.x, bounds.y, bounds.width, bounds.height));
 
         flamegraphRenderer.onResizeUpdateSpace();
-        canvasPoolManager.dispatch('setConfigView', [flamegraphRenderer.configView]);
+        canvasPoolManager.dispatch('setConfigView', [
+          flamegraphRenderer.configView.clone(),
+        ]);
         scheduler.drawSync();
       }
     );

@@ -95,6 +95,7 @@ function FlamegraphView(props: FlamegraphViewProps): React.ReactElement {
     return {
       ...decodedState,
       profiles: {
+        // We either initialize from query param or from the response
         activeProfileIndex:
           decodedState?.profiles?.activeProfileIndex ??
           requestState.data.activeProfileIndex ??
@@ -137,28 +138,28 @@ function FlamegraphView(props: FlamegraphViewProps): React.ReactElement {
 
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
-      <Fragment>
-        <Layout.Header>
-          <Layout.HeaderContent>
-            <Breadcrumb
-              location={props.location}
-              organization={organization}
-              trails={[
-                {type: 'profiling'},
-                {
-                  type: 'flamegraph',
-                  payload: {
-                    interactionName:
-                      requestState.type === 'resolved' ? requestState.data.name : '',
-                    profileId: props.params.eventId ?? '',
-                    projectSlug: props.params.projectId ?? '',
+      <FlamegraphStateProvider initialState={initialFlamegraphPreferencesState}>
+        <Fragment>
+          <Layout.Header>
+            <Layout.HeaderContent>
+              <Breadcrumb
+                location={props.location}
+                organization={organization}
+                trails={[
+                  {type: 'profiling'},
+                  {
+                    type: 'flamegraph',
+                    payload: {
+                      interactionName:
+                        requestState.type === 'resolved' ? requestState.data.name : '',
+                      profileId: props.params.eventId ?? '',
+                      projectSlug: props.params.projectId ?? '',
+                    },
                   },
-                },
-              ]}
-            />
-          </Layout.HeaderContent>
-        </Layout.Header>
-        <FlamegraphStateProvider initialState={initialFlamegraphPreferencesState}>
+                ]}
+              />
+            </Layout.HeaderContent>
+          </Layout.Header>
           <FlamegraphStateQueryParamSync />
           <FlamegraphThemeProvider>
             <FlamegraphContainer>
@@ -178,8 +179,8 @@ function FlamegraphView(props: FlamegraphViewProps): React.ReactElement {
               ) : null}
             </FlamegraphContainer>
           </FlamegraphThemeProvider>
-        </FlamegraphStateProvider>
-      </Fragment>
+        </Fragment>
+      </FlamegraphStateProvider>
     </SentryDocumentTitle>
   );
 }
