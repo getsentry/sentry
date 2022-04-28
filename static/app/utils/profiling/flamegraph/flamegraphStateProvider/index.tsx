@@ -14,6 +14,7 @@ import {
 
 import {useFlamegraphStateValue} from '../useFlamegraphState';
 
+<<<<<<< HEAD
 import {
   FlamegraphAxisOptions,
   FlamegraphColorCodings,
@@ -21,6 +22,9 @@ import {
   FlamegraphSorting,
   FlamegraphViewOptions,
 } from './flamegraphPreferences';
+=======
+import {flamegraphPreferencesReducer} from './flamegraphPreferences';
+>>>>>>> dc008d6bf7 (feat(profiling): add encode/decode state utility fns)
 import {flamegraphProfilesReducer} from './flamegraphProfiles';
 import {flamegraphSearchReducer} from './flamegraphSearch';
 import {flamegraphZoomPositionReducer} from './flamegraphZoomPosition';
@@ -34,6 +38,7 @@ type PossibleQuery =
 function isColorCoding(
   value: PossibleQuery['colorCoding'] | FlamegraphState['preferences']['colorCoding']
 ): value is FlamegraphState['preferences']['colorCoding'] {
+<<<<<<< HEAD
   const values: FlamegraphColorCodings = [
     'by symbol name',
     'by system / application',
@@ -42,27 +47,47 @@ function isColorCoding(
   ];
 
   return values.includes(value as any);
+=======
+  return (
+    value === 'by symbol name' ||
+    value === 'by library' ||
+    value === 'by recursion' ||
+    value === 'by system / application'
+  );
+>>>>>>> dc008d6bf7 (feat(profiling): add encode/decode state utility fns)
 }
 
 function isSorting(
   value: PossibleQuery['sorting'] | FlamegraphState['preferences']['sorting']
 ): value is FlamegraphState['preferences']['sorting'] {
+<<<<<<< HEAD
   const values: FlamegraphSorting = ['left heavy', 'call order'];
   return values.includes(value as any);
+=======
+  return value === 'left heavy' || value === 'call order';
+>>>>>>> dc008d6bf7 (feat(profiling): add encode/decode state utility fns)
 }
 
 function isView(
   value: PossibleQuery['view'] | FlamegraphState['preferences']['view']
 ): value is FlamegraphState['preferences']['view'] {
+<<<<<<< HEAD
   const values: FlamegraphViewOptions = ['top down', 'bottom up'];
   return values.includes(value as any);
+=======
+  return value === 'top down' || value === 'bottom up';
+>>>>>>> dc008d6bf7 (feat(profiling): add encode/decode state utility fns)
 }
 
 function isXAxis(
   value: PossibleQuery['xAxis'] | FlamegraphState['preferences']['xAxis']
 ): value is FlamegraphState['preferences']['xAxis'] {
+<<<<<<< HEAD
   const values: FlamegraphAxisOptions = ['standalone', 'transaction'];
   return values.includes(value as any);
+=======
+  return value === 'standalone' || value === 'transaction';
+>>>>>>> dc008d6bf7 (feat(profiling): add encode/decode state utility fns)
 }
 
 export function decodeFlamegraphStateFromQueryParams(
@@ -185,6 +210,7 @@ export function FlamegraphStateProvider(
 ): React.ReactElement {
   const reducer = useUndoableReducer(combinedReducers, {
     profiles: {
+<<<<<<< HEAD
       activeProfileIndex:
         props.initialState?.profiles?.activeProfileIndex ??
         DEFAULT_FLAMEGRAPH_STATE.profiles.activeProfileIndex,
@@ -210,6 +236,24 @@ export function FlamegraphStateProvider(
     search: {
       ...DEFAULT_FLAMEGRAPH_STATE.search,
       query: props.initialState?.search?.query ?? DEFAULT_FLAMEGRAPH_STATE.search.query,
+=======
+      ...DEFAULT_FLAMEGRAPH_STATE.profiles,
+      ...(props.initialState?.profiles ?? {}),
+    },
+    // @ts-ignore the view here never gets override, it's set as a default in the DEFAULT_FLAMEGRAPH_STATE
+    position: {
+      ...DEFAULT_FLAMEGRAPH_STATE.position,
+      ...(props.initialState?.position ?? {}),
+    },
+    preferences: {
+      ...DEFAULT_FLAMEGRAPH_STATE.preferences,
+      ...(props.initialState?.preferences ?? {}),
+    },
+    search: {
+      ...DEFAULT_FLAMEGRAPH_STATE.search,
+      ...(props.initialState?.search ?? {}),
+      results: null,
+>>>>>>> dc008d6bf7 (feat(profiling): add encode/decode state utility fns)
     },
   });
 
