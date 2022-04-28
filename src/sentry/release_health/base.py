@@ -5,6 +5,7 @@ from datetime import datetime
 from enum import Enum
 from typing import (
     TYPE_CHECKING,
+    Any,
     Literal,
     Mapping,
     Optional,
@@ -231,6 +232,7 @@ class ReleaseHealthBackend(Service):
         "check_has_health_data",
         "get_release_sessions_time_bounds",
         "check_releases_have_health_data",
+        "sessions_query_config",
         "run_sessions_query",
         "get_release_health_data_overview",
         "get_crash_free_breakdown",
@@ -310,11 +312,7 @@ class ReleaseHealthBackend(Service):
 
         raise NotImplementedError()
 
-    from sentry.models import Organization
-
-    def sessions_query_config(
-        self, organization: Organization, start: datetime
-    ) -> SessionsQueryConfig:
+    def sessions_query_config(self, organization: Any, start: datetime) -> SessionsQueryConfig:
         """Return the backend-dependent config for sessions_v2.QueryDefinition"""
         raise NotImplementedError()
 
