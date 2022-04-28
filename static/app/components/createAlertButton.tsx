@@ -29,6 +29,11 @@ import {
   transactionFieldConfig,
 } from 'sentry/views/alerts/incidentRules/constants';
 import {getQueryDatasource} from 'sentry/views/alerts/utils';
+import {
+  AlertType,
+  AlertWizardRuleTemplates,
+  DEFAULT_WIZARD_TEMPLATE,
+} from 'sentry/views/alerts/wizard/options';
 
 /**
  * Discover query supports more features than alert rules
@@ -207,8 +212,10 @@ type CreateAlertFromViewButtonProps = ButtonProps & {
   onSuccess: () => void;
   organization: Organization;
   projects: Project[];
+  alertType?: AlertType;
   className?: string;
   referrer?: string;
+  useAlertWizardV3?: boolean;
 };
 
 function incompatibleYAxis(eventView: EventView): boolean {
@@ -263,6 +270,8 @@ function CreateAlertFromViewButton({
   referrer,
   onIncompatibleQuery,
   onSuccess,
+  useAlertWizardV3,
+  alertType,
   ...buttonProps
 }: CreateAlertFromViewButtonProps) {
   // Must have exactly one project selected and not -1 (all projects)
@@ -287,16 +296,25 @@ function CreateAlertFromViewButton({
       ''
     );
   }
-
   const hasErrors = Object.values(errors).some(x => x);
   const to = hasErrors
     ? undefined
     : {
-        pathname: `/organizations/${organization.slug}/alerts/${project?.slug}/new/`,
+        pathname: useAlertWizardV3
+          ? `/organizations/${organization.slug}/alerts/new/metric/`
+          : `/organizations/${organization.slug}/alerts/${project?.slug}/new/`,
         query: {
           ...queryParams,
           createFromDiscover: true,
           referrer,
+          ...(useAlertWizardV3
+            ? {
+                project: project?.slug,
+                ...(alertType
+                  ? AlertWizardRuleTemplates[alertType]
+                  : DEFAULT_WIZARD_TEMPLATE),
+              }
+            : {}),
         },
       };
 
