@@ -8,3 +8,12 @@ export type Replay = {
 };
 
 export type TabBarId = 'console' | 'performance' | 'errors' | 'tags' | 'memory';
+
+/**
+ * Highlight Replay Plugin types
+ */
+export type HighlightsByTime = Map<number, Highlight>;
+export interface Highlight {
+  nodeId: number;
+  color?: string;
+}
