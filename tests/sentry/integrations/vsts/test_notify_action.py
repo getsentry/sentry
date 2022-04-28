@@ -50,7 +50,7 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
                 "integration": self.integration.model.id,
             }
         )
-        azuredevops_rule.rule = Rule.objects.create(project=self.project, label="test rule")
+        azuredevops_rule.rule = self.create_project_rule(project=self.project)
         responses.reset()
         responses.add(
             responses.PATCH,
