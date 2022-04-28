@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useMemo, useState} from 'react';
 
 import EventEntry from 'sentry/components/events/eventEntry';
 import TagsTable from 'sentry/components/tagsTable';
@@ -9,6 +9,7 @@ import {useRouteContext} from 'sentry/utils/useRouteContext';
 import {TabBarId} from '../types';
 
 import FocusButtons from './focusButtons';
+import MemoryChart from './memoryChart';
 
 type Props = {
   event: Event;
@@ -29,11 +30,21 @@ function FocusArea(props: Props) {
 function ActiveTab({active, event, eventWithSpans}: Props & {active: TabBarId}) {
   const {routes, router} = useRouteContext();
   const organization = useOrganization();
-
+  // memoize the memory events coming from the event because we reassign
+  // the data without the memory events within the 'performance' case
+  const memorySpans = useMemo(
+    () => eventWithSpans?.entries[0]?.data?.filter(datum => datum?.data?.memory) || [],
+    [eventWithSpans?.entries[0]]
+  );
   switch (active) {
     case 'console':
       return <div id="console">TODO: Add a console view</div>;
     case 'performance':
+      if (eventWithSpans) {
+        eventWithSpans.entries[0].data = eventWithSpans?.entries[0]?.data?.filter(
+          datum => !datum?.data?.memory
+        );
+      }
       return eventWithSpans ? (
         <div id="performance">
           <EventEntry
@@ -56,6 +67,8 @@ function ActiveTab({active, event, eventWithSpans}: Props & {active: TabBarId}) 
           <TagsTable generateUrl={() => ''} event={event} query="" />
         </div>
       );
+    case 'memory':
+      return <MemoryChart memorySpans={memorySpans} />;
     default:
       return null;
   }
