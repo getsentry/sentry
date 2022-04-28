@@ -32,7 +32,6 @@ function frameSearch(
   index: Fuse<FlamegraphFrame>
 ): Record<string, FlamegraphFrame> | null {
   const results = {};
-  let hasMatches = false;
 
   if (isRegExpString(query)) {
     const [_, lookup, flags] = parseRegExp(query) ?? [];
@@ -48,7 +47,6 @@ function frameSearch(
         const frame = frames[i];
 
         if (new RegExp(lookup, flags ?? 'g').test(frame.frame.name.trim())) {
-          hasMatches = true;
           results[
             `${
               frame.frame.name +
@@ -77,7 +75,6 @@ function frameSearch(
   }
 
   for (let i = 0; i < fuseResults.length; i++) {
-    hasMatches = true;
     const frame = fuseResults[i];
 
     results[
@@ -89,7 +86,7 @@ function frameSearch(
     ] = frame.item;
   }
 
-  return hasMatches ? results : null;
+  return results;
 }
 
 const numericSort = (

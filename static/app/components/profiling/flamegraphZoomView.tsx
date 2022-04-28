@@ -237,7 +237,7 @@ function FlamegraphZoomView({
 
     // Check if we are starting a new interaction
     if (previousInteraction === null && lastInteraction) {
-      beforeInteractionConfigView.current = flamegraphRenderer.configView.clone();
+      beforeInteractionConfigView.current = flamegraphRenderer.configView;
       return;
     }
 
@@ -245,7 +245,7 @@ function FlamegraphZoomView({
       beforeInteractionConfigView.current &&
       !beforeInteractionConfigView.current.equals(flamegraphRenderer.configView)
     ) {
-      dispatch({type: 'checkpoint', payload: flamegraphRenderer.configView.clone()});
+      dispatch({type: 'checkpoint', payload: flamegraphRenderer.configView});
     }
   }, [lastInteraction, flamegraphRenderer, dispatch, previousInteraction]);
 
@@ -376,7 +376,7 @@ function FlamegraphZoomView({
 
     const onResetZoom = () => {
       flamegraphRenderer.resetConfigView();
-      dispatch({type: 'checkpoint', payload: flamegraphRenderer.configView.clone()});
+      dispatch({type: 'checkpoint', payload: flamegraphRenderer.configView});
       setConfigSpaceCursor(null);
       scheduler.draw();
     };
@@ -427,9 +427,7 @@ function FlamegraphZoomView({
         setCanvasBounds(new Rect(bounds.x, bounds.y, bounds.width, bounds.height));
 
         flamegraphRenderer.onResizeUpdateSpace();
-        canvasPoolManager.dispatch('setConfigView', [
-          flamegraphRenderer.configView.clone(),
-        ]);
+        canvasPoolManager.dispatch('setConfigView', [flamegraphRenderer.configView]);
         scheduler.drawSync();
       }
     );

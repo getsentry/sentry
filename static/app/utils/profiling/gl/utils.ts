@@ -360,6 +360,14 @@ export class Rect {
     return new Rect(this.x, this.y, width, this.height);
   }
 
+  withX(x: number): Rect {
+    return new Rect(x, this.y, this.width, this.height);
+  }
+
+  withY(y: number) {
+    return new Rect(this.x, y, this.width, this.height);
+  }
+
   toBounds(): [number, number, number, number] {
     return [this.x, this.y, this.x + this.width, this.y + this.height];
   }

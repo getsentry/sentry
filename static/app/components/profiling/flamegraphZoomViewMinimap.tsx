@@ -236,7 +236,7 @@ function FlamegraphZoomViewMinimap({
 
     // Check if we are starting a new interaction
     if (previousInteraction === null && lastInteraction) {
-      beforeInteractionConfigView.current = flamegraphMiniMapRenderer.configView.clone();
+      beforeInteractionConfigView.current = flamegraphMiniMapRenderer.configView;
       return;
     }
 
@@ -246,7 +246,7 @@ function FlamegraphZoomViewMinimap({
     ) {
       dispatch({
         type: 'checkpoint',
-        payload: flamegraphMiniMapRenderer.configView.clone(),
+        payload: flamegraphMiniMapRenderer.configView,
       });
     }
   }, [lastInteraction, flamegraphMiniMapRenderer, dispatch, previousInteraction]);
