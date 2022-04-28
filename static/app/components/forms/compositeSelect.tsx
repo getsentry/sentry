@@ -3,6 +3,7 @@ import {useMemo, useState} from 'react';
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import {GeneralSelectValue} from 'sentry/components/forms/selectControl';
 import {valueIsEqual} from 'sentry/utils';
+
 /**
  * CompositeSelect simulates independent selectors inside the same dropdown
  * menu. Each selector is called a "section". The selection value of one
@@ -41,6 +42,12 @@ type Props<OptionType> = Omit<
   React.ComponentProps<typeof CompactSelect>,
   'multiple' | 'defaultValue' | 'onChange'
 > & {
+  /**
+   * Array containing the independent selection sections. NOTE: This array
+   * should not change (i.e. we shouldn't add/remove sections) during the
+   * component's lifecycle. Updating the options array inside sech section is
+   * fine.
+   */
   sections: Section<OptionType>[];
 };
 
@@ -53,6 +60,7 @@ function CompositeSelect<OptionType extends GeneralSelectValue = GeneralSelectVa
   ...props
 }: Props<OptionType>) {
   const [values, setValues] = useState(sections.map(section => section.defaultValue));
+
   /**
    * Object that maps an option value (e.g. "opt_one") to its parent section's index,
    * to be used in onChangeValueMap.
