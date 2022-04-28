@@ -93,15 +93,7 @@ function SpansContent(props: Props) {
 
   return (
     <Layout.Main fullWidth>
-<<<<<<< HEAD
-      <StyledPageFilterBar condensed>
-        <EnvironmentPageFilter />
-        <DatePageFilter alignDropdown="left" />
-      </StyledPageFilterBar>
-      <Actions>
-=======
       <FilterActions>
->>>>>>> 996f86ea73 (fixing performance headers across pages)
         <OpsFilter
           location={location}
           eventView={eventView}
@@ -109,12 +101,10 @@ function SpansContent(props: Props) {
           handleOpChange={handleChange('spanOp')}
           transactionName={transactionName}
         />
-        {organization.features.includes('selection-filters-v2') && (
-          <PageFilterBar condensed>
-            <EnvironmentPageFilter />
-            <DatePageFilter alignDropdown="left" />
-          </PageFilterBar>
-        )}
+        <PageFilterBar condensed>
+          <EnvironmentPageFilter />
+          <DatePageFilter alignDropdown="left" />
+        </PageFilterBar>
         <StyledSearchBar
           organization={organization}
           projectIds={eventView.project}
