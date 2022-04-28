@@ -1,10 +1,9 @@
+from sentry.sentry_metrics.indexer.base import KeyCollection, KeyResult, KeyResults
 from sentry.sentry_metrics.indexer.cache import indexer_cache
 from sentry.sentry_metrics.indexer.models import MetricsKeyIndexer, StringIndexer
 from sentry.sentry_metrics.indexer.postgres import PGStringIndexer
 from sentry.sentry_metrics.indexer.postgres_v2 import (
-    KeyCollection,
-    KeyResult,
-    KeyResults,
+    FetchType,
     PGStringIndexerV2,
     StaticStringsIndexerDecorator,
 )
@@ -71,6 +70,10 @@ class StaticStringsIndexerTest(TestCase):
         assert results[2]["1.0.0"] == v1.id
         assert results[3]["2.0.0"] == v2.id
 
+        meta = results.get_fetch_metadata()
+        assert set(meta[FetchType.HARDCODED].values()) == {"release", "production", "environment"}
+        assert set(meta[FetchType.FIRST_SEEN].values()) == {"1.0.0", "2.0.0"}
+
 
 class PostgresIndexerV2Test(TestCase):
     def setUp(self) -> None:
@@ -93,7 +96,7 @@ class PostgresIndexerV2Test(TestCase):
             indexer_cache.get_many([f"{org1_id}:{string}" for string in self.strings]).values()
         ) == [None, None, None]
 
-        results = self.indexer.bulk_record(org_strings=org_strings)
+        results = PGStringIndexerV2().bulk_record(org_strings=org_strings).results
 
         org1_string_ids = list(
             StringIndexer.objects.filter(
@@ -171,6 +174,12 @@ class PostgresIndexerV2Test(TestCase):
         for string, id in results[org_id].items():
             assert expected_mapping[string] == id
 
+        fetch_meta = results.get_fetch_metadata()
+        assert {"v1.2.0", "v1.2.1", "v1.2.2"} == {
+            v for _, v in fetch_meta[FetchType.CACHE_HIT].items()
+        }
+        assert {"v1.2.3"} == set(fetch_meta[FetchType.FIRST_SEEN].values())
+
     def test_already_cached_plus_read_results(self) -> None:
         """
         Test that we correctly combine cached results with read results
@@ -194,6 +203,10 @@ class PostgresIndexerV2Test(TestCase):
         assert results[org_id]["beep"] == 10
         assert results[org_id]["boop"] == 11
         assert results[org_id]["bam"] == bam.id
+
+        fetch_meta = results.get_fetch_metadata()
+        assert {"beep", "boop"} == {v for _, v in fetch_meta[FetchType.CACHE_HIT].items()}
+        assert {"bam"} == set(fetch_meta[FetchType.DB_READ].values())
 
     def test_get_db_records(self):
         """
@@ -256,7 +269,6 @@ class KeyResultsTest(TestCase):
         assert key_results.get_unmapped_keys(collection).mapping == {1: {"b", "c"}, 2: {"e", "f"}}
 
         key_result_list = [
-            KeyResult(1, "a", 10),
             KeyResult(1, "b", 11),
             KeyResult(1, "c", 12),
             KeyResult(2, "e", 13),
@@ -277,3 +289,52 @@ class KeyResultsTest(TestCase):
         }
 
         assert key_results.get_unmapped_keys(collection).mapping == {}
+
+    def test_merges_with_metadata(self):
+        org_id = 1
+        cache_mappings = {"cache1": 1, "cache2": 2}
+        read_mappings = {"read3": 3, "read4": 4}
+        hardcode_mappings = {"hardcode5": 5, "hardcode6": 6}
+        write_mappings = {"write7": 7, "write8": 8}
+
+        mappings = {
+            *cache_mappings,
+            *read_mappings,
+            *hardcode_mappings,
+            *write_mappings,
+        }
+
+        kr_cache = KeyResults()
+        kr_dbread = KeyResults()
+        kr_hardcoded = KeyResults()
+        kr_write = KeyResults()
+        assert kr_cache.results == {} and kr_cache.meta == {}
+        assert kr_dbread.results == {} and kr_dbread.meta == {}
+        assert kr_hardcoded.results == {} and kr_hardcoded.meta == {}
+        assert kr_write.results == {} and kr_write.meta == {}
+
+        kr_cache.add_key_results(
+            [KeyResult(org_id=org_id, string=k, id=v) for k, v in cache_mappings.items()],
+            FetchType.CACHE_HIT,
+        )
+        kr_dbread.add_key_results(
+            [KeyResult(org_id=org_id, string=k, id=v) for k, v in read_mappings.items()],
+            FetchType.DB_READ,
+        )
+        kr_hardcoded.add_key_results(
+            [KeyResult(org_id=org_id, string=k, id=v) for k, v in hardcode_mappings.items()],
+            FetchType.HARDCODED,
+        )
+        kr_write.add_key_results(
+            [KeyResult(org_id=org_id, string=k, id=v) for k, v in write_mappings.items()],
+            FetchType.FIRST_SEEN,
+        )
+
+        kr_merged = kr_cache.merge(kr_dbread).merge(kr_hardcoded).merge(kr_write)
+
+        assert len(kr_merged.get_mapped_results()[org_id]) == len(mappings)
+        fetch_metadata = kr_merged.get_fetch_metadata()
+        assert fetch_metadata[FetchType.DB_READ].keys() == set(read_mappings.values())
+        assert fetch_metadata[FetchType.HARDCODED].keys() == set(hardcode_mappings.values())
+        assert fetch_metadata[FetchType.FIRST_SEEN].keys() == set(write_mappings.values())
+        assert fetch_metadata[FetchType.CACHE_HIT].keys() == set(cache_mappings.values())

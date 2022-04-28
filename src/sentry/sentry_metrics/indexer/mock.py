@@ -1,10 +1,10 @@
 import itertools
 from collections import defaultdict
-from typing import DefaultDict, Dict, Mapping, MutableMapping, Optional, Set
+from typing import DefaultDict, Dict, Mapping, Optional, Set
 
 from sentry.sentry_metrics.indexer.strings import REVERSE_SHARED_STRINGS, SHARED_STRINGS
 
-from .base import StringIndexer
+from .base import KeyResult, KeyResults, StringIndexer
 
 
 class SimpleIndexer(StringIndexer):
@@ -18,8 +18,8 @@ class SimpleIndexer(StringIndexer):
         )
         self._reverse: Dict[int, str] = {}
 
-    def bulk_record(self, org_strings: Mapping[int, Set[str]]) -> Mapping[int, Mapping[str, int]]:
-        result: MutableMapping[int, MutableMapping[str, int]] = {}
+    def bulk_record(self, org_strings: Mapping[int, Set[str]]) -> KeyResults:
+        acc = KeyResults()
         for org_id, strs in org_strings.items():
             strings_to_ints = {}
             for string in strs:
@@ -27,9 +27,9 @@ class SimpleIndexer(StringIndexer):
                     strings_to_ints[string] = SHARED_STRINGS[string]
                 else:
                     strings_to_ints[string] = self._record(org_id, string)
-            result[org_id] = strings_to_ints
+                acc.add_key_result(KeyResult(org_id, string, strings_to_ints[string]))
 
-        return result
+        return acc
 
     def record(self, org_id: int, string: str) -> int:
         if string in SHARED_STRINGS:
