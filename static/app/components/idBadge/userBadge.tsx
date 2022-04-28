@@ -52,7 +52,7 @@ const StyledUserBadge = styled('div')`
 `;
 
 // the line-height incorrectly cuts off letters like g, p, q, y
-// at the bottom, so its exported to be overridden to correct it.
+// at the bottom, so it's exported to be overridden to correct it.
 export const StyledNameAndEmail = styled('div')`
   flex-shrink: 1;
   min-width: 0;
