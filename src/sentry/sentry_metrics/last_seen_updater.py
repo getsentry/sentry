@@ -1,6 +1,6 @@
 from typing import Mapping, Optional, Union
 
-from arroyo import Topic
+from arroyo import Message, Topic
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
 from arroyo.processing import StreamProcessor
 from arroyo.processing.strategies import ProcessingStrategy
@@ -19,8 +19,8 @@ class LastSeenUpdaterCollector(ProcessingStrategy[int]):  # type: ignore
     def __init__(self) -> None:
         self.__counter = 0
 
-    def submit(self, message: int) -> None:
-        self.__counter += message
+    def submit(self, message: Message[int]) -> None:
+        self.__counter += message.payload
 
     def poll(self) -> None:
         pass
