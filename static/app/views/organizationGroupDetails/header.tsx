@@ -155,7 +155,7 @@ class GroupHeader extends React.Component<Props, State> {
                 crumbs={[
                   {
                     label: 'Issues',
-                    to: `/organizations/${orgId}/issues/?project=${project.id}`,
+                    to: `/organizations/${orgId}/issues/${location.search}`,
                   },
                   {
                     label: 'Issue Details',
