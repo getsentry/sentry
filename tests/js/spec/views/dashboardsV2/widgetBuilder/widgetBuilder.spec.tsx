@@ -2382,14 +2382,51 @@ describe('WidgetBuilder', function () {
         expect(metricsDataMock).toHaveBeenLastCalledWith(
           `/organizations/org-slug/sessions/`,
           expect.objectContaining({
-            query: {
+            query: expect.objectContaining({
               environment: [],
               field: [`sum(session)`],
               groupBy: [],
               interval: '5m',
               project: [],
               statsPeriod: '24h',
-            },
+            }),
+          })
+        )
+      );
+    });
+
+    it('makes the calls the session endpoint with the right limit', async function () {
+      renderTestComponent({
+        orgFeatures: releaseHealthFeatureFlags,
+      });
+
+      expect(
+        await screen.findByText('Releases (sessions, crash rates)')
+      ).toBeInTheDocument();
+
+      userEvent.click(screen.getByLabelText(/releases/i));
+
+      userEvent.click(screen.getByText('Table'));
+      userEvent.click(screen.getByText('Line Chart'));
+
+      await selectEvent.select(await screen.findByText('Select group'), 'project');
+
+      expect(screen.getByText('Limit to 5 results')).toBeInTheDocument();
+
+      await waitFor(() =>
+        expect(metricsDataMock).toHaveBeenLastCalledWith(
+          `/organizations/org-slug/sessions/`,
+          expect.objectContaining({
+            query: expect.objectContaining({
+              environment: [],
+              field: ['sum(session)'],
+              groupBy: ['project'],
+              interval: '5m',
+              orderBy: '-sum_session',
+              per_page: 5,
+              project: [],
+              statsPeriod: '24h',
+            }),
           })
         )
       );
