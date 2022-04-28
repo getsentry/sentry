@@ -1906,9 +1906,11 @@ describe('WidgetBuilder', function () {
     });
 
     it.each`
-      directionPrefix | expectedOrderSelection
-      ${'-'}          | ${'High to low'}
-      ${''}           | ${'Low to high'}
+      directionPrefix | expectedOrderSelection | displayType
+      ${'-'}          | ${'High to low'}       | ${DisplayType.TABLE}
+      ${''}           | ${'Low to high'}       | ${DisplayType.TABLE}
+      ${'-'}          | ${'High to low'}       | ${DisplayType.LINE}
+      ${''}           | ${'Low to high'}       | ${DisplayType.LINE}
     `(
       `opens a widget with the '$expectedOrderSelection' sort order when the widget was saved with that direction`,
       async function ({directionPrefix, expectedOrderSelection}) {
