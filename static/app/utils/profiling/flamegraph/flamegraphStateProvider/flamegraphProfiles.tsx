@@ -1,19 +1,21 @@
-type FlamegraphProfilesgAction = {
+type SetProfilesActiveIndexAction = {
   payload: number;
   type: 'set active profile index';
 };
 
-type FlamegraphProfiles = {
+type FlamegraphProfilesAction = SetProfilesActiveIndexAction;
+
+type FlamegraphProfilesState = {
   activeProfileIndex: number | null;
 };
 
 export function flamegraphProfilesReducer(
-  state: FlamegraphProfiles,
-  action: FlamegraphProfilesgAction
-): FlamegraphProfiles {
+  state: FlamegraphProfilesState,
+  action: FlamegraphProfilesAction
+): FlamegraphProfilesState {
   switch (action.type) {
     case 'set active profile index': {
-      return {activeProfileIndex: action.payload};
+      return {...state, activeProfileIndex: action.payload};
     }
     default: {
       return state;
