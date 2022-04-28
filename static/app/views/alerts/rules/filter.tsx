@@ -10,55 +10,10 @@ import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 
-type DropdownSection = {
-  id: string;
-  items: Array<{checked: boolean; filtered: boolean; label: string; value: string}>;
-  label: string;
-};
-
-type SectionProps = DropdownSection & {
-  toggleFilter: (section: string, value: string) => void;
-  toggleSection: (id: string) => void;
-};
-
-function FilterSection({id, label, items, toggleSection, toggleFilter}: SectionProps) {
-  const checkedItemsCount = items.filter(item => item.checked).length;
-  return (
-    <Fragment>
-      <Header>
-        <span>{label}</span>
-        <CheckboxFancy
-          isChecked={checkedItemsCount === items.length}
-          isIndeterminate={checkedItemsCount > 0 && checkedItemsCount !== items.length}
-          onClick={event => {
-            event.stopPropagation();
-            toggleSection(id);
-          }}
-        />
-      </Header>
-      {items
-        .filter(item => !item.filtered)
-        .map(item => (
-          <ListItem
-            key={item.value}
-            isChecked={item.checked}
-            onClick={event => {
-              event.stopPropagation();
-              toggleFilter(id, item.value);
-            }}
-          >
-            <TeamName>{item.label}</TeamName>
-            <CheckboxFancy isChecked={item.checked} />
-          </ListItem>
-        ))}
-    </Fragment>
-  );
-}
-
 type Props = {
-  dropdownSections: DropdownSection[];
   header: React.ReactElement;
-  onFilterChange: (section: string, filterSelection: Set<string>) => void;
+  items: Array<{checked: boolean; filtered: boolean; label: string; value: string}>;
+  onFilterChange: (filterSelection: Set<string>) => void;
   fullWidth?: boolean;
   showMyTeamsDescription?: boolean;
 };
@@ -66,44 +21,24 @@ type Props = {
 function Filter({
   onFilterChange,
   header,
-  dropdownSections,
+  items,
   showMyTeamsDescription,
   fullWidth = false,
 }: Props) {
-  function toggleFilter(sectionId: string, value: string) {
-    const section = dropdownSections.find(
-      dropdownSection => dropdownSection.id === sectionId
-    )!;
+  function toggleFilter(value: string) {
     const newSelection = new Set(
-      section.items.filter(item => item.checked).map(item => item.value)
+      items.filter(item => item.checked).map(item => item.value)
     );
     if (newSelection.has(value)) {
       newSelection.delete(value);
     } else {
       newSelection.add(value);
     }
-    onFilterChange(sectionId, newSelection);
-  }
-
-  function toggleSection(sectionId: string) {
-    const section = dropdownSections.find(
-      dropdownSection => dropdownSection.id === sectionId
-    )!;
-    const activeItems = section.items.filter(item => item.checked);
-
-    const newSelection =
-      section.items.length === activeItems.length
-        ? new Set<string>()
-        : new Set(section.items.map(item => item.value));
-
-    onFilterChange(sectionId, newSelection);
+    onFilterChange(newSelection);
   }
 
   function getActiveFilters() {
-    return dropdownSections
-      .map(section => section.items)
-      .flat()
-      .filter(item => item.checked);
+    return items.filter(item => item.checked);
   }
 
   const activeFilters = getActiveFilters();
@@ -149,14 +84,23 @@ function Filter({
         >
           <List>
             {header}
-            {dropdownSections.map(section => (
-              <FilterSection
-                key={section.id}
-                {...section}
-                toggleSection={toggleSection}
-                toggleFilter={toggleFilter}
-              />
-            ))}
+            <Fragment>
+              {items
+                .filter(item => !item.filtered)
+                .map(item => (
+                  <ListItem
+                    key={item.value}
+                    isChecked={item.checked}
+                    onClick={event => {
+                      event.stopPropagation();
+                      toggleFilter(item.value);
+                    }}
+                  >
+                    <TeamName>{item.label}</TeamName>
+                    <CheckboxFancy isChecked={item.checked} />
+                  </ListItem>
+                ))}
+            </Fragment>
           </List>
         </MenuContent>
       )}
@@ -167,21 +111,6 @@ function Filter({
 const MenuContent = styled(Content)`
   max-height: 290px;
   overflow-y: auto;
-`;
-
-const Header = styled('div')`
-  display: grid;
-  grid-template-columns: auto min-content;
-  grid-column-gap: ${space(1)};
-  align-items: center;
-
-  margin: 0;
-  background-color: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.gray300};
-  font-weight: normal;
-  font-size: ${p => p.theme.fontSizeMedium};
-  padding: ${space(1)} ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
 const StyledDropdownButton = styled(DropdownButton)<{fullWidth: boolean}>`
