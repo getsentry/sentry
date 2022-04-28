@@ -32,6 +32,7 @@ from snuba_sdk import (
     Function,
     Granularity,
     Limit,
+    Offset,
     Op,
 )
 from snuba_sdk.conditions import ConditionGroup
@@ -395,7 +396,8 @@ def run_sessions_query(
         where=where,
         groupby=list({column for field in fields.values() for column in field.get_groupby()}),
         orderby=orderby,
-        limit=Limit(max_groups),
+        limit=Limit(min(query.limit or max_groups, max_groups)),
+        offset=Offset(query.offset or 0),
     )
 
     # TODO: Stop passing project IDs everywhere
