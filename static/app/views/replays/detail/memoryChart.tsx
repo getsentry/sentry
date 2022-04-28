@@ -5,6 +5,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {formatBytesBase2} from 'sentry/utils';
 import theme from 'sentry/utils/theme';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 function MemoryChart({memorySpans}) {
   const chartOptions: Omit<AreaChartProps, 'series'> = {
@@ -20,8 +21,8 @@ function MemoryChart({memorySpans}) {
     },
     xAxis: {
       type: 'time',
-      min: memorySpans[0]?.data?.timestamp,
-      max: memorySpans.slice(-1)?.data?.timestamp,
+      min: memorySpans[0]?.timestamp,
+      max: memorySpans.slice(-1)?.timestamp,
     },
     yAxis: {
       type: 'value',
@@ -44,9 +45,9 @@ function MemoryChart({memorySpans}) {
   const series = [
     {
       seriesName: t('Used Heap Memory'),
-      data: memorySpans.map((span, i) => ({
+      data: memorySpans.map(span => ({
         value: span.data.memory.usedJSHeapSize,
-        name: i,
+        name: span.timestamp,
       })),
       stack: 'heap-memory',
       color: theme.purple300,
@@ -57,9 +58,9 @@ function MemoryChart({memorySpans}) {
     },
     {
       seriesName: t('Free Heap Memory'),
-      data: memorySpans.map((span, i) => ({
+      data: memorySpans.map(span => ({
         value: span.data.memory.totalJSHeapSize - span.data.memory.usedJSHeapSize,
-        name: i,
+        name: span.timestamp,
       })),
       stack: 'heap-memory',
       color: theme.green300,
@@ -70,26 +71,24 @@ function MemoryChart({memorySpans}) {
     },
   ];
   return memorySpans.length > 0 ? (
-    <MemoryChartWrapper>
-      <AreaChart series={series} {...chartOptions} />
-    </MemoryChartWrapper>
+    <MemoryChartContainer>
+      <MemoryChartWrapper>
+        <AreaChart series={series} {...chartOptions} />
+      </MemoryChartWrapper>
+    </MemoryChartContainer>
   ) : (
-    <NoMemoryMessageWrapper>
-      {t('No memory metrics exist for replay.')}
-    </NoMemoryMessageWrapper>
+    <EmptyMessage>{t('No memory metrics exist for replay.')}</EmptyMessage>
   );
 }
 
 const MemoryChartWrapper = styled('div')`
-  margin-top: -${space(0.75)};
+  margin-top: ${space(2)};
   border-radius: ${space(0.5)};
-  border: 1px solid ${p => p.theme.gray200};
+  border: 1px solid ${p => p.theme.border};
 `;
 
-const NoMemoryMessageWrapper = styled('div')`
-  font-weight: 600;
-  font-size: ${p => p.theme.fontSizeLarge};
-  padding: ${space(2)};
+const MemoryChartContainer = styled('div')`
+  padding-bottom: ${space(3)};
 `;
 
 export default MemoryChart;
