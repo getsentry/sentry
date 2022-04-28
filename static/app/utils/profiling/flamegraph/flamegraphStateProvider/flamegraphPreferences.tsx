@@ -1,12 +1,19 @@
+export type FlamegraphColorCodings = [
+  'by symbol name',
+  'by system / application',
+  'by library',
+  'by recursion'
+];
+
+export type FlamegraphSorting = ['left heavy', 'call order'];
+export type FlamegraphViewOptions = ['top down', 'bottom up'];
+export type FlamegraphAxisOptions = ['standalone', 'transaction'];
+
 export interface FlamegraphPreferences {
-  colorCoding:
-    | 'by symbol name'
-    | 'by system / application'
-    | 'by library'
-    | 'by recursion';
-  sorting: 'left heavy' | 'call order';
-  view: 'top down' | 'bottom up';
-  xAxis: 'standalone' | 'transaction';
+  colorCoding: FlamegraphColorCodings[number];
+  sorting: FlamegraphSorting[number];
+  view: FlamegraphViewOptions[number];
+  xAxis: FlamegraphAxisOptions[number];
 }
 
 type FlamegraphPreferencesAction =

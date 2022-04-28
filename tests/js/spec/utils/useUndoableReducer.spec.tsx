@@ -170,6 +170,9 @@ describe('makeUndoableReducer', () => {
       useReducer(makeUndoableReducer(combinedReducers), {
         previous: undefined,
         current: {
+          profiles: {
+            activeProfileIndex: 0,
+          },
           position: {view: Rect.Empty()},
           preferences: {
             colorCoding: 'by symbol name',
