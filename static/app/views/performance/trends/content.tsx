@@ -210,14 +210,12 @@ class TrendsContent extends React.Component<Props, State> {
     );
     const query = getTransactionSearchQuery(location);
 
-    const hasPageFilters = organization.features.includes('selection-filters-v2');
-
     return (
       <PageFiltersContainer
         defaultSelection={{
           datetime: defaultTrendsSelectionDate,
         }}
-        hideGlobalHeader={hasPageFilters}
+        hideGlobalHeader
       >
         <Layout.Header>
           <Layout.HeaderContent>
@@ -238,13 +236,11 @@ class TrendsContent extends React.Component<Props, State> {
         <Layout.Body>
           <Layout.Main fullWidth>
             <DefaultTrends location={location} eventView={eventView} projects={projects}>
-              {hasPageFilters && (
-                <StyledPageFilterBar condensed>
-                  <ProjectPageFilter />
-                  <EnvironmentPageFilter />
-                  <DatePageFilter />
-                </StyledPageFilterBar>
-              )}
+              <StyledPageFilterBar condensed>
+                <ProjectPageFilter />
+                <EnvironmentPageFilter />
+                <DatePageFilter />
+              </StyledPageFilterBar>
               <StyledSearchContainer>
                 <StyledSearchBar
                   searchSource="trends"
