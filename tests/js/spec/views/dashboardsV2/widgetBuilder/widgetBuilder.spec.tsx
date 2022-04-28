@@ -2386,7 +2386,7 @@ describe('WidgetBuilder', function () {
               environment: [],
               field: [`sum(session)`],
               groupBy: [],
-              interval: '1h',
+              interval: '5m',
               project: [],
               statsPeriod: '24h',
             },
