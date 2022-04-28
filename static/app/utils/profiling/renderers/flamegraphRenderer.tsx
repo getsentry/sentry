@@ -609,6 +609,7 @@ class FlamegraphRenderer {
         this.gl.drawArrays(this.gl.TRIANGLES, vertexOffset, VERTICES);
       }
     } else {
+      this.gl.uniform1i(this.uniforms.u_is_search_result, 0);
       for (let i = 0; i < length; i++) {
         const vertexOffset = i * VERTICES;
 
