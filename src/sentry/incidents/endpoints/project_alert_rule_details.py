@@ -11,6 +11,7 @@ from sentry.incidents.logic import (
     get_slack_actions_with_async_lookups,
 )
 from sentry.incidents.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
+from sentry.incidents.utils.sentry_apps import trigger_sentry_app_action_creators_for_incidents
 from sentry.integrations.slack import tasks
 
 
@@ -37,6 +38,7 @@ class ProjectAlertRuleDetailsEndpoint(ProjectAlertRuleEndpoint):
             partial=True,
         )
         if serializer.is_valid():
+            trigger_sentry_app_action_creators_for_incidents(serializer.validated_data)
             if get_slack_actions_with_async_lookups(project.organization, request.user, data):
                 # need to kick off an async job for Slack
                 client = tasks.RedisRuleStatus()

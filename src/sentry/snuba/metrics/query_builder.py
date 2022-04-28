@@ -13,7 +13,7 @@ import math
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
-from snuba_sdk import Column, Condition, Entity, Function, Granularity, Limit, Offset, Op, Query
+from snuba_sdk import Column, Condition, Entity, Function, Granularity, Limit, Offset, Op, Or, Query
 from snuba_sdk.conditions import BooleanCondition
 from snuba_sdk.orderby import Direction, OrderBy
 
@@ -22,6 +22,7 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Project
 from sentry.search.events.builder import UnresolvedQuery
 from sentry.sentry_metrics.utils import (
+    STRING_NOT_FOUND,
     resolve_tag_key,
     resolve_weak,
     reverse_resolve,
@@ -93,6 +94,13 @@ def parse_field(field: str, query_params) -> MetricField:
     return MetricField(operation, metric_name)
 
 
+# Allow these snuba functions.
+# These are only allowed because the parser in metrics_sessions_v2
+# generates them. Long term we should not allow any functions, but rather
+# a limited expression language with only AND, OR, IN and NOT IN
+FUNCTION_ALLOWLIST = ("and", "or", "equals", "in")
+
+
 def resolve_tags(org_id: int, input_: Any) -> Any:
     """Translate tags in snuba condition
 
@@ -100,21 +108,40 @@ def resolve_tags(org_id: int, input_: Any) -> Any:
     pass Column("metric_id") or Column("project_id") into this function.
 
     """
+    if input_ is None:
+        return None
     if isinstance(input_, (list, tuple)):
-        return [resolve_tags(org_id, item) for item in input_]
+        elements = [resolve_tags(org_id, item) for item in input_]
+        # Lists are either arguments to IN or NOT IN. In both cases, we can
+        # drop unknown strings:
+        return [x for x in elements if x != STRING_NOT_FOUND]
     if isinstance(input_, Function):
         if input_.function == "ifNull":
             # This was wrapped automatically by QueryBuilder, remove wrapper
             return resolve_tags(org_id, input_.parameters[0])
-        return Function(
-            function=input_.function,
-            parameters=input_.parameters
-            and [resolve_tags(org_id, item) for item in input_.parameters],
-        )
+        elif input_.function in FUNCTION_ALLOWLIST:
+            return Function(
+                function=input_.function,
+                parameters=input_.parameters
+                and [resolve_tags(org_id, item) for item in input_.parameters],
+            )
+    if (
+        isinstance(input_, Or)
+        and len(input_.conditions) == 2
+        and isinstance(c := input_.conditions[0], Condition)
+        and isinstance(c.lhs, Function)
+        and c.lhs.function == "isNull"
+        and c.op == Op.EQ
+        and c.rhs == 1
+    ):
+        # Remove another "null" wrapper. We should really write our own parser instead.
+        return resolve_tags(org_id, input_.conditions[1])
+
     if isinstance(input_, Condition):
         return Condition(
             lhs=resolve_tags(org_id, input_.lhs), op=input_.op, rhs=resolve_tags(org_id, input_.rhs)
         )
+
     if isinstance(input_, BooleanCondition):
         return input_.__class__(
             conditions=[resolve_tags(org_id, item) for item in input_.conditions]
@@ -128,8 +155,10 @@ def resolve_tags(org_id: int, input_: Any) -> Any:
         return Column(name=resolve_tag_key(org_id, name))
     if isinstance(input_, str):
         return resolve_weak(org_id, input_)
+    if isinstance(input_, int):
+        return input_
 
-    return input_
+    raise InvalidParams("Unable to resolve conditions")
 
 
 def parse_query(query_string: str) -> Sequence[Condition]:
@@ -181,7 +210,7 @@ class APIQueryDefinition:
 
         self.orderby = self._parse_orderby(query_params)
         self.limit: Optional[Limit] = self._parse_limit(query_params, paginator_kwargs)
-        self.offset = self._parse_offset(query_params, paginator_kwargs)
+        self.offset: Optional[Offset] = self._parse_offset(query_params, paginator_kwargs)
 
         start, end, rollup = get_date_range(query_params)
         self.rollup = rollup
@@ -260,7 +289,10 @@ class APIQueryDefinition:
 
     def _parse_offset(self, query_params, paginator_kwargs):
         if self.orderby:
-            return paginator_kwargs.get("offset")
+            offset = paginator_kwargs.get("offset")
+            if offset:
+                return Offset(offset)
+            return None
         else:
             cursor = query_params.get("cursor")
             if cursor is not None:
@@ -403,7 +435,7 @@ class SnubaQueryBuilder:
             select=select,
             where=where,
             limit=limit or Limit(MAX_POINTS),
-            offset=Offset(offset or 0),
+            offset=offset or Offset(0),
             granularity=rollup,
             orderby=orderby,
         )
