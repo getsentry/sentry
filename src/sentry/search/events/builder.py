@@ -1899,7 +1899,7 @@ class MetricsQueryBuilder(QueryBuilder):
                     groupby_key = tuple(row[key] for key in groupby_aliases)
                     value_map_key = ",".join(str(value) for value in groupby_key)
                     # First time we're seeing this value, add it to the values we're going to filter by
-                    if value_map_key not in value_map:
+                    if value_map_key not in value_map and groupby_key:
                         groupby_values.append(groupby_key)
                     value_map[value_map_key].update(row)
                 for meta in current_result["meta"]:
