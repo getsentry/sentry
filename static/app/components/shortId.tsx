@@ -43,10 +43,6 @@ const StyledShortId = styled('div')`
 
 const StyledAutoSelectText = styled(AutoSelectText)`
   min-width: 0;
-
-  a & {
-    color: ${p => p.theme.linkColor};
-  }
 `;
 
 export default ShortId;

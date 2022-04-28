@@ -8,6 +8,7 @@ import {Client} from 'sentry/api';
 import AssigneeSelector from 'sentry/components/assigneeSelector';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Badge from 'sentry/components/badge';
+import Breadcrumbs from 'sentry/components/breadcrumbs';
 import Count from 'sentry/components/count';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import ErrorLevel from 'sentry/components/events/errorLevel';
@@ -149,7 +150,32 @@ class GroupHeader extends React.Component<Props, State> {
       <Layout.Header>
         <div className={className}>
           <div className="row">
-            <div className="col-sm-7">
+            <div className="col-sm-9">
+              <StyledBreadcrumbs
+                crumbs={[
+                  {label: 'Issues', to: `/organizations/${orgId}/issues/`},
+                  {
+                    label: group.shortId ? (
+                      <GuideAnchor target="issue_number" position="bottom">
+                        <Tooltip
+                          className="help-link"
+                          showUnderline
+                          title={t(
+                            'This identifier is unique across your organization, and can be used to reference an issue in various places, like commit messages.'
+                          )}
+                          position="bottom"
+                        >
+                          <StyledExternalLink href="https://docs.sentry.io/product/integrations/source-code-mgmt/github/#resolve-via-commit-or-pull-request">
+                            <ShortId shortId={group.shortId} />
+                          </StyledExternalLink>
+                        </Tooltip>
+                      </GuideAnchor>
+                    ) : (
+                      'Issue Details'
+                    ),
+                  },
+                ]}
+              />
               <TitleWrapper>
                 <StyledIdBadge
                   project={project}
@@ -197,38 +223,8 @@ class GroupHeader extends React.Component<Props, State> {
               </StyledTagAndMessageWrapper>
             </div>
 
-            <div className="col-sm-5 stats">
+            <div className="col-sm-3 stats">
               <div className="flex flex-justify-right">
-                {group.shortId && (
-                  <GuideAnchor target="issue_number" position="bottom">
-                    <div className="short-id-box count align-right">
-                      <h6 className="nav-header">
-                        <Tooltip
-                          className="help-link"
-                          showUnderline
-                          title={t(
-                            'This identifier is unique across your organization, and can be used to reference an issue in various places, like commit messages.'
-                          )}
-                          position="bottom"
-                        >
-                          <ExternalLink href="https://docs.sentry.io/product/integrations/source-code-mgmt/github/#resolve-via-commit-or-pull-request">
-                            {t('Issue #')}
-                          </ExternalLink>
-                        </Tooltip>
-                      </h6>
-                      <ShortId
-                        shortId={group.shortId}
-                        avatar={
-                          <StyledProjectBadge
-                            project={project}
-                            avatarSize={20}
-                            hideName
-                          />
-                        }
-                      />
-                    </div>
-                  </GuideAnchor>
-                )}
                 <div className="count align-right m-l-1">
                   <h6 className="nav-header">{t('Events')}</h6>
                   {disableActions ? (
@@ -357,6 +353,15 @@ class GroupHeader extends React.Component<Props, State> {
 }
 
 export default withApi(withRouter(withOrganization(GroupHeader)));
+
+const StyledBreadcrumbs = styled(Breadcrumbs)`
+  padding-top: 0;
+  padding-bottom: ${space(2)};
+`;
+
+const StyledExternalLink = styled(ExternalLink)`
+  color: ${p => p.theme.textColor};
+`;
 
 const TitleWrapper = styled('div')`
   display: flex;
