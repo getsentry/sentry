@@ -21,12 +21,20 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
-import mergeReplayEntries from './utils/mergeReplayEntries';
+import indexReplayEntriesById from './utils/indexReplayEntriesById';
 import {Replay} from './types';
 
 type Props = {
   replayList: Replay[];
   selection: PageFilters;
+};
+
+export type ReplayDurationAndErrors = {
+  count_if_event_type_equals_error: number;
+  'equation[0]': number;
+  id: string;
+  max_timestamp: string;
+  min_timestamp: string;
 };
 
 function ReplayTable(props: Props) {
@@ -71,7 +79,10 @@ function ReplayTable(props: Props) {
     >
       {data => {
         const dataEntries = data.tableData
-          ? mergeReplayEntries(data.tableData?.data as Replay[], 'replayId')
+          ? indexReplayEntriesById(
+              data.tableData?.data as ReplayDurationAndErrors[],
+              'replayId'
+            )
           : null;
         return replayList?.map(replay => {
           return (
@@ -125,7 +136,7 @@ function ReplayTable(props: Props) {
                       <Duration
                         seconds={
                           dataEntries[replay.id]
-                            ? dataEntries[replay.id]['equation[0]'] / 1000
+                            ? dataEntries[replay.id]['equation[0]']
                             : 0
                         }
                         fixedDigits={2}

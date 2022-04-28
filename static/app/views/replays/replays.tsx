@@ -150,7 +150,7 @@ function Replays(props: Props) {
                       >
                         {t('Timestamp')} {sort.field.endsWith('timestamp') && sortArrow}
                       </SortLink>,
-                      t('Replay Duration'),
+                      t('Duration'),
                       t('Error Count'),
                     ]}
                   >
