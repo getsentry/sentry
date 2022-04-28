@@ -9,7 +9,7 @@ from sentry.testutils import TestCase
 
 class TestGrantExchanger(TestCase):
     def setUp(self):
-        self.install = self.create_sentry_app_installation()
+        self.install = self.create_sentry_app_installation(prevent_token_exchange=True)
         self.code = self.install.api_grant.code
         self.client_id = self.install.sentry_app.application.client_id
         self.user = self.install.sentry_app.proxy_user

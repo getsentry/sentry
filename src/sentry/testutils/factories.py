@@ -749,7 +749,9 @@ class Factories:
         return _kwargs
 
     @staticmethod
-    def create_sentry_app_installation(organization=None, slug=None, user=None, status=None):
+    def create_sentry_app_installation(
+        organization=None, slug=None, user=None, status=None, prevent_token_exchange=False
+    ):
         if not organization:
             organization = Factories.create_organization()
 
@@ -764,7 +766,7 @@ class Factories:
         install.status = SentryAppInstallationStatus.INSTALLED if status is None else status
         install.save()
 
-        if install.sentry_app.status != SentryAppStatus.INTERNAL:
+        if not prevent_token_exchange and (install.sentry_app.status != SentryAppStatus.INTERNAL):
             token_exchange.GrantExchanger.run(
                 install=install,
                 code=install.api_grant.code,
