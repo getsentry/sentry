@@ -10,6 +10,7 @@ from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.filter import to_list
 from sentry.search.events.types import WhereType
 from sentry.search.utils import parse_release
+from sentry.utils.strings import oxfordize_list
 
 
 def team_key_transaction_filter(builder: QueryBuilder, search_filter: SearchFilter) -> WhereType:
@@ -77,7 +78,7 @@ def project_slug_converter(
     missing: List[str] = [slug for slug in slugs if slug not in project_slugs]
     if missing and search_filter.operator in constants.EQUALITY_OPERATORS:
         raise InvalidSearchQuery(
-            f"Invalid query. Project(s) {', '.join(missing)} do not exist or are not actively selected."
+            f"Invalid query. Project(s) {oxfordize_list(missing)} do not exist or are not actively selected."
         )
     # Sorted for consistent query results
     project_ids = list(sorted(project_slugs.values()))

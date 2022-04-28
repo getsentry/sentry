@@ -123,6 +123,8 @@ class TransactionHeader extends React.Component<Props> {
         onIncompatibleQuery={this.handleIncompatibleQuery}
         onSuccess={this.handleCreateAlertSuccess}
         referrer="performance"
+        useAlertWizardV3={organization.features.includes('alert-wizard-v3')}
+        alertType="trans_duration"
         aria-label={t('Create Alert')}
       />
     );

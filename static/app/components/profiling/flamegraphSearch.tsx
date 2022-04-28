@@ -1,9 +1,10 @@
-import {useCallback, useEffect, useMemo, useRef} from 'react';
+import {useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import Fuse from 'fuse.js';
 
-import space from 'sentry/styles/space';
+import SearchBar from 'sentry/components/searchBar';
+import {t} from 'sentry/locale';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {useFlamegraphSearch} from 'sentry/utils/profiling/flamegraph/useFlamegraphSearch';
@@ -97,15 +98,12 @@ const numericSort = (
 interface FlamegraphSearchProps {
   canvasPoolManager: CanvasPoolManager;
   flamegraphs: Flamegraph | Flamegraph[];
-  placement: 'top' | 'bottom';
 }
 
 function FlamegraphSearch({
   flamegraphs,
   canvasPoolManager,
 }: FlamegraphSearchProps): React.ReactElement | null {
-  const ref = useRef<HTMLInputElement>(null);
-
   const [search, dispatchSearch] = useFlamegraphSearch();
 
   const allFrames = useMemo(() => {
@@ -143,24 +141,24 @@ function FlamegraphSearch({
     if (frames[search.index]) {
       onZoomIntoFrame(frames[search.index]);
     }
-  }, [search.results, search.index]);
+  }, [search.results, search.index, onZoomIntoFrame]);
 
-  const handleSearchInput = useCallback(
-    (evt: React.ChangeEvent<HTMLInputElement>) => {
-      if (!evt.currentTarget.value) {
-        dispatchSearch({type: 'clear search', payload: {open: true}});
+  const handleChange: (value: string) => void = useCallback(
+    value => {
+      if (!value) {
+        dispatchSearch({type: 'clear search'});
         return;
       }
 
       dispatchSearch({
         type: 'set results',
         payload: {
-          results: frameSearch(evt.currentTarget.value, allFrames, searchIndex),
-          query: evt.currentTarget.value,
+          results: frameSearch(value, allFrames, searchIndex),
+          query: value,
         },
       });
     },
-    [searchIndex, frames, canvasPoolManager, allFrames]
+    [dispatchSearch, allFrames, searchIndex]
   );
 
   const onNextSearchClick = useCallback(() => {
@@ -178,7 +176,7 @@ function FlamegraphSearch({
       type: 'set search index position',
       payload: search.index + 1,
     });
-  }, [search.results, search.index]);
+  }, [search.results, search.index, dispatchSearch]);
 
   const onPreviousSearchClick = useCallback(() => {
     const frames = memoizedSortFrameResults(search.results);
@@ -198,36 +196,14 @@ function FlamegraphSearch({
       type: 'set search index position',
       payload: search.index - 1,
     });
-  }, [search.results, search.index]);
+  }, [search.results, search.index, dispatchSearch]);
 
-  const onCmdF = useCallback(
-    (evt: KeyboardEvent) => {
-      if (evt.key === 'f' && evt.metaKey) {
-        evt.preventDefault();
-        if (search.open) {
-          ref.current?.focus();
-        } else {
-          dispatchSearch({type: 'open search'});
-        }
-        return;
-      }
-      if (evt.key === 'Escape') {
-        dispatchSearch({type: 'clear search'});
-      }
-    },
-    [search.open]
-  );
-
-  const onKeyDown = useCallback(
+  const handleKeyDown = useCallback(
     (evt: React.KeyboardEvent<HTMLInputElement>) => {
-      if (evt.key === 'Escape') {
-        dispatchSearch({type: 'clear search'});
-      }
       if (evt.key === 'ArrowDown') {
         evt.preventDefault();
         onNextSearchClick();
-      }
-      if (evt.key === 'ArrowUp') {
+      } else if (evt.key === 'ArrowUp') {
         evt.preventDefault();
         onPreviousSearchClick();
       }
@@ -235,31 +211,20 @@ function FlamegraphSearch({
     [onNextSearchClick, onPreviousSearchClick]
   );
 
-  useEffect(() => {
-    document.addEventListener('keydown', onCmdF);
-
-    return () => {
-      document.removeEventListener('keydown', onCmdF);
-    };
-  }, [onCmdF]);
-
-  return search.open ? (
-    <Input
-      ref={ref}
-      autoFocus
-      type="text"
-      value={search.query}
-      onChange={handleSearchInput}
-      onKeyDown={onKeyDown}
+  return (
+    <StyledSearchBar
+      placeholder={t('Find Frames')}
+      query={search.query}
+      onChange={handleChange}
+      onKeyDown={handleKeyDown}
     />
-  ) : null;
+  );
 }
 
-const Input = styled('input')`
-  position: absolute;
-  left: 50%;
-  top: ${space(4)};
-  transform: translateX(-50%);
+const StyledSearchBar = styled(SearchBar)`
+  .search-input {
+    height: 28px;
+  }
 `;
 
 export {FlamegraphSearch};
