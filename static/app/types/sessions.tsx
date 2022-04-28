@@ -20,7 +20,9 @@ export type SessionsOperation =
   | 'p50'
   | 'p75'
   | 'p95'
-  | 'p99';
+  | 'p99'
+  | 'crash_rate'
+  | 'crash_free_rate';
 
 export type SessionAggregationColumn = {
   columnTypes: string[];

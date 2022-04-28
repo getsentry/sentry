@@ -12,12 +12,12 @@ import {FieldValue, FieldValueKind} from 'sentry/views/eventsV2/table/types';
 export const SESSIONS_FIELDS: Readonly<Partial<Record<SessionMetric, SessionsMeta>>> = {
   [SessionMetric.SESSION]: {
     name: 'session',
-    operations: ['sum'],
+    operations: ['sum', 'crash_rate', 'crash_free_rate'],
     type: 'integer',
   },
   [SessionMetric.USER]: {
     name: 'user',
-    operations: ['count_unique'],
+    operations: ['count_unique', 'crash_rate', 'crash_free_rate'],
     type: 'string',
   },
   [SessionMetric.SESSION_DURATION]: {
@@ -39,6 +39,16 @@ export const SESSIONS_OPERATIONS: Readonly<
     columnTypes: ['string'],
     defaultValue: SessionMetric.USER,
     outputType: 'integer',
+  },
+  crash_rate: {
+    columnTypes: ['integer', 'string'],
+    defaultValue: SessionMetric.SESSION,
+    outputType: 'percentage',
+  },
+  crash_free_rate: {
+    columnTypes: ['integer', 'string'],
+    defaultValue: SessionMetric.SESSION,
+    outputType: 'percentage',
   },
   avg: {
     columnTypes: ['duration'],
