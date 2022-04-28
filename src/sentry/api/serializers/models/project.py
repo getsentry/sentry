@@ -437,6 +437,12 @@ class ProjectWithOrganizationSerializer(ProjectSerializer):
         return data
 
 
+class TeamResponseDict(TypedDict):
+    id: str
+    name: str
+    slug: str
+
+
 class ProjectWithTeamResponseDict(ProjectSerializerResponse):
     team: TeamResponseDict
     teams: List[TeamResponseDict]
@@ -480,15 +486,6 @@ class ProjectWithTeamSerializer(ProjectSerializer):
         return data
 
 
-##########
-
-
-class TeamResponseDict(TypedDict):
-    id: str
-    name: str
-    slug: str
-
-
 class EventProcessingDict(TypedDict):
     symbolicationDegraded: bool
 
@@ -524,9 +521,6 @@ class OrganizationProjectResponseDict(_OrganizationProjectResponseDictOptional):
     firstEvent: Optional[str]
     environments: List[str]
     latestRelease: Optional[LatestReleaseDict]
-
-
-##########
 
 
 class ProjectSummarySerializer(ProjectWithTeamSerializer):
