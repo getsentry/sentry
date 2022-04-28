@@ -16,10 +16,13 @@ from typing import (
     MutableMapping,
     NamedTuple,
     Optional,
+    Sequence,
     Set,
+    Tuple,
     Union,
 )
 
+import sentry_sdk
 from arroyo.backends.abstract import Producer as AbstractProducer
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload, KafkaProducer
 from arroyo.processing import StreamProcessor
@@ -37,6 +40,10 @@ from sentry.utils.batching_kafka_consumer import create_topics
 
 DEFAULT_QUEUED_MAX_MESSAGE_KBYTES = 50000
 DEFAULT_QUEUED_MIN_MESSAGES = 100000
+
+MAX_NAME_LENGTH = 200
+MAX_TAG_KEY_LENGTH = 200
+MAX_TAG_VALUE_LENGTH = 200
 
 logger = logging.getLogger(__name__)
 
@@ -331,6 +338,29 @@ class ProduceStep(ProcessingStep[MessageBatch]):  # type: ignore
         self.__producer.close()
 
 
+def valid_metric_name(name: str) -> bool:
+    if not name:
+        return False
+    if len(name) > MAX_NAME_LENGTH:
+        return False
+
+    return True
+
+
+def valid_metric_tags(tags: Mapping[str, str]) -> Tuple[bool, Sequence[str]]:
+    invalid_strs: Sequence[str] = []
+    is_valid = True
+    for key, value in tags.items():
+        if not key or len(key) > MAX_TAG_KEY_LENGTH:
+            invalid_strs.append(key)
+            is_valid = False
+        if not value or len(value) > MAX_TAG_VALUE_LENGTH:
+            invalid_strs.append(value)
+            is_valid = False
+
+    return (is_valid, invalid_strs)
+
+
 def process_messages(
     outer_message: Message[MessageBatch],
 ) -> MessageBatch:
@@ -366,6 +396,28 @@ def process_messages(
             metric_name = message["name"]
             org_id = message["org_id"]
             tags = message.get("tags", {})
+
+            if not valid_metric_name(metric_name):
+                logger.error(
+                    "process_messages.invalid_metric_name",
+                    extra={"org_id": org_id, "metric_name": metric_name},
+                )
+                return []
+
+            is_valid, invalid_strs = valid_metric_tags(tags)
+
+            if not is_valid:
+                # sentry doesn't seem to actually capture nested logger.error extra args
+                sentry_sdk.set_extra("all_metric_tags", tags)
+                logger.error(
+                    "process_messages.invalid_tags",
+                    extra={
+                        "org_id": org_id,
+                        "metric_name": metric_name,
+                        "invalid_tags": invalid_strs,
+                    },
+                )
+                return []
 
             parsed_strings = {
                 metric_name,

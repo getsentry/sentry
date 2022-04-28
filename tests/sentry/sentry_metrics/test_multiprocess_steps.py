@@ -1,3 +1,4 @@
+import logging
 import time
 from datetime import datetime, timezone
 from typing import Dict, List, Mapping, MutableMapping, Union
@@ -21,6 +22,8 @@ from sentry.sentry_metrics.multiprocess import (
 )
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.utils import json
+
+logger = logging.getLogger(__name__)
 
 
 def _batch_message_set_up(next_step: Mock, max_batch_time: float = 100.0, max_batch_size: int = 2):
@@ -326,3 +329,58 @@ def test_produce_step() -> None:
 
     produce_step.close()
     produce_step.join()
+
+
+invalid_payloads = [
+    (
+        {
+            "name": SessionMRI.ERROR.value,
+            "tags": {
+                "environment": "production" * 21,
+                "session.status": "errored",
+            },
+            "timestamp": ts,
+            "type": "s",
+            "value": [3],
+            "org_id": 1,
+            "project_id": 3,
+        },
+        "invalid_tags",
+    ),
+    (
+        {
+            "name": SessionMRI.ERROR.value * 21,
+            "tags": {
+                "environment": "production",
+                "session.status": "errored",
+            },
+            "timestamp": ts,
+            "type": "s",
+            "value": [3],
+            "org_id": 1,
+            "project_id": 3,
+        },
+        "invalid_metric_name",
+    ),
+]
+
+
+@pytest.mark.parametrize("invalid_payload, error_text", invalid_payloads)
+def test_process_messages_invalid_tag_value(invalid_payload, error_text, caplog) -> None:
+    message_batch = [
+        Message(
+            Partition(Topic("topic"), 0),
+            1,
+            KafkaPayload(None, json.dumps(invalid_payload).encode("utf-8"), []),
+            datetime.now(),
+        )
+    ]
+
+    # the outer message uses the last message's partition, offset, and timestamp
+    last = message_batch[-1]
+    outer_message = Message(last.partition, last.offset, message_batch, last.timestamp)
+
+    with caplog.at_level(logging.ERROR):
+        new_batch = process_messages(outer_message=outer_message)
+    assert new_batch == []
+    assert error_text in caplog.text
