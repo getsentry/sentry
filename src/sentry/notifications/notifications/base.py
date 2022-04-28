@@ -166,8 +166,7 @@ class BaseNotification(abc.ABC):
     def get_settings_url(self, recipient: Team | User, provider: ExternalProviders) -> str:
         # Settings url is dependant on the provider so we know which provider is sending them into Sentry.
         if isinstance(recipient, Team):
-            team = Team.objects.get(id=recipient.id)
-            url_str = f"/settings/{self.organization.slug}/teams/{team.slug}/notifications/"
+            url_str = f"/settings/{self.organization.slug}/teams/{recipient.slug}/notifications/"
         else:
             url_str = "/settings/account/notifications/"
             if self.notification_setting_type:
