@@ -251,23 +251,24 @@ class TrendsContent extends React.Component<Props, State> {
                   onSearch={this.handleSearch}
                   maxQueryLength={MAX_QUERY_LENGTH}
                 />
-                <DropdownControl
-                  data-test-id="trends-dropdown"
-                  buttonProps={{prefix: t('Percentile')}}
-                  label={currentTrendFunction.label}
-                >
-                  {TRENDS_FUNCTIONS.map(({label, field}) => (
-                    <DropdownItem
-                      key={field}
-                      onSelect={this.handleTrendFunctionChange}
-                      eventKey={field}
-                      data-test-id={field}
-                      isActive={field === currentTrendFunction.field}
-                    >
-                      {label}
-                    </DropdownItem>
-                  ))}
-                </DropdownControl>
+                <div data-test-id="trends-dropdown">
+                  <DropdownControl
+                    buttonProps={{prefix: t('Percentile')}}
+                    label={currentTrendFunction.label}
+                  >
+                    {TRENDS_FUNCTIONS.map(({label, field}) => (
+                      <DropdownItem
+                        key={field}
+                        onSelect={this.handleTrendFunctionChange}
+                        eventKey={field}
+                        data-test-id={field}
+                        isActive={field === currentTrendFunction.field}
+                      >
+                        {label}
+                      </DropdownItem>
+                    ))}
+                  </DropdownControl>
+                </div>
                 <DropdownControl
                   buttonProps={{prefix: t('Parameter')}}
                   label={currentTrendParameter.label}
