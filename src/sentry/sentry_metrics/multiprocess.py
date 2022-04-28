@@ -348,7 +348,7 @@ def valid_metric_name(name: str) -> bool:
 
 
 def valid_metric_tags(tags: Mapping[str, str]) -> Tuple[bool, Sequence[str]]:
-    invalid_strs: Sequence[str] = []
+    invalid_strs: List[str] = []
     is_valid = True
     for key, value in tags.items():
         if not key or len(key) > MAX_TAG_KEY_LENGTH:
