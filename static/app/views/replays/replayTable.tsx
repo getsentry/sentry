@@ -13,6 +13,7 @@ import {NewQuery, PageFilters} from 'sentry/types';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
+import getUrlPathname from 'sentry/utils/getUrlPathname';
 import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
@@ -95,7 +96,7 @@ function ReplayTable(props: Props) {
                   email: replay['user.display'],
                 }}
                 // this is the subheading for the avatar, so displayEmail in this case is a misnomer
-                displayEmail={replay.id}
+                displayEmail={getUrlPathname(replay.url) ?? ''}
               />
               {isScreenLarge && (
                 <StyledPanelItem>
@@ -111,7 +112,9 @@ function ReplayTable(props: Props) {
               )}
               <StyledPanelItem>
                 <TimeSinceWrapper>
-                  <StyledIconCalendarWrapper color="gray500" size="sm" />
+                  {isScreenLarge && (
+                    <StyledIconCalendarWrapper color="gray500" size="sm" />
+                  )}
                   <TimeSince date={replay.timestamp} />
                 </TimeSinceWrapper>
               </StyledPanelItem>
