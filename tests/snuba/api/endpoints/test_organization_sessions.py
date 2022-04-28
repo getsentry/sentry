@@ -1218,18 +1218,6 @@ class OrganizationSessionsEndpointMetricsTest(
         assert response.data == {"detail": "Cannot order by sum(session) with the current filters"}
 
     @freeze_time(MOCK_DATETIME)
-    def test_unrestricted_date_range(self):
-        response = self.do_request(
-            {
-                "project": [-1],
-                "statsPeriod": "7h",
-                "interval": "5m",
-                "field": ["sum(session)"],
-            }
-        )
-        assert response.status_code == 200
-
-    @freeze_time(MOCK_DATETIME)
     def test_crash_rate(self):
         default_request = {
             "project": [-1],
