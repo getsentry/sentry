@@ -153,13 +153,14 @@ export function normalizeQueries({
               aggregates: queries[0].aggregates,
             })[0].value);
 
+      // A widget should be descending if:
+      // - There is no orderby, so we're defaulting to desc
+      // - Not an issues widget since issues doesn't support descending and
+      //   the original ordering was descending
       const isDescending =
-        (widgetType === WidgetType.DISCOVER &&
-          !orderBy.startsWith('-') &&
-          queryOrderBy.startsWith('-')) ||
-        !query.orderby;
+        !query.orderby ||
+        (widgetType !== WidgetType.ISSUE && queryOrderBy.startsWith('-'));
 
-      // Issues data set doesn't support order by descending
       query.orderby = isDescending ? `-${String(orderBy)}` : String(orderBy);
 
       return query;
