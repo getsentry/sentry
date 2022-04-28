@@ -526,8 +526,8 @@ class FlamegraphRenderer {
       }
 
       // Descend into the rest of the children
-      for (const child of frame.children) {
-        findHoveredNode(child, depth + 1);
+      for (let i = 0; i < frame.children.length; i++) {
+        findHoveredNode(frame.children[i], depth + 1);
       }
     };
 

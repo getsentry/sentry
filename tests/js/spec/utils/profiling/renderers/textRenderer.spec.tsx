@@ -5,7 +5,7 @@ import {LightFlamegraphTheme as Theme} from 'sentry/utils/profiling/flamegraph/f
 import {Rect, trimTextCenter} from 'sentry/utils/profiling/gl/utils';
 import {EventedProfile} from 'sentry/utils/profiling/profile/eventedProfile';
 import {createFrameIndex} from 'sentry/utils/profiling/profile/utils';
-import {isOutsideView, TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
+import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
 
 const makeBaseFlamegraph = (): Flamegraph => {
   const profile = EventedProfile.FromProfile(
@@ -29,20 +29,6 @@ const makeBaseFlamegraph = (): Flamegraph => {
 };
 
 describe('TextRenderer', () => {
-  it('skips drawing if the text is outside the view', () => {
-    const view = new Rect(0, 0, 1, 1);
-
-    const frameLeftOutsideOfView = new Rect(-1.1, 0, 1, 1);
-    const frameRightOutsideOfView = new Rect(1, 1.1, 1, 1);
-    const frameAboveView = new Rect(0, -1.1, 1, 1);
-    const frameBelowView = new Rect(0, 1.1, 1, 1);
-
-    expect(isOutsideView(frameLeftOutsideOfView, view)).toBe(true);
-    expect(isOutsideView(frameRightOutsideOfView, view)).toBe(true);
-    expect(isOutsideView(frameAboveView, view)).toBe(true);
-    expect(isOutsideView(frameBelowView, view)).toBe(true);
-  });
-
   it('invalidates cache if cached measurements do not match new measurements', () => {
     const context: Partial<CanvasRenderingContext2D> = {
       measureText: jest
@@ -127,18 +113,12 @@ describe('TextRenderer', () => {
     const textRenderer = new TextRenderer(canvas as HTMLCanvasElement, flamegraph, Theme);
 
     textRenderer.draw(
-      new Rect(0, 1.1, 200, 2),
+      new Rect(0, 0, 200, 2),
       flamegraph.configSpace,
       mat3.identity(mat3.create())
     );
 
-    expect(context.fillText).toHaveBeenCalledTimes(1);
-    expect(context.fillText).toHaveBeenCalledWith(
-      'f1',
-      100 + Theme.SIZES.BAR_PADDING,
-      // depth + 1 - half font size
-      1 + Theme.SIZES.BAR_HEIGHT - Theme.SIZES.BAR_FONT_SIZE / 2 // center text vertically inside the rect
-    );
+    expect(context.fillText).toHaveBeenCalledTimes(2);
   });
   it("trims output text if it doesn't fit", () => {
     const longFrameName =
