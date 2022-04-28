@@ -189,7 +189,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       <AnchorLinkManager.Consumer>
         {({registerScrollFn, scrollToHash}) => {
           if (!isGapSpan(span)) {
-            registerScrollFn(spanTargetHash(span.span_id), this.scrollIntoView);
+            registerScrollFn(spanTargetHash(span.span_id), this.scrollIntoView, false);
           }
 
           if (!this.state.showDetail || !isVisible) {

@@ -82,8 +82,14 @@ class Buffer(Service, metaclass=BufferMount):
                 # ends up in the cache. This causes issues when handling issue alerts, and likely
                 # elsewhere. Use `update` here since we're already special casing, and we know that
                 # the group will already exist.
-                group = Group.objects.get(**filters)
-                group.update(**update_kwargs)
+                try:
+                    group = Group.objects.get(**filters)
+                except Group.DoesNotExist:
+                    # If the group was deleted by the time we flush buffers we don't care, just
+                    # continue
+                    pass
+                else:
+                    group.update(**update_kwargs)
                 created = False
             else:
                 _, created = model.objects.create_or_update(values=update_kwargs, **filters)

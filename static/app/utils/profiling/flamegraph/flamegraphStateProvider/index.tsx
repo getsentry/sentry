@@ -54,10 +54,9 @@ export function FlamegraphStateProvider(
       colorCoding: 'by symbol name',
       sorting: 'call order',
       view: 'top down',
-      synchronizeXAxisWithTransaction: false,
+      xAxis: 'standalone',
     },
     search: {
-      open: false,
       index: null,
       results: null,
       query: '',
