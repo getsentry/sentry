@@ -39,9 +39,6 @@ class LastSeenUpdaterCollector(ProcessingStrategy[int]):  # type: ignore
 def get_last_seen_updater(
     topic: str,
     group_id: str,
-    input_block_size: int,
-    output_block_size: int,
-    processes: int,
     max_batch_size: int,
     max_batch_time: float,
     auto_offset_reset: str,
@@ -50,9 +47,9 @@ def get_last_seen_updater(
     processing_factory = KafkaConsumerStrategyFactory(
         max_batch_time=max_batch_time,
         max_batch_size=max_batch_size,
-        processes=processes,
-        input_block_size=input_block_size,
-        output_block_size=output_block_size,
+        processes=None,
+        input_block_size=None,
+        output_block_size=None,
         process_message=lambda message: 1,
         prefilter=LastSeenUpdaterMessageFilter(),
         collector=lambda: LastSeenUpdaterCollector(),
