@@ -21,6 +21,7 @@ import {
   IconLightning,
   IconList,
   IconProject,
+  IconRefresh,
   IconReleases,
   IconSettings,
   IconSiren,
@@ -294,7 +295,7 @@ function Sidebar({location, organization}: Props) {
         onClick={(_id, evt) =>
           navigateWithPageFilters(`/organizations/${organization.slug}/replays/`, evt)
         }
-        icon={<IconLab size="md" />}
+        icon={<IconRefresh size="md" />}
         label={t('Replays')}
         to={`/organizations/${organization.slug}/replays/`}
         id="replays"
@@ -402,8 +403,10 @@ function Sidebar({location, organization}: Props) {
                 {profiling}
               </SidebarSection>
 
-              <SidebarSection>{monitors}</SidebarSection>
-              <SidebarSection>{replays}</SidebarSection>
+              <SidebarSection>
+                {replays}
+                {monitors}
+              </SidebarSection>
 
               <SidebarSection>
                 {activity}
