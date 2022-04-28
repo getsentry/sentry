@@ -52,21 +52,23 @@ type State = {
 class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state']> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {params, location} = this.props;
-    const {query: queryParams} = location;
+    const {query} = location;
+    const status = getQueryStatus(query.status);
 
-    const query = {...queryParams};
-    const status = getQueryStatus(queryParams.status);
-    // Filtering by all does nothing
-    if (status !== 'all') {
-      query.status = status;
-    } else {
-      query.status = undefined;
-    }
-
-    query.team = getTeamParams(queryParams.team);
-    query.expand = ['original_alert_rule'];
-
-    return [['incidentList', `/organizations/${params?.orgId}/incidents/`, {query}]];
+    return [
+      [
+        'incidentList',
+        `/organizations/${params?.orgId}/incidents/`,
+        {
+          query: {
+            ...query,
+            status: status === 'all' ? undefined : status,
+            team: getTeamParams(query.team),
+            expand: ['original_alert_rule'],
+          },
+        },
+      ],
+    ];
   }
 
   /**
@@ -305,6 +307,7 @@ function IncidentsListContainer(props: Props) {
     trackAdvancedAnalyticsEvent('alert_stream.viewed', {
       organization: props.organization,
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const renderDisabled = () => (
