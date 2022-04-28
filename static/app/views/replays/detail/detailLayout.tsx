@@ -7,6 +7,7 @@ import UserBadge from 'sentry/components/idBadge/userBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {Event} from 'sentry/types/event';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import getUrlPathname from 'sentry/utils/getUrlPathname';
@@ -83,6 +84,7 @@ function EventHeader({event}: Pick<Props, 'event'>) {
 
 const EventHeaderContainer = styled('div')`
   max-width: ${p => p.theme.breakpoints[0]};
+  margin-top: ${space(1)};
 `;
 
 export default DetailLayout;
