@@ -54,7 +54,7 @@ const StyledUserBadge = styled('div')`
 const StyledNameAndEmail = styled('div')`
   flex-shrink: 1;
   min-width: 0;
-  line-height: 1;
+  line-height: normal;
 `;
 
 const StyledEmail = styled('div')`
