@@ -179,9 +179,9 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
                   ))}
                 </ProjectCards>
               </LazyLoad>
-              {showResources && <Resources organization={organization} />}
             </Layout.Main>
           </Body>
+          {showResources && <Resources organization={organization} />}
         </Fragment>
       )}
     </Fragment>
