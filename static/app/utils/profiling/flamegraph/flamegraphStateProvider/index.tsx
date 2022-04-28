@@ -185,22 +185,31 @@ export function FlamegraphStateProvider(
 ): React.ReactElement {
   const reducer = useUndoableReducer(combinedReducers, {
     profiles: {
-      ...DEFAULT_FLAMEGRAPH_STATE.profiles,
-      ...(props.initialState?.profiles ?? {}),
+      activeProfileIndex:
+        props.initialState?.profiles?.activeProfileIndex ??
+        DEFAULT_FLAMEGRAPH_STATE.profiles.activeProfileIndex,
     },
-    // @ts-ignore the view here never gets override, it's set as a default in the DEFAULT_FLAMEGRAPH_STATE
     position: {
-      ...DEFAULT_FLAMEGRAPH_STATE.position,
-      ...(props.initialState?.position ?? {}),
+      view: (props.initialState?.position?.view ??
+        DEFAULT_FLAMEGRAPH_STATE.position.view) as Rect,
     },
     preferences: {
-      ...DEFAULT_FLAMEGRAPH_STATE.preferences,
-      ...(props.initialState?.preferences ?? {}),
+      colorCoding:
+        props.initialState?.preferences?.colorCoding ??
+        DEFAULT_FLAMEGRAPH_STATE.preferences.colorCoding,
+      sorting:
+        props.initialState?.preferences?.sorting ??
+        DEFAULT_FLAMEGRAPH_STATE.preferences.sorting,
+      view:
+        props.initialState?.preferences?.view ??
+        DEFAULT_FLAMEGRAPH_STATE.preferences.view,
+      xAxis:
+        props.initialState?.preferences?.xAxis ??
+        DEFAULT_FLAMEGRAPH_STATE.preferences.xAxis,
     },
     search: {
       ...DEFAULT_FLAMEGRAPH_STATE.search,
-      ...(props.initialState?.search ?? {}),
-      results: null,
+      query: props.initialState?.search?.query ?? DEFAULT_FLAMEGRAPH_STATE.search.query,
     },
   });
 
