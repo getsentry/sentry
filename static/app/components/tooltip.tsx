@@ -9,6 +9,7 @@ import {
 } from 'react';
 import {createPortal} from 'react-dom';
 import {Manager, Popper, PopperArrowProps, PopperProps, Reference} from 'react-popper';
+import isPropValid from '@emotion/is-prop-valid';
 import {SerializedStyles, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, MotionProps, MotionStyle} from 'framer-motion';
@@ -323,7 +324,7 @@ const PositionWrapper = styled('div')`
   z-index: ${p => p.theme.zIndex.tooltip};
 `;
 
-const TooltipContent = styled(motion.div)<{
+const TooltipContent = styled(motion.div, {shouldForwardProp: isPropValid})<{
   popperStyle: InternalTooltipProps['popperStyle'];
 }>`
   will-change: transform, opacity;
