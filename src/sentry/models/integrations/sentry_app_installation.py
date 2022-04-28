@@ -40,7 +40,7 @@ class SentryAppInstallationForProviderManager(ParanoidManager):
         from sentry.models import Project, SentryAppInstallationToken
 
         try:
-            installation = self.get_by_api_token(token.id).first()
+            installation = self.get_by_api_token(token.id).get()
         except SentryAppInstallation.DoesNotExist:
             installation = None
 
