@@ -1,5 +1,6 @@
 from django.db.models import prefetch_related_objects
 
+from sentry import audit_log
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import AuditLogEntry
 
@@ -42,12 +43,13 @@ class AuditLogEntrySerializer(Serializer):
         }
 
     def serialize(self, obj, attrs, user):
+        audit_log_event = audit_log.get(obj.event)
         return {
             "id": str(obj.id),
             "actor": attrs["actor"],
-            "event": obj.get_event_display(),
+            "event": audit_log_event.api_name,
             "ipAddress": obj.ip_address,
-            "note": obj.get_note(),
+            "note": audit_log_event.render(obj),
             "targetObject": obj.target_object,
             "targetUser": attrs["targetUser"],
             "data": fix(obj.data),
