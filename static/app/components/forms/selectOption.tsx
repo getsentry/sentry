@@ -21,18 +21,21 @@ function SelectOption(props: Props) {
     trailingItems,
     leadingItemsSpanFullHeight,
     trailingItemsSpanFullHeight,
+    selectionMode = 'single',
   } = data;
+
+  const isMultiple = defined(selectionMode) ? selectionMode === 'multiple' : isMulti;
 
   return (
     <selectComponents.Option className="select-option" {...props}>
       <Tooltip skipWrapper title={tooltip} {...tooltipOptions}>
         <InnerWrap isFocused={isFocused} isDisabled={isDisabled} data-test-id={value}>
-          <Indent isMulti={isMulti} centerCheckWrap={verticallyCenterCheckWrap}>
-            <CheckWrap isMulti={isMulti} isSelected={isSelected}>
+          <Indent isMultiple={isMultiple} centerCheckWrap={verticallyCenterCheckWrap}>
+            <CheckWrap isMultiple={isMultiple} isSelected={isSelected}>
               {isSelected && (
                 <IconCheckmark
-                  size={isMulti ? 'xs' : 'sm'}
-                  color={isMulti ? 'white' : undefined}
+                  size={isMultiple ? 'xs' : 'sm'}
+                  color={isMultiple ? 'white' : undefined}
                 />
               )}
             </CheckWrap>
@@ -80,24 +83,24 @@ const InnerWrap = styled('div')<{isDisabled: boolean; isFocused: boolean}>`
   `}
 `;
 
-const Indent = styled('div')<{centerCheckWrap?: boolean; isMulti?: boolean}>`
+const Indent = styled('div')<{centerCheckWrap?: boolean; isMultiple?: boolean}>`
   display: flex;
   justify-content: center;
   gap: ${space(1)};
   padding: ${space(1)};
   padding-left: ${space(0.5)};
 
-  ${p => p.isMulti && !p.centerCheckWrap && `margin-top: 0.2em;`}
+  ${p => p.isMultiple && !p.centerCheckWrap && `margin-top: 0.2em;`}
   ${p => p.centerCheckWrap && 'align-items: center;'}
 `;
 
-const CheckWrap = styled('div')<{isMulti: boolean; isSelected: boolean}>`
+const CheckWrap = styled('div')<{isMultiple: boolean; isSelected: boolean}>`
   display: flex;
   justify-content: center;
   align-items: center;
 
   ${p =>
-    p.isMulti
+    p.isMultiple
       ? `
       width: 1em;
       height: 1em;
