@@ -216,19 +216,21 @@ class VitalDetailContent extends Component<Props, State> {
 
     return (
       <Fragment>
-        <PageFilterBar condensed>
-          <ProjectPageFilter />
-          <EnvironmentPageFilter />
-          <DatePageFilter />
-        </PageFilterBar>
-        <StyledSearchBar
-          searchSource="performance_vitals"
-          organization={organization}
-          projectIds={project}
-          query={query}
-          fields={fields}
-          onSearch={this.handleSearch}
-        />
+        <FilterActions>
+          <PageFilterBar condensed>
+            <ProjectPageFilter />
+            <EnvironmentPageFilter />
+            <DatePageFilter />
+          </PageFilterBar>
+          <SearchBar
+            searchSource="performance_vitals"
+            organization={organization}
+            projectIds={project}
+            query={query}
+            fields={fields}
+            onSearch={this.handleSearch}
+          />
+        </FilterActions>
         <VitalChart
           organization={organization}
           query={query}
@@ -339,10 +341,6 @@ const StyledDescription = styled('div')`
   margin-bottom: ${space(3)};
 `;
 
-const StyledSearchBar = styled(SearchBar)`
-  margin-bottom: ${space(2)};
-`;
-
 const StyledVitalInfo = styled('div')`
   margin-bottom: ${space(3)};
 `;
@@ -357,4 +355,14 @@ const BrowserItem = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
+`;
+
+const FilterActions = styled('div')`
+  display: grid;
+  gap: ${space(2)};
+  margin-bottom: ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: auto 1fr;
+  }
 `;
