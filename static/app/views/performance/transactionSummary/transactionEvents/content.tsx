@@ -135,7 +135,7 @@ function Search(props: Props) {
         <EnvironmentPageFilter />
         <DatePageFilter alignDropdown="left" />
       </PageFilterBar>
-      <SearchBar
+      <StyledSearchBar
         organization={organization}
         projectIds={eventView.project}
         query={query}
@@ -173,7 +173,23 @@ const FilterActions = styled('div')`
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: repeat(4, min-content);
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
     grid-template-columns: auto auto 1fr auto auto;
+  }
+`;
+
+const StyledSearchBar = styled(SearchBar)`
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    order: 1;
+    grid-column: 1/6;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    order: initial;
+    grid-column: auto;
   }
 `;
 
