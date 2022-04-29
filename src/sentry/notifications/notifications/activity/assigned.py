@@ -26,7 +26,7 @@ def get_assignee_str(activity: Activity, organization: Organization) -> str:
 
     assignee_id = activity.data.get("assignee")
     assignee_type = activity.data.get("assigneeType", "user")
-    assignee_email = activity.data.get("assigneeEmail")
+    assignee_email: str | None = activity.data.get("assigneeEmail")
 
     if assignee_type == "user":
         if activity.user_id == assignee_id:
@@ -34,7 +34,8 @@ def get_assignee_str(activity: Activity, organization: Organization) -> str:
 
         assignee_user = _get_user_option(assignee_id)
         if assignee_user:
-            return assignee_user.get_display_name()
+            assignee: str = assignee_user.get_display_name()
+            return assignee
         if assignee_email:
             return assignee_email
         return "an unknown user"
