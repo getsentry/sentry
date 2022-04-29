@@ -12,7 +12,6 @@ type Props = {
   onSelect: (sort: string) => void;
   query: string;
   sort: string;
-  hasPageFilters?: boolean;
 };
 
 function getSortTooltip(key: IssueSortOptions) {
@@ -35,7 +34,7 @@ function getSortTooltip(key: IssueSortOptions) {
   }
 }
 
-const IssueListSortOptions = ({onSelect, sort, query, hasPageFilters}: Props) => {
+const IssueListSortOptions = ({onSelect, sort, query}: Props) => {
   const sortKey = sort || IssueSortOptions.DATE;
 
   const getMenuItem = (key: IssueSortOptions): React.ReactNode => (
@@ -57,8 +56,8 @@ const IssueListSortOptions = ({onSelect, sort, query, hasPageFilters}: Props) =>
         size: 'xsmall',
         icon: <IconSort size="xs" />,
       }}
-      menuWidth={hasPageFilters ? '150px' : undefined}
-      detached={hasPageFilters}
+      menuWidth="150px"
+      detached
       label={getSortLabel(sortKey)}
     >
       <React.Fragment>
