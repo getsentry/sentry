@@ -54,3 +54,43 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
         self.browser.click('[data-test-id="onboarding-getting-started-invite-members"]')
         self.browser.wait_until("[role='dialog']")
         self.browser.snapshot(name="onboarding - invite members")
+
+    @mock.patch("sentry.models.ProjectKey.generate_api_key", return_value="test-dsn")
+    @mock.patch(
+        "sentry.experiments.all", return_value={"TargetedOnboardingMultiSelectExperiment": 1}
+    )
+    def test_onboarding_new(self, generate_api_key, all_experiments):
+        self.browser.get("/onboarding/%s/" % self.org.slug)
+
+        # Welcome step
+        self.browser.wait_until('[data-test-id="onboarding-step-welcome"]')
+        self.browser.snapshot(name="onboarding - new - welcome")
+
+        # Platform selection step
+        self.browser.click('[aria-label="Start"]')
+        self.browser.wait_until('[data-test-id="onboarding-step-select-platform"]')
+
+        self.browser.snapshot(name="onboarding - new - select platform")
+
+        # Select and create node JS project
+        self.browser.click('[data-test-id="platform-node"]')
+        self.browser.wait_until_not('[data-test-id="platform-select-next"][aria-disabled="true"]')
+        self.browser.wait_until('[data-test-id="platform-select-next"][aria-disabled="false"]')
+
+        @TimedRetryPolicy.wrap(timeout=5, exceptions=((TimeoutException,)))
+        def click_platform_select_name(browser):
+            browser.click('[data-test-id="platform-select-next"]')
+            # Project getting started
+            browser.wait_until('[data-test-id="onboarding-step-setup-docs"]')
+
+        click_platform_select_name(self.browser)
+        self.browser.snapshot(name="onboarding - new - setup docs")
+
+        # Verify project was created for org
+        project = Project.objects.get(organization=self.org)
+        assert project.name == "node"
+        assert project.platform == "node"
+
+        # The homepage should redirect to onboarding
+        self.browser.get("/")
+        self.browser.wait_until('[data-test-id="onboarding-step-setup-docs"]')

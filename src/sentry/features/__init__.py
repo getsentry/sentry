@@ -60,7 +60,7 @@ default_manager.add("organizations:crash-rate-alerts", OrganizationFeature, True
 default_manager.add("organizations:custom-event-title", OrganizationFeature)
 default_manager.add("organizations:dashboard-grid-layout", OrganizationFeature, True)
 default_manager.add("organizations:dashboards-mep", OrganizationFeature, True)
-default_manager.add("organizations:dashboards-metrics", OrganizationFeature, True)
+default_manager.add("organizations:dashboards-releases", OrganizationFeature, True)
 default_manager.add("organizations:dashboards-template", OrganizationFeature, True)
 default_manager.add("organizations:sandbox-kill-switch", OrganizationFeature, True)
 default_manager.add("organizations:discover", OrganizationFeature)
@@ -127,6 +127,7 @@ default_manager.add("organizations:unified-span-view", OrganizationFeature, True
 default_manager.add("organizations:weekly-report-debugging", OrganizationFeature, True)
 default_manager.add("organizations:widget-library", OrganizationFeature, True)
 default_manager.add("organizations:widget-viewer-modal", OrganizationFeature, True)
+default_manager.add("organizations:widget-viewer-modal-minimap", OrganizationFeature, True)
 
 # NOTE: Don't add features down here! Add them to their specific group and sort
 #       them alphabetically! The order features are registered is not important.
