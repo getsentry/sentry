@@ -4,12 +4,12 @@ These settings act as the default (base) settings for the Sentry-provided web-se
 
 import os
 import os.path
+import platform
 import re
 import socket
 import sys
 import tempfile
 from datetime import timedelta
-from platform import platform
 from urllib.parse import urlparse
 
 from django.conf.global_settings import *  # NOQA
@@ -452,8 +452,6 @@ SESSION_COOKIE_NAME = "sentrysid"
 # request, and `Lax` doesnt permit this.
 # See here: https://docs.djangoproject.com/en/2.1/ref/settings/#session-cookie-samesite
 SESSION_COOKIE_SAMESITE = None
-
-SESSION_SERIALIZER = "sentry.utils.transitional_serializer.TransitionalSerializer"
 
 BITBUCKET_CONSUMER_KEY = ""
 BITBUCKET_CONSUMER_SECRET = ""
@@ -1050,10 +1048,12 @@ SENTRY_FEATURES = {
     "organizations:widget-library": False,
     # Enable metrics enhanced performance in dashboards
     "organizations:dashboards-mep": False,
-    # Enable metrics in dashboards
-    "organizations:dashboards-metrics": False,
+    # Enable release health widgets in dashboards
+    "organizations:dashboards-releases": False,
     # Enable widget viewer modal in dashboards
     "organizations:widget-viewer-modal": False,
+    # Enable minimap in the widget viewer modal in dashboards
+    "organizations:widget-viewer-modal-minimap": False,
     # Enable experimental performance improvements.
     "organizations:enterprise-perf": False,
     # Enable the API to importing CODEOWNERS for a project
@@ -1818,7 +1818,10 @@ def build_cdc_postgres_init_db_volume(settings):
     )
 
 
-APPLE_ARM64 = platform().startswith("mac") and platform().endswith("arm64-arm-64bit")
+# platform.processor() changed at some point between these:
+# 11.2.3: arm
+# 12.3.1: arm64
+APPLE_ARM64 = sys.platform == "darwin" and platform.processor() in {"arm", "arm64"}
 
 SENTRY_DEVSERVICES = {
     "redis": lambda settings, options: (
@@ -2615,3 +2618,6 @@ DEVSERVER_LOGS_ALLOWLIST = None
 LOG_API_ACCESS = not IS_DEV or os.environ.get("SENTRY_LOG_API_ACCESS")
 
 VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = True
+
+# determines if we enable analytics or not
+ENABLE_ANALYTICS = False

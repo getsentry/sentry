@@ -94,8 +94,7 @@ class JiraIssueHookView(JiraBaseHook):
 
         logger.info(
             "issue_hook.response",
-            # TODO(PR Review): Backwards compatability with logs?
-            # extra={"type": context["type"], "title_url": context["title_url"]},
+            extra={"issue_count": len(groups)},
         )
 
         return self.get_response(response_context)

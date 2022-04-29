@@ -44,20 +44,14 @@ class Create extends Component<Props, State> {
 
   getInitialState(): State {
     const {organization, location, project, params, router} = this.props;
-    const {
-      createFromDiscover,
-      createFromWizard,
-      aggregate,
-      dataset,
-      eventTypes,
-      createFromV3,
-    } = location?.query ?? {};
+    const {createFromDiscover, createFromWizard, aggregate, dataset, eventTypes} =
+      location?.query ?? {};
     let alertType = AlertRuleType.ISSUE;
 
     const hasAlertWizardV3 = organization.features.includes('alert-wizard-v3');
 
     // Alerts can only be created via create from discover or alert wizard, until alert-wizard-v3 is fully implemented
-    if (hasAlertWizardV3 && createFromV3) {
+    if (hasAlertWizardV3) {
       alertType = params.alertType || AlertRuleType.METRIC;
 
       if (alertType === AlertRuleType.METRIC && !(aggregate && dataset && eventTypes)) {
@@ -165,7 +159,6 @@ class Create extends Component<Props, State> {
                         wizardTemplate={wizardTemplate}
                         sessionId={this.sessionId}
                         project={project}
-                        isCustomMetric={wizardAlertType === 'custom'}
                         userTeamIds={teams.map(({id}) => id)}
                       />
                     )}

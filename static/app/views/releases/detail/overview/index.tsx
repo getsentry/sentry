@@ -27,7 +27,7 @@ import {
   Organization,
   PageFilters,
   ReleaseProject,
-  SessionField,
+  SessionFieldWithOperation,
 } from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -420,7 +420,11 @@ class ReleaseOverview extends AsyncView<Props> {
           const sessionsRequestProps: Omit<SessionsRequest['props'], 'children'> = {
             api,
             organization,
-            field: [SessionField.USERS, SessionField.SESSIONS, SessionField.DURATION],
+            field: [
+              SessionFieldWithOperation.USERS,
+              SessionFieldWithOperation.SESSIONS,
+              SessionFieldWithOperation.DURATION,
+            ],
             groupBy: ['session.status'],
             ...getReleaseParams({location, releaseBounds}),
             shouldFilterSessionsInTimeWindow: true,
