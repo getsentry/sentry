@@ -808,6 +808,7 @@ export function generatePerformanceVitalDetailView(location: Location): EventVie
     );
     conditions.freeText = [];
   }
+  conditions.setFilterValues('event.type', ['transaction']);
   savedQuery.query = conditions.formatString();
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
