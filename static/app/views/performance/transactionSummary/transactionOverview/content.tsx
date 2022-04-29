@@ -272,12 +272,10 @@ function SummaryContent({
             currentFilter={spanOperationBreakdownFilter}
             onChangeFilter={onChangeFilter}
           />
-          {organization.features.includes('selection-filters-v2') && (
-            <PageFilterBar condensed>
-              <EnvironmentPageFilter />
-              <DatePageFilter alignDropdown="left" />
-            </PageFilterBar>
-          )}
+          <PageFilterBar condensed>
+            <EnvironmentPageFilter />
+            <DatePageFilter alignDropdown="left" />
+          </PageFilterBar>
           <SearchBar
             searchSource="transaction_summary"
             organization={organization}
