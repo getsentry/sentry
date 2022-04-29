@@ -12,9 +12,10 @@ from sentry.db.models import (
     Model,
     sane_repr,
 )
+from sentry.models import Activity
 
 if TYPE_CHECKING:
-    from sentry.models import Activity, Group, Release, Team, User
+    from sentry.models import Group, Release, Team, User
 
 
 class GroupHistoryStatus:
