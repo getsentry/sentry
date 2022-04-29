@@ -1,4 +1,3 @@
-import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import OnboardingPreview from 'sentry-images/spot/onboarding-preview.svg';
@@ -6,36 +5,8 @@ import OnboardingPreview from 'sentry-images/spot/onboarding-preview.svg';
 import Button from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import useApi from 'sentry/utils/useApi';
 
-import {usePersistedOnboardingState} from './utils';
-
-type Props = {
-  organization: Organization;
-};
-
-export default function MobileRedirect({organization}: Props) {
-  const client = useApi();
-  const [clientState] = usePersistedOnboardingState();
-  useEffect(() => {
-    if (!clientState) {
-      return;
-    }
-    if (clientState.mobileEmailSent) {
-      // We've already sent the email once before
-      return;
-    }
-    client.requestPromise(
-      `/organizations/${organization.slug}/onboarding-continuation-email/`,
-      {
-        method: 'POST',
-        data: {
-          platforms: clientState.selectedPlatforms,
-        },
-      }
-    );
-  }, []);
+export default function MobileRedirect() {
   return (
     <Wrapper>
       <ActionImage src={OnboardingPreview} />

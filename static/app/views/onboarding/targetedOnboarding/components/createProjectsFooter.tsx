@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {motion} from 'framer-motion';
@@ -63,6 +64,7 @@ export default function CreateProjectsFooter({
             })
           )
       );
+      const shouldSendEmail = !persistedOnboardingState.mobileEmailSent;
       const nextState: OnboardingState = {
         platformToProjectIdMap: persistedOnboardingState.platformToProjectIdMap,
         selectedPlatforms: platforms,
@@ -80,7 +82,30 @@ export default function CreateProjectsFooter({
         organization,
       });
       clearIndicators();
-      onComplete();
+      let isMobile: boolean = window.innerWidth < 800;
+      if ((navigator as any).userAgentData) {
+        isMobile = (navigator as any).userAgentData.mobile;
+      }
+      if (
+        isMobile &&
+        organization.experiments.TargetedOnboardingMobileRedirectExperiment === 'hide'
+      ) {
+        if (shouldSendEmail) {
+          persistedOnboardingState &&
+            api.requestPromise(
+              `/organizations/${organization.slug}/onboarding-continuation-email/`,
+              {
+                method: 'POST',
+                data: {
+                  platforms: persistedOnboardingState.selectedPlatforms,
+                },
+              }
+            );
+        }
+        browserHistory.push(`/onboarding/${organization.slug}/mobile-redirect/`);
+      } else {
+        onComplete();
+      }
     } catch (err) {
       addErrorMessage(t('Failed to create projects'));
       Sentry.captureException(err);

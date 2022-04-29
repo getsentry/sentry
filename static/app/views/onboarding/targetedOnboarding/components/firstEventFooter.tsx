@@ -13,6 +13,7 @@ import {Group, Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import testableTransition from 'sentry/utils/testableTransition';
+import useApi from 'sentry/utils/useApi';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
 
 import {usePersistedOnboardingState} from '../utils';
@@ -23,7 +24,6 @@ interface FirstEventFooterProps {
   handleFirstIssueReceived: () => void;
   hasFirstEvent: boolean;
   isLast: boolean;
-  isMobile: boolean;
   onClickSetupLater: () => void;
   organization: Organization;
   project: Project;
@@ -36,18 +36,36 @@ export default function FirstEventFooter({
   isLast,
   hasFirstEvent,
   handleFirstIssueReceived,
-  isMobile,
 }: FirstEventFooterProps) {
   const source = 'targeted_onboarding_first_event_footer';
   const [clientState, setClientState] = usePersistedOnboardingState();
+  const client = useApi();
 
   const getSecondaryCta = () => {
+    let isMobile: boolean = window.innerWidth < 800;
+    if ((navigator as any).userAgentData) {
+      isMobile = (navigator as any).userAgentData.mobile;
+    }
     if (
       isMobile &&
       organization.experiments.TargetedOnboardingMobileRedirectExperiment === 'email-cta'
     ) {
       return (
-        <Button to={`/onboarding/${organization.slug}/mobile-redirect/`}>
+        <Button
+          to={`/onboarding/${organization.slug}/mobile-redirect/`}
+          onClick={() => {
+            clientState &&
+              client.requestPromise(
+                `/organizations/${organization.slug}/onboarding-continuation-email/`,
+                {
+                  method: 'POST',
+                  data: {
+                    platforms: clientState.selectedPlatforms,
+                  },
+                }
+              );
+          }}
+        >
           {t('Do it Later')}
         </Button>
       );
