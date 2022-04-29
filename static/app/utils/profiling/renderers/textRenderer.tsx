@@ -68,10 +68,11 @@ class TextRenderer {
     const BASELINE_OFFSET =
       (this.theme.SIZES.BAR_HEIGHT - this.theme.SIZES.BAR_FONT_SIZE / 2) *
       window.devicePixelRatio;
+    const BASELINE = this.flamegraph.inverted ? configSpace.height - 1 : 0;
 
     const drawFrame = (frame: FlamegraphFrame): void => {
       // Check if our rect overlaps with the current viewport and skip it
-      if (frame.end <= configViewSpace.left || frame.start >= configViewSpace.right) {
+      if (frame.end < configViewSpace.left || frame.start > configViewSpace.right) {
         return;
       }
 
@@ -80,31 +81,36 @@ class TextRenderer {
       const pinnedEnd = Math.min(frame.end, configViewSpace.right);
 
       // This rect gets discarded after each render which is wasteful
-      const offsetFrame = new Rect(
-        pinnedStart,
-        this.flamegraph.inverted ? configSpace.height - frame.depth - 1 : frame.depth,
-        pinnedEnd - pinnedStart,
-        1
-      );
+      const width = pinnedEnd - pinnedStart;
+      const depth = Math.abs(BASELINE - frame.depth);
 
-      // Transform frame to physical space coordinates
-      const frameInPhysicalSpace = offsetFrame.transformRect(configViewToPhysicalSpace);
+      // Transform frame to physical space coordinates. This does the same operation as
+      // Rect.transformRect, but without allocating a new Rect object.
+      const frameInPhysicalSpace = [
+        pinnedStart * configViewToPhysicalSpace[0] +
+          depth * configViewToPhysicalSpace[1] +
+          configViewToPhysicalSpace[6],
+        pinnedStart * configViewToPhysicalSpace[1] +
+          depth * configViewToPhysicalSpace[4] +
+          configViewToPhysicalSpace[7],
+        width * configViewToPhysicalSpace[0] + 1 * configViewToPhysicalSpace[1],
+        width * configViewToPhysicalSpace[3] + 1 * configViewToPhysicalSpace[4],
+      ];
 
       // Since the text is not exactly aligned to the left/right bounds of the frame, we need to subtract the padding
       // from the total width, so that we can truncate the center of the text accurately.
-      const paddedRectangleWidth = frameInPhysicalSpace.width - SIDE_PADDING;
+      const paddedRectangleWidth = frameInPhysicalSpace[2] - SIDE_PADDING;
 
-      // We want to draw the text in the vertical center of the frame, so we substract half the height of the text
-      const y = frameInPhysicalSpace.y + BASELINE_OFFSET;
-
-      // Offset x by 1x the padding
-      const x = frameInPhysicalSpace.x + HALF_SIDE_PADDING;
-
-      // If the width of the text is greater than the minimum width to render, we should render it
       // Since children of a frame cannot be wider than the frame itself, we can exit early and discard the entire subtree
       if (paddedRectangleWidth <= minWidth) {
         return;
       }
+
+      // We want to draw the text in the vertical center of the frame, so we substract half the height of the text
+      const y = frameInPhysicalSpace[1] + BASELINE_OFFSET;
+
+      // Offset x by 1x the padding
+      const x = frameInPhysicalSpace[0] + HALF_SIDE_PADDING;
 
       this.context.fillText(
         trimTextCenter(
