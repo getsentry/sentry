@@ -1,7 +1,9 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
 import NavTabs from 'sentry/components/navTabs';
 import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 
 import {TabBarId} from '../types';
 
@@ -16,7 +18,7 @@ function FocusButtons({active, setActive}: Props) {
   };
 
   return (
-    <NavTabs underlined>
+    <FullBleedNavTabs underlined>
       <li className={active === 'console' ? 'active' : ''}>
         <a href="#console" onClick={select('console')}>
           {t('Console')}
@@ -37,8 +39,13 @@ function FocusButtons({active, setActive}: Props) {
           {t('Tags')}
         </a>
       </li>
-    </NavTabs>
+    </FullBleedNavTabs>
   );
 }
+
+const FullBleedNavTabs = styled(NavTabs)`
+  margin-inline: -${space(4)};
+  padding-inline: ${space(4)};
+`;
 
 export default FocusButtons;
