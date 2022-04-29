@@ -5,7 +5,6 @@ import range from 'lodash/range';
 import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
-import {triggerPress} from 'sentry-test/utils';
 
 import StreamGroup from 'sentry/components/stream/group';
 import GroupStore from 'sentry/stores/groupStore';
@@ -13,6 +12,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
 import * as parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import IssueListWithStores, {IssueListOverview} from 'sentry/views/issueList/overview';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 // Mock <IssueListSidebar> and <IssueListActions>
 jest.mock('sentry/views/issueList/sidebar', () => jest.fn(() => null));
@@ -35,6 +35,8 @@ describe('IssueList', function () {
   let group;
   let groupStats;
   let savedSearch;
+
+  let mountWithThemeAndOrg;
 
   let fetchTagsRequest;
   let fetchMembersRequest;
@@ -135,6 +137,16 @@ describe('IssueList', function () {
 
     TagStore.init();
 
+    mountWithThemeAndOrg = (component, opts) =>
+      mountWithTheme(component, {
+        ...opts,
+        wrappingComponent: ({children}) => (
+          <OrganizationContext.Provider value={organization}>
+            {children}
+          </OrganizationContext.Provider>
+        ),
+      });
+
     props = {
       api,
       savedSearchLoading: false,
@@ -202,7 +214,7 @@ describe('IssueList', function () {
         },
       };
 
-      wrapper = mountWithTheme(
+      wrapper = mountWithThemeAndOrg(
         <IssueListWithStores {...newRouter} {...defaultProps} {...p} />,
         routerContext
       );
@@ -481,7 +493,7 @@ describe('IssueList', function () {
       expect(getSavedSearchTitle(wrapper)).toBe('My Pinned Search');
     });
 
-    it('selects a saved search and changes sort', async function () {
+    it('selects a saved search', async function () {
       const localSavedSearch = {...savedSearch, projectId: null};
       savedSearchesRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/searches/',
@@ -498,41 +510,6 @@ describe('IssueList', function () {
       expect(browserHistory.push).toHaveBeenLastCalledWith(
         expect.objectContaining({
           pathname: '/organizations/org-slug/issues/searches/789/',
-        })
-      );
-
-      // Need to update component
-      wrapper.setProps({
-        savedSearch: localSavedSearch,
-        location: {
-          ...router.location,
-          pathname: '/organizations/org-slug/issues/searches/789/',
-          query: {
-            sort: 'freq',
-            environment: [],
-            project: [],
-          },
-        },
-      });
-      await tick();
-      wrapper.update();
-
-      await act(async () => {
-        triggerPress(wrapper.find('IssueListSortOptions button'));
-        await tick();
-        wrapper.update();
-      });
-      wrapper.find('SelectOption').at(3).simulate('click');
-
-      expect(browserHistory.push).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          pathname: '/organizations/org-slug/issues/searches/789/',
-          query: {
-            environment: [],
-            project: [],
-            sort: 'freq',
-            statsPeriod: '14d',
-          },
         })
       );
     });
@@ -1354,7 +1331,7 @@ describe('IssueList', function () {
 
   describe('processingIssues', function () {
     beforeEach(function () {
-      wrapper = mountWithTheme(<IssueListOverview {...props} />);
+      wrapper = mountWithThemeAndOrg(<IssueListOverview {...props} />);
     });
 
     it('fetches and displays processing issues', async function () {
@@ -1375,13 +1352,13 @@ describe('IssueList', function () {
 
   describe('render states', function () {
     it('displays the loading icon', function () {
-      wrapper = mountWithTheme(<IssueListOverview {...props} />);
+      wrapper = mountWithThemeAndOrg(<IssueListOverview {...props} />);
       wrapper.setState({savedSearchLoading: true});
       expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
     });
 
     it('displays an error', function () {
-      wrapper = mountWithTheme(<IssueListOverview {...props} />);
+      wrapper = mountWithThemeAndOrg(<IssueListOverview {...props} />);
       wrapper.setState({
         error: 'Things broke',
         savedSearchLoading: false,
@@ -1394,7 +1371,7 @@ describe('IssueList', function () {
     });
 
     it('displays congrats robots animation with only is:unresolved query', async function () {
-      wrapper = mountWithTheme(<IssueListOverview {...props} />);
+      wrapper = mountWithThemeAndOrg(<IssueListOverview {...props} />);
       wrapper.setState({
         savedSearchLoading: false,
         issuesLoading: false,
@@ -1415,7 +1392,7 @@ describe('IssueList', function () {
         },
       };
 
-      wrapper = mountWithTheme(<IssueListOverview {...errorsOnlyQuery} />);
+      wrapper = mountWithThemeAndOrg(<IssueListOverview {...errorsOnlyQuery} />);
 
       wrapper.setState({
         savedSearchLoading: false,
@@ -1439,7 +1416,7 @@ describe('IssueList', function () {
         },
       };
 
-      wrapper = mountWithTheme(<IssueListOverview {...hasBrowserQuery} />);
+      wrapper = mountWithThemeAndOrg(<IssueListOverview {...hasBrowserQuery} />);
 
       wrapper.setState({
         savedSearchLoading: false,
@@ -1474,7 +1451,7 @@ describe('IssueList', function () {
         }),
         ...moreProps,
       };
-      const localWrapper = mountWithTheme(<IssueListOverview {...defaultProps} />);
+      const localWrapper = mountWithThemeAndOrg(<IssueListOverview {...defaultProps} />);
       localWrapper.setState({
         error: false,
         issuesLoading: false,
@@ -1695,7 +1672,7 @@ describe('IssueList', function () {
     };
 
     const {routerContext} = initializeOrg();
-    wrapper = mountWithTheme(<IssueListOverview {...props} />, routerContext);
+    wrapper = mountWithThemeAndOrg(<IssueListOverview {...props} />, routerContext);
     wrapper.setState({
       groupIds: range(0, 25).map(String),
       queryCount: 500,
@@ -1748,7 +1725,7 @@ describe('IssueList', function () {
     };
 
     const {routerContext} = initializeOrg();
-    wrapper = mountWithTheme(<IssueListOverview {...props} />, routerContext);
+    wrapper = mountWithThemeAndOrg(<IssueListOverview {...props} />, routerContext);
     wrapper.setState({
       groupIds: range(0, 25).map(String),
       queryCount: 500,
@@ -1800,7 +1777,7 @@ describe('IssueList', function () {
     };
 
     const {routerContext} = initializeOrg();
-    wrapper = mountWithTheme(<IssueListOverview {...props} />, routerContext);
+    wrapper = mountWithThemeAndOrg(<IssueListOverview {...props} />, routerContext);
     wrapper.setState({
       groupIds: range(0, 25).map(String),
       queryCount: 75,
@@ -1821,7 +1798,7 @@ describe('IssueList', function () {
         query: {query: 'is:unresolved', sort: 'trend'},
         search: 'query=is:unresolved',
       };
-      wrapper = mountWithTheme(<IssueListOverview {...props} />);
+      wrapper = mountWithThemeAndOrg(<IssueListOverview {...props} />);
       expect(wrapper.instance().getGroupStatsPeriod()).toBe('auto');
     });
   });
@@ -1836,7 +1813,7 @@ describe('IssueList', function () {
     it('does not render alert', function () {
       act(() => ProjectsStore.loadInitialData([project]));
 
-      wrapper = mountWithTheme(<IssueListOverview {...props} />, routerContext);
+      wrapper = mountWithThemeAndOrg(<IssueListOverview {...props} />, routerContext);
 
       const eventProcessingAlert = wrapper.find('StyledGlobalEventProcessingAlert');
       expect(eventProcessingAlert.exists()).toBe(true);
@@ -1851,7 +1828,7 @@ describe('IssueList', function () {
           ])
         );
 
-        wrapper = mountWithTheme(<IssueListOverview {...props} />, routerContext);
+        wrapper = mountWithThemeAndOrg(<IssueListOverview {...props} />, routerContext);
 
         const eventProcessingAlert = wrapper.find('StyledGlobalEventProcessingAlert');
         expect(eventProcessingAlert.exists()).toBe(true);
@@ -1883,7 +1860,7 @@ describe('IssueList', function () {
           ])
         );
 
-        wrapper = mountWithTheme(
+        wrapper = mountWithThemeAndOrg(
           <IssueListOverview
             {...props}
             selection={{

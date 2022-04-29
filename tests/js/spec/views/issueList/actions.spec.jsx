@@ -1,5 +1,5 @@
 import {act} from 'react-dom/test-utils';
-
+import {triggerPress} from 'sentry-test/utils';
 import {selectDropdownMenuItem} from 'sentry-test/dropdownMenu';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -491,9 +491,13 @@ describe('IssueListActions', function () {
       );
     });
 
-    it('calls onSortChange with new sort value', function () {
-      wrapper.find('IssueListSortOptions DropdownButton').simulate('click');
-      wrapper.find('DropdownItem').at(3).find('MenuItem span').at(1).simulate('click');
+    it('calls onSortChange with new sort value', async function () {
+      await act(async () => {
+        triggerPress(wrapper.find('IssueListSortOptions button'));
+        await tick();
+        wrapper.update();
+      });
+      wrapper.find('SelectOption').at(3).simulate('click');
 
       expect(onSortChange).toHaveBeenCalledWith('freq');
     });
