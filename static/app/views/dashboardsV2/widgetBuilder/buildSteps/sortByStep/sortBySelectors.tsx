@@ -128,7 +128,7 @@ export function SortBySelectors({
                 }}
                 onChange={value => {
                   const parsedValue = generateFieldAsString(value);
-                  const isSortingByCustomEquation = parsedValue === CUSTOM_EQUATION_VALUE;
+                  const isSortingByCustomEquation = isEquation(parsedValue);
                   setShowCustomEquation(isSortingByCustomEquation);
                   if (isSortingByCustomEquation) {
                     onChange(customEquation);
