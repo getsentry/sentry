@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Any, Callable, Dict, List, Mapping, Match, Optional, Set, Tuple, Union, cast
 
 import sentry_sdk
+from django.utils import timezone
 from django.utils.functional import cached_property
 from parsimonious.exceptions import ParseError
 from snuba_sdk.aliased_expression import AliasedExpression
@@ -106,7 +107,9 @@ class QueryBuilder:
         equation_config: Optional[Dict[str, bool]] = None,
     ):
         self.dataset = dataset
+
         self.params = params
+
         self.organization_id = params.get("organization_id")
         self.auto_fields = auto_fields
         self.functions_acl = set() if functions_acl is None else functions_acl
@@ -146,6 +149,20 @@ class QueryBuilder:
             orderby=orderby,
         )
 
+    def resolve_time_conditions(self) -> None:
+        # start/end are required so that we can run a query in a reasonable amount of time
+        if "start" not in self.params or "end" not in self.params:
+            raise InvalidSearchQuery("Cannot query without a valid date range")
+
+        # TODO: this validation should be done when we create the params dataclass instead
+        assert isinstance(self.params["start"], datetime) and isinstance(
+            self.params["end"], datetime
+        ), "Both start and end params must be datetime objects"
+
+        # Strip timezone, which are ignored and assumed UTC to match filtering
+        self.start: datetime = self.params["start"].replace(tzinfo=timezone.utc)
+        self.end: datetime = self.params["end"].replace(tzinfo=timezone.utc)
+
     def resolve_column_name(self, col: str) -> str:
         # TODO when utils/snuba.py becomes typed don't need this extra annotation
         column_resolver: Callable[[str], str] = resolve_column(self.dataset)
@@ -159,6 +176,9 @@ class QueryBuilder:
         equations: Optional[List[str]] = None,
         orderby: Optional[List[str]] = None,
     ) -> None:
+        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_time_conditions"):
+            # Has to be done early, since other conditions depend on start and end
+            self.resolve_time_conditions()
         with sentry_sdk.start_span(op="QueryBuilder", description="resolve_conditions"):
             self.where, self.having = self.resolve_conditions(
                 query, use_aggregate_conditions=use_aggregate_conditions
@@ -357,22 +377,11 @@ class QueryBuilder:
         """
         conditions = []
 
-        # start/end are required so that we can run a query in a reasonable amount of time
-        if "start" not in self.params or "end" not in self.params:
-            raise InvalidSearchQuery("Cannot query without a valid date range")
-
-        start: datetime
-        end: datetime
-        start, end = self.params["start"], self.params["end"]  # type: ignore
         # Update start to be within retention
-        expired, start = outside_retention_with_modified_start(
-            start, end, Organization(self.params.get("organization_id"))
+        expired, self.start = outside_retention_with_modified_start(
+            self.start, self.end, Organization(self.params.get("organization_id"))
         )
 
-        # TODO: this validation should be done when we create the params dataclass instead
-        assert isinstance(start, datetime) and isinstance(
-            end, datetime
-        ), "Both start and end params must be datetime objects"
         project_id: List[int] = self.params.get("project_id", [])  # type: ignore
         assert all(
             isinstance(project_id, int) for project_id in project_id
@@ -382,8 +391,8 @@ class QueryBuilder:
                 "Invalid date range. Please try a more recent date range."
             )
 
-        conditions.append(Condition(self.column("timestamp"), Op.GTE, start))
-        conditions.append(Condition(self.column("timestamp"), Op.LT, end))
+        conditions.append(Condition(self.column("timestamp"), Op.GTE, self.start))
+        conditions.append(Condition(self.column("timestamp"), Op.LT, self.end))
 
         if "project_id" in self.params:
             conditions.append(
@@ -984,9 +993,9 @@ class QueryBuilder:
         if name in TIMESTAMP_FIELDS:
             if (
                 operator in ["<", "<="]
-                and value < self.params["start"]
+                and value < self.start
                 or operator in [">", ">="]
-                and value > self.params["end"]
+                and value > self.end
             ):
                 raise InvalidSearchQuery(
                     "Filter on timestamp is outside of the selected date range."
@@ -1225,6 +1234,7 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
         equations: Optional[List[str]] = None,
         orderby: Optional[List[str]] = None,
     ) -> None:
+        self.resolve_time_conditions()
         self.where, self.having = self.resolve_conditions(query, use_aggregate_conditions=False)
 
         # params depends on parse_query, and conditions being resolved first since there may be projects in conditions
@@ -1572,17 +1582,15 @@ class MetricsQueryBuilder(QueryBuilder):
         Seconds are ignored under the assumption that there currently isn't a valid use case to have
         to-the-second accurate information
         """
-        start = cast(datetime, self.params["start"])
-        end = cast(datetime, self.params["end"])
-        duration = (end - start).seconds
+        duration = (self.end - self.start).seconds
 
         # TODO: could probably allow some leeway on the start & end (a few minutes) and use a bigger granularity
         # eg. yesterday at 11:59pm to tomorrow at 12:01am could still use the day bucket
 
         # Query is at least an hour
-        if start.minute == end.minute == 0 and duration % 3600 == 0:
+        if self.start.minute == self.end.minute == 0 and duration % 3600 == 0:
             # we're going from midnight -> midnight which aligns with our daily buckets
-            if start.hour == end.hour == 0 and duration % 86400 == 0:
+            if self.start.hour == self.end.hour == 0 and duration % 86400 == 0:
                 granularity = 86400
             # we're roughly going from start of hour -> next which aligns with our hourly buckets
             else:
@@ -1707,9 +1715,9 @@ class MetricsQueryBuilder(QueryBuilder):
         if name in TIMESTAMP_FIELDS:
             if (
                 operator in ["<", "<="]
-                and value < self.params["start"]
+                and value < self.start
                 or operator in [">", ">="]
-                and value > self.params["end"]
+                and value > self.end
             ):
                 raise InvalidSearchQuery(
                     "Filter on timestamp is outside of the selected date range."
