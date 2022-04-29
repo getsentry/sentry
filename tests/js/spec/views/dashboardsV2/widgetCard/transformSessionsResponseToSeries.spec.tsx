@@ -316,7 +316,6 @@ describe('transformSessionsResponseToSeries', function () {
     expect(
       transformSessionsResponseToSeries(
         TestStubs.SessionUserCountByStatusByRelease(),
-        undefined,
         'Lorem'
       )[0]
     ).toEqual(
@@ -324,23 +323,5 @@ describe('transformSessionsResponseToSeries', function () {
         seriesName: 'Lorem > crashed, 1 : sum(session)',
       })
     );
-  });
-  it('returns correct number of series if limit is set', () => {
-    expect(
-      transformSessionsResponseToSeries(
-        TestStubs.SessionUserCountByStatusByRelease(),
-        undefined,
-        'Lorem'
-      ).length
-    ).toEqual(16);
-
-    // limit = 3 returns 6 series, 3 for count_unique and 3 for sum
-    expect(
-      transformSessionsResponseToSeries(
-        TestStubs.SessionUserCountByStatusByRelease(),
-        3,
-        'Lorem'
-      ).length
-    ).toEqual(6);
   });
 });
