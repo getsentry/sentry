@@ -68,6 +68,7 @@ class TextRenderer {
     const BASELINE_OFFSET =
       (this.theme.SIZES.BAR_HEIGHT - this.theme.SIZES.BAR_FONT_SIZE / 2) *
       window.devicePixelRatio;
+    const BASELINE = this.flamegraph.inverted ? configSpace.height - 1 : 0;
 
     const drawFrame = (frame: FlamegraphFrame): void => {
       // Check if our rect overlaps with the current viewport and skip it
@@ -81,9 +82,7 @@ class TextRenderer {
 
       // This rect gets discarded after each render which is wasteful
       const width = pinnedEnd - pinnedStart;
-      const depth = this.flamegraph.inverted
-        ? configSpace.height - frame.depth - 1
-        : frame.depth;
+      const depth = Math.abs(BASELINE - frame.depth);
 
       // Transform frame to physical space coordinates. This does the same operation as
       // Rect.transformRect, but without allocating a new Rect object.
@@ -102,6 +101,7 @@ class TextRenderer {
       // from the total width, so that we can truncate the center of the text accurately.
       const paddedRectangleWidth = frameInPhysicalSpace[2] - SIDE_PADDING;
 
+      // Since children of a frame cannot be wider than the frame itself, we can exit early and discard the entire subtree
       if (paddedRectangleWidth <= minWidth) {
         return;
       }
@@ -111,8 +111,6 @@ class TextRenderer {
 
       // Offset x by 1x the padding
       const x = frameInPhysicalSpace[0] + HALF_SIDE_PADDING;
-
-      // Since children of a frame cannot be wider than the frame itself, we can exit early and discard the entire subtree
 
       this.context.fillText(
         trimTextCenter(
