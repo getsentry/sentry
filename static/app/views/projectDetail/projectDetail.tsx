@@ -259,7 +259,7 @@ class ProjectDetail extends AsyncView<Props, State> {
               </Layout.HeaderActions>
             </Layout.Header>
 
-            <Body rowGap={false}>
+            <Layout.Body rowGap={false}>
               {project && <StyledGlobalEventProcessingAlert projects={[project]} />}
               <Layout.Main fullWidth>
                 <StyledSdkUpdatesAlert />
@@ -336,7 +336,7 @@ class ProjectDetail extends AsyncView<Props, State> {
                   location={location}
                 />
               </Layout.Side>
-            </Body>
+            </Layout.Body>
           </StyledPageContent>
         </NoProjectMessage>
       </PageFiltersContainer>
@@ -346,10 +346,6 @@ class ProjectDetail extends AsyncView<Props, State> {
 
 const StyledPageContent = styled(PageContent)`
   padding: 0;
-`;
-
-const Body = styled(Layout.Body)`
-  padding-top: ${space(2)} !important;
 `;
 
 const ProjectFiltersWrapper = styled('div')`
