@@ -1,4 +1,8 @@
-import {AggregationOutputType, ColumnType} from 'sentry/utils/discover/fields';
+import {
+  AggregateParameter,
+  AggregationOutputType,
+  ColumnType,
+} from 'sentry/utils/discover/fields';
 
 export type SessionsMeta = {
   name: string;
@@ -28,4 +32,5 @@ export type SessionAggregationColumn = {
   columnTypes: string[];
   defaultValue: SessionsMeta['name'];
   outputType: AggregationOutputType | null;
+  parameters: Readonly<AggregateParameter[]>;
 };

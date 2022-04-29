@@ -34,51 +34,131 @@ export const SESSIONS_OPERATIONS: Readonly<
     columnTypes: ['integer'],
     defaultValue: SessionField.SESSION,
     outputType: 'integer',
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['integer'],
+        defaultValue: SessionField.SESSION,
+        required: true,
+      },
+    ],
   },
   count_unique: {
     columnTypes: ['string'],
     defaultValue: SessionField.USER,
     outputType: 'integer',
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['string'],
+        defaultValue: SessionField.USER,
+        required: true,
+      },
+    ],
   },
   crash_rate: {
     columnTypes: ['integer', 'string'],
-    defaultValue: SessionMetric.SESSION,
+    defaultValue: SessionField.SESSION,
     outputType: 'percentage',
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['integer', 'string'],
+        defaultValue: SessionField.SESSION,
+        required: true,
+      },
+    ],
   },
   crash_free_rate: {
     columnTypes: ['integer', 'string'],
-    defaultValue: SessionMetric.SESSION,
+    defaultValue: SessionField.SESSION,
     outputType: 'percentage',
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['integer', 'string'],
+        defaultValue: SessionField.SESSION,
+        required: true,
+      },
+    ],
   },
   avg: {
     columnTypes: ['duration'],
     defaultValue: SessionField.SESSION_DURATION,
     outputType: null,
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['duration'],
+        defaultValue: SessionField.SESSION_DURATION,
+        required: true,
+      },
+    ],
   },
   max: {
     columnTypes: ['duration'],
     defaultValue: SessionField.SESSION_DURATION,
     outputType: null,
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['duration'],
+        defaultValue: SessionField.SESSION_DURATION,
+        required: true,
+      },
+    ],
   },
   p50: {
     columnTypes: ['duration'],
     defaultValue: SessionField.SESSION_DURATION,
     outputType: null,
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['duration'],
+        defaultValue: SessionField.SESSION_DURATION,
+        required: true,
+      },
+    ],
   },
   p75: {
     columnTypes: ['duration'],
     defaultValue: SessionField.SESSION_DURATION,
     outputType: null,
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['duration'],
+        defaultValue: SessionField.SESSION_DURATION,
+        required: true,
+      },
+    ],
   },
   p95: {
     columnTypes: ['duration'],
     defaultValue: SessionField.SESSION_DURATION,
     outputType: null,
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['duration'],
+        defaultValue: SessionField.SESSION_DURATION,
+        required: true,
+      },
+    ],
   },
   p99: {
     columnTypes: ['duration'],
     defaultValue: SessionField.SESSION_DURATION,
     outputType: null,
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['duration'],
+        defaultValue: SessionField.SESSION_DURATION,
+        required: true,
+      },
+    ],
   },
 };
 
@@ -123,25 +203,13 @@ export function generateReleaseWidgetFieldOptions(
     .filter(operation => knownOperations.includes(operation))
     .sort((a, b) => a.localeCompare(b))
     .forEach(operation => {
-      const defaultField = SESSIONS_OPERATIONS[operation].defaultValue;
-
       fieldOptions[`function:${operation}`] = {
         label: `${operation}(${'\u2026'})`,
         value: {
           kind: FieldValueKind.FUNCTION,
           meta: {
             name: operation,
-            parameters: [
-              {
-                kind: 'column',
-                columnTypes: SESSIONS_OPERATIONS[operation].columnTypes,
-                required: true,
-                defaultValue: fieldNames.includes(defaultField)
-                  ? defaultField
-                  : fields.find(field => field.operations.includes(operation))?.name ??
-                    '',
-              },
-            ],
+            parameters: SESSIONS_OPERATIONS[operation].parameters.map(param => param),
           },
         },
       };
