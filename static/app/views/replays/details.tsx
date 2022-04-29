@@ -84,8 +84,12 @@ function ReplayDetails() {
   }
 
   return (
-    <DetailLayout event={event} orgId={orgId}>
-      <ReplayContextProvider events={rrwebEvents}>
+    <ReplayContextProvider events={rrwebEvents}>
+      <DetailLayout
+        event={event}
+        orgId={orgId}
+        crumbs={breadcrumbEntry?.data.values || []}
+      >
         <Layout.Body>
           <ReplayLayout ref={fullscreenRef}>
             {/* In fullscreen we need to consider the max-height that the player is able
@@ -105,8 +109,8 @@ function ReplayDetails() {
             />
           </Layout.Main>
         </Layout.Body>
-      </ReplayContextProvider>
-    </DetailLayout>
+      </DetailLayout>
+    </ReplayContextProvider>
   );
 }
 
