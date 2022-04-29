@@ -120,8 +120,10 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   }
 
   getDefaultState(): State {
-    const {rule} = this.props;
+    const {rule, location} = this.props;
     const triggersClone = [...rule.triggers];
+    const {aggregate, eventTypes: _eventTypes, dataset} = location?.query ?? {};
+    const eventTypes = typeof _eventTypes === 'string' ? [_eventTypes] : _eventTypes;
 
     // Warning trigger is removed if it is blank when saving
     if (triggersClone.length !== 2) {
@@ -131,9 +133,9 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     return {
       ...super.getDefaultState(),
 
-      dataset: rule.dataset,
-      eventTypes: rule.eventTypes,
-      aggregate: rule.aggregate,
+      aggregate: aggregate ?? rule.aggregate,
+      dataset: dataset ?? rule.dataset,
+      eventTypes: eventTypes ?? rule.eventTypes,
       query: rule.query || '',
       timeWindow: rule.timeWindow,
       environment: rule.environment || null,
@@ -410,22 +412,21 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
   handleFieldChange = (name: string, value: unknown) => {
     const {projects} = this.props;
-    const {aggregate: _aggregate, project: _project} = this.state;
     if (
       [
+        'aggregate',
         'dataset',
         'eventTypes',
         'timeWindow',
         'environment',
-        'aggregate',
         'comparisonDelta',
         'projectId',
       ].includes(name)
     ) {
-      const aggregate = name === 'aggregate' ? value : _aggregate;
-      const project =
-        name === 'projectId' ? projects.find(({id}) => id === value) : _project;
-      this.setState({aggregate, [name]: value, project});
+      this.setState(({project: _project}) => ({
+        [name]: value,
+        project: name === 'projectId' ? projects.find(({id}) => id === value) : _project,
+      }));
     }
   };
 
@@ -661,16 +662,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {
-      organization,
-      ruleId,
-      rule,
-      onSubmitSuccess,
-      userTeamIds,
-      isCustomMetric,
-      router,
-      location,
-    } = this.props;
+    const {organization, ruleId, rule, onSubmitSuccess, userTeamIds, router} = this.props;
     const {
       query,
       project,
@@ -787,9 +779,9 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
             submitDisabled={!hasAccess || loading || !canEdit}
             initialData={{
               name: rule.name || '',
-              dataset: rule.dataset,
-              eventTypes: rule.eventTypes,
-              aggregate: rule.aggregate,
+              dataset,
+              eventTypes,
+              aggregate,
               query: rule.query || '',
               timeWindow: rule.timeWindow,
               environment: rule.environment || null,
@@ -825,12 +817,13 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                 project={project}
                 organization={organization}
                 router={router}
-                location={location}
                 disabled={!hasAccess || !canEdit}
                 thresholdChart={wizardBuilderChart}
                 onFilterSearch={this.handleFilterUpdate}
-                allowChangeEventTypes={isCustomMetric || dataset === Dataset.ERRORS}
-                alertType={isCustomMetric ? 'custom' : alertType}
+                allowChangeEventTypes={
+                  alertType === 'custom' || dataset === Dataset.ERRORS
+                }
+                alertType={alertType}
                 hasAlertWizardV3={hasAlertWizardV3}
                 dataset={dataset}
                 timeWindow={timeWindow}

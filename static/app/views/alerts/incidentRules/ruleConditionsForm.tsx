@@ -4,7 +4,6 @@ import {InjectedRouter} from 'react-router';
 import {components} from 'react-select';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 import pick from 'lodash/pick';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -61,7 +60,6 @@ type Props = {
   dataset: Dataset;
   disabled: boolean;
   hasAlertWizardV3: boolean;
-  location: Location;
   onComparisonDeltaChange: (value: number) => void;
   onFilterSearch: (query: string) => void;
   onTimeWindowChange: (value: number) => void;

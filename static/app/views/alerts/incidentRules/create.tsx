@@ -23,7 +23,6 @@ type Props = {
   organization: Organization;
   project: Project;
   userTeamIds: string[];
-  isCustomMetric?: boolean;
   sessionId?: string;
   wizardTemplate?: WizardRuleTemplate;
 } & RouteComponentProps<RouteParams, {}>;
