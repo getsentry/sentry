@@ -259,7 +259,7 @@ class ProjectDetail extends AsyncView<Props, State> {
               </Layout.HeaderActions>
             </Layout.Header>
 
-            <Layout.Body rowGap={false}>
+            <Layout.Body noRowGap>
               {project && <StyledGlobalEventProcessingAlert projects={[project]} />}
               <Layout.Main fullWidth>
                 <StyledSdkUpdatesAlert />
