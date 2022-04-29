@@ -1,4 +1,3 @@
-import {t} from 'sentry/locale';
 import {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {
@@ -35,7 +34,6 @@ export function ReleaseYAxisSelector({
         Object.values(SESSIONS_FIELDS),
         SESSIONS_TAGS
       )}
-      noFieldsMessage={t('There are no metrics for this project.')}
     />
   );
 }

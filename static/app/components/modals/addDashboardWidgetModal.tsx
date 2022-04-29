@@ -29,7 +29,7 @@ import {
   Organization,
   PageFilters,
   SelectValue,
-  SessionMetric,
+  SessionField,
   TagCollection,
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -136,9 +136,9 @@ const newIssueQuery: WidgetQuery = {
 
 const newMetricsQuery: WidgetQuery = {
   name: '',
-  fields: [`sum(${SessionMetric.SESSION})`],
+  fields: [`sum(${SessionField.SESSION})`],
   columns: [],
-  aggregates: [`sum(${SessionMetric.SESSION})`],
+  aggregates: [`sum(${SessionField.SESSION})`],
   conditions: '',
   orderby: '',
 };
@@ -152,7 +152,7 @@ const IssueDataset: [WidgetType, string] = [
   t('Issues (States, Assignment, Time, etc.)'),
 ];
 const MetricsDataset: [WidgetType, React.ReactElement] = [
-  WidgetType.METRICS,
+  WidgetType.RELEASE,
   <React.Fragment key="metrics-dataset">
     {t('Health (Releases, sessions)')} <FeatureBadge type="alpha" />
   </React.Fragment>,
@@ -377,7 +377,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
 
       if (
         newDisplayType === DisplayType.WORLD_MAP &&
-        prevState.widgetType === WidgetType.METRICS
+        prevState.widgetType === WidgetType.RELEASE
       ) {
         // World Map display type only supports Discover Dataset
         // so set state to default discover query.
@@ -498,7 +498,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     switch (widgetType) {
       case WidgetType.ISSUE:
         return newIssueQuery;
-      case WidgetType.METRICS:
+      case WidgetType.RELEASE:
         return newMetricsQuery;
       case WidgetType.DISCOVER:
       default:
@@ -664,7 +664,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
           </React.Fragment>
         );
 
-      case WidgetType.METRICS:
+      case WidgetType.RELEASE:
         return (
           <React.Fragment>
             <WidgetQueriesForm
@@ -784,7 +784,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       showDatasetSelector && state.displayType === DisplayType.TABLE;
 
     const showMetricsDatasetSelector =
-      showDatasetSelector && organization.features.includes('dashboards-metrics');
+      showDatasetSelector && organization.features.includes('dashboards-releases');
 
     const datasetChoices: [WidgetType, React.ReactElement | string][] = [DiscoverDataset];
 

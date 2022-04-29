@@ -3,12 +3,10 @@ import {transformSessionsResponseToSeries} from 'sentry/views/dashboardsV2/widge
 describe('transformSessionsResponseToSeries', function () {
   it('transforms sessions into series', () => {
     expect(
-      transformSessionsResponseToSeries(
-        TestStubs.MetricsSessionUserCountByStatusByRelease()
-      )
+      transformSessionsResponseToSeries(TestStubs.SessionUserCountByStatusByRelease())
     ).toEqual([
       {
-        seriesName: 'crashed, 1 : sum(sentry.sessions.session)',
+        seriesName: 'crashed, 1 : sum(session)',
         data: [
           {name: '2022-01-15T00:00:00Z', value: 0},
           {name: '2022-01-16T00:00:00Z', value: 0},
@@ -27,7 +25,7 @@ describe('transformSessionsResponseToSeries', function () {
         ],
       },
       {
-        seriesName: 'crashed, 1 : count_unique(sentry.sessions.user)',
+        seriesName: 'crashed, 1 : count_unique(user)',
         data: [
           {name: '2022-01-15T00:00:00Z', value: 0},
           {name: '2022-01-16T00:00:00Z', value: 0},
@@ -46,7 +44,7 @@ describe('transformSessionsResponseToSeries', function () {
         ],
       },
       {
-        seriesName: 'abnormal, 1 : sum(sentry.sessions.session)',
+        seriesName: 'abnormal, 1 : sum(session)',
         data: [
           {name: '2022-01-15T00:00:00Z', value: 1},
           {name: '2022-01-16T00:00:00Z', value: 0},
@@ -65,7 +63,7 @@ describe('transformSessionsResponseToSeries', function () {
         ],
       },
       {
-        seriesName: 'abnormal, 1 : count_unique(sentry.sessions.user)',
+        seriesName: 'abnormal, 1 : count_unique(user)',
         data: [
           {name: '2022-01-15T00:00:00Z', value: 1},
           {name: '2022-01-16T00:00:00Z', value: 0},
@@ -84,7 +82,7 @@ describe('transformSessionsResponseToSeries', function () {
         ],
       },
       {
-        seriesName: 'errored, 1 : sum(sentry.sessions.session)',
+        seriesName: 'errored, 1 : sum(session)',
         data: [
           {name: '2022-01-15T00:00:00Z', value: 0},
           {name: '2022-01-16T00:00:00Z', value: 0},
@@ -103,7 +101,7 @@ describe('transformSessionsResponseToSeries', function () {
         ],
       },
       {
-        seriesName: 'errored, 1 : count_unique(sentry.sessions.user)',
+        seriesName: 'errored, 1 : count_unique(user)',
         data: [
           {name: '2022-01-15T00:00:00Z', value: 0},
           {name: '2022-01-16T00:00:00Z', value: 0},
@@ -122,7 +120,7 @@ describe('transformSessionsResponseToSeries', function () {
         ],
       },
       {
-        seriesName: 'healthy, 1 : sum(sentry.sessions.session)',
+        seriesName: 'healthy, 1 : sum(session)',
         data: [
           {name: '2022-01-15T00:00:00Z', value: 0},
           {name: '2022-01-16T00:00:00Z', value: 0},
@@ -141,7 +139,7 @@ describe('transformSessionsResponseToSeries', function () {
         ],
       },
       {
-        seriesName: 'healthy, 1 : count_unique(sentry.sessions.user)',
+        seriesName: 'healthy, 1 : count_unique(user)',
         data: [
           {name: '2022-01-15T00:00:00Z', value: 0},
           {name: '2022-01-16T00:00:00Z', value: 0},
@@ -160,7 +158,7 @@ describe('transformSessionsResponseToSeries', function () {
         ],
       },
       {
-        seriesName: 'crashed, 2 : sum(sentry.sessions.session)',
+        seriesName: 'crashed, 2 : sum(session)',
         data: [
           {name: '2022-01-15T00:00:00Z', value: 1},
           {name: '2022-01-16T00:00:00Z', value: 0},
@@ -179,7 +177,7 @@ describe('transformSessionsResponseToSeries', function () {
         ],
       },
       {
-        seriesName: 'crashed, 2 : count_unique(sentry.sessions.user)',
+        seriesName: 'crashed, 2 : count_unique(user)',
         data: [
           {name: '2022-01-15T00:00:00Z', value: 1},
           {name: '2022-01-16T00:00:00Z', value: 0},
@@ -198,7 +196,7 @@ describe('transformSessionsResponseToSeries', function () {
         ],
       },
       {
-        seriesName: 'abnormal, 2 : sum(sentry.sessions.session)',
+        seriesName: 'abnormal, 2 : sum(session)',
         data: [
           {name: '2022-01-15T00:00:00Z', value: 1},
           {name: '2022-01-16T00:00:00Z', value: 0},
@@ -217,7 +215,7 @@ describe('transformSessionsResponseToSeries', function () {
         ],
       },
       {
-        seriesName: 'abnormal, 2 : count_unique(sentry.sessions.user)',
+        seriesName: 'abnormal, 2 : count_unique(user)',
         data: [
           {name: '2022-01-15T00:00:00Z', value: 1},
           {name: '2022-01-16T00:00:00Z', value: 0},
@@ -236,7 +234,7 @@ describe('transformSessionsResponseToSeries', function () {
         ],
       },
       {
-        seriesName: 'errored, 2 : sum(sentry.sessions.session)',
+        seriesName: 'errored, 2 : sum(session)',
         data: [
           {name: '2022-01-15T00:00:00Z', value: 1},
           {name: '2022-01-16T00:00:00Z', value: 0},
@@ -255,7 +253,7 @@ describe('transformSessionsResponseToSeries', function () {
         ],
       },
       {
-        seriesName: 'errored, 2 : count_unique(sentry.sessions.user)',
+        seriesName: 'errored, 2 : count_unique(user)',
         data: [
           {name: '2022-01-15T00:00:00Z', value: 1},
           {name: '2022-01-16T00:00:00Z', value: 0},
@@ -274,7 +272,7 @@ describe('transformSessionsResponseToSeries', function () {
         ],
       },
       {
-        seriesName: 'healthy, 2 : sum(sentry.sessions.session)',
+        seriesName: 'healthy, 2 : sum(session)',
         data: [
           {name: '2022-01-15T00:00:00Z', value: 1},
           {name: '2022-01-16T00:00:00Z', value: 0},
@@ -293,7 +291,7 @@ describe('transformSessionsResponseToSeries', function () {
         ],
       },
       {
-        seriesName: 'healthy, 2 : count_unique(sentry.sessions.user)',
+        seriesName: 'healthy, 2 : count_unique(user)',
         data: [
           {name: '2022-01-15T00:00:00Z', value: 1},
           {name: '2022-01-16T00:00:00Z', value: 0},
@@ -317,20 +315,20 @@ describe('transformSessionsResponseToSeries', function () {
   it('supports legend aliases', () => {
     expect(
       transformSessionsResponseToSeries(
-        TestStubs.MetricsSessionUserCountByStatusByRelease(),
+        TestStubs.SessionUserCountByStatusByRelease(),
         undefined,
         'Lorem'
       )[0]
     ).toEqual(
       expect.objectContaining({
-        seriesName: 'Lorem > crashed, 1 : sum(sentry.sessions.session)',
+        seriesName: 'Lorem > crashed, 1 : sum(session)',
       })
     );
   });
   it('returns correct number of series if limit is set', () => {
     expect(
       transformSessionsResponseToSeries(
-        TestStubs.MetricsSessionUserCountByStatusByRelease(),
+        TestStubs.SessionUserCountByStatusByRelease(),
         undefined,
         'Lorem'
       ).length
@@ -339,7 +337,7 @@ describe('transformSessionsResponseToSeries', function () {
     // limit = 3 returns 6 series, 3 for count_unique and 3 for sum
     expect(
       transformSessionsResponseToSeries(
-        TestStubs.MetricsSessionUserCountByStatusByRelease(),
+        TestStubs.SessionUserCountByStatusByRelease(),
         3,
         'Lorem'
       ).length

@@ -1,4 +1,4 @@
-import {SessionField, SessionStatus} from 'sentry/types';
+import {SessionFieldWithOperation, SessionStatus} from 'sentry/types';
 import {
   filterSessionsInTimeWindow,
   getCount,
@@ -142,30 +142,30 @@ describe('utils/sessions', () => {
   describe('getCount', () => {
     const groups = [sessionsApiResponse.groups[1], sessionsApiResponse.groups[2]];
     it('returns sessions count', () => {
-      expect(getCount(groups, SessionField.SESSIONS)).toBe(1942);
+      expect(getCount(groups, SessionFieldWithOperation.SESSIONS)).toBe(1942);
     });
     it('returns users count', () => {
-      expect(getCount(groups, SessionField.USERS)).toBe(720);
+      expect(getCount(groups, SessionFieldWithOperation.USERS)).toBe(720);
     });
   });
 
   describe('getCountAtIndex', () => {
     const groups = [sessionsApiResponse.groups[1], sessionsApiResponse.groups[2]];
     it('returns sessions count', () => {
-      expect(getCountAtIndex(groups, SessionField.SESSIONS, 1)).toBe(35);
+      expect(getCountAtIndex(groups, SessionFieldWithOperation.SESSIONS, 1)).toBe(35);
     });
     it('returns users count', () => {
-      expect(getCountAtIndex(groups, SessionField.USERS, 1)).toBe(16);
+      expect(getCountAtIndex(groups, SessionFieldWithOperation.USERS, 1)).toBe(16);
     });
   });
 
   describe('getCrashFreeRate', () => {
     const {groups} = sessionsApiResponse;
     it('returns crash free sessions', () => {
-      expect(getCrashFreeRate(groups, SessionField.SESSIONS)).toBe(98.751);
+      expect(getCrashFreeRate(groups, SessionFieldWithOperation.SESSIONS)).toBe(98.751);
     });
     it('returns crash free users', () => {
-      expect(getCrashFreeRate(groups, SessionField.USERS)).toBe(95.332);
+      expect(getCrashFreeRate(groups, SessionFieldWithOperation.USERS)).toBe(95.332);
     });
   });
 
@@ -173,12 +173,20 @@ describe('utils/sessions', () => {
     const {groups} = sessionsApiResponse;
     it('returns errored sessions rate', () => {
       expect(
-        getSessionStatusRate(groups, SessionField.SESSIONS, SessionStatus.ERRORED)
+        getSessionStatusRate(
+          groups,
+          SessionFieldWithOperation.SESSIONS,
+          SessionStatus.ERRORED
+        )
       ).toBe(0.10153484522890543);
     });
     it('returns healthy users rate', () => {
       expect(
-        getSessionStatusRate(groups, SessionField.USERS, SessionStatus.HEALTHY)
+        getSessionStatusRate(
+          groups,
+          SessionFieldWithOperation.USERS,
+          SessionStatus.HEALTHY
+        )
       ).toBe(90.14373716632443);
     });
   });

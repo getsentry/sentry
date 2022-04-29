@@ -1,4 +1,3 @@
-import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
@@ -53,7 +52,6 @@ export function ReleaseColumnFields({
         })
       }
       onChange={onYAxisOrColumnFieldChange}
-      noFieldsMessage={t('There are no metrics for this project.')}
     />
   );
 }

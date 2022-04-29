@@ -2,8 +2,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import WidgetQueriesForm from 'sentry/components/dashboards/widgetQueriesForm';
-import {SessionMetric} from 'sentry/types';
-import {MetricsProvider} from 'sentry/utils/metrics/metricsProvider';
+import {SessionField} from 'sentry/types';
 import {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 
@@ -117,24 +116,22 @@ describe('WidgetQueriesForm', function () {
     expect(screen.getByText('count_unique() desc')).toBeInTheDocument();
   });
 
-  it('does not show metrics tags in orderby', function () {
-    const field = `sum(${SessionMetric.SESSION})`;
+  it('does not show releases tags in orderby', function () {
+    const field = `sum(${SessionField.SESSION})`;
     render(
-      <MetricsProvider organization={organization}>
-        <TestComponent
-          widgetType={WidgetType.METRICS}
-          queries={[
-            {
-              conditions: '',
-              fields: [field, 'release'],
-              columns: ['release'],
-              aggregates: [field],
-              name: '',
-              orderby: field,
-            },
-          ]}
-        />
-      </MetricsProvider>,
+      <TestComponent
+        widgetType={WidgetType.RELEASE}
+        queries={[
+          {
+            conditions: '',
+            fields: [field, 'release'],
+            columns: ['release'],
+            aggregates: [field],
+            name: '',
+            orderby: field,
+          },
+        ]}
+      />,
       {organization}
     );
     userEvent.click(screen.getByText('sum(session) asc'));

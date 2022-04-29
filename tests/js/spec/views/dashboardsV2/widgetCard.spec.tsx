@@ -7,10 +7,10 @@ import {Client} from 'sentry/api';
 import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
-import MetricsWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/metricsWidgetQueries';
+import ReleaseWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/releaseWidgetQueries';
 
 jest.mock('sentry/components/charts/simpleTableChart');
-jest.mock('sentry/views/dashboardsV2/widgetCard/metricsWidgetQueries');
+jest.mock('sentry/views/dashboardsV2/widgetCard/releaseWidgetQueries');
 
 describe('Dashboards > WidgetCard', function () {
   const {router, organization, routerContext} = initializeOrg({
@@ -495,12 +495,12 @@ describe('Dashboards > WidgetCard', function () {
     );
   });
 
-  it('calls metrics queries', function () {
+  it('calls release queries', function () {
     const widget: Widget = {
-      title: 'Metrics Widget',
+      title: 'Release Widget',
       interval: '5m',
       displayType: DisplayType.LINE,
-      widgetType: WidgetType.METRICS,
+      widgetType: WidgetType.RELEASE,
       queries: [],
     };
     render(
@@ -522,7 +522,7 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    expect(MetricsWidgetQueries).toHaveBeenCalledTimes(1);
+    expect(ReleaseWidgetQueries).toHaveBeenCalledTimes(1);
   });
 
   it('opens the widget viewer modal when a widget has no id', async () => {

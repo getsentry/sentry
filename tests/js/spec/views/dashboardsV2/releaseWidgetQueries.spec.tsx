@@ -3,9 +3,9 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
-import MetricsWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/metricsWidgetQueries';
+import ReleaseWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/releaseWidgetQueries';
 
-describe('Dashboards > MetricsWidgetQueries', function () {
+describe('Dashboards > ReleaseWidgetQueries', function () {
   const {organization} = initializeOrg();
 
   const badMessage = 'Bad request data';
@@ -32,7 +32,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
         orderby: '',
       },
     ],
-    widgetType: WidgetType.METRICS,
+    widgetType: WidgetType.RELEASE,
   };
   const singleQueryWidget = {
     title: 'Sessions',
@@ -48,7 +48,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
         orderby: '-count_unique(user)',
       },
     ],
-    widgetType: WidgetType.METRICS,
+    widgetType: WidgetType.RELEASE,
   };
   const selection = {
     projects: [1],
@@ -77,14 +77,14 @@ describe('Dashboards > MetricsWidgetQueries', function () {
     const children = jest.fn(() => <div />);
 
     render(
-      <MetricsWidgetQueries
+      <ReleaseWidgetQueries
         api={api}
         widget={singleQueryWidget}
         organization={organization}
         selection={selection}
       >
         {children}
-      </MetricsWidgetQueries>
+      </ReleaseWidgetQueries>
     );
 
     expect(mock).toHaveBeenCalledTimes(1);
@@ -117,14 +117,14 @@ describe('Dashboards > MetricsWidgetQueries', function () {
     const children = jest.fn(() => <div />);
 
     render(
-      <MetricsWidgetQueries
+      <ReleaseWidgetQueries
         api={api}
         widget={{...singleQueryWidget, displayType: DisplayType.TABLE}}
         organization={organization}
         selection={selection}
       >
         {children}
-      </MetricsWidgetQueries>
+      </ReleaseWidgetQueries>
     );
     expect(mock).toHaveBeenCalledTimes(1);
 
@@ -227,14 +227,14 @@ describe('Dashboards > MetricsWidgetQueries', function () {
     const children = jest.fn(() => <div />);
 
     render(
-      <MetricsWidgetQueries
+      <ReleaseWidgetQueries
         api={api}
         widget={{...singleQueryWidget, displayType: DisplayType.BIG_NUMBER}}
         organization={organization}
         selection={selection}
       >
         {children}
-      </MetricsWidgetQueries>
+      </ReleaseWidgetQueries>
     );
 
     expect(mock).toHaveBeenCalledTimes(1);
@@ -277,14 +277,14 @@ describe('Dashboards > MetricsWidgetQueries', function () {
       ],
     });
     render(
-      <MetricsWidgetQueries
+      <ReleaseWidgetQueries
         api={api}
         widget={multipleQueryWidget}
         organization={organization}
         selection={selection}
       >
         {() => <div data-test-id="child" />}
-      </MetricsWidgetQueries>
+      </ReleaseWidgetQueries>
     );
     // Child should be rendered and 2 requests should be sent.
     expect(screen.getByTestId('child')).toBeInTheDocument();
@@ -334,14 +334,14 @@ describe('Dashboards > MetricsWidgetQueries', function () {
     const children = jest.fn(() => <div data-test-id="child" />);
 
     render(
-      <MetricsWidgetQueries
+      <ReleaseWidgetQueries
         api={api}
         widget={multipleQueryWidget}
         organization={organization}
         selection={selection}
       >
         {children}
-      </MetricsWidgetQueries>
+      </ReleaseWidgetQueries>
     );
 
     // Child should be rendered and 2 requests should be sent.
@@ -363,14 +363,14 @@ describe('Dashboards > MetricsWidgetQueries', function () {
     });
 
     render(
-      <MetricsWidgetQueries
+      <ReleaseWidgetQueries
         api={api}
         widget={{...singleQueryWidget, interval: '1m'}}
         organization={organization}
         selection={{...selection, datetime: {...selection.datetime, period: '90d'}}}
       >
         {() => <div data-test-id="child" />}
-      </MetricsWidgetQueries>
+      </ReleaseWidgetQueries>
     );
 
     expect(screen.getByTestId('child')).toBeInTheDocument();
@@ -398,20 +398,20 @@ describe('Dashboards > MetricsWidgetQueries', function () {
     const children = jest.fn(() => <div />);
 
     const {rerender} = render(
-      <MetricsWidgetQueries
+      <ReleaseWidgetQueries
         api={api}
         widget={singleQueryWidget}
         organization={organization}
         selection={selection}
       >
         {children}
-      </MetricsWidgetQueries>
+      </ReleaseWidgetQueries>
     );
 
     expect(mock).toHaveBeenCalledTimes(1);
 
     rerender(
-      <MetricsWidgetQueries
+      <ReleaseWidgetQueries
         api={api}
         widget={{
           ...singleQueryWidget,
@@ -427,7 +427,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
         selection={selection}
       >
         {children}
-      </MetricsWidgetQueries>
+      </ReleaseWidgetQueries>
     );
 
     // no additional request has been sent, the total count of requests is still 1

@@ -48,7 +48,7 @@ import {
 } from 'sentry/views/dashboardsV2/utils';
 import WidgetCardChart from 'sentry/views/dashboardsV2/widgetCard/chart';
 import IssueWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/issueWidgetQueries';
-import MetricsWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/metricsWidgetQueries';
+import ReleaseWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/releaseWidgetQueries';
 import {WidgetCardChartContainer} from 'sentry/views/dashboardsV2/widgetCard/widgetCardChartContainer';
 import WidgetQueries from 'sentry/views/dashboardsV2/widgetCard/widgetQueries';
 import {decodeColumnOrder} from 'sentry/views/eventsV2/utils';
@@ -58,7 +58,7 @@ import {
   renderDiscoverGridHeaderCell,
   renderGridBodyCell,
   renderIssueGridHeaderCell,
-  renderMetricsGridHeaderCell,
+  renderReleaseGridHeaderCell,
 } from './widgetViewerModal/widgetViewerTableCell';
 
 export type WidgetViewerModalOptions = {
@@ -246,7 +246,7 @@ function WidgetViewerModal(props: Props) {
       DisplayType.BAR,
     ].includes(widget.displayType) &&
     widget.widgetType &&
-    [WidgetType.DISCOVER, WidgetType.METRICS].includes(widget.widgetType);
+    [WidgetType.DISCOVER, WidgetType.RELEASE].includes(widget.widgetType);
 
   let equationFieldsCount = 0;
   // Updates fields by adding any individual terms from equation fields as a column
@@ -276,7 +276,7 @@ function WidgetViewerModal(props: Props) {
         fields.unshift('title');
         columns.unshift('title');
         break;
-      case WidgetType.METRICS:
+      case WidgetType.RELEASE:
         fields.unshift('release');
         columns.unshift('release');
         break;
@@ -510,7 +510,7 @@ function WidgetViewerModal(props: Props) {
     );
   };
 
-  const renderMetricsTable: MetricsWidgetQueries['props']['children'] = ({
+  const renderReleaseTable: ReleaseWidgetQueries['props']['children'] = ({
     tableResults,
     loading,
     pageLinks,
@@ -525,7 +525,7 @@ function WidgetViewerModal(props: Props) {
           columnOrder={columnOrder}
           columnSortBy={columnSortBy}
           grid={{
-            renderHeadCell: renderMetricsGridHeaderCell({
+            renderHeadCell: renderReleaseGridHeaderCell({
               ...props,
               widget: tableWidget,
               tableData: tableResults?.[0],
@@ -557,7 +557,7 @@ function WidgetViewerModal(props: Props) {
               });
               trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.paginate', {
                 organization,
-                widget_type: WidgetType.METRICS,
+                widget_type: WidgetType.RELEASE,
                 display_type: widget.displayType,
               });
             }}
@@ -625,16 +625,16 @@ function WidgetViewerModal(props: Props) {
             {renderIssuesTable}
           </IssueWidgetQueries>
         );
-      case WidgetType.METRICS:
+      case WidgetType.RELEASE:
         if (tableData && chartUnmodified && widget.displayType === DisplayType.TABLE) {
-          return renderMetricsTable({
+          return renderReleaseTable({
             tableResults: tableData,
             loading: false,
             pageLinks: defaultPageLinks,
           });
         }
         return (
-          <MetricsWidgetQueries
+          <ReleaseWidgetQueries
             api={api}
             organization={organization}
             widget={tableWidget}
@@ -647,8 +647,8 @@ function WidgetViewerModal(props: Props) {
             includeAllArgs
             cursor={cursor}
           >
-            {renderMetricsTable}
-          </MetricsWidgetQueries>
+            {renderReleaseTable}
+          </ReleaseWidgetQueries>
         );
       case WidgetType.DISCOVER:
       default:

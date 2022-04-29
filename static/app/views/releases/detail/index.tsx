@@ -25,7 +25,7 @@ import {
   ReleaseProject,
   ReleaseWithHealth,
   SessionApiResponse,
-  SessionField,
+  SessionFieldWithOperation,
 } from 'sentry/types';
 import {formatVersion} from 'sentry/utils/formatters';
 import routeTitleGen from 'sentry/utils/routeTitle';
@@ -215,7 +215,8 @@ class ReleasesDetail extends AsyncView<Props, State> {
               deploys,
               releaseMeta,
               refetchData: this.fetchData,
-              hasHealthData: getCount(sessions?.groups, SessionField.SESSIONS) > 0,
+              hasHealthData:
+                getCount(sessions?.groups, SessionFieldWithOperation.SESSIONS) > 0,
               releaseBounds,
             }}
           >

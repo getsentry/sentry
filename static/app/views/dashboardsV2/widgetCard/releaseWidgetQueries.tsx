@@ -49,7 +49,7 @@ type State = {
   timeseriesResults?: Series[];
 };
 
-class MetricsWidgetQueries extends React.Component<Props, State> {
+class ReleaseWidgetQueries extends React.Component<Props, State> {
   state: State = {
     loading: true,
     queryFetchID: undefined,
@@ -304,4 +304,4 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
   }
 }
 
-export default MetricsWidgetQueries;
+export default ReleaseWidgetQueries;

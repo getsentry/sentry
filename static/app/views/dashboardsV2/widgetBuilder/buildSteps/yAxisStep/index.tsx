@@ -46,7 +46,7 @@ export function YAxisStep({
           : t("This is the data you'd be visualizing in the display.")
       }
     >
-      {dataSet === DataSet.RELEASE ? (
+      {dataSet === DataSet.RELEASES ? (
         <ReleaseYAxisSelector
           widgetType={widgetType}
           displayType={displayType}

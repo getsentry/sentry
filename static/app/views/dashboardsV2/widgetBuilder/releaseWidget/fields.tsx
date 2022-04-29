@@ -1,7 +1,7 @@
 import {
   SelectValue,
   SessionAggregationColumn,
-  SessionMetric,
+  SessionField,
   SessionsMeta,
   SessionsOperation,
   SessionStatus,
@@ -9,18 +9,18 @@ import {
 import {defined} from 'sentry/utils';
 import {FieldValue, FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
-export const SESSIONS_FIELDS: Readonly<Partial<Record<SessionMetric, SessionsMeta>>> = {
-  [SessionMetric.SESSION]: {
+export const SESSIONS_FIELDS: Readonly<Partial<Record<SessionField, SessionsMeta>>> = {
+  [SessionField.SESSION]: {
     name: 'session',
     operations: ['sum'],
     type: 'integer',
   },
-  [SessionMetric.USER]: {
+  [SessionField.USER]: {
     name: 'user',
     operations: ['count_unique'],
     type: 'string',
   },
-  [SessionMetric.SESSION_DURATION]: {
+  [SessionField.SESSION_DURATION]: {
     name: 'session.duration',
     operations: ['avg', 'p50', 'p75', 'p95', 'p99', 'max'],
     type: 'duration',
@@ -32,42 +32,42 @@ export const SESSIONS_OPERATIONS: Readonly<
 > = {
   sum: {
     columnTypes: ['integer'],
-    defaultValue: SessionMetric.SESSION,
+    defaultValue: SessionField.SESSION,
     outputType: 'integer',
   },
   count_unique: {
     columnTypes: ['string'],
-    defaultValue: SessionMetric.USER,
+    defaultValue: SessionField.USER,
     outputType: 'integer',
   },
   avg: {
     columnTypes: ['duration'],
-    defaultValue: SessionMetric.SESSION_DURATION,
+    defaultValue: SessionField.SESSION_DURATION,
     outputType: null,
   },
   max: {
     columnTypes: ['duration'],
-    defaultValue: SessionMetric.SESSION_DURATION,
+    defaultValue: SessionField.SESSION_DURATION,
     outputType: null,
   },
   p50: {
     columnTypes: ['duration'],
-    defaultValue: SessionMetric.SESSION_DURATION,
+    defaultValue: SessionField.SESSION_DURATION,
     outputType: null,
   },
   p75: {
     columnTypes: ['duration'],
-    defaultValue: SessionMetric.SESSION_DURATION,
+    defaultValue: SessionField.SESSION_DURATION,
     outputType: null,
   },
   p95: {
     columnTypes: ['duration'],
-    defaultValue: SessionMetric.SESSION_DURATION,
+    defaultValue: SessionField.SESSION_DURATION,
     outputType: null,
   },
   p99: {
     columnTypes: ['duration'],
-    defaultValue: SessionMetric.SESSION_DURATION,
+    defaultValue: SessionField.SESSION_DURATION,
     outputType: null,
   },
 };
