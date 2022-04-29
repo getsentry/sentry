@@ -6,7 +6,7 @@ export type SessionsMeta = {
   type: ColumnType;
 };
 
-export enum SessionMetric {
+export enum SessionField {
   SESSION = 'session',
   SESSION_DURATION = 'session.duration',
   USER = 'user',

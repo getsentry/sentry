@@ -108,7 +108,7 @@ describe('WidgetBuilder', function () {
 
   let eventsStatsMock: jest.Mock | undefined;
   let eventsv2Mock: jest.Mock | undefined;
-  let metricsDataMock: jest.Mock | undefined;
+  let sessionsDataMock: jest.Mock | undefined;
   let tagsMock: jest.Mock | undefined;
 
   beforeEach(function () {
@@ -181,15 +181,10 @@ describe('WidgetBuilder', function () {
       body: [],
     });
 
-    MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/metrics/tags/`,
-      body: [{key: 'environment'}, {key: 'release'}, {key: 'session.status'}],
-    });
-
-    metricsDataMock = MockApiClient.addMockResponse({
+    sessionsDataMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/sessions/`,
-      body: TestStubs.MetricsField({
+      body: TestStubs.SessionsField({
         field: `sum(session)`,
       }),
     });
@@ -1084,7 +1079,7 @@ describe('WidgetBuilder', function () {
     expect(handleSave).toHaveBeenCalledTimes(1);
   });
 
-  it('persists the global selection header period when updating a widget', async () => {
+  it('persists the page filter period when updating a widget', async () => {
     const widget: Widget = {
       id: '1',
       title: 'Errors over time',
@@ -1116,7 +1111,7 @@ describe('WidgetBuilder', function () {
     });
 
     await screen.findByText('Update Widget');
-    await screen.findByText('Last 90 days');
+    await screen.findByText('90D');
 
     userEvent.click(screen.getByText('Update Widget'));
 
@@ -1904,6 +1899,52 @@ describe('WidgetBuilder', function () {
         'count_unique(user) * 2'
       );
     });
+
+    it.each`
+      directionPrefix | expectedOrderSelection | displayType
+      ${'-'}          | ${'High to low'}       | ${DisplayType.TABLE}
+      ${''}           | ${'Low to high'}       | ${DisplayType.TABLE}
+      ${'-'}          | ${'High to low'}       | ${DisplayType.LINE}
+      ${''}           | ${'Low to high'}       | ${DisplayType.LINE}
+    `(
+      `opens a widget with the '$expectedOrderSelection' sort order when the widget was saved with that direction`,
+      async function ({directionPrefix, expectedOrderSelection}) {
+        const widget: Widget = {
+          id: '1',
+          title: 'Test Widget',
+          interval: '5m',
+          displayType: DisplayType.LINE,
+          queries: [
+            {
+              name: '',
+              conditions: '',
+              fields: ['count_unique(user)'],
+              aggregates: ['count_unique(user)'],
+              columns: ['project'],
+              orderby: `${directionPrefix}count_unique_user`,
+            },
+          ],
+        };
+
+        const dashboard: DashboardDetails = {
+          id: '1',
+          title: 'Dashboard',
+          createdBy: undefined,
+          dateCreated: '2020-01-01T00:00:00.000Z',
+          widgets: [widget],
+        };
+
+        renderTestComponent({
+          orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+          dashboard,
+          params: {
+            widgetIndex: '0',
+          },
+        });
+
+        await screen.findByText(expectedOrderSelection);
+      }
+    );
   });
 
   describe('Widget creation coming from other verticals', function () {
@@ -2257,10 +2298,10 @@ describe('WidgetBuilder', function () {
     const releaseHealthFeatureFlags = [
       ...defaultOrgFeatures,
       'new-widget-builder-experience-design',
-      'dashboards-metrics',
+      'dashboards-releases',
     ];
 
-    it('does not show the Release Health data set if there is no dashboards-metrics flag', async function () {
+    it('does not show the Release Health data set if there is no dashboards-releases flag', async function () {
       renderTestComponent({
         orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
       });
@@ -2271,7 +2312,7 @@ describe('WidgetBuilder', function () {
       ).not.toBeInTheDocument();
     });
 
-    it('shows the Release Health data set if there is the dashboards-metrics flag', async function () {
+    it('shows the Release Health data set if there is the dashboards-releases flag', async function () {
       renderTestComponent({
         orgFeatures: releaseHealthFeatureFlags,
       });
@@ -2298,7 +2339,7 @@ describe('WidgetBuilder', function () {
       await waitFor(() => expect(screen.getByLabelText(/releases/i)).toBeChecked());
     });
 
-    it('displays metrics tags', async function () {
+    it('displays releases tags', async function () {
       renderTestComponent({
         orgFeatures: releaseHealthFeatureFlags,
       });
@@ -2379,14 +2420,14 @@ describe('WidgetBuilder', function () {
       userEvent.click(screen.getByText('Line Chart'));
 
       await waitFor(() =>
-        expect(metricsDataMock).toHaveBeenLastCalledWith(
+        expect(sessionsDataMock).toHaveBeenLastCalledWith(
           `/organizations/org-slug/sessions/`,
           expect.objectContaining({
             query: {
               environment: [],
               field: [`sum(session)`],
               groupBy: [],
-              interval: '1h',
+              interval: '5m',
               project: [],
               statsPeriod: '24h',
             },
@@ -2404,7 +2445,7 @@ describe('WidgetBuilder', function () {
         await screen.findByText('Releases (sessions, crash rates)')
       ).toBeInTheDocument();
 
-      // change data set to metrics
+      // change data set to releases
       userEvent.click(screen.getByLabelText(/releases/i));
 
       userEvent.click(screen.getByText('Table'));
@@ -2434,8 +2475,7 @@ describe('WidgetBuilder', function () {
       await waitFor(() => {
         expect(handleSave).toHaveBeenCalledWith([
           expect.objectContaining({
-            // TODO(adam): Update widget type to be 'release'
-            widgetType: WidgetType.METRICS,
+            widgetType: WidgetType.RELEASE,
             queries: [
               expect.objectContaining({
                 aggregates: [`sum(session)`],
@@ -2452,9 +2492,9 @@ describe('WidgetBuilder', function () {
 
     it('does not display "add an equation" button', async function () {
       const widget: Widget = {
-        title: 'Metrics Widget',
+        title: 'Release Widget',
         displayType: DisplayType.TABLE,
-        widgetType: WidgetType.METRICS,
+        widgetType: WidgetType.RELEASE,
         queries: [
           {
             name: 'errors',
