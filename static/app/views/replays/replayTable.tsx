@@ -21,7 +21,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
-import indexReplayEntriesById from './utils/indexReplayEntriesById';
 import {Replay} from './types';
 
 type Props = {
@@ -29,7 +28,7 @@ type Props = {
   selection: PageFilters;
 };
 
-export type ReplayDurationAndErrors = {
+type ReplayDurationAndErrors = {
   count_if_event_type_equals_error: number;
   'equation[0]': number;
   id: string;
@@ -38,15 +37,13 @@ export type ReplayDurationAndErrors = {
   replayId: string;
 };
 
-function ReplayTable(props: Props) {
+function ReplayTable({replayList, selection}: Props) {
   const location = useLocation();
   const organization = useOrganization();
   const {projects} = useProjects();
-  const {replayList} = props;
   const isScreenLarge = useMedia(`(min-width: ${theme.breakpoints[0]})`);
 
   const getEventView = () => {
-    const {selection} = props;
     const query = replayList.map(item => `replayId:${item.id}`).join(' OR ');
     const eventQueryParams: NewQuery = {
       id: '',
@@ -79,9 +76,11 @@ function ReplayTable(props: Props) {
     >
       {data => {
         const dataEntries = data.tableData
-          ? indexReplayEntriesById(
-              data.tableData?.data as ReplayDurationAndErrors[],
-              'replayId'
+          ? Object.fromEntries(
+              (data.tableData?.data as ReplayDurationAndErrors[]).map(item => [
+                item.replayId,
+                item,
+              ])
             )
           : {};
         return replayList?.map(replay => {
@@ -110,7 +109,7 @@ function ReplayTable(props: Props) {
                 displayEmail={getUrlPathname(replay.url) ?? ''}
               />
               {isScreenLarge && (
-                <StyledPanelItem>
+                <Item>
                   <ProjectBadge
                     project={
                       projects.find(p => p.slug === replay.project) || {
@@ -119,19 +118,19 @@ function ReplayTable(props: Props) {
                     }
                     avatarSize={16}
                   />
-                </StyledPanelItem>
+                </Item>
               )}
-              <StyledPanelItem>
+              <Item>
                 <TimeSinceWrapper>
                   {isScreenLarge && (
                     <StyledIconCalendarWrapper color="gray500" size="sm" />
                   )}
                   <TimeSince date={replay.timestamp} />
                 </TimeSinceWrapper>
-              </StyledPanelItem>
+              </Item>
               {data.tableData ? (
                 <React.Fragment>
-                  <StyledPanelItem>
+                  <Item>
                     <Duration
                       seconds={
                         Math.floor(
@@ -143,21 +142,21 @@ function ReplayTable(props: Props) {
                       exact
                       abbreviation
                     />
-                  </StyledPanelItem>
-                  <StyledPanelItem>
+                  </Item>
+                  <Item>
                     {dataEntries[replay.id]
                       ? dataEntries[replay.id]?.count_if_event_type_equals_error
                       : 0}
-                  </StyledPanelItem>
+                  </Item>
                 </React.Fragment>
               ) : (
                 <React.Fragment>
-                  <StyledPanelItem>
+                  <Item>
                     <Placeholder height="24px" />
-                  </StyledPanelItem>
-                  <StyledPanelItem>
+                  </Item>
+                  <Item>
                     <Placeholder height="24px" />
-                  </StyledPanelItem>
+                  </Item>
                 </React.Fragment>
               )}
             </Fragment>
@@ -168,8 +167,9 @@ function ReplayTable(props: Props) {
   );
 }
 
-const StyledPanelItem = styled('div')`
-  margin-top: ${space(0.75)};
+const Item = styled('div')`
+  display: flex;
+  align-items: center;
 `;
 
 const ReplayUserBadge = styled(UserBadge)`
