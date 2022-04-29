@@ -86,7 +86,7 @@ function ReplayTable({replayList, selection}: Props) {
         return replayList?.map(replay => {
           return (
             <Fragment key={replay.id}>
-              <ReplayUserBadge
+              <UserBadge
                 avatarSize={32}
                 displayName={
                   <Link
@@ -99,11 +99,11 @@ function ReplayTable({replayList, selection}: Props) {
                   </Link>
                 }
                 user={{
-                  username: replay['user.display'],
-                  id: replay['user.display'],
-                  ip_address: replay['user.display'],
-                  name: replay['user.display'],
-                  email: replay['user.display'],
+                  username: replay['user.username'] ?? '',
+                  id: replay['user.id'] ?? '',
+                  ip_address: replay['user.ip_address'] ?? '',
+                  name: replay['user.name'] ?? '',
+                  email: replay['user.email'] ?? '',
                 }}
                 // this is the subheading for the avatar, so displayEmail in this case is a misnomer
                 displayEmail={getUrlPathname(replay.url) ?? ''}
@@ -170,12 +170,6 @@ function ReplayTable({replayList, selection}: Props) {
 const Item = styled('div')`
   display: flex;
   align-items: center;
-`;
-
-const ReplayUserBadge = styled(UserBadge)`
-  font-size: ${p => p.theme.fontSizeLarge};
-  font-weight: 400;
-  line-height: 1.2;
 `;
 
 const TimeSinceWrapper = styled('div')`
