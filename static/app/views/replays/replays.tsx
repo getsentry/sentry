@@ -218,12 +218,10 @@ function Replays(props: Props) {
 const StyledPageHeader = styled(PageHeader)`
   background-color: ${p => p.theme.surface100};
   min-width: max-content;
-  margin-top: ${space(1.5)};
-  margin-left: ${space(4)};
+  margin: ${space(3)} ${space(0)} ${space(4)} ${space(4)};
 `;
 
 const StyledPageContent = styled(PageContent)`
-  padding: ${space(1.5)} ${space(2)};
   box-shadow: 0px 0px 1px ${p => p.theme.gray200};
   background-color: ${p => p.theme.background};
 `;
