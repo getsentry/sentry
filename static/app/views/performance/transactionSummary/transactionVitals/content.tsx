@@ -88,12 +88,10 @@ function VitalsContent(props: Props) {
                     </Alert>
                   )}
 
-                  {organization.features.includes('selection-filters-v2') && (
-                    <StyledPageFilterBar condensed>
-                      <EnvironmentPageFilter />
-                      <DatePageFilter alignDropdown="left" />
-                    </StyledPageFilterBar>
-                  )}
+                  <StyledPageFilterBar condensed>
+                    <EnvironmentPageFilter />
+                    <DatePageFilter alignDropdown="left" />
+                  </StyledPageFilterBar>
                   <StyledActions>
                     <StyledSearchBar
                       organization={organization}

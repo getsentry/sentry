@@ -149,6 +149,14 @@ class GroupHeader extends React.Component<Props, State> {
     return (
       <Layout.Header>
         <div className={className}>
+          <StyledBreadcrumbs
+            crumbs={[
+              {label: 'Issues', to: `/organizations/${orgId}/issues/`},
+              {
+                label: 'Issue Details',
+              },
+            ]}
+          />
           <div className="row">
             <div className="col-sm-7">
               <StyledBreadcrumbs
@@ -376,8 +384,7 @@ const TitleWrapper = styled('div')`
 `;
 
 const StyledBreadcrumbs = styled(Breadcrumbs)`
-  padding-top: 0;
-  padding-bottom: ${space(2)};
+  margin-bottom: ${space(2)};
 `;
 
 const StyledIdBadge = styled(IdBadge)`
