@@ -35,6 +35,7 @@ export type ReplayDurationAndErrors = {
   id: string;
   max_timestamp: string;
   min_timestamp: string;
+  replayId: string;
 };
 
 function ReplayTable(props: Props) {
@@ -53,7 +54,6 @@ function ReplayTable(props: Props) {
       version: 2,
       fields: [
         'replayId',
-        'project',
         'max(timestamp)',
         'min(timestamp)',
         'equation|max(timestamp)-min(timestamp)',
@@ -83,7 +83,7 @@ function ReplayTable(props: Props) {
               data.tableData?.data as ReplayDurationAndErrors[],
               'replayId'
             )
-          : null;
+          : {};
         return replayList?.map(replay => {
           return (
             <Fragment key={replay.id}>
@@ -129,26 +129,26 @@ function ReplayTable(props: Props) {
                   <TimeSince date={replay.timestamp} />
                 </TimeSinceWrapper>
               </StyledPanelItem>
-              {data.tableData && dataEntries ? (
+              {data.tableData ? (
                 <React.Fragment>
-                  <React.Fragment>
-                    <StyledPanelItem>
-                      <Duration
-                        seconds={
+                  <StyledPanelItem>
+                    <Duration
+                      seconds={
+                        Math.floor(
                           dataEntries[replay.id]
                             ? dataEntries[replay.id]['equation[0]']
                             : 0
-                        }
-                        fixedDigits={2}
-                        abbreviation
-                      />
-                    </StyledPanelItem>
-                    <StyledPanelItem>
-                      {dataEntries[replay.id]
-                        ? dataEntries[replay.id]?.count_if_event_type_equals_error
-                        : 0}
-                    </StyledPanelItem>
-                  </React.Fragment>
+                        ) || 1
+                      }
+                      exact
+                      abbreviation
+                    />
+                  </StyledPanelItem>
+                  <StyledPanelItem>
+                    {dataEntries[replay.id]
+                      ? dataEntries[replay.id]?.count_if_event_type_equals_error
+                      : 0}
+                  </StyledPanelItem>
                 </React.Fragment>
               ) : (
                 <React.Fragment>
