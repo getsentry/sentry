@@ -214,17 +214,13 @@ class VitalDetailContent extends Component<Props, State> {
     const filterString = getTransactionSearchQuery(location);
     const summaryConditions = getSummaryConditions(filterString);
 
-    const hasPageFilters = organization.features.includes('selection-filters-v2');
-
     return (
       <Fragment>
-        {hasPageFilters && (
-          <StyledPageFilterBar condensed>
-            <ProjectPageFilter />
-            <EnvironmentPageFilter />
-            <DatePageFilter />
-          </StyledPageFilterBar>
-        )}
+        <StyledPageFilterBar condensed>
+          <ProjectPageFilter />
+          <EnvironmentPageFilter />
+          <DatePageFilter />
+        </StyledPageFilterBar>
         <StyledSearchBar
           searchSource="performance_vitals"
           organization={organization}

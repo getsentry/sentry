@@ -8,6 +8,7 @@ import {Client} from 'sentry/api';
 import AssigneeSelector from 'sentry/components/assigneeSelector';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Badge from 'sentry/components/badge';
+import Breadcrumbs from 'sentry/components/breadcrumbs';
 import Count from 'sentry/components/count';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import ErrorLevel from 'sentry/components/events/errorLevel';
@@ -148,6 +149,14 @@ class GroupHeader extends React.Component<Props, State> {
     return (
       <Layout.Header>
         <div className={className}>
+          <StyledBreadcrumbs
+            crumbs={[
+              {label: 'Issues', to: `/organizations/${orgId}/issues/`},
+              {
+                label: 'Issue Details',
+              },
+            ]}
+          />
           <div className="row">
             <div className="col-sm-7">
               <TitleWrapper>
@@ -361,6 +370,10 @@ export default withApi(withRouter(withOrganization(GroupHeader)));
 const TitleWrapper = styled('div')`
   display: flex;
   line-height: 24px;
+`;
+
+const StyledBreadcrumbs = styled(Breadcrumbs)`
+  margin-bottom: ${space(2)};
 `;
 
 const StyledIdBadge = styled(IdBadge)`

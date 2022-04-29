@@ -37,7 +37,7 @@ export const NEW_DASHBOARD_ID = 'new';
 export enum DataSet {
   EVENTS = 'events',
   ISSUES = 'issues',
-  RELEASE = 'release',
+  RELEASES = 'releases',
 }
 
 export enum SortDirection {
@@ -134,7 +134,7 @@ export function normalizeQueries({
       }
 
       const queryOrderBy =
-        widgetType === WidgetType.METRICS
+        widgetType === WidgetType.RELEASE
           ? stripDerivedMetricsPrefix(queries[0].orderby)
           : queries[0].orderby;
 
@@ -143,7 +143,7 @@ export function normalizeQueries({
       // grouping in timeseries charts
       const ignoreOrderBy = isEquation(trimStart(queryOrderBy, '-')) && isTabularChart;
       const orderBy =
-        (!ignoreOrderBy && getAggregateAlias(queryOrderBy)) ||
+        (!ignoreOrderBy && getAggregateAlias(trimStart(queryOrderBy, '-'))) ||
         (widgetType === WidgetType.ISSUE
           ? IssueSortOptions.DATE
           : generateOrderOptions({
@@ -153,11 +153,15 @@ export function normalizeQueries({
               aggregates: queries[0].aggregates,
             })[0].value);
 
-      // Issues data set doesn't support order by descending
-      query.orderby =
-        widgetType === WidgetType.DISCOVER && !orderBy.startsWith('-')
-          ? `-${String(orderBy)}`
-          : String(orderBy);
+      // A widget should be descending if:
+      // - There is no orderby, so we're defaulting to desc
+      // - Not an issues widget since issues doesn't support descending and
+      //   the original ordering was descending
+      const isDescending =
+        !query.orderby ||
+        (widgetType !== WidgetType.ISSUE && queryOrderBy.startsWith('-'));
+
+      query.orderby = isDescending ? `-${String(orderBy)}` : String(orderBy);
 
       return query;
     });
@@ -322,7 +326,7 @@ export function filterPrimaryOptions({
   option: FieldValueOption;
   widgetType?: WidgetType;
 }) {
-  if (widgetType === WidgetType.METRICS) {
+  if (widgetType === WidgetType.RELEASE) {
     if (displayType === DisplayType.TABLE) {
       return [
         FieldValueKind.FUNCTION,
