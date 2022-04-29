@@ -75,22 +75,18 @@ class FlamegraphRenderer {
     draw_border: boolean;
   };
 
-  source: undefined;
-
   constructor(
     canvas: HTMLCanvasElement,
     flamegraph: Flamegraph,
     theme: FlamegraphTheme,
     origin: vec2 = vec2.fromValues(0, 0),
-    options: {draw_border: boolean} = {draw_border: false},
-    source?: 'flamegraph' | 'minimap'
+    options: {draw_border: boolean} = {draw_border: false}
   ) {
     this.flamegraph = flamegraph;
     this.canvas = canvas;
     this.theme = theme;
     this.origin = origin;
     this.options = options;
-    this.source = source;
 
     this.init();
   }

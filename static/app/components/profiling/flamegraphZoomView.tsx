@@ -65,8 +65,7 @@ function FlamegraphZoomView({
             0,
             flamegraphTheme.SIZES.TIMELINE_HEIGHT * window.devicePixelRatio
           ),
-          {draw_border: true},
-          'flamegraph'
+          {draw_border: true}
         );
 
         if (!previousRenderer?.configSpace.equals(renderer.configSpace)) {
