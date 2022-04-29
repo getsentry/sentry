@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment, ReactNode, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -8,12 +8,52 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
-type Props = ModalRenderProps & {
-  orgId: string;
+export type CreateNewIntegrationModalOptions = {
+  orgSlug: string;
 };
 
-function CreateNewIntegration({Body, Header, Footer, closeModal, orgId}: Props) {
-  const [option, selectOption] = useState('public');
+type Props = ModalRenderProps & CreateNewIntegrationModalOptions;
+
+function CreateNewIntegration({Body, Header, Footer, closeModal, orgSlug}: Props) {
+  const [option, selectOption] = useState('internal');
+  const choices = [
+    [
+      'internal',
+      <RadioChoiceHeader key="header-internal">
+        {t('Internal Integration')}
+      </RadioChoiceHeader>,
+      <RadioChoiceDescription key="description-internal">
+        {tct(
+          'Internal integrations are meant for custom integrations unique to your organization. See more info on [docsLink].',
+          {
+            docsLink: (
+              <ExternalLink href="https://docs.sentry.io/product/integrations/integration-platform/#internal-integrations">
+                {t('Internal Integrations')}
+              </ExternalLink>
+            ),
+          }
+        )}
+      </RadioChoiceDescription>,
+    ],
+    [
+      'public',
+      <RadioChoiceHeader key="header-public">
+        {t('Public Integration')}
+      </RadioChoiceHeader>,
+      <RadioChoiceDescription key="description-public">
+        {tct(
+          'A public integration will be available for all Sentry users for installation. See more info on [docsLink].',
+          {
+            docsLink: (
+              <ExternalLink href="https://docs.sentry.io/product/integrations/integration-platform/#public-integrations">
+                {t('Public Integrations')}
+              </ExternalLink>
+            ),
+          }
+        )}
+      </RadioChoiceDescription>,
+    ],
+  ] as [string, ReactNode, ReactNode][];
 
   return (
     <Fragment>
@@ -22,44 +62,7 @@ function CreateNewIntegration({Body, Header, Footer, closeModal, orgId}: Props) 
       </Header>
       <Body>
         <StyledRadioGroup
-          choices={[
-            [
-              'public',
-              <RadioChoiceHeader key="header-public">
-                {t('Public Integration')}
-              </RadioChoiceHeader>,
-              <RadioChoiceDescription key="description-public">
-                {tct(
-                  'A public integration will be avilable for all Sentry users for installation. See more info on [docsLink].',
-                  {
-                    docsLink: (
-                      <ExternalLink href="https://docs.sentry.io/product/integrations/integration-platform/#public-integrations">
-                        {t('Public Integrations')}
-                      </ExternalLink>
-                    ),
-                  }
-                )}
-              </RadioChoiceDescription>,
-            ],
-            [
-              'internal',
-              <RadioChoiceHeader key="header-internal">
-                {t('Internal Integration')}
-              </RadioChoiceHeader>,
-              <RadioChoiceDescription key="description-internal">
-                {tct(
-                  'Internal integrations are meant for custom integrations unique to your organization. See more info on [docsLink].',
-                  {
-                    docsLink: (
-                      <ExternalLink href="https://docs.sentry.io/product/integrations/integration-platform/#internal-integrations">
-                        {t('Internal Integrations')}
-                      </ExternalLink>
-                    ),
-                  }
-                )}
-              </RadioChoiceDescription>,
-            ],
-          ]}
+          choices={choices}
           label={t('Avatar Type')}
           onChange={value => selectOption(value)}
           value={option}
@@ -72,7 +75,7 @@ function CreateNewIntegration({Body, Header, Footer, closeModal, orgId}: Props) 
         <Button
           priority="primary"
           size="small"
-          to={`/settings/${orgId}/developer-settings/${
+          to={`/settings/${orgSlug}/developer-settings/${
             option === 'public' ? 'new-public' : 'new-internal'
           }/`}
         >

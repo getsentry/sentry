@@ -31,21 +31,16 @@ type State = AsyncView['state'] & {
 
 class OrganizationDeveloperSettings extends AsyncView<Props, State> {
   getDefaultState(): State {
+    const {location} = this.props;
+    const value =
+      (['public', 'internal'] as const).find(tab => tab === location.query.type) ||
+      'internal';
+
     return {
       ...super.getDefaultState(),
       applications: [],
-      tab: 'public',
+      tab: value,
     };
-  }
-
-  componentDidMount() {
-    const {location} = this.props;
-    const value =
-      (['public', 'internal'] as const).find(tab => tab === location.query.tab) ||
-      'public';
-
-    // eslint-disable-next-line react/no-did-mount-set-state
-    this.setState({tab: value});
   }
 
   get tab() {
@@ -111,7 +106,7 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
     );
   }
 
-  renderExternalIntegrations() {
+  renderPublicIntegrations() {
     const integrations = this.state.applications.filter(app => app.status !== 'internal');
     const isEmpty = integrations.length === 0;
 
@@ -136,22 +131,20 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
       case 'internal':
         return this.renderInternalIntegrations();
       case 'public':
-        return this.renderExternalIntegrations();
       default:
-        return this.renderExternalIntegrations();
+        return this.renderPublicIntegrations();
     }
   }
   renderBody() {
-    const {orgId} = this.props.params;
     const {organization} = this.props;
 
     const permissionTooltipText = t(
-      'Manager or Owner permissions required to create a new integration'
+      'Manager or Owner permissions are required to create a new integration'
     );
 
     const tabs = [
-      ['public', t('Public Integration')],
       ['internal', t('Internal Integration')],
+      ['public', t('Public Integration')],
     ] as [id: Tab, label: string][];
 
     const action = (
@@ -164,7 +157,7 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
             size="small"
             onClick={() =>
               openCreateNewIntegrationModal({
-                orgId,
+                orgSlug: organization.slug,
               })
             }
           >
@@ -207,13 +200,13 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
         </Alert>
 
         <NavTabs underlined>
-          {tabs.map(tabTuple => (
+          {tabs.map(([type, label]) => (
             <li
-              key={tabTuple[0]}
-              className={this.tab === tabTuple[0] ? 'active' : ''}
-              onClick={() => this.onTabChange(tabTuple[0])}
+              key={type}
+              className={this.tab === type ? 'active' : ''}
+              onClick={() => this.onTabChange(type)}
             >
-              <a>{tabTuple[1]}</a>
+              <a>{label}</a>
             </li>
           ))}
         </NavTabs>
