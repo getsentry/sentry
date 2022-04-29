@@ -122,8 +122,8 @@ function MiniBarChart({
       }
       set(updated, 'itemStyle.color', colorList[i]);
       set(updated, 'itemStyle.opacity', 0.6);
-      set(updated, 'itemStyle.emphasis.opacity', 1.0);
-      set(updated, 'itemStyle.emphasis.color', emphasisColors?.[i] ?? colorList[i]);
+      set(updated, 'emphasis.itemStyle.opacity', 1.0);
+      set(updated, 'emphasis.itemStyle.color', emphasisColors?.[i] ?? colorList[i]);
 
       return updated;
     });
