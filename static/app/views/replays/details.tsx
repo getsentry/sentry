@@ -19,7 +19,6 @@ import DetailLayout from './detail/detailLayout';
 import FocusArea from './detail/focusArea';
 import UserActionsNavigator from './detail/userActionsNavigator';
 import useReplayEvent from './utils/useReplayEvent';
-import {HighlightsByTime} from './types';
 
 function ReplayDetails() {
   const {
@@ -84,16 +83,9 @@ function ReplayDetails() {
     );
   }
 
-  // Find LCP spans that have a valid replay node id, this will be used to
-  const highlights: HighlightsByTime = new Map(
-    mergedReplayEvent?.entries[0].data
-      .filter(({op, data}) => op === 'largest-contentful-paint' && data?.nodeId > 0)
-      .map(({start_timestamp, data: {nodeId}}) => [Math.floor(start_timestamp), {nodeId}])
-  );
-
   return (
     <DetailLayout event={event} orgId={orgId}>
-      <ReplayContextProvider events={rrwebEvents} highlights={highlights}>
+      <ReplayContextProvider events={rrwebEvents}>
         <Layout.Body>
           <ReplayLayout ref={fullscreenRef}>
             {/* In fullscreen we need to consider the max-height that the player is able

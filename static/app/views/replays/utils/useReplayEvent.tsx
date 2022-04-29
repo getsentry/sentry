@@ -176,6 +176,27 @@ function useReplayEvent({eventSlug, location, orgId}: Options): Result {
         );
       }
 
+      // Find LCP spans that have a valid replay node id, this will be used to
+      const highlights = mergedReplayEvent?.entries[0].data
+        .filter(({op, data}) => op === 'largest-contentful-paint' && data?.nodeId > 0)
+        .map(({start_timestamp, data: {nodeId}}) => ({
+          type: 6, // plugin type
+          data: {
+            nodeId,
+            text: 'LCP',
+          },
+          timestamp: Math.floor(start_timestamp * 1000),
+        }));
+
+      // TODO(replays): ideally this would happen on SDK, but due
+      // to how plugins work, we are unable to specify a timestamp for an event
+      // (rrweb applies it), so it's possible actual LCP timestamp does not
+      // match when the observer happens and we emit an rrweb event (will
+      // look into this)
+      const rrwebEventsWithHighlights = [...rrwebEvents, ...highlights].sort((a, b) => {
+        return a.timestamp - b.timestamp;
+      });
+
       setState({
         ...state,
         fetchError: undefined,
@@ -183,7 +204,7 @@ function useReplayEvent({eventSlug, location, orgId}: Options): Result {
         event,
         mergedReplayEvent,
         replayEvents,
-        rrwebEvents,
+        rrwebEvents: rrwebEventsWithHighlights,
         breadcrumbEntry,
         memorySpans,
       });

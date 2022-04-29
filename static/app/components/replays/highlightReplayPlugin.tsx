@@ -1,51 +1,83 @@
 import type {Replayer} from 'rrweb';
 import type {eventWithTime} from 'rrweb/typings/types';
 
-import type {HighlightsByTime} from 'sentry/views/replays/types';
+import {Highlight} from 'sentry/views/replays/types';
 
 interface HighlightReplayPluginOptions {
-  highlights: HighlightsByTime;
   defaultHighlightColor?: string;
 }
 
 class HighlightReplayPlugin {
-  highlights: HighlightsByTime;
   defaultHighlightColor: string;
 
   constructor({
-    highlights,
-    // TODO(replays): Figure out a better color
-    defaultHighlightColor = 'rgba(255, 192, 203, 0.5)',
-  }: HighlightReplayPluginOptions) {
+    defaultHighlightColor = 'rgba(168, 196, 236, 0.75)',
+  }: HighlightReplayPluginOptions = {}) {
     this.defaultHighlightColor = defaultHighlightColor;
-    this.highlights = highlights;
   }
 
-  handler(event: eventWithTime, _isSync: boolean, context: {replayer: Replayer}) {
-    if (!this.highlights.size) {
-      return;
-    }
-
-    const ts = Math.floor(event.timestamp / 1000);
-    const highlightObj = this.highlights.get(ts);
+  handler(event: eventWithTime, _isSync: boolean, {replayer}: {replayer: Replayer}) {
+    const highlightObj = event.data as Highlight;
 
     // ts has some issues with control flow analysis, so it will complain if we
     // use `has` to check existance. instead, ensure that it is not undefined.
     // See https://github.com/Microsoft/TypeScript/issues/9619
-    if (!highlightObj) {
+    if (highlightObj.nodeId === undefined || highlightObj?.nodeId < 0) {
       return;
     }
 
-    // @ts-expect-error mirror is private :/
-    const node = context.replayer.mirror.getNode(highlightObj.nodeId);
+    // @ts-expect-error mirror, mouseTail is private
+    const {mirror, mouseTail, wrapper} = replayer;
+    const node = mirror.getNode(highlightObj.nodeId);
 
-    if (context.replayer.iframe.contentDocument?.body.contains(node)) {
+    if (replayer.iframe.contentDocument?.body.contains(node)) {
       // TODO(replays): Figure out when to change the background back
-      // TODO(replays): We should instead draw this in canvas as it will be more reliable to "highlight"
-      // TODO(replays): Write out "LCP" w/ canvas
-      node.style.background = highlightObj.color ?? this.defaultHighlightColor;
+
+      const {top, left, width, height} = node.getBoundingClientRect();
+      const highlightColor = highlightObj.color ?? this.defaultHighlightColor;
+
+      // Clone canvas
+      const canvas = mouseTail.cloneNode();
+
+      const ctx = canvas.getContext('2d');
+
+      if (!ctx) {
+        return;
+      }
+
+      // TODO(replays): Does not account for scrolling (should we attempt to keep highlight visible, or does it disappear)
+
+      // Draw a rectangle to highlight element
+      ctx.fillStyle = highlightColor;
+      ctx.fillRect(left, top, width, height);
+
+      // Draw a dashed border around highlight
+      ctx.beginPath();
+      ctx.setLineDash([5, 5]);
+      ctx.moveTo(left, top);
+      ctx.lineTo(left + width, top);
+      ctx.lineTo(left + width, top + height);
+      ctx.lineTo(left, top + height);
+      ctx.closePath();
+      ctx.stroke();
+
+      ctx.font = '24px Rubik';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'bottom';
+
+      const textWidth = ctx.measureText(highlightObj.text).width;
+
+      // Draw rect around text
+      ctx.fillStyle = 'rgba(30, 30, 30, 0.75)';
+      ctx.fillRect(left + width - textWidth, top + height - 30, textWidth, 30);
+
+      // Draw text
+      ctx.fillStyle = 'white';
+      ctx.fillText(highlightObj.text, left + width, top + height);
+
+      wrapper.insertBefore(canvas, mouseTail);
     }
   }
 }
 
-export {HighlightReplayPlugin};
+export default HighlightReplayPlugin;
