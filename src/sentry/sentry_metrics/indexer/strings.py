@@ -63,7 +63,7 @@ TRANSACTION_METRICS_NAMES = {
 
 # 200 - 299
 SHARED_TAG_STRINGS = {
-    # release helth
+    # release health
     "abnormal": PREFIX + 200,
     "crashed": PREFIX + 201,
     "environment": PREFIX + 202,
@@ -96,6 +96,8 @@ SHARED_TAG_STRINGS = {
     "histogram_outlier": PREFIX + 227,
     "outlier": PREFIX + 228,
     "inlier": PREFIX + 229,
+    # added after the initial definition
+    "sdk": PREFIX + 230,  # release health
 }
 SHARED_STRINGS = {**SESSION_METRIC_NAMES, **TRANSACTION_METRICS_NAMES, **SHARED_TAG_STRINGS}
 REVERSE_SHARED_STRINGS = {v: k for k, v in SHARED_STRINGS.items()}

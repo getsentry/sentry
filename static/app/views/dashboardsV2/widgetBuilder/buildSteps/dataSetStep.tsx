@@ -38,7 +38,7 @@ export function DataSetStep({
 
     if (displayType === DisplayType.WORLD_MAP) {
       disabledChoices.push([
-        DataSet.RELEASE,
+        DataSet.RELEASES,
         t(
           'This data set is restricted to big number, tabular and time series visualizations.'
         ),
@@ -65,7 +65,7 @@ export function DataSetStep({
           hasReleaseHealthFeature
             ? [
                 ...DATASET_CHOICES,
-                [DataSet.RELEASE, t('Releases (sessions, crash rates)')],
+                [DataSet.RELEASES, t('Releases (sessions, crash rates)')],
               ]
             : DATASET_CHOICES
         }
