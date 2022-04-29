@@ -117,7 +117,7 @@ function FlamegraphSearch({
 }: FlamegraphSearchProps): React.ReactElement | null {
   const [search, dispatchSearch] = useFlamegraphSearch();
 
-  const allFrames = useMemo(() => {
+  const searchableFrames = useMemo(() => {
     if (Array.isArray(flamegraphs)) {
       return flamegraphs.reduce(
         (acc: FlamegraphFrame[], graph) => acc.concat(graph.frames),
@@ -129,12 +129,12 @@ function FlamegraphSearch({
   }, [flamegraphs]);
 
   const searchIndex = useMemo(() => {
-    return new Fuse(allFrames, {
+    return new Fuse(searchableFrames, {
       keys: ['frame.name'],
       threshold: 0.3,
       includeMatches: true,
     });
-  }, [allFrames]);
+  }, [searchableFrames]);
 
   const onZoomIntoFrame = useCallback(
     (frame: FlamegraphFrame) => {
@@ -142,6 +142,17 @@ function FlamegraphSearch({
     },
     [canvasPoolManager]
   );
+
+  useEffect(() => {
+    if (!search.query || !searchableFrames.length) {
+      return;
+    }
+
+    dispatchSearch({
+      type: 'set results',
+      payload: frameSearch(search.query, searchableFrames, searchIndex),
+    });
+  }, [search.query, searchableFrames, searchIndex, dispatchSearch]);
 
   useEffect(() => {
     if (typeof search.index !== 'number') {
@@ -162,14 +173,11 @@ function FlamegraphSearch({
       }
 
       dispatchSearch({
-        type: 'set results',
-        payload: {
-          results: frameSearch(value, allFrames, searchIndex),
-          query: value,
-        },
+        type: 'set search query',
+        payload: value,
       });
     },
-    [dispatchSearch, allFrames, searchIndex]
+    [dispatchSearch]
   );
 
   const onNextSearchClick = useCallback(() => {

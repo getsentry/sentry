@@ -67,6 +67,18 @@ function FlamegraphZoomView({
           {draw_border: true}
         );
 
+        // If we have previous position on the flamechart, apply it to the new renderer
+        if (
+          (!previousRenderer || previousRenderer.flamegraph) &&
+          !flamegraphState.position.view.isEmpty()
+        ) {
+          renderer.setConfigView(
+            flamegraphState.position.view.withHeight(renderer.configView.height)
+          );
+          return renderer;
+        }
+
+        // If config spaces do not match, do nothing, this is a fresh new view
         if (!previousRenderer?.configSpace.equals(renderer.configSpace)) {
           return renderer;
         }
@@ -91,7 +103,9 @@ function FlamegraphZoomView({
             // on a different shape. In this case, there's no obvious position
             // that can be carried over.
           } else {
-            renderer.setConfigView(previousRenderer.configView);
+            renderer.setConfigView(
+              previousRenderer.configView.withHeight(renderer.configView.height)
+            );
           }
         }
 

@@ -62,6 +62,8 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
     );
   }, [props.profiles, activeProfileIndex, sorting, xAxis, view]);
 
+  const searchableFlamegraphs = useMemo(() => [flamegraph], [flamegraph]);
+
   return (
     <Fragment>
       <FlamegraphToolbar>
@@ -83,7 +85,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
           }}
         />
         <FlamegraphSearch
-          flamegraphs={[flamegraph]}
+          flamegraphs={searchableFlamegraphs}
           canvasPoolManager={canvasPoolManager}
         />
         <FlamegraphOptionsMenu canvasPoolManager={canvasPoolManager} />

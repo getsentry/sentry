@@ -1,4 +1,4 @@
-import {FlamegraphFrame} from '../../flamegraphFrame';
+import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 
 type FlamegraphSearch = {
   index: number | null;
@@ -11,10 +11,7 @@ type ClearFlamegraphSearchAction = {
 };
 
 type SetFlamegraphResultsAction = {
-  payload: {
-    query: string;
-    results: FlamegraphSearch['results'];
-  };
+  payload: FlamegraphSearch['results'];
   type: 'set results';
 };
 
@@ -23,10 +20,16 @@ type FlamegraphSearchArrowNavigationAction = {
   type: 'set search index position';
 };
 
+type SetSearchQuery = {
+  payload: string;
+  type: 'set search query';
+};
+
 type FlamegraphSearchAction =
   | ClearFlamegraphSearchAction
   | FlamegraphSearchArrowNavigationAction
-  | SetFlamegraphResultsAction;
+  | SetFlamegraphResultsAction
+  | SetSearchQuery;
 
 export function flamegraphSearchReducer(
   state: FlamegraphSearch,
@@ -41,8 +44,14 @@ export function flamegraphSearchReducer(
         results: null,
       };
     }
+    case 'set search query': {
+      return {
+        ...state,
+        query: action.payload,
+      };
+    }
     case 'set results': {
-      return {...state, ...action.payload};
+      return {...state, results: action.payload};
     }
     case 'set search index position': {
       return {...state, index: action.payload};

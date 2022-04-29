@@ -15,6 +15,7 @@ export class Flamegraph {
 
   inverted?: boolean = false;
   leftHeavy?: boolean = false;
+  isEmpty?: boolean = false;
 
   depth = 0;
   configSpace: Rect = new Rect(0, 0, 0, 0);
@@ -23,10 +24,13 @@ export class Flamegraph {
   frameIndex: Record<string, FlamegraphFrame> = {};
 
   static Empty(): Flamegraph {
-    return new Flamegraph(Profile.Empty(), 0, {
+    const flamegraph = new Flamegraph(Profile.Empty(), 0, {
       inverted: false,
       leftHeavy: false,
     });
+
+    flamegraph.isEmpty = true;
+    return flamegraph;
   }
 
   static From(from: Flamegraph, {inverted = false, leftHeavy = false}): Flamegraph {

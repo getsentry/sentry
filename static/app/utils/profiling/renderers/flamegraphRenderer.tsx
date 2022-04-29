@@ -1,6 +1,7 @@
 import {mat3, vec2} from 'gl-matrix';
 
 import {Flamegraph} from '../flamegraph';
+import {FlamegraphState} from '../flamegraph/flamegraphStateProvider/index';
 import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
 import {FlamegraphFrame} from '../flamegraphFrame';
 import {Frame} from '../frame';
@@ -539,7 +540,7 @@ class FlamegraphRenderer {
   }
 
   draw(
-    searchResults: Record<FlamegraphFrame['frame']['key'], FlamegraphFrame> | null,
+    searchResults: FlamegraphState['search']['results'],
     configViewToPhysicalSpace = this.configViewToPhysicalSpace
   ): void {
     if (!this.gl) {
