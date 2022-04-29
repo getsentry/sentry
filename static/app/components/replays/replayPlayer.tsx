@@ -31,7 +31,7 @@ function BasePlayerRoot({className, fixedHeight = false}: Props) {
   });
 
   // Create the `rrweb` instance which creates an iframe inside `viewEl`
-  useEffect(() => initRoot(viewEl.current), [viewEl.current]);
+  useEffect(() => initRoot(viewEl.current), [initRoot]);
 
   // Read the initial width & height where the player will be inserted, this is
   // so we can shrink the video into the available space.
@@ -42,7 +42,7 @@ function BasePlayerRoot({className, fixedHeight = false}: Props) {
         width: windowEl.current?.clientWidth || 0,
         height: windowEl.current?.clientHeight || 0,
       }),
-    [windowEl.current]
+    [setWindowDimensions]
   );
   useResizeObserver({ref: windowEl, onResize: updateWindowDimensions});
   // If your browser doesn't have ResizeObserver then set the size once.
@@ -70,7 +70,7 @@ function BasePlayerRoot({className, fixedHeight = false}: Props) {
         viewEl.current.style.height = `${videoDimensions.height * scale}px`;
       }
     }
-  }, [windowDimensions, videoDimensions]);
+  }, [fixedHeight, windowDimensions, videoDimensions]);
 
   return (
     <Panel fixedHeight={fixedHeight}>
