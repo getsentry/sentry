@@ -8,6 +8,7 @@ import FeatureBadge from 'sentry/components/featureBadge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {KeyMetricData, KeyMetrics} from 'sentry/components/replays/keyMetrics';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
@@ -22,10 +23,9 @@ type Props = {
   event: Event | undefined;
   orgId: string;
   crumbs?: RawCrumb[];
-  mergedReplayEvent?: Event | undefined;
 };
 
-function DetailLayout({children, event, orgId, crumbs, mergedReplayEvent}: Props) {
+function DetailLayout({children, event, orgId, crumbs}: Props) {
   const title = event ? `${event.id} - Replays - ${orgId}` : `Replays - ${orgId}`;
 
   return (
@@ -63,11 +63,7 @@ function DetailLayout({children, event, orgId, crumbs, mergedReplayEvent}: Props
               </Button>
             </ButtonWrapper>
             <EventHeader event={event} />
-            <EventMetaData
-              event={event}
-              crumbs={crumbs}
-              mergedReplayEvent={mergedReplayEvent}
-            />
+            <EventMetaData event={event} crumbs={crumbs} />
           </HeaderContent>
         </Layout.Header>
         {children}
@@ -100,11 +96,9 @@ function EventHeader({event}: Pick<Props, 'event'>) {
   );
 }
 
-function EventMetaData({
-  event,
-  crumbs,
-  mergedReplayEvent,
-}: Pick<Props, 'event' | 'crumbs' | 'mergedReplayEvent'>) {
+function EventMetaData({event, crumbs}: Pick<Props, 'event' | 'crumbs'>) {
+  const {duration} = useReplayContext();
+
   if (!event) {
     return null;
   }
@@ -121,13 +115,7 @@ function EventMetaData({
         keyName={t('Duration')}
         value={
           <Duration
-            seconds={
-              Math.floor(
-                (mergedReplayEvent?.endTimestamp || 0) -
-                  // @ts-expect-error: startTimestamp exists on the object, but not the type
-                  (mergedReplayEvent?.startTimestamp || 0)
-              ) || 1
-            }
+            seconds={Math.floor(msToSec(duration || 0)) || 1}
             abbreviation
             exact
           />
@@ -136,6 +124,10 @@ function EventMetaData({
       <KeyMetricData keyName={t('Errors')} value={errors} />
     </KeyMetrics>
   );
+}
+
+function msToSec(ms: number) {
+  return ms / 1000;
 }
 
 const HeaderContent = styled(Layout.HeaderContent)`
