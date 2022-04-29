@@ -1,10 +1,11 @@
 import {act} from 'react-dom/test-utils';
-import {triggerPress} from 'sentry-test/utils';
+
 import {selectDropdownMenuItem} from 'sentry-test/dropdownMenu';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
 import {selectByLabel} from 'sentry-test/select-new';
+import {triggerPress} from 'sentry-test/utils';
 
 import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
