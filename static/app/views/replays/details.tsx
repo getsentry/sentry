@@ -30,6 +30,7 @@ function ReplayDetails() {
     breadcrumbEntry,
     event,
     mergedReplayEvent,
+    memorySpans,
     fetchError,
     fetching,
     onRetry,
@@ -97,7 +98,11 @@ function ReplayDetails() {
           </Layout.Side>
           <Layout.Main fullWidth>
             <BreadcrumbTimeline crumbs={breadcrumbEntry?.data.values || []} />
-            <FocusArea event={event} eventWithSpans={mergedReplayEvent} />
+            <FocusArea
+              event={event}
+              eventWithSpans={mergedReplayEvent}
+              memorySpans={memorySpans}
+            />
           </Layout.Main>
         </Layout.Body>
       </ReplayContextProvider>

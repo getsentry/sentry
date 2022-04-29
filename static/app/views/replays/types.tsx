@@ -7,4 +7,4 @@ export type Replay = {
   'user.display': string;
 };
 
-export type TabBarId = 'console' | 'performance' | 'errors' | 'tags';
+export type TabBarId = 'console' | 'performance' | 'errors' | 'tags' | 'memory';

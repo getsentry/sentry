@@ -1,6 +1,7 @@
 import React, {useState} from 'react';
 
 import EventEntry from 'sentry/components/events/eventEntry';
+import {MemorySpanType} from 'sentry/components/events/interfaces/spans/types';
 import TagsTable from 'sentry/components/tagsTable';
 import {Event} from 'sentry/types/event';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -9,10 +10,12 @@ import {useRouteContext} from 'sentry/utils/useRouteContext';
 import {TabBarId} from '../types';
 
 import FocusButtons from './focusButtons';
+import MemoryChart from './memoryChart';
 
 type Props = {
   event: Event;
   eventWithSpans: Event | undefined;
+  memorySpans: MemorySpanType[] | undefined;
 };
 
 function FocusArea(props: Props) {
@@ -26,10 +29,14 @@ function FocusArea(props: Props) {
   );
 }
 
-function ActiveTab({active, event, eventWithSpans}: Props & {active: TabBarId}) {
+function ActiveTab({
+  active,
+  event,
+  eventWithSpans,
+  memorySpans,
+}: Props & {active: TabBarId}) {
   const {routes, router} = useRouteContext();
   const organization = useOrganization();
-
   switch (active) {
     case 'console':
       return <div id="console">TODO: Add a console view</div>;
@@ -56,6 +63,8 @@ function ActiveTab({active, event, eventWithSpans}: Props & {active: TabBarId}) 
           <TagsTable generateUrl={() => ''} event={event} query="" />
         </div>
       );
+    case 'memory':
+      return <MemoryChart memorySpans={memorySpans} />;
     default:
       return null;
   }
