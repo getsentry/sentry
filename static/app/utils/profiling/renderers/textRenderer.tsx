@@ -70,10 +70,18 @@ class TextRenderer {
       window.devicePixelRatio;
     const BASELINE = this.flamegraph.inverted ? configSpace.height - 1 : 0;
 
-    const drawFrame = (frame: FlamegraphFrame): void => {
+    // We start by iterating over root frames, so we draw the call stacks top-down.
+    // This allows us to do a couple optimizations that improve our best case performance.
+    // 1. We can skip drawing the entire tree if the root frame is not visible
+    // 2. We can skip drawing and
+    const frames: FlamegraphFrame[] = [...this.flamegraph.roots];
+
+    while (frames.length) {
+      const frame = frames.pop()!;
+
       // Check if our rect overlaps with the current viewport and skip it
       if (frame.end < configViewSpace.left || frame.start > configViewSpace.right) {
-        return;
+        continue;
       }
 
       // We pin the start and end of the frame, so scrolling around keeps text pinned to the left or right side of the viewport
@@ -103,7 +111,7 @@ class TextRenderer {
 
       // Since children of a frame cannot be wider than the frame itself, we can exit early and discard the entire subtree
       if (paddedRectangleWidth <= minWidth) {
-        return;
+        continue;
       }
 
       // We want to draw the text in the vertical center of the frame, so we substract half the height of the text
@@ -126,16 +134,8 @@ class TextRenderer {
       );
 
       for (let i = 0; i < frame.children.length; i++) {
-        drawFrame(frame.children[i]);
+        frames.push(frame.children[i]);
       }
-    };
-
-    // We start by iterating over root frames, so we draw the call stacks top-down.
-    // This allows us to do a couple optimizations that improve our best case performance.
-    // 1. We can skip drawing the entire tree if the root frame is not visible
-    // 2. We can skip drawing and
-    for (let i = 0; i < this.flamegraph.roots.length; i++) {
-      drawFrame(this.flamegraph.roots[i]);
     }
   }
 }
