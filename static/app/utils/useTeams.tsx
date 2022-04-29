@@ -234,7 +234,8 @@ function useTeams({limit, slugs, ids, provideUserTeams}: Options = {}) {
         limit,
       });
 
-      const fetchedTeams = uniqBy([...store.teams, ...results], ({slug}) => slug);
+      // Unique by `id` to avoid duplicates due to renames and state store data
+      const fetchedTeams = uniqBy([...results, ...store.teams], ({id}) => id);
       TeamActions.loadTeams(fetchedTeams);
 
       setState({
