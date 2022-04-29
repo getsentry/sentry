@@ -136,7 +136,7 @@ function PerformanceContent({selection, location, demoMode}: Props) {
                 period: DEFAULT_STATS_PERIOD,
               },
             }}
-            hideGlobalHeader={organization.features.includes('selection-filters-v2')}
+            hideGlobalHeader
           >
             <PerformanceLanding
               eventView={eventView}
