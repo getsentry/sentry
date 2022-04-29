@@ -81,15 +81,26 @@ class TextRenderer {
 
       // Transform frame to physical space coordinates. This does the same operation as
       // Rect.transformRect, but without allocating a new Rect object.
-      const frameInPhysicalSpace = [
-        pinnedStart * configViewToPhysicalSpace[0] +
-          frame.depth * configViewToPhysicalSpace[3] +
-          configViewToPhysicalSpace[6],
-        pinnedStart * configViewToPhysicalSpace[1] +
-          frame.depth * configViewToPhysicalSpace[4] +
-          configViewToPhysicalSpace[7],
+      const frameWidth =
         (pinnedEnd - pinnedStart) * configViewToPhysicalSpace[0] +
-          configViewToPhysicalSpace[3],
+        configViewToPhysicalSpace[3];
+      const frameHeight =
+        (pinnedEnd - pinnedStart) * configViewToPhysicalSpace[1] +
+        configViewToPhysicalSpace[4];
+      const frameX =
+        pinnedStart * configViewToPhysicalSpace[0] +
+        frame.depth * configViewToPhysicalSpace[3] +
+        configViewToPhysicalSpace[6];
+      const frameY =
+        pinnedStart * configViewToPhysicalSpace[1] +
+        frame.depth * configViewToPhysicalSpace[4] +
+        configViewToPhysicalSpace[7];
+
+      const frameInPhysicalSpace = [
+        frameX + (frameWidth < 0 ? frameWidth : 0),
+        frameY + (frameHeight < 0 ? frameHeight : 0),
+        frameWidth,
+        frameHeight,
       ];
 
       // Since the text is not exactly aligned to the left/right bounds of the frame, we need to subtract the padding
