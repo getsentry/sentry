@@ -96,4 +96,10 @@ export type FieldValue =
         name: string;
         parameters: AggregateParameter[];
       };
+    }
+  | {
+      kind: FieldValueKind.EQUATION;
+      meta: {
+        name: string;
+      };
     };

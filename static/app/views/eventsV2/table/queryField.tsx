@@ -191,6 +191,12 @@ class QueryField extends React.Component<Props> {
           };
         }
         break;
+      case FieldValueKind.EQUATION:
+        fieldValue = {
+          kind: 'equation',
+          field: '',
+        };
+        break;
       default:
         throw new Error('Invalid field type found in column picker');
     }

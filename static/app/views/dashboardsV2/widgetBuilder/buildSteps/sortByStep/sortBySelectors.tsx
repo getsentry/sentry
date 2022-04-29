@@ -117,8 +117,8 @@ export function SortBySelectors({
                           label: 'Custom Equation',
                           value: {
                             // TODO(nar): This shouldn't be rendering a chip
-                            kind: FieldValueKind.FIELD,
-                            meta: {name: 'custom-equation', dataType: 'string'},
+                            kind: FieldValueKind.EQUATION,
+                            meta: {name: 'custom-equation'},
                           },
                         },
                       }
