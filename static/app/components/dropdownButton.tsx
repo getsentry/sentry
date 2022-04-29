@@ -116,7 +116,11 @@ const StyledButton = styled(Button)<
   &:active,
   &:focus,
   &:hover {
-    ${p => p.isOpen && p.hideBottomBorder && `border-bottom-color: transparent;`}
+    ${p =>
+      p.isOpen &&
+      p.hideBottomBorder &&
+      !p.detached &&
+      `border-bottom-color: transparent;`}
   }
 `;
 

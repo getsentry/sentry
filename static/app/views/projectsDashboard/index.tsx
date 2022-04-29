@@ -103,13 +103,9 @@ function Dashboard({
     setProjectQuery(searchQuery);
   }
 
-  function handleChangeFilter(sectionId: string, activeFilters: Set<string>) {
+  function handleChangeFilter(activeFilters: Set<string>) {
     const {...currentQuery} = location.query;
-
-    let team = currentQuery.team;
-    if (sectionId === 'teams') {
-      team = activeFilters.size ? [...activeFilters] : '';
-    }
+    const team = activeFilters.size ? [...activeFilters] : '';
 
     router.push({
       pathname: location.pathname,
