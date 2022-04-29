@@ -79,7 +79,7 @@ describe('TableView > CellActions', function () {
     act(() => {
       ProjectsStore.loadInitialData(initialData.organization.projects);
       TagStore.reset();
-      TagStore.onLoadTagsSuccess([
+      TagStore.loadTagsSuccess([
         {name: 'size', key: 'size', count: 1},
         {name: 'shape', key: 'shape', count: 1},
         {name: 'direction', key: 'direction', count: 1},

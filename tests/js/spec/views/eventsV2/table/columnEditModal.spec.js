@@ -27,7 +27,7 @@ describe('EventsV2 -> ColumnEditModal', function () {
 
   beforeEach(() => {
     TagStore.reset();
-    TagStore.onLoadTagsSuccess([
+    TagStore.loadTagsSuccess([
       {name: 'browser.name', key: 'browser.name', count: 1},
       {name: 'custom-field', key: 'custom-field', count: 1},
       {name: 'user', key: 'user', count: 1},
@@ -141,7 +141,7 @@ describe('EventsV2 -> ColumnEditModal', function () {
     );
     beforeEach(() => {
       TagStore.reset();
-      TagStore.onLoadTagsSuccess([
+      TagStore.loadTagsSuccess([
         {name: 'project', key: 'project', count: 1},
         {name: 'count', key: 'count', count: 1},
       ]);
