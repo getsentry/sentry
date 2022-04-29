@@ -35,8 +35,8 @@ def get_from_profiling_service(
 def proxy_profiling_service(
     method: str,
     path: str,
-    params: Optional[Dict[Any, Any]] = None,
-    headers: Optional[Dict[Any, Any]] = None,
+    params: Optional[Dict[str, Any]] = None,
+    headers: Optional[Dict[str, str]] = None,
 ) -> StreamingHttpResponse:
     profiling_response = get_from_profiling_service(method, path, params=params, headers=headers)
 
