@@ -93,6 +93,14 @@ PREVIOUS_STATUSES = {
     GroupHistoryStatus.REGRESSED: RESOLVED_STATUSES,
 }
 
+ACTIVITY_STATUS_TO_GROUP_STATUS = {
+    Activity.SET_IGNORED: GroupHistoryStatus.IGNORED,
+    Activity.SET_RESOLVED: GroupHistoryStatus.RESOLVED,
+    Activity.SET_RESOLVED_IN_COMMIT: GroupHistoryStatus.SET_RESOLVED_IN_COMMIT,
+    Activity.SET_RESOLVED_IN_RELEASE: GroupHistoryStatus.SET_RESOLVED_IN_RELEASE,
+    Activity.SET_UNRESOLVED: GroupHistoryStatus.UNRESOLVED,
+}
+
 
 class GroupHistoryManager(BaseManager):
     def filter_to_team(self, team):
@@ -191,13 +199,7 @@ def record_group_history_from_activity_type(
     Writes a `GroupHistory` row for an activity type if there's a relevant `GroupHistoryStatus` that
     maps to it
     """
-    status = {
-        Activity.SET_IGNORED: GroupHistoryStatus.IGNORED,
-        Activity.SET_RESOLVED: GroupHistoryStatus.RESOLVED,
-        Activity.SET_RESOLVED_IN_COMMIT: GroupHistoryStatus.SET_RESOLVED_IN_COMMIT,
-        Activity.SET_RESOLVED_IN_RELEASE: GroupHistoryStatus.SET_RESOLVED_IN_RELEASE,
-        Activity.SET_UNRESOLVED: GroupHistoryStatus.UNRESOLVED,
-    }.get(activity_type, None)
+    status = ACTIVITY_STATUS_TO_GROUP_STATUS.get(activity_type, None)
     if status is not None:
         return record_group_history(group, status, actor, release)
 
