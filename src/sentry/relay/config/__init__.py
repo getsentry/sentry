@@ -26,7 +26,6 @@ from sentry.utils.sdk import configure_scope
 
 #: These features will be listed in the project config
 EXPOSABLE_FEATURES = [
-    "organizations:metrics-extraction",
     "organizations:profiling",
 ]
 
