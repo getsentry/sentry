@@ -16,14 +16,11 @@ from snuba_sdk import (
     Query,
 )
 
-# from sentry import release_health
 from sentry.release_health.release_monitor.base import BaseReleaseMonitorBackend, Totals
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.indexer.strings import SESSION_METRIC_NAMES
 from sentry.sentry_metrics.utils import resolve_tag_key
 from sentry.snuba.dataset import Dataset, EntityKey
-
-# from sentry.snuba.metrics import QueryDefinition, MetricField, get_series, OrderBy as MetricsOrderBy, MetricOperationType
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.utils import metrics
 from sentry.utils.snuba import raw_snql_query
@@ -101,32 +98,6 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
         totals: Totals = defaultdict(dict)
         with metrics.timer("release_monitor.fetch_project_release_health_totals.loop"):
             while (time.time() - start_time) < self.MAX_SECONDS:
-                # query = QueryDefinition(
-                #     org_id=org_id,
-                #     project_ids=project_ids,
-                #     select=[
-                #         MetricField("sum", "sentry.sessions.session"),
-                #         MetricField(None, "project_id"),
-                #         MetricField(None, "release"),
-                #         MetricField(None, "environment"),
-                #     ],
-                #     start=datetime.utcnow() - timedelta(hours=6),
-                #     end=datetime.utcnow(),
-                #     granularity=Granularity(21600),
-                #     where=[Condition(
-                #         Column("metric_id"),
-                #         Op.EQ,
-                #         indexer.resolve(org_id, SessionMRI.SESSION.value),
-                #     )],
-                #     groupby=[
-                #         Column("project_id"),
-                #         Column(resolve_tag_key(org_id, "release")),
-                #         Column(resolve_tag_key(org_id, "environment")),
-                #     ],
-                #     orderby=MetricsOrderBy(MetricField(None, "project_id"), Direction.ASC),
-                #     limit=self.CHUNK_SIZE + 1,
-                #     offset=offset,
-                # )
                 release_key = resolve_tag_key(org_id, "release")
                 release_col = Column(release_key)
                 env_key = resolve_tag_key(org_id, "environment")
@@ -173,9 +144,8 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
                 )
 
                 with metrics.timer("release_monitor.fetch_project_release_health_totals.query"):
-                    # data = get_series(project_ids, query)
                     data = raw_snql_query(
-                        query, referrer="release_monitor.fetch_projects_with_recent_sessions"
+                        query, referrer="release_monitor.fetch_project_release_health_totals"
                     )["data"]
                     count = len(data)
                     more_results = count > self.CHUNK_SIZE
