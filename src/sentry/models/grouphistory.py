@@ -14,7 +14,7 @@ from sentry.db.models import (
 )
 
 if TYPE_CHECKING:
-    from sentry.models import Group, Release, Team, User
+    from sentry.models import Activity, Group, Release, Team, User
 
 
 class GroupHistoryStatus:
@@ -191,7 +191,13 @@ def record_group_history_from_activity_type(
     Writes a `GroupHistory` row for an activity type if there's a relevant `GroupHistoryStatus` that
     maps to it
     """
-    status = activity_type_to_history_status(activity_type)
+    status = {
+        Activity.SET_IGNORED: GroupHistoryStatus.IGNORED,
+        Activity.SET_RESOLVED: GroupHistoryStatus.RESOLVED,
+        Activity.SET_RESOLVED_IN_COMMIT: GroupHistoryStatus.SET_RESOLVED_IN_COMMIT,
+        Activity.SET_RESOLVED_IN_RELEASE: GroupHistoryStatus.SET_RESOLVED_IN_RELEASE,
+        Activity.SET_UNRESOLVED: GroupHistoryStatus.UNRESOLVED,
+    }.get(activity_type, None)
     if status is not None:
         return record_group_history(group, status, actor, release)
 
@@ -213,21 +219,3 @@ def record_group_history(
         prev_history=prev_history,
         prev_history_date=prev_history.date_added if prev_history else None,
     )
-
-
-def activity_type_to_history_status(status):
-    from sentry.models import Activity
-
-    # TODO: This could be improved; defined above at the very least
-    if status == Activity.SET_IGNORED:
-        return GroupHistoryStatus.IGNORED
-    elif status == Activity.SET_RESOLVED:
-        return GroupHistoryStatus.RESOLVED
-    elif status == Activity.SET_RESOLVED_IN_COMMIT:
-        return GroupHistoryStatus.SET_RESOLVED_IN_COMMIT
-    elif status == Activity.SET_RESOLVED_IN_RELEASE:
-        return GroupHistoryStatus.SET_RESOLVED_IN_RELEASE
-    elif status == Activity.SET_UNRESOLVED:
-        return GroupHistoryStatus.UNRESOLVED
-
-    return None
