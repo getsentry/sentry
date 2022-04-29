@@ -229,10 +229,8 @@ function WidgetBuilder({
   const api = useApi();
 
   const [state, setState] = useState<State>(() => {
-    return {
-      title: defaultTitle ?? t('Custom Widget'),
+    const queries = normalizeQueries({
       displayType: displayType ?? DisplayType.TABLE,
-      interval: '5m',
       queries: [
         defaultWidgetQuery
           ? widgetBuilderNewDesign
@@ -250,6 +248,14 @@ function WidgetBuilder({
             : {...defaultWidgetQuery}
           : {...getDataSetQuery(widgetBuilderNewDesign)[DataSet.EVENTS]},
       ],
+      widgetType: WidgetType.DISCOVER,
+      widgetBuilderNewDesign,
+    });
+    return {
+      title: defaultTitle ?? t('Custom Widget'),
+      displayType: displayType ?? DisplayType.TABLE,
+      interval: '5m',
+      queries,
       limit,
       errors: undefined,
       loading: !!notDashboardsOrigin,
@@ -568,6 +574,7 @@ function WidgetBuilder({
 
     const newQueries = state.queries.map(query => {
       const isDescending = query.orderby.startsWith('-');
+      const orderbyPrefix = isDescending ? '-' : '';
       const rawOrderby = trimStart(query.orderby, '-');
       const prevAggregateAliasFieldStrings = query.aggregates.map(aggregate =>
         state.dataSet === DataSet.RELEASE
@@ -622,7 +629,7 @@ function WidgetBuilder({
             newOrderByValue = '';
           }
 
-          newQuery.orderby = `${isDescending ? '-' : ''}${newOrderByValue}`;
+          newQuery.orderby = `${orderbyPrefix}${newOrderByValue}`;
         } else {
           const isFromAggregates = aggregateAliasFieldStrings.includes(rawOrderby);
           const isCustomEquation = isEquation(rawOrderby);
@@ -636,7 +643,7 @@ function WidgetBuilder({
 
           newQuery.orderby = widgetBuilderNewDesign
             ? (keepCurrentOrderby && newQuery.orderby) ||
-              `${isDescending ? '-' : ''}${firstAggregateAlias}`
+              `${orderbyPrefix}${firstAggregateAlias}`
             : '';
         }
       }

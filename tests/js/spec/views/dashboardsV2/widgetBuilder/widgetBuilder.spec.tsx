@@ -1794,11 +1794,11 @@ describe('WidgetBuilder', function () {
       expect(screen.queryByPlaceholderText('Enter Equation')).not.toBeInTheDocument();
 
       await waitFor(() => {
-        expect(eventsStatsMock).toHaveBeenCalledWith(
-          '/organizations/org-slug/events-stats/',
+        expect(eventsv2Mock).toHaveBeenCalledWith(
+          '/organizations/org-slug/eventsv2/',
           expect.objectContaining({
             query: expect.objectContaining({
-              orderby: '-count',
+              sort: '-count',
             }),
           })
         );
@@ -1832,9 +1832,9 @@ describe('WidgetBuilder', function () {
 
       await selectEvent.select(await screen.findByText('count()'), /count_unique/);
       await selectEvent.select(screen.getByText('Select group'), 'project');
-      await selectEvent.select(screen.getByText('count_unique(user)'), 'project');
+      await selectEvent.select(screen.getByText('count()'), 'project');
 
-      await selectEvent.select(screen.getByText('count_unique(…)'), 'count()');
+      await selectEvent.select(screen.getByText(/count_unique/), 'count()');
 
       // project should appear in the group by field, as well as the sort field
       expect(screen.getAllByText('project')).toHaveLength(2);
@@ -1850,7 +1850,6 @@ describe('WidgetBuilder', function () {
       });
 
       userEvent.click(await screen.findByText('Add Overlay'));
-      await selectEvent.select(screen.getByText('(Required)'), /count_unique/);
       await selectEvent.select(screen.getByText('Select group'), 'project');
 
       // Change the sort by to count_unique
@@ -1860,26 +1859,8 @@ describe('WidgetBuilder', function () {
       await selectEvent.select(screen.getByText('project'), 'environment');
 
       // count_unique(user) should still be the sorting field
-      expect(await screen.findByText('count_unique(user)')).toBeInTheDocument();
-    });
-
-    it('falls back to the first aggregate to sort by when the sorting aggregate is removed', async function () {
-      renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
-        query: {
-          source: DashboardWidgetSource.DASHBOARDS,
-          displayType: DisplayType.LINE,
-        },
-      });
-
-      userEvent.click(await screen.findByText('Add Overlay'));
-      await selectEvent.select(screen.getByText('(Required)'), /count_unique/);
-      await selectEvent.select(screen.getByText('Select group'), 'project');
-
-      userEvent.click(screen.getAllByLabelText('Remove this Y-Axis')[0]);
-
-      // count_unique(user) should now be the sorting field
-      expect(screen.getByText('count_unique(user)')).toBeInTheDocument();
+      expect(screen.getByText(/count_unique/)).toBeInTheDocument();
+      expect(screen.getByText('user')).toBeInTheDocument();
     });
 
     it('does not remove the Custom Equation field if a grouping is updated', async function () {
@@ -2131,8 +2112,8 @@ describe('WidgetBuilder', function () {
 
     userEvent.click(await screen.findByText('Table'));
     userEvent.click(screen.getByText('Line Chart'));
-    await selectEvent.select(screen.getAllByText('count()')[0], 'count_unique(…)');
     await selectEvent.select(screen.getByText('Select group'), 'project');
+    await selectEvent.select(screen.getAllByText('count()')[1], 'count_unique(…)');
 
     MockApiClient.clearMockResponses();
     eventsStatsMock = MockApiClient.addMockResponse({
@@ -2145,7 +2126,7 @@ describe('WidgetBuilder', function () {
     // Assert on two calls, one for each query
     const expectedArgs = expect.objectContaining({
       query: expect.objectContaining({
-        orderby: '-count_unique_user',
+        orderby: '-count_unique(user)',
       }),
     });
     expect(eventsStatsMock).toHaveBeenNthCalledWith(
@@ -2807,7 +2788,7 @@ describe('WidgetBuilder', function () {
               yAxis: ['count()'],
               field: ['project', 'count()'],
               topEvents: 2,
-              orderby: '-count',
+              orderby: '-count()',
             }),
           })
         )
