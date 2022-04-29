@@ -75,7 +75,6 @@ export function SortBySelectors({
     setShowCustomEquation(isSortingByEquation);
   }, [values.sortBy, values.sortDirection]);
 
-  // console.log(values.sortBy, explodeField({field: values.sortBy}));
   return (
     <Tooltip title={disabledReason} disabled={!(disabledSortDirection && disabledSort)}>
       <Wrapper>

@@ -54,7 +54,7 @@ export const generateOrderOptions = ({
       }
 
       if (widgetBuilderNewDesign) {
-        options.push({label, value: field});
+        options.push({label, value: isMetrics ? field : alias});
         return;
       }
 

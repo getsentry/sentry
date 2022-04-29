@@ -97,7 +97,7 @@ function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, Widge
       fieldAliases: [],
       aggregates: ['count()'],
       conditions: '',
-      orderby: widgetBuilderNewDesign ? '-count()' : '',
+      orderby: widgetBuilderNewDesign ? '-count' : '',
     },
     [DataSet.ISSUES]: {
       name: '',
@@ -603,7 +603,11 @@ function WidgetBuilder({
         newQuery.columns = columnsAndAggregates?.columns ?? [];
       }
 
-      if (!aggregateAliasFieldStrings.includes(rawOrderby) && query.orderby !== '') {
+      if (
+        !widgetBuilderNewDesign &&
+        !aggregateAliasFieldStrings.includes(rawOrderby) &&
+        query.orderby !== ''
+      ) {
         if (
           prevAggregateAliasFieldStrings.length === newFields.length &&
           prevAggregateAliasFieldStrings.includes(rawOrderby)
@@ -682,7 +686,12 @@ function WidgetBuilder({
       if (!fieldStrings.length) {
         // The grouping was cleared, so clear the orderby
         newQuery.orderby = '';
+      } else if (widgetBuilderNewDesign && !newQuery.orderby) {
+        const isDescending = newQuery.orderby.startsWith('-');
+        const prefix = orderby && !isDescending ? '' : '-';
+        newQuery.orderby = `${prefix}count()`;
       } else if (
+        !widgetBuilderNewDesign &&
         aggregateAliasFieldStrings.length &&
         !aggregateAliasFieldStrings.includes(orderby) &&
         !newQuery.columns.includes(orderby) &&

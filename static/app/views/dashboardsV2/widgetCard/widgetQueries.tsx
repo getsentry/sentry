@@ -17,7 +17,7 @@ import {
 } from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {TableData, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import {isEquation} from 'sentry/utils/discover/fields';
+import {getAggregateAlias, isEquation} from 'sentry/utils/discover/fields';
 import {
   DiscoverQueryRequestParams,
   doDiscoverQuery,
@@ -444,14 +444,18 @@ class WidgetQueries extends React.Component<Props, State> {
           query.columns?.length !== 0
         ) {
           requestData.topEvents = widget.limit ?? TOP_N;
-          // Aggregates need to be in fields as well
-          requestData.field = [
-            ...new Set([
-              ...query.columns,
-              ...query.aggregates,
-              ...(query.orderby ? [trimStart(query.orderby, '-')] : []),
-            ]),
-          ];
+          requestData.field = [...query.columns, ...query.aggregates];
+
+          // Compare field and orderby as aliases to ensure requestData has
+          // the orderby selected
+          if (
+            query.orderby &&
+            !requestData.field
+              .map(getAggregateAlias)
+              .includes(getAggregateAlias(trimStart(query.orderby, '-')))
+          ) {
+            requestData.field.push(trimStart(query.orderby, '-'));
+          }
 
           // The "Other" series is only included when there is one
           // y-axis and one query
