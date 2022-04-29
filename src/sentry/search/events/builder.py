@@ -1235,6 +1235,7 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
         equations: Optional[List[str]] = None,
         orderby: Optional[List[str]] = None,
     ) -> None:
+        self.resolve_time_conditions()
         self.where, self.having = self.resolve_conditions(query, use_aggregate_conditions=False)
 
         # params depends on parse_query, and conditions being resolved first since there may be projects in conditions
