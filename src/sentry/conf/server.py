@@ -1048,8 +1048,6 @@ SENTRY_FEATURES = {
     "organizations:widget-library": False,
     # Enable metrics enhanced performance in dashboards
     "organizations:dashboards-mep": False,
-    # Enable metrics in dashboards -> will be deprecated in favor of mep+releases
-    "organizations:dashboards-metrics": False,
     # Enable release health widgets in dashboards
     "organizations:dashboards-releases": False,
     # Enable widget viewer modal in dashboards
