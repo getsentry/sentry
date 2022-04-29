@@ -2,14 +2,14 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import audit_log
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.bases.organization import OrganizationAuditPermission
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
+from sentry.audit_log.manager import AuditLogEventNotRegistered
 from sentry.db.models.fields.bounded import BoundedIntegerField
 from sentry.models import AuditLogEntry
-
-EVENT_REVERSE_MAP = {v: k for k, v in AuditLogEntry._meta.get_field("event").choices}
 
 
 class AuditLogQueryParamSerializer(serializers.Serializer):
@@ -18,9 +18,10 @@ class AuditLogQueryParamSerializer(serializers.Serializer):
     actor = serializers.IntegerField(required=False, max_value=BoundedIntegerField.MAX_VALUE)
 
     def validate_event(self, event):
-        if event not in EVENT_REVERSE_MAP:
-            raise serializers.ValidationError("Invalid audit log event")
-        return EVENT_REVERSE_MAP[event]
+        try:
+            return audit_log.get_event_id_from_api_name(event)
+        except AuditLogEventNotRegistered:
+            return None
 
 
 class OrganizationAuditLogsEndpoint(OrganizationEndpoint):
@@ -40,7 +41,10 @@ class OrganizationAuditLogsEndpoint(OrganizationEndpoint):
             queryset = queryset.filter(actor=query["actor"])
 
         if "event" in query:
-            queryset = queryset.filter(event=query["event"])
+            if query.get("event") is None:
+                queryset = queryset.none()
+            else:
+                queryset = queryset.filter(event=query["event"])
 
         return self.paginate(
             request=request,

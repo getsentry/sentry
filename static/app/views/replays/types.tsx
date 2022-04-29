@@ -6,3 +6,5 @@ export type Replay = {
   url: string;
   'user.display': string;
 };
+
+export type TabBarId = 'console' | 'performance' | 'errors' | 'tags' | 'memory';

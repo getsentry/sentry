@@ -15,6 +15,8 @@ import EventWaiter from 'sentry/utils/eventWaiter';
 import testableTransition from 'sentry/utils/testableTransition';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
 
+import {usePersistedOnboardingState} from '../utils';
+
 import GenericFooter from './genericFooter';
 
 interface FirstEventFooterProps {
@@ -35,6 +37,7 @@ export default function FirstEventFooter({
   handleFirstIssueReceived,
 }: FirstEventFooterProps) {
   const source = 'targeted_onboarding_first_event_footer';
+  const [clientState, setClientState] = usePersistedOnboardingState();
 
   const getSecondaryCta = () => {
     // if hasn't sent first event, allow skiping.
@@ -49,13 +52,13 @@ export default function FirstEventFooter({
     // if hasn't sent first event, allow creation of sample error
     if (!hasFirstEvent) {
       return (
-        <CreateSampleEventButton
+        <StyledCreateSampleEventButton
           project={project}
           source="targted-onboarding"
           priority="primary"
         >
           {t('View Sample Error')}
-        </CreateSampleEventButton>
+        </StyledCreateSampleEventButton>
       );
     }
 
@@ -74,12 +77,18 @@ export default function FirstEventFooter({
   return (
     <GridFooter>
       <SkipOnboardingLink
-        onClick={() =>
+        onClick={() => {
           trackAdvancedAnalyticsEvent('growth.onboarding_clicked_skip', {
             organization,
             source,
-          })
-        }
+          });
+          if (clientState) {
+            setClientState({
+              ...clientState,
+              state: 'skipped',
+            });
+          }
+        }}
         to={`/organizations/${organization.slug}/issues/`}
       >
         {t('Skip Onboarding')}
@@ -151,6 +160,10 @@ const StatusWrapper = styled(motion.div)`
   align-items: center;
   font-size: ${p => p.theme.fontSizeMedium};
   justify-content: center;
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: none;
+  }
 `;
 
 StatusWrapper.defaultProps = {
@@ -170,9 +183,19 @@ StatusWrapper.defaultProps = {
 
 const SkipOnboardingLink = styled(Link)`
   margin: auto ${space(4)};
+  white-space: nowrap;
 `;
 
 const GridFooter = styled(GenericFooter)`
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: 1fr 1fr;
+  }
+`;
+
+const StyledCreateSampleEventButton = styled(CreateSampleEventButton)`
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: none;
+  }
 `;
