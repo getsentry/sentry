@@ -17,6 +17,7 @@ import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import Redirect from 'sentry/utils/redirect';
 import {Theme} from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
 import withProjects from 'sentry/utils/withProjects';
@@ -41,6 +42,13 @@ type Props = {
 } & StepProps;
 
 function SetupDocs({organization, projects, search}: Props) {
+  let isMobile: boolean = window.innerWidth < 800;
+  if ((navigator as any).userAgentData) {
+    isMobile = (navigator as any).userAgentData.mobile;
+  }
+  // if (isMobile) {
+  // TODO: Log Experiment
+  // }
   const api = useApi();
   const [clientState, setClientState] = usePersistedOnboardingState();
   const selectedProjectsSet = new Set(
@@ -108,6 +116,13 @@ function SetupDocs({organization, projects, search}: Props) {
   useEffect(() => {
     fetchData();
   }, [project]);
+
+  if (
+    isMobile &&
+    organization.experiments.TargetedOnboardingMobileRedirectExperiment === 'hide'
+  ) {
+    return <Redirect to={`/onboarding/${organization.slug}/mobile-redirect/`} />;
+  }
 
   // TODO: add better error handling logic
   if (!project && subStep === 'project') {
@@ -220,6 +235,7 @@ function SetupDocs({organization, projects, search}: Props) {
               ]
           }
           hasFirstEvent={checkProjectHasFirstEvent(project)}
+          isMobile={isMobile}
           onClickSetupLater={() => {
             const orgIssuesURL = `/organizations/${organization.slug}/issues/?project=${project.id}`;
             trackAdvancedAnalyticsEvent(

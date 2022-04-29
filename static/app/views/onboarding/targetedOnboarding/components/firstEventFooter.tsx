@@ -23,6 +23,7 @@ interface FirstEventFooterProps {
   handleFirstIssueReceived: () => void;
   hasFirstEvent: boolean;
   isLast: boolean;
+  isMobile: boolean;
   onClickSetupLater: () => void;
   organization: Organization;
   project: Project;
@@ -35,11 +36,22 @@ export default function FirstEventFooter({
   isLast,
   hasFirstEvent,
   handleFirstIssueReceived,
+  isMobile,
 }: FirstEventFooterProps) {
   const source = 'targeted_onboarding_first_event_footer';
   const [clientState, setClientState] = usePersistedOnboardingState();
 
   const getSecondaryCta = () => {
+    if (
+      isMobile &&
+      organization.experiments.TargetedOnboardingMobileRedirectExperiment === 'email-cta'
+    ) {
+      return (
+        <Button to={`/onboarding/${organization.slug}/mobile-redirect/`}>
+          {t('Do it Later')}
+        </Button>
+      );
+    }
     // if hasn't sent first event, allow skiping.
     // if last, no secondary cta
     if (!hasFirstEvent && !isLast) {
