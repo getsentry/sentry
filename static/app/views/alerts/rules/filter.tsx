@@ -52,7 +52,6 @@ function Filter({
     <DropdownControl
       menuWidth="240px"
       fullWidth={fullWidth}
-      blendWithActor
       alwaysRenderMenu={false}
       button={({isOpen, getActorProps}) => (
         <StyledDropdownButton
@@ -63,6 +62,7 @@ function Filter({
           data-test-id="filter-button"
           fullWidth={fullWidth}
           rightAlignChevron={fullWidth}
+          detached
         >
           <DropdownButtonText fullWidth={fullWidth}>
             {filterDescription}
