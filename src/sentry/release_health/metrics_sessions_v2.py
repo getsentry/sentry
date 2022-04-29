@@ -329,6 +329,39 @@ class DurationField(Field):
         return value
 
 
+class SimpleForwardingField(Field):
+    """A field that forwards a metrics API field 1:1.
+
+    On this type of field, grouping and filtering by session.status is impossible
+    """
+
+    field_name_to_metric_name = {
+        "crash_rate(session)": SessionMetricKey.CRASH_RATE,
+        "crash_rate(user)": SessionMetricKey.CRASH_USER_RATE,
+        "crash_free_rate(session)": SessionMetricKey.CRASH_FREE_RATE,
+        "crash_free_rate(user)": SessionMetricKey.CRASH_FREE_USER_RATE,
+    }
+
+    def __init__(self, name: str, raw_groupby: Sequence[str], status_filter: StatusFilter):
+        if "session.status" in raw_groupby:
+            raise InvalidParams(f"Cannot group field {name} by session.status")
+        if status_filter is not None:
+            raise InvalidParams(f"Cannot filter field {name} by session.status")
+
+        metric_name = self.field_name_to_metric_name[name].value
+        self._metric_field = MetricField(None, metric_name)
+
+        super().__init__(name, raw_groupby, status_filter)
+
+    def _get_session_status(self, metric_field: MetricField) -> Optional[SessionStatus]:
+        return None
+
+    def _get_metric_fields(
+        self, raw_groupby: Sequence[str], status_filter: StatusFilter
+    ) -> Sequence[MetricField]:
+        return [self._metric_field]
+
+
 FIELD_MAP: Mapping[SessionsQueryFunction, Type[Field]] = {
     "sum(session)": SumSessionField,
     "count_unique(user)": CountUniqueUser,
@@ -339,6 +372,10 @@ FIELD_MAP: Mapping[SessionsQueryFunction, Type[Field]] = {
     "p95(session.duration)": DurationField,
     "p99(session.duration)": DurationField,
     "max(session.duration)": DurationField,
+    "crash_rate(session)": SimpleForwardingField,
+    "crash_rate(user)": SimpleForwardingField,
+    "crash_free_rate(session)": SimpleForwardingField,
+    "crash_free_rate(user)": SimpleForwardingField,
 }
 
 

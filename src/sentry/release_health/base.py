@@ -40,6 +40,10 @@ SessionsQueryFunction = Literal[
     "p95(session.duration)",
     "p99(session.duration)",
     "max(session.duration)",
+    "crash_rate(session)",
+    "crash_rate(user)",
+    "crash_free_rate(session)",
+    "crash_free_rate(user)",
 ]
 
 GroupByFieldName = Literal[
