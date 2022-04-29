@@ -15,7 +15,6 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {RawCrumb} from 'sentry/types/breadcrumbs';
 import {Event} from 'sentry/types/event';
-import {generateEventSlug} from 'sentry/utils/discover/urls';
 import getUrlPathname from 'sentry/utils/getUrlPathname';
 
 type Props = {
@@ -37,20 +36,15 @@ function DetailLayout({children, event, orgId, crumbs}: Props) {
               crumbs={[
                 {
                   to: `/organizations/${orgId}/replays/`,
+                  label: t('Replays'),
+                },
+                {
                   label: (
                     <React.Fragment>
-                      {t('Replays')}
+                      {t('Replay Details')}
                       <FeatureBadge type="alpha" />
                     </React.Fragment>
                   ),
-                },
-                {
-                  label: event
-                    ? generateEventSlug({
-                        project: event.projectSlug,
-                        id: event.id,
-                      })
-                    : t('Replay'),
                 },
               ]}
             />
