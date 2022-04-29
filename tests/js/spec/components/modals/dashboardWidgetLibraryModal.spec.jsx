@@ -36,7 +36,6 @@ function mountModal({initialData}, onApply, closeModal, widgets = []) {
 describe('Modals -> DashboardWidgetLibraryModal', function () {
   const initialData = initializeOrg({
     organization: {
-      features: ['widget-library'],
       apdexThreshold: 400,
     },
   });

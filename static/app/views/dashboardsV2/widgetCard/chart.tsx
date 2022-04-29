@@ -293,7 +293,9 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
             ref={el => {
               if (el !== null && !!!expandNumbers) {
                 const {height} = el.getBoundingClientRect();
-                this.setState({containerHeight: height});
+                if (height !== this.state.containerHeight) {
+                  this.setState({containerHeight: height});
+                }
               }
             }}
           >

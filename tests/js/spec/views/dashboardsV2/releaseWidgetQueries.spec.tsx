@@ -297,7 +297,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
           environment: ['prod'],
           field: ['sum(session)'],
           groupBy: [],
-          interval: '1h',
+          interval: '30m',
           project: [1],
           statsPeriod: '14d',
         },
@@ -311,7 +311,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
           environment: ['prod'],
           field: ['sum(session)'],
           groupBy: [],
-          interval: '1h',
+          interval: '30m',
           project: [1],
           query: 'environment:prod',
           statsPeriod: '14d',
@@ -379,7 +379,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          interval: '1d',
+          interval: '4h',
           statsPeriod: '90d',
           environment: ['prod'],
           project: [1],
