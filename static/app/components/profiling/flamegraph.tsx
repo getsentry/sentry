@@ -43,7 +43,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
     if (
       !props.profiles.profiles[activeProfileIndex ?? props.profiles.activeProfileIndex]
     ) {
-      // This could happen if activeProfileIndex was initialized from localStorage, but for some
+      // This could happen if activeProfileIndex was initialized from query string, but for some
       // reason the profile was removed from the list of profiles.
       return FlamegraphModel.Empty();
     }
