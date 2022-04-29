@@ -2455,7 +2455,7 @@ describe('WidgetBuilder', function () {
       expect(screen.getByText('Limit to 5 results')).toBeInTheDocument();
 
       await waitFor(() =>
-        expect(metricsDataMock).toHaveBeenLastCalledWith(
+        expect(sessionsDataMock).toHaveBeenLastCalledWith(
           `/organizations/org-slug/sessions/`,
           expect.objectContaining({
             query: expect.objectContaining({
