@@ -120,13 +120,9 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   }
 
   getDefaultState(): State {
-    const {
-      rule,
-      location: {
-        query: {aggregate, eventTypes: _eventTypes, dataset},
-      },
-    } = this.props;
+    const {rule, location} = this.props;
     const triggersClone = [...rule.triggers];
+    const {aggregate, eventTypes: _eventTypes, dataset} = location?.query ?? {};
     const eventTypes = typeof _eventTypes === 'string' ? [_eventTypes] : _eventTypes;
 
     // Warning trigger is removed if it is blank when saving
