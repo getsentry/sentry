@@ -12,7 +12,7 @@ type Props = {
   setActive: (id: TabBarId) => void;
 };
 
-function FocusButtons({active, setActive}: Props) {
+function FocusTabs({active, setActive}: Props) {
   const select = (barId: TabBarId) => () => {
     setActive(barId);
   };
@@ -48,4 +48,4 @@ const FullBleedNavTabs = styled(NavTabs)`
   padding-inline: ${space(4)};
 `;
 
-export default FocusButtons;
+export default FocusTabs;

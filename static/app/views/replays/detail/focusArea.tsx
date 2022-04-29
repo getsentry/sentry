@@ -8,7 +8,7 @@ import {useRouteContext} from 'sentry/utils/useRouteContext';
 
 import {TabBarId} from '../types';
 
-import FocusButtons from './focusButtons';
+import FocusTabs from './focusTabs';
 
 type Props = {
   event: Event;
@@ -20,7 +20,7 @@ function FocusArea(props: Props) {
 
   return (
     <React.Fragment>
-      <FocusButtons active={active} setActive={setActive} />
+      <FocusTabs active={active} setActive={setActive} />
       <ActiveTab active={active} {...props} />
     </React.Fragment>
   );
