@@ -39,6 +39,11 @@ function FocusTabs({active, setActive}: Props) {
           {t('Tags')}
         </a>
       </li>
+      <li className={active === 'memory' ? 'active' : ''}>
+        <a href="#memory" onClick={select('memory')}>
+          {t('Memory')}
+        </a>
+      </li>
     </FullBleedNavTabs>
   );
 }
