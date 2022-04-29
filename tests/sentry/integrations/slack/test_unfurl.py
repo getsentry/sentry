@@ -7,10 +7,9 @@ from django.test import RequestFactory
 from sentry.charts.types import ChartType
 from sentry.discover.models import DiscoverSavedQuery
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
-from sentry.incidents.models import IncidentStatus
 from sentry.integrations.slack.message_builder.discover import SlackDiscoverMessageBuilder
-from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
+from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
 from sentry.integrations.slack.unfurl import LinkType, UnfurlableUrl, link_handlers, match_link
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import install_slack
@@ -27,7 +26,17 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
         ),
         (
             "https://sentry.io/organizations/org1/alerts/rules/details/12345/",
-            (LinkType.INCIDENTS, {"incident_id": 12345, "org_slug": "org1"}),
+            (
+                LinkType.METRIC_ALERT,
+                {"alert_rule_id": 12345, "incident_id": None, "org_slug": "org1"},
+            ),
+        ),
+        (
+            "https://sentry.io/organizations/org1/alerts/rules/details/12345/?alert=1337",
+            (
+                LinkType.METRIC_ALERT,
+                {"alert_rule_id": 12345, "incident_id": 1337, "org_slug": "org1"},
+            ),
         ),
         (
             "https://sentry.io/organizations/org1/discover/results/?project=1&yAxis=count()",
@@ -75,7 +84,7 @@ class UnfurlTest(TestCase):
             == SlackIssuesMessageBuilder(group2, event, link_to_event=True).build()
         )
 
-    def test_unfurl_incidents(self):
+    def test_unfurl_metric_alert(self):
         alert_rule = self.create_alert_rule()
 
         incident = self.create_incident(
@@ -89,17 +98,21 @@ class UnfurlTest(TestCase):
 
         links = [
             UnfurlableUrl(
-                url=f"https://sentry.io/organizations/{self.organization.slug}/alerts/rules/details/{incident.identifier}/",
-                args={"org_slug": self.organization.slug, "incident_id": incident.identifier},
+                url=f"https://sentry.io/organizations/{self.organization.slug}/alerts/rules/details/{incident.alert_rule.id}/?alert={incident.identifier}",
+                args={
+                    "org_slug": self.organization.slug,
+                    "alert_rule_id": incident.alert_rule.id,
+                    "incident_id": incident.identifier,
+                },
             ),
         ]
-        unfurls = link_handlers[LinkType.INCIDENTS].fn(self.request, self.integration, links)
+        unfurls = link_handlers[LinkType.METRIC_ALERT].fn(self.request, self.integration, links)
         assert (
             links[0].url
-            == f"https://sentry.io/organizations/{self.organization.slug}/alerts/rules/details/{incident.identifier}/"
+            == f"https://sentry.io/organizations/{self.organization.slug}/alerts/rules/details/{incident.alert_rule.id}/?alert={incident.identifier}"
         )
-        assert unfurls[links[0].url] == SlackIncidentsMessageBuilder(
-            incident, IncidentStatus.CLOSED
+        assert unfurls[links[0].url] == SlackMetricAlertMessageBuilder(
+            incident.alert_rule, incident
         ).build(unfurl=True)
 
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")

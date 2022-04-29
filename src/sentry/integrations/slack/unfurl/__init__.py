@@ -13,7 +13,7 @@ ArgsMapper = Callable[[str, Mapping[str, str]], Mapping[str, Any]]
 
 class LinkType(enum.Enum):
     ISSUES = "issues"
-    INCIDENTS = "incidents"
+    METRIC_ALERT = "metric_alert"
     DISCOVER = "discover"
 
 
@@ -41,12 +41,12 @@ def make_type_coercer(type_map: Mapping[str, type]) -> ArgsMapper:
 
 
 from .discover import handler as discover_handler
-from .incidents import handler as incidents_handler
 from .issues import handler as issues_handler
+from .metric_alerts import handler as metric_alert_handler
 
 link_handlers = {
     LinkType.DISCOVER: discover_handler,
-    LinkType.INCIDENTS: incidents_handler,
+    LinkType.METRIC_ALERT: metric_alert_handler,
     LinkType.ISSUES: issues_handler,
 }
 
