@@ -1651,21 +1651,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             entity="metrics_counters",
         )
 
-        # Can get session healthy even before all components exist
-        # (projects that send errored_preaggr usually do not send individual errors)
-        response = self.get_success_response(
-            self.organization.slug,
-            field=["session.healthy"],
-            statsPeriod="6m",
-            interval="6m",
-        )
-        print(response.data["groups"])
-        group = response.data["groups"][0]
-        assert group["totals"]["session.healthy"] == 6
-        assert group["series"]["session.healthy"] == [6]
-
-        print("--------------")
-
         self._send_buckets(
             [
                 {
@@ -1694,6 +1679,54 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         group = response.data["groups"][0]
         assert group["totals"]["session.healthy"] == 3
         assert group["series"]["session.healthy"] == [3]
+
+    def test_healthy_sessions_preaggr(self):
+        """Healthy sessions works also when there are no individual errors"""
+        user_ts = time.time()
+        org_id = self.organization.id
+        self._send_buckets(
+            [
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_metric,
+                    "timestamp": (user_ts // 60) * 60,
+                    "tags": {
+                        self.session_status_tag: indexer.record(org_id, "errored_preaggr"),
+                        self.release_tag: indexer.record(org_id, "foo"),
+                    },
+                    "type": "c",
+                    "value": 4,
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.session_status_tag: indexer.record(org_id, "init"),
+                        self.release_tag: indexer.record(org_id, "foo"),
+                    },
+                    "type": "c",
+                    "value": 10,
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_counters",
+        )
+        # Can get session healthy even before all components exist
+        # (projects that send errored_preaggr usually do not send individual errors)
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["session.healthy"],
+            statsPeriod="6m",
+            interval="6m",
+        )
+        print(response.data["groups"])
+        group = response.data["groups"][0]
+        assert group["totals"]["session.healthy"] == 6
+        assert group["series"]["session.healthy"] == [6]
 
     def test_errored_user_sessions(self):
         org_id = self.organization.id
