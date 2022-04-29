@@ -7,7 +7,7 @@ import {
   ProfileGroup,
 } from 'sentry/utils/profiling/profile/importProfile';
 
-interface ProfileImportProps {
+export interface ProfileDragDropImportProps {
   children: React.ReactNode;
   onImport: (profile: ProfileGroup) => void;
 }
@@ -15,7 +15,7 @@ interface ProfileImportProps {
 function ProfileDragDropImport({
   onImport,
   children,
-}: ProfileImportProps): React.ReactElement {
+}: ProfileDragDropImportProps): React.ReactElement {
   const [dropState, setDropState] = React.useState<'idle' | 'dragover' | 'processing'>(
     'idle'
   );

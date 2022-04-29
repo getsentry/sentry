@@ -163,6 +163,7 @@ interface FlamegraphStateProviderProps {
 const DEFAULT_FLAMEGRAPH_STATE: FlamegraphState = {
   profiles: {
     activeProfileIndex: null,
+    selectedNode: null,
   },
   position: {
     view: Rect.Empty(),
@@ -185,6 +186,7 @@ export function FlamegraphStateProvider(
 ): React.ReactElement {
   const reducer = useUndoableReducer(combinedReducers, {
     profiles: {
+      selectedNode: null,
       activeProfileIndex:
         props.initialState?.profiles?.activeProfileIndex ??
         DEFAULT_FLAMEGRAPH_STATE.profiles.activeProfileIndex,
