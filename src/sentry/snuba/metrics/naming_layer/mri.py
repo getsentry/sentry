@@ -38,6 +38,7 @@ class SessionMRI(Enum):
     CRASHED_AND_ABNORMAL = "e:sessions/crashed_abnormal@none"
     CRASHED = "e:sessions/crashed@none"
     ABNORMAL = "e:sessions/abnormal@none"
+    CRASH_RATE = "e:sessions/crash_rate@ratio"
     CRASH_FREE_RATE = "e:sessions/crash_free_rate@ratio"
     ALL_USER = "e:sessions/user.all@none"
     HEALTHY_USER = "e:sessions/user.healthy@none"
@@ -46,6 +47,7 @@ class SessionMRI(Enum):
     CRASHED_AND_ABNORMAL_USER = "e:sessions/user.crashed_abnormal@none"
     CRASHED_USER = "e:sessions/user.crashed@none"
     ABNORMAL_USER = "e:sessions/user.abnormal@none"
+    CRASH_USER_RATE = "e:sessions/user.crash_rate@ratio"
     CRASH_FREE_USER_RATE = "e:sessions/user.crash_free_rate@ratio"
     DURATION = "d:sessions/duration.exited@second"
 

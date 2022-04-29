@@ -42,9 +42,10 @@ from sentry.snuba.metrics.fields.snql import (
     abnormal_sessions,
     addition,
     all_sessions,
+    complement,
     crashed_sessions,
+    division_float,
     errored_preaggr_sessions,
-    percentage,
     uniq_aggregation_on_metric,
 )
 from sentry.snuba.metrics.naming_layer.mapping import get_mri
@@ -438,16 +439,19 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2, monkeypatch):
                         ),
                         alias=SessionMRI.CRASHED_AND_ABNORMAL.value,
                     ),
-                    percentage(
-                        crashed_sessions(
-                            org_id,
-                            metric_ids=[resolve_weak(org_id, SessionMRI.SESSION.value)],
-                            alias=SessionMRI.CRASHED.value,
-                        ),
-                        all_sessions(
-                            org_id,
-                            metric_ids=[resolve_weak(org_id, SessionMRI.SESSION.value)],
-                            alias=SessionMRI.ALL.value,
+                    complement(
+                        division_float(
+                            crashed_sessions(
+                                org_id,
+                                metric_ids=[resolve_weak(org_id, SessionMRI.SESSION.value)],
+                                alias=SessionMRI.CRASHED.value,
+                            ),
+                            all_sessions(
+                                org_id,
+                                metric_ids=[resolve_weak(org_id, SessionMRI.SESSION.value)],
+                                alias=SessionMRI.ALL.value,
+                            ),
+                            alias=SessionMRI.CRASH_RATE.value,
                         ),
                         alias=SessionMRI.CRASH_FREE_RATE.value,
                     ),
