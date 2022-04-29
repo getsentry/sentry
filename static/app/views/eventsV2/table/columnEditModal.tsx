@@ -40,14 +40,14 @@ function ColumnEditModal(props: Props) {
     closeModal,
   } = props;
 
-  // Run on initial render.
+  // Only run once for each organization.id.
   useEffect(() => {
     trackAnalyticsEvent({
       eventKey: 'discover_v2.column_editor.open',
       eventName: 'Discoverv2: Open column editor',
       organization_id: parseInt(organization.id, 10),
     });
-  }, []);
+  }, [organization.id]);
 
   const tags = useLegacyStore(TagStore);
   const tagKeys = Object.values(tags).map(({key}) => key);
