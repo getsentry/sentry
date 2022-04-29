@@ -17,6 +17,10 @@ const formatTimestamp = timestamp =>
   getFormattedDate(timestamp * 1000, 'MMM D, YYYY HH:mm:ss');
 
 function MemoryChart({memorySpans = []}: Props) {
+  if (memorySpans.length <= 0) {
+    return <EmptyMessage>{t('No memory metrics exist for replay.')}</EmptyMessage>;
+  }
+
   const chartOptions: Omit<AreaChartProps, 'series'> = {
     grid: {
       left: '10px',
@@ -79,14 +83,12 @@ function MemoryChart({memorySpans = []}: Props) {
       },
     },
   ];
-  return memorySpans.length > 0 ? (
+  return (
     <MemoryChartContainer>
       <MemoryChartWrapper>
         <AreaChart series={series} {...chartOptions} />
       </MemoryChartWrapper>
     </MemoryChartContainer>
-  ) : (
-    <EmptyMessage>{t('No memory metrics exist for replay.')}</EmptyMessage>
   );
 }
 
