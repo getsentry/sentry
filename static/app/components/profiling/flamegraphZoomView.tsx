@@ -5,7 +5,6 @@ import {mat3, vec2} from 'gl-matrix';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {useFlamegraphPreferencesValue} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
 import {
   useDispatchFlamegraphState,
   useFlamegraphState,
@@ -39,7 +38,6 @@ function FlamegraphZoomView({
   >(null);
 
   const [dispatch, {previousState, nextState}] = useDispatchFlamegraphState();
-  const flamegraphPreferences = useFlamegraphPreferencesValue();
 
   const [flamegraphCanvasRef, setFlamegraphCanvasRef] =
     useState<HTMLCanvasElement | null>(null);
@@ -69,7 +67,7 @@ function FlamegraphZoomView({
 
         // If we have previous position on the flamechart, apply it to the new renderer
         if (
-          (!previousRenderer || previousRenderer.flamegraph) &&
+          previousRenderer?.flamegraph.isEmpty &&
           !flamegraphState.position.view.isEmpty()
         ) {
           renderer.setConfigView(
@@ -114,13 +112,7 @@ function FlamegraphZoomView({
       // If we have no renderer, then the canvas is not initialize yet and we cannot initialize the renderer
       return null;
     },
-    [
-      flamegraphCanvasRef,
-      flamegraphTheme,
-      flamegraph,
-      canvasPoolManager,
-      flamegraphPreferences.colorCoding,
-    ]
+    [flamegraphCanvasRef, flamegraphTheme, flamegraph, canvasPoolManager]
   );
 
   const textRenderer: TextRenderer | null = useMemo(() => {
