@@ -19,7 +19,7 @@ function CreateNewIntegration({Body, Header, Footer, closeModal, orgSlug}: Props
   const choices = [
     [
       'internal',
-      <RadioChoiceHeader key="header-internal">
+      <RadioChoiceHeader data-test-id="internal-integration" key="header-internal">
         {t('Internal Integration')}
       </RadioChoiceHeader>,
       <RadioChoiceDescription key="description-internal">
@@ -37,7 +37,7 @@ function CreateNewIntegration({Body, Header, Footer, closeModal, orgSlug}: Props
     ],
     [
       'public',
-      <RadioChoiceHeader key="header-public">
+      <RadioChoiceHeader data-test-id="public-integration" key="header-public">
         {t('Public Integration')}
       </RadioChoiceHeader>,
       <RadioChoiceDescription key="description-public">
