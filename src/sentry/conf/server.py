@@ -1052,6 +1052,8 @@ SENTRY_FEATURES = {
     "organizations:dashboards-releases": False,
     # Enable widget viewer modal in dashboards
     "organizations:widget-viewer-modal": False,
+    # Enable minimap in the widget viewer modal in dashboards
+    "organizations:widget-viewer-modal-minimap": False,
     # Enable experimental performance improvements.
     "organizations:enterprise-perf": False,
     # Enable the API to importing CODEOWNERS for a project
