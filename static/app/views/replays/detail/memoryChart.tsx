@@ -84,22 +84,17 @@ function MemoryChart({memorySpans = []}: Props) {
     },
   ];
   return (
-    <MemoryChartContainer>
-      <MemoryChartWrapper>
-        <AreaChart series={series} {...chartOptions} />
-      </MemoryChartWrapper>
-    </MemoryChartContainer>
+    <MemoryChartWrapper>
+      <AreaChart series={series} {...chartOptions} />
+    </MemoryChartWrapper>
   );
 }
 
 const MemoryChartWrapper = styled('div')`
   margin-top: ${space(2)};
+  margin-bottom: ${space(3)};
   border-radius: ${space(0.5)};
   border: 1px solid ${p => p.theme.border};
-`;
-
-const MemoryChartContainer = styled('div')`
-  padding-bottom: ${space(3)};
 `;
 
 export default MemoryChart;
