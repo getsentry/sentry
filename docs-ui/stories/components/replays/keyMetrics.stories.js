@@ -7,8 +7,8 @@ export default {
 
 const Template = () => (
   <KeyMetrics>
-    <KeyMetricData keyName="Timestamp" value="17h ago" />
-    <KeyMetricData keyName="Duration" value="2m 50s" />
+    <KeyMetricData keyName="Timestamp" value="9 hours ago" />
+    <KeyMetricData keyName="Duration" value="1min 52s" />
     <KeyMetricData keyName="Errors" value="2" />
   </KeyMetrics>
 );
