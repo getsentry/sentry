@@ -62,6 +62,7 @@ const PlatformList = styled('div')`
   display: grid;
   gap: ${space(1)};
   grid-template-columns: repeat(auto-fill, 112px);
+  justify-content: center;
   margin-bottom: ${space(2)};
 `;
 
@@ -233,9 +234,8 @@ function PlatformPicker(props: PlatformPickerProps) {
 
 const NavContainer = styled('div')`
   margin-bottom: ${space(2)};
-  display: grid;
-  gap: ${space(2)};
-  grid-template-columns: 1fr minmax(0, 300px);
+  display: flex;
+  flex-direction: row;
   align-items: start;
   border-bottom: 1px solid ${p => p.theme.border};
 `;
@@ -261,12 +261,24 @@ const SearchBar = styled('div')`
       outline: none;
     }
   }
+
+  max-width: 300px;
+  min-width: 150px;
+  margin-left: auto;
+  flex-shrink: 0;
+  flex-basis: 0;
+  flex-grow: 1;
 `;
 
 const CategoryNav = styled(NavTabs)`
   margin: 0;
   margin-top: 4px;
   white-space: nowrap;
+  overflow-x: scroll;
+  overflow-y: hidden;
+  margin-right: ${space(1)};
+  flex-shrink: 1;
+  flex-grow: 0;
 
   > li {
     float: none;
