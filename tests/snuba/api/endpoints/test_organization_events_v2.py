@@ -5037,6 +5037,20 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             == "Parse error at 'hi \n ther' (column 4). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
         )
 
+    def test_percentile_with_no_data(self):
+        response = self.do_request(
+            {
+                "field": ["p50()"],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "metricsEnhanced",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["p50"] == 0
+
     def test_project_name(self):
         self.store_metric(
             1,

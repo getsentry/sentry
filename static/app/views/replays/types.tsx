@@ -12,4 +12,4 @@ export type Replay = {
   'user.username': string;
 };
 
-export type TabBarId = 'console' | 'performance' | 'errors' | 'tags';
+export type TabBarId = 'console' | 'performance' | 'errors' | 'tags' | 'memory';

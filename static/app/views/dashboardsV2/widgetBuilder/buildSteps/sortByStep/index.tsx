@@ -47,7 +47,7 @@ export function SortByStep({
   let disabledSortDirection = false;
   let disabledReason: string | undefined = undefined;
 
-  if (widgetType === WidgetType.METRICS && fields.includes('session.status')) {
+  if (widgetType === WidgetType.RELEASE && fields.includes('session.status')) {
     disabledSort = true;
     disabledSortDirection = true;
     disabledReason = t('Sorting currently not supported with session.status');

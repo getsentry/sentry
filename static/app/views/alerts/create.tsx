@@ -159,7 +159,6 @@ class Create extends Component<Props, State> {
                         wizardTemplate={wizardTemplate}
                         sessionId={this.sessionId}
                         project={project}
-                        isCustomMetric={wizardAlertType === 'custom'}
                         userTeamIds={teams.map(({id}) => id)}
                       />
                     )}
