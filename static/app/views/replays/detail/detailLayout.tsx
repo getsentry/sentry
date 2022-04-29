@@ -2,12 +2,17 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
+import Button from 'sentry/components/button';
+import Duration from 'sentry/components/duration';
 import FeatureBadge from 'sentry/components/featureBadge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {KeyMetricData, KeyMetrics} from 'sentry/components/replays/keyMetrics';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {RawCrumb} from 'sentry/types/breadcrumbs';
 import {Event} from 'sentry/types/event';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import getUrlPathname from 'sentry/utils/getUrlPathname';
@@ -16,16 +21,18 @@ type Props = {
   children: React.ReactNode;
   event: Event | undefined;
   orgId: string;
+  crumbs?: RawCrumb[];
+  mergedReplayEvent?: Event | undefined;
 };
 
-function DetailLayout({children, event, orgId}: Props) {
+function DetailLayout({children, event, orgId, crumbs, mergedReplayEvent}: Props) {
   const title = event ? `${event.id} - Replays - ${orgId}` : `Replays - ${orgId}`;
 
   return (
     <SentryDocumentTitle title={title}>
       <React.Fragment>
         <Layout.Header>
-          <Layout.HeaderContent>
+          <HeaderContent>
             <Breadcrumbs
               crumbs={[
                 {
@@ -47,8 +54,21 @@ function DetailLayout({children, event, orgId}: Props) {
                 },
               ]}
             />
+            <ButtonWrapper>
+              <Button
+                title={t('Send us feedback via email')}
+                href="mailto:replay-feedback@sentry.io?subject=Replay Details Feedback"
+              >
+                {t('Give Feedback')}
+              </Button>
+            </ButtonWrapper>
             <EventHeader event={event} />
-          </Layout.HeaderContent>
+            <EventMetaData
+              event={event}
+              crumbs={crumbs}
+              mergedReplayEvent={mergedReplayEvent}
+            />
+          </HeaderContent>
         </Layout.Header>
         {children}
       </React.Fragment>
@@ -65,26 +85,68 @@ function EventHeader({event}: Pick<Props, 'event'>) {
   const pathname = getUrlPathname(urlTag?.value ?? '') ?? '';
 
   return (
-    <EventHeaderContainer data-test-id="event-header">
-      <UserBadge
-        avatarSize={32}
-        user={{
-          username: event.user?.username ?? '',
-          id: event.user?.id ?? '',
-          ip_address: event.user?.ip_address ?? '',
-          name: event.user?.name ?? '',
-          email: event.user?.email ?? '',
-        }}
-        // this is the subheading for the avatar, so displayEmail in this case is a misnomer
-        displayEmail={pathname}
-      />
-    </EventHeaderContainer>
+    <UserBadge
+      avatarSize={32}
+      user={{
+        username: event.user?.username ?? '',
+        id: event.user?.id ?? '',
+        ip_address: event.user?.ip_address ?? '',
+        name: event.user?.name ?? '',
+        email: event.user?.email ?? '',
+      }}
+      // this is the subheading for the avatar, so displayEmail in this case is a misnomer
+      displayEmail={pathname}
+    />
   );
 }
 
-const EventHeaderContainer = styled('div')`
-  max-width: ${p => p.theme.breakpoints[0]};
-  margin-top: ${space(1)};
+function EventMetaData({
+  event,
+  crumbs,
+  mergedReplayEvent,
+}: Pick<Props, 'event' | 'crumbs' | 'mergedReplayEvent'>) {
+  if (!event) {
+    return null;
+  }
+
+  const errors = crumbs?.filter(crumb => crumb.type === 'error').length;
+
+  return (
+    <KeyMetrics>
+      <KeyMetricData
+        keyName={t('Timestamp')}
+        value={<TimeSince date={event.dateReceived} />}
+      />
+      <KeyMetricData
+        keyName={t('Duration')}
+        value={
+          <Duration
+            seconds={
+              Math.floor(
+                (mergedReplayEvent?.endTimestamp || 0) -
+                  // @ts-expect-error: startTimestamp exists on the object, but not the type
+                  (mergedReplayEvent?.startTimestamp || 0)
+              ) || 1
+            }
+            abbreviation
+            exact
+          />
+        }
+      />
+      <KeyMetricData keyName={t('Errors')} value={errors} />
+    </KeyMetrics>
+  );
+}
+
+const HeaderContent = styled(Layout.HeaderContent)`
+  display: grid;
+  grid-template-rows: auto auto;
+  grid-template-columns: 2fr 1fr;
+  gap: ${space(1)};
+`;
+
+const ButtonWrapper = styled('div')`
+  text-align: right;
 `;
 
 export default DetailLayout;

@@ -83,7 +83,12 @@ function ReplayDetails() {
   }
 
   return (
-    <DetailLayout event={event} orgId={orgId}>
+    <DetailLayout
+      event={event}
+      orgId={orgId}
+      crumbs={breadcrumbEntry?.data.values || []}
+      mergedReplayEvent={mergedReplayEvent}
+    >
       <ReplayContextProvider events={rrwebEvents}>
         <Layout.Body>
           <ReplayLayout ref={fullscreenRef}>
