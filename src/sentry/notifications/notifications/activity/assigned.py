@@ -2,102 +2,73 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from sentry.models import Team, User
+from sentry.models import Activity, Organization, Team, User
 
 from .base import GroupActivityNotification
+
+
+def _get_user_option(assignee_id: int) -> User | None:
+    try:
+        return User.objects.get_from_cache(id=assignee_id)
+    except User.DoesNotExist:
+        return None
+
+
+def _get_team_option(assignee_id: int, organization: Organization) -> Team | None:
+    try:
+        return Team.objects.get(id=assignee_id, organization=organization)
+    except Team.DoesNotExist:
+        return None
+
+
+def get_assignee_str(activity: Activity, organization: Organization) -> str:
+    """Get a human-readable version of the assignment's target."""
+
+    assignee_id = activity.data.get("assignee")
+    assignee_type = activity.data.get("assigneeType", "user")
+    assignee_email = activity.data.get("assigneeEmail")
+
+    if assignee_type == "user":
+        if activity.user_id == assignee_id:
+            return "themselves"
+
+        assignee_user = _get_user_option(assignee_id)
+        if assignee_user:
+            return assignee_user.get_display_name()
+        if assignee_email:
+            return assignee_email
+        return "an unknown user"
+
+    if assignee_type == "team":
+        assignee_team = _get_team_option(assignee_id, organization)
+        if assignee_team:
+            return f"the {assignee_team.slug} team"
+        return "an unknown team"
+
+    raise NotImplementedError("Unknown Assignee Type")
 
 
 class AssignedActivityNotification(GroupActivityNotification):
     title = "Assigned"
     referrer_base = "assigned-activity"
 
+    def get_assignee(self) -> str:
+        return get_assignee_str(self.activity, self.organization)
+
     def get_description(self) -> tuple[str, Mapping[str, Any], Mapping[str, Any]]:
-        activity = self.activity
-        data = activity.data
-
-        # legacy Activity objects from before assignable teams
-        if "assigneeType" not in data or data["assigneeType"] == "user":
-            if activity.user_id and str(activity.user_id) == data["assignee"]:
-                return "{author} assigned {an issue} to themselves", {}, {}
-
-            try:
-                assignee = User.objects.get_from_cache(id=data["assignee"])
-            except User.DoesNotExist:
-                pass
-            else:
-                return (
-                    "{author} assigned {an issue} to {assignee}",
-                    {"assignee": assignee.get_display_name()},
-                    {},
-                )
-
-            if data.get("assigneeEmail"):
-                return (
-                    "{author} assigned {an issue} to {assignee}",
-                    {"assignee": data["assigneeEmail"]},
-                    {},
-                )
-
-            return "{author} assigned {an issue} to an unknown user", {}, {}
-
-        if data["assigneeType"] == "team":
-            try:
-                assignee_team = Team.objects.get(
-                    id=data["assignee"], organization=self.organization
-                )
-            except Team.DoesNotExist:
-                return "{author} assigned {an issue} to an unknown team", {}, {}
-            else:
-                return (
-                    "{author} assigned {an issue} to the {assignee} team",
-                    {"assignee": assignee_team.slug},
-                    {},
-                )
-
-        raise NotImplementedError("Unknown Assignee Type ")
+        return "{author} assigned {an issue} to {assignee}", {"assignee": self.get_assignee()}, {}
 
     def get_category(self) -> str:
         return "assigned_activity_email"
 
-    def build_notification_title(self) -> tuple[str, str]:
-        activity = self.activity
-        data = activity.data
-        user = self.activity.user
-        if user:
-            author = user.name or user.email
-        else:
-            author = "Sentry"
-
-        # TODO: refactor so assignee type doesn't change
-
-        # legacy Activity objects from before assignable teams
-        if "assigneeType" not in data or data["assigneeType"] == "user":
-            author = "themselves"
-
-            try:
-                assignee = User.objects.get_from_cache(id=data["assignee"])
-            except User.DoesNotExist:
-                assignee = data.get("assigneeEmail", "an unknown user")
-            else:
-                assignee = assignee.get_display_name()
-            return author, assignee
-
-        if data.get("assigneeType") == "team":
-            try:
-                assignee_team = Team.objects.get(
-                    id=data["assignee"], organization=self.organization
-                )
-            except Team.DoesNotExist:
-                assignee = "an unknown team"
-            else:
-                assignee = f"#{assignee_team.slug}"
-        else:
-            # need this case to ensure assignee is bound
-            assignee = "unknown"
-        return author, assignee
-
     def get_notification_title(self) -> str:
-        author, assignee = self.build_notification_title()
-        if author == "Sentry":
+        assignee = self.get_assignee()
+
+        if not self.activity.user:
             return f"Issue automatically assigned to {assignee}"
+
+        author = self.activity.user.get_display_name()
+        if assignee == "themselves":
+            author, assignee = assignee, author
+
         return f"Issue assigned to {assignee} by {author}"
