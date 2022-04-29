@@ -5,12 +5,16 @@ import {MemorySpanType} from 'sentry/components/events/interfaces/spans/types';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {formatBytesBase2} from 'sentry/utils';
+import {getFormattedDate} from 'sentry/utils/dates';
 import theme from 'sentry/utils/theme';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 type Props = {
   memorySpans: MemorySpanType[] | undefined;
 };
+
+const formatTimestamp = timestamp =>
+  getFormattedDate(timestamp * 1000, 'MMM D, YYYY HH:mm:ss');
 
 function MemoryChart({memorySpans = []}: Props) {
   const chartOptions: Omit<AreaChartProps, 'series'> = {
@@ -25,9 +29,9 @@ function MemoryChart({memorySpans = []}: Props) {
       valueFormatter: (value: number | null) => formatBytesBase2(value || 0),
     },
     xAxis: {
-      type: 'time',
-      min: memorySpans[0]?.timestamp,
-      max: memorySpans[memorySpans.length - 1]?.timestamp,
+      type: 'category',
+      min: formatTimestamp(memorySpans[0]?.timestamp),
+      max: formatTimestamp(memorySpans[memorySpans.length - 1]?.timestamp),
     },
     yAxis: {
       type: 'value',
@@ -52,7 +56,7 @@ function MemoryChart({memorySpans = []}: Props) {
       seriesName: t('Used Heap Memory'),
       data: memorySpans.map(span => ({
         value: span.data.memory.usedJSHeapSize,
-        name: span.timestamp,
+        name: formatTimestamp(span.timestamp),
       })),
       stack: 'heap-memory',
       color: theme.purple300,
@@ -65,7 +69,7 @@ function MemoryChart({memorySpans = []}: Props) {
       seriesName: t('Free Heap Memory'),
       data: memorySpans.map(span => ({
         value: span.data.memory.totalJSHeapSize - span.data.memory.usedJSHeapSize,
-        name: span.timestamp,
+        name: formatTimestamp(span.timestamp),
       })),
       stack: 'heap-memory',
       color: theme.green300,
