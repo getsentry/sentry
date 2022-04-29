@@ -284,6 +284,11 @@ const CategoryNav = styled(NavTabs)`
     float: none;
     display: inline-block;
   }
+  ::-webkit-scrollbar {
+    display: none;
+  }
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 `;
 
 const StyledPlatformIcon = styled(PlatformIcon)`
