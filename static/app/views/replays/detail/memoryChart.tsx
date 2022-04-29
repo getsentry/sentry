@@ -1,13 +1,18 @@
 import styled from '@emotion/styled';
 
 import {AreaChart, AreaChartProps} from 'sentry/components/charts/areaChart';
+import {MemorySpanType} from 'sentry/components/events/interfaces/spans/types';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {formatBytesBase2} from 'sentry/utils';
 import theme from 'sentry/utils/theme';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
-function MemoryChart({memorySpans}) {
+type Props = {
+  memorySpans: MemorySpanType[] | undefined;
+};
+
+function MemoryChart({memorySpans = []}: Props) {
   const chartOptions: Omit<AreaChartProps, 'series'> = {
     grid: {
       left: '10px',
@@ -22,7 +27,7 @@ function MemoryChart({memorySpans}) {
     xAxis: {
       type: 'time',
       min: memorySpans[0]?.timestamp,
-      max: memorySpans.slice(-1)?.timestamp,
+      max: memorySpans[memorySpans.length - 1]?.timestamp,
     },
     yAxis: {
       type: 'value',
@@ -32,10 +37,10 @@ function MemoryChart({memorySpans}) {
         fontSize: theme.fontSizeLarge,
         fontWeight: 600,
         lineHeight: 1.2,
-        color: theme.gray100,
+        color: theme.gray300,
       },
       min: 0,
-      max: memorySpans.slice(-1)?.data?.memory.totalJSHeapSize,
+      // we don't set a max because we let echarts figure it out for us
       axisLabel: {
         formatter: value => formatBytesBase2(value),
       },
