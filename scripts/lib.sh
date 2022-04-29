@@ -30,7 +30,7 @@ configure-sentry-cli() {
     export SENTRY_CLI_NO_EXIT_TRAP=${SENTRY_CLI_NO_EXIT_TRAP-0}
     if [ -n "${SENTRY_DSN+x}" ] && [ -z "${SENTRY_DEVENV_NO_REPORT+x}" ]; then
         if ! require sentry-cli; then
-            curl -sL https://sentry.io/get-cli/ | VERSION=2.0.4 bash
+            curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION=2.0.4 bash
         fi
         eval "$(sentry-cli bash-hook)"
     fi
