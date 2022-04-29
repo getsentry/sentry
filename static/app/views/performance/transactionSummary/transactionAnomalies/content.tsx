@@ -199,7 +199,7 @@ function Anomalies(props: AnomaliesSectionProps) {
       component: provided => <Fragment>{provided.children(props.queryData)}</Fragment>,
       transform: transformAnomalyData,
     };
-  }, [props.eventView, props.queryData]);
+  }, [props.queryData]);
 
   return (
     <GenericPerformanceWidget<DataType>

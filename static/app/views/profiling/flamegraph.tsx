@@ -9,6 +9,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Breadcrumb} from 'sentry/components/profiling/breadcrumb';
 import {Flamegraph} from 'sentry/components/profiling/flamegraph';
+import {ProfileDragDropImportProps} from 'sentry/components/profiling/profileDragDropImport';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
@@ -84,23 +85,10 @@ function FlamegraphView(props: FlamegraphViewProps): React.ReactElement {
   });
 
   const initialFlamegraphPreferencesState = useMemo((): DeepPartial<FlamegraphState> => {
-    if (requestState.type !== 'resolved') {
-      return decodeFlamegraphStateFromQueryParams(location.query);
-    }
-
-    const decodedState = decodeFlamegraphStateFromQueryParams(location.query);
-
-    return {
-      ...decodedState,
-      profiles: {
-        // We either initialize from query param or from the response
-        activeProfileIndex:
-          decodedState?.profiles?.activeProfileIndex ??
-          requestState.data.activeProfileIndex ??
-          0,
-      },
-    };
-  }, [requestState, location.query]);
+    return decodeFlamegraphStateFromQueryParams(location.query);
+    // We only want to decode this when our component mounts
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!props.params.eventId || !props.params.projectId) {
@@ -123,6 +111,10 @@ function FlamegraphView(props: FlamegraphViewProps): React.ReactElement {
       api.clear();
     };
   }, [props.params.eventId, props.params.projectId, api, organization]);
+
+  const onImport: ProfileDragDropImportProps['onImport'] = profiles => {
+    setRequestState({type: 'resolved', data: profiles});
+  };
 
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
@@ -157,13 +149,13 @@ function FlamegraphView(props: FlamegraphViewProps): React.ReactElement {
                 </Alert>
               ) : requestState.type === 'loading' ? (
                 <Fragment>
-                  <Flamegraph profiles={LoadingGroup} />
+                  <Flamegraph onImport={onImport} profiles={LoadingGroup} />
                   <LoadingIndicatorContainer>
                     <LoadingIndicator />
                   </LoadingIndicatorContainer>
                 </Fragment>
               ) : requestState.type === 'resolved' ? (
-                <Flamegraph profiles={requestState.data} />
+                <Flamegraph onImport={onImport} profiles={requestState.data} />
               ) : null}
             </FlamegraphContainer>
           </FlamegraphThemeProvider>
