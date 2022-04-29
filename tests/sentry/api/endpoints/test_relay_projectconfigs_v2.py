@@ -375,5 +375,4 @@ def test_exposes_features(call_endpoint, task_runner):
 
         for config in result["configs"].values():
             config = config["config"]
-            assert "features" in config
-            assert config["features"] == ["organizations:metrics-extraction"]
+            assert config["sessionMetrics"] == {"version": 1, "drop": False}
