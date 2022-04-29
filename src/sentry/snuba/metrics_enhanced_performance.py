@@ -50,7 +50,6 @@ def query(
                 conditions,
                 extra_snql_condition,
                 functions_acl,
-                use_snql,
                 dry_run,
             )
         # raise Invalid Queries since the same thing will happen with discover
@@ -131,7 +130,6 @@ def timeseries_query(
                 allow_metric_aggregates,
                 comparison_delta,
                 functions_acl,
-                use_snql,
                 dry_run,
             )
         # raise Invalid Queries since the same thing will happen with discover

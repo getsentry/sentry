@@ -50,7 +50,6 @@ def query(
     conditions=None,
     extra_snql_condition=None,
     functions_acl=None,
-    use_snql=False,
     dry_run=False,
 ):
     with sentry_sdk.start_span(op="mep", description="MetricQueryBuilder"):
@@ -97,7 +96,6 @@ def timeseries_query(
     allow_metric_aggregates=True,
     comparison_delta: Optional[timedelta] = None,
     functions_acl: Optional[List[str]] = None,
-    use_snql: Optional[bool] = False,
     dry_run: bool = False,
 ) -> SnubaTSResult:
     """
@@ -183,6 +181,5 @@ def timeseries_query(
             zerofill_results,
             comparison_delta,
             functions_acl,
-            use_snql,
         )
     return SnubaTSResult()
