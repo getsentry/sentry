@@ -33,7 +33,7 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
   getDefaultState(): State {
     const {location} = this.props;
     const value =
-      (['public', 'internal'] as const).find(tab => tab === location.query.type) ||
+      (['public', 'internal'] as const).find(tab => tab === location?.query?.type) ||
       'internal';
 
     return {
