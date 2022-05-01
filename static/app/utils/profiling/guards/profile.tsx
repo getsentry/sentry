@@ -25,7 +25,7 @@ export function isChromeTraceObjectFormat(input: any): input is ChromeTrace.Obje
 
 export function isChromeTraceArrayFormat(input: any): input is ChromeTrace.ProfileType {
   return (
-    Array.isArray(input) && input.find(p => p.ph === 'P' && p.name === 'ProfileChunk')
+    Array.isArray(input) && !!input.find(p => p.ph === 'P' && p.name === 'ProfileChunk')
   );
 }
 
