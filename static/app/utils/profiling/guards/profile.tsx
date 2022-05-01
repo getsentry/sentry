@@ -26,7 +26,7 @@ export function isChromeTraceObjectFormat(input: any): input is ChromeTrace.Obje
 // We check for the presence of at least one ProfileChunk event in the trace
 export function isChromeTraceArrayFormat(input: any): input is ChromeTrace.ProfileType {
   return (
-    Array.isArray(input) && !!input.some(p => p.ph === 'P' && p.name === 'ProfileChunk')
+    Array.isArray(input) && !!input.find(p => p.ph === 'P' && p.name === 'ProfileChunk')
   );
 }
 
