@@ -36,6 +36,7 @@ function MemoryChart({memorySpans = []}: Props) {
   const chartOptions: Omit<AreaChartProps, 'series'> = {
     grid: Grid({
       top: '40px',
+      left: '100px',
     }),
     tooltip: Tooltip({
       trigger: 'axis',
@@ -59,6 +60,7 @@ function MemoryChart({memorySpans = []}: Props) {
         color: theme.gray300,
       },
       min: 0,
+      minInterval: 1,
       // we don't set a max because we let echarts figure it out for us
       axisLabel: {
         formatter: value => getRoundedMemorySizeFromBytes(value),
