@@ -31,6 +31,7 @@ export type OnboardingState = {
   // Contains platforms currently selected. This is different from `platforms` because
   // a project created by onboarding could be unselected by the user in the future.
   selectedPlatforms: PlatformKey[];
+  mobileEmailSent?: boolean;
   state?: 'started' | 'projects_selected' | 'finished' | 'skipped';
   url?: string;
 };

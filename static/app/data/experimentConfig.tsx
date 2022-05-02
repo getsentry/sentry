@@ -19,6 +19,12 @@ export const experimentList = [
     parameter: 'exposed',
     assignments: [0, 1],
   },
+  {
+    key: 'TargetedOnboardingMobileRedirectExperiment',
+    type: ExperimentType.Organization,
+    parameter: 'scenario',
+    assignments: ['none', 'email-cta', 'hide'],
+  },
 ] as const;
 
 export const experimentConfig = experimentList.reduce(

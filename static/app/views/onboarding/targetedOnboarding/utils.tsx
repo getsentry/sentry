@@ -13,6 +13,7 @@ export function usePersistedOnboardingState(): [
     useMemo(() => {
       const onboardingState = state
         ? {
+            ...state,
             platformToProjectIdMap: state.platformToProjectIdMap || {},
             selectedPlatforms: state.selectedPlatforms || [],
           }
