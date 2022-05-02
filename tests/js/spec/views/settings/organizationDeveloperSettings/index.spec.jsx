@@ -33,7 +33,7 @@ describe('Organization Developer Settings', function () {
         url: `/organizations/${org.slug}/sentry-apps/`,
         body: [],
       });
-      render(
+      const {container} = render(
         <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />
       );
       await waitFor(() => {
@@ -41,6 +41,7 @@ describe('Organization Developer Settings', function () {
           screen.getByText('No internal integrations have been created yet.')
         ).toBeInTheDocument();
       });
+      expect(container).toSnapshot();
     });
   });
 
