@@ -7,7 +7,7 @@ import TargetedOnboarding from './targetedOnboarding/onboarding';
 type Props = Omit<ComponentPropsWithoutRef<typeof TargetedOnboarding>, 'projects'>;
 
 function OnboardingController({...rest}: Props) {
-  // TODO: unccoment
+  // TODO: uncomment
   // useEffect(() => {
   //   logExperiment({
   //     key: 'TargetedOnboardingMobileRedirectExperiment',
