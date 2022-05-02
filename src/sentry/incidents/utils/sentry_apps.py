@@ -2,7 +2,7 @@ from typing import Any, Mapping
 
 from rest_framework import serializers
 
-from sentry.auth.access import SystemAccess
+from sentry.auth.access import NoAccess
 from sentry.incidents.logic import get_filtered_actions
 from sentry.incidents.models import AlertRuleTriggerAction
 from sentry.incidents.serializers import AlertRuleTriggerActionSerializer
@@ -23,7 +23,7 @@ def trigger_sentry_app_action_creators_for_incidents(alert_rule_data: Mapping[st
 
     for action in sentry_app_actions_with_components:
         action_serializer = AlertRuleTriggerActionSerializer(
-            context={"access": SystemAccess()},
+            context={"access": NoAccess()},
             data=action,
         )
         if not action_serializer.is_valid():
