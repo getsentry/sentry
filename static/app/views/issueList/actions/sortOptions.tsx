@@ -1,9 +1,5 @@
-import * as React from 'react';
-import styled from '@emotion/styled';
-
 import Feature from 'sentry/components/acl/feature';
-import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
-import Tooltip from 'sentry/components/tooltip';
+import CompactSelect from 'sentry/components/forms/compactSelect';
 import {IconSort} from 'sentry/icons/iconSort';
 import {t} from 'sentry/locale';
 import {getSortLabel, IssueSortOptions, Query} from 'sentry/views/issueList/utils';
@@ -34,57 +30,44 @@ function getSortTooltip(key: IssueSortOptions) {
   }
 }
 
+function getSortOptions(sortKeys: IssueSortOptions[], hasTrendSort = false) {
+  const combinedSortKeys = [
+    ...sortKeys,
+    ...(hasTrendSort ? [IssueSortOptions.TREND] : []),
+  ];
+  return combinedSortKeys.map(key => ({
+    value: key,
+    label: getSortLabel(key),
+    tooltip: getSortTooltip(key),
+  }));
+}
+
 const IssueListSortOptions = ({onSelect, sort, query}: Props) => {
   const sortKey = sort || IssueSortOptions.DATE;
-
-  const getMenuItem = (key: IssueSortOptions): React.ReactNode => (
-    <DropdownItem onSelect={onSelect} eventKey={key} isActive={sortKey === key}>
-      <StyledTooltip
-        containerDisplayMode="block"
-        position="top"
-        delay={500}
-        title={getSortTooltip(key)}
-      >
-        {getSortLabel(key)}
-      </StyledTooltip>
-    </DropdownItem>
-  );
+  const sortKeys = [
+    ...(query === Query.FOR_REVIEW ? [IssueSortOptions.INBOX] : []),
+    IssueSortOptions.DATE,
+    IssueSortOptions.NEW,
+    IssueSortOptions.PRIORITY,
+    IssueSortOptions.FREQ,
+    IssueSortOptions.USER,
+  ];
 
   return (
-    <StyledDropdownControl
-      buttonProps={{
-        size: 'xsmall',
-        icon: <IconSort size="xs" />,
-      }}
-      menuWidth="150px"
-      detached
-      label={getSortLabel(sortKey)}
-    >
-      <React.Fragment>
-        {query === Query.FOR_REVIEW && getMenuItem(IssueSortOptions.INBOX)}
-        {getMenuItem(IssueSortOptions.DATE)}
-        {getMenuItem(IssueSortOptions.NEW)}
-        {getMenuItem(IssueSortOptions.PRIORITY)}
-        {getMenuItem(IssueSortOptions.FREQ)}
-        {getMenuItem(IssueSortOptions.USER)}
-        <Feature features={['issue-list-trend-sort']}>
-          {getMenuItem(IssueSortOptions.TREND)}
-        </Feature>
-      </React.Fragment>
-    </StyledDropdownControl>
+    <Feature features={['issue-list-trend-sort']}>
+      {({hasFeature: hasTrendSort}) => (
+        <CompactSelect
+          onChange={opt => onSelect(opt.value)}
+          options={getSortOptions(sortKeys, hasTrendSort)}
+          value={sortKey}
+          triggerProps={{
+            size: 'xsmall',
+            icon: <IconSort size="xs" />,
+          }}
+        />
+      )}
+    </Feature>
   );
 };
 
 export default IssueListSortOptions;
-
-const StyledTooltip = styled(Tooltip)`
-  width: 100%;
-`;
-
-const StyledDropdownControl = styled(DropdownControl)`
-  z-index: ${p => p.theme.zIndex.issuesList.sortOptions};
-
-  button {
-    width: 100%;
-  }
-`;
