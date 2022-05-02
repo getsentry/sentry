@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {DataSection} from 'sentry/components/events/styles';
+import Link from 'sentry/components/links/link';
 import {IconAnchor} from 'sentry/icons/iconAnchor';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -63,7 +64,8 @@ function EventDataSection({
         <SectionHeader id={type} isCentered={isCentered}>
           <Title>
             {showPermalink ? (
-              <Permalink href={`#${type}`} className="permalink">
+              <Permalink className="permalink">
+                <PermalinkAnchor href={`#${type}`} />
                 <StyledIconAnchor size="xs" color="subText" />
                 {titleNode}
               </Permalink>
@@ -109,7 +111,7 @@ const StyledIconAnchor = styled(IconAnchor)`
   transition: opacity 100ms;
 `;
 
-const Permalink = styled('a')`
+const Permalink = styled('span')`
   width: 100%;
   position: relative;
 
@@ -126,6 +128,14 @@ const Permalink = styled('a')`
   :hover ${StyledIconAnchor} {
     opacity: 1;
   }
+`;
+
+const PermalinkAnchor = styled(Link)`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
 `;
 
 const SectionHeader = styled('div')<{isCentered?: boolean}>`
