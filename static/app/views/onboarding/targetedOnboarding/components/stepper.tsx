@@ -32,7 +32,7 @@ StepperTransitionIndicator.defaultProps = {
   layout: true,
   transition: testableTransition({
     type: 'tween',
-    duration: 1,
+    duration: 0.3,
   }),
 };
 
