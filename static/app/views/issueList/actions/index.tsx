@@ -272,7 +272,6 @@ class IssueListActions extends React.Component<Props, State> {
             <ActionSet
               sort={this.props.sort}
               onSortChange={this.props.onSortChange}
-              hasPageFilters={organization.features.includes('selection-filters-v2')}
               orgSlug={organization.slug}
               queryCount={queryCount}
               query={query}

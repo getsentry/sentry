@@ -447,4 +447,45 @@ describe('IssueListActions', function () {
       ).toBe(true);
     });
   });
+
+  describe('sort', function () {
+    let onSortChange;
+    afterEach(() => {
+      wrapper.unmount();
+    });
+
+    beforeEach(function () {
+      const organization = TestStubs.Organization();
+
+      onSortChange = jest.fn();
+      wrapper = mountWithTheme(
+        <IssueListActions
+          api={new MockApiClient()}
+          query=""
+          organization={organization}
+          groupIds={['1', '2', '3']}
+          selection={{
+            projects: [],
+            environments: [],
+            datetime: {start: null, end: null, period: null, utc: true},
+          }}
+          onRealtimeChange={function () {}}
+          onSelectStatsPeriod={function () {}}
+          onSortChange={onSortChange}
+          realtimeActive={false}
+          statsPeriod="24h"
+          queryCount={100}
+          displayCount="3 of 3"
+          sort="date"
+        />
+      );
+    });
+
+    it('calls onSortChange with new sort value', function () {
+      wrapper.find('IssueListSortOptions DropdownButton').simulate('click');
+      wrapper.find('DropdownItem').at(3).find('MenuItem span').at(1).simulate('click');
+
+      expect(onSortChange).toHaveBeenCalledWith('freq');
+    });
+  });
 });

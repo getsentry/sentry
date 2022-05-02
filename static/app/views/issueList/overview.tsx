@@ -1245,7 +1245,6 @@ class IssueListOverview extends React.Component<Props, State> {
                 query={query}
                 savedSearch={savedSearch}
                 sort={this.getSort()}
-                onSortChange={this.onSortChange}
                 onSearch={this.onSearch}
                 onSidebarToggle={this.onSidebarToggle}
                 isSearchDisabled={isSidebarVisible}
