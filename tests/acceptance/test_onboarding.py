@@ -56,9 +56,6 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
         self.browser.snapshot(name="onboarding - invite members")
 
     @mock.patch("sentry.models.ProjectKey.generate_api_key", return_value="test-dsn")
-    @mock.patch(
-        "sentry.experiments.all", return_value={"TargetedOnboardingMultiSelectExperiment": 1}
-    )
     def test_onboarding_new(self, generate_api_key, all_experiments):
         self.browser.get("/onboarding/%s/" % self.org.slug)
 
