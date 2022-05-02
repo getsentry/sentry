@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {DataSection} from 'sentry/components/events/styles';
-import Link from 'sentry/components/links/link';
+import {Anchor} from 'sentry/components/links/link';
 import {IconAnchor} from 'sentry/icons/iconAnchor';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -130,7 +130,7 @@ const Permalink = styled('span')`
   }
 `;
 
-const PermalinkAnchor = styled(Link)`
+const PermalinkAnchor = styled(Anchor)`
   position: absolute;
   top: 0;
   left: 0;
