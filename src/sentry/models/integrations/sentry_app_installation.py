@@ -47,6 +47,7 @@ class SentryAppInstallationForProviderManager(ParanoidManager):
         if not installation:
             return Project.objects.none()
 
+        # TODO(nisanthan): Right now, Internal Integrations can have multiple ApiToken, so we use the join table `SentryAppInstallationToken` to map the one to many relationship. However, for Public Integrations, we can only have 1 ApiToken per installation. So we currently don't use the join table for Public Integrations. We should update to make records in the join table for Public Integrations so that we can have a common abstraction for finding an installation by ApiToken.
         if installation.sentry_app.status == SentryAppStatus.INTERNAL:
             return SentryAppInstallationToken.objects.get_projects(token)
 
