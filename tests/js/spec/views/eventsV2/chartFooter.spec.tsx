@@ -49,7 +49,7 @@ describe('EventsV2 > ChartFooter', function () {
     await tick();
     wrapper.update();
 
-    const optionCheckboxSelector = wrapper.find('OptionCheckboxSelector').last();
+    const optionCheckboxSelector = wrapper.find('OptionSelector').last();
     expect(optionCheckboxSelector.props().title).toEqual(t('Y-Axis'));
     expect(optionCheckboxSelector.props().selected).toEqual(yAxisValue);
   });

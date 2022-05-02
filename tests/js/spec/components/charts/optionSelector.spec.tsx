@@ -1,10 +1,10 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import OptionCheckboxSelector from 'sentry/components/charts/optionCheckboxSelector';
+import OptionSelector from 'sentry/components/charts/optionSelector';
 import {t} from 'sentry/locale';
 
-describe('EventsV2 > OptionCheckboxSelector', function () {
+describe('EventsV2 > OptionSelector (Multiple)', function () {
   const features = ['discover-basic'];
   const yAxisValue = ['count()', 'failure_count()'];
   const yAxisOptions = [
@@ -31,7 +31,9 @@ describe('EventsV2 > OptionCheckboxSelector', function () {
     });
     selected = [...yAxisValue];
     wrapper = mountWithTheme(
-      <OptionCheckboxSelector
+      <OptionSelector
+        multiple
+        isOpen
         title={t('Y-Axis')}
         selected={selected}
         options={yAxisOptions}
@@ -43,7 +45,7 @@ describe('EventsV2 > OptionCheckboxSelector', function () {
     onChangeStub = jest.fn(newSelected => wrapper.setProps({selected: newSelected}));
     wrapper.setProps({onChange: onChangeStub});
 
-    dropdownItem = wrapper.find('StyledDropdownItem');
+    dropdownItem = wrapper.find('SelectOption');
   });
 
   it('renders yAxisOptions with yAxisValue selected', function () {
@@ -54,9 +56,9 @@ describe('EventsV2 > OptionCheckboxSelector', function () {
     expect(dropdownItem.at(2).find('span').last().children().html()).toEqual(
       'count_unique(user)'
     );
-    expect(dropdownItem.at(0).props().isChecked).toEqual(true);
-    expect(dropdownItem.at(1).props().isChecked).toEqual(true);
-    expect(dropdownItem.at(2).props().isChecked).toEqual(false);
+    expect(dropdownItem.at(0).props().isSelected).toEqual(true);
+    expect(dropdownItem.at(1).props().isSelected).toEqual(true);
+    expect(dropdownItem.at(2).props().isSelected).toEqual(false);
   });
 
   it('calls onChange prop with new checkbox option state', function () {
@@ -105,14 +107,5 @@ describe('EventsV2 > OptionCheckboxSelector', function () {
       'failure_count()',
       'avg(transaction.duration)',
     ]);
-  });
-
-  it('calls onChange prop with a single selected value when clicking on the row instead of the checkbox', function () {
-    dropdownItem.at(0).find('span').first().simulate('click');
-    expect(onChangeStub).toHaveBeenCalledWith(['count()']);
-    dropdownItem.at(1).find('span').first().simulate('click');
-    expect(onChangeStub).toHaveBeenCalledWith(['failure_count()']);
-    dropdownItem.at(2).find('span').first().simulate('click');
-    expect(onChangeStub).toHaveBeenCalledWith(['count_unique(user)']);
   });
 });
