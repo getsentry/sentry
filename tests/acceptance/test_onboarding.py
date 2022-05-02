@@ -24,43 +24,6 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
 
         # Welcome step
         self.browser.wait_until('[data-test-id="onboarding-step-welcome"]')
-        self.browser.snapshot(name="onboarding - welcome")
-
-        # Platform selection step
-        self.browser.click('[aria-label="Start"]')
-        self.browser.wait_until('[data-test-id="onboarding-step-select-platform"]')
-
-        self.browser.snapshot(name="onboarding - select platform")
-
-        # Select and create node JS project
-        self.browser.click('[data-test-id="platform-node"]')
-        self.browser.wait_until_not('[data-test-id="platform-select-next"][aria-disabled="true"]')
-        self.browser.wait_until('[data-test-id="platform-select-next"][aria-disabled="false"]')
-
-        @TimedRetryPolicy.wrap(timeout=5, exceptions=((TimeoutException,)))
-        def click_platform_select_name(browser):
-            browser.click('[data-test-id="platform-select-next"]')
-            # Project getting started
-            browser.wait_until('[data-test-id="onboarding-step-get-started"]')
-
-        click_platform_select_name(self.browser)
-        self.browser.snapshot(name="onboarding - get started")
-
-        # Verify project was created for org
-        project = Project.objects.get(organization=self.org)
-        assert project.name == "rowdy-tiger"
-        assert project.platform == "node"
-
-        self.browser.click('[data-test-id="onboarding-getting-started-invite-members"]')
-        self.browser.wait_until("[role='dialog']")
-        self.browser.snapshot(name="onboarding - invite members")
-
-    @mock.patch("sentry.models.ProjectKey.generate_api_key", return_value="test-dsn")
-    def test_onboarding_new(self, generate_api_key, all_experiments):
-        self.browser.get("/onboarding/%s/" % self.org.slug)
-
-        # Welcome step
-        self.browser.wait_until('[data-test-id="onboarding-step-welcome"]')
         self.browser.snapshot(name="onboarding - new - welcome")
 
         # Platform selection step
