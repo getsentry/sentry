@@ -18,6 +18,7 @@ import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import isMobile from 'sentry/utils/isMobile';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useTeams from 'sentry/utils/useTeams';
@@ -82,17 +83,13 @@ export default function CreateProjectsFooter({
         organization,
       });
       clearIndicators();
-      let isMobile: boolean = window.innerWidth < 800;
-      if ((navigator as any).userAgentData) {
-        isMobile = (navigator as any).userAgentData.mobile;
-      }
       if (
-        isMobile &&
+        isMobile() &&
         organization.experiments.TargetedOnboardingMobileRedirectExperiment === 'hide'
       ) {
         if (shouldSendEmail) {
           persistedOnboardingState &&
-            api.requestPromise(
+            (await api.requestPromise(
               `/organizations/${organization.slug}/onboarding-continuation-email/`,
               {
                 method: 'POST',
@@ -100,7 +97,7 @@ export default function CreateProjectsFooter({
                   platforms: persistedOnboardingState.selectedPlatforms,
                 },
               }
-            );
+            ));
         }
         browserHistory.push(`/onboarding/${organization.slug}/mobile-redirect/`);
       } else {
