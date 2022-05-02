@@ -29,7 +29,8 @@ def get_assignee_str(activity: Activity, organization: Organization) -> str:
     assignee_email: str | None = activity.data.get("assigneeEmail")
 
     if assignee_type == "user":
-        if activity.user_id == assignee_id:
+        # TODO(mgaeta): Refactor GroupAssigneeManager to not make IDs into strings.
+        if str(activity.user_id) == str(assignee_id):
             return "themselves"
 
         assignee_user = _get_user_option(assignee_id)
