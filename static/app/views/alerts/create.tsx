@@ -13,6 +13,7 @@ import {uniqueId} from 'sentry/utils/guid';
 import Teams from 'sentry/utils/teams';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
 import IncidentRulesCreate from 'sentry/views/alerts/incidentRules/create';
+import IncidentRulesDuplicate from 'sentry/views/alerts/incidentRules/duplicate';
 import IssueRuleEditor from 'sentry/views/alerts/issueRuleEditor';
 import {AlertRuleType} from 'sentry/views/alerts/types';
 import {
@@ -108,8 +109,14 @@ class Create extends Component<Props, State> {
   render() {
     const {hasMetricAlerts, organization, project, location, routes} = this.props;
     const {alertType} = this.state;
-    const {aggregate, dataset, eventTypes, createFromWizard, createFromDiscover} =
-      location?.query ?? {};
+    const {
+      aggregate,
+      dataset,
+      eventTypes,
+      createFromWizard,
+      createFromDiscover,
+      createFromDuplicate,
+    } = location?.query ?? {};
     const wizardTemplate: WizardRuleTemplate = {
       aggregate: aggregate ?? DEFAULT_WIZARD_TEMPLATE.aggregate,
       dataset: dataset ?? DEFAULT_WIZARD_TEMPLATE.dataset,
@@ -163,16 +170,27 @@ class Create extends Component<Props, State> {
                       />
                     )}
 
-                    {hasMetricAlerts && alertType === AlertRuleType.METRIC && (
-                      <IncidentRulesCreate
-                        {...this.props}
-                        eventView={eventView}
-                        wizardTemplate={wizardTemplate}
-                        sessionId={this.sessionId}
-                        project={project}
-                        userTeamIds={teams.map(({id}) => id)}
-                      />
-                    )}
+                    {hasMetricAlerts &&
+                      alertType === AlertRuleType.METRIC &&
+                      (createFromDuplicate ? (
+                        <IncidentRulesDuplicate
+                          {...this.props}
+                          eventView={eventView}
+                          wizardTemplate={wizardTemplate}
+                          sessionId={this.sessionId}
+                          project={project}
+                          userTeamIds={teams.map(({id}) => id)}
+                        />
+                      ) : (
+                        <IncidentRulesCreate
+                          {...this.props}
+                          eventView={eventView}
+                          wizardTemplate={wizardTemplate}
+                          sessionId={this.sessionId}
+                          project={project}
+                          userTeamIds={teams.map(({id}) => id)}
+                        />
+                      ))}
                   </Fragment>
                 ) : (
                   <LoadingIndicator />
