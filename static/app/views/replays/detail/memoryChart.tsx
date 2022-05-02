@@ -15,19 +15,15 @@ import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 type Props = {
   memorySpans: MemorySpanType[] | undefined;
+  startTimestamp: number | undefined;
 };
 
 const formatTimestamp = timestamp =>
-  getFormattedDate(timestamp * 1000, 'MMM D, YYYY HH:mm:ss');
+  getFormattedDate(timestamp * 1000, 'MMM D, YYYY hh:mm:ss A', {local: false}).concat(
+    ' UTC'
+  );
 
-const getRoundedMemorySizeFromBytes = bytes => {
-  const convertedValue = formatBytesBase2(bytes);
-  const values = convertedValue.split(' ');
-  // we round the byte size to the nearest ten and put the string back together
-  return `${Math.round(Number(values?.[0] || 0) / 10) * 10} ${values[1]}`;
-};
-
-function MemoryChart({memorySpans = []}: Props) {
+function MemoryChart({memorySpans = [], startTimestamp = 0}: Props) {
   const theme = useTheme();
   if (memorySpans.length <= 0) {
     return <EmptyMessage>{t('No memory metrics exist for replay.')}</EmptyMessage>;
@@ -35,17 +31,46 @@ function MemoryChart({memorySpans = []}: Props) {
 
   const chartOptions: Omit<AreaChartProps, 'series'> = {
     grid: Grid({
+      // makes space for the title
       top: '40px',
-      left: '100px',
+      left: space(1),
+      right: space(1),
     }),
     tooltip: Tooltip({
       trigger: 'axis',
-      valueFormatter: (value: number | null) => formatBytesBase2(value || 0),
+      formatter: values => {
+        const seriesTooltips = values.map(
+          value => `
+            <div>
+              <span className="tooltip-label">${value.marker}<strong>${
+            value.seriesName
+          }</strong></span>
+          ${formatBytesBase2(value.data[1])}
+            </div>
+          `
+        );
+        const template = [
+          '<div class="tooltip-series">',
+          ...seriesTooltips,
+          '</div>',
+          `<div class="tooltip-date" style="display: inline-block; width: max-content;">${t(
+            'Span Time'
+          )}:
+            ${formatTimestamp(values[0].axisValue)}
+          </div>`,
+          `<div class="tooltip-date" style="border: none;">${'Relative Time'}:
+            ${getFormattedDate((values[0].axisValue - startTimestamp) * 1000, 'HH:mm:ss')}
+          </div>`,
+          '<div class="tooltip-arrow"></div>',
+        ].join('');
+        return template;
+      },
     }),
     xAxis: XAxis({
-      type: 'category',
-      min: formatTimestamp(memorySpans[0]?.timestamp),
-      max: formatTimestamp(memorySpans[memorySpans.length - 1]?.timestamp),
+      type: 'time',
+      axisLabel: {
+        formatter: formatTimestamp,
+      },
       theme,
     }),
     yAxis: YAxis({
@@ -59,11 +84,13 @@ function MemoryChart({memorySpans = []}: Props) {
         lineHeight: 1.2,
         color: theme.gray300,
       },
-      min: 0,
-      minInterval: 1,
-      // we don't set a max because we let echarts figure it out for us
+      // input is in bytes, minInterval is a megabyte
+      minInterval: 1024 * 1024,
+      // maxInterval is a terabyte
+      maxInterval: Math.pow(1024, 4),
+      // format the axis labels to be whole number values
       axisLabel: {
-        formatter: value => getRoundedMemorySizeFromBytes(value),
+        formatter: value => formatBytesBase2(value, 0),
       },
     }),
   };
@@ -73,7 +100,7 @@ function MemoryChart({memorySpans = []}: Props) {
       seriesName: t('Used Heap Memory'),
       data: memorySpans.map(span => ({
         value: span.data.memory.usedJSHeapSize,
-        name: formatTimestamp(span.timestamp),
+        name: span.timestamp,
       })),
       stack: 'heap-memory',
       lineStyle: {
@@ -85,7 +112,7 @@ function MemoryChart({memorySpans = []}: Props) {
       seriesName: t('Free Heap Memory'),
       data: memorySpans.map(span => ({
         value: span.data.memory.totalJSHeapSize - span.data.memory.usedJSHeapSize,
-        name: formatTimestamp(span.timestamp),
+        name: span.timestamp,
       })),
       stack: 'heap-memory',
       lineStyle: {
