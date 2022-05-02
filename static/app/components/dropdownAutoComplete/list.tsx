@@ -1,6 +1,5 @@
 import * as React from 'react';
 import {AutoSizer, List as ReactVirtualizedList, ListRowProps} from 'react-virtualized';
-import styled from '@emotion/styled';
 
 import Row from './row';
 import {ItemsAfterFilter} from './types';
@@ -65,7 +64,8 @@ const List = ({
     return (
       <AutoSizer disableHeight>
         {({width}) => (
-          <StyledList
+          <ReactVirtualizedList
+            style={{outline: 'none'}}
             width={width}
             height={getHeight(
               items,
@@ -116,10 +116,3 @@ const List = ({
 };
 
 export default List;
-
-// XXX(ts): Emotion11 has some trouble with List's defaultProps
-const StyledList = styled(ReactVirtualizedList as any)<
-  React.ComponentProps<typeof ReactVirtualizedList>
->`
-  outline: none;
-`;
