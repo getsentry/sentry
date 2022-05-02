@@ -852,12 +852,6 @@ def build_message(timestamp, duration, organization, user, reports):
     start, stop = interval = _to_interval(timestamp, duration)
 
     duration_spec = durations[duration]
-    html_template = "sentry/emails/reports/body.html"
-    smtp_category = "organization_report_email"
-    if features.has("organizations:new-weekly-report", organization, actor=user):
-        html_template = "sentry/emails/reports/new.html"
-        smtp_category = "organization_report_email_new"
-
     message = MessageBuilder(
         subject="{} Report for {}: {} - {}".format(
             duration_spec.adjective.title(),
@@ -866,7 +860,7 @@ def build_message(timestamp, duration, organization, user, reports):
             date_format(stop),
         ),
         template="sentry/emails/reports/body.txt",
-        html_template=html_template,
+        html_template="sentry/emails/reports/body.html",
         type="report.organization",
         context={
             "duration": duration_spec,
@@ -876,7 +870,7 @@ def build_message(timestamp, duration, organization, user, reports):
             "report": to_context(organization, interval, reports),
             "user": user,
         },
-        headers={"X-SMTPAPI": json.dumps({"category": smtp_category})},
+        headers={"X-SMTPAPI": json.dumps({"category": "organization_report_email"})},
     )
 
     message.add_users((user.id,))
