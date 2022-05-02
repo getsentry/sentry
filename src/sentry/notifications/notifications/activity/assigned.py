@@ -15,10 +15,7 @@ def _get_user_option(assignee_id: int) -> User | None:
 
 
 def _get_team_option(assignee_id: int, organization: Organization) -> Team | None:
-    try:
-        return Team.objects.get(id=assignee_id, organization=organization)
-    except Team.DoesNotExist:
-        return None
+    return Team.objects.filter(id=assignee_id, organization=organization).first()
 
 
 def get_assignee_str(activity: Activity, organization: Organization) -> str:
