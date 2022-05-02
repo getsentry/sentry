@@ -1,6 +1,8 @@
-import {useEffect, useRef} from 'react';
+import {useRef} from 'react';
 import styled from '@emotion/styled';
-import {animate, motion, useMotionValue} from 'framer-motion';
+import {motion} from 'framer-motion';
+
+import testableTransition from 'sentry/utils/testableTransition';
 
 const StepperWrapper = styled('div')`
   border-radius: 4px;
@@ -26,6 +28,13 @@ const StepperTransitionIndicator = styled(motion.span)`
   background-color: ${p => p.theme.progressBar};
   position: absolute;
 `;
+StepperTransitionIndicator.defaultProps = {
+  layout: true,
+  transition: testableTransition({
+    type: 'tween',
+    duration: 0.3,
+  }),
+};
 
 type Props = React.HTMLAttributes<HTMLDivElement> & {
   currentStepIndex: number;
@@ -35,36 +44,20 @@ type Props = React.HTMLAttributes<HTMLDivElement> & {
 
 export default function Stepper({currentStepIndex, numSteps, onClick, ...props}: Props) {
   const stepperContainerRef = useRef<HTMLDivElement>(null);
-  const stepperX = useMotionValue<null | number>(null);
-
-  // Set initial value of stepperX
-  useEffect(() => {
-    const parentRect = stepperContainerRef.current?.getBoundingClientRect();
-    const rect =
-      stepperContainerRef.current?.children[currentStepIndex].getBoundingClientRect();
-    if (!rect || !parentRect) {
-      return;
-    }
-    if (stepperX.get() === null) {
-      stepperX.set(rect.x - parentRect.x);
-    } else {
-      animate(stepperX, rect.x - parentRect.x, {
-        type: 'tween',
-        duration: 1,
-      });
-    }
-  }, [currentStepIndex]);
 
   return (
     <StepperWrapper {...props}>
-      <StepperTransitionIndicator key="animation" style={{x: stepperX}} />
       <StepperContainer ref={stepperContainerRef}>
         {Array.from(Array(numSteps).keys()).map((_, i) => (
           <StepperIndicator
             key={i}
             onClick={() => i < currentStepIndex && onClick(i)}
             clickable={i < currentStepIndex}
-          />
+          >
+            {currentStepIndex === i && (
+              <StepperTransitionIndicator initial={false} layoutId="animation" />
+            )}
+          </StepperIndicator>
         ))}
       </StepperContainer>
     </StepperWrapper>
