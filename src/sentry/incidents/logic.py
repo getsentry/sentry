@@ -1450,13 +1450,13 @@ def rewrite_trigger_action_fields(action_data):
 
 
 def get_filtered_actions(
-    validated_alert_rule_data: Mapping[str, Any], action_type: AlertRuleTriggerAction.Type
+    alert_rule_data: Mapping[str, Any], action_type: AlertRuleTriggerAction.Type
 ):
     from sentry.incidents.serializers import STRING_TO_ACTION_TYPE
 
     return [
         rewrite_trigger_action_fields(action)
-        for trigger in validated_alert_rule_data.get("triggers", [])
+        for trigger in alert_rule_data.get("triggers", [])
         for action in trigger.get("actions", [])
         if STRING_TO_ACTION_TYPE.get(action.get("type")) == action_type
     ]
