@@ -26,7 +26,7 @@ import {
   AlertRuleTriggerType,
 } from 'sentry/views/alerts/incidentRules/types';
 
-import {CombinedMetricIssueAlerts, IncidentStatus} from '../types';
+import {CombinedAlertType, CombinedMetricIssueAlerts, IncidentStatus} from '../types';
 import {isIssueAlert} from '../utils';
 
 type Props = {
@@ -152,6 +152,17 @@ function RuleListRow({
     isIssueAlert(rule) ? 'rules' : 'metric-rules'
   }/${slug}/${rule.id}/`;
 
+  const duplicateLink = {
+    pathname: `/organizations/${orgId}/alerts/new/${
+      rule.type === CombinedAlertType.METRIC ? 'metric' : 'issue'
+    }/`,
+    query: {
+      project: slug,
+      duplicateRuleId: rule.id,
+      createFromDuplicate: true,
+    },
+  };
+
   const detailsLink = `/organizations/${orgId}/alerts/rules/details/${rule.id}/`;
 
   const ownerId = rule.owner?.split(':')[1];
@@ -182,6 +193,11 @@ function RuleListRow({
       key: 'edit',
       label: t('Edit'),
       to: editLink,
+    },
+    {
+      key: 'duplicate',
+      label: t('Duplicate'),
+      to: duplicateLink,
     },
     {
       key: 'delete',
