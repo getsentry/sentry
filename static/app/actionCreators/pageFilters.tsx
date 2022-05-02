@@ -301,6 +301,9 @@ export function updateProjects(
   PageFiltersActions.updateProjects(projects, options?.environments);
   updateParams({project: projects, environment: options?.environments}, router, options);
   persistPageFilters('projects', options);
+  if (options?.environments) {
+    persistPageFilters('environments', options);
+  }
   updateDesyncedUrlState(router);
 }
 
