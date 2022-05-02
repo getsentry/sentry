@@ -3,7 +3,6 @@ import logging
 import math
 import operator
 import zlib
-from calendar import Calendar
 from collections import OrderedDict, defaultdict, namedtuple
 from datetime import date, datetime, timedelta
 from functools import partial, reduce
@@ -12,9 +11,7 @@ from typing import Iterable, Mapping, NamedTuple, Tuple
 
 import pytz
 from django.db.models import F
-from django.urls.base import reverse
 from django.utils import dateformat, timezone
-from django.utils.http import urlencode
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.entity import Entity
@@ -48,7 +45,6 @@ from sentry.utils import json, redis
 from sentry.utils.compat import filter, map, zip
 from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
 from sentry.utils.email import MessageBuilder
-from sentry.utils.http import absolute_uri
 from sentry.utils.iterators import chunked
 from sentry.utils.math import mean
 from sentry.utils.outcomes import Outcome
@@ -1245,7 +1241,6 @@ def to_context(organization, interval, reports):
             ),
         ],
         "projects": {"series": build_project_breakdown_series(reports)},
-        "calendar": to_calendar(organization, interval, report.calendar_series),
         "key_errors": build_key_errors_ctx(report.key_events, organization),
         "key_transactions": build_key_transactions_ctx(
             report.key_transactions, organization, reports.keys()
@@ -1280,53 +1275,3 @@ def colorize(spectrum, values):
         results.append((value, spectrum[find_index(value)]))
 
     return legend, results
-
-
-def to_calendar(organization, interval, series):
-    start, stop = get_calendar_range(interval, 3)
-
-    legend, values = colorize(
-        calendar_heat_colors,
-        [value for timestamp, value in series if value is not None],
-    )
-
-    value_color_map = dict(values)
-    value_color_map[None] = "#F2F2F2"
-
-    series_value_map = dict(series)
-
-    # If global views are enabled we can generate a link to the day
-    has_global_views = features.has("organizations:global-views", organization)
-
-    def get_data_for_date(date):
-        dt = datetime(date.year, date.month, date.day, tzinfo=pytz.utc)
-        ts = to_timestamp(dt)
-        value = series_value_map.get(ts, None)
-
-        data = {"value": value, "color": value_color_map[value], "url": None}
-        if has_global_views:
-            url = reverse(
-                "sentry-organization-issue-list", kwargs={"organization_slug": organization.slug}
-            )
-            params = {
-                "project": -1,
-                "utc": True,
-                "start": dt.isoformat(),
-                "end": (dt + timedelta(days=1)).isoformat(),
-            }
-            url = f"{url}?{urlencode(params)}"
-            data["url"] = absolute_uri(url)
-
-        return (dt, data)
-
-    calendar = Calendar(6)
-    sheets = []
-    for year, month in map(index_to_month, range(start, stop + 1)):
-        weeks = []
-
-        for week in calendar.monthdatescalendar(year, month):
-            weeks.append(map(get_data_for_date, week))
-
-        sheets.append((datetime(year, month, 1, tzinfo=pytz.utc), weeks))
-
-    return {"legend": list(legend.keys()), "sheets": sheets}

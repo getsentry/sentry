@@ -524,11 +524,7 @@ def report(request):
         personal = {"resolved": random.randint(0, 100), "users": int(random.paretovariate(0.2))}
     else:
         personal = {"resolved": 0, "users": 0}
-
-    if request.GET.get("new"):
-        html_template = "sentry/emails/reports/new.html"
-    else:
-        html_template = "sentry/emails/reports/body.html"
+    html_template = "sentry/emails/reports/body.html"
 
     return MailPreview(
         html_template=html_template,
