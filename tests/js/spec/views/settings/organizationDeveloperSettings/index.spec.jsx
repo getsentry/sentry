@@ -1,9 +1,13 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
-import {act} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
-import App from 'sentry/views/app';
 import OrganizationDeveloperSettings from 'sentry/views/settings/organizationDeveloperSettings/index';
 
 describe('Organization Developer Settings', function () {
@@ -19,53 +23,57 @@ describe('Organization Developer Settings', function () {
     ],
   });
 
-  const publishButtonSelector = 'button[aria-label="Publish"]';
-  const deleteButtonSelector = 'button[aria-label="Delete"]';
-
   beforeEach(() => {
     Client.clearMockResponses();
   });
 
   describe('when no Apps exist', () => {
-    Client.addMockResponse({
-      url: `/organizations/${org.slug}/sentry-apps/`,
-      body: [],
-    });
-
-    const wrapper = mountWithTheme(
-      <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />
-    );
-
-    it('displays empty state', () => {
-      expect(wrapper).toSnapshot();
-      expect(wrapper.exists('EmptyMessage')).toBe(true);
-      expect(wrapper.text()).toMatch('No internal integrations have been created yet');
-      expect(wrapper.text()).toMatch('No public integrations have been created yet');
+    it('displays empty state', async () => {
+      Client.addMockResponse({
+        url: `/organizations/${org.slug}/sentry-apps/`,
+        body: [],
+      });
+      const {container} = render(
+        <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />
+      );
+      await waitFor(() => {
+        expect(
+          screen.getByText('No internal integrations have been created yet.')
+        ).toBeInTheDocument();
+      });
+      expect(container).toSnapshot();
     });
   });
 
   describe('with unpublished apps', () => {
-    let wrapper;
-
     beforeEach(() => {
       Client.addMockResponse({
         url: `/organizations/${org.slug}/sentry-apps/`,
         body: [sentryApp],
       });
+    });
 
-      wrapper = mountWithTheme(
+    it('internal integrations list is empty', () => {
+      render(
         <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
         {organization: org}
       );
+      expect(
+        screen.getByText('No internal integrations have been created yet.')
+      ).toBeInTheDocument();
     });
 
-    it('internal integration list is empty', () => {
-      expect(wrapper.text()).toMatch('No internal integrations have been created yet');
-    });
-
-    it('displays all Apps owned by the Org', () => {
-      expect(wrapper.find('SentryApplicationRow').prop('app').name).toBe('Sample App');
-      expect(wrapper.find('PublishStatus').prop('status')).toBe('unpublished');
+    it('public integrations list contains 1 item', () => {
+      render(
+        <OrganizationDeveloperSettings
+          params={{orgId: org.slug}}
+          organization={org}
+          location={{query: {type: 'public'}}}
+        />,
+        {organization: org}
+      );
+      expect(screen.getByText('Sample App')).toBeInTheDocument();
+      expect(screen.getByText('unpublished')).toBeInTheDocument();
     });
 
     it('allows for deletion', async () => {
@@ -74,177 +82,191 @@ describe('Organization Developer Settings', function () {
         method: 'DELETE',
         body: [],
       });
+      render(
+        <OrganizationDeveloperSettings
+          params={{orgId: org.slug}}
+          organization={org}
+          location={{query: {type: 'public'}}}
+        />
+      );
 
-      expect(wrapper.find(deleteButtonSelector).prop('disabled')).toEqual(false);
-      wrapper.find(deleteButtonSelector).simulate('click');
-      // confirm deletion by entering in app slug
-      const modal = await mountGlobalModal();
-      modal.find('input').simulate('change', {target: {value: 'sample-app'}});
-      modal.find('Button[priority="danger"]').simulate('click');
+      const deleteButton = await screen.findByRole('button', {name: 'Delete'});
+      expect(deleteButton).toHaveAttribute('aria-disabled', 'false');
 
-      await tick();
-      wrapper.update();
-      expect(wrapper.text()).toMatch('No public integrations have been created yet');
+      userEvent.click(deleteButton);
+      await mountGlobalModal();
+      const dialog = await screen.findByRole('dialog');
+      expect(dialog).toBeInTheDocument();
+
+      const input = await within(dialog).findByPlaceholderText('sample-app');
+      userEvent.paste(input, 'sample-app');
+      const confirmDeleteButton = await screen.findByRole('button', {name: 'Confirm'});
+
+      userEvent.click(confirmDeleteButton);
+
+      await screen.findByText('No public integrations have been created yet.');
     });
 
     it('can make a request to publish an integration', async () => {
-      // add mocks that App calls
-      Client.addMockResponse({
-        url: '/internal/health/',
-        body: {
-          problems: [],
-        },
-      });
-      Client.addMockResponse({
-        url: '/assistant/',
-        body: [],
-      });
-      Client.addMockResponse({
-        url: '/organizations/',
-        body: [TestStubs.Organization()],
-      });
-      Client.addMockResponse({
-        url: '/organizations/org-slug/',
-        method: 'DELETE',
-        statusCode: 401,
-        body: {
-          detail: {
-            code: 'sudo-required',
-            username: 'test@test.com',
-          },
-        },
-      });
-      Client.addMockResponse({
-        url: '/authenticators/',
-        body: [],
-      });
-
       const mock = Client.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/publish-request/`,
         method: 'POST',
       });
 
-      // mock with App to render modal
-      wrapper = mountWithTheme(
-        <App>
-          <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />
-        </App>
+      render(
+        <OrganizationDeveloperSettings
+          params={{orgId: org.slug}}
+          organization={org}
+          location={{query: {type: 'public'}}}
+        />
       );
 
-      expect(wrapper.find(publishButtonSelector).prop('disabled')).toEqual(false);
-      wrapper.find(publishButtonSelector).simulate('click');
+      const publishButton = await screen.findByRole('button', {name: 'Publish'});
 
-      await act(tick);
-      wrapper.update();
+      expect(publishButton).toHaveAttribute('aria-disabled', 'false');
+      userEvent.click(publishButton);
 
-      const modal = await mountGlobalModal();
+      await mountGlobalModal();
+      const dialog = await screen.findByRole('dialog');
+      expect(dialog).toBeInTheDocument();
+      const questionnaire = [
+        {
+          answer: 'Answer 0',
+          question: 'What does your integration do? Please be as detailed as possible.',
+        },
+        {answer: 'Answer 1', question: 'What value does it offer customers?'},
+        {
+          answer: 'Answer 2',
+          question: 'Do you operate the web service your integration communicates with?',
+        },
+        {
+          answer: 'Answer 3',
+          question:
+            'Please justify why you are requesting each of the following permissions: Team Read, Release Admin, Event Write, Organization Write.',
+        },
+      ];
 
-      modal.find('textarea').forEach((node, i) => {
-        node
-          .simulate('change', {target: {value: `Answer ${i}`}})
-          .simulate('keyDown', {keyCode: 13});
-      });
-      expect(modal.find('button[aria-label="Request Publication"]')).toBeTruthy();
+      for (const {question, answer} of questionnaire) {
+        const element = within(dialog).getByLabelText(question);
+        userEvent.paste(element, answer);
+      }
 
-      modal.find('form').simulate('submit');
+      const requestPublishButton = await within(dialog).findByLabelText(
+        'Request Publication'
+      );
+      expect(requestPublishButton).toHaveAttribute('aria-disabled', 'false');
+
+      userEvent.click(requestPublishButton);
+
       expect(mock).toHaveBeenCalledWith(
         `/sentry-apps/${sentryApp.slug}/publish-request/`,
         expect.objectContaining({
-          data: {
-            questionnaire: [
-              {
-                answer: 'Answer 0',
-                question:
-                  'What does your integration do? Please be as detailed as possible.',
-              },
-              {answer: 'Answer 1', question: 'What value does it offer customers?'},
-              {
-                answer: 'Answer 2',
-                question:
-                  'Do you operate the web service your integration communicates with?',
-              },
-              {
-                answer: 'Answer 3',
-                question:
-                  'Please justify why you are requesting each of the following permissions: Team Read, Release Admin, Event Write, Organization Write.',
-              },
-            ],
-          },
+          data: {questionnaire},
         })
       );
     });
   });
 
   describe('with published apps', () => {
-    const publishedSentryApp = TestStubs.SentryApp({status: 'published'});
-    Client.addMockResponse({
-      url: `/organizations/${org.slug}/sentry-apps/`,
-      body: [publishedSentryApp],
+    beforeEach(() => {
+      const publishedSentryApp = TestStubs.SentryApp({status: 'published'});
+      Client.addMockResponse({
+        url: `/organizations/${org.slug}/sentry-apps/`,
+        body: [publishedSentryApp],
+      });
     });
-
-    const wrapper = mountWithTheme(
-      <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />
-    );
-
     it('shows the published status', () => {
-      expect(wrapper.find('PublishStatus').prop('status')).toBe('published');
+      render(
+        <OrganizationDeveloperSettings
+          params={{orgId: org.slug}}
+          organization={org}
+          location={{query: {type: 'public'}}}
+        />
+      );
+      expect(screen.getByText('published')).toBeInTheDocument();
     });
 
-    it('trash button is disabled', () => {
-      expect(wrapper.find(deleteButtonSelector).prop('disabled')).toEqual(true);
+    it('trash button is disabled', async () => {
+      render(
+        <OrganizationDeveloperSettings
+          params={{orgId: org.slug}}
+          organization={org}
+          location={{query: {type: 'public'}}}
+        />
+      );
+      const deleteButton = await screen.findByRole('button', {name: 'Delete'});
+      expect(deleteButton).toHaveAttribute('aria-disabled', 'true');
     });
 
-    it('publish button is disabled', () => {
-      expect(wrapper.find(publishButtonSelector).prop('disabled')).toEqual(true);
+    it('publish button is disabled', async () => {
+      render(
+        <OrganizationDeveloperSettings
+          params={{orgId: org.slug}}
+          organization={org}
+          location={{query: {type: 'public'}}}
+        />
+      );
+      const publishButton = await screen.findByRole('button', {name: 'Publish'});
+      expect(publishButton).toHaveAttribute('aria-disabled', 'true');
     });
   });
 
   describe('with Internal Integrations', () => {
-    const internalIntegration = TestStubs.SentryApp({status: 'internal'});
+    beforeEach(() => {
+      const internalIntegration = TestStubs.SentryApp({status: 'internal'});
 
-    Client.addMockResponse({
-      url: `/organizations/${org.slug}/sentry-apps/`,
-      body: [internalIntegration],
+      Client.addMockResponse({
+        url: `/organizations/${org.slug}/sentry-apps/`,
+        body: [internalIntegration],
+      });
     });
 
-    const wrapper = mountWithTheme(
-      <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />
-    );
-
-    it('public integration list is empty', () => {
-      expect(wrapper.text()).toMatch('No public integrations have been created yet');
+    it('allows deleting', async () => {
+      render(
+        <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />
+      );
+      const deleteButton = await screen.findByRole('button', {name: 'Delete'});
+      expect(deleteButton).toHaveAttribute('aria-disabled', 'false');
     });
 
-    it('allows deleting', () => {
-      expect(wrapper.find(deleteButtonSelector).prop('disabled')).toEqual(false);
-    });
-
-    it('publish button does not exist', () => {
-      expect(wrapper.exists(publishButtonSelector)).toBe(false);
+    it('publish button does not exist', async () => {
+      render(
+        <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />
+      );
+      expect(screen.queryByText('Publish')).not.toBeInTheDocument();
     });
   });
 
   describe('without Owner permissions', () => {
     const newOrg = TestStubs.Organization({access: ['org:read']});
-    Client.addMockResponse({
-      url: `/organizations/${newOrg.slug}/sentry-apps/`,
-      body: [sentryApp],
+    beforeEach(() => {
+      Client.addMockResponse({
+        url: `/organizations/${newOrg.slug}/sentry-apps/`,
+        body: [sentryApp],
+      });
+    });
+    it('trash button is disabled', async () => {
+      render(
+        <OrganizationDeveloperSettings
+          params={{orgId: newOrg.slug}}
+          organization={newOrg}
+          location={{query: {type: 'public'}}}
+        />
+      );
+      const deleteButton = await screen.findByRole('button', {name: 'Delete'});
+      expect(deleteButton).toHaveAttribute('aria-disabled', 'true');
     });
 
-    const wrapper = mountWithTheme(
-      <OrganizationDeveloperSettings
-        params={{orgId: newOrg.slug}}
-        organization={newOrg}
-      />,
-      TestStubs.routerContext([{organization: newOrg}])
-    );
-
-    it('trash button is disabled', () => {
-      expect(wrapper.find(deleteButtonSelector).prop('disabled')).toEqual(true);
-    });
-
-    it('publish button is disabled', () => {
-      expect(wrapper.find(publishButtonSelector).prop('disabled')).toEqual(true);
+    it('publish button is disabled', async () => {
+      render(
+        <OrganizationDeveloperSettings
+          params={{orgId: newOrg.slug}}
+          organization={newOrg}
+          location={{query: {type: 'public'}}}
+        />
+      );
+      const publishButton = await screen.findByRole('button', {name: 'Publish'});
+      expect(publishButton).toHaveAttribute('aria-disabled', 'true');
     });
   });
 });
