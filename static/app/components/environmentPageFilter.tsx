@@ -111,7 +111,7 @@ function EnvironmentPageFilter({
 const TitleContainer = styled('div')`
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   flex: 1 1 0%;
   margin-left: ${space(1)};
   overflow: hidden;
