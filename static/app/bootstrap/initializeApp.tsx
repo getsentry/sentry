@@ -1,6 +1,7 @@
 import './legacyTwitterBootstrap';
 import './exportGlobals';
 
+import {EXPERIMENTAL_SPA, NODE_ENV} from 'sentry/constants';
 import routes from 'sentry/routes';
 import {Config} from 'sentry/types';
 import {metric} from 'sentry/utils/analytics';
@@ -13,7 +14,10 @@ import {renderOnDomReady} from './renderOnDomReady';
 
 export async function initializeApp(config: Config) {
   commonInitialization(config);
-  initializeSdk(config, {routes});
+
+  if (!EXPERIMENTAL_SPA && NODE_ENV !== 'development') {
+    initializeSdk(config, {routes});
+  }
 
   // Used for operational metrics to determine that the application js
   // bundle was loaded by browser.
