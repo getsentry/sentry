@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {
   displayDeployPreviewAlert,
   displayExperimentalSpaAlert,
-} from 'sentry/actionCreators/deployPreview';
+} from 'sentry/actionCreators/developmentAlerts';
 import {fetchGuides} from 'sentry/actionCreators/guides';
 import {openCommandPalette} from 'sentry/actionCreators/modal';
 import {initApiClientErrorHandling} from 'sentry/api';
