@@ -18,7 +18,7 @@ def trigger_sentry_app_action_creators_for_incidents(alert_rule_data: Mapping[st
     )
     # We're doing this so that Sentry Apps without alert-rule-action schemas still get saved
     sentry_app_actions_with_components = list(
-        filter(lambda x: x.get("sentry_app_installation_uuid"), sentry_app_actions)
+        filter(lambda x: x.get("sentry_app_config"), sentry_app_actions)
     )
 
     for action in sentry_app_actions_with_components:
