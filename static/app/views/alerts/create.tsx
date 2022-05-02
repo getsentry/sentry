@@ -44,8 +44,14 @@ class Create extends Component<Props, State> {
 
   getInitialState(): State {
     const {organization, location, project, params, router} = this.props;
-    const {createFromDiscover, createFromWizard, aggregate, dataset, eventTypes} =
-      location?.query ?? {};
+    const {
+      createFromDiscover,
+      createFromWizard,
+      aggregate,
+      dataset,
+      eventTypes,
+      createFromDuplicate,
+    } = location?.query ?? {};
     let alertType = AlertRuleType.ISSUE;
 
     const hasAlertWizardV3 = organization.features.includes('alert-wizard-v3');
@@ -54,7 +60,12 @@ class Create extends Component<Props, State> {
     if (hasAlertWizardV3) {
       alertType = params.alertType || AlertRuleType.METRIC;
 
-      if (alertType === AlertRuleType.METRIC && !(aggregate && dataset && eventTypes)) {
+      // TODO(taylangocmen): Remove redirect with aggregate && dataset && eventTypes, init from template
+      if (
+        alertType === AlertRuleType.METRIC &&
+        !(aggregate && dataset && eventTypes) &&
+        !createFromDuplicate
+      ) {
         router.replace({
           ...location,
           pathname: `/organizations/${organization.slug}/alerts/new/${alertType}`,
