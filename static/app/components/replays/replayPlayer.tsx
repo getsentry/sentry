@@ -7,14 +7,12 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 
 import BufferingOverlay from './player/bufferingOverlay';
 import FastForwardBadge from './player/fastForwardBadge';
-import StackedContent from './stackedContent';
 
 interface Props {
   className?: string;
-  fixedHeight?: boolean;
 }
 
-function BasePlayerRoot({className, fixedHeight = false}: Props) {
+function BasePlayerRoot({className}: Props) {
   const {
     initRoot,
     dimensions: videoDimensions,
@@ -56,13 +54,11 @@ function BasePlayerRoot({className, fixedHeight = false}: Props) {
   // Update the scale of the view whenever dimensions have changed.
   useEffect(() => {
     if (viewEl.current) {
-      const scale = fixedHeight
-        ? Math.min(
-            windowDimensions.width / videoDimensions.width,
-            windowDimensions.height / videoDimensions.height,
-            1
-          )
-        : Math.min(windowDimensions.width / videoDimensions.width, 1);
+      const scale = Math.min(
+        windowDimensions.width / videoDimensions.width,
+        windowDimensions.height / videoDimensions.height,
+        1
+      );
       if (scale) {
         viewEl.current.style['transform-origin'] = 'top left';
         viewEl.current.style.transform = `scale(${scale})`;
@@ -70,54 +66,49 @@ function BasePlayerRoot({className, fixedHeight = false}: Props) {
         viewEl.current.style.height = `${videoDimensions.height * scale}px`;
       }
     }
-  }, [fixedHeight, windowDimensions, videoDimensions]);
+  }, [windowDimensions, videoDimensions]);
 
   return (
-    <Panel fixedHeight={fixedHeight}>
-      <Centered ref={windowEl} className="sr-block" data-test-id="replay-window">
-        <StackedContent>
-          {() => (
-            <React.Fragment>
-              <div ref={viewEl} data-test-id="replay-view" className={className} />
-              {fastForwardSpeed ? <FastForwardBadge speed={fastForwardSpeed} /> : null}
-              {isBuffering ? <BufferingOverlay /> : null}
-            </React.Fragment>
-          )}
-        </StackedContent>
-      </Centered>
-    </Panel>
+    <SizingWindow ref={windowEl} className="sr-block" data-test-id="replay-window">
+      <div ref={viewEl} data-test-id="replay-view" className={className} />
+      {fastForwardSpeed ? <PositionedFastForward speed={fastForwardSpeed} /> : null}
+      {isBuffering ? <PositionedBuffering /> : null}
+    </SizingWindow>
   );
 }
-
-const Panel = styled(_Panel)<{fixedHeight: boolean}>`
-  /*
-  Disable the <Panel> styles when in fullscreen mode.
-  If we add/remove DOM nodes then the Replayer instance will have a stale iframe ref
-  */
-  ${p => (p.fixedHeight ? 'border: none; background: transparent;' : '')}
-
-  iframe {
-    /* Match the iframe corners to the <Panel> */
-    border-radius: ${p => p.theme.borderRadius};
-  }
-`;
 
 // Center the viewEl inside the windowEl.
 // This is useful when the window is inside a container that has large fixed
 // dimensions, like when in fullscreen mode.
-const Centered = styled('div')`
+const SizingWindow = styled('div')`
   width: 100%;
   height: 100%;
-  background: transparent;
+
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
+  position: relative;
+`;
+
+const PositionedFastForward = styled(FastForwardBadge)`
+  position: absolute;
+  left: 0;
+  bottom: 0;
+`;
+
+const PositionedBuffering = styled(BufferingOverlay)`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
 `;
 
 // Base styles, to make the Replayer instance work
 const PlayerRoot = styled(BasePlayerRoot)`
   .replayer-wrapper {
     background: white;
+    user-select: none;
   }
   .replayer-wrapper > .replayer-mouse-tail {
     position: absolute;

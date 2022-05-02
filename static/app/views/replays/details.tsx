@@ -5,14 +5,15 @@ import DetailedError from 'sentry/components/errors/detailedError';
 import NotFound from 'sentry/components/errors/notFound';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Panel, PanelBody, PanelHeader as _PanelHeader} from 'sentry/components/panels';
 import ReplayBreadcrumbOverview from 'sentry/components/replays/breadcrumbs/replayBreadcrumbOverview';
+import Scrobber from 'sentry/components/replays/player/scrobber';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayController from 'sentry/components/replays/replayController';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
 import useFullscreen from 'sentry/components/replays/useFullscreen';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
-import space from 'sentry/styles/space';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 
 import DetailLayout from './detail/detailLayout';
@@ -92,16 +93,25 @@ function ReplayDetails() {
       >
         <Layout.Body>
           <ReplayLayout ref={fullscreenRef}>
-            {/* In fullscreen we need to consider the max-height that the player is able
-            to full up, on a page that scrolls we only consider the max-width. */}
-            <ReplayPlayer fixedHeight={isFullscreen} />
-            <ReplayController toggleFullscreen={toggleFullscreen} />
+            <Panel>
+              <PanelHeader disablePadding>
+                <ManualResize isFullscreen={isFullscreen}>
+                  <ReplayPlayer />
+                </ManualResize>
+              </PanelHeader>
+              <Scrobber />
+              <PanelBody withPadding>
+                <ReplayController toggleFullscreen={toggleFullscreen} />
+              </PanelBody>
+            </Panel>
           </ReplayLayout>
           <Layout.Side>
             <UserActionsNavigator event={event} entry={breadcrumbEntry} />
           </Layout.Side>
           <Layout.Main fullWidth>
-            <BreadcrumbTimeline crumbs={breadcrumbEntry?.data.values || []} />
+            <Panel>
+              <BreadcrumbTimeline crumbs={breadcrumbEntry?.data.values || []} />
+            </Panel>
             <FocusArea
               event={event}
               eventWithSpans={mergedReplayEvent}
@@ -114,6 +124,25 @@ function ReplayDetails() {
   );
 }
 
+const PanelHeader = styled(_PanelHeader)`
+  display: block;
+  padding: 0;
+`;
+
+const ManualResize = styled('div')<{isFullscreen: boolean}>`
+  resize: vertical;
+  overflow: auto;
+  max-width: 100%;
+
+  ${p =>
+    p.isFullscreen
+      ? `resize: none;
+      width: auto !important;
+      height: auto !important;
+      `
+      : ''}
+`;
+
 const ReplayLayout = styled(Layout.Main)`
   :fullscreen {
     display: grid;
@@ -124,7 +153,6 @@ const ReplayLayout = styled(Layout.Main)`
 
 const BreadcrumbTimeline = styled(ReplayBreadcrumbOverview)`
   max-height: 5em;
-  margin-bottom: ${space(2)};
 `;
 
 export default ReplayDetails;
