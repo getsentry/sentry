@@ -16,9 +16,15 @@ type Props = {
   onSearch: (q: string) => void;
   query: string;
   tagValueLoader: TagValueLoader;
+  hasBottomMargin?: boolean;
 };
 
-function ProjectFilters({query, tagValueLoader, onSearch}: Props) {
+function ProjectFilters({
+  query,
+  tagValueLoader,
+  onSearch,
+  hasBottomMargin = true,
+}: Props) {
   const getTagValues = async (tag: Tag, currentQuery: string): Promise<string[]> => {
     const values = await tagValueLoader(tag.key, currentQuery);
     return values.map(({value}) => value);
@@ -26,7 +32,7 @@ function ProjectFilters({query, tagValueLoader, onSearch}: Props) {
 
   return (
     <FiltersWrapper>
-      <StyledPageFilterBar>
+      <StyledPageFilterBar hasBottomMargin={hasBottomMargin}>
         <EnvironmentPageFilter />
         <DatePageFilter alignDropdown="left" />
       </StyledPageFilterBar>
@@ -54,9 +60,13 @@ function ProjectFilters({query, tagValueLoader, onSearch}: Props) {
   );
 }
 
-const StyledPageFilterBar = styled(PageFilterBar)`
-  margin-bottom: ${space(1)};
+const StyledPageFilterBar = styled(PageFilterBar)<{hasBottomMargin: boolean}>`
+  margin-bottom: ${p => (p.hasBottomMargin ? `${space(1)}` : '0')};
   margin-right: ${space(1)};
+
+  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+    margin-bottom: ${space(1)};
+  }
 `;
 
 const FiltersWrapper = styled('div')`
