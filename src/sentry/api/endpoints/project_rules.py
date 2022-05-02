@@ -4,7 +4,7 @@ from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework import RuleSerializer
+from sentry.api.serializers.rest_framework.rule import RuleSerializer
 from sentry.integrations.slack import tasks
 from sentry.mediators import project_rules
 from sentry.models import (
@@ -19,6 +19,8 @@ from sentry.models import (
 from sentry.rules.actions.base import trigger_sentry_app_action_creators_for_issues
 from sentry.signals import alert_rule_created
 from sentry.web.decorators import transaction_start
+
+MAX_RULES_PER_PROJECT = 100
 
 
 class ProjectRulesEndpoint(ProjectEndpoint):
@@ -64,6 +66,15 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             }}
 
         """
+        if (
+            Rule.objects.filter(project=project, status=RuleStatus.ACTIVE).count()
+            >= MAX_RULES_PER_PROJECT
+        ):
+            return Response(
+                f"You may not exceed {MAX_RULES_PER_PROJECT} rules per project",
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         serializer = RuleSerializer(
             context={"project": project, "organization": project.organization}, data=request.data
         )

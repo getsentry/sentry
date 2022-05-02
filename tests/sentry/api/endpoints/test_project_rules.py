@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from copy import deepcopy
 from typing import Any, Mapping, Sequence
+from unittest import mock
 from unittest.mock import patch
 
 import responses
 
-from sentry.models import Environment, Rule, RuleActivity, RuleActivityType
+from sentry.models import Environment, Rule, RuleActivity, RuleActivityType, RuleStatus
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import install_slack
 from sentry.utils import json
@@ -179,6 +180,30 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             conditions=conditions,
             status_code=400,
         )
+
+    def test_exceed_limit(self):
+        conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
+        actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
+        Rule.objects.filter(project=self.project).delete()
+        with mock.patch("sentry.api.endpoints.project_rules.MAX_RULES_PER_PROJECT", 1):
+            self.run_test(conditions=conditions, actions=actions)
+
+            resp = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                name="test",
+                frequency=30,
+                owner=self.user.actor.get_actor_identifier(),
+                actionMatch="any",
+                filterMatch="any",
+                actions=actions,
+                conditions=conditions,
+                status_code=400,
+            )
+            assert resp.data == "You may not exceed 1 rules per project"
+            # Make sure pending deletions don't affect the process
+            Rule.objects.filter(project=self.project).update(status=RuleStatus.PENDING_DELETION)
+            self.run_test(conditions=conditions, actions=actions)
 
     def test_owner_perms(self):
         other_user = self.create_user()
