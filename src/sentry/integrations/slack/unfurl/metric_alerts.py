@@ -7,7 +7,7 @@ from django.db.models import Q
 from django.http.request import HttpRequest, QueryDict
 
 from sentry.incidents.models import AlertRule, Incident, User
-from sentry.integrations.slack.message_builder.metric_alerts import build_metric_alert_attachment
+from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
 from sentry.models import Integration
 
 from . import Handler, UnfurlableUrl, UnfurledUrl, make_type_coercer
@@ -67,11 +67,10 @@ def unfurl_metric_alerts(
         return {}
 
     return {
-        link.url: build_metric_alert_attachment(
-            alert_rule_map[link.args["alert_rule_id"]],
-            incident_map.get(link.args["incident_id"]),
-            unfurl=True,
-        )
+        link.url: SlackMetricAlertMessageBuilder(
+            alert_rule=alert_rule_map[link.args["alert_rule_id"]],
+            incident=incident_map.get(link.args["incident_id"]),
+        ).build()
         for link in links
         if link.args["alert_rule_id"] in alert_rule_map
     }

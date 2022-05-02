@@ -24,10 +24,10 @@ QUERY_AGGREGATION_DISPLAY = {
     "percentage(sessions_crashed, sessions)": "% sessions crash free rate",
     "percentage(users_crashed, users)": "% users crash free rate",
 }
+LOGO_URL = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
 
 
 def incident_attachment_info(incident, new_status: IncidentStatus, metric_value=None, unfurl=False):
-    logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
     alert_rule = incident.alert_rule
 
     status = INCIDENT_STATUS[new_status]
@@ -100,7 +100,7 @@ def incident_attachment_info(incident, new_status: IncidentStatus, metric_value=
     return {
         "title": title,
         "text": text,
-        "logo_url": logo_url,
+        "logo_url": LOGO_URL,
         "status": status,
         "ts": ts,
         "title_link": title_link,
@@ -112,10 +112,7 @@ def metric_alert_attachment_info(
     selected_incident: Optional[Incident] = None,
     new_status: IncidentStatus = None,
     metric_value=None,
-    unfurl=False,
 ):
-    logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
-
     latest_incident = None
     if selected_incident is None:
         latest_incident = Incident.objects.filter(
@@ -125,34 +122,25 @@ def metric_alert_attachment_info(
             .values("incident_id")
         ).first()
 
-    status = INCIDENT_STATUS[IncidentStatus.CLOSED]
     if new_status:
         status = INCIDENT_STATUS[new_status]
+    elif selected_incident:
+        status = INCIDENT_STATUS[IncidentStatus(selected_incident.status)]
+    elif latest_incident:
+        status = INCIDENT_STATUS[IncidentStatus(latest_incident.status)]
     else:
-        if selected_incident:
-            status = INCIDENT_STATUS[IncidentStatus(selected_incident.status)]
-        elif latest_incident:
-            status = INCIDENT_STATUS[IncidentStatus(latest_incident.status)]
+        status = INCIDENT_STATUS[IncidentStatus.CLOSED]
 
     title = f"{status}: {alert_rule.name}"
-
-    if unfurl:
-        # this URL is needed for the Slack unfurl, but nothing else
-        title_link = absolute_uri(
-            f"organizations/{alert_rule.organization.slug}/alerts/rules/details/{alert_rule.id}"
+    title_link = absolute_uri(
+        reverse(
+            "sentry-metric-alert-details",
+            kwargs={
+                "organization_slug": alert_rule.organization.slug,
+                "alert_rule_id": alert_rule.id,
+            },
         )
-    else:
-        # TODO: pass selected incident id as query parameter
-        title_link = absolute_uri(
-            reverse(
-                "sentry-metric-alert-details",
-                kwargs={
-                    "organization_slug": alert_rule.organization.slug,
-                    "alert_rule_id": alert_rule.id,
-                },
-            )
-        )
-
+    )
     if selected_incident:
         params = parse.urlencode({"alert": str(selected_incident.identifier)})
         title_link += f"?{params}"
@@ -228,7 +216,7 @@ def metric_alert_attachment_info(
     return {
         "title": title,
         "text": text,
-        "logo_url": logo_url,
+        "logo_url": LOGO_URL,
         "status": status,
         "date_started": date_started,
         "last_triggered_date": last_triggered_date,
