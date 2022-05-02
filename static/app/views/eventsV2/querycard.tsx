@@ -140,7 +140,7 @@ const DateSelected = styled('div')`
 `;
 
 const DateStatus = styled('span')`
-  color: ${p => p.theme.purple300};
+  color: ${p => p.theme.subText};
   padding-left: ${space(1)};
 `;
 

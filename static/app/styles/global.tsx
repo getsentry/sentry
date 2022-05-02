@@ -14,7 +14,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
   }
 
   abbr {
-    ${theme.tooltipUnderline};
+    ${theme.tooltipUnderline()};
   }
 
   a {

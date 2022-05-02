@@ -280,7 +280,7 @@ function getTipDirection(
 }
 
 const Trigger = styled('span')<{showUnderline?: boolean}>`
-  ${p => p.showUnderline && p.theme.tooltipUnderline};
+  ${p => p.showUnderline && p.theme.tooltipUnderline()};
 `;
 
 const HovercardContainer = styled('div')`

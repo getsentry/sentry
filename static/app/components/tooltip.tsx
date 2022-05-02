@@ -18,6 +18,7 @@ import {IS_ACCEPTANCE_TEST} from 'sentry/constants/index';
 import space from 'sentry/styles/space';
 import domId from 'sentry/utils/domId';
 import testableTransition from 'sentry/utils/testableTransition';
+import {ColorOrAlias} from 'sentry/utils/theme';
 
 import {AcceptanceTestTooltip} from './acceptanceTestTooltip';
 
@@ -106,6 +107,11 @@ export interface InternalTooltipProps {
    * If child node supports ref forwarding, you can skip apply a wrapper
    */
   skipWrapper?: boolean;
+
+  /**
+   * Color of the dotted underline, if available. See also: showUnderline.
+   */
+  underlineColor?: ColorOrAlias;
 }
 
 /**
@@ -144,6 +150,7 @@ export function DO_NOT_USE_TOOLTIP({
   isHoverable,
   popperStyle,
   showUnderline,
+  underlineColor,
   showOnlyOnOverflow,
   skipWrapper,
   title,
@@ -246,7 +253,7 @@ export function DO_NOT_USE_TOOLTIP({
         ...containerProps,
         style: {
           ...triggerChildren.props.style,
-          ...(showUnderline && theme.tooltipUnderline),
+          ...(showUnderline && theme.tooltipUnderline(underlineColor)),
         },
         ref: setRef,
       });
@@ -257,7 +264,7 @@ export function DO_NOT_USE_TOOLTIP({
     return (
       <Container
         {...containerProps}
-        style={showUnderline ? theme.tooltipUnderline : undefined}
+        style={showUnderline ? theme.tooltipUnderline(underlineColor) : undefined}
         className={className}
         ref={setRef}
       >
