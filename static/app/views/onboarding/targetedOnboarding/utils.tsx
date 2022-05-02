@@ -15,6 +15,7 @@ export function usePersistedOnboardingState(): [
         ? {
             platformToProjectIdMap: state.platformToProjectIdMap || {},
             selectedPlatforms: state.selectedPlatforms || [],
+            selectedIntegrations: state.selectedIntegrations || [],
           }
         : null;
       return [onboardingState, setState];

@@ -14,8 +14,12 @@ function OnboardingController({...rest}: Props) {
       key: 'TargetedOnboardingMultiSelectExperiment',
       organization: rest.organization,
     });
-  }, [rest.organization]);
-  if (rest.organization?.experiments.TargetedOnboardingMultiSelectExperiment) {
+  });
+
+  if (
+    rest.organization?.experiments.TargetedOnboardingMultiSelectExperiment ||
+    rest.organization?.experiments.TargetedOnboardingIntegrationSelectExperiment
+  ) {
     return <TargetedOnboarding {...rest} />;
   }
   return <Onboarding {...rest} />;
