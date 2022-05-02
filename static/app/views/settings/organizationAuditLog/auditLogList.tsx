@@ -40,10 +40,12 @@ const AuditLogList = ({
   const is24Hours = shouldUse24Hours();
   const hasEntries = entries && entries.length > 0;
   const ipv4Length = 15;
-  const options = [
-    {value: '', label: t('Any action'), clearableVaue: false},
-    ...eventTypes.map(type => ({label: type, value: type, clearableValue: false})),
-  ];
+  const options = eventTypes
+    ? [
+        {value: '', label: t('Any action'), clearableVaue: false},
+        ...eventTypes.map(type => ({label: type, value: type, clearableValue: false})),
+      ]
+    : [];
 
   const action = (
     <form>

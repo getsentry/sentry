@@ -74,6 +74,7 @@ from .endpoints.api_applications import ApiApplicationsEndpoint
 from .endpoints.api_authorizations import ApiAuthorizationsEndpoint
 from .endpoints.api_tokens import ApiTokensEndpoint
 from .endpoints.assistant import AssistantEndpoint
+from .endpoints.audit_log_index import AuditLogAPINamesEndpoint
 from .endpoints.auth_config import AuthConfigEndpoint
 from .endpoints.auth_index import AuthIndexEndpoint
 from .endpoints.auth_login import AuthLoginEndpoint
@@ -598,6 +599,12 @@ urlpatterns = [
         r"^prompts-activity/$",
         PromptsActivityEndpoint.as_view(),
         name="sentry-api-0-prompts-activity",
+    ),
+    # Audit Log API Names
+    url(
+        r"^audit-log-api-names/$",
+        AuditLogAPINamesEndpoint.as_view(),
+        name="sentry-api-0-audit-log-api-names",
     ),
     # Auth
     url(

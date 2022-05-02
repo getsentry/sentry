@@ -8,63 +8,6 @@ import AsyncView from 'sentry/views/asyncView';
 
 import AuditLogList from './auditLogList';
 
-// Please keep this list sorted
-const EVENT_TYPES = [
-  'member.invite',
-  'member.add',
-  'member.accept-invite',
-  'member.remove',
-  'member.edit',
-  'member.join-team',
-  'member.leave-team',
-  'member.pending',
-  'team.create',
-  'team.edit',
-  'team.remove',
-  'project.create',
-  'project.edit',
-  'project.remove',
-  'project.set-public',
-  'project.set-private',
-  'project.request-transfer',
-  'project.accept-transfer',
-  'org.create',
-  'org.edit',
-  'org.remove',
-  'org.restore',
-  'tagkey.remove',
-  'projectkey.create',
-  'projectkey.edit',
-  'projectkey.remove',
-  'projectkey.enable',
-  'projectkey.disable',
-  'sso.enable',
-  'sso.disable',
-  'sso.edit',
-  'sso-identity.link',
-  'api-key.create',
-  'api-key.edit',
-  'api-key.remove',
-  'alertrule.create',
-  'alertrule.edit',
-  'alertrule.remove',
-  'rule.create',
-  'rule.edit',
-  'rule.remove',
-  'servicehook.create',
-  'servicehook.edit',
-  'servicehook.remove',
-  'servicehook.enable',
-  'servicehook.disable',
-  'integration.add',
-  'integration.edit',
-  'integration.remove',
-  'ondemand.edit',
-  'trial.started',
-  'plan.changed',
-  'plan.cancelled',
-];
-
 type Props = RouteComponentProps<{orgId: string}, {}> &
   AsyncView['props'] & {
     organization: Organization;
@@ -73,6 +16,7 @@ type Props = RouteComponentProps<{orgId: string}, {}> &
 type State = AsyncView['state'] & {
   entryList: AuditLog[] | null;
   entryListPageLinks: string | null;
+  eventTypes: string[];
 };
 
 class OrganizationAuditLog extends AsyncView<Props, State> {
@@ -85,6 +29,7 @@ class OrganizationAuditLog extends AsyncView<Props, State> {
           query: this.props.location.query,
         },
       ],
+      ['eventTypes', `/audit-log-api-names/`],
     ];
   }
 
@@ -109,14 +54,14 @@ class OrganizationAuditLog extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {entryList, entryListPageLinks, loading, reloading} = this.state;
+    const {entryList, eventTypes, entryListPageLinks, loading, reloading} = this.state;
     const currentEventType = this.props.location.query.event;
     return (
       <AuditLogList
         entries={entryList}
         pageLinks={entryListPageLinks}
         eventType={currentEventType}
-        eventTypes={EVENT_TYPES}
+        eventTypes={eventTypes}
         onEventSelect={this.handleEventSelect}
         isLoading={loading || reloading}
         {...this.props}
