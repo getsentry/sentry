@@ -111,6 +111,7 @@ const Permalink = styled('span')`
 
 const StyledIconAnchor = styled(IconAnchor)`
   opacity: 0;
+  transform: translateY(-1px);
   transition: opacity 100ms;
 `;
 
