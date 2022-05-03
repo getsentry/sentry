@@ -2,7 +2,6 @@ from concurrent.futures import ThreadPoolExecutor
 from time import sleep, time
 from unittest.mock import patch
 
-from before_after import before
 from django.conf.urls import url
 from django.contrib.auth.models import AnonymousUser
 from django.test import RequestFactory, override_settings
@@ -362,8 +361,9 @@ class TestRatelimitHeader(APITestCase):
         def parallel_request(*args, **kwargs):
             self.client.get(reverse("race-condition-endpoint"))
 
-        with before(
-            "tests.sentry.middleware.test_ratelimit_middleware.RateLimitHeaderTestEndpoint.inject_call",
+        with patch.object(
+            RateLimitHeaderTestEndpoint,
+            "inject_call",
             parallel_request,
         ):
             response = self.get_success_response()
