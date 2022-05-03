@@ -213,7 +213,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
             # irrespective of values in the header. This would most likely be the case
             # for development environments.
             cluster_name = settings.KAFKA_TOPICS[settings.KAFKA_EVENTS]["cluster"]
-            assert cluster_name == settings.KAFKA_TOPICS[settings.KAFKA_TRANSACTIONS["cluster"]]
+            assert cluster_name == settings.KAFKA_TOPICS[settings.KAFKA_TRANSACTIONS]["cluster"]
             worker = PostProcessForwarderWorker(concurrency=concurrency)
 
         synchronized_consumer = SynchronizedConsumer(
