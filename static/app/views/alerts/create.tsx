@@ -124,6 +124,8 @@ class Create extends Component<Props, State> {
     };
     const eventView = createFromDiscover ? EventView.fromLocation(location) : undefined;
 
+    const hasDuplicateAlertRules = organization.features.includes('duplicate-alert-rule');
+
     let wizardAlertType: undefined | WizardAlertType;
     if (createFromWizard && alertType === AlertRuleType.METRIC) {
       wizardAlertType = wizardTemplate
@@ -172,7 +174,7 @@ class Create extends Component<Props, State> {
 
                     {hasMetricAlerts &&
                       alertType === AlertRuleType.METRIC &&
-                      (createFromDuplicate ? (
+                      (createFromDuplicate && hasDuplicateAlertRules ? (
                         <IncidentRulesDuplicate
                           {...this.props}
                           eventView={eventView}

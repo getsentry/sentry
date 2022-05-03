@@ -178,11 +178,13 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {
-      params: {ruleId, orgId},
+      organization,
       location: {query},
+      params: {ruleId, orgId},
     } = this.props;
     // project in state isn't initialized when getEndpoints is first called
     const project = this.state?.project ?? this.props.project;
+    const hasDuplicateAlertRules = organization.features.includes('duplicate-alert-rule');
 
     const endpoints = [
       ['environments', `/projects/${orgId}/${project.slug}/environments/`],
@@ -193,7 +195,12 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       endpoints.push(['rule', `/projects/${orgId}/${project.slug}/rules/${ruleId}/`]);
     }
 
-    if (!ruleId && query.createFromDuplicate && query.duplicateRuleId) {
+    if (
+      hasDuplicateAlertRules &&
+      !ruleId &&
+      query.createFromDuplicate &&
+      query.duplicateRuleId
+    ) {
       endpoints.push([
         'duplicateTargetRule',
         `/projects/${orgId}/${project.slug}/rules/${query.duplicateRuleId}/`,

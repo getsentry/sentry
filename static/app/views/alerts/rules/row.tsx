@@ -30,6 +30,7 @@ import {CombinedAlertType, CombinedMetricIssueAlerts, IncidentStatus} from '../t
 import {isIssueAlert} from '../utils';
 
 type Props = {
+  hasDuplicateAlertRules: boolean;
   onDelete: (projectId: string, rule: CombinedMetricIssueAlerts) => void;
   orgId: string;
   projects: Project[];
@@ -53,6 +54,7 @@ function RuleListRow({
   orgId,
   onDelete,
   userTeams,
+  hasDuplicateAlertRules,
 }: Props) {
   const activeIncident =
     rule.latestIncident?.status !== undefined &&
@@ -199,6 +201,7 @@ function RuleListRow({
       key: 'duplicate',
       label: t('Duplicate'),
       to: duplicateLink,
+      hidden: !hasDuplicateAlertRules,
     },
     {
       key: 'delete',

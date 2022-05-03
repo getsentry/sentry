@@ -69,8 +69,10 @@ class IncidentRulesDuplicate extends AsyncView<Props, State> {
   get isDuplicateRule() {
     const {
       location: {query},
+      organization,
     } = this.props;
-    return query.createFromDuplicate && query.duplicateRuleId;
+    const hasDuplicateAlertRules = organization.features.includes('duplicate-alert-rule');
+    return hasDuplicateAlertRules && query.createFromDuplicate && query.duplicateRuleId;
   }
 
   getDefaultState() {
