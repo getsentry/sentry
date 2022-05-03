@@ -56,7 +56,7 @@ export type UnsavedTrigger = {
   actions: Action[];
   alertThreshold: number | '' | null;
   label: AlertRuleTriggerType;
-  // UnsavedTrigger can be apart of an Unsaved Alert Rule that does not have an
+  // UnsavedTrigger can be a part of an Unsaved Alert Rule that does not have an
   // id yet
   alertRuleId?: string;
 };
