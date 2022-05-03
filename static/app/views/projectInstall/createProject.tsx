@@ -19,7 +19,6 @@ import space from 'sentry/styles/space';
 import {Organization, Project, Team} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import getPlatformName from 'sentry/utils/getPlatformName';
-import slugify from 'sentry/utils/slugify';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withTeams from 'sentry/utils/withTeams';
@@ -99,7 +98,7 @@ class CreateProject extends React.Component<Props, State> {
               placeholder={t('Project name')}
               autoComplete="off"
               value={projectName}
-              onChange={e => this.setState({projectName: slugify(e.target.value)})}
+              onChange={e => this.setState({projectName: e.target.value})}
             />
           </ProjectNameInput>
         </div>
