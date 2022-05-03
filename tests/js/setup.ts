@@ -283,3 +283,5 @@ Object.defineProperty(window, 'getComputedStyle', {
   configurable: true,
   writable: true,
 });
+// Related to removing getComputedStyle
+jest.mock('line-height');
