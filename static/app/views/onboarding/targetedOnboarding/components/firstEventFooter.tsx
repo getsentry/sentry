@@ -104,27 +104,23 @@ export default function FirstEventFooter({
 
   return (
     <GridFooter>
-      {isMobile() &&
-        organization.experiments.TargetedOnboardingMobileRedirectExperiment ===
-          'email-cta' && (
-          <SkipOnboardingLink
-            onClick={() => {
-              trackAdvancedAnalyticsEvent('growth.onboarding_clicked_skip', {
-                organization,
-                source,
-              });
-              if (clientState) {
-                setClientState({
-                  ...clientState,
-                  state: 'skipped',
-                });
-              }
-            }}
-            to={`/organizations/${organization.slug}/issues/`}
-          >
-            {t('Skip Onboarding')}
-          </SkipOnboardingLink>
-        )}
+      <SkipOnboardingLink
+        onClick={() => {
+          trackAdvancedAnalyticsEvent('growth.onboarding_clicked_skip', {
+            organization,
+            source,
+          });
+          if (clientState) {
+            setClientState({
+              ...clientState,
+              state: 'skipped',
+            });
+          }
+        }}
+        to={`/organizations/${organization.slug}/issues/`}
+      >
+        {t('Skip Onboarding')}
+      </SkipOnboardingLink>
       <EventWaiter
         eventType="error"
         onIssueReceived={handleFirstIssueReceived}
@@ -216,13 +212,18 @@ StatusWrapper.defaultProps = {
 const SkipOnboardingLink = styled(Link)`
   margin: auto ${space(4)};
   white-space: nowrap;
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: none;
+  }
 `;
 
 const GridFooter = styled(GenericFooter)`
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: 1fr 1fr;
+    display: flex;
+    flex-direction: row;
+    justify-content: end;
   }
 `;
 
