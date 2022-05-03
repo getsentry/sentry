@@ -79,8 +79,12 @@ def _webhook_event_data(event, group_id, project_id):
 @instrumented_task(name="sentry.tasks.sentry_apps.send_alert_event", **TASK_OPTIONS)
 @retry(**RETRY_OPTIONS)
 def send_alert_event(
-    event, rule, sentry_app_id, additional_payload_key=None, additional_payload=None
-):
+    event: Event,
+    rule: str,
+    sentry_app_id: int,
+    additional_payload_key: str | None = None,
+    additional_payload: Mapping[str, Any] | None = None,
+) -> None:
     """
     When an incident alert is triggered, send incident data to the SentryApp's webhook.
     :param event: The `Event` for which to build a payload.
