@@ -1404,6 +1404,110 @@ describe('WidgetBuilder', function () {
       expect(screen.getAllByText('count()')).toHaveLength(3);
     });
 
+    it('existing widgets with alias format open and set orderby with alias', async function () {
+      const widget: Widget = {
+        id: '1',
+        title: 'Test Widget',
+        interval: '5m',
+        displayType: DisplayType.TABLE,
+        queries: [
+          {
+            name: 'errors',
+            conditions: 'event.type:error',
+            fields: ['count()', 'count_unique(id)'],
+            aggregates: ['count()', 'count_unique(id)'],
+            columns: [],
+            orderby: '-count_unique_id',
+          },
+        ],
+      };
+
+      const dashboard: DashboardDetails = {
+        id: '1',
+        title: 'Dashboard',
+        createdBy: undefined,
+        dateCreated: '2020-01-01T00:00:00.000Z',
+        widgets: [widget],
+      };
+
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        dashboard,
+        params: {
+          widgetIndex: '0',
+        },
+      });
+
+      await waitFor(async () => {
+        expect(await screen.findAllByText('count_unique(id)')).toHaveLength(2);
+      });
+
+      await selectEvent.select(screen.getAllByText('count_unique(id)')[1], 'count()');
+
+      await waitFor(() => {
+        expect(eventsv2Mock).toHaveBeenCalledWith(
+          '/organizations/org-slug/eventsv2/',
+          expect.objectContaining({
+            query: expect.objectContaining({
+              sort: ['-count'],
+            }),
+          })
+        );
+      });
+    });
+
+    it('ordering by column uses field form when selecting orderby', async function () {
+      const widget: Widget = {
+        id: '1',
+        title: 'Test Widget',
+        interval: '5m',
+        displayType: DisplayType.TABLE,
+        queries: [
+          {
+            name: 'errors',
+            conditions: 'event.type:error',
+            fields: ['count()'],
+            aggregates: ['count()'],
+            columns: ['project'],
+            orderby: '-project',
+          },
+        ],
+      };
+
+      const dashboard: DashboardDetails = {
+        id: '1',
+        title: 'Dashboard',
+        createdBy: undefined,
+        dateCreated: '2020-01-01T00:00:00.000Z',
+        widgets: [widget],
+      };
+
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        dashboard,
+        params: {
+          widgetIndex: '0',
+        },
+      });
+
+      await waitFor(async () => {
+        expect(await screen.findAllByText('project')).toHaveLength(3);
+      });
+
+      await selectEvent.select(screen.getAllByText('project')[2], 'count()');
+
+      await waitFor(() => {
+        expect(eventsv2Mock).toHaveBeenCalledWith(
+          '/organizations/org-slug/eventsv2/',
+          expect.objectContaining({
+            query: expect.objectContaining({
+              sort: ['-count()'],
+            }),
+          })
+        );
+      });
+    });
+
     it('sortBy defaults to the first field value when changing display type to table', async function () {
       const widget: Widget = {
         id: '1',
