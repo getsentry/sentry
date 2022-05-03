@@ -161,7 +161,6 @@ function useReplayEvent({eventSlug, location, orgId}: Options): Result {
       ]);
 
       const breadcrumbEntry = mergeBreadcrumbsEntries(replayEvents || [], event);
-      console.log({breadcrumbEntry});
       const mergedReplayEvent = mergeEventsWithSpans(replayEvents || []);
       const memorySpans =
         mergedReplayEvent?.entries[0]?.data?.filter(datum => datum?.data?.memory) || [];
