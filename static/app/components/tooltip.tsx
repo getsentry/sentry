@@ -11,6 +11,7 @@ import {createPortal} from 'react-dom';
 import {Manager, Popper, PopperArrowProps, PopperProps, Reference} from 'react-popper';
 import {SerializedStyles, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {isPropValid} from '@storybook/theming';
 import {AnimatePresence, motion, MotionProps, MotionStyle} from 'framer-motion';
 
 import {IS_ACCEPTANCE_TEST} from 'sentry/constants/index';
