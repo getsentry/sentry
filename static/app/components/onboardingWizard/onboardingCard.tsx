@@ -23,14 +23,13 @@ type Props = {
 };
 
 function OnboardingViewTask({org}: Props) {
-  if (!org?.experiments.TargetedOnboardingMultiSelectExperiment) {
-    return null;
-  }
-  const {projects: allProjects} = useProjects({orgId: org.id});
   const [onboardingState, setOnboardingState] = usePersistedOnboardingState();
+  const {projects: allProjects} = useProjects({orgId: org.id});
+
   if (!onboardingState) {
     return null;
   }
+
   const handleSkip = () => {
     setOnboardingState({
       ...onboardingState,

@@ -53,17 +53,22 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {params, location} = this.props;
     const {query} = location;
-
     const status = getQueryStatus(query.status);
-    // Filtering by one status, both does nothing
-    if (status.length === 1) {
-      query.status = status;
-    }
 
-    query.team = getTeamParams(query.team);
-    query.expand = ['original_alert_rule'];
-
-    return [['incidentList', `/organizations/${params?.orgId}/incidents/`, {query}]];
+    return [
+      [
+        'incidentList',
+        `/organizations/${params?.orgId}/incidents/`,
+        {
+          query: {
+            ...query,
+            status: status === 'all' ? undefined : status,
+            team: getTeamParams(query.team),
+            expand: ['original_alert_rule'],
+          },
+        },
+      ],
+    ];
   }
 
   /**
@@ -139,27 +144,31 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     });
   };
 
-  handleChangeFilter = (sectionId: string, activeFilters: Set<string>) => {
+  handleChangeFilter = (activeFilters: Set<string>) => {
     const {router, location} = this.props;
     const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
 
-    let team = currentQuery.team;
-    if (sectionId === 'teams') {
-      team = activeFilters.size ? [...activeFilters] : '';
-    }
-
-    let status = currentQuery.status;
-    if (sectionId === 'status') {
-      status = activeFilters.size ? [...activeFilters] : '';
-    }
+    const team = activeFilters.size ? [...activeFilters] : '';
 
     router.push({
       pathname: location.pathname,
       query: {
         ...currentQuery,
-        status,
         // Preserve empty team query parameter
         team: team.length === 0 ? '' : team,
+      },
+    });
+  };
+
+  handleChangeStatus = (value: string): void => {
+    const {router, location} = this.props;
+    const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
+
+    router.push({
+      pathname: location.pathname,
+      query: {
+        ...currentQuery,
+        status: value === 'all' ? undefined : value,
       },
     });
   };
@@ -210,7 +219,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     return (
       <Fragment>
         {this.tryRenderOnboarding() ?? (
-          <PanelTable
+          <StyledPanelTable
             isLoading={showLoadingIndicator}
             isEmpty={incidentList?.length === 0}
             emptyMessage={t('No incidents exist for the current query.')}
@@ -244,7 +253,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
                 ))
               }
             </Projects>
-          </PanelTable>
+          </StyledPanelTable>
         )}
         <Pagination pageLinks={incidentListPageLinks} />
       </Fragment>
@@ -279,6 +288,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
                     location={location}
                     onChangeFilter={this.handleChangeFilter}
                     onChangeSearch={this.handleChangeSearch}
+                    onChangeStatus={this.handleChangeStatus}
                     hasStatusFilters
                   />
                 </Fragment>
@@ -297,6 +307,7 @@ function IncidentsListContainer(props: Props) {
     trackAdvancedAnalyticsEvent('alert_stream.viewed', {
       organization: props.organization,
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const renderDisabled = () => (
@@ -317,6 +328,10 @@ function IncidentsListContainer(props: Props) {
     </Feature>
   );
 }
+
+const StyledPanelTable = styled(PanelTable)`
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
 
 const StyledAlert = styled(Alert)`
   margin-bottom: ${space(1.5)};

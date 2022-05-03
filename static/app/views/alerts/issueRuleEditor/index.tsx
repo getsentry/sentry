@@ -3,6 +3,7 @@ import {browserHistory, RouteComponentProps} from 'react-router';
 import {components} from 'react-select';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
+import {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import omit from 'lodash/omit';
 import set from 'lodash/set';
@@ -22,6 +23,7 @@ import Input from 'sentry/components/forms/controls/input';
 import Field from 'sentry/components/forms/field';
 import FieldHelp from 'sentry/components/forms/field/fieldHelp';
 import Form from 'sentry/components/forms/form';
+import FormField from 'sentry/components/forms/formField';
 import SelectControl from 'sentry/components/forms/selectControl';
 import SelectField from 'sentry/components/forms/selectField';
 import TeamSelector from 'sentry/components/forms/teamSelector';
@@ -106,6 +108,7 @@ type RuleTaskResponse = {
 type RouteParams = {orgId: string; projectId?: string; ruleId?: string};
 
 type Props = {
+  location: Location;
   organization: Organization;
   project: Project;
   projects: Project[];
@@ -124,7 +127,9 @@ type State = AsyncView['state'] & {
     [key: string]: string[];
   };
   environments: Environment[] | null;
+  project: Project;
   uuid: null | string;
+  duplicateTargetRule?: UnsavedIssueAlertRule | IssueAlertRule | null;
   rule?: UnsavedIssueAlertRule | IssueAlertRule | null;
 };
 
@@ -140,8 +145,8 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   }
 
   getTitle() {
-    const {organization, project} = this.props;
-    const {rule} = this.state;
+    const {organization} = this.props;
+    const {rule, project} = this.state;
     const ruleName = rule?.name;
 
     return routeTitleGen(
@@ -161,6 +166,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       rule: {...defaultRule},
       environments: [],
       uuid: null,
+      project,
     };
 
     const projectTeamIds = new Set(project.teams.map(({id}) => id));
@@ -172,9 +178,13 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {
-      project,
+      organization,
+      location: {query},
       params: {ruleId, orgId},
     } = this.props;
+    // project in state isn't initialized when getEndpoints is first called
+    const project = this.state?.project ?? this.props.project;
+    const hasDuplicateAlertRules = organization.features.includes('duplicate-alert-rule');
 
     const endpoints = [
       ['environments', `/projects/${orgId}/${project.slug}/environments/`],
@@ -185,12 +195,32 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       endpoints.push(['rule', `/projects/${orgId}/${project.slug}/rules/${ruleId}/`]);
     }
 
+    if (
+      hasDuplicateAlertRules &&
+      !ruleId &&
+      query.createFromDuplicate &&
+      query.duplicateRuleId
+    ) {
+      endpoints.push([
+        'duplicateTargetRule',
+        `/projects/${orgId}/${project.slug}/rules/${query.duplicateRuleId}/`,
+      ]);
+    }
+
     return endpoints as [string, string][];
   }
 
   onRequestSuccess({stateKey, data}) {
     if (stateKey === 'rule' && data.name) {
       this.props.onChangeTitle?.(data.name);
+    }
+    if (stateKey === 'duplicateTargetRule') {
+      this.setState({
+        rule: {
+          ...omit(data, ['id']),
+          name: data.name + ' copy',
+        } as UnsavedIssueAlertRule,
+      });
     }
   }
 
@@ -209,8 +239,8 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       return;
     }
 
-    const {organization, project} = this.props;
-    const {uuid} = this.state;
+    const {organization} = this.props;
+    const {uuid, project} = this.state;
     const origRule = this.state.rule;
 
     try {
@@ -260,7 +290,8 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   }
 
   handleRuleSuccess = (isNew: boolean, rule: IssueAlertRule) => {
-    const {organization, project, router} = this.props;
+    const {organization, router} = this.props;
+    const {project} = this.state;
     this.setState({detailedError: null, loading: false, rule});
 
     // The onboarding task will be completed on the server side when the alert
@@ -284,10 +315,10 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   }
 
   handleSubmit = async () => {
-    const {rule} = this.state;
+    const {project, rule} = this.state;
     const ruleId = isSavedAlertRule(rule) ? `${rule.id}/` : '';
     const isNew = !ruleId;
-    const {project, organization} = this.props;
+    const {organization} = this.props;
 
     const endpoint = `/projects/${organization.slug}/${project.slug}/rules/${ruleId}`;
 
@@ -337,10 +368,10 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   };
 
   handleDeleteRule = async () => {
-    const {rule} = this.state;
+    const {project, rule} = this.state;
     const ruleId = isSavedAlertRule(rule) ? `${rule.id}/` : '';
     const isNew = !ruleId;
-    const {project, organization} = this.props;
+    const {organization} = this.props;
 
     if (isNew) {
       return;
@@ -471,7 +502,8 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       return clonedState;
     });
 
-    const {organization, project} = this.props;
+    const {organization} = this.props;
+    const {project} = this.state;
     trackAdvancedAnalyticsEvent('edit_alert_rule.add_row', {
       organization,
       project_id: project.id,
@@ -555,7 +587,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     return owner && owner.split(':')[1];
   };
 
-  handleOwnerChange = ({value}: {label: string; value: string}) => {
+  handleOwnerChange = ({value}: {value: string}) => {
     const ownerValue = value && `team:${value}`;
     this.handleChange('owner', ownerValue);
   };
@@ -605,8 +637,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   }
 
   renderTeamSelect(hasAccess: boolean, canEdit: boolean, hasAlertWizardV3: boolean) {
-    const {project} = this.props;
-    const {rule} = this.state;
+    const {rule, project} = this.state;
     const ownerId = rule?.owner?.split(':')[1];
 
     return (
@@ -628,6 +659,84 @@ class IssueRuleEditor extends AsyncView<Props, State> {
           disabled={!hasAccess || !canEdit}
         />
       </StyledField>
+    );
+  }
+
+  renderProjectSelect(hasAccess: boolean, canEdit: boolean) {
+    const {project: _selectedProject, projects} = this.props;
+
+    return (
+      <FormField
+        name="projectId"
+        inline={false}
+        style={{padding: 0}}
+        flexibleControlStateSize
+      >
+        {({onChange, onBlur, model}) => {
+          const selectedProject =
+            projects.find(({id}) => id === model.getValue('projectId')) ||
+            _selectedProject;
+
+          return (
+            <SelectControl
+              disabled={!hasAccess || !canEdit}
+              value={selectedProject.id}
+              styles={{
+                container: (provided: {[x: string]: string | number | boolean}) => ({
+                  ...provided,
+                  marginBottom: `${space(1)}`,
+                }),
+              }}
+              options={projects.map(project => ({
+                label: project.slug,
+                value: project.id,
+                leadingItems: (
+                  <IdBadge
+                    project={project}
+                    avatarProps={{consistentWidth: true}}
+                    avatarSize={18}
+                    disableLink
+                    hideName
+                  />
+                ),
+              }))}
+              onChange={({value}: {value: Project['id']}) => {
+                // if the current owner/team isn't part of project selected, update to the first available team
+                const nextSelectedProject =
+                  projects.find(({id}) => id === value) ?? selectedProject;
+                const ownerId: String | undefined = model
+                  .getValue('owner')
+                  ?.split(':')[1];
+                if (
+                  ownerId &&
+                  nextSelectedProject.teams.find(({id}) => id === ownerId) ===
+                    undefined &&
+                  nextSelectedProject.teams.length
+                ) {
+                  this.handleOwnerChange({value: nextSelectedProject.teams[0].id});
+                }
+
+                this.setState({project: nextSelectedProject});
+
+                onChange(value, {});
+                onBlur(value, {});
+              }}
+              components={{
+                SingleValue: containerProps => (
+                  <components.ValueContainer {...containerProps}>
+                    <IdBadge
+                      project={selectedProject}
+                      avatarProps={{consistentWidth: true}}
+                      avatarSize={18}
+                      disableLink
+                    />
+                  </components.ValueContainer>
+                ),
+              }}
+            />
+          );
+        }}
+      </FormField>
     );
   }
 
@@ -658,8 +767,8 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {project, organization, userTeamIds, location, router, projects} = this.props;
-    const {environments, rule, detailedError} = this.state;
+    const {organization, userTeamIds} = this.props;
+    const {environments, project, rule, detailedError} = this.state;
     const {actions, filters, conditions, frequency} = rule || {};
     const hasAlertWizardV3 = organization.features.includes('alert-wizard-v3');
 
@@ -694,6 +803,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
               ...rule,
               environment,
               frequency: `${frequency}`,
+              projectId: project.id,
             }}
             submitDisabled={!hasAccess || !canEdit}
             submitLabel={t('Save Rule')}
@@ -734,52 +844,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                     disabled={!hasAccess || !canEdit}
                     flexibleControlStateSize
                   />
-                  <SelectControl
-                    disabled={!hasAccess || !canEdit}
-                    value={project.id}
-                    styles={{
-                      container: (provided: {
-                        [x: string]: string | number | boolean;
-                      }) => ({
-                        ...provided,
-                        marginBottom: `${space(1)}`,
-                      }),
-                    }}
-                    options={projects.map(_project => ({
-                      label: _project.slug,
-                      value: _project.id,
-                      leadingItems: (
-                        <IdBadge
-                          project={_project}
-                          avatarProps={{consistentWidth: true}}
-                          avatarSize={18}
-                          disableLink
-                          hideName
-                        />
-                      ),
-                    }))}
-                    onChange={({label}: {label: Project['slug']}) =>
-                      router.replace({
-                        ...location,
-                        query: {
-                          ...location.query,
-                          project: label,
-                        },
-                      })
-                    }
-                    components={{
-                      SingleValue: containerProps => (
-                        <components.ValueContainer {...containerProps}>
-                          <IdBadge
-                            project={project}
-                            avatarProps={{consistentWidth: true}}
-                            avatarSize={18}
-                            disableLink
-                          />
-                        </components.ValueContainer>
-                      ),
-                    }}
-                  />
+                  {this.renderProjectSelect(hasAccess, canEdit)}
                 </SettingsContainer>
               ) : (
                 <Panel>

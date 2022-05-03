@@ -88,8 +88,17 @@ export function doesPathHaveNewFilters(pathname: string, organization: Organizat
           'dashboard',
           'releases',
           'discover',
+          'performance',
         ]
-      : ['user-feedback', 'alerts', 'monitors', 'projects', 'dashboards', 'releases']
+      : [
+          'user-feedback',
+          'alerts',
+          'monitors',
+          'projects',
+          'dashboards',
+          'releases',
+          'performance',
+        ]
   ).map(route => `/organizations/${organization.slug}/${route}/`);
 
   return newFilterPaths.some(pageFilterPath => pathname.includes(pageFilterPath));

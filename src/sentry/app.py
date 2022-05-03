@@ -23,6 +23,6 @@ from .nodestore import backend as nodestore  # NOQA
 from .quotas import backend as quotas  # NOQA
 from .ratelimits import backend as ratelimiter  # NOQA
 
-raven = client = RavenShim()  # NOQA
+raven = client = RavenShim()
 
 locks = LockManager(RedisLockBackend(redis.clusters.get("default")))

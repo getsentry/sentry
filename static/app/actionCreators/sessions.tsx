@@ -12,6 +12,7 @@ export type DoSessionsRequestOptions = {
   environment?: Readonly<string[]>;
   groupBy?: string[];
   interval?: string;
+  limit?: number;
   orderBy?: string;
   project?: Readonly<number[]>;
   query?: string;
@@ -31,9 +32,11 @@ export const doSessionsRequest = (
     groupBy,
     interval,
     project,
+    orderBy,
     query,
     statsPeriodStart,
     statsPeriodEnd,
+    limit,
     ...dateTime
   }: DoSessionsRequestOptions
 ): Promise<SessionApiResponse> => {
@@ -49,6 +52,8 @@ export const doSessionsRequest = (
       environment,
       groupBy: groupBy?.filter(g => !!g),
       interval: interval || getInterval({start, end, period: statsPeriod}),
+      orderBy,
+      per_page: limit,
       query: query || undefined,
       project,
       start,

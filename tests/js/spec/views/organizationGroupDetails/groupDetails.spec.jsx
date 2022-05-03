@@ -164,7 +164,7 @@ describe('groupDetails', () => {
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(
       await screen.findByText(
-        "You'll need to join a team with access before you can view this data."
+        'No teams have access to this project yet. Ask an admin to add your team to this project.'
       )
     ).toBeInTheDocument();
   });

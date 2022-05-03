@@ -1595,7 +1595,7 @@ class CrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass):
                         "data": [
                             {
                                 CRASH_RATE_ALERT_AGGREGATE_ALIAS: value,
-                                CRASH_RATE_ALERT_SESSION_COUNT_ALIAS: randint(0, 100)
+                                CRASH_RATE_ALERT_SESSION_COUNT_ALIAS: randint(1, 100)
                                 if count is EMPTY
                                 else count,
                             }

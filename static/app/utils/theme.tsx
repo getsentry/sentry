@@ -245,6 +245,7 @@ const generateAliases = (colors: BaseColors) => ({
   linkColor: colors.blue300,
   linkHoverColor: colors.blue300,
   linkUnderline: colors.blue200,
+  linkFocus: colors.blue300,
 
   /**
    * Form placeholder text color
@@ -507,17 +508,6 @@ const generateButtonTheme = (colors: BaseColors, alias: Aliases) => ({
     borderTranslucent: colors.purple300,
     focusBorder: alias.focusBorder,
     focusShadow: alias.focus,
-  },
-  success: {
-    color: colors.white,
-    colorActive: colors.white,
-    background: colors.green300,
-    backgroundActive: colors.green400,
-    border: colors.green300,
-    borderActive: colors.green300,
-    borderTranslucent: colors.green300,
-    focusBorder: colors.green300,
-    focusShadow: colors.green200,
   },
   danger: {
     color: colors.white,

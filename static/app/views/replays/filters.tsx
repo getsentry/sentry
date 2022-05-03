@@ -19,11 +19,11 @@ function ReplaysFilters({organization, handleSearchQuery, query}: Props) {
   return (
     <FilterContainer>
       <SearchContainer>
-        <StyledPageFilterBar>
+        <PageFilterBar condensed>
           <ProjectPageFilter />
           <EnvironmentPageFilter />
-          <DatePageFilter />
-        </StyledPageFilterBar>
+          <DatePageFilter alignDropdown="left" />
+        </PageFilterBar>
         <SearchBar
           organization={organization}
           defaultQuery=""
@@ -52,11 +52,6 @@ const SearchContainer = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-columns: minmax(0, 1fr);
   }
-`;
-
-const StyledPageFilterBar = styled(PageFilterBar)`
-  width: max-content;
-  max-width: 100%;
 `;
 
 export default ReplaysFilters;
