@@ -299,6 +299,7 @@ class WidgetQueries extends React.Component<Props, State> {
       const params: DiscoverQueryRequestParams = {
         per_page: limit ?? DEFAULT_TABLE_LIMIT,
         cursor,
+        sort: typeof query.orderby === 'string' ? [query.orderby] : query.orderby,
         ...getDashboardsMEPQueryParams(this.isMEPEnabled),
       };
       if (widget.displayType === 'table') {

@@ -1,5 +1,6 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
+import trimStart from 'lodash/trimStart';
 
 import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesForm';
 import Field from 'sentry/components/forms/field';
@@ -7,6 +8,7 @@ import SelectControl from 'sentry/components/forms/selectControl';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, SelectValue} from 'sentry/types';
+import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {generateIssueWidgetOrderOptions} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/utils';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
@@ -60,6 +62,14 @@ export function SortByStep({
 
   const orderBy = queries[0].orderby;
   const maxLimit = getResultsLimit(queries.length, queries[0].aggregates.length);
+
+  // We want to convert widgets to using functions in their field format (i.e. not alias form)
+  // for ordering. This check will skip the alias conversion unless the orderby is
+  // saved previously in the alias format
+  const isUsingFieldFormat =
+    trimStart(orderBy, '-') === '' ||
+    queries[0].columns.includes(trimStart(orderBy, '-')) ||
+    getAggregateAlias(trimStart(orderBy, '-')) !== trimStart(orderBy, '-');
 
   const isTimeseriesChart = [
     DisplayType.LINE,
@@ -125,6 +135,7 @@ export function SortByStep({
                     widgetBuilderNewDesign: true,
                     columns: queries[0].columns,
                     aggregates: queries[0].aggregates,
+                    isUsingFieldFormat,
                   })
             }
             values={{
@@ -165,6 +176,7 @@ export function SortByStep({
                   widgetType,
                   columns: queries[0].columns,
                   aggregates: queries[0].aggregates,
+                  isUsingFieldFormat,
                 })
               : generateIssueWidgetOrderOptions(
                   organization.features.includes('issue-list-trend-sort')

@@ -101,7 +101,7 @@ function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, Widge
       fieldAliases: [],
       aggregates: ['count()'],
       conditions: '',
-      orderby: widgetBuilderNewDesign ? '-count' : '',
+      orderby: widgetBuilderNewDesign ? '-count()' : '',
     },
     [DataSet.ISSUES]: {
       name: '',
@@ -559,7 +559,7 @@ function WidgetBuilder({
     const aggregateAliasFieldStrings =
       state.dataSet === DataSet.RELEASES
         ? fieldStrings.map(stripDerivedMetricsPrefix)
-        : fieldStrings.map(getAggregateAlias);
+        : fieldStrings;
 
     const columnsAndAggregates = isColumn
       ? getColumnsAndAggregatesAsStrings(newFields)
@@ -576,7 +576,7 @@ function WidgetBuilder({
       const prevAggregateAliasFieldStrings = query.aggregates.map(aggregate =>
         state.dataSet === DataSet.RELEASES
           ? stripDerivedMetricsPrefix(aggregate)
-          : getAggregateAlias(aggregate)
+          : aggregate
       );
       const newQuery = cloneDeep(query);
 

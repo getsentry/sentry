@@ -33,10 +33,12 @@ export const generateOrderOptions = ({
   columns,
   widgetType,
   widgetBuilderNewDesign = false,
+  isUsingFieldFormat = false,
 }: {
   aggregates: string[];
   columns: string[];
   widgetType: WidgetType;
+  isUsingFieldFormat?: boolean;
   widgetBuilderNewDesign?: boolean;
 }): SelectValue<string>[] => {
   const isRelease = widgetType === WidgetType.RELEASE;
@@ -54,18 +56,18 @@ export const generateOrderOptions = ({
       }
 
       if (widgetBuilderNewDesign) {
-        options.push({label, value: isRelease ? field : alias});
+        options.push({label, value: isRelease || isUsingFieldFormat ? field : alias});
         return;
       }
 
       options.push({
         label: t('%s asc', label),
-        value: isRelease ? field : alias,
+        value: isRelease || isUsingFieldFormat ? field : alias,
       });
 
       options.push({
         label: t('%s desc', label),
-        value: isRelease ? `-${field}` : `-${alias}`,
+        value: isRelease || isUsingFieldFormat ? `-${field}` : `-${alias}`,
       });
     });
 
