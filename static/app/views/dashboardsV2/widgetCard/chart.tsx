@@ -456,8 +456,8 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
               })
             : [];
 
-          const seriesStart = series[0]?.data[0].name;
-          const seriesEnd = series[0]?.data[series[0].data.length - 1].name;
+          const seriesStart = series[0]?.data[0]?.name;
+          const seriesEnd = series[0]?.data[series[0].data.length - 1]?.name;
           return (
             <TransitionChart loading={loading} reloading={loading}>
               <LoadingScreen loading={loading} />
