@@ -6,6 +6,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
+import {Vital} from 'sentry/utils/performance/vitals/types';
 
 import {
   getMeasurementBounds,
@@ -32,7 +33,7 @@ class MeasurementsPanel extends PureComponent<Props> {
           width: `calc(${toPercent(1 - dividerPosition)} - 0.5px)`,
         }}
       >
-        {Array.from(measurements).map(([timestamp, verticalMark]) => {
+        {Array.from(measurements.values()).map(({timestamp, verticalMark}) => {
           const bounds = getMeasurementBounds(timestamp, generateBounds);
 
           const shouldDisplay = defined(bounds.left) && defined(bounds.width);
@@ -44,7 +45,7 @@ class MeasurementsPanel extends PureComponent<Props> {
           // Measurements are referred to by their full name `measurements.<name>`
           // here but are stored using their abbreviated name `<name>`. Make sure
           // to convert it appropriately.
-          const vitals = Object.keys(verticalMark.marks).map(
+          const vitals: Vital[] = Object.keys(verticalMark.marks).map(
             name => WEB_VITAL_DETAILS[`measurements.${name}`]
           );
 
@@ -55,7 +56,7 @@ class MeasurementsPanel extends PureComponent<Props> {
             ? `${acronyms.join(', ')} & ${lastAcronym}`
             : lastAcronym;
 
-          // generate tooltip labe;l
+          // generate tooltip label
           const longNames = vitals.map(vital => vital.name);
           const lastName = longNames.pop() as string;
           const tooltipLabel = longNames.length
@@ -69,6 +70,7 @@ class MeasurementsPanel extends PureComponent<Props> {
               label={label}
               tooltipLabel={tooltipLabel}
               left={toPercent(bounds.left || 0)}
+              vitals={vitals}
             />
           );
         })}
@@ -80,6 +82,7 @@ class MeasurementsPanel extends PureComponent<Props> {
 const Container = styled('div')`
   position: relative;
   overflow: hidden;
+  display: flex;
 
   height: 20px;
 `;
@@ -106,6 +109,7 @@ type LabelContainerProps = {
   label: string;
   left: string;
   tooltipLabel: string;
+  vitals: Vital[];
 };
 
 type LabelContainerState = {

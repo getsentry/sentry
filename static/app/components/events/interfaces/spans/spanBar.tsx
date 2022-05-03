@@ -289,7 +289,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
 
     return (
       <React.Fragment>
-        {Array.from(measurements).map(([timestamp, verticalMark]) => {
+        {Array.from(measurements.values()).map(({timestamp, verticalMark}) => {
           const bounds = getMeasurementBounds(timestamp, generateBounds);
 
           const shouldDisplay = defined(bounds.left) && defined(bounds.width);
