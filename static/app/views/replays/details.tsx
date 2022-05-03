@@ -27,6 +27,10 @@ function ReplayDetails() {
   } = useRouteContext();
 
   const {
+    t: initialTimeOffset, // Time, in seconds, where the video should start
+  } = location.query;
+
+  const {
     breadcrumbEntry,
     event,
     mergedReplayEvent,
@@ -84,7 +88,7 @@ function ReplayDetails() {
   }
 
   return (
-    <ReplayContextProvider events={rrwebEvents}>
+    <ReplayContextProvider events={rrwebEvents} initialTimeOffset={initialTimeOffset}>
       <DetailLayout
         event={event}
         orgId={orgId}

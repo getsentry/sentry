@@ -26,6 +26,7 @@ import {ViewProps} from '../types';
 import {
   getMaxOfSeries,
   getVitalChartDefinitions,
+  getVitalChartTitle,
   vitalNameFromLocation,
   VitalState,
   vitalStateColors,
@@ -86,7 +87,7 @@ function VitalChart({
     <Panel>
       <ChartContainer>
         <HeaderTitleLegend>
-          {t('Duration p75')}
+          {getVitalChartTitle(vitalName)}
           <QuestionTooltip
             size="sm"
             position="top"
