@@ -811,6 +811,7 @@ function WidgetViewerModal(props: Props) {
                         wordBreak: 'break-word',
                         flex: 1,
                         display: 'flex',
+                        padding: `0 ${space(0.5)}`,
                       })}
                     >
                       {queryOptions[selectedQueryIndex].getHighlightedQuery({
