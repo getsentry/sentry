@@ -4,6 +4,7 @@ import type {eventWithTime} from 'rrweb/typings/types';
 
 import {MemorySpanType} from 'sentry/components/events/interfaces/spans/types';
 import {IssueAttachment} from 'sentry/types';
+import {BreadcrumbTypeConsole} from 'sentry/types/breadcrumbs';
 import {Entry, Event} from 'sentry/types/event';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
@@ -18,6 +19,11 @@ type State = {
    * List of breadcrumbs
    */
   breadcrumbEntry: undefined | Entry;
+
+  /**
+   * List of breadcrumbs with category = "console"
+   */
+  consoleMessages: undefined | BreadcrumbTypeConsole[];
 
   /**
    * The root replay event
@@ -76,21 +82,30 @@ function isRRWebEventAttachment(attachment: IssueAttachment) {
   return IS_RRWEB_ATTACHMENT_FILENAME.test(attachment.name);
 }
 
+const INITIAL_STATE: State = {
+  fetchError: undefined,
+  fetching: true,
+  breadcrumbEntry: undefined,
+  consoleMessages: undefined,
+  event: undefined,
+  replayEvents: undefined,
+  rrwebEvents: undefined,
+  mergedReplayEvent: undefined,
+  memorySpans: undefined,
+};
+
+function getBreadcrumbsByCategory(breadcrumbEntry: Entry, category: string) {
+  return breadcrumbEntry.data.values.filter(
+    breadcrumb => breadcrumb.category === category
+  );
+}
+
 function useReplayEvent({eventSlug, location, orgId}: Options): Result {
   const [projectId, eventId] = eventSlug.split(':');
 
   const api = useApi();
   const [retry, setRetry] = useState(false);
-  const [state, setState] = useState<State>({
-    fetchError: undefined,
-    fetching: true,
-    breadcrumbEntry: undefined,
-    event: undefined,
-    replayEvents: undefined,
-    rrwebEvents: undefined,
-    mergedReplayEvent: undefined,
-    memorySpans: undefined,
-  });
+  const [state, setState] = useState<State>({...INITIAL_STATE});
 
   function fetchEvent() {
     return api.requestPromise(
@@ -148,16 +163,9 @@ function useReplayEvent({eventSlug, location, orgId}: Options): Result {
   async function loadEvents() {
     setRetry(false);
     setState({
-      fetchError: undefined,
-      fetching: true,
-
-      breadcrumbEntry: undefined,
-      event: undefined,
-      replayEvents: undefined,
-      rrwebEvents: undefined,
-      mergedReplayEvent: undefined,
-      memorySpans: undefined,
+      ...INITIAL_STATE,
     });
+
     try {
       const [event, rrwebEvents, replayEvents] = await Promise.all([
         fetchEvent(),
@@ -170,6 +178,8 @@ function useReplayEvent({eventSlug, location, orgId}: Options): Result {
       const memorySpans =
         mergedReplayEvent?.entries[0]?.data?.filter(datum => datum?.data?.memory) || [];
 
+      const consoleMessages = getBreadcrumbsByCategory(breadcrumbEntry, 'console');
+
       if (mergedReplayEvent.entries[0]) {
         mergedReplayEvent.entries[0].data = mergedReplayEvent?.entries[0]?.data?.filter(
           datum => !datum?.data?.memory
@@ -180,6 +190,7 @@ function useReplayEvent({eventSlug, location, orgId}: Options): Result {
         ...state,
         fetchError: undefined,
         fetching: false,
+        consoleMessages,
         event,
         mergedReplayEvent,
         replayEvents,
@@ -190,15 +201,9 @@ function useReplayEvent({eventSlug, location, orgId}: Options): Result {
     } catch (error) {
       Sentry.captureException(error);
       setState({
+        ...INITIAL_STATE,
         fetchError: error,
         fetching: false,
-
-        breadcrumbEntry: undefined,
-        event: undefined,
-        replayEvents: undefined,
-        rrwebEvents: undefined,
-        mergedReplayEvent: undefined,
-        memorySpans: undefined,
       });
     }
   }
@@ -215,6 +220,7 @@ function useReplayEvent({eventSlug, location, orgId}: Options): Result {
     onRetry,
 
     breadcrumbEntry: state.breadcrumbEntry,
+    consoleMessages: state.consoleMessages,
     event: state.event,
     replayEvents: state.replayEvents,
     rrwebEvents: state.rrwebEvents,

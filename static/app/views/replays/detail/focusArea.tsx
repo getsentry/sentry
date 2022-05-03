@@ -1,25 +1,39 @@
 import React, {useState} from 'react';
 
 import EventEntry from 'sentry/components/events/eventEntry';
-import {MemorySpanType} from 'sentry/components/events/interfaces/spans/types';
+import type {MemorySpanType} from 'sentry/components/events/interfaces/spans/types';
 import TagsTable from 'sentry/components/tagsTable';
-import {Event} from 'sentry/types/event';
+import type {BreadcrumbTypeConsole} from 'sentry/types/breadcrumbs';
+import type {Event} from 'sentry/types/event';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 
 import {TabBarId} from '../types';
 
+import Console from './console';
 import FocusTabs from './focusTabs';
 import MemoryChart from './memoryChart';
 
 type Props = {
+  consoleMessages: BreadcrumbTypeConsole[] | undefined;
   event: Event;
   eventWithSpans: Event | undefined;
   memorySpans: MemorySpanType[] | undefined;
 };
 
+const TABS = new Set(['console', 'performance', 'errors', 'tags', 'memory']);
+
+function isTabBarId(tab: string): tab is TabBarId {
+  return TABS.has(tab);
+}
+
 function FocusArea(props: Props) {
-  const [active, setActive] = useState<TabBarId>('performance');
+  const location = useLocation();
+  const hash = location.hash.replace(/^#/, '');
+  const tabFromHash = isTabBarId(hash) ? hash : 'performance';
+
+  const [active, setActive] = useState<TabBarId>(tabFromHash);
 
   return (
     <React.Fragment>
@@ -31,6 +45,7 @@ function FocusArea(props: Props) {
 
 function ActiveTab({
   active,
+  consoleMessages,
   event,
   eventWithSpans,
   memorySpans,
@@ -39,7 +54,11 @@ function ActiveTab({
   const organization = useOrganization();
   switch (active) {
     case 'console':
-      return <div id="console">TODO: Add a console view</div>;
+      return (
+        <div id="console">
+          <Console consoleMessages={consoleMessages ?? []} />
+        </div>
+      );
     case 'performance':
       return eventWithSpans ? (
         <div id="performance">

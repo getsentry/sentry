@@ -32,6 +32,7 @@ function ReplayDetails() {
 
   const {
     breadcrumbEntry,
+    consoleMessages,
     event,
     mergedReplayEvent,
     memorySpans,
@@ -108,6 +109,7 @@ function ReplayDetails() {
             <BreadcrumbTimeline crumbs={breadcrumbEntry?.data.values || []} />
             <FocusArea
               event={event}
+              consoleMessages={consoleMessages}
               eventWithSpans={mergedReplayEvent}
               memorySpans={memorySpans}
             />
