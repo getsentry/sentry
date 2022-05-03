@@ -160,6 +160,7 @@ function RuleListRow({
       project: slug,
       duplicateRuleId: rule.id,
       createFromDuplicate: true,
+      referrer: 'alert_stream',
     },
   };
 

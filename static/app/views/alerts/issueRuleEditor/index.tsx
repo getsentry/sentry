@@ -212,7 +212,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
         rule: {
           ...data,
           id: undefined,
-          name: 'Copy ' + data.name,
+          name: data.name + ' copy',
         },
       });
     }

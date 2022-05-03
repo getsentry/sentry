@@ -1,8 +1,10 @@
 import {RouteComponentProps} from 'react-router';
+import pick from 'lodash/pick';
 
 import {Organization, Project} from 'sentry/types';
 import {metric} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
+import {uniqueId} from 'sentry/utils/guid';
 import {
   createDefaultRule,
   createRuleFromEventView,
@@ -39,6 +41,31 @@ type State = {
  */
 
 class IncidentRulesDuplicate extends AsyncView<Props, State> {
+  static duplicateMetricFields = [
+    'dataset',
+    'eventTypes',
+    'aggregate',
+    'query',
+    'timeWindow',
+    'thresholdPeriod',
+    'projects',
+    'environment',
+    'resolveThreshold',
+    'thresholdType',
+    'owner',
+    'name',
+    'projectId',
+    'comparisonDelta',
+  ];
+  static duplicateTriggerFields = ['alertThreshold', 'label'];
+  static duplicateActionFields = [
+    'type',
+    'targetType',
+    'targetIdentifier',
+    'inputChannelId',
+    'options',
+  ];
+
   get isDuplicateRule() {
     const {
       location: {query},
@@ -86,19 +113,7 @@ class IncidentRulesDuplicate extends AsyncView<Props, State> {
     return [];
   }
 
-  onRequestSuccess({stateKey, data}) {
-    if (stateKey === 'duplicateTargetRule') {
-      this.setState({
-        rule: {
-          ...data,
-          id: undefined,
-          name: 'Copy ' + data.name,
-        },
-      });
-    }
-  }
-
-  handleSubmitSuccess(data: any) {
+  handleSubmitSuccess = (data: any) => {
     const {
       router,
       project,
@@ -117,7 +132,7 @@ class IncidentRulesDuplicate extends AsyncView<Props, State> {
             query: {project: project.id},
           }
     );
-  }
+  };
 
   renderBody() {
     const {project, sessionId, userTeamIds, ...otherProps} = this.props;
@@ -132,11 +147,24 @@ class IncidentRulesDuplicate extends AsyncView<Props, State> {
     return (
       <RuleForm
         onSubmitSuccess={this.handleSubmitSuccess}
-        rule={{
-          ...rule,
-          id: undefined,
-          name: 'Copy ' + rule.name,
-        }}
+        rule={
+          {
+            ...pick(rule, IncidentRulesDuplicate.duplicateMetricFields),
+            triggers: rule.triggers.map(trigger => ({
+              ...pick(trigger, IncidentRulesDuplicate.duplicateTriggerFields),
+              actions: trigger.actions.map(action => ({
+                inputChannelId: null,
+                integrationId: undefined,
+                options: null,
+                sentryAppId: undefined,
+                unsavedId: uniqueId(),
+                unsavedDateCreated: new Date().toISOString(),
+                ...pick(action, IncidentRulesDuplicate.duplicateActionFields),
+              })),
+            })),
+            name: rule.name + ' copy',
+          } as IncidentRule
+        }
         sessionId={sessionId}
         project={project}
         userTeamIds={userTeamIds}
