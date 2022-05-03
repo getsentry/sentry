@@ -2,13 +2,15 @@ import {RouteComponentProps} from 'react-router';
 import pick from 'lodash/pick';
 
 import {Organization, Project} from 'sentry/types';
-import {metric} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {uniqueId} from 'sentry/utils/guid';
 import {
   createDefaultRule,
   createRuleFromEventView,
   createRuleFromWizardTemplate,
+  DuplicateActionFields,
+  DuplicateMetricFields,
+  DuplicateTriggerFields,
 } from 'sentry/views/alerts/incidentRules/constants';
 import {IncidentRule} from 'sentry/views/alerts/incidentRules/types';
 import {WizardRuleTemplate} from 'sentry/views/alerts/wizard/options';
@@ -41,31 +43,6 @@ type State = {
  */
 
 class IncidentRulesDuplicate extends AsyncView<Props, State> {
-  static duplicateMetricFields = [
-    'dataset',
-    'eventTypes',
-    'aggregate',
-    'query',
-    'timeWindow',
-    'thresholdPeriod',
-    'projects',
-    'environment',
-    'resolveThreshold',
-    'thresholdType',
-    'owner',
-    'name',
-    'projectId',
-    'comparisonDelta',
-  ];
-  static duplicateTriggerFields = ['alertThreshold', 'label'];
-  static duplicateActionFields = [
-    'type',
-    'targetType',
-    'targetIdentifier',
-    'inputChannelId',
-    'options',
-  ];
-
   get isDuplicateRule() {
     const {
       location: {query},
@@ -125,7 +102,6 @@ class IncidentRulesDuplicate extends AsyncView<Props, State> {
       ? (data.id as string | undefined)
       : undefined;
 
-    metric.endTransaction({name: 'saveAlertRule'});
     router.push(
       alertRuleId
         ? {pathname: `/organizations/${orgId}/alerts/rules/details/${alertRuleId}/`}
@@ -151,9 +127,9 @@ class IncidentRulesDuplicate extends AsyncView<Props, State> {
         onSubmitSuccess={this.handleSubmitSuccess}
         rule={
           {
-            ...pick(rule, IncidentRulesDuplicate.duplicateMetricFields),
+            ...pick(rule, DuplicateMetricFields),
             triggers: rule.triggers.map(trigger => ({
-              ...pick(trigger, IncidentRulesDuplicate.duplicateTriggerFields),
+              ...pick(trigger, DuplicateTriggerFields),
               actions: trigger.actions.map(action => ({
                 inputChannelId: null,
                 integrationId: undefined,
@@ -161,7 +137,7 @@ class IncidentRulesDuplicate extends AsyncView<Props, State> {
                 sentryAppId: undefined,
                 unsavedId: uniqueId(),
                 unsavedDateCreated: new Date().toISOString(),
-                ...pick(action, IncidentRulesDuplicate.duplicateActionFields),
+                ...pick(action, DuplicateActionFields),
               })),
             })),
             name: rule.name + ' copy',
