@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import DatePageFilter from 'sentry/components/datePageFilter';
@@ -37,7 +37,7 @@ function IssueListFilters({
   tags,
 }: Props) {
   return (
-    <FilterContainer>
+    <Fragment>
       <SearchContainer>
         <PageFilterBar>
           <ProjectPageFilter />
@@ -57,21 +57,15 @@ function IssueListFilters({
           onSidebarToggle={onSidebarToggle}
         />
       </SearchContainer>
-    </FilterContainer>
+    </Fragment>
   );
 }
 
-const FilterContainer = styled('div')`
-  display: grid;
-  gap: ${space(1)};
-  margin-bottom: ${space(1)};
-`;
-
 const SearchContainer = styled('div')`
-  display: inline-grid;
-  gap: ${space(1)};
+  display: grid;
+  gap: ${space(2)};
   width: 100%;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${space(2)};
   grid-template-columns: minmax(0, max-content) minmax(20rem, 1fr);
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
