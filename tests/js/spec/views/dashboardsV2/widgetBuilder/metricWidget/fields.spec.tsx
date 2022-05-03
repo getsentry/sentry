@@ -73,6 +73,40 @@ describe('generateReleaseWidgetFieldOptions', function () {
           },
         },
       },
+      'function:crash_free_rate': {
+        label: 'crash_free_rate(…)',
+        value: {
+          kind: 'function',
+          meta: {
+            name: 'crash_free_rate',
+            parameters: [
+              {
+                columnTypes: ['integer', 'string'],
+                defaultValue: 'session',
+                kind: 'column',
+                required: true,
+              },
+            ],
+          },
+        },
+      },
+      'function:crash_rate': {
+        label: 'crash_rate(…)',
+        value: {
+          kind: 'function',
+          meta: {
+            name: 'crash_rate',
+            parameters: [
+              {
+                columnTypes: ['integer', 'string'],
+                defaultValue: 'session',
+                kind: 'column',
+                required: true,
+              },
+            ],
+          },
+        },
+      },
       'function:max': {
         label: 'max(…)',
         value: {

@@ -406,7 +406,7 @@ class GroupDetails extends Component<Props, State> {
           // If it is defined, we do not so that our back button will bring us
           // to the issue list page with no project selected instead of the
           // locked project.
-          locationWithProject.query.project = project.id;
+          locationWithProject.query = {...locationWithProject.query, project: project.id};
         }
         // We delete _allp from the URL to keep the hack a bit cleaner, but
         // this is not an ideal solution and will ultimately be replaced with

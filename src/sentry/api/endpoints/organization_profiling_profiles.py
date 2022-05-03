@@ -47,8 +47,13 @@ class OrganizationProfilingProfilesEndpoint(OrganizationProfilingBaseEndpoint):
         def data_fn(offset: int, limit: int) -> Any:
             params["offset"] = offset
             params["limit"] = limit
+            kwargs = {"params": params}
+            if "Accept-Encoding" in request.headers:
+                kwargs["headers"] = {"Accept-Encoding": request.headers.get("Accept-Encoding")}
             response = get_from_profiling_service(
-                "GET", f"/organizations/{organization.id}/profiles", params=params
+                "GET",
+                f"/organizations/{organization.id}/profiles",
+                **kwargs,
             )
             return response.json().get("profiles", [])
 
@@ -70,6 +75,8 @@ class OrganizationProfilingFiltersEndpoint(OrganizationProfilingBaseEndpoint):
         except NoProjects:
             return Response([])
 
-        return proxy_profiling_service(
-            "GET", f"/organizations/{organization.id}/filters", params=params
-        )
+        kwargs = {"params": params}
+        if "Accept-Encoding" in request.headers:
+            kwargs["headers"] = {"Accept-Encoding": request.headers.get("Accept-Encoding")}
+
+        return proxy_profiling_service("GET", f"/organizations/{organization.id}/filters", **kwargs)

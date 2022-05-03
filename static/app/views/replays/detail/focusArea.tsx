@@ -9,7 +9,7 @@ import {useRouteContext} from 'sentry/utils/useRouteContext';
 
 import {TabBarId} from '../types';
 
-import FocusButtons from './focusButtons';
+import FocusTabs from './focusTabs';
 import MemoryChart from './memoryChart';
 
 type Props = {
@@ -23,7 +23,7 @@ function FocusArea(props: Props) {
 
   return (
     <React.Fragment>
-      <FocusButtons active={active} setActive={setActive} />
+      <FocusTabs active={active} setActive={setActive} />
       <ActiveTab active={active} {...props} />
     </React.Fragment>
   );
@@ -64,7 +64,12 @@ function ActiveTab({
         </div>
       );
     case 'memory':
-      return <MemoryChart memorySpans={memorySpans} />;
+      return (
+        <MemoryChart
+          memorySpans={memorySpans}
+          startTimestamp={eventWithSpans?.entries[0]?.data[0]?.timestamp}
+        />
+      );
     default:
       return null;
   }
