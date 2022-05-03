@@ -25,6 +25,7 @@ class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):
             sampling = features.has(
                 "organizations:discover-tagstore-sampling", organization, actor=request.user
             )
+            sentry_sdk.set_tag("discover.tagstore_sampling", sampling)
             with self.handle_query_errors():
                 environment_ids = None
                 if "environment_objects" in filter_params:

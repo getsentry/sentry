@@ -1,3 +1,4 @@
+import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -42,6 +43,7 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint, EnvironmentMixin):
         sampling = features.has(
             "organizations:discover-tagstore-sampling", project.organization, actor=request.user
         )
+        sentry_sdk.set_tag("discover.tagstore_sampling", sampling)
 
         start, end = get_date_range_from_params(request.GET)
 
