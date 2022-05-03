@@ -24,7 +24,6 @@ function ReplayPlayPauseBar() {
   return (
     <ButtonBar merged>
       <Button
-        data-test-id="replay-back-10s"
         size="xsmall"
         title={t('Go back 10 seconds')}
         icon={<IconRefresh size="sm" />}
@@ -32,7 +31,6 @@ function ReplayPlayPauseBar() {
         aria-label={t('Go back 10 seconds')}
       />
       <Button
-        data-test-id="replay-play-pause"
         size="xsmall"
         title={isPlaying ? t('Pause the Replay') : t('Play the Replay')}
         icon={isPlaying ? <IconPause size="sm" /> : <IconPlay size="sm" />}
@@ -40,7 +38,6 @@ function ReplayPlayPauseBar() {
         aria-label={isPlaying ? t('Pause the Replay') : t('Play the Replay')}
       />
       <Button
-        data-test-id="replay-forward-10s"
         size="xsmall"
         title={t('Go forward 10 seconds')}
         icon={<IconClockwise size="sm" />}
@@ -95,7 +92,6 @@ const ReplayControls = ({
 
       {/* TODO(replay): Need a better icon for the FastForward toggle */}
       <Button
-        data-test-id="replay-fast-forward"
         size="xsmall"
         title={t('Fast-forward idle moments')}
         aria-label={t('Fast-forward idle moments')}
@@ -107,7 +103,6 @@ const ReplayControls = ({
       <ReplayPlaybackSpeed speedOptions={speedOptions} />
 
       <Button
-        data-test-id="replay-fullscreen"
         size="xsmall"
         title={isFullscreen ? t('Exit full screen') : t('View in full screen')}
         aria-label={isFullscreen ? t('Exit full screen') : t('View in full screen')}

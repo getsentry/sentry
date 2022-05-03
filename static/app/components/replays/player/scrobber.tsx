@@ -28,7 +28,6 @@ function Scrobber({className}: Props) {
       </Meter>
       <RangeWrapper>
         <Range
-          data-test-id="replay-timeline-range"
           name="replay-timeline"
           min={0}
           max={duration}
