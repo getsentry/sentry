@@ -69,8 +69,8 @@ function BasePlayerRoot({className}: Props) {
   }, [windowDimensions, videoDimensions]);
 
   return (
-    <SizingWindow ref={windowEl} className="sr-block" data-test-id="replay-window">
-      <div ref={viewEl} data-test-id="replay-view" className={className} />
+    <SizingWindow ref={windowEl} className="sr-block">
+      <div ref={viewEl} className={className} />
       {fastForwardSpeed ? <PositionedFastForward speed={fastForwardSpeed} /> : null}
       {isBuffering ? <PositionedBuffering /> : null}
     </SizingWindow>
