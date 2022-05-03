@@ -55,16 +55,13 @@ class SnubaTest(TestCase, SnubaTestCase):
         ]
 
         self.snuba_insert(events)
-        assert (
-            snuba.query(
-                start=now - timedelta(days=1),
-                end=now + timedelta(days=1),
-                groupby=["project_id"],
-                filter_keys={"project_id": [self.project.id]},
-                referrer="testing.test",
-            )
-            == {self.project.id: 1}
-        )
+        assert snuba.query(
+            start=now - timedelta(days=1),
+            end=now + timedelta(days=1),
+            groupby=["project_id"],
+            filter_keys={"project_id": [self.project.id]},
+            referrer="testing.test",
+        ) == {self.project.id: 1}
 
     def test_fail(self) -> None:
         now = datetime.now()

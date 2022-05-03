@@ -193,7 +193,7 @@ class EventManagerTest(TestCase):
             manager = EventManager(
                 make_event(
                     message="foo 123",
-                    event_id=hex(2 ** 127 + int(ts))[-32:],
+                    event_id=hex(2**127 + int(ts))[-32:],
                     timestamp=ts,
                     exception={
                         "values": [
@@ -1034,37 +1034,28 @@ class EventManagerTest(TestCase):
             tsdb.models.users_affected_by_group, (event.group.id,), event.datetime, event.datetime
         ) == {event.group.id: 1}
 
-        assert (
-            tsdb.get_distinct_counts_totals(
-                tsdb.models.users_affected_by_project,
-                (event.project.id,),
-                event.datetime,
-                event.datetime,
-            )
-            == {event.project.id: 1}
-        )
+        assert tsdb.get_distinct_counts_totals(
+            tsdb.models.users_affected_by_project,
+            (event.project.id,),
+            event.datetime,
+            event.datetime,
+        ) == {event.project.id: 1}
 
-        assert (
-            tsdb.get_distinct_counts_totals(
-                tsdb.models.users_affected_by_group,
-                (event.group.id,),
-                event.datetime,
-                event.datetime,
-                environment_id=environment_id,
-            )
-            == {event.group.id: 1}
-        )
+        assert tsdb.get_distinct_counts_totals(
+            tsdb.models.users_affected_by_group,
+            (event.group.id,),
+            event.datetime,
+            event.datetime,
+            environment_id=environment_id,
+        ) == {event.group.id: 1}
 
-        assert (
-            tsdb.get_distinct_counts_totals(
-                tsdb.models.users_affected_by_project,
-                (event.project.id,),
-                event.datetime,
-                event.datetime,
-                environment_id=environment_id,
-            )
-            == {event.project.id: 1}
-        )
+        assert tsdb.get_distinct_counts_totals(
+            tsdb.models.users_affected_by_project,
+            (event.project.id,),
+            event.datetime,
+            event.datetime,
+            environment_id=environment_id,
+        ) == {event.project.id: 1}
 
         euser = EventUser.objects.get(project_id=self.project.id, ident="1")
         assert event.get_tag("sentry:user") == euser.tag_value

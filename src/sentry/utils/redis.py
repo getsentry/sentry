@@ -199,7 +199,7 @@ class FailoverRedis(StrictRedis):
                 time.sleep(
                     min(
                         self._backoff_max,
-                        (self._backoff_min * (self._backoff_multiplier ** retries))
+                        (self._backoff_min * (self._backoff_multiplier**retries))
                         * (1 + random.random()),
                     )
                 )

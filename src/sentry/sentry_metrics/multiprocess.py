@@ -215,7 +215,6 @@ if TYPE_CHECKING:
         message: Message[KafkaPayload]
         future: Future[Message[KafkaPayload]]
 
-
 else:
 
     class ProducerResultFuture(NamedTuple):

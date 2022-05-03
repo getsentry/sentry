@@ -70,7 +70,7 @@ if getattr(settings, "SERVE_UPLOADED_FILES", settings.DEBUG):
     # would typically be handled by some static server.
     urlpatterns += [
         url(
-            fr"^{re.escape(settings.MEDIA_URL)}(?P<path>.*)$",
+            rf"^{re.escape(settings.MEDIA_URL)}(?P<path>.*)$",
             serve,
             {"document_root": settings.MEDIA_ROOT},
             name="sentry-serve-media",

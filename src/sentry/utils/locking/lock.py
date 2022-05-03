@@ -60,7 +60,7 @@ class Lock:
             try:
                 return self.acquire()
             except UnableToAcquireLock:
-                delay = (exp_base ** attempt) * random.random() * initial_delay
+                delay = (exp_base**attempt) * random.random() * initial_delay
                 # Redundant check to prevent futile sleep in last iteration:
                 if time.monotonic() + delay > stop:
                     break
