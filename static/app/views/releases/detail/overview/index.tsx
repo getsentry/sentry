@@ -720,8 +720,8 @@ function getTransactionsListSort(location: Location): {
 const ReleaseDetailsPageFilters = styled('div')`
   display: grid;
   grid-template-columns: minmax(0, max-content) minmax(0, max-content);
-  gap: ${space(1)};
-  margin-bottom: ${space(1.5)};
+  gap: ${space(2)};
+  margin-bottom: ${space(2)};
 `;
 
 const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`

@@ -30,7 +30,7 @@ const ReleasesDropdown = ({
   return (
     <DropdownControl
       alwaysRenderMenu={false}
-      buttonProps={{prefix}}
+      buttonProps={{prefix, style: {width: '100%'}}}
       label={selectedLabel?.label}
       className={className}
     >
