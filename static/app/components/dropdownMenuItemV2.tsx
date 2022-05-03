@@ -14,10 +14,10 @@ import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 
 /**
- * Menu item priority. Currently there's only one option, but we may choose to
- * add more in the future.
+ * Menu item priority. Currently there's only one option other than default,
+ * but we may choose to add more in the future.
  */
-type Priority = 'danger';
+type Priority = 'danger' | 'default';
 
 export type MenuItemProps = {
   /**
@@ -218,7 +218,7 @@ const MenuItem = ({
   // etc. See: https://react-spectrum.adobe.com/react-aria/mergeProps.html
   const props = mergeProps(submenuTriggerProps, menuItemProps, hoverProps, keyboardProps);
   const {
-    priority,
+    priority = 'default',
     details,
     leadingItems,
     leadingItemsSpanFullHeight,
@@ -304,7 +304,7 @@ const InnerWrap = styled('div', {
 })<{
   isDisabled: boolean;
   isFocused: boolean;
-  priority?: Priority;
+  priority: Priority;
   to?: LocationDescriptor;
 }>`
   display: flex;
@@ -385,7 +385,7 @@ const Label = styled('p')`
   ${overflowEllipsis}
 `;
 
-const Details = styled('p')<{isDisabled: boolean; priority?: Priority}>`
+const Details = styled('p')<{isDisabled: boolean; priority: Priority}>`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
   line-height: 1.2;
