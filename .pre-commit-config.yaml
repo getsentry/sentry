@@ -36,6 +36,7 @@ repos:
       entry: black
       language: system
       types: [python]
+      require_serial: true
     # Configuration for isort exists in pyproject.toml,
     # but we let pre-commit take care of the file filtering.
     - id: isort
