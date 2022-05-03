@@ -1117,7 +1117,7 @@ class DiscoverDatasetConfig(DatasetConfig):
         if quality == "good":
             return Function(
                 "countIf",
-                [Function("lessOrEquals", [column, VITAL_THRESHOLDS[column.key]["meh"]])],
+                [Function("less", [column, VITAL_THRESHOLDS[column.key]["meh"]])],
                 alias,
             )
         elif quality == "meh":
@@ -1127,10 +1127,10 @@ class DiscoverDatasetConfig(DatasetConfig):
                     Function(
                         "and",
                         [
-                            Function("greater", [column, VITAL_THRESHOLDS[column.key]["meh"]]),
                             Function(
-                                "lessOrEquals", [column, VITAL_THRESHOLDS[column.key]["poor"]]
+                                "greaterOrEquals", [column, VITAL_THRESHOLDS[column.key]["meh"]]
                             ),
+                            Function("less", [column, VITAL_THRESHOLDS[column.key]["poor"]]),
                         ],
                     )
                 ],
@@ -1141,7 +1141,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                 "countIf",
                 [
                     Function(
-                        "greater",
+                        "greaterOrEquals",
                         [
                             column,
                             VITAL_THRESHOLDS[column.key]["poor"],
