@@ -18,7 +18,6 @@ from typing import (
     Optional,
     Sequence,
     Set,
-    Tuple,
     Union,
 )
 
@@ -347,18 +346,15 @@ def valid_metric_name(name: str) -> bool:
     return True
 
 
-def valid_metric_tags(tags: Mapping[str, str]) -> Tuple[bool, Sequence[str]]:
+def invalid_metric_tags(tags: Mapping[str, str]) -> Sequence[str]:
     invalid_strs: List[str] = []
-    is_valid = True
     for key, value in tags.items():
         if not key or len(key) > MAX_TAG_KEY_LENGTH:
             invalid_strs.append(key)
-            is_valid = False
         if not value or len(value) > MAX_TAG_VALUE_LENGTH:
             invalid_strs.append(value)
-            is_valid = False
 
-    return (is_valid, invalid_strs)
+    return invalid_strs
 
 
 def process_messages(
@@ -399,19 +395,19 @@ def process_messages(
             tags = message.get("tags", {})
 
             if not valid_metric_name(metric_name):
-                logger.warning(
+                logger.error(
                     "process_messages.invalid_metric_name",
                     extra={"org_id": org_id, "metric_name": metric_name, "offset": offset},
                 )
                 skipped_offsets.add(offset)
                 continue
 
-            is_valid, invalid_strs = valid_metric_tags(tags)
+            invalid_strs = invalid_metric_tags(tags)
 
-            if not is_valid:
+            if invalid_strs:
                 # sentry doesn't seem to actually capture nested logger.error extra args
                 sentry_sdk.set_extra("all_metric_tags", tags)
-                logger.warning(
+                logger.error(
                     "process_messages.invalid_tags",
                     extra={
                         "org_id": org_id,

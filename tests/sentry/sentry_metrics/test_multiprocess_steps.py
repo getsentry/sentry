@@ -309,7 +309,7 @@ def test_process_messages_invalid_messages(invalid_payload, error_text, caplog) 
     last = message_batch[-1]
     outer_message = Message(last.partition, last.offset, message_batch, last.timestamp)
 
-    with caplog.at_level(logging.WARNING), mock.patch(
+    with caplog.at_level(logging.ERROR), mock.patch(
         "sentry.sentry_metrics.multiprocess.get_indexer", return_value=MockIndexer()
     ):
         new_batch = process_messages(outer_message=outer_message)
