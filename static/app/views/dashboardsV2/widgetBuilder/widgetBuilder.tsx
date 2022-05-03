@@ -556,7 +556,9 @@ function WidgetBuilder({
   ) {
     const fieldStrings = newFields
       .map(generateFieldAsString)
-      .map(stripDerivedMetricsPrefix);
+      .map(field =>
+        state.dataSet === DataSet.RELEASES ? stripDerivedMetricsPrefix(field) : field
+      );
 
     const columnsAndAggregates = isColumn
       ? getColumnsAndAggregatesAsStrings(newFields)
@@ -570,7 +572,11 @@ function WidgetBuilder({
     const newQueries = state.queries.map(query => {
       const isDescending = query.orderby.startsWith('-');
       const rawOrderby = trimStart(query.orderby, '-');
-      const prevAggregateFieldStrings = query.aggregates.map(stripDerivedMetricsPrefix);
+      const prevAggregateFieldStrings = query.aggregates.map(aggregate =>
+        state.dataSet === DataSet.RELEASES
+          ? stripDerivedMetricsPrefix(aggregate)
+          : aggregate
+      );
       const newQuery = cloneDeep(query);
 
       if (disableSortBy) {
