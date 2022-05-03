@@ -34,7 +34,7 @@ class TestGrantExchanger(TestCase):
         )
 
     def test_grant_must_belong_to_installations(self):
-        other_install = self.create_sentry_app_installation()
+        other_install = self.create_sentry_app_installation(prevent_token_exchange=True)
         self.grant_exchanger.code = other_install.api_grant.code
 
         with self.assertRaises(APIUnauthorized):
