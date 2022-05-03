@@ -50,6 +50,7 @@ export default function FirstEventFooter({
       return (
         <Button
           to={`/onboarding/${organization.slug}/mobile-redirect/`}
+          priority="primary"
           onClick={() => {
             clientState &&
               client.requestPromise(
@@ -63,7 +64,7 @@ export default function FirstEventFooter({
               );
           }}
         >
-          {t('Do it Later')}
+          {t('Setup on Computer')}
         </Button>
       );
     }
@@ -103,23 +104,27 @@ export default function FirstEventFooter({
 
   return (
     <GridFooter>
-      <SkipOnboardingLink
-        onClick={() => {
-          trackAdvancedAnalyticsEvent('growth.onboarding_clicked_skip', {
-            organization,
-            source,
-          });
-          if (clientState) {
-            setClientState({
-              ...clientState,
-              state: 'skipped',
-            });
-          }
-        }}
-        to={`/organizations/${organization.slug}/issues/`}
-      >
-        {t('Skip Onboarding')}
-      </SkipOnboardingLink>
+      {isMobile() &&
+        organization.experiments.TargetedOnboardingMobileRedirectExperiment ===
+          'email-cta' && (
+          <SkipOnboardingLink
+            onClick={() => {
+              trackAdvancedAnalyticsEvent('growth.onboarding_clicked_skip', {
+                organization,
+                source,
+              });
+              if (clientState) {
+                setClientState({
+                  ...clientState,
+                  state: 'skipped',
+                });
+              }
+            }}
+            to={`/organizations/${organization.slug}/issues/`}
+          >
+            {t('Skip Onboarding')}
+          </SkipOnboardingLink>
+        )}
       <EventWaiter
         eventType="error"
         onIssueReceived={handleFirstIssueReceived}
