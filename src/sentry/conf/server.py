@@ -2304,6 +2304,11 @@ KAFKA_CLUSTERS = {
 }
 
 KAFKA_EVENTS = "events"
+# TODO: KAFKA_TRANSACTIONS is temporarily mapped to "events" since events
+# transactions curently share a Kafka topic. Once we are ready with the code
+# changes to support different topic, switch this to "transactions" to start
+# producing to the new topic.
+KAFKA_TRANSACTIONS = "events"
 KAFKA_OUTCOMES = "outcomes"
 KAFKA_OUTCOMES_BILLING = "outcomes-billing"
 KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS = "events-subscription-results"
@@ -2325,6 +2330,7 @@ KAFKA_PROFILES = "profiles"
 
 KAFKA_TOPICS = {
     KAFKA_EVENTS: {"cluster": "default", "topic": KAFKA_EVENTS},
+    KAFKA_TRANSACTIONS: {"cluster": "default", "topic": KAFKA_TRANSACTIONS},
     KAFKA_OUTCOMES: {"cluster": "default", "topic": KAFKA_OUTCOMES},
     # When OUTCOMES_BILLING is None, it inherits from OUTCOMES and does not
     # create a separate producer. Check ``track_outcome`` for details.
