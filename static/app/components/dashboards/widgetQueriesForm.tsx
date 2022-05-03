@@ -49,6 +49,7 @@ export const generateOrderOptions = ({
     .forEach(field => {
       let alias = getAggregateAlias(field);
       const label = stripEquationPrefix(field);
+      const shouldUseField = (isRelease || isUsingFieldFormat) && !isEquation(field);
       // Equations are referenced via a standard alias following this pattern
       if (isEquation(field)) {
         alias = `equation[${equations}]`;
@@ -56,18 +57,18 @@ export const generateOrderOptions = ({
       }
 
       if (widgetBuilderNewDesign) {
-        options.push({label, value: isRelease || isUsingFieldFormat ? field : alias});
+        options.push({label, value: shouldUseField ? field : alias});
         return;
       }
 
       options.push({
         label: t('%s asc', label),
-        value: isRelease || isUsingFieldFormat ? field : alias,
+        value: shouldUseField ? field : alias,
       });
 
       options.push({
         label: t('%s desc', label),
-        value: isRelease || isUsingFieldFormat ? `-${field}` : `-${alias}`,
+        value: shouldUseField ? `-${field}` : `-${alias}`,
       });
     });
 
