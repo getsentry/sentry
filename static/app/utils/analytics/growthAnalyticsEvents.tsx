@@ -37,6 +37,15 @@ type InviteModal = {
   modal_session: string;
 };
 
+type SampleEvent = {
+  duration: number;
+  interval: number;
+  platform: string;
+  project_id: string;
+  retries: number;
+  source: string;
+};
+
 // define the event key to payload mappings
 export type GrowthEventParameters = {
   'growth.clicked_enter_sandbox': {
@@ -92,6 +101,18 @@ export type GrowthEventParameters = {
     num_invite_requests: number;
     num_members: number;
   };
+  'onboarding.wizard_clicked': {
+    action: string;
+    todo_id: string;
+    todo_title: string;
+  };
+  'onboarding.wizard_opened': {};
+  'sample_event.button_viewed': {
+    project_id: string;
+    source: string;
+  };
+  'sample_event.created': SampleEvent;
+  'sample_event.failed': SampleEvent;
   'sdk_updates.clicked': {};
   'sdk_updates.seen': {};
   'sdk_updates.snoozed': {};
@@ -147,4 +168,9 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string> = {
   'sdk_updates.seen': 'SDK Updates: Seen',
   'sdk_updates.snoozed': 'SDK Updates: Snoozed',
   'sdk_updates.clicked': 'SDK Updates: Clicked',
+  'onboarding.wizard_opened': 'Onboarding Wizard Opened',
+  'onboarding.wizard_clicked': 'Onboarding Wizard Clicked',
+  'sample_event.button_viewed': null, // high-volume event
+  'sample_event.created': 'Sample Event Created',
+  'sample_event.failed': 'Sample Event Failed',
 };
