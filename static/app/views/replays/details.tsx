@@ -103,12 +103,12 @@ function ReplayDetails() {
               </PanelBody>
             </Panel>
           </ReplayLayout>
-          <Layout.Side>
+          <Side>
             <UserActionsNavigator
               event={replay.getEvent()}
               entry={replay.getEntryType(EntryType.BREADCRUMBS)}
             />
-          </Layout.Side>
+          </Side>
           <Layout.Main fullWidth>
             <Panel>
               <BreadcrumbTimeline
@@ -148,6 +148,10 @@ const ReplayLayout = styled(Layout.Main)`
     grid-template-rows: auto max-content;
     background: ${p => p.theme.gray500};
   }
+`;
+
+const Side = styled(Layout.Side)`
+  padding-bottom: ${space(2)};
 `;
 
 const BreadcrumbTimeline = styled(ReplayBreadcrumbOverview)`

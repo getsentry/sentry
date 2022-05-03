@@ -62,6 +62,8 @@ export default UserActionsNavigator;
 const Panel = styled(BasePanel)`
   width: 100%;
   display: grid;
+  height: 0;
+  min-height: 100%;
   margin-bottom: 0;
 `;
 
