@@ -336,12 +336,7 @@ def test_consumer_rebalance_from_partition_start(requires_kafka):
 
             assert producer.flush(5) == 0, "producer did not successfully flush queue"
 
-            # We should have received a single message.
-            # TODO: Can we also assert that the position is unpaused?)
-            for i in range(5):
-                received_message = consumer.poll(1)
-                if received_message is not None:
-                    break
+            received_message = consumer.poll(5.0)
 
             assert received_message is not None, "no message received"
 
@@ -468,10 +463,7 @@ def test_consumer_rebalance_from_committed_offset(requires_kafka):
 
             # We should have received a single message.
             # TODO: Can we also assert that the position is unpaused?)
-            for i in range(5):
-                received_message = consumer.poll(1)
-                if received_message is not None:
-                    break
+            received_message = consumer.poll(5.0)
 
             assert received_message is not None, "no message received"
 
