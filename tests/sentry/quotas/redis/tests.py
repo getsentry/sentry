@@ -17,46 +17,31 @@ def test_is_rate_limited_script():
     client = cluster.get_local_client(next(iter(cluster.hosts)))
 
     # The item should not be rate limited by either key.
-    assert (
-        list(
-            map(
-                bool,
-                is_rate_limited(
-                    client, ("foo", "r:foo", "bar", "r:bar"), (1, now + 60, 2, now + 120)
-                ),
-            )
+    assert list(
+        map(
+            bool,
+            is_rate_limited(client, ("foo", "r:foo", "bar", "r:bar"), (1, now + 60, 2, now + 120)),
         )
-        == [False, False]
-    )
+    ) == [False, False]
 
     # The item should be rate limited by the first key (1).
-    assert (
-        list(
-            map(
-                bool,
-                is_rate_limited(
-                    client, ("foo", "r:foo", "bar", "r:bar"), (1, now + 60, 2, now + 120)
-                ),
-            )
+    assert list(
+        map(
+            bool,
+            is_rate_limited(client, ("foo", "r:foo", "bar", "r:bar"), (1, now + 60, 2, now + 120)),
         )
-        == [True, False]
-    )
+    ) == [True, False]
 
     # The item should still be rate limited by the first key (1), but *not*
     # rate limited by the second key (2) even though this is the third time
     # we've checked the quotas. This ensures items that are rejected by a lower
     # quota don't affect unrelated items that share a parent quota.
-    assert (
-        list(
-            map(
-                bool,
-                is_rate_limited(
-                    client, ("foo", "r:foo", "bar", "r:bar"), (1, now + 60, 2, now + 120)
-                ),
-            )
+    assert list(
+        map(
+            bool,
+            is_rate_limited(client, ("foo", "r:foo", "bar", "r:bar"), (1, now + 60, 2, now + 120)),
         )
-        == [True, False]
-    )
+    ) == [True, False]
 
     assert client.get("foo") == b"1"
     assert 59 <= client.ttl("foo") <= 60
@@ -226,7 +211,7 @@ class RedisQuotaTest(TestCase):
                 id="a",
                 scope=QuotaScope.PROJECT,
                 scope_id=1,
-                limit=1 ** 6,
+                limit=1**6,
                 window=1,
                 reason_code="attachment_quota",
                 categories=[DataCategory.ATTACHMENT],
@@ -273,7 +258,7 @@ class RedisQuotaTest(TestCase):
                 id="a",
                 scope=QuotaScope.PROJECT,
                 scope_id=1,
-                limit=1 ** 6,
+                limit=1**6,
                 window=1,
                 reason_code="attachment_quota",
                 categories=[DataCategory.ATTACHMENT],
