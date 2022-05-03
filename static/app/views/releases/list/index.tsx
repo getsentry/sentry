@@ -535,13 +535,12 @@ class ReleasesList extends AsyncView<Props, State> {
 
             {this.renderHealthCta()}
 
-            <ReleasesPageFilterBar condensed>
-              <ProjectPageFilter />
-              <EnvironmentPageFilter />
-              <DatePageFilter alignDropdown="left" />
-            </ReleasesPageFilterBar>
-
-            <SortAndFilterWrapper>
+            <FilterActions>
+              <PageFilterBar condensed>
+                <ProjectPageFilter />
+                <EnvironmentPageFilter />
+                <DatePageFilter alignDropdown="left" />
+              </PageFilterBar>
               <GuideAnchor
                 target="releases_search"
                 position="bottom"
@@ -552,7 +551,7 @@ class ReleasesList extends AsyncView<Props, State> {
                   position="bottom"
                   disabled={!showReleaseAdoptionStages}
                 >
-                  <SmartSearchBar
+                  <StyledSmartSearchBar
                     searchSource="releases"
                     query={this.getQuery()}
                     placeholder={t('Search by version, build, package, or stage')}
@@ -571,23 +570,21 @@ class ReleasesList extends AsyncView<Props, State> {
                   />
                 </GuideAnchor>
               </GuideAnchor>
-              <DropdownsWrapper>
-                <ReleasesStatusOptions
-                  selected={activeStatus}
-                  onSelect={this.handleStatus}
-                />
-                <ReleasesSortOptions
-                  selected={activeSort}
-                  selectedDisplay={activeDisplay}
-                  onSelect={this.handleSortBy}
-                  environments={selection.environments}
-                />
-                <ReleasesDisplayOptions
-                  selected={activeDisplay}
-                  onSelect={this.handleDisplay}
-                />
-              </DropdownsWrapper>
-            </SortAndFilterWrapper>
+              <ReleasesStatusOptions
+                selected={activeStatus}
+                onSelect={this.handleStatus}
+              />
+              <ReleasesSortOptions
+                selected={activeSort}
+                selectedDisplay={activeDisplay}
+                onSelect={this.handleSortBy}
+                environments={selection.environments}
+              />
+              <ReleasesDisplayOptions
+                selected={activeDisplay}
+                onSelect={this.handleDisplay}
+              />
+            </FilterActions>
 
             {!reloading &&
               activeStatus === ReleasesStatusOption.ARCHIVED &&
@@ -618,70 +615,38 @@ const AlertText = styled('div')`
   }
 `;
 
-const ReleasesPageFilterBar = styled(PageFilterBar)`
-  margin-bottom: ${space(1)};
-`;
-
-const SortAndFilterWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  justify-content: stretch;
+const FilterActions = styled('div')`
+  display: grid;
+  gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  > *:nth-child(1) {
-    flex: 1;
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  /* Below this width search bar needs its own row no to wrap placeholder text
-   * Above this width search bar and controls can be on the same row */
   @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    flex-direction: row;
+    grid-template-columns: repeat(4, min-content);
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    grid-template-columns: auto 1fr auto auto auto;
   }
 `;
 
-const DropdownsWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
+const StyledSmartSearchBar = styled(SmartSearchBar)`
+  order: 1;
 
-  & > * {
-    margin-top: ${space(2)};
-  }
-
-  /* At the narrower widths wrapper is on its own in a row
-   * Expand the dropdown controls to fill the empty space */
-  & button {
-    width: 100%;
-  }
-
-  /* At narrower widths space bar needs a separate row
-   * Divide space evenly when 3 dropdowns are in their own row */
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    margin-top: ${space(2)};
-
-    & > * {
-      margin-top: ${space(0)};
-      margin-left: ${space(1)};
-    }
-
-    & > *:nth-child(1) {
-      margin-left: ${space(0)};
-    }
-
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-column: 1/4;
   }
 
-  /* At wider widths everything is in 1 row
-   * Auto space dropdowns when they are in the same row with search bar */
   @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    margin-top: ${space(0)};
+    grid-column: 1/6;
+  }
 
-    & > * {
-      margin-left: ${space(1)} !important;
-    }
-
-    display: grid;
-    grid-template-columns: auto auto auto;
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    order: initial;
+    grid-column: auto;
   }
 `;
 
