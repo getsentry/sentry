@@ -11,4 +11,5 @@ export const FlamegraphToolbar = styled('div')<FlamegraphToolbarProps>`
   justify-content: space-between;
   align-items: center;
   margin: ${space(1)} ${space(4)};
+  gap: ${space(1)};
 `;
