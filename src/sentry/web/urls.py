@@ -680,6 +680,11 @@ urlpatterns += [
         name="sentry-metric-alert",
     ),
     url(
+        r"^organizations/(?P<organization_slug>[\w_-]+)/alerts/rules/details/(?P<alert_rule_id>\d+)/$",
+        react_page_view,
+        name="sentry-metric-alert-details",
+    ),
+    url(
         r"^settings/(?P<organization_slug>[\w_-]+)/projects/(?P<project_slug>[\w_-]+)/alerts/metric-rules/(?P<alert_rule_id>\d+)/$",
         react_page_view,
         name="sentry-alert-rule",
