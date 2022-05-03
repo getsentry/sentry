@@ -6,11 +6,12 @@ interface Props extends React.HTMLAttributes<HTMLDivElement> {
   highlighted?: boolean;
 }
 
+function scrollIntoView(element: HTMLDivElement) {
+  element?.scrollIntoView?.(true);
+}
+
 const SearchResultWrapper = styled(({highlighted, ...props}: Props) => (
-  <div
-    {...props}
-    ref={element => highlighted && element?.scrollIntoView?.({block: 'nearest'})}
-  />
+  <div {...props} ref={highlighted ? scrollIntoView : undefined} />
 ))`
   cursor: pointer;
   display: block;
