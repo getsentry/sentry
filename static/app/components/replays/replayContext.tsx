@@ -115,6 +115,15 @@ const ReplayPlayerContext = React.createContext<ReplayPlayerContextProps>({
 type Props = {
   children: React.ReactNode;
   events: eventWithTime[];
+
+  /**
+   * Time, in seconds, when the video should start
+   */
+  initialTimeOffset?: number;
+
+  /**
+   * Override return fields for testing
+   */
   value?: Partial<ReplayPlayerContextProps>;
 };
 
@@ -124,7 +133,7 @@ function useCurrentTime(callback: () => number) {
   return currentTime;
 }
 
-export function Provider({children, events, value = {}}: Props) {
+export function Provider({children, events, initialTimeOffset = 0, value = {}}: Props) {
   const theme = useTheme();
   const oldEvents = usePrevious(events);
   const replayerRef = useRef<Replayer>(null);
@@ -216,11 +225,14 @@ export function Provider({children, events, value = {}}: Props) {
   );
 
   const setCurrentTime = useCallback(
-    (time: number) => {
+    (requestedTimeMs: number) => {
       const replayer = replayerRef.current;
       if (!replayer) {
         return;
       }
+
+      const maxTimeMs = replayerRef.current?.getMetaData().totalTime;
+      const time = requestedTimeMs > maxTimeMs ? 0 : requestedTimeMs;
 
       // Sometimes rrweb doesn't get to the exact target time, as long as it has
       // changed away from the previous time then we can hide then buffering message.
@@ -232,9 +244,6 @@ export function Provider({children, events, value = {}}: Props) {
         window.clearTimeout(playTimer.current);
       }
 
-      // TODO: it might be nice to always just pause() here
-      // Why? People can drag the scrobber, or click 'back 10s' and then be in a
-      // paused state to inspect things.
       if (isPlaying) {
         playTimer.current = window.setTimeout(() => replayer.play(time), 0);
         setIsPlaying(true);
@@ -291,6 +300,13 @@ export function Provider({children, events, value = {}}: Props) {
     }
     setIsSkippingInactive(skip);
   }, []);
+
+  // Only on pageload: set the initial playback timestamp
+  useEffect(() => {
+    if (initialTimeOffset && events && replayerRef.current) {
+      setCurrentTime(initialTimeOffset * 1000);
+    }
+  }, [events, replayerRef.current]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const currentPlayerTime = useCurrentTime(getCurrentTime);
 
