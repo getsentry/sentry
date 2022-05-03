@@ -536,11 +536,11 @@ class ReleasesList extends AsyncView<Props, State> {
             {this.renderHealthCta()}
 
             <FilterActions>
-              <PageFilterBar condensed>
+              <StyledPageFilterBar condensed>
                 <ProjectPageFilter />
                 <EnvironmentPageFilter />
                 <DatePageFilter alignDropdown="left" />
-              </PageFilterBar>
+              </StyledPageFilterBar>
               <GuideAnchor
                 target="releases_search"
                 position="bottom"
@@ -620,12 +620,20 @@ const FilterActions = styled('div')`
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
+  button {
+    width: 100%;
+  }
+
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    grid-template-columns: repeat(4, min-content);
+    grid-template-columns: 1fr repeat(3, min-content);
+
+    button {
+      width: auto;
+    }
   }
 
   @media (min-width: ${p => p.theme.breakpoints[3]}) {
@@ -633,19 +641,26 @@ const FilterActions = styled('div')`
   }
 `;
 
-const StyledSmartSearchBar = styled(SmartSearchBar)`
-  order: 1;
+const StyledPageFilterBar = styled(PageFilterBar)`
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-column: 1/4;
+  }
 
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    grid-column: unset;
+  }
+`;
+
+const StyledSmartSearchBar = styled(SmartSearchBar)`
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     grid-column: 1/4;
   }
 
   @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    grid-column: 1/6;
+    grid-column: 1/2;
   }
 
   @media (min-width: ${p => p.theme.breakpoints[3]}) {
-    order: initial;
     grid-column: auto;
   }
 `;

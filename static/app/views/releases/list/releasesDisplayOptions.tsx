@@ -1,5 +1,3 @@
-import styled from '@emotion/styled';
-
 import {t} from 'sentry/locale';
 
 import ReleasesDropdown from './releasesDropdown';
@@ -21,7 +19,7 @@ type Props = {
 
 function ReleasesDisplayOptions({selected, onSelect}: Props) {
   return (
-    <StyledReleasesDropdown
+    <ReleasesDropdown
       label={t('Display')}
       options={displayOptions}
       selected={selected}
@@ -31,10 +29,3 @@ function ReleasesDisplayOptions({selected, onSelect}: Props) {
 }
 
 export default ReleasesDisplayOptions;
-
-const StyledReleasesDropdown = styled(ReleasesDropdown)`
-  z-index: 1;
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    order: 3;
-  }
-`;

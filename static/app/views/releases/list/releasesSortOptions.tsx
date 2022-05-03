@@ -1,5 +1,3 @@
-import styled from '@emotion/styled';
-
 import {t} from 'sentry/locale';
 
 import {ReleasesDisplayOption} from './releasesDisplayOptions';
@@ -51,7 +49,7 @@ function ReleasesSortOptions({selected, selectedDisplay, onSelect, environments}
   };
 
   return (
-    <StyledReleasesDropdown
+    <ReleasesDropdown
       label={t('Sort By')}
       options={sortOptions}
       selected={selected}
@@ -61,10 +59,3 @@ function ReleasesSortOptions({selected, selectedDisplay, onSelect, environments}
 }
 
 export default ReleasesSortOptions;
-
-const StyledReleasesDropdown = styled(ReleasesDropdown)`
-  z-index: 2;
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    order: 2;
-  }
-`;
