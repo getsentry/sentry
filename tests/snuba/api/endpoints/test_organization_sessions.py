@@ -1374,5 +1374,9 @@ class OrganizationSessionsEndpointMetricsTest(
 
         assert response.status_code == 200, response.content
         assert result_sorted(response.data)["groups"] == [
-            {"by": {}, "series": {"sum(session)": [1]}, "totals": {"sum(session)": 1}}
+            {
+                "by": {"environment": "", "release": ""},
+                "series": {"sum(session)": [1]},
+                "totals": {"sum(session)": 1},
+            }
         ]

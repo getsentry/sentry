@@ -115,11 +115,11 @@ class GroupKey:
         dct: GroupKeyDict = {}
         if self.project:
             dct["project"] = self.project
-        if self.release:
+        if self.release is not None:
             dct["release"] = self.release
-        if self.environment:
+        if self.environment is not None:
             dct["environment"] = self.environment
-        if self.session_status:
+        if self.session_status is not None:
             dct["session.status"] = self.session_status.value
 
         return dct
