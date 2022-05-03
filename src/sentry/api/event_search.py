@@ -355,6 +355,8 @@ class SearchValue(NamedTuple):
 
         Empty strings are valid, so that it can be used for has:id queries
         """
+        if isinstance(self.raw_value, list):
+            return all(isinstance(value, str) and is_event_id(value) for value in self.raw_value)
         if not isinstance(self.raw_value, str):
             return False
         return is_event_id(self.raw_value) or self.raw_value == ""

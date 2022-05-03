@@ -425,6 +425,33 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert response.data["data"] == [{"project.name": project.slug, "id": "a" * 32, "count": 1}]
 
+    def test_event_id_with_in_search(self):
+        project = self.create_project()
+        self.store_event(
+            data={"event_id": "a" * 32, "environment": "staging1", "timestamp": self.min_ago},
+            project_id=project.id,
+        )
+        self.store_event(
+            data={"event_id": "b" * 32, "environment": "staging2", "timestamp": self.min_ago},
+            project_id=project.id,
+        )
+        # Should not show up
+        self.store_event(
+            data={"event_id": "c" * 32, "environment": "staging3", "timestamp": self.min_ago},
+            project_id=project.id,
+        )
+        query = {
+            "field": ["id", "environment"],
+            "statsPeriod": "1h",
+            "query": f"id:[{'a' * 32}, {'b' * 32}]",
+            "orderby": "environment",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 2
+        assert response.data["data"][0]["id"] == "a" * 32
+        assert response.data["data"][1]["id"] == "b" * 32
+
     def test_user_search(self):
         project = self.create_project()
         data = load_data("transaction", timestamp=before_now(minutes=1))
