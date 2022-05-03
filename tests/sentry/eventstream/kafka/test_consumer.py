@@ -664,6 +664,8 @@ class BatchedConsumerTest(TestCase):
         self.override_settings_cm = override_settings(
             KAFKA_TOPICS={
                 "events": {"cluster": "default", "topic": self.events_topic},
+                # Temporarily mapped to the same topic as events
+                "transactions": {"cluster": "default", "topic": self.events_topic},
                 "snuba-commit-log": {"cluster": "default", "topic": self.commit_log_topic},
             },
         )
