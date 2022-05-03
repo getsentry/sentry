@@ -247,10 +247,11 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         if not added_or_modified_sources:
             return json.dumps(sources) if sources else ""
 
-        # All modified sources should get a new UUID, as a way to bust caches.
-        # For example, symbolicator caches negative DIF lookups based on this id,
-        # and updating a source should take effect immediately instead of an
-        # hour later when caches expire.
+        # All modified sources should get a new UUID, as a way to invalidate caches.
+        # Downstream symbolicator uses this ID as part of a cache key, so assigning
+        # a new ID does have the following effects/tradeoffs:
+        # * negative cache entries (eg auth errors) are retried immediately.
+        # * positive caches are re-fetches as well, making it less effective.
         for source in added_or_modified_sources:
             # This should only apply to sources which are being fed to symbolicator.
             # App Store Connect in particular is managed in a completely different
