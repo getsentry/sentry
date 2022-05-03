@@ -2,6 +2,7 @@ import {useCallback, useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import type {eventWithTime} from 'rrweb/typings/types';
 
+import {MemorySpanType} from 'sentry/components/events/interfaces/spans/types';
 import {IssueAttachment} from 'sentry/types';
 import {Entry, Event} from 'sentry/types/event';
 import EventView from 'sentry/utils/discover/eventView';
@@ -33,6 +34,8 @@ type State = {
    * This includes fetched all the sub-resources like attachments and `sentry-replay-event`
    */
   fetching: boolean;
+
+  memorySpans: undefined | MemorySpanType[];
 
   mergedReplayEvent: undefined | Event;
 
@@ -86,6 +89,7 @@ function useReplayEvent({eventSlug, location, orgId}: Options): Result {
     replayEvents: undefined,
     rrwebEvents: undefined,
     mergedReplayEvent: undefined,
+    memorySpans: undefined,
   });
 
   function fetchEvent() {
@@ -152,6 +156,7 @@ function useReplayEvent({eventSlug, location, orgId}: Options): Result {
       replayEvents: undefined,
       rrwebEvents: undefined,
       mergedReplayEvent: undefined,
+      memorySpans: undefined,
     });
     try {
       const [event, rrwebEvents, replayEvents] = await Promise.all([
@@ -160,8 +165,16 @@ function useReplayEvent({eventSlug, location, orgId}: Options): Result {
         fetchReplayEvents(),
       ]);
 
-      const breadcrumbEntry = mergeBreadcrumbsEntries(replayEvents || []);
+      const breadcrumbEntry = mergeBreadcrumbsEntries(replayEvents || [], event);
       const mergedReplayEvent = mergeEventsWithSpans(replayEvents || []);
+      const memorySpans =
+        mergedReplayEvent?.entries[0]?.data?.filter(datum => datum?.data?.memory) || [];
+
+      if (mergedReplayEvent.entries[0]) {
+        mergedReplayEvent.entries[0].data = mergedReplayEvent?.entries[0]?.data?.filter(
+          datum => !datum?.data?.memory
+        );
+      }
 
       setState({
         ...state,
@@ -172,6 +185,7 @@ function useReplayEvent({eventSlug, location, orgId}: Options): Result {
         replayEvents,
         rrwebEvents,
         breadcrumbEntry,
+        memorySpans,
       });
     } catch (error) {
       Sentry.captureException(error);
@@ -184,11 +198,12 @@ function useReplayEvent({eventSlug, location, orgId}: Options): Result {
         replayEvents: undefined,
         rrwebEvents: undefined,
         mergedReplayEvent: undefined,
+        memorySpans: undefined,
       });
     }
   }
 
-  useEffect(() => void loadEvents(), [orgId, eventSlug, retry]);
+  useEffect(() => void loadEvents(), [orgId, eventSlug, retry]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const onRetry = useCallback(() => {
     setRetry(true);
@@ -204,6 +219,7 @@ function useReplayEvent({eventSlug, location, orgId}: Options): Result {
     replayEvents: state.replayEvents,
     rrwebEvents: state.rrwebEvents,
     mergedReplayEvent: state.mergedReplayEvent,
+    memorySpans: state.memorySpans,
   };
 }
 

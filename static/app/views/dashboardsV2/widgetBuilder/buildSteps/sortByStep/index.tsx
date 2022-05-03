@@ -1,3 +1,4 @@
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesForm';
@@ -10,7 +11,7 @@ import {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/ty
 import {generateIssueWidgetOrderOptions} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/utils';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
-import {DataSet, RESULTS_LIMIT, SortDirection} from '../../utils';
+import {DataSet, getResultsLimit, SortDirection} from '../../utils';
 import {BuildStep} from '../buildStep';
 
 import {SortBySelectors} from './sortBySelectors';
@@ -40,7 +41,40 @@ export function SortByStep({
   limit,
   onLimitChange,
 }: Props) {
+  const fields = queries[0].columns;
+
+  let disabledSort = false;
+  let disabledSortDirection = false;
+  let disabledReason: string | undefined = undefined;
+
+  if (widgetType === WidgetType.RELEASE && fields.includes('session.status')) {
+    disabledSort = true;
+    disabledSortDirection = true;
+    disabledReason = t('Sorting currently not supported with session.status');
+  }
+
+  if (widgetType === WidgetType.ISSUE) {
+    disabledSortDirection = true;
+    disabledReason = t('Issues dataset does not yet support descending order');
+  }
+
   const orderBy = queries[0].orderby;
+  const maxLimit = getResultsLimit(queries.length, queries[0].aggregates.length);
+
+  const isTimeseriesChart = [
+    DisplayType.LINE,
+    DisplayType.BAR,
+    DisplayType.AREA,
+  ].includes(displayType);
+
+  useEffect(() => {
+    if (!limit) {
+      return;
+    }
+    if (limit > maxLimit) {
+      onLimitChange(maxLimit);
+    }
+  }, [limit, maxLimit]);
 
   if (widgetBuilderNewDesign) {
     return (
@@ -62,7 +96,7 @@ export function SortByStep({
               <ResultsLimitSelector
                 name="resultsLimit"
                 menuPlacement="auto"
-                options={[...Array(RESULTS_LIMIT).keys()].map(resultLimit => {
+                options={[...Array(maxLimit).keys()].map(resultLimit => {
                   const value = resultLimit + 1;
                   return {
                     label: tn('Limit to %s result', 'Limit to %s results', value),
@@ -77,6 +111,10 @@ export function SortByStep({
             )}
           <SortBySelectors
             widgetType={widgetType}
+            hasGroupBy={isTimeseriesChart && !!queries[0].columns.length}
+            disabledReason={disabledReason}
+            disabledSort={disabledSort}
+            disabledSortDirection={disabledSortDirection}
             sortByOptions={
               dataSet === DataSet.ISSUES
                 ? generateIssueWidgetOrderOptions(

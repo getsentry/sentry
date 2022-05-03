@@ -1,8 +1,11 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
+import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
+import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -13,6 +16,7 @@ import SuspectSpansQuery, {
   ChildrenProps as SuspectSpansProps,
 } from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
 import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
+import {decodeScalar} from 'sentry/utils/queryString';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 
 import Tab from '../../tabs';
@@ -23,6 +27,7 @@ import SpanChart from './chart';
 import SpanDetailsControls from './spanDetailsControls';
 import SpanDetailsHeader from './spanDetailsHeader';
 import SpanTable from './spanDetailsTable';
+import {ZoomKeys} from './utils';
 
 type Props = {
   eventView: EventView;
@@ -35,6 +40,8 @@ type Props = {
 
 export default function SpanDetailsContentWrapper(props: Props) {
   const {location, organization, eventView, project, transactionName, spanSlug} = props;
+  const minExclusiveTime = decodeScalar(location.query[ZoomKeys.MIN]);
+  const maxExclusiveTime = decodeScalar(location.query[ZoomKeys.MAX]);
 
   return (
     <Fragment>
@@ -50,7 +57,19 @@ export default function SpanDetailsContentWrapper(props: Props) {
             tab={Tab.Spans}
             spanSlug={spanSlug}
           />
-          <Layout.Title>{transactionName}</Layout.Title>
+          <Layout.Title>
+            <TransactionName>
+              {project && (
+                <IdBadge
+                  project={project}
+                  avatarSize={28}
+                  hideName
+                  avatarProps={{hasTooltip: true, tooltip: project.slug}}
+                />
+              )}
+              {transactionName}
+            </TransactionName>
+          </Layout.Title>
         </Layout.HeaderContent>
       </Layout.Header>
       <Layout.Body>
@@ -76,6 +95,8 @@ export default function SpanDetailsContentWrapper(props: Props) {
                   spanOps={[spanSlug.op]}
                   spanGroups={[spanSlug.group]}
                   cursor="0:0:1"
+                  minExclusiveTime={minExclusiveTime}
+                  maxExclusiveTime={maxExclusiveTime}
                 >
                   {suspectSpansResults => (
                     <SpanExamplesQuery
@@ -85,6 +106,8 @@ export default function SpanDetailsContentWrapper(props: Props) {
                       spanOp={spanSlug.op}
                       spanGroup={spanSlug.group}
                       limit={10}
+                      minExclusiveTime={minExclusiveTime}
+                      maxExclusiveTime={maxExclusiveTime}
                     >
                       {spanExamplesResults => (
                         <SpanDetailsContent
@@ -110,6 +133,13 @@ export default function SpanDetailsContentWrapper(props: Props) {
     </Fragment>
   );
 }
+
+const TransactionName = styled('div')`
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  grid-column-gap: ${space(1)};
+  align-items: center;
+`;
 
 type ContentProps = {
   eventView: EventView;
@@ -143,11 +173,6 @@ function SpanDetailsContent(props: ContentProps) {
 
   return (
     <Fragment>
-      <SpanDetailsHeader
-        spanSlug={spanSlug}
-        totalCount={totalCount}
-        suspectSpan={suspectSpan}
-      />
       <Feature features={['performance-span-histogram-view']}>
         <SpanDetailsControls
           organization={organization}
@@ -155,6 +180,11 @@ function SpanDetailsContent(props: ContentProps) {
           eventView={eventView}
         />
       </Feature>
+      <SpanDetailsHeader
+        spanSlug={spanSlug}
+        totalCount={totalCount}
+        suspectSpan={suspectSpan}
+      />
       <SpanChart
         totalCount={transactionCountContainingSpan}
         organization={organization}

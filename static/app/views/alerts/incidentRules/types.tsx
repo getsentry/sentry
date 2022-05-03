@@ -56,7 +56,7 @@ export type UnsavedTrigger = {
   actions: Action[];
   alertThreshold: number | '' | null;
   label: AlertRuleTriggerType;
-  // UnsavedTrigger can be apart of an Unsaved Alert Rule that does not have an
+  // UnsavedTrigger can be a part of an Unsaved Alert Rule that does not have an
   // id yet
   alertRuleId?: string;
 };
@@ -141,7 +141,9 @@ export enum ActionType {
 }
 
 export const ActionLabel = {
-  [ActionType.EMAIL]: t('Email'),
+  // \u200B is needed because Safari disregards autocomplete="off". It's seeing "Email" and
+  // opening up the browser autocomplete for email. https://github.com/JedWatson/react-select/issues/3500
+  [ActionType.EMAIL]: t('Emai\u200Bl'),
   [ActionType.SLACK]: t('Slack'),
   [ActionType.PAGERDUTY]: t('Pagerduty'),
   [ActionType.MSTEAMS]: t('MS Teams'),

@@ -8,6 +8,7 @@ import {Client} from 'sentry/api';
 import AssigneeSelector from 'sentry/components/assigneeSelector';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Badge from 'sentry/components/badge';
+import Breadcrumbs from 'sentry/components/breadcrumbs';
 import Count from 'sentry/components/count';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import ErrorLevel from 'sentry/components/events/errorLevel';
@@ -15,6 +16,7 @@ import EventAnnotation from 'sentry/components/events/eventAnnotation';
 import EventMessage from 'sentry/components/events/eventMessage';
 import InboxReason from 'sentry/components/group/inboxBadges/inboxReason';
 import UnhandledInboxTag from 'sentry/components/group/inboxBadges/unhandledTag';
+import IdBadge from 'sentry/components/idBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -147,9 +149,23 @@ class GroupHeader extends React.Component<Props, State> {
     return (
       <Layout.Header>
         <div className={className}>
+          <StyledBreadcrumbs
+            crumbs={[
+              {label: 'Issues', to: `/organizations/${orgId}/issues/${location.search}`},
+              {
+                label: 'Issue Details',
+              },
+            ]}
+          />
           <div className="row">
             <div className="col-sm-7">
               <TitleWrapper>
+                <StyledIdBadge
+                  project={project}
+                  avatarSize={24}
+                  hideName
+                  avatarProps={{hasTooltip: true, tooltip: project.slug}}
+                />
                 <h3>
                   <EventOrGroupTitle hasGuideAnchor data={group} />
                 </h3>
@@ -198,6 +214,7 @@ class GroupHeader extends React.Component<Props, State> {
                       <h6 className="nav-header">
                         <Tooltip
                           className="help-link"
+                          showUnderline
                           title={t(
                             'This identifier is unique across your organization, and can be used to reference an issue in various places, like commit messages.'
                           )}
@@ -353,6 +370,14 @@ export default withApi(withRouter(withOrganization(GroupHeader)));
 const TitleWrapper = styled('div')`
   display: flex;
   line-height: 24px;
+`;
+
+const StyledBreadcrumbs = styled(Breadcrumbs)`
+  margin-bottom: ${space(2)};
+`;
+
+const StyledIdBadge = styled(IdBadge)`
+  margin-right: ${space(1)};
 `;
 
 const InboxReasonWrapper = styled('div')`

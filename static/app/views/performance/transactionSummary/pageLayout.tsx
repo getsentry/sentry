@@ -65,6 +65,14 @@ function PageLayout(props: Props) {
 
   const projectId = decodeScalar(location.query.project);
   const transactionName = getTransactionName(location);
+  const [error, setError] = useState<string | undefined>();
+  const [transactionThreshold, setTransactionThreshold] = useState<number | undefined>();
+  const [transactionThresholdMetric, setTransactionThresholdMetric] = useState<
+    TransactionThresholdMetric | undefined
+  >();
+
+  const [incompatibleAlertNotice, setIncompatibleAlertNotice] =
+    useState<React.ReactNode>(null);
 
   if (!defined(projectId) || !defined(transactionName)) {
     redirectToPerformanceHomepage(organization, location);
@@ -73,20 +81,10 @@ function PageLayout(props: Props) {
 
   const project = projects.find(p => p.id === projectId);
 
-  const [error, setError] = useState<string | undefined>();
-
-  const [incompatibleAlertNotice, setIncompatibleAlertNotice] =
-    useState<React.ReactNode>(null);
-
   const handleIncompatibleQuery = (incompatibleAlertNoticeFn, _errors) => {
     const notice = incompatibleAlertNoticeFn(() => setIncompatibleAlertNotice(null));
     setIncompatibleAlertNotice(notice);
   };
-
-  const [transactionThreshold, setTransactionThreshold] = useState<number | undefined>();
-  const [transactionThresholdMetric, setTransactionThresholdMetric] = useState<
-    TransactionThresholdMetric | undefined
-  >();
 
   const eventView = generateEventView({location, transactionName});
 
@@ -111,6 +109,7 @@ function PageLayout(props: Props) {
             showProjectSettingsLink
             relativeDateOptions={relativeDateOptions}
             maxPickableDays={maxPickableDays}
+            hideGlobalHeader
           >
             <StyledPageContent>
               <NoProjectMessage organization={organization}>

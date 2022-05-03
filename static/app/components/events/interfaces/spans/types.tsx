@@ -11,6 +11,16 @@ export type GapSpanType = {
   description?: string;
 };
 
+export type MemorySpanType = RawSpanType & {
+  data: {
+    memory: {
+      jsHeapSizeLimit: number;
+      totalJSHeapSize: number;
+      usedJSHeapSize: number;
+    };
+  };
+};
+
 export type RawSpanType = {
   data: Object;
   span_id: string;
@@ -76,6 +86,7 @@ export type SpanSiblingGroupProps = {
 type CommonEnhancedProcessedSpanType = {
   continuingTreeDepths: Array<TreeDepthType>;
   fetchEmbeddedChildrenState: FetchEmbeddedChildrenState;
+  isEmbeddedTransactionTimeAdjusted: boolean;
   isLastSibling: boolean;
   numOfSpanChildren: number;
   showEmbeddedChildren: boolean;

@@ -5,10 +5,13 @@ import {Location} from 'history';
 
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
+import DatePageFilter from 'sentry/components/datePageFilter';
 import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -84,8 +87,11 @@ function VitalsContent(props: Props) {
                       )}
                     </Alert>
                   )}
-
-                  <StyledActions>
+                  <FilterActions>
+                    <PageFilterBar condensed>
+                      <EnvironmentPageFilter />
+                      <DatePageFilter alignDropdown="left" />
+                    </PageFilterBar>
                     <StyledSearchBar
                       organization={organization}
                       projectIds={eventView.project}
@@ -131,7 +137,7 @@ function VitalsContent(props: Props) {
                     >
                       {t('Reset View')}
                     </Button>
-                  </StyledActions>
+                  </FilterActions>
                   <VitalsPanel
                     organization={organization}
                     location={location}
@@ -149,16 +155,30 @@ function VitalsContent(props: Props) {
   );
 }
 
-const StyledSearchBar = styled(SearchBar)`
-  flex-grow: 1;
-`;
-
-const StyledActions = styled('div')`
+const FilterActions = styled('div')`
   display: grid;
   gap: ${space(2)};
-  grid-template-columns: auto max-content max-content;
-  align-items: center;
-  margin-bottom: ${space(3)};
+  margin-bottom: ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: repeat(3, min-content);
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    grid-template-columns: auto 1fr auto auto;
+  }
+`;
+
+const StyledSearchBar = styled(SearchBar)`
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    order: 1;
+    grid-column: 1/5;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    order: initial;
+    grid-column: auto;
+  }
 `;
 
 export default VitalsContent;

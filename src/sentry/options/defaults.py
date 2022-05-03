@@ -29,7 +29,7 @@ register("system.root-api-key", flags=FLAG_PRIORITIZE_DISK)
 register("system.logging-format", default=LoggingFormat.HUMAN, flags=FLAG_NOSTORE)
 # This is used for the chunk upload endpoint
 register("system.upload-url-prefix", flags=FLAG_PRIORITIZE_DISK)
-register("system.maximum-file-size", default=2 ** 31, flags=FLAG_PRIORITIZE_DISK)
+register("system.maximum-file-size", default=2**31, flags=FLAG_PRIORITIZE_DISK)
 
 # Redis
 register(
@@ -204,6 +204,8 @@ register("aws-lambda.python.layer-name", default="SentryPythonServerlessSDK")
 register("aws-lambda.python.layer-version")
 # the region of the host account we use for assuming the role
 register("aws-lambda.host-region", default="us-east-2")
+# the number of threads we should use to install Lambdas
+register("aws-lambda.thread-count", default=100)
 
 # Snuba
 register("snuba.search.pre-snuba-candidates-optimizer", type=Bool, default=False)

@@ -1,38 +1,37 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 
 import {Panel as _Panel} from 'sentry/components/panels';
-import {Consumer as ReplayContextProvider} from 'sentry/components/replays/replayContext';
-import useFullscreen from 'sentry/components/replays/useFullscreen';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
+
+import BufferingOverlay from './player/bufferingOverlay';
+import FastForwardBadge from './player/fastForwardBadge';
+import StackedContent from './stackedContent';
 
 interface Props {
   className?: string;
+  fixedHeight?: boolean;
 }
 
-type Dimensions = {height: number; width: number};
-type RootElem = null | HTMLDivElement;
+function BasePlayerRoot({className, fixedHeight = false}: Props) {
+  const {
+    initRoot,
+    dimensions: videoDimensions,
+    fastForwardSpeed,
+    isBuffering,
+  } = useReplayContext();
 
-type RootProps = {
-  flexibleHeight: boolean;
-  initRoot: (root: RootElem) => void;
-  videoDimensions: Dimensions;
-  className?: string;
-};
-
-function BasePlayerRoot({
-  className,
-  flexibleHeight,
-  initRoot,
-  videoDimensions,
-}: RootProps) {
   const windowEl = useRef<HTMLDivElement>(null);
   const viewEl = useRef<HTMLDivElement>(null);
 
-  const [windowDimensions, setWindowDimensions] = useState<Dimensions>();
+  const [windowDimensions, setWindowDimensions] = useState({
+    width: 0,
+    height: 0,
+  });
 
   // Create the `rrweb` instance which creates an iframe inside `viewEl`
-  useEffect(() => initRoot(viewEl.current), [viewEl.current]);
+  useEffect(() => initRoot(viewEl.current), [initRoot]);
 
   // Read the initial width & height where the player will be inserted, this is
   // so we can shrink the video into the available space.
@@ -40,10 +39,10 @@ function BasePlayerRoot({
   const updateWindowDimensions = useCallback(
     () =>
       setWindowDimensions({
-        width: windowEl.current?.clientWidth,
-        height: windowEl.current?.clientHeight,
-      } as Dimensions),
-    [windowEl.current]
+        width: windowEl.current?.clientWidth || 0,
+        height: windowEl.current?.clientHeight || 0,
+      }),
+    [setWindowDimensions]
   );
   useResizeObserver({ref: windowEl, onResize: updateWindowDimensions});
   // If your browser doesn't have ResizeObserver then set the size once.
@@ -57,13 +56,13 @@ function BasePlayerRoot({
   // Update the scale of the view whenever dimensions have changed.
   useEffect(() => {
     if (viewEl.current) {
-      const scale = flexibleHeight
-        ? Math.min((windowDimensions?.width || 0) / videoDimensions.width, 1)
-        : Math.min(
-            (windowDimensions?.width || 0) / videoDimensions.width,
-            (windowDimensions?.height || 0) / videoDimensions.height,
+      const scale = fixedHeight
+        ? Math.min(
+            windowDimensions.width / videoDimensions.width,
+            windowDimensions.height / videoDimensions.height,
             1
-          );
+          )
+        : Math.min(windowDimensions.width / videoDimensions.width, 1);
       if (scale) {
         viewEl.current.style['transform-origin'] = 'top left';
         viewEl.current.style.transform = `scale(${scale})`;
@@ -71,21 +70,31 @@ function BasePlayerRoot({
         viewEl.current.style.height = `${videoDimensions.height * scale}px`;
       }
     }
-  }, [windowDimensions, videoDimensions]);
+  }, [fixedHeight, windowDimensions, videoDimensions]);
 
   return (
-    <Centered ref={windowEl} data-test-id="replay-window">
-      <div ref={viewEl} data-test-id="replay-view" className={className} />
-    </Centered>
+    <Panel fixedHeight={fixedHeight}>
+      <Centered ref={windowEl} className="sr-block" data-test-id="replay-window">
+        <StackedContent>
+          {() => (
+            <React.Fragment>
+              <div ref={viewEl} data-test-id="replay-view" className={className} />
+              {fastForwardSpeed ? <FastForwardBadge speed={fastForwardSpeed} /> : null}
+              {isBuffering ? <BufferingOverlay /> : null}
+            </React.Fragment>
+          )}
+        </StackedContent>
+      </Centered>
+    </Panel>
   );
 }
 
-const Panel = styled(_Panel)<{isFullscreen: boolean}>`
+const Panel = styled(_Panel)<{fixedHeight: boolean}>`
   /*
   Disable the <Panel> styles when in fullscreen mode.
   If we add/remove DOM nodes then the Replayer instance will have a stale iframe ref
   */
-  ${p => (p.isFullscreen ? 'border: none; background: transparent;' : '')}
+  ${p => (p.fixedHeight ? 'border: none; background: transparent;' : '')}
 
   iframe {
     /* Match the iframe corners to the <Panel> */
@@ -107,6 +116,9 @@ const Centered = styled('div')`
 
 // Base styles, to make the Replayer instance work
 const PlayerRoot = styled(BasePlayerRoot)`
+  .replayer-wrapper {
+    background: white;
+  }
   .replayer-wrapper > .replayer-mouse-tail {
     position: absolute;
     pointer-events: none;
@@ -197,21 +209,4 @@ const SentryPlayerRoot = styled(PlayerRoot)`
   }
 `;
 
-export default function ReplayPlayer({className}: Props) {
-  const {isFullscreen} = useFullscreen();
-
-  return (
-    <ReplayContextProvider>
-      {({initRoot, dimensions}) => (
-        <Panel isFullscreen={isFullscreen}>
-          <SentryPlayerRoot
-            className={className}
-            flexibleHeight={!isFullscreen}
-            initRoot={initRoot}
-            videoDimensions={dimensions}
-          />
-        </Panel>
-      )}
-    </ReplayContextProvider>
-  );
-}
+export default SentryPlayerRoot;

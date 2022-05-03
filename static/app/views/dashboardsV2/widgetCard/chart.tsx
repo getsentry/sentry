@@ -117,9 +117,9 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
     const {location, widget, organization, selection} = this.props;
     if (errorMessage) {
       return (
-        <ErrorPanel>
+        <StyledErrorPanel>
           <IconWarning color="gray500" size="lg" />
-        </ErrorPanel>
+        </StyledErrorPanel>
       );
     }
 
@@ -153,7 +153,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
           organization={organization}
           stickyHeaders
           getCustomFieldRenderer={(field, meta) =>
-            getFieldRenderer(field, meta, widget.widgetType !== WidgetType.METRICS)
+            getFieldRenderer(field, meta, widget.widgetType !== WidgetType.RELEASE)
           }
         />
       );
@@ -167,9 +167,9 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
   }: TableResultProps): React.ReactNode {
     if (errorMessage) {
       return (
-        <ErrorPanel>
+        <StyledErrorPanel>
           <IconWarning color="gray500" size="lg" />
-        </ErrorPanel>
+        </StyledErrorPanel>
       );
     }
 
@@ -181,14 +181,15 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
     const {organization, widget, isMobile, expandNumbers} = this.props;
 
     return tableResults.map(result => {
-      const tableMeta = result.meta ?? {};
-      const fields = Object.keys(tableMeta ?? {});
+      const tableMeta = {...result.meta};
+      const fields = Object.keys(tableMeta);
 
       const field = fields[0];
 
-      // Change tableMeta for the field from integer to number so we it doesn't get shortened
-      if (!!expandNumbers && tableMeta[field] === 'integer') {
-        tableMeta[field] = 'number';
+      // Change tableMeta for the field from integer to string since we will be rendering with toLocaleString
+      const shouldExpandInteger = !!expandNumbers && tableMeta[field] === 'integer';
+      if (shouldExpandInteger) {
+        tableMeta[field] = 'string';
       }
 
       if (!field || !result.data.length) {
@@ -199,10 +200,12 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
       const fieldRenderer = getFieldFormatter(
         field,
         tableMeta,
-        widget.widgetType !== WidgetType.METRICS
+        widget.widgetType !== WidgetType.RELEASE
       );
 
-      const rendered = fieldRenderer(dataRow);
+      const rendered = fieldRenderer(
+        shouldExpandInteger ? {[field]: dataRow[field].toLocaleString()} : dataRow
+      );
 
       const isModalWidget = !!!(widget.id || widget.tempId);
       if (
@@ -267,6 +270,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
       organization,
       onZoom,
       legendOptions,
+      expandNumbers,
     } = this.props;
 
     if (widget.displayType === 'table') {
@@ -287,9 +291,11 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
           <LoadingScreen loading={loading} />
           <BigNumberResizeWrapper
             ref={el => {
-              if (el !== null) {
+              if (el !== null && !!!expandNumbers) {
                 const {height} = el.getBoundingClientRect();
-                this.setState({containerHeight: height});
+                if (height !== this.state.containerHeight) {
+                  this.setState({containerHeight: height});
+                }
               }
             }}
           >
@@ -301,9 +307,9 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
 
     if (errorMessage) {
       return (
-        <ErrorPanel>
+        <StyledErrorPanel>
           <IconWarning color="gray500" size="lg" />
-        </ErrorPanel>
+        </StyledErrorPanel>
       );
     }
 
@@ -391,9 +397,9 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
         {zoomRenderProps => {
           if (errorMessage) {
             return (
-              <ErrorPanel>
+              <StyledErrorPanel>
                 <IconWarning color="gray500" size="lg" />
-              </ErrorPanel>
+              </StyledErrorPanel>
             );
           }
 
@@ -452,6 +458,8 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
     );
   }
 }
+
+export default withTheme(WidgetCardChart);
 
 const StyledTransparentLoadingMask = styled(props => (
   <TransparentLoadingMask {...props} maskBackgroundColor="transparent" />
@@ -512,4 +520,6 @@ const StyledSimpleTableChart = styled(SimpleTableChart)`
   box-shadow: none;
 `;
 
-export default withTheme(WidgetCardChart);
+const StyledErrorPanel = styled(ErrorPanel)`
+  padding: ${space(2)};
+`;

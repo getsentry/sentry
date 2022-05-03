@@ -1,3 +1,5 @@
+import 'prism-sentry/index.css';
+
 import {useEffect, useState} from 'react';
 import * as React from 'react';
 import {browserHistory} from 'react-router';
@@ -24,7 +26,8 @@ import withProjects from 'sentry/utils/withProjects';
 import FirstEventFooter from './components/firstEventFooter';
 import FullIntroduction from './components/fullIntroduction';
 import TargetedOnboardingSidebar from './components/sidebar';
-import {StepProps, usePersistedOnboardingState} from './types';
+import {StepProps} from './types';
+import {usePersistedOnboardingState} from './utils';
 
 /**
  * The documentation will include the following string should it be missing the
@@ -41,7 +44,7 @@ type Props = {
 
 function SetupDocs({organization, projects, search}: Props) {
   const api = useApi();
-  const [clientState] = usePersistedOnboardingState();
+  const [clientState, setClientState] = usePersistedOnboardingState();
   const selectedProjectsSet = new Set(
     clientState?.selectedPlatforms.map(
       platform => clientState.platformToProjectIdMap[platform]
@@ -74,11 +77,11 @@ function SetupDocs({organization, projects, search}: Props) {
   const project = projects[projectIndex];
 
   useEffect(() => {
-    if (clientState && !project) {
+    if (clientState && !project && projects.length > 0) {
       // Can't find a project to show, probably because all projects are either deleted or finished.
       browserHistory.push('/');
     }
-  }, [clientState, project]);
+  }, [clientState, project, projects]);
 
   const currentPlatform = loadedPlatform ?? project?.platform ?? 'other';
 
@@ -118,6 +121,13 @@ function SetupDocs({organization, projects, search}: Props) {
       project_id: newProjectId,
     });
     browserHistory.push(`${window.location.pathname}?${searchParams}`);
+    if (clientState) {
+      setClientState({
+        ...clientState,
+        state: 'projects_selected',
+        url: `setup-docs/?${searchParams}`,
+      });
+    }
   };
 
   const selectProject = (newProjectId: string) => {
@@ -204,9 +214,16 @@ function SetupDocs({organization, projects, search}: Props) {
         <FirstEventFooter
           project={project}
           organization={organization}
-          isLast={projectIndex === projects.length - 1}
+          isLast={
+            !!clientState &&
+            project.slug ===
+              clientState.platformToProjectIdMap[
+                clientState.selectedPlatforms[clientState.selectedPlatforms.length - 1]
+              ]
+          }
           hasFirstEvent={checkProjectHasFirstEvent(project)}
           onClickSetupLater={() => {
+            const orgIssuesURL = `/organizations/${organization.slug}/issues/?project=${project.id}`;
             trackAdvancedAnalyticsEvent(
               'growth.onboarding_clicked_setup_platform_later',
               {
@@ -215,12 +232,23 @@ function SetupDocs({organization, projects, search}: Props) {
                 project_index: projectIndex,
               }
             );
-            const nextProject = projects.find(
-              (p, index) => !p.firstEvent && index > projectIndex
-            );
+            if (!project.platform || !clientState) {
+              browserHistory.push(orgIssuesURL);
+              return;
+            }
+            const platformIndex = clientState.selectedPlatforms.indexOf(project.platform);
+            const nextPlatform = clientState.selectedPlatforms[platformIndex + 1];
+            const nextProjectSlug =
+              nextPlatform && clientState.platformToProjectIdMap[nextPlatform];
+            const nextProject = projects.find(p => p.slug === nextProjectSlug);
             if (!nextProject) {
+              // We're done here.
+              setClientState({
+                ...clientState,
+                state: 'finished',
+              });
               // TODO: integrations
-              browserHistory.push('/');
+              browserHistory.push(orgIssuesURL);
               return;
             }
             setNewProject(nextProject.id);

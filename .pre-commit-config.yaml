@@ -26,9 +26,6 @@ repos:
       args: ['--py38-plus', '--keep-runtime-typing']
       language: system
       types: [python]
-      # We can't change this mock to unittest.mock until Python 3.8,
-      # refer to the comment in this file.
-      exclude: 'src/sentry/utils/compat/mock.py'
     # Configuration for black exists in pyproject.toml,
     # but we let pre-commit take care of the file filtering.
     - id: black
@@ -36,6 +33,7 @@ repos:
       entry: black
       language: system
       types: [python]
+      require_serial: true
     # Configuration for isort exists in pyproject.toml,
     # but we let pre-commit take care of the file filtering.
     - id: isort

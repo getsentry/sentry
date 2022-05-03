@@ -1,13 +1,18 @@
 import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
+import styled from '@emotion/styled';
 import {Location} from 'history';
 import omit from 'lodash/omit';
 
+import DatePageFilter from 'sentry/components/datePageFilter';
 import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Pagination from 'sentry/components/pagination';
+import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -20,7 +25,6 @@ import useProjects from 'sentry/utils/useProjects';
 import {SetStateAction} from '../types';
 
 import OpsFilter from './opsFilter';
-import {Actions} from './styles';
 import SuspectSpansTable from './suspectSpansTable';
 import {SpanSort, SpansTotalValues} from './types';
 import {
@@ -89,7 +93,7 @@ function SpansContent(props: Props) {
 
   return (
     <Layout.Main fullWidth>
-      <Actions>
+      <FilterActions>
         <OpsFilter
           location={location}
           eventView={eventView}
@@ -97,7 +101,11 @@ function SpansContent(props: Props) {
           handleOpChange={handleChange('spanOp')}
           transactionName={transactionName}
         />
-        <SearchBar
+        <PageFilterBar condensed>
+          <EnvironmentPageFilter />
+          <DatePageFilter alignDropdown="left" />
+        </PageFilterBar>
+        <StyledSearchBar
           organization={organization}
           projectIds={eventView.project}
           query={query}
@@ -116,7 +124,7 @@ function SpansContent(props: Props) {
             </DropdownItem>
           ))}
         </DropdownControl>
-      </Actions>
+      </FilterActions>
       <DiscoverQuery
         eventView={totalsView}
         orgSlug={organization.slug}
@@ -167,5 +175,31 @@ function getSpansEventView(eventView: EventView, sort: SpanSort): EventView {
   eventView.fields = fields ? fields.map(field => ({field})) : [];
   return eventView;
 }
+
+const FilterActions = styled('div')`
+  display: grid;
+  gap: ${space(2)};
+  margin-bottom: ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: repeat(3, min-content);
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    grid-template-columns: auto auto 1fr auto;
+  }
+`;
+
+const StyledSearchBar = styled(SearchBar)`
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    order: 1;
+    grid-column: 1/5;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    order: initial;
+    grid-column: auto;
+  }
+`;
 
 export default SpansContent;

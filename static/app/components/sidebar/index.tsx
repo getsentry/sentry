@@ -20,6 +20,7 @@ import {
   IconLab,
   IconLightning,
   IconList,
+  IconPlay,
   IconProject,
   IconReleases,
   IconSettings,
@@ -59,6 +60,14 @@ type Props = {
   organization?: Organization;
 };
 
+function togglePanel(panel: SidebarPanelKey) {
+  SidebarPanelStore.togglePanel(panel);
+}
+
+function hidePanel() {
+  SidebarPanelStore.hidePanel();
+}
+
 function Sidebar({location, organization}: Props) {
   const config = useLegacyStore(ConfigStore);
   const preferences = useLegacyStore(PreferencesStore);
@@ -71,9 +80,6 @@ function Sidebar({location, organization}: Props) {
     const action = collapsed ? showSidebar : hideSidebar;
     action();
   };
-
-  const togglePanel = (panel: SidebarPanelKey) => SidebarPanelStore.togglePanel(panel);
-  const hidePanel = () => SidebarPanelStore.hidePanel();
 
   const bcl = document.body.classList;
 
@@ -289,7 +295,7 @@ function Sidebar({location, organization}: Props) {
         onClick={(_id, evt) =>
           navigateWithPageFilters(`/organizations/${organization.slug}/replays/`, evt)
         }
-        icon={<IconLab size="md" />}
+        icon={<IconPlay size="md" />}
         label={t('Replays')}
         to={`/organizations/${organization.slug}/replays/`}
         id="replays"
@@ -397,8 +403,10 @@ function Sidebar({location, organization}: Props) {
                 {profiling}
               </SidebarSection>
 
-              <SidebarSection>{monitors}</SidebarSection>
-              <SidebarSection>{replays}</SidebarSection>
+              <SidebarSection>
+                {replays}
+                {monitors}
+              </SidebarSection>
 
               <SidebarSection>
                 {activity}

@@ -1,23 +1,47 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
+import {Location} from 'history';
 
 import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
+import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Breadcrumb} from 'sentry/components/profiling/breadcrumb';
 import {Flamegraph} from 'sentry/components/profiling/flamegraph';
-import {FullScreenFlamegraphContainer} from 'sentry/components/profiling/fullScreenFlamegraphContainer';
+import {ProfileDragDropImportProps} from 'sentry/components/profiling/profileDragDropImport';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {Trace} from 'sentry/types/profiling/core';
-import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider';
+import {DeepPartial} from 'sentry/types/utils';
+import {
+  decodeFlamegraphStateFromQueryParams,
+  FlamegraphState,
+  FlamegraphStateProvider,
+  FlamegraphStateQueryParamSync,
+} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
 import {importProfile, ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {Profile} from 'sentry/utils/profiling/profile/profile';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
-type RequestState = 'initial' | 'loading' | 'resolved' | 'errored';
+type InitialState = {type: 'initial'};
+type LoadingState = {type: 'loading'};
+
+type ResolvedState<T> = {
+  data: T;
+  type: 'resolved';
+};
+
+type ErroredState = {
+  error: string;
+  type: 'errored';
+};
+
+type RequestState<T> = InitialState | LoadingState | ResolvedState<T> | ErroredState;
 
 function fetchFlamegraphs(
   api: Client,
@@ -54,50 +78,88 @@ interface FlamegraphViewProps {
 function FlamegraphView(props: FlamegraphViewProps): React.ReactElement {
   const api = useApi();
   const organization = useOrganization();
+  const location = useLocation();
 
-  const [profiles, setProfiles] = useState<ProfileGroup | null>(null);
-  const [requestState, setRequestState] = useState<RequestState>('initial');
+  const [requestState, setRequestState] = useState<RequestState<ProfileGroup>>({
+    type: 'initial',
+  });
 
-  useEffect(() => {
-    document.scrollingElement?.scrollTo(0, 0);
+  const initialFlamegraphPreferencesState = useMemo((): DeepPartial<FlamegraphState> => {
+    return decodeFlamegraphStateFromQueryParams(location.query);
+    // We only want to decode this when our component mounts
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (!props.params.eventId || !props.params.projectId) {
-      return;
+      return undefined;
     }
-    api.clear();
-    setRequestState('loading');
+
+    setRequestState({type: 'loading'});
 
     fetchFlamegraphs(api, props.params.eventId, props.params.projectId, organization)
       .then(importedFlamegraphs => {
-        setProfiles(importedFlamegraphs);
-        setRequestState('resolved');
+        setRequestState({type: 'resolved', data: importedFlamegraphs});
       })
-      .catch(() => setRequestState('errored'));
+      .catch(err => {
+        const message = err.toString() || t('Error: Unable to load profiles');
+        setRequestState({type: 'errored', error: message});
+        Sentry.captureException(err);
+      });
+
+    return () => {
+      api.clear();
+    };
   }, [props.params.eventId, props.params.projectId, api, organization]);
+
+  const onImport: ProfileDragDropImportProps['onImport'] = profiles => {
+    setRequestState({type: 'resolved', data: profiles});
+  };
 
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
-      <FlamegraphStateProvider>
-        <FlamegraphThemeProvider>
-          <FullScreenFlamegraphContainer>
-            {requestState === 'errored' ? (
-              <Alert type="error" showIcon>
-                {t('Unable to load profiles')}
-              </Alert>
-            ) : requestState === 'loading' ? (
-              <Fragment>
-                <Flamegraph profiles={LoadingGroup} />
-                <LoadingIndicatorContainer>
-                  <LoadingIndicator />
-                </LoadingIndicatorContainer>
-              </Fragment>
-            ) : requestState === 'resolved' && profiles ? (
-              <Flamegraph profiles={profiles} />
-            ) : null}
-          </FullScreenFlamegraphContainer>
-        </FlamegraphThemeProvider>
+      <FlamegraphStateProvider initialState={initialFlamegraphPreferencesState}>
+        <FlamegraphStateQueryParamSync />
+        <Fragment>
+          <Layout.Header>
+            <Layout.HeaderContent>
+              <Breadcrumb
+                location={props.location}
+                organization={organization}
+                trails={[
+                  {type: 'profiling'},
+                  {
+                    type: 'flamegraph',
+                    payload: {
+                      interactionName:
+                        requestState.type === 'resolved' ? requestState.data.name : '',
+                      profileId: props.params.eventId ?? '',
+                      projectSlug: props.params.projectId ?? '',
+                    },
+                  },
+                ]}
+              />
+            </Layout.HeaderContent>
+          </Layout.Header>
+          <FlamegraphThemeProvider>
+            <FlamegraphContainer>
+              {requestState.type === 'errored' ? (
+                <Alert type="error" showIcon>
+                  {requestState.error}
+                </Alert>
+              ) : requestState.type === 'loading' ? (
+                <Fragment>
+                  <Flamegraph onImport={onImport} profiles={LoadingGroup} />
+                  <LoadingIndicatorContainer>
+                    <LoadingIndicator />
+                  </LoadingIndicatorContainer>
+                </Fragment>
+              ) : requestState.type === 'resolved' ? (
+                <Flamegraph onImport={onImport} profiles={requestState.data} />
+              ) : null}
+            </FlamegraphContainer>
+          </FlamegraphThemeProvider>
+        </Fragment>
       </FlamegraphStateProvider>
     </SentryDocumentTitle>
   );
@@ -110,6 +172,21 @@ const LoadingIndicatorContainer = styled('div')`
   justify-content: center;
   width: 100%;
   height: 100%;
+`;
+
+const FlamegraphContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 100%;
+
+  /*
+   * The footer component is a sibling of this div.
+   * Remove it so the flamegraph can take up the
+   * entire screen.
+   */
+  ~ footer {
+    display: none;
+  }
 `;
 
 export default FlamegraphView;

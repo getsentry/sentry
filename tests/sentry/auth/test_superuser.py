@@ -17,7 +17,9 @@ from sentry.auth.superuser import (
     IDLE_MAX_AGE,
     MAX_AGE,
     SESSION_KEY,
+    EmptySuperuserAccessForm,
     Superuser,
+    SuperuserAccessFormInvalidJson,
     SuperuserAccessSerializer,
     is_active_superuser,
 )
@@ -159,8 +161,10 @@ class SuperuserTestCase(TestCase):
 
     @mock.patch("sentry.auth.superuser.logger")
     def test_su_access_logs(self, logger):
-        with self.settings(VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True):
-            user = User(is_superuser=True, id=10, email="test@sentry.io")
+        with self.settings(
+            SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True
+        ):
+            user = User(is_superuser=True, email="test@sentry.io")
             request = self.make_request(user=user, method="PUT")
             request._body = json.dumps(
                 {
@@ -178,27 +182,24 @@ class SuperuserTestCase(TestCase):
                 "superuser.superuser_access",
                 extra={
                     "superuser_token_id": superuser.token,
-                    "user_id": 10,
-                    "user_email": "test@sentry.io",
+                    "user_id": user.id,
+                    "user_email": user.email,
                     "su_access_category": "for_unit_test",
                     "reason_for_su": "Edit organization settings",
                 },
             )
 
-    # modify test once https://github.com/getsentry/sentry/pull/32191 is merged
-    @mock.patch("sentry.auth.superuser.logger")
-    def test_su_access_no_request(self, logger):
-        user = User(is_superuser=True, id=10, email="test@sentry.io")
+    def test_su_access_no_request(self):
+        user = User(is_superuser=True)
         request = self.make_request(user=user, method="PUT")
 
         superuser = Superuser(request, org_id=None)
-        with self.settings(VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True):
-            superuser.set_logged_in(request.user)
-            assert superuser.is_active is True
-            assert logger.info.call_count == 1
-            logger.info.assert_any_call(
-                "superuser.logged-in", extra={"ip_address": "127.0.0.1", "user_id": 10}
-            )
+        with self.settings(
+            SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True
+        ):
+            with self.assertRaises(EmptySuperuserAccessForm):
+                superuser.set_logged_in(request.user)
+                assert superuser.is_active is False
 
     @freeze_time(BASETIME + OUTSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME)
     def test_not_expired_check_org_in_request(self):
@@ -234,21 +235,39 @@ class SuperuserTestCase(TestCase):
             extra={"superuser_token": "abcdefghjiklmnog"},
         )
 
-    # modify test once https://github.com/getsentry/sentry/pull/32191 is merged
     @mock.patch("sentry.auth.superuser.logger")
-    def test_su_access_invalid_request_body(self, logger):
-        user = User(is_superuser=True, id=10, email="test@sentry.io")
+    def test_su_access_no_request_user_missing_info(self, logger):
+        user = User(is_superuser=True)
+        request = self.make_request(user=user, method="PUT")
+        request._body = json.dumps(
+            {
+                "superuserAccessCategory": "for_unit_test",
+                "superuserReason": "Edit organization settings",
+            }
+        )
+        del request.user.id
+
+        superuser = Superuser(request, org_id=None)
+        with self.settings(
+            SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True
+        ):
+            superuser.set_logged_in(request.user)
+            logger.error.assert_any_call("superuser.superuser_access.missing_user_info")
+
+    def test_su_access_invalid_request_body(
+        self,
+    ):
+        user = User(is_superuser=True)
         request = self.make_request(user=user, method="PUT")
         request._body = '{"invalid" "json"}'
 
         superuser = Superuser(request, org_id=None)
-        with self.settings(VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True):
-            superuser.set_logged_in(request.user)
-            assert superuser.is_active is True
-            assert logger.info.call_count == 1
-            logger.info.assert_any_call(
-                "superuser.logged-in", extra={"ip_address": "127.0.0.1", "user_id": 10}
-            )
+        with self.settings(
+            SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True
+        ):
+            with self.assertRaises(SuperuserAccessFormInvalidJson):
+                superuser.set_logged_in(request.user)
+                assert superuser.is_active is False
 
     def test_login_saves_session(self):
         user = self.create_user("foo@example.com", is_superuser=True)
@@ -343,24 +362,16 @@ class SuperuserTestCase(TestCase):
 
     @mock.patch("sentry.auth.superuser.logger")
     def test_superuser_session_doesnt_needs_validatation_superuser_prompts(self, logger):
-        with self.settings(VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=False):
-            user = User(is_superuser=True, id=10, email="test@sentry.io")
-            request = self.make_request(user=user, method="PUT")
-            request._body = json.dumps(
-                {
-                    "superuserAccessCategory": "for_unit_test",
-                    "superuserReason": "Edit organization settings",
-                }
-            )
-
-            superuser = Superuser(request, org_id=None)
-            superuser.set_logged_in(request.user)
-            assert superuser.is_active is True
-            assert logger.info.call_count == 1
-            logger.info.assert_any_call(
-                "superuser.logged-in",
-                extra={"ip_address": "127.0.0.1", "user_id": user.id},
-            )
+        user = User(is_superuser=True)
+        request = self.make_request(user=user, method="PUT")
+        superuser = Superuser(request, org_id=None)
+        superuser.set_logged_in(request.user)
+        assert superuser.is_active is True
+        assert logger.info.call_count == 1
+        logger.info.assert_any_call(
+            "superuser.logged-in",
+            extra={"ip_address": "127.0.0.1", "user_id": user.id},
+        )
 
     def test_superuser_invalid_serializer(self):
         serialized_data = SuperuserAccessSerializer(data={})

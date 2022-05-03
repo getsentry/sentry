@@ -31,6 +31,10 @@ interface DropdownButtonProps extends Omit<ButtonProps, 'prefix'> {
    */
   priority?: 'default' | 'primary' | 'form';
   /**
+   * Align chevron to the right of dropdown button
+   */
+  rightAlignChevron?: boolean;
+  /**
    * Should a chevron icon be shown?
    */
   showChevron?: boolean;
@@ -46,6 +50,7 @@ const DropdownButton = ({
   detached = false,
   disabled = false,
   priority = 'form',
+  rightAlignChevron = false,
   ...props
 }: DropdownButtonProps) => {
   return (
@@ -53,6 +58,7 @@ const DropdownButton = ({
       {...props}
       type="button"
       aria-haspopup="listbox"
+      aria-expanded={detached ? isOpen : undefined}
       disabled={disabled}
       priority={priority}
       isOpen={isOpen}
@@ -62,7 +68,13 @@ const DropdownButton = ({
     >
       {prefix && <LabelText>{prefix}</LabelText>}
       {children}
-      {showChevron && <StyledChevron size="xs" direction={isOpen ? 'up' : 'down'} />}
+      {showChevron && (
+        <StyledChevron
+          rightAlignChevron={rightAlignChevron}
+          size="xs"
+          direction={isOpen ? 'up' : 'down'}
+        />
+      )}
     </StyledButton>
   );
 };
@@ -71,8 +83,17 @@ DropdownButton.defaultProps = {
   showChevron: true,
 };
 
-const StyledChevron = styled(IconChevron)`
+const StyledChevron = styled(IconChevron, {
+  shouldForwardProp: prop => prop !== 'rightAlignChevron',
+})<{
+  rightAlignChevron: boolean;
+}>`
   margin-left: 0.33em;
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    position: ${p => p.rightAlignChevron && 'absolute'};
+    right: ${p => p.rightAlignChevron && `${space(2)}`};
+  }
 `;
 
 const StyledButton = styled(Button)<
@@ -95,7 +116,11 @@ const StyledButton = styled(Button)<
   &:active,
   &:focus,
   &:hover {
-    ${p => p.isOpen && p.hideBottomBorder && `border-bottom-color: transparent;`}
+    ${p =>
+      p.isOpen &&
+      p.hideBottomBorder &&
+      !p.detached &&
+      `border-bottom-color: transparent;`}
   }
 `;
 

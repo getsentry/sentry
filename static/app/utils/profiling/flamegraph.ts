@@ -9,6 +9,7 @@ import {FlamegraphFrame} from './flamegraphFrame';
 export class Flamegraph {
   profile: Profile;
   frames: FlamegraphFrame[] = [];
+  roots: FlamegraphFrame[] = [];
 
   profileIndex: number;
 
@@ -48,10 +49,12 @@ export class Flamegraph {
     this.profile = profile;
     this.profileIndex = profileIndex;
 
+    this.roots = [];
+
     // If a custom config space is provided, use it and draw the chart in it
     this.frames = leftHeavy
-      ? this.buildLeftHeavyGraph(profile, configSpace ? this.profile.startedAt : 0)
-      : this.buildCallOrderGraph(profile, configSpace ? this.profile.startedAt : 0);
+      ? this.buildLeftHeavyGraph(profile, configSpace ? configSpace.x : 0)
+      : this.buildCallOrderGraph(profile, configSpace ? configSpace.x : 0);
 
     this.formatter = makeFormatter(profile.unit);
 
@@ -70,9 +73,9 @@ export class Flamegraph {
 
     if (this.profile.duration) {
       this.configSpace = new Rect(
+        configSpace ? configSpace.x : this.profile.startedAt,
         0,
-        0,
-        configSpace ? configSpace.width : this.profile.endedAt,
+        configSpace ? configSpace.width : this.profile.duration,
         this.depth
       );
     }
@@ -103,6 +106,10 @@ export class Flamegraph {
       }
 
       stack.push(frame);
+
+      if (stack.length === 1) {
+        this.roots.push(frame);
+      }
       idx++;
     };
 
@@ -159,6 +166,10 @@ export class Flamegraph {
       }
 
       stack.push(frame);
+
+      if (stack.length === 1) {
+        this.roots.push(frame);
+      }
       idx++;
     };
 

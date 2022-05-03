@@ -16,14 +16,15 @@ from datetime import datetime, timedelta
 
 from django.conf import settings
 from django.core.signing import BadSignature
-from django.http import RawPostDataException
 from django.utils import timezone
 from django.utils.crypto import constant_time_compare, get_random_string
-from rest_framework import serializers
+from rest_framework import serializers, status
 
+from sentry.api.exceptions import SentryAPIException
 from sentry.auth.system import is_system_auth
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.auth import has_completed_sso
+from sentry.utils.settings import is_self_hosted
 
 logger = logging.getLogger("sentry.superuser")
 
@@ -73,6 +74,18 @@ class SuperuserAccessSerializer(serializers.Serializer):
     superuserReason = serializers.CharField(min_length=4, max_length=128)
 
 
+class SuperuserAccessFormInvalidJson(SentryAPIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    code = "invalid-superuser-access-json"
+    message = "The request contains invalid json"
+
+
+class EmptySuperuserAccessForm(SentryAPIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    code = "empty-superuser-access-form"
+    message = "The request contains an empty superuser acccess form data"
+
+
 class Superuser:
     allowed_ips = [ipaddress.ip_network(str(v), strict=False) for v in ALLOWED_IPS]
 
@@ -103,6 +116,8 @@ class Superuser:
 
     @staticmethod
     def _needs_validation():
+        if is_self_hosted():
+            return False
         return settings.VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON
 
     @property
@@ -321,6 +336,11 @@ class Superuser:
                 current_datetime=current_datetime,
             )
 
+            metrics.incr(
+                "superuser.success",
+                sample_rate=1.0,
+            )
+
             logger.info(
                 "superuser.logged-in",
                 extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": user.id},
@@ -333,16 +353,27 @@ class Superuser:
         try:
             # need to use json loads as the data is no longer in request.data
             su_access_json = json.loads(request.body)
-        except (AttributeError, json.JSONDecodeError, RawPostDataException):
-            su_access_json = {}
+        except json.JSONDecodeError:
+            metrics.incr(
+                "superuser.failure",
+                sample_rate=1.0,
+                tags={"reason": SuperuserAccessFormInvalidJson.code},
+            )
+            raise SuperuserAccessFormInvalidJson()
+        except AttributeError:
+            metrics.incr(
+                "superuser.failure",
+                sample_rate=1.0,
+                tags={"reason": EmptySuperuserAccessForm.code},
+            )
+            raise EmptySuperuserAccessForm()
 
-        if su_access_json.get("isSuperuserModal"):
+        su_access_info = SuperuserAccessSerializer(data=su_access_json)
 
-            su_access_info = SuperuserAccessSerializer(data=su_access_json)
+        if not su_access_info.is_valid():
+            raise serializers.ValidationError(su_access_info.errors)
 
-            if not su_access_info.is_valid():
-                raise serializers.ValidationError(su_access_info.errors)
-
+        try:
             logger.info(
                 "superuser.superuser_access",
                 extra={
@@ -353,8 +384,10 @@ class Superuser:
                     "reason_for_su": su_access_info.validated_data["superuserReason"],
                 },
             )
-
-        enable_and_log_superuser_access()
+            enable_and_log_superuser_access()
+        except AttributeError:
+            metrics.incr("superuser.failure", sample_rate=1.0, tags={"reason": "missing-user-info"})
+            logger.error("superuser.superuser_access.missing_user_info")
 
     def set_logged_out(self):
         """

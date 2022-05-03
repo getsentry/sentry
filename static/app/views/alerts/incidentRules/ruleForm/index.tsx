@@ -27,6 +27,7 @@ import {defined} from 'sentry/utils';
 import {metric} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import withProjects from 'sentry/utils/withProjects';
 import RuleNameOwnerForm from 'sentry/views/alerts/incidentRules/ruleNameOwnerForm';
 import ThresholdTypeForm from 'sentry/views/alerts/incidentRules/thresholdTypeForm';
 import Triggers from 'sentry/views/alerts/incidentRules/triggers';
@@ -69,6 +70,7 @@ type RuleTaskResponse = {
 type Props = {
   organization: Organization;
   project: Project;
+  projects: Project[];
   routes: PlainRoute[];
   rule: IncidentRule;
   userTeamIds: string[];
@@ -88,7 +90,7 @@ type State = {
   // Needed for TriggersChart
   dataset: Dataset;
   environment: string | null;
-  projects: Project[];
+  project: Project;
   query: string;
   resolveThreshold: UnsavedIncidentRule['resolveThreshold'];
   thresholdPeriod: UnsavedIncidentRule['thresholdPeriod'];
@@ -107,7 +109,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   pollingTimeout: number | undefined = undefined;
 
   componentDidMount() {
-    const {organization, project} = this.props;
+    const {organization} = this.props;
+    const {project} = this.state;
     // SearchBar gets its tags from Reflux.
     fetchOrganizationTags(this.api, organization.slug, [project.id]);
   }
@@ -117,8 +120,10 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   }
 
   getDefaultState(): State {
-    const {rule} = this.props;
+    const {rule, location} = this.props;
     const triggersClone = [...rule.triggers];
+    const {aggregate, eventTypes: _eventTypes, dataset} = location?.query ?? {};
+    const eventTypes = typeof _eventTypes === 'string' ? [_eventTypes] : _eventTypes;
 
     // Warning trigger is removed if it is blank when saving
     if (triggersClone.length !== 2) {
@@ -128,9 +133,9 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     return {
       ...super.getDefaultState(),
 
-      dataset: rule.dataset,
-      eventTypes: rule.eventTypes,
-      aggregate: rule.aggregate,
+      aggregate: aggregate ?? rule.aggregate,
+      dataset: dataset ?? rule.dataset,
+      eventTypes: eventTypes ?? rule.eventTypes,
       query: rule.query || '',
       timeWindow: rule.timeWindow,
       environment: rule.environment || null,
@@ -144,7 +149,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       comparisonType: !rule.comparisonDelta
         ? AlertRuleComparisonType.COUNT
         : AlertRuleComparisonType.CHANGE,
-      projects: [this.props.project],
+      project: this.props.project,
       owner: rule.owner,
     };
   }
@@ -200,11 +205,10 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
     const {
       organization,
-      project,
       onSubmitSuccess,
       params: {ruleId},
     } = this.props;
-    const {uuid} = this.state;
+    const {uuid, project} = this.state;
 
     try {
       const response: RuleTaskResponse = await this.api.requestPromise(
@@ -407,19 +411,22 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   }
 
   handleFieldChange = (name: string, value: unknown) => {
-    const {aggregate: _aggregate} = this.state;
+    const {projects} = this.props;
     if (
       [
+        'aggregate',
         'dataset',
         'eventTypes',
         'timeWindow',
         'environment',
-        'aggregate',
         'comparisonDelta',
+        'projectId',
       ].includes(name)
     ) {
-      const aggregate = name === 'aggregate' ? value : _aggregate;
-      this.setState({aggregate, [name]: value});
+      this.setState(({project: _project}) => ({
+        [name]: value,
+        project: name === 'projectId' ? projects.find(({id}) => id === value) : _project,
+      }));
     }
   };
 
@@ -465,7 +472,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
     const {
       organization,
-      project,
       rule,
       onSubmitSuccess,
       location,
@@ -473,6 +479,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       params: {ruleId},
     } = this.props;
     const {
+      project,
       aggregate,
       resolveThreshold,
       triggers,
@@ -655,19 +662,10 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {
-      organization,
-      ruleId,
-      rule,
-      onSubmitSuccess,
-      project,
-      userTeamIds,
-      isCustomMetric,
-      router,
-      location,
-    } = this.props;
+    const {organization, ruleId, rule, onSubmitSuccess, userTeamIds, router} = this.props;
     const {
       query,
+      project,
       timeWindow,
       triggers,
       aggregate,
@@ -687,7 +685,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
     const chartProps = {
       organization,
-      projects: this.state.projects,
+      projects: [project],
       triggers,
       query: isCrashFreeAlert(dataset) ? query : queryWithTypeFilter,
       aggregate,
@@ -727,7 +725,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     const triggerForm = (hasAccess: boolean) => (
       <Triggers
         disabled={!hasAccess || !canEdit}
-        projects={this.state.projects}
+        projects={[project]}
         errors={this.state.triggerErrors}
         triggers={triggers}
         aggregate={aggregate}
@@ -781,13 +779,14 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
             submitDisabled={!hasAccess || loading || !canEdit}
             initialData={{
               name: rule.name || '',
-              dataset: rule.dataset,
-              eventTypes: rule.eventTypes,
-              aggregate: rule.aggregate,
+              dataset,
+              eventTypes,
+              aggregate,
               query: rule.query || '',
               timeWindow: rule.timeWindow,
               environment: rule.environment || null,
               owner: rule.owner,
+              projectId: project.id,
             }}
             saveOnBlur={false}
             onSubmit={this.handleSubmit}
@@ -818,12 +817,13 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                 project={project}
                 organization={organization}
                 router={router}
-                location={location}
                 disabled={!hasAccess || !canEdit}
                 thresholdChart={wizardBuilderChart}
                 onFilterSearch={this.handleFilterUpdate}
-                allowChangeEventTypes={isCustomMetric || dataset === Dataset.ERRORS}
-                alertType={isCustomMetric ? 'custom' : alertType}
+                allowChangeEventTypes={
+                  alertType === 'custom' || dataset === Dataset.ERRORS
+                }
+                alertType={alertType}
                 hasAlertWizardV3={hasAlertWizardV3}
                 dataset={dataset}
                 timeWindow={timeWindow}
@@ -886,4 +886,4 @@ const Aggregate = styled('span')`
   margin-right: ${space(1)};
 `;
 
-export default RuleFormContainer;
+export default withProjects(RuleFormContainer);

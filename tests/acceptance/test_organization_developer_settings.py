@@ -22,9 +22,10 @@ class OrganizationDeveloperSettingsNewAcceptanceTest(AcceptanceTestCase):
 
     def test_create_new_public_integration(self):
         self.load_page(self.org_developer_settings_path)
+        self.browser.click('[aria-label="Create New Integration"]')
 
-        self.browser.click('[aria-label="New Public Integration"]')
-
+        self.browser.click_when_visible('[data-test-id="public-integration"]')
+        self.browser.click('[aria-label="Next"]')
         self.browser.element('input[name="name"]').send_keys("Tesla")
         self.browser.element('input[name="author"]').send_keys("Elon Musk")
         self.browser.element('input[name="webhookUrl"]').send_keys("https://example.com/webhook")
@@ -35,8 +36,10 @@ class OrganizationDeveloperSettingsNewAcceptanceTest(AcceptanceTestCase):
 
     def test_create_new_internal_integration(self):
         self.load_page(self.org_developer_settings_path)
+        self.browser.click('[aria-label="Create New Integration"]')
 
-        self.browser.click('[aria-label="New Internal Integration"]')
+        self.browser.click_when_visible('[data-test-id="internal-integration"]')
+        self.browser.click('[aria-label="Next"]')
 
         self.browser.element('input[name="name"]').send_keys("Tesla")
 

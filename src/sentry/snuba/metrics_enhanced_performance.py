@@ -12,12 +12,12 @@ from sentry.snuba import discover
 from sentry.utils.snuba import SnubaTSResult
 
 
-def resolve_tags(results: Any, metrics_query: MetricsQueryBuilder) -> Any:
+def resolve_tags(results: Any, query_definition: MetricsQueryBuilder) -> Any:
     """Go through the results of a metrics query and reverse resolve its tags"""
     tags: List[str] = []
 
     with sentry_sdk.start_span(op="mep", description="resolve_tags"):
-        for column in metrics_query.columns:
+        for column in query_definition.columns:
             if (
                 isinstance(column, AliasedExpression)
                 and column.exp.subscriptable == "tags"
@@ -48,9 +48,7 @@ def query(
     use_aggregate_conditions=False,
     allow_metric_aggregates=True,
     conditions=None,
-    extra_snql_condition=None,
     functions_acl=None,
-    use_snql=False,
     dry_run=False,
 ):
     metrics_compatible = not equations or dry_run
@@ -126,9 +124,7 @@ def query(
             auto_aggregations=auto_aggregations,
             use_aggregate_conditions=use_aggregate_conditions,
             conditions=conditions,
-            extra_snql_condition=extra_snql_condition,
             functions_acl=functions_acl,
-            use_snql=use_snql,
         )
         results["meta"]["isMetricsData"] = False
 
@@ -147,7 +143,6 @@ def timeseries_query(
     allow_metric_aggregates=True,
     comparison_delta: Optional[timedelta] = None,
     functions_acl: Optional[List[str]] = None,
-    use_snql: Optional[bool] = False,
     dry_run: bool = False,
 ) -> SnubaTSResult:
     """
@@ -233,6 +228,5 @@ def timeseries_query(
             zerofill_results,
             comparison_delta,
             functions_acl,
-            use_snql,
         )
     return SnubaTSResult()

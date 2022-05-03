@@ -4,12 +4,12 @@ These settings act as the default (base) settings for the Sentry-provided web-se
 
 import os
 import os.path
+import platform
 import re
 import socket
 import sys
 import tempfile
 from datetime import timedelta
-from platform import platform
 from urllib.parse import urlparse
 
 from django.conf.global_settings import *  # NOQA
@@ -337,6 +337,7 @@ INSTALLED_APPS = (
     "sentry.discover",
     "sentry.analytics.events",
     "sentry.nodestore",
+    "sentry.release_health",
     "sentry.search",
     "sentry.sentry_metrics.indexer",
     "sentry.snuba",
@@ -451,8 +452,6 @@ SESSION_COOKIE_NAME = "sentrysid"
 # request, and `Lax` doesnt permit this.
 # See here: https://docs.djangoproject.com/en/2.1/ref/settings/#session-cookie-samesite
 SESSION_COOKIE_SAMESITE = None
-
-SESSION_SERIALIZER = "sentry.utils.transitional_serializer.TransitionalSerializer"
 
 BITBUCKET_CONSUMER_KEY = ""
 BITBUCKET_CONSUMER_SECRET = ""
@@ -569,7 +568,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.integrations",
     "sentry.tasks.low_priority_symbolication",
     "sentry.tasks.merge",
-    "sentry.tasks.releasemonitor",
     "sentry.tasks.options",
     "sentry.tasks.ping",
     "sentry.tasks.post_process",
@@ -589,6 +587,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.user_report",
     "sentry.profiles.task",
     "sentry.release_health.duplex",
+    "sentry.release_health.tasks",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -779,7 +778,7 @@ CELERYBEAT_SCHEDULE = {
         "options": {"expires": 60 * 25},
     },
     "monitor-release-adoption": {
-        "task": "sentry.tasks.monitor_release_adoption",
+        "task": "sentry.release_health.tasks.monitor_release_adoption",
         "schedule": crontab(minute=0),
         "options": {"expires": 3600, "queue": "releasemonitor"},
     },
@@ -946,6 +945,8 @@ SENTRY_FEATURES = {
     "organizations:create": True,
     # Enable the 'discover' interface.
     "organizations:discover": False,
+    # Enable duplicating alert rules.
+    "organizations:duplicate-alert-rule": False,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": True,
     # Enable Filters & Sampling in the org settings
@@ -966,8 +967,6 @@ SENTRY_FEATURES = {
     "organizations:performance-view": True,
     # Enable profiling
     "organizations:profiling": False,
-    # Enable projects page redesign
-    "organizations:projects-page-redesign": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
@@ -1049,10 +1048,12 @@ SENTRY_FEATURES = {
     "organizations:widget-library": False,
     # Enable metrics enhanced performance in dashboards
     "organizations:dashboards-mep": False,
-    # Enable metrics in dashboards
-    "organizations:dashboards-metrics": False,
+    # Enable release health widgets in dashboards
+    "organizations:dashboards-releases": False,
     # Enable widget viewer modal in dashboards
     "organizations:widget-viewer-modal": False,
+    # Enable minimap in the widget viewer modal in dashboards
+    "organizations:widget-viewer-modal-minimap": False,
     # Enable experimental performance improvements.
     "organizations:enterprise-perf": False,
     # Enable the API to importing CODEOWNERS for a project
@@ -1355,8 +1356,11 @@ SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE_OPTIONS = {}
 
 # Rate limiting backend
 SENTRY_RATELIMITER = "sentry.ratelimits.base.RateLimiter"
-SENTRY_RATELIMITER_ENABLED = True
+SENTRY_RATELIMITER_ENABLED = False
 SENTRY_RATELIMITER_OPTIONS = {}
+SENTRY_RATELIMITER_DEFAULT = 999
+SENTRY_CONCURRENT_RATE_LIMIT_DEFAULT = 999
+ENFORCE_CONCURRENT_RATE_LIMITS = False
 
 # The default value for project-level quotas
 SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE = "90%"
@@ -1417,6 +1421,13 @@ SENTRY_METRICS_INDEXER_CACHE_TTL = 3600 * 2
 # Release Health
 SENTRY_RELEASE_HEALTH = "sentry.release_health.sessions.SessionsReleaseHealthBackend"
 SENTRY_RELEASE_HEALTH_OPTIONS = {}
+
+# Release Monitor
+SENTRY_RELEASE_MONITOR = (
+    "sentry.release_health.release_monitor.sessions.SessionReleaseMonitorBackend"
+)
+SENTRY_RELEASE_MONITOR_OPTIONS = {}
+
 
 # Render charts on the backend. This uses the Chartcuterie external service.
 SENTRY_CHART_RENDERER = "sentry.charts.chartcuterie.Chartcuterie"
@@ -1583,6 +1594,7 @@ SENTRY_ROLES = (
             "alerts:read",
             "alerts:write",
         },
+        "is_retired": True,
     },
     {
         "id": "manager",
@@ -1806,7 +1818,10 @@ def build_cdc_postgres_init_db_volume(settings):
     )
 
 
-APPLE_ARM64 = platform().startswith("mac") and platform().endswith("arm64-arm-64bit")
+# platform.processor() changed at some point between these:
+# 11.2.3: arm
+# 12.3.1: arm64
+APPLE_ARM64 = sys.platform == "darwin" and platform.processor() in {"arm", "arm64"}
 
 SENTRY_DEVSERVICES = {
     "redis": lambda settings, options: (
@@ -2289,6 +2304,11 @@ KAFKA_CLUSTERS = {
 }
 
 KAFKA_EVENTS = "events"
+# TODO: KAFKA_TRANSACTIONS is temporarily mapped to "events" since events
+# transactions curently share a Kafka topic. Once we are ready with the code
+# changes to support different topic, switch this to "transactions" to start
+# producing to the new topic.
+KAFKA_TRANSACTIONS = "events"
 KAFKA_OUTCOMES = "outcomes"
 KAFKA_OUTCOMES_BILLING = "outcomes-billing"
 KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS = "events-subscription-results"
@@ -2310,6 +2330,7 @@ KAFKA_PROFILES = "profiles"
 
 KAFKA_TOPICS = {
     KAFKA_EVENTS: {"cluster": "default", "topic": KAFKA_EVENTS},
+    KAFKA_TRANSACTIONS: {"cluster": "default", "topic": KAFKA_TRANSACTIONS},
     KAFKA_OUTCOMES: {"cluster": "default", "topic": KAFKA_OUTCOMES},
     # When OUTCOMES_BILLING is None, it inherits from OUTCOMES and does not
     # create a separate producer. Check ``track_outcome`` for details.
@@ -2465,7 +2486,7 @@ SENTRY_USE_UWSGI = True
 
 # When copying attachments for to-be-reprocessed events into processing store,
 # how large is an individual file chunk? Each chunk is stored as Redis key.
-SENTRY_REPROCESSING_ATTACHMENT_CHUNK_SIZE = 2 ** 20
+SENTRY_REPROCESSING_ATTACHMENT_CHUNK_SIZE = 2**20
 
 # Which cluster is used to store auxiliary data for reprocessing. Note that
 # this cluster is not used to store attachments etc, that still happens on
@@ -2603,3 +2624,9 @@ DEVSERVER_LOGS_ALLOWLIST = None
 LOG_API_ACCESS = not IS_DEV or os.environ.get("SENTRY_LOG_API_ACCESS")
 
 VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = True
+
+# determines if we enable analytics or not
+ENABLE_ANALYTICS = False
+
+MAX_ISSUE_ALERTS_PER_PROJECT = 100
+MAX_QUERY_SUBSCRIPTIONS_PER_ORG = 1000

@@ -231,6 +231,7 @@ export function QueryBatchNode(props: {
   batchProperty: string;
   children(_: any): React.ReactNode;
 }) {
+  const api = useApi();
   const {batchProperty, children} = props;
   const id = useRef(Symbol());
 
@@ -240,8 +241,6 @@ export function QueryBatchNode(props: {
   } catch (_) {
     return <Fragment>{children({})}</Fragment>;
   }
-
-  const api = useApi();
 
   function batchRequest(
     _: Client,

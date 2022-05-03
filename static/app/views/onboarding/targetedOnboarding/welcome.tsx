@@ -16,6 +16,7 @@ import FallingError from 'sentry/views/onboarding/components/fallingError';
 import WelcomeBackground from 'sentry/views/onboarding/components/welcomeBackground';
 
 import {StepProps} from './types';
+import {usePersistedOnboardingState} from './utils';
 
 const fadeAway: MotionProps = {
   variants: {
@@ -48,18 +49,26 @@ function InnerAction({title, subText, cta, src}: TextWrapperProps) {
 
 function TargetedOnboardingWelcome({organization, ...props}: StepProps) {
   const source = 'targeted_onboarding';
+  const [clientState, setClientState] = usePersistedOnboardingState();
   React.useEffect(() => {
     trackAdvancedAnalyticsEvent('growth.onboarding_start_onboarding', {
       organization,
       source,
     });
-  });
+  }, []);
 
   const onComplete = () => {
     trackAdvancedAnalyticsEvent('growth.onboarding_clicked_instrument_app', {
       organization,
       source,
     });
+    if (clientState) {
+      setClientState({
+        ...clientState,
+        url: 'select-platform/',
+        state: 'started',
+      });
+    }
 
     props.onComplete();
   };
@@ -125,12 +134,18 @@ function TargetedOnboardingWelcome({organization, ...props}: StepProps) {
             {t("Gee, I've used Sentry before.")}
             <br />
             <Link
-              onClick={() =>
+              onClick={() => {
                 trackAdvancedAnalyticsEvent('growth.onboarding_clicked_skip', {
                   organization,
                   source,
-                })
-              }
+                });
+                if (clientState) {
+                  setClientState({
+                    ...clientState,
+                    state: 'skipped',
+                  });
+                }
+              }}
               to={`/organizations/${organization.slug}/issues/`}
             >
               {t('Skip onboarding.')}
@@ -152,6 +167,9 @@ const PositionedFallingError = styled('span')`
 `;
 
 const Wrapper = styled(motion.div)`
+  position: relative;
+  margin-top: auto;
+  margin-bottom: auto;
   max-width: 400px;
   display: flex;
   flex-direction: column;

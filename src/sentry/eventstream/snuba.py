@@ -12,6 +12,8 @@ from sentry.utils import json, snuba
 from sentry.utils.safe import get_path
 from sentry.utils.sdk import set_current_event_project
 
+KW_SKIP_SEMANTIC_PARTITIONING = "skip_semantic_partitioning"
+
 logger = logging.getLogger(__name__)
 
 
@@ -97,6 +99,7 @@ class SnubaProtocolEventStream(EventStream):
         primary_hash,
         received_timestamp,  # type: float
         skip_consume=False,
+        **kwargs,
     ):
         project = event.project
         set_current_event_project(project.id)
@@ -121,6 +124,12 @@ class SnubaProtocolEventStream(EventStream):
             primary_hash,
             received_timestamp,
             skip_consume,
+        )
+
+        skip_semantic_partitioning = (
+            kwargs[KW_SKIP_SEMANTIC_PARTITIONING]
+            if KW_SKIP_SEMANTIC_PARTITIONING in kwargs
+            else False
         )
 
         self._send(
@@ -149,6 +158,7 @@ class SnubaProtocolEventStream(EventStream):
                 },
             ),
             headers=headers,
+            skip_semantic_partitioning=skip_semantic_partitioning,
         )
 
     def start_delete_groups(self, project_id, group_ids):
@@ -306,6 +316,7 @@ class SnubaProtocolEventStream(EventStream):
         extra_data: Tuple[Any, ...] = (),
         asynchronous: bool = True,
         headers: Optional[Mapping[str, str]] = None,
+        skip_semantic_partitioning: bool = False,
     ):
         raise NotImplementedError
 
@@ -318,29 +329,25 @@ class SnubaEventStream(SnubaProtocolEventStream):
         extra_data: Tuple[Any, ...] = (),
         asynchronous: bool = True,
         headers: Optional[Mapping[str, str]] = None,
+        skip_semantic_partitioning: bool = False,
     ):
         if headers is None:
             headers = {}
 
         data = (self.EVENT_PROTOCOL_VERSION, _type) + extra_data
 
-        # TODO remove this once the unified dataset is available.
-        # Inserting into both events and transactions datasets lets us
-        # simulate what is currently happening via kafka when both the events
-        # and transactions consumers are running.
-        datasets = ["events"]
+        dataset = "events"
         if get_path(extra_data, 0, "data", "type") == "transaction":
-            datasets.append("transactions")
+            dataset = "transactions"
         try:
-            for dataset in datasets:
-                resp = snuba._snuba_pool.urlopen(
-                    "POST",
-                    f"/tests/{dataset}/eventstream",
-                    body=json.dumps(data),
-                    headers={f"X-Sentry-{k}": v for k, v in headers.items()},
-                )
-                if resp.status != 200:
-                    raise snuba.SnubaError("HTTP %s response from Snuba!" % resp.status)
+            resp = snuba._snuba_pool.urlopen(
+                "POST",
+                f"/tests/{dataset}/eventstream",
+                body=json.dumps(data),
+                headers={f"X-Sentry-{k}": v for k, v in headers.items()},
+            )
+            if resp.status != 200:
+                raise snuba.SnubaError("HTTP %s response from Snuba!" % resp.status)
             return resp
         except urllib3.exceptions.HTTPError as err:
             raise snuba.SnubaError(err)
@@ -358,6 +365,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
         primary_hash,
         received_timestamp,  # type: float
         skip_consume=False,
+        **kwargs,
     ):
         super().insert(
             group,
@@ -368,6 +376,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
             primary_hash,
             received_timestamp,
             skip_consume,
+            **kwargs,
         )
         self._dispatch_post_process_group_task(
             event.event_id,

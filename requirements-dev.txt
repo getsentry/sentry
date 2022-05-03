@@ -1,4 +1,3 @@
-before_after==1.0.1
 docker>=3.7.0,<3.8.0
 exam>=0.5.1
 freezegun==1.1.0

@@ -10,7 +10,6 @@ drop-db \
 create-db \
 apply-migrations \
 reset-db \
-setup-apple-m1 \
 setup-git \
 node-version-check \
 install-js-dev \
@@ -132,6 +131,11 @@ test-python-ci:
 test-snuba:
 	@echo "--> Running snuba tests"
 	pytest tests/snuba tests/sentry/eventstream/kafka tests/sentry/snuba/test_discover.py tests/sentry/search/events -vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml" --junit-xml=".artifacts/snuba.junit.xml"
+	@echo ""
+
+test-tools:
+	@echo "--> Running tools tests"
+	pytest -c /dev/null --confcutdir tests/tools tests/tools -vv --cov=tools --cov=tests/tools --cov-report="xml:.artifacts/tools.coverage.xml" --junit-xml=".artifacts/tools.junit.xml"
 	@echo ""
 
 backend-typing:

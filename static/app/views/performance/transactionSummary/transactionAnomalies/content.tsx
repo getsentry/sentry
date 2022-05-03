@@ -7,8 +7,11 @@ import omit from 'lodash/omit';
 import MarkArea from 'sentry/components/charts/components/markArea';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {LineChartSeries} from 'sentry/components/charts/lineChart';
+import DatePageFilter from 'sentry/components/datePageFilter';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -196,7 +199,7 @@ function Anomalies(props: AnomaliesSectionProps) {
       component: provided => <Fragment>{provided.children(props.queryData)}</Fragment>,
       transform: transformAnomalyData,
     };
-  }, [props.eventView, props.queryData]);
+  }, [props.queryData]);
 
   return (
     <GenericPerformanceWidget<DataType>
@@ -272,13 +275,19 @@ function AnomaliesContent(props: Props) {
   }
   return (
     <Layout.Main fullWidth>
-      <SearchBar
-        organization={organization}
-        projectIds={eventView.project}
-        query={query}
-        fields={eventView.fields}
-        onSearch={handleChange('query')}
-      />
+      <FilterActions>
+        <PageFilterBar condensed>
+          <EnvironmentPageFilter />
+          <DatePageFilter alignDropdown="left" />
+        </PageFilterBar>
+        <SearchBar
+          organization={organization}
+          projectIds={eventView.project}
+          query={query}
+          fields={eventView.fields}
+          onSearch={handleChange('query')}
+        />
+      </FilterActions>
       <AnomaliesQuery
         organization={organization}
         location={location}
@@ -286,16 +295,12 @@ function AnomaliesContent(props: Props) {
       >
         {queryData => (
           <Fragment>
-            <Container>
-              <Anomalies {...props} queryData={queryData} />
-            </Container>
-            <Container>
-              <AnomaliesTable
-                anomalies={queryData.data?.anomalies}
-                {...props}
-                isLoading={queryData.isLoading}
-              />
-            </Container>
+            <Anomalies {...props} queryData={queryData} />
+            <AnomaliesTable
+              anomalies={queryData.data?.anomalies}
+              {...props}
+              isLoading={queryData.isLoading}
+            />
           </Fragment>
         )}
       </AnomaliesQuery>
@@ -303,8 +308,14 @@ function AnomaliesContent(props: Props) {
   );
 }
 
-const Container = styled('div')`
-  margin-top: ${space(2)};
+const FilterActions = styled('div')`
+  display: grid;
+  gap: ${space(2)};
+  margin-bottom: ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: auto 1fr;
+  }
 `;
 
 export default AnomaliesContent;

@@ -205,21 +205,18 @@ def assigned_or_suggested_filter(
 
     if Team in types_to_owners:
         teams = types_to_owners[Team]
-        query |= (
-            Q(
-                **{
-                    f"{field_filter}__in": GroupOwner.objects.filter(
-                        Q(group__assignee_set__isnull=True),
-                        team__in=teams,
-                        project_id__in=project_ids,
-                        organization_id=organization_id,
-                    )
-                    .values_list("group_id", flat=True)
-                    .distinct()
-                }
-            )
-            | assigned_to_filter(teams, projects, field_filter=field_filter)
-        )
+        query |= Q(
+            **{
+                f"{field_filter}__in": GroupOwner.objects.filter(
+                    Q(group__assignee_set__isnull=True),
+                    team__in=teams,
+                    project_id__in=project_ids,
+                    organization_id=organization_id,
+                )
+                .values_list("group_id", flat=True)
+                .distinct()
+            }
+        ) | assigned_to_filter(teams, projects, field_filter=field_filter)
 
     if User in types_to_owners:
         users = types_to_owners[User]

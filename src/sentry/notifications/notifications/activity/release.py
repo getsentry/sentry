@@ -130,7 +130,8 @@ class ReleaseActivityNotification(ActivityNotification):
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         return f"Deployed version {self.version_parsed} to {self.environment}"
 
-    def get_title(self) -> str:
+    @property
+    def title(self) -> str:
         return self.get_subject()
 
     def get_notification_title(self) -> str:

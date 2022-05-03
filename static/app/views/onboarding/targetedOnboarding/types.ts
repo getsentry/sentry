@@ -1,5 +1,4 @@
 import {PlatformKey} from 'sentry/data/platformCategories';
-import {usePersistedStoreCategory} from 'sentry/stores/persistedStore';
 import {Organization} from 'sentry/types';
 
 export type StepData = {
@@ -32,18 +31,7 @@ export type OnboardingState = {
   // Contains platforms currently selected. This is different from `platforms` because
   // a project created by onboarding could be unselected by the user in the future.
   selectedPlatforms: PlatformKey[];
+  mobileEmailSent?: boolean;
+  state?: 'started' | 'projects_selected' | 'finished' | 'skipped';
+  url?: string;
 };
-
-export function usePersistedOnboardingState(): [
-  OnboardingState | null,
-  (next: OnboardingState | null) => void
-] {
-  const [state, setState] = usePersistedStoreCategory('onboarding');
-  const onboardingState = state
-    ? {
-        platformToProjectIdMap: state.platformToProjectIdMap || {},
-        selectedPlatforms: state.selectedPlatforms || [],
-      }
-    : null;
-  return [onboardingState, setState];
-}
