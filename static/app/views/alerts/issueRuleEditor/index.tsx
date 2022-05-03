@@ -210,10 +210,9 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     if (stateKey === 'duplicateTargetRule') {
       this.setState({
         rule: {
-          ...data,
-          id: undefined,
+          ...omit(data, ['id']),
           name: data.name + ' copy',
-        },
+        } as UnsavedIssueAlertRule,
       });
     }
   }
