@@ -225,14 +225,14 @@ export function Provider({children, events, initialTimeOffset = 0, value = {}}: 
   );
 
   const setCurrentTime = useCallback(
-    (requestedTime: number) => {
+    (requestedTimeMs: number) => {
       const replayer = replayerRef.current;
       if (!replayer) {
         return;
       }
 
-      const maxTime = replayerRef.current?.getMetaData().totalTime;
-      const time = requestedTime > maxTime ? 0 : requestedTime;
+      const maxTimeMs = replayerRef.current?.getMetaData().totalTime;
+      const time = requestedTimeMs > maxTimeMs ? 0 : requestedTimeMs;
 
       // Sometimes rrweb doesn't get to the exact target time, as long as it has
       // changed away from the previous time then we can hide then buffering message.
