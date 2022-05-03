@@ -1360,23 +1360,24 @@ class OrganizationSessionsEndpointMetricsTest(
                 self.project1, started=SESSION_STARTED + 12 * 60, release="", environment=""
             )
         )
-        # Empty strings are invalid values for releases and environments, but we should still handle those cases correctly at the query layer
-        response = self.do_request(
-            {
-                "project": self.project.id,  # project without users
-                "statsPeriod": "1d",
-                "interval": "1d",
-                "field": ["sum(session)"],
-                "query": 'release:"" environment:""',
-                "groupBy": ["release", "environment"],
-            }
-        )
+        for query in ('release:"" environment:""', 'release:"" OR environment:""'):
+            # Empty strings are invalid values for releases and environments, but we should still handle those cases correctly at the query layer
+            response = self.do_request(
+                {
+                    "project": self.project.id,  # project without users
+                    "statsPeriod": "1d",
+                    "interval": "1d",
+                    "field": ["sum(session)"],
+                    "query": query,
+                    "groupBy": ["release", "environment"],
+                }
+            )
 
-        assert response.status_code == 200, response.content
-        assert result_sorted(response.data)["groups"] == [
-            {
-                "by": {"environment": "", "release": ""},
-                "series": {"sum(session)": [1]},
-                "totals": {"sum(session)": 1},
-            }
-        ]
+            assert response.status_code == 200, response.content
+            assert result_sorted(response.data)["groups"] == [
+                {
+                    "by": {"environment": "", "release": ""},
+                    "series": {"sum(session)": [1]},
+                    "totals": {"sum(session)": 1},
+                }
+            ]

@@ -120,10 +120,12 @@ def resolve_tags(org_id: int, input_: Any) -> Any:
             # This was wrapped automatically by QueryBuilder, remove wrapper
             return resolve_tags(org_id, input_.parameters[0])
         elif input_.function == "isNull":
-            return Condition(
-                lhs=resolve_tags(org_id, input_.parameters[0]),
-                op=Op.EQ,
-                rhs=resolve_tags(org_id, ""),
+            return Function(
+                "equals",
+                [
+                    resolve_tags(org_id, input_.parameters[0]),
+                    resolve_tags(org_id, ""),
+                ],
             )
         elif input_.function in FUNCTION_ALLOWLIST:
             return Function(
@@ -144,18 +146,6 @@ def resolve_tags(org_id: int, input_: Any) -> Any:
         return resolve_tags(org_id, input_.conditions[1])
 
     if isinstance(input_, Condition):
-        if (
-            isinstance(input_.lhs, Function)
-            and input_.lhs.function == "isNull"
-            and input_.op == Op.EQ
-            and input_.rhs == 1
-        ):
-            return Condition(
-                lhs=resolve_tags(org_id, input_.lhs.parameters[0]),
-                op=Op.EQ,
-                rhs=resolve_tags(org_id, ""),
-            )
-
         if input_.op == Op.IS_NULL and input_.rhs is None:
             return Condition(
                 lhs=resolve_tags(org_id, input_.lhs), op=Op.EQ, rhs=resolve_tags(org_id, "")
