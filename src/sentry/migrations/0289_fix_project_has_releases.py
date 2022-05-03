@@ -13,9 +13,10 @@ def backfill_project_has_release(apps, schema_editor):
     Project = apps.get_model("sentry", "Project")
     ReleaseProject = apps.get_model("sentry", "ReleaseProject")
     for project in RangeQuerySetWrapperWithProgressBar(Project.objects.all()):
-        if project.flags.has_releases:
-            continue
-        if ReleaseProject.objects.filter(project=project).exists():
+        if (
+            not project.flags.has_releases
+            and ReleaseProject.objects.filter(project=project).exists()
+        ):
             project.flags.has_releases = True
             project.save(update_fields=["flags"])
 
