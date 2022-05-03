@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 import responses
+from django.test import override_settings
 from exam import fixture
 from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail
@@ -75,13 +76,6 @@ class TestAlertRuleSerializer(TestCase):
     @fixture
     def context(self):
         return {"organization": self.organization, "access": self.access, "user": self.user}
-
-    def Any(self, cls):
-        class Any:
-            def __eq__(self, other):
-                return isinstance(other, cls)
-
-        return Any()
 
     def run_fail_validation_test(self, params, errors):
         base_params = self.valid_params.copy()
@@ -645,6 +639,17 @@ class TestAlertRuleSerializer(TestCase):
         alert_rule = serializer.save()
         assert alert_rule.comparison_delta is None
         assert alert_rule.snuba_query.resolution == DEFAULT_ALERT_RULE_RESOLUTION * 60
+
+    @override_settings(MAX_QUERY_SUBSCRIPTIONS_PER_ORG=1)
+    def test_enforce_max_subscriptions(self):
+        serializer = AlertRuleSerializer(context=self.context, data=self.valid_params)
+        assert serializer.is_valid(), serializer.errors
+        serializer.save()
+        serializer = AlertRuleSerializer(context=self.context, data=self.valid_params)
+        assert serializer.is_valid(), serializer.errors
+        with self.assertRaises(serializers.ValidationError) as cm:
+            serializer.save()
+        assert cm.exception.detail[0] == "You may not exceed 1 metric alerts per organization"
 
 
 class TestAlertRuleTriggerSerializer(TestCase):

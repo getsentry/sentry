@@ -3,6 +3,7 @@ from unittest.mock import patch
 import pytz
 import requests
 import responses
+from django.test.utils import override_settings
 from exam import fixture
 from freezegun import freeze_time
 
@@ -122,6 +123,21 @@ class AlertRuleCreateEndpointTest(APITestCase):
             event=AuditLogEntryEvent.ALERT_RULE_ADD, target_object=alert_rule.id
         )
         assert len(audit_log_entry) == 1
+
+    @override_settings(MAX_QUERY_SUBSCRIPTIONS_PER_ORG=1)
+    def test_enforce_max_subscriptions(self):
+        with self.feature("organizations:incidents"):
+            resp = self.get_valid_response(
+                self.organization.slug, self.project.slug, status_code=201, **self.valid_alert_rule
+            )
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert resp.data == serialize(alert_rule, self.user)
+
+        with self.feature("organizations:incidents"):
+            resp = self.get_error_response(
+                self.organization.slug, self.project.slug, **self.valid_alert_rule
+            )
+            assert resp.data[0] == "You may not exceed 1 metric alerts per organization"
 
     def test_no_feature(self):
         resp = self.get_response(self.organization.slug, self.project.slug)
