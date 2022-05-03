@@ -45,6 +45,7 @@ interface ItemProps {
   itemProps: React.ComponentProps<typeof SearchResultWrapper>;
   matches: Result['matches'];
 }
+
 interface SearchProps extends WithRouterProps<{orgId: string}> {
   /**
    * For analytics
@@ -89,12 +90,33 @@ interface SearchProps extends WithRouterProps<{orgId: string}> {
   sources?: React.ComponentType[];
 }
 
-function Search(props: SearchProps): React.ReactElement {
+function defaultItemRenderer({item, matches, itemProps, highlighted}: ItemProps) {
+  return (
+    <SearchResultWrapper {...itemProps} highlighted={highlighted}>
+      <SearchResult highlighted={highlighted} item={item} matches={matches} />
+    </SearchResultWrapper>
+  );
+}
+
+function Search({
+  renderItem = defaultItemRenderer,
+  entryPoint,
+  maxResults,
+  minSearch,
+  renderInput,
+  closeOnSelect,
+  dropdownStyle,
+  resultFooter,
+  searchOptions,
+  sources,
+  router,
+  params,
+}: SearchProps): React.ReactElement {
   React.useEffect(() => {
-    trackAdvancedAnalyticsEvent(`${props.entryPoint}.open`, {
+    trackAdvancedAnalyticsEvent(`${entryPoint}.open`, {
       organization: null,
     });
-  }, [props.entryPoint]);
+  }, [entryPoint]);
 
   const handleSelectItem = React.useCallback(
     (item: Result['item'], state?: AutoComplete<Result['item']>['state']) => {
@@ -102,7 +124,7 @@ function Search(props: SearchProps): React.ReactElement {
         return;
       }
 
-      trackAdvancedAnalyticsEvent(`${props.entryPoint}.select`, {
+      trackAdvancedAnalyticsEvent(`${entryPoint}.select`, {
         query: state?.inputValue,
         result_type: item.resultType,
         source_type: item.sourceType,
@@ -135,11 +157,11 @@ function Search(props: SearchProps): React.ReactElement {
         return;
       }
 
-      const nextPath = replaceRouterParams(item.to, props.params);
+      const nextPath = replaceRouterParams(item.to, params);
 
-      navigateTo(nextPath, props.router, item.configUrl);
+      navigateTo(nextPath, router, item.configUrl);
     },
-    [props.entryPoint, props.router, props.params]
+    [entryPoint, router, params]
   );
 
   const saveQueryMetrics = React.useCallback(
@@ -148,55 +170,41 @@ function Search(props: SearchProps): React.ReactElement {
         return;
       }
 
-      trackAdvancedAnalyticsEvent(`${props.entryPoint}.query`, {
+      trackAdvancedAnalyticsEvent(`${entryPoint}.query`, {
         query,
         organization: null,
       });
     },
-    [props.entryPoint]
+    [entryPoint]
   );
 
   const debouncedSaveQueryMetrics = React.useMemo(() => {
     return debounce(saveQueryMetrics, 200);
-  }, [props.entryPoint, saveQueryMetrics]);
+  }, [entryPoint, saveQueryMetrics]);
 
   return (
     <AutoComplete
       defaultHighlightedIndex={0}
       onSelect={handleSelectItem}
-      closeOnSelect={props.closeOnSelect ?? true}
+      closeOnSelect={closeOnSelect ?? true}
     >
       {({getInputProps, getItemProps, isOpen, inputValue, highlightedIndex}) => {
         const searchQuery = inputValue.toLowerCase().trim();
-        const isValidSearch = inputValue.length >= props.minSearch;
+        const isValidSearch = inputValue.length >= minSearch;
 
         debouncedSaveQueryMetrics(searchQuery);
 
-        const renderItem =
-          typeof props.renderItem === 'function'
-            ? props.renderItem
-            : ({
-                item,
-                matches,
-                itemProps,
-                highlighted,
-              }: ItemProps): React.ReactElement => (
-                <SearchResultWrapper {...itemProps} highlighted={highlighted}>
-                  <SearchResult highlighted={highlighted} item={item} matches={matches} />
-                </SearchResultWrapper>
-              );
-
         return (
           <SearchWrapper>
-            {props.renderInput({getInputProps})}
+            {renderInput({getInputProps})}
 
             {isValidSearch && isOpen ? (
               <SearchSources
-                searchOptions={props.searchOptions}
+                searchOptions={searchOptions}
                 query={searchQuery}
-                params={props.params}
+                params={params}
                 sources={
-                  props.sources ??
+                  sources ??
                   ([
                     ApiSource,
                     FormSource,
@@ -206,7 +214,7 @@ function Search(props: SearchProps): React.ReactElement {
                 }
               >
                 {({isLoading, results, hasAnyResults}) => (
-                  <DropdownBox className={props.dropdownStyle}>
+                  <DropdownBox className={dropdownStyle}>
                     {isLoading ? (
                       <LoadingWrapper>
                         <LoadingIndicator mini hideMessage relative />
@@ -214,7 +222,7 @@ function Search(props: SearchProps): React.ReactElement {
                     ) : !hasAnyResults ? (
                       <EmptyItem>{t('No results found')}</EmptyItem>
                     ) : (
-                      results.slice(0, props.maxResults).map((resultObj, index) => {
+                      results.slice(0, maxResults).map((resultObj, index) => {
                         return React.cloneElement(
                           renderItem({
                             index,
@@ -230,8 +238,8 @@ function Search(props: SearchProps): React.ReactElement {
                         );
                       })
                     )}
-                    {!isLoading && props.resultFooter ? (
-                      <ResultFooter>{props.resultFooter}</ResultFooter>
+                    {!isLoading && resultFooter ? (
+                      <ResultFooter>{resultFooter}</ResultFooter>
                     ) : null}
                   </DropdownBox>
                 )}
