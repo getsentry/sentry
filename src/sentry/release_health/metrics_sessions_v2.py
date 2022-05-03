@@ -17,6 +17,7 @@ from typing import (
     MutableMapping,
     Optional,
     Sequence,
+    Set,
     Tuple,
     Type,
     TypedDict,
@@ -147,7 +148,7 @@ class Field(ABC):
         self.name = name
         self._raw_groupby = raw_groupby
         self._status_filter = status_filter
-        self._hidden_fields = []
+        self._hidden_fields: Set[MetricField] = set()
         self.metric_fields = self._get_metric_fields(raw_groupby, status_filter)
 
     @abstractmethod
@@ -236,14 +237,14 @@ class CountField(Field):
             # Restrict fields to the included ones
             metric_fields = [self.status_to_metric_field[status] for status in status_filter]
             if UNSORTABLE & status_filter:
-                self._hidden_fields.append(self.get_all_field())
+                self._hidden_fields.add(self.get_all_field())
                 # We always order the results by one of the selected fields,
                 # even if no orderBy is specified (see _primary_field).
                 metric_fields = [self.get_all_field()] + metric_fields
             return metric_fields
 
         if "session.status" in raw_groupby:
-            self._hidden_fields.append(self.get_all_field())
+            self._hidden_fields.add(self.get_all_field())
             return [
                 # Always also get ALL, because this is what we sort by
                 # in the sessions implementation, with which we want to be consistent
