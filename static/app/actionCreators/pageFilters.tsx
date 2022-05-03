@@ -408,6 +408,9 @@ async function persistPageFilters(filter: PinnedPageFilter | null, options?: Opt
 /**
  * Checks if the URL state has changed in synchronization from the local
  * storage state, and persists that check into the store.
+ *
+ * If shouldForceProject is enabled, then we do not record any url desync
+ * for the project.
  */
 async function updateDesyncedUrlState(router?: Router, shouldForceProject?: boolean) {
   // Cannot compare URL state without the router
