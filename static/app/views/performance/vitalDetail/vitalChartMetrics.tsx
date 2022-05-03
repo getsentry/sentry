@@ -21,7 +21,7 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {replaceSeriesName, transformEventStatsSmoothed} from '../trends/utils';
 import {ViewProps} from '../types';
 
-import {getMaxOfSeries, getVitalChartDefinitions} from './utils';
+import {getMaxOfSeries, getVitalChartDefinitions, getVitalChartTitle} from './utils';
 
 type Props = WithRouterProps &
   Omit<ViewProps, 'query' | 'start' | 'end'> & {
@@ -81,7 +81,7 @@ function VitalChartMetrics({
     <Panel>
       <ChartContainer>
         <HeaderTitleLegend>
-          {t('Duration p75')}
+          {getVitalChartTitle(vital)}
           <QuestionTooltip
             size="sm"
             position="top"

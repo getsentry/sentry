@@ -91,6 +91,13 @@ export function vitalNameFromLocation(location: Location): WebVital {
   return WebVital.LCP;
 }
 
+export function getVitalChartTitle(webVital: WebVital): string {
+  if (webVital === WebVital.CLS) {
+    return t('CLS p75');
+  }
+  return t('Duration p75');
+}
+
 export function getVitalDetailTablePoorStatusFunction(vitalName: WebVital): string {
   const vitalThreshold = webVitalPoor[vitalName];
   const statusFunction = `compare_numeric_aggregate(${getAggregateAlias(
