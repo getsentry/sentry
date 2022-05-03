@@ -30,6 +30,7 @@ function ReplayDetails() {
     breadcrumbEntry,
     event,
     mergedReplayEvent,
+    memorySpans,
     fetchError,
     fetching,
     onRetry,
@@ -83,8 +84,12 @@ function ReplayDetails() {
   }
 
   return (
-    <DetailLayout event={event} orgId={orgId}>
-      <ReplayContextProvider events={rrwebEvents}>
+    <ReplayContextProvider events={rrwebEvents}>
+      <DetailLayout
+        event={event}
+        orgId={orgId}
+        crumbs={breadcrumbEntry?.data.values || []}
+      >
         <Layout.Body>
           <ReplayLayout ref={fullscreenRef}>
             {/* In fullscreen we need to consider the max-height that the player is able
@@ -97,11 +102,15 @@ function ReplayDetails() {
           </Layout.Side>
           <Layout.Main fullWidth>
             <BreadcrumbTimeline crumbs={breadcrumbEntry?.data.values || []} />
-            <FocusArea event={event} eventWithSpans={mergedReplayEvent} />
+            <FocusArea
+              event={event}
+              eventWithSpans={mergedReplayEvent}
+              memorySpans={memorySpans}
+            />
           </Layout.Main>
         </Layout.Body>
-      </ReplayContextProvider>
-    </DetailLayout>
+      </DetailLayout>
+    </ReplayContextProvider>
   );
 }
 

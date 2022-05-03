@@ -149,67 +149,70 @@ export function Provider({children, events, value = {}}: Props) {
     setFFSpeed(0);
   };
 
-  const initRoot = (root: RootElem) => {
-    if (events === undefined) {
-      return;
-    }
-
-    if (root === null) {
-      return;
-    }
-
-    if (replayerRef.current) {
-      if (events === oldEvents) {
-        // Already have a player for these events, the parent node must've re-rendered
+  const initRoot = useCallback(
+    (root: RootElem) => {
+      if (events === undefined) {
         return;
       }
 
-      // We have new events, need to clear out the old iframe because a new
-      // `Replayer` instance is about to be created
-      while (root.firstChild) {
-        root.removeChild(root.firstChild);
+      if (root === null) {
+        return;
       }
-    }
 
-    // eslint-disable-next-line no-new
-    const inst = new Replayer(events, {
-      root,
-      // blockClass: 'rr-block',
-      // liveMode: false,
-      // triggerFocus: false,
-      mouseTail: {
-        duration: 0.75 * 1000,
-        lineCap: 'round',
-        lineWidth: 2,
-        strokeStyle: theme.purple200,
-      },
-      // unpackFn: _ => _,
-      // plugins: [],
-    });
+      if (replayerRef.current) {
+        if (events === oldEvents) {
+          // Already have a player for these events, the parent node must've re-rendered
+          return;
+        }
 
-    // @ts-expect-error: rrweb types event handlers with `unknown` parameters
-    inst.on(ReplayerEvents.Resize, forceDimensions);
-    inst.on(ReplayerEvents.Finish, setPlayingFalse);
-    // @ts-expect-error: rrweb types event handlers with `unknown` parameters
-    inst.on(ReplayerEvents.SkipStart, onFastForwardStart);
-    inst.on(ReplayerEvents.SkipEnd, onFastForwardEnd);
+        // We have new events, need to clear out the old iframe because a new
+        // `Replayer` instance is about to be created
+        while (root.firstChild) {
+          root.removeChild(root.firstChild);
+        }
+      }
 
-    // `.current` is marked as readonly, but it's safe to set the value from
-    // inside a `useEffect` hook.
-    // See: https://reactjs.org/docs/hooks-faq.html#is-there-something-like-instance-variables
-    // @ts-expect-error
-    replayerRef.current = inst;
-  };
+      // eslint-disable-next-line no-new
+      const inst = new Replayer(events, {
+        root,
+        // blockClass: 'rr-block',
+        // liveMode: false,
+        // triggerFocus: false,
+        mouseTail: {
+          duration: 0.75 * 1000,
+          lineCap: 'round',
+          lineWidth: 2,
+          strokeStyle: theme.purple200,
+        },
+        // unpackFn: _ => _,
+        // plugins: [],
+      });
+
+      // @ts-expect-error: rrweb types event handlers with `unknown` parameters
+      inst.on(ReplayerEvents.Resize, forceDimensions);
+      inst.on(ReplayerEvents.Finish, setPlayingFalse);
+      // @ts-expect-error: rrweb types event handlers with `unknown` parameters
+      inst.on(ReplayerEvents.SkipStart, onFastForwardStart);
+      inst.on(ReplayerEvents.SkipEnd, onFastForwardEnd);
+
+      // `.current` is marked as readonly, but it's safe to set the value from
+      // inside a `useEffect` hook.
+      // See: https://reactjs.org/docs/hooks-faq.html#is-there-something-like-instance-variables
+      // @ts-expect-error
+      replayerRef.current = inst;
+    },
+    [events, oldEvents, theme.purple200]
+  );
 
   useEffect(() => {
     if (replayerRef.current && events) {
       initRoot(replayerRef.current.wrapper.parentElement as RootElem);
     }
-  }, [replayerRef.current, events]);
+  }, [initRoot, events]);
 
   const getCurrentTime = useCallback(
     () => (replayerRef.current ? Math.max(replayerRef.current.getCurrentTime(), 0) : 0),
-    [replayerRef.current]
+    []
   );
 
   const setCurrentTime = useCallback(
@@ -240,7 +243,7 @@ export function Provider({children, events, value = {}}: Props) {
         setIsPlaying(false);
       }
     },
-    [replayerRef.current, isPlaying]
+    [getCurrentTime, isPlaying]
   );
 
   const setSpeed = useCallback(
@@ -258,7 +261,7 @@ export function Provider({children, events, value = {}}: Props) {
       }
       setSpeedState(newSpeed);
     },
-    [replayerRef.current, isPlaying]
+    [getCurrentTime, isPlaying]
   );
 
   const togglePlayPause = useCallback(
@@ -275,22 +278,19 @@ export function Provider({children, events, value = {}}: Props) {
       }
       setIsPlaying(play);
     },
-    [replayerRef.current]
+    [getCurrentTime]
   );
 
-  const toggleSkipInactive = useCallback(
-    (skip: boolean) => {
-      const replayer = replayerRef.current;
-      if (!replayer) {
-        return;
-      }
-      if (skip !== replayer.config.skipInactive) {
-        replayer.setConfig({skipInactive: skip});
-      }
-      setIsSkippingInactive(skip);
-    },
-    [replayerRef.current]
-  );
+  const toggleSkipInactive = useCallback((skip: boolean) => {
+    const replayer = replayerRef.current;
+    if (!replayer) {
+      return;
+    }
+    if (skip !== replayer.config.skipInactive) {
+      replayer.setConfig({skipInactive: skip});
+    }
+    setIsSkippingInactive(skip);
+  }, []);
 
   const currentPlayerTime = useCurrentTime(getCurrentTime);
 

@@ -92,6 +92,7 @@ const TitleContainer = styled('div')`
   text-overflow: ellipsis;
   flex: 1 1 0%;
   margin-left: ${space(1)};
+  text-align: left;
 `;
 
 const DropdownTitle = styled('div')`

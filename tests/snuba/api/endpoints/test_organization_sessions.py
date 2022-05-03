@@ -1222,6 +1222,82 @@ class OrganizationSessionsEndpointMetricsTest(
         assert response.data == {"detail": "Cannot order by sum(session) with the current filters"}
 
     @freeze_time(MOCK_DATETIME)
+    def test_crash_rate(self):
+        default_request = {
+            "project": [-1],
+            "statsPeriod": "1d",
+            "interval": "1d",
+            "field": ["crash_rate(session)"],
+        }
+
+        def req(**kwargs):
+            return self.do_request(dict(default_request, **kwargs))
+
+        # 1 - filter session.status
+        response = req(
+            query="session.status:[abnormal,crashed]",
+        )
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "detail": "Cannot filter field crash_rate(session) by session.status"
+        }
+
+        # 2 - group by session.status
+        response = req(
+            groupBy="session.status",
+        )
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "detail": "Cannot group field crash_rate(session) by session.status"
+        }
+
+        # 4 - fetch all
+        response = req(
+            field=[
+                "crash_rate(session)",
+                "crash_rate(user)",
+                "crash_free_rate(session)",
+                "crash_free_rate(user)",
+            ],
+            groupBy=["release", "environment"],
+            orderBy=["crash_free_rate(session)"],
+            query="release:foo@1.0.0",
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["groups"] == [
+            {
+                "by": {"environment": "production", "release": "foo@1.0.0"},
+                "series": {
+                    "crash_free_rate(session)": [0.8333333333333334],
+                    "crash_free_rate(user)": [1.0],
+                    "crash_rate(session)": [0.16666666666666666],
+                    "crash_rate(user)": [0.0],
+                },
+                "totals": {
+                    "crash_free_rate(session)": 0.8333333333333334,
+                    "crash_free_rate(user)": 1.0,
+                    "crash_rate(session)": 0.16666666666666666,
+                    "crash_rate(user)": 0.0,
+                },
+            },
+            {
+                "by": {"environment": "development", "release": "foo@1.0.0"},
+                "series": {
+                    "crash_free_rate(session)": [1.0],
+                    "crash_free_rate(user)": [None],
+                    "crash_rate(session)": [0.0],
+                    "crash_rate(user)": [None],
+                },
+                "totals": {
+                    "crash_free_rate(session)": 1.0,
+                    "crash_free_rate(user)": None,
+                    "crash_rate(session)": 0.0,
+                    "crash_rate(user)": None,
+                },
+            },
+        ]
+
+    @freeze_time(MOCK_DATETIME)
     def test_pagination(self):
         def do_request(cursor):
             return self.do_request(
