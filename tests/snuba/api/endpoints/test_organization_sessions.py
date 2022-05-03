@@ -85,7 +85,6 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         self.create_member(user=self.user, organization=self.organization3, role="admin", teams=[])
 
         self.create_environment(self.project2, name="development")
-        return
 
         self.store_session(make_session(self.project1, started=SESSION_STARTED + 12 * 60))
         self.store_session(
