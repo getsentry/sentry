@@ -19,9 +19,7 @@ type Props = {
 };
 
 const formatTimestamp = timestamp =>
-  getFormattedDate(timestamp * 1000, 'MMM D, YYYY hh:mm:ss A', {local: false}).concat(
-    ' UTC'
-  );
+  getFormattedDate(timestamp * 1000, 'MMM D, YYYY hh:mm:ss A z', {local: false});
 
 function MemoryChart({memorySpans = [], startTimestamp = 0}: Props) {
   const theme = useTheme();
