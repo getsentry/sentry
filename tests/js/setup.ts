@@ -270,3 +270,16 @@ Object.defineProperty(window, 'location', {
   configurable: true,
   writable: true,
 });
+
+// The JSDOM implementation is too slow
+// Especially for dropdowns that try to position themselves
+// https://github.com/jsdom/jsdom/issues/3234
+Object.defineProperty(window, 'getComputedStyle', {
+  value: () => ({
+    getPropertyValue: () => {
+      return undefined;
+    },
+  }),
+  configurable: true,
+  writable: true,
+});
