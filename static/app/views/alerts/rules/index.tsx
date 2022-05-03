@@ -115,6 +115,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     const {
       params: {orgId},
       location,
+      organization,
       router,
     } = this.props;
     const {loading, ruleList = [], ruleListPageLinks} = this.state;
@@ -230,6 +231,9 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
                         orgId={orgId}
                         onDelete={this.handleDeleteRule}
                         userTeams={new Set(teams.map(team => team.id))}
+                        hasDuplicateAlertRules={organization.features.includes(
+                          'duplicate-alert-rule'
+                        )}
                       />
                     ))
                   }

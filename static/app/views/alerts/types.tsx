@@ -82,7 +82,12 @@ export enum AlertRuleStatus {
   DISABLED = 5,
 }
 
+export enum CombinedAlertType {
+  METRIC = 'alert_rule',
+  ISSUE = 'rule',
+}
+
 export type CombinedMetricIssueAlerts = (IssueAlertRule | IncidentRule) & {
-  type: string;
+  type: CombinedAlertType;
   latestIncident?: Incident | null;
 };
