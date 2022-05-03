@@ -80,6 +80,7 @@ from sentry.models import (
     Repository,
     RepositoryProjectPathConfig,
     Rule,
+    SentryAppInstallation,
     Team,
     User,
     UserEmail,
@@ -773,6 +774,7 @@ class Factories:
                 client_id=install.sentry_app.application.client_id,
                 user=install.sentry_app.proxy_user,
             )
+            install = SentryAppInstallation.objects.get(id=install.id)
         return install
 
     @staticmethod
