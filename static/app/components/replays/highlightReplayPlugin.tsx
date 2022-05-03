@@ -1,10 +1,16 @@
 import type {Replayer} from 'rrweb';
 import type {eventWithTime} from 'rrweb/typings/types';
 
-import {Highlight} from 'sentry/views/replays/types';
+import type {Highlight} from 'sentry/views/replays/types';
 
 interface HighlightReplayPluginOptions {
   defaultHighlightColor?: string;
+}
+
+type HighlightPluginEvent = eventWithTime & {data: Highlight};
+
+function isHighlightEvent(event: eventWithTime): event is HighlightPluginEvent {
+  return 'nodeId' in event.data;
 }
 
 class HighlightReplayPlugin {
@@ -17,14 +23,11 @@ class HighlightReplayPlugin {
   }
 
   handler(event: eventWithTime, _isSync: boolean, {replayer}: {replayer: Replayer}) {
-    const highlightObj = event.data as Highlight;
-
-    // ts has some issues with control flow analysis, so it will complain if we
-    // use `has` to check existance. instead, ensure that it is not undefined.
-    // See https://github.com/Microsoft/TypeScript/issues/9619
-    if (highlightObj.nodeId === undefined || highlightObj?.nodeId < 0) {
+    if (!isHighlightEvent(event) || event.data.nodeId < 0) {
       return;
     }
+
+    const highlightObj = event.data;
 
     // @ts-expect-error mirror, mouseTail is private
     const {mirror, mouseTail, wrapper} = replayer;
