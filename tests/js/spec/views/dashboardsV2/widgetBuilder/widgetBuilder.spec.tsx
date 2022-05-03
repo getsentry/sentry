@@ -1644,7 +1644,7 @@ describe('WidgetBuilder', function () {
           })
         );
       });
-    });
+    }, 10000);
 
     it('persists the state when toggling between sorting options', async function () {
       renderTestComponent({
