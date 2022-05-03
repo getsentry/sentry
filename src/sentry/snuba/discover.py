@@ -708,7 +708,7 @@ def spans_histogram_query(
     :param [Condition] extra_condition: Adds any additional conditions to the histogram query
     :param bool normalize_results: Indicate whether to normalize the results by column into bins.
     """
-    multiplier = int(10 ** precision)
+    multiplier = int(10**precision)
     if max_value is not None:
         # We want the specified max_value to be exclusive, and the queried max_value
         # to be inclusive. So we adjust the specified max_value using the multiplier.
@@ -803,7 +803,7 @@ def histogram_query(
     :param bool normalize_results: Indicate whether to normalize the results by column into bins.
     """
 
-    multiplier = int(10 ** precision)
+    multiplier = int(10**precision)
     if max_value is not None:
         # We want the specified max_value to be exclusive, and the queried max_value
         # to be inclusive. So we adjust the specified max_value using the multiplier.
