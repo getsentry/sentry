@@ -263,6 +263,39 @@ class OrganizationEventsVitalsEndpointTest(APITestCase, SnubaTestCase):
             "p75": None,
         }
 
+    def test_edges_of_vital_thresholds(self):
+        self.store_event(
+            load_data("transaction", timestamp=self.start),
+            {"lcp": 4000, "fp": 1000, "fcp": 0},
+            project_id=self.project.id,
+        )
+
+        self.query.update({"vital": ["measurements.lcp", "measurements.fp", "measurements.fcp"]})
+        response = self.do_request()
+        assert response.status_code == 200, response.data
+        assert not response.data["meta"]["isMetricsData"]
+        assert response.data["measurements.lcp"] == {
+            "good": 0,
+            "meh": 0,
+            "poor": 1,
+            "total": 1,
+            "p75": 4000,
+        }
+        assert response.data["measurements.fp"] == {
+            "good": 0,
+            "meh": 1,
+            "poor": 0,
+            "total": 1,
+            "p75": 1000,
+        }
+        assert response.data["measurements.fcp"] == {
+            "good": 1,
+            "meh": 0,
+            "poor": 0,
+            "total": 1,
+            "p75": 0,
+        }
+
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPerformanceTestCase):
     METRIC_STRINGS = ["measurement_rating"]
