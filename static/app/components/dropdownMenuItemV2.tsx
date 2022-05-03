@@ -12,7 +12,6 @@ import Link from 'sentry/components/links/link';
 import {IconChevron} from 'sentry/icons';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
-import {Theme} from 'sentry/utils/theme';
 
 /**
  * Menu item priority. Currently there's only one option, but we may choose to
