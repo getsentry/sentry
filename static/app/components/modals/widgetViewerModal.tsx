@@ -90,33 +90,28 @@ const HALF_CONTAINER_HEIGHT = 300;
 const SLIDER_HEIGHT = 60;
 const EMPTY_QUERY_NAME = '(Empty Query Condition)';
 
-// WidgetCardChartContainer rerenders if selection was changed.
-// This is required because we want to prevent ECharts interactions from
-// causing unnecessary rerenders which can break persistent legends functionality.
+const shouldWidgetCardChartMemo = (prevProps, props) => {
+  const selectionMatches = props.selection === prevProps.selection;
+  const sortMatches =
+    props.location.query[WidgetViewerQueryField.SORT] ===
+    prevProps.location.query[WidgetViewerQueryField.SORT];
+  const chartZoomOptionsMatches = isEqual(
+    props.chartZoomOptions,
+    prevProps.chartZoomOptions
+  );
+  const isNotTopNWidget =
+    props.widget.displayType !== DisplayType.TOP_N && props.widget.limit !== undefined;
+  return selectionMatches && chartZoomOptionsMatches && (sortMatches || isNotTopNWidget);
+};
+
+// WidgetCardChartContainer and WidgetCardChart rerenders if selection was changed.
+// This is required because we want to prevent ECharts interactions from causing
+// unnecessary rerenders which can break legends and zoom functionality.
 const MemoizedWidgetCardChartContainer = React.memo(
   WidgetCardChartContainer,
-  (prevProps, props) => {
-    return (
-      props.selection === prevProps.selection &&
-      (props.location.query[WidgetViewerQueryField.SORT] ===
-        prevProps.location.query[WidgetViewerQueryField.SORT] ||
-        (props.widget.displayType !== DisplayType.TOP_N &&
-          props.widget.limit !== undefined)) &&
-      isEqual(props.chartZoomOptions, prevProps.chartZoomOptions)
-    );
-  }
+  shouldWidgetCardChartMemo
 );
-
-const MemoizedWidgetCardChart = React.memo(WidgetCardChart, (prevProps, props) => {
-  return (
-    props.selection === prevProps.selection &&
-    (props.location.query[WidgetViewerQueryField.SORT] ===
-      prevProps.location.query[WidgetViewerQueryField.SORT] ||
-      (props.widget.displayType !== DisplayType.TOP_N &&
-        props.widget.limit !== undefined)) &&
-    isEqual(props.chartZoomOptions, prevProps.chartZoomOptions)
-  );
-});
+const MemoizedWidgetCardChart = React.memo(WidgetCardChart, shouldWidgetCardChartMemo);
 
 async function fetchDiscoverTotal(
   api: Client,
