@@ -1,6 +1,3 @@
-import * as React from 'react';
-
-import OptionCheckboxSelector from 'sentry/components/charts/optionCheckboxSelector';
 import OptionSelector from 'sentry/components/charts/optionSelector';
 import {
   ChartControls,
@@ -62,7 +59,6 @@ export default function ChartFooter({
           selected={displayMode}
           options={displayOptions}
           onChange={onDisplayChange}
-          menuWidth="170px"
         />
         {TOP_EVENT_MODES.includes(displayMode) && (
           <OptionSelector
@@ -70,10 +66,10 @@ export default function ChartFooter({
             selected={topEvents}
             options={topEventOptions}
             onChange={onTopEventsChange}
-            menuWidth="60px"
           />
         )}
-        <OptionCheckboxSelector
+        <OptionSelector
+          multiple
           title={t('Y-Axis')}
           selected={yAxisValue}
           options={yAxisOptions}
