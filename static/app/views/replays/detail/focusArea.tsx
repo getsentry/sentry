@@ -14,6 +14,7 @@ import {isReplayTab, ReplayTabs} from '../types';
 import FocusTabs from './focusTabs';
 import IssueList from './issueList';
 import MemoryChart from './memoryChart';
+import Trace from './trace';
 
 type Props = {
   replay: ReplayReader;
@@ -68,6 +69,12 @@ function ActiveTab({active, replay}: Props & {active: ReplayTabs}) {
         </div>
       );
     }
+    case 'trace':
+      return (
+        <div id="trace">
+          <Trace organization={organization} event={event} />
+        </div>
+      );
     case 'issues':
       return (
         <div id="issues">

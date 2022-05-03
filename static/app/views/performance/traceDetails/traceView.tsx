@@ -40,13 +40,12 @@ type AccType = {
 };
 
 type Props = Pick<RouteComponentProps<{}, {}>, 'location'> & {
-  filteredTransactionIds: Set<string> | undefined;
   meta: TraceMeta | null;
   organization: Organization;
   traceEventView: EventView;
-  traceInfo: TraceInfo;
   traceSlug: string;
   traces: TraceFullDetailed[] | null;
+  filteredTransactionIds?: Set<string>;
 };
 
 function TraceHiddenMessage({
