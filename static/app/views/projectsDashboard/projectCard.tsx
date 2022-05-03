@@ -182,7 +182,7 @@ class ProjectCard extends Component<Props> {
               )}
             </SummaryLinks>
           </CardHeader>
-          <ChartContainer>
+          <ChartContainer data-test-id="chart-container">
             {stats ? (
               <Chart
                 firstEvent={hasFirstEvent}
