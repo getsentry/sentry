@@ -325,7 +325,7 @@ def query_top_tags(
             query=filter_query,
             params=params,
             orderby=orderby,
-            extra_snql_condition=[
+            conditions=[
                 Condition(Column(translated_aggregate_column), Op.IS_NOT_NULL),
                 Condition(Column("tags_key"), Op.EQ, tag_key),
             ],
@@ -482,10 +482,6 @@ def query_facet_performance_key_histogram(
         precision=precision,
         group_by=["tags_value", "tags_key"],
         extra_conditions=[
-            ["tags_key", "IN", [tag_key]],
-            ["tags_value", "IN", tag_values],
-        ],
-        extra_snql_condition=[
             Condition(Column("tags_key"), Op.EQ, tag_key),
             Condition(Column("tags_value"), Op.IN, tag_values),
         ],
