@@ -276,7 +276,7 @@ describe('Filters and Sampling - Transaction rule', function () {
         // Autocomplete
         expect(screen.getByText(/filter conditions/i)).toBeInTheDocument();
 
-        // Trancing Condition Options
+        // Tracing Condition Options
         const modal = screen.getByRole('dialog');
         conditionTracingCategories.forEach(conditionTracingCategory => {
           expect(within(modal).getByText(conditionTracingCategory)).toBeInTheDocument();
