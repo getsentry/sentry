@@ -16,7 +16,7 @@ import {Widget, WidgetType} from '../types';
 import WidgetCardChart, {AugmentedEChartDataZoomHandler} from './chart';
 import {IssueWidgetCard} from './issueWidgetCard';
 import IssueWidgetQueries from './issueWidgetQueries';
-import MetricsWidgetQueries from './metricsWidgetQueries';
+import ReleaseWidgetQueries from './releaseWidgetQueries';
 import WidgetQueries from './widgetQueries';
 
 type Props = WithRouterProps & {
@@ -101,9 +101,9 @@ export function WidgetCardChartContainer({
     );
   }
 
-  if (widget.widgetType === WidgetType.METRICS) {
+  if (widget.widgetType === WidgetType.RELEASE) {
     return (
-      <MetricsWidgetQueries
+      <ReleaseWidgetQueries
         api={api}
         organization={organization}
         widget={widget}
@@ -138,7 +138,7 @@ export function WidgetCardChartContainer({
             </Fragment>
           );
         }}
-      </MetricsWidgetQueries>
+      </ReleaseWidgetQueries>
     );
   }
 

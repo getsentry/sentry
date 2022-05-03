@@ -1,12 +1,19 @@
+export type FlamegraphColorCodings = [
+  'by symbol name',
+  'by system / application',
+  'by library',
+  'by recursion'
+];
+
+export type FlamegraphSorting = ['left heavy', 'call order'];
+export type FlamegraphViewOptions = ['top down', 'bottom up'];
+export type FlamegraphAxisOptions = ['standalone', 'transaction'];
+
 export interface FlamegraphPreferences {
-  colorCoding:
-    | 'by symbol name'
-    | 'by system / application'
-    | 'by library'
-    | 'by recursion';
-  sorting: 'left heavy' | 'call order';
-  synchronizeXAxisWithTransaction: boolean;
-  view: 'top down' | 'bottom up';
+  colorCoding: FlamegraphColorCodings[number];
+  sorting: FlamegraphSorting[number];
+  view: FlamegraphViewOptions[number];
+  xAxis: FlamegraphAxisOptions[number];
 }
 
 type FlamegraphPreferencesAction =
@@ -14,8 +21,8 @@ type FlamegraphPreferencesAction =
   | {payload: FlamegraphPreferences['sorting']; type: 'set sorting'}
   | {payload: FlamegraphPreferences['view']; type: 'set view'}
   | {
-      payload: FlamegraphPreferences['synchronizeXAxisWithTransaction'];
-      type: 'set synchronizeXAxisWithTransaction';
+      payload: FlamegraphPreferences['xAxis'];
+      type: 'set xAxis';
     };
 
 export function flamegraphPreferencesReducer(
@@ -41,8 +48,8 @@ export function flamegraphPreferencesReducer(
         view: action.payload,
       };
     }
-    case 'set synchronizeXAxisWithTransaction': {
-      return {...state, synchronizeXAxisWithTransaction: action.payload};
+    case 'set xAxis': {
+      return {...state, xAxis: action.payload};
     }
     default: {
       return state;

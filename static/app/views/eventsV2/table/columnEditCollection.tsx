@@ -26,6 +26,7 @@ import {getPointerPosition} from 'sentry/utils/touch';
 import {setBodyUserSelect, UserSelectValues} from 'sentry/utils/userselect';
 import {WidgetType} from 'sentry/views/dashboardsV2/types';
 import {FieldKey} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/fields';
+import {SESSIONS_OPERATIONS} from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
 
 import {generateFieldOptions} from '../utils';
 
@@ -547,12 +548,14 @@ class ColumnEditCollection extends React.Component<Props, State> {
       source === WidgetType.ISSUE
         ? 1
         : Math.max(
-            ...columns.map(col =>
-              col.kind === 'function' &&
-              AGGREGATIONS[col.function[0]].parameters.length === 2
-                ? 3
-                : 2
-            )
+            ...columns.map(col => {
+              if (col.kind !== 'function') {
+                return 2;
+              }
+              const operation =
+                AGGREGATIONS[col.function[0]] ?? SESSIONS_OPERATIONS[col.function[0]];
+              return operation.parameters.length === 2 ? 3 : 2;
+            })
           );
 
     return (
@@ -596,7 +599,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
             >
               {t('Add a Column')}
             </Button>
-            {source !== WidgetType.ISSUE && source !== WidgetType.METRICS && (
+            {source !== WidgetType.ISSUE && source !== WidgetType.RELEASE && (
               <Button
                 size="small"
                 aria-label={t('Add an Equation')}

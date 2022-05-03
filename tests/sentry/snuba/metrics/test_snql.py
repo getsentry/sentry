@@ -14,12 +14,12 @@ from sentry.snuba.metrics import (
     crashed_users,
     errored_all_users,
     errored_preaggr_sessions,
-    percentage,
     session_duration_filters,
     subtraction,
     uniq_aggregation_on_metric,
 )
 from sentry.snuba.metrics.fields.snql import (
+    complement,
     division_float,
     failure_count_transaction,
     miserable_users,
@@ -297,14 +297,9 @@ class DerivedMetricSnQLTestCase(TestCase):
             alias="transaction.tolerated",
         )
 
-    def test_percentage_in_snql(self):
-        alias = "foo.percentage"
-        init_session_snql = all_sessions(self.org_id, self.metric_ids, "init_sessions")
-        crashed_session_snql = crashed_sessions(self.org_id, self.metric_ids, "crashed_sessions")
-
-        assert percentage(crashed_session_snql, init_session_snql, alias=alias) == Function(
-            "minus", [1, Function("divide", [crashed_session_snql, init_session_snql])], alias
-        )
+    def test_complement_in_sql(self):
+        alias = "foo.complement"
+        assert complement(0.64, alias=alias) == Function("minus", [1, 0.64], alias)
 
     def test_addition_in_snql(self):
         alias = "session.crashed_and_abnormal_user"

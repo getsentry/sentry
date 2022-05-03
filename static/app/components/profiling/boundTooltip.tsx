@@ -12,7 +12,7 @@ const useCachedMeasure = (string: string, font: string): Rect => {
     const context = getContext(document.createElement('canvas'), '2d');
     context.font = font;
     return context;
-  }, []);
+  }, [font]);
 
   return useMemo(() => {
     if (cache.current[string]) {
@@ -86,7 +86,7 @@ function BoundTooltip({
 
   const physicalSpaceCursor = vec2.transformMat3(
     vec2.create(),
-    vec2.fromValues(cursor[0], cursor[1]),
+    cursor,
 
     configViewToPhysicalSpace
   );

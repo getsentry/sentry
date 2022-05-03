@@ -164,7 +164,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
           organization={organization}
           stickyHeaders
           getCustomFieldRenderer={(field, meta) =>
-            getFieldRenderer(field, meta, widget.widgetType !== WidgetType.METRICS)
+            getFieldRenderer(field, meta, widget.widgetType !== WidgetType.RELEASE)
           }
         />
       );
@@ -211,7 +211,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
       const fieldRenderer = getFieldFormatter(
         field,
         tableMeta,
-        widget.widgetType !== WidgetType.METRICS
+        widget.widgetType !== WidgetType.RELEASE
       );
 
       const rendered = fieldRenderer(
@@ -307,7 +307,9 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
             ref={el => {
               if (el !== null && !!!expandNumbers) {
                 const {height} = el.getBoundingClientRect();
-                this.setState({containerHeight: height});
+                if (height !== this.state.containerHeight) {
+                  this.setState({containerHeight: height});
+                }
               }
             }}
           >

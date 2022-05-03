@@ -5,4 +5,11 @@ export type Replay = {
   timestamp: string;
   url: string;
   'user.display': string;
+  'user.email': string;
+  'user.id': string;
+  'user.ip_address': string;
+  'user.name': string;
+  'user.username': string;
 };
+
+export type TabBarId = 'console' | 'performance' | 'errors' | 'tags' | 'memory';
