@@ -15,7 +15,7 @@ class PositionIndicatorRenderer {
     this.context = getContext(this.canvas, '2d');
   }
 
-  draw(configView: Rect, configSpace: Rect, configViewToPhysicalSpace: mat3): void {
+  draw(configView: Rect, configSpace: Rect, configSpaceToPhysicalSpace: mat3): void {
     if (configView.equals(configSpace)) {
       // User is not zoomed in, so we dont need to draw anything.
       return;
@@ -23,10 +23,11 @@ class PositionIndicatorRenderer {
 
     // Transform both views to their respective physical spaces
     const physicalConfigViewRect = Rect.From(configView).transformRect(
-      configViewToPhysicalSpace
+      configSpaceToPhysicalSpace
     );
+
     const physicalConfigRect = Rect.From(configSpace).transformRect(
-      configViewToPhysicalSpace
+      configSpaceToPhysicalSpace
     );
 
     const offsetRectForBorderWidth: [number, number, number, number] = [

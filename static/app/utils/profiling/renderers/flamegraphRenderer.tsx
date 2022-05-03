@@ -139,12 +139,55 @@ class FlamegraphRenderer {
     this.physicalToLogicalSpace = mat3.invert(mat3.create(), this.logicalToPhysicalSpace);
   }
 
+  get logicalSpaceToConfigView(): mat3 {
+    const logicalSpaceToConfigView = Transform.transformMatrixBetweenRect(
+      this.logicalSpace,
+      this.configView
+    );
+
+    if (this.flamegraph.inverted) {
+      mat3.multiply(
+        logicalSpaceToConfigView,
+        this.configSpace.invertYTransform(),
+        logicalSpaceToConfigView
+      );
+    }
+
+    return logicalSpaceToConfigView;
+  }
+
   get configSpaceToPhysicalSpace(): mat3 {
-    return Transform.transformMatrixBetweenRect(this.configSpace, this.physicalSpace);
+    const configSpaceToPhysicalSpace = Transform.transformMatrixBetweenRect(
+      this.configSpace,
+      this.physicalSpace
+    );
+
+    if (this.flamegraph.inverted) {
+      mat3.multiply(
+        configSpaceToPhysicalSpace,
+        this.physicalSpace.invertYTransform(),
+        configSpaceToPhysicalSpace
+      );
+    }
+
+    return configSpaceToPhysicalSpace;
   }
 
   get configViewToPhysicalSpace(): mat3 {
-    return Transform.transformMatrixBetweenRect(this.configView, this.physicalSpace);
+    const configViewToPhysicalSpace = Transform.transformMatrixBetweenRect(
+      this.configView,
+      this.physicalSpace
+    );
+
+    if (this.flamegraph.inverted) {
+      mat3.multiply(
+        configViewToPhysicalSpace,
+        this.physicalSpace.invertYTransform(),
+        configViewToPhysicalSpace
+      );
+    }
+
+    return configViewToPhysicalSpace;
   }
 
   initConfigSpace(): void {
@@ -169,12 +212,6 @@ class FlamegraphRenderer {
     this.configView = Rect.From(this.configSpace).withHeight(
       this.physicalSpace.height / BAR_HEIGHT
     );
-
-    if (this.flamegraph.inverted) {
-      this.configView = this.configView.translateY(
-        this.configSpace.height - this.configView.height
-      );
-    }
   }
 
   onResizeUpdateSpace(): void {
@@ -209,14 +246,11 @@ class FlamegraphRenderer {
 
     for (let index = 0; index < length; index++) {
       const frame = this.frames[index];
-      const depth = this.flamegraph.inverted
-        ? this.configSpace.height - frame.depth - 1
-        : frame.depth;
 
       const x1 = frame.start;
       const x2 = frame.end;
-      const y1 = depth;
-      const y2 = depth + 1;
+      const y1 = frame.depth;
+      const y2 = frame.depth + 1;
 
       // top left -> top right -> bottom left ->
       // bottom left -> top right -> bottom right
@@ -503,14 +537,7 @@ class FlamegraphRenderer {
         return;
       }
 
-      const frameRect = new Rect(
-        frame.start,
-        this.flamegraph.inverted
-          ? this.configSpace.height - frame.depth - 1
-          : frame.depth,
-        frame.end - frame.start,
-        1
-      );
+      const frameRect = new Rect(frame.start, frame.depth, frame.end - frame.start, 1);
 
       // We treat entire flamegraph as a segment tree, this allows us to query in O(log n) time by
       // only looking at the nodes that are relevant to the current cursor position. We discard any values

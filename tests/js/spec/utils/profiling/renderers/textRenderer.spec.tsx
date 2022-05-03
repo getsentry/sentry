@@ -112,11 +112,7 @@ describe('TextRenderer', () => {
 
     const textRenderer = new TextRenderer(canvas as HTMLCanvasElement, flamegraph, Theme);
 
-    textRenderer.draw(
-      new Rect(0, 0, 200, 2),
-      flamegraph.configSpace,
-      mat3.identity(mat3.create())
-    );
+    textRenderer.draw(new Rect(0, 0, 200, 2), mat3.identity(mat3.create()));
 
     expect(context.fillText).toHaveBeenCalledTimes(2);
   });
@@ -155,7 +151,6 @@ describe('TextRenderer', () => {
 
     textRenderer.draw(
       new Rect(0, 0, Math.floor(longFrameName.length / 2), 10),
-      flamegraph.configSpace,
       mat3.identity(mat3.create())
     );
 
@@ -209,7 +204,6 @@ describe('TextRenderer', () => {
         Math.floor(longFrameName.length / 2 / 2),
         10
       ),
-      flamegraph.configSpace,
       mat3.identity(mat3.create())
     );
 

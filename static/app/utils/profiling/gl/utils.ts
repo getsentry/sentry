@@ -320,15 +320,26 @@ export class Rect {
     return this.overlapsX(other) && this.overlapsY(other);
   }
 
-  // When we transform rectangles with a 3x3 matrix, we scale width with m00 and height with m11, then translate
-  // the origin of the rect separately with m02 and m12.
   transformRect(transform: mat3): Rect {
+    const x = this.x * transform[0] + this.y * transform[3] + transform[6];
+    const y = this.x * transform[1] + this.y * transform[4] + transform[7];
+    const width = this.width * transform[0] + this.height * transform[3];
+    const height = this.width * transform[1] + this.height * transform[4];
+
     return new Rect(
-      this.x * transform[0] + this.y * transform[1] + transform[6],
-      this.x * transform[1] + this.y * transform[4] + transform[7],
-      this.width * transform[0] + this.height * transform[1],
-      this.width * transform[3] + this.height * transform[4]
+      x + (width < 0 ? width : 0),
+      y + (height < 0 ? height : 0),
+      Math.abs(width),
+      Math.abs(height)
     );
+  }
+
+  /**
+   * Returns a transform that inverts the y axis within the rect.
+   * This causes the bottom of the rect to be the top of the rect and vice versa.
+   */
+  invertYTransform(): mat3 {
+    return mat3.fromValues(1, 0, 0, 0, -1, 0, this.x, this.y * 2 + this.height, 1);
   }
 
   withHeight(height: number): Rect {

@@ -45,7 +45,7 @@ const makeDrawFullScreen = (renderer: TextRenderer, flamegraph: Flamegraph) => {
     new Rect(0, 0, 1000, 1000)
   );
   return () => {
-    renderer.draw(flamegraph.configSpace, flamegraph.configSpace, transform);
+    renderer.draw(flamegraph.configSpace, transform);
   };
 };
 
@@ -62,7 +62,7 @@ const makeDrawCenterScreen = (renderer: TextRenderer, flamegraph: Flamegraph) =>
   );
 
   return () => {
-    renderer.draw(configView, flamegraph.configSpace, transform);
+    renderer.draw(configView, transform);
   };
 };
 
@@ -79,7 +79,7 @@ const makeDrawRightSideOfScreen = (renderer: TextRenderer, flamegraph: Flamegrap
   );
 
   return () => {
-    renderer.draw(configView, flamegraph.configSpace, transform);
+    renderer.draw(configView, transform);
   };
 };
 
