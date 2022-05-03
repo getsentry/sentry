@@ -106,7 +106,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
             }
 
     @staticmethod
-    def _is_transaction_event(event):
+    def _is_transaction_event(event) -> bool:
         return event.group_id is None
 
     def insert(
@@ -117,7 +117,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         is_regression,
         is_new_group_environment,
         primary_hash,
-        received_timestamp,  # type: float
+        received_timestamp: float,
         skip_consume=False,
         **kwargs,
     ):
@@ -199,7 +199,22 @@ class KafkaEventStream(SnubaProtocolEventStream):
         commit_batch_timeout_ms=5000,
         initial_offset_reset="latest",
     ):
-        cluster_name = settings.KAFKA_TOPICS[settings.KAFKA_EVENTS]["cluster"]
+        concurrency = options.get(_CONCURRENCY_OPTION)
+        logger.info(f"Starting post process forwrader to consume {entity} messages")
+        if entity == PostProcessForwarderType.TRANSACTIONS:
+            cluster_name = settings.KAFKA_TOPICS[settings.KAFKA_TRANSACTIONS]["cluster"]
+            worker = TransactionsPostProcessForwarderWorker(concurrency=concurrency)
+        elif entity == PostProcessForwarderType.ERRORS:
+            cluster_name = settings.KAFKA_TOPICS[settings.KAFKA_EVENTS]["cluster"]
+
+            worker = ErrorsPostProcessForwarderWorker(concurrency=concurrency)
+        else:
+            # Default implementation which processes both errors and transactions
+            # irrespective of values in the header. This would most likely be the case
+            # for development environments.
+            cluster_name = settings.KAFKA_TOPICS[settings.KAFKA_EVENTS]["cluster"]
+            assert cluster_name == settings.KAFKA_TOPICS[settings.KAFKA_TRANSACTIONS["cluster"]]
+            worker = PostProcessForwarderWorker(concurrency=concurrency)
 
         synchronized_consumer = SynchronizedConsumer(
             cluster_name=cluster_name,
@@ -208,18 +223,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
             synchronize_commit_group=synchronize_commit_group,
             initial_offset_reset=initial_offset_reset,
         )
-
-        concurrency = options.get(_CONCURRENCY_OPTION)
-        logger.info(f"Starting post process forwrader to consume {entity} messages")
-        if entity == PostProcessForwarderType.TRANSACTIONS:
-            worker = TransactionsPostProcessForwarderWorker(concurrency=concurrency)
-        elif entity == PostProcessForwarderType.ERRORS:
-            worker = ErrorsPostProcessForwarderWorker(concurrency=concurrency)
-        else:
-            # Default implementation which processes both errors and transactions
-            # irrespective of values in the header. This would most likely be the case
-            # for development environments.
-            worker = PostProcessForwarderWorker(concurrency=concurrency)
 
         consumer = BatchingKafkaConsumer(
             topics=self.topic,
