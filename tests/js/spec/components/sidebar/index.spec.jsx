@@ -4,6 +4,8 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 import * as incidentActions from 'sentry/actionCreators/serviceIncidents';
 import SidebarContainer from 'sentry/components/sidebar';
 import ConfigStore from 'sentry/stores/configStore';
+import {PersistedStoreProvider} from 'sentry/stores/persistedStore';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/actionCreators/serviceIncidents');
 
@@ -19,7 +21,12 @@ describe('Sidebar', function () {
     <SidebarContainer organization={organization} location={location} {...props} />
   );
 
-  const renderSidebar = props => render(getElement(props));
+  const renderSidebar = props =>
+    render(
+      <OrganizationContext.Provider value={organization}>
+        <PersistedStoreProvider>{getElement(props)}</PersistedStoreProvider>
+      </OrganizationContext.Provider>
+    );
 
   beforeEach(function () {
     apiMocks.broadcasts = MockApiClient.addMockResponse({
@@ -33,6 +40,10 @@ describe('Sidebar', function () {
     apiMocks.sdkUpdates = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sdk-updates/`,
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/client-state/`,
+      body: {},
     });
   });
 

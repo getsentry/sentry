@@ -1,3 +1,5 @@
+import 'prism-sentry/index.css';
+
 import {useEffect, useState} from 'react';
 import * as React from 'react';
 import {browserHistory} from 'react-router';
