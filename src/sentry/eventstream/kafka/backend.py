@@ -211,7 +211,8 @@ class KafkaEventStream(SnubaProtocolEventStream):
         else:
             # Default implementation which processes both errors and transactions
             # irrespective of values in the header. This would most likely be the case
-            # for development environments.
+            # for development environments. For the combined post process forwarder
+            # to work KAFKA_EVENTS and KAFKA_TRANSACTIONS must be the same currently.
             cluster_name = settings.KAFKA_TOPICS[settings.KAFKA_EVENTS]["cluster"]
             assert cluster_name == settings.KAFKA_TOPICS[settings.KAFKA_TRANSACTIONS]["cluster"]
             worker = PostProcessForwarderWorker(concurrency=concurrency)
