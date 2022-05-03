@@ -132,19 +132,17 @@ def send_alert_event(
     request_data = AppPlatformEvent(
         resource="event_alert", action="triggered", install=install, data=data
     )
-    try:
-        send_and_save_webhook_request(sentry_app, request_data)
-    except Exception as e:
-        raise e
-    else:
-        # On success, record analytic event for Alert Rule UI Component
-        if request_data.data.get("issue_alert"):
-            analytics.record(
-                "alert_rule_ui_component_webhook.sent",
-                organization_id=organization.id,
-                sentry_app_id=sentry_app_id,
-                event=f"{request_data.resource}.{request_data.action}",
-            )
+
+    send_and_save_webhook_request(sentry_app, request_data)
+
+    # On success, record analytic event for Alert Rule UI Component
+    if request_data.data.get("issue_alert"):
+        analytics.record(
+            "alert_rule_ui_component_webhook.sent",
+            organization_id=organization.id,
+            sentry_app_id=sentry_app_id,
+            event=f"{request_data.resource}.{request_data.action}",
+        )
 
 
 def _process_resource_change(action, sender, instance_id, retryer=None, *args, **kwargs):
@@ -349,7 +347,10 @@ def notify_sentry_app(event, futures):
             }
 
         send_alert_event.delay(
-            event=event, rule=f.rule.label, sentry_app_id=f.kwargs["sentry_app"].id, **extra_kwargs
+            event=event,
+            rule=f.rule.label,
+            sentry_app_id=f.kwargs["sentry_app"].id,
+            **extra_kwargs,
         )
 
 
