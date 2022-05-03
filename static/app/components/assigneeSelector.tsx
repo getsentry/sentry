@@ -556,7 +556,6 @@ class AssigneeSelector extends React.Component<Props, State> {
               )
             }
             disableLabelPadding
-            menuWithArrow
             emptyHidesInput
           >
             {({getActorProps, isOpen}) => (
