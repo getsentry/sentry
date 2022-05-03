@@ -28,7 +28,10 @@ class TestSentryAppAuthorizations(APITestCase):
         )
 
         self.install = self.create_sentry_app_installation(
-            organization=self.organization, slug="nulldb", user=self.user
+            organization=self.organization,
+            slug="nulldb",
+            user=self.user,
+            prevent_token_exchange=True,
         )
 
     def get_response(self, *args, **params):
@@ -64,7 +67,10 @@ class TestSentryAppAuthorizations(APITestCase):
 
     def test_invalid_installation(self):
         self.install = self.create_sentry_app_installation(
-            organization=self.organization, slug="slowdb", user=self.user
+            organization=self.organization,
+            slug="slowdb",
+            user=self.user,
+            prevent_token_exchange=True,
         )
 
         # URL with this new Install's uuid in it

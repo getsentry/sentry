@@ -4,7 +4,6 @@ from rest_framework.permissions import AllowAny
 from sentry.api.base import Endpoint
 from sentry.api.endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from sentry.auth.system import SystemToken
-from sentry.mediators.token_exchange import GrantExchanger
 from sentry.models import User
 from sentry.ratelimits import get_rate_limit_config, get_rate_limit_key
 from sentry.ratelimits.config import RateLimitConfig
@@ -75,16 +74,9 @@ class GetRateLimitKeyTest(TestCase):
             slug=sentry_app.slug, organization=self.organization, user=self.user
         )
 
-        client_id = sentry_app.application.client_id
-        user = sentry_app.proxy_user
-
-        api_token = GrantExchanger.run(
-            install=install, code=install.api_grant.code, client_id=client_id, user=user
-        )
-
         self.request.user = sentry_app.proxy_user
 
-        self.request.auth = api_token
+        self.request.auth = install.api_token
 
         assert (
             get_rate_limit_key(
