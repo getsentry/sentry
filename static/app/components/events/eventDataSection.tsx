@@ -65,8 +65,9 @@ function EventDataSection({
           <Title>
             {showPermalink ? (
               <Permalink className="permalink">
-                <PermalinkAnchor href={`#${type}`} />
-                <StyledIconAnchor size="xs" color="subText" />
+                <PermalinkAnchor href={`#${type}`}>
+                  <StyledIconAnchor size="xs" color="subText" />
+                </PermalinkAnchor>
                 {titleNode}
               </Permalink>
             ) : (
@@ -103,39 +104,31 @@ const Title = styled('div')`
   display: flex;
 `;
 
-const StyledIconAnchor = styled(IconAnchor)`
-  position: absolute;
-  top: 8px;
-  left: -16px;
-  opacity: 0;
-  transition: opacity 100ms;
-`;
-
 const Permalink = styled('span')`
   width: 100%;
   position: relative;
+`;
 
-  /* Improved hitbox for the anchor icon */
-  &:after {
-    content: '';
-    position: absolute;
-    width: 20px;
-    height: 16px;
-    top: 6px;
-    left: -20px;
-  }
-
-  :hover ${StyledIconAnchor} {
-    opacity: 1;
-  }
+const StyledIconAnchor = styled(IconAnchor)`
+  opacity: 0;
+  transform: translateY(-1px);
+  transition: opacity 100ms;
 `;
 
 const PermalinkAnchor = styled(Anchor)`
+  display: flex;
+  align-items: center;
   position: absolute;
   top: 0;
   left: 0;
-  width: 100%;
+  width: calc(100% + ${space(3)});
   height: 100%;
+  padding-left: ${space(0.5)};
+  transform: translateX(-${space(3)});
+
+  :hover ${StyledIconAnchor}, :focus ${StyledIconAnchor} {
+    opacity: 1;
+  }
 `;
 
 const SectionHeader = styled('div')<{isCentered?: boolean}>`
