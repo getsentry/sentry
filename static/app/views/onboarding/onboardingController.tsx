@@ -1,3 +1,6 @@
+import {useEffect} from 'react';
+
+import {logExperiment} from 'sentry/utils/analytics';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import TargetedOnboarding from './targetedOnboarding/onboarding';
@@ -5,13 +8,12 @@ import TargetedOnboarding from './targetedOnboarding/onboarding';
 type Props = Omit<React.ComponentPropsWithoutRef<typeof TargetedOnboarding>, 'projects'>;
 
 function OnboardingController({...rest}: Props) {
-  // TODO: uncomment
-  // useEffect(() => {
-  //   logExperiment({
-  //     key: 'TargetedOnboardingMobileRedirectExperiment',
-  //     organization: rest.organization,
-  //   });
-  // }, [rest.organization]);
+  useEffect(() => {
+    logExperiment({
+      key: 'TargetedOnboardingMobileRedirectExperiment',
+      organization: rest.organization,
+    });
+  }, [rest.organization]);
   return <TargetedOnboarding {...rest} />;
 }
 
