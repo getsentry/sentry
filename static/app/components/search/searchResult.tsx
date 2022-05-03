@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Fragment} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -18,10 +18,29 @@ type Props = WithRouterProps<{orgId: string}> & {
   matches: Result['matches'];
 };
 
-class SearchResult extends Component<Props> {
-  renderContent() {
-    const {highlighted, item, matches, params} = this.props;
-    const {sourceType, model, extra} = item;
+function renderResultType({resultType, model}: Result['item']) {
+  switch (resultType) {
+    case 'settings':
+      return <IconSettings />;
+    case 'field':
+      return <IconInput />;
+    case 'route':
+      return <IconLink />;
+    case 'integration':
+      return <StyledPluginIcon pluginId={model.slug} />;
+    case 'sentryApp':
+      return <SentryAppAvatar sentryApp={model} />;
+    case 'docIntegration':
+      return <DocIntegrationAvatar docIntegration={model} />;
+    default:
+      return null;
+  }
+}
+
+function SearchResult({item, matches, params, highlighted}: Props) {
+  const {sourceType, model, extra} = item;
+
+  function renderContent() {
     let {title, description} = item;
 
     if (matches) {
@@ -62,51 +81,22 @@ class SearchResult extends Component<Props> {
 
     return (
       <Fragment>
-        <div>
-          <SearchTitle>{title}</SearchTitle>
-        </div>
+        <div>{title}</div>
         {description && <SearchDetail>{description}</SearchDetail>}
         {extra && <ExtraDetail>{extra}</ExtraDetail>}
       </Fragment>
     );
   }
 
-  renderResultType() {
-    const {item} = this.props;
-    const {resultType, model} = item;
-
-    switch (resultType) {
-      case 'settings':
-        return <IconSettings />;
-      case 'field':
-        return <IconInput />;
-      case 'route':
-        return <IconLink />;
-      case 'integration':
-        return <StyledPluginIcon pluginId={model.slug} />;
-      case 'sentryApp':
-        return <SentryAppAvatar sentryApp={model} />;
-      case 'docIntegration':
-        return <DocIntegrationAvatar docIntegration={model} />;
-      default:
-        return null;
-    }
-  }
-
-  render() {
-    return (
-      <Wrapper>
-        <Content>{this.renderContent()}</Content>
-        <div>{this.renderResultType()}</div>
-      </Wrapper>
-    );
-  }
+  return (
+    <Wrapper>
+      <Content>{renderContent()}</Content>
+      <div>{renderResultType(item)}</div>
+    </Wrapper>
+  );
 }
 
 export default withRouter(SearchResult);
-
-// This is for tests
-const SearchTitle = styled('span')``;
 
 const SearchDetail = styled('div')`
   font-size: 0.8em;
