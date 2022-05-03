@@ -53,6 +53,10 @@ def unfurl_metric_alerts(
             organization__in=all_integration_orgs,
         )
     }
+
+    if not alert_rule_map:
+        return {}
+
     incident_map = {
         i.identifier: i
         for i in Incident.objects.filter(
@@ -62,9 +66,6 @@ def unfurl_metric_alerts(
             organization__in=all_integration_orgs,
         )
     }
-
-    if not alert_rule_map:
-        return {}
 
     return {
         link.url: SlackMetricAlertMessageBuilder(
@@ -84,7 +85,7 @@ def map_metric_alert_query_args(url: str, args: Mapping[str, str]) -> Mapping[st
     # to be unescaped for QueryDict to split properly.
     url = html.unescape(url)
     parsed_url = urlparse(url)
-    params = QueryDict(parsed_url.query).copy()
+    params = QueryDict(parsed_url.query)
     incident_id = params.get("alert", None)
 
     return map_incident_args(url, {**args, "incident_id": incident_id})
