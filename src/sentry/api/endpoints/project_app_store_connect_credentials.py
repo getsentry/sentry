@@ -212,7 +212,7 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
         config = serializer.validated_data
 
         config["type"] = "appStoreConnect"
-        config["id"] = uuid4().hex
+        config["id"] = str(uuid4())
         config["name"] = config["appName"]
 
         try:
