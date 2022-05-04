@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {motion, Variants} from 'framer-motion';
 
@@ -58,11 +59,10 @@ export default function FirstEventFooter({
     ) {
       return (
         <Button
-          to={`/onboarding/${organization.slug}/mobile-redirect/`}
           priority="primary"
-          onClick={() => {
+          onClick={async () => {
             clientState &&
-              client.requestPromise(
+              (await client.requestPromise(
                 `/organizations/${organization.slug}/onboarding-continuation-email/`,
                 {
                   method: 'POST',
@@ -70,7 +70,8 @@ export default function FirstEventFooter({
                     platforms: clientState.selectedPlatforms,
                   },
                 }
-              );
+              ));
+            browserHistory.push(`/onboarding/${organization.slug}/mobile-redirect/`);
           }}
         >
           {t('Setup on Computer')}
