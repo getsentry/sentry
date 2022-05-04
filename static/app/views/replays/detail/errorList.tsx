@@ -41,7 +41,7 @@ function ErrorList(props: Props) {
       id: '',
       name: '',
       version: 2,
-      fields: ['issue'],
+      fields: ['count(issue)', 'issue'],
       environment: selection.environments,
       projects: selection.projects,
       query: `replayId:${props.replayId} AND event.type:error`,
@@ -141,17 +141,10 @@ function ErrorList(props: Props) {
         limit={15}
       >
         {data => {
-          // get only errors that have a unique issue id
-          const filteredData = [
-            ...new Map(
-              data.tableData?.data.map(error => [error['issue.id'], error]) || []
-            ).values(),
-          ];
-
           return (
             <Fragment>
               <StyledPanelTable
-                isEmpty={filteredData.length === 0}
+                isEmpty={data.tableData?.data.length === 0}
                 isLoading={data.isLoading}
                 headers={
                   isScreenLarge
@@ -159,7 +152,7 @@ function ErrorList(props: Props) {
                     : columns.filter(column => column !== t('Graph'))
                 }
               >
-                {filteredData.map(renderTableRow) || null}
+                {data.tableData?.data.map(renderTableRow) || null}
               </StyledPanelTable>
             </Fragment>
           );
