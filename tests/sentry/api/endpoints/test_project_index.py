@@ -1,6 +1,8 @@
 from django.urls import reverse
+from rest_framework import status
 
 from sentry.models import Project, ProjectStatus, SentryAppInstallationToken
+from sentry.models.apitoken import ApiToken
 from sentry.testutils import APITestCase
 
 
@@ -154,7 +156,39 @@ class ProjectsListTest(APITestCase):
 
         # Delete the token
         SentryAppInstallationToken.objects.all().delete()
+        self.get_error_response(
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token}"},
+            status_code=status.HTTP_401_UNAUTHORIZED,
+        )
 
-        path = reverse(self.endpoint)
-        response = self.client.get(path, HTTP_AUTHORIZATION=f"Bearer {token}")
-        assert response.status_code == 401
+    def get_installed_unpublished_sentry_app_access_token(self):
+        self.project = self.create_project(organization=self.organization, teams=[self.team])
+        sentry_app = self.create_sentry_app(
+            scopes=("project:read",),
+            published=False,
+            verify_install=False,
+            name="Super Awesome App",
+        )
+        installation = self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=self.organization, user=self.user
+        )
+        return installation.api_token.token
+
+    def test_valid_with_public_integration(self):
+        token = self.get_installed_unpublished_sentry_app_access_token()
+
+        # there should only be one record created so just grab the first one
+        response = self.get_success_response(
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token}"}
+        )
+        assert self.project.name.encode("utf-8") in response.content
+
+    def test_deleted_token_with_public_integration(self):
+        token = self.get_installed_unpublished_sentry_app_access_token()
+
+        ApiToken.objects.all().delete()
+
+        self.get_error_response(
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token}"},
+            status_code=status.HTTP_401_UNAUTHORIZED,
+        )

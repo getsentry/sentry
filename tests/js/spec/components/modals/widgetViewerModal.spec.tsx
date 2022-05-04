@@ -861,11 +861,11 @@ describe('Modals -> WidgetViewerModal', function () {
     };
     const mockWidget = {
       id: '1',
-      title: 'Metrics Widget',
+      title: 'Release Widget',
       displayType: DisplayType.LINE,
       interval: '5m',
       queries: [mockQuery],
-      widgetType: WidgetType.METRICS,
+      widgetType: WidgetType.RELEASE,
     };
     beforeEach(function () {
       sessionsMock = MockApiClient.addMockResponse({
@@ -880,7 +880,7 @@ describe('Modals -> WidgetViewerModal', function () {
 
     it('renders widget title', async function () {
       await renderModal({initialData, widget: mockWidget});
-      expect(screen.getByText('Metrics Widget')).toBeInTheDocument();
+      expect(screen.getByText('Release Widget')).toBeInTheDocument();
     });
 
     it('renders Edit', async function () {
@@ -896,7 +896,7 @@ describe('Modals -> WidgetViewerModal', function () {
       expect(screen.getByText('6.3k')).toBeInTheDocument();
     });
 
-    it('renders Metrics widget viewer', async function () {
+    it('renders Release widget viewer', async function () {
       const {container} = await renderModal({initialData, widget: mockWidget});
       expect(container).toSnapshot();
     });

@@ -17,6 +17,7 @@ from typing import (
     MutableMapping,
     Optional,
     Sequence,
+    Set,
     Tuple,
     Type,
     TypedDict,
@@ -115,11 +116,11 @@ class GroupKey:
         dct: GroupKeyDict = {}
         if self.project:
             dct["project"] = self.project
-        if self.release:
+        if self.release is not None:
             dct["release"] = self.release
-        if self.environment:
+        if self.environment is not None:
             dct["environment"] = self.environment
-        if self.session_status:
+        if self.session_status is not None:
             dct["session.status"] = self.session_status.value
 
         return dct
@@ -147,6 +148,7 @@ class Field(ABC):
         self.name = name
         self._raw_groupby = raw_groupby
         self._status_filter = status_filter
+        self._hidden_fields: Set[MetricField] = set()
         self.metric_fields = self._get_metric_fields(raw_groupby, status_filter)
 
     @abstractmethod
@@ -164,11 +166,10 @@ class Field(ABC):
         input_groups: GroupedData,
         output_groups: GroupedData,
     ) -> None:
-        is_groupby_status = "session.status" in self._raw_groupby
         for metric_field in self.metric_fields:
             session_status = self._get_session_status(metric_field)
-            if is_groupby_status and session_status is None:
-                # We fetched this only to be consistent with the sort order
+            if metric_field in self._hidden_fields:
+                # We fetched this only to get a consistent sort order
                 # in the original implementation, don't add it to output data
                 continue
             field_name = (
@@ -218,6 +219,9 @@ class Field(ABC):
         return new_value
 
 
+UNSORTABLE = {SessionStatus.HEALTHY, SessionStatus.ERRORED}
+
+
 class CountField(Field):
     """Base class for sum(sessions) and count_unique(user)"""
 
@@ -231,9 +235,16 @@ class CountField(Field):
     ) -> Sequence[MetricField]:
         if status_filter:
             # Restrict fields to the included ones
-            return [self.status_to_metric_field[status] for status in status_filter]
+            metric_fields = [self.status_to_metric_field[status] for status in status_filter]
+            if UNSORTABLE & status_filter:
+                self._hidden_fields.add(self.get_all_field())
+                # We always order the results by one of the selected fields,
+                # even if no orderBy is specified (see _primary_field).
+                metric_fields = [self.get_all_field()] + metric_fields
+            return metric_fields
 
         if "session.status" in raw_groupby:
+            self._hidden_fields.add(self.get_all_field())
             return [
                 # Always also get ALL, because this is what we sort by
                 # in the sessions implementation, with which we want to be consistent
@@ -329,6 +340,39 @@ class DurationField(Field):
         return value
 
 
+class SimpleForwardingField(Field):
+    """A field that forwards a metrics API field 1:1.
+
+    On this type of field, grouping and filtering by session.status is impossible
+    """
+
+    field_name_to_metric_name = {
+        "crash_rate(session)": SessionMetricKey.CRASH_RATE,
+        "crash_rate(user)": SessionMetricKey.CRASH_USER_RATE,
+        "crash_free_rate(session)": SessionMetricKey.CRASH_FREE_RATE,
+        "crash_free_rate(user)": SessionMetricKey.CRASH_FREE_USER_RATE,
+    }
+
+    def __init__(self, name: str, raw_groupby: Sequence[str], status_filter: StatusFilter):
+        if "session.status" in raw_groupby:
+            raise InvalidParams(f"Cannot group field {name} by session.status")
+        if status_filter is not None:
+            raise InvalidParams(f"Cannot filter field {name} by session.status")
+
+        metric_name = self.field_name_to_metric_name[name].value
+        self._metric_field = MetricField(None, metric_name)
+
+        super().__init__(name, raw_groupby, status_filter)
+
+    def _get_session_status(self, metric_field: MetricField) -> Optional[SessionStatus]:
+        return None
+
+    def _get_metric_fields(
+        self, raw_groupby: Sequence[str], status_filter: StatusFilter
+    ) -> Sequence[MetricField]:
+        return [self._metric_field]
+
+
 FIELD_MAP: Mapping[SessionsQueryFunction, Type[Field]] = {
     "sum(session)": SumSessionField,
     "count_unique(user)": CountUniqueUser,
@@ -339,6 +383,10 @@ FIELD_MAP: Mapping[SessionsQueryFunction, Type[Field]] = {
     "p95(session.duration)": DurationField,
     "p99(session.duration)": DurationField,
     "max(session.duration)": DurationField,
+    "crash_rate(session)": SimpleForwardingField,
+    "crash_rate(user)": SimpleForwardingField,
+    "crash_free_rate(session)": SimpleForwardingField,
+    "crash_free_rate(user)": SimpleForwardingField,
 }
 
 
@@ -385,7 +433,6 @@ def run_sessions_query(
         orderby = OrderBy(primary_metric_field, Direction.DESC)
 
     max_groups = SNUBA_LIMIT // len(intervals)
-
     metrics_query = MetricsQuery(
         org_id,
         project_ids,

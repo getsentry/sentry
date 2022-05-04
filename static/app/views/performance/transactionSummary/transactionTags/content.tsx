@@ -155,19 +155,19 @@ const InnerContent = (
         isLoading={isLoading}
       />
       <StyledMain>
-        <StyledActions>
-          <StyledPageFilterBar condensed>
+        <FilterActions>
+          <PageFilterBar condensed>
             <EnvironmentPageFilter />
             <DatePageFilter alignDropdown="left" />
-          </StyledPageFilterBar>
-          <StyledSearchBar
+          </PageFilterBar>
+          <SearchBar
             organization={organization}
             projectIds={eventView.project}
             query={query}
             fields={eventView.fields}
             onSearch={handleSearch}
           />
-        </StyledActions>
+        </FilterActions>
         <TagsDisplay {...props} tagKey={tagSelected} />
       </StyledMain>
     </ReversedLayoutBody>
@@ -295,16 +295,14 @@ const StyledMain = styled('div')`
   max-width: 100%;
 `;
 
-const StyledSearchBar = styled(SearchBar)`
-  flex-grow: 1;
-`;
+const FilterActions = styled('div')`
+  display: grid;
+  gap: ${space(2)};
+  margin-bottom: ${space(2)};
 
-const StyledActions = styled('div')`
-  margin-bottom: ${space(1)};
-`;
-
-const StyledPageFilterBar = styled(PageFilterBar)`
-  margin-bottom: ${space(1)};
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: auto 1fr;
+  }
 `;
 
 export default TagsPageContent;

@@ -1,3 +1,5 @@
+import 'prism-sentry/index.css';
+
 import {useEffect, useState} from 'react';
 import * as React from 'react';
 import {browserHistory} from 'react-router';
@@ -285,7 +287,10 @@ function SetupDocs({organization, projects, search, configurations, providers}: 
         <MainContent>
           {subStep === 'project' ? (
             <React.Fragment>
-              <FullIntroduction currentPlatform={currentPlatform} />
+              <FullIntroduction
+                currentPlatform={currentPlatform}
+                organization={organization}
+              />
               {getDynamicText({
                 value: !hasError ? docs : loadingError,
                 fixed: testOnlyAlert,

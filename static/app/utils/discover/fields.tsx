@@ -717,7 +717,9 @@ export enum MobileVital {
   StallPercentage = 'measurements.stall_percentage',
 }
 
-const MEASUREMENTS: Readonly<Record<WebVital | MobileVital, ColumnType>> = {
+export type MeasurementType = 'duration' | 'number' | 'integer' | 'percentage';
+
+const MEASUREMENTS: Readonly<Record<WebVital | MobileVital, MeasurementType>> = {
   [WebVital.FP]: 'duration',
   [WebVital.FCP]: 'duration',
   [WebVital.LCP]: 'duration',
@@ -788,7 +790,7 @@ export function isMeasurement(field: string): boolean {
   return !!results;
 }
 
-export function measurementType(field: string) {
+export function measurementType(field: string): MeasurementType {
   if (MEASUREMENTS.hasOwnProperty(field)) {
     return MEASUREMENTS[field];
   }

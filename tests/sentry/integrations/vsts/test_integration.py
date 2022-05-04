@@ -3,7 +3,6 @@ from urllib.parse import parse_qs, urlparse
 
 import pytest
 import responses
-from exam import mock
 
 from sentry.integrations.vsts import VstsIntegration, VstsIntegrationProvider
 from sentry.models import (
@@ -450,7 +449,7 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
         integration = Integration.objects.get(provider="vsts")
         installation = integration.get_installation(self.organization.id)
 
-        group_note = mock.Mock()
+        group_note = Mock()
         comment = "hello world\nThis is a comment.\n\n\n    I've changed it"
         group_note.data = {"text": comment, "external_id": "123"}
 

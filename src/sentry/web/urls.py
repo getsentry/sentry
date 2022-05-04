@@ -70,7 +70,7 @@ if getattr(settings, "SERVE_UPLOADED_FILES", settings.DEBUG):
     # would typically be handled by some static server.
     urlpatterns += [
         url(
-            fr"^{re.escape(settings.MEDIA_URL)}(?P<path>.*)$",
+            rf"^{re.escape(settings.MEDIA_URL)}(?P<path>.*)$",
             serve,
             {"document_root": settings.MEDIA_ROOT},
             name="sentry-serve-media",
@@ -678,6 +678,11 @@ urlpatterns += [
         r"^organizations/(?P<organization_slug>[\w_-]+)/alerts/(?P<incident_id>\d+)/$",
         react_page_view,
         name="sentry-metric-alert",
+    ),
+    url(
+        r"^organizations/(?P<organization_slug>[\w_-]+)/alerts/rules/details/(?P<alert_rule_id>\d+)/$",
+        react_page_view,
+        name="sentry-metric-alert-details",
     ),
     url(
         r"^settings/(?P<organization_slug>[\w_-]+)/projects/(?P<project_slug>[\w_-]+)/alerts/metric-rules/(?P<alert_rule_id>\d+)/$",
