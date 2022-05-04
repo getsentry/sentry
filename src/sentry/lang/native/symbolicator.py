@@ -594,6 +594,10 @@ class SymbolicatorSession:
                 if response.ok:
                     json = response.json()
                 else:
+                    with sentry_sdk.push_scope():
+                        sentry_sdk.set_extra("symbolicator_response", response.text)
+                        sentry_sdk.capture_message("Symbolicator request failed")
+
                     json = {"status": "failed", "message": "internal server error"}
 
                 return self._process_response(json)
