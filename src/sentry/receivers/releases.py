@@ -1,4 +1,5 @@
 from django.db import IntegrityError, transaction
+from django.db.models import F
 from django.db.models.signals import post_save
 from django.utils import timezone
 
@@ -12,8 +13,10 @@ from sentry.models import (
     GroupLink,
     GroupStatus,
     GroupSubscription,
+    Project,
     PullRequest,
     Release,
+    ReleaseProject,
     Repository,
     UserOption,
     remove_group_from_inbox,
@@ -24,7 +27,7 @@ from sentry.models.grouphistory import (
     record_group_history_from_activity_type,
 )
 from sentry.notifications.types import GroupSubscriptionReason
-from sentry.signals import issue_resolved
+from sentry.signals import buffer_incr_complete, issue_resolved
 from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
 
 
@@ -231,3 +234,17 @@ post_save.connect(
     dispatch_uid="resolved_in_pull_request",
     weak=False,
 )
+
+
+@buffer_incr_complete.connect(
+    sender=ReleaseProject, dispatch_uid="project_has_releases_receiver", weak=False
+)
+def project_has_releases_receiver(filters, **_):
+    try:
+        project = ReleaseProject.objects.select_related("project").get(**filters).project
+    except ReleaseProject.DoesNotExist:
+        return
+
+    if not project.flags.has_releases:
+        project.flags.has_releases = True
+        project.update(flags=F("flags").bitor(Project.flags.has_releases))
