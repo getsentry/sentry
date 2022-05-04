@@ -378,7 +378,10 @@ class CompositeEntityDerivedMetricTestCase(TestCase):
         """
         with pytest.raises(MetricDoesNotExistException):
             assert self.sessions_errored.get_entity(projects=[PseudoProject(1, 1)]) == {
-                "metrics_counters": [SessionMRI.ERRORED_PREAGGREGATED.value],
+                "metrics_counters": [
+                    SessionMRI.ERRORED_PREAGGREGATED.value,
+                    SessionMRI.CRASHED_AND_ABNORMAL.value,
+                ],
                 "metrics_sets": [SessionMRI.ERRORED_SET.value],
             }
 

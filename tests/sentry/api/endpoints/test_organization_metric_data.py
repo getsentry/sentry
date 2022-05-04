@@ -2034,7 +2034,13 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             interval="1m",
         )
 
-        assert response.data["groups"] == []
+        assert response.data["groups"] == [
+            {
+                "by": {},
+                "series": {"transaction.failure_rate": [None]},
+                "totals": {"transaction.failure_rate": None},
+            },
+        ]
 
     def test_request_private_derived_metric(self):
         for private_name in [
