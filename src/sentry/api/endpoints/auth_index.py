@@ -1,5 +1,6 @@
 import logging
 
+from django.conf import settings
 from django.contrib.auth import logout
 from django.contrib.auth.models import AnonymousUser
 from django.utils.http import is_safe_url
@@ -94,6 +95,11 @@ class AuthIndexEndpoint(Endpoint):
         SSO and if they do not, we redirect them back to the SSO login.
 
         """
+
+        DISABLE_SSO_CHECK_SU_FORM_FOR_LOCAL_DEV = getattr(
+            settings, "DISABLE_SSO_CHECK_SU_FORM_FOR_LOCAL_DEV", False
+        )
+
         # TODO Look at AuthVerifyValidator
         validator.is_valid()
         authenticated = None
@@ -111,9 +117,12 @@ class AuthIndexEndpoint(Endpoint):
 
         if _require_password_or_u2f_check():
             authenticated = self._verify_user_via_inputs(validator, request)
-
+        breakpoint()
         if Superuser.org_id:
-            if not has_completed_sso(request, Superuser.org_id):
+            if (
+                not has_completed_sso(request, Superuser.org_id)
+                and not DISABLE_SSO_CHECK_SU_FORM_FOR_LOCAL_DEV
+            ):
                 self._reauthenticate_with_sso(request, Superuser.org_id)
             # below is a special case if the user is a superuser but doesn't have a password or
             # u2f device set up, the only way to authenticate this case is to see if they have a
