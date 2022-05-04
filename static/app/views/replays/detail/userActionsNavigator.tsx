@@ -32,43 +32,35 @@ function UserActionsNavigator({event, crumbs}: Props) {
       <PanelHeader>Event Chapters</PanelHeader>
 
       <PanelBody>
-        <div>
-          {transformedCrumbs.map(item => (
-            <PanelItemCenter key={item.id}>
-              <Wrapper>
-                <Type
-                  type={item.type}
-                  color={item.color}
-                  description={item.description}
-                />
-                <Category category={item.category} searchTerm="" />
-              </Wrapper>
-              {/* Probably we need to use or create another component to show the timestamp relative */}
-              <Time
-                timestamp={event.dateReceived}
-                relativeTime={item.timestamp}
-                searchTerm=""
-              />
-            </PanelItemCenter>
-          ))}
-        </div>
+        {transformedCrumbs.map(item => (
+          <PanelItemCenter key={item.id}>
+            <Wrapper>
+              <Type type={item.type} color={item.color} description={item.description} />
+              <Category category={item.category} searchTerm="" />
+            </Wrapper>
+            {/* Probably we need to use or create another component to show the timestamp relative */}
+            <Time
+              timestamp={event.dateReceived}
+              relativeTime={item.timestamp}
+              searchTerm=""
+            />
+          </PanelItemCenter>
+        ))}
       </PanelBody>
     </Panel>
   );
 }
 
-export default UserActionsNavigator;
-
 const Panel = styled(BasePanel)`
   width: 100%;
   display: grid;
+  grid-template-rows: auto 1fr;
   height: 0;
   min-height: 100%;
-  margin-bottom: 0;
 `;
 
 const PanelHeader = styled(BasePanelHeader)`
-  background-color: #fff;
+  background-color: ${p => p.theme.white};
   border-bottom: none;
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.gray300};
@@ -95,3 +87,5 @@ const Wrapper = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.gray500};
 `;
+
+export default UserActionsNavigator;
