@@ -4,6 +4,7 @@ from datetime import datetime
 import pytest
 import pytz
 from django.http import QueryDict
+from django.test import TestCase
 from freezegun import freeze_time
 
 from sentry.release_health.base import SessionsQueryConfig
@@ -17,15 +18,16 @@ from sentry.snuba.sessions_v2 import (
     get_timestamps,
     massage_sessions_result,
 )
+from sentry.testutils.cases import SnubaTestCase
 
 
-def _make_query(qs, allow_minute_resolution=True):
+def _make_query(qs, allow_minute_resolution=True, params=None):
     query_config = SessionsQueryConfig(
         (AllowedResolution.one_minute if allow_minute_resolution else AllowedResolution.one_hour),
         allow_session_status_query=False,
         restrict_date_range=True,
     )
-    return QueryDefinition(QueryDict(qs), {}, query_config)
+    return QueryDefinition(QueryDict(qs), params or {}, query_config)
 
 
 def result_sorted(result):
@@ -220,6 +222,39 @@ def test_virtual_groupby_query():
         "users_errored",
     ]
     assert query.query_groupby == []
+
+
+class SnubaSessionsV2Test(TestCase, SnubaTestCase):
+    # This test suite needs a project to exist in the database.
+
+    @freeze_time("2022-05-04T09:00:00.000Z")
+    def _get_default_params(self):
+        # These parameters are computed in the API endpoint, before the
+        # QueryDefinition is built. Since we're only testing the query
+        # definition here, we can safely mock these.
+        return {
+            "start": datetime.now(),
+            "end": datetime.now(),
+            "organization_id": self.organization.id,
+        }
+
+    def test_filter_proj_slug_in_query(self):
+        params = self._get_default_params()
+        params["project_id"] = [self.project.id]
+        query_def = _make_query(
+            f"field=sum(session)&groupBy=project&interval=1h&query=project%3A{self.project.slug}&statsPeriod=7d",
+            params=params,
+        )
+
+        assert query_def.query == f"project:{self.project.slug}"
+        assert "project_id" in query_def.query_columns
+        assert query_def.params["project_id"] == [self.project.id]
+        assert query_def.params["organization_id"] == self.organization.id
+        assert query_def.filter_keys == {"project_id": [self.project.id]}
+        # `conditions` are queried in the indexer, and since `project_id` is a
+        # column, we don't want to query it in the indexer and get an error in
+        # the request.
+        assert "project_id" not in query_def.conditions
 
 
 @freeze_time("2020-12-18T11:14:17.105Z")
