@@ -56,7 +56,7 @@ function ActiveTab({
           />
         </div>
       ) : null;
-    case 'errors':
+    case 'issues':
       return <ErrorList replayId={event.id} projectId={event.projectID} />;
     case 'tags':
       return (

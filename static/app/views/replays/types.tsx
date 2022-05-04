@@ -12,7 +12,7 @@ export type Replay = {
   'user.username': string;
 };
 
-export type TabBarId = 'console' | 'performance' | 'errors' | 'tags' | 'memory';
+export type TabBarId = 'console' | 'performance' | 'issues' | 'tags' | 'memory';
 
 /**
  * Highlight Replay Plugin types
