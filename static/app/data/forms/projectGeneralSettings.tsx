@@ -7,7 +7,6 @@ import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import slugify from 'sentry/utils/slugify';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/projects/:projectId/';
@@ -39,15 +38,19 @@ const ORG_DISABLED_REASON = t(
 );
 
 export const fields: Record<string, Field> = {
-  slug: {
-    name: 'slug',
+  name: {
+    name: 'name',
     type: 'string',
     required: true,
     label: t('Name'),
-    placeholder: t('my-service-name'),
-    help: t('A unique ID used to identify this project'),
-    transformInput: slugify,
-
+    placeholder: t('My Awesome Project'),
+    help: t('A name for this project'),
+    getData: (data: {name?: string}) => {
+      return {
+        name: data.name,
+        slug: data.name?.replace(/\s+/g, '-').toLowerCase(),
+      };
+    },
     saveOnBlur: false,
     saveMessageAlertType: 'info',
     saveMessage: t('You will be redirected to the new project slug after saving'),

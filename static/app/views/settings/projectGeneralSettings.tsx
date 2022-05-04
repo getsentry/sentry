@@ -268,7 +268,7 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
           <JsonForm
             {...jsonFormProps}
             title={t('Project Details')}
-            fields={[fields.slug, fields.platform]}
+            fields={[fields.name, fields.platform]}
           />
 
           <JsonForm
@@ -338,11 +338,12 @@ class ProjectGeneralSettingsContainer extends Component<ContainerProps> {
     this.unsubscribe();
   }
 
+  changedName: string | undefined = undefined;
   changedSlug: string | undefined = undefined;
   unsubscribe = ProjectsStore.listen(() => this.onProjectsUpdate(), undefined);
 
   onProjectsUpdate() {
-    if (!this.changedSlug) {
+    if (!this.changedName && !this.changedSlug) {
       return;
     }
     const project = ProjectsStore.getBySlug(this.changedSlug);
@@ -357,6 +358,7 @@ class ProjectGeneralSettingsContainer extends Component<ContainerProps> {
         params: {
           ...this.props.params,
           projectId: this.changedSlug,
+          projectName: this.changedName,
         },
       })
     );
