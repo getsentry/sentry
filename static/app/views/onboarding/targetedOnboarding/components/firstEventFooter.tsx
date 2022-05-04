@@ -1,7 +1,13 @@
 import {Fragment} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {motion, Variants} from 'framer-motion';
 
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Link from 'sentry/components/links/link';
@@ -58,19 +64,28 @@ export default function FirstEventFooter({
     ) {
       return (
         <Button
-          to={`/onboarding/${organization.slug}/mobile-redirect/`}
           priority="primary"
-          onClick={() => {
-            clientState &&
-              client.requestPromise(
-                `/organizations/${organization.slug}/onboarding-continuation-email/`,
-                {
-                  method: 'POST',
-                  data: {
-                    platforms: clientState.selectedPlatforms,
-                  },
-                }
-              );
+          onClick={async () => {
+            if (clientState) {
+              addLoadingMessage(t('Sending you an email to continue onboarding...'));
+              await client
+                .requestPromise(
+                  `/organizations/${organization.slug}/onboarding-continuation-email/`,
+                  {
+                    method: 'POST',
+                    data: {
+                      platforms: clientState.selectedPlatforms,
+                    },
+                  }
+                )
+                .then(() => {
+                  addSuccessMessage(t('Onboarding remainder email sent to your inbox!'));
+                })
+                .catch(() => {
+                  addErrorMessage(t('Unable to send onboarding email'));
+                });
+            }
+            browserHistory.push(`/onboarding/${organization.slug}/mobile-redirect/`);
           }}
         >
           {t('Setup on Computer')}
