@@ -48,7 +48,6 @@ def query(
     use_aggregate_conditions=False,
     allow_metric_aggregates=True,
     conditions=None,
-    extra_snql_condition=None,
     functions_acl=None,
     dry_run=False,
 ):

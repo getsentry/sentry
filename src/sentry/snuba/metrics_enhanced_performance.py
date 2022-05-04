@@ -46,7 +46,6 @@ def query(
                 use_aggregate_conditions,
                 allow_metric_aggregates,
                 conditions,
-                extra_snql_condition,
                 functions_acl,
                 dry_run,
             )
