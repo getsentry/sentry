@@ -15,6 +15,7 @@ export enum ChartType {
   SLACK_DISCOVER_TOP5_DAILY = 'slack:discover.top5Daily',
   SLACK_DISCOVER_PREVIOUS_PERIOD = 'slack:discover.previousPeriod',
   SLACK_DISCOVER_WORLDMAP = 'slack:discover.worldmap',
+  SLACK_METRIC_ALERT = 'slack:metricAlert',
 }
 
 /**
