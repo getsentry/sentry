@@ -2,24 +2,15 @@ import {useCallback, useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import type {eventWithTime} from 'rrweb/typings/types';
 
-import {MemorySpanType} from 'sentry/components/events/interfaces/spans/types';
 import {IssueAttachment} from 'sentry/types';
-import {Entry, Event, EventTransaction} from 'sentry/types/event';
+import {Event, EventTransaction} from 'sentry/types/event';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import Replay from 'sentry/utils/replays/Replay';
 import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 
-import mergeBreadcrumbsEntries from './mergeBreadcrumbsEntries';
-import mergeEventsWithSpans from './mergeEventsWithSpans';
-
 type State = {
-  /**
-   * List of breadcrumbs
-   */
-  breadcrumbEntry: undefined | Entry;
-
   /**
    * The root replay event
    */
@@ -35,10 +26,6 @@ type State = {
    * This includes fetched all the sub-resources like attachments and `sentry-replay-event`
    */
   fetching: boolean;
-
-  memorySpans: undefined | MemorySpanType[];
-
-  mergedReplayEvent: undefined | Event;
 
   /**
    * The list of related `sentry-replay-event` objects that were captured during this `sentry-replay`
@@ -68,7 +55,7 @@ type Options = {
   orgId: string;
 };
 
-interface Result extends State {
+interface Result extends Pick<State, 'fetchError' | 'fetching'> {
   onRetry: () => void;
   replay: Replay | null;
 }
@@ -84,14 +71,11 @@ function useReplayEvent({eventSlug, location, orgId}: Options): Result {
   const api = useApi();
   const [retry, setRetry] = useState(false);
   const [state, setState] = useState<State>({
+    event: undefined,
     fetchError: undefined,
     fetching: true,
-    breadcrumbEntry: undefined,
-    event: undefined,
     replayEvents: undefined,
     rrwebEvents: undefined,
-    mergedReplayEvent: undefined,
-    memorySpans: undefined,
   });
 
   function fetchEvent() {
@@ -150,15 +134,11 @@ function useReplayEvent({eventSlug, location, orgId}: Options): Result {
   async function loadEvents() {
     setRetry(false);
     setState({
+      event: undefined,
       fetchError: undefined,
       fetching: true,
-
-      breadcrumbEntry: undefined,
-      event: undefined,
       replayEvents: undefined,
       rrwebEvents: undefined,
-      mergedReplayEvent: undefined,
-      memorySpans: undefined,
     });
     try {
       const [event, rrwebEvents, replayEvents] = await Promise.all([
@@ -167,40 +147,21 @@ function useReplayEvent({eventSlug, location, orgId}: Options): Result {
         fetchReplayEvents(),
       ]);
 
-      const breadcrumbEntry = mergeBreadcrumbsEntries(replayEvents || [], event);
-      const mergedReplayEvent = mergeEventsWithSpans(replayEvents || []);
-      const memorySpans =
-        mergedReplayEvent?.entries[0]?.data?.filter(datum => datum?.data?.memory) || [];
-
-      if (mergedReplayEvent.entries[0]) {
-        mergedReplayEvent.entries[0].data = mergedReplayEvent?.entries[0]?.data?.filter(
-          datum => !datum?.data?.memory
-        );
-      }
-
       setState({
-        ...state,
+        event,
         fetchError: undefined,
         fetching: false,
-        event,
-        mergedReplayEvent,
         replayEvents,
         rrwebEvents,
-        breadcrumbEntry,
-        memorySpans,
       });
     } catch (error) {
       Sentry.captureException(error);
       setState({
+        event: undefined,
         fetchError: error,
         fetching: false,
-
-        breadcrumbEntry: undefined,
-        event: undefined,
         replayEvents: undefined,
         rrwebEvents: undefined,
-        mergedReplayEvent: undefined,
-        memorySpans: undefined,
       });
     }
   }
@@ -216,13 +177,6 @@ function useReplayEvent({eventSlug, location, orgId}: Options): Result {
     fetching: state.fetching,
     onRetry,
     replay: Replay.factory(state.event, state.rrwebEvents, state.replayEvents),
-
-    breadcrumbEntry: state.breadcrumbEntry,
-    event: state.event,
-    replayEvents: state.replayEvents,
-    rrwebEvents: state.rrwebEvents,
-    mergedReplayEvent: state.mergedReplayEvent,
-    memorySpans: state.memorySpans,
   };
 }
 

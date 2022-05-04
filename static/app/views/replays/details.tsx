@@ -15,12 +15,12 @@ import useFullscreen from 'sentry/components/replays/useFullscreen';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import {EntryType} from 'sentry/types/event';
+import useReplayEvent from 'sentry/utils/replays/useReplayEvent';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 
 import DetailLayout from './detail/detailLayout';
 import FocusArea from './detail/focusArea';
 import UserActionsNavigator from './detail/userActionsNavigator';
-import useReplayEvent from './utils/useReplayEvent';
 
 function ReplayDetails() {
   const {
