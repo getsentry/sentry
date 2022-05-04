@@ -5,6 +5,7 @@ import range from 'lodash/range';
 import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
+import {triggerPress} from 'sentry-test/utils';
 
 import StreamGroup from 'sentry/components/stream/group';
 import GroupStore from 'sentry/stores/groupStore';
@@ -195,8 +196,7 @@ describe('IssueList', function () {
     let issuesRequest;
 
     /* helpers */
-    const getSavedSearchTitle = w =>
-      w.find('SavedSearchTab DropdownMenu a').text().trim();
+    const getSavedSearchTitle = w => w.find('SavedSearchTab ButtonLabel').text().trim();
 
     const getSearchBarValue = w =>
       w.find('SmartSearchBarContainer textarea').prop('value').trim();
@@ -504,8 +504,14 @@ describe('IssueList', function () {
       await tick();
       wrapper.update();
 
-      wrapper.find('SavedSearchTab DropdownMenu a').simulate('click');
-      wrapper.find('SavedSearchMenuItem a').last().simulate('click');
+      await act(async () => {
+        triggerPress(wrapper.find('SavedSearchTab StyledDropdownTrigger'));
+
+        await tick();
+        wrapper.update();
+      });
+
+      wrapper.find('SelectOption').last().simulate('click');
 
       expect(browserHistory.push).toHaveBeenLastCalledWith(
         expect.objectContaining({
@@ -684,8 +690,14 @@ describe('IssueList', function () {
         },
       });
 
-      wrapper.find('SavedSearchTab DropdownMenu a').simulate('click');
-      wrapper.find('SavedSearchMenuItem a').first().simulate('click');
+      await act(async () => {
+        triggerPress(wrapper.find('SavedSearchTab StyledDropdownTrigger'));
+
+        await tick();
+        wrapper.update();
+      });
+
+      wrapper.find('SelectOption').first().simulate('click');
 
       await tick();
 
@@ -736,8 +748,14 @@ describe('IssueList', function () {
       expect(getSavedSearchTitle(wrapper)).toBe('Unresolved TypeErrors');
 
       // Select other saved search
-      wrapper.find('SavedSearchTab DropdownMenu a').simulate('click');
-      wrapper.find('SavedSearchMenuItem a').last().simulate('click');
+      await act(async () => {
+        triggerPress(wrapper.find('SavedSearchTab StyledDropdownTrigger'));
+
+        await tick();
+        wrapper.update();
+      });
+
+      wrapper.find('SelectOption').last().simulate('click');
 
       expect(browserHistory.push).toHaveBeenLastCalledWith(
         expect.objectContaining({

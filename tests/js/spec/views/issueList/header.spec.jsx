@@ -268,7 +268,7 @@ describe('IssueListHeader', () => {
         queryCount={13}
       />
     );
-    expect(screen.getByTestId('saved-search-tab')).toHaveTextContent('Custom Search 13');
+    expect(screen.getByRole('button', {name: 'Custom Search 13'})).toBeInTheDocument();
   });
 
   it('should display saved search name and count', () => {
@@ -291,7 +291,7 @@ describe('IssueListHeader', () => {
         queryCount={13}
       />
     );
-    expect(screen.getByTestId('saved-search-tab')).toHaveTextContent('Saved Search 13');
+    expect(screen.getByRole('button', {name: 'Saved Search 13'})).toBeInTheDocument();
   });
 
   it('lists saved searches in dropdown', () => {

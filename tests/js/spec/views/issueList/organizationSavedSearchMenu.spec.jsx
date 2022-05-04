@@ -6,9 +6,9 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import IssueListSavedSearchMenu from 'sentry/views/issueList/savedSearchMenu';
+import IssueListSavedSearchTab from 'sentry/views/issueList/savedSearchTab';
 
-describe('IssueListSavedSearchMenu', () => {
+describe('IssueListSavedSearchTab', () => {
   const savedSearchList = [
     {
       id: '789',
@@ -39,8 +39,8 @@ describe('IssueListSavedSearchMenu', () => {
   const onDelete = jest.fn();
 
   function renderSavedSearch({organization} = {}) {
-    return render(
-      <IssueListSavedSearchMenu
+    render(
+      <IssueListSavedSearchTab
         organization={organization ?? TestStubs.Organization({access: ['org:write']})}
         savedSearchList={savedSearchList}
         onSavedSearchSelect={onSelect}
@@ -49,6 +49,9 @@ describe('IssueListSavedSearchMenu', () => {
       />,
       {context: TestStubs.routerContext()}
     );
+
+    // Open the saved searches menu
+    screen.getByRole('button', {name: 'Saved Searches'}).click();
   }
 
   afterEach(() => {
@@ -74,7 +77,7 @@ describe('IssueListSavedSearchMenu', () => {
   it('does not show a delete button for global search', () => {
     renderSavedSearch();
     // Should not have a delete button as it is a global search
-    const globalSearch = screen.getByTestId('saved-search-122');
+    const globalSearch = screen.getByTestId('global-search-122');
     expect(
       within(globalSearch).queryByRole('button', {name: 'delete'})
     ).not.toBeInTheDocument();
