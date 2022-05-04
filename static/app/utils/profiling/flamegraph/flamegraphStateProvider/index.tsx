@@ -169,7 +169,7 @@ const DEFAULT_FLAMEGRAPH_STATE: FlamegraphState = {
     view: Rect.Empty(),
   },
   preferences: {
-    interactionMode: 'inverted',
+    scroll: 'inverted',
     colorCoding: 'by symbol name',
     sorting: 'call order',
     view: 'top down',
@@ -197,9 +197,9 @@ export function FlamegraphStateProvider(
         DEFAULT_FLAMEGRAPH_STATE.position.view) as Rect,
     },
     preferences: {
-      interactionMode:
-        props.initialState?.preferences?.interactionMode ??
-        DEFAULT_FLAMEGRAPH_STATE.preferences.interactionMode,
+      scroll:
+        props.initialState?.preferences?.scroll ??
+        DEFAULT_FLAMEGRAPH_STATE.preferences.scroll,
       colorCoding:
         props.initialState?.preferences?.colorCoding ??
         DEFAULT_FLAMEGRAPH_STATE.preferences.colorCoding,

@@ -15,7 +15,7 @@ interface FlamegraphOptionsMenuProps {
 function FlamegraphOptionsMenu({
   canvasPoolManager,
 }: FlamegraphOptionsMenuProps): React.ReactElement {
-  const [{colorCoding, xAxis, interactionMode}, dispatch] = useFlamegraphPreferences();
+  const [{colorCoding, xAxis, scroll}, dispatch] = useFlamegraphPreferences();
 
   return (
     <Fragment>
@@ -59,16 +59,16 @@ function FlamegraphOptionsMenu({
               }),
           },
           {
-            label: t('Interaction mode'),
-            value: 'interaction',
-            defaultValue: interactionMode,
+            label: t('Scroll'),
+            value: 'scroll',
+            defaultValue: scroll,
             options: Object.entries(INTERACTION_MODES).map(([value, label]) => ({
               label,
               value,
             })),
             onChange: value =>
               dispatch({
-                type: 'set interaction mode',
+                type: 'set scroll',
                 payload: value,
               }),
           },
@@ -83,7 +83,7 @@ const X_AXIS: Record<FlamegraphPreferences['xAxis'], string> = {
   transaction: t('Transaction'),
 };
 
-const INTERACTION_MODES: Record<FlamegraphPreferences['interactionMode'], string> = {
+const INTERACTION_MODES: Record<FlamegraphPreferences['scroll'], string> = {
   inverted: t('Inverted'),
   natural: t('Natural'),
 };

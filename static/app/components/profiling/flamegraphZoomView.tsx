@@ -548,8 +548,7 @@ function FlamegraphZoomView({
       const identity = mat3.identity(mat3.create());
       const damping = 0.01;
       // For inverted views, invert the delta by multiplying it with -1
-      const delta =
-        evt.deltaY * (flamegraphPreferences.interactionMode === 'inverted' ? -1 : 1);
+      const delta = evt.deltaY * (flamegraphPreferences.scroll === 'inverted' ? -1 : 1);
       const scale = 1 + delta * damping;
 
       const mouseInConfigSpace = flamegraphRenderer.getConfigSpaceCursor(
@@ -573,7 +572,7 @@ function FlamegraphZoomView({
 
       canvasPoolManager.dispatch('transformConfigView', [translatedBack]);
     },
-    [flamegraphRenderer, flamegraphPreferences.interactionMode, canvasPoolManager]
+    [flamegraphRenderer, flamegraphPreferences.scroll, canvasPoolManager]
   );
 
   const scroll = useCallback(
@@ -582,7 +581,7 @@ function FlamegraphZoomView({
         return;
       }
 
-      const multiplier = flamegraphPreferences.interactionMode === 'inverted' ? -1 : 1;
+      const multiplier = flamegraphPreferences.scroll === 'inverted' ? -1 : 1;
       const physicalDelta = vec2.multiply(
         vec2.create(),
         vec2.fromValues(evt.deltaX, evt.deltaY),
@@ -609,7 +608,7 @@ function FlamegraphZoomView({
       const translate = mat3.fromTranslation(mat3.create(), configDelta);
       canvasPoolManager.dispatch('transformConfigView', [translate]);
     },
-    [flamegraphRenderer, flamegraphPreferences.interactionMode, canvasPoolManager]
+    [flamegraphRenderer, flamegraphPreferences.scroll, canvasPoolManager]
   );
 
   useEffect(() => {
