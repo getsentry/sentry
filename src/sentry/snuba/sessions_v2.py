@@ -324,14 +324,48 @@ class QueryDefinition:
         else:
             column_resolver = resolve_column
 
-        conditions = [resolve_condition(c, column_resolver) for c in snuba_filter.conditions]
+        condition_cols_set = set(CONDITION_COLUMNS)
+        self.conditions = self._get_conditions(
+            snuba_filter.conditions, column_resolver, condition_cols_set
+        )
+
         filter_keys = {
             resolve_filter_key(key): value for key, value in snuba_filter.filter_keys.items()
         }
 
         self.aggregations = snuba_filter.aggregations
-        self.conditions = conditions
         self.filter_keys = filter_keys
+
+    def _get_conditions(self, sn_filter_conditions, col_resolver, con_cols, max_nested_depth=5):
+        # Conditions in nested lists with depth >max_nested_depth are ignored.
+        def helper(cons, depth):
+            if depth <= 0:
+                return []
+
+            conditions = []
+            for c in cons:
+                # To know whether the current list is a condition and not a list
+                # of conditions, there must be at least a hardcoded value
+                # (usually the operator).
+                is_max_depth = any(filter(lambda p: isinstance(p, str) or isinstance(p, int), c))
+                if is_max_depth:
+                    if isinstance(c[0], str) and c[0] in con_cols:
+                        # All conditions in `QueryDefinition.conditions` are
+                        # checked against the indexer, including these that rely
+                        # on columns and thus don't exist in the indexer. In
+                        # these cases the indexer errors, resulting in 4XX
+                        # responses. Conditions relying on columns also exist in
+                        # `QueryDefinition.params` and are applied in the query,
+                        # so it's safe to remove them from `conditions`, and
+                        # avoid indexer errors.
+                        continue
+                    conditions.append(resolve_condition(c, col_resolver))
+                else:
+                    conditions.extend(helper(c, depth - 1))
+
+            return conditions
+
+        return helper(sn_filter_conditions, max_nested_depth)
 
     def __repr__(self):
         return f"{self.__class__.__name__}({repr(self.__dict__)})"
