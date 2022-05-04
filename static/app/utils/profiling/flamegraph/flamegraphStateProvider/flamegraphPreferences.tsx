@@ -8,9 +8,11 @@ export type FlamegraphColorCodings = [
 export type FlamegraphSorting = ['left heavy', 'call order'];
 export type FlamegraphViewOptions = ['top down', 'bottom up'];
 export type FlamegraphAxisOptions = ['standalone', 'transaction'];
+export type FlamegraphInteractionMode = ['inverted', 'natural'];
 
 export interface FlamegraphPreferences {
   colorCoding: FlamegraphColorCodings[number];
+  interactionMode: FlamegraphInteractionMode[number];
   sorting: FlamegraphSorting[number];
   view: FlamegraphViewOptions[number];
   xAxis: FlamegraphAxisOptions[number];
@@ -23,7 +25,8 @@ type FlamegraphPreferencesAction =
   | {
       payload: FlamegraphPreferences['xAxis'];
       type: 'set xAxis';
-    };
+    }
+  | {payload: FlamegraphPreferences['interactionMode']; type: 'set interaction mode'};
 
 export function flamegraphPreferencesReducer(
   state: FlamegraphPreferences,
@@ -50,6 +53,9 @@ export function flamegraphPreferencesReducer(
     }
     case 'set xAxis': {
       return {...state, xAxis: action.payload};
+    }
+    case 'set interaction mode': {
+      return {...state, interactionMode: action.payload};
     }
     default: {
       return state;

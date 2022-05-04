@@ -546,7 +546,11 @@ function FlamegraphZoomView({
       }
 
       const identity = mat3.identity(mat3.create());
-      const scale = 1 - evt.deltaY * 0.01 * -1; // -1 to invert scale
+      const damping = 0.01;
+      // For inverted views, invert the delta by multiplying it with -1
+      const delta =
+        evt.deltaY * (flamegraphPreferences.interactionMode === 'inverted' ? -1 : 1);
+      const scale = 1 + delta * damping;
 
       const mouseInConfigSpace = flamegraphRenderer.getConfigSpaceCursor(
         vec2.fromValues(evt.offsetX, evt.offsetY)
@@ -569,7 +573,7 @@ function FlamegraphZoomView({
 
       canvasPoolManager.dispatch('transformConfigView', [translatedBack]);
     },
-    [flamegraphRenderer, canvasPoolManager]
+    [flamegraphRenderer, flamegraphPreferences.interactionMode, canvasPoolManager]
   );
 
   const scroll = useCallback(
@@ -578,7 +582,12 @@ function FlamegraphZoomView({
         return;
       }
 
-      const physicalDelta = vec2.fromValues(evt.deltaX, evt.deltaY);
+      const multiplier = flamegraphPreferences.interactionMode === 'inverted' ? -1 : 1;
+      const physicalDelta = vec2.multiply(
+        vec2.create(),
+        vec2.fromValues(evt.deltaX, evt.deltaY),
+        vec2.fromValues(multiplier, multiplier)
+      );
       const physicalToConfig = mat3.invert(
         mat3.create(),
         flamegraphRenderer.configViewToPhysicalSpace
@@ -600,7 +609,7 @@ function FlamegraphZoomView({
       const translate = mat3.fromTranslation(mat3.create(), configDelta);
       canvasPoolManager.dispatch('transformConfigView', [translate]);
     },
-    [flamegraphRenderer, canvasPoolManager]
+    [flamegraphRenderer, flamegraphPreferences.interactionMode, canvasPoolManager]
   );
 
   useEffect(() => {
@@ -608,6 +617,7 @@ function FlamegraphZoomView({
       return undefined;
     }
 
+    // Wheel events have no wheelStop event, so we need to approximate it.
     let wheelStopTimeoutId: number | undefined;
     function onCanvasWheel(evt: WheelEvent) {
       window.clearTimeout(wheelStopTimeoutId);
