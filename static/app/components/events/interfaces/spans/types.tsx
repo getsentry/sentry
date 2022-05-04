@@ -11,6 +11,16 @@ export type GapSpanType = {
   description?: string;
 };
 
+export type MemorySpanType = RawSpanType & {
+  data: {
+    memory: {
+      jsHeapSizeLimit: number;
+      totalJSHeapSize: number;
+      usedJSHeapSize: number;
+    };
+  };
+};
+
 export type RawSpanType = {
   data: Object;
   span_id: string;

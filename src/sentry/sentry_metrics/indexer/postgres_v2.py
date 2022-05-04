@@ -169,7 +169,11 @@ class PGStringIndexerV2(StringIndexer):
 
         metrics.incr(_INDEXER_CACHE_METRIC, tags={"cache_hit": "false", "caller": "resolve"})
         try:
-            id: int = StringIndexerTable.objects.get(organization_id=org_id, string=string).id
+            id: int = (
+                StringIndexerTable.objects.using_replica()
+                .get(organization_id=org_id, string=string)
+                .id
+            )
         except StringIndexerTable.DoesNotExist:
             return None
         indexer_cache.set(key, id)
@@ -182,7 +186,7 @@ class PGStringIndexerV2(StringIndexer):
         Returns None if the entry cannot be found.
         """
         try:
-            string: str = StringIndexerTable.objects.get_from_cache(id=id).string
+            string: str = StringIndexerTable.objects.get_from_cache(id=id, use_replica=True).string
         except StringIndexerTable.DoesNotExist:
             return None
 

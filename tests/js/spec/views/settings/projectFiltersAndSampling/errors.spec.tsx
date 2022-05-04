@@ -2,6 +2,7 @@ import {
   screen,
   userEvent,
   waitForElementToBeRemoved,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import {commonConditionCategories, renderComponent, renderModal} from './utils';
@@ -350,18 +351,13 @@ describe('Filters and Sampling - Error rule', function () {
       userEvent.click(screen.getByText('Add Condition'));
 
       // Autocomplete
-      expect(screen.getByTestId('autocomplete-list')).toBeInTheDocument();
+      expect(screen.getByText(/filter conditions/i)).toBeInTheDocument();
 
       // Condition Options
-      const conditionOptions = screen.getAllByTestId('condition');
-
-      expect(conditionOptions).toHaveLength(commonConditionCategories.length);
-
-      for (const conditionOptionIndex in conditionOptions) {
-        expect(conditionOptions[conditionOptionIndex]).toHaveTextContent(
-          commonConditionCategories[conditionOptionIndex]
-        );
-      }
+      const modal = screen.getByRole('dialog');
+      commonConditionCategories.forEach(category => {
+        expect(within(modal).getByText(category)).toBeInTheDocument();
+      });
 
       // Close Modal
       userEvent.click(screen.getByLabelText('Close Modal'));
@@ -413,13 +409,10 @@ describe('Filters and Sampling - Error rule', function () {
       userEvent.click(screen.getByText('Add Condition'));
 
       // Autocomplete
-      expect(screen.getByTestId('autocomplete-list')).toBeInTheDocument();
+      expect(screen.getByText(/filter conditions/i)).toBeInTheDocument();
 
-      // Condition Options
-      const conditionOptions = screen.getAllByTestId('condition');
-
-      // Click on the first condition option
-      userEvent.click(conditionOptions[0]);
+      // Click on the condition option
+      userEvent.click(screen.getAllByText('Release')[0]);
 
       // Release Field
       expect(screen.getByTestId('autocomplete-release')).toBeInTheDocument();
@@ -428,7 +421,7 @@ describe('Filters and Sampling - Error rule', function () {
       expect(screen.queryByTestId('multivalue')).not.toBeInTheDocument();
 
       // Type into realease field
-      userEvent.type(screen.getByLabelText('Search or add a release'), '1.2.3');
+      userEvent.paste(screen.getByLabelText('Search or add a release'), '1.2.3');
 
       // Autocomplete suggests options
       const autocompleteOptions = screen.getByTestId('option');

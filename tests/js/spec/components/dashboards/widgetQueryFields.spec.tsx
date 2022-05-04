@@ -178,7 +178,7 @@ describe('WidgetQueryFields', function () {
     it('top N shows the right options for y-axis and columns', function () {
       render(
         <WidgetQueryFields
-          widgetType={WidgetType.METRICS}
+          widgetType={WidgetType.RELEASE}
           displayType={DisplayType.TOP_N}
           fieldOptions={{
             'field:sentry.sessions.session': {

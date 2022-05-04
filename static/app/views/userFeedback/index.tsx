@@ -166,7 +166,7 @@ const Filters = styled('div')`
   display: grid;
   grid-template-columns: minmax(0, max-content) max-content;
   justify-content: start;
-  gap: ${space(1)};
+  gap: ${space(2)};
   margin-bottom: ${space(2)};
 
   @media (max-width: ${p => p.theme.breakpoints[1]}) {

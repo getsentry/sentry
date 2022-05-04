@@ -86,7 +86,7 @@ function BoundTooltip({
 
   const physicalSpaceCursor = vec2.transformMat3(
     vec2.create(),
-    vec2.fromValues(cursor[0], cursor[1]),
+    cursor,
 
     configViewToPhysicalSpace
   );

@@ -12,11 +12,15 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesForm';
+import DatePageFilter from 'sentry/components/datePageFilter';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingError from 'sentry/components/loadingError';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
@@ -26,7 +30,7 @@ import {
   Organization,
   PageFilters,
   SelectValue,
-  SessionMetric,
+  SessionField,
   TagCollection,
 } from 'sentry/types';
 import {defined, objectIsEmpty} from 'sentry/utils';
@@ -108,14 +112,14 @@ function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, Widge
       conditions: '',
       orderby: widgetBuilderNewDesign ? IssueSortOptions.DATE : '',
     },
-    [DataSet.RELEASE]: {
+    [DataSet.RELEASES]: {
       name: '',
-      fields: [`sum(${SessionMetric.SESSION})`],
+      fields: [`sum(${SessionField.SESSION})`],
       columns: [],
       fieldAliases: [],
-      aggregates: [`sum(${SessionMetric.SESSION})`],
+      aggregates: [`sum(${SessionField.SESSION})`],
       conditions: '',
-      orderby: widgetBuilderNewDesign ? `-sum(${SessionMetric.SESSION})` : '',
+      orderby: widgetBuilderNewDesign ? `-sum(${SessionField.SESSION})` : '',
     },
   };
 }
@@ -123,13 +127,13 @@ function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, Widge
 const WIDGET_TYPE_TO_DATA_SET = {
   [WidgetType.DISCOVER]: DataSet.EVENTS,
   [WidgetType.ISSUE]: DataSet.ISSUES,
-  [WidgetType.METRICS]: DataSet.RELEASE,
+  [WidgetType.RELEASE]: DataSet.RELEASES,
 };
 
 const DATA_SET_TO_WIDGET_TYPE = {
   [DataSet.EVENTS]: WidgetType.DISCOVER,
   [DataSet.ISSUES]: WidgetType.ISSUE,
-  [DataSet.RELEASE]: WidgetType.METRICS,
+  [DataSet.RELEASES]: WidgetType.RELEASE,
 };
 
 interface RouteParams {
@@ -195,10 +199,10 @@ function WidgetBuilder({
   const widgetBuilderNewDesign = organization.features.includes(
     'new-widget-builder-experience-design'
   );
-  const hasReleaseHealthFeature = organization.features.includes('dashboards-metrics');
+  const hasReleaseHealthFeature = organization.features.includes('dashboards-releases');
 
   const filteredDashboardWidgets = dashboard.widgets.filter(({widgetType}) => {
-    if (widgetType === WidgetType.METRICS) {
+    if (widgetType === WidgetType.RELEASE) {
       return hasReleaseHealthFeature;
     }
     return true;
@@ -327,7 +331,7 @@ function WidgetBuilder({
       ? WidgetType.DISCOVER
       : state.dataSet === DataSet.ISSUES
       ? WidgetType.ISSUE
-      : WidgetType.METRICS;
+      : WidgetType.RELEASE;
 
   const currentWidget = {
     title: state.title,
@@ -373,7 +377,7 @@ function WidgetBuilder({
         (prevState.displayType === DisplayType.TABLE &&
           widgetToBeUpdated?.widgetType &&
           WIDGET_TYPE_TO_DATA_SET[widgetToBeUpdated.widgetType] === DataSet.ISSUES) ||
-        (prevState.dataSet === DataSet.RELEASE &&
+        (prevState.dataSet === DataSet.RELEASES &&
           newDisplayType === DisplayType.WORLD_MAP)
       ) {
         // World Map display type only supports Events Dataset
@@ -559,7 +563,7 @@ function WidgetBuilder({
     const fieldStrings = newFields.map(generateFieldAsString);
 
     const aggregateAliasFieldStrings =
-      state.dataSet === DataSet.RELEASE
+      state.dataSet === DataSet.RELEASES
         ? fieldStrings.map(stripDerivedMetricsPrefix)
         : fieldStrings.map(getAggregateAlias);
 
@@ -570,14 +574,14 @@ function WidgetBuilder({
     const newState = cloneDeep(state);
 
     const disableSortBy =
-      widgetType === WidgetType.METRICS && fieldStrings.includes('session.status');
+      widgetType === WidgetType.RELEASE && fieldStrings.includes('session.status');
 
     const newQueries = state.queries.map(query => {
       const isDescending = query.orderby.startsWith('-');
       const orderbyPrefix = isDescending ? '-' : '';
       const rawOrderby = trimStart(query.orderby, '-');
       const prevAggregateAliasFieldStrings = query.aggregates.map(aggregate =>
-        state.dataSet === DataSet.RELEASE
+        state.dataSet === DataSet.RELEASES
           ? stripDerivedMetricsPrefix(aggregate)
           : getAggregateAlias(aggregate)
       );
@@ -1019,6 +1023,7 @@ function WidgetBuilder({
         defaultSelection={{
           datetime: {start: null, end: null, utc: false, period: DEFAULT_STATS_PERIOD},
         }}
+        hideGlobalHeader
       >
         <PageContentWithoutPadding>
           <Header
@@ -1033,6 +1038,11 @@ function WidgetBuilder({
           <Body>
             <MainWrapper>
               <Main>
+                <StyledPageFilterBar condensed>
+                  <ProjectPageFilter />
+                  <EnvironmentPageFilter />
+                  <DatePageFilter alignDropdown="left" />
+                </StyledPageFilterBar>
                 <BuildSteps symbol="colored-numeric">
                   <VisualizationStep
                     widget={currentWidget}
@@ -1171,6 +1181,10 @@ export default withPageFilters(withTags(WidgetBuilder));
 
 const PageContentWithoutPadding = styled(PageContent)`
   padding: 0;
+`;
+
+const StyledPageFilterBar = styled(PageFilterBar)`
+  margin-bottom: ${space(2)};
 `;
 
 const BuildSteps = styled(List)`
