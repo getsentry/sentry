@@ -80,33 +80,21 @@ class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
             with open(filename, "rb") as f:
                 event = self.post_and_retrieve_unreal(f.read())
 
-        def make_snapshot(subname=None):
-            self.insta_snapshot(
-                {
-                    "contexts": event.data.get("contexts"),
-                    "exception": {
-                        "values": [
-                            normalize_exception(x)
-                            for x in get_path(event.data, "exception", "values") or ()
-                        ]
-                    },
-                    "stacktrace": event.data.get("stacktrace"),
-                    "threads": event.data.get("threads"),
-                    "extra": event.data.get("extra"),
-                    "sdk": event.data.get("sdk"),
+        self.insta_snapshot(
+            {
+                "contexts": event.data.get("contexts"),
+                "exception": {
+                    "values": [
+                        normalize_exception(x)
+                        for x in get_path(event.data, "exception", "values") or ()
+                    ]
                 },
-                subname=subname,
-            )
-
-        # We do snapshot tests against two different snapshots here, to be
-        # forward compatible with the upcoming changes from
-        # https://github.com/getsentry/symbolicator/pull/794
-        # This is temporary and will go away once symbolicator is merged and
-        # the docker image used in sentrys own tests is updated.
-        try:
-            make_snapshot()
-        except BaseException:
-            make_snapshot(subname="new")
+                "stacktrace": event.data.get("stacktrace"),
+                "threads": event.data.get("threads"),
+                "extra": event.data.get("extra"),
+                "sdk": event.data.get("sdk"),
+            }
+        )
 
         return sorted(EventAttachment.objects.filter(event_id=event.event_id), key=lambda x: x.name)
 
