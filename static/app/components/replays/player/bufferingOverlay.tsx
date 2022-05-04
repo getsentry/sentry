@@ -4,9 +4,13 @@ import {IconClock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
-function BufferingOverlay() {
+type Props = {
+  className?: string;
+};
+
+function BufferingOverlay({className}: Props) {
   return (
-    <Overlay>
+    <Overlay className={className}>
       <Message>
         <IconClock size="sm" />
         {t('Buffering...')}
@@ -17,6 +21,7 @@ function BufferingOverlay() {
 
 /* Position the badge in the corner */
 const Overlay = styled('div')`
+  user-select: none;
   display: grid;
   place-items: center;
 `;
