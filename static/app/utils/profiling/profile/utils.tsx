@@ -2,6 +2,10 @@ import {Span} from '@sentry/types';
 
 import {defined} from 'sentry/utils';
 import {Frame} from 'sentry/utils/profiling/frame';
+import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import {Profile} from 'sentry/utils/profiling/profile/profile';
+
+import {CallTreeNode} from '../callTreeNode';
 
 type FrameIndex = Record<string | number, Frame>;
 
@@ -112,4 +116,72 @@ export function wrapWithSpan<T>(parentSpan: Span | undefined, fn: () => T, optio
   } finally {
     sentrySpan.finish();
   }
+}
+
+export const isSystemCall = (node: CallTreeNode): boolean => {
+  return !node.frame.is_application;
+};
+
+export const isApplicationCall = (node: CallTreeNode): boolean => {
+  return !!node.frame.is_application;
+};
+
+type AnalyzeProfileResults = {
+  slowestApplicationCalls: CallTreeNode[];
+  slowestSystemCalls: CallTreeNode[];
+};
+
+export function getSlowestProfileCallsFromProfile(
+  profile: Profile
+): AnalyzeProfileResults {
+  const ApplicationCalls: CallTreeNode[] = [];
+  const systemFrames: CallTreeNode[] = [];
+
+  const openFrame = (node: CallTreeNode) => {
+    if (isSystemCall(node)) {
+      systemFrames.push(node);
+    } else {
+      ApplicationCalls.push(node);
+    }
+  };
+
+  const closeFrame = (_node: CallTreeNode) => {
+    return;
+  };
+
+  profile.forEach(openFrame, closeFrame);
+
+  const slowestApplicationCalls = ApplicationCalls.sort(
+    (a, b) => a.selfWeight - b.selfWeight
+  );
+  const slowestSystemCalls = systemFrames.sort((a, b) => a.selfWeight - b.selfWeight);
+
+  return {
+    slowestApplicationCalls: slowestApplicationCalls.slice(0, 10),
+    slowestSystemCalls: slowestSystemCalls.slice(0, 10),
+  };
+}
+
+export function getSlowestProfileCallsFromProfileGroup(
+  profileGroup: ProfileGroup
+): AnalyzeProfileResults {
+  let applicationCalls: CallTreeNode[] = [];
+  let systemCalls: CallTreeNode[] = [];
+
+  for (const profile of profileGroup.profiles) {
+    const {slowestApplicationCalls, slowestSystemCalls} =
+      getSlowestProfileCallsFromProfile(profile);
+
+    applicationCalls = applicationCalls.concat(slowestApplicationCalls);
+    systemCalls = systemCalls.concat(slowestSystemCalls);
+  }
+
+  return {
+    slowestApplicationCalls: applicationCalls
+      .sort((a, b) => a.selfWeight - b.selfWeight)
+      .slice(0, 10),
+    slowestSystemCalls: systemCalls
+      .sort((a, b) => a.selfWeight - b.selfWeight)
+      .slice(0, 10),
+  };
 }
