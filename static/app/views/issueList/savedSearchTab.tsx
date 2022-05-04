@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
@@ -6,10 +6,10 @@ import Badge from 'sentry/components/badge';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import DropdownButtonV2 from 'sentry/components/dropdownButtonV2';
-import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
+import CompactSelect from 'sentry/components/forms/compactSelect';
+import {ControlProps} from 'sentry/components/forms/selectControl';
 import QueryCount from 'sentry/components/queryCount';
-import Tooltip from 'sentry/components/tooltip';
-import {IconDelete, IconEdit} from 'sentry/icons';
+import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
@@ -42,86 +42,85 @@ function SavedSearchTab({
   const savedSearch = savedSearchList.find(
     search => search.query === query && search.sort === sort
   );
+  const savedSearchValue = savedSearch
+    ? savedSearch.isGlobal
+      ? `global-search-${savedSearch.id}`
+      : `saved-search-${savedSearch.id}`
+    : '';
 
-  const savedSearches = savedSearchList.filter(search => !search.isGlobal);
-  const globalSearches = savedSearchList.filter(
-    search => search.isGlobal && !search.isPinned && search.query !== 'is:unresolved'
-  );
+  const options: ControlProps['options'] = useMemo(() => {
+    const savedSearches = savedSearchList.filter(search => !search.isGlobal);
+    const globalSearches = savedSearchList.filter(
+      search => search.isGlobal && !search.isPinned && search.query !== 'is:unresolved'
+    );
 
-  function getSearchItem(search, keyPrefix) {
-    return {
-      key: `${keyPrefix}-${search.id}`,
-      label: search.name,
-      details: (
-        <Tooltip
-          title={
-            <Fragment>
-              {`${search.name} \u2022 `}
-              <TooltipSearchQuery>{search.query}</TooltipSearchQuery>
-              {` \u2022 `}
-              {t('Sort: ')}
-              {getSortLabel(search.sort)}
-            </Fragment>
-          }
-          containerDisplayMode="block"
-          delay={1000}
-        >
+    function getSearchOption(search, keyPrefix) {
+      return {
+        value: `${keyPrefix}-${search.id}`,
+        label: search.name,
+        details: (
           <Details>
             {search.query}
             {` \u2022 ${t('Sort:')} ${getSortLabel(search.sort)}`}
           </Details>
-        </Tooltip>
-      ),
-      ...(!search.isPinned &&
-        !search.isGlobal && {
-          trailingItems: (
-            <Access
-              organization={organization}
-              access={['org:write']}
-              renderNoAccessMessage={false}
-            >
-              <Confirm
-                onConfirm={() => onSavedSearchDelete(search)}
-                message={t('Are you sure you want to delete this saved search?')}
-                stopPropagation
+        ),
+        tooltip: (
+          <Fragment>
+            {`${search.name} \u2022 `}
+            <TooltipSearchQuery>{search.query}</TooltipSearchQuery>
+            {` \u2022 `}
+            {t('Sort: ')}
+            {getSortLabel(search.sort)}
+          </Fragment>
+        ),
+        tooltipOptions: {delay: 1000},
+        ...(!search.isPinned &&
+          !search.isGlobal && {
+            trailingItems: (
+              <Access
+                organization={organization}
+                access={['org:write']}
+                renderNoAccessMessage={false}
               >
-                <DeleteButton
-                  borderless
-                  icon={<IconDelete />}
-                  aria-label={t('delete')}
-                  size="zero"
-                />
-              </Confirm>
-            </Access>
-          ),
-        }),
-      trailingItemsSpanFullHeight: true,
-      onAction: () => onSavedSearchSelect(search),
-    };
-  }
-
-  const menuItems = [
-    ...(savedSearches.length > 0
-      ? [
-          {
-            key: 'saved-searches',
-            label: t('Saved Searches'),
-            children: savedSearches.map(search => getSearchItem(search, 'saved-search')),
-          },
-        ]
-      : []),
-    ...(globalSearches.length > 0
-      ? [
-          {
-            key: 'global-searches',
-            label: t('Recommended Searches'),
-            children: globalSearches.map(search =>
-              getSearchItem(search, 'global-search')
+                <Confirm
+                  onConfirm={() => onSavedSearchDelete(search)}
+                  message={t('Are you sure you want to delete this saved search?')}
+                  stopPropagation
+                >
+                  <DeleteButton
+                    borderless
+                    icon={<IconDelete />}
+                    aria-label={t('delete')}
+                    size="zero"
+                  />
+                </Confirm>
+              </Access>
             ),
-          },
-        ]
-      : []),
-  ];
+          }),
+        trailingItemsSpanFullHeight: true,
+      };
+    }
+
+    const searchOptions: ControlProps['options'] = [];
+
+    if (savedSearches.length > 0) {
+      searchOptions.push({
+        value: 'saved-searches',
+        label: t('Saved Searches'),
+        options: savedSearches.map(search => getSearchOption(search, 'saved-search')),
+      });
+    }
+
+    if (globalSearches.length > 0) {
+      searchOptions.push({
+        value: 'global-searches',
+        label: t('Recommended Searches'),
+        options: globalSearches.map(search => getSearchOption(search, 'global-search')),
+      });
+    }
+
+    return searchOptions;
+  }, []);
 
   const trigger = ({props, ref}) => (
     <StyledDropdownTrigger
@@ -147,22 +146,38 @@ function SavedSearchTab({
     </StyledDropdownTrigger>
   );
 
+  const onChange = useCallback(
+    option => {
+      const searchObj = savedSearchList.find(s =>
+        s.isGlobal
+          ? `global-search-${s.id}` === option.value
+          : `saved-search-${s.id}` === option.value
+      );
+      searchObj && onSavedSearchSelect(searchObj);
+    },
+    [savedSearchList, onSavedSearchSelect]
+  );
+
   return (
-    <StyledDropdownControl
+    <StyledCompactSelect
       renderWrapAs="li"
       trigger={trigger}
-      items={menuItems}
+      options={options}
+      value={savedSearchValue}
       isActive={isActive}
+      onChange={onChange}
       offset={-4}
-      className="saved-search-tab"
-      data-test-id="saved-search-tab"
+      maxMenuHeight={800}
     />
   );
 }
 
 export default SavedSearchTab;
 
-const StyledDropdownControl = styled(DropdownMenuControlV2)<{isActive?: boolean}>`
+const StyledCompactSelect = styled(CompactSelect)<{isActive?: boolean}>`
+  && {
+    position: static;
+  }
   border-bottom-width: 4px;
   border-bottom-style: solid;
   border-bottom-color: ${p => (p.isActive ? p.theme.active : 'transparent')};
@@ -178,10 +193,6 @@ const StyledDropdownTrigger = styled(DropdownButtonV2)<{isActive?: boolean}>`
 
   &:hover {
     color: ${p => p.theme.textColor};
-  }
-
-  @media only screen and (max-width: ${p => p.theme.breakpoints[0]}) {
-    font-size: ${p => p.theme.fontSizeMedium};
   }
 `;
 
