@@ -7,11 +7,12 @@ import space from 'sentry/styles/space';
 
 type Props = {
   speed: number;
+  className?: string;
 };
 
-function FastForwardBadge({speed}: Props) {
+function FastForwardBadge({speed, className}: Props) {
   return (
-    <Badge>
+    <Badge className={className}>
       <FastForwardTooltip title={t('Fast forwarding')}>
         <IconArrow size="sm" direction="right" />
         {speed}x
@@ -22,6 +23,7 @@ function FastForwardBadge({speed}: Props) {
 
 /* Position the badge in the corner */
 const Badge = styled('div')`
+  user-select: none;
   display: grid;
   align-items: end;
   justify-items: start;
@@ -37,7 +39,6 @@ const FastForwardTooltip = styled(Tooltip)`
   background: ${p => p.theme.gray300};
   color: ${p => p.theme.white};
   padding: ${space(1.5)} ${space(2)};
-  border-bottom-left-radius: ${p => p.theme.borderRadius};
   border-top-right-radius: ${p => p.theme.borderRadius};
   z-index: ${p => p.theme.zIndex.initial};
 `;
