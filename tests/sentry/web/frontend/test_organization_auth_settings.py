@@ -4,11 +4,11 @@ import pytest
 from django.db import models
 from django.urls import reverse
 
+from sentry import audit_log
 from sentry.auth.authenticators import TotpInterface
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.models import (
     AuditLogEntry,
-    AuditLogEntryEvent,
     AuthIdentity,
     AuthProvider,
     Organization,
@@ -101,7 +101,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         assert not organization.flags.require_2fa.is_set
 
         event = AuditLogEntry.objects.get(
-            target_object=organization.id, event=AuditLogEntryEvent.ORG_EDIT, actor=user
+            target_object=organization.id, event=audit_log.get_event_id("ORG_EDIT"), actor=user
         )
         assert "require_2fa to False when enabling SSO" in event.get_note()
         logger.info.assert_called_once_with(
@@ -188,7 +188,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
         # disable require 2fa logs not called
         assert not AuditLogEntry.objects.filter(
-            target_object=organization.id, event=AuditLogEntryEvent.ORG_EDIT, actor=user
+            target_object=organization.id, event=audit_log.get_event_id("ORG_EDIT"), actor=user
         ).exists()
         assert not logger.info.called
 
@@ -294,7 +294,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         result = AuditLogEntry.objects.filter(
             organization=organization,
             target_object=auth_provider.id,
-            event=AuditLogEntryEvent.SSO_EDIT,
+            event=audit_log.get_event_id("SSO_EDIT"),
             actor=self.user,
         )[0]
 
@@ -324,7 +324,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         result = AuditLogEntry.objects.filter(
             organization=organization,
             target_object=auth_provider.id,
-            event=AuditLogEntryEvent.SSO_EDIT,
+            event=audit_log.get_event_id("SSO_EDIT"),
             actor=self.user,
         )[0]
 
@@ -354,7 +354,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         result = AuditLogEntry.objects.filter(
             organization=organization,
             target_object=auth_provider.id,
-            event=AuditLogEntryEvent.SSO_EDIT,
+            event=audit_log.get_event_id("SSO_EDIT"),
             actor=self.user,
         )[0]
 
@@ -382,7 +382,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         assert organization.default_role == "member"
 
         assert not AuditLogEntry.objects.filter(
-            organization=organization, event=AuditLogEntryEvent.SSO_EDIT
+            organization=organization, event=audit_log.get_event_id("SSO_EDIT")
         ).exists()
 
     def test_edit_sso_settings__scim(self):

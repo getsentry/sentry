@@ -1,6 +1,7 @@
 from django.utils import timezone
 
-from sentry.models import AuditLogEntry, AuditLogEntryEvent
+from sentry import audit_log
+from sentry.models import AuditLogEntry
 from sentry.testutils import TestCase
 
 
@@ -8,7 +9,7 @@ class AuditLogEntryTest(TestCase):
     def test_plan_changed(self):
         entry = AuditLogEntry.objects.create(
             organization=self.organization,
-            event=AuditLogEntryEvent.PLAN_CHANGED,
+            event=audit_log.get_event_id("PLAN_CHANGED"),
             actor=self.user,
             datetime=timezone.now(),
             data={"plan_name": "Team"},
@@ -19,7 +20,7 @@ class AuditLogEntryTest(TestCase):
     def test_plan_changed_with_quotas(self):
         entry = AuditLogEntry.objects.create(
             organization=self.organization,
-            event=AuditLogEntryEvent.PLAN_CHANGED,
+            event=audit_log.get_event_id("PLAN_CHANGED"),
             actor=self.user,
             datetime=timezone.now(),
             data={
