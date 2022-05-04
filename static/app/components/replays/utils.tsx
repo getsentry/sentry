@@ -1,3 +1,5 @@
+import moment from 'moment';
+
 import {Crumb} from 'sentry/types/breadcrumbs';
 
 function padZero(num: number, len = 2): string {
@@ -14,6 +16,12 @@ function padZero(num: number, len = 2): string {
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;
 const HOUR = 60 * MINUTE;
+const timeFormat = 'HH:mm:ss';
+
+export default function showPlayerTime(timestamp: string, relativeTime: number): string {
+  const formattedRelativeTime = moment.unix(relativeTime).format();
+  return moment(moment(timestamp).diff(moment(formattedRelativeTime))).format(timeFormat);
+}
 
 // TODO: move into 'sentry/utils/formatters'
 export function formatTime(ms: number): string {

@@ -1,19 +1,22 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import Category from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/category';
-import Time from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/time';
 import Type from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type';
-import {transformCrumbs} from 'sentry/components/events/interfaces/breadcrumbs/utils';
+import {
+  filterCrumbs,
+  transformCrumbs,
+} from 'sentry/components/events/interfaces/breadcrumbs/utils';
 import {
   Panel as BasePanel,
   PanelBody as BasePanelBody,
   PanelHeader as BasePanelHeader,
   PanelItem,
 } from 'sentry/components/panels';
+import ActionCategory from 'sentry/components/replays/actionCategory';
+import PlayerRelativeTime from 'sentry/components/replays/playerRelativeTime';
 import space from 'sentry/styles/space';
 import {RawCrumb} from 'sentry/types/breadcrumbs';
-import {Event} from 'sentry/types/event';
+import {Event, EventTransaction} from 'sentry/types/event';
 
 type Props = {
   crumbs: RawCrumb[];
@@ -25,25 +28,21 @@ function UserActionsNavigator({event, crumbs}: Props) {
     return null;
   }
 
-  const transformedCrumbs = transformCrumbs(crumbs);
+  const relativeTime = (event as EventTransaction).startTimestamp;
+  const filteredCrumbs = filterCrumbs(transformCrumbs(crumbs));
 
   return (
     <Panel>
       <PanelHeader>Event Chapters</PanelHeader>
 
       <PanelBody>
-        {transformedCrumbs.map(item => (
+        {filteredCrumbs.map(item => (
           <PanelItemCenter key={item.id}>
             <Wrapper>
               <Type type={item.type} color={item.color} description={item.description} />
-              <Category category={item.category} searchTerm="" />
+              <ActionCategory category={item.category} />
             </Wrapper>
-            {/* Probably we need to use or create another component to show the timestamp relative */}
-            <Time
-              timestamp={event.dateReceived}
-              relativeTime={item.timestamp}
-              searchTerm=""
-            />
+            <PlayerRelativeTime relativeTime={relativeTime} timestamp={item.timestamp} />
           </PanelItemCenter>
         ))}
       </PanelBody>
@@ -51,6 +50,10 @@ function UserActionsNavigator({event, crumbs}: Props) {
   );
 }
 
+// FYI: Since the Replay Player has dynamic height based
+// on the width of the window,
+// height: 0; will helps us to reset the height
+// min-height: 100%; will helps us to grow at the same height of Player
 const Panel = styled(BasePanel)`
   width: 100%;
   display: grid;

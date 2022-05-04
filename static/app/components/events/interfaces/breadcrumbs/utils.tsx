@@ -147,3 +147,12 @@ export function transformCrumbs(breadcrumbs: Array<RawCrumb>): Crumb[] {
     };
   });
 }
+
+export function filterCrumbs(crumbs: Crumb[]): Crumb[] {
+  return crumbs.filter(
+    crumb =>
+      crumb.type !== BreadcrumbType.TRANSACTION &&
+      crumb.type !== BreadcrumbType.DEBUG &&
+      crumb.type !== BreadcrumbType.DEFAULT
+  );
+}
