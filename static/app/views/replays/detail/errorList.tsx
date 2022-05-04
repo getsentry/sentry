@@ -141,10 +141,16 @@ function ErrorList(props: Props) {
         limit={15}
       >
         {data => {
+          const filteredData = [
+            ...new Map(
+              data.tableData?.data.map(error => [error['issue.id'], error]) || []
+            ).values(),
+          ];
+
           return (
             <Fragment>
               <StyledPanelTable
-                isEmpty={data.tableData?.data.length === 0}
+                isEmpty={filteredData.length === 0}
                 isLoading={data.isLoading}
                 headers={
                   isScreenLarge
@@ -152,7 +158,7 @@ function ErrorList(props: Props) {
                     : columns.filter(column => column !== t('Graph'))
                 }
               >
-                {data.tableData?.data.map(renderTableRow) || null}
+                {filteredData.map(renderTableRow) || null}
               </StyledPanelTable>
             </Fragment>
           );
