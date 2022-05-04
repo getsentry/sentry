@@ -202,7 +202,10 @@ function SetupDocs({organization, projects, search}: Props) {
           {...{checkProjectHasFirstEvent, selectProject}}
         />
         <MainContent>
-          <FullIntroduction currentPlatform={currentPlatform} />
+          <FullIntroduction
+            currentPlatform={currentPlatform}
+            organization={organization}
+          />
           {getDynamicText({
             value: !hasError ? docs : loadingError,
             fixed: testOnlyAlert,
