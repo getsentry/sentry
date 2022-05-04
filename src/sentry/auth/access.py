@@ -246,10 +246,17 @@ class Access(abc.ABC):
             return True
 
         if self.member and features.has("organizations:team-roles", self.member.organization):
-            for team in project.teams.all():
-                membership = self._team_memberships.get(team)
-                if membership is None:
-                    continue
+            with sentry_sdk.start_span(op="check_access_for_all_project_teams") as span:
+                memberships = [
+                    self._team_memberships[team]
+                    for team in project.teams.all()
+                    if team in self._team_memberships
+                ]
+                span.set_tag("organization", self.member.organization.id)
+                span.set_tag("organization.slug", self.member.organization.slug)
+                span.set_data("membership_count", len(memberships))
+
+            for membership in memberships:
                 team_scopes = membership.get_scopes()
                 for scope in scopes:
                     if scope in team_scopes:
