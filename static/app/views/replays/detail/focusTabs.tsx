@@ -9,40 +9,25 @@ import {TabBarId} from '../types';
 
 type Props = {
   active: TabBarId;
-  setActive: (id: TabBarId) => void;
 };
 
-function FocusTabs({active, setActive}: Props) {
-  const select = (barId: TabBarId) => () => {
-    setActive(barId);
-  };
-
+function FocusTabs({active}: Props) {
   return (
     <FullBleedNavTabs underlined>
       <li className={active === 'console' ? 'active' : ''}>
-        <a href="#console" onClick={select('console')}>
-          {t('Console')}
-        </a>
+        <a href="#console">{t('Console')}</a>
       </li>
       <li className={active === 'performance' ? 'active' : ''}>
-        <a href="#performance" onClick={select('performance')}>
-          {t('Performance')}
-        </a>
+        <a href="#performance">{t('Performance')}</a>
       </li>
       <li className={active === 'errors' ? 'active' : ''}>
-        <a href="#errors" onClick={select('errors')}>
-          {t('Errors')}
-        </a>
+        <a href="#errors">{t('Errors')}</a>
       </li>
       <li className={active === 'tags' ? 'active' : ''}>
-        <a href="#tags" onClick={select('tags')}>
-          {t('Tags')}
-        </a>
+        <a href="#tags">{t('Tags')}</a>
       </li>
       <li className={active === 'memory' ? 'active' : ''}>
-        <a href="#memory" onClick={select('memory')}>
-          {t('Memory')}
-        </a>
+        <a href="#memory">{t('Memory')}</a>
       </li>
     </FullBleedNavTabs>
   );

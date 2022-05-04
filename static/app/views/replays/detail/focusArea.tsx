@@ -1,9 +1,10 @@
-import React, {useState} from 'react';
+import React from 'react';
 
 import EventEntry from 'sentry/components/events/eventEntry';
-import {MemorySpanType} from 'sentry/components/events/interfaces/spans/types';
+import type {MemorySpanType} from 'sentry/components/events/interfaces/spans/types';
 import TagsTable from 'sentry/components/tagsTable';
-import {Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 
@@ -18,13 +19,22 @@ type Props = {
   memorySpans: MemorySpanType[] | undefined;
 };
 
+const DEFAULT_TAB = 'performance';
+const TABS = new Set(['performance', 'errors', 'tags', 'memory']);
+
+function isTabBarId(tab: string): tab is TabBarId {
+  return TABS.has(tab);
+}
+
 function FocusArea(props: Props) {
-  const [active, setActive] = useState<TabBarId>('performance');
+  const location = useLocation();
+  const hash = location.hash.replace(/^#/, '');
+  const tabFromHash = isTabBarId(hash) ? hash : DEFAULT_TAB;
 
   return (
     <React.Fragment>
-      <FocusTabs active={active} setActive={setActive} />
-      <ActiveTab active={active} {...props} />
+      <FocusTabs active={tabFromHash} />
+      <ActiveTab active={tabFromHash} {...props} />
     </React.Fragment>
   );
 }
@@ -38,8 +48,6 @@ function ActiveTab({
   const {routes, router} = useRouteContext();
   const organization = useOrganization();
   switch (active) {
-    case 'console':
-      return <div id="console">TODO: Add a console view</div>;
     case 'performance':
       return eventWithSpans ? (
         <div id="performance">
