@@ -254,7 +254,7 @@ class Access(abc.ABC):
                 ]
                 span.set_tag("organization", self.member.organization.id)
                 span.set_tag("organization.slug", self.member.organization.slug)
-                span.set_tag("membership_count", len(memberships))
+                span.set_data("membership_count", len(memberships))
 
             for membership in memberships:
                 team_scopes = membership.get_scopes()
