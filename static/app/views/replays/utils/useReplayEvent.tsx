@@ -79,21 +79,23 @@ function isRRWebEventAttachment(attachment: IssueAttachment) {
   return IS_RRWEB_ATTACHMENT_FILENAME.test(attachment.name);
 }
 
+const INITIAL_STATE: State = Object.freeze({
+  fetchError: undefined,
+  fetching: true,
+  breadcrumbEntry: undefined,
+  event: undefined,
+  replayEvents: undefined,
+  rrwebEvents: undefined,
+  mergedReplayEvent: undefined,
+  memorySpans: undefined,
+});
+
 function useReplayEvent({eventSlug, location, orgId}: Options): Result {
   const [projectId, eventId] = eventSlug.split(':');
 
   const api = useApi();
   const [retry, setRetry] = useState(false);
-  const [state, setState] = useState<State>({
-    fetchError: undefined,
-    fetching: true,
-    breadcrumbEntry: undefined,
-    event: undefined,
-    replayEvents: undefined,
-    rrwebEvents: undefined,
-    mergedReplayEvent: undefined,
-    memorySpans: undefined,
-  });
+  const [state, setState] = useState<State>(INITIAL_STATE);
 
   function fetchEvent() {
     return api.requestPromise(
@@ -151,16 +153,9 @@ function useReplayEvent({eventSlug, location, orgId}: Options): Result {
   async function loadEvents() {
     setRetry(false);
     setState({
-      fetchError: undefined,
-      fetching: true,
-
-      breadcrumbEntry: undefined,
-      event: undefined,
-      replayEvents: undefined,
-      rrwebEvents: undefined,
-      mergedReplayEvent: undefined,
-      memorySpans: undefined,
+      ...INITIAL_STATE,
     });
+
     try {
       const [event, rrwebEvents, replayEvents] = await Promise.all([
         fetchEvent(),
@@ -203,15 +198,9 @@ function useReplayEvent({eventSlug, location, orgId}: Options): Result {
     } catch (error) {
       Sentry.captureException(error);
       setState({
+        ...INITIAL_STATE,
         fetchError: error,
         fetching: false,
-
-        breadcrumbEntry: undefined,
-        event: undefined,
-        replayEvents: undefined,
-        rrwebEvents: undefined,
-        mergedReplayEvent: undefined,
-        memorySpans: undefined,
       });
     }
   }
