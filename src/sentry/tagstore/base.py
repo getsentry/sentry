@@ -192,7 +192,13 @@ class TagStorage(Service):
         raise NotImplementedError
 
     def get_tag_value_paginator(
-        self, project_id, environment_id, key, query=None, order_by="-last_seen"
+        self,
+        project_id,
+        environment_id,
+        key,
+        query=None,
+        order_by="-last_seen",
+        sampling=False,
     ):
         """
         >>> get_tag_value_paginator(1, 2, 'environment', query='prod')
@@ -200,7 +206,15 @@ class TagStorage(Service):
         raise NotImplementedError
 
     def get_tag_value_paginator_for_projects(
-        self, projects, environments, key, start, end, query=None, order_by="-last_seen"
+        self,
+        projects,
+        environments,
+        key,
+        start,
+        end,
+        query=None,
+        order_by="-last_seen",
+        sampling=False,
     ):
         """
         Includes tags and also snuba columns, with the arrayjoin when they are nested.

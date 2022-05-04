@@ -786,6 +786,7 @@ export function generatePerformanceVitalDetailView(location: Location): EventVie
       getVitalDetailTableMehStatusFunction(vitalName),
     ],
     version: 2,
+    yAxis: [`p75(${vitalName})`],
   };
 
   if (!query.statsPeriod && !hasStartAndEnd) {
@@ -807,6 +808,7 @@ export function generatePerformanceVitalDetailView(location: Location): EventVie
     );
     conditions.freeText = [];
   }
+  conditions.setFilterValues('event.type', ['transaction']);
   savedQuery.query = conditions.formatString();
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);

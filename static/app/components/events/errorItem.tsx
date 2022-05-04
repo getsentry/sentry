@@ -50,9 +50,7 @@ class ErrorItem extends React.Component<Props, State> {
     return this.state.isOpen !== nextState.isOpen;
   }
 
-  handleToggle = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  handleToggle = () => {
     this.setState({isOpen: !this.state.isOpen});
   };
 

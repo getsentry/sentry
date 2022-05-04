@@ -12,15 +12,13 @@ from .base import GroupActivityNotification
 
 
 class RegressionActivityNotification(GroupActivityNotification):
+    title = "Regression"
     referrer_base = "regression-activity"
 
     def __init__(self, activity: Activity) -> None:
         super().__init__(activity)
         self.version = self.activity.data.get("version", "")
         self.version_parsed = parse_release(self.version)["description"]
-
-    def get_activity_name(self) -> str:
-        return "Regression"
 
     def get_description(self) -> tuple[str, Mapping[str, Any], Mapping[str, Any]]:
         message, params, html_params = "{author} marked {an issue} as a regression", {}, {}

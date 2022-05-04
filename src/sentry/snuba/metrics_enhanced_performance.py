@@ -48,7 +48,6 @@ def query(
     use_aggregate_conditions=False,
     allow_metric_aggregates=True,
     conditions=None,
-    extra_snql_condition=None,
     functions_acl=None,
     dry_run=False,
 ):
@@ -125,7 +124,6 @@ def query(
             auto_aggregations=auto_aggregations,
             use_aggregate_conditions=use_aggregate_conditions,
             conditions=conditions,
-            extra_snql_condition=extra_snql_condition,
             functions_acl=functions_acl,
         )
         results["meta"]["isMetricsData"] = False

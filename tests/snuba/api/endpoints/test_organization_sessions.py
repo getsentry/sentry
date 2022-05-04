@@ -30,6 +30,39 @@ MOCK_DATETIME_PLUS_TEN_MINUTES = MOCK_DATETIME + datetime.timedelta(minutes=10)
 SNUBA_TIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 MOCK_DATETIME_START_OF_DAY = MOCK_DATETIME.replace(hour=0, minute=0, second=0)
 
+TIMESTAMP = to_timestamp(MOCK_DATETIME)
+RECEIVED = TIMESTAMP
+SESSION_STARTED = TIMESTAMP // 3600 * 3600  # round to the hour
+
+TEMPLATE = {
+    "distinct_id": "00000000-0000-0000-0000-000000000000",
+    "status": "exited",
+    "seq": 0,
+    "release": "foo@1.0.0",
+    "environment": "production",
+    "retention_days": 90,
+    "duration": 123.4,
+    "errors": 0,
+    "started": SESSION_STARTED,
+    "received": RECEIVED,
+}
+
+
+def make_duration(kwargs):
+    """Randomish but deterministic duration"""
+    return float(len(str(kwargs)))
+
+
+def make_session(project, **kwargs):
+    return dict(
+        TEMPLATE,
+        session_id=uuid4().hex,
+        org_id=project.organization_id,
+        project_id=project.id,
+        duration=make_duration(kwargs),
+        **kwargs,
+    )
+
 
 class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
@@ -37,10 +70,6 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         self.setup_fixture()
 
     def setup_fixture(self):
-        self.timestamp = to_timestamp(MOCK_DATETIME)
-        self.received = self.timestamp
-        self.session_started = self.timestamp // 3600 * 3600  # round to the hour
-
         self.organization1 = self.organization
         self.organization2 = self.create_organization()
         self.organization3 = self.create_organization()
@@ -57,39 +86,12 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 
         self.create_environment(self.project2, name="development")
 
-        template = {
-            "distinct_id": "00000000-0000-0000-0000-000000000000",
-            "status": "exited",
-            "seq": 0,
-            "release": "foo@1.0.0",
-            "environment": "production",
-            "retention_days": 90,
-            "duration": 123.4,
-            "errors": 0,
-            "started": self.session_started,
-            "received": self.received,
-        }
-
-        def make_duration(kwargs):
-            """Randomish but deterministic duration"""
-            return float(len(str(kwargs)))
-
-        def make_session(project, **kwargs):
-            return dict(
-                template,
-                session_id=uuid4().hex,
-                org_id=project.organization_id,
-                project_id=project.id,
-                duration=make_duration(kwargs),
-                **kwargs,
-            )
-
-        self.store_session(make_session(self.project1, started=self.session_started + 12 * 60))
+        self.store_session(make_session(self.project1, started=SESSION_STARTED + 12 * 60))
         self.store_session(
-            make_session(self.project1, started=self.session_started + 24 * 60, release="foo@1.1.0")
+            make_session(self.project1, started=SESSION_STARTED + 24 * 60, release="foo@1.1.0")
         )
-        self.store_session(make_session(self.project1, started=self.session_started - 60 * 60))
-        self.store_session(make_session(self.project1, started=self.session_started - 12 * 60 * 60))
+        self.store_session(make_session(self.project1, started=SESSION_STARTED - 60 * 60))
+        self.store_session(make_session(self.project1, started=SESSION_STARTED - 12 * 60 * 60))
         self.store_session(make_session(self.project2, status="crashed"))
         self.store_session(make_session(self.project2, environment="development"))
         self.store_session(make_session(self.project3, errors=1, release="foo@1.2.0"))
@@ -97,7 +99,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             make_session(
                 self.project3,
                 distinct_id="39887d89-13b2-4c84-8c23-5d13d2102664",
-                started=self.session_started - 60 * 60,
+                started=SESSION_STARTED - 60 * 60,
             )
         )
         self.store_session(
@@ -1190,6 +1192,38 @@ class OrganizationSessionsEndpointMetricsTest(
         assert result_sorted(response.data)["groups"] == []
 
     @freeze_time(MOCK_DATETIME)
+    def test_filter_by_session_status_with_groupby(self):
+        default_request = {
+            "project": [-1],
+            "statsPeriod": "1d",
+            "interval": "1d",
+            "groupBy": "release",
+        }
+
+        def req(**kwargs):
+            return self.do_request(dict(default_request, **kwargs))
+
+        response = req(field=["sum(session)"], query="session.status:healthy")
+        assert response.status_code == 200, response.content
+        assert result_sorted(response.data)["groups"] == [
+            {
+                "by": {"release": "foo@1.0.0"},
+                "series": {"sum(session)": [5]},
+                "totals": {"sum(session)": 5},
+            },
+            {
+                "by": {"release": "foo@1.1.0"},
+                "series": {"sum(session)": [1]},
+                "totals": {"sum(session)": 1},
+            },
+            {
+                "by": {"release": "foo@1.2.0"},
+                "series": {"sum(session)": [0]},
+                "totals": {"sum(session)": 0},
+            },
+        ]
+
+    @freeze_time(MOCK_DATETIME)
     def test_filter_by_session_status_with_orderby(self):
         default_request = {
             "project": [-1],
@@ -1217,6 +1251,82 @@ class OrganizationSessionsEndpointMetricsTest(
         )
         assert response.status_code == 400, response.content
         assert response.data == {"detail": "Cannot order by sum(session) with the current filters"}
+
+    @freeze_time(MOCK_DATETIME)
+    def test_crash_rate(self):
+        default_request = {
+            "project": [-1],
+            "statsPeriod": "1d",
+            "interval": "1d",
+            "field": ["crash_rate(session)"],
+        }
+
+        def req(**kwargs):
+            return self.do_request(dict(default_request, **kwargs))
+
+        # 1 - filter session.status
+        response = req(
+            query="session.status:[abnormal,crashed]",
+        )
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "detail": "Cannot filter field crash_rate(session) by session.status"
+        }
+
+        # 2 - group by session.status
+        response = req(
+            groupBy="session.status",
+        )
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "detail": "Cannot group field crash_rate(session) by session.status"
+        }
+
+        # 4 - fetch all
+        response = req(
+            field=[
+                "crash_rate(session)",
+                "crash_rate(user)",
+                "crash_free_rate(session)",
+                "crash_free_rate(user)",
+            ],
+            groupBy=["release", "environment"],
+            orderBy=["crash_free_rate(session)"],
+            query="release:foo@1.0.0",
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["groups"] == [
+            {
+                "by": {"environment": "production", "release": "foo@1.0.0"},
+                "series": {
+                    "crash_free_rate(session)": [0.8333333333333334],
+                    "crash_free_rate(user)": [1.0],
+                    "crash_rate(session)": [0.16666666666666666],
+                    "crash_rate(user)": [0.0],
+                },
+                "totals": {
+                    "crash_free_rate(session)": 0.8333333333333334,
+                    "crash_free_rate(user)": 1.0,
+                    "crash_rate(session)": 0.16666666666666666,
+                    "crash_rate(user)": 0.0,
+                },
+            },
+            {
+                "by": {"environment": "development", "release": "foo@1.0.0"},
+                "series": {
+                    "crash_free_rate(session)": [1.0],
+                    "crash_free_rate(user)": [None],
+                    "crash_rate(session)": [0.0],
+                    "crash_rate(user)": [None],
+                },
+                "totals": {
+                    "crash_free_rate(session)": 1.0,
+                    "crash_free_rate(user)": None,
+                    "crash_rate(session)": 0.0,
+                    "crash_rate(user)": None,
+                },
+            },
+        ]
 
     @freeze_time(MOCK_DATETIME)
     def test_pagination(self):
@@ -1274,3 +1384,32 @@ class OrganizationSessionsEndpointMetricsTest(
             }
         )
         assert response.status_code == 200
+
+    @freeze_time(MOCK_DATETIME)
+    def test_release_is_empty(self):
+        self.store_session(
+            make_session(
+                self.project1, started=SESSION_STARTED + 12 * 60, release="", environment=""
+            )
+        )
+        for query in ('release:"" environment:""', 'release:"" OR environment:""'):
+            # Empty strings are invalid values for releases and environments, but we should still handle those cases correctly at the query layer
+            response = self.do_request(
+                {
+                    "project": self.project.id,  # project without users
+                    "statsPeriod": "1d",
+                    "interval": "1d",
+                    "field": ["sum(session)"],
+                    "query": query,
+                    "groupBy": ["release", "environment"],
+                }
+            )
+
+            assert response.status_code == 200, response.content
+            assert result_sorted(response.data)["groups"] == [
+                {
+                    "by": {"environment": "", "release": ""},
+                    "series": {"sum(session)": [1]},
+                    "totals": {"sum(session)": 1},
+                }
+            ]

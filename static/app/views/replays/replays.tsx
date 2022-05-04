@@ -3,31 +3,26 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import FeatureBadge from 'sentry/components/featureBadge';
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import UserBadge from 'sentry/components/idBadge/userBadge';
 import Link from 'sentry/components/links/link';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import PageHeading from 'sentry/components/pageHeading';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
-import TimeSince from 'sentry/components/timeSince';
-import {IconArrow, IconCalendar} from 'sentry/icons';
+import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageContent, PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {NewQuery, PageFilters} from 'sentry/types';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
-import {generateEventSlug} from 'sentry/utils/discover/urls';
-import getUrlPathname from 'sentry/utils/getUrlPathname';
 import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
 import ReplaysFilters from './filters';
+import ReplayTable from './replayTable';
 import {Replay} from './types';
 
 type Props = {
@@ -48,7 +43,6 @@ const columns = [t('Session'), t('Project')];
 function Replays(props: Props) {
   const location = useLocation();
   const organization = useOrganization();
-  const {projects} = useProjects();
   const isScreenLarge = useMedia(`(min-width: ${theme.breakpoints[0]})`);
 
   const [searchQuery, setSearchQuery] = useState<string>(
@@ -66,7 +60,19 @@ function Replays(props: Props) {
       id: '',
       name: '',
       version: 2,
-      fields: ['eventID', 'project', 'timestamp', 'user.display', 'url'],
+      fields: [
+        // 'id' is always returned, don't need to list it here.
+        'eventID',
+        'project',
+        'timestamp',
+        'url',
+        'user.display',
+        'user.email',
+        'user.id',
+        'user.ip_address',
+        'user.name',
+        'user.username',
+      ],
       orderby: getQueryParamAsString(query.sort) || '-timestamp',
       environment: selection.environments,
       projects: selection.projects,
@@ -88,51 +94,6 @@ function Replays(props: Props) {
         query: String(query).trim() || undefined,
       },
     });
-  };
-
-  const renderTable = (replayList: Array<Replay>) => {
-    return replayList?.map(replay => (
-      <Fragment key={replay.id}>
-        <ReplayUserBadge
-          avatarSize={32}
-          displayName={
-            <Link
-              to={`/organizations/${organization.slug}/replays/${generateEventSlug({
-                project: replay.project,
-                id: replay.id,
-              })}/`}
-            >
-              {replay['user.display']}
-            </Link>
-          }
-          user={{
-            username: replay['user.display'],
-            id: replay['user.display'],
-            ip_address: replay['user.display'],
-            name: replay['user.display'],
-            email: replay['user.display'],
-          }}
-          // this is the subheading for the avatar, so displayEmail in this case is a misnomer
-          displayEmail={getUrlPathname(replay.url) ?? ''}
-        />
-        {isScreenLarge && (
-          <StyledPanelItem>
-            <ProjectBadge
-              project={
-                projects.find(p => p.slug === replay.project) || {slug: replay.project}
-              }
-              avatarSize={16}
-            />
-          </StyledPanelItem>
-        )}
-        <StyledPanelItem>
-          <TimeSinceWrapper>
-            <StyledIconCalendarWrapper color="gray500" size="sm" />
-            <TimeSince date={replay.timestamp} />
-          </TimeSinceWrapper>
-        </StyledPanelItem>
-      </Fragment>
-    ));
   };
 
   const {query} = location;
@@ -162,6 +123,7 @@ function Replays(props: Props) {
             eventView={getEventView()}
             location={location}
             orgSlug={organization.slug}
+            limit={15}
           >
             {data => {
               return (
@@ -200,9 +162,13 @@ function Replays(props: Props) {
                       >
                         {t('Timestamp')} {sort.field.endsWith('timestamp') && sortArrow}
                       </SortLink>,
+                      t('Duration'),
+                      t('Errors'),
                     ]}
                   >
-                    {data.tableData ? renderTable(data.tableData.data as Replay[]) : null}
+                    {data.tableData ? (
+                      <ReplayTable replayList={data.tableData.data as Replay[]} />
+                    ) : null}
                   </StyledPanelTable>
                   <Pagination pageLinks={data.pageLinks} />
                 </Fragment>
@@ -218,21 +184,19 @@ function Replays(props: Props) {
 const StyledPageHeader = styled(PageHeader)`
   background-color: ${p => p.theme.surface100};
   min-width: max-content;
-  margin-top: ${space(1.5)};
-  margin-left: ${space(4)};
+  margin: ${space(3)} ${space(0)} ${space(4)} ${space(4)};
 `;
 
 const StyledPageContent = styled(PageContent)`
-  padding: ${space(1.5)} ${space(2)};
   box-shadow: 0px 0px 1px ${p => p.theme.gray200};
   background-color: ${p => p.theme.background};
 `;
 
 const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: minmax(0, 1fr) max-content max-content;
+  grid-template-columns: minmax(0, 1fr) max-content max-content max-content max-content;
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: minmax(0, 1fr) max-content;
+    grid-template-columns: minmax(0, 1fr) max-content max-content max-content;
   }
 `;
 
@@ -241,28 +205,6 @@ const HeaderTitle = styled(PageHeading)`
   align-items: center;
   justify-content: space-between;
   flex: 1;
-`;
-
-const StyledPanelItem = styled('div')`
-  margin-top: ${space(0.75)};
-`;
-
-const ReplayUserBadge = styled(UserBadge)`
-  font-size: ${p => p.theme.fontSizeLarge};
-  font-weight: 400;
-  line-height: 1.2;
-`;
-
-const TimeSinceWrapper = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(2, minmax(auto, max-content));
-  align-items: center;
-  gap: ${space(1)};
-`;
-
-const StyledIconCalendarWrapper = styled(IconCalendar)`
-  position: relative;
-  top: -1px;
 `;
 
 const SortLink = styled(Link)`

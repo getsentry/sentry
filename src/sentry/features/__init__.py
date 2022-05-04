@@ -60,10 +60,12 @@ default_manager.add("organizations:crash-rate-alerts", OrganizationFeature, True
 default_manager.add("organizations:custom-event-title", OrganizationFeature)
 default_manager.add("organizations:dashboard-grid-layout", OrganizationFeature, True)
 default_manager.add("organizations:dashboards-mep", OrganizationFeature, True)
-default_manager.add("organizations:dashboards-metrics", OrganizationFeature, True)
+default_manager.add("organizations:dashboards-releases", OrganizationFeature, True)
 default_manager.add("organizations:dashboards-template", OrganizationFeature, True)
 default_manager.add("organizations:sandbox-kill-switch", OrganizationFeature, True)
 default_manager.add("organizations:discover", OrganizationFeature)
+default_manager.add("organizations:discover-tagstore-sampling", OrganizationFeature, True)
+default_manager.add("organizations:duplicate-alert-rule", OrganizationFeature, True)
 default_manager.add("organizations:enterprise-perf", OrganizationFeature)
 default_manager.add("organizations:filters-and-sampling", OrganizationFeature, True)
 default_manager.add("organizations:filters-and-sampling-error-rules", OrganizationFeature, True)
@@ -107,7 +109,6 @@ default_manager.add("organizations:performance-use-metrics", OrganizationFeature
 default_manager.add("organizations:performance-dry-run-mep", OrganizationFeature, True)
 default_manager.add("organizations:profiling", OrganizationFeature, True)
 default_manager.add("organizations:project-event-date-limit", OrganizationFeature, True)
-default_manager.add("organizations:projects-page-redesign", OrganizationFeature, True)
 default_manager.add("organizations:related-events", OrganizationFeature)
 default_manager.add("organizations:release-comparison-performance", OrganizationFeature, True)
 default_manager.add("organizations:release-health-check-metrics", OrganizationFeature, True)
@@ -127,6 +128,7 @@ default_manager.add("organizations:unified-span-view", OrganizationFeature, True
 default_manager.add("organizations:weekly-report-debugging", OrganizationFeature, True)
 default_manager.add("organizations:widget-library", OrganizationFeature, True)
 default_manager.add("organizations:widget-viewer-modal", OrganizationFeature, True)
+default_manager.add("organizations:widget-viewer-modal-minimap", OrganizationFeature, True)
 
 # NOTE: Don't add features down here! Add them to their specific group and sort
 #       them alphabetically! The order features are registered is not important.

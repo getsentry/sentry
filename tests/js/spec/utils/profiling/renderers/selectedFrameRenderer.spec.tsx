@@ -25,7 +25,6 @@ describe('SelectedFrameRenderer', () => {
     renderer.draw(
       new Rect(0, 0, 100, 100),
       {BORDER_COLOR: 'red', BORDER_WIDTH: 1},
-      context as CanvasRenderingContext2D,
       mat3.scale(mat3.create(), mat3.identity(mat3.create()), vec2.fromValues(2, 2))
     );
 

@@ -282,16 +282,13 @@ class JiraPluginTest(TestCase):
         ) == {"text": "Foo Bar - foo@sentry.io (foobar)", "id": "foobar"}
 
         # test weird addon users that don't have email addresses
-        assert (
-            self.plugin._get_formatted_user(
-                {
-                    "name": "robot",
-                    "avatarUrls": {
-                        "16x16": "https://avatar-cdn.atlassian.com/someid",
-                        "24x24": "https://avatar-cdn.atlassian.com/someotherid",
-                    },
-                    "self": "https://something.atlassian.net/rest/api/2/user?username=someaddon",
-                }
-            )
-            == {"id": "robot", "text": "robot (robot)"}
-        )
+        assert self.plugin._get_formatted_user(
+            {
+                "name": "robot",
+                "avatarUrls": {
+                    "16x16": "https://avatar-cdn.atlassian.com/someid",
+                    "24x24": "https://avatar-cdn.atlassian.com/someotherid",
+                },
+                "self": "https://something.atlassian.net/rest/api/2/user?username=someaddon",
+            }
+        ) == {"id": "robot", "text": "robot (robot)"}

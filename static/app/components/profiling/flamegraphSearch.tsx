@@ -244,6 +244,8 @@ const StyledSearchBar = styled(SearchBar)`
   .search-input {
     height: 28px;
   }
+
+  flex: 1 1 100%;
 `;
 
 export {FlamegraphSearch};

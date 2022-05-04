@@ -49,7 +49,7 @@ type State = {
   timeseriesResults?: Series[];
 };
 
-class MetricsWidgetQueries extends React.Component<Props, State> {
+class ReleaseWidgetQueries extends React.Component<Props, State> {
   state: State = {
     loading: true,
     queryFetchID: undefined,
@@ -125,11 +125,7 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
         return {
           ...prevState,
           timeseriesResults: prevState.rawResults?.flatMap((rawResult, index) =>
-            transformSessionsResponseToSeries(
-              rawResult,
-              limit,
-              widget.queries[index].name
-            )
+            transformSessionsResponseToSeries(rawResult, widget.queries[index].name)
           ),
         };
       });
@@ -188,6 +184,7 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
         end,
         environment: environments,
         groupBy: query.columns,
+        limit: this.limit,
         orderBy: query.orderby,
         interval,
         project: projects,
@@ -230,7 +227,6 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
           const timeseriesResults = [...(prevState.timeseriesResults ?? [])];
           const transformedResult = transformSessionsResponseToSeries(
             data,
-            this.limit,
             widget.queries[requestIndex].name
           );
 
@@ -304,4 +300,4 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
   }
 }
 
-export default MetricsWidgetQueries;
+export default ReleaseWidgetQueries;
