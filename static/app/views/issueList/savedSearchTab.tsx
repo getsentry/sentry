@@ -211,15 +211,10 @@ const TooltipSearchQuery = styled('span')`
 
 const DeleteButton = styled(Button)`
   color: ${p => p.theme.subText};
-  background: transparent;
   flex-shrink: 0;
   padding: ${space(1)} 0;
-  text-align: center;
-  text-transform: capitalize;
 
   :hover {
-    color: #2f2936;
-    background: transparent;
     color: ${p => p.theme.error};
   }
 `;
