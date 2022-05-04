@@ -13,3 +13,12 @@ export type Replay = {
 };
 
 export type TabBarId = 'console' | 'performance' | 'errors' | 'tags' | 'memory';
+
+/**
+ * Highlight Replay Plugin types
+ */
+export interface Highlight {
+  nodeId: number;
+  text: string;
+  color?: string;
+}

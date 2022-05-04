@@ -10,6 +10,8 @@ import {generateEventSlug} from 'sentry/utils/discover/urls';
 import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 
+import createHighlightEvents from './createHighlightEvents';
+import mergeAndSortEvents from './mergeAndSortEvents';
 import mergeBreadcrumbsEntries from './mergeBreadcrumbsEntries';
 import mergeEventsWithSpans from './mergeEventsWithSpans';
 
@@ -72,6 +74,7 @@ interface Result extends State {
 }
 
 const IS_RRWEB_ATTACHMENT_FILENAME = /rrweb-[0-9]{13}.json/;
+
 function isRRWebEventAttachment(attachment: IssueAttachment) {
   return IS_RRWEB_ATTACHMENT_FILENAME.test(attachment.name);
 }
@@ -176,6 +179,16 @@ function useReplayEvent({eventSlug, location, orgId}: Options): Result {
         );
       }
 
+      // Find LCP spans that have a valid replay node id, this will be used to
+      const highlights = createHighlightEvents(mergedReplayEvent?.entries[0].data);
+
+      // TODO(replays): ideally this would happen on SDK, but due
+      // to how plugins work, we are unable to specify a timestamp for an event
+      // (rrweb applies it), so it's possible actual LCP timestamp does not
+      // match when the observer happens and we emit an rrweb event (will
+      // look into this)
+      const rrwebEventsWithHighlights = mergeAndSortEvents(rrwebEvents, highlights);
+
       setState({
         ...state,
         fetchError: undefined,
@@ -183,7 +196,7 @@ function useReplayEvent({eventSlug, location, orgId}: Options): Result {
         event,
         mergedReplayEvent,
         replayEvents,
-        rrwebEvents,
+        rrwebEvents: rrwebEventsWithHighlights,
         breadcrumbEntry,
         memorySpans,
       });
