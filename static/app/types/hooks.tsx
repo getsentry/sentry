@@ -527,11 +527,6 @@ type IntegrationsFeatureGatesHook = () => {
    * features.
    */
   IntegrationFeatures: React.ComponentType<IntegrationFeaturesProps>;
-
-  /**
-   * This component renders the list of integration features for the onboarding flow
-   */
-  OnboardingFeatureList: React.ComponentType<IntegrationFeatureListProps>;
 };
 
 /**

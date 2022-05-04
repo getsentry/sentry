@@ -20,7 +20,7 @@ type Props = {
   // A map from selected platform keys to the projects created by onboarding.
   selectedPlatformToProjectIdMap: {[key in PlatformKey]?: string};
 };
-function Sidebar({
+function ProjectSidebarSection({
   projects,
   activeProject,
   selectProject,
@@ -69,7 +69,7 @@ function Sidebar({
   );
 }
 
-export default Sidebar;
+export default ProjectSidebarSection;
 
 const Title = styled('span')`
   font-size: 12px;
@@ -79,8 +79,7 @@ const Title = styled('span')`
 `;
 
 const SubHeader = styled('div')<{errorReceived: boolean}>`
-  color: ${p =>
-    p.errorReceived ? p.theme.successText : p.theme.charts.getColorPalette(5)[4]};
+  color: ${p => (p.errorReceived ? p.theme.successText : p.theme.pink300)};
 `;
 
 const StyledPlatformIcon = styled(PlatformIcon)``;
@@ -120,7 +119,7 @@ const WaitingIndicator = styled(motion.div)`
   margin: 0 6px;
   flex-shrink: 0;
   ${pulsingIndicatorStyles};
-  background-color: ${p => p.theme.charts.getColorPalette(5)[4]};
+  background-color: ${p => p.theme.pink300};
 `;
 const StyledIconCheckmark = styled(IconCheckmark)`
   flex-shrink: 0;

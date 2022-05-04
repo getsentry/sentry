@@ -43,7 +43,7 @@ function IntegrationInstaller({
       />
     ),
   }));
-  const {IntegrationFeatures, OnboardingFeatureList} = getIntegrationFeatureGate();
+  const {IntegrationFeatures, FeatureList} = getIntegrationFeatureGate();
   const {metadata, slug} = provider;
   const featureProps = {organization, features};
   const installButton = (disabled: boolean) => {
@@ -126,7 +126,7 @@ function IntegrationInstaller({
       <Flex>
         <FlexContainer>
           <Description dangerouslySetInnerHTML={{__html: marked(metadata.description)}} />
-          <OnboardingFeatureList {...featureProps} provider={{key: slug}} />
+          <FeatureList {...featureProps} provider={{key: slug}} />
         </FlexContainer>
       </Flex>
     </Wrapper>

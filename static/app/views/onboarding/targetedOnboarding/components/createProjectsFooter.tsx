@@ -72,6 +72,7 @@ export default function CreateProjectsFooter({
         state: 'projects_selected',
         url: 'setup-docs/',
         mobileEmailSent: true,
+        selectedIntegrations: [],
       };
       responses.forEach(p => (nextState.platformToProjectIdMap[p.platform] = p.slug));
       setPersistedOnboardingState(nextState);

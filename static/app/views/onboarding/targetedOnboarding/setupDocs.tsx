@@ -27,8 +27,9 @@ import withProjects from 'sentry/utils/withProjects';
 import FirstEventFooter from './components/firstEventFooter';
 import FullIntroduction from './components/fullIntroduction';
 import IntegrationInstaller from './components/integrationInstaller';
-import IntegrationSidebar from './components/integrationSidebarSection';
-import TargetedOnboardingSidebar from './components/sidebar';
+import IntegrationSidebarSection from './components/integrationSidebarSection';
+import ProjectSidebarSection from './components/projectSidebarSection';
+import SetupIntegrationsFooter from './components/setupIntegrationsFooter';
 import {StepProps} from './types';
 import {usePersistedOnboardingState} from './utils';
 
@@ -257,7 +258,7 @@ function SetupDocs({organization, projects, search, configurations, providers}: 
     <React.Fragment>
       <Wrapper>
         <SidebarWrapper>
-          <TargetedOnboardingSidebar
+          <ProjectSidebarSection
             projects={projects}
             selectedPlatformToProjectIdMap={
               clientState
@@ -273,7 +274,7 @@ function SetupDocs({organization, projects, search, configurations, providers}: 
             {...{checkProjectHasFirstEvent, selectProject}}
           />
           {selectedIntegrations.length ? (
-            <IntegrationSidebar
+            <IntegrationSidebarSection
               {...{
                 installedIntegrations,
                 selectedIntegrations,
@@ -358,6 +359,39 @@ function SetupDocs({organization, projects, search, configurations, providers}: 
           handleFirstIssueReceived={() => {
             const newHasFirstEventMap = {...hasFirstEventMap, [project.id]: true};
             setHasFirstEventMap(newHasFirstEventMap);
+          }}
+        />
+      )}
+      {activeIntegration && (
+        <SetupIntegrationsFooter
+          organization={organization}
+          onClickSetupLater={() => {
+            trackAdvancedAnalyticsEvent(
+              'growth.onboarding_clicked_setup_integration_later',
+              {
+                organization,
+                integration: activeIntegration,
+                integration_index: activeIntegrationIndex,
+              }
+            );
+            // find the next uninstalled integration
+            const nextIntegration = selectedIntegrations.find(
+              (i, index) =>
+                !installedIntegrations.has(i) && index > activeIntegrationIndex
+            );
+            // check if we have an integration to set up next
+            if (nextIntegration) {
+              setNewActiveIntegration(nextIntegration);
+            } else {
+              // client state should always exist
+              clientState &&
+                setClientState({
+                  ...clientState,
+                  state: 'finished',
+                });
+              const nextUrl = `/organizations/${organization.slug}/issues/`;
+              browserHistory.push(nextUrl);
+            }
           }}
         />
       )}

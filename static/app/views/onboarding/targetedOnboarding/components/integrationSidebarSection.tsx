@@ -1,14 +1,11 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {motion, Variants} from 'framer-motion';
 
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
-import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import space from 'sentry/styles/space';
 import {IntegrationProvider} from 'sentry/types';
-import testableTransition from 'sentry/utils/testableTransition';
 
 type Props = {
   activeIntegration: string | null;
@@ -27,7 +24,7 @@ function IntegrationSidebarSection({
   const oneIntegration = (integration: string) => {
     const isActive = activeIntegration === integration;
     const isInstalled = installedIntegrations.has(integration);
-    const provider = providers.find(p => p.key === integration);
+    const provider = providers.find(p => p.slug === integration);
     // should never happen
     if (!provider) {
       return null;
@@ -41,15 +38,14 @@ function IntegrationSidebarSection({
         <PluginIcon pluginId={integration} size={36} />
         <MiddleWrapper>
           <NameWrapper>{provider.name}</NameWrapper>
-          <SubHeader isInstalled={isInstalled}>
+          <SubHeader
+            isInstalled={isInstalled}
+            data-test-id="sidebar-integration-indicator"
+          >
             {isInstalled ? t('Installed') : t('Not Installed')}
           </SubHeader>
         </MiddleWrapper>
-        {isInstalled ? (
-          <StyledIconCheckmark isCircled color="green400" />
-        ) : (
-          isActive && <WaitingIndicator />
-        )}
+        {isInstalled ? <StyledIconCheckmark isCircled color="green400" /> : null}
       </IntegrationWrapper>
     );
   };
@@ -71,8 +67,7 @@ const Title = styled('span')`
 `;
 
 const SubHeader = styled('div')<{isInstalled: boolean}>`
-  color: ${p =>
-    p.isInstalled ? p.theme.successText : p.theme.charts.getColorPalette(5)[4]};
+  color: ${p => (p.isInstalled ? p.theme.successText : p.theme.textColor)};
 `;
 
 const IntegrationWrapper = styled('div')<{isActive: boolean}>`
@@ -86,26 +81,9 @@ const IntegrationWrapper = styled('div')<{isActive: boolean}>`
   user-select: none;
 `;
 
-const indicatorAnimation: Variants = {
-  initial: {opacity: 0, y: -10},
-  animate: {opacity: 1, y: 0},
-  exit: {opacity: 0, y: 10},
-};
-
-const WaitingIndicator = styled(motion.div)`
-  margin: 0 6px;
-  flex-shrink: 0;
-  ${pulsingIndicatorStyles};
-  background-color: ${p => p.theme.charts.getColorPalette(5)[4]};
-`;
 const StyledIconCheckmark = styled(IconCheckmark)`
   flex-shrink: 0;
 `;
-
-WaitingIndicator.defaultProps = {
-  variants: indicatorAnimation,
-  transition: testableTransition(),
-};
 
 const MiddleWrapper = styled('div')`
   margin: 0 ${space(1)};
