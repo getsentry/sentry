@@ -43,6 +43,15 @@ export default function FirstEventFooter({
   const client = useApi();
 
   const getSecondaryCta = () => {
+    // if hasn't sent first event, allow skiping.
+    // if last, no secondary cta
+    if (!hasFirstEvent && !isLast) {
+      return <Button onClick={onClickSetupLater}>{t('Next Platform')}</Button>;
+    }
+    return null;
+  };
+
+  const getPrimaryCta = ({firstIssue}: {firstIssue: null | true | Group}) => {
     if (
       isMobile() &&
       organization.experiments.TargetedOnboardingMobileRedirectExperiment === 'email-cta'
@@ -50,6 +59,7 @@ export default function FirstEventFooter({
       return (
         <Button
           to={`/onboarding/${organization.slug}/mobile-redirect/`}
+          priority="primary"
           onClick={() => {
             clientState &&
               client.requestPromise(
@@ -63,29 +73,20 @@ export default function FirstEventFooter({
               );
           }}
         >
-          {t('Do it Later')}
+          {t('Setup on Computer')}
         </Button>
       );
     }
-    // if hasn't sent first event, allow skiping.
-    // if last, no secondary cta
-    if (!hasFirstEvent && !isLast) {
-      return <Button onClick={onClickSetupLater}>{t('Next Platform')}</Button>;
-    }
-    return null;
-  };
-
-  const getPrimaryCta = ({firstIssue}: {firstIssue: null | true | Group}) => {
     // if hasn't sent first event, allow creation of sample error
     if (!hasFirstEvent) {
       return (
-        <StyledCreateSampleEventButton
+        <CreateSampleEventButton
           project={project}
           source="targted-onboarding"
           priority="primary"
         >
           {t('View Sample Error')}
-        </StyledCreateSampleEventButton>
+        </CreateSampleEventButton>
       );
     }
 
@@ -151,6 +152,7 @@ export default function FirstEventFooter({
 const OnboardingButtonBar = styled(ButtonBar)`
   margin: ${space(2)} ${space(4)};
   justify-self: end;
+  margin-left: auto;
 `;
 
 const AnimatedText = styled(motion.div, {
@@ -211,18 +213,17 @@ StatusWrapper.defaultProps = {
 const SkipOnboardingLink = styled(Link)`
   margin: auto ${space(4)};
   white-space: nowrap;
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: none;
+  }
 `;
 
 const GridFooter = styled(GenericFooter)`
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: 1fr 1fr;
-  }
-`;
-
-const StyledCreateSampleEventButton = styled(CreateSampleEventButton)`
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    display: none;
+    display: flex;
+    flex-direction: row;
+    justify-content: end;
   }
 `;
