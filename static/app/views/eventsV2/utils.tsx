@@ -575,12 +575,17 @@ function eventViewToWidgetQuery({
   let orderby = '';
   // The orderby should only be set to sort.field if it is a Top N query
   // since the query uses all of the fields, or if the ordering is used in the y-axis
-  if (
-    sort &&
-    (displayType === DisplayType.TOP_N ||
-      new Set(queryYAxis.map(getAggregateAlias)).has(sort.field))
-  ) {
-    orderby = `${sort.kind === 'desc' ? '-' : ''}${sort.field}`;
+  if (sort) {
+    let orderbyFunction = '';
+    for (let i = 0; i < queryYAxis.length; i++) {
+      if (sort.field === getAggregateAlias(queryYAxis[i])) {
+        orderbyFunction = queryYAxis[i];
+      }
+    }
+    if (displayType === DisplayType.TOP_N || orderbyFunction) {
+      const bareOrderby = orderbyFunction === '' ? sort.field : orderbyFunction;
+      orderby = `${sort.kind === 'desc' ? '-' : ''}${bareOrderby}`;
+    }
   }
   const widgetQuery: WidgetQuery = {
     name: '',
