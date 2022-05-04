@@ -22,7 +22,7 @@ import {
   Organization,
   PageFilters,
   SessionApiResponse,
-  SessionField,
+  SessionFieldWithOperation,
 } from 'sentry/types';
 import {defined, percent} from 'sentry/utils';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -74,10 +74,10 @@ export function reduceTimeSeriesGroups(
 export function sessionDisplayToField(display: ReleasesDisplayOption) {
   switch (display) {
     case ReleasesDisplayOption.USERS:
-      return SessionField.USERS;
+      return SessionFieldWithOperation.USERS;
     case ReleasesDisplayOption.SESSIONS:
     default:
-      return SessionField.SESSIONS;
+      return SessionFieldWithOperation.SESSIONS;
   }
 }
 

@@ -2812,7 +2812,11 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 discover.query(
                     selected_columns=[f"histogram({array_column}_value, 1,0,1)"],
                     query=f"histogram({array_column}_value, 1,0,1):>0",
-                    params={"project_id": [self.project.id]},
+                    params={
+                        "project_id": [self.project.id],
+                        "start": self.two_min_ago,
+                        "end": self.now,
+                    },
                     use_aggregate_conditions=True,
                 )
 
@@ -2823,7 +2827,11 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 discover.query(
                     selected_columns=["count()"],
                     query=f"histogram({array_column}_value, 1,0,1):>0",
-                    params={"project_id": [self.project.id]},
+                    params={
+                        "project_id": [self.project.id],
+                        "start": self.two_min_ago,
+                        "end": self.now,
+                    },
                     auto_aggregations=True,
                     use_aggregate_conditions=True,
                 )

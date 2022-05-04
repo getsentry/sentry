@@ -215,13 +215,10 @@ def print_results(
     teams: Set[str],
 ) -> None:
     """Pretty print the results."""
-    tuples = (
-        sorted(
-            ((team, get_result(covered_by_team, not_covered_by_team, team)) for team in teams),
-            key=lambda x: x[1],
-        )
-        + [(TOTALS_KEY, get_result(covered_by_team, not_covered_by_team, TOTALS_KEY))]
-    )
+    tuples = sorted(
+        ((team, get_result(covered_by_team, not_covered_by_team, team)) for team in teams),
+        key=lambda x: x[1],
+    ) + [(TOTALS_KEY, get_result(covered_by_team, not_covered_by_team, TOTALS_KEY))]
 
     bar = "=" * int(BAR_LENGTH / 2)
     print(f"{bar} Python coverage by team {bar}")  # NOQA S002

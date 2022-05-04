@@ -62,26 +62,10 @@ function FlamegraphZoomViewMinimap({
       }
 
       if (previousRenderer?.flamegraph.profile === renderer.flamegraph.profile) {
-        if (previousRenderer.flamegraph.inverted !== renderer.flamegraph.inverted) {
-          // Preserve the position where the user just was before they toggled
-          // inverted. This means that the horizontal position is unchanged
-          // while the vertical position needs to determined based on the
-          // current position.
-          renderer.setConfigView(
-            previousRenderer.configView.translateY(
-              previousRenderer.configSpace.height -
-                previousRenderer.configView.height -
-                previousRenderer.configView.y
-            )
-          );
-        } else if (
-          previousRenderer.flamegraph.leftHeavy !== renderer.flamegraph.leftHeavy
-        ) {
-          /*
-           * When the user toggles left heavy, the entire flamegraph will take
-           * on a different shape. In this case, there's no obvious position
-           * that can be carried over.
-           */
+        if (previousRenderer.flamegraph.leftHeavy !== renderer.flamegraph.leftHeavy) {
+          // When the user toggles left heavy, the entire flamegraph will take
+          // on a different shape. In this case, there's no obvious position
+          // that can be carried over.
         } else {
           renderer.setConfigView(previousRenderer.configView);
         }
@@ -185,12 +169,7 @@ function FlamegraphZoomViewMinimap({
       flamegraphMiniMapRenderer.setConfigView(
         new Rect(
           frame.start,
-          flamegraphMiniMapRenderer.flamegraph.inverted
-            ? flamegraphMiniMapRenderer.configSpace.height -
-              flamegraphMiniMapRenderer.configView.height -
-              frame.depth +
-              1
-            : frame.depth,
+          frame.depth,
           frame.end - frame.start,
           flamegraphMiniMapRenderer.configView.height
         )
