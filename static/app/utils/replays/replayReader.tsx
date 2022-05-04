@@ -84,4 +84,12 @@ export default class ReplayReader {
         );
     }
   });
+
+  isMemorySpan = (span: RawSpanType) => {
+    return span.op === 'memory' || span.description === 'memory';
+  };
+
+  isNotMemorySpan = (span: RawSpanType) => {
+    return !this.isMemorySpan(span);
+  };
 }

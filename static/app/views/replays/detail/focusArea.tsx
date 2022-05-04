@@ -1,9 +1,9 @@
 import React, {useState} from 'react';
 
 import EventEntry from 'sentry/components/events/eventEntry';
-import {MemorySpanType} from 'sentry/components/events/interfaces/spans/types';
 import TagsTable from 'sentry/components/tagsTable';
-import {Event} from 'sentry/types/event';
+import {EntryType, Event} from 'sentry/types/event';
+import Replay from 'sentry/utils/replays/Replay';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 
@@ -13,9 +13,7 @@ import FocusTabs from './focusTabs';
 import MemoryChart from './memoryChart';
 
 type Props = {
-  event: Event;
-  eventWithSpans: Event | undefined;
-  memorySpans: MemorySpanType[] | undefined;
+  replay: Replay;
 };
 
 function FocusArea(props: Props) {
@@ -29,32 +27,43 @@ function FocusArea(props: Props) {
   );
 }
 
-function ActiveTab({
-  active,
-  event,
-  eventWithSpans,
-  memorySpans,
-}: Props & {active: TabBarId}) {
+function ActiveTab({active, replay}: Props & {active: TabBarId}) {
   const {routes, router} = useRouteContext();
   const organization = useOrganization();
+
+  const event = replay.getEvent();
+  const spansEntry = replay.getEntryType(EntryType.SPANS);
+
   switch (active) {
     case 'console':
       return <div id="console">TODO: Add a console view</div>;
-    case 'performance':
-      return eventWithSpans ? (
+    case 'performance': {
+      if (!spansEntry) {
+        return null;
+      }
+      const nonMemorySpans = {
+        ...spansEntry,
+        data: spansEntry.data.filter(replay.isNotMemorySpan),
+      };
+      const performanceEvent = {
+        ...event,
+        entries: [nonMemorySpans],
+      } as Event;
+      return (
         <div id="performance">
           <EventEntry
-            key={`${eventWithSpans.id}`}
-            projectSlug={getProjectSlug(eventWithSpans)}
+            key={`${event.id}`}
+            projectSlug={getProjectSlug(event)}
             // group={group}
             organization={organization}
-            event={eventWithSpans}
-            entry={eventWithSpans.entries[0]}
+            event={performanceEvent}
+            entry={nonMemorySpans}
             route={routes[routes.length - 1]}
             router={router}
           />
         </div>
-      ) : null;
+      );
+    }
     case 'errors':
       return <div id="errors">TODO: Add an errors view</div>;
     case 'tags':
@@ -66,8 +75,8 @@ function ActiveTab({
     case 'memory':
       return (
         <MemoryChart
-          memorySpans={memorySpans}
-          startTimestamp={eventWithSpans?.entries[0]?.data[0]?.timestamp}
+          memorySpans={spansEntry?.data.filter(replay.isMemorySpan)}
+          startTimestamp={event.startTimestamp}
         />
       );
     default:

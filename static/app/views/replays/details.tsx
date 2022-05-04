@@ -31,16 +31,7 @@ function ReplayDetails() {
     t: initialTimeOffset, // Time, in seconds, where the video should start
   } = location.query;
 
-  const {
-    breadcrumbEntry,
-    event,
-    mergedReplayEvent,
-    memorySpans,
-    fetchError,
-    fetching,
-    onRetry,
-    replay,
-  } = useReplayEvent({
+  const {breadcrumbEntry, event, fetchError, fetching, onRetry, replay} = useReplayEvent({
     eventSlug,
     location,
     orgId,
@@ -119,11 +110,7 @@ function ReplayDetails() {
             <Panel>
               <BreadcrumbTimeline crumbs={breadcrumbEntry?.data.values || []} />
             </Panel>
-            <FocusArea
-              event={replay.getEvent()}
-              eventWithSpans={mergedReplayEvent}
-              memorySpans={memorySpans}
-            />
+            <FocusArea replay={replay} />
           </Layout.Main>
         </Layout.Body>
       </DetailLayout>
