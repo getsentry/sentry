@@ -301,6 +301,11 @@ class WidgetQueries extends React.Component<Props, State> {
         cursor,
         ...getDashboardsMEPQueryParams(this.isMEPEnabled),
       };
+
+      if (query.orderby) {
+        params.sort = typeof query.orderby === 'string' ? [query.orderby] : query.orderby;
+      }
+
       if (widget.displayType === 'table') {
         url = `/organizations/${organization.slug}/eventsv2/`;
         params.referrer = 'api.dashboards.tablewidget';
