@@ -1,9 +1,7 @@
-import {Fragment, useEffect, useMemo, useState} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 
-import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -12,7 +10,7 @@ import {Flamegraph} from 'sentry/components/profiling/flamegraph';
 import {ProfileDragDropImportProps} from 'sentry/components/profiling/profileDragDropImport';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {Organization, Project, RequestState} from 'sentry/types';
+import {Project} from 'sentry/types';
 import {Trace} from 'sentry/types/profiling/core';
 import {DeepPartial} from 'sentry/types/utils';
 import {
@@ -22,27 +20,11 @@ import {
   FlamegraphStateQueryParamSync,
 } from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
-import {importProfile, ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {Profile} from 'sentry/utils/profiling/profile/profile';
-import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
-function fetchFlamegraphs(
-  api: Client,
-  eventId: string,
-  projectId: Project['id'],
-  organization: Organization
-): Promise<ProfileGroup> {
-  return api
-    .requestPromise(
-      `/projects/${organization.slug}/${projectId}/profiling/profiles/${eventId}/`,
-      {
-        method: 'GET',
-        includeAllArgs: true,
-      }
-    )
-    .then(([data]) => importProfile(data, eventId));
-}
+import {useProfileGroup} from './profileGroupProvider';
 
 const LoadingGroup: ProfileGroup = {
   name: 'Loading',
@@ -60,12 +42,9 @@ interface FlamegraphViewProps {
 }
 
 function FlamegraphView(props: FlamegraphViewProps): React.ReactElement {
-  const api = useApi();
   const organization = useOrganization();
 
-  const [requestState, setRequestState] = useState<RequestState<ProfileGroup>>({
-    type: 'initial',
-  });
+  const [profileGroup, setProfileGroup] = useProfileGroup();
 
   const initialFlamegraphPreferencesState = useMemo((): DeepPartial<FlamegraphState> => {
     return decodeFlamegraphStateFromQueryParams(props.location.query);
@@ -73,30 +52,8 @@ function FlamegraphView(props: FlamegraphViewProps): React.ReactElement {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    if (!props.params.eventId || !props.params.projectId) {
-      return undefined;
-    }
-
-    setRequestState({type: 'loading'});
-
-    fetchFlamegraphs(api, props.params.eventId, props.params.projectId, organization)
-      .then(importedFlamegraphs => {
-        setRequestState({type: 'resolved', data: importedFlamegraphs});
-      })
-      .catch(err => {
-        const message = err.toString() || t('Error: Unable to load profiles');
-        setRequestState({type: 'errored', error: message});
-        Sentry.captureException(err);
-      });
-
-    return () => {
-      api.clear();
-    };
-  }, [props.params.eventId, props.params.projectId, api, organization]);
-
   const onImport: ProfileDragDropImportProps['onImport'] = profiles => {
-    setRequestState({type: 'resolved', data: profiles});
+    setProfileGroup({type: 'resolved', data: profiles});
   };
 
   return (
@@ -115,7 +72,7 @@ function FlamegraphView(props: FlamegraphViewProps): React.ReactElement {
                     type: 'flamegraph',
                     payload: {
                       transaction:
-                        requestState.type === 'resolved' ? requestState.data.name : '',
+                        profileGroup.type === 'resolved' ? profileGroup.data.name : '',
                       profileId: props.params.eventId ?? '',
                       projectSlug: props.params.projectId ?? '',
                     },
@@ -126,19 +83,19 @@ function FlamegraphView(props: FlamegraphViewProps): React.ReactElement {
           </Layout.Header>
           <FlamegraphThemeProvider>
             <FlamegraphContainer>
-              {requestState.type === 'errored' ? (
+              {profileGroup.type === 'errored' ? (
                 <Alert type="error" showIcon>
-                  {requestState.error}
+                  {profileGroup.error}
                 </Alert>
-              ) : requestState.type === 'loading' ? (
+              ) : profileGroup.type === 'loading' ? (
                 <Fragment>
                   <Flamegraph onImport={onImport} profiles={LoadingGroup} />
                   <LoadingIndicatorContainer>
                     <LoadingIndicator />
                   </LoadingIndicatorContainer>
                 </Fragment>
-              ) : requestState.type === 'resolved' ? (
-                <Flamegraph onImport={onImport} profiles={requestState.data} />
+              ) : profileGroup.type === 'resolved' ? (
+                <Flamegraph onImport={onImport} profiles={profileGroup.data} />
               ) : null}
             </FlamegraphContainer>
           </FlamegraphThemeProvider>

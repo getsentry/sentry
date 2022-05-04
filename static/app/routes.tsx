@@ -1896,9 +1896,19 @@ function buildRoutes() {
       />
       <Route
         path="flamegraph/:projectId/:eventId"
+        componentPromise={() => import('sentry/views/profiling/profileGroupProvider')}
         component={SafeLazyLoad}
-        componentPromise={() => import('sentry/views/profiling/flamegraph')}
-      />
+      >
+        <IndexRoute
+          component={SafeLazyLoad}
+          componentPromise={() => import('sentry/views/profiling/flamegraph')}
+        />
+        <Route
+          path="summary/"
+          component={SafeLazyLoad}
+          componentPromise={() => import('sentry/views/profiling/flamegraphSummary')}
+        />
+      </Route>
     </Route>
   );
 

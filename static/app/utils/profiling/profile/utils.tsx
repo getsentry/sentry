@@ -152,9 +152,9 @@ export function getSlowestProfileCallsFromProfile(
   profile.forEach(openFrame, closeFrame);
 
   const slowestApplicationCalls = ApplicationCalls.sort(
-    (a, b) => a.selfWeight - b.selfWeight
+    (a, b) => b.selfWeight - a.selfWeight
   );
-  const slowestSystemCalls = systemFrames.sort((a, b) => a.selfWeight - b.selfWeight);
+  const slowestSystemCalls = systemFrames.sort((a, b) => b.selfWeight - a.selfWeight);
 
   return {
     slowestApplicationCalls: slowestApplicationCalls.slice(0, 10),
@@ -178,10 +178,10 @@ export function getSlowestProfileCallsFromProfileGroup(
 
   return {
     slowestApplicationCalls: applicationCalls
-      .sort((a, b) => a.selfWeight - b.selfWeight)
+      .sort((a, b) => b.selfWeight - a.selfWeight)
       .slice(0, 10),
     slowestSystemCalls: systemCalls
-      .sort((a, b) => a.selfWeight - b.selfWeight)
+      .sort((a, b) => b.selfWeight - a.selfWeight)
       .slice(0, 10),
   };
 }
