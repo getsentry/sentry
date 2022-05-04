@@ -11,7 +11,7 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
   return [
     {
       guide: 'issue',
-      requiredTargets: ['issue_title', 'exception'],
+      requiredTargets: ['issue_number', 'exception'],
       steps: [
         {
           title: t('Identify Your Issues'),
@@ -117,7 +117,7 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
     },
     {
       guide: 'span_op_breakdowns_and_tag_explorer',
-      requiredTargets: ['span_op_breakdowns_filter', 'span_op_relative_breakdowns'],
+      requiredTargets: ['span_op_breakdowns_filter'],
       steps: [
         {
           title: t('Filter by Span Operation'),
