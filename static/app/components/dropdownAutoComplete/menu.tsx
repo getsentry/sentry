@@ -135,11 +135,6 @@ type Props = {
   menuProps?: Parameters<AutoCompleteChildrenArgs['getMenuProps']>[0];
 
   /**
-   * Changes the menu style to have an arrow at the top
-   */
-  menuWithArrow?: boolean;
-
-  /**
    * Minimum menu width, defaults to 250
    */
   minWidth?: number;
@@ -206,7 +201,6 @@ const Menu = ({
   disableLabelPadding = false,
   busy = false,
   busyItemsStillVisible = false,
-  menuWithArrow = false,
   disabled = false,
   subPanel = null,
   itemSize,
@@ -320,7 +314,6 @@ const Menu = ({
               blendCorner={blendCorner}
               detached={detached}
               alignMenu={alignMenu}
-              menuWithArrow={menuWithArrow}
               minWidth={minWidth}
             >
               <DropdownMainContent minWidth={minWidth}>
