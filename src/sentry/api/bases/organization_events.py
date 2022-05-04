@@ -1,6 +1,6 @@
 from contextlib import contextmanager
-from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, Generator, Optional, Sequence, Union, cast
+from datetime import timedelta
+from typing import Any, Callable, Dict, Generator, Optional, Sequence, cast
 
 import sentry_sdk
 from django.utils import timezone
@@ -20,13 +20,19 @@ from sentry.models import Organization, Project, Team
 from sentry.models.group import Group
 from sentry.search.events.constants import TIMEOUT_ERROR_MESSAGE
 from sentry.search.events.fields import get_function_alias
-from sentry.search.events.filter import get_filter
-from sentry.snuba import discover
+from sentry.snuba import discover, metrics_enhanced_performance
 from sentry.utils import snuba
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import get_interval_from_range, get_rollup_from_request, parse_stats_period
 from sentry.utils.http import absolute_uri
 from sentry.utils.snuba import MAX_FIELDS, SnubaTSResult
+
+# Doesn't map 1:1 with real datasets, but rather what we present to users
+# ie. metricsEnhanced is not a real dataset
+DATASET_OPTIONS = {
+    "discover": discover,
+    "metricsEnhanced": metrics_enhanced_performance,
+}
 
 
 def resolve_axis_column(column: str, index: int = 0) -> str:
@@ -59,6 +65,12 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):  # type: ignore
             teams = Team.objects.get_for_user(organization, request.user)
 
         return [team.id for team in teams]
+
+    def get_dataset(self, request: Request) -> Any:
+        dataset_label = request.GET.get("dataset", "discover")
+        if dataset_label not in DATASET_OPTIONS:
+            raise ParseError(detail=f"dataset must be one of: {', '.join(DATASET_OPTIONS.keys())}")
+        return DATASET_OPTIONS[dataset_label]
 
     def get_snuba_params(
         self, request: Request, organization: Organization, check_global_views: bool = True
@@ -97,32 +109,6 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):  # type: ignore
         if orderby:
             return orderby
         return None
-
-    def get_snuba_query_args_legacy(
-        self, request: Request, organization: Organization
-    ) -> Dict[
-        str,
-        Union[
-            Optional[datetime],
-            Sequence[Sequence[Union[str, str, Any]]],
-            Optional[Dict[str, Sequence[int]]],
-        ],
-    ]:
-        params = self.get_filter_params(request, organization)
-        query = request.GET.get("query")
-        try:
-            _filter = get_filter(query, params)
-        except InvalidSearchQuery as e:
-            raise ParseError(detail=str(e))
-
-        snuba_args = {
-            "start": _filter.start,
-            "end": _filter.end,
-            "conditions": _filter.conditions,
-            "filter_keys": _filter.filter_keys,
-        }
-
-        return snuba_args
 
     def quantize_date_params(self, request: Request, params: Dict[str, Any]) -> Dict[str, Any]:
         # We only need to perform this rounding on relative date periods
@@ -392,6 +378,8 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     allow_partial_buckets,
                     zerofill_results=zerofill_results,
                 )
+                if top_events > 0 and isinstance(result, SnubaTSResult):
+                    serialized_result = {"": serialized_result}
             else:
                 extra_columns = None
                 if comparison_delta:

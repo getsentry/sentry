@@ -3,7 +3,6 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.rule import RuleEndpoint
-from sentry.api.endpoints.project_rules import trigger_alert_rule_action_creators
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.rule import RuleSerializer
 from sentry.api.serializers.rest_framework.rule import RuleSerializer as DrfRuleSerializer
@@ -19,6 +18,7 @@ from sentry.models import (
     Team,
     User,
 )
+from sentry.rules.actions.base import trigger_sentry_app_action_creators_for_issues
 from sentry.signals import alert_rule_edited
 from sentry.web.decorators import transaction_start
 
@@ -62,6 +62,16 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                 # Delete meta fields
                 del action["_sentry_app_installation"]
                 del action["_sentry_app_component"]
+
+            # TODO(nisanthan): This is a temporary fix. We need to save both the label and value of the selected choice and not save all the choices.
+            if action.get("id") == "sentry.integrations.jira.notify_action.JiraCreateTicketAction":
+                for field in action.get("dynamic_form_fields", []):
+                    if field.get("choices"):
+                        field["choices"] = [
+                            p
+                            for p in field.get("choices", [])
+                            if isinstance(p[0], str) and isinstance(p[1], str)
+                        ]
 
         if len(errors):
             serialized_rule["errors"] = errors
@@ -128,7 +138,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                 context = {"uuid": client.uuid}
                 return Response(context, status=202)
 
-            trigger_alert_rule_action_creators(kwargs.get("actions"))
+            trigger_sentry_app_action_creators_for_issues(kwargs.get("actions"))
 
             updated_rule = project_rules.Updater.run(rule=rule, request=request, **kwargs)
 

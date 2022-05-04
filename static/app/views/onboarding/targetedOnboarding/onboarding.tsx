@@ -20,9 +20,11 @@ import withProjects from 'sentry/utils/withProjects';
 import PageCorners from 'sentry/views/onboarding/components/pageCorners';
 
 import Stepper from './components/stepper';
+import MobileRedirect from './mobileRedirect';
 import PlatformSelection from './platform';
 import SetupDocs from './setupDocs';
 import {StepDescriptor} from './types';
+import {usePersistedOnboardingState} from './utils';
 import TargetedOnboardingWelcome from './welcome';
 
 type RouteParams = {
@@ -58,12 +60,21 @@ const ONBOARDING_STEPS: StepDescriptor[] = [
   },
 ];
 
+const MobileRedirectStep: StepDescriptor = {
+  id: 'setup-docs',
+  title: t('Install the Sentry SDK'),
+  Component: MobileRedirect,
+  hasFooter: true,
+  cornerVariant: 'top-left',
+};
+
 function Onboarding(props: Props) {
   const {
     organization,
     params: {step: stepId},
   } = props;
   const cornerVariantTimeoutRed = useRef<number | undefined>(undefined);
+  const [clientState, setClientState] = usePersistedOnboardingState();
 
   useEffect(() => {
     return () => {
@@ -71,7 +82,7 @@ function Onboarding(props: Props) {
     };
   }, []);
 
-  const stepObj = ONBOARDING_STEPS.find(({id}) => stepId === id);
+  let stepObj = ONBOARDING_STEPS.find(({id}) => stepId === id);
   const stepIndex = ONBOARDING_STEPS.findIndex(({id}) => stepId === id);
 
   const cornerVariantControl = useAnimation();
@@ -89,21 +100,21 @@ function Onboarding(props: Props) {
 
   const [containerHasFooter, setContainerHasFooter] = useState<boolean>(false);
   const updateAnimationState = () => {
-    if (stepObj) {
-      setContainerHasFooter(stepObj.hasFooter ?? false);
-      cornerVariantControl.start(stepObj.cornerVariant);
+    if (!stepObj) {
+      return;
     }
+
+    setContainerHasFooter(stepObj.hasFooter ?? false);
+    cornerVariantControl.start(stepObj.cornerVariant);
   };
 
   useEffect(updateAnimationState, []);
 
-  if (!stepObj || stepIndex === -1) {
-    return (
-      <Redirect to={`/onboarding/${organization.slug}/${ONBOARDING_STEPS[0].id}/`} />
-    );
-  }
-
   const goToStep = (step: StepDescriptor) => {
+    if (!stepObj) {
+      return;
+    }
+
     if (step.cornerVariant !== stepObj.cornerVariant) {
       cornerVariantControl.start('none');
     }
@@ -121,7 +132,12 @@ function Onboarding(props: Props) {
   };
 
   const handleGoBack = () => {
+    if (!stepObj) {
+      return;
+    }
+
     const previousStep = ONBOARDING_STEPS[stepIndex - 1];
+
     if (stepObj.cornerVariant !== previousStep.cornerVariant) {
       cornerVariantControl.start('none');
     }
@@ -132,12 +148,18 @@ function Onboarding(props: Props) {
     const source = `targeted-onboarding-${stepId}`;
     return (
       <SkipOnboardingLink
-        onClick={() =>
+        onClick={() => {
           trackAdvancedAnalyticsEvent('growth.onboarding_clicked_skip', {
             organization,
             source,
-          })
-        }
+          });
+          if (clientState) {
+            setClientState({
+              ...clientState,
+              state: 'skipped',
+            });
+          }
+        }}
         to={`/organizations/${organization.slug}/issues/`}
       >
         {t('Skip Onboarding')}
@@ -145,16 +167,27 @@ function Onboarding(props: Props) {
     );
   };
 
+  if (!stepObj || stepIndex === -1) {
+    if (props.params.step === 'mobile-redirect') {
+      stepObj = MobileRedirectStep;
+    } else {
+      return (
+        <Redirect to={`/onboarding/${organization.slug}/${ONBOARDING_STEPS[0].id}/`} />
+      );
+    }
+  }
   return (
     <OnboardingWrapper data-test-id="targeted-onboarding">
       <SentryDocumentTitle title={stepObj.title} />
       <Header>
         <LogoSvg />
-        <StyledStepper
-          numSteps={ONBOARDING_STEPS.length}
-          currentStepIndex={stepIndex}
-          onClick={i => goToStep(ONBOARDING_STEPS[i])}
-        />
+        {stepIndex !== -1 && (
+          <StyledStepper
+            numSteps={ONBOARDING_STEPS.length}
+            currentStepIndex={stepIndex}
+            onClick={i => goToStep(ONBOARDING_STEPS[i])}
+          />
+        )}
         <UpsellWrapper>
           <Hook
             name="onboarding:targeted-onboarding-header"
@@ -170,7 +203,7 @@ function Onboarding(props: Props) {
               <stepObj.Component
                 active
                 stepIndex={stepIndex}
-                onComplete={() => goNextStep(stepObj)}
+                onComplete={() => stepObj && goNextStep(stepObj)}
                 orgId={props.params.orgId}
                 organization={props.organization}
                 search={props.location.search}

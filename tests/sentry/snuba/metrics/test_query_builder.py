@@ -17,12 +17,14 @@ from snuba_sdk import (
     Limit,
     Offset,
     Op,
+    Or,
     OrderBy,
     Query,
 )
 
 from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics.indexer.mock import MockIndexer
+from sentry.sentry_metrics.indexer.strings import SHARED_TAG_STRINGS
 from sentry.sentry_metrics.utils import resolve, resolve_tag_key, resolve_weak
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics import (
@@ -40,9 +42,10 @@ from sentry.snuba.metrics.fields.snql import (
     abnormal_sessions,
     addition,
     all_sessions,
+    complement,
     crashed_sessions,
+    division_float,
     errored_preaggr_sessions,
-    percentage,
     uniq_aggregation_on_metric,
 )
 from sentry.snuba.metrics.naming_layer.mapping import get_mri
@@ -129,6 +132,53 @@ def get_entity_of_metric_mocked(_, metric_name):
         (
             'transaction:"/bar/:orgId/"',
             [Condition(Column(name=resolve_tag_key(ORG_ID, "transaction")), Op.EQ, rhs=10002)],
+        ),
+        (
+            "release:[production,foo]",
+            [
+                Condition(
+                    Column(name=resolve_tag_key(ORG_ID, "release")),
+                    Op.IN,
+                    rhs=[SHARED_TAG_STRINGS["production"]],
+                )
+            ],
+        ),
+        (
+            "!release:[production,foo]",
+            [
+                Condition(
+                    Column(name=resolve_tag_key(ORG_ID, "release")),
+                    Op.NOT_IN,
+                    rhs=[SHARED_TAG_STRINGS["production"]],
+                )
+            ],
+        ),
+        (
+            "release:[foo]",
+            [
+                Condition(
+                    Column(name=resolve_tag_key(ORG_ID, "release")),
+                    Op.IN,
+                    rhs=[],
+                )
+            ],
+        ),
+        (
+            "release:myapp@2.0.0 or environment:[production,staging]",
+            [
+                Or(
+                    [
+                        Condition(
+                            Column(name=resolve_tag_key(ORG_ID, "release")), Op.IN, rhs=[10001]
+                        ),
+                        Condition(
+                            Column(name=resolve_tag_key(ORG_ID, "environment")),
+                            Op.IN,
+                            rhs=[resolve(ORG_ID, "production"), resolve(ORG_ID, "staging")],
+                        ),
+                    ]
+                ),
+            ],
         ),
     ],
 )
@@ -389,16 +439,19 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2, monkeypatch):
                         ),
                         alias=SessionMRI.CRASHED_AND_ABNORMAL.value,
                     ),
-                    percentage(
-                        crashed_sessions(
-                            org_id,
-                            metric_ids=[resolve_weak(org_id, SessionMRI.SESSION.value)],
-                            alias=SessionMRI.CRASHED.value,
-                        ),
-                        all_sessions(
-                            org_id,
-                            metric_ids=[resolve_weak(org_id, SessionMRI.SESSION.value)],
-                            alias=SessionMRI.ALL.value,
+                    complement(
+                        division_float(
+                            crashed_sessions(
+                                org_id,
+                                metric_ids=[resolve_weak(org_id, SessionMRI.SESSION.value)],
+                                alias=SessionMRI.CRASHED.value,
+                            ),
+                            all_sessions(
+                                org_id,
+                                metric_ids=[resolve_weak(org_id, SessionMRI.SESSION.value)],
+                                alias=SessionMRI.ALL.value,
+                            ),
+                            alias=SessionMRI.CRASH_RATE.value,
                         ),
                         alias=SessionMRI.CRASH_FREE_RATE.value,
                     ),

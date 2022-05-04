@@ -12,7 +12,6 @@ describe('Dashboards > Create', function () {
       'dashboards-edit',
       'discover-query',
       'dashboard-grid-layout',
-      'widget-library',
     ],
   });
 

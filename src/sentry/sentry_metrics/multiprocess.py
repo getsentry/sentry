@@ -215,7 +215,6 @@ if TYPE_CHECKING:
         message: Message[KafkaPayload]
         future: Future[Message[KafkaPayload]]
 
-
 else:
 
     class ProducerResultFuture(NamedTuple):
@@ -379,7 +378,7 @@ def process_messages(
     metrics.incr("process_messages.total_strings_indexer_lookup", amount=len(strings))
 
     with metrics.timer("metrics_consumer.bulk_record"):
-        mapping = indexer.bulk_record(org_strings)
+        mapping = indexer.bulk_record(org_strings).get_mapped_results()
 
     new_messages: List[Message[KafkaPayload]] = []
 

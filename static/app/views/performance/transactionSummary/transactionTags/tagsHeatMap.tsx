@@ -176,7 +176,6 @@ const TagsHeatMap = (
       },
     },
     xAxis: {
-      boundaryGap: true,
       type: 'category' as const,
       splitArea: {
         show: true,

@@ -291,7 +291,7 @@ def _handles_frame(data, frame):
 
     # TODO: Consider ignoring platform
     platform = frame.get("platform") or data.get("platform")
-    return is_native_platform(platform) and "instruction_addr" in frame
+    return is_native_platform(platform) and frame.get("instruction_addr") is not None
 
 
 def get_frames_for_symbolication(frames, data, modules):

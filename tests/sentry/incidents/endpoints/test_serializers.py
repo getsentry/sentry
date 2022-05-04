@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 import responses
+from django.test import override_settings
 from exam import fixture
 from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail
@@ -75,13 +76,6 @@ class TestAlertRuleSerializer(TestCase):
     @fixture
     def context(self):
         return {"organization": self.organization, "access": self.access, "user": self.user}
-
-    def Any(self, cls):
-        class Any:
-            def __eq__(self, other):
-                return isinstance(other, cls)
-
-        return Any()
 
     def run_fail_validation_test(self, params, errors):
         base_params = self.valid_params.copy()
@@ -646,6 +640,17 @@ class TestAlertRuleSerializer(TestCase):
         assert alert_rule.comparison_delta is None
         assert alert_rule.snuba_query.resolution == DEFAULT_ALERT_RULE_RESOLUTION * 60
 
+    @override_settings(MAX_QUERY_SUBSCRIPTIONS_PER_ORG=1)
+    def test_enforce_max_subscriptions(self):
+        serializer = AlertRuleSerializer(context=self.context, data=self.valid_params)
+        assert serializer.is_valid(), serializer.errors
+        serializer.save()
+        serializer = AlertRuleSerializer(context=self.context, data=self.valid_params)
+        assert serializer.is_valid(), serializer.errors
+        with self.assertRaises(serializers.ValidationError) as cm:
+            serializer.save()
+        assert cm.exception.detail[0] == "You may not exceed 1 metric alerts per organization"
+
 
 class TestAlertRuleTriggerSerializer(TestCase):
     @fixture
@@ -995,39 +1000,7 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
             {"sentryApp": ["Missing parameter: sentry_app_installation_uuid"]},
         )
 
-    @responses.activate
-    def test_sentry_app_action_creator_fails(self):
-        responses.add(
-            method=responses.POST,
-            url="https://example.com/sentry/alert-rule",
-            status=400,
-            body="Invalid channel.",
-        )
-        self.run_fail_validation_test(
-            {
-                "type": AlertRuleTriggerAction.get_registered_type(
-                    AlertRuleTriggerAction.Type.SENTRY_APP
-                ).slug,
-                "target_type": ACTION_TARGET_TYPE_TO_STRING[
-                    AlertRuleTriggerAction.TargetType.SENTRY_APP
-                ],
-                "target_identifier": "1",
-                "sentry_app": self.sentry_app.id,
-                "sentry_app_config": {"channel": "#santry"},
-                "sentry_app_installation_uuid": self.sentry_app_installation.uuid,
-            },
-            {"sentryApp": ["Super Awesome App: Invalid channel."]},
-        )
-
-    @responses.activate
     def test_create_and_update_sentry_app_action_success(self):
-        responses.add(
-            method=responses.POST,
-            url="https://example.com/sentry/alert-rule",
-            status=200,
-            json={},
-        )
-
         serializer = AlertRuleTriggerActionSerializer(
             context=self.context,
             data={

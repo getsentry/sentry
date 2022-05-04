@@ -4,6 +4,7 @@ import {Location} from 'history';
 import {openModal} from 'sentry/actionCreators/modal';
 import ContextPickerModal from 'sentry/components/contextPickerModal';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 
 // TODO(ts): figure out better typing for react-router here
 export function navigateTo(
@@ -12,8 +13,8 @@ export function navigateTo(
   configUrl?: string
 ) {
   // Check for placeholder params
-  const needOrg = to.indexOf(':orgId') > -1;
-  const needProject = to.indexOf(':projectId') > -1;
+  const needOrg = to.includes(':orgId');
+  const needProject = to.includes(':projectId') || to.includes(':project');
   const comingFromProjectId = router?.location?.query?.project;
   const needProjectId = !comingFromProjectId || Array.isArray(comingFromProjectId);
 
@@ -40,8 +41,12 @@ export function navigateTo(
       {}
     );
   } else {
-    projectById
-      ? router.push(to.replace(':projectId', projectById.slug))
-      : router.push(to);
+    if (projectById) {
+      to = replaceRouterParams(to, {
+        projectId: projectById.slug,
+        project: projectById.id,
+      });
+    }
+    router.push(to);
   }
 }

@@ -22,11 +22,12 @@ from sentry.snuba.metrics.fields.snql import (
     addition,
     all_sessions,
     all_users,
+    complement,
     crashed_sessions,
     crashed_users,
+    division_float,
     errored_all_users,
     errored_preaggr_sessions,
-    percentage,
     subtraction,
     uniq_aggregation_on_metric,
 )
@@ -52,8 +53,8 @@ MOCKED_DERIVED_METRICS.update(
             metric_mri="crash_free_fake",
             metrics=[SessionMRI.CRASHED.value, SessionMRI.ERRORED_SET.value],
             unit="percentage",
-            snql=lambda *args, org_id, metric_ids, alias=None: percentage(
-                *args, metric_ids, alias="crash_free_fake"
+            snql=lambda *args, org_id, metric_ids, alias=None: complement(
+                division_float(*args, metric_ids, alias="crash_free_fake")
             ),
         ),
         "random_composite": CompositeEntityDerivedMetric(
@@ -203,20 +204,28 @@ class SingleEntityDerivedMetricTestCase(TestCase):
         assert MOCKED_DERIVED_METRICS[SessionMRI.CRASH_FREE_RATE.value].generate_select_statements(
             [self.project], query_definition=query_definition
         ) == [
-            percentage(
-                crashed_sessions(org_id, metric_ids=session_ids, alias=SessionMRI.CRASHED.value),
-                all_sessions(org_id, metric_ids=session_ids, alias=SessionMRI.ALL.value),
+            complement(
+                division_float(
+                    crashed_sessions(
+                        org_id, metric_ids=session_ids, alias=SessionMRI.CRASHED.value
+                    ),
+                    all_sessions(org_id, metric_ids=session_ids, alias=SessionMRI.ALL.value),
+                    alias="e:sessions/crash_rate@ratio",
+                ),
                 alias=SessionMRI.CRASH_FREE_RATE.value,
             )
         ]
         assert MOCKED_DERIVED_METRICS[
             SessionMRI.CRASH_FREE_USER_RATE.value
         ].generate_select_statements([self.project], query_definition=query_definition) == [
-            percentage(
-                crashed_users(
-                    org_id, metric_ids=session_user_ids, alias=SessionMRI.CRASHED_USER.value
+            complement(
+                division_float(
+                    crashed_users(
+                        org_id, metric_ids=session_user_ids, alias=SessionMRI.CRASHED_USER.value
+                    ),
+                    all_users(org_id, metric_ids=session_user_ids, alias=SessionMRI.ALL_USER.value),
+                    alias=SessionMRI.CRASH_USER_RATE.value,
                 ),
-                all_users(org_id, metric_ids=session_user_ids, alias=SessionMRI.ALL_USER.value),
                 alias=SessionMRI.CRASH_FREE_USER_RATE.value,
             )
         ]
@@ -385,9 +394,9 @@ class CompositeEntityDerivedMetricTestCase(TestCase):
             "metrics_sets": [SessionMRI.ERRORED_SET.value],
         }
         component_entities = DERIVED_METRICS[SessionMRI.HEALTHY.value].get_entity(projects=[1])
+
         assert sorted(component_entities["metrics_counters"]) == [
             SessionMRI.ALL.value,
-            SessionMRI.CRASHED_AND_ABNORMAL.value,
             SessionMRI.ERRORED_PREAGGREGATED.value,
         ]
         assert sorted(component_entities["metrics_sets"]) == [SessionMRI.ERRORED_SET.value]
