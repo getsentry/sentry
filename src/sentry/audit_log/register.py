@@ -132,7 +132,7 @@ default_manager.add(
         event_id=53,
         name="PROJECTKEY_CHANGE",
         api_name="projectkey.change",
-        template="{change} project key {public_key}",
+        template="edited project key {public_key}",
     )
 )
 default_manager.add(

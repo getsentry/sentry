@@ -255,7 +255,7 @@ export function initializeUrlState({
 
   const pinnedFilters = storedPageFilters?.pinnedFilters ?? new Set();
   PageFiltersActions.initializeUrlState(pageFilters, pinnedFilters);
-  updateDesyncedUrlState(router);
+  updateDesyncedUrlState(router, shouldForceProject);
 
   const newDatetime = {
     ...datetime,
@@ -301,6 +301,9 @@ export function updateProjects(
   PageFiltersActions.updateProjects(projects, options?.environments);
   updateParams({project: projects, environment: options?.environments}, router, options);
   persistPageFilters('projects', options);
+  if (options?.environments) {
+    persistPageFilters('environments', options);
+  }
   updateDesyncedUrlState(router);
 }
 
@@ -405,8 +408,11 @@ async function persistPageFilters(filter: PinnedPageFilter | null, options?: Opt
 /**
  * Checks if the URL state has changed in synchronization from the local
  * storage state, and persists that check into the store.
+ *
+ * If shouldForceProject is enabled, then we do not record any url desync
+ * for the project.
  */
-async function updateDesyncedUrlState(router?: Router) {
+async function updateDesyncedUrlState(router?: Router, shouldForceProject?: boolean) {
   // Cannot compare URL state without the router
   if (!router) {
     return;
@@ -450,7 +456,8 @@ async function updateDesyncedUrlState(router?: Router) {
   if (
     pinnedFilters.has('projects') &&
     currentQuery.project !== null &&
-    !valueIsEqual(currentQuery.project, storedState.project)
+    !valueIsEqual(currentQuery.project, storedState.project) &&
+    !shouldForceProject
   ) {
     differingFilters.add('projects');
   }
