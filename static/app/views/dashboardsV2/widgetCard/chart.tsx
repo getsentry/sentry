@@ -43,6 +43,8 @@ import {DisplayType, Widget, WidgetType} from '../types';
 
 import WidgetQueries from './widgetQueries';
 
+export const SLIDER_HEIGHT = 60;
+
 export type AugmentedEChartDataZoomHandler = (
   params: Parameters<EChartDataZoomHandler>[0] & {
     seriesEnd: string | number;
@@ -389,7 +391,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
         left: 0,
         right: 4,
         top: '40px',
-        bottom: showSlider ? '60px' : 0,
+        bottom: showSlider ? SLIDER_HEIGHT : 0,
       },
       seriesOptions: {
         showSymbol: false,

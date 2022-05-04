@@ -50,6 +50,7 @@ import {
 } from 'sentry/views/dashboardsV2/utils';
 import WidgetCardChart, {
   AugmentedEChartDataZoomHandler,
+  SLIDER_HEIGHT,
 } from 'sentry/views/dashboardsV2/widgetCard/chart';
 import IssueWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/issueWidgetQueries';
 import ReleaseWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/releaseWidgetQueries';
@@ -87,7 +88,6 @@ const FULL_TABLE_ITEM_LIMIT = 20;
 const HALF_TABLE_ITEM_LIMIT = 10;
 const GEO_COUNTRY_CODE = 'geo.country_code';
 const HALF_CONTAINER_HEIGHT = 300;
-const SLIDER_HEIGHT = 60;
 const EMPTY_QUERY_NAME = '(Empty Query Condition)';
 
 const shouldWidgetCardChartMemo = (prevProps, props) => {
@@ -176,9 +176,12 @@ function WidgetViewerModal(props: Props) {
     {start: 0, end: 100}
   );
 
+  // We wrap the modalChartSelection in a useRef because we do not want to recalculate this value
+  // (which would cause an unnecessary rerender on calculation) except for the initial load.
+  // We use this for when a user visit a widget viewer url directly.
   const [modalTableSelection, setModalTableSelection] =
     React.useState<PageFilters>(locationPageFilter);
-  const modalChartSelection = React.useMemo(() => modalTableSelection, [selection]);
+  const modalChartSelection = React.useRef(modalTableSelection);
 
   // Detect when a user clicks back and set the PageFilter state to match the location
   // We need to use useEffect to prevent infinite looping rerenders due to the setModalTableSelection call
@@ -754,7 +757,7 @@ function WidgetViewerModal(props: Props) {
                 params={params}
                 api={api}
                 organization={organization}
-                selection={modalChartSelection}
+                selection={modalChartSelection.current}
                 // Top N charts rely on the orderby of the table
                 widget={primaryWidget}
                 onZoom={onZoom}
