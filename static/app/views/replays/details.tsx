@@ -14,6 +14,7 @@ import ReplayPlayer from 'sentry/components/replays/replayPlayer';
 import useFullscreen from 'sentry/components/replays/useFullscreen';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
+import {EntryType} from 'sentry/types/event';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 
 import DetailLayout from './detail/detailLayout';
@@ -31,7 +32,7 @@ function ReplayDetails() {
     t: initialTimeOffset, // Time, in seconds, where the video should start
   } = location.query;
 
-  const {breadcrumbEntry, event, fetchError, fetching, onRetry, replay} = useReplayEvent({
+  const {fetchError, fetching, onRetry, replay} = useReplayEvent({
     eventSlug,
     location,
     orgId,
@@ -41,7 +42,7 @@ function ReplayDetails() {
 
   if (fetching) {
     return (
-      <DetailLayout event={event} orgId={orgId}>
+      <DetailLayout event={undefined} orgId={orgId}>
         <LoadingIndicator />
       </DetailLayout>
     );
@@ -85,9 +86,9 @@ function ReplayDetails() {
       initialTimeOffset={initialTimeOffset}
     >
       <DetailLayout
-        event={event}
+        event={replay.getEvent()}
         orgId={orgId}
-        crumbs={breadcrumbEntry?.data.values || []}
+        crumbs={replay.getEntryType(EntryType.BREADCRUMBS)?.data.values || []}
       >
         <Layout.Body>
           <ReplayLayout ref={fullscreenRef}>
@@ -104,11 +105,16 @@ function ReplayDetails() {
             </Panel>
           </ReplayLayout>
           <Layout.Side>
-            <UserActionsNavigator event={event} entry={breadcrumbEntry} />
+            <UserActionsNavigator
+              event={replay.getEvent()}
+              entry={replay.getEntryType(EntryType.BREADCRUMBS)}
+            />
           </Layout.Side>
           <Layout.Main fullWidth>
             <Panel>
-              <BreadcrumbTimeline crumbs={breadcrumbEntry?.data.values || []} />
+              <BreadcrumbTimeline
+                crumbs={replay.getEntryType(EntryType.BREADCRUMBS)?.data.values || []}
+              />
             </Panel>
             <FocusArea replay={replay} />
           </Layout.Main>
