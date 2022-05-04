@@ -145,7 +145,7 @@ function ErrorList(props: Props) {
             <Fragment>
               <StyledPanelTable
                 isEmpty={data.tableData?.data.length === 0}
-                isLoading={data.isLoading && issues.length < 0 && issueStats.length < 0}
+                isLoading={data.isLoading}
                 headers={
                   isScreenLarge
                     ? columns
