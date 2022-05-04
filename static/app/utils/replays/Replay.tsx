@@ -93,4 +93,12 @@ export default class Replay {
         return undefined;
     }
   });
+
+  isMemorySpan = (span: RawSpanType) => {
+    return span.op === 'memory' || span.description === 'memory';
+  };
+
+  isNotMemorySpan = (span: RawSpanType) => {
+    return !this.isMemorySpan(span);
+  };
 }
