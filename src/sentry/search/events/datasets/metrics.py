@@ -268,7 +268,9 @@ class MetricsDatasetConfig(DatasetConfig):
                                 "measurements.cls",
                             ],
                         ),
-                        fields.SnQLStringArg("quality", allowed_strings=["good", "meh", "poor"]),
+                        fields.SnQLStringArg(
+                            "quality", allowed_strings=["good", "meh", "poor", "any"]
+                        ),
                     ],
                     calculated_args=[resolve_metric_id],
                     snql_distribution=self._resolve_web_vital_function,
@@ -618,6 +620,16 @@ class MetricsDatasetConfig(DatasetConfig):
             raise InvalidSearchQuery("count_web_vitals only supports measurements")
 
         measurement_rating = self.builder.resolve_column("measurement_rating")
+
+        if quality == "any":
+            return Function(
+                "countIf",
+                [
+                    Column("value"),
+                    Function("equals", [Column("metric_id"), metric_id]),
+                ],
+                alias,
+            )
 
         quality_id = self.resolve_value(quality)
         if quality_id is None:
