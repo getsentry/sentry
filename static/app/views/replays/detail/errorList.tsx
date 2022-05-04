@@ -109,20 +109,23 @@ function ErrorList(props: Props) {
             }}
           />
         </IssueDetailsWrapper>
-        <ChartWrapper
-          className={`hidden-xs hidden-sm ${isScreenLarge ? '' : 'hidden-md'}`}
-        >
-          {matchedIssueStats?.stats ? (
-            <GroupChart
-              statsPeriod={DEFAULT_STREAM_GROUP_STATS_PERIOD}
-              data={matchedIssueStats}
-              showSecondaryPoints
-              showMarkLine
-            />
-          ) : (
-            <Placeholder height="24px" />
-          )}
-        </ChartWrapper>
+        {isScreenLarge && (
+          <div>
+            <ChartWrapper>
+              {matchedIssueStats?.stats ? (
+                <GroupChart
+                  statsPeriod={DEFAULT_STREAM_GROUP_STATS_PERIOD}
+                  data={matchedIssueStats}
+                  showSecondaryPoints
+                  showMarkLine
+                />
+              ) : (
+                <Placeholder height="24px" />
+              )}
+            </ChartWrapper>
+          </div>
+        )}
+
         <Item>{matchedIssueStats?.count}</Item>
         <Item>{matchedIssueStats?.userCount}</Item>
       </Fragment>
@@ -171,17 +174,15 @@ const Item = styled('div')`
 `;
 
 const IssueDetailsWrapper = styled('div')`
+  overflow: hidden;
   line-height: normal;
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    /* On smaller screens the issue border doubles up on the bottom */
-    border-bottom: none !important;
-  }
 `;
 
 const StyledPanelTable = styled(PanelTable)`
   /* overflow: visible allows the tooltip to be completely shown */
   overflow: visible;
   grid-template-columns: minmax(1fr, max-content) repeat(3, max-content);
+
   @media (max-width: ${p => p.theme.breakpoints[2]}) {
     grid-template-columns: minmax(0, 1fr) repeat(2, max-content);
   }
