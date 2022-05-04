@@ -9,6 +9,7 @@ import {
 
 import * as projectsActions from 'sentry/actionCreators/projects';
 import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {Dashboard} from 'sentry/views/projectsDashboard';
 
 jest.unmock('lodash/debounce');
@@ -33,10 +34,6 @@ jest.mock('lodash/debounce', () => {
 
 describe('ProjectsDashboard', function () {
   const org = TestStubs.Organization();
-  const routerContext = TestStubs.routerContext([
-    {router: TestStubs.router({params: {orgId: org.slug}})},
-  ]);
-
   const team = TestStubs.Team();
   const teams = [team];
 
@@ -53,20 +50,17 @@ describe('ProjectsDashboard', function () {
   });
 
   describe('empty state', function () {
-    it('renders with no projects', async function () {
+    it('renders with no projects', function () {
       const noProjectTeams = [TestStubs.Team({isMember: false, projects: []})];
+      ProjectsStore.loadInitialData([]);
 
       render(
-        <Dashboard
-          teams={noProjectTeams}
-          organization={org}
-          params={{orgId: org.slug}}
-        />,
-        {routerContext}
+        <Dashboard teams={noProjectTeams} organization={org} params={{orgId: org.slug}} />
       );
 
       expect(screen.queryByTestId('join-team')).not.toBeInTheDocument();
       expect(screen.queryByTestId('create-project')).not.toBeInTheDocument();
+      expect(screen.getByText('Remain Calm')).toBeInTheDocument();
     });
 
     it('renders with 1 project, with no first event', function () {
@@ -79,8 +73,7 @@ describe('ProjectsDashboard', function () {
           teams={teamsWithOneProject}
           organization={org}
           params={{orgId: org.slug}}
-        />,
-        {routerContext}
+        />
       );
 
       expect(screen.getByTestId('join-team')).toBeInTheDocument();
@@ -120,8 +113,7 @@ describe('ProjectsDashboard', function () {
           teams={teamsWithTwoProjects}
           organization={org}
           params={{orgId: org.slug}}
-        />,
-        {routerContext}
+        />
       );
       expect(screen.getByText('My Teams')).toBeInTheDocument();
       expect(screen.getAllByTestId('badge-display-name')).toHaveLength(2);
@@ -199,8 +191,7 @@ describe('ProjectsDashboard', function () {
             query: {team: '2'},
             search: '?team=2`',
           }}
-        />,
-        {routerContext}
+        />
       );
 
       expect(screen.getByText('project3')).toBeInTheDocument();
@@ -236,8 +227,7 @@ describe('ProjectsDashboard', function () {
           teams={teamsWithTwoProjects}
           organization={org}
           params={{orgId: org.slug}}
-        />,
-        {routerContext}
+        />
       );
       userEvent.type(screen.getByRole('textbox'), 'project2', '{enter}');
       expect(screen.getByText('project2')).toBeInTheDocument();
@@ -314,8 +304,7 @@ describe('ProjectsDashboard', function () {
           teams={teamsWithFavProjects}
           organization={org}
           params={{orgId: org.slug}}
-        />,
-        {routerContext}
+        />
       );
 
       jest.runAllTimers();
@@ -397,8 +386,7 @@ describe('ProjectsDashboard', function () {
           teams={teamsWithStatTestProjects}
           organization={org}
           params={{orgId: org.slug}}
-        />,
-        {routerContext}
+        />
       );
 
       expect(loadStatsSpy).toHaveBeenCalledTimes(6);
@@ -437,11 +425,11 @@ describe('ProjectsDashboard', function () {
         })
       );
       jest.useRealTimers();
-      await tick();
-      await tick();
 
       // All cards have loaded
-      expect(within(projectSummary[0]).getByText('Errors: 3')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(within(projectSummary[0]).getByText('Errors: 3')).toBeInTheDocument();
+      });
       expect(within(projectSummary[1]).getByText('Errors: 3')).toBeInTheDocument();
       expect(within(projectSummary[2]).getByText('Errors: 3')).toBeInTheDocument();
       expect(within(projectSummary[3]).getByText('Errors: 3')).toBeInTheDocument();
@@ -455,8 +443,7 @@ describe('ProjectsDashboard', function () {
 
     it('renders an error from withTeamsForUser', function () {
       render(
-        <Dashboard error={Error('uhoh')} organization={org} params={{orgId: org.slug}} />,
-        {routerContext}
+        <Dashboard error={Error('uhoh')} organization={org} params={{orgId: org.slug}} />
       );
 
       expect(
