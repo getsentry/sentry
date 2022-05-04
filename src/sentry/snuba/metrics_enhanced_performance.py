@@ -29,7 +29,6 @@ def query(
     functions_acl=None,
     dry_run=False,
 ):
-    metrics_query
     metrics_compatible = not equations or dry_run
 
     if metrics_compatible:
