@@ -144,7 +144,7 @@ class ProjectCard extends Component<Props> {
               />
               <StyledBookmarkStar organization={organization} project={project} />
             </HeaderRow>
-            <SummaryLinks>
+            <SummaryLinks data-test-id="summary-links">
               {stats ? (
                 <Fragment>
                   <Link
