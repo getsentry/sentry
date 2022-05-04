@@ -1190,6 +1190,38 @@ class OrganizationSessionsEndpointMetricsTest(
         assert result_sorted(response.data)["groups"] == []
 
     @freeze_time(MOCK_DATETIME)
+    def test_filter_by_session_status_with_groupby(self):
+        default_request = {
+            "project": [-1],
+            "statsPeriod": "1d",
+            "interval": "1d",
+            "groupBy": "release",
+        }
+
+        def req(**kwargs):
+            return self.do_request(dict(default_request, **kwargs))
+
+        response = req(field=["sum(session)"], query="session.status:healthy")
+        assert response.status_code == 200, response.content
+        assert result_sorted(response.data)["groups"] == [
+            {
+                "by": {"release": "foo@1.0.0"},
+                "series": {"sum(session)": [5]},
+                "totals": {"sum(session)": 5},
+            },
+            {
+                "by": {"release": "foo@1.1.0"},
+                "series": {"sum(session)": [1]},
+                "totals": {"sum(session)": 1},
+            },
+            {
+                "by": {"release": "foo@1.2.0"},
+                "series": {"sum(session)": [0]},
+                "totals": {"sum(session)": 0},
+            },
+        ]
+
+    @freeze_time(MOCK_DATETIME)
     def test_filter_by_session_status_with_orderby(self):
         default_request = {
             "project": [-1],
