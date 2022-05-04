@@ -218,8 +218,16 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
         # so this is just a pretty basic test that sets a negative limit
         # to reject all errors.
         self.organization.update_option("project-abuse-quota.error-limit", -1)
-        # explicit event type?
-        event_data = {"message": "hi", "timestamp": iso_format(before_now(seconds=1))}
+
+        # from sentry.quotas.redis import RedisQuota
+        # RedisQuota().get_quotas(self.project)[0].to_json()
+        # {'scope': 'project', 'categories': ['default', 'error', 'security'], 'limit': 0, 'reasonCode': 'project_abuse_limit'}
+
+        event_data = {
+            "type": "error",
+            "message": "hi",
+            "timestamp": iso_format(before_now(seconds=1)),
+        }
         event = self.post_and_retrieve_event(event_data)
         # this is passing, hmm
         assert event.message == "hi"

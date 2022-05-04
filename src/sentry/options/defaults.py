@@ -387,22 +387,21 @@ register("store.save-transactions-ingest-consumer-rate", default=0.0)
 # Drop delete_old_primary_hash messages for a particular project.
 register("reprocessing2.drop-delete-old-primary-hash", default=[])
 
-# Abuse quotas.
-# Don't limit by default (0), base values and organization overrides are configured
-# in prod. The limits are per second, applied across a window. The actual quota
-# is then `window * limit`.
+# Abuse quotas are org options:
+# project-abuse-quota.window
+# project-abuse-quota.error-limit
+# project-abuse-quota.transaction-limit
+# project-abuse-quota.attachment-limit
+# project-abuse-quota.session-limit
+# 0 default value means don't limit.
+# The limits are per second, applied across a window. The actual quota is then `window * limit`.
 # If the limit is negative, then it means completely blocked.
-register("project-abuse-quota.window", type=Int, default=10, flags=FLAG_PRIORITIZE_DISK)
-register("project-abuse-quota.error-limit", type=Int, default=0, flags=FLAG_PRIORITIZE_DISK)
-register("project-abuse-quota.transaction-limit", type=Int, default=0, flags=FLAG_PRIORITIZE_DISK)
-register("project-abuse-quota.attachment-limit", type=Int, default=0, flags=FLAG_PRIORITIZE_DISK)
-register("project-abuse-quota.session-limit", type=Int, default=0, flags=FLAG_PRIORITIZE_DISK)
 
-# DEPRECATED. Use "project-abuse-quota.window" instead.
+# DEPRECATED. Use the org option "project-abuse-quota.window" instead.
 register("getsentry.rate-limit.window", type=Int, default=10, flags=FLAG_PRIORITIZE_DISK)
-# DEPRECATED. Use "project-abuse-quota.error-limit" instead.
+# DEPRECATED. Use the org option "project-abuse-quota.error-limit" instead.
 register("getsentry.rate-limit.project-errors", type=Int, default=0, flags=FLAG_PRIORITIZE_DISK)
-# DEPRECATED. Use "project-abuse-quota.transaction-limit" instead.
+# DEPRECATED. Use the org option "project-abuse-quota.transaction-limit" instead.
 register(
     "getsentry.rate-limit.project-transactions",
     type=Int,
