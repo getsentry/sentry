@@ -109,7 +109,7 @@ describe('Modals -> WidgetViewerModal', function () {
   });
 
   describe('Discover Area Chart Widget', function () {
-    let eventsStatsMock, eventsv2Mock;
+    let eventsv2Mock;
     const mockQuery = {
       conditions: 'title:/organizations/:orgId/performance/summary/',
       fields: ['count()'],
@@ -139,9 +139,17 @@ describe('Modals -> WidgetViewerModal', function () {
 
     beforeEach(function () {
       (ReactEchartsCore as jest.Mock).mockClear();
-      eventsStatsMock = MockApiClient.addMockResponse({
+      MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-stats/',
-        body: {},
+        body: {
+          data: [
+            [[1646100000], [{count: 1}]],
+            [[1646120000], [{count: 1}]],
+          ],
+          start: 1646100000,
+          end: 1646120000,
+          isMetricsData: false,
+        },
       });
       eventsv2Mock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/eventsv2/',
@@ -213,15 +221,6 @@ describe('Modals -> WidgetViewerModal', function () {
           },
         });
       });
-      expect(eventsStatsMock).toHaveBeenCalledWith(
-        '/organizations/org-slug/events-stats/',
-        expect.objectContaining({
-          query: expect.objectContaining({
-            start: '2022-03-01T02:00:00',
-            end: '2022-03-01T07:33:20',
-          }),
-        })
-      );
       expect(initialData.router.push).toHaveBeenCalledWith(
         expect.objectContaining({
           query: {viewerEnd: '2022-03-01T07:33:20', viewerStart: '2022-03-01T02:00:00'},
@@ -302,6 +301,58 @@ describe('Modals -> WidgetViewerModal', function () {
       userEvent.click(screen.getByText('/organizations/:orgId/performance/summary/'));
       expect(container).toSnapshot();
     });
+
+    it('renders widget chart minimap', async function () {
+      initialData.organization.features.push('widget-viewer-modal-minimap');
+      await renderModal({
+        initialData,
+        widget: {...mockWidget, queries: [{...mockQuery, name: ''}, additionalMockQuery]},
+      });
+
+      expect(ReactEchartsCore).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          option: expect.objectContaining({
+            dataZoom: expect.arrayContaining([
+              expect.objectContaining({
+                realtime: false,
+                showDetail: false,
+                end: 100,
+                start: 0,
+              }),
+            ]),
+          }),
+        }),
+        {}
+      );
+    });
+
+    it('zooming on minimap updates location query and updates echart start and end values', async function () {
+      initialData.organization.features.push('widget-viewer-modal-minimap');
+      await renderModal({
+        initialData,
+        widget: {...mockWidget, queries: [{...mockQuery, name: ''}, additionalMockQuery]},
+      });
+      const calls = (ReactEchartsCore as jest.Mock).mock.calls;
+      act(() => {
+        // Simulate dataZoom event on chart
+        calls[calls.length - 1][0].onEvents.datazoom(
+          {seriesStart: 1646100000000, seriesEnd: 1646120000000},
+          {
+            getModel: () => {
+              return {
+                _payload: {start: 30, end: 70},
+              };
+            },
+          }
+        );
+      });
+
+      expect(initialData.router.push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: {viewerEnd: '2022-03-01T05:53:20', viewerStart: '2022-03-01T03:40:00'},
+        })
+      );
+    });
   });
 
   describe('Discover TopN Chart Widget', function () {
@@ -326,7 +377,15 @@ describe('Modals -> WidgetViewerModal', function () {
     beforeEach(function () {
       eventsStatsMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-stats/',
-        body: {},
+        body: {
+          data: [
+            [[1646100000], [{count: 1}]],
+            [[1646120000], [{count: 1}]],
+          ],
+          start: 1646100000,
+          end: 1646120000,
+          isMetricsData: false,
+        },
       });
       eventsMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/eventsv2/',
@@ -506,6 +565,70 @@ describe('Modals -> WidgetViewerModal', function () {
       userEvent.click(screen.getByText('count()'));
       await waitForMetaToHaveBeenCalled();
       expect(eventsStatsMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('renders widget chart minimap', async function () {
+      initialData.organization.features.push('widget-viewer-modal-minimap');
+      await renderModal({initialData, widget: mockWidget});
+
+      expect(ReactEchartsCore).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          option: expect.objectContaining({
+            dataZoom: expect.arrayContaining([
+              expect.objectContaining({
+                realtime: false,
+                showDetail: false,
+                end: 100,
+                start: 0,
+              }),
+            ]),
+          }),
+        }),
+        {}
+      );
+    });
+
+    it('zooming on minimap updates location query and updates echart start and end values', async function () {
+      initialData.organization.features.push('widget-viewer-modal-minimap');
+      await renderModal({initialData, widget: mockWidget});
+      const calls = (ReactEchartsCore as jest.Mock).mock.calls;
+      act(() => {
+        // Simulate dataZoom event on chart
+        calls[calls.length - 1][0].onEvents.datazoom(
+          {seriesStart: 1646100000000, seriesEnd: 1646120000000},
+          {
+            getModel: () => {
+              return {
+                _payload: {start: 30, end: 70},
+              };
+            },
+          }
+        );
+      });
+
+      expect(initialData.router.push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: {viewerEnd: '2022-03-01T05:53:20', viewerStart: '2022-03-01T03:40:00'},
+        })
+      );
+
+      await waitFor(() => {
+        expect(ReactEchartsCore).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            option: expect.objectContaining({
+              dataZoom: expect.arrayContaining([
+                expect.objectContaining({
+                  realtime: false,
+                  showDetail: false,
+                  endValue: 1646114000000,
+                  startValue: 1646106000000,
+                }),
+              ]),
+            }),
+          }),
+          {}
+        );
+      });
     });
   });
 
