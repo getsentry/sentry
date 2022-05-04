@@ -95,3 +95,13 @@ def test_compression_compatibility(request, store_factory) -> None:
 
         for reader in stores.values():
             assert reader.get(key) == value
+
+
+def test_get_range_read(store_factory) -> None:
+    store = store_factory(None)
+
+    store.set("abbb", b"test")
+    store.set("accc", b"test2")
+    store.set("zzzz", b"test3")
+
+    assert list(store.get_many_range_read("a")) == [("abbb", b"test"), ("accc", b"test2")]

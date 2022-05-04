@@ -119,7 +119,9 @@ class BigtableKVStorage(KVStorage[str, bytes]):
 
         return self.__decode_row(row)
 
-    def get_many(self, keys: Sequence[str]) -> Iterator[Tuple[str, bytes]]:
+    def get_many(
+        self, keys: Sequence[str] = (), prefixes: Sequence[str] = ()
+    ) -> Iterator[Tuple[str, bytes]]:
         rows = RowSet()
         for key in keys:
             rows.add_row_key(key)
@@ -130,6 +132,19 @@ class BigtableKVStorage(KVStorage[str, bytes]):
             # Even though Bigtable in't going to return empty rows, an empty
             # value may be returned by ``__decode_row`` if the the row has
             # outlived its TTL, so we need to check its value here.
+            if value is not None:
+                yield row.row_key.decode("utf-8"), value
+
+    def get_many_range_read(self, prefixes: Sequence[str] = ()) -> Iterator[Tuple[str, bytes]]:
+        """
+        BigTable specific function for doing range-reads. yield logic copied above from `get_many`.
+        """
+        rows = RowSet()
+        for prefix in prefixes:
+            rows.add_row_range_with_prefix(prefix)
+
+        for row in self._get_table().read_rows(row_set=rows):
+            value = self.__decode_row(row)
             if value is not None:
                 yield row.row_key.decode("utf-8"), value
 
