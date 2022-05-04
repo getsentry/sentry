@@ -2049,6 +2049,51 @@ describe('WidgetBuilder', function () {
         await screen.findByText(expectedOrderSelection);
       }
     );
+
+    it('saved widget with aggregate alias as orderby should persist alias when y-axes change', async function () {
+      const widget: Widget = {
+        id: '1',
+        title: 'Test Widget',
+        interval: '5m',
+        displayType: DisplayType.TABLE,
+        queries: [
+          {
+            name: '',
+            conditions: '',
+            fields: ['project', 'count_unique(user)'],
+            aggregates: ['count_unique(user)'],
+            columns: ['project'],
+            orderby: 'count_unique_user',
+          },
+        ],
+      };
+
+      const dashboard: DashboardDetails = {
+        id: '1',
+        title: 'Dashboard',
+        createdBy: undefined,
+        dateCreated: '2020-01-01T00:00:00.000Z',
+        widgets: [widget],
+      };
+
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        dashboard,
+        params: {
+          widgetIndex: '0',
+        },
+      });
+
+      await screen.findByText('Sort by a column');
+
+      // Assert for length 2 since one in the table header and one in sort by
+      expect(screen.getAllByText('count_unique(user)')).toHaveLength(2);
+
+      userEvent.click(screen.getByText('Add a Column'));
+
+      // The sort by should still have count_unique(user)
+      expect(screen.getAllByText('count_unique(user)')).toHaveLength(2);
+    });
   });
 
   describe('Widget creation coming from other verticals', function () {
