@@ -12,7 +12,9 @@ import space from 'sentry/styles/space';
 import {Group, Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventWaiter from 'sentry/utils/eventWaiter';
+import isMobile from 'sentry/utils/isMobile';
 import testableTransition from 'sentry/utils/testableTransition';
+import useApi from 'sentry/utils/useApi';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
 
 import {usePersistedOnboardingState} from '../utils';
@@ -38,6 +40,7 @@ export default function FirstEventFooter({
 }: FirstEventFooterProps) {
   const source = 'targeted_onboarding_first_event_footer';
   const [clientState, setClientState] = usePersistedOnboardingState();
+  const client = useApi();
 
   const getSecondaryCta = () => {
     // if hasn't sent first event, allow skiping.
@@ -49,16 +52,41 @@ export default function FirstEventFooter({
   };
 
   const getPrimaryCta = ({firstIssue}: {firstIssue: null | true | Group}) => {
+    if (
+      isMobile() &&
+      organization.experiments.TargetedOnboardingMobileRedirectExperiment === 'email-cta'
+    ) {
+      return (
+        <Button
+          to={`/onboarding/${organization.slug}/mobile-redirect/`}
+          priority="primary"
+          onClick={() => {
+            clientState &&
+              client.requestPromise(
+                `/organizations/${organization.slug}/onboarding-continuation-email/`,
+                {
+                  method: 'POST',
+                  data: {
+                    platforms: clientState.selectedPlatforms,
+                  },
+                }
+              );
+          }}
+        >
+          {t('Setup on Computer')}
+        </Button>
+      );
+    }
     // if hasn't sent first event, allow creation of sample error
     if (!hasFirstEvent) {
       return (
-        <StyledCreateSampleEventButton
+        <CreateSampleEventButton
           project={project}
           source="targted-onboarding"
           priority="primary"
         >
           {t('View Sample Error')}
-        </StyledCreateSampleEventButton>
+        </CreateSampleEventButton>
       );
     }
 
@@ -124,6 +152,7 @@ export default function FirstEventFooter({
 const OnboardingButtonBar = styled(ButtonBar)`
   margin: ${space(2)} ${space(4)};
   justify-self: end;
+  margin-left: auto;
 `;
 
 const AnimatedText = styled(motion.div, {
@@ -184,18 +213,17 @@ StatusWrapper.defaultProps = {
 const SkipOnboardingLink = styled(Link)`
   margin: auto ${space(4)};
   white-space: nowrap;
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: none;
+  }
 `;
 
 const GridFooter = styled(GenericFooter)`
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: 1fr 1fr;
-  }
-`;
-
-const StyledCreateSampleEventButton = styled(CreateSampleEventButton)`
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    display: none;
+    display: flex;
+    flex-direction: row;
+    justify-content: end;
   }
 `;

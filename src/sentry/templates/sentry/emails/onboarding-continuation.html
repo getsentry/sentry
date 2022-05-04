@@ -1,5 +1,7 @@
 {% extends "sentry/emails/base.html" %}
 {% load i18n %}
+{% load sentry_helpers %}
+
 {% block main %}
 <h3>Finish Onboarding</h3>
 
@@ -13,7 +15,7 @@
 </p>
 
 <p>
-  <a href="{{ onboarding_link }}" class="btn">Finish Onboarding</a>
+  <a href="{% absolute_uri onboarding_link %}" class="btn">Finish Onboarding</a>
 </p>
 
 {% endblock %}

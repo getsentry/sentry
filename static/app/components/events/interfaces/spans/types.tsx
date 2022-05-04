@@ -22,7 +22,7 @@ export type MemorySpanType = RawSpanType & {
 };
 
 export type RawSpanType = {
-  data: Object;
+  data: Record<string, any>;
   span_id: string;
   start_timestamp: number;
   // this is essentially end_timestamp

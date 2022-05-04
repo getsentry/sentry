@@ -7,6 +7,7 @@ import {motion} from 'framer-motion';
 
 import space from 'sentry/styles/space';
 import domId from 'sentry/utils/domId';
+import {ColorOrAlias} from 'sentry/utils/theme';
 
 export const HOVERCARD_PORTAL_ID = 'hovercard-portal';
 
@@ -79,6 +80,10 @@ interface HovercardProps {
    * Color of the arrow tip
    */
   tipColor?: string;
+  /**
+   * Color of the dotted underline, if available. See also: showUnderline.
+   */
+  underlineColor?: ColorOrAlias;
 }
 
 function Hovercard(props: HovercardProps): React.ReactElement {
@@ -159,6 +164,7 @@ function Hovercard(props: HovercardProps): React.ReactElement {
             aria-describedby={tooltipId}
             className={props.containerClassName}
             showUnderline={props.showUnderline}
+            underlineColor={props.underlineColor}
             {...hoverProps}
           >
             {props.children}
@@ -279,8 +285,8 @@ function getTipDirection(
   return (prefix || 'top') as 'top' | 'bottom' | 'left' | 'right';
 }
 
-const Trigger = styled('span')<{showUnderline?: boolean}>`
-  ${p => p.showUnderline && p.theme.tooltipUnderline};
+const Trigger = styled('span')<{showUnderline?: boolean; underlineColor?: ColorOrAlias}>`
+  ${p => p.showUnderline && p.theme.tooltipUnderline(p.underlineColor)};
 `;
 
 const HovercardContainer = styled('div')`

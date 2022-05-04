@@ -204,7 +204,6 @@ def query(
     allow_metric_aggregates=False,
     use_aggregate_conditions=False,
     conditions=None,
-    extra_snql_condition=None,
     functions_acl=None,
 ):
     """
@@ -232,9 +231,8 @@ def query(
                     equations
     allow_metric_aggregates (bool) Ignored here, only used in metric enhanced performance
     use_aggregate_conditions (bool) Set to true if aggregates conditions should be used at all.
-    conditions (Sequence[any]) List of conditions that are passed directly to snuba without
+    conditions (Sequence[Condition]) List of conditions that are passed directly to snuba without
                     any additional processing.
-    extra_snql_condition (Sequence[Condition]) Replacement for conditions while migrating to snql
     """
     if not selected_columns:
         raise InvalidSearchQuery("No columns selected")
@@ -254,8 +252,8 @@ def query(
         offset=offset,
         equation_config={"auto_add": include_equation_fields},
     )
-    if extra_snql_condition is not None:
-        builder.add_conditions(extra_snql_condition)
+    if conditions is not None:
+        builder.add_conditions(conditions)
     result = builder.run_query(referrer)
     with sentry_sdk.start_span(
         op="discover.discover", description="query.transform_results"
@@ -708,7 +706,7 @@ def spans_histogram_query(
     :param [Condition] extra_condition: Adds any additional conditions to the histogram query
     :param bool normalize_results: Indicate whether to normalize the results by column into bins.
     """
-    multiplier = int(10 ** precision)
+    multiplier = int(10**precision)
     if max_value is not None:
         # We want the specified max_value to be exclusive, and the queried max_value
         # to be inclusive. So we adjust the specified max_value using the multiplier.
@@ -773,7 +771,6 @@ def histogram_query(
     limit_by=None,
     histogram_rows=None,
     extra_conditions=None,
-    extra_snql_condition=None,
     normalize_results=True,
 ):
     """
@@ -798,12 +795,11 @@ def histogram_query(
     :param [str] order_by: Allows additional ordering within each alias to serve multifacet histograms.
     :param [str] limit_by: Allows limiting within a group when serving multifacet histograms.
     :param int histogram_rows: Used to modify the limit when fetching multiple rows of buckets (performance facets).
-    :param [str] extra_conditions: Adds any additional conditions to the histogram query that aren't received from params.
-    :param [Condition] extra_snql_condition: Replacement for extra_condition while migrating to snql
+    :param [Condition] extra_conditions: Adds any additional conditions to the histogram query that aren't received from params.
     :param bool normalize_results: Indicate whether to normalize the results by column into bins.
     """
 
-    multiplier = int(10 ** precision)
+    multiplier = int(10**precision)
     if max_value is not None:
         # We want the specified max_value to be exclusive, and the queried max_value
         # to be inclusive. So we adjust the specified max_value using the multiplier.
@@ -857,8 +853,8 @@ def histogram_query(
         orderby=order_by,
         limitby=limit_by,
     )
-    if extra_snql_condition is not None:
-        builder.add_conditions(extra_snql_condition)
+    if extra_conditions is not None:
+        builder.add_conditions(extra_conditions)
     results = builder.run_query(referrer)
 
     if not normalize_results:

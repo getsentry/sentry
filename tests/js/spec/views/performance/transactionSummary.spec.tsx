@@ -297,7 +297,9 @@ describe('Performance > TransactionSummary', function () {
     expect(screen.getByRole('heading', {name: '/performance'})).toBeInTheDocument();
 
     // It shows a chart
-    expect(screen.getByRole('button', {name: 'Duration Breakdown'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Display Duration Breakdown'})
+    ).toBeInTheDocument();
 
     // It shows a searchbar
     expect(screen.getByLabelText('Search events')).toBeInTheDocument();

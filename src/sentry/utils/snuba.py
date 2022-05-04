@@ -138,6 +138,7 @@ OPERATOR_TO_FUNCTION = {
     "<": "less",
     ">=": "greaterOrEquals",
     "<=": "lessOrEquals",
+    "IS NULL": "isNull",
 }
 FUNCTION_TO_OPERATOR = {v: k for k, v in OPERATOR_TO_FUNCTION.items()}
 
