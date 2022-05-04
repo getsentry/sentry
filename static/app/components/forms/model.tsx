@@ -6,12 +6,13 @@ import {addErrorMessage, saveOnBlurUndoMessage} from 'sentry/actionCreators/indi
 import {APIRequestMethod, Client} from 'sentry/api';
 import FormState from 'sentry/components/forms/state';
 import {t} from 'sentry/locale';
+import type {Choices} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
 type Snapshot = Map<string, FieldValue>;
 type SaveSnapshot = (() => number) | null;
 
-export type FieldValue = string | number | boolean | undefined | Array<string | number>; // is undefined valid here?
+export type FieldValue = string | number | boolean | Choices[0] | undefined; // is undefined valid here?
 
 export type FormOptions = {
   allowUndo?: boolean;

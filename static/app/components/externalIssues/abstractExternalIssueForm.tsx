@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import * as qs from 'query-string';
 
@@ -10,7 +9,6 @@ import Form from 'sentry/components/forms/form';
 import FormModel, {FieldValue} from 'sentry/components/forms/model';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {
   Choices,
   IntegrationIssueConfig,
@@ -320,7 +318,10 @@ export default class AbstractExternalIssueForm<
       : this.renderBody();
   }
 
-  renderForm = (formFields?: IssueConfigField[], errors: string[] = []) => {
+  renderForm = (
+    formFields?: IssueConfigField[],
+    errors: {[key: string]: React.ReactNode} = {}
+  ) => {
     const initialData: {[key: string]: any} = (formFields || []).reduce(
       (accumulator, field: FormField) => {
         accumulator[field.name] =
@@ -350,9 +351,9 @@ export default class AbstractExternalIssueForm<
                     ...fields,
                     noOptionsMessage: () => 'No options. Type to search.',
                   }))
-                  .map(field => {
+                  .map((field, i) => {
                     return (
-                      <Fragment key={`${field.name}`}>
+                      <Fragment key={`${field.name}-${i}`}>
                         <FieldFromConfig
                           disabled={this.state.reloading}
                           field={field}
@@ -361,9 +362,7 @@ export default class AbstractExternalIssueForm<
                           stacked
                           {...this.getFieldProps(field)}
                         />
-                        {errors.find(e => e === field.name) ? (
-                          <FieldErrorLabel>{`Could not fetch saved option for ${field.label}. Please reselect.`}</FieldErrorLabel>
-                        ) : null}
+                        {errors[field.name] && errors[field.name]}
                       </Fragment>
                     );
                   })}
@@ -375,8 +374,3 @@ export default class AbstractExternalIssueForm<
     );
   };
 }
-
-const FieldErrorLabel = styled('label')`
-  padding-bottom: ${space(2)};
-  color: ${p => p.theme.errorText};
-`;

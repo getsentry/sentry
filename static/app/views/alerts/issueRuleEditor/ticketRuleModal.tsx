@@ -1,3 +1,4 @@
+import React from 'react';
 import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -174,19 +175,21 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
   };
 
   getErrors() {
-    const errors: string[] = [];
+    const errors: {[key: string]: React.ReactNode} = {};
     for (const field of this.cleanFields()) {
       if (field.type === 'select' && field.default) {
         let found;
         if (Array.isArray(field.default)) {
           found = (field.choices || []).find(([value, _]) =>
-            ((field.default as Array<string | number>) || []).includes(value)
+            ((field.default as Choices[0]) || []).includes(value)
           );
         } else {
           found = (field.choices || []).find(([value, _]) => value === field.default);
         }
         if (!found) {
-          errors.push(field.name);
+          errors[field.name] = (
+            <FieldErrorLabel>{`Could not fetch saved option for ${field.label}. Please reselect.`}</FieldErrorLabel>
+          );
         }
       }
     }
@@ -218,6 +221,11 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
 
 const BodyText = styled('div')`
   margin-bottom: ${space(3)};
+`;
+
+const FieldErrorLabel = styled('label')`
+  padding-bottom: ${space(2)};
+  color: ${p => p.theme.errorText};
 `;
 
 export default TicketRuleModal;
