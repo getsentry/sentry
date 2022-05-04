@@ -353,6 +353,7 @@ INSTALLED_APPS = (
     "sentry.eventstream",
     "sentry.auth.providers.google.apps.Config",
     "django.contrib.staticfiles",
+    "sentry.replaystore",
 )
 
 # Silence internal hints from Django's system checks
@@ -1373,6 +1374,10 @@ SENTRY_SNUBA_CACHE_TTL_SECONDS = 60
 # Node storage backend
 SENTRY_NODESTORE = "sentry.nodestore.django.DjangoNodeStorage"
 SENTRY_NODESTORE_OPTIONS = {}
+
+# Replays storage backend
+SENTRY_REPLAYSTORE = "sentry.replaystore.django.DjangoReplayStore"
+SENTRY_REPLAYSTORE_OPTIONS = {}
 
 # Tag storage backend
 SENTRY_TAGSTORE = os.environ.get("SENTRY_TAGSTORE", "sentry.tagstore.snuba.SnubaTagStorage")
