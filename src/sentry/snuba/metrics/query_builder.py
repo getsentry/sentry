@@ -418,6 +418,7 @@ class SnubaQueryBuilder:
         op = orderby.field.op
         metric_mri = get_mri(orderby.field.metric_name)
         metric_field_obj = metric_object_factory(op, metric_mri)
+
         return metric_field_obj.generate_orderby_clause(
             projects=self._projects,
             direction=orderby.direction,
