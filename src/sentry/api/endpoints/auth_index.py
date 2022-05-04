@@ -117,7 +117,7 @@ class AuthIndexEndpoint(Endpoint):
 
         if _require_password_or_u2f_check():
             authenticated = self._verify_user_via_inputs(validator, request)
-        breakpoint()
+
         if Superuser.org_id:
             if (
                 not has_completed_sso(request, Superuser.org_id)
