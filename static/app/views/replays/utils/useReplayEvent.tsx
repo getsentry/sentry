@@ -92,7 +92,7 @@ function useReplayEvent({eventSlug, location, orgId}: Options): Result {
 
   const api = useApi();
   const [retry, setRetry] = useState(false);
-  const [state, setState] = useState<State>({...INITIAL_STATE});
+  const [state, setState] = useState<State>(INITIAL_STATE);
 
   function fetchEvent() {
     return api.requestPromise(
