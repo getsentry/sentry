@@ -172,10 +172,14 @@ const Item = styled('div')`
 
 const IssueDetailsWrapper = styled('div')`
   line-height: normal;
+  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+    /* On smaller screens the issue border doubles up on the bottom */
+    border-bottom: none !important;
+  }
 `;
 
-// overflow: visible allows the tooltip to be completely shown
 const StyledPanelTable = styled(PanelTable)`
+  /* overflow: visible allows the tooltip to be completely shown */
   overflow: visible;
   grid-template-columns: minmax(1fr, max-content) repeat(3, max-content);
   @media (max-width: ${p => p.theme.breakpoints[2]}) {
