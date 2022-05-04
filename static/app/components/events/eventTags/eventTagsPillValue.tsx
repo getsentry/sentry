@@ -1,13 +1,11 @@
 import {DeviceName} from 'sentry/components/deviceName';
 import AnnotatedText from 'sentry/components/events/meta/annotatedText';
 import Link from 'sentry/components/links/link';
-import Version from 'sentry/components/version';
 import {Meta} from 'sentry/types';
 import {EventTag} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
 type Props = {
-  isRelease: boolean;
   locationSearch: string;
   streamPath: string;
   tag: EventTag;
@@ -17,21 +15,15 @@ type Props = {
 const EventTagsPillValue = ({
   tag: {key, value},
   meta,
-  isRelease,
   streamPath,
   locationSearch,
 }: Props) => {
-  const getContent = () =>
-    isRelease ? (
-      <Version version={String(value)} anchor={false} tooltipRawVersion truncate />
-    ) : (
-      <AnnotatedText
-        value={defined(value) && <DeviceName value={String(value)} />}
-        meta={meta}
-      />
-    );
-
-  const content = getContent();
+  const content = (
+    <AnnotatedText
+      value={defined(value) && <DeviceName value={String(value)} />}
+      meta={meta}
+    />
+  );
 
   if (!meta?.err?.length && defined(key)) {
     return <Link to={{pathname: streamPath, search: locationSearch}}>{content}</Link>;

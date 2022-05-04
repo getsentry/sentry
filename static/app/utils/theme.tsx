@@ -244,6 +244,7 @@ const generateAliases = (colors: BaseColors) => ({
    */
   linkColor: colors.blue300,
   linkHoverColor: colors.blue300,
+  linkUnderline: colors.blue200,
   linkFocus: colors.blue300,
 
   /**

@@ -21,7 +21,7 @@ import withApi from 'sentry/utils/withApi';
 import withRelease from 'sentry/utils/withRelease';
 import withRepositories from 'sentry/utils/withRepositories';
 
-type Props = {
+interface Props extends React.ComponentProps<typeof Hovercard> {
   api: Client;
   organization: Organization;
   projectSlug: string;
@@ -36,7 +36,7 @@ type Props = {
   repositories?: Array<Repository>;
   repositoriesError?: Error;
   repositoriesLoading?: boolean;
-};
+}
 
 type State = {
   visible: boolean;
