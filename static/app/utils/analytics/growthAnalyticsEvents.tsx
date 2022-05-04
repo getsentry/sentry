@@ -120,7 +120,7 @@ export type GrowthEventParameters = {
 
 type GrowthAnalyticsKey = keyof GrowthEventParameters;
 
-export const growthEventMap: Record<GrowthAnalyticsKey, string> = {
+export const growthEventMap: Record<GrowthAnalyticsKey, string | null> = {
   'growth.clicked_mobile_prompt_setup_project':
     'Growth: Clicked Mobile Prompt Setup Project',
   'growth.clicked_mobile_prompt_ask_teammate':
