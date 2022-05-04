@@ -346,31 +346,35 @@ function FlamegraphZoomViewMinimap({
         return;
       }
 
-      {
-        const physicalDelta = vec2.fromValues(evt.deltaX * 0.8, evt.deltaY);
-        const physicalToConfig = mat3.invert(
-          mat3.create(),
-          flamegraphMiniMapRenderer.configSpaceToPhysicalSpace
-        );
-        const [m00, m01, m02, m10, m11, m12] = physicalToConfig;
+      const multiplier = flamegraphPreferences.interactionMode === 'inverted' ? -1 : 1;
+      const physicalDelta = vec2.multiply(
+        vec2.create(),
+        vec2.fromValues(evt.deltaX, evt.deltaY),
+        vec2.fromValues(multiplier, multiplier)
+      );
 
-        const configDelta = vec2.transformMat3(vec2.create(), physicalDelta, [
-          m00,
-          m01,
-          m02,
-          m10,
-          m11,
-          m12,
-          0,
-          0,
-          0,
-        ]);
+      const physicalToConfig = mat3.invert(
+        mat3.create(),
+        flamegraphMiniMapRenderer.configSpaceToPhysicalSpace
+      );
+      const [m00, m01, m02, m10, m11, m12] = physicalToConfig;
 
-        const translate = mat3.fromTranslation(mat3.create(), configDelta);
-        canvasPoolManager.dispatch('transformConfigView', [translate]);
-      }
+      const configDelta = vec2.transformMat3(vec2.create(), physicalDelta, [
+        m00,
+        m01,
+        m02,
+        m10,
+        m11,
+        m12,
+        0,
+        0,
+        0,
+      ]);
+
+      const translate = mat3.fromTranslation(mat3.create(), configDelta);
+      canvasPoolManager.dispatch('transformConfigView', [translate]);
     },
-    [flamegraphMiniMapRenderer, canvasPoolManager]
+    [flamegraphMiniMapRenderer, flamegraphPreferences.interactionMode, canvasPoolManager]
   );
 
   const onMinimapZoom = useCallback(
@@ -380,7 +384,11 @@ function FlamegraphZoomViewMinimap({
       }
 
       const identity = mat3.identity(mat3.create());
-      const scale = 1 - evt.deltaY * 0.001 * -1; // -1 to invert scale
+      const damping = 0.01;
+      // For inverted views, invert the delta by multiplying it with -1
+      const delta =
+        evt.deltaY * (flamegraphPreferences.interactionMode === 'inverted' ? -1 : 1);
+      const scale = 1 + delta * damping;
 
       const mouseInConfigSpace = flamegraphMiniMapRenderer.getConfigSpaceCursor(
         vec2.fromValues(evt.offsetX, evt.offsetY),
@@ -404,7 +412,7 @@ function FlamegraphZoomViewMinimap({
 
       canvasPoolManager.dispatch('transformConfigView', [translatedBack]);
     },
-    [flamegraphMiniMapRenderer, canvasPoolManager]
+    [flamegraphMiniMapRenderer, flamegraphPreferences.interactionMode, canvasPoolManager]
   );
 
   const onMinimapCanvasMouseDown = useCallback(
