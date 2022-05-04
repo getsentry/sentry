@@ -41,7 +41,9 @@ import {
   getAggregateAlias,
   getColumnsAndAggregates,
   getColumnsAndAggregatesAsStrings,
+  isAggregateFieldOrEquation,
   isEquation,
+  isEquationAlias,
   QueryFieldValue,
   stripDerivedMetricsPrefix,
   stripEquationPrefix,
@@ -101,7 +103,7 @@ function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, Widge
       fieldAliases: [],
       aggregates: ['count()'],
       conditions: '',
-      orderby: widgetBuilderNewDesign ? '-count' : '',
+      orderby: widgetBuilderNewDesign ? '-count()' : '',
     },
     [DataSet.ISSUES]: {
       name: '',
@@ -554,12 +556,11 @@ function WidgetBuilder({
     newFields: QueryFieldValue[],
     isColumn = false
   ) {
-    const fieldStrings = newFields.map(generateFieldAsString);
-
-    const aggregateAliasFieldStrings =
-      state.dataSet === DataSet.RELEASES
-        ? fieldStrings.map(stripDerivedMetricsPrefix)
-        : fieldStrings.map(getAggregateAlias);
+    const fieldStrings = newFields
+      .map(generateFieldAsString)
+      .map(field =>
+        state.dataSet === DataSet.RELEASES ? stripDerivedMetricsPrefix(field) : field
+      );
 
     const columnsAndAggregates = isColumn
       ? getColumnsAndAggregatesAsStrings(newFields)
@@ -573,10 +574,10 @@ function WidgetBuilder({
     const newQueries = state.queries.map(query => {
       const isDescending = query.orderby.startsWith('-');
       const rawOrderby = trimStart(query.orderby, '-');
-      const prevAggregateAliasFieldStrings = query.aggregates.map(aggregate =>
+      const prevAggregateFieldStrings = query.aggregates.map(aggregate =>
         state.dataSet === DataSet.RELEASES
           ? stripDerivedMetricsPrefix(aggregate)
-          : getAggregateAlias(aggregate)
+          : aggregate
       );
       const newQuery = cloneDeep(query);
 
@@ -607,16 +608,14 @@ function WidgetBuilder({
         newQuery.columns = columnsAndAggregates?.columns ?? [];
       }
 
-      if (!aggregateAliasFieldStrings.includes(rawOrderby) && query.orderby !== '') {
+      if (!fieldStrings.includes(rawOrderby) && query.orderby !== '') {
         if (
-          prevAggregateAliasFieldStrings.length === newFields.length &&
-          prevAggregateAliasFieldStrings.includes(rawOrderby)
+          prevAggregateFieldStrings.length === newFields.length &&
+          prevAggregateFieldStrings.includes(rawOrderby)
         ) {
           // The aggregate that was used in orderby has changed. Get the new field.
           let newOrderByValue =
-            aggregateAliasFieldStrings[
-              prevAggregateAliasFieldStrings.indexOf(rawOrderby)
-            ];
+            fieldStrings[prevAggregateFieldStrings.indexOf(rawOrderby)];
 
           if (!stripEquationPrefix(newOrderByValue ?? '')) {
             newOrderByValue = '';
@@ -624,15 +623,19 @@ function WidgetBuilder({
 
           newQuery.orderby = `${isDescending ? '-' : ''}${newOrderByValue}`;
         } else {
-          const isFromAggregates = aggregateAliasFieldStrings.includes(rawOrderby);
+          const isUsingFieldFormat =
+            isAggregateFieldOrEquation(rawOrderby) || isEquationAlias(rawOrderby);
+          const isFromAggregates = (
+            isUsingFieldFormat ? fieldStrings : fieldStrings.map(getAggregateAlias)
+          ).includes(rawOrderby);
           const isCustomEquation = isEquation(rawOrderby);
           const isUsedInGrouping = newQuery.columns.includes(rawOrderby);
 
           const keepCurrentOrderby =
             isFromAggregates || isCustomEquation || isUsedInGrouping;
-          const firstAggregateAlias = isEquation(aggregateAliasFieldStrings[0])
-            ? `equation[${getNumEquations(aggregateAliasFieldStrings) - 1}]`
-            : aggregateAliasFieldStrings[0];
+          const firstAggregateAlias = isEquation(fieldStrings[0])
+            ? `equation[${getNumEquations(fieldStrings) - 1}]`
+            : fieldStrings[0];
 
           newQuery.orderby = widgetBuilderNewDesign
             ? (keepCurrentOrderby && newQuery.orderby) ||
