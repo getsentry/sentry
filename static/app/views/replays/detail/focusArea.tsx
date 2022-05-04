@@ -9,6 +9,7 @@ import {useRouteContext} from 'sentry/utils/useRouteContext';
 
 import {TabBarId} from '../types';
 
+import ErrorList from './errorList';
 import FocusTabs from './focusTabs';
 import MemoryChart from './memoryChart';
 
@@ -56,7 +57,7 @@ function ActiveTab({
         </div>
       ) : null;
     case 'errors':
-      return <div id="errors">TODO: Add an errors view</div>;
+      return <ErrorList replayId={event.id} projectId={event.projectID} />;
     case 'tags':
       return (
         <div id="tags">
