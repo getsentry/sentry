@@ -6,16 +6,13 @@ import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
-import DropdownButton from 'sentry/components/dropdownButton';
+import CompactSelect from 'sentry/components/forms/compactSelect';
 import NumberField from 'sentry/components/forms/numberField';
-import MenuItem from 'sentry/components/menuItem';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
-import Tooltip from 'sentry/components/tooltip';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {Organization, Project, SelectValue} from 'sentry/types';
 import {
   DynamicSamplingInnerName,
   DynamicSamplingRule,
@@ -156,15 +153,16 @@ function RuleModal({
     }
   }
 
-  function handleAddCondition(category: DynamicSamplingInnerName) {
+  function handleAddCondition(selectedOptions: SelectValue<DynamicSamplingInnerName>[]) {
+    const previousCategories = conditions.map(({category}) => category);
+    const addedCategories = selectedOptions
+      .filter(({value}) => !previousCategories.includes(value))
+      .map(({value}) => value);
     setData({
       ...data,
       conditions: [
         ...conditions,
-        {
-          category,
-          match: '',
-        },
+        ...addedCategories.map(addedCategory => ({category: addedCategory, match: ''})),
       ],
     });
   }
@@ -214,38 +212,29 @@ function RuleModal({
           <StyledPanel>
             <StyledPanelHeader hasButtons>
               {t('Conditions')}
-              <DropdownAutoComplete
-                onSelect={item => {
-                  handleAddCondition(item.value);
-                }}
-                alignMenu="right"
-                items={conditionCategories.map(conditionCategory => {
+              <StyledCompactSelect
+                placement="bottom right"
+                triggerLabel={t('Add Condition')}
+                placeholder={t('Filter conditions')}
+                isOptionDisabled={opt => opt.disabled}
+                options={conditionCategories.map(([value, label]) => {
                   const disabled = conditions.some(
-                    condition => condition.category === conditionCategory[0]
+                    condition => condition.category === value
                   );
                   return {
-                    value: conditionCategory[0],
-                    'data-test-id': 'condition',
+                    value,
+                    label,
                     disabled,
-                    label: (
-                      <Tooltip
-                        title={t('This condition has already been added')}
-                        disabled={!disabled}
-                      >
-                        <StyledMenuItem disabled={disabled}>
-                          {conditionCategory[1]}
-                        </StyledMenuItem>
-                      </Tooltip>
-                    ),
+                    tooltip: disabled
+                      ? t('This condition has already been added')
+                      : undefined,
                   };
                 })}
-              >
-                {({isOpen}) => (
-                  <DropdownButton isOpen={isOpen} size="small">
-                    {t('Add Condition')}
-                  </DropdownButton>
-                )}
-              </DropdownAutoComplete>
+                value={conditions.map(({category}) => category)}
+                onChange={handleAddCondition}
+                isSearchable
+                multiple
+              />
             </StyledPanelHeader>
             <PanelBody>
               {!conditions.length ? (
@@ -304,14 +293,9 @@ const Fields = styled('div')`
   gap: ${space(2)};
 `;
 
-const StyledMenuItem = styled(MenuItem)`
-  color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeMedium};
+const StyledCompactSelect = styled(CompactSelect)`
   font-weight: 400;
   text-transform: none;
-  span {
-    padding: 0;
-  }
 `;
 
 const StyledPanelHeader = styled(PanelHeader)`
