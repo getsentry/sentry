@@ -141,6 +141,7 @@ function ErrorList(props: Props) {
         limit={15}
       >
         {data => {
+          // get only errors that have a unique issue id
           const filteredData = [
             ...new Map(
               data.tableData?.data.map(error => [error['issue.id'], error]) || []
