@@ -39,7 +39,7 @@ TASK_OPTIONS = {
 
 RETRY_OPTIONS = {
     "on": (RequestException, ApiHostError, ApiTimeoutError),
-    "ignore": (ClientError),
+    "ignore": (ClientError, x5rertyerror),
 }
 
 # We call some models by a different name, publicly, than their class name.
