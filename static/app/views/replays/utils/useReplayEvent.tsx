@@ -76,7 +76,7 @@ function isRRWebEventAttachment(attachment: IssueAttachment) {
   return IS_RRWEB_ATTACHMENT_FILENAME.test(attachment.name);
 }
 
-const INITIAL_STATE: State = {
+const INITIAL_STATE: State = Object.freeze({
   fetchError: undefined,
   fetching: true,
   breadcrumbEntry: undefined,
@@ -85,7 +85,7 @@ const INITIAL_STATE: State = {
   rrwebEvents: undefined,
   mergedReplayEvent: undefined,
   memorySpans: undefined,
-};
+});
 
 function useReplayEvent({eventSlug, location, orgId}: Options): Result {
   const [projectId, eventId] = eventSlug.split(':');
