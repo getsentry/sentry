@@ -558,7 +558,7 @@ export function setRenderPrebuilt(value: boolean) {
   localStorage.setItem(RENDER_PREBUILT_KEY, value ? 'true' : 'false');
 }
 
-function eventViewToWidgetQuery({
+export function eventViewToWidgetQuery({
   eventView,
   yAxis,
   displayType,
@@ -580,10 +580,21 @@ function eventViewToWidgetQuery({
     for (let i = 0; i < queryYAxis.length; i++) {
       if (sort.field === getAggregateAlias(queryYAxis[i])) {
         orderbyFunction = queryYAxis[i];
+        break;
       }
     }
-    if (displayType === DisplayType.TOP_N || orderbyFunction) {
-      const bareOrderby = orderbyFunction === '' ? sort.field : orderbyFunction;
+
+    if (orderbyFunction === '') {
+      for (let i = 0; i < aggregates.length; i++) {
+        if (sort.field === getAggregateAlias(aggregates[i])) {
+          orderbyFunction = aggregates[i];
+          break;
+        }
+      }
+    }
+
+    const bareOrderby = orderbyFunction === '' ? sort.field : orderbyFunction;
+    if (displayType === DisplayType.TOP_N || bareOrderby) {
       orderby = `${sort.kind === 'desc' ? '-' : ''}${bareOrderby}`;
     }
   }
