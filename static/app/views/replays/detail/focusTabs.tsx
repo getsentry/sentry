@@ -29,9 +29,9 @@ function FocusTabs({active, setActive}: Props) {
           {t('Performance')}
         </a>
       </li>
-      <li className={active === 'errors' ? 'active' : ''}>
-        <a href="#errors" onClick={select('errors')}>
-          {t('Errors')}
+      <li className={active === 'issues' ? 'active' : ''}>
+        <a href="#issues" onClick={select('issues')}>
+          {t('Issues')}
         </a>
       </li>
       <li className={active === 'tags' ? 'active' : ''}>
