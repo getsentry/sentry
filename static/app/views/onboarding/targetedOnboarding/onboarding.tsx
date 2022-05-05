@@ -64,7 +64,6 @@ const MobileRedirectStep: StepDescriptor = {
   id: 'setup-docs',
   title: t('Install the Sentry SDK'),
   Component: MobileRedirect,
-  hasFooter: true,
   cornerVariant: 'top-left',
 };
 

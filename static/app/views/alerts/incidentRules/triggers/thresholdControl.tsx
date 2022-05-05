@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -31,7 +31,7 @@ type State = {
   currentValue: string | null;
 };
 
-class ThresholdControl extends React.Component<Props, State> {
+class ThresholdControl extends Component<Props, State> {
   state: State = {
     currentValue: null,
   };

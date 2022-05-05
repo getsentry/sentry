@@ -1,4 +1,3 @@
-import * as React from 'react';
 import keyBy from 'lodash/keyBy';
 
 import {

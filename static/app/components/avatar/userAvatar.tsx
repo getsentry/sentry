@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 
 import BaseAvatar from 'sentry/components/avatar/baseAvatar';
 import {Actor, AvatarUser} from 'sentry/types';
@@ -25,7 +25,7 @@ function isActor(maybe: AvatarUser | Actor): maybe is Actor {
   return typeof (maybe as AvatarUser).email === 'undefined';
 }
 
-class UserAvatar extends React.Component<Props> {
+class UserAvatar extends Component<Props> {
   static defaultProps = defaultProps;
 
   getType = (user: AvatarUser | Actor, gravatar: boolean | undefined) => {

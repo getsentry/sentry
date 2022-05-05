@@ -5,6 +5,7 @@ import type {eventWithTime} from 'rrweb/typings/types';
 
 import usePrevious from 'sentry/utils/usePrevious';
 
+import HighlightReplayPlugin from './highlightReplayPlugin';
 import useRAF from './useRAF';
 
 type Dimensions = {height: number; width: number};
@@ -181,10 +182,12 @@ export function Provider({children, events, initialTimeOffset = 0, value = {}}: 
         }
       }
 
+      const highlightReplayPlugin = new HighlightReplayPlugin();
+
       // eslint-disable-next-line no-new
       const inst = new Replayer(events, {
         root,
-        // blockClass: 'rr-block',
+        blockClass: 'sr-block',
         // liveMode: false,
         // triggerFocus: false,
         mouseTail: {
@@ -194,7 +197,7 @@ export function Provider({children, events, initialTimeOffset = 0, value = {}}: 
           strokeStyle: theme.purple200,
         },
         // unpackFn: _ => _,
-        // plugins: [],
+        plugins: [highlightReplayPlugin],
       });
 
       // @ts-expect-error: rrweb types event handlers with `unknown` parameters
