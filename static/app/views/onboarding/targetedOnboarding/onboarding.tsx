@@ -3,6 +3,7 @@ import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, MotionProps, useAnimation} from 'framer-motion';
 
+import ProjectActions from 'sentry/actions/projectActions';
 import Button, {ButtonProps} from 'sentry/components/button';
 import Hook from 'sentry/components/hook';
 import Link from 'sentry/components/links/link';
@@ -126,7 +127,8 @@ function Onboarding(props: Props) {
     if (step.cornerVariant !== nextStep.cornerVariant) {
       cornerVariantControl.start('none');
     }
-
+    // clear our stored projects so we can re-fetch them on the next page
+    ProjectActions.reset();
     browserHistory.push(`/onboarding/${props.params.orgId}/${nextStep.id}/`);
   };
 
