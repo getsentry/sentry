@@ -25,8 +25,7 @@ import {Image, ImageStatus} from 'sentry/types/debugImage';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
-import SearchBarAction from '../searchBarAction';
-import SearchBarActionFilter from '../searchBarAction/searchBarActionFilter';
+import SearchBarAction from '../searchBarActionV2';
 
 import Status from './debugImage/status';
 import DebugImage from './debugImage';
@@ -47,7 +46,10 @@ type DefaultProps = {
   };
 };
 
-type FilterOptions = React.ComponentProps<typeof SearchBarActionFilter>['options'];
+type FilterOptions = NonNullable<
+  React.ComponentProps<typeof SearchBarAction>['filterOptions']
+>;
+
 type Images = Array<React.ComponentProps<typeof DebugImage>['image']>;
 
 type Props = DefaultProps &
@@ -66,6 +68,7 @@ type State = {
   isOpen: boolean;
   scrollbarWidth: number;
   searchTerm: string;
+  selectedFilters: FilterOptions;
   panelTableHeight?: number;
 };
 
@@ -83,7 +86,8 @@ class DebugMeta extends PureComponent<Props, State> {
     searchTerm: '',
     scrollbarWidth: 0,
     isOpen: false,
-    filterOptions: {},
+    filterOptions: [],
+    selectedFilters: [],
     filteredImages: [],
     filteredImagesByFilter: [],
     filteredImagesBySearch: [],
@@ -333,21 +337,21 @@ class DebugMeta extends PureComponent<Props, State> {
   }
 
   getFilterOptions(images: Images): FilterOptions {
-    return {
-      [t('Status')]: [...new Set(images.map(image => image.status))].map(status => ({
-        id: status,
-        symbol: <Status status={status} />,
-        isChecked: status !== ImageStatus.UNUSED,
-      })),
-    };
+    return [
+      {
+        value: 'status',
+        label: t('Status'),
+        options: [...new Set(images.map(image => image.status))].map(status => ({
+          value: status,
+          label: <div style={{opacity: 0}}>{status}</div>,
+          leadingItems: <Status status={status} />,
+        })),
+      },
+    ];
   }
 
   getFilteredImagesByFilter(filteredImages: Images, filterOptions: FilterOptions) {
-    const checkedOptions = new Set(
-      Object.values(filterOptions)[0]
-        .filter(filterOption => filterOption.isChecked)
-        .map(option => option.id)
-    );
+    const checkedOptions = new Set(filterOptions.map(option => option.value));
 
     if (![...checkedOptions].length) {
       return filteredImages;
@@ -356,14 +360,14 @@ class DebugMeta extends PureComponent<Props, State> {
     return filteredImages.filter(image => checkedOptions.has(image.status));
   }
 
-  handleChangeFilter = (filterOptions: FilterOptions) => {
+  handleChangeFilter = (selectedFilters: FilterOptions) => {
     const {filteredImagesBySearch} = this.state;
     const filteredImagesByFilter = this.getFilteredImagesByFilter(
       filteredImagesBySearch,
-      filterOptions
+      selectedFilters
     );
 
-    this.setState({filterOptions, filteredImagesByFilter}, this.updateGrid);
+    this.setState({selectedFilters, filteredImagesByFilter}, this.updateGrid);
   };
 
   handleChangeSearchTerm = (searchTerm = '') => {
@@ -371,19 +375,7 @@ class DebugMeta extends PureComponent<Props, State> {
   };
 
   handleResetFilter = () => {
-    const {filterOptions} = this.state;
-    this.setState(
-      {
-        filterOptions: Object.keys(filterOptions).reduce((accumulator, currentValue) => {
-          accumulator[currentValue] = filterOptions[currentValue].map(filterOption => ({
-            ...filterOption,
-            isChecked: false,
-          }));
-          return accumulator;
-        }, {}),
-      },
-      this.filterImagesBySearchTerm
-    );
+    this.setState({selectedFilters: []}, this.filterImagesBySearchTerm);
   };
 
   handleResetSearchBar = () => {
@@ -483,16 +475,14 @@ class DebugMeta extends PureComponent<Props, State> {
   }
 
   getEmptyMessage() {
-    const {searchTerm, filteredImagesByFilter: images, filterOptions} = this.state;
+    const {searchTerm, filteredImagesByFilter: images, selectedFilters} = this.state;
 
     if (!!images.length) {
       return {};
     }
 
     if (searchTerm && !images.length) {
-      const hasActiveFilter = Object.values(filterOptions)
-        .flatMap(filterOption => filterOption)
-        .find(filterOption => filterOption.isChecked);
+      const hasActiveFilter = selectedFilters.length > 0;
 
       return {
         emptyMessage: t('Sorry, no images match your search query'),
@@ -519,6 +509,7 @@ class DebugMeta extends PureComponent<Props, State> {
       filterOptions,
       scrollbarWidth,
       isOpen,
+      selectedFilters,
       filteredImagesByFilter: filteredImages,
     } = this.state;
     const {data} = this.props;
@@ -528,7 +519,7 @@ class DebugMeta extends PureComponent<Props, State> {
       return null;
     }
 
-    const displayFilter = (Object.values(filterOptions ?? {})[0] ?? []).length > 1;
+    const showFilters = filterOptions.some(section => (section.options ?? []).length > 1);
 
     const actions = (
       <ToggleButton onClick={this.toggleImagesLoaded} priority="link">
@@ -563,14 +554,9 @@ class DebugMeta extends PureComponent<Props, State> {
               placeholder={t('Search images loaded')}
               onChange={value => this.handleChangeSearchTerm(value)}
               query={searchTerm}
-              filter={
-                displayFilter ? (
-                  <SearchBarActionFilter
-                    onChange={this.handleChangeFilter}
-                    options={filterOptions}
-                  />
-                ) : undefined
-              }
+              filterOptions={showFilters ? filterOptions : undefined}
+              onFilterChange={this.handleChangeFilter}
+              selectedFilters={selectedFilters}
             />
             <StyledPanelTable
               isEmpty={!filteredImages.length}
