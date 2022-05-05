@@ -2,6 +2,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import audit_log
 from sentry.api.bases.rule import RuleEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.rule import RuleSerializer
@@ -9,7 +10,6 @@ from sentry.api.serializers.rest_framework.rule import RuleSerializer as DrfRule
 from sentry.integrations.slack import tasks
 from sentry.mediators import project_rules
 from sentry.models import (
-    AuditLogEntryEvent,
     RuleActivity,
     RuleActivityType,
     RuleStatus,
@@ -149,7 +149,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                 request=request,
                 organization=project.organization,
                 target_object=updated_rule.id,
-                event=AuditLogEntryEvent.RULE_EDIT,
+                event=audit_log.get_event_id("RULE_EDIT"),
                 data=updated_rule.get_audit_log_data(),
             )
             alert_rule_edited.send_robust(
@@ -178,7 +178,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
             request=request,
             organization=project.organization,
             target_object=rule.id,
-            event=AuditLogEntryEvent.RULE_REMOVE,
+            event=audit_log.get_event_id("RULE_REMOVE"),
             data=rule.get_audit_log_data(),
         )
         return Response(status=202)

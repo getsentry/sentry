@@ -1,8 +1,8 @@
 from django.contrib.auth.models import AnonymousUser
 
+from sentry import audit_log
 from sentry.models import (
     ApiKey,
-    AuditLogEntryEvent,
     DeletedOrganization,
     DeletedProject,
     DeletedTeam,
@@ -63,14 +63,14 @@ class CreateAuditEntryTest(TestCase):
             request=self.req,
             organization=self.org,
             target_object=self.org.id,
-            event=AuditLogEntryEvent.ORG_REMOVE,
+            event=audit_log.get_event_id("ORG_REMOVE"),
             data=self.org.get_audit_log_data(),
         )
 
         assert entry.actor == self.user
         assert entry.actor_label == username[:64]  # needs trimming
         assert entry.target_object == self.org.id
-        assert entry.event == AuditLogEntryEvent.ORG_REMOVE
+        assert entry.event == audit_log.get_event_id("ORG_REMOVE")
 
         deleted_org = DeletedOrganization.objects.get(slug=self.org.slug)
         self.assert_valid_deleted_log(deleted_org, self.org)
@@ -100,17 +100,19 @@ class CreateAuditEntryTest(TestCase):
             request=self.req,
             organization=self.org,
             target_object=self.org.id,
-            event=AuditLogEntryEvent.ORG_RESTORE,
+            event=audit_log.get_event_id("ORG_RESTORE"),
             data=self.org.get_audit_log_data(),
         )
+        audit_log_event = audit_log.get(entry.event)
 
         entry2 = create_audit_entry(
             request=self.req,
             organization=self.org,
             target_object=self.org.id,
-            event=AuditLogEntryEvent.ORG_EDIT,
+            event=audit_log.get_event_id("ORG_EDIT"),
             data=self.org.get_audit_log_data(),
         )
+        audit_log_event2 = audit_log.get(entry2.event)
 
         for i in orgs:
             if (
@@ -118,29 +120,29 @@ class CreateAuditEntryTest(TestCase):
                 or i.status == OrganizationStatus.DELETION_IN_PROGRESS
             ):
                 assert i.status != OrganizationStatus.VISIBLE
-                assert ("restored") in entry.get_note()
+                assert ("restored") in audit_log_event.render(entry)
                 assert entry.actor == self.user
                 assert entry.target_object == self.org.id
-                assert entry.event == AuditLogEntryEvent.ORG_RESTORE
+                assert entry.event == audit_log.get_event_id("ORG_RESTORE")
             else:
                 assert i.status == OrganizationStatus.VISIBLE
-                assert ("edited") in entry2.get_note()
+                assert ("edited") in audit_log_event2.render(entry2)
                 assert entry2.actor == self.user
                 assert entry2.target_object == self.org.id
-                assert entry2.event == AuditLogEntryEvent.ORG_EDIT
+                assert entry2.event == audit_log.get_event_id("ORG_EDIT")
 
     def test_audit_entry_team_delete_log(self):
         entry = create_audit_entry(
             request=self.req,
             organization=self.org,
             target_object=self.team.id,
-            event=AuditLogEntryEvent.TEAM_REMOVE,
+            event=audit_log.get_event_id("TEAM_REMOVE"),
             data=self.team.get_audit_log_data(),
         )
 
         assert entry.actor == self.user
         assert entry.target_object == self.team.id
-        assert entry.event == AuditLogEntryEvent.TEAM_REMOVE
+        assert entry.event == audit_log.get_event_id("TEAM_REMOVE")
 
         deleted_team = DeletedTeam.objects.get(slug=self.team.slug)
         self.assert_valid_deleted_log(deleted_team, self.team)
@@ -150,13 +152,13 @@ class CreateAuditEntryTest(TestCase):
             request=self.req,
             organization=self.org,
             target_object=self.project.id,
-            event=AuditLogEntryEvent.PROJECT_REMOVE,
+            event=audit_log.get_event_id("PROJECT_REMOVE"),
             data=self.project.get_audit_log_data(),
         )
 
         assert entry.actor == self.user
         assert entry.target_object == self.project.id
-        assert entry.event == AuditLogEntryEvent.PROJECT_REMOVE
+        assert entry.event == audit_log.get_event_id("PROJECT_REMOVE")
 
         deleted_project = DeletedProject.objects.get(slug=self.project.slug)
         self.assert_valid_deleted_log(deleted_project, self.project)
@@ -167,28 +169,30 @@ class CreateAuditEntryTest(TestCase):
             request=self.req,
             organization=self.org,
             target_object=self.project.id,
-            event=AuditLogEntryEvent.PROJECT_EDIT,
+            event=audit_log.get_event_id("PROJECT_EDIT"),
             data={"old_slug": "old", "new_slug": "new"},
         )
+        audit_log_event = audit_log.get(entry.event)
 
         assert entry.actor == self.user
         assert entry.target_object == self.project.id
-        assert entry.event == AuditLogEntryEvent.PROJECT_EDIT
-        assert entry.get_note() == "renamed project slug from old to new"
+        assert entry.event == audit_log.get_event_id("PROJECT_EDIT")
+        assert audit_log_event.render(entry) == "renamed project slug from old to new"
 
     def test_audit_entry_project_edit_log_regression(self):
         entry = create_audit_entry(
             request=self.req,
             organization=self.org,
             target_object=self.project.id,
-            event=AuditLogEntryEvent.PROJECT_EDIT,
+            event=audit_log.get_event_id("PROJECT_EDIT"),
             data={"new_slug": "new"},
         )
+        audit_log_event = audit_log.get(entry.event)
 
         assert entry.actor == self.user
         assert entry.target_object == self.project.id
-        assert entry.event == AuditLogEntryEvent.PROJECT_EDIT
-        assert entry.get_note() == "edited project settings in new_slug to new"
+        assert entry.event == audit_log.get_event_id("PROJECT_EDIT")
+        assert audit_log_event.render(entry) == "edited project settings in new_slug to new"
 
     def test_audit_entry_integration_log(self):
         project = self.create_project()
@@ -198,37 +202,40 @@ class CreateAuditEntryTest(TestCase):
             request=self.req,
             organization=self.project.organization,
             target_object=self.project.id,
-            event=AuditLogEntryEvent.INTEGRATION_ADD,
+            event=audit_log.get_event_id("INTEGRATION_ADD"),
             data={"integration": "webhooks", "project": project.slug},
         )
+        audit_log_event = audit_log.get(entry.event)
 
-        assert ("enabled") in entry.get_note()
+        assert ("enabled") in audit_log_event.render(entry)
         assert entry.actor == self.user
         assert entry.target_object == self.project.id
-        assert entry.event == AuditLogEntryEvent.INTEGRATION_ADD
+        assert entry.event == audit_log.get_event_id("INTEGRATION_ADD")
 
         entry2 = create_audit_entry(
             request=self.req,
             organization=self.project.organization,
             target_object=self.project.id,
-            event=AuditLogEntryEvent.INTEGRATION_EDIT,
+            event=audit_log.get_event_id("INTEGRATION_EDIT"),
             data={"integration": "webhooks", "project": project.slug},
         )
+        audit_log_event2 = audit_log.get(entry2.event)
 
-        assert ("edited") in entry2.get_note()
+        assert ("edited") in audit_log_event2.render(entry2)
         assert entry2.actor == self.user
         assert entry2.target_object == self.project.id
-        assert entry2.event == AuditLogEntryEvent.INTEGRATION_EDIT
+        assert entry2.event == audit_log.get_event_id("INTEGRATION_EDIT")
 
         entry3 = create_audit_entry(
             request=self.req,
             organization=self.project.organization,
             target_object=self.project.id,
-            event=AuditLogEntryEvent.INTEGRATION_REMOVE,
+            event=audit_log.get_event_id("INTEGRATION_REMOVE"),
             data={"integration": "webhooks", "project": project.slug},
         )
+        audit_log_event3 = audit_log.get(entry3.event)
 
-        assert ("disable") in entry3.get_note()
+        assert ("disable") in audit_log_event3.render(entry3)
         assert entry3.actor == self.user
         assert entry3.target_object == self.project.id
-        assert entry3.event == AuditLogEntryEvent.INTEGRATION_REMOVE
+        assert entry3.event == audit_log.get_event_id("INTEGRATION_REMOVE")

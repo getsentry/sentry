@@ -4,8 +4,9 @@ from django.contrib import messages
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 
+from sentry import audit_log
 from sentry.api import client
-from sentry.models import AuditLogEntryEvent, Organization, OrganizationStatus
+from sentry.models import Organization, OrganizationStatus
 from sentry.web.frontend.base import OrganizationView
 from sentry.web.helpers import render_to_response
 
@@ -77,7 +78,7 @@ class RestoreOrganizationView(OrganizationView):
                     request=request,
                     organization=organization,
                     target_object=organization.id,
-                    event=AuditLogEntryEvent.ORG_RESTORE,
+                    event=audit_log.get_event_id("ORG_RESTORE"),
                     data=organization.get_audit_log_data(),
                 )
         return self.redirect(organization.get_url())

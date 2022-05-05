@@ -2,15 +2,10 @@ from unittest.mock import patch
 
 import responses
 
+from sentry import audit_log
 from sentry.constants import SentryAppInstallationStatus
 from sentry.mediators.sentry_app_installations import Creator
-from sentry.models import (
-    ApiGrant,
-    AuditLogEntry,
-    AuditLogEntryEvent,
-    ServiceHook,
-    ServiceHookProject,
-)
+from sentry.models import ApiGrant, AuditLogEntry, ServiceHook, ServiceHookProject
 from sentry.testutils import TestCase
 
 
@@ -66,7 +61,9 @@ class TestCreator(TestCase):
         responses.add(responses.POST, "https://example.com/webhook")
         request = self.make_request(user=self.user, method="GET")
         Creator.run(organization=self.org, slug="nulldb", user=self.user, request=request)
-        assert AuditLogEntry.objects.filter(event=AuditLogEntryEvent.SENTRY_APP_INSTALL).exists()
+        assert AuditLogEntry.objects.filter(
+            event=audit_log.get_event_id("SENTRY_APP_INSTALL")
+        ).exists()
 
     @responses.activate
     @patch("sentry.mediators.sentry_app_installations.InstallationNotifier.run")

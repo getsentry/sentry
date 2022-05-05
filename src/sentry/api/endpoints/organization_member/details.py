@@ -6,7 +6,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, ratelimits, roles
+from sentry import audit_log, features, ratelimits, roles
 from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.serializers import (
@@ -26,7 +26,6 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import GLOBAL_PARAMS
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
-    AuditLogEntryEvent,
     AuthIdentity,
     AuthProvider,
     InviteStatus,
@@ -284,7 +283,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             organization=organization,
             target_object=member.id,
             target_user=member.user,
-            event=AuditLogEntryEvent.MEMBER_EDIT,
+            event=audit_log.get_event_id("MEMBER_EDIT"),
             data=member.get_audit_log_data(),
         )
 
@@ -386,7 +385,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             organization=organization,
             target_object=member.id,
             target_user=member.user,
-            event=AuditLogEntryEvent.MEMBER_REMOVE,
+            event=audit_log.get_event_id("MEMBER_REMOVE"),
             data=audit_data,
         )
 

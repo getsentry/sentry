@@ -1,11 +1,10 @@
 from requests.exceptions import RequestException
 
-from sentry import analytics
+from sentry import analytics, audit_log
 from sentry.mediators import Mediator, Param, sentry_app_installation_tokens, service_hooks
 from sentry.mediators.sentry_app_installations.installation_notifier import InstallationNotifier
 from sentry.models import (
     ApiToken,
-    AuditLogEntryEvent,
     SentryAppInstallationForProvider,
     SentryAppInstallationToken,
     ServiceHook,
@@ -74,7 +73,7 @@ class Destroyer(Mediator):
                 request=self.request,
                 organization=self.install.organization,
                 target_object=self.install.organization.id,
-                event=AuditLogEntryEvent.SENTRY_APP_UNINSTALL,
+                event=audit_log.get_event_id("SENTRY_APP_UNINSTALL"),
                 data={"sentry_app": self.install.sentry_app.name},
             )
 

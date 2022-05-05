@@ -7,10 +7,10 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import options, roles
+from sentry import audit_log, options, roles
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
-from sentry.models import AuditLogEntryEvent, OrganizationMember
+from sentry.models import OrganizationMember
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign
@@ -92,7 +92,7 @@ class ProjectTransferEndpoint(ProjectEndpoint):
             request=request,
             organization=project.organization,
             target_object=project.id,
-            event=AuditLogEntryEvent.PROJECT_REQUEST_TRANSFER,
+            event=audit_log.get_event_id("PROJECT_REQUEST_TRANSFER"),
             data=project.get_audit_log_data(),
             transaction_id=transaction_id,
         )

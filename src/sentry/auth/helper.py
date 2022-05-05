@@ -18,7 +18,7 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from django.views import View
 
-from sentry import features
+from sentry import audit_log, features
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 from sentry.app import locks
 from sentry.auth.email import AmbiguousUserFromEmail, resolve_email_to_user
@@ -31,7 +31,6 @@ from sentry.auth.provider import MigratingIdentityId, Provider
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
     AuditLogEntry,
-    AuditLogEntryEvent,
     AuthIdentity,
     AuthProvider,
     Organization,
@@ -242,7 +241,7 @@ class AuthIdentityHandler:
             ip_address=self.request.META["REMOTE_ADDR"],
             target_object=om.id,
             target_user=om.user,
-            event=AuditLogEntryEvent.MEMBER_ADD,
+            event=audit_log.get_event_id("MEMBER_ADD"),
             data=om.get_audit_log_data(),
         )
 
@@ -320,7 +319,7 @@ class AuthIdentityHandler:
                 actor=self.user,
                 ip_address=self.request.META["REMOTE_ADDR"],
                 target_object=auth_identity.id,
-                event=AuditLogEntryEvent.SSO_IDENTITY_LINK,
+                event=audit_log.get_event_id("SSO_IDENTITY_LINK"),
                 data=auth_identity.get_audit_log_data(),
             )
 
@@ -806,7 +805,7 @@ class AuthHelper(Pipeline):
             actor=request.user,
             ip_address=request.META["REMOTE_ADDR"],
             target_object=self.provider_model.id,
-            event=AuditLogEntryEvent.SSO_ENABLE,
+            event=audit_log.get_event_id("SSO_ENABLE"),
             data=self.provider_model.get_audit_log_data(),
         )
 
@@ -889,6 +888,6 @@ class AuthHelper(Pipeline):
             request=self.request,
             organization=self.organization,
             target_object=self.organization.id,
-            event=AuditLogEntryEvent.ORG_EDIT,
+            event=audit_log.get_event_id("ORG_EDIT"),
             data={"require_2fa": "to False when enabling SSO"},
         )

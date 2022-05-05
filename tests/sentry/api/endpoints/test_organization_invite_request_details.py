@@ -2,9 +2,9 @@ from unittest.mock import patch
 
 from exam import fixture
 
+from sentry import audit_log
 from sentry.models import (
     AuditLogEntry,
-    AuditLogEntryEvent,
     InviteStatus,
     OrganizationMember,
     OrganizationMemberTeam,
@@ -85,10 +85,12 @@ class OrganizationInviteRequestDeleteTest(InviteRequestBase):
         assert resp.status_code == 204
         assert not OrganizationMember.objects.filter(id=self.invite_request.id).exists()
 
-        audit_log = AuditLogEntry.objects.get(
-            organization=self.org, actor=self.user, event=AuditLogEntryEvent.INVITE_REQUEST_REMOVE
+        audit_log_entry = AuditLogEntry.objects.get(
+            organization=self.org,
+            actor=self.user,
+            event=audit_log.get_event_id("INVITE_REQUEST_REMOVE"),
         )
-        assert audit_log.data == self.invite_request.get_audit_log_data()
+        assert audit_log_entry.data == self.invite_request.get_audit_log_data()
 
     def test_member_cannot_delete_invite_request(self):
         self.login_as(user=self.member.user)
@@ -172,14 +174,14 @@ class OrganizationInviteRequestApproveTest(InviteRequestBase):
         assert resp.data["inviteStatus"] == "approved"
         assert mock_invite_email.call_count == 1
 
-        audit_log = AuditLogEntry.objects.get(
-            organization=self.org, actor=self.user, event=AuditLogEntryEvent.MEMBER_INVITE
+        audit_log_entry = AuditLogEntry.objects.get(
+            organization=self.org, actor=self.user, event=audit_log.get_event_id("MEMBER_INVITE")
         )
         member = OrganizationMember.objects.get(
             id=self.invite_request.id, invite_status=InviteStatus.APPROVED.value
         )
 
-        assert audit_log.data == member.get_audit_log_data()
+        assert audit_log_entry.data == member.get_audit_log_data()
 
     def test_member_cannot_approve_invite_request(self):
         self.invite_request.inviter = self.member.user

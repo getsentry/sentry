@@ -1,6 +1,7 @@
 from datetime import date
 from unittest.mock import patch
 
+from sentry import audit_log
 from sentry.mediators.sentry_app_installation_tokens import Creator
 from sentry.mediators.sentry_app_installations import Creator as SentryAppInstallationCreator
 from sentry.models import AuditLogEntry, SentryAppInstallation, SentryAppInstallationToken
@@ -48,7 +49,10 @@ class TestCreatorInternal(TestCreatorBase):
         assert len(sentry_app_installation_tokens) == 2
 
         log = AuditLogEntry.objects.get(organization=self.org)
-        assert log.get_note() == "created a token for internal integration internal_app"
+        audit_log_event = audit_log.get(log.event)
+        assert (
+            audit_log_event.render(log) == "created a token for internal integration internal_app"
+        )
         assert log.organization == self.org
         assert log.target_object == api_token.id
 

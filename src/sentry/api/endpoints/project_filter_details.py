@@ -1,10 +1,10 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import audit_log
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.ingest import inbound_filters
-from sentry.models.auditlogentry import AuditLogEntryEvent
 
 
 class ProjectFilterDetailsEndpoint(ProjectEndpoint):
@@ -33,18 +33,18 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
         current_state = inbound_filters.get_filter_state(filter_id, project)
 
         new_state = inbound_filters.set_filter_state(filter_id, project, serializer.validated_data)
-        audit_log_state = AuditLogEntryEvent.PROJECT_ENABLE
+        audit_log_state = audit_log.get_event_id("PROJECT_ENABLE")
 
         returned_state = None
         if filter_id == "legacy-browsers":
             if isinstance(current_state, bool) or isinstance(new_state, bool):
                 returned_state = new_state
                 if not new_state:
-                    audit_log_state = AuditLogEntryEvent.PROJECT_DISABLE
+                    audit_log_state = audit_log.get_event_id("PROJECT_DISABLE")
 
             elif current_state - new_state:
                 returned_state = current_state - new_state
-                audit_log_state = AuditLogEntryEvent.PROJECT_DISABLE
+                audit_log_state = audit_log.get_event_id("PROJECT_DISABLE")
 
             elif new_state - current_state:
                 returned_state = new_state - current_state
@@ -57,7 +57,7 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
             removed = current_state - new_state
 
             if removed == 1:
-                audit_log_state = AuditLogEntryEvent.PROJECT_DISABLE
+                audit_log_state = audit_log.get_event_id("PROJECT_DISABLE")
 
         self.create_audit_entry(
             request=request,

@@ -8,7 +8,7 @@ from pytz import UTC
 from rest_framework import serializers, status
 
 from bitfield.types import BitHandler
-from sentry import roles
+from sentry import audit_log, roles
 from sentry.api.base import ONE_DAY
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.decorators import sudo_required
@@ -26,7 +26,6 @@ from sentry.lang.native.utils import (
     convert_crashreport_count,
 )
 from sentry.models import (
-    AuditLogEntryEvent,
     Authenticator,
     AuthProvider,
     Organization,
@@ -508,7 +507,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     request=request,
                     organization=organization,
                     target_object=organization.id,
-                    event=AuditLogEntryEvent.ORG_RESTORE,
+                    event=audit_log.get_event_id("ORG_RESTORE"),
                     data=organization.get_audit_log_data(),
                 )
                 ScheduledDeletion.cancel(organization)
@@ -517,7 +516,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     request=request,
                     organization=organization,
                     target_object=organization.id,
-                    event=AuditLogEntryEvent.ORG_EDIT,
+                    event=audit_log.get_event_id("ORG_EDIT"),
                     data=changed_data,
                 )
 
@@ -551,7 +550,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     request=request,
                     organization=organization,
                     target_object=organization.id,
-                    event=AuditLogEntryEvent.ORG_REMOVE,
+                    event=audit_log.get_event_id("ORG_REMOVE"),
                     data=organization.get_audit_log_data(),
                     transaction_id=schedule.guid,
                 )

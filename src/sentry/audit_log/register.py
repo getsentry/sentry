@@ -229,6 +229,21 @@ default_manager.add(
         template="uninstalled sentry app {sentry_app}",
     )
 )
+default_manager.add(
+    AuditLogEvent(
+        event_id=120, name="MONITOR_ADD", api_name="monitor.add", template="Monitor added"
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=121, name="MONITOR_EDIT", api_name="monitor.edit", template="Monitor edited"
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=122, name="MONITOR_REMOVE", api_name="monitor.remove", template="Monitor removed"
+    )
+)
 default_manager.add(events.InternalIntegrationAddAuditLogEvent())
 default_manager.add(
     AuditLogEvent(

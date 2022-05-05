@@ -3,6 +3,7 @@ from unittest import mock
 
 import pytest
 
+from sentry import audit_log
 from sentry.api.endpoints.project_details import (
     DynamicSamplingConditionSerializer,
     DynamicSamplingSerializer,
@@ -10,7 +11,6 @@ from sentry.api.endpoints.project_details import (
 from sentry.constants import RESERVED_PROJECT_SLUGS
 from sentry.models import (
     AuditLogEntry,
-    AuditLogEntryEvent,
     DeletedProject,
     EnvironmentProject,
     Integration,
@@ -158,13 +158,13 @@ class ProjectDetailsTest(APITestCase):
         response = self.get_valid_response(project.organization.slug, project.slug, status_code=302)
         assert (
             AuditLogEntry.objects.get(
-                organization=project.organization, event=AuditLogEntryEvent.PROJECT_EDIT
+                organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
             ).data.get("old_slug")
             == project.slug
         )
         assert (
             AuditLogEntry.objects.get(
-                organization=project.organization, event=AuditLogEntryEvent.PROJECT_EDIT
+                organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
             ).data.get("new_slug")
             == "foobar"
         )
@@ -267,7 +267,7 @@ class ProjectUpdateTest(APITestCase):
         assert project.slug == "foobar"
         assert ProjectRedirect.objects.filter(project=self.project, redirect_slug=self.proj_slug)
         assert AuditLogEntry.objects.filter(
-            organization=project.organization, event=AuditLogEntryEvent.PROJECT_EDIT
+            organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
         ).exists()
 
     def test_invalid_slug(self):
@@ -328,17 +328,17 @@ class ProjectUpdateTest(APITestCase):
         assert project.get_option("sentry:resolve_age", 0) == options["sentry:resolve_age"]
         assert project.get_option("sentry:scrub_data", True) == options["sentry:scrub_data"]
         assert AuditLogEntry.objects.filter(
-            organization=project.organization, event=AuditLogEntryEvent.PROJECT_EDIT
+            organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
         ).exists()
         assert project.get_option("sentry:scrub_defaults", True) == options["sentry:scrub_defaults"]
         assert AuditLogEntry.objects.filter(
-            organization=project.organization, event=AuditLogEntryEvent.PROJECT_EDIT
+            organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
         ).exists()
         assert (
             project.get_option("sentry:sensitive_fields", []) == options["sentry:sensitive_fields"]
         )
         assert AuditLogEntry.objects.filter(
-            organization=project.organization, event=AuditLogEntryEvent.PROJECT_EDIT
+            organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
         ).exists()
         assert project.get_option("sentry:safe_fields", []) == options["sentry:safe_fields"]
         assert (
@@ -351,7 +351,7 @@ class ProjectUpdateTest(APITestCase):
         )
         assert project.get_option("sentry:grouping_config", "") == options["sentry:grouping_config"]
         assert AuditLogEntry.objects.filter(
-            organization=project.organization, event=AuditLogEntryEvent.PROJECT_EDIT
+            organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
         ).exists()
         assert (
             project.get_option("sentry:csp_ignored_sources_defaults", True)
@@ -368,41 +368,41 @@ class ProjectUpdateTest(APITestCase):
         ]
         assert project.get_option("mail:subject_prefix", "[Sentry]")
         assert AuditLogEntry.objects.filter(
-            organization=project.organization, event=AuditLogEntryEvent.PROJECT_EDIT
+            organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
         ).exists()
         assert project.get_option("sentry:resolve_age", 1)
         assert AuditLogEntry.objects.filter(
-            organization=project.organization, event=AuditLogEntryEvent.PROJECT_EDIT
+            organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
         ).exists()
         assert (
             project.get_option("sentry:scrub_ip_address", True)
             == options["sentry:scrub_ip_address"]
         )
         assert AuditLogEntry.objects.filter(
-            organization=project.organization, event=AuditLogEntryEvent.PROJECT_EDIT
+            organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
         ).exists()
         assert project.get_option("sentry:origins", "*")
         assert AuditLogEntry.objects.filter(
-            organization=project.organization, event=AuditLogEntryEvent.PROJECT_EDIT
+            organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
         ).exists()
         assert (
             project.get_option("sentry:scrape_javascript", False)
             == options["sentry:scrape_javascript"]
         )
         assert AuditLogEntry.objects.filter(
-            organization=project.organization, event=AuditLogEntryEvent.PROJECT_EDIT
+            organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
         ).exists()
         assert project.get_option("sentry:token", "*")
         assert AuditLogEntry.objects.filter(
-            organization=project.organization, event=AuditLogEntryEvent.PROJECT_EDIT
+            organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
         ).exists()
         assert project.get_option("sentry:token_header", "*")
         assert AuditLogEntry.objects.filter(
-            organization=project.organization, event=AuditLogEntryEvent.PROJECT_EDIT
+            organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
         ).exists()
         assert project.get_option("sentry:verify_ssl", False) == options["sentry:verify_ssl"]
         assert AuditLogEntry.objects.filter(
-            organization=project.organization, event=AuditLogEntryEvent.PROJECT_EDIT
+            organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
         ).exists()
 
     def test_bookmarks(self):

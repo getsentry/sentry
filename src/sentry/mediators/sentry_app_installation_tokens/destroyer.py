@@ -1,5 +1,6 @@
+from sentry import audit_log
 from sentry.mediators import Mediator, Param
-from sentry.models import AuditLogEntryEvent, SentryAppInstallationToken
+from sentry.models import SentryAppInstallationToken
 from sentry.utils.cache import memoize
 
 
@@ -30,7 +31,7 @@ class Destroyer(Mediator):
                 request=self.request,
                 organization=self.organization,
                 target_object=self.api_token.id,
-                event=AuditLogEntryEvent.INTERNAL_INTEGRATION_REMOVE_TOKEN,
+                event=audit_log.get_event_id("INTERNAL_INTEGRATION_REMOVE_TOKEN"),
                 data={"sentry_app": self.sentry_app.name},
             )
 

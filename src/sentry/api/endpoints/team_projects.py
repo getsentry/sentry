@@ -3,11 +3,12 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import audit_log
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.team import TeamEndpoint, TeamPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import ProjectSummarySerializer, serialize
-from sentry.models import AuditLogEntryEvent, Project, ProjectStatus
+from sentry.models import Project, ProjectStatus
 from sentry.signals import project_created
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '14d', and '30d'"
@@ -133,7 +134,7 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
                     request=request,
                     organization=team.organization,
                     target_object=project.id,
-                    event=AuditLogEntryEvent.PROJECT_ADD,
+                    event=audit_log.get_event_id("PROJECT_ADD"),
                     data=project.get_audit_log_data(),
                 )
 

@@ -2,11 +2,11 @@ from urllib.parse import parse_qs, urlencode, urlparse
 
 import responses
 
+from sentry import audit_log
 from sentry.integrations.slack import SlackIntegration, SlackIntegrationProvider
 from sentry.integrations.slack.utils.users import SLACK_GET_USERS_PAGE_SIZE
 from sentry.models import (
     AuditLogEntry,
-    AuditLogEntryEvent,
     Identity,
     IdentityProvider,
     IdentityStatus,
@@ -128,8 +128,9 @@ class SlackIntegrationTest(IntegrationTestCase):
         identity = Identity.objects.get(idp=idp, user=self.user, external_id="UXXXXXXX1")
         assert identity.status == IdentityStatus.VALID
 
-        audit_entry = AuditLogEntry.objects.get(event=AuditLogEntryEvent.INTEGRATION_ADD)
-        assert audit_entry.get_note() == "installed Example for the slack integration"
+        audit_entry = AuditLogEntry.objects.get(event=audit_log.get_event_id("INTEGRATION_ADD"))
+        audit_log_event = audit_log.get(audit_entry.event)
+        assert audit_log_event.render(audit_entry) == "installed Example for the slack integration"
 
     @responses.activate
     def test_multiple_integrations(self):

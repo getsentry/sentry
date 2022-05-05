@@ -1,12 +1,13 @@
 from django.utils import timezone
 
+from sentry import audit_log
 from sentry.audit_log import (
     AuditLogEvent,
     AuditLogEventManager,
     AuditLogEventNotRegistered,
     DuplicateAuditLogEvent,
 )
-from sentry.models import AuditLogEntry, AuditLogEntryEvent
+from sentry.models import AuditLogEntry
 from sentry.testutils import TestCase
 
 
@@ -27,7 +28,7 @@ class AuditLogEventManagerTest(TestCase):
 
         log_entry = AuditLogEntry.objects.create(
             organization=self.organization,
-            event=AuditLogEntryEvent.MEMBER_INVITE,
+            event=audit_log.get_event_id("MEMBER_INVITE"),
             actor=self.user,
             datetime=timezone.now(),
             data={"email": "my_email@mail.com", "role": "admin"},

@@ -7,10 +7,10 @@ from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 from rest_framework.request import Request
 
-from sentry import features, roles
+from sentry import audit_log, features, roles
 from sentry.auth import manager
 from sentry.auth.helper import AuthHelper
-from sentry.models import AuditLogEntryEvent, AuthProvider, OrganizationMember, User
+from sentry.models import AuthProvider, OrganizationMember, User
 from sentry.plugins.base import Response
 from sentry.tasks.auth import email_missing_links, email_unlink_notifications
 from sentry.utils.http import absolute_uri
@@ -77,7 +77,7 @@ class OrganizationAuthSettingsView(OrganizationView):
             request,
             organization=organization,
             target_object=auth_provider.id,
-            event=AuditLogEntryEvent.SSO_DISABLE,
+            event=audit_log.get_event_id("SSO_DISABLE"),
             data=auth_provider.get_audit_log_data(),
         )
 
@@ -145,7 +145,7 @@ class OrganizationAuthSettingsView(OrganizationView):
                     request,
                     organization=organization,
                     target_object=auth_provider.id,
-                    event=AuditLogEntryEvent.SSO_EDIT,
+                    event=audit_log.get_event_id("SSO_EDIT"),
                     data=changed_data,
                 )
 

@@ -6,6 +6,7 @@ import requests
 from exam import fixture
 from freezegun import freeze_time
 
+from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.incidents.models import (
     AlertRule,
@@ -13,7 +14,7 @@ from sentry.incidents.models import (
     IncidentTrigger,
     TriggerStatus,
 )
-from sentry.models import AuditLogEntry, AuditLogEntryEvent, Rule, RuleFireHistory
+from sentry.models import AuditLogEntry, Rule, RuleFireHistory
 from sentry.models.organizationmember import OrganizationMember
 from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
 from sentry.testutils import APITestCase
@@ -111,7 +112,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
         assert resp.data == serialize(alert_rule, self.user)
 
         audit_log_entry = AuditLogEntry.objects.filter(
-            event=AuditLogEntryEvent.ALERT_RULE_ADD, target_object=alert_rule.id
+            event=audit_log.get_event_id("ALERT_RULE_ADD"), target_object=alert_rule.id
         )
         assert len(audit_log_entry) == 1
 

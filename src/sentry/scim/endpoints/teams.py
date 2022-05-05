@@ -10,6 +10,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import audit_log
 from sentry.api.endpoints.organization_teams import OrganizationTeamsEndpoint
 from sentry.api.endpoints.team_details import TeamDetailsEndpoint, TeamSerializer
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -26,13 +27,7 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GLOBAL_PARAMS, SCIM_PARAMS
-from sentry.models import (
-    AuditLogEntryEvent,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    Team,
-    TeamStatus,
-)
+from sentry.models import OrganizationMember, OrganizationMemberTeam, Team, TeamStatus
 from sentry.utils.cursors import SCIMCursor
 
 from .constants import (
@@ -274,7 +269,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                     organization=team.organization,
                     target_object=omt.id,
                     target_user=member.user,
-                    event=AuditLogEntryEvent.MEMBER_JOIN_TEAM,
+                    event=audit_log.get_event_id("MEMBER_JOIN_TEAM"),
                     data=omt.get_audit_log_data(),
                 )
 
@@ -291,7 +286,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                 organization=team.organization,
                 target_object=omt.id,
                 target_user=member.user,
-                event=AuditLogEntryEvent.MEMBER_LEAVE_TEAM,
+                event=audit_log.get_event_id("MEMBER_LEAVE_TEAM"),
                 data=omt.get_audit_log_data(),
             )
             omt.delete()
@@ -308,7 +303,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                 request=request,
                 organization=team.organization,
                 target_object=team.id,
-                event=AuditLogEntryEvent.TEAM_EDIT,
+                event=audit_log.get_event_id("TEAM_EDIT"),
                 data=team.get_audit_log_data(),
             )
 
