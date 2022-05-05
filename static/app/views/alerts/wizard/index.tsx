@@ -23,11 +23,11 @@ import {AlertRuleType} from 'sentry/views/alerts/types';
 import {
   AlertType,
   AlertWizardAlertNames,
-  AlertWizardPanelContent,
   AlertWizardRuleTemplates,
   getAlertWizardCategories,
   WizardRuleTemplate,
 } from './options';
+import {AlertWizardPanelContent} from './panelContent';
 import RadioPanelGroup from './radioPanelGroup';
 
 type RouteParams = {

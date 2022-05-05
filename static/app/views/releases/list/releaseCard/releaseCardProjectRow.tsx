@@ -16,12 +16,17 @@ import {PanelItem} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import Tag from 'sentry/components/tag';
 import Tooltip from 'sentry/components/tooltip';
+import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Organization, Release, ReleaseProject} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {getCrashFreeIcon} from 'sentry/utils/sessions';
+import {
+  CRASH_FREE_DANGER_THRESHOLD,
+  CRASH_FREE_WARNING_THRESHOLD,
+} from 'sentry/utils/sessions';
+import type {IconSize} from 'sentry/utils/theme';
 
 import {
   ADOPTION_STAGE_LABELS,
@@ -42,6 +47,18 @@ import {
   ReleaseProjectColumn,
   ReleaseProjectsLayout,
 } from '.';
+
+export function getCrashFreeIcon(crashFreePercent: number, iconSize: IconSize = 'sm') {
+  if (crashFreePercent < CRASH_FREE_DANGER_THRESHOLD) {
+    return <IconFire color="red300" size={iconSize} />;
+  }
+
+  if (crashFreePercent < CRASH_FREE_WARNING_THRESHOLD) {
+    return <IconWarning color="yellow300" size={iconSize} />;
+  }
+
+  return <IconCheckmark isCircled color="green300" size={iconSize} />;
+}
 
 type Props = {
   activeDisplay: ReleasesDisplayOption;

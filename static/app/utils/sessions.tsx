@@ -9,11 +9,10 @@ import {
   SIXTY_DAYS,
   THIRTY_DAYS,
 } from 'sentry/components/charts/utils';
-import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
 import {SessionApiResponse, SessionFieldWithOperation, SessionStatus} from 'sentry/types';
 import {SeriesDataUnit} from 'sentry/types/echarts';
 import {defined, percent} from 'sentry/utils';
-import {IconSize, Theme} from 'sentry/utils/theme';
+import {Theme} from 'sentry/utils/theme';
 import {getCrashFreePercent, getSessionStatusPercent} from 'sentry/views/releases/utils';
 import {sessionTerm} from 'sentry/views/releases/utils/sessionTerm';
 
@@ -22,8 +21,8 @@ import {sessionTerm} from 'sentry/views/releases/utils/sessionTerm';
  */
 export const MINUTES_THRESHOLD_TO_DISPLAY_SECONDS = 10;
 
-const CRASH_FREE_DANGER_THRESHOLD = 98;
-const CRASH_FREE_WARNING_THRESHOLD = 99.5;
+export const CRASH_FREE_DANGER_THRESHOLD = 98;
+export const CRASH_FREE_WARNING_THRESHOLD = 99.5;
 
 export function getCount(
   groups: SessionApiResponse['groups'] = [],
@@ -383,16 +382,4 @@ export function filterSessionsInTimeWindow(
     intervals,
     groups,
   };
-}
-
-export function getCrashFreeIcon(crashFreePercent: number, iconSize: IconSize = 'sm') {
-  if (crashFreePercent < CRASH_FREE_DANGER_THRESHOLD) {
-    return <IconFire color="red300" size={iconSize} />;
-  }
-
-  if (crashFreePercent < CRASH_FREE_WARNING_THRESHOLD) {
-    return <IconWarning color="yellow300" size={iconSize} />;
-  }
-
-  return <IconCheckmark isCircled color="green300" size={iconSize} />;
 }
