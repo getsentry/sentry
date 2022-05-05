@@ -74,6 +74,8 @@ function trailToCrumb(
           location,
           orgSlug: organization.slug,
           projectSlug: trail.payload.projectSlug,
+          transaction: trail.payload.transaction,
+          version: trail.payload.version,
         }),
         label: t('Functions'),
         preservePageFilters: true,
