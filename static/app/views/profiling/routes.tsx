@@ -1,14 +1,20 @@
-import {Location, LocationDescriptor} from 'history';
+import {Location, LocationDescriptor, Path} from 'history';
 
 import {Organization, Project} from 'sentry/types';
 import {Trace} from 'sentry/types/profiling/core';
 
-export function generateProfilingRoute({
+export function generateProfilingRoute({orgSlug}: {orgSlug: Organization['slug']}): Path {
+  return `/organizations/${orgSlug}/profiling/`;
+}
+
+export function generateFunctionsRoute({
   orgSlug,
+  projectSlug,
 }: {
   orgSlug: Organization['slug'];
-}): string {
-  return `/organizations/${orgSlug}/profiling/`;
+  projectSlug: Project['slug'];
+}): Path {
+  return `/organizations/${orgSlug}/profiling/functions/${projectSlug}/`;
 }
 
 export function generateFlamegraphRoute({
@@ -19,7 +25,7 @@ export function generateFlamegraphRoute({
   orgSlug: Organization['slug'];
   profileId: Trace['id'];
   projectSlug: Project['slug'];
-}): string {
+}): Path {
   return `/organizations/${orgSlug}/profiling/flamegraph/${projectSlug}/${profileId}/`;
 }
 
@@ -35,6 +41,30 @@ export function profilingRouteWithQuery({
     pathname,
     query: {
       ...location.query,
+    },
+  };
+}
+
+export function functionsRouteWithQuery({
+  location,
+  orgSlug,
+  projectSlug,
+  transaction,
+  version,
+}: {
+  location: Location;
+  orgSlug: Organization['slug'];
+  projectSlug: Project['slug'];
+  transaction: string;
+  version: string;
+}): LocationDescriptor {
+  const pathname = generateFunctionsRoute({orgSlug, projectSlug});
+  return {
+    pathname,
+    query: {
+      ...location.query,
+      transaction,
+      version,
     },
   };
 }

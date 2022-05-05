@@ -40,3 +40,30 @@ export type Span = {
   }>;
   queue_label?: string;
 };
+
+type Percentiles = {
+  p50: number;
+  p75: number;
+  p90: number;
+  p95: number;
+  p99: number;
+};
+
+export type FunctionCall = {
+  duration_ns: Percentiles;
+  duration_values: number[];
+  frequency: Percentiles;
+  frequency_values: number[];
+  image: string;
+  key: string;
+  line: number;
+  main_thread_percent: Record<string, number>;
+  path: string;
+  profile_ids: string[];
+  symbol: string;
+  transaction_names;
+};
+
+export type VersionedFunctionCalls = {
+  Versions: Record<string, {FunctionCalls: FunctionCall[]}>;
+};
