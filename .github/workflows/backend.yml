@@ -427,7 +427,7 @@ jobs:
       ]
     name: Backend
     # This is necessary since a failed/skipped dependent job would cause this job to be skipped
-    if: always()
+    if: needs.files-changed.outputs.backend_any_type == 'true'
     runs-on: ubuntu-20.04
     steps:
       # If any jobs we depend on fail, we will fail since this checks triggers Visual Snapshots which is a required check
