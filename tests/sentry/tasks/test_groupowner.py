@@ -7,11 +7,7 @@ from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.tasks.groupowner import PREFERRED_GROUP_OWNER_AGE, process_suspect_commits
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.utils.committers import (
-    AuthorCommits,
-    get_frame_paths,
-    get_serialized_event_file_committers,
-)
+from sentry.utils.committers import get_frame_paths, get_serialized_event_file_committers
 
 
 class TestGroupOwners(TestCase):
@@ -100,9 +96,9 @@ class TestGroupOwners(TestCase):
         result = get_serialized_event_file_committers(self.project, self.event)
 
         assert len(result) == 1
-        assert result[0].commits
-        assert len(result[0].commits) == 1
-        assert result[0].commits[0]["id"] == "a" * 40
+        assert "commits" in result[0]
+        assert len(result[0]["commits"]) == 1
+        assert result[0]["commits"][0]["id"] == "a" * 40
         assert not GroupOwner.objects.filter(group=self.event.group).exists()
         event_frames = get_frame_paths(self.event.data)
         process_suspect_commits(
@@ -324,8 +320,8 @@ class TestGroupOwners(TestCase):
         self.user2 = self.create_user(email="user2@sentry.io")
         self.user3 = self.create_user(email="user3@sentry.io")
         patched_committers.return_value = [
-            AuthorCommits(
-                {
+            {
+                "author": {
                     "username": self.user.email,
                     "lastLogin": None,
                     "isSuperuser": True,
@@ -346,10 +342,10 @@ class TestGroupOwners(TestCase):
                     "hasPasswordAuth": True,
                     "email": self.user.email,
                 },
-                [(None, 3)],
-            ),
-            AuthorCommits(
-                {
+                "commits": [(None, 3)],
+            },
+            {
+                "author": {
                     "username": self.user2.email,
                     "lastLogin": None,
                     "isSuperuser": True,
@@ -370,10 +366,10 @@ class TestGroupOwners(TestCase):
                     "hasPasswordAuth": True,
                     "email": self.user2.email,
                 },
-                [(None, 1)],
-            ),
-            AuthorCommits(
-                {
+                "commits": [(None, 1)],
+            },
+            {
+                "author": {
                     "username": self.user3.email,
                     "lastLogin": None,
                     "isSuperuser": True,
@@ -394,8 +390,8 @@ class TestGroupOwners(TestCase):
                     "hasPasswordAuth": True,
                     "email": self.user3.email,
                 },
-                [(None, 2)],
-            ),
+                "commits": [(None, 2)],
+            },
         ]
         event_frames = get_frame_paths(self.event.data)
         process_suspect_commits(

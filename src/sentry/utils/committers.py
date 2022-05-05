@@ -1,8 +1,19 @@
 import operator
 from collections import defaultdict
-from dataclasses import dataclass
 from functools import reduce
-from typing import Any, Dict, Iterator, Mapping, MutableMapping, Sequence, Set, Tuple, Union
+from typing import (
+    Any,
+    Dict,
+    Iterator,
+    List,
+    Mapping,
+    MutableMapping,
+    Sequence,
+    Set,
+    Tuple,
+    TypedDict,
+    Union,
+)
 
 from django.core.cache import cache
 from django.db.models import Q
@@ -119,16 +130,12 @@ def _match_commits_path(
     return list(matching_commits.values())
 
 
-@dataclass
-class AuthorCommits:
-    author: Mapping[
-        str, Any
-    ]  # a serialized 'user' or {'email: <email>', 'name': '<author-name>'} if user not exist
+class AuthorCommits(TypedDict):
+    author: Mapping[str, Any]
     commits: Sequence[Tuple[Commit, int]]
 
 
-@dataclass
-class AuthorCommitsSerialized:
+class AuthorCommitsSerialized(TypedDict):
     author: Mapping[str, Any]
     commits: Sequence[MutableMapping[str, Any]]
 
@@ -138,7 +145,6 @@ def _get_committers(
     commits: Sequence[Tuple[Commit, int]],
 ) -> Sequence[AuthorCommits]:
     # extract the unique committers and return their serialized sentry accounts
-    # committers: MutableMapping[str, int] = defaultdict(int)
     committers: MutableMapping[int, int] = defaultdict(int)
 
     limit = 5
@@ -156,21 +162,18 @@ def _get_committers(
     # organize them by this heuristic (first frame is worth 5 points, second is worth 4, etc.)
     # sorted_committers = sorted(committers, key=Mapping.get)
     sorted_committers = sorted(committers, key=lambda x: x)
-    users_by_author = get_users_for_commits([c for c, _ in commits])
+    users_by_author: Mapping[str, Mapping[str, Any]] = get_users_for_commits(
+        [c for c, _ in commits]
+    )
 
-    user_dicts = [
-        # {
-        #     "author": users_by_author.get(str(author_id)),
-        #     "commits": [
-        #         (commit, score) for (commit, score) in commits if commit.author_id == author_id
-        #     ],
-        # }
-        AuthorCommits(
-            users_by_author.get(str(author_id)),
-            [(commit, score) for (commit, score) in commits if commit.author_id == author_id],
-        )
+    user_dicts: Sequence[AuthorCommits] = [
+        {
+            "author": users_by_author.get(str(author_id), {}),
+            "commits": [
+                (commit, score) for (commit, score) in commits if commit.author_id == author_id
+            ],
+        }
         for author_id in sorted_committers
-        if users_by_author.get(str(author_id))
     ]
 
     return user_dicts
@@ -311,7 +314,7 @@ def get_serialized_event_file_committers(
     committers = get_event_file_committers(
         project, event.group_id, event_frames, event.platform, frame_limit=frame_limit
     )
-    commits = [commit for committer in committers for commit in committer.commits]
+    commits = [commit for committer in committers for commit in committer["commits"]]
     serialized_commits: Sequence[MutableMapping[str, JSONData]] = serialize(
         [c for (c, score) in commits], serializer=CommitSerializer(exclude=["author"])
     )
@@ -322,12 +325,13 @@ def get_serialized_event_file_committers(
         serialized_commit["score"] = score
         serialized_commits_by_id[commit.id] = serialized_commit
 
-    serialized_committers = []
+    serialized_committers: List[AuthorCommitsSerialized] = []
     for committer in committers:
-        commit_ids = [commit.id for (commit, _) in committer.commits]
+        commit_ids = [commit.id for (commit, _) in committer["commits"]]
         commits_result = [serialized_commits_by_id[commit_id] for commit_id in commit_ids]
         serialized_committers.append(
-            AuthorCommitsSerialized(committer.author, dedupe_commits(commits_result))
+            {"author": committer["author"], "commits": dedupe_commits(commits_result)}
+            # AuthorCommitsSerialized(committer.author, dedupe_commits(commits_result))
         )
 
     metrics.incr(
