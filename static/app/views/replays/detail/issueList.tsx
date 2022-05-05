@@ -57,8 +57,6 @@ function IssueList(props: Props) {
       issues = await api.requestPromise(`/organizations/${organization.slug}/issues/`, {
         includeAllArgs: true,
         query: {
-          collapse: 'stats',
-          expand: ['owner', 'inbox'],
           project: props.projectId,
           query: `replayId:${props.replayId}`,
         },
