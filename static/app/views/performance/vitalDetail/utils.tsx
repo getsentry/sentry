@@ -1,4 +1,3 @@
-import * as React from 'react';
 import {Location, Query} from 'history';
 
 import MarkLine from 'sentry/components/charts/components/markLine';

@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import {t} from 'sentry/locale';
 import {SelectValue} from 'sentry/types';
 import {TimePeriod, TimeWindow} from 'sentry/views/alerts/incidentRules/types';

@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import {getMeta} from 'sentry/components/events/meta/metaProxy';
 import {KeyValueListData} from 'sentry/types';
 
