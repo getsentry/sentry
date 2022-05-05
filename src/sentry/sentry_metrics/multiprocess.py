@@ -337,7 +337,7 @@ class ProduceStep(ProcessingStep[MessageBatch]):  # type: ignore
         self.__producer.close()
 
 
-def valid_metric_name(name: str) -> bool:
+def valid_metric_name(name: Optional[str]) -> bool:
     if name is None:
         return False
     if len(name) > MAX_NAME_LENGTH:
