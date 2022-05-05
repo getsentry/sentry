@@ -8,9 +8,9 @@ import {t} from 'sentry/locale';
 import {metric} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import useApi from 'sentry/utils/useApi';
-import useLocation from 'sentry/utils/useLocation';
-import useParams from 'sentry/utils/useParams';
-import useRoutes from 'sentry/utils/useRoutes';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useParams} from 'sentry/utils/useParams';
+import {useRoutes} from 'sentry/utils/useRoutes';
 import PermissionDenied from 'sentry/views/permissionDenied';
 import RouteError from 'sentry/views/routeError';
 
@@ -32,10 +32,14 @@ type Result = {
 type Options = {
   endpoints: Array<
     [
-      string,
-      string,
-      {query?: string}?,
-      {allowError?: (_err) => void; disableEntireQuery?: boolean; paginate?: boolean}?
+      key: string,
+      url: string,
+      urlOptions?: {query?: string},
+      requestOptions?: {
+        allowError?: (_err) => void;
+        disableEntireQuery?: boolean;
+        paginate?: boolean;
+      }
     ]
   >;
   /**
@@ -158,9 +162,7 @@ function useAsync({
     }
   }, [measurement]);
 
-  useEffect(() => {
-    remountComponent();
-  }, [location.search, location.state, params]);
+  useEffect(() => void remountComponent(), [location.search, location.state, params]);
 
   useEffect(() => {
     if (endpoints.length && state.remainingRequests === 0 && !state.hasError) {
@@ -184,21 +186,17 @@ function useAsync({
 
   function remountComponent() {
     if (shouldReload) {
-      return async () => {
-        await reloadData();
-      };
+      return reloadData();
     }
     setState({...initialState});
-    return async () => {
-      await fetchData();
-    };
+    return fetchData();
   }
 
   function visibilityReloader() {
     return shouldReloadOnVisible && !state.isLoading && !document.hidden && reloadData();
   }
 
-  async function reloadData() {
+  function reloadData() {
     return fetchData({reloading: true});
   }
 
