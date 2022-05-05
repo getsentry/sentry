@@ -1,4 +1,5 @@
 from collections import defaultdict
+from typing import Any, Mapping
 
 from django.core.cache import cache
 from django.db.models import Sum
@@ -51,7 +52,7 @@ def _user_to_author_cache_key(organization_id, author):
     return f"get_users_for_authors:{organization_id}:{author_hash}"
 
 
-def get_users_for_authors(organization_id, authors, user=None):
+def get_users_for_authors(organization_id, authors, user=None) -> Mapping[str, Mapping[str, Any]]:
     """
     Returns a dictionary of author_id => user, if a Sentry
     user object exists for that email. If there is no matching

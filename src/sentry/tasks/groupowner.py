@@ -54,9 +54,9 @@ def _process_suspect_commits(
                 )
             owner_scores = {}
             for committer in committers:
-                if "id" in committer["author"]:
-                    author_id = committer["author"]["id"]
-                    for commit, score in committer["commits"]:
+                if committer.author and "id" in committer.author:
+                    author_id = committer.author["id"]
+                    for commit, score in committer.commits:
                         if score >= MIN_COMMIT_SCORE:
                             owner_scores[author_id] = max(score, owner_scores.get(author_id, 0))
 

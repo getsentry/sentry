@@ -277,9 +277,9 @@ class GetEventFileCommitters(CommitTestCase):
 
         result = get_serialized_event_file_committers(self.project, event)
         assert len(result) == 1
-        assert "commits" in result[0]
-        assert len(result[0]["commits"]) == 1
-        assert result[0]["commits"][0]["id"] == "a" * 40
+        assert result[0].commits
+        assert len(result[0].commits) == 1
+        assert result[0].commits[0]["id"] == "a" * 40
 
     def test_matching(self):
         event = self.store_event(
@@ -329,9 +329,9 @@ class GetEventFileCommitters(CommitTestCase):
 
         result = get_serialized_event_file_committers(self.project, event)
         assert len(result) == 1
-        assert "commits" in result[0]
-        assert len(result[0]["commits"]) == 1
-        assert result[0]["commits"][0]["id"] == "a" * 40
+        assert result[0].commits
+        assert len(result[0].commits) == 1
+        assert result[0].commits[0]["id"] == "a" * 40
 
     def test_matching_case_insensitive(self):
         event = self.store_event(
@@ -372,9 +372,9 @@ class GetEventFileCommitters(CommitTestCase):
 
         result = get_serialized_event_file_committers(self.project, event)
         assert len(result) == 1
-        assert "commits" in result[0]
-        assert len(result[0]["commits"]) == 1
-        assert result[0]["commits"][0]["id"] == "a" * 40
+        assert result[0].commits
+        assert len(result[0].commits) == 1
+        assert result[0].commits[0]["id"] == "a" * 40
 
     def test_not_matching(self):
         event = self.store_event(
