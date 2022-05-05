@@ -1,4 +1,5 @@
 import datetime
+import math
 import re
 from typing import List
 from unittest import mock
@@ -1415,6 +1416,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             "transaction": indexer.resolve(self.organization.id, "baz_transaction"),
             "project": self.project.slug,
             "p95_transaction_duration": 200,
+            "count_unique_user": 0,
         }
         self.assertCountEqual(
             result["meta"],
@@ -1705,6 +1707,23 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             allow_metric_aggregates=False,
             use_aggregate_conditions=False,
         )
+
+    def test_multiple_dataset_but_no_data(self):
+        """When there's no data from the primary dataset we shouldn't error out"""
+        result = MetricsQueryBuilder(
+            self.params,
+            selected_columns=[
+                "p50()",
+                "count_unique(user)",
+            ],
+            allow_metric_aggregates=False,
+            use_aggregate_conditions=True,
+        ).run_query("test")
+        assert len(result["data"]) == 1
+        data = result["data"][0]
+        assert data["count_unique_user"] == 0
+        # Handled by the discover transform later so its fine that this is nan
+        assert math.isnan(data["p50"])
 
     @mock.patch("sentry.search.events.builder.raw_snql_query")
     @mock.patch("sentry.search.events.builder.indexer.resolve", return_value=-1)

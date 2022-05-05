@@ -96,7 +96,6 @@ class AlertWizard extends Component<Props, State> {
           query: {
             ...(metricRuleTemplate ? metricRuleTemplate : {}),
             project: projectId,
-            createFromV3: true,
             referrer: location?.query?.referrer,
           },
         }

@@ -25,6 +25,7 @@ from snuba_sdk.expressions import Expression, Granularity, Limit, Offset
 from snuba_sdk.query import SelectableExpression
 
 from sentry.models import Environment
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.release_health.base import (
     CrashFreeBreakdown,
@@ -46,6 +47,7 @@ from sentry.release_health.base import (
     ReleasesAdoption,
     ReleaseSessionsTimeBounds,
     SessionCounts,
+    SessionsQueryConfig,
     SessionsQueryResult,
     StatsPeriod,
     UserCounts,
@@ -63,7 +65,7 @@ from sentry.sentry_metrics.utils import (
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.sessions import _make_stats, get_rollup_starts_and_buckets, parse_snuba_datetime
-from sentry.snuba.sessions_v2 import QueryDefinition
+from sentry.snuba.sessions_v2 import AllowedResolution, QueryDefinition
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.snuba import QueryOutsideRetentionError, raw_snql_query
 
@@ -404,6 +406,15 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             rv[project_id, release] = adoption
 
         return rv
+
+    def sessions_query_config(
+        self, organization: Organization, start: datetime
+    ) -> SessionsQueryConfig:
+        return SessionsQueryConfig(
+            allowed_resolution=AllowedResolution.ten_seconds,
+            allow_session_status_query=True,
+            restrict_date_range=False,
+        )
 
     def run_sessions_query(
         self,

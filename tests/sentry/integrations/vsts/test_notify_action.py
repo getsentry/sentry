@@ -53,6 +53,7 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
         debug_data_capture = azuredevops_rule.data  # noqa: F841
         debug_rule_obj = Rule.objects.create(project=self.project, label="test rule")
         azuredevops_rule.rule = debug_rule_obj
+        responses.reset()
         responses.add(
             responses.PATCH,
             "https://fabrikam-fiber-inc.visualstudio.com/0987654321/_apis/wit/workitems/$Microsoft.VSTS.WorkItemTypes.Task",

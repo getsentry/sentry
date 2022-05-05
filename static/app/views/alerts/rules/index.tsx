@@ -40,7 +40,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     const {params, location} = this.props;
     const {query} = location;
 
-    query.expand = ['latestIncident'];
+    query.expand = ['latestIncident', 'lastTriggered'];
     query.team = getTeamParams(query.team);
 
     if (!query.sort) {
@@ -64,7 +64,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     return [...new Set(ruleList?.map(({projects}) => projects).flat())];
   }
 
-  handleChangeFilter = (_sectionId: string, activeFilters: Set<string>) => {
+  handleChangeFilter = (activeFilters: Set<string>) => {
     const {router, location} = this.props;
     const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
     const teams = [...activeFilters];
