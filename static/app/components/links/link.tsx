@@ -50,7 +50,7 @@ function BaseLink({
         new Error('The link component was rendered without being wrapped by a <Router />')
       );
     }
-  }, []);
+  }, [location]);
 
   if (!disabled && location) {
     return <StyledRouterLink to={to} ref={ref as any} {...props} />;
