@@ -78,8 +78,8 @@ function getNextQueue(
 }
 
 function buildProfile(
-  processId: string,
-  threadId: string,
+  processId: number,
+  threadId: number,
   events: ChromeTrace.Event[]
 ): ChromeTraceProfile {
   let processName: string = `pid (${processId})`;
@@ -153,7 +153,8 @@ function buildProfile(
     firstTimestamp,
     lastTimestamp,
     `${processName}: ${threadName}`,
-    'microseconds' // the trace event format provides timestamps in microseconds
+    'microseconds', // the trace event format provides timestamps in microseconds
+    threadId
   );
 
   const stack: ChromeTrace.Event[] = [];
@@ -261,13 +262,16 @@ export function parseChromeTraceArrayFormat(
 
   for (const processId in eventsByProcessAndThreadID) {
     for (const threadId in eventsByProcessAndThreadID[processId]) {
+      const parsedProcessId = parseInt(processId, 10);
+      const parsedThreadId = parseInt(threadId, 10);
+
       wrapWithSpan(
         options?.transaction,
         () =>
           profiles.push(
             buildProfile(
-              processId,
-              threadId,
+              parsedProcessId,
+              parsedThreadId,
               eventsByProcessAndThreadID[processId][threadId] ?? []
             )
           ),

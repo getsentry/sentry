@@ -30,6 +30,7 @@ function FlamegraphSummary() {
         return {
           symbol: call.frame.name,
           image: call.frame.image,
+          thread: '',
           'self weight': call.selfWeight,
           'total weight': call.totalWeight,
         };
@@ -120,7 +121,7 @@ function ProfilingFunctionsTableCell({
   }
 }
 
-type TableColumnKey = 'symbol' | 'image' | 'self weight' | 'total weight';
+type TableColumnKey = 'symbol' | 'image' | 'self weight' | 'total weight' | 'thread';
 type TableDataRow = Record<TableColumnKey, any>;
 
 type TableColumn = GridColumnOrder<TableColumnKey>;
@@ -137,6 +138,11 @@ const COLUMNS: Record<TableColumnKey, TableColumn> = {
   image: {
     key: 'image',
     name: t('Binary'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  thread: {
+    key: 'thread',
+    name: t('Thread'),
     width: COL_WIDTH_UNDEFINED,
   },
   'self weight': {

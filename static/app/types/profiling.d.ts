@@ -5,6 +5,7 @@ declare namespace Profiling {
     name: string;
     unit: string;
     spans?: Span[];
+    threadId: number;
   }
 
   // Android traces follow this format
