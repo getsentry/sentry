@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import Type from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type';
 import {
-  filterCrumbs,
+  onlyUserActions,
   transformCrumbs,
 } from 'sentry/components/events/interfaces/breadcrumbs/utils';
 import {
@@ -16,7 +16,7 @@ import ActionCategory from 'sentry/components/replays/actionCategory';
 import PlayerRelativeTime from 'sentry/components/replays/playerRelativeTime';
 import space from 'sentry/styles/space';
 import {RawCrumb} from 'sentry/types/breadcrumbs';
-import {Event, EventTransaction} from 'sentry/types/event';
+import {Event} from 'sentry/types/event';
 
 type Props = {
   crumbs: RawCrumb[];
@@ -28,21 +28,24 @@ function UserActionsNavigator({event, crumbs}: Props) {
     return null;
   }
 
-  const relativeTime = (event as EventTransaction).startTimestamp;
-  const filteredCrumbs = filterCrumbs(transformCrumbs(crumbs));
+  const {startTimestamp} = event;
+  const userActionCrumbs = onlyUserActions(transformCrumbs(crumbs));
 
   return (
     <Panel>
       <PanelHeader>Event Chapters</PanelHeader>
 
       <PanelBody>
-        {filteredCrumbs.map(item => (
+        {userActionCrumbs.map(item => (
           <PanelItemCenter key={item.id}>
             <Wrapper>
               <Type type={item.type} color={item.color} description={item.description} />
-              <ActionCategory category={item.category} />
+              <ActionCategory category={item} />
             </Wrapper>
-            <PlayerRelativeTime relativeTime={relativeTime} timestamp={item.timestamp} />
+            <PlayerRelativeTime
+              relativeTime={startTimestamp}
+              timestamp={item.timestamp}
+            />
           </PanelItemCenter>
         ))}
       </PanelBody>

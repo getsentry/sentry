@@ -16,11 +16,10 @@ function padZero(num: number, len = 2): string {
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;
 const HOUR = 60 * MINUTE;
-const timeFormat = 'HH:mm:ss';
+const TIME_FORMAT = 'HH:mm:ss';
 
 export default function showPlayerTime(timestamp: string, relativeTime: number): string {
-  const formattedRelativeTime = moment.unix(relativeTime).format();
-  return moment(moment(timestamp).diff(moment(formattedRelativeTime))).format(timeFormat);
+  return moment(moment(timestamp).diff(relativeTime * 1000)).format(TIME_FORMAT);
 }
 
 // TODO: move into 'sentry/utils/formatters'

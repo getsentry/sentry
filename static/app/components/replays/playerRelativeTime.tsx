@@ -4,20 +4,16 @@ import styled from '@emotion/styled';
 import showPlayerTime from './utils';
 
 type Props = {
-  relativeTime: number;
+  relativeTime: number | undefined;
   timestamp: string | undefined;
 };
 
 const PlayerRelativeTime = ({relativeTime, timestamp}: Props) => {
-  if (!timestamp) {
+  if (!timestamp || !relativeTime) {
     return <div />;
   }
 
-  return (
-    <React.Fragment>
-      <Value>{showPlayerTime(timestamp, relativeTime)}</Value>
-    </React.Fragment>
-  );
+  return <Value>{showPlayerTime(timestamp, relativeTime)}</Value>;
 };
 
 const Value = styled('p')`

@@ -1,51 +1,40 @@
-import React, {memo} from 'react';
+import {memo} from 'react';
 import styled from '@emotion/styled';
 
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {BreadcrumbType} from 'sentry/types/breadcrumbs';
-import {defined} from 'sentry/utils';
+import {
+  BreadcrumbType,
+  BreadcrumbTypeHTTP,
+  BreadcrumbTypeNavigation,
+  RawCrumb,
+} from 'sentry/types/breadcrumbs';
+
+import {convertCrumbType} from '../events/interfaces/breadcrumbs/utils';
 
 type Props = {
-  category?: string | null;
-  description?:
-    | Record<string, any>
-    | {from?: string | undefined; to?: string | undefined}
-    | {
-        method?:
-          | 'POST'
-          | 'PUT'
-          | 'GET'
-          | 'HEAD'
-          | 'DELETE'
-          | 'CONNECT'
-          | 'OPTIONS'
-          | 'TRACE'
-          | 'PATCH'
-          | undefined;
-        reason?: string | undefined;
-        status_code?: number | undefined;
-        url?: string | undefined;
-      }
-    | undefined
-    | null;
+  category: RawCrumb;
+  description?: BreadcrumbTypeNavigation | BreadcrumbTypeHTTP;
 };
 
-function getActionCategoryDescription(type: string): string {
-  const [category] = type.split('.');
-  switch (category) {
+function getActionCategoryDescription(crumb: RawCrumb): string {
+  switch (crumb.type) {
     case BreadcrumbType.USER:
     case BreadcrumbType.UI:
       return t('UI Click');
+    case BreadcrumbType.HTTP:
+      return t('Fetch');
+    case BreadcrumbType.NAVIGATION:
+      return t('Navigation');
+    case BreadcrumbType.ERROR:
+      return t('Error');
     default:
-      return category;
+      return '';
   }
 }
 
 const ActionCategory = memo(function Category({category, description}: Props) {
-  const title = !defined(category)
-    ? t('generic')
-    : getActionCategoryDescription(category);
+  const title = getActionCategoryDescription(convertCrumbType(category));
 
   return (
     <Wrapper>
