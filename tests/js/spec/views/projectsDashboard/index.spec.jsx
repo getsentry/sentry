@@ -229,7 +229,11 @@ describe('ProjectsDashboard', function () {
           params={{orgId: org.slug}}
         />
       );
-      userEvent.type(screen.getByRole('textbox'), 'project2', '{enter}');
+      userEvent.type(
+        screen.getByPlaceholderText('Search for projects by name'),
+        'project2',
+        '{enter}'
+      );
       expect(screen.getByText('project2')).toBeInTheDocument();
       await waitFor(() => {
         expect(screen.queryByText('project1')).not.toBeInTheDocument();
