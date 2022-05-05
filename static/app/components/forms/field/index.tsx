@@ -1,11 +1,4 @@
-/**
- * A component to render a Field (i.e. label + help + form "control"),
- * generally inside of a Panel.
- *
- * This is unconnected to any Form state
- */
-
-import * as React from 'react';
+import {Component} from 'react';
 
 import ControlState, {
   ControlStateProps,
@@ -108,7 +101,13 @@ interface ChildRenderProps extends Omit<FieldProps, 'className' | 'disabled'> {
   disabled?: boolean;
 }
 
-class Field extends React.Component<FieldProps> {
+/**
+ * A component to render a Field (i.e. label + help + form "control"),
+ * generally inside of a Panel.
+ *
+ * This is unconnected to any Form state
+ */
+class Field extends Component<FieldProps> {
   static defaultProps = {
     alignRight: false,
     inline: true,
