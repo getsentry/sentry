@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, createContext, createRef} from 'react';
 
 import {
   clamp,
@@ -19,10 +19,10 @@ export type ScrollbarManagerChildrenProps = {
   virtualScrollbarRef: React.RefObject<HTMLDivElement>;
 };
 
-const ScrollbarManagerContext = React.createContext<ScrollbarManagerChildrenProps>({
+const ScrollbarManagerContext = createContext<ScrollbarManagerChildrenProps>({
   generateContentSpanBarRef: () => () => undefined,
-  virtualScrollbarRef: React.createRef<HTMLDivElement>(),
-  scrollBarAreaRef: React.createRef<HTMLDivElement>(),
+  virtualScrollbarRef: createRef<HTMLDivElement>(),
+  scrollBarAreaRef: createRef<HTMLDivElement>(),
   onDragStart: () => {},
   onScroll: () => {},
   updateScrollState: () => {},
@@ -66,7 +66,7 @@ type State = {
   maxContentWidth: number | undefined;
 };
 
-export class Provider extends React.Component<Props, State> {
+export class Provider extends Component<Props, State> {
   state: State = {
     maxContentWidth: undefined,
   };
@@ -102,8 +102,8 @@ export class Provider extends React.Component<Props, State> {
   }
 
   contentSpanBar: Set<HTMLDivElement> = new Set();
-  virtualScrollbar: React.RefObject<HTMLDivElement> = React.createRef<HTMLDivElement>();
-  scrollBarArea: React.RefObject<HTMLDivElement> = React.createRef<HTMLDivElement>();
+  virtualScrollbar: React.RefObject<HTMLDivElement> = createRef<HTMLDivElement>();
+  scrollBarArea: React.RefObject<HTMLDivElement> = createRef<HTMLDivElement>();
   isDragging: boolean = false;
   previousUserSelect: UserSelectValues | null = null;
 
@@ -433,7 +433,7 @@ export const Consumer = ScrollbarManagerContext.Consumer;
 export const withScrollbarManager = <P extends ScrollbarManagerChildrenProps>(
   WrappedComponent: React.ComponentType<P>
 ) =>
-  class extends React.Component<
+  class extends Component<
     Omit<P, keyof ScrollbarManagerChildrenProps> & Partial<ScrollbarManagerChildrenProps>
   > {
     static displayName = `withScrollbarManager(${getDisplayName(WrappedComponent)})`;

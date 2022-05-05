@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, createRef} from 'react';
 import styled from '@emotion/styled';
 
 import {IconEdit} from 'sentry/icons';
@@ -40,7 +40,7 @@ type State = {
  * TODO(leedongwei): Add to storybook
  * TODO(leedongwei): Add some tests
  */
-class InputInline extends React.Component<Props, State> {
+class InputInline extends Component<Props, State> {
   /**
    * HACK(leedongwei): ContentEditable does not have the property `value`. We
    * coerce its `innerText` to `value` so it will have similar behaviour as a
@@ -70,7 +70,7 @@ class InputInline extends React.Component<Props, State> {
   }
 
   onFocusSelectAllTimeout: number | undefined = undefined;
-  private refInput = React.createRef<HTMLDivElement>();
+  private refInput = createRef<HTMLDivElement>();
 
   /**
    * Used by the parent to blur/focus on the Input

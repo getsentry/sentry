@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, isValidElement} from 'react';
 import styled from '@emotion/styled';
 import isArray from 'lodash/isArray';
 import isNumber from 'lodash/isNumber';
@@ -33,7 +33,7 @@ function getValueWithAnnotatedText(v: Value, meta?: Meta) {
   return <AnnotatedText value={v} meta={meta} />;
 }
 
-class ContextData extends React.Component<Props, State> {
+class ContextData extends Component<Props, State> {
   static defaultProps = {
     data: null,
     withAnnotatedText: false,
@@ -119,7 +119,7 @@ class ContextData extends React.Component<Props, State> {
         );
       }
 
-      if (React.isValidElement(value)) {
+      if (isValidElement(value)) {
         return value;
       }
 

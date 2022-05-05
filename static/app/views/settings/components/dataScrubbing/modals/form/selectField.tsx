@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, createRef} from 'react';
 import {components, OptionProps} from 'react-select';
 import styled from '@emotion/styled';
 
@@ -10,7 +10,7 @@ type Props = Pick<
   'value' | 'placeholder' | 'name' | 'onChange' | 'options'
 >;
 
-class SelectField extends React.Component<Props> {
+class SelectField extends Component<Props> {
   componentDidMount() {
     if (!this.selectRef.current) {
       return;
@@ -22,7 +22,7 @@ class SelectField extends React.Component<Props> {
   }
 
   // TODO(ts) The generics in react-select make getting a good type here hard.
-  selectRef = React.createRef<any>();
+  selectRef = createRef<any>();
 
   render() {
     return (

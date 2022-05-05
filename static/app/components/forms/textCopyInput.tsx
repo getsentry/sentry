@@ -1,5 +1,4 @@
-import {Component} from 'react';
-import * as React from 'react';
+import {Component, createRef} from 'react';
 import {findDOMNode} from 'react-dom';
 import styled from '@emotion/styled';
 
@@ -53,7 +52,7 @@ type Props = {
 };
 
 class TextCopyInput extends Component<Props> {
-  textRef = React.createRef<HTMLInputElement>();
+  textRef = createRef<HTMLInputElement>();
 
   // Select text when copy button is clicked
   handleCopyClick = (e: React.MouseEvent) => {

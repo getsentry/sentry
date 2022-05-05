@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, createRef, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import InputField from 'sentry/components/forms/inputField';
@@ -34,7 +34,7 @@ type State = {
   suggestions: Array<SourceSuggestion>;
 };
 
-class SourceField extends React.Component<Props, State> {
+class SourceField extends Component<Props, State> {
   state: State = {
     suggestions: [],
     fieldValues: [],
@@ -63,8 +63,8 @@ class SourceField extends React.Component<Props, State> {
     }
   }
 
-  selectorField = React.createRef<HTMLDivElement>();
-  suggestionList = React.createRef<HTMLUListElement>();
+  selectorField = createRef<HTMLDivElement>();
+  suggestionList = createRef<HTMLUListElement>();
 
   getAllSuggestions() {
     return [...this.getValueSuggestions(), ...unarySuggestions, ...binarySuggestions];
@@ -404,7 +404,7 @@ class SourceField extends React.Component<Props, State> {
           showHelpInTooltip
         />
         {showSuggestions && suggestions.length > 0 && (
-          <React.Fragment>
+          <Fragment>
             <Suggestions
               ref={this.suggestionList}
               error={error}
@@ -433,7 +433,7 @@ class SourceField extends React.Component<Props, State> {
               ))}
             </Suggestions>
             <SuggestionsOverlay onClick={this.handleClickOutside} />
-          </React.Fragment>
+          </Fragment>
         )}
       </Wrapper>
     );

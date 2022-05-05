@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
@@ -55,7 +55,7 @@ type Props = {
   hideControl?: boolean;
 };
 
-class TriggerFormItem extends React.PureComponent<Props> {
+class TriggerFormItem extends PureComponent<Props> {
   /**
    * Handler for threshold changes coming from slider or chart.
    * Needs to sync state with the form.
@@ -138,7 +138,7 @@ type TriggerFormContainerProps = Omit<
   errors?: Map<number, {[fieldName: string]: string}>;
 };
 
-class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
+class TriggerFormContainer extends Component<TriggerFormContainerProps> {
   componentDidMount() {
     const {api, organization} = this.props;
 
@@ -244,7 +244,7 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
     const thresholdUnits = this.getThresholdUnits(aggregate, comparisonType);
 
     return (
-      <React.Fragment>
+      <Fragment>
         {triggers.map((trigger, index) => {
           const isCritical = index === 0;
           // eslint-disable-next-line no-use-before-define
@@ -337,7 +337,7 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
           onThresholdTypeChange={onThresholdTypeChange}
           onThresholdPeriodChange={onThresholdPeriodChange}
         />
-      </React.Fragment>
+      </Fragment>
     );
   }
 }
