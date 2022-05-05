@@ -1,4 +1,3 @@
-import * as React from 'react';
 import styled from '@emotion/styled';
 
 import {getMeta} from 'sentry/components/events/meta/metaProxy';

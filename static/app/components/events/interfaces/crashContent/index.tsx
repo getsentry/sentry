@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import {ExceptionType, ExceptionValue, PlatformType} from 'sentry/types';
 
 import Exception from './exception';

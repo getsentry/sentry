@@ -1,4 +1,3 @@
-import * as React from 'react';
 import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 

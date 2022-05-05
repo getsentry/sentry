@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
 import Tooltip from 'sentry/components/tooltip';

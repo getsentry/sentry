@@ -1,4 +1,3 @@
-import * as React from 'react';
 import round from 'lodash/round';
 
 import AsyncComponent from 'sentry/components/asyncComponent';

@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import GroupActions from 'sentry/actions/groupActions';
 import PluginComponentBase from 'sentry/components/bases/pluginComponentBase';
 import {Form, FormState} from 'sentry/components/deprecatedforms';

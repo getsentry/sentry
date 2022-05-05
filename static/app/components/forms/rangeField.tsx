@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
 import InputField, {InputFieldProps, onEvent} from 'sentry/components/forms/inputField';
 

@@ -1,4 +1,3 @@
-import * as React from 'react';
 import isNil from 'lodash/isNil';
 
 import CrashContent from 'sentry/components/events/interfaces/crashContent';

@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import {t} from 'sentry/locale';
 import {Event} from 'sentry/types/event';
 

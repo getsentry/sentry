@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import TeamStore from 'sentry/stores/teamStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 

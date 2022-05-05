@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import Feature from 'sentry/components/acl/feature';
 
 import SimilarStackTrace from './similarStackTrace';

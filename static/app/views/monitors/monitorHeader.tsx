@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 

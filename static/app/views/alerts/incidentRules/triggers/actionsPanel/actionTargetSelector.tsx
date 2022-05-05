@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import Input from 'sentry/components/forms/controls/input';
 import SelectControl from 'sentry/components/forms/selectControl';
 import TeamSelector from 'sentry/components/forms/teamSelector';

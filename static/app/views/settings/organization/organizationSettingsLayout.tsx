@@ -1,4 +1,3 @@
-import * as React from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import SettingsLayout from 'sentry/views/settings/components/settingsLayout';

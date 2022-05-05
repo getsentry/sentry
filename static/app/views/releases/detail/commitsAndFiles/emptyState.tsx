@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {Panel, PanelBody} from 'sentry/components/panels';
 

@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import {MetaType} from 'sentry/utils/discover/eventView';
 import GenericDiscoverQuery, {
   DiscoverQueryProps,

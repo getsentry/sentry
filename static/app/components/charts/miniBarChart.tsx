@@ -1,7 +1,6 @@
 // Import to ensure echarts components are loaded.
 import './components/markPoint';
 
-import * as React from 'react';
 import {useTheme} from '@emotion/react';
 import set from 'lodash/set';
 

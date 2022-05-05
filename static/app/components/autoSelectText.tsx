@@ -1,5 +1,4 @@
 import {forwardRef, useImperativeHandle, useRef} from 'react';
-import * as React from 'react';
 import classNames from 'classnames';
 
 import {selectText} from 'sentry/utils/selectText';

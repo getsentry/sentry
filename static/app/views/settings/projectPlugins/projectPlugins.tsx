@@ -1,5 +1,4 @@
 import {Component} from 'react';
-import * as React from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import Access from 'sentry/components/acl/access';

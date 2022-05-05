@@ -1,4 +1,3 @@
-import * as React from 'react';
 import styled from '@emotion/styled';
 
 import LoadingMask, {LoadingMaskProps} from 'sentry/components/loadingMask';
