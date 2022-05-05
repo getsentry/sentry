@@ -149,7 +149,8 @@ class AuthSAML2Test(AuthProviderTestCase):
         event = AuditLogEntry.objects.get(
             target_object=org.id, event=audit_log.get_event_id("ORG_EDIT"), actor=self.user
         )
-        assert "require_2fa to False when enabling SSO" in event.get_note()
+        audit_log_event = audit_log.get(event.event)
+        assert "require_2fa to False when enabling SSO" in audit_log_event.render(event)
         auth_log.info.assert_called_once_with(
             "Require 2fa disabled during sso setup", extra={"organization_id": self.org.id}
         )

@@ -103,6 +103,7 @@ class CreateAuditEntryTest(TestCase):
             event=audit_log.get_event_id("ORG_RESTORE"),
             data=self.org.get_audit_log_data(),
         )
+        audit_log_event = audit_log.get(entry.event)
 
         entry2 = create_audit_entry(
             request=self.req,
@@ -111,6 +112,7 @@ class CreateAuditEntryTest(TestCase):
             event=audit_log.get_event_id("ORG_EDIT"),
             data=self.org.get_audit_log_data(),
         )
+        audit_log_event2 = audit_log.get(entry2.event)
 
         for i in orgs:
             if (
@@ -118,13 +120,13 @@ class CreateAuditEntryTest(TestCase):
                 or i.status == OrganizationStatus.DELETION_IN_PROGRESS
             ):
                 assert i.status != OrganizationStatus.VISIBLE
-                assert ("restored") in entry.get_note()
+                assert ("restored") in audit_log_event.render(entry)
                 assert entry.actor == self.user
                 assert entry.target_object == self.org.id
                 assert entry.event == audit_log.get_event_id("ORG_RESTORE")
             else:
                 assert i.status == OrganizationStatus.VISIBLE
-                assert ("edited") in entry2.get_note()
+                assert ("edited") in audit_log_event2.render(entry2)
                 assert entry2.actor == self.user
                 assert entry2.target_object == self.org.id
                 assert entry2.event == audit_log.get_event_id("ORG_EDIT")
@@ -170,11 +172,12 @@ class CreateAuditEntryTest(TestCase):
             event=audit_log.get_event_id("PROJECT_EDIT"),
             data={"old_slug": "old", "new_slug": "new"},
         )
+        audit_log_event = audit_log.get(entry.event)
 
         assert entry.actor == self.user
         assert entry.target_object == self.project.id
         assert entry.event == audit_log.get_event_id("PROJECT_EDIT")
-        assert entry.get_note() == "renamed project slug from old to new"
+        assert audit_log_event.render(entry) == "renamed project slug from old to new"
 
     def test_audit_entry_project_edit_log_regression(self):
         entry = create_audit_entry(
@@ -184,11 +187,12 @@ class CreateAuditEntryTest(TestCase):
             event=audit_log.get_event_id("PROJECT_EDIT"),
             data={"new_slug": "new"},
         )
+        audit_log_event = audit_log.get(entry.event)
 
         assert entry.actor == self.user
         assert entry.target_object == self.project.id
         assert entry.event == audit_log.get_event_id("PROJECT_EDIT")
-        assert entry.get_note() == "edited project settings in new_slug to new"
+        assert audit_log_event.render(entry) == "edited project settings in new_slug to new"
 
     def test_audit_entry_integration_log(self):
         project = self.create_project()
@@ -201,8 +205,9 @@ class CreateAuditEntryTest(TestCase):
             event=audit_log.get_event_id("INTEGRATION_ADD"),
             data={"integration": "webhooks", "project": project.slug},
         )
+        audit_log_event = audit_log.get(entry.event)
 
-        assert ("enabled") in entry.get_note()
+        assert ("enabled") in audit_log_event.render(entry)
         assert entry.actor == self.user
         assert entry.target_object == self.project.id
         assert entry.event == audit_log.get_event_id("INTEGRATION_ADD")
@@ -214,8 +219,9 @@ class CreateAuditEntryTest(TestCase):
             event=audit_log.get_event_id("INTEGRATION_EDIT"),
             data={"integration": "webhooks", "project": project.slug},
         )
+        audit_log_event2 = audit_log.get(entry2.event)
 
-        assert ("edited") in entry2.get_note()
+        assert ("edited") in audit_log_event2.render(entry2)
         assert entry2.actor == self.user
         assert entry2.target_object == self.project.id
         assert entry2.event == audit_log.get_event_id("INTEGRATION_EDIT")
@@ -227,8 +233,9 @@ class CreateAuditEntryTest(TestCase):
             event=audit_log.get_event_id("INTEGRATION_REMOVE"),
             data={"integration": "webhooks", "project": project.slug},
         )
+        audit_log_event3 = audit_log.get(entry3.event)
 
-        assert ("disable") in entry3.get_note()
+        assert ("disable") in audit_log_event3.render(entry3)
         assert entry3.actor == self.user
         assert entry3.target_object == self.project.id
         assert entry3.event == audit_log.get_event_id("INTEGRATION_REMOVE")

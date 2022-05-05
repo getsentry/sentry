@@ -129,7 +129,8 @@ class SlackIntegrationTest(IntegrationTestCase):
         assert identity.status == IdentityStatus.VALID
 
         audit_entry = AuditLogEntry.objects.get(event=audit_log.get_event_id("INTEGRATION_ADD"))
-        assert audit_entry.get_note() == "installed Example for the slack integration"
+        audit_log_event = audit_log.get(audit_entry.event)
+        assert audit_log_event.render(audit_entry) == "installed Example for the slack integration"
 
     @responses.activate
     def test_multiple_integrations(self):
