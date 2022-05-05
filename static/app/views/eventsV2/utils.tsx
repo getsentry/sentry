@@ -558,7 +558,7 @@ export function setRenderPrebuilt(value: boolean) {
   localStorage.setItem(RENDER_PREBUILT_KEY, value ? 'true' : 'false');
 }
 
-function eventViewToWidgetQuery({
+export function eventViewToWidgetQuery({
   eventView,
   yAxis,
   displayType,
@@ -571,16 +571,23 @@ function eventViewToWidgetQuery({
   const {columns, aggregates} = getColumnsAndAggregates(fields);
   const sort = eventView.sorts[0];
   const queryYAxis = typeof yAxis === 'string' ? [yAxis] : yAxis ?? ['count()'];
-
   let orderby = '';
   // The orderby should only be set to sort.field if it is a Top N query
   // since the query uses all of the fields, or if the ordering is used in the y-axis
-  if (
-    sort &&
-    (displayType === DisplayType.TOP_N ||
-      new Set(queryYAxis.map(getAggregateAlias)).has(sort.field))
-  ) {
-    orderby = `${sort.kind === 'desc' ? '-' : ''}${sort.field}`;
+  if (sort) {
+    let orderbyFunction = '';
+    const aggregateFields = [...queryYAxis, ...aggregates];
+    for (let i = 0; i < aggregateFields.length; i++) {
+      if (sort.field === getAggregateAlias(aggregateFields[i])) {
+        orderbyFunction = aggregateFields[i];
+        break;
+      }
+    }
+
+    const bareOrderby = orderbyFunction === '' ? sort.field : orderbyFunction;
+    if (displayType === DisplayType.TOP_N || bareOrderby) {
+      orderby = `${sort.kind === 'desc' ? '-' : ''}${bareOrderby}`;
+    }
   }
   const widgetQuery: WidgetQuery = {
     name: '',

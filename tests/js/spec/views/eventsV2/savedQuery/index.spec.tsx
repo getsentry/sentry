@@ -653,7 +653,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
             aggregates: ['count()'],
             columns: [],
             name: '',
-            orderby: '-count',
+            orderby: '-count()',
           },
           displayType: 'line',
         })
@@ -680,7 +680,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
             aggregates: ['count()', 'failure_count()'],
             columns: [],
             name: '',
-            orderby: '-count',
+            orderby: '-count()',
           },
           displayType: 'line',
         })
@@ -711,7 +711,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
             ],
             columns: [],
             name: '',
-            orderby: '-count',
+            orderby: '-count()',
           },
           displayType: 'line',
         })
