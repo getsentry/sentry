@@ -1,6 +1,6 @@
 import {useRef} from 'react';
-import {useHotkeys} from 'react-hotkeys-hook';
 import styled from '@emotion/styled';
+import useHotkeys from '@reecelucas/react-use-hotkeys';
 
 import {Search} from 'sentry/components/search';
 import {IconSearch} from 'sentry/icons';

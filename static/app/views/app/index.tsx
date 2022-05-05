@@ -1,6 +1,6 @@
 import {lazy, Profiler, Suspense, useEffect, useRef} from 'react';
-import {useHotkeys} from 'react-hotkeys-hook';
 import styled from '@emotion/styled';
+import useHotkeys from '@reecelucas/react-use-hotkeys';
 
 import {
   displayDeployPreviewAlert,
@@ -38,20 +38,16 @@ function App({children}: Props) {
   const config = useLegacyStore(ConfigStore);
 
   // Command palette global-shortcut
-  useHotkeys('command+shift+p, command+k, ctrl+shift+p, ctrl+k', e => {
+  useHotkeys(['Command+Shift+p', 'Command+k', 'Ctrl+Shift+p', 'Ctrl+k'], e => {
     openCommandPalette();
     e.preventDefault();
   });
 
   // Theme toggle global shortcut
-  useHotkeys(
-    'command+shift+l, ctrl+shift+l',
-    e => {
-      ConfigStore.set('theme', config.theme === 'light' ? 'dark' : 'light');
-      e.preventDefault();
-    },
-    [config.theme]
-  );
+  useHotkeys(['Command+Shift+l, Ctrl+Shift+l'], e => {
+    ConfigStore.set('theme', config.theme === 'light' ? 'dark' : 'light');
+    e.preventDefault();
+  });
 
   /**
    * Loads the users organization list into the OrganizationsStore

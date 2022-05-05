@@ -2839,6 +2839,13 @@
     "@react-types/overlays" "^3.5.1"
     "@react-types/shared" "^3.8.0"
 
+"@reecelucas/react-use-hotkeys@^1.3.1":
+  version "1.3.1"
+  resolved "https://registry.yarnpkg.com/@reecelucas/react-use-hotkeys/-/react-use-hotkeys-1.3.1.tgz#d402853806a6c7880c336f669b40f214a998451f"
+  integrity sha512-TdWJepdTxKuNKfycJK4/6iHjl8PolIZcwtohkXUa3EGvFOAedQJWEKZRGWGSgaSBLHeH6f6JdxuWeyR+wIxA0g==
+  dependencies:
+    shim-keyboard-event-key "^1.0.3"
+
 "@sentry-internal/global-search@^0.0.43":
   version "0.0.43"
   resolved "https://registry.yarnpkg.com/@sentry-internal/global-search/-/global-search-0.0.43.tgz#d390a8f78ea302e588e98e23cc5daf20f88254af"
@@ -9069,11 +9076,6 @@ hosted-git-info@^4.0.1:
   dependencies:
     lru-cache "^6.0.0"
 
-hotkeys-js@3.8.7:
-  version "3.8.7"
-  resolved "https://registry.yarnpkg.com/hotkeys-js/-/hotkeys-js-3.8.7.tgz#c16cab978b53d7242f860ca3932e976b92399981"
-  integrity sha512-ckAx3EkUr5XjDwjEHDorHxRO2Kb7z6Z2Sxul4MbBkN8Nho7XDslQsgMJT+CiJ5Z4TgRxxvKHEpuLE3imzqy4Lg==
-
 hpack.js@^2.1.6:
   version "2.1.6"
   resolved "https://registry.yarnpkg.com/hpack.js/-/hpack.js-2.1.6.tgz#87774c0949e513f42e84575b3c45681fade2a0b2"
@@ -13104,13 +13106,6 @@ react-helmet-async@^1.0.7:
     react-fast-compare "^3.2.0"
     shallowequal "^1.1.0"
 
-react-hotkeys-hook@^3.4.3:
-  version "3.4.3"
-  resolved "https://registry.yarnpkg.com/react-hotkeys-hook/-/react-hotkeys-hook-3.4.3.tgz#74da79c2a5106f8d203f543794833c1af39030ac"
-  integrity sha512-rb8wjXItbZ0ItX1lHKd1lVfqoiGhzrnNo+rtqNoTkxMdyUcxI3RIdP8wmAHoK9Z/0F+aHo2yWAeKgv3pUvmGpw==
-  dependencies:
-    hotkeys-js "3.8.7"
-
 react-input-autosize@^2.2.2:
   version "2.2.2"
   resolved "https://registry.yarnpkg.com/react-input-autosize/-/react-input-autosize-2.2.2.tgz#fcaa7020568ec206bc04be36f4eb68e647c4d8c2"
@@ -14069,6 +14064,11 @@ shell-quote@1.7.2:
   version "1.7.2"
   resolved "https://registry.yarnpkg.com/shell-quote/-/shell-quote-1.7.2.tgz#67a7d02c76c9da24f99d20808fcaded0e0e04be2"
   integrity sha512-mRz/m/JVscCrkMyPqHc/bczi3OQHkLTqXHEFu0zDhK/qfv3UcOA4SVmRCLmos4bhjr9ekVQubj/R7waKapmiQg==
+
+shim-keyboard-event-key@^1.0.3:
+  version "1.0.3"
+  resolved "https://registry.yarnpkg.com/shim-keyboard-event-key/-/shim-keyboard-event-key-1.0.3.tgz#9a9441d6b7d1fb25819d86182caf554e821a515c"
+  integrity sha512-PTNRkOxDlZ2+Xz4CbKJJsh/pe1DJdaC+b4HHV02A1aEWNmwh1g9am0ZiU/ktu3uVfQrY3yDHTOVhst3xpLhw2A==
 
 side-channel@^1.0.4:
   version "1.0.4"
