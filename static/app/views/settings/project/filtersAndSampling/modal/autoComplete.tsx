@@ -21,12 +21,16 @@ type Tag = {
 
 type Props = {
   category:
-    | DynamicSamplingInnerName.TRACE_ENVIRONMENT
     | DynamicSamplingInnerName.EVENT_ENVIRONMENT
     | DynamicSamplingInnerName.EVENT_RELEASE
+    | DynamicSamplingInnerName.EVENT_TRANSACTION
+    | DynamicSamplingInnerName.EVENT_OS_NAME
+    | DynamicSamplingInnerName.EVENT_OS_VERSION
+    | DynamicSamplingInnerName.EVENT_DEVICE_FAMILY
+    | DynamicSamplingInnerName.EVENT_DEVICE_NAME
+    | DynamicSamplingInnerName.TRACE_ENVIRONMENT
     | DynamicSamplingInnerName.TRACE_RELEASE
-    | DynamicSamplingInnerName.TRACE_TRANSACTION
-    | DynamicSamplingInnerName.EVENT_TRANSACTION;
+    | DynamicSamplingInnerName.TRACE_TRANSACTION;
   onChange: (value: string) => void;
   orgSlug: Organization['slug'];
   projectId: Project['id'];
@@ -52,6 +56,14 @@ function AutoComplete({orgSlug, projectId, category, onChange, value}: Props) {
       case DynamicSamplingInnerName.TRACE_TRANSACTION:
       case DynamicSamplingInnerName.EVENT_TRANSACTION:
         return 'transaction';
+      case DynamicSamplingInnerName.EVENT_OS_NAME:
+        return 'os.name';
+      case DynamicSamplingInnerName.EVENT_OS_VERSION:
+        return 'os.version';
+      case DynamicSamplingInnerName.EVENT_DEVICE_FAMILY:
+        return 'device.family';
+      case DynamicSamplingInnerName.EVENT_DEVICE_NAME:
+        return 'device.name';
       default:
         Sentry.captureException(
           new Error('Unknown dynamic sampling condition inner name')
@@ -71,6 +83,14 @@ function AutoComplete({orgSlug, projectId, category, onChange, value}: Props) {
       case DynamicSamplingInnerName.TRACE_TRANSACTION:
       case DynamicSamplingInnerName.EVENT_TRANSACTION:
         return t('Search or add a transaction');
+      case DynamicSamplingInnerName.EVENT_OS_NAME:
+        return t('Search or add an os name');
+      case DynamicSamplingInnerName.EVENT_OS_VERSION:
+        return t('Search or add an os version');
+      case DynamicSamplingInnerName.EVENT_DEVICE_FAMILY:
+        return t('Search or add a device family');
+      case DynamicSamplingInnerName.EVENT_DEVICE_NAME:
+        return t('Search or add a device name');
       default:
         Sentry.captureException(
           new Error('Unknown dynamic sampling condition inner name')

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -20,7 +20,7 @@ type State = {
   collapsed: boolean;
 };
 
-class GroupingComponentFrames extends React.Component<Props, State> {
+class GroupingComponentFrames extends Component<Props, State> {
   static defaultProps: DefaultProps = {
     maxVisibleItems: 2,
   };
@@ -35,7 +35,7 @@ class GroupingComponentFrames extends React.Component<Props, State> {
     const isCollapsible = items.length > maxVisibleItems;
 
     return (
-      <React.Fragment>
+      <Fragment>
         {items.map((item, index) => {
           if (!collapsed || index < maxVisibleItems) {
             return (
@@ -79,7 +79,7 @@ class GroupingComponentFrames extends React.Component<Props, State> {
             </ToggleCollapse>
           </GroupingComponentListItem>
         )}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

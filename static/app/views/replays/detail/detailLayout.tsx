@@ -12,16 +12,15 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {RawCrumb} from 'sentry/types/breadcrumbs';
 import {Event} from 'sentry/types/event';
 import getUrlPathname from 'sentry/utils/getUrlPathname';
 
 type Props = {
   children: React.ReactNode;
-  event: Event | undefined;
   orgId: string;
   crumbs?: RawCrumb[];
+  event?: Event;
 };
 
 function DetailLayout({children, event, orgId, crumbs}: Props) {
@@ -31,7 +30,7 @@ function DetailLayout({children, event, orgId, crumbs}: Props) {
     <SentryDocumentTitle title={title}>
       <React.Fragment>
         <Layout.Header>
-          <HeaderContent>
+          <Layout.HeaderContent>
             <Breadcrumbs
               crumbs={[
                 {
@@ -48,17 +47,21 @@ function DetailLayout({children, event, orgId, crumbs}: Props) {
                 },
               ]}
             />
-            <ButtonWrapper>
-              <Button
-                title={t('Send us feedback via email')}
-                href="mailto:replay-feedback@sentry.io?subject=Replay Details Feedback"
-              >
-                {t('Give Feedback')}
-              </Button>
-            </ButtonWrapper>
+          </Layout.HeaderContent>
+          <ButtonWrapper>
+            <Button
+              title={t('Send us feedback via email')}
+              href="mailto:replay-feedback@sentry.io?subject=Replay Details Feedback"
+            >
+              {t('Give Feedback')}
+            </Button>
+          </ButtonWrapper>
+          <Layout.HeaderContent>
             <EventHeader event={event} />
+          </Layout.HeaderContent>
+          <Layout.HeaderActions>
             <EventMetaData event={event} crumbs={crumbs} />
-          </HeaderContent>
+          </Layout.HeaderActions>
         </Layout.Header>
         {children}
       </React.Fragment>
@@ -124,15 +127,9 @@ function msToSec(ms: number) {
   return ms / 1000;
 }
 
-const HeaderContent = styled(Layout.HeaderContent)`
-  display: grid;
-  grid-template-rows: auto auto;
-  grid-template-columns: 2fr 1fr;
-  gap: ${space(1)};
-`;
-
-const ButtonWrapper = styled('div')`
-  text-align: right;
+// TODO(replay); This could make a lot of sense to put inside HeaderActions by default
+const ButtonWrapper = styled(Layout.HeaderActions)`
+  align-items: end;
 `;
 
 export default DetailLayout;

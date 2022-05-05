@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {createPortal} from 'react-dom';
 import {Manager, Popper, PopperProps, Reference} from 'react-popper';
 import styled from '@emotion/styled';
@@ -287,7 +287,7 @@ type State = {
   isOpen: boolean;
 };
 
-class CellAction extends React.Component<Props, State> {
+class CellAction extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
     let portal = document.getElementById('cell-action-portal');
