@@ -6,7 +6,6 @@ import keyBy from 'lodash/keyBy';
 import pickBy from 'lodash/pickBy';
 
 import {Client} from 'sentry/api';
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import ExternalIssueList from 'sentry/components/group/externalIssuesList';
@@ -210,13 +209,7 @@ class BaseGroupSidebar extends Component<Props, State> {
 
         {this.renderPluginIssue()}
 
-        <SidebarSection
-          title={
-            <GuideAnchor target="tags" position="bottom">
-              {t('Tags')}
-            </GuideAnchor>
-          }
-        >
+        <SidebarSection title={t('Tags')}>
           {!tagsWithTopValues ? (
             <TagPlaceholders>
               <Placeholder height="40px" />

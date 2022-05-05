@@ -547,29 +547,23 @@ class ReleasesList extends AsyncView<Props, State> {
                 position="bottom"
                 disabled={!hasReleasesSetup}
               >
-                <GuideAnchor
-                  target="release_stages"
-                  position="bottom"
-                  disabled={!showReleaseAdoptionStages}
-                >
-                  <StyledSmartSearchBar
-                    searchSource="releases"
-                    query={this.getQuery()}
-                    placeholder={t('Search by version, build, package, or stage')}
-                    maxSearchItems={5}
-                    hasRecentSearches={false}
-                    supportedTags={{
-                      ...SEMVER_TAGS,
-                      release: {
-                        key: 'release',
-                        name: 'release',
-                      },
-                    }}
-                    supportedTagType={ItemType.PROPERTY}
-                    onSearch={this.handleSearch}
-                    onGetTagValues={this.getTagValues}
-                  />
-                </GuideAnchor>
+                <StyledSmartSearchBar
+                  searchSource="releases"
+                  query={this.getQuery()}
+                  placeholder={t('Search by version, build, package, or stage')}
+                  maxSearchItems={5}
+                  hasRecentSearches={false}
+                  supportedTags={{
+                    ...SEMVER_TAGS,
+                    release: {
+                      key: 'release',
+                      name: 'release',
+                    },
+                  }}
+                  supportedTagType={ItemType.PROPERTY}
+                  onSearch={this.handleSearch}
+                  onGetTagValues={this.getTagValues}
+                />
               </GuideAnchor>
               <ReleasesStatusOptions
                 selected={activeStatus}
