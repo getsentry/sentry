@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import {Location, LocationDescriptorObject} from 'history';
 
@@ -75,7 +75,7 @@ type State = {
   transactionThresholdMetric: TransactionThresholdMetric | undefined;
   widths: number[];
 };
-class _Table extends React.Component<Props, State> {
+class _Table extends Component<Props, State> {
   state: State = {
     widths: [],
     transaction: undefined,
@@ -410,7 +410,7 @@ class _Table extends React.Component<Props, State> {
               queryExtras={getMEPQueryParams(value)}
             >
               {({pageLinks, isLoading, tableData}) => (
-                <React.Fragment>
+                <Fragment>
                   <GridEditable
                     isLoading={isLoading}
                     data={tableData ? tableData.data : []}
@@ -428,7 +428,7 @@ class _Table extends React.Component<Props, State> {
                     location={location}
                   />
                   <Pagination pageLinks={pageLinks} />
-                </React.Fragment>
+                </Fragment>
               )}
             </DiscoverQuery>
           )}

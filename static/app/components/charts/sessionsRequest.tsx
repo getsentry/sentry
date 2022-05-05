@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import isEqual from 'lodash/isEqual';
 import omitBy from 'lodash/omitBy';
 
@@ -42,7 +42,7 @@ type State = {
   response: SessionApiResponse | null;
 };
 
-class SessionsRequest extends React.Component<Props, State> {
+class SessionsRequest extends Component<Props, State> {
   state: State = {
     reloading: false,
     errored: false,

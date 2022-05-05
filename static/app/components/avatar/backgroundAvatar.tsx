@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
 import {imageStyle} from 'sentry/components/avatar/styles';
@@ -31,6 +31,6 @@ BackgroundAvatar.defaultProps = {
   suggested: true,
 };
 
-export default React.forwardRef<SVGSVGElement, Props>((props, ref) => (
+export default forwardRef<SVGSVGElement, Props>((props, ref) => (
   <BackgroundAvatar forwardedRef={ref} {...props} />
 ));

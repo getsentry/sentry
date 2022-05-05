@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import SelectControl from 'sentry/components/forms/selectControl';
@@ -26,7 +26,7 @@ type Props = {
   teamValue: string | number;
 };
 
-class MemberTeamFields extends React.Component<Props> {
+class MemberTeamFields extends Component<Props> {
   handleChange = (attribute: 'targetType' | 'targetIdentifier', newValue: string) => {
     const {onChange, ruleData} = this.props;
     if (newValue === ruleData[attribute]) {
