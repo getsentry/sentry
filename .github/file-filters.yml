@@ -24,7 +24,7 @@ frontend: &frontend
   - 'docs-ui/**'
   - 'static/**'
   - 'tests/js/**'
-  # - '.github/workflows/frontend.yml'
+  - '.github/workflows/frontend.yml'
 
 frontend_modified_lintable:
   - added|modified: *frontend_lintable
@@ -43,8 +43,8 @@ backend_dependencies: &backend_dependencies
 backend_build_changes: &backend_build_changes
   - 'Makefile'
   - '.pre-commit-config.yaml'
+  - '.github/workflows/!(frontend)'
   - '.github/actions/setup-sentry/action.yml'
-  # - '.github/workflows/!(frontend)'
 
 backend: &backend
   - *backend_build_changes
