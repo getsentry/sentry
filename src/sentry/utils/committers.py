@@ -25,7 +25,6 @@ from sentry.models import Commit, CommitFileChange, Group, Project, Release, Rel
 from sentry.utils import metrics
 from sentry.utils.compat import zip
 from sentry.utils.hashlib import hash_values
-from sentry.utils.json import JSONData
 from sentry.utils.safe import PathSearchable, get_path
 
 PATH_SEPARATORS = frozenset(["/", "\\"])
@@ -160,8 +159,7 @@ def _get_committers(
                 break
 
     # organize them by this heuristic (first frame is worth 5 points, second is worth 4, etc.)
-    # sorted_committers = sorted(committers, key=Mapping.get)
-    sorted_committers = sorted(committers, key=lambda x: x)
+    sorted_committers = {k: v for k, v in sorted(committers.items(), key=operator.itemgetter(1))}
     users_by_author: Mapping[str, Mapping[str, Any]] = get_users_for_commits(
         [c for c, _ in commits]
     )
@@ -315,7 +313,7 @@ def get_serialized_event_file_committers(
         project, event.group_id, event_frames, event.platform, frame_limit=frame_limit
     )
     commits = [commit for committer in committers for commit in committer["commits"]]
-    serialized_commits: Sequence[MutableMapping[str, JSONData]] = serialize(
+    serialized_commits: Sequence[MutableMapping[str, Any]] = serialize(
         [c for (c, score) in commits], serializer=CommitSerializer(exclude=["author"])
     )
 
@@ -331,7 +329,6 @@ def get_serialized_event_file_committers(
         commits_result = [serialized_commits_by_id[commit_id] for commit_id in commit_ids]
         serialized_committers.append(
             {"author": committer["author"], "commits": dedupe_commits(commits_result)}
-            # AuthorCommitsSerialized(committer.author, dedupe_commits(commits_result))
         )
 
     metrics.incr(
@@ -343,6 +340,6 @@ def get_serialized_event_file_committers(
 
 
 def dedupe_commits(
-    commits: Sequence[MutableMapping[str, JSONData]]
-) -> Sequence[MutableMapping[str, JSONData]]:
+    commits: Sequence[MutableMapping[str, Any]]
+) -> Sequence[MutableMapping[str, Any]]:
     return list({c["id"]: c for c in commits}.values())

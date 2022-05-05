@@ -321,6 +321,7 @@ class TestGroupOwners(TestCase):
         self.user3 = self.create_user(email="user3@sentry.io")
         patched_committers.return_value = [
             {
+                "commits": [(None, 3)],
                 "author": {
                     "username": self.user.email,
                     "lastLogin": None,
@@ -342,9 +343,9 @@ class TestGroupOwners(TestCase):
                     "hasPasswordAuth": True,
                     "email": self.user.email,
                 },
-                "commits": [(None, 3)],
             },
             {
+                "commits": [(None, 1)],
                 "author": {
                     "username": self.user2.email,
                     "lastLogin": None,
@@ -366,9 +367,9 @@ class TestGroupOwners(TestCase):
                     "hasPasswordAuth": True,
                     "email": self.user2.email,
                 },
-                "commits": [(None, 1)],
             },
             {
+                "commits": [(None, 2)],
                 "author": {
                     "username": self.user3.email,
                     "lastLogin": None,
@@ -390,7 +391,6 @@ class TestGroupOwners(TestCase):
                     "hasPasswordAuth": True,
                     "email": self.user3.email,
                 },
-                "commits": [(None, 2)],
             },
         ]
         event_frames = get_frame_paths(self.event.data)
