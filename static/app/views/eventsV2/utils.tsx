@@ -576,19 +576,11 @@ export function eventViewToWidgetQuery({
   // since the query uses all of the fields, or if the ordering is used in the y-axis
   if (sort) {
     let orderbyFunction = '';
-    for (let i = 0; i < queryYAxis.length; i++) {
-      if (sort.field === getAggregateAlias(queryYAxis[i])) {
-        orderbyFunction = queryYAxis[i];
+    const aggregateFields = [...queryYAxis, ...aggregates];
+    for (let i = 0; i < aggregateFields.length; i++) {
+      if (sort.field === getAggregateAlias(aggregateFields[i])) {
+        orderbyFunction = aggregateFields[i];
         break;
-      }
-    }
-
-    if (orderbyFunction === '') {
-      for (let i = 0; i < aggregates.length; i++) {
-        if (sort.field === getAggregateAlias(aggregates[i])) {
-          orderbyFunction = aggregates[i];
-          break;
-        }
       }
     }
 
