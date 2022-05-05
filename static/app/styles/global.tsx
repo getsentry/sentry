@@ -104,10 +104,6 @@ const styles = (theme: Theme, isDark: boolean) => css`
           border-left-color: ${theme.purple300};
         }
 
-        .saved-search-tab {
-          border-bottom-color: ${theme.active} !important;
-        }
-
         .nav-tabs {
           & > li {
             &.active {

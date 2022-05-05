@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {Choices} from 'sentry/types';
@@ -30,7 +30,7 @@ type Props = {
   onChange?: (value: SelectedValue, event: React.ChangeEvent<HTMLInputElement>) => void;
 };
 
-class MultipleCheckbox extends React.Component<Props> {
+class MultipleCheckbox extends Component<Props> {
   onChange = (selectedValue: string | number, e: React.ChangeEvent<HTMLInputElement>) => {
     const {value, onChange} = this.props;
     let newValue: SelectedValue = [];

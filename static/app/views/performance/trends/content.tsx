@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -60,7 +60,7 @@ export const defaultTrendsSelectionDate = {
   period: DEFAULT_TRENDS_STATS_PERIOD,
 };
 
-class TrendsContent extends React.Component<Props, State> {
+class TrendsContent extends Component<Props, State> {
   state: State = {};
 
   handleSearch = (searchQuery: string) => {
@@ -317,7 +317,7 @@ type DefaultTrendsProps = {
   projects: Project[];
 };
 
-class DefaultTrends extends React.Component<DefaultTrendsProps> {
+class DefaultTrends extends Component<DefaultTrendsProps> {
   hasPushedDefaults = false;
 
   render() {
@@ -333,7 +333,7 @@ class DefaultTrends extends React.Component<DefaultTrendsProps> {
 
     if (queryString || this.hasPushedDefaults) {
       this.hasPushedDefaults = true;
-      return <React.Fragment>{children}</React.Fragment>;
+      return <Fragment>{children}</Fragment>;
     }
     this.hasPushedDefaults = true;
     conditions.setFilterValues('tpm()', ['>0.01']);

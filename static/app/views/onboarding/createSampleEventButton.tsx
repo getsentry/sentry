@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {browserHistory} from 'react-router';
 import * as Sentry from '@sentry/react';
 
@@ -53,10 +53,7 @@ async function latestEventAvailable(
   }
 }
 
-class CreateSampleEventButton extends React.Component<
-  CreateSampleEventButtonProps,
-  State
-> {
+class CreateSampleEventButton extends Component<CreateSampleEventButtonProps, State> {
   state: State = {
     creating: false,
   };
