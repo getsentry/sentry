@@ -12,10 +12,13 @@ import CHART_PALETTE from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
+import type {SessionApiResponse} from 'sentry/types';
 import type {Series} from 'sentry/types/echarts';
+import {getCrashFreeRateSeries} from 'sentry/utils/sessions';
 import {lightTheme as theme} from 'sentry/utils/theme';
 import {
   AlertRuleTriggerType,
+  Dataset,
   IncidentRule,
 } from 'sentry/views/alerts/incidentRules/types';
 import {Incident, IncidentActivityType, IncidentStatus} from 'sentry/views/alerts/types';
@@ -23,8 +26,11 @@ import {
   ALERT_CHART_MIN_MAX_BUFFER,
   alertAxisFormatter,
   alertTooltipValueFormatter,
+  SESSION_AGGREGATE_TO_FIELD,
   shouldScaleAlertChart,
 } from 'sentry/views/alerts/utils';
+import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
+import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
 import {DEFAULT_FONT_FAMILY, slackChartSize} from './slack';
 import {ChartType, RenderDescriptor} from './types';
@@ -144,6 +150,26 @@ function createIncidentSeries(
       formatter,
     },
   };
+}
+
+function transformAreaSeries(series: AreaChartSeries[]) {
+  return series.map(({seriesName, data, ...otherSeriesProps}) =>
+    AreaSeries({
+      name: seriesName,
+      data: data.map(({name, value}) => [name, value]),
+      lineStyle: {
+        opacity: 1,
+        width: 0.4,
+      },
+      areaStyle: {
+        opacity: 1.0,
+      },
+      animation: false,
+      animationThreshold: 1,
+      animationDuration: 0,
+      ...otherSeriesProps,
+    })
+  );
 }
 
 type MetricChartData = {
@@ -371,7 +397,6 @@ export function getMetricAlertChartOption({
     totalDuration,
     chartOption: {
       isGroupedByDate: true,
-      xAxis: discoverxAxis,
       yAxis,
       series,
       grid: {
@@ -385,30 +410,63 @@ export function getMetricAlertChartOption({
 }
 
 metricAlertCharts.push({
-  key: ChartType.SLACK_METRIC_ALERT,
-  getOption: (...args) => {
-    const {chartOption} = getMetricAlertChartOption(...args);
+  key: ChartType.SLACK_METRIC_ALERT_EVENTS,
+  getOption: (data: MetricChartData) => {
+    const {chartOption} = getMetricAlertChartOption(data);
 
     return {
       ...chartOption,
       backgroundColor: theme.background,
-      series: chartOption.series.map(({seriesName, data, ...otherSeriesProps}) =>
-        AreaSeries({
-          name: seriesName,
-          data: data.map(({name, value}) => [name, value]),
-          lineStyle: {
-            opacity: 1,
-            width: 0.4,
-          },
-          areaStyle: {
-            opacity: 1.0,
-          },
-          animation: false,
-          animationThreshold: 1,
-          animationDuration: 0,
-          ...otherSeriesProps,
-        })
+      series: transformAreaSeries(chartOption.series),
+      xAxis: discoverxAxis,
+    };
+  },
+  ...slackChartSize,
+});
+
+interface MetricAlertSessionData extends Omit<MetricChartData, 'timeseriesData'> {
+  sessionResponse: SessionApiResponse;
+}
+
+export function transformSessionResponseToSeries(
+  response: SessionApiResponse | null,
+  rule: IncidentRule
+): MetricChartData['timeseriesData'] {
+  const {aggregate} = rule;
+
+  return [
+    {
+      seriesName:
+        AlertWizardAlertNames[
+          getAlertTypeFromAggregateDataset({
+            aggregate,
+            dataset: Dataset.SESSIONS,
+          })
+        ],
+      data: getCrashFreeRateSeries(
+        response?.groups,
+        response?.intervals,
+        SESSION_AGGREGATE_TO_FIELD[aggregate]
       ),
+    },
+  ];
+}
+
+metricAlertCharts.push({
+  key: ChartType.SLACK_METRIC_ALERT_SESSIONS,
+  getOption: (data: MetricAlertSessionData) => {
+    const {sessionResponse, rule, ...rest} = data;
+    const {chartOption} = getMetricAlertChartOption({
+      ...rest,
+      rule,
+      timeseriesData: transformSessionResponseToSeries(sessionResponse, rule),
+    });
+
+    return {
+      ...chartOption,
+      backgroundColor: theme.background,
+      series: transformAreaSeries(chartOption.series),
+      xAxis: discoverxAxis,
     };
   },
   ...slackChartSize,

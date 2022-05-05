@@ -8,7 +8,10 @@ import moment from 'moment';
 import momentTimezone from 'moment-timezone';
 
 import {Client} from 'sentry/api';
-import {getMetricAlertChartOption} from 'sentry/chartcuterie/metricAlert';
+import {
+  getMetricAlertChartOption,
+  transformSessionResponseToSeries,
+} from 'sentry/chartcuterie/metricAlert';
 import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
 import {AreaChart, AreaChartSeries} from 'sentry/components/charts/areaChart';
@@ -42,17 +45,13 @@ import {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {
-  getCrashFreeRateSeries,
-  MINUTES_THRESHOLD_TO_DISPLAY_SECONDS,
-} from 'sentry/utils/sessions';
+import {MINUTES_THRESHOLD_TO_DISPLAY_SECONDS} from 'sentry/utils/sessions';
 import theme from 'sentry/utils/theme';
 import {checkChangeStatus} from 'sentry/views/alerts/changeAlerts/comparisonMarklines';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/incidentRules/constants';
 import {makeDefaultCta} from 'sentry/views/alerts/incidentRules/incidentRulePresets';
 import {
   AlertRuleTriggerType,
-  Dataset,
   IncidentRule,
   TimePeriod,
 } from 'sentry/views/alerts/incidentRules/types';
@@ -512,22 +511,7 @@ class MetricChart extends React.PureComponent<Props, State> {
         {({loading, response}) =>
           this.renderChart(
             loading,
-            [
-              {
-                seriesName:
-                  AlertWizardAlertNames[
-                    getAlertTypeFromAggregateDataset({
-                      aggregate,
-                      dataset: Dataset.SESSIONS,
-                    })
-                  ],
-                data: getCrashFreeRateSeries(
-                  response?.groups,
-                  response?.intervals,
-                  SESSION_AGGREGATE_TO_FIELD[aggregate]
-                ),
-              },
-            ],
+            transformSessionResponseToSeries(response, rule),
             MINUTES_THRESHOLD_TO_DISPLAY_SECONDS
           )
         }
