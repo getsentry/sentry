@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {InjectedRouter} from 'react-router';
 import type {
   DataZoomComponentOption,
@@ -79,7 +79,7 @@ type Props = {
  * This also is very tightly coupled with the Global Selection Header. We can make it more
  * generic if need be in the future.
  */
-class ChartZoom extends React.Component<Props> {
+class ChartZoom extends Component<Props> {
   constructor(props: Props) {
     super(props);
 
