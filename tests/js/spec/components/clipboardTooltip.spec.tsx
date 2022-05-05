@@ -22,7 +22,9 @@ describe('ClipboardTooltip', function () {
     await screen.findByText(title);
 
     expect(screen.getByLabelText('Copy to clipboard')).toBeInTheDocument();
-    userEvent.click(screen.getByLabelText('Copy to clipboard'));
+    userEvent.click(screen.getByLabelText('Copy to clipboard'), undefined, {
+      skipPointerEventsCheck: true,
+    });
 
     expect(copy).toHaveBeenCalledWith(title);
   });
