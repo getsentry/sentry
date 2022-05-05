@@ -39,10 +39,7 @@ type State = {
   relayPiiConfig?: string;
 };
 
-class DataScrubbing<T extends ProjectId = undefined> extends Component<
-  Props<T>,
-  State
-> {
+class DataScrubbing<T extends ProjectId = undefined> extends Component<Props<T>, State> {
   state: State = {
     rules: [],
     savedRules: [],
