@@ -24,7 +24,7 @@ import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
 import {getAmendedFieldOptions, SortDirection, sortDirections} from '../../utils';
 
-const CUSTOM_EQUATION_VALUE = 'custom-equation';
+import {CUSTOM_EQUATION_VALUE} from '.';
 
 interface Values {
   sortBy: string;
@@ -113,12 +113,12 @@ export function SortBySelectors({
                 fieldOptions={{
                   ...(hasGroupBy
                     ? {
-                        'field:custom-equation': {
+                        [`field:${CUSTOM_EQUATION_VALUE}`]: {
                           label: 'Custom Equation',
                           value: {
                             // TODO(nar): This shouldn't be rendering a chip
                             kind: FieldValueKind.EQUATION,
-                            meta: {name: 'custom-equation'},
+                            meta: {name: CUSTOM_EQUATION_VALUE},
                           },
                         },
                       }

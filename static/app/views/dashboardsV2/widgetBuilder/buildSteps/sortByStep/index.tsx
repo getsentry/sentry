@@ -19,6 +19,8 @@ import {BuildStep} from '../buildStep';
 
 import {SortBySelectors} from './sortBySelectors';
 
+export const CUSTOM_EQUATION_VALUE = 'custom-equation';
+
 interface Props {
   dataSet: DataSet;
   displayType: DisplayType;
@@ -163,7 +165,7 @@ export function SortByStep({
 
               return (
                 columnSet.has(option.value.meta.name) ||
-                option.value.meta.name === 'custom-equation'
+                option.value.meta.name === CUSTOM_EQUATION_VALUE
               );
             }}
           />
