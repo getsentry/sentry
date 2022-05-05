@@ -1186,19 +1186,7 @@ def build_key_transactions_ctx(key_events, organization, projects):
 
 def to_context(organization, interval, reports):
     report = reduce(merge_reports, reports.values())
-    error_series = [
-        # Drop the transaction count from each series entry
-        (to_datetime(timestamp), Point(*values[:2]))
-        for timestamp, values in report.series
-    ]
     return {
-        # This "error_series" can be removed for new email template
-        "error_series": {
-            "points": error_series,
-            "maximum": max(sum(point) for timestamp, point in error_series),
-            "all": sum(sum(point) for timestamp, point in error_series),
-            "resolved": sum(point.resolved for timestamp, point in error_series),
-        },
         "distribution": {
             "types": list(
                 zip(
