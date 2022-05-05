@@ -12,7 +12,7 @@ function last<T>(arr: T[]): T {
   return arr[arr.length - 1];
 }
 
-export default class Replay {
+export default class ReplayReader {
   static factory(
     event: EventTransaction | undefined,
     rrwebEvents: eventWithTime[] | undefined,
@@ -21,7 +21,7 @@ export default class Replay {
     if (!event || !rrwebEvents || !replayEvents) {
       return null;
     }
-    return new Replay(event, rrwebEvents, replayEvents);
+    return new ReplayReader(event, rrwebEvents, replayEvents);
   }
 
   private constructor(
@@ -46,9 +46,9 @@ export default class Replay {
     const breadcrumbs = this.getEntryType(EntryType.BREADCRUMBS);
     const spans = this.getEntryType(EntryType.SPANS);
 
-    const last_rrweb = last(this._rrwebEvents);
-    const last_breadcrumb = last(breadcrumbs?.data.values as RawCrumb[]);
-    const last_span = last(spans?.data as RawSpanType[]);
+    const lastRRweb = last(this._rrwebEvents);
+    const lastBreadcrumb = last(breadcrumbs?.data.values as RawCrumb[]);
+    const lastSpan = last(spans?.data as RawSpanType[]);
 
     // The original `this._event.startTimestamp` and `this._event.endTimestamp`
     // are the same. It's because the root replay event is re-purposing the
@@ -56,9 +56,9 @@ export default class Replay {
     // So we need to figure out the real end time (in seconds).
     const endTimestamp =
       Math.max(
-        last_rrweb.timestamp,
-        +new Date(last_breadcrumb.timestamp || 0),
-        last_span.timestamp * 1000
+        lastRRweb.timestamp,
+        +new Date(lastBreadcrumb.timestamp || 0),
+        lastSpan.timestamp * 1000
       ) / 1000;
 
     return {
@@ -78,19 +78,10 @@ export default class Replay {
         return mergeBreadcrumbEntries(this._replayEvents);
       case EntryType.SPANS:
         return mergeSpanEntries(this._replayEvents);
-      case EntryType.EXCEPTION:
-      case EntryType.MESSAGE:
-      case EntryType.REQUEST:
-      case EntryType.STACKTRACE:
-      case EntryType.TEMPLATE:
-      case EntryType.CSP:
-      case EntryType.EXPECTCT:
-      case EntryType.EXPECTSTAPLE:
-      case EntryType.HPKP:
-      case EntryType.THREADS:
-      case EntryType.DEBUGMETA:
       default:
-        return undefined;
+        throw new Error(
+          `ReplayReader is unable to prepare EntryType ${type}. Type not supported.`
+        );
     }
   });
 

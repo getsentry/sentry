@@ -3,7 +3,7 @@ import React, {useState} from 'react';
 import EventEntry from 'sentry/components/events/eventEntry';
 import TagsTable from 'sentry/components/tagsTable';
 import {EntryType, Event} from 'sentry/types/event';
-import Replay from 'sentry/utils/replays/Replay';
+import type ReplayReader from 'sentry/utils/replays/replayReader';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 
@@ -13,7 +13,7 @@ import FocusTabs from './focusTabs';
 import MemoryChart from './memoryChart';
 
 type Props = {
-  replay: Replay;
+  replay: ReplayReader;
 };
 
 function FocusArea(props: Props) {

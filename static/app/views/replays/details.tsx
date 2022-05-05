@@ -42,7 +42,7 @@ function ReplayDetails() {
 
   if (fetching) {
     return (
-      <DetailLayout event={undefined} orgId={orgId}>
+      <DetailLayout orgId={orgId}>
         <LoadingIndicator />
       </DetailLayout>
     );
@@ -51,7 +51,7 @@ function ReplayDetails() {
     // TODO(replay): Give the user more details when errors happen
     console.log({fetching, fetchError}); // eslint-disable-line no-console
     return (
-      <DetailLayout event={undefined} orgId={orgId}>
+      <DetailLayout orgId={orgId}>
         <PageContent>
           <NotFound />
         </PageContent>

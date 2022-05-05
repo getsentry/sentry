@@ -7,7 +7,7 @@ import {IssueAttachment} from 'sentry/types';
 import {Entry, Event, EventTransaction} from 'sentry/types/event';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
-import Replay from 'sentry/utils/replays/Replay';
+import ReplayReader from 'sentry/utils/replays/replayReader';
 import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 
@@ -70,7 +70,7 @@ type Options = {
 
 interface Result extends State {
   onRetry: () => void;
-  replay: Replay | null;
+  replay: ReplayReader | null;
 }
 
 const IS_RRWEB_ATTACHMENT_FILENAME = /rrweb-[0-9]{13}.json/;
@@ -215,7 +215,7 @@ function useReplayEvent({eventSlug, location, orgId}: Options): Result {
     fetchError: state.fetchError,
     fetching: state.fetching,
     onRetry,
-    replay: Replay.factory(state.event, state.rrwebEvents, state.replayEvents),
+    replay: ReplayReader.factory(state.event, state.rrwebEvents, state.replayEvents),
 
     breadcrumbEntry: state.breadcrumbEntry,
     event: state.event,
