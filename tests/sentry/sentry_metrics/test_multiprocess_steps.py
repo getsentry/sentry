@@ -1,6 +1,8 @@
+import logging
 import time
 from datetime import datetime, timezone
 from typing import Dict, List, Mapping, MutableMapping, Union
+from unittest import mock
 from unittest.mock import Mock, call, patch
 
 import pytest
@@ -21,6 +23,8 @@ from sentry.sentry_metrics.multiprocess import (
 )
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.utils import json
+
+logger = logging.getLogger(__name__)
 
 
 def _batch_message_set_up(next_step: Mock, max_batch_time: float = 100.0, max_batch_size: int = 2):
@@ -250,6 +254,82 @@ def test_process_messages(mock_indexer) -> None:
         for i, m in enumerate(message_batch)
     ]
     assert new_batch == expected_new_batch
+
+
+invalid_payloads = [
+    (
+        {
+            "name": SessionMRI.ERROR.value,
+            "tags": {
+                "environment": "production" * 21,
+                "session.status": "errored",
+            },
+            "timestamp": ts,
+            "type": "s",
+            "value": [3],
+            "org_id": 1,
+            "project_id": 3,
+        },
+        "invalid_tags",
+    ),
+    (
+        {
+            "name": SessionMRI.ERROR.value * 21,
+            "tags": {
+                "environment": "production",
+                "session.status": "errored",
+            },
+            "timestamp": ts,
+            "type": "s",
+            "value": [3],
+            "org_id": 1,
+            "project_id": 3,
+        },
+        "invalid_metric_name",
+    ),
+]
+
+
+@pytest.mark.parametrize("invalid_payload, error_text", invalid_payloads)
+def test_process_messages_invalid_messages(invalid_payload, error_text, caplog) -> None:
+    """
+    Invalid messages
+    """
+    message_payloads = [counter_payload, invalid_payload]
+    message_batch = [
+        Message(
+            Partition(Topic("topic"), 0),
+            i + 1,
+            KafkaPayload(None, json.dumps(payload).encode("utf-8"), []),
+            datetime.now(),
+        )
+        for i, payload in enumerate(message_payloads)
+    ]
+    # the outer message uses the last message's partition, offset, and timestamp
+    last = message_batch[-1]
+    outer_message = Message(last.partition, last.offset, message_batch, last.timestamp)
+
+    with caplog.at_level(logging.ERROR), mock.patch(
+        "sentry.sentry_metrics.multiprocess.get_indexer", return_value=MockIndexer()
+    ):
+        new_batch = process_messages(outer_message=outer_message)
+
+    # we expect just the valid counter_payload msg to be left
+    expected_msg = message_batch[0]
+    expected_new_batch = [
+        Message(
+            expected_msg.partition,
+            expected_msg.offset,
+            KafkaPayload(
+                None,
+                json.dumps(__translated_payload(counter_payload)).encode("utf-8"),
+                [],
+            ),
+            expected_msg.timestamp,
+        )
+    ]
+    assert new_batch == expected_new_batch
+    assert error_text in caplog.text
 
 
 def test_produce_step() -> None:
