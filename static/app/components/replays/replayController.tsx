@@ -1,13 +1,22 @@
-import React from 'react';
+import React, {useState} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import useFullscreen from 'sentry/components/replays/useFullscreen';
-import {IconArrow, IconPause, IconPlay, IconRefresh, IconResize} from 'sentry/icons';
+import {
+  IconArrow,
+  IconPause,
+  IconPlay,
+  IconRefresh,
+  IconResize,
+  IconSliders,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+
+import {Hovercard} from '../hovercard';
 
 import {formatTime} from './utils';
 
@@ -60,27 +69,42 @@ function ReplayCurrentTime() {
 
 function ReplayPlaybackSpeed({speedOptions}: {speedOptions: number[]}) {
   const {setSpeed, speed} = useReplayContext();
+  const [showPlaybackSpeeds, setShowPlaybackSpeeds] = useState(false);
 
   return (
-    <ButtonBar active={String(speed)} merged>
-      {speedOptions.map(opt => (
-        <Button
-          key={opt}
-          size="xsmall"
-          barId={String(opt)}
-          onClick={() => setSpeed(opt)}
-          title={t('Set playback speed to %s', `${opt}x`)}
-        >
-          {opt}x
-        </Button>
-      ))}
-    </ButtonBar>
+    <Hovercard
+      show={showPlaybackSpeeds}
+      header={t('Playback Speeds')}
+      body={
+        <ButtonBar active={String(speed)} merged>
+          {speedOptions.map(opt => (
+            <Button
+              key={opt}
+              size="xsmall"
+              barId={String(opt)}
+              onClick={() => setSpeed(opt)}
+              title={t('Set playback speed to %s', `${opt}x`)}
+            >
+              {opt}x
+            </Button>
+          ))}
+        </ButtonBar>
+      }
+    >
+      <Button
+        size="xsmall"
+        title={t('Show playback speeds')}
+        icon={<IconSliders color="gray500" size="sm" />}
+        onClick={() => setShowPlaybackSpeeds(!showPlaybackSpeeds)}
+        aria-label={t('Show playback speeds')}
+      />
+    </Hovercard>
   );
 }
 
 const ReplayControls = ({
   toggleFullscreen = () => {},
-  speedOptions = [0.5, 1, 2, 4],
+  speedOptions = [0.1, 0.25, 0.5, 1, 2, 4],
 }: Props) => {
   const {isFullscreen} = useFullscreen();
   const {isSkippingInactive, toggleSkipInactive} = useReplayContext();
