@@ -3,7 +3,6 @@ import logging
 import math
 import operator
 import zlib
-from calendar import Calendar
 from collections import OrderedDict, defaultdict, namedtuple
 from datetime import date, datetime, timedelta
 from functools import partial, reduce
@@ -12,9 +11,7 @@ from typing import Iterable, Mapping, NamedTuple, Tuple
 
 import pytz
 from django.db.models import F
-from django.urls.base import reverse
 from django.utils import dateformat, timezone
-from django.utils.http import urlencode
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.entity import Entity
@@ -48,7 +45,6 @@ from sentry.utils import json, redis
 from sentry.utils.compat import filter, map, zip
 from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
 from sentry.utils.email import MessageBuilder
-from sentry.utils.http import absolute_uri
 from sentry.utils.iterators import chunked
 from sentry.utils.math import mean
 from sentry.utils.outcomes import Outcome
@@ -242,20 +238,6 @@ def build_project_series(start__stop, project):
     def zerofill_clean(data):
         return clean(zerofill(data, start, stop, rollup, fill_default=0))
 
-    # Note: this section can be removed
-    issue_ids = project.group_set.filter(
-        status=GroupStatus.RESOLVED, resolved_at__gte=start, resolved_at__lt=stop
-    ).values_list("id", flat=True)
-
-    # TODO: The TSDB calls could be replaced with a SnQL call here
-    tsdb_range_resolved = _query_tsdb_groups_chunked(tsdb.get_range, issue_ids, start, stop, rollup)
-    resolved_error_series = reduce(
-        merge_series,
-        map(clean, tsdb_range_resolved.values()),
-        clean([(timestamp, 0) for timestamp in series]),
-    )
-    # end
-
     # Use outcomes to compute total errors and transactions
     outcomes_query = Query(
         dataset=Dataset.Outcomes.value,
@@ -296,17 +278,9 @@ def build_project_series(start__stop, project):
     ]
     transaction_series = zerofill_clean(transaction_series)
 
-    error_series = merge_series(
-        resolved_error_series,
-        total_error_series,
-        lambda resolved, total: (resolved, total - resolved),  # Resolved, Unresolved
-    )
-
-    # Format of this series: [(resolved , unresolved, transactions)]
+    # Format of this series: [(errors, transactions)]
     return merge_series(
-        error_series,
-        transaction_series,
-        lambda errors, transactions: errors + (transactions,),
+        total_error_series, transaction_series, lambda errors, transactions: (errors, transactions)
     )
 
 
@@ -485,17 +459,6 @@ def clean_calendar_data(project, series, start, stop, rollup, timestamp=None):
     return map(remove_invalid_values, clean_series(start, stop, rollup, series))
 
 
-def build_project_calendar_series(interval, project):
-    start, stop = get_calendar_query_range(interval, 3)
-
-    rollup = ONE_DAY
-    series = tsdb.get_range(tsdb.models.project, [project.id], start, stop, rollup=rollup)[
-        project.id
-    ]
-
-    return clean_calendar_data(project, series, start, stop, rollup)
-
-
 def build_key_errors(interval, project):
     start, stop = interval
 
@@ -627,11 +590,6 @@ Report, build_project_report, merge_reports = build_report(
         ),
         ("issue_summaries", build_project_issue_summaries, merge_sequences),
         ("series_outcomes", build_project_usage_outcomes, merge_sequences),
-        (
-            "calendar_series",
-            build_project_calendar_series,
-            partial(merge_series, function=safe_add),
-        ),
         ("key_events", build_key_errors, partial(take_max_n, n=3)),
         ("key_transactions", build_key_transactions, partial(take_max_n, n=3)),
     ],
@@ -852,12 +810,6 @@ def build_message(timestamp, duration, organization, user, reports):
     start, stop = interval = _to_interval(timestamp, duration)
 
     duration_spec = durations[duration]
-    html_template = "sentry/emails/reports/body.html"
-    smtp_category = "organization_report_email"
-    if features.has("organizations:new-weekly-report", organization, actor=user):
-        html_template = "sentry/emails/reports/new.html"
-        smtp_category = "organization_report_email_new"
-
     message = MessageBuilder(
         subject="{} Report for {}: {} - {}".format(
             duration_spec.adjective.title(),
@@ -866,7 +818,7 @@ def build_message(timestamp, duration, organization, user, reports):
             date_format(stop),
         ),
         template="sentry/emails/reports/body.txt",
-        html_template=html_template,
+        html_template="sentry/emails/reports/body.html",
         type="report.organization",
         context={
             "duration": duration_spec,
@@ -876,7 +828,7 @@ def build_message(timestamp, duration, organization, user, reports):
             "report": to_context(organization, interval, reports),
             "user": user,
         },
-        headers={"X-SMTPAPI": json.dumps({"category": smtp_category})},
+        headers={"X-SMTPAPI": json.dumps({"category": "organization_report_email"})},
     )
 
     message.add_users((user.id,))
@@ -1023,11 +975,6 @@ class Key(NamedTuple):
     data: Mapping[str, int]
 
 
-class Point(NamedTuple):
-    resolved: int
-    unresolved: int
-
-
 class DistributionType(NamedTuple):
     label: str
     color: str
@@ -1056,8 +1003,7 @@ def build_project_breakdown_series(reports):
         for v in sorted(
             reports.items(),
             key=lambda project__report: sum(
-                resolved + unresolved
-                for _, (resolved, unresolved, transaction) in project__report[1].series
+                errors for _, (errors, transaction) in project__report[1].series
             ),
             reverse=True,
         )
@@ -1095,12 +1041,11 @@ def build_project_breakdown_series(reports):
         )
 
     def summarize_errors(key, points):
-        [resolved_errors, unresolved_errors, transactions] = points
-        total = resolved_errors + unresolved_errors
-        return [(key, total)] if total else []
+        [errors, transactions] = points
+        return [(key, errors)] if errors else []
 
     def summarize_transaction(key, points):
-        [resolved_errors, unresolved_errors, transactions] = points
+        [errors, transactions] = points
         return [(key, transactions)] if transactions else []
 
     # Collect all of the independent series into a single series to make it
@@ -1212,19 +1157,7 @@ def build_key_transactions_ctx(key_events, organization, projects):
 
 def to_context(organization, interval, reports):
     report = reduce(merge_reports, reports.values())
-    error_series = [
-        # Drop the transaction count from each series entry
-        (to_datetime(timestamp), Point(*values[:2]))
-        for timestamp, values in report.series
-    ]
     return {
-        # This "error_series" can be removed for new email template
-        "error_series": {
-            "points": error_series,
-            "maximum": max(sum(point) for timestamp, point in error_series),
-            "all": sum(sum(point) for timestamp, point in error_series),
-            "resolved": sum(point.resolved for timestamp, point in error_series),
-        },
         "distribution": {
             "types": list(
                 zip(
@@ -1251,7 +1184,6 @@ def to_context(organization, interval, reports):
             ),
         ],
         "projects": {"series": build_project_breakdown_series(reports)},
-        "calendar": to_calendar(organization, interval, report.calendar_series),
         "key_errors": build_key_errors_ctx(report.key_events, organization),
         "key_transactions": build_key_transactions_ctx(
             report.key_transactions, organization, reports.keys()
@@ -1286,53 +1218,3 @@ def colorize(spectrum, values):
         results.append((value, spectrum[find_index(value)]))
 
     return legend, results
-
-
-def to_calendar(organization, interval, series):
-    start, stop = get_calendar_range(interval, 3)
-
-    legend, values = colorize(
-        calendar_heat_colors,
-        [value for timestamp, value in series if value is not None],
-    )
-
-    value_color_map = dict(values)
-    value_color_map[None] = "#F2F2F2"
-
-    series_value_map = dict(series)
-
-    # If global views are enabled we can generate a link to the day
-    has_global_views = features.has("organizations:global-views", organization)
-
-    def get_data_for_date(date):
-        dt = datetime(date.year, date.month, date.day, tzinfo=pytz.utc)
-        ts = to_timestamp(dt)
-        value = series_value_map.get(ts, None)
-
-        data = {"value": value, "color": value_color_map[value], "url": None}
-        if has_global_views:
-            url = reverse(
-                "sentry-organization-issue-list", kwargs={"organization_slug": organization.slug}
-            )
-            params = {
-                "project": -1,
-                "utc": True,
-                "start": dt.isoformat(),
-                "end": (dt + timedelta(days=1)).isoformat(),
-            }
-            url = f"{url}?{urlencode(params)}"
-            data["url"] = absolute_uri(url)
-
-        return (dt, data)
-
-    calendar = Calendar(6)
-    sheets = []
-    for year, month in map(index_to_month, range(start, stop + 1)):
-        weeks = []
-
-        for week in calendar.monthdatescalendar(year, month):
-            weeks.append(map(get_data_for_date, week))
-
-        sheets.append((datetime(year, month, 1, tzinfo=pytz.utc), weeks))
-
-    return {"legend": list(legend.keys()), "sheets": sheets}

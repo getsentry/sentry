@@ -159,7 +159,7 @@ def test_has_valid_aggregates(interval):
     project = None  # parameter is unused
 
     def make_report(aggregates):
-        return Report(None, aggregates, None, None, None, None, None)
+        return Report(None, aggregates, None, None, None, None)
 
     assert has_valid_aggregates(interval, (project, make_report([None] * 4))) is False
 
@@ -424,7 +424,7 @@ class ReportTestCase(OutcomesSnubaTest, SnubaTestCase):
         )
 
         assert any(
-            map(lambda x: x[1] == (2, 0, 10), response)
+            map(lambda x: x[1] == (2, 10), response)
         ), "must show two issues resolved in one rollup window"
 
 
