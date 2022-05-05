@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from 'react';
+import {CSSProperties, useCallback, useEffect, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
@@ -8,6 +8,7 @@ import {TableCell} from 'sentry/components/charts/simpleTableChart';
 import Field from 'sentry/components/forms/field';
 import SelectControl from 'sentry/components/forms/selectControl';
 import {PanelAlert} from 'sentry/components/panels';
+import Tag from 'sentry/components/tag';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -19,6 +20,25 @@ import WidgetCard, {WidgetCardPanel} from '../../widgetCard';
 import {displayTypes} from '../utils';
 
 import {BuildStep} from './buildStep';
+
+const DisplayOptionLabel = styled('span')`
+  display: flex;
+  justify-content: space-between;
+  width: calc(100% - ${space(1)});
+`;
+
+const DISPLAY_OPTIONS = Object.keys(displayTypes).map(value => ({
+  label:
+    value === DisplayType.TOP_N ? (
+      <DisplayOptionLabel>
+        {displayTypes[value]}
+        <Tag type="info">{t('deprecated')}</Tag>
+      </DisplayOptionLabel>
+    ) : (
+      displayTypes[value]
+    ),
+  value,
+}));
 
 interface Props {
   displayType: DisplayType;
@@ -73,13 +93,16 @@ export function VisualizationStep({
       <Field error={error} inline={false} flexibleControlStateSize stacked>
         <SelectControl
           name="displayType"
-          options={Object.keys(displayTypes).map(value => ({
-            label: displayTypes[value],
-            value,
-          }))}
+          options={DISPLAY_OPTIONS}
           value={displayType}
           onChange={(option: SelectValue<DisplayType>) => {
             onChange(option.value);
+          }}
+          styles={{
+            singleValue: (provided: CSSProperties) => ({
+              ...provided,
+              width: `calc(100% - ${space(1)})`,
+            }),
           }}
         />
       </Field>
