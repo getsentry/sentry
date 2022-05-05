@@ -1,5 +1,6 @@
 from typing import Any, Dict
 
+from django.http import StreamingHttpResponse
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -12,6 +13,8 @@ from sentry.utils.profiling import parse_profile_filters, proxy_profiling_servic
 
 
 class ProjectProfilingBaseEndpoint(ProjectEndpoint):  # type: ignore
+    private = True
+
     def get_profiling_params(self, request: Request, project: Project) -> Dict[str, Any]:
         try:
             params: Dict[str, Any] = parse_profile_filters(request.query_params.get("query", ""))
@@ -28,8 +31,8 @@ class ProjectProfilingBaseEndpoint(ProjectEndpoint):  # type: ignore
         return params
 
 
-class ProjectProfilingProfileEndpoint(ProjectEndpoint):  # type: ignore
-    def get(self, request: Request, project: Project, profile_id: str) -> Response:
+class ProjectProfilingProfileEndpoint(ProjectProfilingBaseEndpoint):
+    def get(self, request: Request, project: Project, profile_id: str) -> StreamingHttpResponse:
         if not features.has("organizations:profiling", project.organization, actor=request.user):
             return Response(status=404)
         kwargs: Dict[str, Any] = {
@@ -42,7 +45,7 @@ class ProjectProfilingProfileEndpoint(ProjectEndpoint):  # type: ignore
 
 
 class ProjectProfilingFunctionsEndpoint(ProjectProfilingBaseEndpoint):
-    def get(self, request: Request, project: Project) -> Response:
+    def get(self, request: Request, project: Project) -> StreamingHttpResponse:
         if not features.has("organizations:profiling", project.organization, actor=request.user):
             return Response(404)
 
