@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import FeatureBadge from 'sentry/components/featureBadge';
@@ -46,7 +46,7 @@ type Props = {
   selectType?: 'grouped';
 };
 
-class RuleNodeList extends React.Component<Props> {
+class RuleNodeList extends Component<Props> {
   componentWillUnmount() {
     window.clearTimeout(this.propertyChangeTimeout);
   }
@@ -167,10 +167,10 @@ class RuleNodeList extends React.Component<Props> {
         return {
           value: node.id,
           label: (
-            <React.Fragment>
+            <Fragment>
               {isNew && <StyledFeatureBadge type="new" noTooltip />}
               {shouldUsePrompt && node.prompt?.length > 0 ? node.prompt : node.label}
-            </React.Fragment>
+            </Fragment>
           ),
         };
       });
@@ -223,7 +223,7 @@ class RuleNodeList extends React.Component<Props> {
     }
 
     return (
-      <React.Fragment>
+      <Fragment>
         <RuleNodes>
           {error}
           {items.map((item, idx) => (
@@ -248,7 +248,7 @@ class RuleNodeList extends React.Component<Props> {
           options={options}
           disabled={disabled}
         />
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

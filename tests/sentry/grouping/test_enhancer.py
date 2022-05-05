@@ -342,24 +342,21 @@ def test_range_matching():
 
     (rule,) = enhancement.rules
 
-    assert (
-        sorted(
-            dict(
-                _get_matching_frame_actions(
-                    rule,
-                    [
-                        {"function": "main"},
-                        {"function": "foo"},
-                        {"function": "bar"},
-                        {"function": "baz"},
-                        {"function": "abort"},
-                    ],
-                    "python",
-                )
+    assert sorted(
+        dict(
+            _get_matching_frame_actions(
+                rule,
+                [
+                    {"function": "main"},
+                    {"function": "foo"},
+                    {"function": "bar"},
+                    {"function": "baz"},
+                    {"function": "abort"},
+                ],
+                "python",
             )
         )
-        == [2]
-    )
+    ) == [2]
 
 
 def test_range_matching_direct():
@@ -371,24 +368,21 @@ def test_range_matching_direct():
 
     (rule,) = enhancement.rules
 
-    assert (
-        sorted(
-            dict(
-                _get_matching_frame_actions(
-                    rule,
-                    [
-                        {"function": "main"},
-                        {"function": "foo"},
-                        {"function": "bar"},
-                        {"function": "baz"},
-                        {"function": "abort"},
-                    ],
-                    "python",
-                )
+    assert sorted(
+        dict(
+            _get_matching_frame_actions(
+                rule,
+                [
+                    {"function": "main"},
+                    {"function": "foo"},
+                    {"function": "bar"},
+                    {"function": "baz"},
+                    {"function": "abort"},
+                ],
+                "python",
             )
         )
-        == [2]
-    )
+    ) == [2]
 
     assert not _get_matching_frame_actions(
         rule,

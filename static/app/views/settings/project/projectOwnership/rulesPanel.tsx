@@ -1,4 +1,3 @@
-import * as React from 'react';
 import TextareaAutosize from 'react-autosize-textarea';
 import styled from '@emotion/styled';
 import moment from 'moment';

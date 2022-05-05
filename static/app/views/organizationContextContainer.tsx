@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -52,7 +52,7 @@ type State = {
   hooks?: React.ReactNode[];
 };
 
-class OrganizationContextContainer extends React.Component<Props, State> {
+class OrganizationContextContainer extends Component<Props, State> {
   static getDerivedStateFromProps(props: Readonly<Props>, prevState: State): State {
     const {prevProps} = prevState;
 
@@ -346,10 +346,10 @@ class OrganizationContextContainer extends React.Component<Props, State> {
 
     if (this.state.error) {
       return (
-        <React.Fragment>
+        <Fragment>
           {this.renderSidebar()}
           {this.renderError()}
-        </React.Fragment>
+        </Fragment>
       );
     }
 

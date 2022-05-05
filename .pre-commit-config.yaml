@@ -26,9 +26,6 @@ repos:
       args: ['--py38-plus', '--keep-runtime-typing']
       language: system
       types: [python]
-      # We can't change this mock to unittest.mock until Python 3.8,
-      # refer to the comment in this file.
-      exclude: 'src/sentry/utils/compat/mock.py'
     # Configuration for black exists in pyproject.toml,
     # but we let pre-commit take care of the file filtering.
     - id: black
@@ -55,9 +52,10 @@ repos:
     - id: lint-requirements
       name: lint-requirements
       entry: bin/lint-requirements
-      language: system
+      language: python
       files: requirements-base.txt
       pass_filenames: false
+      additional_dependencies: [packaging==21.3]
     - id: pyright
       name: pyright
       entry: pyright

@@ -22,6 +22,7 @@ const CLEAR_PASSWORD_BUTTON_SIZE = 22;
 const PASSWORD_INPUT_PADDING_RIGHT = INPUT_PADDING + CLEAR_PASSWORD_BUTTON_SIZE;
 
 type InitialData = {
+  id: string;
   layout: {
     casing: keyof typeof DEBUG_SOURCE_CASINGS;
     type: keyof typeof DEBUG_SOURCE_LAYOUTS;
@@ -43,7 +44,6 @@ type Data = Partial<Pick<InitialData, 'name' | 'url'>> &
 
 type SubmitData = Omit<Data, 'password' | 'name' | 'url'> &
   Pick<InitialData, 'name' | 'url'> & {
-    id: string;
     password?:
       | {
           'hidden-secret': boolean;
@@ -58,6 +58,7 @@ type Props = Pick<ModalRenderProps, 'Header' | 'Body' | 'Footer'> & {
 
 function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
   const initialData: Data = {
+    id: props.initialData?.id ?? uniqueId(),
     name: props.initialData?.name,
     url: props.initialData?.url,
     username: props.initialData?.username,
@@ -77,9 +78,9 @@ function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
   }
 
   function handleSubmit() {
-    const validData = data as Omit<SubmitData, 'id'>;
+    const validData = data as SubmitData;
     onSubmit({
-      id: uniqueId(),
+      id: validData.id,
       name: validData.name,
       url: validData.url,
       'layout.type': validData['layout.type'],
