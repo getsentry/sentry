@@ -1,4 +1,5 @@
-import {useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import Count from 'sentry/components/count';
@@ -11,12 +12,13 @@ import GridEditable, {
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PerformanceDuration from 'sentry/components/performanceDuration';
-import SmartSearchBar from 'sentry/components/smartSearchBar';
+import SmartSearchBar, {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {FunctionCall, VersionedFunctionCalls} from 'sentry/types/profiling/core';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -30,6 +32,7 @@ interface FunctionsContentProps {
 function FunctionsContent(props: FunctionsContentProps) {
   const location = useLocation();
   const organization = useOrganization();
+  const query = decodeScalar(location.query.query, '');
 
   const functions: TableDataRow[] = useMemo(() => {
     const functionCalls: FunctionCall[] =
@@ -54,6 +57,20 @@ function FunctionsContent(props: FunctionsContentProps) {
     });
   }, [props.version, props.versionedFunctions]);
 
+  const handleSearch: SmartSearchBarProps['onSearch'] = useCallback(
+    (searchQuery: string) => {
+      browserHistory.push({
+        ...location,
+        query: {
+          ...location.query,
+          cursor: undefined,
+          query: searchQuery || undefined,
+        },
+      });
+    },
+    [location]
+  );
+
   return (
     <Layout.Main fullWidth>
       <ActionBar>
@@ -66,8 +83,8 @@ function FunctionsContent(props: FunctionsContentProps) {
           hasRecentSearches
           searchSource="profile_landing"
           supportedTags={{}}
-          query=""
-          onSearch={() => {}}
+          query={query}
+          onSearch={handleSearch}
           maxQueryLength={MAX_QUERY_LENGTH}
         />
       </ActionBar>
