@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -35,7 +35,7 @@ function CollapsePanel({
   collapseCount = COLLAPSE_COUNT,
   disableBorder = true,
 }: Props) {
-  const [isExpanded, setIsExpanded] = React.useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   function expandResults() {
     setIsExpanded(true);
   }
