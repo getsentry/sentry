@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
@@ -421,7 +421,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
               const webhookDisabled =
                 this.isInternal && !this.form.getValue('webhookUrl');
               return (
-                <React.Fragment>
+                <Fragment>
                   <JsonForm additionalFieldProps={{webhookDisabled}} forms={forms} />
                   {this.getAvatarChooser(true)}
                   {this.getAvatarChooser(false)}
@@ -431,7 +431,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
                     scopes={scopes}
                     events={events}
                   />
-                </React.Fragment>
+                </Fragment>
               );
             }}
           </Observer>

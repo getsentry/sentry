@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth.signals import user_logged_in, user_logged_out
 
 from sentry.utils.settings import is_self_hosted
@@ -6,7 +7,10 @@ from sentry.utils.settings import is_self_hosted
 # Upon login, we automatically want to enable superuser
 # status
 def enable_superuser(request, user, **kwargs):
-    if is_self_hosted():
+    ENABLE_SU_UPON_LOGIN_FOR_LOCAL_DEV = getattr(
+        settings, "ENABLE_SU_UPON_LOGIN_FOR_LOCAL_DEV", False
+    )
+    if is_self_hosted() or ENABLE_SU_UPON_LOGIN_FOR_LOCAL_DEV:
         su = getattr(request, "superuser", None)
         if su:
             if user.is_superuser:

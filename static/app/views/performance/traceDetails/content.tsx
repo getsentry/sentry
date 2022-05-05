@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, createRef, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -86,7 +86,7 @@ type State = {
   searchQuery: string | undefined;
 };
 
-class TraceDetailsContent extends React.Component<Props, State> {
+class TraceDetailsContent extends Component<Props, State> {
   state: State = {
     searchQuery: undefined,
     filteredTransactionIds: undefined,
@@ -103,8 +103,8 @@ class TraceDetailsContent extends React.Component<Props, State> {
   }
 
   fuse: Fuse<IndexedFusedTransaction> | null = null;
-  traceViewRef = React.createRef<HTMLDivElement>();
-  virtualScrollbarContainerRef = React.createRef<HTMLDivElement>();
+  traceViewRef = createRef<HTMLDivElement>();
+  virtualScrollbarContainerRef = createRef<HTMLDivElement>();
 
   async initFuse() {
     if (defined(this.props.traces) && this.props.traces.length > 0) {
@@ -196,7 +196,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
 
                 <ErrorMessageContent data-test-id="trace-view-errors">
                   {tableData?.data.map(data => (
-                    <React.Fragment key={data.id}>
+                    <Fragment key={data.id}>
                       <ErrorDot level={data.level as any} />
                       <ErrorLevel>{data.level}</ErrorLevel>
                       <ErrorTitle>
@@ -206,7 +206,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
                           {data.title}
                         </Link>
                       </ErrorTitle>
-                    </React.Fragment>
+                    </Fragment>
                   ))}
                 </ErrorMessageContent>
               </Alert>
@@ -506,7 +506,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
 
     return {
       transactionGroup: (
-        <React.Fragment key={eventId}>
+        <Fragment key={eventId}>
           {this.renderInfoMessage({
             isVisible,
             numberOfHiddenTransactionsAbove,
@@ -528,7 +528,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
             renderedChildren={accumulated.renderedChildren}
             barColor={pickBarColor(transaction['transaction.op'])}
           />
-        </React.Fragment>
+        </Fragment>
       ),
       lastIndex: accumulated.lastIndex,
       numberOfHiddenTransactionsAbove: accumulated.numberOfHiddenTransactionsAbove,
@@ -692,12 +692,12 @@ class TraceDetailsContent extends React.Component<Props, State> {
     }
     const traceInfo = getTraceInfo(traces);
     return (
-      <React.Fragment>
+      <Fragment>
         {this.renderTraceWarnings()}
         {this.renderTraceHeader(traceInfo)}
         {this.renderSearchBar()}
         {this.renderTraceView(traceInfo)}
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -705,7 +705,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
     const {organization, location, traceEventView, traceSlug} = this.props;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Layout.Header>
           <Layout.HeaderContent>
             <Breadcrumb
@@ -730,7 +730,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
         <Layout.Body>
           <Layout.Main fullWidth>{this.renderContent()}</Layout.Main>
         </Layout.Body>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }
