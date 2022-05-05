@@ -160,6 +160,8 @@ def resolve_tags(org_id: int, input_: Any) -> Any:
             conditions=[resolve_tags(org_id, item) for item in input_.conditions]
         )
     if isinstance(input_, Column):
+        if input_.name == "project_id":
+            return input_
         # HACK: Some tags already take the form "tags[...]" in discover, take that into account:
         if input_.subscriptable == "tags":
             name = input_.key
