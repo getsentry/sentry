@@ -8,10 +8,6 @@ import moment from 'moment';
 import momentTimezone from 'moment-timezone';
 
 import {Client} from 'sentry/api';
-import {
-  getMetricAlertChartOption,
-  transformSessionResponseToSeries,
-} from 'sentry/chartcuterie/metricAlert';
 import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
 import {AreaChart, AreaChartSeries} from 'sentry/components/charts/areaChart';
@@ -68,6 +64,10 @@ import {
 } from '../../utils';
 
 import {TimePeriodType} from './constants';
+import {
+  getMetricAlertChartOption,
+  transformSessionResponseToSeries,
+} from './metricChartOption';
 
 type Props = WithRouterProps & {
   api: Client;
