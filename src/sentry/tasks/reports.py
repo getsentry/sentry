@@ -238,20 +238,6 @@ def build_project_series(start__stop, project):
     def zerofill_clean(data):
         return clean(zerofill(data, start, stop, rollup, fill_default=0))
 
-    # Note: this section can be removed
-    issue_ids = project.group_set.filter(
-        status=GroupStatus.RESOLVED, resolved_at__gte=start, resolved_at__lt=stop
-    ).values_list("id", flat=True)
-
-    # TODO: The TSDB calls could be replaced with a SnQL call here
-    tsdb_range_resolved = _query_tsdb_groups_chunked(tsdb.get_range, issue_ids, start, stop, rollup)
-    resolved_error_series = reduce(
-        merge_series,
-        map(clean, tsdb_range_resolved.values()),
-        clean([(timestamp, 0) for timestamp in series]),
-    )
-    # end
-
     # Use outcomes to compute total errors and transactions
     outcomes_query = Query(
         dataset=Dataset.Outcomes.value,
@@ -292,17 +278,9 @@ def build_project_series(start__stop, project):
     ]
     transaction_series = zerofill_clean(transaction_series)
 
-    error_series = merge_series(
-        resolved_error_series,
-        total_error_series,
-        lambda resolved, total: (resolved, total - resolved),  # Resolved, Unresolved
-    )
-
-    # Format of this series: [(resolved , unresolved, transactions)]
+    # Format of this series: [(errors, transactions)]
     return merge_series(
-        error_series,
-        transaction_series,
-        lambda errors, transactions: errors + (transactions,),
+        total_error_series, transaction_series, lambda errors, transactions: (errors, transactions)
     )
 
 
@@ -997,11 +975,6 @@ class Key(NamedTuple):
     data: Mapping[str, int]
 
 
-class Point(NamedTuple):
-    resolved: int
-    unresolved: int
-
-
 class DistributionType(NamedTuple):
     label: str
     color: str
@@ -1030,8 +1003,7 @@ def build_project_breakdown_series(reports):
         for v in sorted(
             reports.items(),
             key=lambda project__report: sum(
-                resolved + unresolved
-                for _, (resolved, unresolved, transaction) in project__report[1].series
+                errors for _, (errors, transaction) in project__report[1].series
             ),
             reverse=True,
         )
@@ -1069,12 +1041,11 @@ def build_project_breakdown_series(reports):
         )
 
     def summarize_errors(key, points):
-        [resolved_errors, unresolved_errors, transactions] = points
-        total = resolved_errors + unresolved_errors
-        return [(key, total)] if total else []
+        [errors, transactions] = points
+        return [(key, errors)] if errors else []
 
     def summarize_transaction(key, points):
-        [resolved_errors, unresolved_errors, transactions] = points
+        [errors, transactions] = points
         return [(key, transactions)] if transactions else []
 
     # Collect all of the independent series into a single series to make it
