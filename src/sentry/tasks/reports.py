@@ -481,17 +481,6 @@ def clean_calendar_data(project, series, start, stop, rollup, timestamp=None):
     return map(remove_invalid_values, clean_series(start, stop, rollup, series))
 
 
-def build_project_calendar_series(interval, project):
-    start, stop = get_calendar_query_range(interval, 3)
-
-    rollup = ONE_DAY
-    series = tsdb.get_range(tsdb.models.project, [project.id], start, stop, rollup=rollup)[
-        project.id
-    ]
-
-    return clean_calendar_data(project, series, start, stop, rollup)
-
-
 def build_key_errors(interval, project):
     start, stop = interval
 
@@ -623,11 +612,6 @@ Report, build_project_report, merge_reports = build_report(
         ),
         ("issue_summaries", build_project_issue_summaries, merge_sequences),
         ("series_outcomes", build_project_usage_outcomes, merge_sequences),
-        (
-            "calendar_series",
-            build_project_calendar_series,
-            partial(merge_series, function=safe_add),
-        ),
         ("key_events", build_key_errors, partial(take_max_n, n=3)),
         ("key_transactions", build_key_transactions, partial(take_max_n, n=3)),
     ],
