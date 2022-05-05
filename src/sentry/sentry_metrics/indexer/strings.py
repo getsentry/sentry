@@ -98,6 +98,8 @@ SHARED_TAG_STRINGS = {
     "inlier": PREFIX + 229,
     # added after the initial definition
     "sdk": PREFIX + 230,  # release health
+    # GENERAL/MISC (don't have a category)
+    "": PREFIX + 1000,
 }
 SHARED_STRINGS = {**SESSION_METRIC_NAMES, **TRANSACTION_METRICS_NAMES, **SHARED_TAG_STRINGS}
 REVERSE_SHARED_STRINGS = {v: k for k, v in SHARED_STRINGS.items()}
