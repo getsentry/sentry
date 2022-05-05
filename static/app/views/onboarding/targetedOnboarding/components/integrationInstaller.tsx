@@ -47,13 +47,10 @@ function IntegrationInstaller({
   const {metadata, slug} = provider;
   const featureProps = {organization, features};
   const installButton = (disabled: boolean) => {
-    const size = 'small' as const;
-    const priority = 'primary' as const;
-
     const buttonProps = {
       style: {marginBottom: space(1)},
-      size,
-      priority,
+      size: 'small' as const,
+      priority: 'primary' as const,
       'data-test-id': 'install-button',
       disabled,
       organization,

@@ -118,15 +118,17 @@ function SetupDocs({organization, projects, search, configurations, providers}: 
     : null;
 
   useEffect(() => {
-    if (clientState) {
-      if (
-        // no integrations left on integration step
-        (subStep === 'integration' && !activeIntegration) ||
-        // If no projects remaining and no integrations to install, then we can leave
-        (subStep === 'project' && !project && !integrationsNotInstalled.length)
-      ) {
-        browserHistory.push('/');
-      }
+    // should not redirect if we don't have an active client state
+    if (!clientState) {
+      return;
+    }
+    if (
+      // no integrations left on integration step
+      (subStep === 'integration' && !activeIntegration) ||
+      // If no projects remaining and no integrations to install, then we can leave
+      (subStep === 'project' && !project && !integrationsNotInstalled.length)
+    ) {
+      browserHistory.push('/');
     }
   });
 
@@ -340,21 +342,20 @@ function SetupDocs({organization, projects, search, configurations, providers}: 
             const nextProjectSlug =
               nextPlatform && clientState.platformToProjectIdMap[nextPlatform];
             const nextProject = projects.find(p => p.slug === nextProjectSlug);
-            if (!nextProject) {
+            // if we have a next project, switch to that
+            if (nextProject) {
+              setNewProject(nextProject.id);
               // if we have integrations to install switch to that
-              if (integrationsNotInstalled.length) {
-                setNewActiveIntegration(integrationsNotInstalled[0]);
-              } else {
-                // We're done here.
-                setClientState({
-                  ...clientState,
-                  state: 'finished',
-                });
-                browserHistory.push(orgIssuesURL);
-              }
-              return;
+            } else if (integrationsNotInstalled.length) {
+              setNewActiveIntegration(integrationsNotInstalled[0]);
+              // otherwise no integrations and no projects so we're done
+            } else {
+              setClientState({
+                ...clientState,
+                state: 'finished',
+              });
+              browserHistory.push(orgIssuesURL);
             }
-            setNewProject(nextProject.id);
           }}
           handleFirstIssueReceived={() => {
             const newHasFirstEventMap = {...hasFirstEventMap, [project.id]: true};
