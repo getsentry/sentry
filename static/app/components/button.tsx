@@ -29,6 +29,7 @@ interface BaseButtonProps
   barId?: string;
   borderless?: boolean;
   busy?: boolean;
+  'data-test-id'?: string;
   disabled?: boolean;
   download?: HTMLAnchorElement['download'];
   external?: boolean;
