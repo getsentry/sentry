@@ -4,9 +4,10 @@ import type {eventWithTime} from 'rrweb/typings/types';
 
 import {MemorySpanType} from 'sentry/components/events/interfaces/spans/types';
 import {IssueAttachment} from 'sentry/types';
-import {Entry, Event} from 'sentry/types/event';
+import {Entry, Event, EventTransaction} from 'sentry/types/event';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
+import ReplayReader from 'sentry/utils/replays/replayReader';
 import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 
@@ -24,7 +25,7 @@ type State = {
   /**
    * The root replay event
    */
-  event: undefined | Event;
+  event: undefined | EventTransaction;
 
   /**
    * If any request returned an error then nothing is being returned
@@ -71,6 +72,7 @@ type Options = {
 
 interface Result extends State {
   onRetry: () => void;
+  replay: ReplayReader | null;
 }
 
 const IS_RRWEB_ATTACHMENT_FILENAME = /rrweb-[0-9]{13}.json/;
@@ -100,7 +102,7 @@ function useReplayEvent({eventSlug, location, orgId}: Options): Result {
   function fetchEvent() {
     return api.requestPromise(
       `/organizations/${orgId}/events/${eventSlug}/`
-    ) as Promise<Event>;
+    ) as Promise<EventTransaction>;
   }
 
   async function fetchRRWebEvents() {
@@ -215,6 +217,7 @@ function useReplayEvent({eventSlug, location, orgId}: Options): Result {
     fetchError: state.fetchError,
     fetching: state.fetching,
     onRetry,
+    replay: ReplayReader.factory(state.event, state.rrwebEvents, state.replayEvents),
 
     breadcrumbEntry: state.breadcrumbEntry,
     event: state.event,
