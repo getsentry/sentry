@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Type from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type';
@@ -14,8 +14,10 @@ import {
 } from 'sentry/components/panels';
 import ActionCategory from 'sentry/components/replays/actionCategory';
 import PlayerRelativeTime from 'sentry/components/replays/playerRelativeTime';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
+import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import space from 'sentry/styles/space';
-import {RawCrumb} from 'sentry/types/breadcrumbs';
+import {Crumb, RawCrumb} from 'sentry/types/breadcrumbs';
 import {Event} from 'sentry/types/event';
 
 type Props = {
@@ -24,6 +26,15 @@ type Props = {
 };
 
 function UserActionsNavigator({event, crumbs}: Props) {
+  const {setCurrentTime} = useReplayContext();
+  const [currentUserAction, setCurrentUserAction] = useState<Crumb>();
+
+  useEffect(() => {
+    currentUserAction?.timestamp &&
+      startTimestamp &&
+      setCurrentTime(relativeTimeInMs(currentUserAction.timestamp, startTimestamp));
+  }, [currentUserAction]);
+
   if (!event) {
     return null;
   }
@@ -37,7 +48,15 @@ function UserActionsNavigator({event, crumbs}: Props) {
 
       <PanelBody>
         {userActionCrumbs.map(item => (
-          <PanelItemCenter key={item.id}>
+          <PanelItemCenter
+            key={item.id}
+            className={
+              currentUserAction && currentUserAction.id === item.id ? 'selected' : ''
+            }
+            onClick={() => {
+              setCurrentUserAction(item);
+            }}
+          >
             <Wrapper>
               <Type type={item.type} color={item.color} description={item.description} />
               <ActionCategory category={item} />
@@ -84,6 +103,14 @@ const PanelItemCenter = styled(PanelItem)`
   align-items: center;
   border-bottom: none;
   padding: ${space(1)} ${space(1.5)};
+  cursor: pointer;
+  &:hover {
+    background: ${p => p.theme.surface400};
+    border-color: transparent;
+  }
+  &.selected {
+    background-color: ${p => p.theme.gray100};
+  }
 `;
 
 const Wrapper = styled('div')`

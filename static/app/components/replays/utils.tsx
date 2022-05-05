@@ -18,8 +18,14 @@ const MINUTE = 60 * SECOND;
 const HOUR = 60 * MINUTE;
 const TIME_FORMAT = 'HH:mm:ss';
 
-export default function showPlayerTime(timestamp: string, relativeTime: number): string {
-  return moment(moment(timestamp).diff(relativeTime * 1000)).format(TIME_FORMAT);
+export function relativeTimeInMs(timestamp: string, relativeTime: number): number {
+  return moment(timestamp)
+    .diff(relativeTime * 1000)
+    .valueOf();
+}
+
+export function showPlayerTime(timestamp: string, relativeTime: number): string {
+  return moment(relativeTimeInMs(timestamp, relativeTime)).format(TIME_FORMAT);
 }
 
 // TODO: move into 'sentry/utils/formatters'

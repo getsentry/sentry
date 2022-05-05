@@ -1,7 +1,6 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
-import showPlayerTime from './utils';
+import {showPlayerTime} from './utils';
 
 type Props = {
   relativeTime: number | undefined;
