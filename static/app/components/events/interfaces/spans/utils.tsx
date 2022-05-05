@@ -499,17 +499,15 @@ export function isEventFromBrowserJavaScriptSDK(event: EventTransaction): boolea
 export const durationlessBrowserOps = ['mark', 'paint'];
 
 type Measurements = {
-  [name: string]: number | undefined;
+  [name: string]: {
+    timestamp: number;
+    value: number | undefined;
+  };
 };
 
 type VerticalMark = {
   failedThreshold: boolean;
   marks: Measurements;
-};
-
-type MeasurementPaylaod = {
-  timestamp: number;
-  verticalMark: VerticalMark;
 };
 
 function hasFailedThreshold(marks: Measurements): boolean {
@@ -527,9 +525,7 @@ function hasFailedThreshold(marks: Measurements): boolean {
   });
 }
 
-export function getMeasurements(
-  event: EventTransaction
-): Map<number, MeasurementPaylaod> {
+export function getMeasurements(event: EventTransaction): Map<number, VerticalMark> {
   if (!event.measurements) {
     return new Map();
   }
@@ -546,48 +542,43 @@ export function getMeasurements(
       };
     });
 
-  const mergedMeasurements = new Map<number, MeasurementPaylaod>();
+  const mergedMeasurements = new Map<number, VerticalMark>();
 
   measurements.forEach(measurement => {
     const name = measurement.name.slice('mark.'.length);
     const value = measurement.value;
-    // Round to the nearest second to determine if measurements will be merged
-    const roundedTimestamp = Math.ceil(measurement.timestamp / 10);
+
+    // Round the timestamp to the nearest 10th of a millisecond to allow for bucketing of measurements
+    const roundedTimestamp = Math.ceil((measurement.timestamp * 1000) / 10);
 
     if (mergedMeasurements.has(roundedTimestamp)) {
-      const verticalMark = mergedMeasurements.get(roundedTimestamp)!.verticalMark;
+      const verticalMark = mergedMeasurements.get(roundedTimestamp)!;
 
       verticalMark.marks = {
         ...verticalMark.marks,
-        [name]: value,
+        [name]: {
+          value,
+          timestamp: measurement.timestamp,
+        },
       };
 
       if (!verticalMark.failedThreshold) {
         verticalMark.failedThreshold = hasFailedThreshold(verticalMark.marks);
       }
 
-      mergedMeasurements.set(roundedTimestamp, {
-        timestamp: measurement.timestamp,
-        verticalMark,
-      });
+      mergedMeasurements.set(roundedTimestamp, verticalMark);
       return;
     }
 
     const marks = {
-      [name]: value,
-    };
-
-    const verticalMark = {
-      marks,
-      failedThreshold: hasFailedThreshold(marks),
+      [name]: {value, timestamp: measurement.timestamp},
     };
 
     mergedMeasurements.set(roundedTimestamp, {
-      timestamp: measurement.timestamp,
-      verticalMark,
+      marks,
+      failedThreshold: hasFailedThreshold(marks),
     });
   });
-
   return mergedMeasurements;
 }
 
