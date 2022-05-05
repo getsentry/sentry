@@ -49,16 +49,22 @@ export function functionsRouteWithQuery({
   location,
   orgSlug,
   projectSlug,
+  transaction,
+  version,
 }: {
   location: Location;
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
+  transaction: string;
+  version: string;
 }): LocationDescriptor {
   const pathname = generateFunctionsRoute({orgSlug, projectSlug});
   return {
     pathname,
     query: {
       ...location.query,
+      transaction,
+      version,
     },
   };
 }
