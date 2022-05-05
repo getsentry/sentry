@@ -198,7 +198,6 @@ class TagStorage(Service):
         key,
         query=None,
         order_by="-last_seen",
-        sampling=False,
     ):
         """
         >>> get_tag_value_paginator(1, 2, 'environment', query='prod')
@@ -214,7 +213,6 @@ class TagStorage(Service):
         end,
         query=None,
         order_by="-last_seen",
-        sampling=False,
     ):
         """
         Includes tags and also snuba columns, with the arrayjoin when they are nested.

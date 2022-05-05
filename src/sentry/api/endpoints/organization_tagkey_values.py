@@ -2,7 +2,7 @@ import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, tagstore
+from sentry import tagstore
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import SequencePaginator
 from sentry.api.serializers import serialize
@@ -22,10 +22,6 @@ class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):
         except NoProjects:
             paginator = SequencePaginator([])
         else:
-            sampling = features.has(
-                "organizations:discover-tagstore-sampling", organization, actor=request.user
-            )
-            sentry_sdk.set_tag("discover.tagstore_sampling", sampling)
             with self.handle_query_errors():
                 environment_ids = None
                 if "environment_objects" in filter_params:
@@ -39,7 +35,6 @@ class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):
                     query=request.GET.get("query"),
                     include_transactions=request.GET.get("includeTransactions") == "1",
                     include_sessions=request.GET.get("includeSessions") == "1",
-                    sampling=sampling,
                 )
 
         return self.paginate(
