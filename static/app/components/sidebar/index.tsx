@@ -90,7 +90,7 @@ function Sidebar({location, organization}: Props) {
   useEffect(() => {
     bcl.add('body-sidebar');
     return () => bcl.remove('body-sidebar');
-  }, []);
+  }, [bcl]);
 
   // Add sidebar collapse classname to body
   useEffect(() => {
@@ -101,7 +101,7 @@ function Sidebar({location, organization}: Props) {
     }
 
     return () => bcl.remove('collapsed');
-  }, [collapsed]);
+  }, [collapsed, bcl]);
 
   // Trigger panels depending on the location hash
   useEffect(() => {
