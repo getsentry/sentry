@@ -7,7 +7,7 @@ import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import Textarea from 'sentry/components/forms/controls/textarea';
 import SelectField from 'sentry/components/forms/selectField';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -17,6 +17,7 @@ import useProjects from 'sentry/utils/useProjects';
 
 import ButtonBar from '../buttonBar';
 import Field from '../forms/field';
+import ExternalLink from '../links/externalLink';
 
 const feedbackClient = new BrowserClient({
   // feedback project under Sentry organization
@@ -45,7 +46,7 @@ export function FeedbackModal({
   const {organization} = useLegacyStore(OrganizationStore);
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const location = useLocation();
-  const {user} = useLegacyStore(ConfigStore);
+  const {user, isSelfHosted} = ConfigStore.getConfig();
 
   const [state, setState] = useState<State>({
     subject: undefined,
@@ -131,6 +132,16 @@ export function FeedbackModal({
             }
           />
         </Field>
+        {isSelfHosted && (
+          <p>
+            {tct(
+              "You agree that any feedback you submit is subject to Sentry's [privacyPolicy:Privacy Policy] and Sentry may use such feedback without restriction or obligation.",
+              {
+                privacyPolicy: <ExternalLink href="https://sentry.io/privacy/" />,
+              }
+            )}
+          </p>
+        )}
       </Body>
       <Footer>
         <ButtonBar gap={1}>
