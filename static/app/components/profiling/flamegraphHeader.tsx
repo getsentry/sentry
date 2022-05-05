@@ -40,7 +40,7 @@ function FlamegraphHeader() {
           />
         </Layout.HeaderContent>
         <Layout.HeaderNavTabs underlined>
-          <li className={params.flamegraphTab === 'summary' ? 'active' : undefined}>
+          <li className={location.pathname.endsWith('summary/') ? 'active' : undefined}>
             <Link
               to={generateFlamegraphSummaryRouteWithQuery({
                 orgSlug: organization.slug,
@@ -52,7 +52,9 @@ function FlamegraphHeader() {
               Summary
             </Link>
           </li>
-          <li className={params.flamegraphTab === 'flamegraph' ? 'active' : undefined}>
+          <li
+            className={location.pathname.endsWith('flamegraph/') ? 'active' : undefined}
+          >
             <Link
               to={generateFlamegraphRouteWithQuery({
                 orgSlug: organization.slug,

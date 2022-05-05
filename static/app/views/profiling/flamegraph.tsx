@@ -33,23 +33,24 @@ function FlamegraphView(): React.ReactElement {
       <SentryDocumentTitle
         title={t('Profiling - Flamegraph')}
         orgSlug={organization.slug}
-      />
-      <FlamegraphContainer>
-        {profileGroup.type === 'errored' ? (
-          <Alert type="error" showIcon>
-            {profileGroup.error}
-          </Alert>
-        ) : profileGroup.type === 'loading' ? (
-          <Fragment>
-            <Flamegraph onImport={onImport} profiles={LoadingGroup} />
-            <LoadingIndicatorContainer>
-              <LoadingIndicator />
-            </LoadingIndicatorContainer>
-          </Fragment>
-        ) : profileGroup.type === 'resolved' ? (
-          <Flamegraph onImport={onImport} profiles={profileGroup.data} />
-        ) : null}
-      </FlamegraphContainer>
+      >
+        <FlamegraphContainer>
+          {profileGroup.type === 'errored' ? (
+            <Alert type="error" showIcon>
+              {profileGroup.error}
+            </Alert>
+          ) : profileGroup.type === 'loading' ? (
+            <Fragment>
+              <Flamegraph onImport={onImport} profiles={LoadingGroup} />
+              <LoadingIndicatorContainer>
+                <LoadingIndicator />
+              </LoadingIndicatorContainer>
+            </Fragment>
+          ) : profileGroup.type === 'resolved' ? (
+            <Flamegraph onImport={onImport} profiles={profileGroup.data} />
+          ) : null}
+        </FlamegraphContainer>
+      </SentryDocumentTitle>
     </Fragment>
   );
 }

@@ -45,31 +45,32 @@ function FlamegraphSummary() {
 
   return (
     <Fragment>
-      <SentryDocumentTitle orgSlug={organization.slug} />
-      <Layout.Body>
-        <Layout.Main fullWidth>
-          <GridEditable
-            title="Slowest Application Calls"
-            isLoading={state.type === 'loading'}
-            error={state.type === 'errored'}
-            data={functions.slowestApplicationCalls}
-            columnOrder={COLUMN_ORDER.map(key => COLUMNS[key])}
-            columnSortBy={[]}
-            grid={{renderBodyCell: renderFunctionCell}}
-            location={location}
-          />
-          <GridEditable
-            title="Slowest System Calls"
-            isLoading={state.type === 'loading'}
-            error={state.type === 'errored'}
-            data={functions.slowestSystemCalls}
-            columnOrder={COLUMN_ORDER.map(key => COLUMNS[key])}
-            columnSortBy={[]}
-            grid={{renderBodyCell: renderFunctionCell}}
-            location={location}
-          />
-        </Layout.Main>
-      </Layout.Body>
+      <SentryDocumentTitle title={t('Profiling - Function')} orgSlug={organization.slug}>
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            <GridEditable
+              title="Slowest Application Calls"
+              isLoading={state.type === 'loading'}
+              error={state.type === 'errored'}
+              data={functions.slowestApplicationCalls}
+              columnOrder={COLUMN_ORDER.map(key => COLUMNS[key])}
+              columnSortBy={[]}
+              grid={{renderBodyCell: renderFunctionCell}}
+              location={location}
+            />
+            <GridEditable
+              title="Slowest System Calls"
+              isLoading={state.type === 'loading'}
+              error={state.type === 'errored'}
+              data={functions.slowestSystemCalls}
+              columnOrder={COLUMN_ORDER.map(key => COLUMNS[key])}
+              columnSortBy={[]}
+              grid={{renderBodyCell: renderFunctionCell}}
+              location={location}
+            />
+          </Layout.Main>
+        </Layout.Body>
+      </SentryDocumentTitle>
     </Fragment>
   );
 }

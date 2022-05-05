@@ -1900,16 +1900,15 @@ function buildRoutes() {
         componentPromise={() => import('sentry/views/profiling/profileGroupProvider')}
       >
         <Route
-          path="flamegraph/:projectId/:eventId/"
-          componentPromise={() => import('sentry/views/profiling/flamegraphProvider')}
+          path="summary/"
           component={SafeLazyLoad}
-        >
-          <Route
-            path=":flamegraphTab/"
-            component={SafeLazyLoad}
-            componentPromise={() => import('sentry/views/profiling/flamegraphView')}
-          />
-        </Route>
+          componentPromise={() => import('sentry/views/profiling/flamegraphSummary')}
+        />
+        <Route
+          path="flamegraph/"
+          component={SafeLazyLoad}
+          componentPromise={() => import('sentry/views/profiling/flamegraph')}
+        />
       </Route>
     </Route>
   );

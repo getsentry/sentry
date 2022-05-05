@@ -26,7 +26,7 @@ export function generateFlamegraphRoute({
   profileId: Trace['id'];
   projectSlug: Project['slug'];
 }): string {
-  return `/organizations/${orgSlug}/profiling/flamegraph/${projectSlug}/${profileId}/flamegraph`;
+  return `/organizations/${orgSlug}/profiling/flamegraph/${projectSlug}/${profileId}/flamegraph/`;
 }
 
 export function generateFlamegraphSummaryRoute({
