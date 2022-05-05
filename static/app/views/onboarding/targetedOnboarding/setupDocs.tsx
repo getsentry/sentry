@@ -1,7 +1,6 @@
 import 'prism-sentry/index.css';
 
-import {useEffect, useState} from 'react';
-import * as React from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import {browserHistory} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -184,7 +183,7 @@ function SetupDocs({organization, projects, search}: Props) {
   );
 
   return (
-    <React.Fragment>
+    <Fragment>
       <Wrapper>
         <TargetedOnboardingSidebar
           projects={projects}
@@ -262,7 +261,7 @@ function SetupDocs({organization, projects, search}: Props) {
           }}
         />
       )}
-    </React.Fragment>
+    </Fragment>
   );
 }
 
