@@ -5,11 +5,8 @@ import GridEditable, {
   GridColumnOrder,
 } from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {Breadcrumb} from 'sentry/components/profiling/breadcrumb';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {Project} from 'sentry/types';
-import {Trace} from 'sentry/types/profiling/core';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {getSlowestProfileCallsFromProfileGroup} from 'sentry/utils/profiling/profile/utils';
@@ -19,15 +16,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import {useProfileGroup} from './profileGroupProvider';
 
-type FlamegraphSummaryProps = {
-  location: Location;
-  params: {
-    eventId?: Trace['id'];
-    projectId?: Project['id'];
-  };
-};
-
-function FlamegraphSummary(props: FlamegraphSummaryProps) {
+function FlamegraphSummary() {
   const location = useLocation();
   const [state] = useProfileGroup();
   const organization = useOrganization();
@@ -56,29 +45,7 @@ function FlamegraphSummary(props: FlamegraphSummaryProps) {
 
   return (
     <Fragment>
-      <SentryDocumentTitle
-        title={t('Profiling - Profile Functions')}
-        orgSlug={organization.slug}
-      />
-      <Layout.Header>
-        <Layout.HeaderContent>
-          <Breadcrumb
-            location={location}
-            organization={organization}
-            trails={[
-              {type: 'landing'},
-              {
-                type: 'flamegraph',
-                payload: {
-                  transaction: state.type === 'resolved' ? state.data.name : '',
-                  profileId: props.params.eventId ?? '',
-                  projectSlug: props.params.projectId ?? '',
-                },
-              },
-            ]}
-          />
-        </Layout.HeaderContent>
-      </Layout.Header>
+      <SentryDocumentTitle orgSlug={organization.slug} />
       <Layout.Body>
         <Layout.Main fullWidth>
           <GridEditable
