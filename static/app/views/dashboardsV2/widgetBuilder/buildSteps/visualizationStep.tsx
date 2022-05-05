@@ -21,25 +21,6 @@ import {displayTypes} from '../utils';
 
 import {BuildStep} from './buildStep';
 
-const DisplayOptionLabel = styled('span')`
-  display: flex;
-  justify-content: space-between;
-  width: calc(100% - ${space(1)});
-`;
-
-const DISPLAY_OPTIONS = Object.keys(displayTypes).map(value => ({
-  label:
-    value === DisplayType.TOP_N ? (
-      <DisplayOptionLabel>
-        {displayTypes[value]}
-        <Tag type="info">{t('deprecated')}</Tag>
-      </DisplayOptionLabel>
-    ) : (
-      displayTypes[value]
-    ),
-  value,
-}));
-
 interface Props {
   displayType: DisplayType;
   onChange: (displayType: DisplayType) => void;
@@ -83,6 +64,20 @@ export function VisualizationStep({
     };
   }, [widget, previousWidget]);
 
+  const displayOptions = Object.keys(displayTypes).map(value => ({
+    label:
+      organization.features.includes('new-widget-builder-experience-design') &&
+      value === DisplayType.TOP_N ? (
+        <DisplayOptionLabel>
+          {displayTypes[value]}
+          <Tag type="info">{t('deprecated')}</Tag>
+        </DisplayOptionLabel>
+      ) : (
+        displayTypes[value]
+      ),
+    value,
+  }));
+
   return (
     <BuildStep
       title={t('Choose your visualization')}
@@ -93,7 +88,7 @@ export function VisualizationStep({
       <Field error={error} inline={false} flexibleControlStateSize stacked>
         <SelectControl
           name="displayType"
-          options={DISPLAY_OPTIONS}
+          options={displayOptions}
           value={displayType}
           onChange={(option: SelectValue<DisplayType>) => {
             onChange(option.value);
@@ -146,4 +141,10 @@ const VisualizationWrapper = styled('div')<{displayType: DisplayType}>`
         height: 301px;
       }
     `};
+`;
+
+const DisplayOptionLabel = styled('span')`
+  display: flex;
+  justify-content: space-between;
+  width: calc(100% - ${space(1)});
 `;
