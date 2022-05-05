@@ -256,6 +256,18 @@ class SnubaSessionsV2Test(TestCase, SnubaTestCase):
         # the request.
         assert "project_id" not in query_def.conditions
 
+    def test_filter_env_in_query(self):
+        params = self._get_default_params()
+        params["environment"] = "production"
+        query_def = _make_query(
+            "field=sum(session)&groupBy=project&interval=1h&query=environment%3Aproduction&statsPeriod=7d",
+            params=params,
+        )
+
+        assert query_def.query == "environment:production"
+        assert query_def.params["environment"] == "production"
+        assert query_def.params["organization_id"] == self.organization.id
+
 
 @freeze_time("2020-12-18T11:14:17.105Z")
 def test_massage_empty():
