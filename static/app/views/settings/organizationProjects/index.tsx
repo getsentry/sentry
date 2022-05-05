@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -101,7 +101,7 @@ class OrganizationProjects extends AsyncView<Props, State> {
     );
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SettingsPageHeader title="Projects" action={action} />
         <SearchWrapper>
           {this.renderSearchInput({
@@ -143,7 +143,7 @@ class OrganizationProjects extends AsyncView<Props, State> {
         {projectListPageLinks && (
           <Pagination pageLinks={projectListPageLinks} {...this.props} />
         )}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

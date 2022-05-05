@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import {motion} from 'framer-motion';
 
 import {PlatformKey} from 'sentry/data/platformCategories';
@@ -19,7 +19,7 @@ export default function FullIntroduction({currentPlatform, organization}: Props)
     isMobile() &&
     organization.experiments.TargetedOnboardingMobileRedirectExperiment === 'email-cta';
   return (
-    <React.Fragment>
+    <Fragment>
       <SetupIntroduction
         stepHeaderText={t(
           'Prepare the %s SDK',
@@ -40,6 +40,6 @@ export default function FullIntroduction({currentPlatform, organization}: Props)
           )}
         </motion.p>
       )}
-    </React.Fragment>
+    </Fragment>
   );
 }
