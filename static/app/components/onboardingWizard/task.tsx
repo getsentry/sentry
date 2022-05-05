@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {forwardRef} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
@@ -287,7 +287,7 @@ TaskBlankAvatar.defaultProps = {
 
 const WrappedTask = withOrganization(withRouter(Task));
 
-export default React.forwardRef<
+export default forwardRef<
   HTMLDivElement,
   Omit<React.ComponentProps<typeof WrappedTask>, 'forwardedRef'>
 >((props, ref) => <WrappedTask forwardedRef={ref} {...props} />);

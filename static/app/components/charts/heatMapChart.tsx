@@ -1,6 +1,6 @@
 import './components/visualMap';
 
-import * as React from 'react';
+import {forwardRef} from 'react';
 import type {HeatmapSeriesOption, VisualMapComponentOption} from 'echarts';
 
 import {ReactEchartsRef, Series} from 'sentry/types/echarts';
@@ -21,7 +21,7 @@ type Props = Omit<ChartProps, 'series'> & {
   seriesOptions?: HeatmapSeriesOption;
 };
 
-export default React.forwardRef<ReactEchartsRef, Props>((props, ref) => {
+export default forwardRef<ReactEchartsRef, Props>((props, ref) => {
   const {series, seriesOptions, visualMaps, ...otherProps} = props;
   return (
     <BaseChart
