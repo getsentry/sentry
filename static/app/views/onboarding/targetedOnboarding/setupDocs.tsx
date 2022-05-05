@@ -1,7 +1,6 @@
 import 'prism-sentry/index.css';
 
-import {useEffect, useState} from 'react';
-import * as React from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import {browserHistory} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -265,7 +264,7 @@ function SetupDocs({
   );
 
   return (
-    <React.Fragment>
+    <Fragment>
       <Wrapper>
         <SidebarWrapper>
           <ProjectSidebarSection
@@ -297,7 +296,7 @@ function SetupDocs({
         </SidebarWrapper>
         <MainContent>
           {subStep === 'project' ? (
-            <React.Fragment>
+            <Fragment>
               <FullIntroduction
                 currentPlatform={currentPlatform}
                 organization={organization}
@@ -306,7 +305,7 @@ function SetupDocs({
                 value: !hasError ? docs : loadingError,
                 fixed: testOnlyAlert,
               })}
-            </React.Fragment>
+            </Fragment>
           ) : null}
           {activeProvider && (
             <IntegrationInstaller
@@ -404,7 +403,7 @@ function SetupDocs({
           }}
         />
       )}
-    </React.Fragment>
+    </Fragment>
   );
 }
 

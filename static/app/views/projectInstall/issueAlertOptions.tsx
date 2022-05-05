@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
@@ -287,7 +287,7 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
       this.state.conditions?.length > 0
     );
     return (
-      <React.Fragment>
+      <Fragment>
         <PageHeadingWithTopMargins withMargins>
           {t('Set your default alert settings')}
         </PageHeadingWithTopMargins>
@@ -297,7 +297,7 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
           onChange={alertSetting => this.setStateAndUpdateParents({alertSetting})}
           value={this.state.alertSetting}
         />
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

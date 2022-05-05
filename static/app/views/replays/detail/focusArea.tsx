@@ -1,15 +1,17 @@
-import React, {useState} from 'react';
+import React from 'react';
 
 import EventEntry from 'sentry/components/events/eventEntry';
-import {MemorySpanType} from 'sentry/components/events/interfaces/spans/types';
+import type {MemorySpanType} from 'sentry/components/events/interfaces/spans/types';
 import TagsTable from 'sentry/components/tagsTable';
-import {Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 
-import {TabBarId} from '../types';
+import {isReplayTab, ReplayTabs} from '../types';
 
 import FocusTabs from './focusTabs';
+import IssueList from './issueList';
 import MemoryChart from './memoryChart';
 
 type Props = {
@@ -18,13 +20,17 @@ type Props = {
   memorySpans: MemorySpanType[] | undefined;
 };
 
+const DEFAULT_TAB = ReplayTabs.PERFORMANCE;
+
 function FocusArea(props: Props) {
-  const [active, setActive] = useState<TabBarId>('performance');
+  const location = useLocation();
+  const hash = location.hash.replace(/^#/, '');
+  const tabFromHash = isReplayTab(hash) ? hash : DEFAULT_TAB;
 
   return (
     <React.Fragment>
-      <FocusTabs active={active} setActive={setActive} />
-      <ActiveTab active={active} {...props} />
+      <FocusTabs active={tabFromHash} />
+      <ActiveTab active={tabFromHash} {...props} />
     </React.Fragment>
   );
 }
@@ -34,12 +40,10 @@ function ActiveTab({
   event,
   eventWithSpans,
   memorySpans,
-}: Props & {active: TabBarId}) {
+}: Props & {active: ReplayTabs}) {
   const {routes, router} = useRouteContext();
   const organization = useOrganization();
   switch (active) {
-    case 'console':
-      return <div id="console">TODO: Add a console view</div>;
     case 'performance':
       return eventWithSpans ? (
         <div id="performance">
@@ -55,8 +59,12 @@ function ActiveTab({
           />
         </div>
       ) : null;
-    case 'errors':
-      return <div id="errors">TODO: Add an errors view</div>;
+    case 'issues':
+      return (
+        <div id="issues">
+          <IssueList replayId={event.id} projectId={event.projectID} />
+        </div>
+      );
     case 'tags':
       return (
         <div id="tags">

@@ -2,11 +2,11 @@ from unittest.mock import patch
 
 from django.db import IntegrityError
 
+from sentry import audit_log
 from sentry.mediators.sentry_apps import Creator
 from sentry.models import (
     ApiApplication,
     AuditLogEntry,
-    AuditLogEntryEvent,
     IntegrationFeature,
     SentryApp,
     SentryAppComponent,
@@ -127,7 +127,7 @@ class TestCreator(TestCase):
             request=request,
             is_internal=False,
         )
-        assert AuditLogEntry.objects.filter(event=AuditLogEntryEvent.SENTRY_APP_ADD).exists()
+        assert AuditLogEntry.objects.filter(event=audit_log.get_event_id("SENTRY_APP_ADD")).exists()
 
     def test_blank_schema(self):
         self.creator.schema = ""

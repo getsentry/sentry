@@ -1,6 +1,6 @@
 from django.db.models import Q
 
-from sentry import features
+from sentry import audit_log, features
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -8,7 +8,7 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.validators import MonitorValidator
 from sentry.db.models.query import in_iexact
-from sentry.models import AuditLogEntryEvent, Monitor, MonitorStatus, MonitorType
+from sentry.models import Monitor, MonitorStatus, MonitorType
 from sentry.search.utils import tokenize_query
 
 
@@ -113,7 +113,7 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
             request=request,
             organization=organization,
             target_object=monitor.id,
-            event=AuditLogEntryEvent.MONITOR_ADD,
+            event=audit_log.get_event_id("MONITOR_ADD"),
             data=monitor.get_audit_log_data(),
         )
 
