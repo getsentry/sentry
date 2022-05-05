@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import memoize from 'lodash/memoize';
 import partition from 'lodash/partition';
 import uniqBy from 'lodash/uniqBy';
@@ -119,7 +119,7 @@ type Props = {
   slugs?: string[];
 } & DefaultProps;
 
-class BaseProjects extends React.Component<Props, State> {
+class BaseProjects extends Component<Props, State> {
   static defaultProps: DefaultProps = {
     passthroughPlaceholderProject: true,
   };

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {assignToActor, assignToUser, clearAssignment} from 'sentry/actionCreators/group';
@@ -58,7 +58,7 @@ type State = {
   suggestedOwners?: SuggestedOwner[] | null;
 };
 
-class AssigneeSelector extends React.Component<Props, State> {
+class AssigneeSelector extends Component<Props, State> {
   static defaultProps = {
     size: 20,
   };

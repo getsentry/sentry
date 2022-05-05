@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import isEqual from 'lodash/isEqual';
 
 import {Client} from 'sentry/api';
@@ -62,7 +62,7 @@ type State = {
   totalCount: null | string;
 };
 
-class IssueWidgetQueries extends React.Component<Props, State> {
+class IssueWidgetQueries extends Component<Props, State> {
   state: State = {
     loading: true,
     errorMessage: undefined,

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import upperFirst from 'lodash/upperFirst';
 
 import ClippedBox from 'sentry/components/clippedBox';
@@ -21,7 +21,7 @@ type Props = {
   };
 };
 
-class StateContextType extends React.Component<Props> {
+class StateContextType extends Component<Props> {
   getStateTitle(name: string, type?: string) {
     return `${name}${type ? ` (${upperFirst(type)})` : ''}`;
   }

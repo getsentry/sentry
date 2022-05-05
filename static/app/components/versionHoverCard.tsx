@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {Client} from 'sentry/api';
@@ -42,7 +42,7 @@ type State = {
   visible: boolean;
 };
 
-class VersionHoverCard extends React.Component<Props, State> {
+class VersionHoverCard extends Component<Props, State> {
   state: State = {
     visible: false,
   };

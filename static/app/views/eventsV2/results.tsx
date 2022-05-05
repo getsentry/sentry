@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -89,7 +89,7 @@ function getYAxis(location: Location, eventView: EventView, savedQuery?: SavedQu
     : [eventView.getYAxis()];
 }
 
-class Results extends React.Component<Props, State> {
+class Results extends Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
     if (nextProps.savedQuery || !nextProps.loading) {
       const eventView = EventView.fromSavedQueryOrLocation(

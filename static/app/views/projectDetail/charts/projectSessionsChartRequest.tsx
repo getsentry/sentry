@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {withTheme} from '@emotion/react';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
@@ -65,7 +65,7 @@ type State = {
   totalSessions: number | null;
 };
 
-class ProjectSessionsChartRequest extends React.Component<Props, State> {
+class ProjectSessionsChartRequest extends Component<Props, State> {
   state: State = {
     reloading: false,
     errored: false,

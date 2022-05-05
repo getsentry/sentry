@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
@@ -86,7 +86,7 @@ type Props = {
   submitPriority?: ButtonProps['priority'];
 } & Pick<FormOptions, 'onSubmitSuccess' | 'onSubmitError' | 'onFieldChange'>;
 
-export default class Form extends React.Component<Props> {
+export default class Form extends Component<Props> {
   constructor(props: Props, context: FormContextData) {
     super(props, context);
     const {

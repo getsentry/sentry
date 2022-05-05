@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import GroupingActions from 'sentry/actions/groupingActions';
@@ -21,7 +21,7 @@ type State = {
   collapsed: boolean;
 };
 
-class MergedItem extends React.Component<Props, State> {
+class MergedItem extends Component<Props, State> {
   state: State = {
     collapsed: false,
     checked: false,

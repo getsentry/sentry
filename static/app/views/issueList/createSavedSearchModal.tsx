@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -33,7 +33,7 @@ const DEFAULT_SORT_OPTIONS = [
   IssueSortOptions.USER,
 ];
 
-class CreateSavedSearchModal extends React.Component<Props, State> {
+class CreateSavedSearchModal extends Component<Props, State> {
   state: State = {
     isSaving: false,
     error: null,

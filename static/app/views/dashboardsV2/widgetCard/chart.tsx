@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {InjectedRouter} from 'react-router';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -89,7 +89,7 @@ type State = {
   containerHeight: number;
 };
 
-class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
+class WidgetCardChart extends Component<WidgetCardChartProps, State> {
   state = {containerHeight: 0};
 
   shouldComponentUpdate(nextProps: WidgetCardChartProps, nextState: State): boolean {

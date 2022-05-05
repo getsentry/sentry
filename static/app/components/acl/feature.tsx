@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 
 import HookStore from 'sentry/stores/hookStore';
 import {Config, Organization, Project} from 'sentry/types';
@@ -102,7 +102,7 @@ type AllFeatures = {
 /**
  * Component to handle feature flags.
  */
-class Feature extends React.Component<Props> {
+class Feature extends Component<Props> {
   static defaultProps = {
     renderDisabled: false,
     requireAll: true,

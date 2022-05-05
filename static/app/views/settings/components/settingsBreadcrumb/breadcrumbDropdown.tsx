@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 
 import DropdownAutoCompleteMenu from 'sentry/components/dropdownAutoComplete/menu';
 import {Item} from 'sentry/components/dropdownAutoComplete/types';
@@ -29,7 +29,7 @@ type State = {
   isOpen: boolean;
 };
 
-class BreadcrumbDropdown extends React.Component<BreadcrumbDropdownProps, State> {
+class BreadcrumbDropdown extends Component<BreadcrumbDropdownProps, State> {
   state: State = {
     isOpen: false,
   };

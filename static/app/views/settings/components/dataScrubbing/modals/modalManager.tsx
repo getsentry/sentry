@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
@@ -50,7 +50,7 @@ type State = {
   values: Values;
 };
 
-class ModalManager<T extends ProjectId> extends React.Component<Props<T>, State> {
+class ModalManager<T extends ProjectId> extends Component<Props<T>, State> {
   state = this.getDefaultState();
 
   componentDidMount() {

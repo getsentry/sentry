@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 
 import ClippedBox from 'sentry/components/clippedBox';
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
@@ -12,7 +12,7 @@ type Props = {
   data: Record<string, any>;
 };
 
-class ReduxContextType extends React.Component<Props> {
+class ReduxContextType extends Component<Props> {
   getKnownData(): KeyValueListData {
     return [
       {

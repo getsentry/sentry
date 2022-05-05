@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -36,7 +36,7 @@ type State = {
   savedQuery: SavedQuery | undefined;
 };
 
-class ResultsHeader extends React.Component<Props, State> {
+class ResultsHeader extends Component<Props, State> {
   state: State = {
     savedQuery: undefined,
     loading: true,

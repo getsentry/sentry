@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 import * as qs from 'query-string';
@@ -111,7 +111,7 @@ type State = {
   showBackupAvatar: boolean;
 };
 
-class BaseAvatar extends React.Component<Props, State> {
+class BaseAvatar extends Component<Props, State> {
   static defaultProps = defaultProps;
 
   constructor(props: Props) {

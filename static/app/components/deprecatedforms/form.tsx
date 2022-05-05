@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -44,7 +44,7 @@ export type Context = FormContextData;
 class Form<
   Props extends FormProps = FormProps,
   State extends FormClassState = FormClassState
-> extends React.Component<Props, State> {
+> extends Component<Props, State> {
   static defaultProps = {
     cancelLabel: t('Cancel'),
     submitLabel: t('Save Changes'),

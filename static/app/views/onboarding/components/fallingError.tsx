@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {motion} from 'framer-motion';
 
 import testableTransition from 'sentry/utils/testableTransition';
@@ -20,7 +20,7 @@ type State = {
   isFalling: boolean;
 };
 
-class FallingError extends React.Component<Props, State> {
+class FallingError extends Component<Props, State> {
   state: State = {
     isFalling: false,
     fallCount: 0,

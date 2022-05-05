@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -27,7 +27,7 @@ type State = {
   loading: boolean;
 };
 
-class AllTeamsRow extends React.Component<Props, State> {
+class AllTeamsRow extends Component<Props, State> {
   state: State = {
     loading: false,
     error: false,

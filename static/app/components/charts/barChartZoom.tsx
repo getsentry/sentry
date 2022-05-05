@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
 
@@ -64,7 +64,7 @@ type Props = {
   onHistoryPush?: (start: number, end: number) => void;
 };
 
-class BarChartZoom extends React.Component<Props> {
+class BarChartZoom extends Component<Props> {
   zooming: (() => void) | null = null;
 
   /**

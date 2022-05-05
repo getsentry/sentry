@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
@@ -18,7 +18,7 @@ type Props = DefaultProps & {
 /**
  * Renders an Alert box of type "error". Renders a "Retry" button only if a `onRetry` callback is defined.
  */
-class LoadingError extends React.Component<Props> {
+class LoadingError extends Component<Props> {
   static defaultProps: DefaultProps = {
     message: t('There was an error loading data.'),
   };

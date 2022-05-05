@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 
@@ -24,7 +24,7 @@ type Props = {
 } & InputProps &
   typeof defaultProps;
 
-class NoteInputWithStorage extends React.Component<Props> {
+class NoteInputWithStorage extends Component<Props> {
   static defaultProps = defaultProps;
 
   fetchFromStorage() {

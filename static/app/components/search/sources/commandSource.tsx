@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {PlainRoute} from 'react-router';
 
 import {openHelpSearchModal, openSudo} from 'sentry/actionCreators/modal';
@@ -89,7 +89,7 @@ type State = {
 /**
  * This source is a hardcoded list of action creators and/or routes maybe
  */
-class CommandSource extends React.Component<Props, State> {
+class CommandSource extends Component<Props, State> {
   static defaultProps = {
     searchMap: [],
     searchOptions: {},

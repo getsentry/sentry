@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import isString from 'lodash/isString';
@@ -34,7 +34,7 @@ type ChildProps = DetailsState & {
   projectId: null | string;
 };
 
-class ProjectDetailsInner extends React.Component<DetailsProps, DetailsState> {
+class ProjectDetailsInner extends Component<DetailsProps, DetailsState> {
   state: DetailsState = {
     loading: true,
     error: null,
