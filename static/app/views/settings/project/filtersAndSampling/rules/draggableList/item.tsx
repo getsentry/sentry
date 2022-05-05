@@ -1,4 +1,3 @@
-import * as React from 'react';
 import {DraggableSyntheticListeners} from '@dnd-kit/core';
 import {useSortable} from '@dnd-kit/sortable';
 import {Transform} from '@dnd-kit/utilities';

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import LazyLoad from 'react-lazyload';
 import {withRouter, WithRouterProps} from 'react-router';
 import {useSortable} from '@dnd-kit/sortable';
@@ -70,7 +70,7 @@ type State = {
   totalIssuesCount?: string;
 };
 
-class WidgetCard extends React.Component<Props, State> {
+class WidgetCard extends Component<Props, State> {
   state: State = {};
   renderToolbar() {
     const {

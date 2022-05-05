@@ -19,7 +19,7 @@ google-api-core==1.25.1
 google-auth==1.24.0
 google-cloud-bigtable==1.6.1
 google-cloud-core==1.5.0
-googleapis-common-protos==1.52.0
+googleapis-common-protos==1.56.0
 google-cloud-pubsub==2.2.0
 google-cloud-storage==1.35.0
 # Only necessary to prevent installing the latest version
@@ -91,7 +91,7 @@ hiredis==0.3.1
 cffi==1.14.5
 
 # not directly used, but pinned for toronado because it doesn't pin these
-cssutils==1.0.2
+cssutils==2.4.0
 cssselect==1.0.3
 
 # sentry-plugins specific dependencies

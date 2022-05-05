@@ -1,4 +1,3 @@
-import * as React from 'react';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';

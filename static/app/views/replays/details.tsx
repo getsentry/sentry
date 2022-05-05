@@ -39,7 +39,7 @@ function ReplayDetails() {
     fetchError,
     fetching,
     onRetry,
-    rrwebEvents,
+    replay,
   } = useReplayEvent({
     eventSlug,
     location,
@@ -50,25 +50,25 @@ function ReplayDetails() {
 
   if (fetching) {
     return (
-      <DetailLayout event={event} orgId={orgId}>
+      <DetailLayout orgId={orgId}>
         <LoadingIndicator />
       </DetailLayout>
     );
   }
-  if (!event) {
+  if (!replay) {
     // TODO(replay): Give the user more details when errors happen
     console.log({fetching, fetchError}); // eslint-disable-line no-console
     return (
-      <DetailLayout event={event} orgId={orgId}>
+      <DetailLayout orgId={orgId}>
         <PageContent>
           <NotFound />
         </PageContent>
       </DetailLayout>
     );
   }
-  if (!rrwebEvents || rrwebEvents.length < 2) {
+  if (replay.getRRWebEvents().length < 2) {
     return (
-      <DetailLayout event={event} orgId={orgId}>
+      <DetailLayout event={replay.getEvent()} orgId={orgId}>
         <DetailedError
           onRetry={onRetry}
           hideSupportLinks
@@ -89,7 +89,10 @@ function ReplayDetails() {
   }
 
   return (
-    <ReplayContextProvider events={rrwebEvents} initialTimeOffset={initialTimeOffset}>
+    <ReplayContextProvider
+      events={replay.getRRWebEvents()}
+      initialTimeOffset={initialTimeOffset}
+    >
       <DetailLayout
         event={event}
         orgId={orgId}
@@ -117,7 +120,7 @@ function ReplayDetails() {
               <BreadcrumbTimeline crumbs={breadcrumbEntry?.data.values || []} />
             </Panel>
             <FocusArea
-              event={event}
+              event={replay.getEvent()}
               eventWithSpans={mergedReplayEvent}
               memorySpans={memorySpans}
             />

@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 import google.auth.transport.requests
 import google.oauth2.id_token
@@ -73,7 +73,7 @@ PROFILE_FILTERS = {
 }
 
 
-def parse_profile_filters(query: str) -> Dict[str, List[str]]:
+def parse_profile_filters(query: str) -> Dict[str, str]:
     try:
         parsed_terms = parse_search_query(query)
     except ParseError as e:

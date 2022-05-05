@@ -1,4 +1,3 @@
-import * as React from 'react';
 import type {BarSeriesOption} from 'echarts';
 
 import {Series} from 'sentry/types/echarts';

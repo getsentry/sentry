@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 
 import {assignToActor, assignToUser} from 'sentry/actionCreators/group';
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
@@ -226,7 +226,7 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
     const {codeowners, isDismissed} = this.state;
     const owners = this.getOwnerList();
     return (
-      <React.Fragment>
+      <Fragment>
         {owners.length > 0 && (
           <SuggestedAssignees owners={owners} onAssign={this.handleAssign} />
         )}
@@ -238,7 +238,7 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
           isDismissed={isDismissed}
           handleCTAClose={this.handleCTAClose}
         />
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

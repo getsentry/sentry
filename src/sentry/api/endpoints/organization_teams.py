@@ -5,12 +5,12 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import audit_log
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamSerializer
 from sentry.models import (
-    AuditLogEntryEvent,
     ExternalActor,
     OrganizationMember,
     OrganizationMemberTeam,
@@ -181,7 +181,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                 request=request,
                 organization=organization,
                 target_object=team.id,
-                event=AuditLogEntryEvent.TEAM_ADD,
+                event=audit_log.get_event_id("TEAM_ADD"),
                 data=team.get_audit_log_data(),
             )
             return Response(
