@@ -18,9 +18,9 @@ import getUrlPathname from 'sentry/utils/getUrlPathname';
 
 type Props = {
   children: React.ReactNode;
-  event: Event | undefined;
   orgId: string;
   crumbs?: RawCrumb[];
+  event?: Event;
 };
 
 function DetailLayout({children, event, orgId, crumbs}: Props) {
