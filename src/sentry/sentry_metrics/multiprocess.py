@@ -338,7 +338,7 @@ class ProduceStep(ProcessingStep[MessageBatch]):  # type: ignore
 
 
 def valid_metric_name(name: str) -> bool:
-    if not name:
+    if name is None:
         return False
     if len(name) > MAX_NAME_LENGTH:
         return False
@@ -349,9 +349,9 @@ def valid_metric_name(name: str) -> bool:
 def invalid_metric_tags(tags: Mapping[str, str]) -> Sequence[str]:
     invalid_strs: List[str] = []
     for key, value in tags.items():
-        if not key or len(key) > MAX_TAG_KEY_LENGTH:
+        if key is None or len(key) > MAX_TAG_KEY_LENGTH:
             invalid_strs.append(key)
-        if not value or len(value) > MAX_TAG_VALUE_LENGTH:
+        if value is None or len(value) > MAX_TAG_VALUE_LENGTH:
             invalid_strs.append(value)
 
     return invalid_strs

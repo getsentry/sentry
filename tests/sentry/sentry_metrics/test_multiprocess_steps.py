@@ -19,7 +19,9 @@ from sentry.sentry_metrics.multiprocess import (
     DuplicateMessage,
     MetricsBatchBuilder,
     ProduceStep,
+    invalid_metric_tags,
     process_messages,
+    valid_metric_name,
 )
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.utils import json
@@ -406,3 +408,20 @@ def test_produce_step() -> None:
 
     produce_step.close()
     produce_step.join()
+
+
+def test_valid_metric_name() -> None:
+    assert valid_metric_name("") is True
+    assert valid_metric_name("blah") is True
+    assert valid_metric_name("invalid" * 200) is False
+
+
+def test_invalid_metric_tags() -> None:
+    bad_tag = "invalid" * 200
+    tags = {"environment": "", "release": "good_tag"}
+    assert invalid_metric_tags(tags) == []
+    assert invalid_metric_tags(tags) == []
+    tags["release"] = bad_tag
+    assert invalid_metric_tags(tags) == [bad_tag]
+    tags["release"] = None
+    assert invalid_metric_tags(tags) == [None]
