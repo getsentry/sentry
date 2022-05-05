@@ -116,7 +116,6 @@ export function SortBySelectors({
                         [`field:${CUSTOM_EQUATION_VALUE}`]: {
                           label: 'Custom Equation',
                           value: {
-                            // TODO(nar): This shouldn't be rendering a chip
                             kind: FieldValueKind.EQUATION,
                             meta: {name: CUSTOM_EQUATION_VALUE},
                           },
