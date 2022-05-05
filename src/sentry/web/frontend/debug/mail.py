@@ -478,9 +478,7 @@ def report(request):
             (
                 timestamp + (i * rollup),
                 (
-                    # Resolved issues
-                    random.randint(0, daily_maximum),
-                    # Unresolved issues
+                    # Issues
                     random.randint(0, daily_maximum),
                     # Transactions
                     random.randint(0, daily_maximum),
