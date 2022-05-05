@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {forwardRef} from 'react';
 import ReactSelect, {
   components as selectComponents,
   GroupedOptionsType,
@@ -471,7 +471,7 @@ function SelectPicker<OptionType>({
 }
 
 // The generics need to be filled here as forwardRef can't expose generics.
-const RefForwardedSelectControl = React.forwardRef<
+const RefForwardedSelectControl = forwardRef<
   ReactSelect<GeneralSelectValue>,
   ControlProps<GeneralSelectValue>
 >(function RefForwardedSelectControl(props, ref) {
