@@ -186,6 +186,21 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         }
 
     @freeze_time(MOCK_DATETIME)
+    def test_future_request(self):
+        start = MOCK_DATETIME + datetime.timedelta(days=1)
+        end = MOCK_DATETIME + datetime.timedelta(days=2)
+        response = self.do_request(
+            {
+                "project": [-1],
+                "interval": "1h",
+                "field": ["sum(session)"],
+                "start": start.strftime(SNUBA_TIME_FORMAT),
+                "end": end.strftime(SNUBA_TIME_FORMAT),
+            }
+        )
+        assert response.status_code == 200, response.content
+
+    @freeze_time(MOCK_DATETIME)
     def test_timeseries_interval(self):
         response = self.do_request(
             {"project": [-1], "statsPeriod": "1d", "interval": "1d", "field": ["sum(session)"]}
