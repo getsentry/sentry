@@ -52,8 +52,7 @@ function ActiveTab({active, replay}: Props & {active: TabBarId}) {
       return (
         <div id="performance">
           <EventEntry
-            key={`${event.id}`}
-            projectSlug={getProjectSlug(event)}
+            projectSlug={getProjectSlug(performanceEvent)}
             // group={group}
             organization={organization}
             event={performanceEvent}

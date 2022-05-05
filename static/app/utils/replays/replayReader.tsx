@@ -78,9 +78,7 @@ export default class ReplayReader {
     // (rrweb applies it), so it's possible actual LCP timestamp does not
     // match when the observer happens and we emit an rrweb event (will
     // look into this)
-    const rrwebEventsWithHighlights = mergeAndSortEvents(this._rrwebEvents, highlights);
-
-    return rrwebEventsWithHighlights;
+    return mergeAndSortEvents(this._rrwebEvents, highlights);
   });
 
   getEntryType = memoize((type: EntryType) => {
