@@ -2175,8 +2175,8 @@ describe('WidgetBuilder', function () {
     it('shows the correct orderby when switching from a line chart to table', async function () {
       const defaultWidgetQuery = {
         name: '',
-        fields: ['count()'],
-        columns: ['title'],
+        fields: ['count_unique(user)'],
+        columns: [],
         aggregates: ['count_unique(user)'],
         conditions: '',
         orderby: 'count_unique_user',
@@ -2214,8 +2214,8 @@ describe('WidgetBuilder', function () {
     it('does not send request with orderby if a timeseries chart without grouping', async function () {
       const defaultWidgetQuery = {
         name: '',
-        fields: ['count()'],
-        columns: ['title'],
+        fields: ['count_unique(user)'],
+        columns: [],
         aggregates: ['count_unique(user)'],
         conditions: '',
         orderby: 'count_unique_user',
