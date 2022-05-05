@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {OptionsType, ValueType} from 'react-select';
 
 import {openConfirmModal} from 'sentry/components/confirm';
@@ -55,9 +55,9 @@ function isArray<T>(maybe: T | OptionsType<T>): maybe is OptionsType<T> {
   return Array.isArray(maybe);
 }
 
-export default class SelectField<
-  OptionType extends SelectValue<any>
-> extends React.Component<SelectFieldProps<OptionType>> {
+export default class SelectField<OptionType extends SelectValue<any>> extends Component<
+  SelectFieldProps<OptionType>
+> {
   static defaultProps = {
     allowClear: false,
     allowEmpty: false,

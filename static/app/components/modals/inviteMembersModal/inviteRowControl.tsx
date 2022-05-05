@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {MultiValueProps, StylesConfig} from 'react-select';
 import {withTheme} from '@emotion/react';
 
@@ -49,7 +49,7 @@ function mapToOptions(values: string[]): SelectOption[] {
   return values.map(value => ({value, label: value}));
 }
 
-class InviteRowControl extends React.Component<Props, State> {
+class InviteRowControl extends Component<Props, State> {
   state: State = {inputValue: ''};
 
   handleInputChange = (inputValue: string) => {

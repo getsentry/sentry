@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
@@ -289,7 +289,7 @@ type State = {
   searchResults: null | Result[];
 };
 
-class ApiSource extends React.Component<Props, State> {
+class ApiSource extends Component<Props, State> {
   static defaultProps = {
     searchOptions: {},
   };
