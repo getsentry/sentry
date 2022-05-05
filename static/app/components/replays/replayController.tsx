@@ -1,22 +1,15 @@
-import React, {useState} from 'react';
+import React from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import useFullscreen from 'sentry/components/replays/useFullscreen';
-import {
-  IconArrow,
-  IconPause,
-  IconPlay,
-  IconRefresh,
-  IconResize,
-  IconSliders,
-} from 'sentry/icons';
+import {IconArrow, IconPause, IconPlay, IconRefresh, IconResize} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
-import {Hovercard} from '../hovercard';
+import OptionSelector from '../charts/optionSelector';
 
 import {formatTime} from './utils';
 
@@ -69,36 +62,20 @@ function ReplayCurrentTime() {
 
 function ReplayPlaybackSpeed({speedOptions}: {speedOptions: number[]}) {
   const {setSpeed, speed} = useReplayContext();
-  const [showPlaybackSpeeds, setShowPlaybackSpeeds] = useState(false);
-
   return (
-    <Hovercard
-      show={showPlaybackSpeeds}
-      header={t('Playback Speeds')}
-      body={
-        <ButtonBar active={String(speed)} merged>
-          {speedOptions.map(opt => (
-            <Button
-              key={opt}
-              size="xsmall"
-              barId={String(opt)}
-              onClick={() => setSpeed(opt)}
-              title={t('Set playback speed to %s', `${opt}x`)}
-            >
-              {opt}x
-            </Button>
-          ))}
-        </ButtonBar>
-      }
-    >
-      <Button
-        size="xsmall"
-        title={t('Show playback speeds')}
-        icon={<IconSliders color="gray500" size="sm" />}
-        onClick={() => setShowPlaybackSpeeds(!showPlaybackSpeeds)}
-        aria-label={t('Show playback speeds')}
-      />
-    </Hovercard>
+    <StyledOptionSelector
+      title={`${t('Speed')}`}
+      selected={`${speed}`}
+      options={speedOptions.map(speedOption => ({
+        value: `${speedOption}`,
+        label: `${speedOption}x`,
+        disabled: speedOption === speed,
+      }))}
+      onChange={(opt: string) => {
+        setSpeed(parseInt(opt, 10));
+      }}
+      containerPadding={4}
+    />
   );
 }
 
@@ -147,6 +124,11 @@ const ButtonGrid = styled('div')`
   grid-column-gap: ${space(1)};
   grid-template-columns: max-content auto max-content max-content max-content;
   align-items: center;
+`;
+
+const StyledOptionSelector = styled(OptionSelector)`
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
 `;
 
 export default ReplayControls;
