@@ -329,6 +329,7 @@ const Actions = styled('div')`
   display: grid;
   grid-template-columns: 1fr max-content;
   align-items: center;
+  gap: ${space(2)};
 `;
 
 const StyledErrorMessage = styled(ErrorMessage)`
