@@ -94,7 +94,7 @@ export function decodeFlamegraphStateFromQueryParams(
   };
 }
 
-function encodeFlamegraphStateToQueryParams(state: FlamegraphState) {
+export function encodeFlamegraphStateToQueryParams(state: FlamegraphState) {
   return {
     colorCoding: state.preferences.colorCoding,
     sorting: state.preferences.sorting,
@@ -129,7 +129,7 @@ export function FlamegraphStateQueryParamSync() {
   const state = useFlamegraphStateValue();
 
   useEffect(() => {
-    browserHistory.push({
+    browserHistory.replace({
       ...location,
       query: {
         ...location.query,

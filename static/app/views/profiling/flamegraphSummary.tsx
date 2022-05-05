@@ -1,4 +1,6 @@
 import {Fragment, useMemo} from 'react';
+import {Link} from 'react-router';
+import * as qs from 'query-string';
 
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -8,13 +10,16 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
-import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
+import {encodeFlamegraphStateToQueryParams} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/index';
+import {useFlamegraphState} from 'sentry/utils/profiling/flamegraph/useFlamegraphState';
 import {getSlowestProfileCallsFromProfileGroup} from 'sentry/utils/profiling/profile/utils';
 import {makeFormatter} from 'sentry/utils/profiling/units/units';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 
 import {useProfileGroup} from './profileGroupProvider';
+import {generateFlamegraphRoute} from './routes';
 
 function FlamegraphSummary() {
   const location = useLocation();
@@ -26,19 +31,43 @@ function FlamegraphSummary() {
       const {slowestApplicationCalls, slowestSystemCalls} =
         getSlowestProfileCallsFromProfileGroup(state.data);
 
-      const asTableRow = (call: CallTreeNode): TableDataRow => {
-        return {
-          symbol: call.frame.name,
-          image: call.frame.image,
-          thread: '',
-          'self weight': call.selfWeight,
-          'total weight': call.totalWeight,
-        };
-      };
+      let allSlowestApplicationCalls: TableDataRow[] = [];
+      for (const threadID in slowestApplicationCalls) {
+        allSlowestApplicationCalls = allSlowestApplicationCalls.concat(
+          slowestApplicationCalls[threadID].map(call => {
+            return {
+              symbol: call.frame.name,
+              image: call.frame.image,
+              thread: threadID,
+              'self weight': call.selfWeight,
+              'total weight': call.totalWeight,
+            };
+          })
+        );
+      }
+
+      let allSlowestSystemCalls: TableDataRow[] = [];
+      for (const threadID in slowestSystemCalls) {
+        allSlowestSystemCalls = allSlowestSystemCalls.concat(
+          slowestSystemCalls[threadID].map(call => {
+            return {
+              symbol: call.frame.name,
+              image: call.frame.image,
+              thread: threadID,
+              'self weight': call.selfWeight,
+              'total weight': call.totalWeight,
+            };
+          })
+        );
+      }
 
       return {
-        slowestApplicationCalls: slowestApplicationCalls.map(asTableRow),
-        slowestSystemCalls: slowestSystemCalls.map(asTableRow),
+        slowestApplicationCalls: allSlowestApplicationCalls
+          .sort((a, b) => b['self weight'] - a['self weight'])
+          .splice(0, 10),
+        slowestSystemCalls: allSlowestSystemCalls
+          .sort((a, b) => b['self weight'] - a['self weight'])
+          .splice(0, 10),
       };
     }
     return {slowestApplicationCalls: [], slowestSystemCalls: []};
@@ -109,6 +138,10 @@ function ProfilingFunctionsTableCell({
 }: ProfilingFunctionsTableCellProps) {
   const value = dataRow[column.key];
 
+  const [flamegraphstate, dispatch] = useFlamegraphState();
+  const [profileGroup] = useProfileGroup();
+  const {orgId, projectId, eventId} = useParams();
+
   switch (column.key) {
     case 'self weight':
       return <NumberContainer>{formatter(value)}</NumberContainer>;
@@ -116,6 +149,46 @@ function ProfilingFunctionsTableCell({
       return <NumberContainer>{formatter(value)}</NumberContainer>;
     case 'image':
       return <Container>{value ?? 'Unknown'}</Container>;
+    case 'thread': {
+      const threadIndex =
+        profileGroup.type === 'resolved'
+          ? profileGroup.data.profiles.findIndex(
+              profile => profile.threadId === parseInt(dataRow.thread, 10)
+            )
+          : undefined;
+
+      return (
+        <Container>
+          {typeof threadIndex === 'number' && threadIndex !== -1 ? (
+            <Link
+              onClick={() =>
+                dispatch({type: 'set active profile index', payload: threadIndex})
+              }
+              to={
+                generateFlamegraphRoute({
+                  orgSlug: orgId,
+                  projectSlug: projectId,
+                  profileId: eventId,
+                }) +
+                `?${qs.stringify(
+                  encodeFlamegraphStateToQueryParams({
+                    ...flamegraphstate,
+                    profiles: {
+                      ...flamegraphstate.profiles,
+                      activeProfileIndex: threadIndex,
+                    },
+                  })
+                )}`
+              }
+            >
+              {value}
+            </Link>
+          ) : (
+            value
+          )}
+        </Container>
+      );
+    }
     default:
       return <Container>{value}</Container>;
   }
@@ -126,7 +199,13 @@ type TableDataRow = Record<TableColumnKey, any>;
 
 type TableColumn = GridColumnOrder<TableColumnKey>;
 
-const COLUMN_ORDER: TableColumnKey[] = ['symbol', 'image', 'self weight', 'total weight'];
+const COLUMN_ORDER: TableColumnKey[] = [
+  'symbol',
+  'image',
+  'thread',
+  'self weight',
+  'total weight',
+];
 
 // TODO: looks like these column names change depending on the platform?
 const COLUMNS: Record<TableColumnKey, TableColumn> = {

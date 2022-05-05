@@ -16,7 +16,7 @@ export class SampledProfile extends Profile {
       sampledProfile.endValue,
       sampledProfile.name,
       sampledProfile.unit,
-      sampledProfile.threadId
+      sampledProfile.threadID
     );
 
     if (sampledProfile.samples.length !== sampledProfile.weights.length) {

@@ -5,7 +5,7 @@ declare namespace Profiling {
     name: string;
     unit: string;
     spans?: Span[];
-    threadId: number;
+    threadID: number;
   }
 
   // Android traces follow this format
@@ -41,6 +41,7 @@ declare namespace Profiling {
     is_application?: boolean;
     image?: string;
     resource?: string;
+    threadId?: number;
   };
 
   type ProfileTypes = EventedProfile | SampledProfile | JSSelfProfiling.Trace;

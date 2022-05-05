@@ -11,7 +11,7 @@ const makeEmptyEventedTrace = (): EventedProfile => {
       endValue: 0,
       unit: 'microseconds',
       type: 'evented',
-      threadId: 0,
+      threadID: 0,
       events: [],
     },
     createFrameIndex([])
@@ -36,7 +36,7 @@ describe('flamegraph', () => {
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
-      threadId: 0,
+      threadID: 0,
       type: 'evented',
       events: [
         {type: 'O', at: 0, frame: 0},
@@ -64,7 +64,7 @@ describe('flamegraph', () => {
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
-      threadId: 0,
+      threadID: 0,
       type: 'evented',
       events: [
         {type: 'O', at: 0, frame: 0},
@@ -94,7 +94,7 @@ describe('flamegraph', () => {
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
-      threadId: 0,
+      threadID: 0,
       type: 'evented',
       events: [
         {type: 'O', at: 0, frame: 0},
@@ -131,7 +131,7 @@ describe('flamegraph', () => {
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
-      threadId: 0,
+      threadID: 0,
       type: 'evented',
       events: [
         {type: 'O', at: 0, frame: 0},
@@ -159,7 +159,7 @@ describe('flamegraph', () => {
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
-      threadId: 0,
+      threadID: 0,
       type: 'evented',
       events: [
         {type: 'O', at: 0, frame: 0},
@@ -189,7 +189,7 @@ describe('flamegraph', () => {
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
-      threadId: 0,
+      threadID: 0,
       type: 'evented',
       events: [
         {type: 'O', at: 0, frame: 0},
@@ -220,7 +220,7 @@ describe('flamegraph', () => {
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
-      threadId: 0,
+      threadID: 0,
       type: 'evented',
       events: [
         {type: 'O', at: 0, frame: 0},
@@ -256,7 +256,7 @@ describe('flamegraph', () => {
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
-      threadId: 0,
+      threadID: 0,
       type: 'evented',
       events: [
         {type: 'O', at: 0, frame: 0},
@@ -289,7 +289,7 @@ describe('flamegraph', () => {
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
-      threadId: 0,
+      threadID: 0,
       type: 'evented',
       events: [
         {type: 'O', at: 0, frame: 0},

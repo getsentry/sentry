@@ -21,7 +21,7 @@ export class EventedProfile extends Profile {
       eventedProfile.endValue,
       eventedProfile.name,
       eventedProfile.unit,
-      eventedProfile.threadId
+      eventedProfile.threadID
     );
 
     // If frames are offset, we need to set lastValue to profile start, so that delta between
