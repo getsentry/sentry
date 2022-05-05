@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment, isValidElement} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -15,7 +15,7 @@ import {SidebarOrientation} from './types';
 
 const LabelHook = HookOrDefault({
   hookName: 'sidebar:item-label',
-  defaultComponent: ({children}) => <React.Fragment>{children}</React.Fragment>,
+  defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
 
 type Props = WithRouterProps & {
@@ -92,7 +92,7 @@ const SidebarItem = ({
 }: Props) => {
   // label might be wrapped in a guideAnchor
   let labelString = label;
-  if (React.isValidElement(label)) {
+  if (isValidElement(label)) {
     labelString = label?.props?.children ?? label;
   }
   // If there is no active panel open and if path is active according to react-router
