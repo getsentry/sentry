@@ -2171,6 +2171,45 @@ describe('WidgetBuilder', function () {
         );
       });
     });
+
+    it('shows the correct orderby when switching from a line chart to table', async function () {
+      const defaultWidgetQuery = {
+        name: '',
+        fields: ['count()'],
+        columns: ['title'],
+        aggregates: ['count_unique(user)'],
+        conditions: '',
+        orderby: 'count_unique_user',
+      };
+
+      const defaultTableColumns = ['title', 'count_unique(user)'];
+
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        query: {
+          source: DashboardWidgetSource.DISCOVERV2,
+          defaultWidgetQuery: urlEncode(defaultWidgetQuery),
+          displayType: DisplayType.LINE,
+          defaultTableColumns,
+        },
+      });
+
+      userEvent.click(await screen.findByText('Line Chart'));
+      userEvent.click(screen.getByText('Table'));
+
+      expect(screen.getByText('count_unique(user)')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(eventsv2Mock).toHaveBeenLastCalledWith(
+          '/organizations/org-slug/eventsv2/',
+          expect.objectContaining({
+            query: expect.objectContaining({
+              field: defaultTableColumns,
+              sort: ['count_unique_user'],
+            }),
+          })
+        );
+      });
+    });
   });
 
   it('opens top-N widgets as top-N display', async function () {
