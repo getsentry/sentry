@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {PureComponent} from 'react';
 import {findDOMNode} from 'react-dom';
 import styled from '@emotion/styled';
 import color from 'color';
@@ -27,7 +27,7 @@ type State = {
   renderedHeight?: number;
 };
 
-class ClippedBox extends React.PureComponent<Props, State> {
+class ClippedBox extends PureComponent<Props, State> {
   static defaultProps: DefaultProps = {
     defaultClipped: false,
     clipHeight: 200,
