@@ -3,7 +3,6 @@ from collections import defaultdict
 from functools import reduce
 from typing import (
     Any,
-    Dict,
     Iterator,
     List,
     Mapping,
@@ -111,7 +110,7 @@ def _match_commits_path(
     commit_file_changes: Sequence[CommitFileChange], path: str
 ) -> Sequence[Tuple[Commit, int]]:
     # find commits that match the run time path the best.
-    matching_commits: Dict[int, Tuple[Commit, int]] = {}
+    matching_commits: MutableMapping[int, Tuple[Commit, int]] = {}
     best_score = 1
     for file_change in commit_file_changes:
         score = score_path_match_length(file_change.filename, path)
