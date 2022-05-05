@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import isObject from 'lodash/isObject';
@@ -49,7 +49,7 @@ type State = {
   tagsWithTopValues?: Record<string, TagWithTopValues>;
 };
 
-class BaseGroupSidebar extends React.Component<Props, State> {
+class BaseGroupSidebar extends Component<Props, State> {
   state: State = {
     participants: [],
     environments: this.props.environments,
@@ -144,10 +144,10 @@ class BaseGroupSidebar extends React.Component<Props, State> {
       // # TODO(dcramer): remove plugin.title check in Sentry 8.22+
       if (issue) {
         issues.push(
-          <React.Fragment key={plugin.slug}>
+          <Fragment key={plugin.slug}>
             <span>{`${plugin.shortName || plugin.name || plugin.title}: `}</span>
             <a href={issue.url}>{isObject(issue.label) ? issue.label.id : issue.label}</a>
-          </React.Fragment>
+          </Fragment>
         );
       }
     });

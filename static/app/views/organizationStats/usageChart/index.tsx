@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
@@ -148,7 +148,7 @@ export type ChartStats = {
   filtered?: NonNullable<SeriesOption['data']>;
 };
 
-export class UsageChart extends React.Component<Props, State> {
+export class UsageChart extends Component<Props, State> {
   static defaultProps: DefaultProps = {
     usageDateShowUtc: true,
     usageDateInterval: '1d',
@@ -425,7 +425,7 @@ export class UsageChart extends React.Component<Props, State> {
     } = this.chartMetadata;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <HeaderTitleLegend>{title || t('Current Usage Period')}</HeaderTitleLegend>
         {getDynamicText({
           value: (
@@ -469,7 +469,7 @@ export class UsageChart extends React.Component<Props, State> {
           ),
           fixed: <Placeholder height="200px" />,
         })}
-      </React.Fragment>
+      </Fragment>
     );
   }
 

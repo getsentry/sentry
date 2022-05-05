@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -48,7 +48,7 @@ type State = {
  */
 const BREAKPOINT_MEDIA_QUERY = `(min-width: ${theme.breakpoints[2]})`;
 
-class EventMetas extends React.Component<Props, State> {
+class EventMetas extends Component<Props, State> {
   state: State = {
     isLargeScreen: window.matchMedia?.(BREAKPOINT_MEDIA_QUERY)?.matches,
   };
@@ -222,7 +222,7 @@ const EventIDWrapper = styled('span')`
 function HttpStatus({event}: {event: Event}) {
   const {tags} = event;
 
-  const emptyStatus = <React.Fragment>{'\u2014'}</React.Fragment>;
+  const emptyStatus = <Fragment>{'\u2014'}</Fragment>;
 
   if (!Array.isArray(tags)) {
     return emptyStatus;
@@ -234,7 +234,7 @@ function HttpStatus({event}: {event: Event}) {
     return emptyStatus;
   }
 
-  return <React.Fragment>HTTP {tag.value}</React.Fragment>;
+  return <Fragment>HTTP {tag.value}</Fragment>;
 }
 
 /*

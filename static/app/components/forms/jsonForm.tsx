@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 import scrollToElement from 'scroll-to-element';
@@ -33,7 +33,7 @@ type State = {
   highlighted?: string;
 };
 
-class JsonForm extends React.Component<Props, State> {
+class JsonForm extends Component<Props, State> {
   state: State = {
     // location.hash is optional because of tests.
     highlighted: this.props.location?.hash,
@@ -155,9 +155,7 @@ class JsonForm extends React.Component<Props, State> {
       <div {...otherProps}>
         {typeof forms !== 'undefined' &&
           forms.map((formGroup, i) => (
-            <React.Fragment key={i}>
-              {this.renderForm({formPanelProps, ...formGroup})}
-            </React.Fragment>
+            <Fragment key={i}>{this.renderForm({formPanelProps, ...formGroup})}</Fragment>
           ))}
         {typeof forms === 'undefined' &&
           typeof fields !== 'undefined' &&

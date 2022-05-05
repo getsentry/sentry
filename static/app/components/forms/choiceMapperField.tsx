@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -100,7 +100,7 @@ export interface ChoiceMapperFieldProps
       'onBlur' | 'onChange' | 'value' | 'formatMessageValue' | 'disabled'
     > {}
 
-export default class ChoiceMapper extends React.Component<ChoiceMapperFieldProps> {
+export default class ChoiceMapper extends Component<ChoiceMapperFieldProps> {
   static defaultProps = defaultProps;
 
   hasValue = (value: InputFieldProps['value']) => defined(value) && !objectIsEmpty(value);
@@ -194,7 +194,7 @@ export default class ChoiceMapper extends React.Component<ChoiceMapperFieldProps
     }
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Header>
           <LabelColumn>
             <HeadingItem>{mappedColumnLabel}</HeadingItem>
@@ -237,7 +237,7 @@ export default class ChoiceMapper extends React.Component<ChoiceMapperFieldProps
             ))}
           </Row>
         ))}
-      </React.Fragment>
+      </Fragment>
     );
   };
 

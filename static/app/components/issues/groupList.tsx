@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
@@ -66,7 +66,7 @@ type State = {
   memberList?: ReturnType<typeof indexMembersByProject>;
 };
 
-class GroupList extends React.Component<Props, State> {
+class GroupList extends Component<Props, State> {
   static defaultProps = defaultProps;
 
   state: State = {
@@ -272,7 +272,7 @@ class GroupList extends React.Component<Props, State> {
         : DEFAULT_STREAM_GROUP_STATS_PERIOD;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Panel>
           <GroupListHeader withChart={!!withChart} narrowGroups={narrowGroups} />
           <PanelBody>
@@ -302,7 +302,7 @@ class GroupList extends React.Component<Props, State> {
         {withPagination && (
           <Pagination pageLinks={pageLinks} onCursor={this.handleCursorChange} />
         )}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

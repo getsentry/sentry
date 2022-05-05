@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -45,7 +45,7 @@ type Props = {
   selectedIncident?: Incident | null;
 } & RouteComponentProps<{orgId: string}, {}>;
 
-export default class DetailsBody extends React.Component<Props> {
+export default class DetailsBody extends Component<Props> {
   getTimeWindow(): React.ReactNode {
     const {rule} = this.props;
 
@@ -160,7 +160,7 @@ export default class DetailsBody extends React.Component<Props> {
     };
 
     return (
-      <React.Fragment>
+      <Fragment>
         {selectedIncident &&
           selectedIncident.alertRule.status === AlertRuleStatus.SNAPSHOT && (
             <StyledLayoutBody>
@@ -234,7 +234,7 @@ export default class DetailsBody extends React.Component<Props> {
             <Sidebar rule={rule} />
           </Layout.Side>
         </Layout.Body>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

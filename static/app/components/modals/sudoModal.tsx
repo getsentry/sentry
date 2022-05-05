@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -45,7 +45,7 @@ type State = {
   superuserReason: string;
 };
 
-class SudoModal extends React.Component<Props, State> {
+class SudoModal extends Component<Props, State> {
   state: State = {
     error: false,
     errorType: '',
@@ -171,7 +171,7 @@ class SudoModal extends React.Component<Props, State> {
       (isSuperuser && !isSelfHosted)
     ) {
       return (
-        <React.Fragment>
+        <Fragment>
           <StyledTextBlock>
             {isSuperuser
               ? t(
@@ -209,12 +209,12 @@ class SudoModal extends React.Component<Props, State> {
               {t('Continue')}
             </Button>
           )}
-        </React.Fragment>
+        </Fragment>
       );
     }
 
     return (
-      <React.Fragment>
+      <Fragment>
         <StyledTextBlock>
           {isSuperuser
             ? t(
@@ -256,7 +256,7 @@ class SudoModal extends React.Component<Props, State> {
             onTap={this.handleU2fTap}
           />
         </Form>
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -264,10 +264,10 @@ class SudoModal extends React.Component<Props, State> {
     const {Header, Body} = this.props;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Header closeButton>{t('Confirm Password to Continue')}</Header>
         <Body>{this.renderBodyContent()}</Body>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

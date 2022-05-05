@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 import moment from 'moment';
@@ -41,7 +41,7 @@ type State = {
   isOpen: boolean;
 };
 
-class ErrorItem extends React.Component<Props, State> {
+class ErrorItem extends Component<Props, State> {
   state: State = {
     isOpen: false,
   };
@@ -100,10 +100,10 @@ class ErrorItem extends React.Component<Props, State> {
     }
 
     return (
-      <React.Fragment>
+      <Fragment>
         <strong>{name}</strong>
         {': '}
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -114,7 +114,7 @@ class ErrorItem extends React.Component<Props, State> {
       )
     ) {
       return (
-        <React.Fragment>
+        <Fragment>
           {' '}
           (
           {tct('see [docsLink]', {
@@ -125,7 +125,7 @@ class ErrorItem extends React.Component<Props, State> {
             ),
           })}
           )
-        </React.Fragment>
+        </Fragment>
       );
     }
 

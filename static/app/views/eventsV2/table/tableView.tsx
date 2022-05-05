@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -84,7 +84,7 @@ export type TableViewProps = {
  * In most cases, the new EventView object differs from the previous EventView
  * object. The new EventView object is pushed to the location object.
  */
-class TableView extends React.Component<TableViewProps> {
+class TableView extends Component<TableViewProps> {
   /**
    * Updates a column on resizing
    */
@@ -310,7 +310,7 @@ class TableView extends React.Component<TableViewProps> {
     }
 
     return (
-      <React.Fragment>
+      <Fragment>
         {isFirstPage && isTopEvents && rowIndex < topEvents && columnIndex === 0 ? (
           // Add one if we need to include Other in the series
           <TopResultsIndicator count={count} index={rowIndex} />
@@ -322,7 +322,7 @@ class TableView extends React.Component<TableViewProps> {
         >
           {cell}
         </CellAction>
-      </React.Fragment>
+      </Fragment>
     );
   };
 

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -28,7 +28,7 @@ type Props = {
   requiresUpgrade?: boolean;
 };
 
-export default class InstalledIntegration extends React.Component<Props> {
+export default class InstalledIntegration extends Component<Props> {
   handleUninstallClick = () => {
     this.props.trackIntegrationAnalytics('integrations.uninstall_clicked');
   };
@@ -67,12 +67,12 @@ export default class InstalledIntegration extends React.Component<Props> {
     const {body, actionText} = this.getRemovalBodyAndText(integration.provider.aspects);
 
     const message = (
-      <React.Fragment>
+      <Fragment>
         <Alert type="error" showIcon>
           {t('Deleting this integration has consequences!')}
         </Alert>
         {body}
-      </React.Fragment>
+      </Fragment>
     );
     return {
       message,
@@ -85,12 +85,12 @@ export default class InstalledIntegration extends React.Component<Props> {
     const {integration} = this.props;
     const {body, actionText} = integration.provider.aspects.disable_dialog || {};
     const message = (
-      <React.Fragment>
+      <Fragment>
         <Alert type="error" showIcon>
           {t('This integration cannot be removed in Sentry')}
         </Alert>
         {body}
-      </React.Fragment>
+      </Fragment>
     );
 
     return {

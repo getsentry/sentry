@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import ProjectActions from 'sentry/actions/projectActions';
@@ -88,7 +88,7 @@ type RowState = {
   subfilters: Set<string>;
 };
 
-class LegacyBrowserFilterRow extends React.Component<RowProps, RowState> {
+class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
   constructor(props) {
     super(props);
     let initialSubfilters;
@@ -250,7 +250,7 @@ class ProjectFiltersSettings extends AsyncComponent<Props, State> {
         }}
       >
         {({hasFeature, organization, renderDisabled, ...featureProps}) => (
-          <React.Fragment>
+          <Fragment>
             {!hasFeature &&
               typeof renderDisabled === 'function' &&
               // XXX: children is set to null as we're doing tricksy things
@@ -272,7 +272,7 @@ class ProjectFiltersSettings extends AsyncComponent<Props, State> {
                 )}
               </PanelAlert>
             )}
-          </React.Fragment>
+          </Fragment>
         )}
       </Feature>
     );
@@ -287,7 +287,7 @@ class ProjectFiltersSettings extends AsyncComponent<Props, State> {
     return (
       <Access access={['project:write']}>
         {({hasAccess}) => (
-          <React.Fragment>
+          <Fragment>
             <Panel>
               <PanelHeader>{t('Filters')}</PanelHeader>
               <PanelBody>
@@ -361,7 +361,7 @@ class ProjectFiltersSettings extends AsyncComponent<Props, State> {
                 renderFooter={this.renderCustomFilters(!hasAccess)}
               />
             </Form>
-          </React.Fragment>
+          </Fragment>
         )}
       </Access>
     );

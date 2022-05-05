@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -17,7 +17,7 @@ type State = {
   showConfirmation: boolean;
 };
 
-class SkipConfirm extends React.Component<Props, State> {
+class SkipConfirm extends Component<Props, State> {
   state: State = {
     showConfirmation: false,
   };
@@ -36,14 +36,14 @@ class SkipConfirm extends React.Component<Props, State> {
     const {children} = this.props;
 
     return (
-      <React.Fragment>
+      <Fragment>
         {children({skip: this.toggleConfirm})}
         <Confirmation
           visible={this.state.showConfirmation}
           onSkip={this.handleSkip}
           onDismiss={this.toggleConfirm}
         />
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

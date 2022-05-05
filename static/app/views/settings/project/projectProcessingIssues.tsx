@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -73,7 +73,7 @@ type State = {
   reprocessing: boolean;
 };
 
-class ProjectProcessingIssues extends React.Component<Props, State> {
+class ProjectProcessingIssues extends Component<Props, State> {
   state: State = {
     formData: {},
     loading: true,
@@ -378,7 +378,7 @@ class ProjectProcessingIssues extends React.Component<Props, State> {
     }
 
     return (
-      <React.Fragment>
+      <Fragment>
         {fixLinkBlock}
         <h3>
           {t('Pending Issues')}
@@ -398,17 +398,17 @@ class ProjectProcessingIssues extends React.Component<Props, State> {
         <PanelTable headers={[t('Problem'), t('Details'), t('Events'), t('Last seen')]}>
           {processingRow}
           {processingIssues?.issues?.map((item, idx) => (
-            <React.Fragment key={idx}>
+            <Fragment key={idx}>
               <div>{this.renderProblem(item)}</div>
               <div>{this.renderDetails(item)}</div>
               <div>{item.numEvents + ''}</div>
               <div>
                 <TimeSince date={item.lastSeen} />
               </div>
-            </React.Fragment>
+            </Fragment>
           ))}
         </PanelTable>
-      </React.Fragment>
+      </Fragment>
     );
   }
 

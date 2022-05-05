@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import DropdownBubble from 'sentry/components/dropdownBubble';
@@ -78,7 +78,7 @@ type Props = DefaultProps & {
  * including the button + menu options. Use the `button` or `label` prop to set
  * the button content and `children` to provide menu options.
  */
-class DropdownControl extends React.Component<Props> {
+class DropdownControl extends Component<Props> {
   static defaultProps: DefaultProps = {
     alwaysRenderMenu: true,
     menuWidth: '100%',
@@ -166,10 +166,10 @@ class DropdownControl extends React.Component<Props> {
       <Container className={className} fullWidth={fullWidth ?? false}>
         <DropdownMenu alwaysRenderMenu={alwaysRenderMenu}>
           {({isOpen, getMenuProps, getActorProps}) => (
-            <React.Fragment>
+            <Fragment>
               {this.renderButton(isOpen, getActorProps)}
               {this.renderChildren(isOpen, getMenuProps)}
-            </React.Fragment>
+            </Fragment>
           )}
         </DropdownMenu>
       </Container>

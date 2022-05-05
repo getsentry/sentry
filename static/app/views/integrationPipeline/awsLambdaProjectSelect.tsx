@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 import * as qs from 'query-string';
@@ -19,7 +19,7 @@ import HeaderWithHelp from './components/headerWithHelp';
 
 type Props = {projects: Project[]};
 
-export default class AwsLambdaProjectSelect extends React.Component<Props> {
+export default class AwsLambdaProjectSelect extends Component<Props> {
   model = new FormModel();
 
   handleSubmit = (e: React.MouseEvent) => {
@@ -41,10 +41,10 @@ export default class AwsLambdaProjectSelect extends React.Component<Props> {
     const {projects} = this.props;
     // TODO: Add logic if no projects
     return (
-      <React.Fragment>
+      <Fragment>
         <HeaderWithHelp docsUrl="https://docs.sentry.io/product/integrations/cloud-monitoring/aws-lambda/" />
         <StyledList symbol="colored-numeric">
-          <React.Fragment />
+          <Fragment />
           <ListItem>
             <h3>{t('Select a project for your AWS Lambdas')}</h3>
             <Form model={this.model} hideFooter>
@@ -72,7 +72,7 @@ export default class AwsLambdaProjectSelect extends React.Component<Props> {
             />
           )}
         </Observer>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import TextareaAutosize from 'react-autosize-textarea';
 import styled from '@emotion/styled';
 
@@ -35,7 +35,7 @@ type State = {
   text: string | null;
 };
 
-class OwnerInput extends React.Component<Props, State> {
+class OwnerInput extends Component<Props, State> {
   static defaultProps = defaultProps;
 
   state: State = {
@@ -150,7 +150,7 @@ class OwnerInput extends React.Component<Props, State> {
     const {hasChanges, text, error} = this.state;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <RuleBuilder
           urls={urls}
           paths={paths}
@@ -196,7 +196,7 @@ class OwnerInput extends React.Component<Props, State> {
             </SaveButton>
           </ActionBar>
         </div>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }
