@@ -1,5 +1,4 @@
-import * as React from 'react';
-import {Fragment} from 'react';
+import {Fragment, PureComponent} from 'react';
 import {InjectedRouter} from 'react-router';
 import {components} from 'react-select';
 import {css} from '@emotion/react';
@@ -78,7 +77,7 @@ type State = {
   environments: Environment[] | null;
 };
 
-class RuleConditionsForm extends React.PureComponent<Props, State> {
+class RuleConditionsForm extends PureComponent<Props, State> {
   state: State = {
     environments: null,
   };
@@ -480,7 +479,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
       dataset === 'events' ? [...measurementTags, ...transactionTags] : [];
 
     return (
-      <React.Fragment>
+      <Fragment>
         <ChartPanel>
           <StyledPanelBody>{this.props.thresholdChart}</StyledPanelBody>
         </ChartPanel>
@@ -575,7 +574,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
           </FormField>
         </FormRow>
         {!hasAlertWizardV3 && this.renderInterval()}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

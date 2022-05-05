@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 
 import CommitLink from 'sentry/components/commitLink';
 import Duration from 'sentry/components/duration';
@@ -266,7 +266,7 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
     }
   }
 
-  return <React.Fragment>{renderContent()}</React.Fragment>;
+  return <Fragment>{renderContent()}</Fragment>;
 }
 
 export default GroupActivityItem;

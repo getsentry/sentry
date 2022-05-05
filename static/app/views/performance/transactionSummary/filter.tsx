@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -62,7 +62,7 @@ function Filter(props: Props) {
     hasDarkBorderBottomColor: boolean;
   } = {
     children: (
-      <React.Fragment>
+      <Fragment>
         <IconFilter />
         <FilterLabel>
           {currentFilter === SpanOperationBreakdownFilter.None
@@ -71,7 +71,7 @@ function Filter(props: Props) {
                 operationName: currentFilter,
               })}
         </FilterLabel>
-      </React.Fragment>
+      </Fragment>
     ),
     priority: 'default',
     hasDarkBorderBottomColor: false,

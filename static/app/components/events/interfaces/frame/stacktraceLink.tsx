@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -264,7 +264,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     const {frame} = this.props;
     const {config} = this.match;
     return (
-      <React.Fragment>
+      <Fragment>
         <StyledHovercard
           header={
             error === 'stack_root_mismatch' ? (
@@ -292,7 +292,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
         >
           <StyledIconInfo size="xs" />
         </StyledHovercard>
-      </React.Fragment>
+      </Fragment>
     );
   }
 

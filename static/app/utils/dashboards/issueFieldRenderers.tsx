@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -170,13 +170,13 @@ const issuesCountRenderer = (
         title={
           <div>
             {filteredCount ? (
-              <React.Fragment>
+              <Fragment>
                 <StyledLink to={filteredDiscoverLink}>
                   {t('Matching search filters')}
                   <WrappedCount value={filteredCount} />
                 </StyledLink>
                 <Divider />
-              </React.Fragment>
+              </Fragment>
             ) : null}
             <StyledLink to={discoverLink}>
               {t(`Total in ${selectionDateString}`)}
@@ -192,10 +192,10 @@ const issuesCountRenderer = (
       >
         <span>
           {['events', 'users'].includes(field) && filteredCount ? (
-            <React.Fragment>
+            <Fragment>
               <Count value={filteredCount} />
               <SecondaryCount value={primaryCount} />
-            </React.Fragment>
+            </Fragment>
           ) : (
             <Count value={primaryCount} />
           )}

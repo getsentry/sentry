@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import debounce from 'lodash/debounce';
 import * as qs from 'query-string';
 
@@ -175,7 +175,7 @@ export default class AbstractExternalIssueForm<
     }
     if (typeof currentOption.label === 'string') {
       currentOption.label = (
-        <React.Fragment>
+        <Fragment>
           <QuestionTooltip
             title={tct('This is your current [label].', {
               label: field.label,
@@ -183,7 +183,7 @@ export default class AbstractExternalIssueForm<
             size="xs"
           />{' '}
           {currentOption.label}
-        </React.Fragment>
+        </Fragment>
       );
     }
     const currentOptionResultIndex = result.findIndex(
@@ -332,14 +332,14 @@ export default class AbstractExternalIssueForm<
     const {Header, Body} = this.props as ModalRenderProps;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Header closeButton>{this.getTitle()}</Header>
         {this.renderNavTabs()}
         <Body>
           {this.shouldRenderLoading ? (
             this.renderLoading()
           ) : (
-            <React.Fragment>
+            <Fragment>
               {this.renderBodyText()}
               <Form initialData={initialData} {...this.getFormProps()}>
                 {(formFields || [])
@@ -360,10 +360,10 @@ export default class AbstractExternalIssueForm<
                     />
                   ))}
               </Form>
-            </React.Fragment>
+            </Fragment>
           )}
         </Body>
-      </React.Fragment>
+      </Fragment>
     );
   };
 }

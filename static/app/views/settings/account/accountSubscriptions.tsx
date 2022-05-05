@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import groupBy from 'lodash/groupBy';
 import moment from 'moment';
@@ -102,7 +102,7 @@ class AccountSubscriptions extends AsyncView<AsyncView['props'], State> {
               <PanelHeader>{t('Subscription')}</PanelHeader>
               <PanelBody>
                 {subGroups.map(([email, subscriptions]) => (
-                  <React.Fragment key={email}>
+                  <Fragment key={email}>
                     {subGroups.length > 1 && (
                       <Heading>
                         <IconToggle /> {t('Subscriptions for %s', email)}
@@ -145,7 +145,7 @@ class AccountSubscriptions extends AsyncView<AsyncView['props'], State> {
                         </div>
                       </PanelItem>
                     ))}
-                  </React.Fragment>
+                  </Fragment>
                 ))}
               </PanelBody>
             </div>

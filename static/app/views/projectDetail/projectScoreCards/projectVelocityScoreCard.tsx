@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 
 import {fetchAnyReleaseExistence} from 'sentry/actionCreators/projects';
 import AsyncComponent from 'sentry/components/asyncComponent';
@@ -209,14 +209,14 @@ class ProjectVelocityScoreCard extends AsyncComponent<Props, State> {
     }
 
     return (
-      <React.Fragment>
+      <Fragment>
         {this.trend >= 0 ? (
           <IconArrow direction="up" size="xs" />
         ) : (
           <IconArrow direction="down" size="xs" />
         )}
         {Math.abs(this.trend)}
-      </React.Fragment>
+      </Fragment>
     );
   }
 

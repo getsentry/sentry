@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 
 import Count from 'sentry/components/count';
 import {
@@ -115,7 +115,7 @@ function renderMeasurements(
   const measurements = getMeasurements(event);
 
   return (
-    <React.Fragment>
+    <Fragment>
       {Array.from(measurements).map(([timestamp, verticalMark]) => {
         const bounds = getMeasurementBounds(timestamp, generateBounds);
 
@@ -135,7 +135,7 @@ function renderMeasurements(
           />
         );
       })}
-    </React.Fragment>
+    </Fragment>
   );
 }
 

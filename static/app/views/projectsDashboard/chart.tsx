@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
 import BaseChart from 'sentry/components/charts/baseChart';
@@ -161,10 +161,10 @@ const Chart = ({firstEvent, stats, transactionStats}: Props) => {
   };
 
   return (
-    <React.Fragment>
+    <Fragment>
       <BaseChart {...chartOptions} />
       {!firstEvent && <NoEvents seriesCount={series.length} />}
-    </React.Fragment>
+    </Fragment>
   );
 };
 

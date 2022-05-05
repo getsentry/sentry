@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import {motion} from 'framer-motion';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
@@ -15,7 +15,7 @@ type Props = {
 
 export default function FullIntroduction({currentPlatform}: Props) {
   return (
-    <React.Fragment>
+    <Fragment>
       <SetupIntroduction
         stepHeaderText={t(
           'Prepare the %s SDK',
@@ -46,6 +46,6 @@ export default function FullIntroduction({currentPlatform}: Props) {
           }
         )}
       </motion.p>
-    </React.Fragment>
+    </Fragment>
   );
 }

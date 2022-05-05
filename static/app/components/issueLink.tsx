@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
@@ -50,7 +50,7 @@ const IssueLink = ({children, orgId, issue, to, card = true}: Props) => {
           levelIndicatorSize="9px"
           message={message}
           annotations={
-            <React.Fragment>
+            <Fragment>
               {issue.logger && (
                 <EventAnnotation>
                   <Link
@@ -66,7 +66,7 @@ const IssueLink = ({children, orgId, issue, to, card = true}: Props) => {
               {issue.annotations.map((annotation, i) => (
                 <EventAnnotation key={i} dangerouslySetInnerHTML={{__html: annotation}} />
               ))}
-            </React.Fragment>
+            </Fragment>
           }
         />
       </Section>

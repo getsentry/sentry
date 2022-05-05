@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -282,7 +282,7 @@ class OrganizationMembersList extends AsyncView<Props, State> {
     );
 
     return (
-      <React.Fragment>
+      <Fragment>
         <ClassNames>
           {({css}) =>
             this.renderSearchInput({
@@ -348,7 +348,7 @@ class OrganizationMembersList extends AsyncView<Props, State> {
         </Panel>
 
         <Pagination pageLinks={membersPageLinks} />
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

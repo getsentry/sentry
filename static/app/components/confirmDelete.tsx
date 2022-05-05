@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 
 import Alert from 'sentry/components/alert';
 import Confirm from 'sentry/components/confirm';
@@ -19,7 +19,7 @@ const ConfirmDelete = ({message, confirmInput, ...props}: Props) => (
     bypass={false}
     disableConfirmButton
     renderMessage={({disableConfirmButton}) => (
-      <React.Fragment>
+      <Fragment>
         <Alert type="error">{message}</Alert>
         <Field
           flexibleControlStateSize
@@ -35,7 +35,7 @@ const ConfirmDelete = ({message, confirmInput, ...props}: Props) => (
             onChange={e => disableConfirmButton(e.target.value !== confirmInput)}
           />
         </Field>
-      </React.Fragment>
+      </Fragment>
     )}
   />
 );

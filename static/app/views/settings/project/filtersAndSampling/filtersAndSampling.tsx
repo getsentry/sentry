@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import partition from 'lodash/partition';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -210,7 +210,7 @@ class FiltersAndSampling extends AsyncView<Props, State> {
     }
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SettingsPageHeader title={this.getTitle()} />
         <PermissionAlert />
         <TextBlock>
@@ -243,7 +243,7 @@ class FiltersAndSampling extends AsyncView<Props, State> {
           onDeleteRule={this.handleDeleteRule}
           onUpdateRules={this.handleUpdateRules}
         />
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

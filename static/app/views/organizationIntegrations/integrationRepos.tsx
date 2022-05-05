@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
@@ -219,7 +219,7 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
     );
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Panel>
           {header}
           <PanelBody>
@@ -251,7 +251,7 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
         {itemListPageLinks && (
           <Pagination pageLinks={itemListPageLinks} {...this.props} />
         )}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -93,7 +93,7 @@ class DataDownload extends AsyncView<Props, State> {
 
   renderEarly(): React.ReactNode {
     return (
-      <React.Fragment>
+      <Fragment>
         <Header>
           <h3>
             {t('What are')}
@@ -109,7 +109,7 @@ class DataDownload extends AsyncView<Props, State> {
           </p>
           <p>{t("Close this window and we'll email you when your download is ready.")}</p>
         </Body>
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -117,7 +117,7 @@ class DataDownload extends AsyncView<Props, State> {
     const {query} = this.state.download;
     const actionLink = this.getActionLink(query.type);
     return (
-      <React.Fragment>
+      <Fragment>
         <Header>
           <h3>{t('This is awkward.')}</h3>
         </Header>
@@ -136,7 +136,7 @@ class DataDownload extends AsyncView<Props, State> {
             {t('Start a New Download')}
           </DownloadButton>
         </Body>
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -171,13 +171,13 @@ class DataDownload extends AsyncView<Props, State> {
     const {type = ExportQueryType.IssuesByTag} = query;
 
     return type === 'Discover' ? (
-      <React.Fragment>
+      <Fragment>
         <p>{t('Need to make changes?')}</p>
         <Button priority="primary" onClick={() => this.openInDiscover()}>
           {t('Open in Discover')}
         </Button>
         <br />
-      </React.Fragment>
+      </Fragment>
     ) : null;
   }
 
@@ -188,7 +188,7 @@ class DataDownload extends AsyncView<Props, State> {
     const {orgId, dataExportId} = this.props.params;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Header>
           <h3>{t('All done.')}</h3>
         </Header>
@@ -225,7 +225,7 @@ class DataDownload extends AsyncView<Props, State> {
             })}
           </p>
         </Body>
-      </React.Fragment>
+      </Fragment>
     );
   }
 

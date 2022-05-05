@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
@@ -337,7 +337,7 @@ class AbstractIntegrationDetailedView<
     const {FeatureList} = getIntegrationFeatureGate();
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Flex>
           <FlexContainer>
             <Description dangerouslySetInnerHTML={{__html: marked(this.description)}} />
@@ -369,20 +369,20 @@ class AbstractIntegrationDetailedView<
             ))}
           </Metadata>
         </Flex>
-      </React.Fragment>
+      </Fragment>
     );
   }
 
   renderBody() {
     return (
-      <React.Fragment>
+      <Fragment>
         {this.renderAlert()}
         {this.renderTopSection()}
         {this.renderTabs()}
         {this.state.tab === 'overview'
           ? this.renderInformationCard()
           : this.renderConfigurations()}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

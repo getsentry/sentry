@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -216,7 +216,7 @@ function WidgetQueryFields({
     const columns = fields.slice(0, fields.length - 1);
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Field
           data-test-id="columns"
           label={t('Columns')}
@@ -260,7 +260,7 @@ function WidgetQueryFields({
             />
           </QueryFieldWrapper>
         </Field>
-      </React.Fragment>
+      </Fragment>
     );
   }
 

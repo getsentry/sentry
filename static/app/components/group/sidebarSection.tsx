@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import space from 'sentry/styles/space';
@@ -43,10 +43,10 @@ function SidebarSection({title, children, secondary, ...props}: SidebarSectionPr
   const HeaderComponent = secondary ? Subheading : Heading;
 
   return (
-    <React.Fragment>
+    <Fragment>
       <HeaderComponent {...props}>{title}</HeaderComponent>
       <SectionContent secondary={secondary}>{children}</SectionContent>
-    </React.Fragment>
+    </Fragment>
   );
 }
 
