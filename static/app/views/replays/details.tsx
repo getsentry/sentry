@@ -10,6 +10,7 @@ import ReplayBreadcrumbOverview from 'sentry/components/replays/breadcrumbs/repl
 import Scrobber from 'sentry/components/replays/player/scrobber';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayController from 'sentry/components/replays/replayController';
+import ReplayCurrentUrl from 'sentry/components/replays/replayCurrentUrl';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
 import useFullscreen from 'sentry/components/replays/useFullscreen';
 import {t} from 'sentry/locale';
@@ -80,10 +81,7 @@ function ReplayDetails() {
   }
 
   return (
-    <ReplayContextProvider
-      events={replay.getRRWebEvents()}
-      initialTimeOffset={initialTimeOffset}
-    >
+    <ReplayContextProvider replay={replay} initialTimeOffset={initialTimeOffset}>
       <DetailLayout
         event={replay.getEvent()}
         orgId={orgId}
@@ -92,6 +90,9 @@ function ReplayDetails() {
         <Layout.Body>
           <ReplayLayout ref={fullscreenRef}>
             <Panel>
+              <PanelHeader>
+                <ReplayCurrentUrl />
+              </PanelHeader>
               <PanelHeader disablePadding>
                 <ManualResize isFullscreen={isFullscreen}>
                   <ReplayPlayer />
