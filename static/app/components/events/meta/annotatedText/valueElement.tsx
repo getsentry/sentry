@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment, isValidElement} from 'react';
 
 import {t} from 'sentry/locale';
 import {Meta} from 'sentry/types';
@@ -35,16 +35,16 @@ const ValueElement = ({value, meta}: Props) => {
     );
   }
 
-  if (React.isValidElement(value)) {
+  if (isValidElement(value)) {
     return value;
   }
 
   return (
-    <React.Fragment>
+    <Fragment>
       {typeof value === 'object' || typeof value === 'boolean'
         ? JSON.stringify(value)
         : value}
-    </React.Fragment>
+    </Fragment>
   );
 };
 

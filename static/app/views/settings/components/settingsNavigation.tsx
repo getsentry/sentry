@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {cloneElement, Component} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -29,7 +29,7 @@ type Props = DefaultProps &
     navigationObjects: NavigationSection[];
   };
 
-class SettingsNavigation extends React.Component<Props> {
+class SettingsNavigation extends Component<Props> {
   static defaultProps: DefaultProps = {
     hooks: [],
     hookConfigs: [],
@@ -55,7 +55,7 @@ class SettingsNavigation extends React.Component<Props> {
         {navWithHooks.map(config => (
           <SettingsNavigationGroup key={config.name} {...otherProps} {...config} />
         ))}
-        {hooks.map((Hook, i) => React.cloneElement(Hook, {key: `hook-${i}`}))}
+        {hooks.map((Hook, i) => cloneElement(Hook, {key: `hook-${i}`}))}
       </PositionStickyWrapper>
     );
   }

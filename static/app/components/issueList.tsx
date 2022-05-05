@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 
 import {Client} from 'sentry/api';
@@ -43,14 +43,14 @@ function IssueList({
   noBorder,
   noMargin,
 }: IssueListProps): React.ReactElement {
-  const [state, setState] = React.useState<IssueListState>({
+  const [state, setState] = useState<IssueListState>({
     issueIds: [],
     status: 'loading',
     pageLinks: null,
     data: [],
   });
 
-  const fetchIssueListData = React.useCallback(() => {
+  const fetchIssueListData = useCallback(() => {
     api.clear();
     api.request(endpoint, {
       method: 'GET',
@@ -72,7 +72,7 @@ function IssueList({
     });
   }, [query, endpoint, location.query, api]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     // TODO: location should always be passed as a prop, check why we have this
     if (!location) {
       return;
@@ -82,7 +82,7 @@ function IssueList({
     fetchIssueListData();
   }, [fetchIssueListData]);
 
-  const panelStyles = React.useMemo(() => {
+  const panelStyles = useMemo(() => {
     const styles: React.CSSProperties = {
       ...(noBorder ? {border: 0, borderRadius: 0} : {}),
       ...(noMargin ? {marginBottom: 0} : {}),
@@ -92,7 +92,7 @@ function IssueList({
   }, [noBorder, noMargin]);
 
   return (
-    <React.Fragment>
+    <Fragment>
       {state.status === 'loading' ? (
         <div style={{margin: '18px 18px 0'}}>
           <LoadingIndicator />
@@ -120,7 +120,7 @@ function IssueList({
       )}
 
       {pagination && state.pageLinks && <Pagination pageLinks={state.pageLinks} />}
-    </React.Fragment>
+    </Fragment>
   );
 }
 

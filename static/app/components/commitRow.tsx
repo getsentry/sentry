@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -30,7 +30,7 @@ interface CommitRowProps {
 }
 
 function CommitRow({commit, customAvatar, className}: CommitRowProps) {
-  const handleInviteClick = React.useCallback(() => {
+  const handleInviteClick = useCallback(() => {
     if (!commit.author?.email) {
       Sentry.captureException(
         new Error(`Commit author has no email or id, invite flow is broken.`)

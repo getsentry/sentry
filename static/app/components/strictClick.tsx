@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {cloneElement, PureComponent} from 'react';
 
 type ClickProps<T> = {
   onClick?: React.HTMLAttributes<T>['onClick'];
@@ -20,7 +20,7 @@ type State = {
  *   <button>Some button</button>
  * </StrictClick>
  */
-class StrictClick<T extends HTMLElement> extends React.PureComponent<Props<T>, State> {
+class StrictClick<T extends HTMLElement> extends PureComponent<Props<T>, State> {
   static MAX_DELTA_X = 10;
   static MAX_DELTA_Y = 10;
 
@@ -52,7 +52,7 @@ class StrictClick<T extends HTMLElement> extends React.PureComponent<Props<T>, S
       return this.props.children;
     }
 
-    return React.cloneElement(this.props.children, {
+    return cloneElement(this.props.children, {
       onMouseDown: this.handleMouseDown,
       onClick: this.handleMouseClick,
     });

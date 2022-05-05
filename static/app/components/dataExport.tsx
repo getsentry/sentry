@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import debounce from 'lodash/debounce';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -38,15 +38,15 @@ function DataExport({
   payload,
   icon,
 }: DataExportProps): React.ReactElement {
-  const [inProgress, setInProgress] = React.useState(false);
+  const [inProgress, setInProgress] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (inProgress) {
       setInProgress(false);
     }
   }, [payload.queryType, payload.queryInfo]);
 
-  const handleDataExport = React.useCallback(() => {
+  const handleDataExport = useCallback(() => {
     setInProgress(true);
 
     api

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {isValidElement} from 'react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
@@ -42,7 +42,7 @@ const KeyValueList = ({
         {getData().map(
           ({key, subject, value = null, meta, subjectIcon, subjectDataTestId}) => {
             const dataValue: React.ReactNode =
-              typeof value === 'object' && !React.isValidElement(value)
+              typeof value === 'object' && !isValidElement(value)
                 ? JSON.stringify(value, null, 2)
                 : value;
 
@@ -63,7 +63,7 @@ const KeyValueList = ({
                   {subjectIcon}
                 </ContextData>
               );
-            } else if (typeof dataValue !== 'string' && React.isValidElement(dataValue)) {
+            } else if (typeof dataValue !== 'string' && isValidElement(dataValue)) {
               contentComponent = dataValue;
             }
 

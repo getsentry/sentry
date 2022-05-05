@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 import maxBy from 'lodash/maxBy';
@@ -130,7 +130,7 @@ type State = {
  * This is a chart to be used in Metric Alert rules that fetches events based on
  * query, timewindow, and aggregations.
  */
-class TriggersChart extends React.PureComponent<Props, State> {
+class TriggersChart extends PureComponent<Props, State> {
   state: State = {
     statsPeriod: TimePeriod.SEVEN_DAYS,
     totalCount: null,
@@ -229,7 +229,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
     const statsPeriodOptions = this.availableTimePeriods[timeWindow];
     const period = this.getStatsPeriod();
     return (
-      <React.Fragment>
+      <Fragment>
         {header}
         <TransparentLoadingMask visible={isReloading} />
         {isLoading ? (
@@ -275,7 +275,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
             />
           </InlineContainer>
         </ChartControls>
-      </React.Fragment>
+      </Fragment>
     );
   }
 

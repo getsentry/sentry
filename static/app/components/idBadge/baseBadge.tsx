@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {memo} from 'react';
 import styled from '@emotion/styled';
 
 import Avatar from 'sentry/components/avatar';
@@ -20,7 +20,7 @@ type Props = {
   team?: Team;
 };
 
-const BaseBadge = React.memo(
+const BaseBadge = memo(
   ({
     displayName,
     hideName = false,

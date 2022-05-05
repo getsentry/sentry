@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptor, Query} from 'history';
 
@@ -46,7 +46,7 @@ type Props = {
   titles?: string[];
 };
 
-class TransactionsTable extends React.PureComponent<Props> {
+class TransactionsTable extends PureComponent<Props> {
   getTitles() {
     const {eventView, titles} = this.props;
     return titles ?? eventView.getFields();
@@ -70,7 +70,7 @@ class TransactionsTable extends React.PureComponent<Props> {
               align={align}
               title={
                 title === t('operation duration') ? (
-                  <React.Fragment>
+                  <Fragment>
                     {title}
                     <StyledIconQuestion
                       size="xs"
@@ -79,7 +79,7 @@ class TransactionsTable extends React.PureComponent<Props> {
                         `Span durations are summed over the course of an entire transaction. Any overlapping spans are only counted once.`
                       )}
                     />
-                  </React.Fragment>
+                  </Fragment>
                 ) : (
                   title
                 )

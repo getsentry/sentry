@@ -1,5 +1,4 @@
-import * as React from 'react';
-import {useState} from 'react';
+import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -52,7 +51,7 @@ function DashboardWidgetLibraryModal({
   const overLimit = dashboard.widgets.length + selectedWidgets.length > MAX_WIDGETS;
 
   return (
-    <React.Fragment>
+    <Fragment>
       <Header closeButton>
         <h4>{t('Add Widget(s)')}</h4>
       </Header>
@@ -124,7 +123,7 @@ function DashboardWidgetLibraryModal({
           </Tooltip>
         </ButtonBar>
       </Footer>
-    </React.Fragment>
+    </Fragment>
   );
 }
 

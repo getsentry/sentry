@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 import {motion, MotionProps} from 'framer-motion';
 
@@ -35,20 +35,20 @@ type TextWrapperProps = {
 
 function InnerAction({title, subText, cta, src}: TextWrapperProps) {
   return (
-    <React.Fragment>
+    <Fragment>
       <ActionImage src={src} />
       <TextWrapper>
         <ActionTitle>{title}</ActionTitle>
         <SubText>{subText}</SubText>
       </TextWrapper>
       <ButtonWrapper>{cta}</ButtonWrapper>
-    </React.Fragment>
+    </Fragment>
   );
 }
 
 function TargetedOnboardingWelcome({organization, ...props}: StepProps) {
   const source = 'targeted_onboarding';
-  React.useEffect(() => {
+  useEffect(() => {
     trackAdvancedAnalyticsEvent('growth.onboarding_start_onboarding', {
       organization,
       source,
@@ -84,7 +84,7 @@ function TargetedOnboardingWelcome({organization, ...props}: StepProps) {
               )}
               src={OnboardingInstall}
               cta={
-                <React.Fragment>
+                <Fragment>
                   <ButtonWithFill
                     onClick={() => {
                       // triggerFall();
@@ -97,7 +97,7 @@ function TargetedOnboardingWelcome({organization, ...props}: StepProps) {
                   {(fallCount === 0 || isFalling) && (
                     <PositionedFallingError>{fallingError}</PositionedFallingError>
                   )}
-                </React.Fragment>
+                </Fragment>
               }
             />
           </ActionItem>

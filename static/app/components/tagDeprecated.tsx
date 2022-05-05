@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {cloneElement, isValidElement} from 'react';
 import styled from '@emotion/styled';
 
 import space from 'sentry/styles/space';
@@ -44,7 +44,7 @@ const Tag = styled(
     <div {...props}>
       {icon && (
         <IconWrapper>
-          {React.isValidElement(icon) && React.cloneElement(icon, {size: 'xs'})}
+          {isValidElement(icon) && cloneElement(icon, {size: 'xs'})}
         </IconWrapper>
       )}
       {children}
