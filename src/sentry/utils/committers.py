@@ -159,7 +159,8 @@ def _get_committers(
                 break
 
     # organize them by this heuristic (first frame is worth 5 points, second is worth 4, etc.)
-    sorted_committers = {k: v for k, v in sorted(committers.items(), key=operator.itemgetter(1))}
+    sorted_committers = sorted(committers.items(), key=operator.itemgetter(1))
+
     users_by_author: Mapping[str, Mapping[str, Any]] = get_users_for_commits(
         [c for c, _ in commits]
     )
@@ -171,7 +172,7 @@ def _get_committers(
                 (commit, score) for (commit, score) in commits if commit.author_id == author_id
             ],
         }
-        for author_id in sorted_committers
+        for author_id, _ in sorted_committers
     ]
 
     return user_dicts
