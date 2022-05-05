@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 
 import TagStore from 'sentry/stores/tagStore';
 import {TagCollection} from 'sentry/types';
@@ -16,7 +16,7 @@ type State = {
  * HOC for getting *only* tags from the TagStore.
  */
 function withTags<P extends InjectedTagsProps>(WrappedComponent: React.ComponentType<P>) {
-  class WithTags extends React.Component<Omit<P, keyof InjectedTagsProps>, State> {
+  class WithTags extends Component<Omit<P, keyof InjectedTagsProps>, State> {
     static displayName = `withTags(${getDisplayName(WrappedComponent)})`;
 
     state: State = {

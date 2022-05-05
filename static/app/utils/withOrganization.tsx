@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 
 import SentryTypes from 'sentry/sentryTypes';
 import {Organization} from 'sentry/types';
@@ -11,7 +11,7 @@ type InjectedOrganizationProps = {
 const withOrganization = <P extends InjectedOrganizationProps>(
   WrappedComponent: React.ComponentType<P>
 ) =>
-  class extends React.Component<
+  class extends Component<
     Omit<P, keyof InjectedOrganizationProps> & InjectedOrganizationProps
   > {
     static displayName = `withOrganization(${getDisplayName(WrappedComponent)})`;

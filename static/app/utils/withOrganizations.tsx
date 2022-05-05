@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {OrganizationSummary} from 'sentry/types';
@@ -16,7 +16,7 @@ type State = {
 function withOrganizations<P extends InjectedOrganizationsProps>(
   WrappedComponent: React.ComponentType<P>
 ) {
-  class WithOrganizations extends React.Component<
+  class WithOrganizations extends Component<
     Omit<P, keyof InjectedOrganizationsProps> & Partial<InjectedOrganizationsProps>,
     State
   > {

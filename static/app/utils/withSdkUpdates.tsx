@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 
 import {loadSdkUpdates} from 'sentry/actionCreators/sdkUpdates';
 import {Client} from 'sentry/api';
@@ -33,7 +33,7 @@ type State = {
 function withSdkUpdates<P extends InjectedProps>(
   WrappedComponent: React.ComponentType<P>
 ) {
-  class WithProjectSdkSuggestions extends React.Component<
+  class WithProjectSdkSuggestions extends Component<
     Omit<P, keyof InjectedProps> & Props,
     State
   > {

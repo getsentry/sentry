@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 
 import {experimentConfig, unassignedValue} from 'sentry/data/experimentConfig';
 import ConfigStore from 'sentry/stores/configStore';
@@ -78,12 +78,17 @@ function withExperiment<
   E extends ExperimentKey,
   L extends boolean,
   P extends InjectedExperimentProps<E, L>
->(Component: React.ComponentType<P>, {experiment, injectLogExperiment}: Options<E, L>) {
+>(
+  ExperimentComponent: React.ComponentType<P>,
+  {experiment, injectLogExperiment}: Options<E, L>
+) {
   type Props = Omit<P, keyof InjectedExperimentProps<E, L>> &
     ExpectedProps<Experiments[E]['type']>;
 
-  return class extends React.Component<Props> {
-    static displayName = `withExperiment[${experiment}](${getDisplayName(Component)})`;
+  return class extends Component<Props> {
+    static displayName = `withExperiment[${experiment}](${getDisplayName(
+      ExperimentComponent
+    )})`;
 
     // NOTE(ts): Because of the type complexity of this HoC, typescript
     // has a hard time understanding how to narrow Experiments[E]['type']
@@ -131,7 +136,7 @@ function withExperiment<
       });
 
     render() {
-      const WrappedComponent = Component as React.JSXElementConstructor<any>;
+      const WrappedComponent = ExperimentComponent as React.JSXElementConstructor<any>;
 
       const props = {
         experimentAssignment: this.experimentAssignment,
