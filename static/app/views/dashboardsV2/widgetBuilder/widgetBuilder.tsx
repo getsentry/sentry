@@ -267,10 +267,7 @@ function WidgetBuilder({
         defaultState.queries = [{...defaultWidgetQuery}];
       }
 
-      if (
-        ![DisplayType.TABLE, DisplayType.TOP_N].includes(defaultState.displayType) ||
-        (getIsTimeseriesChart(displayType) && !defaultWidgetQuery?.columns.length)
-      ) {
+      if (![DisplayType.TABLE, DisplayType.TOP_N].includes(defaultState.displayType)) {
         defaultState.queries[0].orderby = '';
       }
     } else {
