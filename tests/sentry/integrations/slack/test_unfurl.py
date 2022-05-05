@@ -54,6 +54,8 @@ def test_match_link(url, expected):
 class UnfurlTest(TestCase):
     def setUp(self):
         super().setUp()
+        # We're redefining project to ensure that the individual tests have unique project ids.
+        # Sharing project ids across tests could result in some race conditions
         self.project = self.create_project()
         self.integration = install_slack(self.organization)
 
