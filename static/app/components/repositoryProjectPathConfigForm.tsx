@@ -38,8 +38,9 @@ export default class RepositoryProjectPathConfigForm extends Component<Props> {
   }
 
   get formFields(): Field[] {
-    const {projects, repos} = this.props;
-    const repoChoices = repos.map(({name, id}) => ({value: id, label: name}));
+    const {projects, repos, organization} = this.props;
+    const reposMapper = (r: Repository[]) =>
+      r.map(({name, id}) => ({value: id, label: name}));
     return [
       {
         name: 'projectId',
@@ -50,11 +51,13 @@ export default class RepositoryProjectPathConfigForm extends Component<Props> {
       },
       {
         name: 'repositoryId',
-        type: 'select',
+        type: 'select_async',
         required: true,
         label: t('Repo'),
         placeholder: t('Choose repo'),
-        options: repoChoices,
+        url: `/organizations/${organization.slug}/repos/?status=active`,
+        defaultOptions: reposMapper(repos),
+        onResults: result => reposMapper(result),
       },
       {
         name: 'defaultBranch',
