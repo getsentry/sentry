@@ -1,5 +1,6 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import keyBy from 'lodash/keyBy';
 
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
@@ -26,14 +27,14 @@ type Props = {
 };
 const columns = [t('Issue'), t('Graph'), t('Events'), t('Users')];
 
-function ErrorList(props: Props) {
+function IssueList(props: Props) {
   const organization = useOrganization();
   const location = useLocation();
   const api = useApi();
   const isScreenLarge = useMedia(`(min-width: ${theme.breakpoints[2]})`);
 
-  const [issues, setIssues] = useState<Group[]>([]);
-  const [issueStats, setIssuesStats] = useState<Group[]>([]);
+  const [issuesById, setIssuesById] = useState<Record<string, Group>>({});
+  const [issueStatsById, setIssuesStatsById] = useState<Record<string, Group>>({});
 
   const getEventView = () => {
     const {selection} = props;
@@ -50,46 +51,51 @@ function ErrorList(props: Props) {
     return result;
   };
 
-  useEffect(() => {
-    const options = {
-      includeAllArgs: true,
-      query: {
-        collapse: 'stats',
-        expand: ['owner', 'inbox'],
-        project: props.projectId,
-        query: `replayId:${props.replayId}`,
-      },
-    };
+  const fetchIssueData = useCallback(async () => {
+    let issues;
+    try {
+      issues = await api.requestPromise(`/organizations/${organization.slug}/issues/`, {
+        includeAllArgs: true,
+        query: {
+          collapse: 'stats',
+          expand: ['owner', 'inbox'],
+          project: props.projectId,
+          query: `replayId:${props.replayId}`,
+        },
+      });
 
-    api
-      .requestPromise(`/organizations/${organization.slug}/issues/`, options)
-      .then(async result => {
-        setIssues(result[0]);
-        const statsOptions = {
+      setIssuesById(keyBy(issues[0], 'id'));
+    } catch (error) {
+      setIssuesById({});
+    }
+
+    try {
+      const issuesResults = await api.requestPromise(
+        `/organizations/${organization.slug}/issues-stats/`,
+        {
           includeAllArgs: true,
           query: {
             project: props.projectId,
-            groups: result[0].map(issue => issue.id),
+            groups: issues[0].map(issue => issue.id),
             query: `replayId:${props.replayId}`,
           },
-        };
-        const issuesResults = await api.requestPromise(
-          `/organizations/${organization.slug}/issues-stats/`,
-          statsOptions
-        );
-        setIssuesStats(issuesResults[0]);
-      });
+        }
+      );
+      setIssuesStatsById(keyBy(issuesResults[0], 'id'));
+    } catch (error) {
+      setIssuesStatsById({});
+    }
   }, [api, organization.slug, props.replayId, props.projectId]);
 
-  const renderTableRow = error => {
-    const matchedIssue = issues.find(
-      issue => parseInt(issue.id, 10) === error['issue.id']
-    );
-    const matchedIssueStats = issueStats.find(
-      issueStat => parseInt(issueStat.id, 10) === error['issue.id']
-    );
+  useEffect(() => {
+    fetchIssueData();
+  }, [fetchIssueData]);
 
-    if (!matchedIssue || !matchedIssueStats) {
+  const renderTableRow = error => {
+    const matchedIssue = issuesById[error['issue.id']];
+    const matchedIssueStats = issueStatsById[error['issue.id']];
+
+    if (!matchedIssue) {
       return null;
     }
     return (
@@ -104,61 +110,66 @@ function ErrorList(props: Props) {
           <EventOrGroupExtraDetails
             data={{
               ...matchedIssue,
-              firstSeen: matchedIssueStats.firstSeen || '',
-              lastSeen: matchedIssueStats.lastSeen || '',
+              firstSeen: matchedIssueStats?.firstSeen || '',
+              lastSeen: matchedIssueStats?.lastSeen || '',
             }}
           />
         </IssueDetailsWrapper>
         {isScreenLarge && (
-          <div>
-            <ChartWrapper>
-              {matchedIssueStats?.stats ? (
-                <GroupChart
-                  statsPeriod={DEFAULT_STREAM_GROUP_STATS_PERIOD}
-                  data={matchedIssueStats}
-                  showSecondaryPoints
-                  showMarkLine
-                />
-              ) : (
-                <Placeholder height="24px" />
-              )}
-            </ChartWrapper>
-          </div>
+          <ChartWrapper>
+            {matchedIssueStats?.stats ? (
+              <GroupChart
+                statsPeriod={DEFAULT_STREAM_GROUP_STATS_PERIOD}
+                data={matchedIssueStats}
+                showSecondaryPoints
+                showMarkLine
+              />
+            ) : (
+              <Placeholder height="44px" />
+            )}
+          </ChartWrapper>
         )}
 
-        <Item>{matchedIssueStats?.count}</Item>
-        <Item>{matchedIssueStats?.userCount}</Item>
+        <Item>
+          {matchedIssueStats?.count ? (
+            matchedIssueStats?.count
+          ) : (
+            <Placeholder height="24px" />
+          )}
+        </Item>
+
+        <Item>
+          {matchedIssueStats?.userCount ? (
+            matchedIssueStats?.userCount
+          ) : (
+            <Placeholder height="24px" />
+          )}
+        </Item>
       </Fragment>
     );
   };
 
   return (
-    <Fragment>
-      <DiscoverQuery
-        eventView={getEventView()}
-        location={location}
-        orgSlug={organization.slug}
-        limit={15}
-      >
-        {data => {
-          return (
-            <Fragment>
-              <StyledPanelTable
-                isEmpty={data.tableData?.data.length === 0}
-                isLoading={data.isLoading}
-                headers={
-                  isScreenLarge
-                    ? columns
-                    : columns.filter(column => column !== t('Graph'))
-                }
-              >
-                {data.tableData?.data.map(renderTableRow) || null}
-              </StyledPanelTable>
-            </Fragment>
-          );
-        }}
-      </DiscoverQuery>
-    </Fragment>
+    <DiscoverQuery
+      eventView={getEventView()}
+      location={location}
+      orgSlug={organization.slug}
+      limit={15}
+    >
+      {data => {
+        return (
+          <StyledPanelTable
+            isEmpty={data.tableData?.data.length === 0}
+            isLoading={data.isLoading}
+            headers={
+              isScreenLarge ? columns : columns.filter(column => column !== t('Graph'))
+            }
+          >
+            {data.tableData?.data.map(renderTableRow) || null}
+          </StyledPanelTable>
+        );
+      }}
+    </DiscoverQuery>
   );
 }
 
@@ -188,4 +199,4 @@ const StyledPanelTable = styled(PanelTable)`
   }
 `;
 
-export default withPageFilters(ErrorList);
+export default withPageFilters(IssueList);
