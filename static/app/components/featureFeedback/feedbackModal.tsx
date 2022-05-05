@@ -1,6 +1,6 @@
 import {Fragment, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
-import {BrowserClient} from '@sentry/react';
+import {BrowserClient, Severity} from '@sentry/react';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -83,6 +83,7 @@ export function FeedbackModal({
         featureName,
       },
       user,
+      level: Severity.Info,
     });
 
     addSuccessMessage(t('Thanks for taking the time to provide us feedback!'));
