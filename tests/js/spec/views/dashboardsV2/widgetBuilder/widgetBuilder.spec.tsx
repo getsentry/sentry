@@ -1897,7 +1897,7 @@ describe('WidgetBuilder', function () {
           '/organizations/org-slug/eventsv2/',
           expect.objectContaining({
             query: expect.objectContaining({
-              sort: '-count',
+              sort: ['-count'],
             }),
           })
         );
@@ -1931,7 +1931,7 @@ describe('WidgetBuilder', function () {
 
       await selectEvent.select(await screen.findByText('count()'), /count_unique/);
       await selectEvent.select(screen.getByText('Select group'), 'project');
-      await selectEvent.select(screen.getByText('count()'), 'project');
+      await selectEvent.select(screen.getAllByText(/count_unique/)[1], 'project');
 
       await selectEvent.select(screen.getByText(/count_unique/), 'count()');
 
@@ -2074,6 +2074,27 @@ describe('WidgetBuilder', function () {
 
       // The sort by should still have count_unique(user)
       expect(screen.getAllByText('count_unique(user)')).toHaveLength(2);
+    });
+
+    it('will reset the sort field when going from line to table when sorting by a value not in fields', async function () {
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        query: {
+          displayType: DisplayType.LINE,
+        },
+      });
+
+      await selectEvent.select(await screen.findByText('Select group'), 'project');
+      expect(screen.getAllByText('count()')).toHaveLength(2);
+      await selectEvent.select(screen.getAllByText('count()')[1], /count_unique/);
+
+      userEvent.click(screen.getByText('Line Chart'));
+      userEvent.click(screen.getByText('Table'));
+
+      // 1 for table header, 1 for column selection, and 1 for sorting
+      await waitFor(() => {
+        expect(screen.getAllByText('count()')).toHaveLength(3);
+      });
     });
   });
 
@@ -2566,7 +2587,7 @@ describe('WidgetBuilder', function () {
       );
     });
 
-    it('makes the calls the session endpoint with the right limit', async function () {
+    it('calls the session endpoint with the right limit', async function () {
       renderTestComponent({
         orgFeatures: releaseHealthFeatureFlags,
       });
@@ -2593,7 +2614,7 @@ describe('WidgetBuilder', function () {
               field: ['sum(session)'],
               groupBy: ['project'],
               interval: '5m',
-              orderBy: '-sum_session',
+              orderBy: '-sum(session)',
               per_page: 5,
               project: [],
               statsPeriod: '24h',

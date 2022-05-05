@@ -703,7 +703,14 @@ function WidgetBuilder({
       } else if (widgetBuilderNewDesign && !newQuery.orderby) {
         const isDescending = newQuery.orderby.startsWith('-');
         const prefix = orderby && !isDescending ? '' : '-';
-        newQuery.orderby = `${prefix}count()`;
+        const orderOption = generateOrderOptions({
+          widgetType: widgetType ?? WidgetType.DISCOVER,
+          widgetBuilderNewDesign,
+          columns: query.columns,
+          aggregates: query.aggregates,
+          isUsingFieldFormat: true,
+        })[0].value;
+        newQuery.orderby = `${prefix}${orderOption}`;
       } else if (
         !widgetBuilderNewDesign &&
         aggregateAliasFieldStrings.length &&
