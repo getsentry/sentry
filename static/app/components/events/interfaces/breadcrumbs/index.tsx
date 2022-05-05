@@ -25,13 +25,11 @@ import Type from './breadcrumb/type';
 import Breadcrumbs from './breadcrumbs';
 import {getVirtualCrumb, transformCrumbs} from './utils';
 
-type FilterOptionsProp = React.ComponentProps<typeof SearchBarAction>['filterOptions'];
+type FilterOptions = NonNullable<
+  React.ComponentProps<typeof SearchBarAction>['filterOptions']
+>;
 
-type FilterOption = NonNullable<FilterOptionsProp>[0] & {
-  leadingItems?: React.ReactNode;
-};
-
-type FilterOptionWithLevels = FilterOption & {levels?: string[]};
+type FilterOptionWithLevels = FilterOptions[0] & {levels?: string[]};
 
 type Props = Pick<React.ComponentProps<typeof Breadcrumbs>, 'route' | 'router'> & {
   data: {
@@ -45,11 +43,11 @@ type Props = Pick<React.ComponentProps<typeof Breadcrumbs>, 'route' | 'router'> 
 type State = {
   breadcrumbs: Crumb[];
   displayRelativeTime: boolean;
-  filterOptions: FilterOption[];
+  filterOptions: FilterOptions;
   filteredByFilter: Crumb[];
   filteredBySearch: Crumb[];
   searchTerm: string;
-  selectedFilters: FilterOption[];
+  selectedFilters: FilterOptions;
   relativeTime?: string;
 };
 
@@ -111,7 +109,7 @@ function BreadcrumbsContainer({
     const typeOptions = getFilterTypes(crumbs);
     const levels = getFilterLevels(typeOptions);
 
-    const options: FilterOption[] = [];
+    const options: FilterOptions = [];
 
     if (!!typeOptions.length) {
       options.push({
@@ -163,7 +161,7 @@ function BreadcrumbsContainer({
   }
 
   function getFilterLevels(types: FilterOptionWithLevels[]) {
-    const filterLevels: FilterOption[] = [];
+    const filterLevels: FilterOptions = [];
 
     for (const indexType in types) {
       for (const indexLevel in types[indexType].levels) {
@@ -215,7 +213,7 @@ function BreadcrumbsContainer({
     );
   }
 
-  function getFilteredCrumbsByFilter(selectedFilterOptions: FilterOption[]) {
+  function getFilteredCrumbsByFilter(selectedFilterOptions: FilterOptions) {
     const checkedTypeOptions = new Set(
       selectedFilterOptions
         .filter(option => option.value.split('-')[0] === 'type')
@@ -259,7 +257,7 @@ function BreadcrumbsContainer({
     });
   }
 
-  function handleFilter(newfilterOptions: FilterOption[]) {
+  function handleFilter(newfilterOptions: FilterOptions) {
     const newfilteredByFilter = getFilteredCrumbsByFilter(newfilterOptions);
     setState({
       ...state,
