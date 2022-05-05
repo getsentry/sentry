@@ -1,3 +1,4 @@
+import last from 'lodash/last';
 import memoize from 'lodash/memoize';
 import type {eventWithTime} from 'rrweb/typings/types';
 
@@ -7,10 +8,8 @@ import type {Event, EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import mergeBreadcrumbEntries from 'sentry/utils/replays/mergeBreadcrumbEntries';
 import mergeSpanEntries from 'sentry/utils/replays/mergeSpanEntries';
-
-function last<T>(arr: T[]): T {
-  return arr[arr.length - 1];
-}
+import createHighlightEvents from 'sentry/views/replays/utils/createHighlightEvents';
+import mergeAndSortEvents from 'sentry/views/replays/utils/mergeAndSortEvents';
 
 export default class ReplayReader {
   static factory(
@@ -56,9 +55,9 @@ export default class ReplayReader {
     // So we need to figure out the real end time (in seconds).
     const endTimestamp =
       Math.max(
-        lastRRweb.timestamp,
-        +new Date(lastBreadcrumb.timestamp || 0),
-        lastSpan.timestamp * 1000
+        lastRRweb?.timestamp || 0,
+        +new Date(lastBreadcrumb?.timestamp || 0),
+        (lastSpan?.timestamp || 0) * 1000
       ) / 1000;
 
     return {
@@ -68,9 +67,19 @@ export default class ReplayReader {
     } as EventTransaction;
   });
 
-  getRRWebEvents() {
-    return this._rrwebEvents;
-  }
+  getRRWebEvents = memoize(() => {
+    const spansEntry = this.getEntryType(EntryType.SPANS);
+
+    // Find LCP spans that have a valid replay node id, this will be used to
+    const highlights = createHighlightEvents(spansEntry.data);
+
+    // TODO(replays): ideally this would happen on SDK, but due
+    // to how plugins work, we are unable to specify a timestamp for an event
+    // (rrweb applies it), so it's possible actual LCP timestamp does not
+    // match when the observer happens and we emit an rrweb event (will
+    // look into this)
+    return mergeAndSortEvents(this._rrwebEvents, highlights);
+  });
 
   getEntryType = memoize((type: EntryType) => {
     switch (type) {
