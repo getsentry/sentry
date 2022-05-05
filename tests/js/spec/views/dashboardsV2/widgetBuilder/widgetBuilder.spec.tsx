@@ -1377,14 +1377,9 @@ describe('WidgetBuilder', function () {
     screen.getByText('Limit to 5 results');
 
     userEvent.click(screen.getByText('Add Query'));
-    userEvent.click(screen.getByText('Add Query'));
-
-    screen.getByText('Limit to 3 results');
-
-    userEvent.click(screen.getByText('Add Overlay'));
     userEvent.click(screen.getByText('Add Overlay'));
 
-    await screen.findByText('Limit to 1 result');
+    await screen.findByText('Limit to 2 results');
   });
 
   describe('Sort by selectors', function () {
