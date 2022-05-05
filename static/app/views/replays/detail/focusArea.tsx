@@ -8,7 +8,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 
-import {TabBarId} from '../types';
+import {isReplayTab, ReplayTabs} from '../types';
 
 import FocusTabs from './focusTabs';
 import MemoryChart from './memoryChart';
@@ -19,17 +19,12 @@ type Props = {
   memorySpans: MemorySpanType[] | undefined;
 };
 
-const DEFAULT_TAB = 'performance';
-const TABS = new Set(['performance', 'errors', 'tags', 'memory']);
-
-function isTabBarId(tab: string): tab is TabBarId {
-  return TABS.has(tab);
-}
+const DEFAULT_TAB = ReplayTabs.PERFORMANCE;
 
 function FocusArea(props: Props) {
   const location = useLocation();
   const hash = location.hash.replace(/^#/, '');
-  const tabFromHash = isTabBarId(hash) ? hash : DEFAULT_TAB;
+  const tabFromHash = isReplayTab(hash) ? hash : DEFAULT_TAB;
 
   return (
     <React.Fragment>
@@ -44,7 +39,7 @@ function ActiveTab({
   event,
   eventWithSpans,
   memorySpans,
-}: Props & {active: TabBarId}) {
+}: Props & {active: ReplayTabs}) {
   const {routes, router} = useRouteContext();
   const organization = useOrganization();
   switch (active) {
