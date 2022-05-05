@@ -285,6 +285,51 @@ class SnubaSessionsV2Test(TestCase, SnubaTestCase):
         assert query_def.conditions == []
         assert query_def.filter_keys == {}
 
+    def test_filter_env_in_query(self):
+        env = "prod"
+        params = self._get_default_params()
+        query_def = _make_query(
+            f"field=sum(session)&interval=2h&statsPeriod=2h&query=environment%3A{env}",
+            params=params,
+        )
+        print(query_def)
+        assert query_def.query == f"environment:{env}"
+        assert query_def.conditions == [[["environment", "=", env]]]
+
+    def test_filter_env_in_top_filter(self):
+        env = "prod"
+        params = self._get_default_params()
+        params["environment"] = "prod"
+        query_def = _make_query(
+            f"field=sum(session)&interval=2h&statsPeriod=2h&environment={env}",
+            params=params,
+        )
+        assert query_def.query == ""
+        assert query_def.conditions == [[["environment", "=", "prod"]]]
+
+    def test_filter_env_in_top_filter_and_query(self):
+        env = "prod"
+        params = self._get_default_params()
+        params["environment"] = "prod"
+        query_def = _make_query(
+            f"field=sum(session)&interval=2h&statsPeriod=2h&environment={env}&query=environment%3A{env}",
+            params=params,
+        )
+        assert query_def.query == f"environment:{env}"
+        assert query_def.conditions == [
+            [["environment", "=", "prod"]],
+            [["environment", "=", "prod"]],
+        ]
+
+    def test_env_neither_in_top_filter_nor_query(self):
+        params = self._get_default_params()
+        query_def = _make_query(
+            "field=sum(session)&interval=2h&statsPeriod=2h",
+            params=params,
+        )
+        assert query_def.query == ""
+        assert query_def.conditions == []
+
 
 @freeze_time("2020-12-18T11:14:17.105Z")
 def test_massage_empty():
