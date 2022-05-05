@@ -64,7 +64,12 @@ function ActiveTab({
         </div>
       );
     case 'memory':
-      return <MemoryChart memorySpans={memorySpans} />;
+      return (
+        <MemoryChart
+          memorySpans={memorySpans}
+          startTimestamp={eventWithSpans?.entries[0]?.data[0]?.timestamp}
+        />
+      );
     default:
       return null;
   }

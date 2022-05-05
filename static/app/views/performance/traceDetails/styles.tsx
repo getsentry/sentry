@@ -88,7 +88,6 @@ export function Tags({
   }
 
   const orgSlug = organization.slug;
-  const releasesPath = `/organizations/${orgSlug}/releases/`;
 
   return (
     <tr>
@@ -114,7 +113,6 @@ export function Tags({
                 organization={organization}
                 query={query}
                 streamPath={streamPath}
-                releasesPath={releasesPath}
               />
             );
           })}

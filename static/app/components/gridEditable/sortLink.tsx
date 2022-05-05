@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 import {LocationDescriptorObject} from 'history';
 import omit from 'lodash/omit';
@@ -19,7 +19,7 @@ type Props = {
   onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void;
 };
 
-class SortLink extends React.Component<Props> {
+class SortLink extends Component<Props> {
   renderArrow() {
     const {direction} = this.props;
     if (!direction) {

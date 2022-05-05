@@ -274,7 +274,6 @@ class ProjectDetail extends AsyncView<Props, State> {
                     query={query}
                     onSearch={this.handleSearch}
                     tagValueLoader={this.tagValueLoader}
-                    hasBottomMargin={false}
                   />
                 </ProjectFiltersWrapper>
 

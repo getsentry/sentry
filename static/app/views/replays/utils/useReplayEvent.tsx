@@ -4,12 +4,15 @@ import type {eventWithTime} from 'rrweb/typings/types';
 
 import {MemorySpanType} from 'sentry/components/events/interfaces/spans/types';
 import {IssueAttachment} from 'sentry/types';
-import {Entry, Event} from 'sentry/types/event';
+import {Entry, Event, EventTransaction} from 'sentry/types/event';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
+import ReplayReader from 'sentry/utils/replays/replayReader';
 import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 
+import createHighlightEvents from './createHighlightEvents';
+import mergeAndSortEvents from './mergeAndSortEvents';
 import mergeBreadcrumbsEntries from './mergeBreadcrumbsEntries';
 import mergeEventsWithSpans from './mergeEventsWithSpans';
 
@@ -22,7 +25,7 @@ type State = {
   /**
    * The root replay event
    */
-  event: undefined | Event;
+  event: undefined | EventTransaction;
 
   /**
    * If any request returned an error then nothing is being returned
@@ -69,33 +72,37 @@ type Options = {
 
 interface Result extends State {
   onRetry: () => void;
+  replay: ReplayReader | null;
 }
 
 const IS_RRWEB_ATTACHMENT_FILENAME = /rrweb-[0-9]{13}.json/;
+
 function isRRWebEventAttachment(attachment: IssueAttachment) {
   return IS_RRWEB_ATTACHMENT_FILENAME.test(attachment.name);
 }
+
+const INITIAL_STATE: State = Object.freeze({
+  fetchError: undefined,
+  fetching: true,
+  breadcrumbEntry: undefined,
+  event: undefined,
+  replayEvents: undefined,
+  rrwebEvents: undefined,
+  mergedReplayEvent: undefined,
+  memorySpans: undefined,
+});
 
 function useReplayEvent({eventSlug, location, orgId}: Options): Result {
   const [projectId, eventId] = eventSlug.split(':');
 
   const api = useApi();
   const [retry, setRetry] = useState(false);
-  const [state, setState] = useState<State>({
-    fetchError: undefined,
-    fetching: true,
-    breadcrumbEntry: undefined,
-    event: undefined,
-    replayEvents: undefined,
-    rrwebEvents: undefined,
-    mergedReplayEvent: undefined,
-    memorySpans: undefined,
-  });
+  const [state, setState] = useState<State>(INITIAL_STATE);
 
   function fetchEvent() {
     return api.requestPromise(
       `/organizations/${orgId}/events/${eventSlug}/`
-    ) as Promise<Event>;
+    ) as Promise<EventTransaction>;
   }
 
   async function fetchRRWebEvents() {
@@ -148,16 +155,9 @@ function useReplayEvent({eventSlug, location, orgId}: Options): Result {
   async function loadEvents() {
     setRetry(false);
     setState({
-      fetchError: undefined,
-      fetching: true,
-
-      breadcrumbEntry: undefined,
-      event: undefined,
-      replayEvents: undefined,
-      rrwebEvents: undefined,
-      mergedReplayEvent: undefined,
-      memorySpans: undefined,
+      ...INITIAL_STATE,
     });
+
     try {
       const [event, rrwebEvents, replayEvents] = await Promise.all([
         fetchEvent(),
@@ -176,6 +176,16 @@ function useReplayEvent({eventSlug, location, orgId}: Options): Result {
         );
       }
 
+      // Find LCP spans that have a valid replay node id, this will be used to
+      const highlights = createHighlightEvents(mergedReplayEvent?.entries[0].data);
+
+      // TODO(replays): ideally this would happen on SDK, but due
+      // to how plugins work, we are unable to specify a timestamp for an event
+      // (rrweb applies it), so it's possible actual LCP timestamp does not
+      // match when the observer happens and we emit an rrweb event (will
+      // look into this)
+      const rrwebEventsWithHighlights = mergeAndSortEvents(rrwebEvents, highlights);
+
       setState({
         ...state,
         fetchError: undefined,
@@ -183,22 +193,16 @@ function useReplayEvent({eventSlug, location, orgId}: Options): Result {
         event,
         mergedReplayEvent,
         replayEvents,
-        rrwebEvents,
+        rrwebEvents: rrwebEventsWithHighlights,
         breadcrumbEntry,
         memorySpans,
       });
     } catch (error) {
       Sentry.captureException(error);
       setState({
+        ...INITIAL_STATE,
         fetchError: error,
         fetching: false,
-
-        breadcrumbEntry: undefined,
-        event: undefined,
-        replayEvents: undefined,
-        rrwebEvents: undefined,
-        mergedReplayEvent: undefined,
-        memorySpans: undefined,
       });
     }
   }
@@ -213,6 +217,7 @@ function useReplayEvent({eventSlug, location, orgId}: Options): Result {
     fetchError: state.fetchError,
     fetching: state.fetching,
     onRetry,
+    replay: ReplayReader.factory(state.event, state.rrwebEvents, state.replayEvents),
 
     breadcrumbEntry: state.breadcrumbEntry,
     event: state.event,

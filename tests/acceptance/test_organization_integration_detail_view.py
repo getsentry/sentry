@@ -1,4 +1,4 @@
-from exam import mock
+from unittest import mock
 
 from sentry.models import Integration
 from sentry.testutils import AcceptanceTestCase

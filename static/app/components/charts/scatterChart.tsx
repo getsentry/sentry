@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import {Series} from 'sentry/types/echarts';
 
 import ScatterSeries from './series/scatterSeries';

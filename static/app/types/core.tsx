@@ -48,7 +48,7 @@ export type SelectValue<T> = {
   label: string | number | React.ReactElement;
   value: T;
   disabled?: boolean;
-  tooltip?: string;
+  tooltip?: React.ReactNode;
 };
 
 /**

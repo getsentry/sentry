@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 
 import Button, {ButtonPropsWithoutAriaLabel} from 'sentry/components/button';
 import Tooltip from 'sentry/components/tooltip';
@@ -18,7 +18,7 @@ interface AddIntegrationButtonProps
   reinstall?: boolean;
 }
 
-export default class AddIntegrationButton extends React.Component<AddIntegrationButtonProps> {
+export default class AddIntegrationButton extends Component<AddIntegrationButtonProps> {
   render() {
     const {
       provider,

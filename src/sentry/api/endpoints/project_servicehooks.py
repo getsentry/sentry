@@ -3,12 +3,12 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import audit_log, features
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.validators import ServiceHookValidator
 from sentry.mediators import service_hooks
-from sentry.models import AuditLogEntryEvent, ObjectStatus, ServiceHook
+from sentry.models import ObjectStatus, ServiceHook
 
 
 class ProjectServiceHooksEndpoint(ProjectEndpoint):
@@ -111,7 +111,7 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
                 request=request,
                 organization=project.organization,
                 target_object=hook.id,
-                event=AuditLogEntryEvent.SERVICEHOOK_ADD,
+                event=audit_log.get_event_id("SERVICEHOOK_ADD"),
                 data=hook.get_audit_log_data(),
             )
 
