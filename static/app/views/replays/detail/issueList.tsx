@@ -67,6 +67,7 @@ function IssueList(props: Props) {
       setIssuesById(keyBy(issues[0], 'id'));
     } catch (error) {
       setIssuesById({});
+      return;
     }
 
     try {
@@ -76,7 +77,7 @@ function IssueList(props: Props) {
           includeAllArgs: true,
           query: {
             project: props.projectId,
-            groups: issues[0].map(issue => issue.id),
+            groups: issues[0]?.map(issue => issue.id),
             query: `replayId:${props.replayId}`,
           },
         }
