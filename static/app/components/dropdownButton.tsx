@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
 import Button, {ButtonProps} from 'sentry/components/button';
@@ -132,6 +132,6 @@ const LabelText = styled('span')`
   }
 `;
 
-export default React.forwardRef<typeof Button, DropdownButtonProps>((props, ref) => (
+export default forwardRef<typeof Button, DropdownButtonProps>((props, ref) => (
   <DropdownButton forwardedRef={ref} {...props} />
 ));

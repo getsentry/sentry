@@ -36,7 +36,9 @@ class SidebarTest(AcceptanceTestCase):
         self.browser.click('[data-test-id="help-sidebar"]')
         self.browser.wait_until_test_id("search-docs-and-faqs")
         self.browser.click('[data-test-id="search-docs-and-faqs"]')
-        self.browser.wait_until('input[label="Search for documentation, FAQs, blog posts..."]')
+        self.browser.wait_until(
+            'input[placeholder="Search for documentation, FAQs, blog posts..."]'
+        )
 
     def test_sandbox_sidebar(self):
         user = self.create_user("another@example.com")

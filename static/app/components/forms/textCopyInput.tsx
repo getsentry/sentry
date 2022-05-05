@@ -1,4 +1,4 @@
-import {CSSProperties} from 'react';
+import {Component} from 'react';
 import * as React from 'react';
 import {findDOMNode} from 'react-dom';
 import styled from '@emotion/styled';
@@ -49,10 +49,10 @@ type Props = {
    * Always show the ending of a long overflowing text in input
    */
   rtl?: boolean;
-  style?: CSSProperties;
+  style?: React.CSSProperties;
 };
 
-class TextCopyInput extends React.Component<Props> {
+class TextCopyInput extends Component<Props> {
   textRef = React.createRef<HTMLInputElement>();
 
   // Select text when copy button is clicked

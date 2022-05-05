@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import Level from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/level';

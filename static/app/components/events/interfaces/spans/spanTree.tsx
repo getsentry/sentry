@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -32,7 +32,7 @@ type PropType = ScrollbarManagerChildrenProps & {
   waterfallModel: WaterfallModel;
 };
 
-class SpanTree extends React.Component<PropType> {
+class SpanTree extends Component<PropType> {
   componentDidMount() {
     setSpansOnTransaction(this.props.spans.length);
   }

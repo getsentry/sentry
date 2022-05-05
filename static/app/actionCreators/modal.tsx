@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import ModalActions from 'sentry/actions/modalActions';
 import type {ModalTypes} from 'sentry/components/globalModal';
 import type {DashboardWidgetModalOptions} from 'sentry/components/modals/addDashboardWidgetModal';

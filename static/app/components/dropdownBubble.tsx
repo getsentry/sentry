@@ -22,10 +22,6 @@ type Params = {
    */
   detached?: boolean;
   /**
-   * enable the arrow on the menu
-   */
-  menuWithArrow?: boolean;
-  /**
    * The width of the menu
    */
   width?: string;
@@ -66,40 +62,6 @@ const getMenuBorderRadius = ({
   `;
 };
 
-const getMenuArrow = ({menuWithArrow, alignMenu, theme}: ParamsWithTheme) => {
-  if (!menuWithArrow) {
-    return '';
-  }
-  const alignRight = alignMenu === 'right';
-
-  return css`
-    top: 32px;
-
-    &::before,
-    &::after {
-      content: '';
-      position: absolute;
-      display: block;
-      width: 0;
-      height: 0;
-      border: 8px solid transparent;
-      top: -16px;
-      left: 10px;
-      z-index: -2;
-      ${alignRight && 'left: auto;'};
-      ${alignRight && 'right: 11px;'};
-    }
-
-    &::before {
-      border-bottom-color: ${theme.border};
-      transform: translateY(-1px);
-    }
-    &:after {
-      border-bottom-color: ${theme.background};
-    }
-  `;
-};
-
 const DropdownBubble = styled('div')<Params>`
   background: ${p => p.theme.background};
   color: ${p => p.theme.textColor};
@@ -123,7 +85,6 @@ const DropdownBubble = styled('div')<Params>`
   `};
 
   ${getMenuBorderRadius};
-  ${getMenuArrow};
 
   /* This is needed to be able to cover e.g. pagination buttons, but also be
    * below dropdown actor button's zindex */
