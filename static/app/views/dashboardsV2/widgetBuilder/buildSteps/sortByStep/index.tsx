@@ -1,5 +1,6 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
+import trimStart from 'lodash/trimStart';
 
 import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesForm';
 import Field from 'sentry/components/forms/field';
@@ -7,6 +8,7 @@ import SelectControl from 'sentry/components/forms/selectControl';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, SelectValue} from 'sentry/types';
+import {isAggregateFieldOrEquation, isEquationAlias} from 'sentry/utils/discover/fields';
 import {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {generateIssueWidgetOrderOptions} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/utils';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
@@ -41,8 +43,38 @@ export function SortByStep({
   limit,
   onLimitChange,
 }: Props) {
+  const fields = queries[0].columns;
+
+  let disabledSort = false;
+  let disabledSortDirection = false;
+  let disabledReason: string | undefined = undefined;
+
+  if (widgetType === WidgetType.RELEASE && fields.includes('session.status')) {
+    disabledSort = true;
+    disabledSortDirection = true;
+    disabledReason = t('Sorting currently not supported with session.status');
+  }
+
+  if (widgetType === WidgetType.ISSUE) {
+    disabledSortDirection = true;
+    disabledReason = t('Issues dataset does not yet support descending order');
+  }
+
   const orderBy = queries[0].orderby;
+  const strippedOrderBy = trimStart(orderBy, '-');
   const maxLimit = getResultsLimit(queries.length, queries[0].aggregates.length);
+
+  // We want to convert widgets to using functions in their field format (i.e. not alias form)
+  // for ordering. This check will skip the alias conversion unless the orderby was
+  // previously saved in the alias format
+  const isUsingFieldFormat =
+    isAggregateFieldOrEquation(strippedOrderBy) || isEquationAlias(strippedOrderBy);
+
+  const isTimeseriesChart = [
+    DisplayType.LINE,
+    DisplayType.BAR,
+    DisplayType.AREA,
+  ].includes(displayType);
 
   useEffect(() => {
     if (!limit) {
@@ -88,6 +120,10 @@ export function SortByStep({
             )}
           <SortBySelectors
             widgetType={widgetType}
+            hasGroupBy={isTimeseriesChart && !!queries[0].columns.length}
+            disabledReason={disabledReason}
+            disabledSort={disabledSort}
+            disabledSortDirection={disabledSortDirection}
             sortByOptions={
               dataSet === DataSet.ISSUES
                 ? generateIssueWidgetOrderOptions(
@@ -98,6 +134,7 @@ export function SortByStep({
                     widgetBuilderNewDesign: true,
                     columns: queries[0].columns,
                     aggregates: queries[0].aggregates,
+                    isUsingFieldFormat,
                   })
             }
             values={{
@@ -105,7 +142,7 @@ export function SortByStep({
                 orderBy[0] === '-'
                   ? SortDirection.HIGH_TO_LOW
                   : SortDirection.LOW_TO_HIGH,
-              sortBy: orderBy[0] === '-' ? orderBy.substring(1, orderBy.length) : orderBy,
+              sortBy: strippedOrderBy,
             }}
             onChange={({sortDirection, sortBy}) => {
               const newOrderBy =
@@ -138,6 +175,7 @@ export function SortByStep({
                   widgetType,
                   columns: queries[0].columns,
                   aggregates: queries[0].aggregates,
+                  isUsingFieldFormat,
                 })
               : generateIssueWidgetOrderOptions(
                   organization.features.includes('issue-list-trend-sort')

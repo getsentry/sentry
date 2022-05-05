@@ -39,15 +39,20 @@ function Conditions({conditions, orgSlug, projectId, onDelete, onChange}: Props)
           category === DynamicSamplingInnerName.EVENT_LEGACY_BROWSER;
 
         const isBooleanField =
-          category === DynamicSamplingInnerName.EVENT_BROWSER_EXTENSIONS ||
-          category === DynamicSamplingInnerName.EVENT_LOCALHOST ||
-          category === DynamicSamplingInnerName.EVENT_WEB_CRAWLERS ||
-          displayLegacyBrowsers;
+          [
+            DynamicSamplingInnerName.EVENT_BROWSER_EXTENSIONS,
+            DynamicSamplingInnerName.EVENT_LOCALHOST,
+            DynamicSamplingInnerName.EVENT_WEB_CRAWLERS,
+          ].includes(category) || displayLegacyBrowsers;
 
         const isAutoCompleteField =
           category === DynamicSamplingInnerName.EVENT_ENVIRONMENT ||
           category === DynamicSamplingInnerName.EVENT_RELEASE ||
           category === DynamicSamplingInnerName.EVENT_TRANSACTION ||
+          category === DynamicSamplingInnerName.EVENT_OS_NAME ||
+          category === DynamicSamplingInnerName.EVENT_OS_VERSION ||
+          category === DynamicSamplingInnerName.EVENT_DEVICE_FAMILY ||
+          category === DynamicSamplingInnerName.EVENT_DEVICE_NAME ||
           category === DynamicSamplingInnerName.TRACE_ENVIRONMENT ||
           category === DynamicSamplingInnerName.TRACE_RELEASE ||
           category === DynamicSamplingInnerName.TRACE_TRANSACTION;

@@ -1088,16 +1088,13 @@ class CheckReleasesHaveHealthDataTest(TestCase, SnubaTestCase):
             start = datetime.now() - timedelta(days=1)
         if not end:
             end = datetime.now()
-        assert (
-            self.backend.check_releases_have_health_data(
-                self.organization.id,
-                [p.id for p in projects],
-                [r.version for r in releases],
-                start,
-                end,
-            )
-            == {v.version for v in expected}
-        )
+        assert self.backend.check_releases_have_health_data(
+            self.organization.id,
+            [p.id for p in projects],
+            [r.version for r in releases],
+            start,
+            end,
+        ) == {v.version for v in expected}
 
     def test_empty(self):
         # Test no errors when no session data

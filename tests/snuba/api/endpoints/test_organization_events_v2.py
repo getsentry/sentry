@@ -165,10 +165,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             == "Wildcard conditions are not permitted on `trace.parent_span` field"
         )
 
-    @mock.patch("sentry.snuba.discover.raw_query")
     @mock.patch("sentry.search.events.builder.raw_snql_query")
-    def test_handling_snuba_errors(self, mock_snql_query, mock_query):
-        mock_query.side_effect = RateLimitExceeded("test")
+    def test_handling_snuba_errors(self, mock_snql_query):
         mock_snql_query.side_effect = RateLimitExceeded("test")
 
         project = self.create_project()
@@ -182,7 +180,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, response.content
         assert response.data["detail"] == constants.TIMEOUT_ERROR_MESSAGE
 
-        mock_query.side_effect = QueryExecutionError("test")
         mock_snql_query.side_effect = QueryExecutionError("test")
 
         query = {"field": ["id", "timestamp"], "orderby": ["-timestamp", "-id"]}
@@ -190,7 +187,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 500, response.content
         assert response.data["detail"] == "Internal error. Your query failed to run."
 
-        mock_query.side_effect = QueryIllegalTypeOfArgument("test")
         mock_snql_query.side_effect = QueryIllegalTypeOfArgument("test")
 
         query = {"field": ["id", "timestamp"], "orderby": ["-timestamp", "-id"]}
@@ -428,6 +424,33 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert response.data["data"] == [{"project.name": project.slug, "id": "a" * 32, "count": 1}]
+
+    def test_event_id_with_in_search(self):
+        project = self.create_project()
+        self.store_event(
+            data={"event_id": "a" * 32, "environment": "staging1", "timestamp": self.min_ago},
+            project_id=project.id,
+        )
+        self.store_event(
+            data={"event_id": "b" * 32, "environment": "staging2", "timestamp": self.min_ago},
+            project_id=project.id,
+        )
+        # Should not show up
+        self.store_event(
+            data={"event_id": "c" * 32, "environment": "staging3", "timestamp": self.min_ago},
+            project_id=project.id,
+        )
+        query = {
+            "field": ["id", "environment"],
+            "statsPeriod": "1h",
+            "query": f"id:[{'a' * 32}, {'b' * 32}]",
+            "orderby": "environment",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 2
+        assert response.data["data"][0]["id"] == "a" * 32
+        assert response.data["data"][1]["id"] == "b" * 32
 
     def test_user_search(self):
         project = self.create_project()
@@ -4699,12 +4722,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.data["data"][0]["environment"] == "staging"
         assert response.data["data"][0]["project.name"] == project.slug
 
-
-class OrganizationEventsV2EndpointTestWithSnql(OrganizationEventsV2EndpointTest):
-    def setUp(self):
-        super().setUp()
-        self.features["organizations:discover-use-snql"] = True
-
     def test_timestamp_different_from_params(self):
         project = self.create_project()
         fifteen_days_ago = iso_format(before_now(days=15))
@@ -4983,7 +5000,6 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         self.transaction_data = load_data("transaction", timestamp=before_now(minutes=1))
         self.features = {
             "organizations:performance-use-metrics": True,
-            "organizations:discover-use-snql": True,
         }
 
     def do_request(self, query, features=None):
@@ -5001,11 +5017,24 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
     def test_no_projects(self):
         response = self.do_request(
             {
-                "metricsEnhanced": "1",
+                "dataset": "metricsEnhanced",
             }
         )
 
         assert response.status_code == 200, response.content
+
+    def test_invalid_dataset(self):
+        response = self.do_request(
+            {
+                "dataset": "aFakeDataset",
+                "project": self.project.id,
+            }
+        )
+
+        assert response.status_code == 400, response.content
+        assert (
+            response.data["detail"] == "dataset must be one of: discover, metricsEnhanced, metrics"
+        )
 
     def test_out_of_retention(self):
         self.create_project()
@@ -5016,7 +5045,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                 "query": "event.type:transaction",
                 "start": iso_format(before_now(days=20)),
                 "end": iso_format(before_now(days=15)),
-                "metricsEnhanced": "1",
+                "dataset": "metricsEnhanced",
             }
             response = self.do_request(query)
         assert response.status_code == 400, response.content
@@ -5028,7 +5057,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                 "field": ["epm()"],
                 "query": "hi \n there",
                 "project": self.project.id,
-                "metricsEnhanced": "1",
+                "dataset": "metricsEnhanced",
             }
         )
         assert response.status_code == 400, response.content
@@ -5036,6 +5065,20 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             response.data["detail"]
             == "Parse error at 'hi \n ther' (column 4). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
         )
+
+    def test_percentile_with_no_data(self):
+        response = self.do_request(
+            {
+                "field": ["p50()"],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "metricsEnhanced",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["p50"] == 0
 
     def test_project_name(self):
         self.store_metric(
@@ -5048,7 +5091,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             {
                 "field": ["project.name", "environment", "epm()"],
                 "query": "event.type:transaction",
-                "metricsEnhanced": "1",
+                "dataset": "metricsEnhanced",
                 "per_page": 50,
             }
         )
@@ -5078,7 +5121,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             {
                 "field": ["title", "p50()"],
                 "query": "event.type:transaction",
-                "metricsEnhanced": "1",
+                "dataset": "metricsEnhanced",
                 "per_page": 50,
             }
         )
@@ -5111,7 +5154,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             {
                 "field": ["transaction", "project", "p50(transaction.duration)"],
                 "query": "event.type:transaction p50(transaction.duration):<50",
-                "metricsEnhanced": "1",
+                "dataset": "metricsEnhanced",
                 "per_page": 50,
             }
         )
@@ -5145,7 +5188,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             {
                 "field": ["transaction", "project", "p50(transaction.duration)"],
                 "query": "event.type:transaction p50(transaction.duration):<50",
-                "metricsEnhanced": "1",
+                "dataset": "metricsEnhanced",
                 "preventMetricAggregates": "1",
                 "per_page": 50,
             }
@@ -5158,6 +5201,21 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert meta["transaction"] == "string"
         assert meta["project"] == "string"
         assert meta["p50_transaction_duration"] == "duration"
+
+    def test_having_condition_with_preventing_aggregate_metrics_only(self):
+        """same as the previous test, but with the dataset on explicit metrics
+        which should throw a 400 error instead"""
+        response = self.do_request(
+            {
+                "field": ["transaction", "project", "p50(transaction.duration)"],
+                "query": "event.type:transaction p50(transaction.duration):<50",
+                "dataset": "metrics",
+                "preventMetricAggregates": "1",
+                "per_page": 50,
+                "project": self.project.id,
+            }
+        )
+        assert response.status_code == 400, response.content
 
     def test_having_condition_not_selected(self):
         self.store_metric(
@@ -5176,7 +5234,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             {
                 "field": ["transaction", "project", "p50(transaction.duration)"],
                 "query": "event.type:transaction p75(transaction.duration):<50",
-                "metricsEnhanced": "1",
+                "dataset": "metricsEnhanced",
                 "per_page": 50,
             }
         )
@@ -5205,13 +5263,30 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             {
                 "field": ["test", "p50(transaction.duration)"],
                 "query": "event.type:transaction",
-                "metricsEnhanced": "1",
+                "dataset": "metricsEnhanced",
                 "per_page": 50,
             }
         )
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 0
         assert not response.data["meta"]["isMetricsData"]
+
+    def test_non_metrics_tag_with_implicit_format_metrics_dataset(self):
+        self.store_metric(
+            1,
+            tags={"environment": "staging", "transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["test", "p50(transaction.duration)"],
+                "query": "event.type:transaction",
+                "dataset": "metrics",
+                "per_page": 50,
+            }
+        )
+        assert response.status_code == 400, response.content
 
     def test_performance_homepage_query(self):
         self.store_metric(
@@ -5253,51 +5328,52 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             tags={"transaction": "foo_transaction", "is_user_miserable": "true"},
             timestamp=self.min_ago,
         )
-        response = self.do_request(
-            {
-                "field": [
-                    "transaction",
-                    "project",
-                    "tpm()",
-                    "p75(measurements.fcp)",
-                    "p75(measurements.lcp)",
-                    "p75(measurements.fid)",
-                    "p75(measurements.cls)",
-                    "count_unique(user)",
-                    "apdex()",
-                    "count_miserable(user)",
-                    "user_misery()",
-                ],
-                "query": "event.type:transaction",
-                "metricsEnhanced": "1",
-                "per_page": 50,
-            }
-        )
+        for dataset in ["metrics", "metricsEnhanced"]:
+            response = self.do_request(
+                {
+                    "field": [
+                        "transaction",
+                        "project",
+                        "tpm()",
+                        "p75(measurements.fcp)",
+                        "p75(measurements.lcp)",
+                        "p75(measurements.fid)",
+                        "p75(measurements.cls)",
+                        "count_unique(user)",
+                        "apdex()",
+                        "count_miserable(user)",
+                        "user_misery()",
+                    ],
+                    "query": "event.type:transaction",
+                    "dataset": dataset,
+                    "per_page": 50,
+                }
+            )
 
-        assert len(response.data["data"]) == 1
-        data = response.data["data"][0]
-        meta = response.data["meta"]
+            assert len(response.data["data"]) == 1
+            data = response.data["data"][0]
+            meta = response.data["meta"]
 
-        assert data["transaction"] == "foo_transaction"
-        assert data["project"] == self.project.slug
-        assert data["p75_measurements_fcp"] == 1.0
-        assert data["p75_measurements_lcp"] == 2.0
-        assert data["p75_measurements_fid"] == 3.0
-        assert data["p75_measurements_cls"] == 4.0
-        assert data["apdex"] == 1.0
-        assert data["count_miserable_user"] == 1.0
-        assert data["user_misery"] == 0.058
+            assert data["transaction"] == "foo_transaction"
+            assert data["project"] == self.project.slug
+            assert data["p75_measurements_fcp"] == 1.0
+            assert data["p75_measurements_lcp"] == 2.0
+            assert data["p75_measurements_fid"] == 3.0
+            assert data["p75_measurements_cls"] == 4.0
+            assert data["apdex"] == 1.0
+            assert data["count_miserable_user"] == 1.0
+            assert data["user_misery"] == 0.058
 
-        assert meta["isMetricsData"]
-        assert meta["transaction"] == "string"
-        assert meta["project"] == "string"
-        assert meta["p75_measurements_fcp"] == "duration"
-        assert meta["p75_measurements_lcp"] == "duration"
-        assert meta["p75_measurements_fid"] == "duration"
-        assert meta["p75_measurements_cls"] == "duration"
-        assert meta["apdex"] == "number"
-        assert meta["count_miserable_user"] == "integer"
-        assert meta["user_misery"] == "number"
+            assert meta["isMetricsData"]
+            assert meta["transaction"] == "string"
+            assert meta["project"] == "string"
+            assert meta["p75_measurements_fcp"] == "duration"
+            assert meta["p75_measurements_lcp"] == "duration"
+            assert meta["p75_measurements_fid"] == "duration"
+            assert meta["p75_measurements_cls"] == "duration"
+            assert meta["apdex"] == "number"
+            assert meta["count_miserable_user"] == "integer"
+            assert meta["user_misery"] == "number"
 
     def test_no_team_key_transactions(self):
         self.store_metric(1, tags={"transaction": "foo_transaction"}, timestamp=self.min_ago)
@@ -5318,7 +5394,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                 "p95()",
             ],
             "per_page": 50,
-            "metricsEnhanced": "1",
+            "dataset": "metricsEnhanced",
         }
         response = self.do_request(query)
 
@@ -5373,7 +5449,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                 "p95()",
             ],
             "per_page": 50,
-            "metricsEnhanced": "1",
+            "dataset": "metricsEnhanced",
         }
 
         query["orderby"] = ["team_key_transaction", "p95()"]
@@ -5407,7 +5483,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                 "p95()",
             ],
             "per_page": 50,
-            "metricsEnhanced": "1",
+            "dataset": "metricsEnhanced",
         }
 
         query["orderby"] = ["team_key_transaction", "p95()"]
@@ -5463,7 +5539,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                 "p95()",
             ],
             "per_page": 50,
-            "metricsEnhanced": "1",
+            "dataset": "metricsEnhanced",
         }
 
         # test ascending order
@@ -5541,7 +5617,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                 "p95()",
             ],
             "per_page": 50,
-            "metricsEnhanced": "1",
+            "dataset": "metricsEnhanced",
         }
 
         # key transactions
@@ -5649,7 +5725,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                     "failure_rate()",
                     "p95()",
                 ],
-                "metricsEnhanced": "1",
+                "dataset": "metricsEnhanced",
                 "per_page": 50,
             }
 
@@ -5708,7 +5784,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                     "count_web_vitals(measurements.cls, good)",
                 ],
                 "query": "event.type:transaction",
-                "metricsEnhanced": "1",
+                "dataset": "metricsEnhanced",
                 "per_page": 50,
             }
         )
@@ -5742,7 +5818,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             {
                 "field": ["transaction", "count_web_vitals(measurements.lcp, poor)"],
                 "query": "event.type:transaction",
-                "metricsEnhanced": "1",
+                "dataset": "metricsEnhanced",
                 "per_page": 50,
             }
         )
@@ -5762,7 +5838,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                 "count_web_vitals(measurements.foo, poor)",
             ],
             "project": [self.project.id],
-            "metricsEnhanced": "1",
+            "dataset": "metricsEnhanced",
         }
         response = self.do_request(query)
         assert response.status_code == 400, response.content
@@ -5772,7 +5848,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                 "count_web_vitals(tags[lcp], poor)",
             ],
             "project": [self.project.id],
-            "metricsEnhanced": "1",
+            "dataset": "metricsEnhanced",
         }
         response = self.do_request(query)
         assert response.status_code == 400, response.content
@@ -5782,7 +5858,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                 "count_web_vitals(transaction.duration, poor)",
             ],
             "project": [self.project.id],
-            "metricsEnhanced": "1",
+            "dataset": "metricsEnhanced",
         }
         response = self.do_request(query)
         assert response.status_code == 400, response.content
@@ -5792,12 +5868,12 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                 "count_web_vitals(measurements.lcp, bad)",
             ],
             "project": [self.project.id],
-            "metricsEnhanced": "1",
+            "dataset": "metricsEnhanced",
         }
         response = self.do_request(query)
         assert response.status_code == 400, response.content
 
-    @mock.patch("sentry.snuba.metrics_enhanced_performance.MetricsQueryBuilder")
+    @mock.patch("sentry.snuba.metrics_performance.MetricsQueryBuilder")
     def test_failed_dry_run_does_not_error(self, mock_builder):
         with self.feature("organizations:performance-dry-run-mep"):
             mock_builder.side_effect = InvalidSearchQuery("Something bad")
@@ -5829,3 +5905,45 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             assert response.status_code == 200, response.content
             assert len(mock_builder.mock_calls) == 3
             assert mock_builder.call_args.kwargs["dry_run"]
+
+    def test_count_unique_user_returns_zero(self):
+        self.store_metric(
+            50,
+            metric="user",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_metric(
+            50,
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_metric(
+            100,
+            tags={"transaction": "bar_transaction"},
+            timestamp=self.min_ago,
+        )
+
+        query = {
+            "project": [self.project.id],
+            "orderby": "p50()",
+            "field": [
+                "transaction",
+                "count_unique(user)",
+                "p50()",
+            ],
+            "dataset": "metricsEnhanced",
+            "per_page": 50,
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 2
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert data[0]["transaction"] == "foo_transaction"
+        assert data[0]["count_unique_user"] == 1
+        assert data[1]["transaction"] == "bar_transaction"
+        assert data[1]["count_unique_user"] == 0
+        assert meta["isMetricsData"]

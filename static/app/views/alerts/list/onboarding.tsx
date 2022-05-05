@@ -1,4 +1,3 @@
-import * as React from 'react';
 import styled from '@emotion/styled';
 
 import emptyStateImg from 'sentry-images/spot/alerts-empty-state.svg';

@@ -1,8 +1,7 @@
-import * as React from 'react';
-
 import ModalActions from 'sentry/actions/modalActions';
 import type {ModalTypes} from 'sentry/components/globalModal';
 import type {DashboardWidgetModalOptions} from 'sentry/components/modals/addDashboardWidgetModal';
+import type {CreateNewIntegrationModalOptions} from 'sentry/components/modals/createNewIntegrationModal';
 import {DashboardWidgetLibraryModalOptions} from 'sentry/components/modals/dashboardWidgetLibraryModal';
 import type {DashboardWidgetQuerySelectorModalOptions} from 'sentry/components/modals/dashboardWidgetQuerySelectorModal';
 import {InviteRow} from 'sentry/components/modals/inviteMembersModal/types';
@@ -307,4 +306,13 @@ export async function openWidgetViewerModal({
     modalCss,
     onClose,
   });
+}
+
+export async function openCreateNewIntegrationModal(
+  options: CreateNewIntegrationModalOptions
+) {
+  const mod = await import('sentry/components/modals/createNewIntegrationModal');
+  const {default: Modal} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />);
 }

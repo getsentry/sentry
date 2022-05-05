@@ -1,5 +1,5 @@
 import time
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Optional
 from unittest import mock
 from unittest.mock import patch
@@ -945,6 +945,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             "per_page parameter."
         )
 
+    @freeze_time((datetime.now() - timedelta(hours=1)).replace(minute=30))
     def test_include_series(self):
         indexer.record(self.organization.id, "session.status")
         self.store_session(self.build_session(project_id=self.project.id, started=time.time() - 60))
@@ -955,7 +956,6 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             interval="1h",
             includeTotals="0",
         )
-
         assert response.data["groups"] == [
             {"by": {}, "series": {"sum(sentry.sessions.session)": [1.0]}}
         ]
@@ -1591,7 +1591,12 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
 
         response = self.get_success_response(
             self.organization.slug,
-            field=["session.crash_free_user_rate", "session.crash_free_rate"],
+            field=[
+                "session.crash_free_user_rate",
+                "session.crash_free_rate",
+                "session.crash_user_rate",
+                "session.crash_rate",
+            ],
             statsPeriod="1h",
             interval="1h",
             groupBy="release",
@@ -1601,11 +1606,15 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["by"]["release"] == "foobar@1.0"
         assert group["totals"]["session.crash_free_rate"] == 0.75
         assert group["totals"]["session.crash_free_user_rate"] == 0.5
+        assert group["totals"]["session.crash_rate"] == 0.25
+        assert group["totals"]["session.crash_user_rate"] == 0.5
 
         group = response.data["groups"][1]
         assert group["by"]["release"] == "foobar@2.0"
         assert group["totals"]["session.crash_free_rate"] == 0.25
         assert group["totals"]["session.crash_free_user_rate"] == 1.0
+        assert group["totals"]["session.crash_rate"] == 0.75
+        assert group["totals"]["session.crash_user_rate"] == 0.0
 
     def test_healthy_sessions(self):
         user_ts = time.time()

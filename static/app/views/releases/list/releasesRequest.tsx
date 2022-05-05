@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
@@ -22,7 +22,7 @@ import {
   Organization,
   PageFilters,
   SessionApiResponse,
-  SessionField,
+  SessionFieldWithOperation,
 } from 'sentry/types';
 import {defined, percent} from 'sentry/utils';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -74,10 +74,10 @@ export function reduceTimeSeriesGroups(
 export function sessionDisplayToField(display: ReleasesDisplayOption) {
   switch (display) {
     case ReleasesDisplayOption.USERS:
-      return SessionField.USERS;
+      return SessionFieldWithOperation.USERS;
     case ReleasesDisplayOption.SESSIONS:
     default:
-      return SessionField.SESSIONS;
+      return SessionFieldWithOperation.SESSIONS;
   }
 }
 
@@ -111,7 +111,7 @@ type State = {
   totalCountByReleaseInPeriod: SessionApiResponse | null;
 };
 
-class ReleasesRequest extends React.Component<Props, State> {
+class ReleasesRequest extends Component<Props, State> {
   state: State = {
     loading: false,
     errored: false,

@@ -20,6 +20,7 @@ import {
   IconLab,
   IconLightning,
   IconList,
+  IconPlay,
   IconProject,
   IconReleases,
   IconSettings,
@@ -89,7 +90,7 @@ function Sidebar({location, organization}: Props) {
   useEffect(() => {
     bcl.add('body-sidebar');
     return () => bcl.remove('body-sidebar');
-  }, []);
+  }, [bcl]);
 
   // Add sidebar collapse classname to body
   useEffect(() => {
@@ -100,7 +101,7 @@ function Sidebar({location, organization}: Props) {
     }
 
     return () => bcl.remove('collapsed');
-  }, [collapsed]);
+  }, [collapsed, bcl]);
 
   // Trigger panels depending on the location hash
   useEffect(() => {
@@ -294,7 +295,7 @@ function Sidebar({location, organization}: Props) {
         onClick={(_id, evt) =>
           navigateWithPageFilters(`/organizations/${organization.slug}/replays/`, evt)
         }
-        icon={<IconLab size="md" />}
+        icon={<IconPlay size="md" />}
         label={t('Replays')}
         to={`/organizations/${organization.slug}/replays/`}
         id="replays"
@@ -402,8 +403,10 @@ function Sidebar({location, organization}: Props) {
                 {profiling}
               </SidebarSection>
 
-              <SidebarSection>{monitors}</SidebarSection>
-              <SidebarSection>{replays}</SidebarSection>
+              <SidebarSection>
+                {replays}
+                {monitors}
+              </SidebarSection>
 
               <SidebarSection>
                 {activity}

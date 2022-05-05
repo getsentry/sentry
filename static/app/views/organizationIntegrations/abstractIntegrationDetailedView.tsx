@@ -253,10 +253,10 @@ class AbstractIntegrationDetailedView<
 
   renderAddInstallButton(hideButtonIfDisabled = false) {
     const {organization} = this.props;
-    const {IntegrationDirectoryFeatures} = getIntegrationFeatureGate();
+    const {IntegrationFeatures} = getIntegrationFeatureGate();
 
     return (
-      <IntegrationDirectoryFeatures {...this.featureProps}>
+      <IntegrationFeatures {...this.featureProps}>
         {({disabled, disabledReason}) => (
           <DisableWrapper>
             <Access organization={organization} access={['org:integrations']}>
@@ -278,7 +278,7 @@ class AbstractIntegrationDetailedView<
             {disabled && <DisabledNotice reason={disabledReason} />}
           </DisableWrapper>
         )}
-      </IntegrationDirectoryFeatures>
+      </IntegrationFeatures>
     );
   }
 
@@ -334,14 +334,14 @@ class AbstractIntegrationDetailedView<
 
   // Returns the information about the integration description and features
   renderInformationCard() {
-    const {IntegrationDirectoryFeatureList} = getIntegrationFeatureGate();
+    const {FeatureList} = getIntegrationFeatureGate();
 
     return (
       <React.Fragment>
         <Flex>
           <FlexContainer>
             <Description dangerouslySetInnerHTML={{__html: marked(this.description)}} />
-            <IntegrationDirectoryFeatureList
+            <FeatureList
               {...this.featureProps}
               provider={{key: this.props.params.integrationSlug}}
             />

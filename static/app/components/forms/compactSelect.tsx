@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import {components as selectComponents} from 'react-select';
 import styled from '@emotion/styled';
 import {useButton} from '@react-aria/button';
@@ -10,13 +10,16 @@ import {
   useOverlay,
   useOverlayPosition,
 } from '@react-aria/overlays';
-import {mergeProps} from '@react-aria/utils';
+import {mergeProps, useResizeObserver} from '@react-aria/utils';
 import {useMenuTriggerState} from '@react-stately/menu';
 
 import Badge from 'sentry/components/badge';
 import Button from 'sentry/components/button';
 import DropdownButton, {DropdownButtonProps} from 'sentry/components/dropdownButtonV2';
-import SelectControl, {ControlProps} from 'sentry/components/forms/selectControl';
+import SelectControl, {
+  ControlProps,
+  GeneralSelectValue,
+} from 'sentry/components/forms/selectControl';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 
@@ -25,11 +28,16 @@ interface TriggerRenderingProps {
   ref: React.RefObject<HTMLButtonElement>;
 }
 
-interface Props extends ControlProps, Partial<OverlayProps>, Partial<AriaPositionProps> {
+interface Props<OptionType>
+  extends Omit<ControlProps<OptionType>, 'choices'>,
+    Partial<OverlayProps>,
+    Partial<AriaPositionProps> {
+  options: Array<OptionType & {options?: OptionType[]}>;
   /**
    * Pass class name to the outer wrap
    */
   className?: string;
+  onChangeValueMap?: (value: OptionType[]) => ControlProps<OptionType>['value'];
   /**
    * Tag name for the outer wrap, defaults to `div`
    */
@@ -52,6 +60,25 @@ interface Props extends ControlProps, Partial<OverlayProps>, Partial<AriaPositio
    * component.
    */
   triggerProps?: DropdownButtonProps;
+}
+
+/**
+ * Recursively finds the selected option(s) from an options array. Useful for
+ * non-flat arrays that contain sections (groups of options).
+ */
+function getSelectedOptions<OptionType extends GeneralSelectValue = GeneralSelectValue>(
+  opts: Props<OptionType>['options'],
+  value: Props<OptionType>['value']
+): Props<OptionType>['options'] {
+  return opts.reduce((acc: Props<OptionType>['options'], cur) => {
+    if (cur.options) {
+      return acc.concat(getSelectedOptions(cur.options, value));
+    }
+    if (cur.value === value) {
+      return acc.concat(cur);
+    }
+    return acc;
+  }, []);
 }
 
 // Exported so we can further customize this component with react-select's
@@ -87,7 +114,7 @@ export const CompactSelectControl = ({
  * A select component with a more compact trigger button. Accepts the same
  * props as SelectControl, plus some more for the trigger button & overlay.
  */
-function CompactSelect({
+function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValue>({
   // Select props
   options,
   onChange,
@@ -97,6 +124,7 @@ function CompactSelect({
   isSearchable = false,
   multiple,
   placeholder = 'Search…',
+  onChangeValueMap,
   // Trigger button & wrapper props
   trigger,
   triggerLabel,
@@ -113,7 +141,7 @@ function CompactSelect({
   isDismissable = true,
   menuTitle,
   ...props
-}: Props) {
+}: Props<OptionType>) {
   // Manage the dropdown menu's open state
   const isDisabled = disabledProp || options?.length === 0;
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -152,42 +180,55 @@ function CompactSelect({
   // Keep an internal copy of the current select value and update the control
   // button's label when the value changes
   const [internalValue, setInternalValue] = useState(valueProp ?? defaultValue);
-  const [label, setLabel] = useState(getLabel(valueProp ?? null));
 
   // Update the button label when the value changes
-  function getLabel(newValue): React.ReactNode {
+  const getLabel = useCallback((): React.ReactNode => {
+    const newValue = valueProp ?? internalValue;
     const valueSet = Array.isArray(newValue) ? newValue : [newValue];
-    const optionSet = valueSet.map(val => options.find(opt => opt.value === val));
-    const firstOptionLabel = optionSet[0]?.label ?? '';
+    const selectedOptions = valueSet
+      .map(val => getSelectedOptions<OptionType>(options, val))
+      .flat();
 
     return (
       <Fragment>
-        <ButtonLabel>{firstOptionLabel}</ButtonLabel>
-        {optionSet.length > 1 && <StyledBadge text={`+${optionSet.length - 1}`} />}
+        <ButtonLabel>{selectedOptions[0]?.label ?? ''}</ButtonLabel>
+        {selectedOptions.length > 1 && (
+          <StyledBadge text={`+${selectedOptions.length - 1}`} />
+        )}
       </Fragment>
     );
-  }
+  }, [options, valueProp, internalValue]);
 
+  const [label, setLabel] = useState<React.ReactNode>(null);
   useEffect(() => {
-    const newValue = valueProp ?? internalValue;
-    const newLabel = getLabel(newValue);
-    setLabel(newLabel);
-  }, [valueProp ?? internalValue]);
+    setLabel(getLabel());
+  }, [getLabel]);
 
-  // Calculate & update the trigger button's width, to be used as the
-  // overlay's min-width
+  // Calculate the current trigger element's width. This will be used as
+  // the min width for the menu.
   const [triggerWidth, setTriggerWidth] = useState<number>();
+  // Update triggerWidth when its size changes using useResizeObserver
+  const updateTriggerWidth = useCallback(async () => {
+    // Wait until the trigger element finishes rendering, otherwise
+    // ResizeObserver might throw an infinite loop error.
+    await new Promise(resolve => window.setTimeout(resolve));
+
+    const newTriggerWidth = triggerRef.current?.offsetWidth;
+    newTriggerWidth && setTriggerWidth(newTriggerWidth);
+  }, [triggerRef]);
+  useResizeObserver({ref: triggerRef, onResize: updateTriggerWidth});
+  // If ResizeObserver is not available, manually update the width
+  // when any of [trigger, triggerLabel, triggerProps] changes.
   useEffect(() => {
-    // Wait until the trigger label has been updated before calculating the
-    // new width
-    setTimeout(() => {
-      const newTriggerWidth = triggerRef.current?.offsetWidth;
-      newTriggerWidth ?? setTriggerWidth(newTriggerWidth);
-    }, 0);
-  }, [triggerRef.current, internalValue]);
+    if (typeof window.ResizeObserver !== 'undefined') {
+      return;
+    }
+    updateTriggerWidth();
+  }, [updateTriggerWidth]);
 
   function onValueChange(option) {
-    const newValue = Array.isArray(option) ? option.map(opt => opt.value) : option?.value;
+    const valueMap = onChangeValueMap ?? (opts => opts.map(opt => opt.value));
+    const newValue = Array.isArray(option) ? valueMap(option) : option?.value;
     setInternalValue(newValue);
     onChange?.(option);
 

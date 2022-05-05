@@ -12,8 +12,8 @@ on:
 
 jobs:
   visual-diff:
-    # This is the opposite condition as acceptance.yml/visual-diff
-    if: github.head_repository.full_name != 'getsentry/sentry'
+    # Only execute this check when a PR is opened from a fork rather than the upstream repo
+    if: github.event.workflow_run.head_repository.full_name != 'getsentry/sentry'
     runs-on: ubuntu-20.04
     timeout-minutes: 20
 

@@ -13,6 +13,7 @@ import {uniqueId} from 'sentry/utils/guid';
 import Teams from 'sentry/utils/teams';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
 import IncidentRulesCreate from 'sentry/views/alerts/incidentRules/create';
+import IncidentRulesDuplicate from 'sentry/views/alerts/incidentRules/duplicate';
 import IssueRuleEditor from 'sentry/views/alerts/issueRuleEditor';
 import {AlertRuleType} from 'sentry/views/alerts/types';
 import {
@@ -50,17 +51,22 @@ class Create extends Component<Props, State> {
       aggregate,
       dataset,
       eventTypes,
-      createFromV3,
+      createFromDuplicate,
     } = location?.query ?? {};
     let alertType = AlertRuleType.ISSUE;
 
     const hasAlertWizardV3 = organization.features.includes('alert-wizard-v3');
 
     // Alerts can only be created via create from discover or alert wizard, until alert-wizard-v3 is fully implemented
-    if (hasAlertWizardV3 && createFromV3) {
+    if (hasAlertWizardV3) {
       alertType = params.alertType || AlertRuleType.METRIC;
 
-      if (alertType === AlertRuleType.METRIC && !(aggregate && dataset && eventTypes)) {
+      // TODO(taylangocmen): Remove redirect with aggregate && dataset && eventTypes, init from template
+      if (
+        alertType === AlertRuleType.METRIC &&
+        !(aggregate && dataset && eventTypes) &&
+        !createFromDuplicate
+      ) {
         router.replace({
           ...location,
           pathname: `/organizations/${organization.slug}/alerts/new/${alertType}`,
@@ -103,14 +109,22 @@ class Create extends Component<Props, State> {
   render() {
     const {hasMetricAlerts, organization, project, location, routes} = this.props;
     const {alertType} = this.state;
-    const {aggregate, dataset, eventTypes, createFromWizard, createFromDiscover} =
-      location?.query ?? {};
+    const {
+      aggregate,
+      dataset,
+      eventTypes,
+      createFromWizard,
+      createFromDiscover,
+      createFromDuplicate,
+    } = location?.query ?? {};
     const wizardTemplate: WizardRuleTemplate = {
       aggregate: aggregate ?? DEFAULT_WIZARD_TEMPLATE.aggregate,
       dataset: dataset ?? DEFAULT_WIZARD_TEMPLATE.dataset,
       eventTypes: eventTypes ?? DEFAULT_WIZARD_TEMPLATE.eventTypes,
     };
     const eventView = createFromDiscover ? EventView.fromLocation(location) : undefined;
+
+    const hasDuplicateAlertRules = organization.features.includes('duplicate-alert-rule');
 
     let wizardAlertType: undefined | WizardAlertType;
     if (createFromWizard && alertType === AlertRuleType.METRIC) {
@@ -158,17 +172,27 @@ class Create extends Component<Props, State> {
                       />
                     )}
 
-                    {hasMetricAlerts && alertType === AlertRuleType.METRIC && (
-                      <IncidentRulesCreate
-                        {...this.props}
-                        eventView={eventView}
-                        wizardTemplate={wizardTemplate}
-                        sessionId={this.sessionId}
-                        project={project}
-                        isCustomMetric={wizardAlertType === 'custom'}
-                        userTeamIds={teams.map(({id}) => id)}
-                      />
-                    )}
+                    {hasMetricAlerts &&
+                      alertType === AlertRuleType.METRIC &&
+                      (createFromDuplicate && hasDuplicateAlertRules ? (
+                        <IncidentRulesDuplicate
+                          {...this.props}
+                          eventView={eventView}
+                          wizardTemplate={wizardTemplate}
+                          sessionId={this.sessionId}
+                          project={project}
+                          userTeamIds={teams.map(({id}) => id)}
+                        />
+                      ) : (
+                        <IncidentRulesCreate
+                          {...this.props}
+                          eventView={eventView}
+                          wizardTemplate={wizardTemplate}
+                          sessionId={this.sessionId}
+                          project={project}
+                          userTeamIds={teams.map(({id}) => id)}
+                        />
+                      ))}
                   </Fragment>
                 ) : (
                   <LoadingIndicator />

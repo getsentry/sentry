@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {PageFilters} from 'sentry/types';

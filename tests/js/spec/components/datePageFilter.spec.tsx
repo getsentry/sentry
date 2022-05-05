@@ -96,6 +96,9 @@ describe('DatePageFilter', function () {
 
     await screen.findByRole('button', {name: 'Lock filter', pressed: true});
 
+    // Check if the pin indicator has been added
+    expect(screen.getByLabelText('Filter applied across pages')).toBeInTheDocument();
+
     expect(PageFiltersStore.getState()).toEqual(
       expect.objectContaining({
         pinnedFilters: new Set(['datetime']),

@@ -72,6 +72,11 @@ def _remove_ids_from_dynamic_rules(dynamic_rules):
     return dynamic_rules
 
 
+def first_symbol_source_id(sources_json):
+    sources = json.loads(sources_json)
+    return sources[0]["id"]
+
+
 class ProjectDetailsTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
 
@@ -796,6 +801,8 @@ class ProjectUpdateTest(APITestCase):
             self.get_valid_response(
                 self.org_slug, self.proj_slug, symbolSources=json.dumps([config])
             )
+            config["id"] = first_symbol_source_id(self.project.get_option("sentry:symbol_sources"))
+
             assert self.project.get_option("sentry:symbol_sources") == json.dumps([config])
 
             # redact password
@@ -833,6 +840,8 @@ class ProjectUpdateTest(APITestCase):
             self.get_valid_response(
                 self.org_slug, self.proj_slug, symbolSources=json.dumps([config])
             )
+            config["id"] = first_symbol_source_id(self.project.get_option("sentry:symbol_sources"))
+
             assert self.project.get_option("sentry:symbol_sources") == json.dumps([config])
 
             # prepare new call, this secret is not known

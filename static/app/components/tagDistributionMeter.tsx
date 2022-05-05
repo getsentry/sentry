@@ -158,7 +158,7 @@ export default class TagDistributionMeter extends React.Component<Props> {
             >
               <Tooltip title={tooltipHtml} containerDisplayMode="block">
                 {value.isOther ? (
-                  <OtherSegment />
+                  <OtherSegment aria-label={t('Other')} />
                 ) : (
                   <Segment
                     aria-label={t(
@@ -220,7 +220,7 @@ const TagSummary = styled('div')`
 const SegmentBar = styled('div')`
   display: flex;
   overflow: hidden;
-  border-radius: 2px;
+  border-radius: ${p => p.theme.borderRadius};
 `;
 
 const Title = styled('div')`
@@ -271,4 +271,5 @@ const Segment = styled(Link, {shouldForwardProp: isPropValid})<SegmentValue>`
   color: inherit;
   outline: none;
   background-color: ${p => COLORS[p.index]};
+  border-radius: 0;
 `;
