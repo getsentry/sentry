@@ -46,9 +46,17 @@ type Props = {
   projects: Project[];
   providers: IntegrationProvider[];
   search: string;
+  loadingProjects?: boolean;
 } & StepProps;
 
-function SetupDocs({organization, projects, search, configurations, providers}: Props) {
+function SetupDocs({
+  organization,
+  projects,
+  search,
+  configurations,
+  providers,
+  loadingProjects,
+}: Props) {
   const api = useApi();
   const [clientState, setClientState] = usePersistedOnboardingState();
   const selectedProjectsSet = new Set(
@@ -118,8 +126,8 @@ function SetupDocs({organization, projects, search, configurations, providers}: 
     : null;
 
   useEffect(() => {
-    // should not redirect if we don't have an active client state
-    if (!clientState) {
+    // should not redirect if we don't have an active client state or projects aren't loaded
+    if (!clientState || loadingProjects) {
       return;
     }
     if (

@@ -201,6 +201,7 @@ function Onboarding(props: Props) {
             {stepObj.Component && (
               <stepObj.Component
                 active
+                data-test-id={`onboarding-step-${stepObj.id}`}
                 stepIndex={stepIndex}
                 onComplete={() => stepObj && goNextStep(stepObj)}
                 orgId={props.params.orgId}
