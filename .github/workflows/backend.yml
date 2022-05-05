@@ -426,7 +426,6 @@ jobs:
         typing,
       ]
     name: Backend
-    # This is necessary since a failed/skipped dependent job would cause this job to be skipped
     if: needs.files-changed.outputs.backend_any_type == 'true'
     runs-on: ubuntu-20.04
     steps:
@@ -435,3 +434,14 @@ jobs:
         if: contains(needs.*.result, 'failure')
         run: |
           echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
+
+  # Since Visual Snapshot is a required check we need to pretend to have run
+  fake-visual-snapshot:
+    name: Visual Snapshot
+    # Opposite condition to backend-required-check
+    if: needs.files-changed.outputs.backend_any_type != 'true'
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Sentaur attack
+        run: |
+          echo "This check pretends to be the Visual Snapshot to satisfy Github required checks"
