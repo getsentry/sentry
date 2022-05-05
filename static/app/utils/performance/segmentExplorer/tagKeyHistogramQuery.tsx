@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import {EventQuery} from 'sentry/actionCreators/events';
 import {LocationQuery} from 'sentry/utils/discover/eventView';
 import GenericDiscoverQuery, {

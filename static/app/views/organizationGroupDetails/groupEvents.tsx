@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
@@ -35,7 +35,7 @@ type State = {
   query: string;
 };
 
-class GroupEvents extends React.Component<Props, State> {
+class GroupEvents extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
 

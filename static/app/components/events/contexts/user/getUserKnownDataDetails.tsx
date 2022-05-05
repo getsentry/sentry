@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';

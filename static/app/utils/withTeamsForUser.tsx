@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 
 import {Client} from 'sentry/api';
 import ConfigStore from 'sentry/stores/configStore';
@@ -23,7 +23,7 @@ type InjectedTeamsProps = {
 const withTeamsForUser = <P extends InjectedTeamsProps>(
   WrappedComponent: React.ComponentType<P>
 ) =>
-  class extends React.Component<
+  class extends Component<
     Omit<P, keyof InjectedTeamsProps> & Partial<InjectedTeamsProps> & DependentProps,
     InjectedTeamsProps
   > {

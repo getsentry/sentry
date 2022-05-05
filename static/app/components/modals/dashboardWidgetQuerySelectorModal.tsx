@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {Link} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -30,7 +30,7 @@ type Props = ModalRenderProps &
     selection: PageFilters;
   };
 
-class DashboardWidgetQuerySelectorModal extends React.Component<Props> {
+class DashboardWidgetQuerySelectorModal extends Component<Props> {
   renderQueries() {
     const {organization, widget, selection} = this.props;
     const querySearchBars = widget.queries.map((query, index) => {
@@ -56,7 +56,7 @@ class DashboardWidgetQuerySelectorModal extends React.Component<Props> {
           break;
       }
       return (
-        <React.Fragment key={index}>
+        <Fragment key={index}>
           <QueryContainer>
             <Container>
               <SearchLabel htmlFor="smart-search-input" aria-label={t('Search events')}>
@@ -81,7 +81,7 @@ class DashboardWidgetQuerySelectorModal extends React.Component<Props> {
               />
             </Link>
           </QueryContainer>
-        </React.Fragment>
+        </Fragment>
       );
     });
     return querySearchBars;
@@ -90,7 +90,7 @@ class DashboardWidgetQuerySelectorModal extends React.Component<Props> {
   render() {
     const {Body, Header, widget} = this.props;
     return (
-      <React.Fragment>
+      <Fragment>
         <Header closeButton>
           <h4>{widget.title}</h4>
         </Header>
@@ -102,7 +102,7 @@ class DashboardWidgetQuerySelectorModal extends React.Component<Props> {
           </p>
           {this.renderQueries()}
         </Body>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }
