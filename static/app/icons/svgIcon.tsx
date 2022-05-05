@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {forwardRef} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {Aliases, Color, IconSize} from 'sentry/utils/theme';
@@ -10,7 +10,7 @@ export interface SVGIconProps extends React.SVGAttributes<SVGSVGElement> {
   size?: IconSize | string;
 }
 
-const SvgIcon = React.forwardRef<SVGSVGElement, SVGIconProps>(function SvgIcon(
+const SvgIcon = forwardRef<SVGSVGElement, SVGIconProps>(function SvgIcon(
   {
     color: providedColor = 'currentColor',
     size: providedSize = 'sm',
