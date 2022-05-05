@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -50,7 +50,7 @@ type TableProps = {
 type TableState = {
   widths: number[];
 };
-class Table extends React.Component<TableProps, TableState> {
+class Table extends Component<TableProps, TableState> {
   state: TableState = {
     widths: [],
   };
@@ -144,7 +144,7 @@ class Table extends React.Component<TableProps, TableState> {
     const columnSortBy = sortedEventView.getSorts();
 
     return (
-      <React.Fragment>
+      <Fragment>
         <DiscoverQuery
           eventView={sortedEventView}
           orgSlug={organization.slug}
@@ -168,7 +168,7 @@ class Table extends React.Component<TableProps, TableState> {
             />
           )}
         </DiscoverQuery>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

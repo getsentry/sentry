@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject} from 'history';
@@ -185,7 +185,7 @@ type Props = {
 type State = {
   widths: number[];
 };
-class _TagExplorer extends React.Component<Props> {
+class _TagExplorer extends Component<Props> {
   state: State = {
     widths: [],
   };
@@ -449,7 +449,7 @@ class _TagExplorer extends React.Component<Props> {
       >
         {({isLoading, tableData, pageLinks}) => {
           return (
-            <React.Fragment>
+            <Fragment>
               <GuideAnchor target="tag_explorer">
                 <TagsHeader
                   transactionName={transactionName}
@@ -474,7 +474,7 @@ class _TagExplorer extends React.Component<Props> {
                 }}
                 location={location}
               />
-            </React.Fragment>
+            </Fragment>
           );
         }}
       </SegmentExplorerQuery>

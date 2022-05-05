@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import CheckboxFancy from 'sentry/components/checkboxFancy/checkboxFancy';
@@ -34,7 +34,7 @@ type Props = {
   toggleOperationNameFilter: (operationName: string) => void;
 };
 
-class Filter extends React.Component<Props> {
+class Filter extends Component<Props> {
   isOperationNameActive(operationName: string) {
     const {operationNameFilter} = this.props;
 
@@ -70,10 +70,10 @@ class Filter extends React.Component<Props> {
       hasDarkBorderBottomColor: boolean;
     } = {
       children: (
-        <React.Fragment>
+        <Fragment>
           <IconFilter />
           <FilterLabel>{t('Filter')}</FilterLabel>
-        </React.Fragment>
+        </Fragment>
       ),
       priority: 'default',
       hasDarkBorderBottomColor: false,
