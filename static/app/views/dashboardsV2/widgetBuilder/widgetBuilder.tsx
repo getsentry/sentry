@@ -266,17 +266,17 @@ function WidgetBuilder({
       } else {
         defaultState.queries = [{...defaultWidgetQuery}];
       }
+
+      if (
+        ![DisplayType.TABLE, DisplayType.TOP_N].includes(defaultState.displayType) ||
+        (getIsTimeseriesChart(displayType) && !defaultWidgetQuery?.columns.length)
+      ) {
+        defaultState.queries[0].orderby = '';
+      }
     } else {
       defaultState.queries = [
         {...getDataSetQuery(widgetBuilderNewDesign)[DataSet.EVENTS]},
       ];
-    }
-
-    if (
-      ![DisplayType.TABLE, DisplayType.TOP_N].includes(defaultState.displayType) ||
-      (getIsTimeseriesChart(displayType) && !defaultWidgetQuery?.columns.length)
-    ) {
-      defaultState.queries[0].orderby = '';
     }
 
     return defaultState;

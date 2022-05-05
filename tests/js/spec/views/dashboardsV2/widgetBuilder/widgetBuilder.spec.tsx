@@ -2210,6 +2210,40 @@ describe('WidgetBuilder', function () {
         );
       });
     });
+
+    it('does not send request with orderby if a timeseries chart without grouping', async function () {
+      const defaultWidgetQuery = {
+        name: '',
+        fields: ['count()'],
+        columns: ['title'],
+        aggregates: ['count_unique(user)'],
+        conditions: '',
+        orderby: 'count_unique_user',
+      };
+
+      const defaultTableColumns = ['title', 'count_unique(user)'];
+
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        query: {
+          source: DashboardWidgetSource.DISCOVERV2,
+          defaultWidgetQuery: urlEncode(defaultWidgetQuery),
+          displayType: DisplayType.LINE,
+          defaultTableColumns,
+        },
+      });
+
+      await waitFor(() => {
+        expect(eventsStatsMock).toHaveBeenLastCalledWith(
+          '/organizations/org-slug/events-stats/',
+          expect.objectContaining({
+            query: expect.objectContaining({
+              orderby: '',
+            }),
+          })
+        );
+      });
+    });
   });
 
   it('opens top-N widgets as top-N display', async function () {
