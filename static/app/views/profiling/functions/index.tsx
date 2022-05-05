@@ -1,9 +1,9 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
-import {browserHistory} from 'react-router';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 
 import {Client} from 'sentry/api';
+import Alert from 'sentry/components/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -19,7 +19,6 @@ import useProjects from 'sentry/utils/useProjects';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {ProfilingHeader} from '../header';
-import {generateProfilingRoute} from '../routes';
 
 import {FunctionsContent} from './content';
 
@@ -48,19 +47,18 @@ function FunctionsPage(props: Props) {
     [projects, props.params.projectId]
   );
 
+  const badParams =
+    !defined(props.params.projectId) || !defined(transaction) || !defined(version);
+
   useEffect(() => {
-    if (!defined(props.params.projectId) || !defined(transaction) || !defined(version)) {
-      // the functions page requires that the project, transaction, and version be defined
-      // if they aren't defined, we choose to redirect the user back to the profiling
-      // landing page
-      browserHistory.push(generateProfilingRoute({orgSlug: organization.slug}));
+    if (badParams) {
       return undefined;
     }
 
     setRequestState({type: 'loading'});
 
     fetchFunctions(api, organization, {
-      projectSlug: props.params.projectId,
+      projectSlug: props.params.projectId!,
       transaction,
       version,
     })
@@ -73,16 +71,21 @@ function FunctionsPage(props: Props) {
       });
 
     return () => api.clear();
-  }, [api, organization, setRequestState, props.params.projectId, transaction, version]);
-
-  if (!defined(props.params.projectId) || !defined(transaction) || !defined(version)) {
-    // If any of project, transaction or version isn't defined, then don't render
-    // anything. The page will be redirected.
-    return null;
-  }
+  }, [
+    api,
+    organization,
+    setRequestState,
+    props.params.projectId,
+    transaction,
+    version,
+    badParams,
+  ]);
 
   return (
-    <SentryDocumentTitle title={t('Profiling - Functions')} orgSlug={organization.slug}>
+    <SentryDocumentTitle
+      title={t('Profiling \u2014 Functions')}
+      orgSlug={organization.slug}
+    >
       <PageFiltersContainer
         lockedMessageSubject={t('transaction')}
         shouldForceProject={defined(project)}
@@ -93,7 +96,12 @@ function FunctionsPage(props: Props) {
         hideGlobalHeader
       >
         <NoProjectMessage organization={organization}>
-          {project && (
+          {badParams && (
+            <Alert type="error" showIcon>
+              {t('Missing required parameters.')}
+            </Alert>
+          )}
+          {project && !badParams && (
             <Fragment>
               <ProfilingHeader
                 page="functions"

@@ -32,7 +32,10 @@ interface FunctionsContentProps {
 function FunctionsContent(props: FunctionsContentProps) {
   const location = useLocation();
   const organization = useOrganization();
-  const query = decodeScalar(location.query.query, '');
+  const query = useMemo(
+    () => decodeScalar(location.query.query, ''),
+    [location.query.query]
+  );
 
   const functions: TableDataRow[] = useMemo(() => {
     const functionCalls: FunctionCall[] =
