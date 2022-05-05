@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {forwardRef, useEffect} from 'react';
 import {Link as RouterLink, withRouter, WithRouterProps} from 'react-router';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
@@ -24,6 +24,10 @@ export interface LinkProps
    * Indicator if the link should be disabled
    */
   disabled?: boolean;
+  /**
+   * Forwarded ref
+   */
+  forwardedRef?: React.Ref<HTMLAnchorElement>;
 }
 
 /**
@@ -37,7 +41,7 @@ function BaseLink({
   location,
   disabled,
   to,
-  ref,
+  forwardedRef,
   router: _router,
   params: _params,
   routes: _routes,
@@ -50,24 +54,28 @@ function BaseLink({
         new Error('The link component was rendered without being wrapped by a <Router />')
       );
     }
-  }, []);
+  }, [location]);
 
   if (!disabled && location) {
-    return <StyledRouterLink to={to} ref={ref as any} {...props} />;
+    return <StyledRouterLink to={to} ref={forwardedRef as any} {...props} />;
   }
 
   if (typeof to === 'string') {
-    return <Anchor href={to} ref={ref} disabled={disabled} {...props} />;
+    return <Anchor href={to} ref={forwardedRef} disabled={disabled} {...props} />;
   }
 
-  return <Anchor href="" ref={ref} {...props} disabled />;
+  return <Anchor href="" ref={forwardedRef} {...props} disabled />;
 }
 
 // Set the displayName for testing convenience
 BaseLink.displayName = 'Link';
 
 // Re-assign to Link to make auto-importing smarter
-const Link = withRouter(BaseLink);
+const Link = withRouter(
+  forwardRef<HTMLAnchorElement, Omit<WithRouterBaseLinkProps, 'forwardedRef'>>(
+    (props, ref) => <BaseLink forwardedRef={ref} {...props} />
+  )
+);
 
 export default Link;
 

@@ -11,6 +11,7 @@ import {useRouteContext} from 'sentry/utils/useRouteContext';
 import {isReplayTab, ReplayTabs} from '../types';
 
 import FocusTabs from './focusTabs';
+import IssueList from './issueList';
 import MemoryChart from './memoryChart';
 
 type Props = {
@@ -58,8 +59,12 @@ function ActiveTab({
           />
         </div>
       ) : null;
-    case 'errors':
-      return <div id="errors">TODO: Add an errors view</div>;
+    case 'issues':
+      return (
+        <div id="issues">
+          <IssueList replayId={event.id} projectId={event.projectID} />
+        </div>
+      );
     case 'tags':
       return (
         <div id="tags">

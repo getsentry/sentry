@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
@@ -175,7 +175,7 @@ type State = {
   timeseriesResults?: Series[];
 };
 
-class WidgetQueries extends React.Component<Props, State> {
+class WidgetQueries extends Component<Props, State> {
   state: State = {
     loading: true,
     queryFetchID: undefined,

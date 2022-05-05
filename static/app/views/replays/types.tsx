@@ -15,7 +15,7 @@ export type Replay = {
 export enum ReplayTabs {
   CONSOLE = 'console',
   PERFORMANCE = 'performance',
-  ERRORS = 'errors',
+  ISSUES = 'issues',
   TAGS = 'tags',
   MEMORY = 'memory',
 }

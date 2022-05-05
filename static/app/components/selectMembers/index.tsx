@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
@@ -55,7 +55,7 @@ type FilterOption<T> = {
 /**
  * A component that allows you to select either members and/or teams
  */
-class SelectMembers extends React.Component<Props, State> {
+class SelectMembers extends Component<Props, State> {
   state: State = {
     loading: false,
     inputValue: '',

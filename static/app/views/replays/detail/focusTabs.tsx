@@ -11,7 +11,7 @@ type Props = {
   active: ReplayTabs;
 };
 
-const TABS = [t('Console'), t('Performance'), t('Errors'), t('Tags'), t('Memory')];
+const TABS = [t('Console'), t('Performance'), t('Issues'), t('Tags'), t('Memory')];
 
 function FocusTabs({active}: Props) {
   return (
