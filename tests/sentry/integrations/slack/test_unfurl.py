@@ -54,15 +54,15 @@ def test_match_link(url, expected):
 class UnfurlTest(TestCase):
     def setUp(self):
         super().setUp()
+        self.project = self.create_project()
         self.integration = install_slack(self.organization)
 
         self.request = RequestFactory().get("slack/event")
 
     def test_unfurl_issues(self):
         min_ago = iso_format(before_now(minutes=1))
-        unique_proj = self.create_project()
         event = self.store_event(
-            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=unique_proj.id
+            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
         )
         group2 = event.group
 
@@ -120,15 +120,13 @@ class UnfurlTest(TestCase):
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
     def test_unfurl_discover(self, mock_generate_chart):
         min_ago = iso_format(before_now(minutes=1))
-        unique_proj = self.create_project()
         self.store_event(
-            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=unique_proj.id
+            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
         )
         self.store_event(
-            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=unique_proj.id
+            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
         )
-
-        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&project={unique_proj.id}&query=&sort=-timestamp&statsPeriod=24h"
+        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&project={self.project.id}&query=&sort=-timestamp&statsPeriod=24h"
         link_type, args = match_link(url)
 
         if not args or not link_type:
@@ -155,15 +153,14 @@ class UnfurlTest(TestCase):
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
     def test_unfurl_discover_previous_period(self, mock_generate_chart):
         min_ago = iso_format(before_now(minutes=1))
-        unique_proj = self.create_project()
         self.store_event(
-            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=unique_proj.id
+            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
         )
         self.store_event(
-            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=unique_proj.id
+            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
         )
 
-        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?display=previous&field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&project={unique_proj.id}&query=&sort=-timestamp&statsPeriod=24h"
+        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?display=previous&field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&project={self.project.id}&query=&sort=-timestamp&statsPeriod=24h"
         link_type, args = match_link(url)
 
         if not args or not link_type:
@@ -191,15 +188,14 @@ class UnfurlTest(TestCase):
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
     def test_unfurl_discover_multi_y_axis(self, mock_generate_chart):
         min_ago = iso_format(before_now(minutes=1))
-        unique_proj = self.create_project()
         self.store_event(
-            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=unique_proj.id
+            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
         )
         self.store_event(
-            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=unique_proj.id
+            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
         )
 
-        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&project={unique_proj.id}&query=&sort=-timestamp&statsPeriod=24h&yAxis=count_unique%28user%29&yAxis=count%28%29"
+        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&project={self.project.id}&query=&sort=-timestamp&statsPeriod=24h&yAxis=count_unique%28user%29&yAxis=count%28%29"
         link_type, args = match_link(url)
 
         if not args or not link_type:
@@ -227,15 +223,14 @@ class UnfurlTest(TestCase):
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
     def test_unfurl_discover_html_escaped(self, mock_generate_chart):
         min_ago = iso_format(before_now(minutes=1))
-        unique_proj = self.create_project()
         self.store_event(
-            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=unique_proj.id
+            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
         )
         self.store_event(
-            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=unique_proj.id
+            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
         )
 
-        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?field=title&amp;field=event.type&amp;field=project&amp;field=user.display&amp;field=timestamp&amp;name=All+Events&amp;project={unique_proj.id}&amp;query=&amp;sort=-timestamp&amp;statsPeriod=24h"
+        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?field=title&amp;field=event.type&amp;field=project&amp;field=user.display&amp;field=timestamp&amp;name=All+Events&amp;project={self.project.id}&amp;query=&amp;sort=-timestamp&amp;statsPeriod=24h"
         link_type, args = match_link(url)
 
         if not args or not link_type:
@@ -278,17 +273,16 @@ class UnfurlTest(TestCase):
         saved_query.set_projects([self.project.id])
 
         min_ago = iso_format(before_now(minutes=1))
-        unique_proj = self.create_project()
         self.store_event(
             data={"message": "first", "fingerprint": ["group2"], "timestamp": min_ago},
-            project_id=unique_proj.id,
+            project_id=self.project.id,
         )
         self.store_event(
             data={"message": "second", "fingerprint": ["group2"], "timestamp": min_ago},
-            project_id=unique_proj.id,
+            project_id=self.project.id,
         )
 
-        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?id={saved_query.id}&statsPeriod=24h&project={unique_proj.id}"
+        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?id={saved_query.id}&statsPeriod=24h&project={self.project.id}"
         link_type, args = match_link(url)
 
         if not args or not link_type:
@@ -344,17 +338,16 @@ class UnfurlTest(TestCase):
         saved_query.set_projects([self.project.id])
 
         min_ago = iso_format(before_now(minutes=1))
-        unique_proj = self.create_project()
         self.store_event(
             data={"message": "first", "fingerprint": ["group2"], "timestamp": min_ago},
-            project_id=unique_proj.id,
+            project_id=self.project.id,
         )
         self.store_event(
             data={"message": "second", "fingerprint": ["group2"], "timestamp": min_ago},
-            project_id=unique_proj.id,
+            project_id=self.project.id,
         )
 
-        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?id={saved_query.id}&statsPeriod=24h&project={unique_proj.id}"
+        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?id={saved_query.id}&statsPeriod=24h&project={self.project.id}"
         link_type, args = match_link(url)
 
         if not args or not link_type:
@@ -388,14 +381,13 @@ class UnfurlTest(TestCase):
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
     def test_top_events_url_param(self, mock_generate_chart):
         min_ago = iso_format(before_now(minutes=1))
-        unique_proj = self.create_project()
         self.store_event(
             data={"message": "first", "fingerprint": ["group1"], "timestamp": min_ago},
-            project_id=unique_proj.id,
+            project_id=self.project.id,
         )
         self.store_event(
             data={"message": "second", "fingerprint": ["group2"], "timestamp": min_ago},
-            project_id=unique_proj.id,
+            project_id=self.project.id,
         )
 
         url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?field=message&field=event.type&field=count()&name=All+Events&query=message:[first,second]&sort=-count&statsPeriod=24h&display=top5&topEvents=2"
@@ -434,14 +426,13 @@ class UnfurlTest(TestCase):
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
     def test_top_daily_events_renders_bar_chart(self, mock_generate_chart):
         min_ago = iso_format(before_now(minutes=1))
-        unique_proj = self.create_project()
         self.store_event(
             data={"message": "first", "fingerprint": ["group1"], "timestamp": min_ago},
-            project_id=unique_proj.id,
+            project_id=self.project.id,
         )
         self.store_event(
             data={"message": "second", "fingerprint": ["group2"], "timestamp": min_ago},
-            project_id=unique_proj.id,
+            project_id=self.project.id,
         )
 
         url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?field=message&field=event.type&field=count()&name=All+Events&query=message:[first,second]&sort=-count&statsPeriod=24h&display=dailytop5&topEvents=2"
@@ -495,12 +486,11 @@ class UnfurlTest(TestCase):
         saved_query.set_projects([self.project.id])
 
         min_ago = iso_format(before_now(minutes=1))
-        unique_proj = self.create_project()
         self.store_event(
-            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=unique_proj.id
+            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
         )
         self.store_event(
-            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=unique_proj.id
+            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
         )
 
         url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?id={saved_query.id}&statsPeriod=24h"
@@ -537,12 +527,11 @@ class UnfurlTest(TestCase):
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
     def test_unfurl_discover_without_project_ids(self, mock_generate_chart):
         min_ago = iso_format(before_now(minutes=1))
-        unique_proj = self.create_project()
         self.store_event(
-            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=unique_proj.id
+            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
         )
         self.store_event(
-            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=unique_proj.id
+            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
         )
 
         url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&query=&sort=-timestamp&statsPeriod=24h"
@@ -577,14 +566,13 @@ class UnfurlTest(TestCase):
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
     def test_unfurl_world_map(self, mock_generate_chart):
         min_ago = iso_format(before_now(minutes=1))
-        unique_proj = self.create_project()
         self.store_event(
             data={
                 "fingerprint": ["group2"],
                 "timestamp": min_ago,
                 "user": {"geo": {"country_code": "CA", "region": "Canada"}},
             },
-            project_id=unique_proj.id,
+            project_id=self.project.id,
         )
         self.store_event(
             data={
@@ -592,10 +580,10 @@ class UnfurlTest(TestCase):
                 "timestamp": min_ago,
                 "user": {"geo": {"country_code": "AU", "region": "Australia"}},
             },
-            project_id=unique_proj.id,
+            project_id=self.project.id,
         )
 
-        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?display=worldmap&field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&project={unique_proj.id}&query=&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29"
+        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?display=worldmap&field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&project={self.project.id}&query=&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29"
         link_type, args = match_link(url)
 
         if not args or not link_type:
