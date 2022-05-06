@@ -1,6 +1,5 @@
 import {
   cloneElement,
-  CSSProperties,
   Fragment,
   isValidElement,
   useEffect,
@@ -60,7 +59,7 @@ export interface InternalTooltipProps {
   /**
    * Display mode for the container element
    */
-  containerDisplayMode?: CSSProperties['display'];
+  containerDisplayMode?: React.CSSProperties['display'];
 
   /**
    * Time to wait (in milliseconds) before showing the tooltip
@@ -232,6 +231,15 @@ export function DO_NOT_USE_TOOLTIP({
       triggerRef.current = el;
     };
 
+    const props = {
+      'aria-describedby': tooltipId,
+      onFocus: handleMouseEnter,
+      onBlur: handleMouseLeave,
+      onPointerEnter: handleMouseEnter,
+      onPointerLeave: handleMouseLeave,
+      ref: setRef,
+    };
+
     // Use the `type` property of the react instance to detect whether we have
     // a basic element (type=string) or a class/function component
     // (type=function or object). Because we can't rely on the child element
@@ -247,23 +255,13 @@ export function DO_NOT_USE_TOOLTIP({
       };
       // Basic DOM nodes can be cloned and have more props applied.
       return cloneElement(triggerChildren, {
-        'aria-describedby': tooltipId,
-        onFocus: handleMouseEnter,
-        onBlur: handleMouseLeave,
-        onPointerEnter: handleMouseEnter,
-        onPointerLeave: handleMouseLeave,
-        ref: setRef,
+        ...props,
         style: styles,
       });
     }
 
     const ourContainerProps = {
-      'aria-describedby': tooltipId,
-      onFocus: handleMouseEnter,
-      onBlur: handleMouseLeave,
-      onPointerEnter: handleMouseEnter,
-      onPointerLeave: handleMouseLeave,
-      ref: setRef,
+      ...props,
       containerDisplayMode,
       style: showUnderline ? theme.tooltipUnderline(underlineColor) : undefined,
       className,
