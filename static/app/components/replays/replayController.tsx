@@ -9,6 +9,7 @@ import {IconArrow, IconPause, IconPlay, IconRefresh, IconResize} from 'sentry/ic
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
+import {StyledButton} from '../dropdownButtonV2';
 import CompactSelect from '../forms/compactSelect';
 
 import {formatTime} from './utils';
@@ -119,7 +120,7 @@ const IconClockwise = styled(IconRefresh)`
 `;
 
 const StyledCompactSelect = styled(CompactSelect)`
-  & button {
+  ${StyledButton} {
     padding: 0 ${space(1)};
     height: 1.75rem;
     min-height: 0;

@@ -58,7 +58,8 @@ const StyledChevron = styled(IconChevron)`
   flex-shrink: 0;
 `;
 
-const StyledButton = styled(Button)<
+// this is exported so we can better control the button style.
+export const StyledButton = styled(Button)<
   Required<Pick<DropdownButtonProps, 'isOpen' | 'disabled' | 'priority'>>
 >`
   position: relative;
