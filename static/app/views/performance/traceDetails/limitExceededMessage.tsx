@@ -1,7 +1,7 @@
 import DiscoverFeature from 'sentry/components/discover/discoverFeature';
 import Link from 'sentry/components/links/link';
 import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {TraceMeta} from 'sentry/utils/performance/quickTrace/types';
@@ -38,7 +38,7 @@ function LimitExceededMessage({
             <DiscoverFeature>
               {({hasFeature}) => (
                 <Link disabled={!hasFeature} to={target}>
-                  Open in Discover
+                  {t('Open in Discover')}
                 </Link>
               )}
             </DiscoverFeature>
