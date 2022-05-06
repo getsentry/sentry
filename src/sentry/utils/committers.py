@@ -19,6 +19,7 @@ from django.db.models import Q
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.commit import CommitSerializer, get_users_for_commits
+from sentry.api.serializers.models.release import Author
 from sentry.eventstore.models import Event
 from sentry.models import Commit, CommitFileChange, Group, Project, Release, ReleaseCommit
 from sentry.utils import metrics
@@ -129,12 +130,12 @@ def _match_commits_path(
 
 
 class AuthorCommits(TypedDict):
-    author: Mapping[str, Any]
+    author: Author
     commits: Sequence[Tuple[Commit, int]]
 
 
 class AuthorCommitsSerialized(TypedDict):
-    author: Mapping[str, Any]
+    author: Author
     commits: Sequence[MutableMapping[str, Any]]
 
 
@@ -160,9 +161,7 @@ def _get_committers(
     # organize them by this heuristic (first frame is worth 5 points, second is worth 4, etc.)
     sorted_committers = sorted(committers.items(), key=operator.itemgetter(1))
 
-    users_by_author: Mapping[str, Mapping[str, Any]] = get_users_for_commits(
-        [c for c, _ in commits]
-    )
+    users_by_author: Mapping[str, Author] = get_users_for_commits([c for c, _ in commits])
 
     user_dicts: Sequence[AuthorCommits] = [
         {
