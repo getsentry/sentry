@@ -9,13 +9,11 @@ import {
   transformSessionResponseToSeries,
 } from 'sentry/views/alerts/rules/details/metricChartOption';
 
-import {DEFAULT_FONT_FAMILY, slackChartSize} from './slack';
+import {DEFAULT_FONT_FAMILY, slackChartDefaults, slackChartSize} from './slack';
 import {ChartType, RenderDescriptor} from './types';
 
-const discoverxAxis = XAxis({
+const metricAlertXaxis = XAxis({
   theme,
-  // @ts-expect-error Not sure whats wrong with boundryGap type
-  boundaryGap: true,
   splitNumber: 3,
   isGroupedByDate: true,
   axisLabel: {fontSize: 11, fontFamily: DEFAULT_FONT_FAMILY},
@@ -52,7 +50,8 @@ metricAlertCharts.push({
       ...chartOption,
       backgroundColor: theme.background,
       series: transformAreaSeries(chartOption.series),
-      xAxis: discoverxAxis,
+      xAxis: metricAlertXaxis,
+      grid: slackChartDefaults.grid,
     };
   },
   ...slackChartSize,
@@ -76,7 +75,8 @@ metricAlertCharts.push({
       ...chartOption,
       backgroundColor: theme.background,
       series: transformAreaSeries(chartOption.series),
-      xAxis: discoverxAxis,
+      xAxis: metricAlertXaxis,
+      grid: slackChartDefaults.grid,
     };
   },
   ...slackChartSize,
