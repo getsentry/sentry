@@ -64,17 +64,16 @@ function ReplayPlaybackSpeed({speedOptions}: {speedOptions: number[]}) {
   const {setSpeed, speed} = useReplayContext();
   return (
     <CompactSelect
-      title={`${t('Speed')}`}
-      selected={`${speed}`}
+      triggerLabel={`${t('Speed')}: ${speed}x`}
+      value={speed}
       options={speedOptions.map(speedOption => ({
         value: speedOption,
         label: `${speedOption}x`,
         disabled: speedOption === speed,
       }))}
-      onChange={(opt: string) => {
-        setSpeed(parseInt(opt, 10));
+      onChange={opt => {
+        setSpeed(opt.value);
       }}
-      containerPadding={4}
     />
   );
 }
