@@ -220,7 +220,7 @@ GROUPBY_MAP = {
     "session.status": SessionStatusGroupBy(),
 }
 
-CONDITION_COLUMNS = ["project", "environment", "release"]
+CONDITION_COLUMNS = ["project", "project_id", "environment", "release"]
 FILTER_KEY_COLUMNS = ["project_id"]
 
 
