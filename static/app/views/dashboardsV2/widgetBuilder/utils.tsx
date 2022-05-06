@@ -7,7 +7,6 @@ import {Organization, TagCollection} from 'sentry/types';
 import {
   aggregateFunctionOutputType,
   aggregateOutputType,
-  getAggregateAlias,
   isEquation,
   isLegalYAxisType,
   stripDerivedMetricsPrefix,
@@ -144,9 +143,9 @@ export function normalizeQueries({
       const resetOrderBy =
         isTabularChart &&
         (isEquation(trimStart(queryOrderBy, '-')) ||
-          ![...query.columns, ...query.aggregates]
-            .map(getAggregateAlias)
-            .includes(getAggregateAlias(trimStart(queryOrderBy, '-'))));
+          ![...query.columns, ...query.aggregates].includes(
+            trimStart(queryOrderBy, '-')
+          ));
       const orderBy =
         (!resetOrderBy && trimStart(queryOrderBy, '-')) ||
         (widgetType === WidgetType.ISSUE
@@ -156,6 +155,7 @@ export function normalizeQueries({
               widgetBuilderNewDesign,
               columns: queries[0].columns,
               aggregates: queries[0].aggregates,
+              isUsingFieldFormat: true,
             })[0].value);
 
       // A widget should be descending if:

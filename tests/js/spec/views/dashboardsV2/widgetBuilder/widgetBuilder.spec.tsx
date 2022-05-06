@@ -1399,58 +1399,6 @@ describe('WidgetBuilder', function () {
       expect(screen.getAllByText('count()')).toHaveLength(3);
     });
 
-    it('existing widgets with alias format open and set orderby with alias', async function () {
-      const widget: Widget = {
-        id: '1',
-        title: 'Test Widget',
-        interval: '5m',
-        displayType: DisplayType.TABLE,
-        queries: [
-          {
-            name: 'errors',
-            conditions: 'event.type:error',
-            fields: ['count()', 'count_unique(id)'],
-            aggregates: ['count()', 'count_unique(id)'],
-            columns: [],
-            orderby: '-count_unique_id',
-          },
-        ],
-      };
-
-      const dashboard: DashboardDetails = {
-        id: '1',
-        title: 'Dashboard',
-        createdBy: undefined,
-        dateCreated: '2020-01-01T00:00:00.000Z',
-        widgets: [widget],
-      };
-
-      renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
-        dashboard,
-        params: {
-          widgetIndex: '0',
-        },
-      });
-
-      await waitFor(async () => {
-        expect(await screen.findAllByText('count_unique(id)')).toHaveLength(2);
-      });
-
-      await selectEvent.select(screen.getAllByText('count_unique(id)')[1], 'count()');
-
-      await waitFor(() => {
-        expect(eventsv2Mock).toHaveBeenCalledWith(
-          '/organizations/org-slug/eventsv2/',
-          expect.objectContaining({
-            query: expect.objectContaining({
-              sort: ['-count'],
-            }),
-          })
-        );
-      });
-    });
-
     it('ordering by column uses field form when selecting orderby', async function () {
       const widget: Widget = {
         id: '1',
@@ -1575,7 +1523,7 @@ describe('WidgetBuilder', function () {
             fields: ['count()', 'count_unique(id)'],
             aggregates: ['count()', 'count_unique(id)'],
             columns: [],
-            orderby: '-count',
+            orderby: '-count()',
           },
         ],
       };
@@ -1623,7 +1571,7 @@ describe('WidgetBuilder', function () {
       await waitFor(() => {
         expect(handleSave).toHaveBeenCalledWith([
           expect.objectContaining({
-            queries: [expect.objectContaining({orderby: 'count_unique_id'})],
+            queries: [expect.objectContaining({orderby: 'count_unique(id)'})],
           }),
         ]);
       });
@@ -1892,7 +1840,7 @@ describe('WidgetBuilder', function () {
           '/organizations/org-slug/eventsv2/',
           expect.objectContaining({
             query: expect.objectContaining({
-              sort: ['-count'],
+              sort: ['-count()'],
             }),
           })
         );
@@ -1924,11 +1872,12 @@ describe('WidgetBuilder', function () {
         },
       });
 
-      await selectEvent.select(await screen.findByText('count()'), /count_unique/);
-      await selectEvent.select(screen.getByText('Select group'), 'project');
-      await selectEvent.select(screen.getAllByText(/count_unique/)[1], 'project');
+      await selectEvent.select(await screen.findByText('Select group'), 'project');
+      expect(screen.getAllByText('count()')).toHaveLength(2);
 
-      await selectEvent.select(screen.getByText(/count_unique/), 'count()');
+      // Change the sort option to a grouping field, and then change a y-axis
+      await selectEvent.select(screen.getAllByText('count()')[1], 'project');
+      await selectEvent.select(screen.getAllByText('count()')[0], /count_unique/);
 
       // project should appear in the group by field, as well as the sort field
       expect(screen.getAllByText('project')).toHaveLength(2);
