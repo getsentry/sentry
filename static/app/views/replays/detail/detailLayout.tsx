@@ -2,9 +2,9 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import Button from 'sentry/components/button';
 import Duration from 'sentry/components/duration';
 import FeatureBadge from 'sentry/components/featureBadge';
+import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {KeyMetricData, KeyMetrics} from 'sentry/components/replays/keyMetrics';
@@ -49,12 +49,15 @@ function DetailLayout({children, event, orgId, crumbs}: Props) {
             />
           </Layout.HeaderContent>
           <ButtonWrapper>
-            <Button
-              title={t('Send us feedback via email')}
-              href="mailto:replay-feedback@sentry.io?subject=Replay Details Feedback"
-            >
-              {t('Give Feedback')}
-            </Button>
+            <FeatureFeedback
+              featureName="replay"
+              feedbackTypes={[
+                'Something is broken',
+                "I don't understand how to use this feature",
+                'I like this feature',
+                'Other reason',
+              ]}
+            />
           </ButtonWrapper>
           <Layout.HeaderContent>
             <EventHeader event={event} />
