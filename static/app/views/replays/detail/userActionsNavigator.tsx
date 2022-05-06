@@ -80,6 +80,9 @@ const Panel = styled(BasePanel)`
   grid-template-rows: auto 1fr;
   height: 0;
   min-height: 100%;
+  @media only screen and (max-width: ${p => p.theme.breakpoints[1]}) {
+    min-height: 450px;
+  }
 `;
 
 const PanelHeader = styled(BasePanelHeader)`
