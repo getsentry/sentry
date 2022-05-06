@@ -52,12 +52,7 @@ export type GrowthEventParameters = {
   'growth.demo_modal_clicked_signup': {};
   'growth.issue_open_in_discover_btn_clicked': {};
   'growth.onboarding_clicked_instrument_app': {source?: string};
-  'growth.onboarding_clicked_integration_in_sidebar': {integration: string};
   'growth.onboarding_clicked_project_in_sidebar': {platform: string};
-  'growth.onboarding_clicked_setup_integration_later': {
-    integration: string;
-    integration_index: number;
-  };
   'growth.onboarding_clicked_setup_platform_later': PlatformParam & {
     project_index: number;
   };
@@ -130,8 +125,6 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string> = {
   'growth.onboarding_clicked_instrument_app': 'Growth: Onboarding Clicked Instrument App',
   'growth.onboarding_clicked_setup_platform_later':
     'Growth: Onboarding Clicked Setup Platform Later',
-  'growth.onboarding_clicked_setup_integration_later':
-    'Growth: Onboarding Clicked Setup Integration Later',
   'growth.onboarding_quick_start_cta': 'Growth: Quick Start Onboarding CTA',
   'invite_request.approved': 'Invite Request Approved',
   'invite_request.denied': 'Invite Request Denied',
@@ -139,8 +132,6 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string> = {
   'growth.demo_modal_clicked_continue': 'Growth: Demo Modal Clicked Continue',
   'growth.clicked_enter_sandbox': 'Growth: Clicked Enter Sandbox',
   'growth.onboarding_clicked_project_in_sidebar': 'Growth: Clicked Project Sidebar',
-  'growth.onboarding_clicked_integration_in_sidebar':
-    'Growth: Clicked Integration Sidebar',
   'growth.sample_transaction_docs_link_clicked':
     'Growth: Sample Transaction Docs Link Clicked',
   'growth.sample_error_onboarding_link_clicked':

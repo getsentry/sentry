@@ -174,7 +174,8 @@ const AnimatedText = styled(motion.div, {
   shouldForwardProp: prop => prop !== 'errorReceived',
 })<{errorReceived: boolean}>`
   margin-left: ${space(1)};
-  color: ${p => (p.errorReceived ? p.theme.successText : p.theme.pink300)};
+  color: ${p =>
+    p.errorReceived ? p.theme.successText : p.theme.charts.getColorPalette(5)[4]};
 `;
 
 const indicatorAnimation: Variants = {
@@ -190,7 +191,7 @@ AnimatedText.defaultProps = {
 
 const WaitingIndicator = styled(motion.div)`
   ${pulsingIndicatorStyles};
-  background-color: ${p => p.theme.pink300};
+  background-color: ${p => p.theme.charts.getColorPalette(5)[4]};
 `;
 
 WaitingIndicator.defaultProps = {
