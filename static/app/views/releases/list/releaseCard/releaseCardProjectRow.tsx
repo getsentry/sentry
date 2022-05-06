@@ -48,7 +48,7 @@ import {
   ReleaseProjectsLayout,
 } from '.';
 
-export function getCrashFreeIcon(crashFreePercent: number, iconSize: IconSize = 'sm') {
+function getCrashFreeIcon(crashFreePercent: number, iconSize: IconSize = 'sm') {
   if (crashFreePercent < CRASH_FREE_DANGER_THRESHOLD) {
     return <IconFire color="red300" size={iconSize} />;
   }
