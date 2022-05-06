@@ -990,7 +990,7 @@ describe('WidgetBuilder', function () {
       fields: ['title', 'count()', 'count_unique(user)'],
       columns: ['title'],
       aggregates: ['count()', 'count_unique(user)'],
-      orderby: '-count_unique_user',
+      orderby: '-count_unique(user)',
     };
 
     renderTestComponent({
@@ -1173,7 +1173,7 @@ describe('WidgetBuilder', function () {
           fields: ['count()', 'count_unique(id)'],
           aggregates: ['count()', 'count_unique(id)'],
           columns: [],
-          orderby: '-count',
+          orderby: '-count()',
         },
       ],
     };
@@ -1950,7 +1950,7 @@ describe('WidgetBuilder', function () {
               fields: ['count_unique(user)'],
               aggregates: ['count_unique(user)'],
               columns: ['project'],
-              orderby: `${directionPrefix}count_unique_user`,
+              orderby: `${directionPrefix}count_unique(user)`,
             },
           ],
         };
@@ -1988,7 +1988,7 @@ describe('WidgetBuilder', function () {
             fields: ['project', 'count_unique(user)'],
             aggregates: ['count_unique(user)'],
             columns: ['project'],
-            orderby: 'count_unique_user',
+            orderby: 'count_unique(user)',
           },
         ],
       };
@@ -2125,7 +2125,7 @@ describe('WidgetBuilder', function () {
         columns: [],
         aggregates: ['count_unique(user)'],
         conditions: '',
-        orderby: 'count_unique_user',
+        orderby: 'count_unique(user)',
       };
 
       const defaultTableColumns = ['title', 'count_unique(user)'];
@@ -2150,7 +2150,7 @@ describe('WidgetBuilder', function () {
           expect.objectContaining({
             query: expect.objectContaining({
               field: defaultTableColumns,
-              sort: ['count_unique_user'],
+              sort: ['count_unique(user)'],
             }),
           })
         );
@@ -2164,7 +2164,7 @@ describe('WidgetBuilder', function () {
         columns: [],
         aggregates: ['count_unique(user)'],
         conditions: '',
-        orderby: 'count_unique_user',
+        orderby: 'count_unique(user)',
       };
 
       const defaultTableColumns = ['title', 'count_unique(user)'];
@@ -2205,7 +2205,7 @@ describe('WidgetBuilder', function () {
           fields: ['count()', 'count_unique(id)'],
           aggregates: ['count()', 'count_unique(id)'],
           columns: [],
-          orderby: '-count',
+          orderby: '-count()',
         },
       ],
     };
@@ -2912,7 +2912,7 @@ describe('WidgetBuilder', function () {
               yAxis: ['count()'],
               field: ['project', 'count()'],
               topEvents: TOP_N,
-              orderby: '-count',
+              orderby: '-count()',
             }),
           })
         )

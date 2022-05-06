@@ -41,9 +41,7 @@ import {
   getAggregateAlias,
   getColumnsAndAggregates,
   getColumnsAndAggregatesAsStrings,
-  isAggregateFieldOrEquation,
   isEquation,
-  isEquationAlias,
   QueryFieldValue,
   stripDerivedMetricsPrefix,
   stripEquationPrefix,
@@ -648,11 +646,7 @@ function WidgetBuilder({
 
           newQuery.orderby = `${orderbyPrefix}${newOrderByValue}`;
         } else {
-          const isUsingFieldFormat =
-            isAggregateFieldOrEquation(rawOrderby) || isEquationAlias(rawOrderby);
-          const isFromAggregates = (
-            isUsingFieldFormat ? fieldStrings : fieldStrings.map(getAggregateAlias)
-          ).includes(rawOrderby);
+          const isFromAggregates = fieldStrings.includes(rawOrderby);
           const isCustomEquation = isEquation(rawOrderby);
           const isUsedInGrouping = newQuery.columns.includes(rawOrderby);
 

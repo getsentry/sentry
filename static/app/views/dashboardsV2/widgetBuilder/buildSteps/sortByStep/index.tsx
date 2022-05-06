@@ -8,7 +8,6 @@ import SelectControl from 'sentry/components/forms/selectControl';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, SelectValue, TagCollection} from 'sentry/types';
-import {isAggregateFieldOrEquation, isEquationAlias} from 'sentry/utils/discover/fields';
 import {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {generateIssueWidgetOrderOptions} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/utils';
 import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
@@ -68,12 +67,6 @@ export function SortByStep({
   const orderBy = queries[0].orderby;
   const strippedOrderBy = trimStart(orderBy, '-');
   const maxLimit = getResultsLimit(queries.length, queries[0].aggregates.length);
-
-  // We want to convert widgets to using functions in their field format (i.e. not alias form)
-  // for ordering. This check will skip the alias conversion unless the orderby was
-  // previously saved in the alias format
-  const isUsingFieldFormat =
-    isAggregateFieldOrEquation(strippedOrderBy) || isEquationAlias(strippedOrderBy);
 
   const isTimeseriesChart = [
     DisplayType.LINE,
@@ -142,7 +135,7 @@ export function SortByStep({
                     widgetBuilderNewDesign: true,
                     columns: queries[0].columns,
                     aggregates: queries[0].aggregates,
-                    isUsingFieldFormat,
+                    isUsingFieldFormat: true,
                   })
             }
             values={{
@@ -194,7 +187,7 @@ export function SortByStep({
                   widgetType,
                   columns: queries[0].columns,
                   aggregates: queries[0].aggregates,
-                  isUsingFieldFormat,
+                  isUsingFieldFormat: true,
                 })
               : generateIssueWidgetOrderOptions(
                   organization.features.includes('issue-list-trend-sort')
