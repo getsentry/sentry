@@ -543,6 +543,9 @@ class DebugChartRendererView(View):
         charts.append(
             generate_chart(ChartType.SLACK_DISCOVER_PREVIOUS_PERIOD, discover_total_period)
         )
+        charts.append(
+            generate_chart(ChartType.SLACK_DISCOVER_PREVIOUS_PERIOD, discover_multi_y_axis)
+        )
 
         charts.append(generate_chart(ChartType.SLACK_METRIC_ALERT_EVENTS, metric_alert))
         charts.append(
