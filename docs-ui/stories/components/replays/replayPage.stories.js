@@ -1,6 +1,10 @@
 import {useState} from 'react';
+import styled from '@emotion/styled';
+import {action} from '@storybook/addon-actions';
 
 import SelectControl from 'sentry/components/forms/selectControl';
+import {Panel, PanelBody, PanelHeader as _PanelHeader} from 'sentry/components/panels';
+import Scrubber from 'sentry/components/replays/player/scrubber';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayController from 'sentry/components/replays/replayController';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
@@ -13,10 +17,38 @@ export default {
   component: ReplayPlayer,
 };
 
+const PanelHeader = styled(_PanelHeader)`
+  display: block; /* Override flex */
+  padding: 0; /* The disablePadding prop doesn't disable all the padding */
+`;
+
+const ManualResize = styled('div')`
+  resize: vertical;
+  overflow: auto;
+  max-width: 100%;
+
+  ${p =>
+    p.isFullscreen
+      ? `resize: none;
+      width: auto !important;
+      height: auto !important;
+      `
+      : ''}
+`;
+
 export const PlayerWithController = () => (
   <ReplayContextProvider events={rrwebEvents1}>
-    <ReplayPlayer />
-    <ReplayController speedOptions={[0.5, 1, 2, 8]} />
+    <Panel>
+      <PanelHeader>
+        <ManualResize isFullscreen={false}>
+          <ReplayPlayer />
+        </ManualResize>
+      </PanelHeader>
+      <Scrubber />
+      <PanelBody withPadding>
+        <ReplayController toggleFullscreen={action('toggleFullscreen')} />
+      </PanelBody>
+    </Panel>
   </ReplayContextProvider>
 );
 
