@@ -166,9 +166,7 @@ const issuesCountRenderer = (
       <Tooltip
         isHoverable
         skipWrapper
-        popperStyle={css`
-          padding: 0;
-        `}
+        popperStyle={{padding: 0}}
         title={
           <div>
             {filteredCount ? (

@@ -49,7 +49,7 @@ const TOOLTIP_ANIMATION: MotionProps = {
  */
 const CLOSE_DELAY = 50;
 export interface InternalTooltipProps {
-  children: React.ReactElement<ContainerProps>;
+  children: React.ReactNode;
   /**
    * The content to show in the tooltip popover
    */
@@ -86,7 +86,7 @@ export interface InternalTooltipProps {
   /**
    * Additional style rules for the tooltip content.
    */
-  popperStyle?: SerializedStyles;
+  popperStyle?: React.CSSProperties | SerializedStyles;
 
   /**
    * Position for the tooltip.
@@ -224,24 +224,12 @@ export function DO_NOT_USE_TOOLTIP({
     };
   }, []);
 
-  function renderTrigger(
-    triggerChildren: React.ReactElement<ContainerProps>,
-    ref: React.Ref<HTMLElement>
-  ) {
+  function renderTrigger(triggerChildren: React.ReactNode, ref: React.Ref<HTMLElement>) {
     const setRef = (el: HTMLElement) => {
       if (typeof ref === 'function') {
         ref(el);
       }
       triggerRef.current = el;
-    };
-
-    const containerProps: ContainerProps = {
-      'aria-describedby': tooltipId,
-      onFocus: handleMouseEnter,
-      onBlur: handleMouseLeave,
-      onPointerEnter: handleMouseEnter,
-      onPointerLeave: handleMouseLeave,
-      ref: setRef,
     };
 
     // Use the `type` property of the react instance to detect whether we have
@@ -259,22 +247,29 @@ export function DO_NOT_USE_TOOLTIP({
       };
       // Basic DOM nodes can be cloned and have more props applied.
       return cloneElement(triggerChildren, {
-        ...containerProps,
+        'aria-describedby': tooltipId,
+        onFocus: handleMouseEnter,
+        onBlur: handleMouseLeave,
+        onPointerEnter: handleMouseEnter,
+        onPointerLeave: handleMouseLeave,
+        ref: setRef,
         style: styles,
       });
     }
 
-    containerProps.containerDisplayMode = containerDisplayMode;
+    const ourContainerProps = {
+      'aria-describedby': tooltipId,
+      onFocus: handleMouseEnter,
+      onBlur: handleMouseLeave,
+      onPointerEnter: handleMouseEnter,
+      onPointerLeave: handleMouseLeave,
+      ref: setRef,
+      containerDisplayMode,
+      style: showUnderline ? theme.tooltipUnderline(underlineColor) : undefined,
+      className,
+    };
 
-    return (
-      <Container
-        {...containerProps}
-        style={showUnderline ? theme.tooltipUnderline(underlineColor) : undefined}
-        className={className}
-      >
-        {triggerChildren}
-      </Container>
-    );
+    return <Container {...ourContainerProps}>{triggerChildren}</Container>;
   }
 
   if (disabled || !title) {
@@ -322,11 +317,7 @@ export function DO_NOT_USE_TOOLTIP({
   );
 }
 
-interface ContainerProps
-  extends React.DetailedHTMLProps<
-    React.HTMLAttributes<HTMLSpanElement>,
-    HTMLSpanElement
-  > {
+interface ContainerProps {
   containerDisplayMode?: React.CSSProperties['display'];
 }
 

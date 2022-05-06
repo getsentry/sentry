@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {
@@ -427,9 +426,9 @@ const CreateAlertButton = withRouter(
         tooltipProps={{
           isHoverable: true,
           position: 'top',
-          popperStyle: css`
-            max-width: 270px;
-          `,
+          popperStyle: {
+            maxWidth: '270px',
+          },
         }}
         onClick={projectSlug ? undefined : handleClickWithoutProject}
         {...buttonProps}
