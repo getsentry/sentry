@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, createRef} from 'react';
 import {findDOMNode} from 'react-dom';
 import {MultiValueProps} from 'react-select';
 import styled from '@emotion/styled';
@@ -58,7 +58,7 @@ type State = {
   loading: boolean;
 };
 
-class SelectOwners extends React.Component<Props, State> {
+class SelectOwners extends Component<Props, State> {
   state: State = {
     loading: false,
     inputValue: '',
@@ -71,7 +71,7 @@ class SelectOwners extends React.Component<Props, State> {
     }
   }
 
-  private selectRef = React.createRef<any>();
+  private selectRef = createRef<any>();
 
   renderUserBadge = (user: User) => (
     <IdBadge avatarSize={24} user={user} hideEmail useLink={false} />

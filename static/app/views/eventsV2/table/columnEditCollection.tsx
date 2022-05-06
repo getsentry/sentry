@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, createRef, Fragment} from 'react';
 import {createPortal} from 'react-dom';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -69,7 +69,7 @@ enum PlaceholderPosition {
   BOTTOM,
 }
 
-class ColumnEditCollection extends React.Component<Props, State> {
+class ColumnEditCollection extends Component<Props, State> {
   state: State = {
     isDragging: false,
     draggingIndex: void 0,
@@ -119,7 +119,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
 
   previousUserSelect: UserSelectValues | null = null;
   portal: HTMLElement | null = null;
-  dragGhostRef = React.createRef<HTMLDivElement>();
+  dragGhostRef = createRef<HTMLDivElement>();
 
   keyForColumn(column: Column, isGhost: boolean): string {
     if (column.kind === 'function') {
@@ -452,7 +452,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
         : PlaceholderPosition.BOTTOM;
 
     return (
-      <React.Fragment key={`${i}:${this.keyForColumn(col, isGhost)}`}>
+      <Fragment key={`${i}:${this.keyForColumn(col, isGhost)}`}>
         {position === PlaceholderPosition.TOP && placeholder}
         <RowContainer
           showAliasField={showAliasField}
@@ -525,7 +525,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
           )}
         </RowContainer>
         {position === PlaceholderPosition.BOTTOM && placeholder}
-      </React.Fragment>
+      </Fragment>
     );
   }
 

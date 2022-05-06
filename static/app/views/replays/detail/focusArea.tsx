@@ -1,33 +1,40 @@
-import React, {useState} from 'react';
+import React from 'react';
 
 import EventEntry from 'sentry/components/events/eventEntry';
 import TagsTable from 'sentry/components/tagsTable';
-import {EntryType, Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 import ReplayReader from 'sentry/utils/replays/replayReader';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 
-import {TabBarId} from '../types';
+import {isReplayTab, ReplayTabs} from '../types';
 
 import FocusTabs from './focusTabs';
+import IssueList from './issueList';
 import MemoryChart from './memoryChart';
 
 type Props = {
   replay: ReplayReader;
 };
 
+const DEFAULT_TAB = ReplayTabs.PERFORMANCE;
+
 function FocusArea(props: Props) {
-  const [active, setActive] = useState<TabBarId>('performance');
+  const location = useLocation();
+  const hash = location.hash.replace(/^#/, '');
+  const tabFromHash = isReplayTab(hash) ? hash : DEFAULT_TAB;
 
   return (
     <React.Fragment>
-      <FocusTabs active={active} setActive={setActive} />
-      <ActiveTab active={active} {...props} />
+      <FocusTabs active={tabFromHash} />
+      <ActiveTab active={tabFromHash} {...props} />
     </React.Fragment>
   );
 }
 
-function ActiveTab({active, replay}: Props & {active: TabBarId}) {
+function ActiveTab({active, replay}: Props & {active: ReplayTabs}) {
   const {routes, router} = useRouteContext();
   const organization = useOrganization();
 
@@ -35,8 +42,6 @@ function ActiveTab({active, replay}: Props & {active: TabBarId}) {
   const spansEntry = replay.getEntryType(EntryType.SPANS);
 
   switch (active) {
-    case 'console':
-      return <div id="console">TODO: Add a console view</div>;
     case 'performance': {
       if (!spansEntry) {
         return null;
@@ -63,8 +68,12 @@ function ActiveTab({active, replay}: Props & {active: TabBarId}) {
         </div>
       );
     }
-    case 'errors':
-      return <div id="errors">TODO: Add an errors view</div>;
+    case 'issues':
+      return (
+        <div id="issues">
+          <IssueList replayId={event.id} projectId={event.projectID} />
+        </div>
+      );
     case 'tags':
       return (
         <div id="tags">

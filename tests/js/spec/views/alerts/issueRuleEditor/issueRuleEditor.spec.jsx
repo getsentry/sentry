@@ -161,9 +161,9 @@ describe('ProjectAlerts -> IssueRuleEditor', function () {
         body: {},
       });
       createWrapper();
+      renderGlobalModal();
       userEvent.click(screen.getByLabelText('Delete Rule'));
 
-      renderGlobalModal();
       expect(
         await screen.findByText('Are you sure you want to delete this rule?')
       ).toBeInTheDocument();
