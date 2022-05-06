@@ -709,15 +709,13 @@ function WidgetBuilder({
         // The grouping was cleared, so clear the orderby
         newQuery.orderby = '';
       } else if (widgetBuilderNewDesign && !newQuery.orderby) {
-        const isDescending = newQuery.orderby.startsWith('-');
-        const prefix = orderby && !isDescending ? '' : '-';
         const orderOption = generateOrderOptions({
           widgetType: widgetType ?? WidgetType.DISCOVER,
           widgetBuilderNewDesign,
           columns: query.columns,
           aggregates: query.aggregates,
         })[0].value;
-        newQuery.orderby = `${prefix}${orderOption}`;
+        newQuery.orderby = `-${orderOption}`;
       } else if (
         !widgetBuilderNewDesign &&
         aggregateAliasFieldStrings.length &&
