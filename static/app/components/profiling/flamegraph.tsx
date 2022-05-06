@@ -35,22 +35,20 @@ interface FlamegraphProps {
 function Flamegraph(props: FlamegraphProps): ReactElement {
   const flamegraphTheme = useFlamegraphTheme();
   const [{sorting, view, xAxis}, dispatch] = useFlamegraphPreferences();
-  const [{activeProfileIndex}, dispatchActiveProfileIndex] = useFlamegraphProfiles();
+  const [{threadId}, dispatchActiveProfileIndex] = useFlamegraphProfiles();
 
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
 
   const flamegraph = useMemo(() => {
-    if (
-      !props.profiles.profiles[activeProfileIndex ?? props.profiles.activeProfileIndex]
-    ) {
+    if (typeof threadId !== 'number' || !props.profiles.profiles[threadId]) {
       // This could happen if activeProfileIndex was initialized from query string, but for some
       // reason the profile was removed from the list of profiles.
       return FlamegraphModel.Empty();
     }
     // if the activeProfileIndex is null, use the activeProfileIndex from the profile group
     return new FlamegraphModel(
-      props.profiles.profiles[activeProfileIndex ?? props.profiles.activeProfileIndex],
-      activeProfileIndex ?? props.profiles.activeProfileIndex,
+      props.profiles.profiles[threadId],
+      threadId ?? props.profiles.activeProfileIndex,
       {
         inverted: view === 'bottom up',
         leftHeavy: sorting === 'left heavy',
@@ -60,16 +58,16 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
             : undefined,
       }
     );
-  }, [props.profiles, activeProfileIndex, sorting, xAxis, view]);
+  }, [props.profiles, threadId, sorting, xAxis, view]);
 
   return (
     <Fragment>
       <FlamegraphToolbar>
         <ThreadMenuSelector
           profileGroup={props.profiles}
-          activeProfileIndex={flamegraph.profileIndex}
-          onProfileIndexChange={index =>
-            dispatchActiveProfileIndex({type: 'set active profile index', payload: index})
+          threadId={threadId}
+          onProfileIndexChange={newThreadId =>
+            dispatchActiveProfileIndex({type: 'set thread id', payload: newThreadId})
           }
         />
         <FlamegraphViewSelectMenu

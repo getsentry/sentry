@@ -11,7 +11,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {encodeFlamegraphStateToQueryParams} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/index';
-import {useFlamegraphState} from 'sentry/utils/profiling/flamegraph/useFlamegraphState';
+import {useFlamegraphStateValue} from 'sentry/utils/profiling/flamegraph/useFlamegraphState';
 import {getSlowestProfileCallsFromProfileGroup} from 'sentry/utils/profiling/profile/utils';
 import {makeFormatter} from 'sentry/utils/profiling/units/units';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -138,7 +138,7 @@ function ProfilingFunctionsTableCell({
 }: ProfilingFunctionsTableCellProps) {
   const value = dataRow[column.key];
 
-  const [flamegraphstate, dispatch] = useFlamegraphState();
+  const flamegraphstate = useFlamegraphStateValue();
   const [profileGroup] = useProfileGroup();
   const {orgId, projectId, eventId} = useParams();
 
@@ -161,9 +161,6 @@ function ProfilingFunctionsTableCell({
         <Container>
           {typeof threadIndex === 'number' && threadIndex !== -1 ? (
             <Link
-              onClick={() =>
-                dispatch({type: 'set active profile index', payload: threadIndex})
-              }
               to={
                 generateFlamegraphRoute({
                   orgSlug: orgId,
@@ -175,7 +172,7 @@ function ProfilingFunctionsTableCell({
                     ...flamegraphstate,
                     profiles: {
                       ...flamegraphstate.profiles,
-                      activeProfileIndex: threadIndex,
+                      threadId: threadIndex,
                     },
                   })
                 )}`

@@ -5,17 +5,18 @@ import {ControlProps, GeneralSelectValue} from 'sentry/components/forms/selectCo
 import {IconList} from 'sentry/icons';
 import {SelectValue} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import {FlamegraphState} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/index';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {Profile} from 'sentry/utils/profiling/profile/profile';
 
 interface ThreadSelectorProps {
-  activeProfileIndex: ProfileGroup['activeProfileIndex'];
   onProfileIndexChange: (index: number) => void;
   profileGroup: ProfileGroup;
+  threadId: FlamegraphState['profiles']['threadId'];
 }
 
 function ThreadMenuSelector<OptionType extends GeneralSelectValue = GeneralSelectValue>({
-  activeProfileIndex,
+  threadId,
   onProfileIndexChange,
   profileGroup,
 }: ThreadSelectorProps) {
@@ -46,7 +47,7 @@ function ThreadMenuSelector<OptionType extends GeneralSelectValue = GeneralSelec
         size: 'xsmall',
       }}
       options={options}
-      value={activeProfileIndex}
+      value={threadId}
       onChange={handleChange}
       isSearchable
     />
