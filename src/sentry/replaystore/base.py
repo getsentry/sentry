@@ -11,6 +11,20 @@ from sentry.utils import json
 from sentry.utils.services import Service
 from sentry.utils.strings import decompress
 
+json_dumps = json.JSONEncoder(
+    separators=(",", ":"),
+    sort_keys=True,
+    skipkeys=False,
+    ensure_ascii=True,
+    check_circular=True,
+    allow_nan=True,
+    indent=None,
+    encoding="utf-8",
+    default=None,
+).encode
+
+json_loads = json._default_decoder.decode
+
 
 class ReplayNotFound(ValueError):
     pass
@@ -26,29 +40,15 @@ class ReplayDataType(IntEnum):
         return [ReplayDataType.INIT, ReplayDataType.EVENT]
 
 
+ReplayEvent = Dict[str, Any]  # TODO: replace this with TypedDict once schema more ironed out
+
+
 @dataclass(frozen=True)
 class ReplayContainer:
     id: str
-    init: Dict[Any, Any]
-    events: List[Dict[Any, Any]]
-    payloads: List[Dict[Any, Any]]
-
-
-json_dumps = json.JSONEncoder(
-    separators=(",", ":"),
-    sort_keys=True,
-    skipkeys=False,
-    ensure_ascii=True,
-    check_circular=True,
-    allow_nan=True,
-    indent=None,
-    encoding="utf-8",
-    default=None,
-).encode
-
-json_loads = json._default_decoder.decode
-
-ReplayEvent = Dict[str, Any]  # TODO: replace this with TypedDict once schema more ironed out
+    init: ReplayEvent
+    events: List[ReplayEvent]
+    payloads: List[bytes]
 
 
 class ReplayStore(abc.ABC, local, Service):
@@ -81,7 +81,7 @@ class ReplayStore(abc.ABC, local, Service):
 
     def _get_all_events_for_replay(
         self, replay_id: str
-    ) -> Tuple[Dict[Any, Any], List[Dict[Any, Any]], List[Dict[Any, Any]]]:
+    ) -> Tuple[Dict[Any, Any], List[Dict[Any, Any]], List[bytes]]:
         replay_data = self._get_rows(replay_id)
         if len(replay_data) == 0:
             raise ReplayNotFound
@@ -90,7 +90,6 @@ class ReplayStore(abc.ABC, local, Service):
         payloads = []
         init = {}
         for (replay_data_type, row_data) in replay_data:
-
             if replay_data_type == ReplayDataType.INIT:
                 init.update(self._decode(decompress(row_data)))
             if replay_data_type == ReplayDataType.EVENT:

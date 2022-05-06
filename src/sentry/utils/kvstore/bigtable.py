@@ -119,7 +119,7 @@ class BigtableKVStorage(KVStorage[str, bytes]):
 
         return self._decode_row(row)
 
-    def get_many(self, keys: Sequence[str] = ()) -> Iterator[Tuple[str, bytes]]:
+    def get_many(self, keys: Sequence[str]) -> Iterator[Tuple[str, bytes]]:
         rows = RowSet()
         for key in keys:
             rows.add_row_key(key)
