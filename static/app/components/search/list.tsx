@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, memo, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import AutoComplete from 'sentry/components/autoComplete';
@@ -14,21 +14,26 @@ type AutoCompleteOpts = Parameters<AutoComplete<Result['item']>['props']['childr
 
 interface RenderItemProps {
   highlighted: boolean;
+  index: number;
   item: Result['item'];
   itemProps: ReturnType<AutoCompleteOpts['getItemProps']>;
   matches: Result['matches'];
 }
+
+type RenderItem = (props: RenderItemProps) => React.ReactNode;
 
 type Props = {
   getItemProps: AutoCompleteOpts['getItemProps'];
   hasAnyResults: boolean;
   highlightedIndex: number;
   isLoading: boolean;
+  registerItemCount: AutoCompleteOpts['registerItemCount'];
+  registerVisibleItem: AutoCompleteOpts['registerVisibleItem'];
   resultFooter: React.ReactNode;
   results: Result[];
   dropdownClassName?: string;
   maxResults?: number;
-  renderItem?: (props: RenderItemProps) => React.ReactNode;
+  renderItem?: RenderItem;
 };
 
 function defaultItemRenderer({item, highlighted, itemProps, matches}: RenderItemProps) {
@@ -48,9 +53,16 @@ function List({
   getItemProps,
   highlightedIndex,
   resultFooter,
+  registerItemCount,
+  registerVisibleItem,
   renderItem = defaultItemRenderer,
 }: Props) {
   const resultList = results.slice(0, maxResults);
+
+  useEffect(
+    () => registerItemCount(resultList.length),
+    [registerItemCount, resultList.length]
+  );
 
   return (
     <DropdownBox className={dropdownClassName}>
@@ -65,22 +77,59 @@ function List({
           const {item, matches, refIndex} = result;
           const highlighted = index === highlightedIndex;
 
-          const itemProps = getItemProps({
-            item: result.item,
+          const resultProps = {
+            renderItem,
+            registerVisibleItem,
+            getItemProps,
+            highlighted,
             index,
-          });
+            item,
+            matches,
+          };
 
-          return (
-            <Fragment key={`${index}-${refIndex}`}>
-              {renderItem({highlighted, itemProps, item, matches})}
-            </Fragment>
-          );
+          return <ResultRow key={`${index}-${refIndex}`} {...resultProps} />;
         })
       )}
       {!isLoading && resultFooter ? <ResultFooter>{resultFooter}</ResultFooter> : null}
     </DropdownBox>
   );
 }
+
+type SearchItemProps = {
+  getItemProps: Props['getItemProps'];
+  highlighted: boolean;
+  index: number;
+  item: Result['item'];
+  matches: Result['matches'];
+  registerVisibleItem: Props['registerVisibleItem'];
+  renderItem: RenderItem;
+};
+
+// XXX(epurkhiser): We memoize the ResultRow component since there will be many
+// of them, we do not want them re-rendering every time we change the
+// highlightedIndex in the parent List.
+
+/**
+ * Search item is used to call `registerVisibleItem` any time the item changes
+ */
+const ResultRow = memo(
+  ({
+    renderItem,
+    registerVisibleItem,
+    getItemProps,
+    ...renderItemProps
+  }: SearchItemProps) => {
+    const {item, index} = renderItemProps;
+    useEffect(() => registerVisibleItem(index, item), [registerVisibleItem, item]);
+
+    const itemProps = useMemo(
+      () => getItemProps({item, index}),
+      [getItemProps, item, index]
+    );
+
+    return <Fragment>{renderItem({itemProps, ...renderItemProps})}</Fragment>;
+  }
+);
 
 export default List;
 
