@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 import responses
 
+from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.incidents.models import (
     AlertRule,
@@ -11,7 +12,7 @@ from sentry.incidents.models import (
     Incident,
     IncidentStatus,
 )
-from sentry.models import AuditLogEntry, AuditLogEntryEvent, Integration
+from sentry.models import AuditLogEntry, Integration
 from sentry.testutils import APITestCase
 
 
@@ -143,7 +144,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         assert resp.data["name"] == "what"
 
         audit_log_entry = AuditLogEntry.objects.filter(
-            event=AuditLogEntryEvent.ALERT_RULE_EDIT, target_object=resp.data["id"]
+            event=audit_log.get_event_id("ALERT_RULE_EDIT"), target_object=resp.data["id"]
         )
         assert len(audit_log_entry) == 1
 
@@ -548,7 +549,7 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
         assert not AlertRule.objects_with_snapshots.filter(id=self.alert_rule.id).exists()
 
         audit_log_entry = AuditLogEntry.objects.filter(
-            event=AuditLogEntryEvent.ALERT_RULE_REMOVE, target_object=self.alert_rule.id
+            event=audit_log.get_event_id("ALERT_RULE_REMOVE"), target_object=self.alert_rule.id
         )
         assert len(audit_log_entry) == 1
 

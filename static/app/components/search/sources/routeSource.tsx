@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 import flattenDepth from 'lodash/flattenDepth';
 
@@ -72,7 +72,7 @@ type State = {
   fuzzy: undefined | null | Fuse<NavigationItem>;
 };
 
-class RouteSource extends React.Component<Props, State> {
+class RouteSource extends Component<Props, State> {
   static defaultProps: DefaultProps = {
     searchOptions: {},
   };

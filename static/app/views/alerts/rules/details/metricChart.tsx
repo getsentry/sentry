@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {PureComponent} from 'react';
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import color from 'color';
@@ -136,7 +136,7 @@ function getRuleChangeSeries(
   ];
 }
 
-class MetricChart extends React.PureComponent<Props, State> {
+class MetricChart extends PureComponent<Props, State> {
   state = {
     width: -1,
     height: -1,

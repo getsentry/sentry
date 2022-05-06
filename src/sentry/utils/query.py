@@ -193,7 +193,7 @@ class WithProgressBar:
                 " ",
                 progressbar.ETA(),
             ]
-            pbar = progressbar.ProgressBar(widgets=widgets, maxval=self.count)
+            pbar = progressbar.ProgressBar(widgets=widgets, max_value=self.count)
             pbar.start()
             for idx, item in enumerate(self.iterator):
                 yield item

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {createRef, PureComponent} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
@@ -22,7 +22,7 @@ type State = {
   query: string;
 };
 
-class SearchBar extends React.PureComponent<SearchBarProps, State> {
+class SearchBar extends PureComponent<SearchBarProps, State> {
   static defaultProps: Pick<SearchBarProps, 'query' | 'defaultQuery' | 'onSearch'> = {
     query: '',
     defaultQuery: '',
@@ -42,7 +42,7 @@ class SearchBar extends React.PureComponent<SearchBarProps, State> {
     }
   }
 
-  searchInputRef = React.createRef<HTMLInputElement>();
+  searchInputRef = createRef<HTMLInputElement>();
 
   blur = () => {
     if (this.searchInputRef.current) {

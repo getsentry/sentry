@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -41,7 +41,7 @@ type Props = {
   shouldConfirm?: boolean;
 } & Partial<typeof defaultProps>;
 
-class ResolveActions extends React.Component<Props> {
+class ResolveActions extends Component<Props> {
   static defaultProps = defaultProps;
 
   handleAnotherExistingReleaseResolution(statusDetails: ResolutionStatusDetails) {

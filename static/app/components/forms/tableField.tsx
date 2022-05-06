@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import flatten from 'lodash/flatten';
 
@@ -33,7 +33,7 @@ const DEFAULT_PROPS: DefaultProps = {
 
 interface RenderProps extends InputFieldProps, DefaultProps, Omit<TableType, 'type'> {}
 
-export default class TableField extends React.Component<InputFieldProps> {
+export default class TableField extends Component<InputFieldProps> {
   static defaultProps = DEFAULT_PROPS;
 
   hasValue = value => defined(value) && !objectIsEmpty(value);
@@ -114,7 +114,7 @@ export default class TableField extends React.Component<InputFieldProps> {
 
     const renderConfirmMessage = () => {
       return (
-        <React.Fragment>
+        <Fragment>
           <Alert type="error">
             <span
               dangerouslySetInnerHTML={{
@@ -124,12 +124,12 @@ export default class TableField extends React.Component<InputFieldProps> {
               }}
             />
           </Alert>
-        </React.Fragment>
+        </Fragment>
       );
     };
 
     return (
-      <React.Fragment>
+      <Fragment>
         <HeaderContainer>
           {mappedKeys.map((fieldKey, i) => (
             <Header key={fieldKey}>
@@ -169,7 +169,7 @@ export default class TableField extends React.Component<InputFieldProps> {
             ))}
           </RowContainer>
         ))}
-      </React.Fragment>
+      </Fragment>
     );
   };
 

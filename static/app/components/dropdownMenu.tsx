@@ -17,7 +17,6 @@ export type GetActorArgs<E extends Element> = {
 
 export type GetMenuArgs<E extends Element> = {
   className?: string;
-  itemCount?: number;
   onClick?: (e: React.MouseEvent<E>) => void;
   onKeyDown?: (event: React.KeyboardEvent<E>) => void;
   onMouseDown?: (e: React.MouseEvent<E>) => void;
