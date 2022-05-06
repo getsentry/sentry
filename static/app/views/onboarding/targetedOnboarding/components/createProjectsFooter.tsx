@@ -102,7 +102,7 @@ export default function CreateProjectsFooter({
         }
         browserHistory.push(`/onboarding/${organization.slug}/mobile-redirect/`);
       } else {
-        onComplete();
+        setTimeout(onComplete);
       }
     } catch (err) {
       addErrorMessage(t('Failed to create projects'));
