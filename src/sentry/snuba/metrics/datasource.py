@@ -668,6 +668,10 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
                 snuba_limit = snuba_query.limit.limit if snuba_query.limit else None
                 if not group_limit_filters and snuba_limit and len(snuba_result) == snuba_limit:
                     group_limit_filters = _get_group_limit_filters(query, snuba_result)
+
+                    # We're now applying a filter that past queries may not have
+                    # had. To avoid partial results, remove extra groups that
+                    # aren't in the filter retroactively.
                     if group_limit_filters:
                         _prune_extra_groups(results, group_limit_filters)
 
