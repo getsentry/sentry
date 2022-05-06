@@ -209,20 +209,20 @@ describe('generateReleaseWidgetFieldOptions', function () {
           },
         },
       },
-      'tag:environment': {
+      'field:environment': {
         label: 'environment',
         value: {
-          kind: 'tag',
+          kind: 'field',
           meta: {
             dataType: 'string',
             name: 'environment',
           },
         },
       },
-      'tag:release': {
+      'field:release': {
         label: 'release',
         value: {
-          kind: 'tag',
+          kind: 'field',
           meta: {
             dataType: 'string',
             name: 'release',
