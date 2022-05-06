@@ -5,12 +5,12 @@ from datetime import datetime, timedelta
 from typing import Any, List, Mapping, Optional, Tuple
 
 from sentry.replaystore.base import ReplayDataType, ReplayNotFound, ReplayStore
-from sentry.utils.kvstore.bigtable import BigtableKVStorage
+from sentry.replaystore.bigtable.storage import ReplayBigtableStorage
 from sentry.utils.strings import compress
 
 
 class BigTableReplayStore(ReplayStore):
-    store_class = BigtableKVStorage
+    store_class = ReplayBigtableStorage
 
     def __init__(
         self,
