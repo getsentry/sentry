@@ -1,3 +1,5 @@
+import type {LineSeriesOption} from 'echarts';
+
 import type {AreaChartSeries} from 'sentry/components/charts/areaChart';
 import XAxis from 'sentry/components/charts/components/xAxis';
 import AreaSeries from 'sentry/components/charts/series/areaSeries';
@@ -19,9 +21,9 @@ const metricAlertXaxis = XAxis({
   axisLabel: {fontSize: 11, fontFamily: DEFAULT_FONT_FAMILY},
 });
 
-function transformAreaSeries(series: AreaChartSeries[]) {
-  return series.map(({seriesName, data, ...otherSeriesProps}) =>
-    AreaSeries({
+function transformAreaSeries(series: AreaChartSeries[]): LineSeriesOption[] {
+  return series.map(({seriesName, data, ...otherSeriesProps}) => {
+    const areaSeries = AreaSeries({
       name: seriesName,
       data: data.map(({name, value}) => [name, value]),
       lineStyle: {
@@ -35,8 +37,15 @@ function transformAreaSeries(series: AreaChartSeries[]) {
       animationThreshold: 1,
       animationDuration: 0,
       ...otherSeriesProps,
-    })
-  );
+    });
+
+    // Fix incident label font family, cannot use Rubik
+    if (areaSeries.markLine?.label?.fontFamily) {
+      areaSeries.markLine.label.fontFamily = DEFAULT_FONT_FAMILY;
+    }
+
+    return areaSeries;
+  });
 }
 
 export const metricAlertCharts: RenderDescriptor<ChartType>[] = [];
