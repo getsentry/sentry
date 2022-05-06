@@ -427,10 +427,9 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
             );
           }
 
-          const shouldColorOther =
-            widget.displayType === 'top_n' &&
-            timeseriesResults &&
-            timeseriesResults.length > 5;
+          const shouldColorOther = timeseriesResults
+            ?.map(series => series.seriesName)
+            .includes('Other');
           const colors = timeseriesResults
             ? theme.charts.getColorPalette(
                 timeseriesResults.length - (shouldColorOther ? 3 : 2)
