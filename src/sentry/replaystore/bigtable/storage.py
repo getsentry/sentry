@@ -16,7 +16,6 @@ class ReplayBigtableStorage(BigtableKVStorage):
             rows.add_row_range_with_prefix(prefix)
 
         for row in self._get_table().read_rows(row_set=rows):
-            # hack: use the mangled decode method
-            value = self._BigtableKVStorage__decode_row(row)  # type: ignore
+            value = self._decode_row(row)  # type: ignore
             if value is not None:
                 yield row.row_key.decode("utf-8"), value

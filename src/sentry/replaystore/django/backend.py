@@ -22,13 +22,12 @@ class DjangoReplayStore(ReplayStore):
         timestamp: datetime,
         data: bytes,
     ) -> None:
-        replay = Replay.objects.create(
+        Replay.objects.get_or_create(
             replay_id=replay_id,
             replay_data_type=replay_data_type,
             timestamp=timestamp,
             data=compress(data),
         )
-        replay.save()
 
     def bootstrap(self) -> None:
         # Nothing for Django backend to do during bootstrap

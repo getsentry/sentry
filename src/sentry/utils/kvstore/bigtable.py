@@ -117,25 +117,23 @@ class BigtableKVStorage(KVStorage[str, bytes]):
         if row is None:
             return None
 
-        return self.__decode_row(row)
+        return self._decode_row(row)
 
-    def get_many(
-        self, keys: Sequence[str] = (), prefixes: Sequence[str] = ()
-    ) -> Iterator[Tuple[str, bytes]]:
+    def get_many(self, keys: Sequence[str] = ()) -> Iterator[Tuple[str, bytes]]:
         rows = RowSet()
         for key in keys:
             rows.add_row_key(key)
 
         for row in self._get_table().read_rows(row_set=rows):
-            value = self.__decode_row(row)
+            value = self._decode_row(row)
 
             # Even though Bigtable in't going to return empty rows, an empty
-            # value may be returned by ``__decode_row`` if the the row has
+            # value may be returned by ``_decode_row`` if the the row has
             # outlived its TTL, so we need to check its value here.
             if value is not None:
                 yield row.row_key.decode("utf-8"), value
 
-    def __decode_row(self, row: PartialRowData) -> Optional[bytes]:
+    def _decode_row(self, row: PartialRowData) -> Optional[bytes]:
         columns = row.cells[self.column_family]
 
         try:

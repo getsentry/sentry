@@ -22,3 +22,4 @@ class Replay(BaseModel):  # type: ignore
         indexes = [
             models.Index(fields=["replay_id", "replay_data_type", "timestamp"]),
         ]
+        unique_together = ("replay_id", "replay_data_type", "timestamp")
