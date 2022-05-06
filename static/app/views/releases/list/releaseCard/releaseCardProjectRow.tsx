@@ -22,10 +22,6 @@ import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Organization, Release, ReleaseProject} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {
-  CRASH_FREE_DANGER_THRESHOLD,
-  CRASH_FREE_WARNING_THRESHOLD,
-} from 'sentry/utils/sessions';
 import type {IconSize} from 'sentry/utils/theme';
 
 import {
@@ -47,6 +43,9 @@ import {
   ReleaseProjectColumn,
   ReleaseProjectsLayout,
 } from '.';
+
+const CRASH_FREE_DANGER_THRESHOLD = 98;
+const CRASH_FREE_WARNING_THRESHOLD = 99.5;
 
 function getCrashFreeIcon(crashFreePercent: number, iconSize: IconSize = 'sm') {
   if (crashFreePercent < CRASH_FREE_DANGER_THRESHOLD) {

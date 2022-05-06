@@ -21,9 +21,6 @@ import {sessionTerm} from 'sentry/views/releases/utils/sessionTerm';
  */
 export const MINUTES_THRESHOLD_TO_DISPLAY_SECONDS = 10;
 
-export const CRASH_FREE_DANGER_THRESHOLD = 98;
-export const CRASH_FREE_WARNING_THRESHOLD = 99.5;
-
 export function getCount(
   groups: SessionApiResponse['groups'] = [],
   field: SessionFieldWithOperation
