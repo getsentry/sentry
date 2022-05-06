@@ -11,7 +11,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
-import {generateFunctionsRouteWithQuery} from '../routes';
+import {
+  generateFlamegraphRouteWithQuery,
+  generateFunctionsRouteWithQuery,
+} from '../routes';
 
 import {TableColumn, TableDataRow} from './types';
 

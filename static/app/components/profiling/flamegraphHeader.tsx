@@ -26,11 +26,11 @@ function FlamegraphHeader() {
             location={location}
             organization={organization}
             trails={[
-              {type: 'profiling'},
+              {type: 'landing'},
               {
                 type: 'flamegraph',
                 payload: {
-                  interactionName:
+                  transaction:
                     profileGroup.type === 'resolved' ? profileGroup.data.name : '',
                   profileId: params.eventId ?? '',
                   projectSlug: params.projectId ?? '',

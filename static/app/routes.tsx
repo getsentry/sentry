@@ -1889,7 +1889,6 @@ function buildRoutes() {
         componentPromise={() => import('sentry/views/profiling/content')}
         component={SafeLazyLoad}
       />
-
       <Route
         path="functions/:projectId/"
         componentPromise={() => import('sentry/views/profiling/functions')}
