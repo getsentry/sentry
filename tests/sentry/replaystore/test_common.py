@@ -30,7 +30,7 @@ def rs(request):
 
 def test_set_get(rs):
     init_replay_id = "d2502ebbd7df41ceba8d3275595cac33"
-    set_data = (
+    event_data = (
         (
             init_replay_id,
             {"foo": "bar"},
@@ -43,20 +43,21 @@ def test_set_get(rs):
             ReplayDataType.EVENT,
             datetime.now() - timedelta(seconds=5),
         ),
-        (
-            init_replay_id,
-            b'{"recording": "demo"}',
-            ReplayDataType.PAYLOAD,
-            datetime.now() - timedelta(seconds=3),
-        ),
+    )
+    payload = (
+        init_replay_id,
+        b'{"recording": "demo"}',
+        datetime.now() - timedelta(seconds=3),
     )
 
-    for id, data, type, timestamp in set_data:
-        rs.set(id, data, type, timestamp)
+    for id, data, type, timestamp in event_data:
+        rs.set_event(id, data, type, timestamp)
+
+    rs.set_payload(payload[0], payload[1], payload[2])
 
     replay = rs.get_replay(init_replay_id)
 
-    assert replay.id == set_data[0][0]
-    assert replay.init == set_data[0][1]
-    assert replay.events == [set_data[1][1]]
-    assert replay.payloads == [set_data[2][1]]
+    assert replay.id == event_data[0][0]
+    assert replay.init == event_data[0][1]
+    assert replay.events == [event_data[1][1]]
+    assert replay.payloads == [payload[1]]

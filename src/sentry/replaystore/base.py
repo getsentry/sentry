@@ -22,7 +22,7 @@ class ReplayDataType(IntEnum):
     PAYLOAD = 3
 
     @staticmethod
-    def should_be_encoded() -> list[ReplayDataType]:
+    def encoded_types() -> list[ReplayDataType]:
         return [ReplayDataType.INIT, ReplayDataType.EVENT]
 
 
@@ -48,50 +48,48 @@ json_dumps = json.JSONEncoder(
 
 json_loads = json._default_decoder.decode
 
+ReplayEvent = Dict[str, Any]  # TODO: replace this with TypedDict once schema more ironed out
+
 
 class ReplayStore(abc.ABC, local, Service):
     KEY_DELIMETER = ":"
 
     __all__ = (
-        "set",
+        "set_event",
+        "set_payload",
         "get_replay",
     )
 
     def get_replay(self, replay_id: str) -> ReplayContainer | None:
-
-        key = f"{replay_id}{self.KEY_DELIMETER}"
-
         try:
-            init, events, payloads = self._get_all_events_for_replay(key)
+            init, events, payloads = self._get_all_events_for_replay(replay_id)
         except ReplayNotFound:
             return None
-        replay = ReplayContainer(replay_id, init, events, payloads)
-        return replay
+        return ReplayContainer(replay_id, init, events, payloads)
 
-    def set(
-        self, replay_init_id: str, data: Any, replay_data_type: ReplayDataType, timestamp: datetime
+    def set_event(
+        self,
+        replay_init_id: str,
+        data: ReplayEvent,
+        replay_data_type: ReplayDataType,
+        timestamp: datetime,
     ) -> None:
-        key = self._row_key(replay_init_id, replay_data_type, timestamp.timestamp())
+        self._set_bytes(replay_init_id, replay_data_type, timestamp, self._encode_event(data))
 
-        if replay_data_type in ReplayDataType.should_be_encoded():
-            # payloads dont need to be encoded as theyre already bytes (yum!)
-            data = self._encode_event(data, replay_data_type)
-
-        self._set_bytes(key, data)
+    def set_payload(self, replay_init_id: str, data: bytes, timestamp: datetime) -> None:
+        self._set_bytes(replay_init_id, ReplayDataType.PAYLOAD, timestamp, data)
 
     def _get_all_events_for_replay(
-        self, key: str
+        self, replay_id: str
     ) -> Tuple[Dict[Any, Any], List[Dict[Any, Any]], List[Dict[Any, Any]]]:
-        data = self._get_rows(key)
-        if len(data) == 0:
+        replay_data = self._get_rows(replay_id)
+        if len(replay_data) == 0:
             raise ReplayNotFound
 
         events = []
         payloads = []
         init = {}
-        for row in data:
-            row_data = row[1]
-            replay_data_type = self._get_row_type(row[0])
+        for (replay_data_type, row_data) in replay_data:
 
             if replay_data_type == ReplayDataType.INIT:
                 init.update(self._decode(decompress(row_data)))
@@ -103,23 +101,23 @@ class ReplayStore(abc.ABC, local, Service):
 
         return init, events, payloads
 
-    def _get_row_type(self, key: str) -> ReplayDataType:
-        return ReplayDataType(int(key.split(self.KEY_DELIMETER)[1]))
-
     @abc.abstractmethod
-    def _get_rows(self, key: Any) -> List[Tuple[str, bytes]]:
+    def _get_rows(self, replay_id: str) -> List[Tuple[ReplayDataType, bytes]]:
         pass
 
-    def _encode_event(self, value: Any, replay_data_type: ReplayDataType) -> bytes:
+    def _encode_event(self, value: ReplayEvent) -> bytes:
         return cast(bytes, json_dumps(value).encode("utf8"))
 
     def _decode(self, value: bytes) -> Dict[Any, Any]:
         json_loaded: Dict[Any, Any] = json_loads(value)
         return json_loaded
 
-    def _row_key(
-        self, replay_init_id: str, replay_data_type: ReplayDataType, timestamp: float
-    ) -> str:
-        return (
-            f"{replay_init_id}{self.KEY_DELIMETER}{replay_data_type}{self.KEY_DELIMETER}{timestamp}"
-        )
+    @abc.abstractmethod
+    def _set_bytes(
+        self,
+        replay_init_id: str,
+        replay_data_type: ReplayDataType,
+        timestamp: datetime,
+        data: bytes,
+    ) -> None:
+        pass
