@@ -45,7 +45,10 @@ function FlamegraphSummary() {
 
   return (
     <Fragment>
-      <SentryDocumentTitle title={t('Profiling - Function')} orgSlug={organization.slug}>
+      <SentryDocumentTitle
+        title={t('Profiling \u2014 Function')}
+        orgSlug={organization.slug}
+      >
         <Layout.Body>
           <Layout.Main fullWidth>
             <GridEditable

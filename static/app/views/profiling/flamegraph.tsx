@@ -31,7 +31,7 @@ function FlamegraphView(): React.ReactElement {
   return (
     <Fragment>
       <SentryDocumentTitle
-        title={t('Profiling - Flamegraph')}
+        title={t('Profiling \u2014 Flamegraph')}
         orgSlug={organization.slug}
       >
         <FlamegraphContainer>

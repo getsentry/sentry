@@ -1,4 +1,4 @@
-import React, {createContext, useContext, useEffect, useState} from 'react';
+import {createContext, useContext, useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {Client} from 'sentry/api';
@@ -85,4 +85,4 @@ function ProfileGroupProvider(props: FlamegraphViewProps): React.ReactElement {
   );
 }
 
-export default React.memo(ProfileGroupProvider);
+export default ProfileGroupProvider;
