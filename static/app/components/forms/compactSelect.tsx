@@ -137,7 +137,7 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
   containerPadding = 8,
   placement = 'bottom left',
   closeOnSelect = true,
-  shouldCloseOnBlur = true,
+  shouldCloseOnBlur = false,
   isDismissable = true,
   menuTitle,
   ...props
