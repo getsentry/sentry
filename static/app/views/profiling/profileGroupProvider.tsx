@@ -4,25 +4,11 @@ import * as Sentry from '@sentry/react';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
+import {RequestState} from 'sentry/types/core';
 import {Trace} from 'sentry/types/profiling/core';
 import {importProfile, ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-
-type InitialState = {type: 'initial'};
-type LoadingState = {type: 'loading'};
-
-type ResolvedState<T> = {
-  data: T;
-  type: 'resolved';
-};
-
-type ErroredState = {
-  error: string;
-  type: 'errored';
-};
-
-type RequestState<T> = InitialState | LoadingState | ResolvedState<T> | ErroredState;
 
 function fetchFlamegraphs(
   api: Client,
