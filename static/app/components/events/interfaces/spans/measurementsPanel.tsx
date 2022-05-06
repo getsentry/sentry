@@ -51,27 +51,11 @@ function MeasurementsPanel(props: Props) {
           name => WEB_VITAL_DETAILS[`measurements.${name}`]
         );
 
-        // generate vertical marker label
-        const acronyms = vitals.map(vital => vital.acronym);
-        const lastAcronym = acronyms.pop() as string;
-        const label = acronyms.length
-          ? `${acronyms.join(', ')} & ${lastAcronym}`
-          : lastAcronym;
-
-        // generate tooltip labe;l
-        const longNames = vitals.map(vital => vital.name);
-        const lastName = longNames.pop() as string;
-        const tooltipLabel = longNames.length
-          ? `${longNames.join(', ')} & ${lastName}`
-          : lastName;
-
         if (vitals.length > 1) {
           return (
             <MultiLabelContainer
               key={String(timestamp)}
               failedThreshold={verticalMark.failedThreshold}
-              label={label}
-              tooltipLabel={tooltipLabel}
               left={toPercent(bounds.left || 0)}
               vitals={vitals}
             />
@@ -82,8 +66,6 @@ function MeasurementsPanel(props: Props) {
           <LabelContainer
             key={String(timestamp)}
             failedThreshold={verticalMark.failedThreshold}
-            label={label}
-            tooltipLabel={tooltipLabel}
             left={toPercent(bounds.left || 0)}
             vital={vitals[0]}
           />
@@ -142,9 +124,7 @@ export default MeasurementsPanel;
 
 type LabelContainerProps = {
   failedThreshold: boolean;
-  label: string;
   left: string;
-  tooltipLabel: string;
   vital: Vital;
 };
 
