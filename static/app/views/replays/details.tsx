@@ -15,7 +15,7 @@ import useFullscreen from 'sentry/components/replays/useFullscreen';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import {EntryType} from 'sentry/types/event';
-import useReplayEvent from 'sentry/utils/replays/useReplayEvent';
+import useReplayData from 'sentry/utils/replays/useReplayData';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 
 import DetailLayout from './detail/detailLayout';
@@ -32,7 +32,7 @@ function ReplayDetails() {
     t: initialTimeOffset, // Time, in seconds, where the video should start
   } = location.query;
 
-  const {fetchError, fetching, onRetry, replay} = useReplayEvent({
+  const {fetchError, fetching, onRetry, replay} = useReplayData({
     eventSlug,
     orgId,
   });

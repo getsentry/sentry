@@ -68,7 +68,25 @@ const INITIAL_STATE: State = Object.freeze({
   rrwebEvents: undefined,
 });
 
-function useReplayEvent({eventSlug, orgId}: Options): Result {
+/**
+ * A react hook to load core replay data over the network.
+ *
+ * Core replay data includes:
+ * 1. The root replay EventTransaction object
+ *    - This includes `startTimestamp` and `tags` data
+ * 2. Breadcrumb and Span data from all the related Event objects
+ *    - Data is merged for consumption
+ * 3. RRWeb payloads for the replayer video stream
+ *    - TODO(replay): incrementally load the stream to speedup pageload
+ *
+ * This function should stay focused on loading data over the network.
+ * Front-end processing, filtering and re-mixing of the different data streams
+ * must be delegated to the `ReplayReader` class.
+ *
+ * @param {orgId, eventSlug} Where to find the root replay event
+ * @returns An object representing a unified result of the network reqeusts. Either a single `ReplayReader` data object or fetch errors.
+ */
+function useReplayData({eventSlug, orgId}: Options): Result {
   const [projectId, eventId] = eventSlug.split(':');
 
   const api = useApi();
@@ -176,4 +194,4 @@ function useReplayEvent({eventSlug, orgId}: Options): Result {
   };
 }
 
-export default useReplayEvent;
+export default useReplayData;
