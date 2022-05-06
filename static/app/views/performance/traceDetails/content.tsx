@@ -1,35 +1,22 @@
 import {Component, createRef, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 
 import Alert from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import ButtonBar from 'sentry/components/buttonBar';
-import DiscoverFeature from 'sentry/components/discover/discoverFeature';
 import DiscoverButton from 'sentry/components/discoverButton';
-import * as AnchorLinkManager from 'sentry/components/events/interfaces/spans/anchorLinkManager';
-import * as DividerHandlerManager from 'sentry/components/events/interfaces/spans/dividerHandlerManager';
-import * as ScrollbarManager from 'sentry/components/events/interfaces/spans/scrollbarManager';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
-import {
-  DividerSpacer,
-  ScrollbarContainer,
-  VirtualScrollbar,
-  VirtualScrollbarGrip,
-} from 'sentry/components/performance/waterfall/miniHeader';
 import {
   ErrorDot,
   ErrorLevel,
   ErrorMessageContent,
   ErrorTitle,
 } from 'sentry/components/performance/waterfall/rowDetails';
-import {pickBarColor, toPercent} from 'sentry/components/performance/waterfall/utils';
 import TimeSince from 'sentry/components/timeSince';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -46,28 +33,15 @@ import {filterTrace, reduceTrace} from 'sentry/utils/performance/quickTrace/util
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 import {MetaData} from 'sentry/views/performance/transactionDetails/styles';
 
-import {
-  TraceDetailBody,
-  TraceDetailHeader,
-  TracePanel,
-  TraceSearchBar,
-  TraceSearchContainer,
-  TraceViewContainer,
-  TraceViewHeaderContainer,
-} from './styles';
-import TransactionGroup from './transactionGroup';
-import {TraceInfo, TreeDepth} from './types';
+import {TraceDetailHeader, TraceSearchBar, TraceSearchContainer} from './styles';
+import TraceNotFound from './traceNotFound';
+import TraceView from './traceView';
+import {TraceInfo} from './types';
 import {getTraceInfo, isRootTransaction} from './utils';
 
 type IndexedFusedTransaction = {
   indexed: string[];
   transaction: TraceFullDetailed;
-};
-
-type AccType = {
-  lastIndex: number;
-  numberOfHiddenTransactionsAbove: number;
-  renderedChildren: React.ReactNode[];
 };
 
 type Props = Pick<RouteComponentProps<{traceSlug: string}, {}>, 'params' | 'location'> & {
@@ -277,13 +251,6 @@ class TraceDetailsContent extends Component<Props, State> {
     );
   }
 
-  isTransactionVisible = (transaction: TraceFullDetailed): boolean => {
-    const {filteredTransactionIds} = this.state;
-    return filteredTransactionIds
-      ? filteredTransactionIds.has(transaction.event_id)
-      : true;
-  };
-
   renderTraceHeader(traceInfo: TraceInfo) {
     const {meta} = this.props;
     return (
@@ -376,310 +343,18 @@ class TraceDetailsContent extends Component<Props, State> {
     return warning;
   }
 
-  renderInfoMessage({
-    isVisible,
-    numberOfHiddenTransactionsAbove,
-  }: {
-    isVisible: boolean;
-    numberOfHiddenTransactionsAbove: number;
-  }) {
-    const messages: React.ReactNode[] = [];
-
-    if (isVisible) {
-      if (numberOfHiddenTransactionsAbove === 1) {
-        messages.push(
-          <span key="stuff">
-            {tct('[numOfTransaction] hidden transaction', {
-              numOfTransaction: <strong>{numberOfHiddenTransactionsAbove}</strong>,
-            })}
-          </span>
-        );
-      } else if (numberOfHiddenTransactionsAbove > 1) {
-        messages.push(
-          <span key="stuff">
-            {tct('[numOfTransaction] hidden transactions', {
-              numOfTransaction: <strong>{numberOfHiddenTransactionsAbove}</strong>,
-            })}
-          </span>
-        );
-      }
-    }
-
-    if (messages.length <= 0) {
-      return null;
-    }
-
-    return <MessageRow>{messages}</MessageRow>;
-  }
-
-  renderLimitExceededMessage(traceInfo: TraceInfo) {
-    const {traceEventView, organization, meta} = this.props;
-    const count = traceInfo.transactions.size;
-    const totalTransactions = meta?.transactions ?? count;
-
-    if (totalTransactions === null || count >= totalTransactions) {
-      return null;
-    }
-
-    const target = traceEventView.getResultsViewUrlTarget(organization.slug);
-
-    return (
-      <MessageRow>
-        {tct(
-          'Limited to a view of [count] transactions. To view the full list, [discover].',
-          {
-            count,
-            discover: (
-              <DiscoverFeature>
-                {({hasFeature}) => (
-                  <Link disabled={!hasFeature} to={target}>
-                    Open in Discover
-                  </Link>
-                )}
-              </DiscoverFeature>
-            ),
-          }
-        )}
-      </MessageRow>
-    );
-  }
-
-  renderTransaction(
-    transaction: TraceFullDetailed,
-    {
-      continuingDepths,
-      isOrphan,
-      isLast,
-      index,
-      numberOfHiddenTransactionsAbove,
-      traceInfo,
-      hasGuideAnchor,
-    }: {
-      continuingDepths: TreeDepth[];
-      hasGuideAnchor: boolean;
-      index: number;
-      isLast: boolean;
-      isOrphan: boolean;
-      numberOfHiddenTransactionsAbove: number;
-      traceInfo: TraceInfo;
-    }
-  ) {
-    const {location, organization} = this.props;
-    const {children, event_id: eventId} = transaction;
-    // Add 1 to the generation to make room for the "root trace"
-    const generation = transaction.generation + 1;
-
-    const isVisible = this.isTransactionVisible(transaction);
-
-    const accumulated: AccType = children.reduce(
-      (acc: AccType, child: TraceFullDetailed, idx: number) => {
-        const isLastChild = idx === children.length - 1;
-        const hasChildren = child.children.length > 0;
-
-        const result = this.renderTransaction(child, {
-          continuingDepths:
-            !isLastChild && hasChildren
-              ? [...continuingDepths, {depth: generation, isOrphanDepth: isOrphan}]
-              : continuingDepths,
-          isOrphan,
-          isLast: isLastChild,
-          index: acc.lastIndex + 1,
-          numberOfHiddenTransactionsAbove: acc.numberOfHiddenTransactionsAbove,
-          traceInfo,
-          hasGuideAnchor: false,
-        });
-
-        acc.lastIndex = result.lastIndex;
-        acc.numberOfHiddenTransactionsAbove = result.numberOfHiddenTransactionsAbove;
-        acc.renderedChildren.push(result.transactionGroup);
-
-        return acc;
-      },
-      {
-        renderedChildren: [],
-        lastIndex: index,
-        numberOfHiddenTransactionsAbove: isVisible
-          ? 0
-          : numberOfHiddenTransactionsAbove + 1,
-      }
-    );
-
-    return {
-      transactionGroup: (
-        <Fragment key={eventId}>
-          {this.renderInfoMessage({
-            isVisible,
-            numberOfHiddenTransactionsAbove,
-          })}
-          <TransactionGroup
-            location={location}
-            organization={organization}
-            traceInfo={traceInfo}
-            transaction={{
-              ...transaction,
-              generation,
-            }}
-            continuingDepths={continuingDepths}
-            isOrphan={isOrphan}
-            isLast={isLast}
-            index={index}
-            isVisible={isVisible}
-            hasGuideAnchor={hasGuideAnchor}
-            renderedChildren={accumulated.renderedChildren}
-            barColor={pickBarColor(transaction['transaction.op'])}
-          />
-        </Fragment>
-      ),
-      lastIndex: accumulated.lastIndex,
-      numberOfHiddenTransactionsAbove: accumulated.numberOfHiddenTransactionsAbove,
-    };
-  }
-
-  renderTraceView(traceInfo: TraceInfo) {
-    const sentryTransaction = Sentry.getCurrentHub().getScope()?.getTransaction();
-    const sentrySpan = sentryTransaction?.startChild({
-      op: 'trace.render',
-      description: 'trace-view-content',
-    });
-
-    const {location, organization, traces, traceSlug} = this.props;
-
-    if (traces === null || traces.length <= 0) {
-      return this.renderTraceNotFound();
-    }
-
-    const accumulator: {
-      index: number;
-      numberOfHiddenTransactionsAbove: number;
-      traceInfo: TraceInfo;
-      transactionGroups: React.ReactNode[];
-    } = {
-      index: 1,
-      numberOfHiddenTransactionsAbove: 0,
-      traceInfo,
-      transactionGroups: [],
-    };
-
-    const {transactionGroups, numberOfHiddenTransactionsAbove} = traces.reduce(
-      (acc, trace, index) => {
-        const isLastTransaction = index === traces.length - 1;
-        const hasChildren = trace.children.length > 0;
-        const isNextChildOrphaned =
-          !isLastTransaction && traces[index + 1].parent_span_id !== null;
-
-        const result = this.renderTransaction(trace, {
-          ...acc,
-          // if the root of a subtrace has a parent_span_idk, then it must be an orphan
-          isOrphan: !isRootTransaction(trace),
-          isLast: isLastTransaction,
-          continuingDepths:
-            !isLastTransaction && hasChildren
-              ? [{depth: 0, isOrphanDepth: isNextChildOrphaned}]
-              : [],
-          hasGuideAnchor: index === 0,
-        });
-
-        acc.index = result.lastIndex + 1;
-        acc.numberOfHiddenTransactionsAbove = result.numberOfHiddenTransactionsAbove;
-        acc.transactionGroups.push(result.transactionGroup);
-        return acc;
-      },
-      accumulator
-    );
-
-    const traceView = (
-      <TraceDetailBody>
-        <DividerHandlerManager.Provider interactiveLayerRef={this.traceViewRef}>
-          <DividerHandlerManager.Consumer>
-            {({dividerPosition}) => (
-              <ScrollbarManager.Provider
-                dividerPosition={dividerPosition}
-                interactiveLayerRef={this.virtualScrollbarContainerRef}
-              >
-                <TracePanel>
-                  <TraceViewHeaderContainer>
-                    <ScrollbarManager.Consumer>
-                      {({
-                        virtualScrollbarRef,
-                        scrollBarAreaRef,
-                        onDragStart,
-                        onScroll,
-                      }) => {
-                        return (
-                          <ScrollbarContainer
-                            ref={this.virtualScrollbarContainerRef}
-                            style={{
-                              // the width of this component is shrunk to compensate for half of the width of the divider line
-                              width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
-                            }}
-                            onScroll={onScroll}
-                          >
-                            <div
-                              style={{
-                                width: 0,
-                                height: '1px',
-                              }}
-                              ref={scrollBarAreaRef}
-                            />
-                            <VirtualScrollbar
-                              data-type="virtual-scrollbar"
-                              ref={virtualScrollbarRef}
-                              onMouseDown={onDragStart}
-                            >
-                              <VirtualScrollbarGrip />
-                            </VirtualScrollbar>
-                          </ScrollbarContainer>
-                        );
-                      }}
-                    </ScrollbarManager.Consumer>
-                    <DividerSpacer />
-                  </TraceViewHeaderContainer>
-                  <TraceViewContainer ref={this.traceViewRef}>
-                    <AnchorLinkManager.Provider>
-                      <TransactionGroup
-                        location={location}
-                        organization={organization}
-                        traceInfo={traceInfo}
-                        transaction={{
-                          traceSlug,
-                          generation: 0,
-                          'transaction.duration':
-                            traceInfo.endTimestamp - traceInfo.startTimestamp,
-                          children: traces,
-                          start_timestamp: traceInfo.startTimestamp,
-                          timestamp: traceInfo.endTimestamp,
-                        }}
-                        continuingDepths={[]}
-                        isOrphan={false}
-                        isLast={false}
-                        index={0}
-                        isVisible
-                        hasGuideAnchor={false}
-                        renderedChildren={transactionGroups}
-                        barColor={pickBarColor('')}
-                      />
-                    </AnchorLinkManager.Provider>
-                    {this.renderInfoMessage({
-                      isVisible: true,
-                      numberOfHiddenTransactionsAbove,
-                    })}
-                    {this.renderLimitExceededMessage(traceInfo)}
-                  </TraceViewContainer>
-                </TracePanel>
-              </ScrollbarManager.Provider>
-            )}
-          </DividerHandlerManager.Consumer>
-        </DividerHandlerManager.Provider>
-      </TraceDetailBody>
-    );
-
-    sentrySpan?.finish();
-
-    return traceView;
-  }
-
   renderContent() {
-    const {dateSelected, isLoading, error, traces} = this.props;
+    const {
+      dateSelected,
+      isLoading,
+      error,
+      organization,
+      location,
+      traceEventView,
+      traceSlug,
+      traces,
+      meta,
+    } = this.props;
 
     if (!dateSelected) {
       return this.renderTraceRequiresDateRangeSelection();
@@ -688,15 +363,33 @@ class TraceDetailsContent extends Component<Props, State> {
       return this.renderTraceLoading();
     }
     if (error !== null || traces === null || traces.length <= 0) {
-      return this.renderTraceNotFound();
+      return (
+        <TraceNotFound
+          meta={meta}
+          traceEventView={traceEventView}
+          traceSlug={traceSlug}
+          location={location}
+          organization={organization}
+        />
+      );
     }
     const traceInfo = getTraceInfo(traces);
+
     return (
       <Fragment>
         {this.renderTraceWarnings()}
         {this.renderTraceHeader(traceInfo)}
         {this.renderSearchBar()}
-        {this.renderTraceView(traceInfo)}
+        <TraceView
+          filteredTransactionIds={this.state.filteredTransactionIds}
+          traceInfo={traceInfo}
+          location={location}
+          organization={organization}
+          traceEventView={traceEventView}
+          traceSlug={traceSlug}
+          traces={traces}
+          meta={meta}
+        />
       </Fragment>
     );
   }
@@ -722,7 +415,7 @@ class TraceDetailsContent extends Component<Props, State> {
               <DiscoverButton
                 to={traceEventView.getResultsViewUrlTarget(organization.slug)}
               >
-                Open in Discover
+                {t('Open in Discover')}
               </DiscoverButton>
             </ButtonBar>
           </Layout.HeaderActions>
