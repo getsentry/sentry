@@ -82,7 +82,7 @@ function FlamegraphSummary(props: FlamegraphSummaryProps) {
       <Layout.Body>
         <Layout.Main fullWidth>
           <GridEditable
-            title="Slowest Application Calls"
+            title={t('Slowest Application Calls')}
             isLoading={state.type === 'loading'}
             error={state.type === 'errored'}
             data={functions.slowestApplicationCalls}
@@ -92,7 +92,7 @@ function FlamegraphSummary(props: FlamegraphSummaryProps) {
             location={location}
           />
           <GridEditable
-            title="Slowest System Calls"
+            title={t('Slowest System Calls')}
             isLoading={state.type === 'loading'}
             error={state.type === 'errored'}
             data={functions.slowestSystemCalls}
@@ -175,7 +175,7 @@ const COLUMNS: Record<TableColumnKey, TableColumn> = {
   },
   'total weight': {
     key: 'total weight',
-    name: t('total Weight'),
+    name: t('Total Weight'),
     width: COL_WIDTH_UNDEFINED,
   },
 };
