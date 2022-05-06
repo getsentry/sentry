@@ -6,10 +6,10 @@ import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types'
 import type {RawCrumb} from 'sentry/types/breadcrumbs';
 import type {Event, EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
+import createHighlightEvents from 'sentry/utils/replays/createHighlightEvents';
+import mergeAndSortEvents from 'sentry/utils/replays/mergeAndSortEvents';
 import mergeBreadcrumbEntries from 'sentry/utils/replays/mergeBreadcrumbEntries';
 import mergeSpanEntries from 'sentry/utils/replays/mergeSpanEntries';
-import createHighlightEvents from 'sentry/views/replays/utils/createHighlightEvents';
-import mergeAndSortEvents from 'sentry/views/replays/utils/mergeAndSortEvents';
 
 export default class ReplayReader {
   static factory(
