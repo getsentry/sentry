@@ -1,21 +1,22 @@
 import {Fragment} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
+import type {DataZoomComponentOption} from 'echarts';
 import {LegendComponentOption} from 'echarts';
 
 import {Client} from 'sentry/api';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Organization, PageFilters} from 'sentry/types';
-import {EChartDataZoomHandler, EChartEventHandler, Series} from 'sentry/types/echarts';
+import {EChartEventHandler, Series} from 'sentry/types/echarts';
 import {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 
 import {Widget, WidgetType} from '../types';
 
-import WidgetCardChart from './chart';
+import WidgetCardChart, {AugmentedEChartDataZoomHandler} from './chart';
 import {IssueWidgetCard} from './issueWidgetCard';
 import IssueWidgetQueries from './issueWidgetQueries';
-import MetricsWidgetQueries from './metricsWidgetQueries';
+import ReleaseWidgetQueries from './releaseWidgetQueries';
 import WidgetQueries from './widgetQueries';
 
 type Props = WithRouterProps & {
@@ -23,9 +24,11 @@ type Props = WithRouterProps & {
   organization: Organization;
   selection: PageFilters;
   widget: Widget;
+  chartZoomOptions?: DataZoomComponentOption;
   expandNumbers?: boolean;
   isMobile?: boolean;
   legendOptions?: LegendComponentOption;
+  noPadding?: boolean;
   onDataFetched?: (results: {
     issuesResults?: TableDataRow[];
     pageLinks?: string;
@@ -38,8 +41,9 @@ type Props = WithRouterProps & {
     selected: Record<string, boolean>;
     type: 'legendselectchanged';
   }>;
-  onZoom?: EChartDataZoomHandler;
+  onZoom?: AugmentedEChartDataZoomHandler;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
+  showSlider?: boolean;
   tableItemLimit?: number;
   windowWidth?: number;
 };
@@ -60,6 +64,9 @@ export function WidgetCardChartContainer({
   legendOptions,
   expandNumbers,
   onDataFetched,
+  showSlider,
+  noPadding,
+  chartZoomOptions,
 }: Props) {
   if (widget.widgetType === WidgetType.ISSUE) {
     return (
@@ -94,9 +101,9 @@ export function WidgetCardChartContainer({
     );
   }
 
-  if (widget.widgetType === WidgetType.METRICS) {
+  if (widget.widgetType === WidgetType.RELEASE) {
     return (
-      <MetricsWidgetQueries
+      <ReleaseWidgetQueries
         api={api}
         organization={organization}
         widget={widget}
@@ -124,11 +131,14 @@ export function WidgetCardChartContainer({
                 windowWidth={windowWidth}
                 expandNumbers={expandNumbers}
                 onZoom={onZoom}
+                showSlider={showSlider}
+                noPadding={noPadding}
+                chartZoomOptions={chartZoomOptions}
               />
             </Fragment>
           );
         }}
-      </MetricsWidgetQueries>
+      </ReleaseWidgetQueries>
     );
   }
 
@@ -163,6 +173,9 @@ export function WidgetCardChartContainer({
               onLegendSelectChanged={onLegendSelectChanged}
               legendOptions={legendOptions}
               expandNumbers={expandNumbers}
+              showSlider={showSlider}
+              noPadding={noPadding}
+              chartZoomOptions={chartZoomOptions}
             />
           </Fragment>
         );

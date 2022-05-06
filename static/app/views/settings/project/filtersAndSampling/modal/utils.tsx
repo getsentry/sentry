@@ -69,7 +69,15 @@ export function getMatchFieldPlaceholder(category: DynamicSamplingInnerName) {
       return t('ex. TypeError* (Multiline)');
     case DynamicSamplingInnerName.TRACE_TRANSACTION:
     case DynamicSamplingInnerName.EVENT_TRANSACTION:
-      return t('ex. "page-load"');
+      return t('ex. page-load');
+    case DynamicSamplingInnerName.EVENT_OS_NAME:
+      return t('ex. Mac OS X, Windows');
+    case DynamicSamplingInnerName.EVENT_OS_VERSION:
+      return t('ex. 11, 9*');
+    case DynamicSamplingInnerName.EVENT_DEVICE_FAMILY:
+      return t('ex. Mac, Pixel*');
+    case DynamicSamplingInnerName.EVENT_DEVICE_NAME:
+      return t('ex. Mac, Pixel*');
     default:
       Sentry.captureException(new Error('Unknown dynamic sampling condition inner name'));
       return ''; // this shall never happen
@@ -123,7 +131,11 @@ export function getNewCondition(
     condition.category === DynamicSamplingInnerName.EVENT_RELEASE ||
     condition.category === DynamicSamplingInnerName.TRACE_RELEASE ||
     condition.category === DynamicSamplingInnerName.EVENT_TRANSACTION ||
-    condition.category === DynamicSamplingInnerName.TRACE_TRANSACTION
+    condition.category === DynamicSamplingInnerName.TRACE_TRANSACTION ||
+    condition.category === DynamicSamplingInnerName.EVENT_OS_NAME ||
+    condition.category === DynamicSamplingInnerName.EVENT_OS_VERSION ||
+    condition.category === DynamicSamplingInnerName.EVENT_DEVICE_FAMILY ||
+    condition.category === DynamicSamplingInnerName.EVENT_DEVICE_NAME
   ) {
     return {
       op: DynamicSamplingInnerOperator.GLOB_MATCH,

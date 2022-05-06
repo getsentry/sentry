@@ -2,10 +2,11 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import audit_log
 from sentry.api.bases.organization import OrganizationAdminPermission, OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.models import ApiKey, AuditLogEntryEvent
+from sentry.models import ApiKey
 
 
 class ApiKeySerializer(serializers.ModelSerializer):
@@ -62,7 +63,7 @@ class OrganizationApiKeyDetailsEndpoint(OrganizationEndpoint):
                 request=request,
                 organization=organization,
                 target_object=api_key_id,
-                event=AuditLogEntryEvent.APIKEY_EDIT,
+                event=audit_log.get_event_id("APIKEY_EDIT"),
                 data=api_key.get_audit_log_data(),
             )
 
@@ -93,7 +94,7 @@ class OrganizationApiKeyDetailsEndpoint(OrganizationEndpoint):
             request,
             organization=organization,
             target_object=api_key.id,
-            event=AuditLogEntryEvent.APIKEY_REMOVE,
+            event=audit_log.get_event_id("APIKEY_REMOVE"),
             data=audit_data,
         )
 

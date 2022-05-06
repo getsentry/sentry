@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
 
@@ -20,7 +20,7 @@ type FilterProps = {
   value: string;
 };
 
-class Filter extends React.Component<FilterProps> {
+class Filter extends Component<FilterProps> {
   getCurrentLabel() {
     const selected = this.props.options.find(
       item => item[0] === (this.props.value ?? '')
@@ -89,7 +89,7 @@ type SortByProps = {
   value: string;
 };
 
-class SortBy extends React.Component<SortByProps> {
+class SortBy extends Component<SortByProps> {
   getCurrentSortLabel() {
     return this.props.options.find(([value]) => value === this.props.value)?.[1];
   }
@@ -169,7 +169,7 @@ type State = {
   sortBy: string;
 };
 
-class ResultGrid extends React.Component<Props, State> {
+class ResultGrid extends Component<Props, State> {
   static defaultProps: DefaultProps = {
     path: '',
     endpoint: '',

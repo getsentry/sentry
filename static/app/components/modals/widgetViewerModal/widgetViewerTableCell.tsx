@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject} from 'history';
 
@@ -168,7 +168,7 @@ export const renderGridBodyCell =
         cell = getFieldRenderer(
           columnKey,
           tableData.meta,
-          widget.widgetType !== WidgetType.METRICS
+          widget.widgetType !== WidgetType.RELEASE
         )(dataRow, {
           organization,
           location,
@@ -191,7 +191,7 @@ export const renderGridBodyCell =
     }
 
     return (
-      <React.Fragment>
+      <Fragment>
         {isTopEvents &&
         isFirstPage &&
         rowIndex < DEFAULT_NUM_TOP_EVENTS &&
@@ -199,7 +199,7 @@ export const renderGridBodyCell =
           <TopResultsIndicator count={DEFAULT_NUM_TOP_EVENTS} index={rowIndex} />
         ) : null}
         {cell}
-      </React.Fragment>
+      </Fragment>
     );
   };
 
@@ -243,7 +243,7 @@ export const renderPrependColumns =
     ];
   };
 
-export const renderMetricsGridHeaderCell =
+export const renderReleaseGridHeaderCell =
   ({location, widget, tableData, organization, onHeaderClick}: Props) =>
   (column: TableColumn<keyof TableDataRow>, _columnIndex: number): React.ReactNode => {
     const tableMeta = tableData?.meta;
@@ -285,7 +285,7 @@ export const renderMetricsGridHeaderCell =
           onHeaderClick?.();
           trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.sort', {
             organization,
-            widget_type: WidgetType.METRICS,
+            widget_type: WidgetType.RELEASE,
             display_type: widget.displayType,
             column: column.name,
             order: sort?.kind === 'desc' ? 'asc' : 'desc',

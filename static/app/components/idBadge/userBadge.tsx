@@ -1,4 +1,3 @@
-import * as React from 'react';
 import styled from '@emotion/styled';
 
 import UserAvatar from 'sentry/components/avatar/userAvatar';
@@ -54,7 +53,7 @@ const StyledUserBadge = styled('div')`
 const StyledNameAndEmail = styled('div')`
   flex-shrink: 1;
   min-width: 0;
-  line-height: 1;
+  line-height: normal;
 `;
 
 const StyledEmail = styled('div')`

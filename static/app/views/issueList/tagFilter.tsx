@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import debounce from 'lodash/debounce';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -31,7 +31,7 @@ type State = {
   options?: SelectOption[];
 };
 
-class IssueListTagFilter extends React.Component<Props, State> {
+class IssueListTagFilter extends Component<Props, State> {
   static defaultProps = defaultProps;
 
   state: State = {

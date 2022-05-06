@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -121,7 +121,7 @@ function Controls({
     <StyledButtonBar gap={1} key="controls">
       <DashboardEditFeature>
         {hasFeature => (
-          <React.Fragment>
+          <Fragment>
             <Button
               data-test-id="dashboard-edit"
               onClick={e => {
@@ -130,13 +130,11 @@ function Controls({
               }}
               icon={<IconEdit />}
               disabled={!hasFeature}
-              priority={
-                organization.features.includes('widget-library') ? 'default' : 'primary'
-              }
+              priority="default"
             >
               {t('Edit Dashboard')}
             </Button>
-            {organization.features.includes('widget-library') && hasFeature ? (
+            {hasFeature ? (
               <Tooltip
                 title={tct('Max widgets ([maxWidgets]) per dashboard reached.', {
                   maxWidgets: MAX_WIDGETS,
@@ -162,7 +160,7 @@ function Controls({
                 </Button>
               </Tooltip>
             ) : null}
-          </React.Fragment>
+          </Fragment>
         )}
       </DashboardEditFeature>
     </StyledButtonBar>

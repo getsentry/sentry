@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import ConfigStore from 'sentry/stores/configStore';
 import {Organization} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';

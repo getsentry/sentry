@@ -12,11 +12,15 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesForm';
+import DatePageFilter from 'sentry/components/datePageFilter';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingError from 'sentry/components/loadingError';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
@@ -26,7 +30,7 @@ import {
   Organization,
   PageFilters,
   SelectValue,
-  SessionMetric,
+  SessionField,
   TagCollection,
 } from 'sentry/types';
 import {defined, objectIsEmpty} from 'sentry/utils';
@@ -37,7 +41,9 @@ import {
   getAggregateAlias,
   getColumnsAndAggregates,
   getColumnsAndAggregatesAsStrings,
+  isAggregateFieldOrEquation,
   isEquation,
+  isEquationAlias,
   QueryFieldValue,
   stripDerivedMetricsPrefix,
   stripEquationPrefix,
@@ -64,6 +70,7 @@ import {
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 import {DEFAULT_STATS_PERIOD} from '../data';
+import {getNumEquations} from '../utils';
 
 import {ColumnsStep} from './buildSteps/columnsStep';
 import {DashboardStep} from './buildSteps/dashboardStep';
@@ -96,7 +103,7 @@ function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, Widge
       fieldAliases: [],
       aggregates: ['count()'],
       conditions: '',
-      orderby: widgetBuilderNewDesign ? '-count' : '',
+      orderby: widgetBuilderNewDesign ? '-count()' : '',
     },
     [DataSet.ISSUES]: {
       name: '',
@@ -107,14 +114,14 @@ function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, Widge
       conditions: '',
       orderby: widgetBuilderNewDesign ? IssueSortOptions.DATE : '',
     },
-    [DataSet.RELEASE]: {
+    [DataSet.RELEASES]: {
       name: '',
-      fields: [`sum(${SessionMetric.SESSION})`],
+      fields: [`sum(${SessionField.SESSION})`],
       columns: [],
       fieldAliases: [],
-      aggregates: [`sum(${SessionMetric.SESSION})`],
+      aggregates: [`sum(${SessionField.SESSION})`],
       conditions: '',
-      orderby: widgetBuilderNewDesign ? `-sum(${SessionMetric.SESSION})` : '',
+      orderby: widgetBuilderNewDesign ? `-sum(${SessionField.SESSION})` : '',
     },
   };
 }
@@ -122,13 +129,13 @@ function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, Widge
 const WIDGET_TYPE_TO_DATA_SET = {
   [WidgetType.DISCOVER]: DataSet.EVENTS,
   [WidgetType.ISSUE]: DataSet.ISSUES,
-  [WidgetType.METRICS]: DataSet.RELEASE,
+  [WidgetType.RELEASE]: DataSet.RELEASES,
 };
 
 const DATA_SET_TO_WIDGET_TYPE = {
   [DataSet.EVENTS]: WidgetType.DISCOVER,
   [DataSet.ISSUES]: WidgetType.ISSUE,
-  [DataSet.RELEASE]: WidgetType.METRICS,
+  [DataSet.RELEASES]: WidgetType.RELEASE,
 };
 
 interface RouteParams {
@@ -190,20 +197,14 @@ function WidgetBuilder({
     location.query.defaultWidgetQuery
   );
 
-  useEffect(() => {
-    if (objectIsEmpty(tags)) {
-      loadOrganizationTags(api, organization.slug, selection);
-    }
-  }, []);
-
   // Feature flag for new widget builder design. This feature is still a work in progress and not yet available internally.
   const widgetBuilderNewDesign = organization.features.includes(
     'new-widget-builder-experience-design'
   );
-  const hasReleaseHealthFeature = organization.features.includes('dashboards-metrics');
+  const hasReleaseHealthFeature = organization.features.includes('dashboards-releases');
 
   const filteredDashboardWidgets = dashboard.widgets.filter(({widgetType}) => {
-    if (widgetType === WidgetType.METRICS) {
+    if (widgetType === WidgetType.RELEASE) {
       return hasReleaseHealthFeature;
     }
     return true;
@@ -234,27 +235,11 @@ function WidgetBuilder({
   const api = useApi();
 
   const [state, setState] = useState<State>(() => {
-    return {
+    const defaultState: State = {
       title: defaultTitle ?? t('Custom Widget'),
       displayType: displayType ?? DisplayType.TABLE,
       interval: '5m',
-      queries: [
-        defaultWidgetQuery
-          ? widgetBuilderNewDesign
-            ? {
-                ...defaultWidgetQuery,
-                orderby:
-                  defaultWidgetQuery.orderby ||
-                  generateOrderOptions({
-                    widgetType: WidgetType.DISCOVER,
-                    widgetBuilderNewDesign,
-                    columns: defaultWidgetQuery.columns,
-                    aggregates: defaultWidgetQuery.aggregates,
-                  })[0].value,
-              }
-            : {...defaultWidgetQuery}
-          : {...getDataSetQuery(widgetBuilderNewDesign)[DataSet.EVENTS]},
-      ],
+      queries: [],
       limit,
       errors: undefined,
       loading: !!notDashboardsOrigin,
@@ -262,6 +247,36 @@ function WidgetBuilder({
       userHasModified: false,
       dataSet: DataSet.EVENTS,
     };
+
+    if (defaultWidgetQuery) {
+      if (widgetBuilderNewDesign) {
+        defaultState.queries = [
+          {
+            ...defaultWidgetQuery,
+            orderby:
+              defaultWidgetQuery.orderby ||
+              generateOrderOptions({
+                widgetType: WidgetType.DISCOVER,
+                widgetBuilderNewDesign,
+                columns: defaultWidgetQuery.columns,
+                aggregates: defaultWidgetQuery.aggregates,
+              })[0].value,
+          },
+        ];
+      } else {
+        defaultState.queries = [{...defaultWidgetQuery}];
+      }
+
+      if (![DisplayType.TABLE, DisplayType.TOP_N].includes(defaultState.displayType)) {
+        defaultState.queries[0].orderby = '';
+      }
+    } else {
+      defaultState.queries = [
+        {...getDataSetQuery(widgetBuilderNewDesign)[DataSet.EVENTS]},
+      ];
+    }
+
+    return defaultState;
   });
 
   const [widgetToBeUpdated, setWidgetToBeUpdated] = useState<Widget | null>(null);
@@ -271,6 +286,10 @@ function WidgetBuilder({
       organization,
       new_widget: !isEditing,
     });
+
+    if (objectIsEmpty(tags)) {
+      loadOrganizationTags(api, organization.slug, selection);
+    }
 
     if (isEditing && isValidWidgetIndex) {
       const widgetFromDashboard = filteredDashboardWidgets[widgetIndexNum];
@@ -322,7 +341,7 @@ function WidgetBuilder({
       ? WidgetType.DISCOVER
       : state.dataSet === DataSet.ISSUES
       ? WidgetType.ISSUE
-      : WidgetType.METRICS;
+      : WidgetType.RELEASE;
 
   const currentWidget = {
     title: state.title,
@@ -368,7 +387,7 @@ function WidgetBuilder({
         (prevState.displayType === DisplayType.TABLE &&
           widgetToBeUpdated?.widgetType &&
           WIDGET_TYPE_TO_DATA_SET[widgetToBeUpdated.widgetType] === DataSet.ISSUES) ||
-        (prevState.dataSet === DataSet.RELEASE &&
+        (prevState.dataSet === DataSet.RELEASES &&
           newDisplayType === DisplayType.WORLD_MAP)
       ) {
         // World Map display type only supports Events Dataset
@@ -408,6 +427,9 @@ function WidgetBuilder({
               query.columns = [...tableQuery.columns];
               query.aggregates = [...tableQuery.aggregates];
               query.fields = [...defaultTableColumns];
+              query.orderby =
+                defaultWidgetQuery.orderby ??
+                (query.fields.length ? `${query.fields[0]}` : '-');
             });
           } else if (newDisplayType === displayType) {
             // When switching back to original display type, default fields back to the fields provided from the discover query
@@ -418,7 +440,10 @@ function WidgetBuilder({
               ];
               query.aggregates = [...defaultWidgetQuery.aggregates];
               query.columns = [...defaultWidgetQuery.columns];
-              if (!!defaultWidgetQuery.orderby) {
+              if (
+                !!defaultWidgetQuery.orderby &&
+                (displayType === DisplayType.TOP_N || defaultWidgetQuery.columns.length)
+              ) {
                 query.orderby = defaultWidgetQuery.orderby;
               }
             });
@@ -433,7 +458,10 @@ function WidgetBuilder({
       set(newState, 'queries', normalized);
 
       if (widgetBuilderNewDesign) {
-        if (getIsTimeseriesChart(newDisplayType) && normalized[0].columns.length) {
+        if (
+          getIsTimeseriesChart(newDisplayType) &&
+          normalized[0].columns.filter(column => !!column).length
+        ) {
           // If a limit already exists (i.e. going between timeseries) then keep it,
           // otherwise calculate a limit
           newState.limit =
@@ -548,12 +576,11 @@ function WidgetBuilder({
     newFields: QueryFieldValue[],
     isColumn = false
   ) {
-    const fieldStrings = newFields.map(generateFieldAsString);
-
-    const aggregateAliasFieldStrings =
-      state.dataSet === DataSet.RELEASE
-        ? fieldStrings.map(stripDerivedMetricsPrefix)
-        : fieldStrings.map(getAggregateAlias);
+    const fieldStrings = newFields
+      .map(generateFieldAsString)
+      .map(field =>
+        state.dataSet === DataSet.RELEASES ? stripDerivedMetricsPrefix(field) : field
+      );
 
     const columnsAndAggregates = isColumn
       ? getColumnsAndAggregatesAsStrings(newFields)
@@ -562,15 +589,15 @@ function WidgetBuilder({
     const newState = cloneDeep(state);
 
     const disableSortBy =
-      widgetType === WidgetType.METRICS && fieldStrings.includes('session.status');
+      widgetType === WidgetType.RELEASE && fieldStrings.includes('session.status');
 
     const newQueries = state.queries.map(query => {
       const isDescending = query.orderby.startsWith('-');
-      const orderbyAggregateAliasField = trimStart(query.orderby, '-');
-      const prevAggregateAliasFieldStrings = query.aggregates.map(aggregate =>
-        state.dataSet === DataSet.RELEASE
+      const rawOrderby = trimStart(query.orderby, '-');
+      const prevAggregateFieldStrings = query.aggregates.map(aggregate =>
+        state.dataSet === DataSet.RELEASES
           ? stripDerivedMetricsPrefix(aggregate)
-          : getAggregateAlias(aggregate)
+          : aggregate
       );
       const newQuery = cloneDeep(query);
 
@@ -601,32 +628,38 @@ function WidgetBuilder({
         newQuery.columns = columnsAndAggregates?.columns ?? [];
       }
 
-      if (
-        !aggregateAliasFieldStrings.includes(orderbyAggregateAliasField) &&
-        query.orderby !== ''
-      ) {
-        if (prevAggregateAliasFieldStrings.length === newFields.length) {
-          // The Field that was used in orderby has changed. Get the new field.
+      if (!fieldStrings.includes(rawOrderby) && query.orderby !== '') {
+        if (
+          prevAggregateFieldStrings.length === newFields.length &&
+          prevAggregateFieldStrings.includes(rawOrderby)
+        ) {
+          // The aggregate that was used in orderby has changed. Get the new field.
           let newOrderByValue =
-            aggregateAliasFieldStrings[
-              prevAggregateAliasFieldStrings.indexOf(orderbyAggregateAliasField)
-            ];
+            fieldStrings[prevAggregateFieldStrings.indexOf(rawOrderby)];
 
           if (!stripEquationPrefix(newOrderByValue ?? '')) {
             newOrderByValue = '';
           }
 
-          if (isDescending) {
-            newQuery.orderby = `-${newOrderByValue}`;
-          } else {
-            newQuery.orderby = newOrderByValue;
-          }
+          newQuery.orderby = `${isDescending ? '-' : ''}${newOrderByValue}`;
         } else {
+          const isUsingFieldFormat =
+            isAggregateFieldOrEquation(rawOrderby) || isEquationAlias(rawOrderby);
+          const isFromAggregates = (
+            isUsingFieldFormat ? fieldStrings : fieldStrings.map(getAggregateAlias)
+          ).includes(rawOrderby);
+          const isCustomEquation = isEquation(rawOrderby);
+          const isUsedInGrouping = newQuery.columns.includes(rawOrderby);
+
+          const keepCurrentOrderby =
+            isFromAggregates || isCustomEquation || isUsedInGrouping;
+          const firstAggregateAlias = isEquation(fieldStrings[0])
+            ? `equation[${getNumEquations(fieldStrings) - 1}]`
+            : fieldStrings[0];
+
           newQuery.orderby = widgetBuilderNewDesign
-            ? ((aggregateAliasFieldStrings.includes(orderbyAggregateAliasField) ||
-                isEquation(orderbyAggregateAliasField)) &&
-                newQuery.orderby) ||
-              `${isDescending ? '-' : ''}${aggregateAliasFieldStrings[0]}`
+            ? (keepCurrentOrderby && newQuery.orderby) ||
+              `${isDescending ? '-' : ''}${firstAggregateAlias}`
             : '';
         }
       }
@@ -670,28 +703,47 @@ function WidgetBuilder({
     const newQueries = state.queries.map(query => {
       const newQuery = cloneDeep(query);
       newQuery.columns = fieldStrings;
+      const orderby = trimStart(newQuery.orderby, '-');
+      const aggregateAliasFieldStrings = newQuery.aggregates.map(getAggregateAlias);
+
+      if (!fieldStrings.length) {
+        // The grouping was cleared, so clear the orderby
+        newQuery.orderby = '';
+      } else if (
+        aggregateAliasFieldStrings.length &&
+        !aggregateAliasFieldStrings.includes(orderby) &&
+        !newQuery.columns.includes(orderby) &&
+        !isEquation(orderby)
+      ) {
+        // If the orderby isn't contained in either aggregates or columns, choose the first aggregate
+        const isDescending = newQuery.orderby.startsWith('-');
+        const prefix = orderby && !isDescending ? '' : '-';
+        const firstAggregateAlias = isEquation(aggregateAliasFieldStrings[0])
+          ? `equation[${getNumEquations(aggregateAliasFieldStrings) - 1}]`
+          : aggregateAliasFieldStrings[0];
+        newQuery.orderby = `${prefix}${firstAggregateAlias}`;
+      }
       return newQuery;
     });
 
     set(newState, 'userHasModified', true);
     set(newState, 'queries', newQueries);
 
-    if (widgetBuilderNewDesign && isTimeseriesChart) {
-      const groupByFields = newState.queries[0].columns.filter(
-        field => !(field === 'equation|')
+    const groupByFields = newState.queries[0].columns.filter(
+      field => !(field === 'equation|')
+    );
+
+    if (groupByFields.length === 0) {
+      set(newState, 'limit', undefined);
+    } else {
+      set(
+        newState,
+        'limit',
+        Math.min(
+          newState.limit ?? DEFAULT_RESULTS_LIMIT,
+          getResultsLimit(newQueries.length, newQueries[0].aggregates.length)
+        )
       );
-      if (groupByFields.length === 0) {
-        set(newState, 'limit', undefined);
-      } else {
-        set(
-          newState,
-          'limit',
-          Math.min(
-            newState.limit ?? DEFAULT_RESULTS_LIMIT,
-            getResultsLimit(newQueries.length, newQueries[0].aggregates.length)
-          )
-        );
-      }
     }
 
     setState(newState);
@@ -950,6 +1002,17 @@ function WidgetBuilder({
     ? fields.map((field, index) => explodeField({field, alias: fieldAliases[index]}))
     : [...explodedColumns, ...explodedAggregates];
 
+  const groupByValueSelected = currentWidget.queries.some(query => {
+    const noEmptyColumns = query.columns.filter(column => !!column);
+    return noEmptyColumns.length > 0;
+  });
+
+  // The SortBy field shall only be displayed in tabular visualizations or
+  // on time-series visualizations when at least one groupBy value is selected
+  const displaySortByStep =
+    (widgetBuilderNewDesign && isTimeseriesChart && groupByValueSelected) ||
+    isTabularChart;
+
   if (isEditing && !isValidWidgetIndex) {
     return (
       <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
@@ -967,6 +1030,7 @@ function WidgetBuilder({
         defaultSelection={{
           datetime: {start: null, end: null, utc: false, period: DEFAULT_STATS_PERIOD},
         }}
+        hideGlobalHeader
       >
         <PageContentWithoutPadding>
           <Header
@@ -981,6 +1045,11 @@ function WidgetBuilder({
           <Body>
             <MainWrapper>
               <Main>
+                <StyledPageFilterBar condensed>
+                  <ProjectPageFilter />
+                  <EnvironmentPageFilter />
+                  <DatePageFilter alignDropdown="left" />
+                </StyledPageFilterBar>
                 <BuildSteps symbol="colored-numeric">
                   <VisualizationStep
                     widget={currentWidget}
@@ -1053,7 +1122,7 @@ function WidgetBuilder({
                       dataSet={state.dataSet}
                     />
                   )}
-                  {((widgetBuilderNewDesign && isTimeseriesChart) || isTabularChart) && (
+                  {displaySortByStep && (
                     <SortByStep
                       limit={state.limit}
                       displayType={state.displayType}
@@ -1118,6 +1187,10 @@ export default withPageFilters(withTags(WidgetBuilder));
 
 const PageContentWithoutPadding = styled(PageContent)`
   padding: 0;
+`;
+
+const StyledPageFilterBar = styled(PageFilterBar)`
+  margin-bottom: ${space(2)};
 `;
 
 const BuildSteps = styled(List)`

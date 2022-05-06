@@ -1,6 +1,7 @@
 import {components as selectComponents} from 'react-select';
 import styled from '@emotion/styled';
 
+import Tooltip from 'sentry/components/tooltip';
 import {IconCheckmark} from 'sentry/icons';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
@@ -12,47 +13,55 @@ function SelectOption(props: Props) {
   const {label, data, selectProps, isMulti, isSelected, isFocused, isDisabled} = props;
   const {showDividers, verticallyCenterCheckWrap} = selectProps;
   const {
+    value,
     details,
+    tooltip,
+    tooltipOptions = {delay: 500},
     leadingItems,
     trailingItems,
     leadingItemsSpanFullHeight,
     trailingItemsSpanFullHeight,
+    selectionMode,
   } = data;
 
+  const isMultiple = defined(selectionMode) ? selectionMode === 'multiple' : isMulti;
+
   return (
-    <selectComponents.Option {...props} className="select-option">
-      <InnerWrap isFocused={isFocused} isDisabled={isDisabled}>
-        <Indent isMulti={isMulti} centerCheckWrap={verticallyCenterCheckWrap}>
-          <CheckWrap isMulti={isMulti} isSelected={isSelected}>
-            {isSelected && (
-              <IconCheckmark
-                size={isMulti ? 'xs' : 'sm'}
-                color={isMulti ? 'white' : undefined}
-              />
+    <selectComponents.Option className="select-option" {...props}>
+      <Tooltip skipWrapper title={tooltip} {...tooltipOptions}>
+        <InnerWrap isFocused={isFocused} isDisabled={isDisabled} data-test-id={value}>
+          <Indent isMultiple={isMultiple} centerCheckWrap={verticallyCenterCheckWrap}>
+            <CheckWrap isMultiple={isMultiple} isSelected={isSelected}>
+              {isSelected && (
+                <IconCheckmark
+                  size={isMultiple ? 'xs' : 'sm'}
+                  color={isMultiple ? 'white' : undefined}
+                />
+              )}
+            </CheckWrap>
+            {leadingItems && (
+              <LeadingItems spanFullHeight={leadingItemsSpanFullHeight}>
+                {leadingItems}
+              </LeadingItems>
             )}
-          </CheckWrap>
-          {leadingItems && (
-            <LeadingItems spanFullHeight={leadingItemsSpanFullHeight}>
-              {leadingItems}
-            </LeadingItems>
-          )}
-        </Indent>
-        <ContentWrap
-          isFocused={isFocused}
-          showDividers={showDividers}
-          addRightMargin={!defined(trailingItems)}
-        >
-          <LabelWrap>
-            <Label as={typeof label === 'string' ? 'p' : 'div'}>{label}</Label>
-            {details && <Details>{details}</Details>}
-          </LabelWrap>
-          {trailingItems && (
-            <TrailingItems spanFullHeight={trailingItemsSpanFullHeight}>
-              {trailingItems}
-            </TrailingItems>
-          )}
-        </ContentWrap>
-      </InnerWrap>
+          </Indent>
+          <ContentWrap
+            isFocused={isFocused}
+            showDividers={showDividers}
+            addRightMargin={!defined(trailingItems)}
+          >
+            <LabelWrap>
+              <Label as={typeof label === 'string' ? 'p' : 'div'}>{label}</Label>
+              {details && <Details>{details}</Details>}
+            </LabelWrap>
+            {trailingItems && (
+              <TrailingItems spanFullHeight={trailingItemsSpanFullHeight}>
+                {trailingItems}
+              </TrailingItems>
+            )}
+          </ContentWrap>
+        </InnerWrap>
+      </Tooltip>
     </selectComponents.Option>
   );
 }
@@ -74,24 +83,24 @@ const InnerWrap = styled('div')<{isDisabled: boolean; isFocused: boolean}>`
   `}
 `;
 
-const Indent = styled('div')<{centerCheckWrap?: boolean; isMulti?: boolean}>`
+const Indent = styled('div')<{centerCheckWrap?: boolean; isMultiple?: boolean}>`
   display: flex;
   justify-content: center;
   gap: ${space(1)};
   padding: ${space(1)};
   padding-left: ${space(0.5)};
 
-  ${p => p.isMulti && !p.centerCheckWrap && `margin-top: 0.2em;`}
+  ${p => p.isMultiple && !p.centerCheckWrap && `margin-top: 0.2em;`}
   ${p => p.centerCheckWrap && 'align-items: center;'}
 `;
 
-const CheckWrap = styled('div')<{isMulti: boolean; isSelected: boolean}>`
+const CheckWrap = styled('div')<{isMultiple: boolean; isSelected: boolean}>`
   display: flex;
   justify-content: center;
   align-items: center;
 
   ${p =>
-    p.isMulti
+    p.isMultiple
       ? `
       width: 1em;
       height: 1em;

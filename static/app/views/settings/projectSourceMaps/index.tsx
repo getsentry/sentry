@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {cloneElement, isValidElement} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {Organization, Project} from 'sentry/types';
@@ -16,8 +16,8 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 
 function ProjectSourceMapsContainer(props: Props) {
   const {children, organization, project} = props;
-  return React.isValidElement(children)
-    ? React.cloneElement(children, {organization, project})
+  return isValidElement(children)
+    ? cloneElement(children, {organization, project})
     : null;
 }
 

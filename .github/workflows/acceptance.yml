@@ -182,7 +182,7 @@ jobs:
         python-version: [3.8.12]
         # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
         instance: [0, 1, 2, 3]
-        pg-version: ['9.6', '14']
+        pg-version: ['9.6']
     env:
       # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
       MATRIX_INSTANCE_TOTAL: 4
@@ -324,8 +324,8 @@ jobs:
       - name: Diff snapshots
         id: visual-snapshots-diff
         uses: getsentry/action-visual-snapshot@v2
-        # Do not execute on forks or on master. Forks are handled in visual-diff.yml
-        if: github.head_repository.full_name == 'getsentry/sentry' && github.ref != 'refs/heads/master'
+        # Forks are handled in visual-diff.yml
+        if: github.event.pull_request.head.repo.full_name == 'getsentry/sentry'
         with:
           api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
           gcs-bucket: 'sentry-visual-snapshots'

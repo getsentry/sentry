@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 
 import {loadSearchMap} from 'sentry/actionCreators/formSearch';
@@ -29,7 +29,7 @@ type State = {
   fuzzy: null | Fuse<FormSearchField>;
 };
 
-class FormSource extends React.Component<Props, State> {
+class FormSource extends Component<Props, State> {
   static defaultProps = {
     searchOptions: {},
   };
@@ -87,7 +87,7 @@ class FormSource extends React.Component<Props, State> {
 type ContainerProps = Omit<Props, 'searchMap'>;
 type ContainerState = Pick<Props, 'searchMap'>;
 
-class FormSourceContainer extends React.Component<ContainerProps, ContainerState> {
+class FormSourceContainer extends Component<ContainerProps, ContainerState> {
   state = {
     searchMap: FormSearchStore.get(),
   };
