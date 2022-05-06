@@ -395,7 +395,6 @@ type EventBase = {
     version: string;
   } | null;
   sdkUpdates?: Array<SDKUpdatesSuggestion>;
-  startTimestamp?: number;
   userReport?: any;
 };
 

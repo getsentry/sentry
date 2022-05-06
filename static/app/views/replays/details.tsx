@@ -14,6 +14,7 @@ import ReplayPlayer from 'sentry/components/replays/replayPlayer';
 import useFullscreen from 'sentry/components/replays/useFullscreen';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
+import space from 'sentry/styles/space';
 import {EntryType} from 'sentry/types/event';
 import useReplayData from 'sentry/utils/replays/useReplayData';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
@@ -105,8 +106,8 @@ function ReplayDetails() {
           </ReplayLayout>
           <Side>
             <UserActionsNavigator
+              crumbs={replay.getEntryType(EntryType.BREADCRUMBS)?.data.values || []}
               event={replay.getEvent()}
-              entry={replay.getEntryType(EntryType.BREADCRUMBS)}
             />
           </Side>
           <Layout.Main fullWidth>

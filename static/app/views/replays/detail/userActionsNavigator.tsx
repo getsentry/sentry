@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useState} from 'react';
 import styled from '@emotion/styled';
 
 import Type from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type';
@@ -16,24 +16,19 @@ import ActionCategory from 'sentry/components/replays/actionCategory';
 import PlayerRelativeTime from 'sentry/components/replays/playerRelativeTime';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
+import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Crumb, RawCrumb} from 'sentry/types/breadcrumbs';
-import {Event} from 'sentry/types/event';
+import {EventTransaction} from 'sentry/types/event';
 
 type Props = {
-  crumbs: RawCrumb[];
-  event: Event | undefined;
+  crumbs: Array<RawCrumb>;
+  event: EventTransaction;
 };
 
 function UserActionsNavigator({event, crumbs}: Props) {
   const {setCurrentTime} = useReplayContext();
   const [currentUserAction, setCurrentUserAction] = useState<Crumb>();
-
-  useEffect(() => {
-    currentUserAction?.timestamp &&
-      startTimestamp &&
-      setCurrentTime(relativeTimeInMs(currentUserAction.timestamp, startTimestamp));
-  }, [currentUserAction]);
 
   if (!event) {
     return null;
@@ -44,7 +39,7 @@ function UserActionsNavigator({event, crumbs}: Props) {
 
   return (
     <Panel>
-      <PanelHeader>Event Chapters</PanelHeader>
+      <PanelHeader>{t('Event Chapters')}</PanelHeader>
 
       <PanelBody>
         {userActionCrumbs.map(item => (
@@ -55,6 +50,9 @@ function UserActionsNavigator({event, crumbs}: Props) {
             }
             onClick={() => {
               setCurrentUserAction(item);
+              item.timestamp
+                ? setCurrentTime(relativeTimeInMs(item.timestamp, startTimestamp))
+                : '';
             }}
           >
             <Wrapper>
