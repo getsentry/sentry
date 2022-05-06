@@ -9,7 +9,7 @@ import {IconArrow, IconPause, IconPlay, IconRefresh, IconResize} from 'sentry/ic
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
-import OptionSelector from '../charts/optionSelector';
+import CompactSelect from '../forms/compactSelect';
 
 import {formatTime} from './utils';
 
@@ -63,8 +63,8 @@ function ReplayCurrentTime() {
 function ReplayPlaybackSpeed({speedOptions}: {speedOptions: number[]}) {
   const {setSpeed, speed} = useReplayContext();
   return (
-    <StyledOptionSelector
-      title={t('Speed')}
+    <CompactSelect
+      title={`${t('Speed')}`}
       selected={`${speed}`}
       options={speedOptions.map(speedOption => ({
         value: speedOption,
@@ -124,11 +124,6 @@ const ButtonGrid = styled('div')`
   grid-column-gap: ${space(1)};
   grid-template-columns: max-content auto max-content max-content max-content;
   align-items: center;
-`;
-
-const StyledOptionSelector = styled(OptionSelector)`
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
 `;
 
 export default ReplayControls;
