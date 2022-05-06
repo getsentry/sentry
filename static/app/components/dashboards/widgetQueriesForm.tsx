@@ -33,12 +33,10 @@ export const generateOrderOptions = ({
   columns,
   widgetType,
   widgetBuilderNewDesign = false,
-  isUsingFieldFormat = false,
 }: {
   aggregates: string[];
   columns: string[];
   widgetType: WidgetType;
-  isUsingFieldFormat?: boolean;
   widgetBuilderNewDesign?: boolean;
 }): SelectValue<string>[] => {
   const isRelease = widgetType === WidgetType.RELEASE;
@@ -47,9 +45,8 @@ export const generateOrderOptions = ({
   (isRelease ? aggregates.map(stripDerivedMetricsPrefix) : [...aggregates, ...columns])
     .filter(field => !!field)
     .forEach(field => {
-      let alias = getAggregateAlias(field);
+      let alias;
       const label = stripEquationPrefix(field);
-      const shouldUseField = (isRelease || isUsingFieldFormat) && !isEquation(field);
       // Equations are referenced via a standard alias following this pattern
       if (isEquation(field)) {
         alias = `equation[${equations}]`;
@@ -57,18 +54,18 @@ export const generateOrderOptions = ({
       }
 
       if (widgetBuilderNewDesign) {
-        options.push({label, value: shouldUseField ? field : alias});
+        options.push({label, value: alias ?? field});
         return;
       }
 
       options.push({
         label: t('%s asc', label),
-        value: shouldUseField ? field : alias,
+        value: alias ?? field,
       });
 
       options.push({
         label: t('%s desc', label),
-        value: shouldUseField ? `-${field}` : `-${alias}`,
+        value: `-${alias ?? field}`,
       });
     });
 

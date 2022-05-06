@@ -135,7 +135,6 @@ export function SortByStep({
                     widgetBuilderNewDesign: true,
                     columns: queries[0].columns,
                     aggregates: queries[0].aggregates,
-                    isUsingFieldFormat: true,
                   })
             }
             values={{
@@ -187,7 +186,6 @@ export function SortByStep({
                   widgetType,
                   columns: queries[0].columns,
                   aggregates: queries[0].aggregates,
-                  isUsingFieldFormat: true,
                 })
               : generateIssueWidgetOrderOptions(
                   organization.features.includes('issue-list-trend-sort')

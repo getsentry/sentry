@@ -716,7 +716,6 @@ function WidgetBuilder({
           widgetBuilderNewDesign,
           columns: query.columns,
           aggregates: query.aggregates,
-          isUsingFieldFormat: true,
         })[0].value;
         newQuery.orderby = `${prefix}${orderOption}`;
       } else if (

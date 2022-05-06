@@ -1611,7 +1611,7 @@ describe('WidgetBuilder', function () {
       await waitFor(() => {
         expect(router.push).toHaveBeenCalledWith(
           expect.objectContaining({
-            query: expect.objectContaining({queryOrderby: 'count'}),
+            query: expect.objectContaining({queryOrderby: 'count()'}),
           })
         );
       });

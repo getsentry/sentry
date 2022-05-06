@@ -155,7 +155,6 @@ export function normalizeQueries({
               widgetBuilderNewDesign,
               columns: queries[0].columns,
               aggregates: queries[0].aggregates,
-              isUsingFieldFormat: true,
             })[0].value);
 
       // A widget should be descending if:
