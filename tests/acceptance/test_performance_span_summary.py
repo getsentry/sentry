@@ -82,6 +82,8 @@ class PerformanceSpanSummaryTest(AcceptanceTestCase, SnubaTestCase):
 
         data = load_data("transaction", **kwargs)
         data["transaction"] = "root transaction"
+        data["event_id"] = "c" * 32
+        data["contexts"]["trace"]["trace_id"] = "a" * 32
 
         return self.store_event(data, project_id=self.project.id)
 
