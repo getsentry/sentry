@@ -1,4 +1,4 @@
-import createHighlightEvents from 'sentry/views/replays/utils/createHighlightEvents';
+import createHighlightEvents from 'sentry/utils/replays/createHighlightEvents';
 
 function createSpan(extra: Record<string, any>) {
   return {

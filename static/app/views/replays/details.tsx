@@ -14,12 +14,13 @@ import ReplayPlayer from 'sentry/components/replays/replayPlayer';
 import useFullscreen from 'sentry/components/replays/useFullscreen';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
+import {EntryType} from 'sentry/types/event';
+import useReplayData from 'sentry/utils/replays/useReplayData';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 
 import DetailLayout from './detail/detailLayout';
 import FocusArea from './detail/focusArea';
 import UserActionsNavigator from './detail/userActionsNavigator';
-import useReplayEvent from './utils/useReplayEvent';
 
 function ReplayDetails() {
   const {
@@ -31,18 +32,8 @@ function ReplayDetails() {
     t: initialTimeOffset, // Time, in seconds, where the video should start
   } = location.query;
 
-  const {
-    breadcrumbEntry,
-    event,
-    mergedReplayEvent,
-    memorySpans,
-    fetchError,
-    fetching,
-    onRetry,
-    replay,
-  } = useReplayEvent({
+  const {fetchError, fetching, onRetry, replay} = useReplayData({
     eventSlug,
-    location,
     orgId,
   });
 
@@ -94,9 +85,9 @@ function ReplayDetails() {
       initialTimeOffset={initialTimeOffset}
     >
       <DetailLayout
-        event={event}
+        event={replay.getEvent()}
         orgId={orgId}
-        crumbs={breadcrumbEntry?.data.values || []}
+        crumbs={replay.getEntryType(EntryType.BREADCRUMBS)?.data.values || []}
       >
         <Layout.Body>
           <ReplayLayout ref={fullscreenRef}>
@@ -113,17 +104,18 @@ function ReplayDetails() {
             </Panel>
           </ReplayLayout>
           <Layout.Side>
-            <UserActionsNavigator event={event} entry={breadcrumbEntry} />
+            <UserActionsNavigator
+              event={replay.getEvent()}
+              entry={replay.getEntryType(EntryType.BREADCRUMBS)}
+            />
           </Layout.Side>
           <Layout.Main fullWidth>
             <Panel>
-              <BreadcrumbTimeline crumbs={breadcrumbEntry?.data.values || []} />
+              <BreadcrumbTimeline
+                crumbs={replay.getEntryType(EntryType.BREADCRUMBS)?.data.values || []}
+              />
             </Panel>
-            <FocusArea
-              event={replay.getEvent()}
-              eventWithSpans={mergedReplayEvent}
-              memorySpans={memorySpans}
-            />
+            <FocusArea replay={replay} />
           </Layout.Main>
         </Layout.Body>
       </DetailLayout>
