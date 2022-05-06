@@ -95,7 +95,7 @@ describe('Onboarding', function () {
       },
     });
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/javascript-nextslug/`,
+      url: `/projects/${organization.slug}/ruby-slug/`,
       body: {
         firstEvent: false,
       },
@@ -103,6 +103,14 @@ describe('Onboarding', function () {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/javascript-nextslug/docs/javascript-nextjs/`,
       body: null,
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/ruby-slug/docs/ruby/`,
+      body: null,
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/ruby-slug/issues/`,
+      body: [],
     });
     ProjectsStore.loadInitialData(projects);
     OrganizationStore.onUpdate(organization);
