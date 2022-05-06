@@ -67,7 +67,7 @@ function ReplayPlaybackSpeed({speedOptions}: {speedOptions: number[]}) {
       title={`${t('Speed')}`}
       selected={`${speed}`}
       options={speedOptions.map(speedOption => ({
-        value: `${speedOption}`,
+        value: speedOption,
         label: `${speedOption}x`,
         disabled: speedOption === speed,
       }))}
