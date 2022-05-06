@@ -104,9 +104,7 @@ FUNCTION_ALLOWLIST = ("and", "or", "equals", "in")
 def resolve_tags(org_id: int, input_: Any) -> Any:
     """Translate tags in snuba condition
 
-    This assumes that all strings are either tag names or tag values, so do not
-    pass Column("metric_id") or Column("project_id") into this function.
-
+    Column("metric_id") is not supported.
     """
     if input_ is None:
         return None
