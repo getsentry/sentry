@@ -7,7 +7,7 @@ import {
 } from 'sentry/types/breadcrumbs';
 import {defined} from 'sentry/utils';
 
-function convertCrumbType(breadcrumb: RawCrumb): RawCrumb {
+export function convertCrumbType(breadcrumb: RawCrumb): RawCrumb {
   if (breadcrumb.type === BreadcrumbType.EXCEPTION) {
     return {
       ...breadcrumb,
@@ -146,4 +146,18 @@ export function transformCrumbs(breadcrumbs: Array<RawCrumb>): Crumb[] {
       level: convertedCrumbType.level ?? BreadcrumbLevelType.UNDEFINED,
     };
   });
+}
+
+// In the future if we want to show more items at
+// the EventChapter, we should add to this array.
+const USER_ACTIONS = [
+  BreadcrumbType.HTTP,
+  BreadcrumbType.USER,
+  BreadcrumbType.UI,
+  BreadcrumbType.ERROR,
+  BreadcrumbType.NAVIGATION,
+];
+
+export function onlyUserActions(crumbs: Crumb[]): Crumb[] {
+  return crumbs.filter(crumb => USER_ACTIONS.includes(crumb.type));
 }
