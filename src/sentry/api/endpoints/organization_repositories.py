@@ -1,3 +1,4 @@
+from django.db.models import Q
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -23,11 +24,15 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
         Return a list of version control repositories for a given organization.
 
         :pparam string organization_slug: the organization short name
+        :qparam string query: optional filter by repository name
         :auth: required
         """
         queryset = Repository.objects.filter(organization_id=organization.id)
 
         status = request.GET.get("status", "active")
+        query = request.GET.get("query")
+        if query:
+            queryset = queryset.filter(Q(name__icontains=query))
         if status == "active":
             queryset = queryset.filter(status=ObjectStatus.VISIBLE)
         elif status == "deleted":

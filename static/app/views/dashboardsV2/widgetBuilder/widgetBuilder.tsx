@@ -235,33 +235,11 @@ function WidgetBuilder({
   const api = useApi();
 
   const [state, setState] = useState<State>(() => {
-    const queries = normalizeQueries({
-      displayType: displayType ?? DisplayType.TABLE,
-      queries: [
-        defaultWidgetQuery
-          ? widgetBuilderNewDesign
-            ? {
-                ...defaultWidgetQuery,
-                orderby:
-                  defaultWidgetQuery.orderby ||
-                  generateOrderOptions({
-                    widgetType: WidgetType.DISCOVER,
-                    widgetBuilderNewDesign,
-                    columns: defaultWidgetQuery.columns,
-                    aggregates: defaultWidgetQuery.aggregates,
-                  })[0].value,
-              }
-            : {...defaultWidgetQuery}
-          : {...getDataSetQuery(widgetBuilderNewDesign)[DataSet.EVENTS]},
-      ],
-      widgetType: WidgetType.DISCOVER,
-      widgetBuilderNewDesign,
-    });
-    return {
+    const defaultState: State = {
       title: defaultTitle ?? t('Custom Widget'),
       displayType: displayType ?? DisplayType.TABLE,
       interval: '5m',
-      queries,
+      queries: [],
       limit,
       errors: undefined,
       loading: !!notDashboardsOrigin,
@@ -269,6 +247,36 @@ function WidgetBuilder({
       userHasModified: false,
       dataSet: DataSet.EVENTS,
     };
+
+    if (defaultWidgetQuery) {
+      if (widgetBuilderNewDesign) {
+        defaultState.queries = [
+          {
+            ...defaultWidgetQuery,
+            orderby:
+              defaultWidgetQuery.orderby ||
+              generateOrderOptions({
+                widgetType: WidgetType.DISCOVER,
+                widgetBuilderNewDesign,
+                columns: defaultWidgetQuery.columns,
+                aggregates: defaultWidgetQuery.aggregates,
+              })[0].value,
+          },
+        ];
+      } else {
+        defaultState.queries = [{...defaultWidgetQuery}];
+      }
+
+      if (![DisplayType.TABLE, DisplayType.TOP_N].includes(defaultState.displayType)) {
+        defaultState.queries[0].orderby = '';
+      }
+    } else {
+      defaultState.queries = [
+        {...getDataSetQuery(widgetBuilderNewDesign)[DataSet.EVENTS]},
+      ];
+    }
+
+    return defaultState;
   });
 
   const [widgetToBeUpdated, setWidgetToBeUpdated] = useState<Widget | null>(null);
@@ -419,6 +427,9 @@ function WidgetBuilder({
               query.columns = [...tableQuery.columns];
               query.aggregates = [...tableQuery.aggregates];
               query.fields = [...defaultTableColumns];
+              query.orderby =
+                defaultWidgetQuery.orderby ??
+                (query.fields.length ? `${query.fields[0]}` : '-');
             });
           } else if (newDisplayType === displayType) {
             // When switching back to original display type, default fields back to the fields provided from the discover query
@@ -429,7 +440,10 @@ function WidgetBuilder({
               ];
               query.aggregates = [...defaultWidgetQuery.aggregates];
               query.columns = [...defaultWidgetQuery.columns];
-              if (!!defaultWidgetQuery.orderby) {
+              if (
+                !!defaultWidgetQuery.orderby &&
+                (displayType === DisplayType.TOP_N || defaultWidgetQuery.columns.length)
+              ) {
                 query.orderby = defaultWidgetQuery.orderby;
               }
             });

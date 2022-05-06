@@ -1,7 +1,8 @@
 from unittest.mock import MagicMock, patch
 
+from sentry import audit_log
 from sentry.mediators.sentry_apps import InternalCreator
-from sentry.models import AuditLogEntryEvent, SentryApp, SentryAppInstallation
+from sentry.models import SentryApp, SentryAppInstallation
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.faux import faux
 
@@ -73,7 +74,7 @@ class TestInternalCreator(TestCase):
         call = faux(create_audit_entry)
         assert call.kwarg_equals("organization", self.org)
         assert call.kwarg_equals("target_object", self.org.id)
-        assert call.kwarg_equals("event", AuditLogEntryEvent.INTERNAL_INTEGRATION_ADD)
+        assert call.kwarg_equals("event", audit_log.get_event_id("INTERNAL_INTEGRATION_ADD"))
 
     @patch("sentry.analytics.record")
     @patch("sentry.utils.audit.create_audit_entry")

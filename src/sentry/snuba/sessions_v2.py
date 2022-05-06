@@ -456,11 +456,15 @@ def _run_sessions_query(query):
     interval.
     """
 
+    num_intervals = len(get_timestamps(query))
+    if num_intervals == 0:
+        return [], []
+
     # We only return the top-N groups, based on the first field that is being
     # queried, assuming that those are the most relevant to the user.
     # In a future iteration we might expose an `orderBy` query parameter.
     orderby = [f"-{query.primary_column}"]
-    max_groups = SNUBA_LIMIT // len(get_timestamps(query))
+    max_groups = SNUBA_LIMIT // num_intervals
 
     result_totals = raw_query(
         dataset=Dataset.Sessions,
@@ -616,6 +620,7 @@ def get_timestamps(query):
     rollup = query.rollup
     start = int(to_timestamp(query.start))
     end = int(to_timestamp(query.end))
+
     return [datetime.utcfromtimestamp(ts).isoformat() + "Z" for ts in range(start, end, rollup)]
 
 

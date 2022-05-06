@@ -688,7 +688,6 @@ class SnubaTagStorage(TagStorage):
         end=None,
         query=None,
         order_by="-last_seen",
-        sampling=False,
     ):
         return self.get_tag_value_paginator_for_projects(
             get_project_list(project_id),
@@ -903,7 +902,6 @@ class SnubaTagStorage(TagStorage):
         order_by="-last_seen",
         include_transactions=False,
         include_sessions=False,
-        sampling=False,
     ):
         from sentry.api.paginator import SequencePaginator
 
@@ -1057,7 +1055,7 @@ class SnubaTagStorage(TagStorage):
             # TODO: This means they can't actually paginate all TagValues.
             limit=1000,
             # 1 mill chosen arbitrarily, based it on a query that was timing out, and took 8s once this was set
-            sample=1_000_000 if sampling else None,
+            sample=1_000_000,
             arrayjoin=snuba.get_arrayjoin(snuba_key),
             referrer="tagstore.get_tag_value_paginator_for_projects",
         )

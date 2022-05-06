@@ -83,31 +83,6 @@ describe('EventsV2 > ResultsChart', function () {
     );
   });
 
-  it('disables other y-axis options when not in default, daily, previous period, or bar display mode', function () {
-    eventView.display = DisplayModes.WORLDMAP;
-    const wrapper = mountWithTheme(
-      <ResultsChart
-        router={TestStubs.router()}
-        organization={organization}
-        eventView={eventView}
-        location={location}
-        onAxisChange={() => undefined}
-        onDisplayChange={() => undefined}
-        total={1}
-        confirmedQuery
-        yAxis={['count()']}
-        onTopEventsChange={() => {}}
-      />,
-      initialData.routerContext
-    );
-    const yAxisOptions = wrapper.find('ChartFooter').props().yAxisOptions;
-    yAxisOptions.forEach(({value, disabled}) => {
-      if (value !== 'count()') {
-        expect(disabled).toBe(true);
-      }
-    });
-  });
-
   it('disables equation y-axis options when in World Map display mode', function () {
     eventView.display = DisplayModes.WORLDMAP;
     eventView.fields = [

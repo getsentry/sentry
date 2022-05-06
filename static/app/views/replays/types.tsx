@@ -12,7 +12,17 @@ export type Replay = {
   'user.username': string;
 };
 
-export type TabBarId = 'console' | 'performance' | 'errors' | 'tags' | 'memory';
+export enum ReplayTabs {
+  CONSOLE = 'console',
+  PERFORMANCE = 'performance',
+  ISSUES = 'issues',
+  TAGS = 'tags',
+  MEMORY = 'memory',
+}
+
+export function isReplayTab(tab: string): tab is ReplayTabs {
+  return tab.toUpperCase() in ReplayTabs;
+}
 
 /**
  * Highlight Replay Plugin types

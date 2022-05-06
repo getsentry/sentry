@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
@@ -93,7 +93,7 @@ type Props = {
  * Contain widget queries interactions and signal changes via the onChange
  * callback. This component's state should live in the parent.
  */
-class WidgetQueriesForm extends React.Component<Props> {
+class WidgetQueriesForm extends Component<Props> {
   componentWillUnmount() {
     window.clearTimeout(this.blurTimeout);
   }

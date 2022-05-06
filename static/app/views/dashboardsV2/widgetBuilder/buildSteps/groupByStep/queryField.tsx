@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import {DraggableSyntheticListeners, UseDraggableArguments} from '@dnd-kit/core';
 import styled from '@emotion/styled';
 
@@ -40,7 +40,7 @@ export function QueryField({
   return (
     <QueryFieldWrapper ref={forwardRef} style={style}>
       {isDragging ? null : (
-        <React.Fragment>
+        <Fragment>
           {canDrag && (
             <DragAndReorderButton
               {...listeners}
@@ -68,7 +68,7 @@ export function QueryField({
               aria-label={t('Remove group')}
             />
           )}
-        </React.Fragment>
+        </Fragment>
       )}
     </QueryFieldWrapper>
   );

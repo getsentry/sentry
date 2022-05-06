@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import Access from 'sentry/components/acl/access';
 import Alert from 'sentry/components/alert';
 import {t} from 'sentry/locale';

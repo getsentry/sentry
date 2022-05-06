@@ -16,10 +16,12 @@ from typing import (
     MutableMapping,
     NamedTuple,
     Optional,
+    Sequence,
     Set,
     Union,
 )
 
+import sentry_sdk
 from arroyo.backends.abstract import Producer as AbstractProducer
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload, KafkaProducer
 from arroyo.processing import StreamProcessor
@@ -37,6 +39,10 @@ from sentry.utils.batching_kafka_consumer import create_topics
 
 DEFAULT_QUEUED_MAX_MESSAGE_KBYTES = 50000
 DEFAULT_QUEUED_MIN_MESSAGES = 100000
+
+MAX_NAME_LENGTH = 200
+MAX_TAG_KEY_LENGTH = 200
+MAX_TAG_VALUE_LENGTH = 200
 
 logger = logging.getLogger(__name__)
 
@@ -331,6 +337,26 @@ class ProduceStep(ProcessingStep[MessageBatch]):  # type: ignore
         self.__producer.close()
 
 
+def valid_metric_name(name: Optional[str]) -> bool:
+    if name is None:
+        return False
+    if len(name) > MAX_NAME_LENGTH:
+        return False
+
+    return True
+
+
+def invalid_metric_tags(tags: Mapping[str, str]) -> Sequence[str]:
+    invalid_strs: List[str] = []
+    for key, value in tags.items():
+        if key is None or len(key) > MAX_TAG_KEY_LENGTH:
+            invalid_strs.append(key)
+        if value is None or len(value) > MAX_TAG_VALUE_LENGTH:
+            invalid_strs.append(value)
+
+    return invalid_strs
+
+
 def process_messages(
     outer_message: Message[MessageBatch],
 ) -> MessageBatch:
@@ -357,15 +383,41 @@ def process_messages(
 
     org_strings = defaultdict(set)
     strings = set()
+    skipped_offsets = set()
     with metrics.timer("process_messages.parse_outer_message"):
         parsed_payloads_by_offset = {
             msg.offset: json.loads(msg.payload.value.decode("utf-8"), use_rapid_json=True)
             for msg in outer_message.payload
         }
-        for message in parsed_payloads_by_offset.values():
+        for offset, message in parsed_payloads_by_offset.items():
             metric_name = message["name"]
             org_id = message["org_id"]
             tags = message.get("tags", {})
+
+            if not valid_metric_name(metric_name):
+                logger.error(
+                    "process_messages.invalid_metric_name",
+                    extra={"org_id": org_id, "metric_name": metric_name, "offset": offset},
+                )
+                skipped_offsets.add(offset)
+                continue
+
+            invalid_strs = invalid_metric_tags(tags)
+
+            if invalid_strs:
+                # sentry doesn't seem to actually capture nested logger.error extra args
+                sentry_sdk.set_extra("all_metric_tags", tags)
+                logger.error(
+                    "process_messages.invalid_tags",
+                    extra={
+                        "org_id": org_id,
+                        "metric_name": metric_name,
+                        "invalid_tags": invalid_strs,
+                        "offset": offset,
+                    },
+                )
+                skipped_offsets.add(offset)
+                continue
 
             parsed_strings = {
                 metric_name,
@@ -384,6 +436,9 @@ def process_messages(
 
     with metrics.timer("process_messages.reconstruct_messages"):
         for message in outer_message.payload:
+            if message.offset in skipped_offsets:
+                logger.info("process_message.offset_skipped", extra={"offset": message.offset})
+                continue
             parsed_payload_value = parsed_payloads_by_offset[message.offset]
             new_payload_value = deepcopy(parsed_payload_value)
 
