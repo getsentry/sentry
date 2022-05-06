@@ -4,26 +4,34 @@ import {Location} from 'history';
 
 import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import {
   flamegraphRouteWithQuery,
+  functionsRouteWithQuery,
   profilingRouteWithQuery,
 } from 'sentry/views/profiling/routes';
 
 type ProfilingTrail = {
-  type: 'profiling';
+  type: 'landing';
+};
+
+type FunctionsTrail = {
+  payload: {
+    projectSlug: Project['slug'];
+    transaction: string;
+    version: string;
+  };
+  type: 'functions';
 };
 
 type FlamegraphTrail = {
   payload: {
-    interactionName: string;
     profileId: string;
     projectSlug: string;
+    transaction: string;
   };
   type: 'flamegraph';
 };
-
-type Trail = ProfilingTrail | FlamegraphTrail;
 
 interface BreadcrumbProps {
   location: Location;
@@ -50,13 +58,26 @@ function trailToCrumb(
   }
 ): Crumb {
   switch (trail.type) {
-    case 'profiling': {
+    case 'landing': {
       return {
         to: profilingRouteWithQuery({
           location,
           orgSlug: organization.slug,
         }),
         label: t('Profiling'),
+        preservePageFilters: true,
+      };
+    }
+    case 'functions': {
+      return {
+        to: functionsRouteWithQuery({
+          location,
+          orgSlug: organization.slug,
+          projectSlug: trail.payload.projectSlug,
+          transaction: trail.payload.transaction,
+          version: trail.payload.version,
+        }),
+        label: t('Functions'),
         preservePageFilters: true,
       };
     }
@@ -68,7 +89,7 @@ function trailToCrumb(
           projectSlug: trail.payload.projectSlug,
           profileId: trail.payload.profileId,
         }),
-        label: trail.payload.interactionName,
+        label: trail.payload.transaction,
         preservePageFilters: true,
       };
     }
@@ -76,6 +97,8 @@ function trailToCrumb(
       throw new Error(`Unknown breadcrumb type: ${JSON.stringify(trail)}`);
   }
 }
+
+type Trail = ProfilingTrail | FunctionsTrail | FlamegraphTrail;
 
 const StyledBreadcrumbs = styled(Breadcrumbs)`
   padding: 0;

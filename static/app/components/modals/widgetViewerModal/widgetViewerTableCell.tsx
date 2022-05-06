@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject} from 'history';
 
@@ -191,7 +191,7 @@ export const renderGridBodyCell =
     }
 
     return (
-      <React.Fragment>
+      <Fragment>
         {isTopEvents &&
         isFirstPage &&
         rowIndex < DEFAULT_NUM_TOP_EVENTS &&
@@ -199,7 +199,7 @@ export const renderGridBodyCell =
           <TopResultsIndicator count={DEFAULT_NUM_TOP_EVENTS} index={rowIndex} />
         ) : null}
         {cell}
-      </React.Fragment>
+      </Fragment>
     );
   };
 

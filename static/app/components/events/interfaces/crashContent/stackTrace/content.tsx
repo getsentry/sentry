@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {cloneElement, Component} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
@@ -33,7 +33,7 @@ type State = {
   showingAbsoluteAddresses: boolean;
 };
 
-class Content extends React.Component<Props, State> {
+class Content extends Component<Props, State> {
   static defaultProps: DefaultProps = {
     includeSystemFrames: true,
     expandFirstFrame: true,
@@ -243,7 +243,7 @@ class Content extends React.Component<Props, State> {
 
     if (frames.length > 0 && data.registers) {
       const lastFrame = frames.length - 1;
-      frames[lastFrame] = React.cloneElement(frames[lastFrame], {
+      frames[lastFrame] = cloneElement(frames[lastFrame], {
         registers: data.registers,
       });
     }

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
@@ -151,7 +151,7 @@ function FeatureWrapper(props: FeatureWrapperProps) {
 
 function HeaderActions(props: Props) {
   return (
-    <React.Fragment>
+    <Fragment>
       <FeatureWrapper {...props} key="edit">
         {renderEditButton}
       </FeatureWrapper>
@@ -159,7 +159,7 @@ function HeaderActions(props: Props) {
         {renderDownloadButton}
       </FeatureWrapper>
       {renderSummaryButton(props)}
-    </React.Fragment>
+    </Fragment>
   );
 }
 

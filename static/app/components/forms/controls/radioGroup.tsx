@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
@@ -63,7 +63,7 @@ const RadioGroup = <C extends string>({
       const disabledChoiceReason = disabledChoice?.[1];
       const disabled = !!disabledChoice || groupDisabled;
       const content = (
-        <React.Fragment>
+        <Fragment>
           <RadioLineItem
             role="radio"
             index={index}
@@ -80,14 +80,14 @@ const RadioGroup = <C extends string>({
             />
             <RadioLineText disabled={disabled}>{name}</RadioLineText>
             {description && (
-              <React.Fragment>
+              <Fragment>
                 {/* If there is a description then we want to have a 2x2 grid so the first column width aligns with Radio Button */}
                 <div />
                 <Description>{description}</Description>
-              </React.Fragment>
+              </Fragment>
             )}
           </RadioLineItem>
-        </React.Fragment>
+        </Fragment>
       );
 
       if (!!disabledChoiceReason) {
@@ -98,7 +98,7 @@ const RadioGroup = <C extends string>({
         );
       }
 
-      return <React.Fragment key={index}>{content}</React.Fragment>;
+      return <Fragment key={index}>{content}</Fragment>;
     })}
   </Container>
 );

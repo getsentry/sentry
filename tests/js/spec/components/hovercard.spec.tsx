@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -15,7 +15,7 @@ describe('Hovercard', () => {
 
   it('reuses portal', () => {
     render(
-      <React.Fragment>
+      <Fragment>
         <Hovercard
           position="top"
           body="Hovercard Body"
@@ -32,7 +32,7 @@ describe('Hovercard', () => {
         >
           Hovercard Trigger
         </Hovercard>
-      </React.Fragment>
+      </Fragment>
     );
 
     // eslint-disable-next-line
