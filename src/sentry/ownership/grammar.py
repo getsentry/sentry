@@ -27,7 +27,7 @@ from rest_framework.serializers import ValidationError
 from sentry.eventstore.models import EventSubjectTemplateData
 from sentry.models import ActorTuple, RepositoryProjectPathConfig
 from sentry.utils.glob import glob_match
-from sentry.utils.safe import get_path
+from sentry.utils.safe import PathSearchable, get_path
 
 __all__ = ("parse_rules", "dump_schema", "load_schema")
 
@@ -73,9 +73,6 @@ _       = space*
 
 """
 )
-
-
-PathSearchable = Union[Mapping[str, Any], Sequence[Any]]
 
 
 class Rule(namedtuple("Rule", "matcher owners")):
