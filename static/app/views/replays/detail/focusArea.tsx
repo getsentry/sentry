@@ -57,7 +57,7 @@ function ActiveTab({active, replay}: Props & {active: ReplayTabs}) {
       ]);
       return (
         <div id="console">
-          <Console consoleMessages={consoleMessages ?? []} />
+          <Console breadcrumbs={consoleMessages ?? []} orgSlug={organization.slug} />
         </div>
       );
     case 'performance': {

@@ -1,21 +1,28 @@
 import styled from '@emotion/styled';
 
+import Default from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/data/default';
+import Exception from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/data/exception';
 import {Panel} from 'sentry/components/panels';
 import space from 'sentry/styles/space';
-import type {BreadcrumbTypeConsole} from 'sentry/types/breadcrumbs';
+import {BreadcrumbType, BreadcrumbTypeDefault} from 'sentry/types/breadcrumbs';
 
 interface Props {
-  consoleMessages: BreadcrumbTypeConsole[];
+  breadcrumbs: BreadcrumbTypeDefault[];
+  orgSlug: string;
   className?: string;
 }
 
-function BaseConsole({className, consoleMessages}: Props) {
+function BaseConsole({className, breadcrumbs, orgSlug}: Props) {
   return (
     <Panel className={className}>
-      {consoleMessages.map((message, i) => {
+      {breadcrumbs.map((breadcrumb, i) => {
         return (
-          <Row key={i} isLast={i === consoleMessages.length - 1}>
-            {message.message}
+          <Row key={i} isLast={i === breadcrumbs.length - 1}>
+            {[BreadcrumbType.WARNING, BreadcrumbType.ERROR].includes(breadcrumb.type) ? (
+              <Exception breadcrumb={breadcrumb} searchTerm="" />
+            ) : (
+              <Default orgSlug={orgSlug} breadcrumb={breadcrumb} searchTerm="" />
+            )}
           </Row>
         );
       })}
