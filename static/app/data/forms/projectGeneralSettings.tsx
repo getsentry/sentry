@@ -7,6 +7,7 @@ import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import slugify from 'sentry/utils/slugify';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/projects/:projectId/';
@@ -45,12 +46,14 @@ export const fields: Record<string, Field> = {
     label: t('Name'),
     placeholder: t('My Awesome Project'),
     help: t('A name for this project'),
+    transformInput: slugify,
     getData: (data: {name?: string}) => {
       return {
         name: data.name,
-        slug: data.name?.replace(/\s+/g, '-').toLowerCase(),
+        slug: data.name,
       };
     },
+
     saveOnBlur: false,
     saveMessageAlertType: 'info',
     saveMessage: t('You will be redirected to the new project slug after saving'),

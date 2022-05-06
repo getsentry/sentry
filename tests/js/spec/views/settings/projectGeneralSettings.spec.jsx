@@ -340,7 +340,7 @@ describe('projectGeneralSettings', function () {
     // updates ProjectsStore
     expect(ProjectsStore.itemsById['2'].slug).toBe('new-project');
     expect(browserHistory.replace).toHaveBeenCalled();
-    expect(wrapper.find('Input[name="name"]').prop('value')).toBe('New Project');
+    expect(wrapper.find('Input[name="name"]').prop('value')).toBe('new-project');
 
     wrapper.setProps({
       projectId: 'new-project',
