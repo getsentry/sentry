@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import type {eventWithTime} from 'rrweb/typings/types';
 
@@ -39,12 +39,12 @@ type State = {
 
 type Options = {
   /**
-   * When provided, fetches specified replay event by slug
+   * The projectSlug and eventId concatenated together
    */
   eventSlug: string;
 
   /**
-   *
+   * The organization slug
    */
   orgId: string;
 };
@@ -134,27 +134,6 @@ function useReplayEvent({eventSlug, orgId}: Options): Result {
           fetchReplayEvents(),
         ]);
 
-        // const breadcrumbEntry = mergeBreadcrumbsEntries(replayEvents || [], event);
-        // const mergedReplayEvent = mergeEventsWithSpans(replayEvents || []);
-        // const memorySpans =
-        //   mergedReplayEvent?.entries[0]?.data?.filter(datum => datum?.data?.memory) || [];
-
-        // if (mergedReplayEvent.entries[0]) {
-        //   mergedReplayEvent.entries[0].data = mergedReplayEvent?.entries[0]?.data?.filter(
-        //     datum => !datum?.data?.memory
-        //   );
-        // }
-
-        // // Find LCP spans that have a valid replay node id, this will be used to
-        // const highlights = createHighlightEvents(mergedReplayEvent?.entries[0].data);
-
-        // // TODO(replays): ideally this would happen on SDK, but due
-        // // to how plugins work, we are unable to specify a timestamp for an event
-        // // (rrweb applies it), so it's possible actual LCP timestamp does not
-        // // match when the observer happens and we emit an rrweb event (will
-        // // look into this)
-        // const rrwebEventsWithHighlights = mergeAndSortEvents(rrwebEvents, highlights);
-
         setState({
           event,
           fetchError: undefined,
@@ -185,18 +164,15 @@ function useReplayEvent({eventSlug, orgId}: Options): Result {
     setRetry(true);
   }, []);
 
+  const replay = useMemo(() => {
+    return ReplayReader.factory(state.event, state.rrwebEvents, state.replayEvents);
+  }, [state.event, state.rrwebEvents, state.replayEvents]);
+
   return {
     fetchError: state.fetchError,
     fetching: state.fetching,
     onRetry,
-    replay: ReplayReader.factory(state.event, state.rrwebEvents, state.replayEvents),
-
-    // breadcrumbEntry: state.breadcrumbEntry,
-    // event: state.event,
-    // replayEvents: state.replayEvents,
-    // rrwebEvents: state.rrwebEvents,
-    // mergedReplayEvent: state.mergedReplayEvent,
-    // memorySpans: state.memorySpans,
+    replay,
   };
 }
 
