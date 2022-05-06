@@ -106,7 +106,14 @@ def _symbolicate(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
     symbolicator = Symbolicator(project=project, event_id=profile["profile_id"])
 
     for i in profile["debug_meta"]["images"]:
-        i["debug_id"] = i["uuid"]
+        if i["type"] == "apple":
+            i.update(
+                {
+                    "type": "macho",
+                    "debug_file": i["name"],
+                    "debug_id": i["uuid"],
+                }
+            )
 
     for s in profile["sampled_profile"]["samples"]:
         for f in s["frames"]:
