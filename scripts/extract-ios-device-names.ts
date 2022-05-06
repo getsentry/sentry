@@ -81,21 +81,12 @@ const formatOutput = async (unformatted: string) => {
 };
 
 export async function extractIOSDeviceNames() {
-  try {
-    if (fs.statSync(outputPath)) {
-      // Out with the old, in with the new
-      fs.unlinkSync(outputPath);
-    }
-  } catch (e) {
-    // File does not exists, carry along
-  }
-
   const files = await getDefinitionFiles();
   const definitions = await collectDefinitions(files);
   const formatted = await formatOutput(
     template(JSON.stringify(definitions, undefined, 2))
   );
 
+  // This will always overwrite the file with a fresh version
   fs.writeFileSync(outputPath, formatted);
-  console.log('✅ Regenerated ios-device-list.tsx');
 }
