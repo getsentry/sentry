@@ -96,7 +96,7 @@ class CreateProject extends React.Component<Props, State> {
             <input
               type="text"
               name="name"
-              placeholder={t('Project name')}
+              placeholder={t('project-name')}
               autoComplete="off"
               value={projectName}
               onChange={e => this.setState({projectName: slugify(e.target.value)})}

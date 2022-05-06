@@ -44,7 +44,7 @@ export const fields: Record<string, Field> = {
     type: 'string',
     required: true,
     label: t('Name'),
-    placeholder: t('My Awesome Project'),
+    placeholder: t('my-awesome-project'),
     help: t('A name for this project'),
     transformInput: slugify,
     getData: (data: {name?: string}) => {
