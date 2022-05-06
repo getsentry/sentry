@@ -1272,6 +1272,7 @@ SENTRY_EMAIL_BACKEND_ALIASES = {
     "smtp": "django.core.mail.backends.smtp.EmailBackend",
     "dummy": "django.core.mail.backends.dummy.EmailBackend",
     "console": "django.core.mail.backends.console.EmailBackend",
+    "preview": "sentry.utils.email.PreviewBackend",
 }
 
 SENTRY_FILESTORE_ALIASES = {
@@ -2627,3 +2628,6 @@ VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = True
 
 # determines if we enable analytics or not
 ENABLE_ANALYTICS = False
+
+MAX_ISSUE_ALERTS_PER_PROJECT = 100
+MAX_QUERY_SUBSCRIPTIONS_PER_ORG = 1000

@@ -1377,14 +1377,9 @@ describe('WidgetBuilder', function () {
     screen.getByText('Limit to 5 results');
 
     userEvent.click(screen.getByText('Add Query'));
-    userEvent.click(screen.getByText('Add Query'));
-
-    screen.getByText('Limit to 3 results');
-
-    userEvent.click(screen.getByText('Add Overlay'));
     userEvent.click(screen.getByText('Add Overlay'));
 
-    await screen.findByText('Limit to 1 result');
+    await screen.findByText('Limit to 2 results');
   });
 
   describe('Sort by selectors', function () {
@@ -1402,6 +1397,110 @@ describe('WidgetBuilder', function () {
       expect(screen.getByText('High to low')).toBeInTheDocument();
       // Selector "sortBy"
       expect(screen.getAllByText('count()')).toHaveLength(3);
+    });
+
+    it('existing widgets with alias format open and set orderby with alias', async function () {
+      const widget: Widget = {
+        id: '1',
+        title: 'Test Widget',
+        interval: '5m',
+        displayType: DisplayType.TABLE,
+        queries: [
+          {
+            name: 'errors',
+            conditions: 'event.type:error',
+            fields: ['count()', 'count_unique(id)'],
+            aggregates: ['count()', 'count_unique(id)'],
+            columns: [],
+            orderby: '-count_unique_id',
+          },
+        ],
+      };
+
+      const dashboard: DashboardDetails = {
+        id: '1',
+        title: 'Dashboard',
+        createdBy: undefined,
+        dateCreated: '2020-01-01T00:00:00.000Z',
+        widgets: [widget],
+      };
+
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        dashboard,
+        params: {
+          widgetIndex: '0',
+        },
+      });
+
+      await waitFor(async () => {
+        expect(await screen.findAllByText('count_unique(id)')).toHaveLength(2);
+      });
+
+      await selectEvent.select(screen.getAllByText('count_unique(id)')[1], 'count()');
+
+      await waitFor(() => {
+        expect(eventsv2Mock).toHaveBeenCalledWith(
+          '/organizations/org-slug/eventsv2/',
+          expect.objectContaining({
+            query: expect.objectContaining({
+              sort: ['-count'],
+            }),
+          })
+        );
+      });
+    });
+
+    it('ordering by column uses field form when selecting orderby', async function () {
+      const widget: Widget = {
+        id: '1',
+        title: 'Test Widget',
+        interval: '5m',
+        displayType: DisplayType.TABLE,
+        queries: [
+          {
+            name: 'errors',
+            conditions: 'event.type:error',
+            fields: ['count()'],
+            aggregates: ['count()'],
+            columns: ['project'],
+            orderby: '-project',
+          },
+        ],
+      };
+
+      const dashboard: DashboardDetails = {
+        id: '1',
+        title: 'Dashboard',
+        createdBy: undefined,
+        dateCreated: '2020-01-01T00:00:00.000Z',
+        widgets: [widget],
+      };
+
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        dashboard,
+        params: {
+          widgetIndex: '0',
+        },
+      });
+
+      await waitFor(async () => {
+        expect(await screen.findAllByText('project')).toHaveLength(3);
+      });
+
+      await selectEvent.select(screen.getAllByText('project')[2], 'count()');
+
+      await waitFor(() => {
+        expect(eventsv2Mock).toHaveBeenCalledWith(
+          '/organizations/org-slug/eventsv2/',
+          expect.objectContaining({
+            query: expect.objectContaining({
+              sort: ['-count()'],
+            }),
+          })
+        );
+      });
     });
 
     it('sortBy defaults to the first field value when changing display type to table', async function () {
@@ -1644,7 +1743,7 @@ describe('WidgetBuilder', function () {
           })
         );
       });
-    });
+    }, 10000);
 
     it('persists the state when toggling between sorting options', async function () {
       renderTestComponent({
@@ -1945,6 +2044,51 @@ describe('WidgetBuilder', function () {
         await screen.findByText(expectedOrderSelection);
       }
     );
+
+    it('saved widget with aggregate alias as orderby should persist alias when y-axes change', async function () {
+      const widget: Widget = {
+        id: '1',
+        title: 'Test Widget',
+        interval: '5m',
+        displayType: DisplayType.TABLE,
+        queries: [
+          {
+            name: '',
+            conditions: '',
+            fields: ['project', 'count_unique(user)'],
+            aggregates: ['count_unique(user)'],
+            columns: ['project'],
+            orderby: 'count_unique_user',
+          },
+        ],
+      };
+
+      const dashboard: DashboardDetails = {
+        id: '1',
+        title: 'Dashboard',
+        createdBy: undefined,
+        dateCreated: '2020-01-01T00:00:00.000Z',
+        widgets: [widget],
+      };
+
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        dashboard,
+        params: {
+          widgetIndex: '0',
+        },
+      });
+
+      await screen.findByText('Sort by a column');
+
+      // Assert for length 2 since one in the table header and one in sort by
+      expect(screen.getAllByText('count_unique(user)')).toHaveLength(2);
+
+      userEvent.click(screen.getByText('Add a Column'));
+
+      // The sort by should still have count_unique(user)
+      expect(screen.getAllByText('count_unique(user)')).toHaveLength(2);
+    });
   });
 
   describe('Widget creation coming from other verticals', function () {
@@ -2018,6 +2162,79 @@ describe('WidgetBuilder', function () {
               project: [],
               environment: [],
             },
+          })
+        );
+      });
+    });
+
+    it('shows the correct orderby when switching from a line chart to table', async function () {
+      const defaultWidgetQuery = {
+        name: '',
+        fields: ['count_unique(user)'],
+        columns: [],
+        aggregates: ['count_unique(user)'],
+        conditions: '',
+        orderby: 'count_unique_user',
+      };
+
+      const defaultTableColumns = ['title', 'count_unique(user)'];
+
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        query: {
+          source: DashboardWidgetSource.DISCOVERV2,
+          defaultWidgetQuery: urlEncode(defaultWidgetQuery),
+          displayType: DisplayType.LINE,
+          defaultTableColumns,
+        },
+      });
+
+      userEvent.click(await screen.findByText('Line Chart'));
+      userEvent.click(screen.getByText('Table'));
+
+      expect(screen.getByText('count_unique(user)')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(eventsv2Mock).toHaveBeenLastCalledWith(
+          '/organizations/org-slug/eventsv2/',
+          expect.objectContaining({
+            query: expect.objectContaining({
+              field: defaultTableColumns,
+              sort: ['count_unique_user'],
+            }),
+          })
+        );
+      });
+    });
+
+    it('does not send request with orderby if a timeseries chart without grouping', async function () {
+      const defaultWidgetQuery = {
+        name: '',
+        fields: ['count_unique(user)'],
+        columns: [],
+        aggregates: ['count_unique(user)'],
+        conditions: '',
+        orderby: 'count_unique_user',
+      };
+
+      const defaultTableColumns = ['title', 'count_unique(user)'];
+
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        query: {
+          source: DashboardWidgetSource.DISCOVERV2,
+          defaultWidgetQuery: urlEncode(defaultWidgetQuery),
+          displayType: DisplayType.LINE,
+          defaultTableColumns,
+        },
+      });
+
+      await waitFor(() => {
+        expect(eventsStatsMock).toHaveBeenLastCalledWith(
+          '/organizations/org-slug/events-stats/',
+          expect.objectContaining({
+            query: expect.objectContaining({
+              orderby: '',
+            }),
           })
         );
       });

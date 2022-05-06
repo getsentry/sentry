@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import {
   Result as SearchResult,
@@ -41,7 +41,7 @@ const MARK_TAGS = {
   highlightPostTag: '</mark>',
 };
 
-class HelpSource extends React.Component<Props, State> {
+class HelpSource extends Component<Props, State> {
   state: State = {
     loading: false,
     results: [],

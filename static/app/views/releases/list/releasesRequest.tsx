@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
@@ -111,7 +111,7 @@ type State = {
   totalCountByReleaseInPeriod: SessionApiResponse | null;
 };
 
-class ReleasesRequest extends React.Component<Props, State> {
+class ReleasesRequest extends Component<Props, State> {
   state: State = {
     loading: false,
     errored: false,

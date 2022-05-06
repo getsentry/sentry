@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
@@ -160,7 +160,7 @@ type PassthroughProps = Omit<
   | 'defaultValue'
 >;
 
-class FormField extends React.Component<FormFieldProps> {
+class FormField extends Component<FormFieldProps> {
   static defaultProps = {
     hideErrorMessage: false,
     flexibleControlStateSize: false,
@@ -310,7 +310,7 @@ class FormField extends React.Component<FormFieldProps> {
       const props = {...otherProps, ...resolvedObservedProps} as PassthroughProps;
 
       return (
-        <React.Fragment>
+        <Fragment>
           <Field
             id={id}
             className={className}
@@ -349,7 +349,7 @@ class FormField extends React.Component<FormFieldProps> {
                     );
 
                     return (
-                      <React.Fragment>
+                      <Fragment>
                         {this.props.children({
                           ref: this.handleInputMount,
                           ...props,
@@ -367,7 +367,7 @@ class FormField extends React.Component<FormFieldProps> {
                           initialData: model.initialData,
                         })}
                         {showReturnButton && <StyledReturnButton />}
-                      </React.Fragment>
+                      </Fragment>
                     );
                   }}
                 </Observer>
@@ -386,9 +386,9 @@ class FormField extends React.Component<FormFieldProps> {
                     : true;
 
                 return (
-                  <React.Fragment>
+                  <Fragment>
                     {isVisible ? selectionInfoFunction({...props, error, value}) : null}
-                  </React.Fragment>
+                  </Fragment>
                 );
               }}
             </Observer>
@@ -407,7 +407,7 @@ class FormField extends React.Component<FormFieldProps> {
                   <PanelAlert
                     type={saveMessageAlertType}
                     trailingItems={
-                      <React.Fragment>
+                      <Fragment>
                         <Button onClick={this.handleCancelField} size="xsmall">
                           {t('Cancel')}
                         </Button>
@@ -418,7 +418,7 @@ class FormField extends React.Component<FormFieldProps> {
                         >
                           {t('Save')}
                         </Button>
-                      </React.Fragment>
+                      </Fragment>
                     }
                   >
                     {typeof saveMessage === 'function'
@@ -429,7 +429,7 @@ class FormField extends React.Component<FormFieldProps> {
               }}
             </Observer>
           )}
-        </React.Fragment>
+        </Fragment>
       );
     };
 

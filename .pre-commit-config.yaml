@@ -52,9 +52,10 @@ repos:
     - id: lint-requirements
       name: lint-requirements
       entry: bin/lint-requirements
-      language: system
+      language: python
       files: requirements-base.txt
       pass_filenames: false
+      additional_dependencies: [packaging==21.3]
     - id: pyright
       name: pyright
       entry: pyright

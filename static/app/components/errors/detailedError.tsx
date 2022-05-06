@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import * as Sentry from '@sentry/react';
 import classNames from 'classnames';
 
@@ -34,7 +34,7 @@ function openFeedback(e: React.MouseEvent) {
   Sentry.showReportDialog();
 }
 
-class DetailedError extends React.Component<Props> {
+class DetailedError extends Component<Props> {
   static defaultProps: DefaultProps = {
     hideSupportLinks: false,
   };

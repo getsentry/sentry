@@ -1,4 +1,3 @@
-import * as React from 'react';
 import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
 
@@ -26,10 +25,11 @@ import {
   AlertRuleTriggerType,
 } from 'sentry/views/alerts/incidentRules/types';
 
-import {CombinedMetricIssueAlerts, IncidentStatus} from '../types';
+import {CombinedAlertType, CombinedMetricIssueAlerts, IncidentStatus} from '../types';
 import {isIssueAlert} from '../utils';
 
 type Props = {
+  hasDuplicateAlertRules: boolean;
   onDelete: (projectId: string, rule: CombinedMetricIssueAlerts) => void;
   orgId: string;
   projects: Project[];
@@ -53,6 +53,7 @@ function RuleListRow({
   orgId,
   onDelete,
   userTeams,
+  hasDuplicateAlertRules,
 }: Props) {
   const activeIncident =
     rule.latestIncident?.status !== undefined &&
@@ -152,6 +153,18 @@ function RuleListRow({
     isIssueAlert(rule) ? 'rules' : 'metric-rules'
   }/${slug}/${rule.id}/`;
 
+  const duplicateLink = {
+    pathname: `/organizations/${orgId}/alerts/new/${
+      rule.type === CombinedAlertType.METRIC ? 'metric' : 'issue'
+    }/`,
+    query: {
+      project: slug,
+      duplicateRuleId: rule.id,
+      createFromDuplicate: true,
+      referrer: 'alert_stream',
+    },
+  };
+
   const detailsLink = `/organizations/${orgId}/alerts/rules/details/${rule.id}/`;
 
   const ownerId = rule.owner?.split(':')[1];
@@ -182,6 +195,12 @@ function RuleListRow({
       key: 'edit',
       label: t('Edit'),
       to: editLink,
+    },
+    {
+      key: 'duplicate',
+      label: t('Duplicate'),
+      to: duplicateLink,
+      hidden: !hasDuplicateAlertRules,
     },
     {
       key: 'delete',
@@ -261,6 +280,7 @@ function RuleListRow({
               placement="bottom right"
               triggerProps={{
                 'aria-label': t('Show more'),
+                'data-test-id': 'alert-row-actions',
                 size: 'xsmall',
                 icon: <IconEllipsis size="xs" />,
                 showChevron: false,

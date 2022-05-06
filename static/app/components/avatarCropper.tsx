@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, createRef, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -40,7 +40,7 @@ type State = {
   resizeDirection: Position | null;
 };
 
-class AvatarCropper extends React.Component<Props, State> {
+class AvatarCropper extends Component<Props, State> {
   state: State = {
     file: null,
     objectURL: null,
@@ -53,10 +53,10 @@ class AvatarCropper extends React.Component<Props, State> {
     this.revokeObjectUrl();
   }
 
-  file = React.createRef<HTMLInputElement>();
-  canvas = React.createRef<HTMLCanvasElement>();
-  image = React.createRef<HTMLImageElement>();
-  cropContainer = React.createRef<HTMLDivElement>();
+  file = createRef<HTMLInputElement>();
+  canvas = createRef<HTMLCanvasElement>();
+  image = createRef<HTMLImageElement>();
+  cropContainer = createRef<HTMLDivElement>();
 
   // These values must be synced with the avatar endpoint in backend.
   MIN_DIMENSION = 256;
@@ -396,7 +396,7 @@ class AvatarCropper extends React.Component<Props, State> {
     );
 
     return (
-      <React.Fragment>
+      <Fragment>
         {!src && uploader}
         {src && <HiddenCanvas ref={this.canvas} />}
         {this.renderImageCrop()}
@@ -409,7 +409,7 @@ class AvatarCropper extends React.Component<Props, State> {
             onChange={this.onSelectFile}
           />
         </div>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

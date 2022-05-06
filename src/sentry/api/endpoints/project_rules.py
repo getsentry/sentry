@@ -1,21 +1,15 @@
+from django.conf import settings
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import audit_log
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework import RuleSerializer
+from sentry.api.serializers.rest_framework.rule import RuleSerializer
 from sentry.integrations.slack import tasks
 from sentry.mediators import project_rules
-from sentry.models import (
-    AuditLogEntryEvent,
-    Rule,
-    RuleActivity,
-    RuleActivityType,
-    RuleStatus,
-    Team,
-    User,
-)
+from sentry.models import Rule, RuleActivity, RuleActivityType, RuleStatus, Team, User
 from sentry.rules.actions.base import trigger_sentry_app_action_creators_for_issues
 from sentry.signals import alert_rule_created
 from sentry.web.decorators import transaction_start
@@ -64,6 +58,15 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             }}
 
         """
+        if (
+            Rule.objects.filter(project=project, status=RuleStatus.ACTIVE).count()
+            >= settings.MAX_ISSUE_ALERTS_PER_PROJECT
+        ):
+            return Response(
+                f"You may not exceed {settings.MAX_ISSUE_ALERTS_PER_PROJECT} rules per project",
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         serializer = RuleSerializer(
             context={"project": project, "organization": project.organization}, data=request.data
         )
@@ -115,7 +118,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
                 request=request,
                 organization=project.organization,
                 target_object=rule.id,
-                event=AuditLogEntryEvent.RULE_ADD,
+                event=audit_log.get_event_id("RULE_ADD"),
                 data=rule.get_audit_log_data(),
             )
             alert_rule_created.send_robust(

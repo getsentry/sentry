@@ -31,6 +31,7 @@ logger = logging.getLogger(__name__)
 class KafkaEventStream(SnubaProtocolEventStream):
     def __init__(self, **options):
         self.topic = settings.KAFKA_TOPICS[settings.KAFKA_EVENTS]["topic"]
+        self.transactions_topic = settings.KAFKA_TOPICS[settings.KAFKA_TRANSACTIONS]["topic"]
 
     @cached_property
     def producer(self):
@@ -105,10 +106,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
                 ),
             }
 
-    @staticmethod
-    def _is_transaction_event(event) -> bool:
-        return event.group_id is None
-
     def insert(
         self,
         group,
@@ -150,6 +147,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         asynchronous: bool = True,
         headers: Optional[Mapping[str, str]] = None,
         skip_semantic_partitioning: bool = False,
+        is_transaction_event: bool = False,
     ):
         if headers is None:
             headers = {}
@@ -171,8 +169,10 @@ class KafkaEventStream(SnubaProtocolEventStream):
         assert isinstance(extra_data, tuple)
 
         try:
+            topic = self.transactions_topic if is_transaction_event else self.topic
+
             self.producer.produce(
-                topic=self.topic,
+                topic=topic,
                 key=str(project_id).encode("utf-8") if not skip_semantic_partitioning else None,
                 value=json.dumps((self.EVENT_PROTOCOL_VERSION, _type) + extra_data),
                 on_delivery=self.delivery_callback,

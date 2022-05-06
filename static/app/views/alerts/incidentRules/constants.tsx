@@ -69,6 +69,33 @@ const allAggregations: AggregationKey[] = [
   'count',
 ];
 
+export const DuplicateMetricFields: string[] = [
+  'dataset',
+  'eventTypes',
+  'aggregate',
+  'query',
+  'timeWindow',
+  'thresholdPeriod',
+  'projects',
+  'environment',
+  'resolveThreshold',
+  'thresholdType',
+  'owner',
+  'name',
+  'projectId',
+  'comparisonDelta',
+];
+
+export const DuplicateTriggerFields: string[] = ['alertThreshold', 'label'];
+
+export const DuplicateActionFields: string[] = [
+  'type',
+  'targetType',
+  'targetIdentifier',
+  'inputChannelId',
+  'options',
+];
+
 export const COMPARISON_DELTA_OPTIONS = [
   {value: 5, label: t('same time 5 minutes ago')}, // 5 minutes
   {value: 15, label: t('same time 15 minutes ago')}, // 15 minutes
