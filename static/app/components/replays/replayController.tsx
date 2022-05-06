@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {StyledButton} from 'sentry/components/dropdownButtonV2';
+import {DropdownTriggerButton} from 'sentry/components/dropdownButtonV2';
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import useFullscreen from 'sentry/components/replays/useFullscreen';
@@ -119,7 +119,7 @@ const IconClockwise = styled(IconRefresh)`
 `;
 
 const StyledCompactSelect = styled(CompactSelect)`
-  ${StyledButton} {
+  ${DropdownTriggerButton} {
     padding: 0 ${space(1)};
     height: 1.75rem;
     min-height: 0;

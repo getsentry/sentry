@@ -36,7 +36,7 @@ const DropdownButton = forwardRef<
     }: DropdownButtonProps,
     ref
   ) => (
-    <StyledButton
+    <DropdownTriggerButton
       {...props}
       type="button"
       disabled={disabled}
@@ -49,7 +49,7 @@ const DropdownButton = forwardRef<
       {showChevron && (
         <StyledChevron size="xs" direction={isOpen ? 'up' : 'down'} aria-hidden="true" />
       )}
-    </StyledButton>
+    </DropdownTriggerButton>
   )
 );
 
@@ -59,7 +59,7 @@ const StyledChevron = styled(IconChevron)`
 `;
 
 // this is exported so we can better control the button style.
-export const StyledButton = styled(Button)<
+export const DropdownTriggerButton = styled(Button)<
   Required<Pick<DropdownButtonProps, 'isOpen' | 'disabled' | 'priority'>>
 >`
   position: relative;
