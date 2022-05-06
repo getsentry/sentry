@@ -101,6 +101,7 @@ function SetupDocs({
   // Select a project based on search params. If non exist, use the first project without first event.
   const projectIndex = rawProjectIndex >= 0 ? rawProjectIndex : firstProjectNoError;
   const project = subStep === 'project' ? projects[projectIndex] : null;
+  // find the next project that doesn't have a first event
   const nextProject = projects.find(
     (p, i) => i > projectIndex && !checkProjectHasFirstEvent(p)
   );
@@ -342,7 +343,6 @@ function SetupDocs({
               browserHistory.push(orgIssuesURL);
               return;
             }
-            // find the next project that doesn't have a first event
             // if we have a next project, switch to that
             if (nextProject) {
               setNewProject(nextProject.id);
