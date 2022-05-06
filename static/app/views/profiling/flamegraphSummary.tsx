@@ -70,7 +70,7 @@ function FlamegraphSummary(props: FlamegraphSummaryProps) {
               {
                 type: 'flamegraph',
                 payload: {
-                  interactionName: state.type === 'resolved' ? state.data.name : '',
+                  transaction: state.type === 'resolved' ? state.data.name : '',
                   profileId: props.params.eventId ?? '',
                   projectSlug: props.params.projectId ?? '',
                 },
