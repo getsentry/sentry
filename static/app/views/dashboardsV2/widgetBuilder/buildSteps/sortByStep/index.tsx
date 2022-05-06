@@ -151,7 +151,10 @@ export function SortByStep({
             }}
             tags={tags}
             filterPrimaryOptions={option => {
-              if (option.value.kind === FieldValueKind.FUNCTION) {
+              if (
+                option.value.kind === FieldValueKind.FUNCTION ||
+                option.value.kind === FieldValueKind.EQUATION
+              ) {
                 return true;
               }
 

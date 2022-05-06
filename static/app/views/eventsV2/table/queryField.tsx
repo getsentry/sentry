@@ -194,7 +194,8 @@ class QueryField extends Component<Props> {
       case FieldValueKind.EQUATION:
         fieldValue = {
           kind: 'equation',
-          field: '',
+          field: value.meta.name,
+          alias: value.meta.name,
         };
         break;
       default:
@@ -305,6 +306,11 @@ class QueryField extends Component<Props> {
     const spanOperationBreakdownName = `span_op_breakdown:${name}`;
     if (fieldOptions[spanOperationBreakdownName]) {
       return fieldOptions[spanOperationBreakdownName].value;
+    }
+
+    const equationName = `equation:${name}`;
+    if (fieldOptions[equationName]) {
+      return fieldOptions[equationName].value;
     }
 
     const tagName =

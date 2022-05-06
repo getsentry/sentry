@@ -2040,6 +2040,23 @@ describe('WidgetBuilder', function () {
         expect(screen.getAllByText('count()')).toHaveLength(3);
       });
     });
+
+    it('equations in y-axis appear in sort by field for grouped timeseries', async function () {
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        query: {
+          displayType: DisplayType.LINE,
+        },
+      });
+
+      userEvent.click(await screen.findByText('Add an Equation'));
+      userEvent.paste(screen.getByPlaceholderText('Equation'), 'count() * 100');
+      userEvent.keyboard('{enter}');
+
+      await selectEvent.select(screen.getByText('Select group'), 'project');
+      expect(screen.getAllByText('count()')).toHaveLength(2);
+      await selectEvent.select(screen.getAllByText('count()')[1], 'count() * 100');
+    });
   });
 
   describe('Widget creation coming from other verticals', function () {

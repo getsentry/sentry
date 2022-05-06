@@ -14,6 +14,7 @@ import {
   generateFieldAsString,
   getEquation,
   isEquation,
+  isEquationAlias,
 } from 'sentry/utils/discover/fields';
 import Measurements from 'sentry/utils/measurements/measurements';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -75,6 +76,23 @@ export function SortBySelectors({
     setShowCustomEquation(isSortingByEquation);
   }, [values.sortBy, values.sortDirection]);
 
+  function generateEquationOptions(options: Props['sortByOptions']) {
+    return options.reduce((acc, option) => {
+      if (option.value.startsWith('equation')) {
+        acc[`equation:${option.value}`] = {
+          label: option.label,
+          value: {
+            kind: FieldValueKind.EQUATION,
+            meta: {
+              name: option.value,
+            },
+          },
+        };
+      }
+      return acc;
+    }, {});
+  }
+
   return (
     <Tooltip title={disabledReason} disabled={!(disabledSortDirection && disabledSort)}>
       <Wrapper>
@@ -122,10 +140,18 @@ export function SortBySelectors({
                         },
                       }
                     : {}),
-
+                  ...generateEquationOptions(sortByOptions),
                   ...getAmendedFieldOptions({measurements, organization, tags}),
                 }}
                 onChange={value => {
+                  if (value.alias && isEquationAlias(value.alias)) {
+                    onChange({
+                      sortBy: value.alias,
+                      sortDirection: values.sortDirection,
+                    });
+                    return;
+                  }
+
                   const parsedValue = generateFieldAsString(value);
                   const isSortingByCustomEquation = isEquation(parsedValue);
                   setShowCustomEquation(isSortingByCustomEquation);
