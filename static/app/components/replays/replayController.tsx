@@ -3,14 +3,13 @@ import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {StyledButton} from 'sentry/components/dropdownButtonV2';
+import CompactSelect from 'sentry/components/forms/compactSelect';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import useFullscreen from 'sentry/components/replays/useFullscreen';
 import {IconArrow, IconPause, IconPlay, IconRefresh, IconResize} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-
-import {StyledButton} from '../dropdownButtonV2';
-import CompactSelect from '../forms/compactSelect';
 
 import {formatTime} from './utils';
 
