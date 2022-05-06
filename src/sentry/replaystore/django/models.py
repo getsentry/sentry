@@ -19,7 +19,4 @@ class Replay(BaseModel):  # type: ignore
 
     class Meta:
         app_label = "replaystore"
-        indexes = [
-            models.Index(fields=["replay_id", "replay_data_type", "timestamp"]),
-        ]
         unique_together = ("replay_id", "replay_data_type", "timestamp")

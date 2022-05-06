@@ -2,7 +2,7 @@
 Testsuite of backend-independent nodestore tests. Add your backend to the
 `ns` fixture to have it tested.
 """
-from contextlib import contextmanager
+from contextlib import nullcontext
 
 import pytest
 
@@ -11,12 +11,6 @@ from tests.sentry.nodestore.bigtable.backend.tests import (
     MockedBigtableNodeStorage,
     get_temporary_bigtable_nodestorage,
 )
-
-
-@contextmanager
-def nullcontext(returning):
-    # TODO: Replace with ``contextlib.nullcontext`` after upgrading to 3.7
-    yield returning
 
 
 @pytest.fixture(
