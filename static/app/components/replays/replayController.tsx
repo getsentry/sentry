@@ -64,7 +64,7 @@ function ReplayPlaybackSpeed({speedOptions}: {speedOptions: number[]}) {
   const {setSpeed, speed} = useReplayContext();
   return (
     <StyledOptionSelector
-      title={`${t('Speed')}`}
+      title={t('Speed')}
       selected={`${speed}`}
       options={speedOptions.map(speedOption => ({
         value: speedOption,
