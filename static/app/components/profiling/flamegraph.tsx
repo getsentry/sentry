@@ -35,29 +35,31 @@ interface FlamegraphProps {
 function Flamegraph(props: FlamegraphProps): ReactElement {
   const flamegraphTheme = useFlamegraphTheme();
   const [{sorting, view, xAxis}, dispatch] = useFlamegraphPreferences();
-  const [{threadId}, dispatchActiveProfileIndex] = useFlamegraphProfiles();
+  const [{threadId}, dispatchThreadId] = useFlamegraphProfiles();
 
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
 
   const flamegraph = useMemo(() => {
-    if (typeof threadId !== 'number' || !props.profiles.profiles[threadId]) {
-      // This could happen if activeProfileIndex was initialized from query string, but for some
-      // reason the profile was removed from the list of profiles.
+    if (typeof threadId !== 'number') {
       return FlamegraphModel.Empty();
     }
+
+    // This could happen if activeProfileIndex was initialized from query string, but for some
+    // reason the profile was removed from the list of profiles.
+    const profile = props.profiles.profiles.find(p => p.threadId === threadId);
+    if (!profile) {
+      return FlamegraphModel.Empty();
+    }
+
     // if the activeProfileIndex is null, use the activeProfileIndex from the profile group
-    return new FlamegraphModel(
-      props.profiles.profiles[threadId],
-      threadId ?? props.profiles.activeProfileIndex,
-      {
-        inverted: view === 'bottom up',
-        leftHeavy: sorting === 'left heavy',
-        configSpace:
-          xAxis === 'transaction'
-            ? getTransactionConfigSpace(props.profiles.profiles)
-            : undefined,
-      }
-    );
+    return new FlamegraphModel(profile, threadId, {
+      inverted: view === 'bottom up',
+      leftHeavy: sorting === 'left heavy',
+      configSpace:
+        xAxis === 'transaction'
+          ? getTransactionConfigSpace(props.profiles.profiles)
+          : undefined,
+    });
   }, [props.profiles, threadId, sorting, xAxis, view]);
 
   return (
@@ -66,8 +68,8 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
         <ThreadMenuSelector
           profileGroup={props.profiles}
           threadId={threadId}
-          onProfileIndexChange={newThreadId =>
-            dispatchActiveProfileIndex({type: 'set thread id', payload: newThreadId})
+          onThreadIdChange={newThreadId =>
+            dispatchThreadId({type: 'set thread id', payload: newThreadId})
           }
         />
         <FlamegraphViewSelectMenu

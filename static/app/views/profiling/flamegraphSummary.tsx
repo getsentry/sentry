@@ -1,6 +1,5 @@
 import {Fragment, useMemo} from 'react';
 import {Link} from 'react-router';
-import * as qs from 'query-string';
 
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -10,8 +9,6 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
-import {encodeFlamegraphStateToQueryParams} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/index';
-import {useFlamegraphStateValue} from 'sentry/utils/profiling/flamegraph/useFlamegraphState';
 import {getSlowestProfileCallsFromProfileGroup} from 'sentry/utils/profiling/profile/utils';
 import {makeFormatter} from 'sentry/utils/profiling/units/units';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -137,9 +134,6 @@ function ProfilingFunctionsTableCell({
   dataRow,
 }: ProfilingFunctionsTableCellProps) {
   const value = dataRow[column.key];
-
-  const flamegraphstate = useFlamegraphStateValue();
-  const [profileGroup] = useProfileGroup();
   const {orgId, projectId, eventId} = useParams();
 
   switch (column.key) {
@@ -150,39 +144,19 @@ function ProfilingFunctionsTableCell({
     case 'image':
       return <Container>{value ?? 'Unknown'}</Container>;
     case 'thread': {
-      const threadIndex =
-        profileGroup.type === 'resolved'
-          ? profileGroup.data.profiles.findIndex(
-              profile => profile.threadId === parseInt(dataRow.thread, 10)
-            )
-          : undefined;
-
       return (
         <Container>
-          {typeof threadIndex === 'number' && threadIndex !== -1 ? (
-            <Link
-              to={
-                generateFlamegraphRoute({
-                  orgSlug: orgId,
-                  projectSlug: projectId,
-                  profileId: eventId,
-                }) +
-                `?${qs.stringify(
-                  encodeFlamegraphStateToQueryParams({
-                    ...flamegraphstate,
-                    profiles: {
-                      ...flamegraphstate.profiles,
-                      threadId: threadIndex,
-                    },
-                  })
-                )}`
-              }
-            >
-              {value}
-            </Link>
-          ) : (
-            value
-          )}
+          <Link
+            to={
+              generateFlamegraphRoute({
+                orgSlug: orgId,
+                projectSlug: projectId,
+                profileId: eventId,
+              }) + `?tid=${dataRow.thread}`
+            }
+          >
+            {value}
+          </Link>
         </Container>
       );
     }

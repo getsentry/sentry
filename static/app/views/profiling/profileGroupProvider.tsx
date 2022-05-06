@@ -2,6 +2,7 @@ import {createContext, useContext, useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {Client} from 'sentry/api';
+import {FlamegraphHeader} from 'sentry/components/profiling/flamegraphHeader';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {RequestState} from 'sentry/types/core';
@@ -80,6 +81,7 @@ function ProfileGroupProvider(props: FlamegraphViewProps): React.ReactElement {
 
   return (
     <ProfileGroupContext.Provider value={[profileGroupState, setProfileGroupState]}>
+      <FlamegraphHeader />
       {props.children}
     </ProfileGroupContext.Provider>
   );
