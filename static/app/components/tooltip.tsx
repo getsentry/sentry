@@ -1,5 +1,6 @@
 import {
   cloneElement,
+  CSSProperties,
   Fragment,
   isValidElement,
   useEffect,
@@ -48,7 +49,7 @@ const TOOLTIP_ANIMATION: MotionProps = {
  */
 const CLOSE_DELAY = 50;
 export interface InternalTooltipProps {
-  children: React.ReactNode;
+  children: React.ReactElement<ContainerProps>;
   /**
    * The content to show in the tooltip popover
    */
@@ -59,7 +60,7 @@ export interface InternalTooltipProps {
   /**
    * Display mode for the container element
    */
-  containerDisplayMode?: React.CSSProperties['display'];
+  containerDisplayMode?: CSSProperties['display'];
 
   /**
    * Time to wait (in milliseconds) before showing the tooltip
@@ -85,7 +86,7 @@ export interface InternalTooltipProps {
   /**
    * Additional style rules for the tooltip content.
    */
-  popperStyle?: React.CSSProperties | SerializedStyles;
+  popperStyle?: SerializedStyles;
 
   /**
    * Position for the tooltip.
@@ -223,20 +224,24 @@ export function DO_NOT_USE_TOOLTIP({
     };
   }, []);
 
-  function renderTrigger(triggerChildren: React.ReactNode, ref: React.Ref<HTMLElement>) {
-    const containerProps: Partial<React.ComponentProps<typeof Container>> = {
-      'aria-describedby': tooltipId,
-      onFocus: handleMouseEnter,
-      onBlur: handleMouseLeave,
-      onPointerEnter: handleMouseEnter,
-      onPointerLeave: handleMouseLeave,
-    };
-
+  function renderTrigger(
+    triggerChildren: React.ReactElement<ContainerProps>,
+    ref: React.Ref<HTMLElement>
+  ) {
     const setRef = (el: HTMLElement) => {
       if (typeof ref === 'function') {
         ref(el);
       }
       triggerRef.current = el;
+    };
+
+    const containerProps: ContainerProps = {
+      'aria-describedby': tooltipId,
+      onFocus: handleMouseEnter,
+      onBlur: handleMouseLeave,
+      onPointerEnter: handleMouseEnter,
+      onPointerLeave: handleMouseLeave,
+      ref: setRef,
     };
 
     // Use the `type` property of the react instance to detect whether we have
@@ -248,14 +253,14 @@ export function DO_NOT_USE_TOOLTIP({
       isValidElement(triggerChildren) &&
       (skipWrapper || typeof triggerChildren.type === 'string')
     ) {
+      const styles = {
+        ...triggerChildren.props.style,
+        ...(showUnderline && theme.tooltipUnderline(underlineColor)),
+      };
       // Basic DOM nodes can be cloned and have more props applied.
       return cloneElement(triggerChildren, {
         ...containerProps,
-        style: {
-          ...triggerChildren.props.style,
-          ...(showUnderline && theme.tooltipUnderline(underlineColor)),
-        },
-        ref: setRef,
+        style: styles,
       });
     }
 
@@ -266,7 +271,6 @@ export function DO_NOT_USE_TOOLTIP({
         {...containerProps}
         style={showUnderline ? theme.tooltipUnderline(underlineColor) : undefined}
         className={className}
-        ref={setRef}
       >
         {triggerChildren}
       </Container>
@@ -318,11 +322,17 @@ export function DO_NOT_USE_TOOLTIP({
   );
 }
 
+interface ContainerProps
+  extends React.DetailedHTMLProps<
+    React.HTMLAttributes<HTMLSpanElement>,
+    HTMLSpanElement
+  > {
+  containerDisplayMode?: React.CSSProperties['display'];
+}
+
 // Using an inline-block solves the container being smaller
 // than the elements it is wrapping
-const Container = styled('span')<{
-  containerDisplayMode?: React.CSSProperties['display'];
-}>`
+const Container = styled('span')<ContainerProps>`
   ${p => p.containerDisplayMode && `display: ${p.containerDisplayMode}`};
   max-width: 100%;
 `;

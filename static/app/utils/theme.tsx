@@ -555,8 +555,11 @@ const generateButtonTheme = (colors: BaseColors, alias: Aliases) => ({
   },
 });
 
-const generateUtils = (colors: BaseColors, aliases: Aliases) => ({
-  tooltipUnderline: (underlineColor: ColorOrAlias = 'gray300') => ({
+const generateUtils = (
+  colors: BaseColors,
+  aliases: Aliases
+): {tooltipUnderline: (color?: ColorOrAlias) => React.CSSProperties} => ({
+  tooltipUnderline: (underlineColor: ColorOrAlias = 'gray300'): React.CSSProperties => ({
     textDecoration: `underline dotted ${
       colors[underlineColor] ?? aliases[underlineColor]
     }`,
