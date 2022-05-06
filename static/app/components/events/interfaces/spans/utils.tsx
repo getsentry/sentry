@@ -10,6 +10,7 @@ import {assert} from 'sentry/types/utils';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {getPerformanceTransaction} from 'sentry/utils/performanceForSentry';
 
+import {POSITION_DELTA_MERGE_THRESHOLD} from './constants';
 import {
   EnhancedSpan,
   GapSpanType,
@@ -525,7 +526,10 @@ function hasFailedThreshold(marks: Measurements): boolean {
   });
 }
 
-export function getMeasurements(event: EventTransaction): Map<number, VerticalMark> {
+export function getMeasurements(
+  event: EventTransaction,
+  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType
+): Map<number, VerticalMark> {
   if (!event.measurements) {
     return new Map();
   }
@@ -548,33 +552,48 @@ export function getMeasurements(event: EventTransaction): Map<number, VerticalMa
     const name = measurement.name.slice('mark.'.length);
     const value = measurement.value;
 
-    // Round the timestamp to the nearest 10th of a millisecond to allow for bucketing of measurements
-    const roundedTimestamp = Math.ceil((measurement.timestamp * 1000) / 10);
+    const bounds = generateBounds({
+      startTimestamp: measurement.timestamp,
+      endTimestamp: measurement.timestamp,
+    });
 
-    if (mergedMeasurements.has(roundedTimestamp)) {
-      const verticalMark = mergedMeasurements.get(roundedTimestamp)!;
-
-      verticalMark.marks = {
-        ...verticalMark.marks,
-        [name]: {
-          value,
-          timestamp: measurement.timestamp,
-        },
-      };
-
-      if (!verticalMark.failedThreshold) {
-        verticalMark.failedThreshold = hasFailedThreshold(verticalMark.marks);
-      }
-
-      mergedMeasurements.set(roundedTimestamp, verticalMark);
+    // This condition should never be hit
+    if (bounds.type !== 'TIMESTAMPS_EQUAL') {
       return;
+    }
+
+    const roundedPos = Math.round(bounds.start * 100);
+
+    // Compare this position with the position of the other measurements, to determine if
+    // they are close enough to be bucketed together
+
+    for (const [otherPos] of mergedMeasurements) {
+      const positionDelta = Math.abs(otherPos - roundedPos);
+      if (positionDelta <= POSITION_DELTA_MERGE_THRESHOLD) {
+        const verticalMark = mergedMeasurements.get(otherPos)!;
+
+        verticalMark.marks = {
+          ...verticalMark.marks,
+          [name]: {
+            value,
+            timestamp: measurement.timestamp,
+          },
+        };
+
+        if (!verticalMark.failedThreshold) {
+          verticalMark.failedThreshold = hasFailedThreshold(verticalMark.marks);
+        }
+
+        mergedMeasurements.set(otherPos, verticalMark);
+        return;
+      }
     }
 
     const marks = {
       [name]: {value, timestamp: measurement.timestamp},
     };
 
-    mergedMeasurements.set(roundedTimestamp, {
+    mergedMeasurements.set(roundedPos, {
       marks,
       failedThreshold: hasFailedThreshold(marks),
     });

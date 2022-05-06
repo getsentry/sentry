@@ -112,13 +112,11 @@ function renderMeasurements(
   event: Readonly<EventTransaction>,
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType
 ) {
-  const measurements = getMeasurements(event);
+  const measurements = getMeasurements(event, generateBounds);
 
   return (
     <React.Fragment>
-      {Array.from(measurements.values()).map(verticalMark => {
-        const mark = Object.values(verticalMark.marks)[0];
-        const {timestamp} = mark;
+      {Array.from(measurements).map(([timestamp, verticalMark]) => {
         const bounds = getMeasurementBounds(timestamp, generateBounds);
 
         const shouldDisplay = defined(bounds.left) && defined(bounds.width);

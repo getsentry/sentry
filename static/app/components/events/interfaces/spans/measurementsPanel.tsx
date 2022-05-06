@@ -24,8 +24,7 @@ type Props = {
 
 function MeasurementsPanel(props: Props) {
   const {event, generateBounds, dividerPosition} = props;
-
-  const measurements = getMeasurements(event);
+  const measurements = getMeasurements(event, generateBounds);
 
   return (
     <Container
