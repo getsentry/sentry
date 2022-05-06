@@ -29,8 +29,6 @@ export type SessionsOperation =
   | 'crash_free_rate';
 
 export type SessionAggregationColumn = {
-  columnTypes: string[];
-  defaultValue: SessionsMeta['name'];
   outputType: AggregationOutputType | null;
   parameters: Readonly<AggregateParameter[]>;
 };
