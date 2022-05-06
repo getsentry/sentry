@@ -5,6 +5,10 @@ import fs from 'fs';
 import prettier from 'prettier';
 
 //joining path of directory
+const tmpOutputPath = path.join(
+  __dirname,
+  '../static/app/constants/ios-device-list.tmp.tsx'
+);
 const outputPath = path.join(__dirname, '../static/app/constants/ios-device-list.tsx');
 const directoryPath = path.join(__dirname, '../node_modules/ios-device-list/');
 
@@ -87,6 +91,21 @@ export async function extractIOSDeviceNames() {
     template(JSON.stringify(definitions, undefined, 2))
   );
 
-  // This will always overwrite the file with a fresh version
-  fs.writeFileSync(outputPath, formatted);
+  // All exit code has to synchronous
+  const cleanup = () => {
+    if (fs.existsSync(tmpOutputPath)) {
+      fs.unlinkSync(tmpOutputPath);
+    }
+  };
+
+  process.on('exit', cleanup);
+  process.on('SIGINT', () => {
+    cleanup();
+    process.exit(1);
+  });
+
+  // Write to tmp output path
+  fs.writeFileSync(tmpOutputPath, formatted);
+  // Rename the file (atomic)
+  fs.renameSync(tmpOutputPath, outputPath);
 }
