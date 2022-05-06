@@ -2612,7 +2612,7 @@ describe('WidgetBuilder', function () {
               field: ['crash_free_rate(session)'],
               groupBy: ['project'],
               interval: '5m',
-              orderBy: '-sum_session',
+              orderBy: '-crash_free_rate_session',
               per_page: 5,
               project: [],
               statsPeriod: '24h',
