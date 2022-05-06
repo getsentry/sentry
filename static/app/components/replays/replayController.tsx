@@ -63,7 +63,7 @@ function ReplayCurrentTime() {
 function ReplayPlaybackSpeed({speedOptions}: {speedOptions: number[]}) {
   const {setSpeed, speed} = useReplayContext();
   return (
-    <CompactSelect
+    <StyledCompactSelect
       triggerLabel={`${t('Speed')}: ${speed}x`}
       value={speed}
       options={speedOptions.map(speedOption => ({
@@ -116,6 +116,14 @@ const ReplayControls = ({
 
 const IconClockwise = styled(IconRefresh)`
   transform: scaleX(-1);
+`;
+
+const StyledCompactSelect = styled(CompactSelect)`
+  & button {
+    padding: 0 ${space(1)};
+    height: 1.75rem;
+    min-height: 0;
+  }
 `;
 
 const ButtonGrid = styled('div')`
