@@ -65,7 +65,7 @@ function ReplayPlaybackSpeed({speedOptions}: {speedOptions: number[]}) {
     <CompactSelect
       triggerProps={{
         size: 'xsmall',
-        prefix: `${t('Speed')}`,
+        prefix: t('Speed'),
       }}
       value={speed}
       options={speedOptions.map(speedOption => ({
