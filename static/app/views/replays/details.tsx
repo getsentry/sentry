@@ -7,7 +7,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader as _PanelHeader} from 'sentry/components/panels';
 import ReplayBreadcrumbOverview from 'sentry/components/replays/breadcrumbs/replayBreadcrumbOverview';
-import Scrobber from 'sentry/components/replays/player/scrobber';
+import Scrubber from 'sentry/components/replays/player/scrubber';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayController from 'sentry/components/replays/replayController';
 import ReplayCurrentUrl from 'sentry/components/replays/replayCurrentUrl';
@@ -99,7 +99,7 @@ function ReplayDetails() {
                   <ReplayPlayer />
                 </ManualResize>
               </PanelHeader>
-              <Scrobber />
+              <Scrubber />
               <PanelBody withPadding>
                 <ReplayController toggleFullscreen={toggleFullscreen} />
               </PanelBody>
