@@ -1,4 +1,4 @@
-from contextlib import contextmanager
+from contextlib import nullcontext
 from datetime import datetime, timedelta
 
 import pytest
@@ -6,12 +6,6 @@ import pytest
 from sentry.replaystore.base import ReplayDataType
 from sentry.replaystore.django.backend import DjangoReplayStore
 from tests.sentry.replaystore.bigtable.tests import get_temporary_bigtable_replaystore
-
-
-@contextmanager
-def nullcontext(returning):
-    # TODO: Replace with ``contextlib.nullcontext`` after upgrading to 3.7
-    yield returning
 
 
 @pytest.fixture(params=["bigtable-real", pytest.param("django", marks=pytest.mark.django_db)])
