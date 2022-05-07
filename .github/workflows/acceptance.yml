@@ -323,7 +323,7 @@ jobs:
 
       - name: Diff snapshots
         id: visual-snapshots-diff
-        uses: getsentry/action-visual-snapshot@v2
+        uses: getsentry/action-visual-snapshot@13a968f51d5a952d02baa896b862a28bf7bb8c62
         # Forks are handled in visual-diff.yml
         if: github.event.pull_request.head.repo.full_name == 'getsentry/sentry'
         with:
