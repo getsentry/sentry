@@ -20,6 +20,7 @@ import withProjects from 'sentry/utils/withProjects';
 import PageCorners from 'sentry/views/onboarding/components/pageCorners';
 
 import Stepper from './components/stepper';
+import IntegrationSelect from './integration';
 import MobileRedirect from './mobileRedirect';
 import PlatformSelection from './platform';
 import SetupDocs from './setupDocs';
@@ -48,6 +49,13 @@ const ONBOARDING_STEPS: StepDescriptor[] = [
     id: 'select-platform',
     title: t('Select platforms'),
     Component: PlatformSelection,
+    hasFooter: true,
+    cornerVariant: 'top-left',
+  },
+  {
+    id: 'select-integration',
+    title: t('Select integrations'),
+    Component: IntegrationSelect,
     hasFooter: true,
     cornerVariant: 'top-left',
   },
