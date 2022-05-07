@@ -307,7 +307,7 @@ jobs:
   visual-diff:
     # This guarantees that we will only schedule Visual Snapshots if all
     # workflows that generate artifacts succeed
-    # needs: [acceptance, frontend, chartcuterie]
+    needs: [acceptance, frontend, chartcuterie]
     name: triggers visual snapshot
     # This is necessary since a failed/skipped dependent job would cause this job to be skipped
     if: always()
@@ -316,14 +316,14 @@ jobs:
 
     steps:
       # If any jobs we depend on fail, we will fail since this checks triggers Visual Snapshots which is a required check
-      # - name: Check for failures
-      #   if: contains(needs.*.result, 'failure')
-      #   run: |
-      #     echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
+      - name: Check for failures
+        if: contains(needs.*.result, 'failure')
+        run: |
+          echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
 
       - name: Diff snapshots
         id: visual-snapshots-diff
-        uses: getsentry/action-visual-snapshot@8442979fb98d3035e5c50cdc202c0a9d647a4957
+        uses: getsentry/action-visual-snapshot@c20fb056412f0e41f7d1021868846ded1ddb76b8
         # Forks are handled in visual-diff.yml
         if: github.event.pull_request.head.repo.full_name == 'getsentry/sentry'
         with:
