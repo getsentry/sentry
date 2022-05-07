@@ -1,0 +1,34 @@
+import last from 'lodash/last';
+
+import {transformCrumbs} from 'sentry/components/events/interfaces/breadcrumbs/utils';
+import {BreadcrumbType, BreadcrumbTypeNavigation} from 'sentry/types/breadcrumbs';
+import {EntryType, EventTag} from 'sentry/types/event';
+import type ReplayReader from 'sentry/utils/replays/replayReader';
+
+function findUrlTag(tags: EventTag[]) {
+  return tags.find(tag => tag.key === 'url');
+}
+
+function getCurrentUrl(replay: ReplayReader, currentTime: number) {
+  const event = replay.getEvent();
+  const crumbs = replay.getEntryType(EntryType.BREADCRUMBS)?.data.values || [];
+
+  const currentOffsetMs = Math.floor(currentTime);
+  const startTimestampMs = event.startTimestamp * 1000;
+  const currentTimeMs = startTimestampMs + currentOffsetMs;
+
+  const navigationCrumbs = transformCrumbs(crumbs).filter(
+    crumb => crumb.type === BreadcrumbType.NAVIGATION
+  ) as BreadcrumbTypeNavigation[];
+
+  const initialUrl = findUrlTag(event.tags)?.value || '';
+  const origin = initialUrl ? new URL(initialUrl).origin : '';
+
+  const mostRecentNavigation = last(
+    navigationCrumbs.filter(({timestamp}) => +new Date(timestamp || 0) < currentTimeMs)
+  )?.data?.to;
+
+  return mostRecentNavigation ? origin + mostRecentNavigation : initialUrl;
+}
+
+export default getCurrentUrl;

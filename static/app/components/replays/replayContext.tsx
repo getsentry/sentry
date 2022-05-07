@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 import {Replayer, ReplayerEvents} from 'rrweb';
 import type {eventWithTime} from 'rrweb/typings/types';
 
+import type ReplayReader from 'sentry/utils/replays/replayReader';
 import usePrevious from 'sentry/utils/usePrevious';
 
 import HighlightReplayPlugin from './highlightReplayPlugin';
@@ -67,6 +68,11 @@ type ReplayPlayerContextProps = {
   isSkippingInactive: boolean;
 
   /**
+   * The core replay data
+   */
+  replay: ReplayReader | null;
+
+  /**
    * Jump the video to a specific time
    */
   setCurrentTime: (time: number) => void;
@@ -106,6 +112,7 @@ const ReplayPlayerContext = React.createContext<ReplayPlayerContextProps>({
   isBuffering: false,
   isPlaying: false,
   isSkippingInactive: false,
+  replay: null,
   setCurrentTime: () => {},
   setSpeed: () => {},
   speed: 1,
@@ -115,7 +122,7 @@ const ReplayPlayerContext = React.createContext<ReplayPlayerContextProps>({
 
 type Props = {
   children: React.ReactNode;
-  events: eventWithTime[];
+  replay: ReplayReader;
 
   /**
    * Time, in seconds, when the video should start
@@ -134,7 +141,9 @@ function useCurrentTime(callback: () => number) {
   return currentTime;
 }
 
-export function Provider({children, events, initialTimeOffset = 0, value = {}}: Props) {
+export function Provider({children, replay, initialTimeOffset = 0, value = {}}: Props) {
+  const events = replay.getRRWebEvents();
+
   const theme = useTheme();
   const oldEvents = usePrevious(events);
   const replayerRef = useRef<Replayer>(null);
@@ -334,6 +343,7 @@ export function Provider({children, events, initialTimeOffset = 0, value = {}}: 
         isBuffering,
         isPlaying,
         isSkippingInactive,
+        replay,
         setCurrentTime,
         setSpeed,
         speed,
