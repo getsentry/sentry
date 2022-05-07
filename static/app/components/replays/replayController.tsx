@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {DropdownTriggerButton} from 'sentry/components/dropdownButtonV2';
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import useFullscreen from 'sentry/components/replays/useFullscreen';
@@ -63,8 +62,11 @@ function ReplayCurrentTime() {
 function ReplayPlaybackSpeed({speedOptions}: {speedOptions: number[]}) {
   const {setSpeed, speed} = useReplayContext();
   return (
-    <StyledCompactSelect
-      triggerLabel={`${t('Speed')}: ${speed}x`}
+    <CompactSelect
+      triggerProps={{
+        size: 'xsmall',
+        prefix: `${t('Speed')}`,
+      }}
       value={speed}
       options={speedOptions.map(speedOption => ({
         value: speedOption,
@@ -116,14 +118,6 @@ const ReplayControls = ({
 
 const IconClockwise = styled(IconRefresh)`
   transform: scaleX(-1);
-`;
-
-const StyledCompactSelect = styled(CompactSelect)`
-  ${DropdownTriggerButton} {
-    padding: 0 ${space(1)};
-    height: 1.75rem;
-    min-height: 0;
-  }
 `;
 
 const ButtonGrid = styled('div')`
