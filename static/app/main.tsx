@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {browserHistory, Router, RouterContext} from 'react-router';
 
 import DemoHeader from 'sentry/components/demo/demoHeader';
@@ -10,21 +11,23 @@ import {PersistedStoreProvider} from './stores/persistedStore';
 
 function Main() {
   return (
-    <ThemeAndStyleProvider>
-      <PersistedStoreProvider>
-        {ConfigStore.get('demoMode') && <DemoHeader />}
-        <Router
-          history={browserHistory}
-          render={props => (
-            <RouteContext.Provider value={props}>
-              <RouterContext {...props} />
-            </RouteContext.Provider>
-          )}
-        >
-          {routes()}
-        </Router>
-      </PersistedStoreProvider>
-    </ThemeAndStyleProvider>
+    <Fragment>
+      <ThemeAndStyleProvider>
+        <PersistedStoreProvider>
+          {ConfigStore.get('demoMode') && <DemoHeader />}
+          <Router
+            history={browserHistory}
+            render={props => (
+              <RouteContext.Provider value={props}>
+                <RouterContext {...props} />
+              </RouteContext.Provider>
+            )}
+          >
+            {routes()}
+          </Router>
+        </PersistedStoreProvider>
+      </ThemeAndStyleProvider>
+    </Fragment>
   );
 }
 
