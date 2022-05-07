@@ -12,7 +12,7 @@ const Wrapper = styled('div')`
   display: flex;
 `;
 
-const StyledInput = styled('input')<{rtl?: boolean}>`
+export const StyledInput = styled('input')<{rtl?: boolean}>`
   ${inputStyles};
   background-color: ${p => p.theme.backgroundSecondary};
   border-right-width: 0;
@@ -32,7 +32,7 @@ const OverflowContainer = styled('div')`
   border: none;
 `;
 
-const StyledCopyButton = styled(Button)`
+export const StyledCopyButton = styled(Button)`
   flex-shrink: 1;
   border-radius: 0 0.25em 0.25em 0;
   box-shadow: none;
@@ -43,6 +43,7 @@ type Props = {
    * Text to copy
    */
   children: string;
+  className?: string;
   onCopy?: (value: string, event: React.MouseEvent) => void;
   /**
    * Always show the ending of a long overflowing text in input
@@ -92,7 +93,7 @@ class TextCopyInput extends Component<Props> {
   };
 
   render() {
-    const {style, children, rtl} = this.props;
+    const {className, style, children, rtl} = this.props;
 
     /**
      * We are using direction: rtl; to always show the ending of a long overflowing text in input.
@@ -105,7 +106,7 @@ class TextCopyInput extends Component<Props> {
     const inputValue = rtl ? '\u202A' + children + '\u202C' : children;
 
     return (
-      <Wrapper>
+      <Wrapper className={className}>
         <OverflowContainer>
           <StyledInput
             readOnly

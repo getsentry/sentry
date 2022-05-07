@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -10,9 +10,9 @@ import retryableImport from 'sentry/utils/retryableImport';
 
 type PromisedImport<C> = Promise<{default: C}>;
 
-type Component = React.ComponentType<any>;
+type ComponentType = React.ComponentType<any>;
 
-type Props<C extends Component> = Omit<
+type Props<C extends ComponentType> = Omit<
   React.ComponentProps<C>,
   'hideBusy' | 'hideError' | 'component' | 'route'
 > & {
@@ -28,14 +28,14 @@ type Props<C extends Component> = Omit<
   route?: {componentPromise: () => PromisedImport<C>};
 };
 
-type State<C extends Component> = {
-  Component: C | null;
+type State<C extends ComponentType> = {
+  LazyComponent: C | null;
   error: any | null;
 };
 
-class LazyLoad<C extends Component> extends React.Component<Props<C>, State<C>> {
+class LazyLoad<C extends ComponentType> extends Component<Props<C>, State<C>> {
   state: State<C> = {
-    Component: null,
+    LazyComponent: null,
     error: null,
   };
 
@@ -65,7 +65,7 @@ class LazyLoad<C extends Component> extends React.Component<Props<C>, State<C>> 
     // then there's no guarantee that new Component will be rendered
     this.setState(
       {
-        Component: null,
+        LazyComponent: null,
       },
       this.fetchComponent
     );
@@ -104,7 +104,7 @@ class LazyLoad<C extends Component> extends React.Component<Props<C>, State<C>> 
     }
 
     try {
-      this.setState({Component: await retryableImport(getComponent)});
+      this.setState({LazyComponent: await retryableImport(getComponent)});
     } catch (err) {
       this.handleFetchError(err);
     }
@@ -115,7 +115,7 @@ class LazyLoad<C extends Component> extends React.Component<Props<C>, State<C>> 
   };
 
   render() {
-    const {Component, error} = this.state;
+    const {LazyComponent, error} = this.state;
     const {hideBusy, hideError, component: _component, ...otherProps} = this.props;
 
     if (error && !hideError) {
@@ -129,7 +129,7 @@ class LazyLoad<C extends Component> extends React.Component<Props<C>, State<C>> 
       );
     }
 
-    if (!Component && !hideBusy) {
+    if (!LazyComponent && !hideBusy) {
       return (
         <LoadingContainer>
           <LoadingIndicator />
@@ -137,11 +137,11 @@ class LazyLoad<C extends Component> extends React.Component<Props<C>, State<C>> 
       );
     }
 
-    if (Component === null) {
+    if (LazyComponent === null) {
       return null;
     }
 
-    return <Component {...(otherProps as React.ComponentProps<C>)} />;
+    return <LazyComponent {...(otherProps as React.ComponentProps<C>)} />;
   }
 }
 
