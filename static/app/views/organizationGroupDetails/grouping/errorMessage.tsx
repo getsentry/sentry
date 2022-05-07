@@ -35,6 +35,7 @@ type Props = {
   onRetry: () => void;
   orgSlug: Organization['slug'];
   projSlug: Project['slug'];
+  className?: string;
 };
 
 function ErrorMessage({
@@ -44,6 +45,7 @@ function ErrorMessage({
   orgSlug,
   projSlug,
   hasProjectWriteAccess,
+  className,
 }: Props) {
   function getErrorDetails(errorCode: ErrorCode) {
     switch (errorCode) {
@@ -139,7 +141,11 @@ function ErrorMessage({
   }
 
   if (typeof error === 'string') {
-    return <Alert type="warning">{error}</Alert>;
+    return (
+      <Alert type="warning" className={className}>
+        {error}
+      </Alert>
+    );
   }
 
   if (error.status === 403 && error.responseJSON?.detail) {
@@ -147,7 +153,7 @@ function ErrorMessage({
     const {action, title, subTitle, leftAligned} = getErrorDetails(code);
 
     return (
-      <Panel>
+      <Panel className={className}>
         <EmptyMessage
           size="large"
           title={title ?? message}
@@ -163,6 +169,7 @@ function ErrorMessage({
     <LoadingError
       message={t('Unable to load grouping levels, please try again later')}
       onRetry={onRetry}
+      className={className}
     />
   );
 }

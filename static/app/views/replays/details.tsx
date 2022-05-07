@@ -15,6 +15,7 @@ import ReplayPlayer from 'sentry/components/replays/replayPlayer';
 import useFullscreen from 'sentry/components/replays/useFullscreen';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
+import space from 'sentry/styles/space';
 import {EntryType} from 'sentry/types/event';
 import useReplayData from 'sentry/utils/replays/useReplayData';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
@@ -104,12 +105,12 @@ function ReplayDetails() {
               </PanelBody>
             </Panel>
           </ReplayLayout>
-          <Layout.Side>
+          <Side>
             <UserActionsNavigator
+              crumbs={replay.getEntryType(EntryType.BREADCRUMBS)?.data.values || []}
               event={replay.getEvent()}
-              entry={replay.getEntryType(EntryType.BREADCRUMBS)}
             />
-          </Layout.Side>
+          </Side>
           <Layout.Main fullWidth>
             <Panel>
               <BreadcrumbTimeline
@@ -149,6 +150,10 @@ const ReplayLayout = styled(Layout.Main)`
     grid-template-rows: auto max-content;
     background: ${p => p.theme.gray500};
   }
+`;
+
+const Side = styled(Layout.Side)`
+  padding-bottom: ${space(2)};
 `;
 
 const BreadcrumbTimeline = styled(ReplayBreadcrumbOverview)`

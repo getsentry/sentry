@@ -68,7 +68,6 @@ export function ReleaseSearchBar({orgSlug, query, projectIds, onSearch, onBlur}:
           supportedTags={supportedTags}
           placeholder={t('Search for release version, session status, and more')}
           prepareQuery={prepareQuery}
-          excludeEnvironment
           dropdownClassName={css`
             max-height: ${MAX_MENU_HEIGHT ?? 300}px;
             overflow-y: auto;
