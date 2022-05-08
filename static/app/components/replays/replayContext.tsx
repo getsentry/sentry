@@ -347,13 +347,16 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
     setBufferTime({target: -1, previous: -1});
   }
 
+  const event = replay.getEvent();
+  const duration = (event.endTimestamp - event.startTimestamp) * 1000;
+
   return (
     <ReplayPlayerContext.Provider
       value={{
         currentHoverTime,
         currentTime,
         dimensions,
-        duration: replayerRef.current?.getMetaData().totalTime,
+        duration,
         events,
         fastForwardSpeed,
         initRoot,
