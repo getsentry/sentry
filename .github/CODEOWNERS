@@ -192,9 +192,12 @@ build-utils/        @getsentry/owners-js-build
 ### Emerging Tech ###
 
 ###### Replays #######
-/static/app/views/replays/        @getsentry/emerging-technology
-/static/app/components/replays/   @getsentry/emerging-technology
-/tests/js/spec/views/replays/     @getsentry/emerging-technology
+/static/app/components/replays/    @getsentry/emerging-technology
+/static/app/utils/replays/         @getsentry/emerging-technology
+/static/app/views/replays/         @getsentry/emerging-technology
+/tests/js/spec/components/replays/ @getsentry/emerging-technology
+/tests/js/spec/utils/replays/      @getsentry/emerging-technology
+/tests/js/spec/views/replays/      @getsentry/emerging-technology
 ###### End of Replays #######
 
 ### End of Emerging Tech ###
