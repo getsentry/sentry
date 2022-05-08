@@ -6,6 +6,7 @@ import HorizontalMouseTracking from 'sentry/components/replays/player/horizontal
 import {TimelineScubber} from 'sentry/components/replays/player/scrubber';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import StackedContent from 'sentry/components/replays/stackedContent';
+import TimelinePosition from 'sentry/components/replays/timelinePosition';
 import space from 'sentry/styles/space';
 import {Crumb} from 'sentry/types/breadcrumbs';
 import {EntryType} from 'sentry/types/event';
@@ -44,8 +45,8 @@ function ReplayBreadcrumbOverview({className}: Props) {
               minWidth={50}
               lineStyle="solid"
             />
-
             <Events crumbs={transformedCrumbs} width={width} />
+            <TimelinePosition />
           </React.Fragment>
         )}
       </StackedContent>
