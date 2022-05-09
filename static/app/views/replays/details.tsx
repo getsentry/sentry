@@ -7,9 +7,11 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader as _PanelHeader} from 'sentry/components/panels';
 import ReplayBreadcrumbOverview from 'sentry/components/replays/breadcrumbs/replayBreadcrumbOverview';
-import Scrobber from 'sentry/components/replays/player/scrobber';
+import HorizontalMouseTracking from 'sentry/components/replays/player/horizontalMouseTracking';
+import {PlayerScrubber} from 'sentry/components/replays/player/scrubber';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayController from 'sentry/components/replays/replayController';
+import ReplayCurrentUrl from 'sentry/components/replays/replayCurrentUrl';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
 import useFullscreen from 'sentry/components/replays/useFullscreen';
 import {t} from 'sentry/locale';
@@ -81,10 +83,7 @@ function ReplayDetails() {
   }
 
   return (
-    <ReplayContextProvider
-      events={replay.getRRWebEvents()}
-      initialTimeOffset={initialTimeOffset}
-    >
+    <ReplayContextProvider replay={replay} initialTimeOffset={initialTimeOffset}>
       <DetailLayout
         event={replay.getEvent()}
         orgId={orgId}
@@ -93,12 +92,17 @@ function ReplayDetails() {
         <Layout.Body>
           <ReplayLayout ref={fullscreenRef}>
             <Panel>
+              <PanelHeader>
+                <ReplayCurrentUrl />
+              </PanelHeader>
               <PanelHeader disablePadding>
                 <ManualResize isFullscreen={isFullscreen}>
                   <ReplayPlayer />
                 </ManualResize>
               </PanelHeader>
-              <Scrobber />
+              <HorizontalMouseTracking>
+                <PlayerScrubber />
+              </HorizontalMouseTracking>
               <PanelBody withPadding>
                 <ReplayController toggleFullscreen={toggleFullscreen} />
               </PanelBody>

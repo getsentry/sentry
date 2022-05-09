@@ -191,6 +191,13 @@ class QueryField extends Component<Props> {
           };
         }
         break;
+      case FieldValueKind.EQUATION:
+        fieldValue = {
+          kind: 'equation',
+          field: value.meta.name,
+          alias: value.meta.name,
+        };
+        break;
       default:
         throw new Error('Invalid field type found in column picker');
     }
@@ -299,6 +306,11 @@ class QueryField extends Component<Props> {
     const spanOperationBreakdownName = `span_op_breakdown:${name}`;
     if (fieldOptions[spanOperationBreakdownName]) {
       return fieldOptions[spanOperationBreakdownName].value;
+    }
+
+    const equationName = `equation:${name}`;
+    if (fieldOptions[equationName]) {
+      return fieldOptions[equationName].value;
     }
 
     const tagName =

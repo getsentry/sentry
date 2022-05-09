@@ -7,10 +7,10 @@ describe('EventedProfile', () => {
   it('imports the base properties', () => {
     const trace: Profiling.EventedProfile = {
       name: 'profile',
-      threadID: 0,
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
+      threadID: 0,
       type: 'evented',
       events: [],
     };
@@ -27,10 +27,10 @@ describe('EventedProfile', () => {
   it('rebuilds the stack', () => {
     const trace: Profiling.EventedProfile = {
       name: 'profile',
-      threadID: 0,
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
+      threadID: 0,
       type: 'evented',
       events: [
         {type: 'O', at: 0, frame: 0},
@@ -70,10 +70,10 @@ describe('EventedProfile', () => {
   it('marks direct recursion', () => {
     const trace: Profiling.EventedProfile = {
       name: 'profile',
-      threadID: 0,
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
+      threadID: 0,
       type: 'evented',
       events: [
         {type: 'O', at: 0, frame: 0},
@@ -91,10 +91,10 @@ describe('EventedProfile', () => {
   it('marks indirect recursion', () => {
     const trace: Profiling.EventedProfile = {
       name: 'profile',
-      threadID: 0,
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
+      threadID: 0,
       type: 'evented',
       events: [
         {type: 'O', at: 0, frame: 0},
@@ -119,10 +119,10 @@ describe('EventedProfile', () => {
   it('tracks minFrameDuration', () => {
     const trace: Profiling.EventedProfile = {
       name: 'profile',
-      threadID: 0,
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
+      threadID: 0,
       type: 'evented',
       events: [
         {type: 'O', at: 0, frame: 0},
@@ -143,10 +143,10 @@ describe('EventedProfile', () => {
   it('throws if samples are our of order', () => {
     const trace: Profiling.EventedProfile = {
       name: 'profile',
-      threadID: 0,
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
+      threadID: 0,
       type: 'evented',
       events: [
         {type: 'O', at: 5, frame: 0},
@@ -168,10 +168,10 @@ describe('EventedProfile', () => {
   it('throws on unbalanced stack', () => {
     const trace: Profiling.EventedProfile = {
       name: 'profile',
-      threadID: 0,
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
+      threadID: 0,
       type: 'evented',
       events: [
         {type: 'O', at: 0, frame: 0},

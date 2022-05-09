@@ -8,51 +8,42 @@ import {tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {SelectValue} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import {FlamegraphState} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/index';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {Profile} from 'sentry/utils/profiling/profile/profile';
 import {makeFormatter} from 'sentry/utils/profiling/units/units';
 
 interface ThreadSelectorProps {
-  activeProfileIndex: ProfileGroup['activeProfileIndex'];
-  onProfileIndexChange: (index: number) => void;
+  onThreadIdChange: (threadId: Profile['threadId']) => void;
   profileGroup: ProfileGroup;
+  threadId: FlamegraphState['profiles']['threadId'];
 }
 
 function ThreadMenuSelector<OptionType extends GeneralSelectValue = GeneralSelectValue>({
-  activeProfileIndex,
-  onProfileIndexChange,
+  threadId,
+  onThreadIdChange,
   profileGroup,
 }: ThreadSelectorProps) {
   const options: SelectValue<number>[] = useMemo(() => {
-    return profileGroup.profiles
-      .map((profile, i) => ({
-        name: profile.name,
-        duration: profile.duration,
-        index: i,
-        formatter: makeFormatter(profile.unit),
-        samples: profile.samples.length,
-        threadId: profile.threadId,
-      }))
-      .sort(compareProfiles)
-      .map(item => ({
-        label: item.name ? item.name : `tid (${item.threadId})`,
-        value: item.index,
-        details: (
-          <ThreadLabelDetails
-            duration={item.formatter(item.duration)}
-            samples={item.samples}
-          />
-        ),
-      }));
+    return profileGroup.profiles.sort(compareProfiles).map(profile => ({
+      label: profile.name ? profile.name : `tid (${profile.threadId})`,
+      value: profile.threadId,
+      details: (
+        <ThreadLabelDetails
+          duration={makeFormatter(profile.unit)(profile.duration)}
+          samples={profile.samples.length}
+        />
+      ),
+    }));
   }, [profileGroup]);
 
   const handleChange: NonNullable<ControlProps<OptionType>['onChange']> = useCallback(
     opt => {
       if (defined(opt)) {
-        onProfileIndexChange(opt.value);
+        onThreadIdChange(opt.value);
       }
     },
-    [onProfileIndexChange]
+    [onThreadIdChange]
   );
 
   return (
@@ -62,7 +53,7 @@ function ThreadMenuSelector<OptionType extends GeneralSelectValue = GeneralSelec
         size: 'xsmall',
       }}
       options={options}
-      value={activeProfileIndex}
+      value={threadId}
       onChange={handleChange}
       isSearchable
     />
@@ -85,8 +76,8 @@ function ThreadLabelDetails(props: ThreadLabelDetailsProps) {
 
 type ProfileLight = {
   duration: Profile['duration'];
-  index: number;
   name: Profile['name'];
+  threadId: Profile['threadId'];
 };
 
 function compareProfiles(a: ProfileLight, b: ProfileLight): number {

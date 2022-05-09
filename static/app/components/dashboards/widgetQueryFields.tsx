@@ -155,7 +155,7 @@ function WidgetQueryFields({
         return true;
       }
 
-      if (fieldValue.kind !== 'function') {
+      if (fieldValue.kind !== FieldValueKind.FUNCTION) {
         return true;
       }
 
@@ -172,8 +172,11 @@ function WidgetQueryFields({
         return isLegalYAxisType(primaryOutput);
       }
 
-      if (option.value.kind === FieldValueKind.FUNCTION) {
-        // Functions are not legal options as an aggregate/function parameter.
+      if (
+        option.value.kind === FieldValueKind.FUNCTION ||
+        option.value.kind === FieldValueKind.EQUATION
+      ) {
+        // Functions and equations are not legal options as an aggregate/function parameter.
         return false;
       }
 

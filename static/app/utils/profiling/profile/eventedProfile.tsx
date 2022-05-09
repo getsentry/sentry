@@ -20,8 +20,8 @@ export class EventedProfile extends Profile {
       eventedProfile.startValue,
       eventedProfile.endValue,
       eventedProfile.name,
-      eventedProfile.threadID,
-      eventedProfile.unit
+      eventedProfile.unit,
+      eventedProfile.threadID
     );
 
     // If frames are offset, we need to set lastValue to profile start, so that delta between

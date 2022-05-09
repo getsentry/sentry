@@ -11,8 +11,8 @@ const makeBaseFlamegraph = (): Flamegraph => {
   const profile = EventedProfile.FromProfile(
     {
       name: 'profile',
-      threadID: 0,
       startValue: 0,
+      threadID: 0,
       endValue: 1000,
       unit: 'milliseconds',
       type: 'evented',
@@ -84,11 +84,11 @@ describe('TextRenderer', () => {
     const profile = EventedProfile.FromProfile(
       {
         name: 'profile',
-        threadID: 0,
         startValue: 0,
         endValue: 1000,
         unit: 'milliseconds',
         type: 'evented',
+        threadID: 0,
         events: [
           {type: 'O', at: 0, frame: 0},
           {type: 'O', at: 100, frame: 1},
@@ -124,11 +124,11 @@ describe('TextRenderer', () => {
     const profile = EventedProfile.FromProfile(
       {
         name: 'profile',
-        threadID: 0,
         startValue: 0,
         endValue: 1000,
         unit: 'milliseconds',
         type: 'evented',
+        threadID: 0,
         events: [
           {type: 'O', at: 0, frame: 0},
           {type: 'C', at: longFrameName.length, frame: 0},
@@ -173,11 +173,11 @@ describe('TextRenderer', () => {
     const profile = EventedProfile.FromProfile(
       {
         name: 'profile',
-        threadID: 0,
         startValue: 0,
         endValue: 1000,
         unit: 'milliseconds',
         type: 'evented',
+        threadID: 0,
         events: [
           {type: 'O', at: 0, frame: 0},
           {type: 'C', at: longFrameName.length, frame: 0},

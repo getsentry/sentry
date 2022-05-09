@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from 'react';
+import {CSSProperties, useCallback, useEffect, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
@@ -8,6 +8,7 @@ import {TableCell} from 'sentry/components/charts/simpleTableChart';
 import Field from 'sentry/components/forms/field';
 import SelectControl from 'sentry/components/forms/selectControl';
 import {PanelAlert} from 'sentry/components/panels';
+import Tag from 'sentry/components/tag';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -63,6 +64,20 @@ export function VisualizationStep({
     };
   }, [widget, previousWidget]);
 
+  const displayOptions = Object.keys(displayTypes).map(value => ({
+    label:
+      organization.features.includes('new-widget-builder-experience-design') &&
+      value === DisplayType.TOP_N ? (
+        <DisplayOptionLabel>
+          {displayTypes[value]}
+          <Tag type="info">{t('deprecated')}</Tag>
+        </DisplayOptionLabel>
+      ) : (
+        displayTypes[value]
+      ),
+    value,
+  }));
+
   return (
     <BuildStep
       title={t('Choose your visualization')}
@@ -73,13 +88,16 @@ export function VisualizationStep({
       <Field error={error} inline={false} flexibleControlStateSize stacked>
         <SelectControl
           name="displayType"
-          options={Object.keys(displayTypes).map(value => ({
-            label: displayTypes[value],
-            value,
-          }))}
+          options={displayOptions}
           value={displayType}
           onChange={(option: SelectValue<DisplayType>) => {
             onChange(option.value);
+          }}
+          styles={{
+            singleValue: (provided: CSSProperties) => ({
+              ...provided,
+              width: `calc(100% - ${space(1)})`,
+            }),
           }}
         />
       </Field>
@@ -123,4 +141,10 @@ const VisualizationWrapper = styled('div')<{displayType: DisplayType}>`
         height: 301px;
       }
     `};
+`;
+
+const DisplayOptionLabel = styled('span')`
+  display: flex;
+  justify-content: space-between;
+  width: calc(100% - ${space(1)});
 `;

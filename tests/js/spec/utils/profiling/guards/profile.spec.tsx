@@ -9,8 +9,8 @@ const sampledProfile: Profiling.SampledProfile = {
   weights: [],
   samples: [],
   name: 'profile',
-  threadID: 0,
   unit: 'milliseconds',
+  threadID: 0,
   endValue: 0,
   startValue: 100,
 };
@@ -19,8 +19,8 @@ const eventedProfile: Profiling.EventedProfile = {
   type: 'evented',
   events: [],
   name: 'profile',
-  threadID: 0,
   unit: 'milliseconds',
+  threadID: 0,
   endValue: 0,
   startValue: 100,
 };

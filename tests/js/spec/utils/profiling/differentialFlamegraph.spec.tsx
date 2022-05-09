@@ -12,10 +12,10 @@ const makeEvent = (times: number, frame: number): Profiling.Event[] => {
 
 const baseProfile: Profiling.EventedProfile = {
   name: 'profile',
-  threadID: 0,
   startValue: 0,
   endValue: 1000,
   unit: 'milliseconds',
+  threadID: 0,
   type: 'evented',
   events: [],
 };

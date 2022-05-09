@@ -10,9 +10,9 @@ describe('importProfile', () => {
   it('imports evented profile', () => {
     const eventedProfile: Profiling.EventedProfile = {
       name: 'profile',
-      threadID: 0,
       startValue: 0,
       endValue: 1000,
+      threadID: 0,
       unit: 'milliseconds',
       type: 'evented',
       events: [],
@@ -40,9 +40,9 @@ describe('importProfile', () => {
   it('imports sampled profile', () => {
     const sampledProfile: Profiling.SampledProfile = {
       name: 'profile',
-      threadID: 0,
       startValue: 0,
       endValue: 1000,
+      threadID: 0,
       unit: 'milliseconds',
       type: 'sampled',
       weights: [],
@@ -201,9 +201,9 @@ describe('importDroppedProfile', () => {
       profiles: [
         {
           name: 'profile',
-          threadID: 0,
           startValue: 0,
           endValue: 1000,
+          threadID: 0,
           unit: 'milliseconds',
           type: 'sampled',
           weights: [],

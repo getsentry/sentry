@@ -50,7 +50,7 @@ type Props = {
 
 function SetupDocs({
   organization,
-  projects,
+  projects: rawProjects,
   search,
   configurations,
   providers,
@@ -58,11 +58,19 @@ function SetupDocs({
 }: Props) {
   const api = useApi();
   const [clientState, setClientState] = usePersistedOnboardingState();
-  const selectedProjectsSet = new Set(
-    clientState?.selectedPlatforms.map(
-      platform => clientState.platformToProjectIdMap[platform]
-    ) || []
-  );
+  const selectedPlatforms = clientState?.selectedPlatforms || [];
+  const selectedIntegrations = clientState?.selectedIntegrations || [];
+  const platformToProjectIdMap = clientState?.platformToProjectIdMap || {};
+  // id is really slug here
+  const projectSlugs = selectedPlatforms
+    .map(platform => platformToProjectIdMap[platform])
+    .filter((slug): slug is string => slug !== undefined);
+
+  const selectedProjectsSet = new Set(projectSlugs);
+  // get projects in the order they appear in selectedPlatforms
+  const projects = projectSlugs
+    .map(slug => rawProjects.find(project => project.slug === slug))
+    .filter((project): project is Project => project !== undefined);
 
   // SDK instrumentation
   const [hasError, setHasError] = useState(false);
@@ -93,9 +101,12 @@ function SetupDocs({
   // Select a project based on search params. If non exist, use the first project without first event.
   const projectIndex = rawProjectIndex >= 0 ? rawProjectIndex : firstProjectNoError;
   const project = subStep === 'project' ? projects[projectIndex] : null;
+  // find the next project that doesn't have a first event
+  const nextProject = projects.find(
+    (p, i) => i > projectIndex && !checkProjectHasFirstEvent(p)
+  );
 
   // integration installation
-  const selectedIntegrations = clientState?.selectedIntegrations || [];
   const [installedIntegrations, setInstalledIntegrations] = useState(
     new Set(configurations.map(config => config.provider.slug))
   );
@@ -178,13 +189,12 @@ function SetupDocs({
       project_id: newProjectId,
     });
     browserHistory.push(`${window.location.pathname}?${searchParams}`);
-    if (clientState) {
+    clientState &&
       setClientState({
         ...clientState,
         state: 'projects_selected',
         url: `setup-docs/?${searchParams}`,
       });
-    }
   };
 
   const selectProject = (newProjectId: string) => {
@@ -269,16 +279,12 @@ function SetupDocs({
         <SidebarWrapper>
           <ProjectSidebarSection
             projects={projects}
-            selectedPlatformToProjectIdMap={
-              clientState
-                ? Object.fromEntries(
-                    clientState.selectedPlatforms.map(platform => [
-                      platform,
-                      clientState.platformToProjectIdMap[platform],
-                    ])
-                  )
-                : {}
-            }
+            selectedPlatformToProjectIdMap={Object.fromEntries(
+              selectedPlatforms.map(platform => [
+                platform,
+                platformToProjectIdMap[platform],
+              ])
+            )}
             activeProject={project}
             {...{checkProjectHasFirstEvent, selectProject}}
           />
@@ -321,14 +327,7 @@ function SetupDocs({
         <FirstEventFooter
           project={project}
           organization={organization}
-          isLast={
-            !!clientState &&
-            project.slug ===
-              clientState.platformToProjectIdMap[
-                clientState.selectedPlatforms[clientState.selectedPlatforms.length - 1]
-              ] &&
-            !integrationsNotInstalled.length
-          }
+          isLast={!nextProject}
           hasFirstEvent={checkProjectHasFirstEvent(project)}
           onClickSetupLater={() => {
             const orgIssuesURL = `/organizations/${organization.slug}/issues/?project=${project.id}`;
@@ -344,11 +343,6 @@ function SetupDocs({
               browserHistory.push(orgIssuesURL);
               return;
             }
-            const platformIndex = clientState.selectedPlatforms.indexOf(project.platform);
-            const nextPlatform = clientState.selectedPlatforms[platformIndex + 1];
-            const nextProjectSlug =
-              nextPlatform && clientState.platformToProjectIdMap[nextPlatform];
-            const nextProject = projects.find(p => p.slug === nextProjectSlug);
             // if we have a next project, switch to that
             if (nextProject) {
               setNewProject(nextProject.id);

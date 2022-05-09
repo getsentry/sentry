@@ -11,7 +11,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
-import {flamegraphRouteWithQuery, functionsRouteWithQuery} from '../routes';
+import {
+  generateFlamegraphRouteWithQuery,
+  generateFunctionsRouteWithQuery,
+} from '../routes';
 
 import {TableColumn, TableDataRow} from './types';
 
@@ -44,7 +47,7 @@ function ProfilingTableCell({column, dataRow}: ProfilingTableCellProps) {
         return <Container>{getShortEventId(dataRow.id)}</Container>;
       }
 
-      const flamegraphTarget = flamegraphRouteWithQuery({
+      const flamegraphTarget = generateFlamegraphRouteWithQuery({
         location,
         orgSlug: organization.slug,
         projectSlug: project.slug,
@@ -73,7 +76,7 @@ function ProfilingTableCell({column, dataRow}: ProfilingTableCellProps) {
         return <Container>{t('n/a')}</Container>;
       }
 
-      const functionsTarget = functionsRouteWithQuery({
+      const functionsTarget = generateFunctionsRouteWithQuery({
         location,
         orgSlug: organization.slug,
         projectSlug: project.slug,

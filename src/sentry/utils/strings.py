@@ -1,4 +1,3 @@
-import ast
 import base64
 import codecs
 import re
@@ -28,24 +27,23 @@ _lone_surrogate = re.compile(
 """
 )
 
-INVALID_ESCAPE = re.compile(
-    r"""
-(?<!\\)              # no backslash behind
-((?:\\\\)*\\)        # odd number of backslashes
-(?!x[0-9a-fA-F]{2})  # char escape: \x__
-(?!u[0-9a-fA-F]{4})  # char escape: \u____
-(?!U[0-9a-fA-F]{8})  # char escape: \U________
-(?![0-7]{1,3})       # octal escape: \_, \__, \___
-(?![\\'"abfnrtv])    # other escapes: https://docs.python.org/3/reference/lexical_analysis.html#string-and-bytes-literals
-""",
-    re.VERBOSE,
-)
+
+def unicode_escape_recovery_handler(err):
+    try:
+        value = err.object[err.start : err.end].decode("utf-8")
+    except UnicodeError:
+        value = ""
+    return value, err.end
 
 
-def unescape_string(value: str):
+codecs.register_error("unicode-escape-recovery", unicode_escape_recovery_handler)
+
+
+def unescape_string(value):
     """Unescapes a backslash escaped string."""
-    value = INVALID_ESCAPE.sub(r"\1\\", value)
-    return ast.literal_eval(f'"{value}"')
+    return value.encode("ascii", "backslashreplace").decode(
+        "unicode-escape", "unicode-escape-recovery"
+    )
 
 
 def strip_lone_surrogates(string):
