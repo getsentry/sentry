@@ -11,6 +11,7 @@ export type DoSessionsRequestOptions = {
   end?: DateString;
   environment?: Readonly<string[]>;
   groupBy?: string[];
+  includeAllArgs?: boolean;
   interval?: string;
   limit?: number;
   orderBy?: string;
@@ -34,6 +35,7 @@ export const doSessionsRequest = (
     project,
     orderBy,
     query,
+    includeAllArgs = false,
     statsPeriodStart,
     statsPeriodEnd,
     limit,
@@ -63,5 +65,8 @@ export const doSessionsRequest = (
     }).filter(([, value]) => defined(value) && value !== '')
   );
 
-  return api.requestPromise(`/organizations/${orgSlug}/sessions/`, {query: urlQuery});
+  return api.requestPromise(`/organizations/${orgSlug}/sessions/`, {
+    includeAllArgs,
+    query: urlQuery,
+  });
 };

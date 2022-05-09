@@ -8,7 +8,7 @@ from django.db.models.signals import post_save
 from django.utils import timezone
 from snuba_sdk.legacy import json_to_snql
 
-from sentry import analytics, quotas
+from sentry import analytics, audit_log, quotas
 from sentry.auth.access import SystemAccess
 from sentry.constants import SentryAppInstallationStatus
 from sentry.incidents import tasks
@@ -32,7 +32,7 @@ from sentry.incidents.models import (
     IncidentTrigger,
     TriggerStatus,
 )
-from sentry.models import AuditLogEntryEvent, Integration, PagerDutyService, Project, SentryApp
+from sentry.models import Integration, PagerDutyService, Project, SentryApp
 from sentry.search.events.fields import resolve_field
 from sentry.search.events.filter import get_filter
 from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
@@ -527,7 +527,7 @@ def create_alert_rule(
                 organization_id=organization.id,
                 target_object=alert_rule.id,
                 data=alert_rule.get_audit_log_data(),
-                event=AuditLogEntryEvent.ALERT_RULE_ADD,
+                event=audit_log.get_event_id("ALERT_RULE_ADD"),
             )
 
         if include_all_projects:
@@ -767,7 +767,7 @@ def update_alert_rule(
             organization_id=alert_rule.organization_id,
             target_object=alert_rule.id,
             data=alert_rule.get_audit_log_data(),
-            event=AuditLogEntryEvent.ALERT_RULE_EDIT,
+            event=audit_log.get_event_id("ALERT_RULE_EDIT"),
         )
 
     return alert_rule
@@ -814,7 +814,7 @@ def delete_alert_rule(alert_rule, user=None):
                 organization_id=alert_rule.organization_id,
                 target_object=alert_rule.id,
                 data=alert_rule.get_audit_log_data(),
-                event=AuditLogEntryEvent.ALERT_RULE_REMOVE,
+                event=audit_log.get_event_id("ALERT_RULE_REMOVE"),
             )
 
         incidents = Incident.objects.filter(alert_rule=alert_rule)
@@ -1450,13 +1450,13 @@ def rewrite_trigger_action_fields(action_data):
 
 
 def get_filtered_actions(
-    validated_alert_rule_data: Mapping[str, Any], action_type: AlertRuleTriggerAction.Type
+    alert_rule_data: Mapping[str, Any], action_type: AlertRuleTriggerAction.Type
 ):
     from sentry.incidents.serializers import STRING_TO_ACTION_TYPE
 
     return [
         rewrite_trigger_action_fields(action)
-        for trigger in validated_alert_rule_data.get("triggers", [])
+        for trigger in alert_rule_data.get("triggers", [])
         for action in trigger.get("actions", [])
         if STRING_TO_ACTION_TYPE.get(action.get("type")) == action_type
     ]

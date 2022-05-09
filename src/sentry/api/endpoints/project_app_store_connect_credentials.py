@@ -40,7 +40,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import audit_log, features
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission, StrictProjectPermission
 from sentry.api.exceptions import (
     AppConnectAuthenticationError,
@@ -50,7 +50,7 @@ from sentry.api.exceptions import (
 from sentry.api.fields.secret import SecretField, validate_secret
 from sentry.lang.native import appconnect
 from sentry.lang.native.symbolicator import redact_source_secrets, secret_fields
-from sentry.models import AppConnectBuild, AuditLogEntryEvent, LatestAppConnectBuildsCheck, Project
+from sentry.models import AppConnectBuild, LatestAppConnectBuildsCheck, Project
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.tasks.app_store_connect import dsym_download
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -212,7 +212,7 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
         config = serializer.validated_data
 
         config["type"] = "appStoreConnect"
-        config["id"] = uuid4().hex
+        config["id"] = str(uuid4())
         config["name"] = config["appName"]
 
         try:
@@ -232,7 +232,7 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
             request=request,
             organization=project.organization,
             target_object=project.id,
-            event=AuditLogEntryEvent.PROJECT_EDIT,
+            event=audit_log.get_event_id("PROJECT_EDIT"),
             data={appconnect.SYMBOL_SOURCES_PROP_NAME: redacted_sources},
         )
 
@@ -311,7 +311,7 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
             request=request,
             organization=project.organization,
             target_object=project.id,
-            event=AuditLogEntryEvent.PROJECT_EDIT,
+            event=audit_log.get_event_id("PROJECT_EDIT"),
             data={appconnect.SYMBOL_SOURCES_PROP_NAME: redacted_sources},
         )
 

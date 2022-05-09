@@ -101,7 +101,7 @@ function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, Widge
       fieldAliases: [],
       aggregates: ['count()'],
       conditions: '',
-      orderby: widgetBuilderNewDesign ? '-count' : '',
+      orderby: widgetBuilderNewDesign ? '-count()' : '',
     },
     [DataSet.ISSUES]: {
       name: '',
@@ -233,27 +233,11 @@ function WidgetBuilder({
   const api = useApi();
 
   const [state, setState] = useState<State>(() => {
-    return {
+    const defaultState: State = {
       title: defaultTitle ?? t('Custom Widget'),
       displayType: displayType ?? DisplayType.TABLE,
       interval: '5m',
-      queries: [
-        defaultWidgetQuery
-          ? widgetBuilderNewDesign
-            ? {
-                ...defaultWidgetQuery,
-                orderby:
-                  defaultWidgetQuery.orderby ||
-                  generateOrderOptions({
-                    widgetType: WidgetType.DISCOVER,
-                    widgetBuilderNewDesign,
-                    columns: defaultWidgetQuery.columns,
-                    aggregates: defaultWidgetQuery.aggregates,
-                  })[0].value,
-              }
-            : {...defaultWidgetQuery}
-          : {...getDataSetQuery(widgetBuilderNewDesign)[DataSet.EVENTS]},
-      ],
+      queries: [],
       limit,
       errors: undefined,
       loading: !!notDashboardsOrigin,
@@ -261,6 +245,36 @@ function WidgetBuilder({
       userHasModified: false,
       dataSet: DataSet.EVENTS,
     };
+
+    if (defaultWidgetQuery) {
+      if (widgetBuilderNewDesign) {
+        defaultState.queries = [
+          {
+            ...defaultWidgetQuery,
+            orderby:
+              defaultWidgetQuery.orderby ||
+              generateOrderOptions({
+                widgetType: WidgetType.DISCOVER,
+                widgetBuilderNewDesign,
+                columns: defaultWidgetQuery.columns,
+                aggregates: defaultWidgetQuery.aggregates,
+              })[0].value,
+          },
+        ];
+      } else {
+        defaultState.queries = [{...defaultWidgetQuery}];
+      }
+
+      if (![DisplayType.TABLE, DisplayType.TOP_N].includes(defaultState.displayType)) {
+        defaultState.queries[0].orderby = '';
+      }
+    } else {
+      defaultState.queries = [
+        {...getDataSetQuery(widgetBuilderNewDesign)[DataSet.EVENTS]},
+      ];
+    }
+
+    return defaultState;
   });
 
   const [widgetToBeUpdated, setWidgetToBeUpdated] = useState<Widget | null>(null);
@@ -411,6 +425,9 @@ function WidgetBuilder({
               query.columns = [...tableQuery.columns];
               query.aggregates = [...tableQuery.aggregates];
               query.fields = [...defaultTableColumns];
+              query.orderby =
+                defaultWidgetQuery.orderby ??
+                (query.fields.length ? `${query.fields[0]}` : '-');
             });
           } else if (newDisplayType === displayType) {
             // When switching back to original display type, default fields back to the fields provided from the discover query
@@ -421,7 +438,10 @@ function WidgetBuilder({
               ];
               query.aggregates = [...defaultWidgetQuery.aggregates];
               query.columns = [...defaultWidgetQuery.columns];
-              if (!!defaultWidgetQuery.orderby) {
+              if (
+                !!defaultWidgetQuery.orderby &&
+                (displayType === DisplayType.TOP_N || defaultWidgetQuery.columns.length)
+              ) {
                 query.orderby = defaultWidgetQuery.orderby;
               }
             });
@@ -554,12 +574,11 @@ function WidgetBuilder({
     newFields: QueryFieldValue[],
     isColumn = false
   ) {
-    const fieldStrings = newFields.map(generateFieldAsString);
-
-    const aggregateAliasFieldStrings =
-      state.dataSet === DataSet.RELEASES
-        ? fieldStrings.map(stripDerivedMetricsPrefix)
-        : fieldStrings.map(getAggregateAlias);
+    const fieldStrings = newFields
+      .map(generateFieldAsString)
+      .map(field =>
+        state.dataSet === DataSet.RELEASES ? stripDerivedMetricsPrefix(field) : field
+      );
 
     const columnsAndAggregates = isColumn
       ? getColumnsAndAggregatesAsStrings(newFields)
@@ -572,11 +591,12 @@ function WidgetBuilder({
 
     const newQueries = state.queries.map(query => {
       const isDescending = query.orderby.startsWith('-');
+      const orderbyPrefix = isDescending ? '-' : '';
       const rawOrderby = trimStart(query.orderby, '-');
-      const prevAggregateAliasFieldStrings = query.aggregates.map(aggregate =>
+      const prevAggregateFieldStrings = query.aggregates.map(aggregate =>
         state.dataSet === DataSet.RELEASES
           ? stripDerivedMetricsPrefix(aggregate)
-          : getAggregateAlias(aggregate)
+          : aggregate
       );
       const newQuery = cloneDeep(query);
 
@@ -607,36 +627,38 @@ function WidgetBuilder({
         newQuery.columns = columnsAndAggregates?.columns ?? [];
       }
 
-      if (!aggregateAliasFieldStrings.includes(rawOrderby) && query.orderby !== '') {
+      if (
+        !widgetBuilderNewDesign &&
+        !fieldStrings.includes(rawOrderby) &&
+        query.orderby !== ''
+      ) {
         if (
-          prevAggregateAliasFieldStrings.length === newFields.length &&
-          prevAggregateAliasFieldStrings.includes(rawOrderby)
+          prevAggregateFieldStrings.length === newFields.length &&
+          prevAggregateFieldStrings.includes(rawOrderby)
         ) {
           // The aggregate that was used in orderby has changed. Get the new field.
           let newOrderByValue =
-            aggregateAliasFieldStrings[
-              prevAggregateAliasFieldStrings.indexOf(rawOrderby)
-            ];
+            fieldStrings[prevAggregateFieldStrings.indexOf(rawOrderby)];
 
           if (!stripEquationPrefix(newOrderByValue ?? '')) {
             newOrderByValue = '';
           }
 
-          newQuery.orderby = `${isDescending ? '-' : ''}${newOrderByValue}`;
+          newQuery.orderby = `${orderbyPrefix}${newOrderByValue}`;
         } else {
-          const isFromAggregates = aggregateAliasFieldStrings.includes(rawOrderby);
+          const isFromAggregates = fieldStrings.includes(rawOrderby);
           const isCustomEquation = isEquation(rawOrderby);
           const isUsedInGrouping = newQuery.columns.includes(rawOrderby);
 
           const keepCurrentOrderby =
             isFromAggregates || isCustomEquation || isUsedInGrouping;
-          const firstAggregateAlias = isEquation(aggregateAliasFieldStrings[0])
-            ? `equation[${getNumEquations(aggregateAliasFieldStrings) - 1}]`
-            : aggregateAliasFieldStrings[0];
+          const firstAggregateAlias = isEquation(fieldStrings[0])
+            ? `equation[${getNumEquations(fieldStrings) - 1}]`
+            : fieldStrings[0];
 
           newQuery.orderby = widgetBuilderNewDesign
             ? (keepCurrentOrderby && newQuery.orderby) ||
-              `${isDescending ? '-' : ''}${firstAggregateAlias}`
+              `${orderbyPrefix}${firstAggregateAlias}`
             : '';
         }
       }
@@ -686,7 +708,16 @@ function WidgetBuilder({
       if (!fieldStrings.length) {
         // The grouping was cleared, so clear the orderby
         newQuery.orderby = '';
+      } else if (widgetBuilderNewDesign && !newQuery.orderby) {
+        const orderOption = generateOrderOptions({
+          widgetType: widgetType ?? WidgetType.DISCOVER,
+          widgetBuilderNewDesign,
+          columns: query.columns,
+          aggregates: query.aggregates,
+        })[0].value;
+        newQuery.orderby = `-${orderOption}`;
       } else if (
+        !widgetBuilderNewDesign &&
         aggregateAliasFieldStrings.length &&
         !aggregateAliasFieldStrings.includes(orderby) &&
         !newQuery.columns.includes(orderby) &&
@@ -1111,6 +1142,7 @@ function WidgetBuilder({
                       onLimitChange={handleLimitChange}
                       organization={organization}
                       widgetType={widgetType}
+                      tags={tags}
                     />
                   )}
                   {notDashboardsOrigin && !widgetBuilderNewDesign && (

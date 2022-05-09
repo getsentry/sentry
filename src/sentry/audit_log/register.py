@@ -132,7 +132,7 @@ default_manager.add(
         event_id=53,
         name="PROJECTKEY_CHANGE",
         api_name="projectkey.change",
-        template="{change} project key {public_key}",
+        template="edited project key {public_key}",
     )
 )
 default_manager.add(
@@ -227,6 +227,21 @@ default_manager.add(
         name="SENTRY_APP_UNINSTALL",
         api_name="sentry-app.uninstall",
         template="uninstalled sentry app {sentry_app}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=120, name="MONITOR_ADD", api_name="monitor.add", template="Monitor added"
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=121, name="MONITOR_EDIT", api_name="monitor.edit", template="Monitor edited"
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=122, name="MONITOR_REMOVE", api_name="monitor.remove", template="Monitor removed"
     )
 )
 default_manager.add(events.InternalIntegrationAddAuditLogEvent())

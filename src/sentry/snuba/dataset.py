@@ -19,4 +19,5 @@ class EntityKey(Enum):
     Transactions = "transactions"
     MetricsSets = "metrics_sets"
     MetricsCounters = "metrics_counters"
+    OrgMetricsCounters = "org_metrics_counters"
     MetricsDistributions = "metrics_distributions"

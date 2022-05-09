@@ -39,7 +39,7 @@ class TestInstallationNotifier(TestCase):
         )
 
         self.install = self.create_sentry_app_installation(
-            slug="foo", organization=self.org, user=self.user
+            slug="foo", organization=self.org, user=self.user, prevent_token_exchange=True
         )
 
     @patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockResponseInstance)

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 
 import EventDataSection from 'sentry/components/events/eventDataSection';
 import {t} from 'sentry/locale';
@@ -22,7 +22,7 @@ type State = {
   pluginLoading?: boolean;
 };
 
-class Chunk extends React.Component<Props, State> {
+class Chunk extends Component<Props, State> {
   state: State = {
     isLoading: false,
   };
@@ -123,7 +123,7 @@ class Chunk extends React.Component<Props, State> {
       return null;
     }
 
-    const Component =
+    const ContextComponent =
       type === 'default'
         ? getContextComponent(alias) || getContextComponent(type)
         : getContextComponent(type);
@@ -131,7 +131,7 @@ class Chunk extends React.Component<Props, State> {
     const isObjectValueEmpty = Object.values(value).filter(v => defined(v)).length === 0;
 
     // this can happen if the component does not exist
-    if (!Component || isObjectValueEmpty) {
+    if (!ContextComponent || isObjectValueEmpty) {
       return null;
     }
 
@@ -140,15 +140,15 @@ class Chunk extends React.Component<Props, State> {
         key={`context-${alias}`}
         type={`context-${alias}`}
         title={
-          <React.Fragment>
+          <Fragment>
             {this.getTitle()}
             {defined(type) && type !== 'default' && alias !== type && (
               <small>({alias})</small>
             )}
-          </React.Fragment>
+          </Fragment>
         }
       >
-        <Component alias={alias} event={event} data={value} />
+        <ContextComponent alias={alias} event={event} data={value} />
       </EventDataSection>
     );
   }

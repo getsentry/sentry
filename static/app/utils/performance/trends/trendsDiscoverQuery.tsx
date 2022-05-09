@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import {Project} from 'sentry/types';
 import GenericDiscoverQuery, {
   DiscoverQueryProps,

@@ -30,7 +30,7 @@ function HelpSearchModal({
           <HelpSearch
             {...props}
             entryPoint="sidebar_help"
-            dropdownStyle={injectedCss`
+            dropdownClassName={injectedCss`
                 width: 100%;
                 border: transparent;
                 border-top-left-radius: 0;
@@ -41,10 +41,7 @@ function HelpSearchModal({
               `}
             renderInput={({getInputProps}) => (
               <InputWrapper>
-                <Input
-                  autoFocus
-                  {...getInputProps({type: 'text', label: placeholder, placeholder})}
-                />
+                <Input autoFocus {...getInputProps({type: 'text', placeholder})} />
               </InputWrapper>
             )}
             resultFooter={

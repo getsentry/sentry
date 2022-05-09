@@ -3,8 +3,10 @@ import {useTheme} from '@emotion/react';
 import {Replayer, ReplayerEvents} from 'rrweb';
 import type {eventWithTime} from 'rrweb/typings/types';
 
+import type ReplayReader from 'sentry/utils/replays/replayReader';
 import usePrevious from 'sentry/utils/usePrevious';
 
+import HighlightReplayPlugin from './highlightReplayPlugin';
 import useRAF from './useRAF';
 
 type Dimensions = {height: number; width: number};
@@ -66,6 +68,11 @@ type ReplayPlayerContextProps = {
   isSkippingInactive: boolean;
 
   /**
+   * The core replay data
+   */
+  replay: ReplayReader | null;
+
+  /**
    * Jump the video to a specific time
    */
   setCurrentTime: (time: number) => void;
@@ -105,6 +112,7 @@ const ReplayPlayerContext = React.createContext<ReplayPlayerContextProps>({
   isBuffering: false,
   isPlaying: false,
   isSkippingInactive: false,
+  replay: null,
   setCurrentTime: () => {},
   setSpeed: () => {},
   speed: 1,
@@ -114,7 +122,16 @@ const ReplayPlayerContext = React.createContext<ReplayPlayerContextProps>({
 
 type Props = {
   children: React.ReactNode;
-  events: eventWithTime[];
+  replay: ReplayReader;
+
+  /**
+   * Time, in seconds, when the video should start
+   */
+  initialTimeOffset?: number;
+
+  /**
+   * Override return fields for testing
+   */
   value?: Partial<ReplayPlayerContextProps>;
 };
 
@@ -124,7 +141,9 @@ function useCurrentTime(callback: () => number) {
   return currentTime;
 }
 
-export function Provider({children, events, value = {}}: Props) {
+export function Provider({children, replay, initialTimeOffset = 0, value = {}}: Props) {
+  const events = replay.getRRWebEvents();
+
   const theme = useTheme();
   const oldEvents = usePrevious(events);
   const replayerRef = useRef<Replayer>(null);
@@ -172,10 +191,12 @@ export function Provider({children, events, value = {}}: Props) {
         }
       }
 
+      const highlightReplayPlugin = new HighlightReplayPlugin();
+
       // eslint-disable-next-line no-new
       const inst = new Replayer(events, {
         root,
-        // blockClass: 'rr-block',
+        blockClass: 'sr-block',
         // liveMode: false,
         // triggerFocus: false,
         mouseTail: {
@@ -185,7 +206,7 @@ export function Provider({children, events, value = {}}: Props) {
           strokeStyle: theme.purple200,
         },
         // unpackFn: _ => _,
-        // plugins: [],
+        plugins: [highlightReplayPlugin],
       });
 
       // @ts-expect-error: rrweb types event handlers with `unknown` parameters
@@ -216,11 +237,14 @@ export function Provider({children, events, value = {}}: Props) {
   );
 
   const setCurrentTime = useCallback(
-    (time: number) => {
+    (requestedTimeMs: number) => {
       const replayer = replayerRef.current;
       if (!replayer) {
         return;
       }
+
+      const maxTimeMs = replayerRef.current?.getMetaData().totalTime;
+      const time = requestedTimeMs > maxTimeMs ? 0 : requestedTimeMs;
 
       // Sometimes rrweb doesn't get to the exact target time, as long as it has
       // changed away from the previous time then we can hide then buffering message.
@@ -232,9 +256,6 @@ export function Provider({children, events, value = {}}: Props) {
         window.clearTimeout(playTimer.current);
       }
 
-      // TODO: it might be nice to always just pause() here
-      // Why? People can drag the scrobber, or click 'back 10s' and then be in a
-      // paused state to inspect things.
       if (isPlaying) {
         playTimer.current = window.setTimeout(() => replayer.play(time), 0);
         setIsPlaying(true);
@@ -292,6 +313,13 @@ export function Provider({children, events, value = {}}: Props) {
     setIsSkippingInactive(skip);
   }, []);
 
+  // Only on pageload: set the initial playback timestamp
+  useEffect(() => {
+    if (initialTimeOffset && events && replayerRef.current) {
+      setCurrentTime(initialTimeOffset * 1000);
+    }
+  }, [events, replayerRef.current]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const currentPlayerTime = useCurrentTime(getCurrentTime);
 
   const [isBuffering, currentTime] =
@@ -315,6 +343,7 @@ export function Provider({children, events, value = {}}: Props) {
         isBuffering,
         isPlaying,
         isSkippingInactive,
+        replay,
         setCurrentTime,
         setSpeed,
         speed,

@@ -1,5 +1,4 @@
-import * as React from 'react';
-import {useContext} from 'react';
+import {Component, useContext} from 'react';
 import {Location} from 'history';
 
 import {EventQuery} from 'sentry/actionCreators/events';
@@ -139,7 +138,7 @@ type State<T> = {
 /**
  * Generic component for discover queries
  */
-class _GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> {
+class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
   state: State<T> = {
     isLoading: true,
     tableFetchID: undefined,

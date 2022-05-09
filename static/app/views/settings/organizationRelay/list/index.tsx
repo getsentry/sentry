@@ -1,4 +1,3 @@
-import * as React from 'react';
 import orderBy from 'lodash/orderBy';
 
 import {Relay, RelayActivity} from 'sentry/types';

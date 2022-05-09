@@ -945,6 +945,8 @@ SENTRY_FEATURES = {
     "organizations:create": True,
     # Enable the 'discover' interface.
     "organizations:discover": False,
+    # Enable duplicating alert rules.
+    "organizations:duplicate-alert-rule": False,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": True,
     # Enable Filters & Sampling in the org settings
@@ -965,8 +967,6 @@ SENTRY_FEATURES = {
     "organizations:performance-view": True,
     # Enable profiling
     "organizations:profiling": False,
-    # Enable projects page redesign
-    "organizations:projects-page-redesign": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
@@ -1272,6 +1272,7 @@ SENTRY_EMAIL_BACKEND_ALIASES = {
     "smtp": "django.core.mail.backends.smtp.EmailBackend",
     "dummy": "django.core.mail.backends.dummy.EmailBackend",
     "console": "django.core.mail.backends.console.EmailBackend",
+    "preview": "sentry.utils.email.PreviewBackend",
 }
 
 SENTRY_FILESTORE_ALIASES = {
@@ -2304,6 +2305,11 @@ KAFKA_CLUSTERS = {
 }
 
 KAFKA_EVENTS = "events"
+# TODO: KAFKA_TRANSACTIONS is temporarily mapped to "events" since events
+# transactions curently share a Kafka topic. Once we are ready with the code
+# changes to support different topic, switch this to "transactions" to start
+# producing to the new topic.
+KAFKA_TRANSACTIONS = "events"
 KAFKA_OUTCOMES = "outcomes"
 KAFKA_OUTCOMES_BILLING = "outcomes-billing"
 KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS = "events-subscription-results"
@@ -2325,6 +2331,7 @@ KAFKA_PROFILES = "profiles"
 
 KAFKA_TOPICS = {
     KAFKA_EVENTS: {"cluster": "default", "topic": KAFKA_EVENTS},
+    KAFKA_TRANSACTIONS: {"cluster": "default", "topic": KAFKA_TRANSACTIONS},
     KAFKA_OUTCOMES: {"cluster": "default", "topic": KAFKA_OUTCOMES},
     # When OUTCOMES_BILLING is None, it inherits from OUTCOMES and does not
     # create a separate producer. Check ``track_outcome`` for details.
@@ -2480,7 +2487,7 @@ SENTRY_USE_UWSGI = True
 
 # When copying attachments for to-be-reprocessed events into processing store,
 # how large is an individual file chunk? Each chunk is stored as Redis key.
-SENTRY_REPROCESSING_ATTACHMENT_CHUNK_SIZE = 2 ** 20
+SENTRY_REPROCESSING_ATTACHMENT_CHUNK_SIZE = 2**20
 
 # Which cluster is used to store auxiliary data for reprocessing. Note that
 # this cluster is not used to store attachments etc, that still happens on
@@ -2621,3 +2628,6 @@ VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = True
 
 # determines if we enable analytics or not
 ENABLE_ANALYTICS = False
+
+MAX_ISSUE_ALERTS_PER_PROJECT = 100
+MAX_QUERY_SUBSCRIPTIONS_PER_ORG = 1000

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import {Location, LocationDescriptorObject} from 'history';
 
@@ -75,7 +75,7 @@ type State = {
   transactionThresholdMetric: TransactionThresholdMetric | undefined;
   widths: number[];
 };
-class _Table extends React.Component<Props, State> {
+class _Table extends Component<Props, State> {
   state: State = {
     widths: [],
     transaction: undefined,
@@ -325,14 +325,12 @@ class _Table extends React.Component<Props, State> {
       if (teamKeyTransactionColumn) {
         if (isHeader) {
           const star = (
-            <GuideAnchor target="team_key_transaction_header" position="top">
-              <IconStar
-                key="keyTransaction"
-                color="yellow300"
-                isSolid
-                data-test-id="team-key-transaction-header"
-              />
-            </GuideAnchor>
+            <IconStar
+              key="keyTransaction"
+              color="yellow300"
+              isSolid
+              data-test-id="team-key-transaction-header"
+            />
           );
           return [this.renderHeadCell(tableData?.meta, teamKeyTransactionColumn, star)];
         }
@@ -410,7 +408,7 @@ class _Table extends React.Component<Props, State> {
               queryExtras={getMEPQueryParams(value)}
             >
               {({pageLinks, isLoading, tableData}) => (
-                <React.Fragment>
+                <Fragment>
                   <GridEditable
                     isLoading={isLoading}
                     data={tableData ? tableData.data : []}
@@ -428,7 +426,7 @@ class _Table extends React.Component<Props, State> {
                     location={location}
                   />
                   <Pagination pageLinks={pageLinks} />
-                </React.Fragment>
+                </Fragment>
               )}
             </DiscoverQuery>
           )}

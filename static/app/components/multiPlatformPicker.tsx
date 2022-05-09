@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import {PlatformIcon} from 'platformicons';
@@ -81,10 +81,10 @@ interface PlatformPickerProps {
 
 function PlatformPicker(props: PlatformPickerProps) {
   const {organization, source} = props;
-  const [category, setCategory] = React.useState<Category>(
+  const [category, setCategory] = useState<Category>(
     props.defaultCategory ?? PLATFORM_CATEGORIES[0].id
   );
-  const [filter, setFilter] = React.useState<string>(
+  const [filter, setFilter] = useState<string>(
     props.noAutoFilter ? '' : (props.platforms[0] || '').split('-')[0]
   );
 
@@ -145,10 +145,10 @@ function PlatformPicker(props: PlatformPickerProps) {
     }
   }, DEFAULT_DEBOUNCE_DURATION);
 
-  React.useEffect(logSearch, [filter]);
+  useEffect(logSearch, [filter]);
 
   return (
-    <React.Fragment>
+    <Fragment>
       <NavContainer>
         <CategoryNav>
           {PLATFORM_CATEGORIES.map(({id, name}) => (
@@ -228,7 +228,7 @@ function PlatformPicker(props: PlatformPickerProps) {
           )}
         </EmptyMessage>
       )}
-    </React.Fragment>
+    </Fragment>
   );
 }
 
