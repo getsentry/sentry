@@ -9,6 +9,9 @@ type Props = {
   className?: string;
 };
 
+/**
+ * Calculate the percent complete (0.0 to 1.0) of a given video duration.
+ */
 function getPercentComplete(currentTime: number, duration: number | undefined) {
   if (duration === undefined || isNaN(duration)) {
     return 0;
@@ -17,14 +20,16 @@ function getPercentComplete(currentTime: number, duration: number | undefined) {
 }
 
 function Scrubber({className}: Props) {
-  const {currentTime, duration, setCurrentTime} = useReplayContext();
+  const {currentHoverTime, currentTime, duration, setCurrentTime} = useReplayContext();
 
   const percentComplete = getPercentComplete(currentTime, duration);
+  const hoverPlace = getPercentComplete(currentHoverTime || 0, duration);
 
   return (
     <Wrapper className={className}>
       <Meter>
-        <Value percent={percentComplete} />
+        {currentHoverTime ? <MouseTrackingValue percent={hoverPlace} /> : null}
+        <PlaybackTimeValue percent={percentComplete} />
       </Meter>
       <RangeWrapper>
         <Range
@@ -47,10 +52,11 @@ const Meter = styled('div')`
   position: relative;
 `;
 
-const Value = styled('span')<{percent: number}>`
+const Value = styled('span')<{
+  percent: number;
+}>`
   display: inline-block;
   position: absolute;
-  background: ${p => p.theme.purple400};
   width: ${p => p.percent * 100}%;
   height: 100%;
 `;
@@ -68,11 +74,18 @@ const Range = styled(RangeSlider)`
   }
 `;
 
+const PlaybackTimeValue = styled(Value)`
+  background: ${p => p.theme.purple300};
+`;
+
+const MouseTrackingValue = styled(Value)`
+  background: ${p => p.theme.purple200};
+`;
+
 const Wrapper = styled('div')`
   position: relative;
 
   width: 100%;
-  height: ${space(0.5)};
 
   & > * {
     position: absolute;
@@ -80,30 +93,36 @@ const Wrapper = styled('div')`
     left: 0;
   }
 
+  ${MouseTrackingValue}:after {
+    content: '';
+    display: block;
+    width: ${space(0.5)};
+    height: ${space(1.5)};
+    pointer-events: none;
+    background: ${p => p.theme.purple200};
+    box-sizing: content-box;
+    position: absolute;
+    top: -${space(0.5)};
+    /*
+    Should be -space(0.25), so the middle of the span:after aligns with the edge
+    of the span. But because of transparent background we need to
+    prevent the span and the span:after from overlapping.
+    */
+    right: -${space(0.5)};
+  }
+
+  :hover ${MouseTrackingValue}:after {
+    height: ${space(2)};
+    top: -${space(0.5)};
+  }
+`;
+
+export const TimelineScubber = styled(Scrubber)`
+  height: ${space(0.5)};
+
   :hover {
     margin-block: -${space(0.25)};
     height: ${space(1)};
-  }
-
-  ${Value}:after {
-    content: '';
-    display: block;
-    width: ${space(2)};
-    height: ${space(2)}; /* equal to width */
-    background: ${p => p.theme.purple400};
-    box-sizing: content-box;
-    border-radius: ${space(2)}; /* greater than or equal to width */
-    border: solid ${p => p.theme.white};
-    border-width: ${space(0.5)};
-    position: absolute;
-    top: -${space(1)}; /* Half the width */
-    right: -${space(1.5)}; /* Half of (width + borderWidth) */
-    opacity: 0;
-    transition: opacity 0.1s ease;
-  }
-
-  :hover ${Value}:after {
-    opacity: 1;
   }
 
   ${RangeWrapper} {
@@ -114,4 +133,40 @@ const Wrapper = styled('div')`
   }
 `;
 
-export default Scrubber;
+export const PlayerScrubber = styled(Scrubber)`
+  height: ${space(0.5)};
+
+  :hover {
+    margin-block: -${space(0.25)};
+    height: ${space(1)};
+  }
+
+  ${RangeWrapper} {
+    height: ${space(0.5)};
+  }
+  :hover ${RangeWrapper} {
+    height: ${space(0.75)};
+  }
+
+  ${PlaybackTimeValue}:after {
+    content: '';
+    display: block;
+    width: ${space(2)};
+    height: ${space(2)}; /* equal to width */
+    z-index: ${p => p.theme.zIndex.initial};
+    pointer-events: none;
+    background: ${p => p.theme.purple300};
+    box-sizing: content-box;
+    border-radius: ${space(2)}; /* greater than or equal to width */
+    border: solid ${p => p.theme.white};
+    border-width: ${space(0.5)};
+    position: absolute;
+    top: -${space(1)}; /* Half the width */
+    right: -${space(1.5)}; /* Half of (width + borderWidth) */
+    opacity: 0;
+    transition: opacity 0.1s ease;
+  }
+  :hover ${PlaybackTimeValue}:after {
+    opacity: 1;
+  }
+`;

@@ -7,7 +7,8 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader as _PanelHeader} from 'sentry/components/panels';
 import ReplayBreadcrumbOverview from 'sentry/components/replays/breadcrumbs/replayBreadcrumbOverview';
-import Scrubber from 'sentry/components/replays/player/scrubber';
+import HorizontalMouseTracking from 'sentry/components/replays/player/horizontalMouseTracking';
+import {PlayerScrubber} from 'sentry/components/replays/player/scrubber';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayController from 'sentry/components/replays/replayController';
 import ReplayCurrentUrl from 'sentry/components/replays/replayCurrentUrl';
@@ -99,7 +100,9 @@ function ReplayDetails() {
                   <ReplayPlayer />
                 </ManualResize>
               </PanelHeader>
-              <Scrubber />
+              <HorizontalMouseTracking>
+                <PlayerScrubber />
+              </HorizontalMouseTracking>
               <PanelBody withPadding>
                 <ReplayController toggleFullscreen={toggleFullscreen} />
               </PanelBody>
