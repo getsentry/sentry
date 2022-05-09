@@ -7,6 +7,7 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 
 import BufferingOverlay from './player/bufferingOverlay';
 import FastForwardBadge from './player/fastForwardBadge';
+import PlayButtonOverlay from './player/playButtonOverlay';
 
 interface Props {
   className?: string;
@@ -18,6 +19,7 @@ function BasePlayerRoot({className}: Props) {
     dimensions: videoDimensions,
     fastForwardSpeed,
     isBuffering,
+    isPlaying,
   } = useReplayContext();
 
   const windowEl = useRef<HTMLDivElement>(null);
@@ -73,6 +75,7 @@ function BasePlayerRoot({className}: Props) {
       <div ref={viewEl} className={className} />
       {fastForwardSpeed ? <PositionedFastForward speed={fastForwardSpeed} /> : null}
       {isBuffering ? <PositionedBuffering /> : null}
+      {isPlaying ? null : <PositionedPlayButton />}
     </SizingWindow>
   );
 }
@@ -97,6 +100,14 @@ const PositionedFastForward = styled(FastForwardBadge)`
 `;
 
 const PositionedBuffering = styled(BufferingOverlay)`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+`;
+
+const PositionedPlayButton = styled(PlayButtonOverlay)`
   position: absolute;
   top: 0;
   left: 0;

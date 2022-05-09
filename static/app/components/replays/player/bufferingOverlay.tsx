@@ -19,7 +19,7 @@ function BufferingOverlay({className}: Props) {
   );
 }
 
-/* Position the badge in the corner */
+/* Position the badge in the center */
 const Overlay = styled('div')`
   user-select: none;
   display: grid;
