@@ -38,7 +38,7 @@ function getMenuOptions({spanOps, isLoading, error}) {
 
   return spanOps.map(spanOp => ({
     value: spanOp.op,
-    label: `${spanOp.op}${spanOp.op}${spanOp.op}`,
+    label: spanOp.op,
     leadingItems: <OperationDot backgroundColor={pickBarColor(spanOp.op)} />,
   }));
 }
