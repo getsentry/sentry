@@ -14,7 +14,11 @@ from sentry.snuba.metrics import (
     NotSupportedOverCompositeEntityException,
     SingularEntityDerivedMetric,
 )
-from sentry.snuba.metrics.fields.base import DERIVED_ALIASES, CompositeEntityDerivedMetric
+from sentry.snuba.metrics.fields.base import (
+    DERIVED_ALIASES,
+    CompositeEntityDerivedMetric,
+    _get_known_entity_of_metric_mri,
+)
 from sentry.snuba.metrics.fields.snql import (
     abnormal_sessions,
     abnormal_users,
@@ -505,3 +509,20 @@ class DerivedMetricAliasTestCase(TestCase):
                 ),
             ],
         )
+
+
+@pytest.mark.parametrize(
+    "metric_mri,expected_entity",
+    [
+        ("c:sessions/session@none", EntityKey.MetricsCounters),
+        ("s:sessions/user@none", EntityKey.MetricsSets),
+        ("d:sessions/duration@second", EntityKey.MetricsDistributions),
+        ("d:sessions/unknown_metric@second", None),
+        ("e:sessions/all@none", None),  # derived metric
+        ("", None),
+        ("foo", None),
+        ("foo:foo:foo", None),
+    ],
+)
+def test_known_entity_of_metric_mri(metric_mri, expected_entity):
+    assert _get_known_entity_of_metric_mri(metric_mri) == expected_entity
