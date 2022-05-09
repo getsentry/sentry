@@ -111,8 +111,11 @@ export function YAxisSelector({
         return isLegalYAxisType(primaryOutput);
       }
 
-      if (option.value.kind === FieldValueKind.FUNCTION) {
-        // Functions are not legal options as an aggregate/function parameter.
+      if (
+        option.value.kind === FieldValueKind.FUNCTION ||
+        option.value.kind === FieldValueKind.EQUATION
+      ) {
+        // Functions and equations are not legal options as an aggregate/function parameter.
         return false;
       }
 

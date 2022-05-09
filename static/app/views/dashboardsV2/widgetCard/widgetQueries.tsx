@@ -448,8 +448,16 @@ class WidgetQueries extends Component<Props, State> {
           query.columns?.length !== 0
         ) {
           requestData.topEvents = widget.limit ?? TOP_N;
-          // Aggregates need to be in fields as well
           requestData.field = [...query.columns, ...query.aggregates];
+
+          // Compare field and orderby as aliases to ensure requestData has
+          // the orderby selected
+          if (
+            query.orderby &&
+            !requestData.field.includes(trimStart(query.orderby, '-'))
+          ) {
+            requestData.field.push(trimStart(query.orderby, '-'));
+          }
 
           // The "Other" series is only included when there is one
           // y-axis and one query

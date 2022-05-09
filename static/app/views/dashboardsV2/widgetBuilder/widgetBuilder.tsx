@@ -41,9 +41,7 @@ import {
   getAggregateAlias,
   getColumnsAndAggregates,
   getColumnsAndAggregatesAsStrings,
-  isAggregateFieldOrEquation,
   isEquation,
-  isEquationAlias,
   QueryFieldValue,
   stripDerivedMetricsPrefix,
   stripEquationPrefix,
@@ -593,6 +591,7 @@ function WidgetBuilder({
 
     const newQueries = state.queries.map(query => {
       const isDescending = query.orderby.startsWith('-');
+      const orderbyPrefix = isDescending ? '-' : '';
       const rawOrderby = trimStart(query.orderby, '-');
       const prevAggregateFieldStrings = query.aggregates.map(aggregate =>
         state.dataSet === DataSet.RELEASES
@@ -628,7 +627,11 @@ function WidgetBuilder({
         newQuery.columns = columnsAndAggregates?.columns ?? [];
       }
 
-      if (!fieldStrings.includes(rawOrderby) && query.orderby !== '') {
+      if (
+        !widgetBuilderNewDesign &&
+        !fieldStrings.includes(rawOrderby) &&
+        query.orderby !== ''
+      ) {
         if (
           prevAggregateFieldStrings.length === newFields.length &&
           prevAggregateFieldStrings.includes(rawOrderby)
@@ -641,13 +644,9 @@ function WidgetBuilder({
             newOrderByValue = '';
           }
 
-          newQuery.orderby = `${isDescending ? '-' : ''}${newOrderByValue}`;
+          newQuery.orderby = `${orderbyPrefix}${newOrderByValue}`;
         } else {
-          const isUsingFieldFormat =
-            isAggregateFieldOrEquation(rawOrderby) || isEquationAlias(rawOrderby);
-          const isFromAggregates = (
-            isUsingFieldFormat ? fieldStrings : fieldStrings.map(getAggregateAlias)
-          ).includes(rawOrderby);
+          const isFromAggregates = fieldStrings.includes(rawOrderby);
           const isCustomEquation = isEquation(rawOrderby);
           const isUsedInGrouping = newQuery.columns.includes(rawOrderby);
 
@@ -659,7 +658,7 @@ function WidgetBuilder({
 
           newQuery.orderby = widgetBuilderNewDesign
             ? (keepCurrentOrderby && newQuery.orderby) ||
-              `${isDescending ? '-' : ''}${firstAggregateAlias}`
+              `${orderbyPrefix}${firstAggregateAlias}`
             : '';
         }
       }
@@ -709,7 +708,16 @@ function WidgetBuilder({
       if (!fieldStrings.length) {
         // The grouping was cleared, so clear the orderby
         newQuery.orderby = '';
+      } else if (widgetBuilderNewDesign && !newQuery.orderby) {
+        const orderOption = generateOrderOptions({
+          widgetType: widgetType ?? WidgetType.DISCOVER,
+          widgetBuilderNewDesign,
+          columns: query.columns,
+          aggregates: query.aggregates,
+        })[0].value;
+        newQuery.orderby = `-${orderOption}`;
       } else if (
+        !widgetBuilderNewDesign &&
         aggregateAliasFieldStrings.length &&
         !aggregateAliasFieldStrings.includes(orderby) &&
         !newQuery.columns.includes(orderby) &&
@@ -1134,6 +1142,7 @@ function WidgetBuilder({
                       onLimitChange={handleLimitChange}
                       organization={organization}
                       widgetType={widgetType}
+                      tags={tags}
                     />
                   )}
                   {notDashboardsOrigin && !widgetBuilderNewDesign && (
