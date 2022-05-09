@@ -557,7 +557,8 @@ export function getMeasurements(
       endTimestamp: measurement.timestamp,
     });
 
-    // This condition should never be hit
+    // This condition will never be hit, since we're using the same value for start and end in generateBounds
+    // I've put this condition here to prevent the TS linter from complaining
     if (bounds.type !== 'TIMESTAMPS_EQUAL') {
       return;
     }
