@@ -62,7 +62,7 @@ function getOrganizationOnboardingSteps(org: Organization) {
     },
   ];
   if (org.experiments.TargetedOnboardingIntegrationSelectExperiment) {
-    steps.splice(1, 0, {
+    steps.splice(2, 0, {
       id: 'select-integration',
       title: t('Select integrations'),
       Component: IntegrationSelect,
