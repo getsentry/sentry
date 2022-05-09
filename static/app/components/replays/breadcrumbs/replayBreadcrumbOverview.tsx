@@ -9,7 +9,6 @@ import StackedContent from 'sentry/components/replays/stackedContent';
 import TimelinePosition from 'sentry/components/replays/timelinePosition';
 import space from 'sentry/styles/space';
 import {Crumb} from 'sentry/types/breadcrumbs';
-import {EntryType} from 'sentry/types/event';
 
 import {countColumns, formatTime, getCrumbsByColumn} from '../utils';
 
@@ -23,7 +22,7 @@ type LineStyle = 'dotted' | 'solid' | 'none';
 
 function ReplayBreadcrumbOverview({className}: Props) {
   const {replay, duration} = useReplayContext();
-  const crumbs = replay?.getEntryType(EntryType.BREADCRUMBS)?.data.values || [];
+  const crumbs = replay?.getRawCrumbs() || [];
   const transformedCrumbs = transformCrumbs(crumbs);
 
   return (
