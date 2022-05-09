@@ -32,7 +32,6 @@ type Props = {
 } & RouteComponentProps<RouteParams, {}>;
 
 type State = {
-  IncidentRulesDuplicate;
   defaultRule: IncidentRule;
   duplicateTargetRule?: IncidentRule;
 } & AsyncView['state'];
