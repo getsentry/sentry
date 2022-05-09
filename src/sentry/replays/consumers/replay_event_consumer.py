@@ -21,7 +21,7 @@ def get_replay_events_consumer(
 
 
 class ReplayEventsConsumer(AbstractBatchWorker):  # type: ignore
-    def process_message(self, message: Message) -> Message:
+    def process_message(self, message: Message) -> Dict[str, Any]:
         message = msgpack.unpackb(message.value(), use_list=False)
         payload = message["payload"]
         project_id = int(message["project_id"])

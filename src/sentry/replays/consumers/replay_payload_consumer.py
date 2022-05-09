@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Dict, Sequence
+from typing import Any, Dict, Sequence
 
 import msgpack
 from confluent_kafka import Message
@@ -30,22 +30,18 @@ def get_replay_payloads_consumer(
 
 
 class ReplaysPayloadConsumer(AbstractBatchWorker):  # type: ignore
-    def process_message(self, message: Message) -> Message:
-        message = msgpack.unpackb(message.value(), use_list=False)
-        return message
+    def process_message(self, message: Message) -> Dict[str, Any]:
+        return msgpack.unpackb(message.value(), use_list=False)
 
     def flush_batch(self, messages: Sequence[Message]) -> None:
-        replay_payload_chunks: list[Message] = []
         replay_payload_finals: list[Message] = []
         for message in messages:
             message_type = message["type"]
             if message_type == "attachment_chunk":
-                replay_payload_chunks.append(message)
+                process_replay_chunk(message)
             elif message_type == "replay_payload":
                 replay_payload_finals.append(message)
 
-        for payload_chunk in replay_payload_chunks:
-            process_replay_chunk(payload_chunk)
         for replay_payload_final in replay_payload_finals:
             process_individual_replay_payload(replay_payload_final)
 
@@ -53,7 +49,7 @@ class ReplaysPayloadConsumer(AbstractBatchWorker):  # type: ignore
         pass
 
 
-def process_individual_replay_payload(message: Message) -> None:
+def process_individual_replay_payload(message: Dict[str, Any]) -> None:
     attachment = message["attachment"]
     id = message["attachment"]["id"]
     project_id = message["project_id"]
@@ -73,7 +69,7 @@ def process_individual_replay_payload(message: Message) -> None:
 
 @trace_func(name="ingest_consumer.process_replay_chunk")  # type:ignore
 @metrics.wraps("ingest_consumer.process_replay_chunk")  # type:ignore
-def process_replay_chunk(message: Message) -> None:
+def process_replay_chunk(message: Dict[str, Any]) -> None:
     payload = message["payload"]
     project_id = message["project_id"]
     id = message["id"]
