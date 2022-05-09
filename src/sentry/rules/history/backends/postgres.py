@@ -10,10 +10,11 @@ from django.db.models.functions import TruncHour
 from sentry.api.paginator import OffsetPaginator
 from sentry.models import Group, RuleFireHistory
 from sentry.rules.history.base import RuleGroupHistory, RuleHistoryBackend, TimeSeriesValue
+from sentry.utils.cursors import CursorResult
 
 if TYPE_CHECKING:
     from sentry.models import Rule
-    from sentry.utils.cursors import Cursor, CursorResult
+    from sentry.utils.cursors import Cursor
 
 
 class _Result(TypedDict):
