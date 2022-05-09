@@ -64,11 +64,9 @@ describe('Performance > Transaction Spans', function () {
 
     expect(eventsSpanOpsMock).toHaveBeenCalledTimes(1);
 
-    expect(await screen.findByTestId('span-op-filter-header')).toBeInTheDocument();
-
-    const filterItems = await screen.findAllByTestId('span-op-filter-item');
-    expect(filterItems).toHaveLength(2);
-    filterItems.forEach(item => expect(item).toBeInTheDocument());
+    (await screen.findByRole('button', {name: 'Filter'})).click();
+    expect(await screen.findByText('op1')).toBeInTheDocument();
+    expect(await screen.findByText('op2')).toBeInTheDocument();
   });
 
   it('handles op change correctly', async function () {
@@ -93,7 +91,8 @@ describe('Performance > Transaction Spans', function () {
     );
 
     expect(handleOpChange).not.toHaveBeenCalled();
-    const item = (await screen.findByText('op1')).closest('li');
+    (await screen.findByRole('button', {name: 'Filter'})).click();
+    const item = await screen.findByText('op1');
     expect(item).toBeInTheDocument();
     userEvent.click(item!);
     expect(handleOpChange).toHaveBeenCalledTimes(1);
@@ -121,7 +120,6 @@ describe('Performance > Transaction Spans', function () {
       {context: initialData.routerContext}
     );
 
-    const filter = (await screen.findByText('Filter -')).parentElement;
-    expect(filter).toHaveTextContent('Filter - op1');
+    expect(await screen.findByRole('button', {name: 'op1'})).toBeInTheDocument();
   });
 });
