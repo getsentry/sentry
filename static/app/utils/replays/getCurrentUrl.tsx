@@ -2,7 +2,7 @@ import last from 'lodash/last';
 
 import {transformCrumbs} from 'sentry/components/events/interfaces/breadcrumbs/utils';
 import {BreadcrumbType, BreadcrumbTypeNavigation} from 'sentry/types/breadcrumbs';
-import {EntryType, EventTag} from 'sentry/types/event';
+import {EventTag} from 'sentry/types/event';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 
 function findUrlTag(tags: EventTag[]) {
@@ -11,7 +11,7 @@ function findUrlTag(tags: EventTag[]) {
 
 function getCurrentUrl(replay: ReplayReader, currentTime: number) {
   const event = replay.getEvent();
-  const crumbs = replay.getEntryType(EntryType.BREADCRUMBS)?.data.values || [];
+  const crumbs = replay.getRawCrumbs();
 
   const currentOffsetMs = Math.floor(currentTime);
   const startTimestampMs = event.startTimestamp * 1000;
