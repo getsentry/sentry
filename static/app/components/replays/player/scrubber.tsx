@@ -83,12 +83,7 @@ const Wrapper = styled('div')`
     box-sizing: content-box;
     position: absolute;
     top: -${space(0.5)};
-    /*
-    Should be -space(0.25), so the middle of the span:after aligns with the edge
-    of the span. But because of transparent background we need to
-    prevent the span and the span:after from overlapping.
-    */
-    right: -${space(0.5)};
+    right: -1px;
   }
 
   :hover ${MouseTrackingValue}:after {
