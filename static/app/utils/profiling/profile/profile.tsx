@@ -14,6 +14,7 @@ export class Profile {
   // Ended at ts of the profile - varies between implementations of the profiler.
   // For JS self profiles, this is the time origin (https://www.w3.org/TR/hr-time-2/#dfn-time-origin), for others it's epoch time
   endedAt: number;
+  threadId: number;
 
   // Unit in which the timings are reported in
   unit = 'microseconds';
@@ -34,8 +35,10 @@ export class Profile {
     startedAt: number,
     endedAt: number,
     name: string,
-    unit: string
+    unit: string,
+    threadId: number
   ) {
+    this.threadId = threadId;
     this.duration = duration;
     this.startedAt = startedAt;
     this.endedAt = endedAt;
@@ -44,7 +47,7 @@ export class Profile {
   }
 
   static Empty() {
-    return new Profile(1000, 0, 1000, '', 'milliseconds').build();
+    return new Profile(1000, 0, 1000, '', 'milliseconds', 0).build();
   }
 
   forEach(

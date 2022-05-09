@@ -12,6 +12,7 @@ const makeBaseFlamegraph = (): Flamegraph => {
     {
       name: 'profile',
       startValue: 0,
+      threadID: 0,
       endValue: 1000,
       unit: 'milliseconds',
       type: 'evented',
@@ -87,6 +88,7 @@ describe('TextRenderer', () => {
         endValue: 1000,
         unit: 'milliseconds',
         type: 'evented',
+        threadID: 0,
         events: [
           {type: 'O', at: 0, frame: 0},
           {type: 'O', at: 100, frame: 1},
@@ -126,6 +128,7 @@ describe('TextRenderer', () => {
         endValue: 1000,
         unit: 'milliseconds',
         type: 'evented',
+        threadID: 0,
         events: [
           {type: 'O', at: 0, frame: 0},
           {type: 'C', at: longFrameName.length, frame: 0},
@@ -174,6 +177,7 @@ describe('TextRenderer', () => {
         endValue: 1000,
         unit: 'milliseconds',
         type: 'evented',
+        threadID: 0,
         events: [
           {type: 'O', at: 0, frame: 0},
           {type: 'C', at: longFrameName.length, frame: 0},

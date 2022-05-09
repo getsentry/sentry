@@ -30,7 +30,7 @@ import {Theme} from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
-import {generateFlamegraphRoute} from '../routes';
+import {generateFlamegraphSummaryRoute} from '../routes';
 import {COLOR_ENCODINGS, getColorEncodingFromLocation} from '../utils';
 
 interface ProfilingScatterChartProps extends WithRouterProps {
@@ -249,7 +249,7 @@ function makeScatterChartOptions({
         return;
       }
       browserHistory.push(
-        generateFlamegraphRoute({
+        generateFlamegraphSummaryRoute({
           orgSlug: organization.slug,
           projectSlug: project.slug,
           profileId: dataPoint.id,
