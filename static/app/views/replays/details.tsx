@@ -116,9 +116,7 @@ function ReplayDetails() {
           </Side>
           <Layout.Main fullWidth>
             <Panel>
-              <BreadcrumbTimeline
-                crumbs={replay.getEntryType(EntryType.BREADCRUMBS)?.data.values || []}
-              />
+              <BreadcrumbTimeline />
             </Panel>
             <FocusArea replay={replay} />
           </Layout.Main>
