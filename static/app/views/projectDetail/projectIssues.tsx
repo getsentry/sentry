@@ -160,18 +160,10 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
   }
 
   const endpointPath = `/organizations/${organization.slug}/issues/`;
-  const issueQuery =
-    issuesType === IssuesType.ALL
-      ? [`${IssuesQuery.ALL}`, query].join(' ').trim()
-      : issuesType === IssuesType.NEW
-      ? [`${IssuesQuery.NEW}`, query].join(' ').trim()
-      : issuesType === IssuesType.RESOLVED
-      ? [`${IssuesQuery.RESOLVED}`, query].join(' ').trim()
-      : issuesType === IssuesType.UNHANDLED
-      ? [`${IssuesQuery.UNHANDLED}`, query].join(' ').trim()
-      : issuesType === IssuesType.REGRESSED
-      ? [`${IssuesQuery.REGRESSED}`, query].join(' ').trim()
-      : [`${IssuesQuery.UNHANDLED}`, query].join(' ').trim();
+
+  const issueQuery = (Object.values(IssuesType) as string[]).includes(issuesType)
+    ? [`${IssuesQuery[issuesType.toUpperCase()]}`, query].join(' ').trim()
+    : [`${IssuesQuery.ALL}`, query].join(' ').trim();
 
   const queryParams = {
     limit: 5,
