@@ -1,13 +1,17 @@
 import {useCallback, useMemo} from 'react';
+import styled from '@emotion/styled';
 
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import {ControlProps, GeneralSelectValue} from 'sentry/components/forms/selectControl';
 import {IconList} from 'sentry/icons';
+import {tn} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {SelectValue} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {FlamegraphState} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/index';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {Profile} from 'sentry/utils/profiling/profile/profile';
+import {makeFormatter} from 'sentry/utils/profiling/units/units';
 
 interface ThreadSelectorProps {
   onThreadIdChange: (threadId: Profile['threadId']) => void;
@@ -21,14 +25,16 @@ function ThreadMenuSelector<OptionType extends GeneralSelectValue = GeneralSelec
   profileGroup,
 }: ThreadSelectorProps) {
   const options: SelectValue<number>[] = useMemo(() => {
-    return profileGroup.profiles
-      .map(profile => ({
-        name: profile.name,
-        duration: profile.duration,
-        threadId: profile.threadId,
-      }))
-      .sort(compareProfiles)
-      .map(item => ({label: item.name, value: item.threadId}));
+    return profileGroup.profiles.sort(compareProfiles).map(profile => ({
+      label: profile.name ? profile.name : `tid (${profile.threadId})`,
+      value: profile.threadId,
+      details: (
+        <ThreadLabelDetails
+          duration={makeFormatter(profile.unit)(profile.duration)}
+          samples={profile.samples.length}
+        />
+      ),
+    }));
   }, [profileGroup]);
 
   const handleChange: NonNullable<ControlProps<OptionType>['onChange']> = useCallback(
@@ -51,6 +57,20 @@ function ThreadMenuSelector<OptionType extends GeneralSelectValue = GeneralSelec
       onChange={handleChange}
       isSearchable
     />
+  );
+}
+
+interface ThreadLabelDetailsProps {
+  duration: string;
+  samples: number;
+}
+
+function ThreadLabelDetails(props: ThreadLabelDetailsProps) {
+  return (
+    <DetailsContainer>
+      <div>{props.duration}</div>
+      <div>{tn('%s sample', '%s samples', props.samples)}</div>
+    </DetailsContainer>
   );
 }
 
@@ -85,5 +105,12 @@ function compareProfiles(a: ProfileLight, b: ProfileLight): number {
   }
   return a.name > b.name ? -1 : 1;
 }
+
+const DetailsContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: ${space(1)};
+`;
 
 export {ThreadMenuSelector};
