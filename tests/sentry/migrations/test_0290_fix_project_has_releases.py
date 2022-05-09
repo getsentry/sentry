@@ -3,8 +3,8 @@ from sentry.testutils.cases import TestMigrations
 
 
 class BackfillProjectHasReleaseTest(TestMigrations):
-    migrate_from = "0288_fix_savedsearch_state"
-    migrate_to = "0289_fix_project_has_releases"
+    migrate_from = "0289_dashboardwidgetquery_convert_orderby_to_field"
+    migrate_to = "0290_fix_project_has_releases"
 
     def setup_before_migration(self, apps):
         self.project.flags.has_releases = False

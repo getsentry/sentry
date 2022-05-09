@@ -40,7 +40,7 @@ class Migration(CheckedMigration):
     atomic = False
 
     dependencies = [
-        ("sentry", "0288_fix_savedsearch_state"),
+        ("sentry", "0289_dashboardwidgetquery_convert_orderby_to_field"),
     ]
 
     operations = [
