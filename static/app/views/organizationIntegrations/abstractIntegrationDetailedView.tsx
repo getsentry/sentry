@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
@@ -253,10 +253,10 @@ class AbstractIntegrationDetailedView<
 
   renderAddInstallButton(hideButtonIfDisabled = false) {
     const {organization} = this.props;
-    const {IntegrationDirectoryFeatures} = getIntegrationFeatureGate();
+    const {IntegrationFeatures} = getIntegrationFeatureGate();
 
     return (
-      <IntegrationDirectoryFeatures {...this.featureProps}>
+      <IntegrationFeatures {...this.featureProps}>
         {({disabled, disabledReason}) => (
           <DisableWrapper>
             <Access organization={organization} access={['org:integrations']}>
@@ -278,7 +278,7 @@ class AbstractIntegrationDetailedView<
             {disabled && <DisabledNotice reason={disabledReason} />}
           </DisableWrapper>
         )}
-      </IntegrationDirectoryFeatures>
+      </IntegrationFeatures>
     );
   }
 
@@ -334,14 +334,14 @@ class AbstractIntegrationDetailedView<
 
   // Returns the information about the integration description and features
   renderInformationCard() {
-    const {IntegrationDirectoryFeatureList} = getIntegrationFeatureGate();
+    const {FeatureList} = getIntegrationFeatureGate();
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Flex>
           <FlexContainer>
             <Description dangerouslySetInnerHTML={{__html: marked(this.description)}} />
-            <IntegrationDirectoryFeatureList
+            <FeatureList
               {...this.featureProps}
               provider={{key: this.props.params.integrationSlug}}
             />
@@ -369,20 +369,20 @@ class AbstractIntegrationDetailedView<
             ))}
           </Metadata>
         </Flex>
-      </React.Fragment>
+      </Fragment>
     );
   }
 
   renderBody() {
     return (
-      <React.Fragment>
+      <Fragment>
         {this.renderAlert()}
         {this.renderTopSection()}
         {this.renderTabs()}
         {this.state.tab === 'overview'
           ? this.renderInformationCard()
           : this.renderConfigurations()}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

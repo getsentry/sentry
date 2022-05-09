@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import flatten from 'lodash/flatten';
 
 import type {Fuse} from 'sentry/utils/fuzzySearch';
@@ -24,7 +24,7 @@ type SourceResult = {
   results: Result[];
 };
 
-class SearchSources extends React.Component<Props> {
+class SearchSources extends Component<Props> {
   // `allSources` will be an array of all result objects from each source
   renderResults(allSources: SourceResult[]) {
     const {children} = this.props;

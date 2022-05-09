@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import Breadcrumbs from 'sentry/components/events/interfaces/breadcrumbs';
 import Csp from 'sentry/components/events/interfaces/csp';
 import DebugMeta from 'sentry/components/events/interfaces/debugMeta';

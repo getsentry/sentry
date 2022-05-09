@@ -1,4 +1,3 @@
-import * as React from 'react';
 import countBy from 'lodash/countBy';
 
 import {ROW_HEIGHT} from 'sentry/components/performance/waterfall/constants';

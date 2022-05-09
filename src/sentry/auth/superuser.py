@@ -22,7 +22,7 @@ from rest_framework import serializers, status
 
 from sentry.api.exceptions import SentryAPIException
 from sentry.auth.system import is_system_auth
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.auth import has_completed_sso
 from sentry.utils.settings import is_self_hosted
 
@@ -60,6 +60,8 @@ ORG_ID = getattr(settings, "SUPERUSER_ORG_ID", None)
 SUPERUSER_ACCESS_CATEGORIES = getattr(settings, "SUPERUSER_ACCESS_CATEGORIES", ["for_unit_test"])
 
 UNSET = object()
+
+ENABLE_SU_UPON_LOGIN_FOR_LOCAL_DEV = getattr(settings, "ENABLE_SU_UPON_LOGIN_FOR_LOCAL_DEV", False)
 
 
 def is_active_superuser(request):
@@ -116,7 +118,7 @@ class Superuser:
 
     @staticmethod
     def _needs_validation():
-        if is_self_hosted():
+        if is_self_hosted() or ENABLE_SU_UPON_LOGIN_FOR_LOCAL_DEV:
             return False
         return settings.VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON
 
@@ -336,6 +338,11 @@ class Superuser:
                 current_datetime=current_datetime,
             )
 
+            metrics.incr(
+                "superuser.success",
+                sample_rate=1.0,
+            )
+
             logger.info(
                 "superuser.logged-in",
                 extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": user.id},
@@ -349,8 +356,18 @@ class Superuser:
             # need to use json loads as the data is no longer in request.data
             su_access_json = json.loads(request.body)
         except json.JSONDecodeError:
+            metrics.incr(
+                "superuser.failure",
+                sample_rate=1.0,
+                tags={"reason": SuperuserAccessFormInvalidJson.code},
+            )
             raise SuperuserAccessFormInvalidJson()
         except AttributeError:
+            metrics.incr(
+                "superuser.failure",
+                sample_rate=1.0,
+                tags={"reason": EmptySuperuserAccessForm.code},
+            )
             raise EmptySuperuserAccessForm()
 
         su_access_info = SuperuserAccessSerializer(data=su_access_json)
@@ -371,6 +388,7 @@ class Superuser:
             )
             enable_and_log_superuser_access()
         except AttributeError:
+            metrics.incr("superuser.failure", sample_rate=1.0, tags={"reason": "missing-user-info"})
             logger.error("superuser.superuser_access.missing_user_info")
 
     def set_logged_out(self):

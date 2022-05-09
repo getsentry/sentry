@@ -3,7 +3,6 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {Organization} from 'sentry/types';
-import {SessionMetric} from 'sentry/utils/metrics/fields';
 import {DashboardWidgetSource} from 'sentry/views/dashboardsV2/types';
 import WidgetBuilder from 'sentry/views/dashboardsV2/widgetBuilder';
 
@@ -34,23 +33,6 @@ function mockRequests(orgSlug: Organization['slug']) {
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/projects/',
     method: 'GET',
-    body: [],
-  });
-
-  MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/metrics/meta/`,
-    body: [
-      {
-        name: SessionMetric.SESSION,
-        type: 'counter',
-        operations: ['sum'],
-        unit: null,
-      },
-    ],
-  });
-
-  MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/metrics/tags/`,
     body: [],
   });
 
@@ -157,5 +139,41 @@ describe('VisualizationStep', function () {
     );
 
     await screen.findByText(/we've automatically adjusted your results/i);
+  });
+
+  it('displays a deprecated tag next to the top 5 display option', async function () {
+    mockRequests(organization.slug);
+
+    render(
+      <WidgetBuilder
+        route={{}}
+        router={router}
+        routes={router.routes}
+        routeParams={router.params}
+        location={router.location}
+        dashboard={{
+          id: 'new',
+          title: 'Dashboard',
+          createdBy: undefined,
+          dateCreated: '2020-01-01T00:00:00.000Z',
+          widgets: [],
+        }}
+        onSave={jest.fn()}
+        params={{
+          orgId: organization.slug,
+          dashboardId: 'new',
+        }}
+      />,
+      {
+        context: routerContext,
+        organization,
+      }
+    );
+
+    expect(screen.queryByText('deprecated')).not.toBeInTheDocument();
+    userEvent.click(await screen.findByText('Table'));
+    screen.getByText('deprecated');
+    userEvent.click(screen.getByText('Top 5 Events'));
+    screen.getByText('deprecated');
   });
 });

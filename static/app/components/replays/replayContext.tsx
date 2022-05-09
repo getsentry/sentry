@@ -3,8 +3,10 @@ import {useTheme} from '@emotion/react';
 import {Replayer, ReplayerEvents} from 'rrweb';
 import type {eventWithTime} from 'rrweb/typings/types';
 
+import type ReplayReader from 'sentry/utils/replays/replayReader';
 import usePrevious from 'sentry/utils/usePrevious';
 
+import HighlightReplayPlugin from './highlightReplayPlugin';
 import useRAF from './useRAF';
 
 type Dimensions = {height: number; width: number};
@@ -15,7 +17,14 @@ type RootElem = null | HTMLDivElement;
 // Instead only expose methods that wrap `Replayer` and manage state.
 type ReplayPlayerContextProps = {
   /**
-   * The current time of the video, in miliseconds
+   * The time, in milliseconds, where the user focus is.
+   * The user focus can be reported by any collaborating object, usually on
+   * hover.
+   */
+  currentHoverTime: undefined | number;
+
+  /**
+   * The current time of the video, in milliseconds
    * The value is updated on every animation frame, about every 16.6ms
    */
   currentTime: number;
@@ -51,6 +60,11 @@ type ReplayPlayerContextProps = {
   initRoot: (root: RootElem) => void;
 
   /**
+   * Set to true while the library is reconstructing the DOM
+   */
+  isBuffering: boolean;
+
+  /**
    * Whether the video is currently playing
    */
   isPlaying: boolean;
@@ -59,6 +73,17 @@ type ReplayPlayerContextProps = {
    * Whether fast-forward mode is enabled if RRWeb detects idle moments in the video
    */
   isSkippingInactive: boolean;
+
+  /**
+   * The core replay data
+   */
+  replay: ReplayReader | null;
+
+  /**
+   * Set the currentHoverTime so collaborating components can highlight related
+   * information
+   */
+  setCurrentHoverTime: (time: undefined | number) => void;
 
   /**
    * Jump the video to a specific time
@@ -91,14 +116,18 @@ type ReplayPlayerContextProps = {
 };
 
 const ReplayPlayerContext = React.createContext<ReplayPlayerContextProps>({
+  currentHoverTime: undefined,
   currentTime: 0,
   dimensions: {height: 0, width: 0},
   duration: undefined,
   events: [],
   fastForwardSpeed: 0,
   initRoot: () => {},
+  isBuffering: false,
   isPlaying: false,
   isSkippingInactive: false,
+  replay: null,
+  setCurrentHoverTime: () => {},
   setCurrentTime: () => {},
   setSpeed: () => {},
   speed: 1,
@@ -108,7 +137,16 @@ const ReplayPlayerContext = React.createContext<ReplayPlayerContextProps>({
 
 type Props = {
   children: React.ReactNode;
-  events: eventWithTime[];
+  replay: ReplayReader;
+
+  /**
+   * Time, in seconds, when the video should start
+   */
+  initialTimeOffset?: number;
+
+  /**
+   * Override return fields for testing
+   */
   value?: Partial<ReplayPlayerContextProps>;
 };
 
@@ -118,15 +156,20 @@ function useCurrentTime(callback: () => number) {
   return currentTime;
 }
 
-export function Provider({children, events, value = {}}: Props) {
+export function Provider({children, replay, initialTimeOffset = 0, value = {}}: Props) {
+  const events = replay.getRRWebEvents();
+
   const theme = useTheme();
   const oldEvents = usePrevious(events);
   const replayerRef = useRef<Replayer>(null);
   const [dimensions, setDimensions] = useState<Dimensions>({height: 0, width: 0});
+  const [currentHoverTime, setCurrentHoverTime] = useState<undefined | number>();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isSkippingInactive, setIsSkippingInactive] = useState(false);
   const [speed, setSpeedState] = useState(1);
   const [fastForwardSpeed, setFFSpeed] = useState(0);
+  const [buffer, setBufferTime] = useState({target: -1, previous: -1});
+  const playTimer = useRef<number | undefined>(undefined);
 
   const forceDimensions = (dimension: Dimensions) => {
     setDimensions(dimension);
@@ -141,88 +184,103 @@ export function Provider({children, events, value = {}}: Props) {
     setFFSpeed(0);
   };
 
-  const initRoot = (root: RootElem) => {
-    if (events === undefined) {
-      return;
-    }
-
-    if (root === null) {
-      return;
-    }
-
-    if (replayerRef.current) {
-      if (events === oldEvents) {
-        // Already have a player for these events, the parent node must've re-rendered
+  const initRoot = useCallback(
+    (root: RootElem) => {
+      if (events === undefined) {
         return;
       }
 
-      // We have new events, need to clear out the old iframe because a new
-      // `Replayer` instance is about to be created
-      while (root.firstChild) {
-        root.removeChild(root.firstChild);
+      if (root === null) {
+        return;
       }
-    }
 
-    // eslint-disable-next-line no-new
-    const inst = new Replayer(events, {
-      root,
-      // blockClass: 'rr-block',
-      // liveMode: false,
-      // triggerFocus: false,
-      mouseTail: {
-        duration: 0.75 * 1000,
-        lineCap: 'round',
-        lineWidth: 2,
-        strokeStyle: theme.purple200,
-      },
-      // unpackFn: _ => _,
-      // plugins: [],
-    });
+      if (replayerRef.current) {
+        if (events === oldEvents) {
+          // Already have a player for these events, the parent node must've re-rendered
+          return;
+        }
 
-    // @ts-expect-error: rrweb types event handlers with `unknown` parameters
-    inst.on(ReplayerEvents.Resize, forceDimensions);
-    inst.on(ReplayerEvents.Finish, setPlayingFalse);
-    // @ts-expect-error: rrweb types event handlers with `unknown` parameters
-    inst.on(ReplayerEvents.SkipStart, onFastForwardStart);
-    inst.on(ReplayerEvents.SkipEnd, onFastForwardEnd);
+        // We have new events, need to clear out the old iframe because a new
+        // `Replayer` instance is about to be created
+        while (root.firstChild) {
+          root.removeChild(root.firstChild);
+        }
+      }
 
-    // `.current` is marked as readonly, but it's safe to set the value from
-    // inside a `useEffect` hook.
-    // See: https://reactjs.org/docs/hooks-faq.html#is-there-something-like-instance-variables
-    // @ts-expect-error
-    replayerRef.current = inst;
-  };
+      const highlightReplayPlugin = new HighlightReplayPlugin();
+
+      // eslint-disable-next-line no-new
+      const inst = new Replayer(events, {
+        root,
+        blockClass: 'sr-block',
+        // liveMode: false,
+        // triggerFocus: false,
+        mouseTail: {
+          duration: 0.75 * 1000,
+          lineCap: 'round',
+          lineWidth: 2,
+          strokeStyle: theme.purple200,
+        },
+        // unpackFn: _ => _,
+        plugins: [highlightReplayPlugin],
+      });
+
+      // @ts-expect-error: rrweb types event handlers with `unknown` parameters
+      inst.on(ReplayerEvents.Resize, forceDimensions);
+      inst.on(ReplayerEvents.Finish, setPlayingFalse);
+      // @ts-expect-error: rrweb types event handlers with `unknown` parameters
+      inst.on(ReplayerEvents.SkipStart, onFastForwardStart);
+      inst.on(ReplayerEvents.SkipEnd, onFastForwardEnd);
+
+      // `.current` is marked as readonly, but it's safe to set the value from
+      // inside a `useEffect` hook.
+      // See: https://reactjs.org/docs/hooks-faq.html#is-there-something-like-instance-variables
+      // @ts-expect-error
+      replayerRef.current = inst;
+    },
+    [events, oldEvents, theme.purple200]
+  );
 
   useEffect(() => {
     if (replayerRef.current && events) {
       initRoot(replayerRef.current.wrapper.parentElement as RootElem);
     }
-  }, [replayerRef.current, events]);
+  }, [initRoot, events]);
 
   const getCurrentTime = useCallback(
     () => (replayerRef.current ? Math.max(replayerRef.current.getCurrentTime(), 0) : 0),
-    [replayerRef.current]
+    []
   );
 
   const setCurrentTime = useCallback(
-    (time: number) => {
+    (requestedTimeMs: number) => {
       const replayer = replayerRef.current;
       if (!replayer) {
         return;
       }
 
-      // TODO: it might be nice to always just pause() here
-      // Why? People can drag the scrobber, or click 'back 10s' and then be in a
-      // paused state to inspect things.
+      const maxTimeMs = replayerRef.current?.getMetaData().totalTime;
+      const time = requestedTimeMs > maxTimeMs ? 0 : requestedTimeMs;
+
+      // Sometimes rrweb doesn't get to the exact target time, as long as it has
+      // changed away from the previous time then we can hide then buffering message.
+      setBufferTime({target: time, previous: getCurrentTime()});
+
+      // Clear previous timers. Without this (but with the setTimeout) multiple
+      // requests to set the currentTime could finish out of order and cause jumping.
+      if (playTimer.current) {
+        window.clearTimeout(playTimer.current);
+      }
+
       if (isPlaying) {
-        replayer.play(time);
+        playTimer.current = window.setTimeout(() => replayer.play(time), 0);
         setIsPlaying(true);
       } else {
-        replayer.pause(time);
+        playTimer.current = window.setTimeout(() => replayer.pause(time), 0);
         setIsPlaying(false);
       }
     },
-    [replayerRef.current, isPlaying]
+    [getCurrentTime, isPlaying]
   );
 
   const setSpeed = useCallback(
@@ -240,7 +298,7 @@ export function Provider({children, events, value = {}}: Props) {
       }
       setSpeedState(newSpeed);
     },
-    [replayerRef.current, isPlaying]
+    [getCurrentTime, isPlaying]
   );
 
   const togglePlayPause = useCallback(
@@ -257,36 +315,53 @@ export function Provider({children, events, value = {}}: Props) {
       }
       setIsPlaying(play);
     },
-    [replayerRef.current]
+    [getCurrentTime]
   );
 
-  const toggleSkipInactive = useCallback(
-    (skip: boolean) => {
-      const replayer = replayerRef.current;
-      if (!replayer) {
-        return;
-      }
-      if (skip !== replayer.config.skipInactive) {
-        replayer.setConfig({skipInactive: skip});
-      }
-      setIsSkippingInactive(skip);
-    },
-    [replayerRef.current]
-  );
+  const toggleSkipInactive = useCallback((skip: boolean) => {
+    const replayer = replayerRef.current;
+    if (!replayer) {
+      return;
+    }
+    if (skip !== replayer.config.skipInactive) {
+      replayer.setConfig({skipInactive: skip});
+    }
+    setIsSkippingInactive(skip);
+  }, []);
 
-  const currentTime = useCurrentTime(getCurrentTime);
+  // Only on pageload: set the initial playback timestamp
+  useEffect(() => {
+    if (initialTimeOffset && events && replayerRef.current) {
+      setCurrentTime(initialTimeOffset * 1000);
+    }
+  }, [events, replayerRef.current]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const currentPlayerTime = useCurrentTime(getCurrentTime);
+
+  const [isBuffering, currentTime] =
+    buffer.target !== -1 && buffer.previous === currentPlayerTime
+      ? [true, buffer.target]
+      : [false, currentPlayerTime];
+
+  if (!isBuffering && buffer.target !== -1) {
+    setBufferTime({target: -1, previous: -1});
+  }
 
   return (
     <ReplayPlayerContext.Provider
       value={{
+        currentHoverTime,
         currentTime,
         dimensions,
         duration: replayerRef.current?.getMetaData().totalTime,
         events,
         fastForwardSpeed,
         initRoot,
+        isBuffering,
         isPlaying,
         isSkippingInactive,
+        replay,
+        setCurrentHoverTime,
         setCurrentTime,
         setSpeed,
         speed,

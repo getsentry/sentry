@@ -44,6 +44,7 @@ from sentry.snuba.metrics.fields.snql import (
     all_transactions,
     all_users,
     apdex,
+    complement,
     crashed_sessions,
     crashed_users,
     division_float,
@@ -51,7 +52,6 @@ from sentry.snuba.metrics.fields.snql import (
     errored_preaggr_sessions,
     failure_count_transaction,
     miserable_users,
-    percentage,
     satisfaction_count_transaction,
     session_duration_filters,
     subtraction,
@@ -75,6 +75,7 @@ from sentry.snuba.metrics.utils import (
     MetricOperationType,
     MetricType,
     NotSupportedOverCompositeEntityException,
+    OrderByNotSupportedOverCompositeEntityException,
     combine_dictionary_of_list_values,
 )
 from sentry.utils.snuba import raw_snql_query
@@ -704,7 +705,7 @@ class CompositeEntityDerivedMetric(DerivedMetricExpression):
         projects: Sequence[Project],
         query_definition: QueryDefinition,
     ) -> List[OrderBy]:
-        raise NotSupportedOverCompositeEntityException(
+        raise OrderByNotSupportedOverCompositeEntityException(
             f"It is not possible to orderBy field "
             f"{get_public_name_from_mri(self.metric_mri)} as it does not "
             f"have a direct mapping to a query alias"
@@ -864,19 +865,31 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             ),
         ),
         SingularEntityDerivedMetric(
-            metric_mri=SessionMRI.CRASH_FREE_RATE.value,
+            metric_mri=SessionMRI.CRASH_RATE.value,
             metrics=[SessionMRI.CRASHED.value, SessionMRI.ALL.value],
             unit="percentage",
-            snql=lambda *args, org_id, metric_ids, alias=None: percentage(*args, alias=alias),
+            snql=lambda *args, org_id, metric_ids, alias=None: division_float(*args, alias=alias),
         ),
         SingularEntityDerivedMetric(
-            metric_mri=SessionMRI.CRASH_FREE_USER_RATE.value,
+            metric_mri=SessionMRI.CRASH_USER_RATE.value,
             metrics=[
                 SessionMRI.CRASHED_USER.value,
                 SessionMRI.ALL_USER.value,
             ],
             unit="percentage",
-            snql=lambda *args, org_id, metric_ids, alias=None: percentage(*args, alias=alias),
+            snql=lambda *args, org_id, metric_ids, alias=None: division_float(*args, alias=alias),
+        ),
+        SingularEntityDerivedMetric(
+            metric_mri=SessionMRI.CRASH_FREE_RATE.value,
+            metrics=[SessionMRI.CRASH_RATE.value],
+            unit="percentage",
+            snql=lambda *args, org_id, metric_ids, alias=None: complement(*args, alias=alias),
+        ),
+        SingularEntityDerivedMetric(
+            metric_mri=SessionMRI.CRASH_FREE_USER_RATE.value,
+            metrics=[SessionMRI.CRASH_USER_RATE.value],
+            unit="percentage",
+            snql=lambda *args, org_id, metric_ids, alias=None: complement(*args, alias=alias),
         ),
         SingularEntityDerivedMetric(
             metric_mri=SessionMRI.ERRORED_PREAGGREGATED.value,

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 import {motion, MotionProps} from 'framer-motion';
 
@@ -16,6 +16,7 @@ import FallingError from 'sentry/views/onboarding/components/fallingError';
 import WelcomeBackground from 'sentry/views/onboarding/components/welcomeBackground';
 
 import {StepProps} from './types';
+import {usePersistedOnboardingState} from './utils';
 
 const fadeAway: MotionProps = {
   variants: {
@@ -35,20 +36,21 @@ type TextWrapperProps = {
 
 function InnerAction({title, subText, cta, src}: TextWrapperProps) {
   return (
-    <React.Fragment>
+    <Fragment>
       <ActionImage src={src} />
       <TextWrapper>
         <ActionTitle>{title}</ActionTitle>
         <SubText>{subText}</SubText>
       </TextWrapper>
       <ButtonWrapper>{cta}</ButtonWrapper>
-    </React.Fragment>
+    </Fragment>
   );
 }
 
 function TargetedOnboardingWelcome({organization, ...props}: StepProps) {
   const source = 'targeted_onboarding';
-  React.useEffect(() => {
+  const [clientState, setClientState] = usePersistedOnboardingState();
+  useEffect(() => {
     trackAdvancedAnalyticsEvent('growth.onboarding_start_onboarding', {
       organization,
       source,
@@ -60,6 +62,13 @@ function TargetedOnboardingWelcome({organization, ...props}: StepProps) {
       organization,
       source,
     });
+    if (clientState) {
+      setClientState({
+        ...clientState,
+        url: 'select-platform/',
+        state: 'started',
+      });
+    }
 
     props.onComplete();
   };
@@ -84,7 +93,7 @@ function TargetedOnboardingWelcome({organization, ...props}: StepProps) {
               )}
               src={OnboardingInstall}
               cta={
-                <React.Fragment>
+                <Fragment>
                   <ButtonWithFill
                     onClick={() => {
                       // triggerFall();
@@ -97,7 +106,7 @@ function TargetedOnboardingWelcome({organization, ...props}: StepProps) {
                   {(fallCount === 0 || isFalling) && (
                     <PositionedFallingError>{fallingError}</PositionedFallingError>
                   )}
-                </React.Fragment>
+                </Fragment>
               }
             />
           </ActionItem>
@@ -125,12 +134,18 @@ function TargetedOnboardingWelcome({organization, ...props}: StepProps) {
             {t("Gee, I've used Sentry before.")}
             <br />
             <Link
-              onClick={() =>
+              onClick={() => {
                 trackAdvancedAnalyticsEvent('growth.onboarding_clicked_skip', {
                   organization,
                   source,
-                })
-              }
+                });
+                if (clientState) {
+                  setClientState({
+                    ...clientState,
+                    state: 'skipped',
+                  });
+                }
+              }}
               to={`/organizations/${organization.slug}/issues/`}
             >
               {t('Skip onboarding.')}

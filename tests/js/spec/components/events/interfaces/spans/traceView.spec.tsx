@@ -1,7 +1,9 @@
 import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import * as AnchorLinkManager from 'sentry/components/events/interfaces/spans/anchorLinkManager';
 import TraceView from 'sentry/components/events/interfaces/spans/traceView';
+import {spanTargetHash} from 'sentry/components/events/interfaces/spans/utils';
 import WaterfallModel from 'sentry/components/events/interfaces/spans/waterfallModel';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {EntryType, EventTransaction} from 'sentry/types';
@@ -389,5 +391,56 @@ describe('TraceView', () => {
     expect(await screen.findByTestId('span-row-2')).toHaveTextContent(
       /Autogrouped — siblings/
     );
+  });
+
+  it('should automatically expand a sibling span group and select a span if it is anchored', async () => {
+    const data = initializeData({
+      features: ['performance-autogroup-sibling-spans'],
+    });
+
+    const event = generateSampleEvent();
+    generateSampleSpan('group me', 'http', 'b000000000000000', 'a000000000000000', event);
+    generateSampleSpan('group me', 'http', 'c000000000000000', 'a000000000000000', event);
+    generateSampleSpan('group me', 'http', 'd000000000000000', 'a000000000000000', event);
+    generateSampleSpan('group me', 'http', 'e000000000000000', 'a000000000000000', event);
+    generateSampleSpan('group me', 'http', 'f000000000000000', 'a000000000000000', event);
+
+    // Manually set the hash here, the AnchorLinkManager is expected to automatically expand the group and scroll to the span with this id
+    location.hash = spanTargetHash('c000000000000000');
+
+    const waterfallModel = new WaterfallModel(event);
+
+    render(
+      <AnchorLinkManager.Provider>
+        <TraceView organization={data.organization} waterfallModel={waterfallModel} />
+      </AnchorLinkManager.Provider>
+    );
+
+    expect(await screen.findByText(/c000000000000000/i)).toBeInTheDocument();
+    location.hash = '';
+  });
+
+  it('should automatically expand a descendant span group and select a span if it is anchored', async () => {
+    const data = initializeData({});
+
+    const event = generateSampleEvent();
+    generateSampleSpan('group me', 'http', 'b000000000000000', 'a000000000000000', event);
+    generateSampleSpan('group me', 'http', 'c000000000000000', 'b000000000000000', event);
+    generateSampleSpan('group me', 'http', 'd000000000000000', 'c000000000000000', event);
+    generateSampleSpan('group me', 'http', 'e000000000000000', 'd000000000000000', event);
+    generateSampleSpan('group me', 'http', 'f000000000000000', 'e000000000000000', event);
+
+    location.hash = spanTargetHash('d000000000000000');
+
+    const waterfallModel = new WaterfallModel(event);
+
+    render(
+      <AnchorLinkManager.Provider>
+        <TraceView organization={data.organization} waterfallModel={waterfallModel} />
+      </AnchorLinkManager.Provider>
+    );
+
+    expect(await screen.findByText(/d000000000000000/i)).toBeInTheDocument();
+    location.hash = '';
   });
 });
