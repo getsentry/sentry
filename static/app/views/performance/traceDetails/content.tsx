@@ -301,6 +301,7 @@ class TraceDetailsContent extends Component<Props, State> {
         {this.renderSearchBar()}
         <TraceView
           filteredTransactionIds={this.state.filteredTransactionIds}
+          traceInfo={traceInfo}
           location={location}
           organization={organization}
           traceEventView={traceEventView}
