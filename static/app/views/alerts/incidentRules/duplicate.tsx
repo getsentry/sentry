@@ -20,20 +20,19 @@ import RuleForm from './ruleForm';
 
 type RouteParams = {
   orgId: string;
-  projectId?: string;
-  ruleId?: string;
 };
 
 type Props = {
-  eventView: EventView | undefined;
   organization: Organization;
   project: Project;
   userTeamIds: string[];
+  eventView?: EventView;
   sessionId?: string;
   wizardTemplate?: WizardRuleTemplate;
 } & RouteComponentProps<RouteParams, {}>;
 
 type State = {
+  IncidentRulesDuplicate;
   defaultRule: IncidentRule;
   duplicateTargetRule?: IncidentRule;
 } & AsyncView['state'];
