@@ -441,6 +441,18 @@ class SnubaQueryBuilder:
     def __build_totals_and_series_queries(
         self, entity, select, where, groupby, orderby, limit, offset, rollup, intervals_len
     ):
+        # In a series query, we also need to factor in the len of the intervals
+        # array. The number of totals should never get so large that the
+        # intervals exceed MAX_POINTS, however at least a single group.
+        max_totals = max(MAX_POINTS // intervals_len, 1)
+        totals_limit = max_totals
+        if limit and limit.limit < totals_limit:
+            totals_limit = limit.limit
+
+        # Ensure the series limit is a multiple of totals, but never exceeds
+        # MAX_POINTS if the number of intervals is very large.
+        series_limit = min(totals_limit * intervals_len, MAX_POINTS)
+
         rv = {}
         totals_query = Query(
             dataset=Dataset.Metrics.value,
@@ -448,7 +460,7 @@ class SnubaQueryBuilder:
             groupby=groupby,
             select=select,
             where=where,
-            limit=limit or Limit(MAX_POINTS),
+            limit=Limit(totals_limit),
             offset=offset or Offset(0),
             granularity=rollup,
             orderby=orderby,
@@ -458,15 +470,9 @@ class SnubaQueryBuilder:
             rv["totals"] = totals_query
 
         if self._query_definition.include_series:
-            series_query = totals_query.set_groupby(
-                (totals_query.groupby or []) + [Column(TS_COL_GROUP)]
+            rv["series"] = totals_query.set_limit(series_limit).set_groupby(
+                list(totals_query.groupby or []) + [Column(TS_COL_GROUP)]
             )
-
-            # In a series query, we also need to factor in the len of the intervals array
-            series_limit = MAX_POINTS
-            if limit:
-                series_limit = limit.limit * intervals_len
-            rv["series"] = series_query.set_limit(series_limit)
 
         return rv
 

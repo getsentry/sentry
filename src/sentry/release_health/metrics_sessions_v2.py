@@ -53,7 +53,6 @@ from sentry.snuba.metrics.query import MetricField, OrderBy
 from sentry.snuba.metrics.query import QueryDefinition as MetricsQuery
 from sentry.snuba.metrics.utils import OrderByNotSupportedOverCompositeEntityException
 from sentry.snuba.sessions_v2 import (
-    SNUBA_LIMIT,
     InvalidParams,
     QueryDefinition,
     finite_or_none,
@@ -400,8 +399,6 @@ def run_sessions_query(
     # backend runs
     query = deepcopy(query)
 
-    intervals = get_timestamps(query)
-
     conditions = _get_filter_conditions(query.conditions)
     where, status_filter = _extract_status_filter_from_conditions(conditions)
     if status_filter == frozenset():
@@ -432,7 +429,6 @@ def run_sessions_query(
         primary_metric_field = _get_primary_field(list(fields.values()), query.raw_groupby)
         orderby = OrderBy(primary_metric_field, Direction.DESC)
 
-    max_groups = SNUBA_LIMIT // len(intervals)
     metrics_query = MetricsQuery(
         org_id,
         project_ids,
@@ -443,7 +439,7 @@ def run_sessions_query(
         where=where,
         groupby=list({column for field in fields.values() for column in field.get_groupby()}),
         orderby=orderby,
-        limit=Limit(min(query.limit or max_groups, max_groups)),
+        limit=Limit(query.limit) if query.limit else None,
         offset=Offset(query.offset or 0),
     )
 
