@@ -116,7 +116,7 @@ const Label = styled('div')<{
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 0 ${space(0.5)};
+  padding: ${space(0.5)} ${space(0.25)} ${space(0.25)} ${space(0.25)};
   margin-right: ${space(0.25)};
 `;
 
