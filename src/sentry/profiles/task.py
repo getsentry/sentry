@@ -1,4 +1,4 @@
-from time import sleep
+from time import sleep, time
 from typing import Any, MutableMapping
 
 from django.conf import settings
@@ -82,19 +82,34 @@ def _symbolicate(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
         for s in profile["sampled_profile"]["samples"]
     ]
 
+    symbolication_start_time = time()
+
     while True:
         try:
             response = symbolicator.process_payload(stacktraces=stacktraces, modules=modules)
+            for original, symbolicated in zip(
+                profile["sampled_profile"]["samples"], response["stacktraces"]
+            ):
+                for original_frame, symbolicated_frame in zip(
+                    original["frames"], symbolicated["frames"]
+                ):
+                    original_frame.update(symbolicated_frame)
             break
         except RetrySymbolication as e:
-            sleep(e.retry_after)
-            continue
-
-    for original, symbolicated in zip(
-        profile["sampled_profile"]["samples"], response["stacktraces"]
-    ):
-        for original_frame, symbolicated_frame in zip(original["frames"], symbolicated["frames"]):
-            original_frame.update(symbolicated_frame)
+            if (
+                time() - symbolication_start_time
+            ) > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT:
+                break
+            else:
+                sleep_time = (
+                    settings.SYMBOLICATOR_MAX_RETRY_AFTER
+                    if e.retry_after is None
+                    else min(e.retry_after, settings.SYMBOLICATOR_MAX_RETRY_AFTER)
+                )
+                sleep(sleep_time)
+                continue
+        except Exception:
+            break
 
     # remove debug information we don't need anymore
     profile.pop("debug_meta")
