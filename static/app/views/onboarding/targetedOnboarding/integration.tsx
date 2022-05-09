@@ -33,7 +33,7 @@ export default function OnboardingIntegrationSelect(props: StepProps) {
       <StepHeading step={props.stepIndex}>
         {t('Select all the tools that help you work')}
       </StepHeading>
-      <motion.p
+      <motion.div
         transition={testableTransition()}
         variants={{
           initial: {y: 30, opacity: 0},
@@ -41,16 +41,18 @@ export default function OnboardingIntegrationSelect(props: StepProps) {
           exit: {opacity: 0},
         }}
       >
-        {tct(
-          `Here is just a small selection of the integrations at Sentry. [link: See All Integrations]`,
-          {link: <ExternalLink href="https://docs.sentry.io/platforms/" />}
-        )}
-      </motion.p>
-      <IntegrationMultiSelect
-        selectedIntegrations={selectedIntegrations}
-        selectIntegration={addIntegration}
-        removeIntegration={removeIntegration}
-      />
+        <p>
+          {tct(
+            `Here is just a small selection of the integrations at Sentry. [link: See All Integrations]`,
+            {link: <ExternalLink href="https://docs.sentry.io/platforms/" />}
+          )}
+        </p>
+        <IntegrationMultiSelect
+          selectedIntegrations={selectedIntegrations}
+          selectIntegration={addIntegration}
+          removeIntegration={removeIntegration}
+        />
+      </motion.div>
       <IntegrationsFooter
         genSkipOnboardingLink={props.genSkipOnboardingLink}
         integrations={selectedIntegrations}

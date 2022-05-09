@@ -21,7 +21,7 @@ const availabledIntegrations: Integration[] = [
   {
     id: 'github',
     name: 'GitHub',
-    description: 'Triage, resolve, and ignore Sentry issues directly from Slack.',
+    description: 'Automate issue assignment and release tracking with Github.',
   },
 
   {
@@ -45,7 +45,7 @@ const availabledIntegrations: Integration[] = [
   {
     id: 'vercel',
     name: 'Vercel',
-    description: 'Track errors collaboratively with one click.',
+    description: 'Automatically notify Sentry of new deployments in Vercel.',
   },
 
   {
@@ -61,7 +61,7 @@ const availabledIntegrations: Integration[] = [
   {
     id: 'vsts',
     name: 'Azure DevOps',
-    description: 'Create or link issues in Asana based on Sentry events.',
+    description: 'Manage, sync, and track your issues with Azure DevOps commit data.',
   },
 ];
 
