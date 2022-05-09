@@ -2,6 +2,8 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {transformCrumbs} from 'sentry/components/events/interfaces/breadcrumbs/utils';
+import HorizontalMouseTracking from 'sentry/components/replays/player/horizontalMouseTracking';
+import {TimelineScubber} from 'sentry/components/replays/player/scrubber';
 import StackedContent from 'sentry/components/replays/stackedContent';
 import space from 'sentry/styles/space';
 import {Crumb, RawCrumb} from 'sentry/types/breadcrumbs';
@@ -21,26 +23,30 @@ function ReplayBreadcrumbOverview({crumbs, className}: Props) {
   const transformedCrumbs = transformCrumbs(crumbs);
 
   return (
-    <StackedContent className={className}>
-      {({width}) => (
-        <React.Fragment>
-          <Ticks
-            crumbs={transformedCrumbs}
-            width={width}
-            minWidth={20}
-            lineStyle="dotted"
-          />
-          <Ticks
-            crumbs={transformedCrumbs}
-            width={width}
-            showTimestamp
-            minWidth={50}
-            lineStyle="solid"
-          />
-          <Events crumbs={transformedCrumbs} width={width} />
-        </React.Fragment>
-      )}
-    </StackedContent>
+    <HorizontalMouseTracking>
+      <TimelineScubber />
+      <StackedContent className={className}>
+        {({width}) => (
+          <React.Fragment>
+            <Ticks
+              crumbs={transformedCrumbs}
+              width={width}
+              minWidth={20}
+              lineStyle="dotted"
+            />
+            <Ticks
+              crumbs={transformedCrumbs}
+              width={width}
+              showTimestamp
+              minWidth={50}
+              lineStyle="solid"
+            />
+
+            <Events crumbs={transformedCrumbs} width={width} />
+          </React.Fragment>
+        )}
+      </StackedContent>
+    </HorizontalMouseTracking>
   );
 }
 
