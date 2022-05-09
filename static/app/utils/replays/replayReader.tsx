@@ -41,7 +41,13 @@ export default class ReplayReader {
     private _replayEvents: Event[]
   ) {}
 
-  getEvent = memoize(() => {
+  /**
+   * The original `this._event.startTimestamp` and `this._event.endTimestamp`
+   * are the same. It's because the root replay event is re-purposing the
+   * `transaction` type, but it is not a real span occuring over time.
+   * So we need to figure out the real end time, in milliseconds.
+   */
+  private _getEndTimestampMS() {
     const breadcrumbs = this.getEntryType(EntryType.BREADCRUMBS);
     const spans = this.getEntryType(EntryType.SPANS);
 
@@ -49,21 +55,22 @@ export default class ReplayReader {
     const lastBreadcrumb = last(breadcrumbs?.data.values as RawCrumb[]);
     const lastSpan = last(spans?.data as RawSpanType[]);
 
-    // The original `this._event.startTimestamp` and `this._event.endTimestamp`
-    // are the same. It's because the root replay event is re-purposing the
-    // `transaction` type, but it is not a real span occuring over time.
-    // So we need to figure out the real end time (in seconds).
-    const endTimestamp =
-      Math.max(
-        lastRRweb?.timestamp || 0,
-        +new Date(lastBreadcrumb?.timestamp || 0),
-        (lastSpan?.timestamp || 0) * 1000
-      ) / 1000;
+    return Math.max(
+      lastRRweb?.timestamp || 0,
+      +new Date(lastBreadcrumb?.timestamp || 0),
+      (lastSpan?.timestamp || 0) * 1000
+    );
+  }
+
+  getEvent = memoize(() => {
+    const breadcrumbs = this.getEntryType(EntryType.BREADCRUMBS);
+    const spans = this.getEntryType(EntryType.SPANS);
+    const endTimestampMS = this._getEndTimestampMS();
 
     return {
       ...this._event,
       entries: [breadcrumbs, spans],
-      endTimestamp,
+      endTimestamp: endTimestampMS / 1000,
     } as EventTransaction;
   });
 
@@ -73,12 +80,25 @@ export default class ReplayReader {
     // Find LCP spans that have a valid replay node id, this will be used to
     const highlights = createHighlightEvents(spansEntry.data);
 
+    // Create a final event so that rrweb has the same internal duration as the
+    // root event.
+    // This allows the scrubber to view timestamps after the last captured
+    // rrweb event, like if a memory span was captured after the last mouse-move,
+    // but before page unload.
+    const endEvent = {
+      type: 5, // EventType.Custom
+      timestamp: this._getEndTimestampMS(),
+      data: {
+        tag: 'replay-end',
+      },
+    } as eventWithTime;
+
     // TODO(replays): ideally this would happen on SDK, but due
     // to how plugins work, we are unable to specify a timestamp for an event
     // (rrweb applies it), so it's possible actual LCP timestamp does not
     // match when the observer happens and we emit an rrweb event (will
     // look into this)
-    return mergeAndSortEvents(this._rrwebEvents, highlights);
+    return mergeAndSortEvents(this._rrwebEvents, highlights, [endEvent]);
   });
 
   getEntryType = memoize((type: EntryType) => {
