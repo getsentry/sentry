@@ -51,7 +51,6 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       return FlamegraphModel.Empty();
     }
 
-    // if the activeProfileIndex is null, use the activeProfileIndex from the profile group
     return new FlamegraphModel(profile, threadId, {
       inverted: view === 'bottom up',
       leftHeavy: sorting === 'left heavy',
