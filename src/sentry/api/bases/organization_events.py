@@ -15,12 +15,12 @@ from sentry.api.bases import NoProjects, OrganizationEndpoint
 from sentry.api.helpers.teams import get_teams
 from sentry.api.serializers.snuba import BaseSnubaSerializer, SnubaTSResultSerializer
 from sentry.discover.arithmetic import ArithmeticError, is_equation, strip_equation
-from sentry.exceptions import InvalidSearchQuery
+from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.models import Organization, Project, Team
 from sentry.models.group import Group
 from sentry.search.events.constants import TIMEOUT_ERROR_MESSAGE
 from sentry.search.events.fields import get_function_alias
-from sentry.snuba import discover, metrics_enhanced_performance
+from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance
 from sentry.utils import snuba
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import get_interval_from_range, get_rollup_from_request, parse_stats_period
@@ -32,6 +32,7 @@ from sentry.utils.snuba import MAX_FIELDS, SnubaTSResult
 DATASET_OPTIONS = {
     "discover": discover,
     "metricsEnhanced": metrics_enhanced_performance,
+    "metrics": metrics_performance,
 }
 
 
@@ -150,6 +151,10 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):  # type: ignore
         except snuba.QueryIllegalTypeOfArgument:
             message = "Invalid query. Argument to function is wrong type."
             sentry_sdk.set_tag("query.error_reason", message)
+            raise ParseError(detail=message)
+        except IncompatibleMetricsQuery as error:
+            message = str(error)
+            sentry_sdk.set_tag("query.error_reason", f"Metric Error: {message}")
             raise ParseError(detail=message)
         except snuba.SnubaError as error:
             message = "Internal error. Please try again."

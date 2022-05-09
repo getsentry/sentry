@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 
 import Confirm from 'sentry/components/confirm';
 import InputField, {InputFieldProps, onEvent} from 'sentry/components/forms/inputField';
@@ -11,7 +11,7 @@ export interface BooleanFieldProps extends InputFieldProps {
   };
 }
 
-export default class BooleanField extends React.Component<BooleanFieldProps> {
+export default class BooleanField extends Component<BooleanFieldProps> {
   coerceValue(value: any) {
     return !!value;
   }

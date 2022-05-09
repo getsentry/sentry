@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 
 import ConfigStore from 'sentry/stores/configStore';
 import LatestContextStore from 'sentry/stores/latestContextStore';
@@ -29,7 +29,7 @@ const fallbackContext: State['latestContext'] = {
 function withLatestContext<P extends InjectedLatestContextProps>(
   WrappedComponent: React.ComponentType<P>
 ) {
-  class WithLatestContext extends React.Component<
+  class WithLatestContext extends Component<
     Omit<P, keyof InjectedLatestContextProps> & HocProps,
     State
   > {

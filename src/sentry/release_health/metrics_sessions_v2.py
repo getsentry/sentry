@@ -17,6 +17,7 @@ from typing import (
     MutableMapping,
     Optional,
     Sequence,
+    Set,
     Tuple,
     Type,
     TypedDict,
@@ -115,11 +116,11 @@ class GroupKey:
         dct: GroupKeyDict = {}
         if self.project:
             dct["project"] = self.project
-        if self.release:
+        if self.release is not None:
             dct["release"] = self.release
-        if self.environment:
+        if self.environment is not None:
             dct["environment"] = self.environment
-        if self.session_status:
+        if self.session_status is not None:
             dct["session.status"] = self.session_status.value
 
         return dct
@@ -147,6 +148,7 @@ class Field(ABC):
         self.name = name
         self._raw_groupby = raw_groupby
         self._status_filter = status_filter
+        self._hidden_fields: Set[MetricField] = set()
         self.metric_fields = self._get_metric_fields(raw_groupby, status_filter)
 
     @abstractmethod
@@ -164,11 +166,10 @@ class Field(ABC):
         input_groups: GroupedData,
         output_groups: GroupedData,
     ) -> None:
-        is_groupby_status = "session.status" in self._raw_groupby
         for metric_field in self.metric_fields:
             session_status = self._get_session_status(metric_field)
-            if is_groupby_status and session_status is None:
-                # We fetched this only to be consistent with the sort order
+            if metric_field in self._hidden_fields:
+                # We fetched this only to get a consistent sort order
                 # in the original implementation, don't add it to output data
                 continue
             field_name = (
@@ -218,6 +219,9 @@ class Field(ABC):
         return new_value
 
 
+UNSORTABLE = {SessionStatus.HEALTHY, SessionStatus.ERRORED}
+
+
 class CountField(Field):
     """Base class for sum(sessions) and count_unique(user)"""
 
@@ -231,9 +235,16 @@ class CountField(Field):
     ) -> Sequence[MetricField]:
         if status_filter:
             # Restrict fields to the included ones
-            return [self.status_to_metric_field[status] for status in status_filter]
+            metric_fields = [self.status_to_metric_field[status] for status in status_filter]
+            if UNSORTABLE & status_filter:
+                self._hidden_fields.add(self.get_all_field())
+                # We always order the results by one of the selected fields,
+                # even if no orderBy is specified (see _primary_field).
+                metric_fields = [self.get_all_field()] + metric_fields
+            return metric_fields
 
         if "session.status" in raw_groupby:
+            self._hidden_fields.add(self.get_all_field())
             return [
                 # Always also get ALL, because this is what we sort by
                 # in the sessions implementation, with which we want to be consistent
@@ -390,6 +401,8 @@ def run_sessions_query(
     query = deepcopy(query)
 
     intervals = get_timestamps(query)
+    if not intervals:
+        return _empty_result(query)
 
     conditions = _get_filter_conditions(query.conditions)
     where, status_filter = _extract_status_filter_from_conditions(conditions)
@@ -422,7 +435,6 @@ def run_sessions_query(
         orderby = OrderBy(primary_metric_field, Direction.DESC)
 
     max_groups = SNUBA_LIMIT // len(intervals)
-
     metrics_query = MetricsQuery(
         org_id,
         project_ids,
@@ -491,8 +503,8 @@ def _empty_result(query: QueryDefinition) -> SessionsQueryResult:
     intervals = get_timestamps(query)
     return {
         "groups": [],
-        "start": intervals[0],
-        "end": intervals[-1],
+        "start": query.start,
+        "end": query.end,
         "intervals": intervals,
         "query": query.query,
     }

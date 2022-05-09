@@ -7,6 +7,7 @@ import {triggerPress} from 'sentry-test/utils';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import Results from 'sentry/views/eventsV2/results';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 const FIELDS = [
   {
@@ -33,6 +34,16 @@ describe('EventsV2 > Results', function () {
   const eventTitle = 'Oh no something bad';
   const features = ['discover-basic'];
   let eventResultsMock, mockSaved, eventsStatsMock, mockVisit;
+
+  const mountWithThemeAndOrg = (component, opts, organization) =>
+    mountWithTheme(component, {
+      ...opts,
+      wrappingComponent: ({children}) => (
+        <OrganizationContext.Provider value={organization}>
+          {children}
+        </OrganizationContext.Provider>
+      ),
+    });
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
@@ -178,13 +189,14 @@ describe('EventsV2 > Results', function () {
 
     ProjectsStore.loadInitialData([TestStubs.Project()]);
 
-    const wrapper = mountWithTheme(
+    const wrapper = mountWithThemeAndOrg(
       <Results
         organization={organization}
         location={initialData.router.location}
         router={initialData.router}
       />,
-      initialData.routerContext
+      initialData.routerContext,
+      organization
     );
 
     await tick();
@@ -225,13 +237,14 @@ describe('EventsV2 > Results', function () {
 
     ProjectsStore.loadInitialData([TestStubs.Project()]);
 
-    const wrapper = mountWithTheme(
+    const wrapper = mountWithThemeAndOrg(
       <Results
         organization={organization}
         location={initialData.router.location}
         router={initialData.router}
       />,
-      initialData.routerContext
+      initialData.routerContext,
+      organization
     );
 
     await tick();
@@ -282,13 +295,14 @@ describe('EventsV2 > Results', function () {
 
     ProjectsStore.loadInitialData([TestStubs.Project()]);
 
-    const wrapper = mountWithTheme(
+    const wrapper = mountWithThemeAndOrg(
       <Results
         organization={organization}
         location={initialData.router.location}
         router={initialData.router}
       />,
-      initialData.routerContext
+      initialData.routerContext,
+      organization
     );
     // y-axis selector is last.
     const selector = wrapper.find('OptionSelector').last();
@@ -322,13 +336,14 @@ describe('EventsV2 > Results', function () {
       },
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = mountWithThemeAndOrg(
       <Results
         organization={organization}
         location={initialData.router.location}
         router={initialData.router}
       />,
-      initialData.routerContext
+      initialData.routerContext,
+      organization
     );
 
     act(() => ProjectsStore.loadInitialData([TestStubs.Project()]));
@@ -370,13 +385,14 @@ describe('EventsV2 > Results', function () {
 
     ProjectsStore.loadInitialData([TestStubs.Project()]);
 
-    const wrapper = mountWithTheme(
+    const wrapper = mountWithThemeAndOrg(
       <Results
         organization={organization}
         location={initialData.router.location}
         router={initialData.router}
       />,
-      initialData.routerContext
+      initialData.routerContext,
+      organization
     );
     // display selector is first.
     const selector = wrapper.find('OptionSelector').first();
@@ -410,13 +426,14 @@ describe('EventsV2 > Results', function () {
       },
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = mountWithThemeAndOrg(
       <Results
         organization={organization}
         location={initialData.router.location}
         router={initialData.router}
       />,
-      initialData.routerContext
+      initialData.routerContext,
+      organization
     );
 
     await tick();
@@ -445,13 +462,14 @@ describe('EventsV2 > Results', function () {
       },
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = mountWithThemeAndOrg(
       <Results
         organization={organization}
         location={initialData.router.location}
         router={initialData.router}
       />,
-      initialData.routerContext
+      initialData.routerContext,
+      organization
     );
 
     await tick();
@@ -474,13 +492,14 @@ describe('EventsV2 > Results', function () {
       },
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = mountWithThemeAndOrg(
       <Results
         organization={organization}
         location={initialData.router.location}
         router={initialData.router}
       />,
-      initialData.routerContext
+      initialData.routerContext,
+      organization
     );
 
     await tick();
@@ -505,13 +524,14 @@ describe('EventsV2 > Results', function () {
       },
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = mountWithThemeAndOrg(
       <Results
         organization={organization}
         location={initialData.router.location}
         router={initialData.router}
       />,
-      initialData.routerContext
+      initialData.routerContext,
+      organization
     );
 
     await tick();
@@ -533,13 +553,14 @@ describe('EventsV2 > Results', function () {
         location: {query: {id: '1', statsPeriod: '24h'}},
       },
     });
-    const wrapper = mountWithTheme(
+    const wrapper = mountWithThemeAndOrg(
       <Results
         organization={organization}
         location={initialData.router.location}
         router={initialData.router}
       />,
-      initialData.routerContext
+      initialData.routerContext,
+      organization
     );
 
     await tick();
@@ -573,13 +594,14 @@ describe('EventsV2 > Results', function () {
         location: {query: {id: '1', statsPeriod: '24h'}},
       },
     });
-    const wrapper = mountWithTheme(
+    const wrapper = mountWithThemeAndOrg(
       <Results
         organization={organization}
         location={initialData.router.location}
         router={initialData.router}
       />,
-      initialData.routerContext
+      initialData.routerContext,
+      organization
     );
 
     await tick();
@@ -613,13 +635,14 @@ describe('EventsV2 > Results', function () {
         },
       },
     });
-    const wrapper = mountWithTheme(
+    const wrapper = mountWithThemeAndOrg(
       <Results
         organization={organization}
         location={initialData.router.location}
         router={initialData.router}
       />,
-      initialData.routerContext
+      initialData.routerContext,
+      organization
     );
 
     await tick();
@@ -650,13 +673,14 @@ describe('EventsV2 > Results', function () {
 
     ProjectsStore.loadInitialData([TestStubs.Project()]);
 
-    const wrapper = mountWithTheme(
+    const wrapper = mountWithThemeAndOrg(
       <Results
         organization={organization}
         location={initialData.router.location}
         router={initialData.router}
       />,
-      initialData.routerContext
+      initialData.routerContext,
+      organization
     );
 
     // Should load events once
@@ -710,13 +734,14 @@ describe('EventsV2 > Results', function () {
 
     ProjectsStore.loadInitialData([TestStubs.Project()]);
 
-    const wrapper = mountWithTheme(
+    const wrapper = mountWithThemeAndOrg(
       <Results
         organization={organization}
         location={initialData.router.location}
         router={initialData.router}
       />,
-      initialData.routerContext
+      initialData.routerContext,
+      organization
     );
 
     // Should load events once
@@ -770,13 +795,14 @@ describe('EventsV2 > Results', function () {
 
     ProjectsStore.loadInitialData([TestStubs.Project()]);
 
-    const wrapper = mountWithTheme(
+    const wrapper = mountWithThemeAndOrg(
       <Results
         organization={organization}
         location={initialData.router.location}
         router={initialData.router}
       />,
-      initialData.routerContext
+      initialData.routerContext,
+      organization
     );
 
     // Should load events once
@@ -828,13 +854,14 @@ describe('EventsV2 > Results', function () {
       },
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = mountWithThemeAndOrg(
       <Results
         organization={organization}
         location={initialData.router.location}
         router={initialData.router}
       />,
-      initialData.routerContext
+      initialData.routerContext,
+      organization
     );
 
     act(() => ProjectsStore.loadInitialData([TestStubs.Project()]));

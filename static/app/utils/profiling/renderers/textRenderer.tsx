@@ -51,7 +51,7 @@ class TextRenderer {
     }
   }
 
-  draw(configViewSpace: Rect, configSpace: Rect, configViewToPhysicalSpace: mat3): void {
+  draw(configView: Rect, configViewToPhysicalSpace: mat3): void {
     this.maybeInvalidateCache();
 
     this.context.font = `${this.theme.SIZES.BAR_FONT_SIZE * window.devicePixelRatio}px ${
@@ -68,33 +68,47 @@ class TextRenderer {
     const BASELINE_OFFSET =
       (this.theme.SIZES.BAR_HEIGHT - this.theme.SIZES.BAR_FONT_SIZE / 2) *
       window.devicePixelRatio;
-    const BASELINE = this.flamegraph.inverted ? configSpace.height - 1 : 0;
 
-    const drawFrame = (frame: FlamegraphFrame): void => {
+    // We start by iterating over root frames, so we draw the call stacks top-down.
+    // This allows us to do a couple optimizations that improve our best case performance.
+    // 1. We can skip drawing the entire tree if the root frame is not visible
+    // 2. We can skip drawing and
+    const frames: FlamegraphFrame[] = [...this.flamegraph.roots];
+
+    while (frames.length) {
+      const frame = frames.pop()!;
+
       // Check if our rect overlaps with the current viewport and skip it
-      if (frame.end < configViewSpace.left || frame.start > configViewSpace.right) {
-        return;
+      if (frame.end < configView.left || frame.start > configView.right) {
+        continue;
       }
 
       // We pin the start and end of the frame, so scrolling around keeps text pinned to the left or right side of the viewport
-      const pinnedStart = Math.max(frame.start, configViewSpace.left);
-      const pinnedEnd = Math.min(frame.end, configViewSpace.right);
-
-      // This rect gets discarded after each render which is wasteful
-      const width = pinnedEnd - pinnedStart;
-      const depth = Math.abs(BASELINE - frame.depth);
+      const pinnedStart = Math.max(frame.start, configView.left);
+      const pinnedEnd = Math.min(frame.end, configView.right);
 
       // Transform frame to physical space coordinates. This does the same operation as
       // Rect.transformRect, but without allocating a new Rect object.
-      const frameInPhysicalSpace = [
+      const frameWidth =
+        (pinnedEnd - pinnedStart) * configViewToPhysicalSpace[0] +
+        configViewToPhysicalSpace[3];
+      const frameHeight =
+        (pinnedEnd - pinnedStart) * configViewToPhysicalSpace[1] +
+        configViewToPhysicalSpace[4];
+      const frameX =
         pinnedStart * configViewToPhysicalSpace[0] +
-          depth * configViewToPhysicalSpace[1] +
-          configViewToPhysicalSpace[6],
+        frame.depth * configViewToPhysicalSpace[3] +
+        configViewToPhysicalSpace[6];
+      const frameY =
         pinnedStart * configViewToPhysicalSpace[1] +
-          depth * configViewToPhysicalSpace[4] +
-          configViewToPhysicalSpace[7],
-        width * configViewToPhysicalSpace[0] + 1 * configViewToPhysicalSpace[1],
-        width * configViewToPhysicalSpace[3] + 1 * configViewToPhysicalSpace[4],
+        frame.depth * configViewToPhysicalSpace[4] +
+        configViewToPhysicalSpace[7];
+
+      const frameInPhysicalSpace = [
+        frameX + (frameWidth < 0 ? frameWidth : 0),
+        frameY + (frameHeight < 0 ? frameHeight : 0),
+        frameWidth,
+        frameHeight,
       ];
 
       // Since the text is not exactly aligned to the left/right bounds of the frame, we need to subtract the padding
@@ -103,7 +117,7 @@ class TextRenderer {
 
       // Since children of a frame cannot be wider than the frame itself, we can exit early and discard the entire subtree
       if (paddedRectangleWidth <= minWidth) {
-        return;
+        continue;
       }
 
       // We want to draw the text in the vertical center of the frame, so we substract half the height of the text
@@ -126,16 +140,8 @@ class TextRenderer {
       );
 
       for (let i = 0; i < frame.children.length; i++) {
-        drawFrame(frame.children[i]);
+        frames.push(frame.children[i]);
       }
-    };
-
-    // We start by iterating over root frames, so we draw the call stacks top-down.
-    // This allows us to do a couple optimizations that improve our best case performance.
-    // 1. We can skip drawing the entire tree if the root frame is not visible
-    // 2. We can skip drawing and
-    for (let i = 0; i < this.flamegraph.roots.length; i++) {
-      drawFrame(this.flamegraph.roots[i]);
     }
   }
 }

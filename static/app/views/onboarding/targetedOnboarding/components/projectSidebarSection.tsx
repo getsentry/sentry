@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {motion, Variants} from 'framer-motion';
 import {PlatformIcon} from 'platformicons';
@@ -12,14 +13,14 @@ import {Project} from 'sentry/types';
 import testableTransition from 'sentry/utils/testableTransition';
 
 type Props = {
+  activeProject: Project | null;
   checkProjectHasFirstEvent: (project: Project) => boolean;
   projects: Project[];
   selectProject: (newProjectId: string) => void;
   // A map from selected platform keys to the projects created by onboarding.
   selectedPlatformToProjectIdMap: {[key in PlatformKey]?: string};
-  activeProject?: Project;
 };
-function Sidebar({
+function ProjectSidebarSection({
   projects,
   activeProject,
   selectProject,
@@ -59,16 +60,16 @@ function Sidebar({
     );
   };
   return (
-    <Wrapper>
+    <Fragment>
       <Title>{t('Projects to Setup')}</Title>
       {Object.entries(selectedPlatformToProjectIdMap).map(
         ([platformOnCreate, projectSlug]) => oneProject(platformOnCreate, projectSlug)
       )}
-    </Wrapper>
+    </Fragment>
   );
 }
 
-export default Sidebar;
+export default ProjectSidebarSection;
 
 const Title = styled('span')`
   font-size: 12px;
@@ -78,8 +79,7 @@ const Title = styled('span')`
 `;
 
 const SubHeader = styled('div')<{errorReceived: boolean}>`
-  color: ${p =>
-    p.errorReceived ? p.theme.successText : p.theme.charts.getColorPalette(5)[4]};
+  color: ${p => (p.errorReceived ? p.theme.successText : p.theme.pink300)};
 `;
 
 const StyledPlatformIcon = styled(PlatformIcon)``;
@@ -119,7 +119,7 @@ const WaitingIndicator = styled(motion.div)`
   margin: 0 6px;
   flex-shrink: 0;
   ${pulsingIndicatorStyles};
-  background-color: ${p => p.theme.charts.getColorPalette(5)[4]};
+  background-color: ${p => p.theme.pink300};
 `;
 const StyledIconCheckmark = styled(IconCheckmark)`
   flex-shrink: 0;
@@ -140,18 +140,4 @@ const NameWrapper = styled('div')`
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-`;
-
-// the number icon will be space(2) + 30px to the left of the margin of center column
-// so we need to offset the right margin by that much
-// also hide the sidebar if the screen is too small
-const Wrapper = styled('div')`
-  margin: ${space(1)} calc(${space(2)} + 30px + ${space(4)}) 0 ${space(2)};
-  @media (max-width: 1150px) {
-    display: none;
-  }
-  flex-basis: 240px;
-  flex-grow: 0;
-  flex-shrink: 0;
-  min-width: 240px;
 `;

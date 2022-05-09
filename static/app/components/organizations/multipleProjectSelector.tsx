@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {PureComponent} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -50,7 +50,7 @@ type State = {
   hasChanges: boolean;
 };
 
-class MultipleProjectSelector extends React.PureComponent<Props, State> {
+class MultipleProjectSelector extends PureComponent<Props, State> {
   static defaultProps = {
     lockedMessageSubject: t('page'),
   };

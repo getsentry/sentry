@@ -101,7 +101,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                     team = Team.objects.get(id=identifier)
                 except Team.DoesNotExist:
                     raise serializers.ValidationError("Team does not exist")
-                if not access.has_team(team):
+                if not access.has_team_access(team):
                     raise serializers.ValidationError("Team does not exist")
             elif target_type == AlertRuleTriggerAction.TargetType.USER:
                 try:
@@ -139,8 +139,8 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                         {"sentry_app": "The installation does not exist."}
                     )
 
-                # TODO(Ecosystem): Validate that all fields as part of the config
-                # See NotifyEventSentryAppAction for more details
+            # TODO(Ecosystem): Validate fields on schema config if alert-rule-action component exists
+            # See NotifyEventSentryAppAction::self_validate for more details
 
         attrs["use_async_lookup"] = self.context.get("use_async_lookup")
         attrs["input_channel_id"] = self.context.get("input_channel_id")

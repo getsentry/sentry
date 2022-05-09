@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 
 import GenericDiscoverQuery from 'sentry/utils/discover/genericDiscoverQuery';
 import {
@@ -30,13 +30,13 @@ function TraceMetaQuery({
 }: QueryProps) {
   if (!traceId) {
     return (
-      <React.Fragment>
+      <Fragment>
         {children({
           isLoading: false,
           error: null,
           meta: null,
         })}
-      </React.Fragment>
+      </Fragment>
     );
   }
 

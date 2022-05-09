@@ -331,7 +331,12 @@ const PositionWrapper = styled('div')`
   z-index: ${p => p.theme.zIndex.tooltip};
 `;
 
-const TooltipContent = styled(motion.div, {shouldForwardProp: isPropValid})<{
+const animationProps = Object.keys(TOOLTIP_ANIMATION);
+
+const TooltipContent = styled(motion.div, {
+  shouldForwardProp: (prop: string) =>
+    typeof prop === 'string' && (animationProps.includes(prop) || isPropValid(prop)),
+})<{
   popperStyle: InternalTooltipProps['popperStyle'];
 }>`
   will-change: transform, opacity;

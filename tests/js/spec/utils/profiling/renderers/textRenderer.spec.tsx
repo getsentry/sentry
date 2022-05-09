@@ -12,6 +12,7 @@ const makeBaseFlamegraph = (): Flamegraph => {
     {
       name: 'profile',
       startValue: 0,
+      threadID: 0,
       endValue: 1000,
       unit: 'milliseconds',
       type: 'evented',
@@ -87,6 +88,7 @@ describe('TextRenderer', () => {
         endValue: 1000,
         unit: 'milliseconds',
         type: 'evented',
+        threadID: 0,
         events: [
           {type: 'O', at: 0, frame: 0},
           {type: 'O', at: 100, frame: 1},
@@ -112,11 +114,7 @@ describe('TextRenderer', () => {
 
     const textRenderer = new TextRenderer(canvas as HTMLCanvasElement, flamegraph, Theme);
 
-    textRenderer.draw(
-      new Rect(0, 0, 200, 2),
-      flamegraph.configSpace,
-      mat3.identity(mat3.create())
-    );
+    textRenderer.draw(new Rect(0, 0, 200, 2), mat3.identity(mat3.create()));
 
     expect(context.fillText).toHaveBeenCalledTimes(2);
   });
@@ -130,6 +128,7 @@ describe('TextRenderer', () => {
         endValue: 1000,
         unit: 'milliseconds',
         type: 'evented',
+        threadID: 0,
         events: [
           {type: 'O', at: 0, frame: 0},
           {type: 'C', at: longFrameName.length, frame: 0},
@@ -155,7 +154,6 @@ describe('TextRenderer', () => {
 
     textRenderer.draw(
       new Rect(0, 0, Math.floor(longFrameName.length / 2), 10),
-      flamegraph.configSpace,
       mat3.identity(mat3.create())
     );
 
@@ -179,6 +177,7 @@ describe('TextRenderer', () => {
         endValue: 1000,
         unit: 'milliseconds',
         type: 'evented',
+        threadID: 0,
         events: [
           {type: 'O', at: 0, frame: 0},
           {type: 'C', at: longFrameName.length, frame: 0},
@@ -209,7 +208,6 @@ describe('TextRenderer', () => {
         Math.floor(longFrameName.length / 2 / 2),
         10
       ),
-      flamegraph.configSpace,
       mat3.identity(mat3.create())
     );
 

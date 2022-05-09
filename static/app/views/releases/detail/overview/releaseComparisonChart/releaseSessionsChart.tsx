@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import {withTheme} from '@emotion/react';
 import round from 'lodash/round';
@@ -58,7 +58,7 @@ type Props = {
   utc?: boolean;
 } & WithRouterProps;
 
-class ReleaseSessionsChart extends React.Component<Props> {
+class ReleaseSessionsChart extends Component<Props> {
   formatTooltipValue = (value: string | number | null, label?: string) => {
     if (label && Object.values(releaseMarkLinesLabels).includes(label)) {
       return '';
