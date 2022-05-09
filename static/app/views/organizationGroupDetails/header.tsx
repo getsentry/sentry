@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
@@ -59,7 +59,7 @@ type State = {
   memberList?: MemberList;
 };
 
-class GroupHeader extends React.Component<Props, State> {
+class GroupHeader extends Component<Props, State> {
   state: State = {};
 
   componentDidMount() {
@@ -151,7 +151,7 @@ class GroupHeader extends React.Component<Props, State> {
         <div className={className}>
           <StyledBreadcrumbs
             crumbs={[
-              {label: 'Issues', to: `/organizations/${orgId}/issues/`},
+              {label: 'Issues', to: `/organizations/${orgId}/issues/${location.search}`},
               {
                 label: 'Issue Details',
               },
@@ -181,7 +181,7 @@ class GroupHeader extends React.Component<Props, State> {
                 <EventMessage
                   message={message}
                   annotations={
-                    <React.Fragment>
+                    <Fragment>
                       {group.logger && (
                         <EventAnnotationWithSpace>
                           <Link
@@ -200,7 +200,7 @@ class GroupHeader extends React.Component<Props, State> {
                           dangerouslySetInnerHTML={{__html: annotation}}
                         />
                       ))}
-                    </React.Fragment>
+                    </Fragment>
                   }
                 />
               </StyledTagAndMessageWrapper>

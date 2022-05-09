@@ -5,38 +5,39 @@ import {ControlProps, GeneralSelectValue} from 'sentry/components/forms/selectCo
 import {IconList} from 'sentry/icons';
 import {SelectValue} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import {FlamegraphState} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/index';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {Profile} from 'sentry/utils/profiling/profile/profile';
 
 interface ThreadSelectorProps {
-  activeProfileIndex: ProfileGroup['activeProfileIndex'];
-  onProfileIndexChange: (index: number) => void;
+  onThreadIdChange: (threadId: Profile['threadId']) => void;
   profileGroup: ProfileGroup;
+  threadId: FlamegraphState['profiles']['threadId'];
 }
 
 function ThreadMenuSelector<OptionType extends GeneralSelectValue = GeneralSelectValue>({
-  activeProfileIndex,
-  onProfileIndexChange,
+  threadId,
+  onThreadIdChange,
   profileGroup,
 }: ThreadSelectorProps) {
   const options: SelectValue<number>[] = useMemo(() => {
     return profileGroup.profiles
-      .map((profile, i) => ({
+      .map(profile => ({
         name: profile.name,
         duration: profile.duration,
-        index: i,
+        threadId: profile.threadId,
       }))
       .sort(compareProfiles)
-      .map(item => ({label: item.name, value: item.index}));
+      .map(item => ({label: item.name, value: item.threadId}));
   }, [profileGroup]);
 
   const handleChange: NonNullable<ControlProps<OptionType>['onChange']> = useCallback(
     opt => {
       if (defined(opt)) {
-        onProfileIndexChange(opt.value);
+        onThreadIdChange(opt.value);
       }
     },
-    [onProfileIndexChange]
+    [onThreadIdChange]
   );
 
   return (
@@ -46,7 +47,7 @@ function ThreadMenuSelector<OptionType extends GeneralSelectValue = GeneralSelec
         size: 'xsmall',
       }}
       options={options}
-      value={activeProfileIndex}
+      value={threadId}
       onChange={handleChange}
       isSearchable
     />
@@ -55,8 +56,8 @@ function ThreadMenuSelector<OptionType extends GeneralSelectValue = GeneralSelec
 
 type ProfileLight = {
   duration: Profile['duration'];
-  index: number;
   name: Profile['name'];
+  threadId: Profile['threadId'];
 };
 
 function compareProfiles(a: ProfileLight, b: ProfileLight): number {

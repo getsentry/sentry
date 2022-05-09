@@ -70,9 +70,9 @@ export function decodeFlamegraphStateFromQueryParams(
 ): DeepPartial<FlamegraphState> {
   return {
     profiles: {
-      activeProfileIndex:
-        typeof query.profileIndex === 'string' && !isNaN(parseInt(query.profileIndex, 10))
-          ? parseInt(query.profileIndex, 10)
+      threadId:
+        typeof query.tid === 'string' && !isNaN(parseInt(query.tid, 10))
+          ? parseInt(query.tid, 10)
           : null,
     },
     position: {view: Rect.decode(query.fov) ?? Rect.Empty()},
@@ -94,7 +94,7 @@ export function decodeFlamegraphStateFromQueryParams(
   };
 }
 
-function encodeFlamegraphStateToQueryParams(state: FlamegraphState) {
+export function encodeFlamegraphStateToQueryParams(state: FlamegraphState) {
   return {
     colorCoding: state.preferences.colorCoding,
     sorting: state.preferences.sorting,
@@ -104,8 +104,8 @@ function encodeFlamegraphStateToQueryParams(state: FlamegraphState) {
     ...(state.position.view.isEmpty()
       ? {fov: undefined}
       : {fov: Rect.encode(state.position.view)}),
-    ...(typeof state.profiles.activeProfileIndex === 'number'
-      ? {profileIndex: state.profiles.activeProfileIndex}
+    ...(typeof state.profiles.threadId === 'number'
+      ? {tid: state.profiles.threadId}
       : {}),
   };
 }
@@ -129,7 +129,7 @@ export function FlamegraphStateQueryParamSync() {
   const state = useFlamegraphStateValue();
 
   useEffect(() => {
-    browserHistory.push({
+    browserHistory.replace({
       ...location,
       query: {
         ...location.query,
@@ -162,7 +162,8 @@ interface FlamegraphStateProviderProps {
 
 const DEFAULT_FLAMEGRAPH_STATE: FlamegraphState = {
   profiles: {
-    activeProfileIndex: null,
+    threadId: null,
+    selectedNode: null,
   },
   position: {
     view: Rect.Empty(),
@@ -185,9 +186,10 @@ export function FlamegraphStateProvider(
 ): React.ReactElement {
   const reducer = useUndoableReducer(combinedReducers, {
     profiles: {
-      activeProfileIndex:
-        props.initialState?.profiles?.activeProfileIndex ??
-        DEFAULT_FLAMEGRAPH_STATE.profiles.activeProfileIndex,
+      selectedNode: null,
+      threadId:
+        props.initialState?.profiles?.threadId ??
+        DEFAULT_FLAMEGRAPH_STATE.profiles.threadId,
     },
     position: {
       view: (props.initialState?.position?.view ??

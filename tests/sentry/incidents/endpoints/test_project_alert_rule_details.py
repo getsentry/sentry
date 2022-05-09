@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 import responses
 
+from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.incidents.models import (
     AlertRule,
@@ -11,7 +12,7 @@ from sentry.incidents.models import (
     Incident,
     IncidentStatus,
 )
-from sentry.models import AuditLogEntry, AuditLogEntryEvent, Integration
+from sentry.models import AuditLogEntry, Integration
 from sentry.testutils import APITestCase
 
 
@@ -143,7 +144,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         assert resp.data["name"] == "what"
 
         audit_log_entry = AuditLogEntry.objects.filter(
-            event=AuditLogEntryEvent.ALERT_RULE_EDIT, target_object=resp.data["id"]
+            event=audit_log.get_event_id("ALERT_RULE_EDIT"), target_object=resp.data["id"]
         )
         assert len(audit_log_entry) == 1
 
@@ -389,6 +390,37 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         assert resp.data == serialize(alert_rule, self.user)
         assert resp.data["owner"] is None
 
+    def test_no_config_sentry_app(self):
+        sentry_app = self.create_sentry_app(is_alertable=True)
+        self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=self.organization, user=self.user
+        )
+        test_params = {
+            **self.valid_params,
+            "triggers": [
+                {
+                    "actions": [
+                        {
+                            "type": "sentry_app",
+                            "targetType": "sentry_app",
+                            "targetIdentifier": sentry_app.id,
+                            "sentryAppId": sentry_app.id,
+                        }
+                    ],
+                    "alertThreshold": 300,
+                    "label": "critical",
+                }
+            ],
+        }
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            self.get_valid_response(
+                self.organization.slug,
+                self.project.slug,
+                self.alert_rule.id,
+                status_code=200,
+                **test_params,
+            )
+
     @responses.activate
     def test_success_response_from_sentry_app(self):
         responses.add(
@@ -517,7 +549,7 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
         assert not AlertRule.objects_with_snapshots.filter(id=self.alert_rule.id).exists()
 
         audit_log_entry = AuditLogEntry.objects.filter(
-            event=AuditLogEntryEvent.ALERT_RULE_REMOVE, target_object=self.alert_rule.id
+            event=audit_log.get_event_id("ALERT_RULE_REMOVE"), target_object=self.alert_rule.id
         )
         assert len(audit_log_entry) == 1
 

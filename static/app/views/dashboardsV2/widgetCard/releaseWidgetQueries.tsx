@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
@@ -49,7 +49,7 @@ type State = {
   timeseriesResults?: Series[];
 };
 
-class ReleaseWidgetQueries extends React.Component<Props, State> {
+class ReleaseWidgetQueries extends Component<Props, State> {
   state: State = {
     loading: true,
     queryFetchID: undefined,
@@ -125,11 +125,7 @@ class ReleaseWidgetQueries extends React.Component<Props, State> {
         return {
           ...prevState,
           timeseriesResults: prevState.rawResults?.flatMap((rawResult, index) =>
-            transformSessionsResponseToSeries(
-              rawResult,
-              limit,
-              widget.queries[index].name
-            )
+            transformSessionsResponseToSeries(rawResult, widget.queries[index].name)
           ),
         };
       });
@@ -188,6 +184,7 @@ class ReleaseWidgetQueries extends React.Component<Props, State> {
         end,
         environment: environments,
         groupBy: query.columns,
+        limit: this.limit,
         orderBy: query.orderby,
         interval,
         project: projects,
@@ -230,7 +227,6 @@ class ReleaseWidgetQueries extends React.Component<Props, State> {
           const timeseriesResults = [...(prevState.timeseriesResults ?? [])];
           const transformedResult = transformSessionsResponseToSeries(
             data,
-            this.limit,
             widget.queries[requestIndex].name
           );
 

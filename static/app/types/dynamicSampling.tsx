@@ -44,6 +44,11 @@ export enum DynamicSamplingInnerOperator {
   CUSTOM = 'custom',
 }
 
+/**
+ * String of the sampling category that's used on the backend.
+ * Default naming strategy should be based on the path in the event, prefixed with `event.`.
+ * To see the path in the event, click on the JSON button on the issue details page.
+ */
 export enum DynamicSamplingInnerName {
   TRACE_RELEASE = 'trace.release',
   TRACE_ENVIRONMENT = 'trace.environment',
@@ -58,6 +63,10 @@ export enum DynamicSamplingInnerName {
   EVENT_WEB_CRAWLERS = 'event.web_crawlers',
   EVENT_BROWSER_EXTENSIONS = 'event.has_bad_browser_extensions',
   EVENT_TRANSACTION = 'event.transaction',
+  EVENT_OS_NAME = 'event.contexts.os.name',
+  EVENT_OS_VERSION = 'event.contexts.os.version',
+  EVENT_DEVICE_NAME = 'event.contexts.device.name',
+  EVENT_DEVICE_FAMILY = 'event.contexts.device.family',
   // Custom operators
   EVENT_IP_ADDRESSES = 'event.client_ip',
   EVENT_LEGACY_BROWSER = 'event.legacy_browser',
@@ -81,7 +90,11 @@ type DynamicSamplingConditionLogicalInnerGlob = {
     | DynamicSamplingInnerName.EVENT_RELEASE
     | DynamicSamplingInnerName.TRACE_RELEASE
     | DynamicSamplingInnerName.EVENT_TRANSACTION
-    | DynamicSamplingInnerName.TRACE_TRANSACTION;
+    | DynamicSamplingInnerName.TRACE_TRANSACTION
+    | DynamicSamplingInnerName.EVENT_OS_NAME
+    | DynamicSamplingInnerName.EVENT_OS_VERSION
+    | DynamicSamplingInnerName.EVENT_DEVICE_FAMILY
+    | DynamicSamplingInnerName.EVENT_DEVICE_NAME;
   op: DynamicSamplingInnerOperator.GLOB_MATCH;
   value: Array<string>;
 };

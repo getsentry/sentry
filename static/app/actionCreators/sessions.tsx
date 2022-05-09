@@ -11,7 +11,9 @@ export type DoSessionsRequestOptions = {
   end?: DateString;
   environment?: Readonly<string[]>;
   groupBy?: string[];
+  includeAllArgs?: boolean;
   interval?: string;
+  limit?: number;
   orderBy?: string;
   project?: Readonly<number[]>;
   query?: string;
@@ -33,8 +35,10 @@ export const doSessionsRequest = (
     project,
     orderBy,
     query,
+    includeAllArgs = false,
     statsPeriodStart,
     statsPeriodEnd,
+    limit,
     ...dateTime
   }: DoSessionsRequestOptions
 ): Promise<SessionApiResponse> => {
@@ -51,6 +55,7 @@ export const doSessionsRequest = (
       groupBy: groupBy?.filter(g => !!g),
       interval: interval || getInterval({start, end, period: statsPeriod}),
       orderBy,
+      per_page: limit,
       query: query || undefined,
       project,
       start,
@@ -60,5 +65,8 @@ export const doSessionsRequest = (
     }).filter(([, value]) => defined(value) && value !== '')
   );
 
-  return api.requestPromise(`/organizations/${orgSlug}/sessions/`, {query: urlQuery});
+  return api.requestPromise(`/organizations/${orgSlug}/sessions/`, {
+    includeAllArgs,
+    query: urlQuery,
+  });
 };

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -264,9 +264,9 @@ function SummaryContent({
   };
 
   return (
-    <React.Fragment>
+    <Fragment>
       <Layout.Main>
-        <Search>
+        <FilterActions>
           <Filter
             organization={organization}
             currentFilter={spanOperationBreakdownFilter}
@@ -276,7 +276,7 @@ function SummaryContent({
             <EnvironmentPageFilter />
             <DatePageFilter alignDropdown="left" />
           </PageFilterBar>
-          <SearchBar
+          <StyledSearchBar
             searchSource="transaction_summary"
             organization={organization}
             projectIds={eventView.project}
@@ -286,7 +286,7 @@ function SummaryContent({
             maxQueryLength={MAX_QUERY_LENGTH}
           />
           <MetricsEventsDropdown />
-        </Search>
+        </FilterActions>
         <TransactionSummaryCharts
           organization={organization}
           location={location}
@@ -386,7 +386,7 @@ function SummaryContent({
           location={location}
         />
       </Layout.Side>
-    </React.Fragment>
+    </Fragment>
   );
 }
 
@@ -464,13 +464,29 @@ function getTransactionsListSort(
   return {selected: selectedSort, options: sortOptions};
 }
 
-const Search = styled('div')`
+const FilterActions = styled('div')`
   display: grid;
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: repeat(2, min-content);
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
     grid-template-columns: auto auto 1fr;
+  }
+`;
+
+const StyledSearchBar = styled(SearchBar)`
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    order: 1;
+    grid-column: 1/4;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    order: initial;
+    grid-column: auto;
   }
 `;
 

@@ -3,12 +3,14 @@ from unittest.mock import patch
 import pytz
 import requests
 import responses
+from django.test.utils import override_settings
 from exam import fixture
 from freezegun import freeze_time
 
+from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.incidents.models import AlertRule, AlertRuleTrigger, AlertRuleTriggerAction
-from sentry.models import AuditLogEntry, AuditLogEntryEvent, Integration
+from sentry.models import AuditLogEntry, Integration
 from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
@@ -119,9 +121,24 @@ class AlertRuleCreateEndpointTest(APITestCase):
         assert resp.data == serialize(alert_rule, self.user)
 
         audit_log_entry = AuditLogEntry.objects.filter(
-            event=AuditLogEntryEvent.ALERT_RULE_ADD, target_object=alert_rule.id
+            event=audit_log.get_event_id("ALERT_RULE_ADD"), target_object=alert_rule.id
         )
         assert len(audit_log_entry) == 1
+
+    @override_settings(MAX_QUERY_SUBSCRIPTIONS_PER_ORG=1)
+    def test_enforce_max_subscriptions(self):
+        with self.feature("organizations:incidents"):
+            resp = self.get_valid_response(
+                self.organization.slug, self.project.slug, status_code=201, **self.valid_alert_rule
+            )
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert resp.data == serialize(alert_rule, self.user)
+
+        with self.feature("organizations:incidents"):
+            resp = self.get_error_response(
+                self.organization.slug, self.project.slug, **self.valid_alert_rule
+            )
+            assert resp.data[0] == "You may not exceed 1 metric alerts per organization"
 
     def test_no_feature(self):
         resp = self.get_response(self.organization.slug, self.project.slug)
@@ -309,6 +326,33 @@ class AlertRuleCreateEndpointTest(APITestCase):
         # Did not increment from the last assertion because we early out on the validation error
         assert mock_get_channel_id.call_count == 3
 
+    def test_no_config_sentry_app(self):
+        sentry_app = self.create_sentry_app(is_alertable=True)
+        self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=self.organization, user=self.user
+        )
+        alert_rule = {
+            **self.valid_alert_rule,
+            "triggers": [
+                {
+                    "actions": [
+                        {
+                            "type": "sentry_app",
+                            "targetType": "sentry_app",
+                            "targetIdentifier": sentry_app.id,
+                            "sentryAppId": sentry_app.id,
+                        }
+                    ],
+                    "alertThreshold": 300,
+                    "label": "critical",
+                }
+            ],
+        }
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            self.get_valid_response(
+                self.organization.slug, self.project.slug, status_code=201, **alert_rule
+            )
+
     @responses.activate
     def test_success_response_from_sentry_app(self):
         responses.add(
@@ -327,7 +371,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
             },
         )
         install = self.create_sentry_app_installation(
-            slug="foo", organization=self.organization, user=self.user
+            slug=sentry_app.slug, organization=self.organization, user=self.user
         )
 
         sentry_app_settings = [
