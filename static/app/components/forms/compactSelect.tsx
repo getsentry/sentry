@@ -335,7 +335,7 @@ const Overlay = styled('div')<{minWidth?: number}>`
 const MenuHeader = styled('div')`
   display: flex;
   justify-content: space-between;
-  padding: ${space(0.25)} ${space(0.5)} ${space(0.25)} ${space(1.5)};
+  padding: ${space(0.25)} ${space(1)} ${space(0.25)} ${space(1.5)};
   border-bottom: solid 1px ${p => p.theme.innerBorder};
 `;
 
@@ -344,7 +344,7 @@ const MenuTitle = styled('span')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.headingColor};
   white-space: nowrap;
-  margin-right: ${space(1)};
+  margin-right: ${space(2)};
 `;
 
 const ClearButton = styled(Button)`
