@@ -189,14 +189,16 @@ export const renderGridBodyCell =
         }
         break;
     }
-
+    const TopResultsCount = tableData
+      ? Math.min(tableData?.data.length, DEFAULT_NUM_TOP_EVENTS)
+      : DEFAULT_NUM_TOP_EVENTS;
     return (
       <Fragment>
         {isTopEvents &&
         isFirstPage &&
         rowIndex < DEFAULT_NUM_TOP_EVENTS &&
         columnIndex === 0 ? (
-          <TopResultsIndicator count={DEFAULT_NUM_TOP_EVENTS} index={rowIndex} />
+          <TopResultsIndicator count={TopResultsCount} index={rowIndex} />
         ) : null}
         {cell}
       </Fragment>
