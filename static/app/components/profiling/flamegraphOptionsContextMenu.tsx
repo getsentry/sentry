@@ -399,6 +399,24 @@ export function FlamegraphOptionsContextMenu(props: FlameGraphOptionsContextMenu
 
   const [preferences, dispatch] = useFlamegraphPreferences();
 
+  useEffect(() => {
+    const listener = (event: MouseEvent | TouchEvent) => {
+      // Do nothing if clicking ref's element or descendent elements
+      if (!menuRef || menuRef.contains(event.target as Node)) {
+        return;
+      }
+
+      setOpen(false);
+    };
+
+    document.addEventListener('mousedown', listener);
+    document.addEventListener('touchstart', listener);
+    return () => {
+      document.removeEventListener('mousedown', listener);
+      document.removeEventListener('touchstart', listener);
+    };
+  }, [menuRef, setOpen]);
+
   // Observe the menu
   useEffect(() => {
     if (!menuRef) {
