@@ -96,7 +96,7 @@ class TestReleaseMonitor(TestCase, SnubaTestCase):
                 for _ in range(1)
             ]
         )
-        assert self.project1.flags.has_sessions.is_set is False
+        assert not self.project1.flags.has_sessions
         now = timezone.now()
         assert ReleaseProjectEnvironment.objects.filter(
             project_id=self.project1.id,
@@ -131,7 +131,7 @@ class TestReleaseMonitor(TestCase, SnubaTestCase):
         ]
         process_projects_with_sessions(test_data[0]["org_id"][0], test_data[0]["project_id"])
         self.project1.refresh_from_db()
-        assert self.project1.flags.has_sessions.is_set is True
+        assert self.project1.flags.has_sessions
 
         assert not ReleaseProjectEnvironment.objects.filter(
             project_id=self.project1.id,
@@ -491,3 +491,18 @@ class TestReleaseMonitor(TestCase, SnubaTestCase):
             release_id=self.release2.id,
             environment__name="",
         ).exists()
+
+    def test_has_releases_is_set(self):
+        no_release_project = self.create_project()
+        assert not no_release_project.flags.has_releases
+
+        self.bulk_store_sessions(
+            [
+                self.build_session(
+                    project_id=no_release_project, release=self.release2, environment="somenvname"
+                )
+            ]
+        )
+        process_projects_with_sessions(no_release_project.organization_id, [no_release_project.id])
+        no_release_project.refresh_from_db()
+        assert no_release_project.flags.has_releases

@@ -7,13 +7,15 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader as _PanelHeader} from 'sentry/components/panels';
 import ReplayBreadcrumbOverview from 'sentry/components/replays/breadcrumbs/replayBreadcrumbOverview';
-import Scrobber from 'sentry/components/replays/player/scrobber';
+import Scrubber from 'sentry/components/replays/player/scrubber';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayController from 'sentry/components/replays/replayController';
+import ReplayCurrentUrl from 'sentry/components/replays/replayCurrentUrl';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
 import useFullscreen from 'sentry/components/replays/useFullscreen';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
+import space from 'sentry/styles/space';
 import {EntryType} from 'sentry/types/event';
 import useReplayData from 'sentry/utils/replays/useReplayData';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
@@ -80,10 +82,7 @@ function ReplayDetails() {
   }
 
   return (
-    <ReplayContextProvider
-      events={replay.getRRWebEvents()}
-      initialTimeOffset={initialTimeOffset}
-    >
+    <ReplayContextProvider replay={replay} initialTimeOffset={initialTimeOffset}>
       <DetailLayout
         event={replay.getEvent()}
         orgId={orgId}
@@ -92,23 +91,26 @@ function ReplayDetails() {
         <Layout.Body>
           <ReplayLayout ref={fullscreenRef}>
             <Panel>
+              <PanelHeader>
+                <ReplayCurrentUrl />
+              </PanelHeader>
               <PanelHeader disablePadding>
                 <ManualResize isFullscreen={isFullscreen}>
                   <ReplayPlayer />
                 </ManualResize>
               </PanelHeader>
-              <Scrobber />
+              <Scrubber />
               <PanelBody withPadding>
                 <ReplayController toggleFullscreen={toggleFullscreen} />
               </PanelBody>
             </Panel>
           </ReplayLayout>
-          <Layout.Side>
+          <Side>
             <UserActionsNavigator
+              crumbs={replay.getEntryType(EntryType.BREADCRUMBS)?.data.values || []}
               event={replay.getEvent()}
-              entry={replay.getEntryType(EntryType.BREADCRUMBS)}
             />
-          </Layout.Side>
+          </Side>
           <Layout.Main fullWidth>
             <Panel>
               <BreadcrumbTimeline
@@ -148,6 +150,10 @@ const ReplayLayout = styled(Layout.Main)`
     grid-template-rows: auto max-content;
     background: ${p => p.theme.gray500};
   }
+`;
+
+const Side = styled(Layout.Side)`
+  padding-bottom: ${space(2)};
 `;
 
 const BreadcrumbTimeline = styled(ReplayBreadcrumbOverview)`
