@@ -8,58 +8,53 @@ import space from 'sentry/styles/space';
 
 type Integration = {
   description: string;
-  id: string;
   name: string;
+  slug: string;
 };
+// TODO: We might want to put this on the backend eventually for centralized source of truth.
 const availabledIntegrations: Integration[] = [
   {
-    id: 'slack',
+    slug: 'slack',
     name: 'Slack',
     description: 'Triage, resolve, and ignore Sentry issues directly from Slack.',
   },
-
   {
-    id: 'github',
+    slug: 'github',
     name: 'GitHub',
     description: 'Automate issue assignment and release tracking with Github.',
   },
-
   {
-    id: 'gitlab',
+    slug: 'gitlab',
     name: 'GitLab',
     description: 'Iterate more efficiently with Sentry in your GitLab flow.',
   },
-
   {
-    id: 'jira',
+    slug: 'jira',
     name: 'Jira',
     description: 'Connect errors from Sentry with your Jira issues.',
   },
-
   {
-    id: 'bitbucket',
+    slug: 'bitbucket',
     name: 'Bitbucket',
     description: 'Connect Sentry to Bitbucket Repos and Pipelines.',
   },
-
   {
-    id: 'vercel',
+    slug: 'vercel',
     name: 'Vercel',
     description: 'Automatically notify Sentry of new deployments in Vercel.',
   },
-
   {
-    id: 'msteams',
+    slug: 'msteams',
     name: 'MS Teams',
     description: 'Receive alerts when and where you want them, without disruption.',
   },
   {
-    id: 'pagerduty',
+    slug: 'pagerduty',
     name: 'Pagerduty',
     description: 'Alert your team and triage in real time to avoid incidents.',
   },
   {
-    id: 'vsts',
+    slug: 'vsts',
     name: 'Azure DevOps',
     description: 'Manage, sync, and track your issues with Azure DevOps commit data.',
   },
@@ -74,14 +69,14 @@ type Props = {
 export default function IntegrationMultiSelect(props: Props) {
   const selectedIntegrationSet = new Set(props.selectedIntegrations);
   const oneIntegration = (integration: Integration) => {
-    const selected = selectedIntegrationSet.has(integration.id);
+    const selected = selectedIntegrationSet.has(integration.slug);
     return (
       <IntegrationItem
-        key={integration.id}
-        selected={selectedIntegrationSet.has(integration.id)}
-        onClick={() => props.selectIntegration(integration.id)}
+        key={integration.slug}
+        selected={selectedIntegrationSet.has(integration.slug)}
+        onClick={() => props.selectIntegration(integration.slug)}
       >
-        <PluginIcon pluginId={integration.id} size={36} />
+        <PluginIcon pluginId={integration.slug} size={36} />
         <div>
           <h6>{integration.name}</h6>
           <p>{integration.description}</p>
@@ -89,7 +84,7 @@ export default function IntegrationMultiSelect(props: Props) {
         {selected && (
           <ClearButton
             onClick={e => {
-              props.removeIntegration(integration.id);
+              props.removeIntegration(integration.slug);
               e.stopPropagation();
             }}
             aria-label={t('Clear')}
