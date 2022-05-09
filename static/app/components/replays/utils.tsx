@@ -17,6 +17,7 @@ const SECOND = 1000;
 const MINUTE = 60 * SECOND;
 const HOUR = 60 * MINUTE;
 const TIME_FORMAT = 'HH:mm:ss';
+const DATE_TIME_FORMAT = 'MMMM D, YYYY HH:mm:ss z';
 
 export function relativeTimeInMs(timestamp: string, relativeTime: number): number {
   return moment(timestamp)
@@ -137,4 +138,8 @@ export function getCrumbsByColumn(crumbs: Crumb[], totalColumns: number) {
   }, new Map() as Map<number, Crumb[]>);
 
   return crumbsByColumn;
+}
+
+export function getDateFormatted(date: string) {
+  return moment.tz(new Date(date), '').format(DATE_TIME_FORMAT);
 }
