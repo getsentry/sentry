@@ -39,7 +39,7 @@ class RuleHistoryBackend(Service):
 
     def fetch_rule_groups_paginated(
         self, rule: Rule, start: datetime, end: datetime, cursor: Cursor, per_page: int
-    ) -> CursorResult:
+    ) -> CursorResult[Group]:
         """
         Fetches groups that triggered a rule within a given timeframe, ordered by number of
         times each group fired.
