@@ -154,7 +154,7 @@ export default function Trace({event, organization}: Props) {
       location={location}
       organization={organization}
       traceEventView={state.traceEventView}
-      traceSlug="foo"
+      traceSlug="Replay"
     />
   );
   // TODO(replays): pagination
