@@ -462,13 +462,7 @@ export function FlamegraphOptionsContextMenu(props: FlameGraphOptionsContextMenu
 
   return (
     <Fragment>
-      {open ? (
-        <Layer
-          onClick={() => {
-            setOpen(false);
-          }}
-        />
-      ) : null}
+      {open ? <Layer onClick={() => setOpen(false)} /> : null}
       {props.mouseCoordinates && open ? (
         <Menu
           {...getMenuProps()}
