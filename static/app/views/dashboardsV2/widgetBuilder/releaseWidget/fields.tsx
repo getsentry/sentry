@@ -12,12 +12,28 @@ import {FieldValue, FieldValueKind} from 'sentry/views/eventsV2/table/types';
 export const SESSIONS_FIELDS: Readonly<Partial<Record<SessionField, SessionsMeta>>> = {
   [SessionField.SESSION]: {
     name: 'session',
-    operations: ['sum', 'crash_rate', 'crash_free_rate'],
+    operations: [
+      'sum',
+      'crash_rate',
+      'crash_free_rate',
+      'count_healthy',
+      'count_abnormal',
+      'count_crashed',
+      'count_errored',
+    ],
     type: 'integer',
   },
   [SessionField.USER]: {
     name: 'user',
-    operations: ['count_unique', 'crash_rate', 'crash_free_rate'],
+    operations: [
+      'sum',
+      'crash_rate',
+      'crash_free_rate',
+      'count_healthy',
+      'count_abnormal',
+      'count_crashed',
+      'count_errored',
+    ],
     type: 'string',
   },
   [SessionField.SESSION_DURATION]: {
@@ -52,6 +68,58 @@ export const SESSIONS_OPERATIONS: Readonly<
         kind: 'column',
         columnTypes: ['string'],
         defaultValue: SessionField.USER,
+        required: true,
+      },
+    ],
+  },
+  count_healthy: {
+    columnTypes: ['integer', 'string'],
+    defaultValue: SessionField.SESSION,
+    outputType: 'percentage',
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['integer', 'string'],
+        defaultValue: SessionField.SESSION,
+        required: true,
+      },
+    ],
+  },
+  count_abnormal: {
+    columnTypes: ['integer', 'string'],
+    defaultValue: SessionField.SESSION,
+    outputType: 'percentage',
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['integer', 'string'],
+        defaultValue: SessionField.SESSION,
+        required: true,
+      },
+    ],
+  },
+  count_crashed: {
+    columnTypes: ['integer', 'string'],
+    defaultValue: SessionField.SESSION,
+    outputType: 'percentage',
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['integer', 'string'],
+        defaultValue: SessionField.SESSION,
+        required: true,
+      },
+    ],
+  },
+  count_errored: {
+    columnTypes: ['integer', 'string'],
+    defaultValue: SessionField.SESSION,
+    outputType: 'percentage',
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['integer', 'string'],
+        defaultValue: SessionField.SESSION,
         required: true,
       },
     ],

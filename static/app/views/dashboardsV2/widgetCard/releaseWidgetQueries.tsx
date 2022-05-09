@@ -3,11 +3,17 @@ import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
+import {doMetricsRequest} from 'sentry/actionCreators/metrics';
 import {doSessionsRequest} from 'sentry/actionCreators/sessions';
 import {Client, ResponseMeta} from 'sentry/api';
 import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
 import {t} from 'sentry/locale';
-import {OrganizationSummary, PageFilters, SessionApiResponse} from 'sentry/types';
+import {
+  MetricsApiResponse,
+  OrganizationSummary,
+  PageFilters,
+  SessionApiResponse,
+} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {stripDerivedMetricsPrefix} from 'sentry/utils/discover/fields';
@@ -18,6 +24,13 @@ import {getWidgetInterval} from '../utils';
 
 import {transformSessionsResponseToSeries} from './transformSessionsResponseToSeries';
 import {transformSessionsResponseToTable} from './transformSessionsResponseToTable';
+
+const FIELD_TO_DERIVED_EXPRESSION = {
+  count_healthy: 'sentry.session.healthy',
+  count_abnormal: 'sentry.session.abnormal',
+  count_crashed: 'sentry.session.crashed',
+  count_errored: 'sentry.session.errored',
+};
 
 type Props = {
   api: Client;
@@ -176,10 +189,36 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     const {start, end, period} = datetime;
     const interval = getWidgetInterval(widget, {start, end, period});
 
-    const promises = widget.queries.map(query => {
+    const promises: Promise<SessionApiResponse | MetricsApiResponse>[] = [];
+
+    widget.queries.forEach(query => {
       const aggregates = query.aggregates.map(stripDerivedMetricsPrefix);
+      const metricsFields = aggregates.filter(agg =>
+        Object.keys(FIELD_TO_DERIVED_EXPRESSION).includes(agg)
+      );
+      const sessionFields = aggregates.filter(agg => !!!metricsFields.includes(agg));
+      if (metricsFields.length) {
+        const metricsRequestData = {
+          field: metricsFields,
+          orgSlug: organization.slug,
+          end,
+          environment: environments,
+          groupBy: query.columns,
+          limit: this.limit,
+          orderBy: query.orderby,
+          interval,
+          project: projects,
+          query: query.conditions,
+          start,
+          statsPeriod: period,
+          includeAllArgs,
+          cursor,
+        };
+        doMetricsRequest(api, metricsRequestData);
+        // promises.push(metricsRespone);
+      }
       const requestData = {
-        field: aggregates,
+        field: sessionFields,
         orgSlug: organization.slug,
         end,
         environment: environments,
@@ -194,7 +233,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
         includeAllArgs,
         cursor,
       };
-      return doSessionsRequest(api, requestData);
+      promises.push(doSessionsRequest(api, requestData));
     });
 
     let completed = 0;
