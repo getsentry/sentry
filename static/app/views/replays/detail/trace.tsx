@@ -140,7 +140,11 @@ export default function Trace({event, organization}: Props) {
   }
 
   if (!state.traces?.length) {
-    return <EmptyStateWarning>{t('No traces found')}</EmptyStateWarning>;
+    return (
+      <EmptyStateWarning withIcon={false} small>
+        {t('No traces found')}
+      </EmptyStateWarning>
+    );
   }
 
   return (

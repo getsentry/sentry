@@ -6,12 +6,12 @@ import Grid from 'sentry/components/charts/components/grid';
 import Tooltip from 'sentry/components/charts/components/tooltip';
 import XAxis from 'sentry/components/charts/components/xAxis';
 import YAxis from 'sentry/components/charts/components/yAxis';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {MemorySpanType} from 'sentry/components/events/interfaces/spans/types';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {formatBytesBase2} from 'sentry/utils';
 import {getFormattedDate} from 'sentry/utils/dates';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 type Props = {
   memorySpans: MemorySpanType[] | undefined;
@@ -24,7 +24,11 @@ const formatTimestamp = timestamp =>
 function MemoryChart({memorySpans = [], startTimestamp = 0}: Props) {
   const theme = useTheme();
   if (memorySpans.length <= 0) {
-    return <EmptyMessage>{t('No memory metrics exist for replay.')}</EmptyMessage>;
+    return (
+      <EmptyStateWarning withIcon={false} small>
+        {t('No memory metrics found')}
+      </EmptyStateWarning>
+    );
   }
 
   const chartOptions: Omit<AreaChartProps, 'series'> = {
