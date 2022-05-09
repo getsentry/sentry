@@ -2,6 +2,7 @@ import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react
 import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
+import {FrameStack} from 'sentry/components/profiling/frameCallStack';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
@@ -643,6 +644,12 @@ function FlamegraphZoomView({
         >
           {hoveredNode.frame.name}
         </BoundTooltip>
+      ) : null}
+      {flamegraphRenderer ? (
+        <FrameStack
+          canvasPoolManager={canvasPoolManager}
+          flamegraphRenderer={flamegraphRenderer}
+        />
       ) : null}
     </Fragment>
   );

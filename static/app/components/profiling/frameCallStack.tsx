@@ -1,0 +1,177 @@
+import {Fragment, useState} from 'react';
+import styled from '@emotion/styled';
+
+import space from 'sentry/styles/space';
+import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
+import {useFlamegraphProfilesValue} from 'sentry/utils/profiling/flamegraph/useFlamegraphProfiles';
+import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
+import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
+
+interface FrameStackProps {
+  canvasPoolManager: CanvasPoolManager;
+  flamegraphRenderer: FlamegraphRenderer;
+}
+
+function FrameStack({flamegraphRenderer}: FrameStackProps) {
+  const theme = useFlamegraphTheme();
+  const {selectedNode} = useFlamegraphProfilesValue();
+
+  return selectedNode ? (
+    <FrameBar
+      style={{
+        height: (theme.SIZES.FLAMEGRAPH_DEPTH_OFFSET - 4) * theme.SIZES.BAR_HEIGHT,
+      }}
+    >
+      <FrameCallersTable>
+        <FrameCallersTableHeader>
+          <tr>
+            <th>Self Time</th>
+            <th>Total Time</th>
+            <th colSpan={100}>Frame</th>
+          </tr>
+        </FrameCallersTableHeader>
+        <tbody>
+          <FrameRow
+            depth={0}
+            frame={selectedNode}
+            flamegraphRenderer={flamegraphRenderer}
+          />
+          <tr>
+            <FrameCallersTableCell rowSpan={100} />
+            <FrameCallersTableCell rowSpan={100} />
+            <FrameCallersTableCell rowSpan={100} />
+          </tr>
+        </tbody>
+      </FrameCallersTable>
+    </FrameBar>
+  ) : null;
+}
+
+function FrameRow({
+  depth,
+  frame,
+  flamegraphRenderer,
+}: {
+  depth: number;
+  flamegraphRenderer: FlamegraphRenderer;
+  frame: FlamegraphFrame;
+}) {
+  const [open, setOpen] = useState(false);
+
+  const color = flamegraphRenderer.getColorForFrame(frame.frame);
+  const colorString =
+    color.length === 4
+      ? `rgba(${color
+          .slice(0, 3)
+          .map(n => n * 255)
+          .join(',')}, ${color[3]})`
+      : `rgba(${color.map(n => n * 255).join(',')}, 1.0)`;
+
+  return (
+    <Fragment>
+      <tr onClick={() => setOpen(!open)}>
+        <FrameCallersTableCell>
+          {flamegraphRenderer.flamegraph.formatter(frame.frame.selfWeight)}
+        </FrameCallersTableCell>
+        <FrameCallersTableCell>
+          {flamegraphRenderer.flamegraph.formatter(frame.frame.totalWeight)}
+        </FrameCallersTableCell>
+        <FrameCallersTableCell
+          // We stretch this table to 100% width.
+          style={{paddingLeft: depth * 14 + 8, width: '100%'}}
+          colSpan={100}
+        >
+          <FrameNameContainer>
+            <FrameColorIndicator backgroundColor={colorString} />
+            <FrameChildrenIndicator open={open}>
+              {frame.children.length > 0 ? '\u203A' : null}
+            </FrameChildrenIndicator>
+            <FrameName>{frame.frame.name}</FrameName>
+          </FrameNameContainer>
+        </FrameCallersTableCell>
+      </tr>
+      {open
+        ? frame.children.map(c => (
+            <FrameRow
+              key={c.frame.name}
+              frame={c}
+              flamegraphRenderer={flamegraphRenderer}
+              depth={depth + 1}
+            />
+          ))
+        : null}
+    </Fragment>
+  );
+}
+
+const FrameBar = styled('div')`
+  bottom: 0;
+  width: 100%;
+  position: absolute;
+  background-color: ${p => p.theme.surface100};
+  border-top: 1px solid ${p => p.theme.border};
+`;
+
+const FrameCallersTable = styled('table')`
+  list-style-type: none;
+  padding: ${space(0.5)} ${space(1)};
+  font-size: ${p => p.theme.fontSizeSmall};
+  margin: 0;
+  overflow: auto;
+  max-height: 100%;
+  height: 100%;
+  width: 100%;
+`;
+
+const FrameNameContainer = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
+const FrameChildrenIndicator = styled('span')<{open: boolean}>`
+  width: 1ch;
+  height: 1ch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: ${p => (p.open ? 'rotate(90deg)' : 'rotate(0deg)')};
+`;
+
+const FrameCallersTableHeader = styled('thead')`
+  border-bottom: 1px solid ${p => p.theme.border};
+
+  th {
+    white-space: nowrap;
+    padding: 0 ${space(1)};
+
+    &:not(:last-child) {
+      border-right: 1px solid ${p => p.theme.border};
+    }
+  }
+`;
+
+const FrameCallersTableCell = styled('td')`
+  padding: 0 ${space(1)};
+
+  &:not(:last-child) {
+    border-right: 1px solid ${p => p.theme.border};
+  }
+`;
+
+const FrameName = styled('span')`
+  margin-left: ${space(0.5)};
+`;
+
+const FrameColorIndicator = styled('div')<{
+  backgroundColor: React.CSSProperties['backgroundColor'];
+}>`
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  display: inline-block;
+  background-color: ${p => p.backgroundColor};
+  margin-right: ${space(1)};
+`;
+
+export {FrameStack};
