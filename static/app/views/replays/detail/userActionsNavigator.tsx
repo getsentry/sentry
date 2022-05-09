@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Type from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type';
@@ -27,8 +27,28 @@ type Props = {
 };
 
 function UserActionsNavigator({event, crumbs}: Props) {
-  const {setCurrentTime} = useReplayContext();
+  const {setCurrentTime, currentHoverTime} = useReplayContext();
   const [currentUserAction, setCurrentUserAction] = useState<Crumb>();
+  const [closestUserAction, setClosestUserAction] = useState<Crumb>();
+
+  useEffect(() => {
+    if (!currentHoverTime) {
+      setClosestUserAction(undefined);
+      return;
+    }
+    // TODO: Find a better way to find the closest user action without using `reduce` method
+    const closestUserActionItem = userActionCrumbs.reduce((prev, curr) => {
+      return Math.abs(
+        relativeTimeInMs(curr.timestamp ?? '', startTimestamp) - currentHoverTime
+      ) <
+        Math.abs(
+          relativeTimeInMs(prev.timestamp ?? '', startTimestamp) - currentHoverTime
+        )
+        ? curr
+        : prev;
+    });
+    setClosestUserAction(closestUserActionItem);
+  }, [currentHoverTime]);
 
   if (!event) {
     return null;
@@ -45,9 +65,9 @@ function UserActionsNavigator({event, crumbs}: Props) {
         {userActionCrumbs.map(item => (
           <PanelItemCenter
             key={item.id}
-            className={
+            className={`${
               currentUserAction && currentUserAction.id === item.id ? 'selected' : ''
-            }
+            } ${closestUserAction && closestUserAction.id === item.id ? 'onHover' : ''}`}
             onClick={() => {
               setCurrentUserAction(item);
               item.timestamp
@@ -102,15 +122,17 @@ const PanelItemCenter = styled(PanelItem)`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: none;
+  border-left: 4px solid transparent;
   padding: ${space(1)} ${space(1.5)};
   cursor: pointer;
-  &:hover {
+  &:hover,
+  &.onHover {
     background: ${p => p.theme.surface400};
     border-color: transparent;
   }
   &.selected {
-    background-color: ${p => p.theme.gray100};
+    border-left: 4px solid ${p => p.theme.purple300};
+    background-color: ${p => p.theme.surface400};
   }
 `;
 
