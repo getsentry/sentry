@@ -13,9 +13,9 @@ import Summary from './summary';
 
 type Props = {
   breadcrumb: BreadcrumbTypeDefault | BreadcrumbTypeNavigation;
-  event: Event;
   orgSlug: Organization['slug'];
   searchTerm: string;
+  event?: Event;
   linkedEvent?: React.ReactElement;
 };
 
@@ -59,12 +59,12 @@ const FormatMessage = withProjects(function FormatMessageInner({
   orgSlug,
 }: {
   breadcrumb: BreadcrumbTypeDefault | BreadcrumbTypeNavigation;
-  event: Event;
   loadingProjects: boolean;
   message: string;
   orgSlug: Organization['slug'];
   projects: Project[];
   searchTerm: string;
+  event?: Event;
 }) {
   const content = <Highlight text={searchTerm}>{message}</Highlight>;
   if (
@@ -73,7 +73,7 @@ const FormatMessage = withProjects(function FormatMessageInner({
     isEventId(message)
   ) {
     const maybeProject = projects.find(project => {
-      return project.id === event.projectID;
+      return event && project.id === event.projectID;
     });
 
     if (!maybeProject) {
