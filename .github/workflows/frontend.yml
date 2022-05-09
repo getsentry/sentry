@@ -31,6 +31,7 @@ jobs:
           list-files: shell
 
   typescript-and-lint:
+    if: needs.files-changed.outputs.frontend == 'true'
     needs: files-changed
     name: typescript and lint
     runs-on: ubuntu-20.04
@@ -45,37 +46,24 @@ jobs:
           app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
-      - name: Check for frontend file changes
-        uses: getsentry/paths-filter@master
-        id: changes
-        with:
-          list-files: shell
-          token: ${{ github.token }}
-          filters: .github/file-filters.yml
-
       - uses: volta-cli/action@v1
-        if: needs.files-changed.outputs.frontend == 'true'
 
       # See https://github.com/actions/cache/blob/master/examples.md#node---yarn for example
       - name: Get yarn cache directory path
         id: yarn-cache-dir-path
-        if: needs.files-changed.outputs.frontend == 'true'
         run: echo "::set-output name=dir::$(yarn cache dir)"
 
       - uses: actions/cache@v1 # We are explicitly using v1 due to perf reasons
-        if: needs.files-changed.outputs.frontend == 'true'
         with:
           path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
           key: ${{ runner.os }}-v2-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
 
       - name: Install dependencies
         id: dependencies
-        if: needs.files-changed.outputs.frontend == 'true'
         run: yarn install --frozen-lockfile
 
       # Setup custom tsc matcher, see https://github.com/actions/setup-node/issues/97
       - name: setup matchers
-        if: needs.files-changed.outputs.frontend == 'true'
         run: |
           echo "::remove-matcher owner=masters::"
           echo "::add-matcher::.github/tsc.json"
@@ -83,7 +71,7 @@ jobs:
 
       - name: eslint logic
         id: eslint
-        if: needs.files-changed.outputs.frontend == 'true' && (github.ref == 'refs/heads/master' || needs.files-changed.outputs.eslint_config == 'true' || needs.files-changed.outputs.yarn_lockfile == 'true')
+        if: (github.ref == 'refs/heads/master' || needs.files-changed.outputs.eslint_config == 'true' || needs.files-changed.outputs.yarn_lockfile == 'true')
         run: echo "::set-output name=all-files::true"
 
       # Lint entire frontend if:
@@ -102,7 +90,7 @@ jobs:
       # Otherwise... only lint modified files
       # Note `eslint --fix` will not fail when it auto fixes files
       - name: eslint (changed files only)
-        if: needs.files-changed.outputs.frontend == 'true' && steps.eslint.outputs.all-files != 'true'
+        if: steps.eslint.outputs.all-files != 'true'
         run: |
           yarn eslint --fix ${{ needs.files-changed.outputs.frontend_modified_lintable_files }}
 
@@ -115,20 +103,20 @@ jobs:
       # Reason being we need a different token to auto commit changes and
       # forks do not have access to said token
       - name: Check for dirty git working tree (forks)
-        if: steps.token.outcome != 'success' && github.ref != 'refs/heads/master' && needs.files-changed.outputs.frontend == 'true'
+        if: steps.token.outcome != 'success' && github.ref != 'refs/heads/master'
         run: |
           git diff --quiet || (echo '::error ::lint produced file changes, run linter locally and try again' && exit 1)
 
       # If working tree is dirty, commit and update if we have a token
       - name: Commit any eslint fixed files
-        if: steps.token.outcome == 'success' && github.ref != 'refs/heads/master' && needs.files-changed.outputs.frontend == 'true'
+        if: steps.token.outcome == 'success' && github.ref != 'refs/heads/master'
         uses: getsentry/action-github-commit@main
         with:
           github-token: ${{ steps.token.outputs.token }}
 
       - name: tsc
         id: tsc
-        if: steps.dependencies.outcome == 'success' && needs.files-changed.outputs.frontend == 'true'
+        if: steps.dependencies.outcome == 'success'
         run: |
           set -o pipefail
           yarn tsc -p config/tsconfig.build.json --diagnostics --generateTrace /tmp/trace | tee /tmp/typescript-monitor.log
@@ -142,39 +130,35 @@ jobs:
         run: yarn run ts-node .github/workflows/scripts/monitor-typescript.ts
 
       - name: storybook
-        if: github.ref != 'refs/heads/master' && needs.files-changed.outputs.frontend == 'true'
+        if: github.ref != 'refs/heads/master'
         env:
           STORYBOOK_BUILD: 1
         run: |
           yarn storybook-build
 
   webpack:
+    if: github.ref == 'refs/heads/master' || needs.files-changed.outputs.frontend == 'true'
     needs: files-changed
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
 
       - uses: volta-cli/action@v1
-        if: github.ref == 'refs/heads/master' || needs.files-changed.outputs.frontend == 'true'
 
       # See https://github.com/actions/cache/blob/master/examples.md#node---yarn for example
       - name: Get yarn cache directory path
         id: yarn-cache-dir-path
-        if: github.ref == 'refs/heads/master' || needs.files-changed.outputs.frontend == 'true'
         run: echo "::set-output name=dir::$(yarn cache dir)"
 
       - uses: actions/cache@v1 # We are explicitly using v1 due to perf reasons
-        if: github.ref == 'refs/heads/master' || needs.files-changed.outputs.frontend == 'true'
         with:
           path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
           key: ${{ runner.os }}-v2-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
 
       - name: Install dependencies
-        if: github.ref == 'refs/heads/master' || needs.files-changed.outputs.frontend == 'true'
         run: yarn install --frozen-lockfile
 
       - uses: getsentry/size-limit-action@v4
-        if: github.ref == 'refs/heads/master' || needs.files-changed.outputs.frontend == 'true'
         env:
           SENTRY_INSTRUMENTATION: 1
           SENTRY_WEBPACK_WEBHOOK_SECRET: ${{ secrets.SENTRY_WEBPACK_WEBHOOK_SECRET }}
