@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
-from typing import Any, Callable, Iterator, Protocol, Tuple, TypeVar, Union
+from typing import Any, Callable, Iterator, Protocol, Sequence, Tuple, TypeVar, Union
 
 from sentry.utils.json import JSONData
 
