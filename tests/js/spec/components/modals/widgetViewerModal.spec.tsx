@@ -103,10 +103,21 @@ describe('Modals -> WidgetViewerModal', function () {
       url: '/organizations/org-slug/events-meta/',
       body: {count: 33323612},
     });
+
+    PageFiltersStore.init();
+    PageFiltersStore.onInitializeUrlState(
+      {
+        projects: [1, 2],
+        environments: ['prod', 'dev'],
+        datetime: {start: null, end: null, period: '24h', utc: null},
+      },
+      new Set()
+    );
   });
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
+    PageFiltersStore.teardown();
   });
 
   describe('Discover Area Chart Widget', function () {
@@ -202,9 +213,9 @@ describe('Modals -> WidgetViewerModal', function () {
 
     it('redirects user to Discover when clicking Open in Discover', async function () {
       await renderModal({initialData, widget: mockWidget});
-      expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
-        'href',
-        '/organizations/org-slug/discover/results/?field=count%28%29&name=Test%20Widget&query=title%3A%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2F&statsPeriod=14d&yAxis=count%28%29'
+      userEvent.click(screen.getByText('Open in Discover'));
+      expect(initialData.router.push).toHaveBeenCalledWith(
+        '/organizations/org-slug/discover/results/?environment=prod&environment=dev&field=count%28%29&name=Test%20Widget&project=1&project=2&query=title%3A%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2F&statsPeriod=24h&yAxis=count%28%29'
       );
     });
 
@@ -269,7 +280,7 @@ describe('Modals -> WidgetViewerModal', function () {
       await renderModal({initialData, widget: mockWidget});
       expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
         'href',
-        '/organizations/org-slug/discover/results/?field=count%28%29&name=Test%20Widget&query=&statsPeriod=14d&yAxis=count%28%29'
+        '/organizations/org-slug/discover/results/?environment=prod&environment=dev&field=count%28%29&name=Test%20Widget&project=1&project=2&query=&statsPeriod=24h&yAxis=count%28%29'
       );
     });
 
@@ -812,9 +823,9 @@ describe('Modals -> WidgetViewerModal', function () {
 
     it('redirects user to Issues when clicking Open in Issues', async function () {
       await renderModal({initialData, widget: mockWidget});
-      expect(screen.getByRole('button', {name: 'Open in Issues'})).toHaveAttribute(
-        'href',
-        '/organizations/org-slug/issues/?query=is%3Aunresolved&sort=&statsPeriod=14d'
+      userEvent.click(screen.getByText('Open in Issues'));
+      expect(initialData.router.push).toHaveBeenCalledWith(
+        '/organizations/org-slug/issues/?environment=prod&environment=dev&project=1&project=2&query=is%3Aunresolved&sort=&statsPeriod=24h'
       );
     });
 
@@ -843,13 +854,13 @@ describe('Modals -> WidgetViewerModal', function () {
         expect.objectContaining({
           data: {
             cursor: undefined,
-            environment: [],
+            environment: ['prod', 'dev'],
             expand: ['owners'],
             limit: 20,
-            project: [],
+            project: [1, 2],
             query: 'is:unresolved',
             sort: 'date',
-            statsPeriod: '14d',
+            statsPeriod: '24h',
           },
         })
       );
@@ -1014,19 +1025,10 @@ describe('Modals -> WidgetViewerModal', function () {
     });
 
     it('Open in Releases button redirects browser', async function () {
-      PageFiltersStore.init();
-      PageFiltersStore.onInitializeUrlState(
-        {
-          projects: [],
-          environments: [],
-          datetime: {start: null, end: null, period: '24h', utc: null},
-        },
-        new Set()
-      );
       await renderModal({initialData, widget: mockWidget});
       userEvent.click(screen.getByText('Open in Releases'));
       expect(initialData.router.push).toHaveBeenCalledWith(
-        '/organizations/org-slug/releases/?statsPeriod=24h'
+        '/organizations/org-slug/releases/?environment=prod&environment=dev&project=1&project=2&statsPeriod=24h'
       );
     });
 

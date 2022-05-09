@@ -259,6 +259,8 @@ export function getWidgetIssueUrl(
     query: widget.queries?.[0]?.conditions,
     sort: widget.queries?.[0]?.orderby,
     ...datetime,
+    project: selection.projects,
+    environment: selection.environments,
   })}`;
   return issuesLocation;
 }
@@ -275,6 +277,8 @@ export function getWidgetReleasesUrl(
       : {statsPeriod: period};
   const releasesLocation = `/organizations/${organization.slug}/releases/?${qs.stringify({
     ...datetime,
+    project: selection.projects,
+    environment: selection.environments,
   })}`;
   return releasesLocation;
 }
