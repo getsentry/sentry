@@ -70,7 +70,9 @@ export default function CreateProjectsFooter({
         platformToProjectIdMap: persistedOnboardingState.platformToProjectIdMap,
         selectedPlatforms: platforms,
         state: 'projects_selected',
-        url: 'select-integrations/',
+        url: organization.experiments.TargetedOnboardingIntegrationSelectExperiment
+          ? 'select-integrations/'
+          : 'setup-docs/',
         mobileEmailSent: true,
         selectedIntegrations: [],
       };
