@@ -121,8 +121,8 @@ function Events({crumbs, width}: {crumbs: Crumb[]; width: number}) {
 function EventMarkerList({breadcrumbs}: {breadcrumbs: Crumb[]}) {
   return (
     <React.Fragment>
-      {breadcrumbs.map(breadcrumb => (
-        <EventStickMarker key={breadcrumb.timestamp} color={breadcrumb.color} />
+      {breadcrumbs.map((breadcrumb, i) => (
+        <EventStickMarker key={`${breadcrumb.timestamp}-${i}`} color={breadcrumb.color} />
       ))}
     </React.Fragment>
   );

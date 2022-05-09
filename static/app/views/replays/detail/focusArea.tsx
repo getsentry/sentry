@@ -2,7 +2,7 @@ import React from 'react';
 
 import EventEntry from 'sentry/components/events/eventEntry';
 import TagsTable from 'sentry/components/tagsTable';
-import type {Event} from 'sentry/types/event';
+import type {Entry, Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -11,6 +11,7 @@ import {useRouteContext} from 'sentry/utils/useRouteContext';
 
 import {isReplayTab, ReplayTabs} from '../types';
 
+import Console from './console';
 import FocusTabs from './focusTabs';
 import IssueList from './issueList';
 import MemoryChart from './memoryChart';
@@ -20,6 +21,12 @@ type Props = {
 };
 
 const DEFAULT_TAB = ReplayTabs.PERFORMANCE;
+
+function getBreadcrumbsByCategory(breadcrumbEntry: Entry, categories: string[]) {
+  return breadcrumbEntry.data.values.filter(breadcrumb =>
+    categories.includes(breadcrumb.category)
+  );
+}
 
 function FocusArea(props: Props) {
   const location = useLocation();
@@ -42,6 +49,17 @@ function ActiveTab({active, replay}: Props & {active: ReplayTabs}) {
   const spansEntry = replay.getEntryType(EntryType.SPANS);
 
   switch (active) {
+    case 'console':
+      const breadcrumbEntry = replay.getEntryType(EntryType.BREADCRUMBS);
+      const consoleMessages = getBreadcrumbsByCategory(breadcrumbEntry, [
+        'console',
+        'error',
+      ]);
+      return (
+        <div id="console">
+          <Console breadcrumbs={consoleMessages ?? []} orgSlug={organization.slug} />
+        </div>
+      );
     case 'performance': {
       if (!spansEntry) {
         return null;

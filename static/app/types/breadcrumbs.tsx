@@ -28,13 +28,14 @@ export enum BreadcrumbType {
   SYSTEM = 'system',
   SESSION = 'session',
   TRANSACTION = 'transaction',
+  CONSOLE = 'console',
 }
 
 type BreadcrumbTypeBase = {
   level: BreadcrumbLevelType;
   // it's recommended
   category?: string | null;
-  event_id?: string;
+  event_id?: string | null;
   message?: string;
   timestamp?: string;
 };
@@ -76,6 +77,14 @@ export type BreadcrumbTypeHTTP = {
     status_code?: number;
     url?: string;
   };
+} & BreadcrumbTypeBase;
+
+export type BreadcrumbTypeConsole = {
+  data: {
+    arguments: any[];
+    logger: string;
+  };
+  type: BreadcrumbType.CONSOLE;
 } & BreadcrumbTypeBase;
 
 export type BreadcrumbTypeDefault = {
