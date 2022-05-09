@@ -222,8 +222,8 @@ class APIQueryDefinition:
             self.fields.append(parse_field(key, query_params))
 
         self.orderby = self._parse_orderby(query_params)
-        self.limit: Optional[Limit] = self._parse_limit(query_params, paginator_kwargs)
-        self.offset: Optional[Offset] = self._parse_offset(query_params, paginator_kwargs)
+        self.limit: Optional[Limit] = self._parse_limit(paginator_kwargs)
+        self.offset: Optional[Offset] = self._parse_offset(paginator_kwargs)
 
         start, end, rollup = get_date_range(query_params)
         self.rollup = rollup
@@ -288,32 +288,13 @@ class APIQueryDefinition:
 
         return MetricsOrderBy(field, direction)
 
-    def _parse_limit(self, query_params, paginator_kwargs):
-        if self.orderby:
-            return Limit(paginator_kwargs.get("limit"))
-        else:
-            per_page = query_params.get("per_page")
-            if per_page is not None:
-                # If order by is not None, it means we will have a `series` query which cannot be
-                # paginated, and passing a `per_page` url param to paginate the results is not
-                # possible
-                raise InvalidParams("'per_page' is only supported in combination with 'orderBy'")
-            return None
+    def _parse_limit(self, paginator_kwargs):
+        limit = paginator_kwargs.get("limit")
+        return Limit(limit) if limit else None
 
-    def _parse_offset(self, query_params, paginator_kwargs):
-        if self.orderby:
-            offset = paginator_kwargs.get("offset")
-            if offset:
-                return Offset(offset)
-            return None
-        else:
-            cursor = query_params.get("cursor")
-            if cursor is not None:
-                # If order by is not None, it means we will have a `series` query which cannot be
-                # paginated, and passing a `per_page` url param to paginate the results is not
-                # possible
-                raise InvalidParams("'cursor' is only supported in combination with 'orderBy'")
-            return None
+    def _parse_offset(self, paginator_kwargs):
+        offset = paginator_kwargs.get("offset")
+        return Offset(offset) if offset else None
 
     def _validate_series_limit(self, query_params):
         if self.limit:
@@ -322,7 +303,7 @@ class APIQueryDefinition:
             ).total_seconds() / self.rollup * self.limit.limit > MAX_POINTS:
                 raise InvalidParams(
                     f"Requested interval of {query_params.get('interval', '1h')} with statsPeriod of "
-                    f"{query_params.get('statsPeriod')} is too granular for a per_page of "
+                    f"{self.end-self.start} is too granular for a per_page of "
                     f"{self.limit.limit} elements. Increase your interval, decrease your statsPeriod, "
                     f"or decrease your per_page parameter."
                 )

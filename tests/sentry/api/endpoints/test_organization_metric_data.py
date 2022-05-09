@@ -51,7 +51,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             groupBy="environment",
         )
 
-        assert response.status_code == 200
+        assert response.status_code == 200, response.data
 
     def test_groupby_session_status(self):
         for status in ["ok", "crashed"]:
@@ -823,6 +823,77 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 f"count_unique({TransactionMetricKey.USER.value})": [0],
                 f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": [expected_lcp_count],
             }
+
+    def test_limit_without_orderby(self):
+        """
+        # Test that ensures when an `orderBy` clause is set, then the paginator limit overrides the
+        # `limit` parameter
+
+        TODO
+        """
+        org_id = self.organization.id
+
+        fcp_metric = indexer.record(
+            self.project.organization.id, TransactionMRI.MEASUREMENTS_FCP.value
+        )
+
+        tag1 = indexer.record(org_id, "tag1")
+        value1 = indexer.record(org_id, "value1")
+        value2 = indexer.record(org_id, "value2")
+        value3 = indexer.record(org_id, "value3")
+        value4 = indexer.record(org_id, "value4")
+
+        self._send_buckets(
+            [
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.transaction_lcp_metric,
+                    "timestamp": int(time.time()),
+                    "type": "d",
+                    "value": [1],
+                    "tags": {tag1: value1},
+                    "retention_days": 90,
+                }
+            ]
+            + [
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": fcp_metric,
+                    "timestamp": int(time.time()),
+                    "type": "d",
+                    "value": [1],
+                    "tags": {tag1: value},
+                    "retention_days": 90,
+                }
+                for value in (
+                    value2,
+                    value3,
+                    value4,
+                )
+            ],
+            entity="metrics_distributions",
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            field=[
+                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+                f"p50({TransactionMetricKey.MEASUREMENTS_FCP.value})",
+            ],
+            statsPeriod="1h",
+            interval="1h",
+            groupBy="tag1",
+            per_page=2,
+        )
+
+        groups = response.data["groups"]
+        assert len(groups) == 2
+
+        # we don't know which of {value2, value3, value4} is returned, just that
+        # it can't be `value1`, which is only on the other metric
+        returned_values = {group["by"]["tag1"] for group in groups}
+        assert "value1" not in returned_values, returned_values
 
     def test_groupby_project(self):
         self.store_session(self.build_session(project_id=self.project2.id))
