@@ -66,25 +66,27 @@ export default function FirstEventFooter({
         <Button
           priority="primary"
           onClick={async () => {
-            if (clientState) {
-              addLoadingMessage(t('Sending you an email to continue onboarding...'));
-              await client
-                .requestPromise(
-                  `/organizations/${organization.slug}/onboarding-continuation-email/`,
-                  {
-                    method: 'POST',
-                    data: {
-                      platforms: clientState.selectedPlatforms,
-                    },
-                  }
-                )
-                .then(() => {
-                  addSuccessMessage(t('Onboarding remainder email sent to your inbox!'));
-                })
-                .catch(() => {
-                  addErrorMessage(t('Unable to send onboarding email'));
-                });
+            if (!clientState) {
+              // client state not yet loaded.
+              return;
             }
+            addLoadingMessage(t('Sending you an email to continue onboarding...'));
+            await client
+              .requestPromise(
+                `/organizations/${organization.slug}/onboarding-continuation-email/`,
+                {
+                  method: 'POST',
+                  data: {
+                    platforms: clientState.selectedPlatforms,
+                  },
+                }
+              )
+              .then(() => {
+                addSuccessMessage(t('Onboarding remainder email sent to your inbox!'));
+              })
+              .catch(() => {
+                addErrorMessage(t('Unable to send onboarding email'));
+              });
             browserHistory.push(`/onboarding/${organization.slug}/mobile-redirect/`);
           }}
         >

@@ -288,7 +288,8 @@ function SetupDocs({
             activeProject={project}
             {...{checkProjectHasFirstEvent, selectProject}}
           />
-          {selectedIntegrations.length ? (
+          {selectedIntegrations.length &&
+          organization.experiments.TargetedOnboardingIntegrationSelectExperiment ? (
             <IntegrationSidebarSection
               {...{
                 installedIntegrations,
