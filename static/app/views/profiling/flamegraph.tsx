@@ -12,7 +12,7 @@ import {Flamegraph} from 'sentry/components/profiling/flamegraph';
 import {ProfileDragDropImportProps} from 'sentry/components/profiling/profileDragDropImport';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import {Organization, Project, RequestState} from 'sentry/types';
 import {Trace} from 'sentry/types/profiling/core';
 import {DeepPartial} from 'sentry/types/utils';
 import {
@@ -25,23 +25,7 @@ import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegr
 import {importProfile, ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {Profile} from 'sentry/utils/profiling/profile/profile';
 import useApi from 'sentry/utils/useApi';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-
-type InitialState = {type: 'initial'};
-type LoadingState = {type: 'loading'};
-
-type ResolvedState<T> = {
-  data: T;
-  type: 'resolved';
-};
-
-type ErroredState = {
-  error: string;
-  type: 'errored';
-};
-
-type RequestState<T> = InitialState | LoadingState | ResolvedState<T> | ErroredState;
 
 function fetchFlamegraphs(
   api: Client,
@@ -71,21 +55,20 @@ interface FlamegraphViewProps {
   location: Location;
   params: {
     eventId?: Trace['id'];
-    projectId?: Project['id'];
+    projectId?: Project['slug'];
   };
 }
 
 function FlamegraphView(props: FlamegraphViewProps): React.ReactElement {
   const api = useApi();
   const organization = useOrganization();
-  const location = useLocation();
 
   const [requestState, setRequestState] = useState<RequestState<ProfileGroup>>({
     type: 'initial',
   });
 
   const initialFlamegraphPreferencesState = useMemo((): DeepPartial<FlamegraphState> => {
-    return decodeFlamegraphStateFromQueryParams(location.query);
+    return decodeFlamegraphStateFromQueryParams(props.location.query);
     // We only want to decode this when our component mounts
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -127,11 +110,11 @@ function FlamegraphView(props: FlamegraphViewProps): React.ReactElement {
                 location={props.location}
                 organization={organization}
                 trails={[
-                  {type: 'profiling'},
+                  {type: 'landing'},
                   {
                     type: 'flamegraph',
                     payload: {
-                      interactionName:
+                      transaction:
                         requestState.type === 'resolved' ? requestState.data.name : '',
                       profileId: props.params.eventId ?? '',
                       projectSlug: props.params.projectId ?? '',

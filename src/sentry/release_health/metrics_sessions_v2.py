@@ -399,6 +399,10 @@ def run_sessions_query(
     # backend runs
     query = deepcopy(query)
 
+    intervals = get_timestamps(query)
+    if not intervals:
+        return _empty_result(query)
+
     conditions = _get_filter_conditions(query.conditions)
     where, status_filter = _extract_status_filter_from_conditions(conditions)
     if status_filter == frozenset():
@@ -497,8 +501,8 @@ def _empty_result(query: QueryDefinition) -> SessionsQueryResult:
     intervals = get_timestamps(query)
     return {
         "groups": [],
-        "start": intervals[0],
-        "end": intervals[-1],
+        "start": query.start,
+        "end": query.end,
         "intervals": intervals,
         "query": query.query,
     }

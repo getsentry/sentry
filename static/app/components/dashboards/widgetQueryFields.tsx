@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -155,7 +155,7 @@ function WidgetQueryFields({
         return true;
       }
 
-      if (fieldValue.kind !== 'function') {
+      if (fieldValue.kind !== FieldValueKind.FUNCTION) {
         return true;
       }
 
@@ -172,8 +172,11 @@ function WidgetQueryFields({
         return isLegalYAxisType(primaryOutput);
       }
 
-      if (option.value.kind === FieldValueKind.FUNCTION) {
-        // Functions are not legal options as an aggregate/function parameter.
+      if (
+        option.value.kind === FieldValueKind.FUNCTION ||
+        option.value.kind === FieldValueKind.EQUATION
+      ) {
+        // Functions and equations are not legal options as an aggregate/function parameter.
         return false;
       }
 
@@ -216,7 +219,7 @@ function WidgetQueryFields({
     const columns = fields.slice(0, fields.length - 1);
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Field
           data-test-id="columns"
           label={t('Columns')}
@@ -260,7 +263,7 @@ function WidgetQueryFields({
             />
           </QueryFieldWrapper>
         </Field>
-      </React.Fragment>
+      </Fragment>
     );
   }
 

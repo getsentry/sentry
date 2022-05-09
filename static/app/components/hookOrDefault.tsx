@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, lazy, Suspense} from 'react';
 
 import HookStore from 'sentry/stores/hookStore';
 import {HookName, Hooks} from 'sentry/types/hooks';
@@ -50,7 +50,7 @@ function HookOrDefault<H extends HookName>({
   type Props = React.ComponentProps<ReturnType<Hooks[H]>>;
   type State = {hooks: Hooks[H][]};
 
-  class HookOrDefaultComponent extends React.Component<Props, State> {
+  class HookOrDefaultComponent extends Component<Props, State> {
     static displayName = `HookOrDefaultComponent(${hookName})`;
 
     state: State = {
@@ -70,12 +70,12 @@ function HookOrDefault<H extends HookName>({
     get defaultComponent() {
       // If `defaultComponentPromise` is passed, then return a Suspended component
       if (defaultComponentPromise) {
-        const Component = React.lazy(defaultComponentPromise);
+        const DefaultComponent = lazy(defaultComponentPromise);
 
         return (props: Props) => (
-          <React.Suspense fallback={null}>
-            <Component {...props} />
-          </React.Suspense>
+          <Suspense fallback={null}>
+            <DefaultComponent {...props} />
+          </Suspense>
         );
       }
 
