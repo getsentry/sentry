@@ -11,6 +11,7 @@ export class Frame extends WeightedNode {
   readonly is_application: boolean;
   readonly image?: string;
   readonly resource?: string;
+  readonly threadId?: number;
 
   static Root = new Frame(
     {
@@ -35,6 +36,7 @@ export class Frame extends WeightedNode {
         ? frameInfo.line === undefined && frameInfo.column === undefined
         : !!frameInfo.is_application;
     this.image = frameInfo.image;
+    this.threadId = frameInfo.threadId;
 
     if (type === 'web') {
       // If the frame is a web frame and there is no name associated to it, then it was likely invoked as an iife or anonymous callback as
