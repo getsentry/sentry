@@ -1,26 +1,32 @@
 import React from 'react';
 
 import EventEntry from 'sentry/components/events/eventEntry';
-import type {MemorySpanType} from 'sentry/components/events/interfaces/spans/types';
 import TagsTable from 'sentry/components/tagsTable';
-import type {Event} from 'sentry/types/event';
+import type {Entry, Event} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
+import ReplayReader from 'sentry/utils/replays/replayReader';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 
 import {isReplayTab, ReplayTabs} from '../types';
 
+import Console from './console';
 import FocusTabs from './focusTabs';
 import IssueList from './issueList';
 import MemoryChart from './memoryChart';
 
 type Props = {
-  event: Event;
-  eventWithSpans: Event | undefined;
-  memorySpans: MemorySpanType[] | undefined;
+  replay: ReplayReader;
 };
 
 const DEFAULT_TAB = ReplayTabs.PERFORMANCE;
+
+function getBreadcrumbsByCategory(breadcrumbEntry: Entry, categories: string[]) {
+  return breadcrumbEntry.data.values.filter(breadcrumb =>
+    categories.includes(breadcrumb.category)
+  );
+}
 
 function FocusArea(props: Props) {
   const location = useLocation();
@@ -35,30 +41,51 @@ function FocusArea(props: Props) {
   );
 }
 
-function ActiveTab({
-  active,
-  event,
-  eventWithSpans,
-  memorySpans,
-}: Props & {active: ReplayTabs}) {
+function ActiveTab({active, replay}: Props & {active: ReplayTabs}) {
   const {routes, router} = useRouteContext();
   const organization = useOrganization();
+
+  const event = replay.getEvent();
+  const spansEntry = replay.getEntryType(EntryType.SPANS);
+
   switch (active) {
-    case 'performance':
-      return eventWithSpans ? (
+    case 'console':
+      const breadcrumbEntry = replay.getEntryType(EntryType.BREADCRUMBS);
+      const consoleMessages = getBreadcrumbsByCategory(breadcrumbEntry, [
+        'console',
+        'error',
+      ]);
+      return (
+        <div id="console">
+          <Console breadcrumbs={consoleMessages ?? []} orgSlug={organization.slug} />
+        </div>
+      );
+    case 'performance': {
+      if (!spansEntry) {
+        return null;
+      }
+      const nonMemorySpans = {
+        ...spansEntry,
+        data: spansEntry.data.filter(replay.isNotMemorySpan),
+      };
+      const performanceEvent = {
+        ...event,
+        entries: [nonMemorySpans],
+      } as Event;
+      return (
         <div id="performance">
           <EventEntry
-            key={`${eventWithSpans.id}`}
-            projectSlug={getProjectSlug(eventWithSpans)}
+            projectSlug={getProjectSlug(performanceEvent)}
             // group={group}
             organization={organization}
-            event={eventWithSpans}
-            entry={eventWithSpans.entries[0]}
+            event={performanceEvent}
+            entry={nonMemorySpans}
             route={routes[routes.length - 1]}
             router={router}
           />
         </div>
-      ) : null;
+      );
+    }
     case 'issues':
       return (
         <div id="issues">
@@ -74,8 +101,8 @@ function ActiveTab({
     case 'memory':
       return (
         <MemoryChart
-          memorySpans={memorySpans}
-          startTimestamp={eventWithSpans?.entries[0]?.data[0]?.timestamp}
+          memorySpans={spansEntry?.data.filter(replay.isMemorySpan)}
+          startTimestamp={event.startTimestamp}
         />
       );
     default:

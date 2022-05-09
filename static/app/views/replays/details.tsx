@@ -7,19 +7,23 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader as _PanelHeader} from 'sentry/components/panels';
 import ReplayBreadcrumbOverview from 'sentry/components/replays/breadcrumbs/replayBreadcrumbOverview';
-import Scrobber from 'sentry/components/replays/player/scrobber';
+import HorizontalMouseTracking from 'sentry/components/replays/player/horizontalMouseTracking';
+import {PlayerScrubber} from 'sentry/components/replays/player/scrubber';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayController from 'sentry/components/replays/replayController';
+import ReplayCurrentUrl from 'sentry/components/replays/replayCurrentUrl';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
 import useFullscreen from 'sentry/components/replays/useFullscreen';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
+import space from 'sentry/styles/space';
+import {EntryType} from 'sentry/types/event';
+import useReplayData from 'sentry/utils/replays/useReplayData';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 
 import DetailLayout from './detail/detailLayout';
 import FocusArea from './detail/focusArea';
 import UserActionsNavigator from './detail/userActionsNavigator';
-import useReplayEvent from './utils/useReplayEvent';
 
 function ReplayDetails() {
   const {
@@ -31,18 +35,8 @@ function ReplayDetails() {
     t: initialTimeOffset, // Time, in seconds, where the video should start
   } = location.query;
 
-  const {
-    breadcrumbEntry,
-    event,
-    mergedReplayEvent,
-    memorySpans,
-    fetchError,
-    fetching,
-    onRetry,
-    replay,
-  } = useReplayEvent({
+  const {fetchError, fetching, onRetry, replay} = useReplayData({
     eventSlug,
-    location,
     orgId,
   });
 
@@ -89,41 +83,42 @@ function ReplayDetails() {
   }
 
   return (
-    <ReplayContextProvider
-      events={replay.getRRWebEvents()}
-      initialTimeOffset={initialTimeOffset}
-    >
+    <ReplayContextProvider replay={replay} initialTimeOffset={initialTimeOffset}>
       <DetailLayout
-        event={event}
+        event={replay.getEvent()}
         orgId={orgId}
-        crumbs={breadcrumbEntry?.data.values || []}
+        crumbs={replay.getEntryType(EntryType.BREADCRUMBS)?.data.values || []}
       >
         <Layout.Body>
           <ReplayLayout ref={fullscreenRef}>
             <Panel>
+              <PanelHeader>
+                <ReplayCurrentUrl />
+              </PanelHeader>
               <PanelHeader disablePadding>
                 <ManualResize isFullscreen={isFullscreen}>
                   <ReplayPlayer />
                 </ManualResize>
               </PanelHeader>
-              <Scrobber />
+              <HorizontalMouseTracking>
+                <PlayerScrubber />
+              </HorizontalMouseTracking>
               <PanelBody withPadding>
                 <ReplayController toggleFullscreen={toggleFullscreen} />
               </PanelBody>
             </Panel>
           </ReplayLayout>
-          <Layout.Side>
-            <UserActionsNavigator event={event} entry={breadcrumbEntry} />
-          </Layout.Side>
+          <Side>
+            <UserActionsNavigator
+              crumbs={replay.getEntryType(EntryType.BREADCRUMBS)?.data.values || []}
+              event={replay.getEvent()}
+            />
+          </Side>
           <Layout.Main fullWidth>
             <Panel>
-              <BreadcrumbTimeline crumbs={breadcrumbEntry?.data.values || []} />
+              <BreadcrumbTimeline />
             </Panel>
-            <FocusArea
-              event={replay.getEvent()}
-              eventWithSpans={mergedReplayEvent}
-              memorySpans={memorySpans}
-            />
+            <FocusArea replay={replay} />
           </Layout.Main>
         </Layout.Body>
       </DetailLayout>
@@ -156,6 +151,10 @@ const ReplayLayout = styled(Layout.Main)`
     grid-template-rows: auto max-content;
     background: ${p => p.theme.gray500};
   }
+`;
+
+const Side = styled(Layout.Side)`
+  padding-bottom: ${space(2)};
 `;
 
 const BreadcrumbTimeline = styled(ReplayBreadcrumbOverview)`
