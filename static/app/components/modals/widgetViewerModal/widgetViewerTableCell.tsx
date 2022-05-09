@@ -198,7 +198,7 @@ export const renderGridBodyCell =
         isFirstPage &&
         rowIndex < DEFAULT_NUM_TOP_EVENTS &&
         columnIndex === 0 ? (
-          <TopResultsIndicator count={TopResultsCount} index={rowIndex} />
+          <TopResultsIndicator count={topResultsCount} index={rowIndex} />
         ) : null}
         {cell}
       </Fragment>
