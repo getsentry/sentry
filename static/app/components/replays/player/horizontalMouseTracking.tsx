@@ -24,7 +24,7 @@ function getBoundingRect(elem: Element): Promise<DOMRectReadOnly> {
 
 // TODO(replay): should this be an HoC?
 function HorizontalMouseTracking({children}: Props) {
-  const elem = useRef(null); // HTMLDivElement
+  const elem = useRef<HTMLDivElement>(null);
   const {duration, setCurrentHoverTime} = useReplayContext();
 
   const onMouseMove = useCallback(
