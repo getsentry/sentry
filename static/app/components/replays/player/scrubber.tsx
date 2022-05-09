@@ -16,7 +16,7 @@ function getPercentComplete(currentTime: number, duration: number | undefined) {
   return currentTime / duration;
 }
 
-function Scrobber({className}: Props) {
+function Scrubber({className}: Props) {
   const {currentTime, duration, setCurrentTime} = useReplayContext();
 
   const percentComplete = getPercentComplete(currentTime, duration);
@@ -114,4 +114,4 @@ const Wrapper = styled('div')`
   }
 `;
 
-export default Scrobber;
+export default Scrubber;
