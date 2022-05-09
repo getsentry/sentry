@@ -1,8 +1,7 @@
-import {css} from '@emotion/react';
+import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import space from 'sentry/styles/space';
-import {Theme} from 'sentry/utils/theme';
 import SettingsHeader from 'sentry/views/settings/components/settingsHeader';
 
 type Params = {
@@ -23,14 +22,12 @@ type Params = {
    */
   detached?: boolean;
   /**
-   * enable the arrow on the menu
-   */
-  menuWithArrow?: boolean;
-  /**
    * The width of the menu
    */
   width?: string;
 };
+
+type ParamsWithTheme = Params & {theme: Theme};
 
 /**
  * If `blendCorner` is false, then we apply border-radius to all corners
@@ -44,7 +41,7 @@ const getMenuBorderRadius = ({
   alignMenu,
   width,
   theme,
-}: Params & {theme: Theme}) => {
+}: ParamsWithTheme) => {
   const radius = theme.borderRadius;
   if (!blendCorner || detached) {
     return css`
@@ -65,59 +62,15 @@ const getMenuBorderRadius = ({
   `;
 };
 
-const getMenuArrow = ({menuWithArrow, alignMenu, theme}: Params & {theme: Theme}) => {
-  if (!menuWithArrow) {
-    return '';
-  }
-  const alignRight = alignMenu === 'right';
-
-  return css`
-    top: 32px;
-
-    &::before {
-      width: 0;
-      height: 0;
-      border-left: 9px solid transparent;
-      border-right: 9px solid transparent;
-      border-bottom: 9px solid rgba(52, 60, 69, 0.35);
-      content: '';
-      display: block;
-      position: absolute;
-      top: -9px;
-      left: 10px;
-      z-index: -2;
-      ${alignRight && 'left: auto;'};
-      ${alignRight && 'right: 10px;'};
-    }
-
-    &:after {
-      width: 0;
-      height: 0;
-      border-left: 8px solid transparent;
-      border-right: 8px solid transparent;
-      border-bottom: 8px solid ${theme.background};
-      content: '';
-      display: block;
-      position: absolute;
-      top: -8px;
-      left: 11px;
-      z-index: -1;
-      ${alignRight && 'left: auto;'};
-      ${alignRight && 'right: 11px;'};
-    }
-  `;
-};
-
 const DropdownBubble = styled('div')<Params>`
   background: ${p => p.theme.background};
   color: ${p => p.theme.textColor};
   border: 1px solid ${p => p.theme.border};
   position: absolute;
   right: 0;
-  overflow: hidden;
 
-  ${({width}) => (width ? `width: ${width}` : '')};
-  ${({alignMenu}) => (alignMenu === 'left' ? 'left: 0;' : '')};
+  ${p => (p.width ? `width: ${p.width}` : '')};
+  ${p => (p.alignMenu === 'left' ? 'left: 0;' : '')};
 
   ${p =>
     p.detached
@@ -132,7 +85,6 @@ const DropdownBubble = styled('div')<Params>`
   `};
 
   ${getMenuBorderRadius};
-  ${getMenuArrow};
 
   /* This is needed to be able to cover e.g. pagination buttons, but also be
    * below dropdown actor button's zindex */

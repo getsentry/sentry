@@ -14,7 +14,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
   }
 
   abbr {
-    ${theme.tooltipUnderline};
+    ${theme.tooltipUnderline()};
   }
 
   a {
@@ -102,10 +102,6 @@ const styles = (theme: Theme, isDark: boolean) => css`
         .loading .loading-indicator {
           border-color: ${theme.backgroundSecondary};
           border-left-color: ${theme.purple300};
-        }
-
-        .saved-search-tab {
-          border-bottom-color: ${theme.active} !important;
         }
 
         .nav-tabs {

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
@@ -7,7 +7,7 @@ import {
   ProfileGroup,
 } from 'sentry/utils/profiling/profile/importProfile';
 
-interface ProfileImportProps {
+export interface ProfileDragDropImportProps {
   children: React.ReactNode;
   onImport: (profile: ProfileGroup) => void;
 }
@@ -15,13 +15,11 @@ interface ProfileImportProps {
 function ProfileDragDropImport({
   onImport,
   children,
-}: ProfileImportProps): React.ReactElement {
-  const [dropState, setDropState] = React.useState<'idle' | 'dragover' | 'processing'>(
-    'idle'
-  );
-  const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
+}: ProfileDragDropImportProps): React.ReactElement {
+  const [dropState, setDropState] = useState<'idle' | 'dragover' | 'processing'>('idle');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const onDrop = React.useCallback(
+  const onDrop = useCallback(
     (evt: React.DragEvent<HTMLDivElement>) => {
       evt.preventDefault();
       evt.stopPropagation();
@@ -46,20 +44,20 @@ function ProfileDragDropImport({
     [onImport]
   );
 
-  const onDragEnter = React.useCallback((evt: React.DragEvent<HTMLDivElement>) => {
+  const onDragEnter = useCallback((evt: React.DragEvent<HTMLDivElement>) => {
     evt.preventDefault();
     evt.stopPropagation();
     setDropState('dragover');
   }, []);
 
-  const onDragLeave = React.useCallback((evt: React.DragEvent<HTMLDivElement>) => {
+  const onDragLeave = useCallback((evt: React.DragEvent<HTMLDivElement>) => {
     evt.preventDefault();
     evt.stopPropagation();
     setDropState('idle');
   }, []);
 
   // This is required to indicate that onDrop is supported on this element
-  const onDragOver = React.useCallback((evt: React.DragEvent<HTMLDivElement>) => {
+  const onDragOver = useCallback((evt: React.DragEvent<HTMLDivElement>) => {
     evt.preventDefault();
   }, []);
 

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, createRef, Fragment, Profiler} from 'react';
 import {Location} from 'history';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -121,7 +121,7 @@ type GridEditableState = {
 class GridEditable<
   DataRow extends {[key: string]: any},
   ColumnKey extends ObjectKey
-> extends React.Component<GridEditableProps<DataRow, ColumnKey>, GridEditableState> {
+> extends Component<GridEditableProps<DataRow, ColumnKey>, GridEditableState> {
   // Static methods do not allow the use of generics bounded to the parent class
   // For more info: https://github.com/microsoft/TypeScript/issues/14600
   static getDerivedStateFromProps(
@@ -153,7 +153,7 @@ class GridEditable<
     window.removeEventListener('resize', this.redrawGridColumn);
   }
 
-  private refGrid = React.createRef<HTMLTableElement>();
+  private refGrid = createRef<HTMLTableElement>();
   private resizeMetadata?: ColResizeMetadata;
   private resizeWindowLifecycleEvents: {
     [eventName: string]: any[];
@@ -413,8 +413,8 @@ class GridEditable<
     const {title, headerButtons} = this.props;
     const showHeader = title || headerButtons;
     return (
-      <React.Fragment>
-        <React.Profiler id="GridEditable" onRender={onRenderCallback}>
+      <Fragment>
+        <Profiler id="GridEditable" onRender={onRenderCallback}>
           {showHeader && (
             <Header>
               {title && <HeaderTitle>{title}</HeaderTitle>}
@@ -429,8 +429,8 @@ class GridEditable<
               <GridBody>{this.renderGridBody()}</GridBody>
             </Grid>
           </Body>
-        </React.Profiler>
-      </React.Fragment>
+        </Profiler>
+      </Fragment>
     );
   }
 }

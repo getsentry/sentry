@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment, PureComponent} from 'react';
 import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -66,7 +66,7 @@ type State = {
   queryName: string;
 };
 
-class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
+class SavedQueryButtonGroup extends PureComponent<Props, State> {
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
     const {eventView: nextEventView, savedQuery, savedQueryLoading, yAxis} = nextProps;
 
@@ -286,7 +286,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     // Existing query with edits, show save and save as.
     if (!isNewQuery && isEditingQuery) {
       return (
-        <React.Fragment>
+        <Fragment>
           <Button
             onClick={this.handleUpdateQuery}
             data-test-id="discover2-savedquery-button-update"
@@ -296,7 +296,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
             {t('Save Changes')}
           </Button>
           {this.renderButtonSaveAs(disabled)}
-        </React.Fragment>
+        </Fragment>
       );
     }
 

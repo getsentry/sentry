@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import DateTime from 'sentry/components/dateTime';
@@ -20,7 +20,7 @@ type Props = {
   hasUser?: boolean;
 } & React.HTMLAttributes<HTMLDivElement>;
 
-class EventsTableRow extends React.Component<Props> {
+class EventsTableRow extends Component<Props> {
   renderCrashFileLink() {
     const {event, projectId} = this.props;
     if (!event.crashFile) {

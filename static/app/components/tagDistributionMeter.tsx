@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
@@ -34,7 +34,7 @@ type SegmentValue = {
   to: LocationDescriptor;
 };
 
-export default class TagDistributionMeter extends React.Component<Props> {
+export default class TagDistributionMeter extends Component<Props> {
   static defaultProps: DefaultProps = {
     isLoading: false,
     hasError: false,
@@ -136,10 +136,10 @@ export default class TagDistributionMeter extends React.Component<Props> {
           };
 
           const tooltipHtml = (
-            <React.Fragment>
+            <Fragment>
               <div className="truncate">{renderTooltipValue()}</div>
               {pctLabel}%
-            </React.Fragment>
+            </Fragment>
           );
 
           const segmentProps: SegmentValue = {

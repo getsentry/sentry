@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import Count from 'sentry/components/count';
 import {t} from 'sentry/locale';

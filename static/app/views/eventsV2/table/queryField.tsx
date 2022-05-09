@@ -1,5 +1,4 @@
-import {CSSProperties} from 'react';
-import * as React from 'react';
+import {Component, createRef} from 'react';
 import {components, OptionProps, SingleValueProps} from 'react-select';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
@@ -23,6 +22,7 @@ import {
   QueryFieldValue,
   ValidateColumnTypes,
 } from 'sentry/utils/discover/fields';
+import {SESSIONS_OPERATIONS} from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
 
 import ArithmeticInput from './arithmeticInput';
 import {FieldValue, FieldValueColumns, FieldValueKind} from './types';
@@ -107,7 +107,7 @@ type OptionType = {
   value: FieldValue;
 };
 
-class QueryField extends React.Component<Props> {
+class QueryField extends Component<Props> {
   FieldSelectComponents = {
     Option: ({label, data, ...props}: OptionProps<OptionType>) => {
       return (
@@ -132,7 +132,7 @@ class QueryField extends React.Component<Props> {
   };
 
   FieldSelectStyles = {
-    singleValue(provided: CSSProperties) {
+    singleValue(provided: React.CSSProperties) {
       const custom = {
         display: 'flex',
         justifyContent: 'space-between',
@@ -141,7 +141,7 @@ class QueryField extends React.Component<Props> {
       };
       return {...provided, ...custom};
     },
-    option(provided: CSSProperties) {
+    option(provided: React.CSSProperties) {
       const custom = {
         display: 'flex',
         justifyContent: 'space-between',
@@ -642,20 +642,21 @@ class QueryField extends React.Component<Props> {
     if (skipParameterPlaceholder) {
       // if the selected field is a function and has parameters, we would like to display each value in separate columns.
       // Otherwise the field should be displayed in a column, taking up all available space and not displaying the "no parameter" field
-      if (
-        fieldValue.kind === 'function' &&
-        AGGREGATIONS[fieldValue.function[0]].parameters.length > 0
-      ) {
-        if (
-          containerColumns === 3 &&
-          AGGREGATIONS[fieldValue.function[0]].parameters.length === 1
-        ) {
-          gridColumnsQuantity = 2;
-        } else {
-          gridColumnsQuantity = containerColumns;
-        }
-      } else {
+      if (fieldValue.kind !== 'function') {
         gridColumnsQuantity = 1;
+      } else {
+        const operation =
+          AGGREGATIONS[fieldValue.function[0]] ??
+          SESSIONS_OPERATIONS[fieldValue.function[0]];
+        if (operation.parameters.length > 0) {
+          if (containerColumns === 3 && operation.parameters.length === 1) {
+            gridColumnsQuantity = 2;
+          } else {
+            gridColumnsQuantity = containerColumns;
+          }
+        } else {
+          gridColumnsQuantity = 1;
+        }
       }
     }
 
@@ -719,10 +720,10 @@ type InputState = {value: string};
  * Using a buffered input lets us throttle rendering and enforce data
  * constraints better.
  */
-class BufferedInput extends React.Component<BufferedInputProps, InputState> {
+class BufferedInput extends Component<BufferedInputProps, InputState> {
   constructor(props: BufferedInputProps) {
     super(props);
-    this.input = React.createRef();
+    this.input = createRef();
   }
 
   state: InputState = {

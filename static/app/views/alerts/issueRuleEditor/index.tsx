@@ -3,6 +3,7 @@ import {browserHistory, RouteComponentProps} from 'react-router';
 import {components} from 'react-select';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
+import {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import omit from 'lodash/omit';
 import set from 'lodash/set';
@@ -107,6 +108,7 @@ type RuleTaskResponse = {
 type RouteParams = {orgId: string; projectId?: string; ruleId?: string};
 
 type Props = {
+  location: Location;
   organization: Organization;
   project: Project;
   projects: Project[];
@@ -127,6 +129,7 @@ type State = AsyncView['state'] & {
   environments: Environment[] | null;
   project: Project;
   uuid: null | string;
+  duplicateTargetRule?: UnsavedIssueAlertRule | IssueAlertRule | null;
   rule?: UnsavedIssueAlertRule | IssueAlertRule | null;
 };
 
@@ -175,10 +178,13 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {
+      organization,
+      location: {query},
       params: {ruleId, orgId},
     } = this.props;
     // project in state isn't initialized when getEndpoints is first called
     const project = this.state?.project ?? this.props.project;
+    const hasDuplicateAlertRules = organization.features.includes('duplicate-alert-rule');
 
     const endpoints = [
       ['environments', `/projects/${orgId}/${project.slug}/environments/`],
@@ -189,12 +195,32 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       endpoints.push(['rule', `/projects/${orgId}/${project.slug}/rules/${ruleId}/`]);
     }
 
+    if (
+      hasDuplicateAlertRules &&
+      !ruleId &&
+      query.createFromDuplicate &&
+      query.duplicateRuleId
+    ) {
+      endpoints.push([
+        'duplicateTargetRule',
+        `/projects/${orgId}/${project.slug}/rules/${query.duplicateRuleId}/`,
+      ]);
+    }
+
     return endpoints as [string, string][];
   }
 
   onRequestSuccess({stateKey, data}) {
     if (stateKey === 'rule' && data.name) {
       this.props.onChangeTitle?.(data.name);
+    }
+    if (stateKey === 'duplicateTargetRule') {
+      this.setState({
+        rule: {
+          ...omit(data, ['id']),
+          name: data.name + ' copy',
+        } as UnsavedIssueAlertRule,
+      });
     }
   }
 

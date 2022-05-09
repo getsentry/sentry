@@ -1,7 +1,4 @@
-import {Component} from 'react';
-
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {act} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import ConfigStore from 'sentry/stores/configStore';
@@ -9,114 +6,80 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 
 describe('NoProjectMessage', function () {
   beforeEach(function () {
-    act(() => ProjectsStore.reset());
+    ProjectsStore.reset();
   });
 
   const org = TestStubs.Organization();
 
   it('renders', async function () {
-    const project1 = TestStubs.Project();
-    const project2 = TestStubs.Project();
     const organization = TestStubs.Organization({slug: 'org-slug'});
+    const childrenMock = jest.fn().mockReturnValue(null);
     delete organization.projects;
-    act(() => ProjectsStore.loadInitialData([project1, project2]));
-    const wrapper = mountWithTheme(
-      <NoProjectMessage organization={organization}>{null}</NoProjectMessage>
+    ProjectsStore.loadInitialData([]);
+
+    render(
+      <NoProjectMessage organization={organization}>{childrenMock}</NoProjectMessage>
     );
-    expect(wrapper.prop('children')).toBe(null);
-    expect(wrapper.find('NoProjectMessage').exists()).toBe(true);
+
+    expect(childrenMock).not.toHaveBeenCalled();
+    expect(screen.getByText('Remain Calm')).toBeInTheDocument();
   });
 
   it('shows "Create Project" button when there are no projects', function () {
-    act(() => ProjectsStore.loadInitialData([]));
-    const wrapper = mountWithTheme(<NoProjectMessage organization={org} />);
-    expect(
-      wrapper.find('Button[to="/organizations/org-slug/projects/new/"]')
-    ).toHaveLength(1);
+    ProjectsStore.loadInitialData([]);
+
+    render(<NoProjectMessage organization={org} />);
+
+    expect(screen.getByRole('button', {name: 'Create project'})).toBeInTheDocument();
   });
 
   it('"Create Project" is disabled when no access to `project:write`', function () {
-    act(() => ProjectsStore.loadInitialData([]));
-    const wrapper = mountWithTheme(
-      <NoProjectMessage organization={TestStubs.Organization({access: []})} />
-    );
-    expect(
-      wrapper.find('Button[to="/organizations/org-slug/projects/new/"]').prop('disabled')
-    ).toBe(true);
+    ProjectsStore.loadInitialData([]);
+
+    render(<NoProjectMessage organization={TestStubs.Organization({access: []})} />);
+
+    expect(screen.getByRole('button', {name: 'Create project'})).toBeDisabled();
   });
 
   it('has no "Join a Team" button when projects are missing', function () {
-    const wrapper = mountWithTheme(<NoProjectMessage organization={org} />);
-    expect(wrapper.find('Button[to="/settings/org-slug/teams/"]')).toHaveLength(0);
+    ProjectsStore.loadInitialData([]);
+
+    render(<NoProjectMessage organization={org} />);
+
+    expect(screen.queryByRole('button', {name: 'Join a Team'})).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Create project'})).toBeInTheDocument();
   });
 
   it('has a "Join a Team" button when no projects but org has projects', function () {
-    act(() => ProjectsStore.loadInitialData([TestStubs.Project({hasAccess: false})]));
-    const wrapper = mountWithTheme(<NoProjectMessage organization={org} />);
-    expect(wrapper.find('Button[to="/settings/org-slug/teams/"]')).toHaveLength(1);
+    ProjectsStore.loadInitialData([TestStubs.Project({hasAccess: false})]);
+
+    render(<NoProjectMessage organization={org} />);
+
+    expect(screen.getByRole('button', {name: 'Join a Team'})).toBeInTheDocument();
   });
 
   it('has a disabled "Join a Team" button if no access to `team:read`', function () {
-    act(() => ProjectsStore.loadInitialData([TestStubs.Project({hasAccess: false})]));
-    const wrapper = mountWithTheme(
-      <NoProjectMessage organization={{...org, access: []}} />
-    );
-    expect(wrapper.find('Button[to="/settings/org-slug/teams/"]').prop('disabled')).toBe(
-      true
-    );
+    ProjectsStore.loadInitialData([TestStubs.Project({hasAccess: false})]);
+
+    render(<NoProjectMessage organization={{...org, access: []}} />);
+
+    expect(screen.getByRole('button', {name: 'Join a Team'})).toBeDisabled();
   });
 
   it('shows empty message to superusers that are not members', function () {
-    act(() =>
-      ProjectsStore.loadInitialData([
-        TestStubs.Project({hasAccess: true, isMember: false}),
-      ])
-    );
+    ProjectsStore.loadInitialData([
+      TestStubs.Project({hasAccess: true, isMember: false}),
+    ]);
     ConfigStore.config.user = {isSuperuser: true};
-    const wrapper = mountWithTheme(
+
+    render(
       <NoProjectMessage organization={org} superuserNeedsToBeProjectMember>
         {null}
       </NoProjectMessage>
     );
-    expect(wrapper.find('HelpMessage')).toHaveLength(1);
-  });
 
-  it('does not remount when the projects store loads', async function () {
-    const mount = jest.fn();
-    const unmount = jest.fn();
-    class MockComponent extends Component {
-      componentWillMount() {
-        mount();
-      }
-      componentWillUnmount() {
-        unmount();
-      }
-      render() {
-        return <div>children</div>;
-      }
-    }
-
-    const project1 = TestStubs.Project();
-    const project2 = TestStubs.Project();
-    const organization = TestStubs.Organization({slug: 'org-slug'});
-    delete organization.projects;
-    const wrapper = mountWithTheme(
-      <NoProjectMessage organization={organization}>
-        <MockComponent />
-      </NoProjectMessage>
-    );
-
-    // verify MockComponent is mounted once
-    expect(mount).toHaveBeenCalledTimes(1);
-    expect(wrapper.find('NoProjectMessage')).toHaveLength(1);
-    act(() => ProjectsStore.loadInitialData([project1, project2]));
-    // await for trigger from projects store to resolve
-    await tick();
-    wrapper.update();
-
-    // verify MockComponent is not unmounted and is still mounted once
-    expect(unmount).toHaveBeenCalledTimes(0);
-    expect(mount).toHaveBeenCalledTimes(1);
-    expect(wrapper.find('NoProjectMessage')).toHaveLength(1);
+    expect(
+      screen.getByText('You need at least one project to use this view')
+    ).toBeInTheDocument();
   });
 });

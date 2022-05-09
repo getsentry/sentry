@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
@@ -39,7 +39,7 @@ type State = {
   displayEventId: boolean;
 };
 
-class Form extends React.Component<Props<Values, KeysOfUnion<Values>>, State> {
+class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
   state: State = {displayEventId: !!this.props.eventId?.value};
 
   handleChange =
@@ -66,7 +66,7 @@ class Form extends React.Component<Props<Values, KeysOfUnion<Values>>, State> {
     const {displayEventId} = this.state;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <FieldGroup hasTwoColumns={values.method === MethodType.REPLACE}>
           <Field
             data-test-id="method-field"
@@ -180,7 +180,7 @@ class Form extends React.Component<Props<Values, KeysOfUnion<Values>>, State> {
             suggestions={sourceSuggestions}
           />
         </SourceGroup>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

@@ -37,7 +37,7 @@ export const NEW_DASHBOARD_ID = 'new';
 export enum DataSet {
   EVENTS = 'events',
   ISSUES = 'issues',
-  RELEASE = 'release',
+  RELEASES = 'releases',
 }
 
 export enum SortDirection {
@@ -134,7 +134,7 @@ export function normalizeQueries({
       }
 
       const queryOrderBy =
-        widgetType === WidgetType.METRICS
+        widgetType === WidgetType.RELEASE
           ? stripDerivedMetricsPrefix(queries[0].orderby)
           : queries[0].orderby;
 
@@ -326,7 +326,7 @@ export function filterPrimaryOptions({
   option: FieldValueOption;
   widgetType?: WidgetType;
 }) {
-  if (widgetType === WidgetType.METRICS) {
+  if (widgetType === WidgetType.RELEASE) {
     if (displayType === DisplayType.TABLE) {
       return [
         FieldValueKind.FUNCTION,

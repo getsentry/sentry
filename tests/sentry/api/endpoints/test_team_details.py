@@ -1,11 +1,5 @@
-from sentry.models import (
-    AuditLogEntry,
-    AuditLogEntryEvent,
-    DeletedTeam,
-    ScheduledDeletion,
-    Team,
-    TeamStatus,
-)
+from sentry import audit_log
+from sentry.models import AuditLogEntry, DeletedTeam, ScheduledDeletion, Team, TeamStatus
 from sentry.testutils import APITestCase
 
 
@@ -27,7 +21,7 @@ class TeamDetailsTestBase(APITestCase):
 
         deleted_team = DeletedTeam.objects.filter(slug=team.slug)
         audit_log_entry = AuditLogEntry.objects.filter(
-            event=AuditLogEntryEvent.TEAM_REMOVE, target_object=team.id
+            event=audit_log.get_event_id("TEAM_REMOVE"), target_object=team.id
         )
 
         if status == TeamStatus.VISIBLE:

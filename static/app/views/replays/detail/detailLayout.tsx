@@ -2,23 +2,28 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
-import EventMessage from 'sentry/components/events/eventMessage';
+import Duration from 'sentry/components/duration';
 import FeatureBadge from 'sentry/components/featureBadge';
+import {FeatureFeedback} from 'sentry/components/featureFeedback';
+import UserBadge from 'sentry/components/idBadge/userBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {KeyMetricData, KeyMetrics} from 'sentry/components/replays/keyMetrics';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {RawCrumb} from 'sentry/types/breadcrumbs';
 import {Event} from 'sentry/types/event';
-import {getMessage} from 'sentry/utils/events';
+import getUrlPathname from 'sentry/utils/getUrlPathname';
 
 type Props = {
   children: React.ReactNode;
-  event: Event | undefined;
   orgId: string;
+  crumbs?: RawCrumb[];
+  event?: Event;
 };
 
-function DetailLayout({children, event, orgId}: Props) {
+function DetailLayout({children, event, orgId, crumbs}: Props) {
   const title = event ? `${event.id} - Replays - ${orgId}` : `Replays - ${orgId}`;
 
   return (
@@ -32,11 +37,34 @@ function DetailLayout({children, event, orgId}: Props) {
                   to: `/organizations/${orgId}/replays/`,
                   label: t('Replays'),
                 },
-                {label: t('Replay Details')}, // TODO(replay): put replay ID or something here
+                {
+                  label: (
+                    <React.Fragment>
+                      {t('Replay Details')}
+                      <FeatureBadge type="alpha" />
+                    </React.Fragment>
+                  ),
+                },
               ]}
             />
+          </Layout.HeaderContent>
+          <ButtonWrapper>
+            <FeatureFeedback
+              featureName="replay"
+              feedbackTypes={[
+                'Something is broken',
+                "I don't understand how to use this feature",
+                'I like this feature',
+                'Other reason',
+              ]}
+            />
+          </ButtonWrapper>
+          <Layout.HeaderContent>
             <EventHeader event={event} />
           </Layout.HeaderContent>
+          <Layout.HeaderActions>
+            <EventMetaData event={event} crumbs={crumbs} />
+          </Layout.HeaderActions>
         </Layout.Header>
         {children}
       </React.Fragment>
@@ -48,33 +76,63 @@ function EventHeader({event}: Pick<Props, 'event'>) {
   if (!event) {
     return null;
   }
-  const message = getMessage(event);
+
+  const urlTag = event.tags.find(({key}) => key === 'url');
+  const pathname = getUrlPathname(urlTag?.value ?? '') ?? '';
+
   return (
-    <EventHeaderContainer data-test-id="event-header">
-      <TitleWrapper>
-        <EventOrGroupTitle data={event} />
-        <FeatureBadge type="alpha" />
-      </TitleWrapper>
-      {message && (
-        <MessageWrapper>
-          <EventMessage message={message} />
-        </MessageWrapper>
-      )}
-    </EventHeaderContainer>
+    <UserBadge
+      avatarSize={32}
+      user={{
+        username: event.user?.username ?? '',
+        id: event.user?.id ?? '',
+        ip_address: event.user?.ip_address ?? '',
+        name: event.user?.name ?? '',
+        email: event.user?.email ?? '',
+      }}
+      // this is the subheading for the avatar, so displayEmail in this case is a misnomer
+      displayEmail={pathname}
+    />
   );
 }
 
-const EventHeaderContainer = styled('div')`
-  max-width: ${p => p.theme.breakpoints[0]};
-`;
+function EventMetaData({event, crumbs}: Pick<Props, 'event' | 'crumbs'>) {
+  const {duration} = useReplayContext();
 
-const TitleWrapper = styled('div')`
-  font-size: ${p => p.theme.headerFontSize};
-  margin-top: ${space(3)};
-`;
+  if (!event) {
+    return null;
+  }
 
-const MessageWrapper = styled('div')`
-  margin-top: ${space(1)};
+  const errors = crumbs?.filter(crumb => crumb.type === 'error').length;
+
+  return (
+    <KeyMetrics>
+      <KeyMetricData
+        keyName={t('Timestamp')}
+        value={<TimeSince date={event.dateReceived} />}
+      />
+      <KeyMetricData
+        keyName={t('Duration')}
+        value={
+          <Duration
+            seconds={Math.floor(msToSec(duration || 0)) || 1}
+            abbreviation
+            exact
+          />
+        }
+      />
+      <KeyMetricData keyName={t('Errors')} value={errors} />
+    </KeyMetrics>
+  );
+}
+
+function msToSec(ms: number) {
+  return ms / 1000;
+}
+
+// TODO(replay); This could make a lot of sense to put inside HeaderActions by default
+const ButtonWrapper = styled(Layout.HeaderActions)`
+  align-items: end;
 `;
 
 export default DetailLayout;

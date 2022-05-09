@@ -11,8 +11,18 @@ export type GapSpanType = {
   description?: string;
 };
 
+export type MemorySpanType = RawSpanType & {
+  data: {
+    memory: {
+      jsHeapSizeLimit: number;
+      totalJSHeapSize: number;
+      usedJSHeapSize: number;
+    };
+  };
+};
+
 export type RawSpanType = {
-  data: Object;
+  data: Record<string, any>;
   span_id: string;
   start_timestamp: number;
   // this is essentially end_timestamp

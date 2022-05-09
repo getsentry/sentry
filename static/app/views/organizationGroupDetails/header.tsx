@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
@@ -59,7 +59,7 @@ type State = {
   memberList?: MemberList;
 };
 
-class GroupHeader extends React.Component<Props, State> {
+class GroupHeader extends Component<Props, State> {
   state: State = {};
 
   componentDidMount() {
@@ -149,16 +149,16 @@ class GroupHeader extends React.Component<Props, State> {
     return (
       <Layout.Header>
         <div className={className}>
+          <StyledBreadcrumbs
+            crumbs={[
+              {label: 'Issues', to: `/organizations/${orgId}/issues/${location.search}`},
+              {
+                label: 'Issue Details',
+              },
+            ]}
+          />
           <div className="row">
             <div className="col-sm-7">
-              <StyledBreadcrumbs
-                crumbs={[
-                  {label: 'Issues', to: `/organizations/${orgId}/issues/`},
-                  {
-                    label: 'Issue Details',
-                  },
-                ]}
-              />
               <TitleWrapper>
                 <StyledIdBadge
                   project={project}
@@ -181,7 +181,7 @@ class GroupHeader extends React.Component<Props, State> {
                 <EventMessage
                   message={message}
                   annotations={
-                    <React.Fragment>
+                    <Fragment>
                       {group.logger && (
                         <EventAnnotationWithSpace>
                           <Link
@@ -200,7 +200,7 @@ class GroupHeader extends React.Component<Props, State> {
                           dangerouslySetInnerHTML={{__html: annotation}}
                         />
                       ))}
-                    </React.Fragment>
+                    </Fragment>
                   }
                 />
               </StyledTagAndMessageWrapper>
@@ -373,8 +373,7 @@ const TitleWrapper = styled('div')`
 `;
 
 const StyledBreadcrumbs = styled(Breadcrumbs)`
-  padding-top: 0;
-  padding-bottom: ${space(2)};
+  margin-bottom: ${space(2)};
 `;
 
 const StyledIdBadge = styled(IdBadge)`
