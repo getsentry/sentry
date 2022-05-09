@@ -12,6 +12,7 @@ import {
   useUndoableReducer,
 } from 'sentry/utils/useUndoableReducer';
 
+import {useProfileGroup} from '../../../../views/profiling/profileGroupProvider';
 import {useFlamegraphStateValue} from '../useFlamegraphState';
 
 import {
@@ -184,6 +185,7 @@ const DEFAULT_FLAMEGRAPH_STATE: FlamegraphState = {
 export function FlamegraphStateProvider(
   props: FlamegraphStateProviderProps
 ): React.ReactElement {
+  const [profileGroup] = useProfileGroup();
   const reducer = useUndoableReducer(combinedReducers, {
     profiles: {
       selectedNode: null,
@@ -214,6 +216,24 @@ export function FlamegraphStateProvider(
       query: props.initialState?.search?.query ?? DEFAULT_FLAMEGRAPH_STATE.search.query,
     },
   });
+
+  useEffect(() => {
+    if (
+      reducer[0].profiles.threadId === null &&
+      profileGroup.type === 'resolved' &&
+      typeof profileGroup.data.activeProfileIndex === 'number'
+    ) {
+      const threadID =
+        profileGroup.data.profiles[profileGroup.data.activeProfileIndex].threadId;
+
+      if (threadID) {
+        reducer[1]({
+          type: 'set thread id',
+          payload: threadID,
+        });
+      }
+    }
+  }, [props.initialState?.profiles?.threadId, profileGroup, reducer]);
 
   return (
     <FlamegraphStateContext.Provider value={reducer}>
