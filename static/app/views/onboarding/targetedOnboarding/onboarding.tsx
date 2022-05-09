@@ -38,35 +38,40 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   projects: Project[];
 };
 
-const ONBOARDING_STEPS: StepDescriptor[] = [
-  {
-    id: 'welcome',
-    title: t('Welcome'),
-    Component: TargetedOnboardingWelcome,
-    cornerVariant: 'top-right',
-  },
-  {
-    id: 'select-platform',
-    title: t('Select platforms'),
-    Component: PlatformSelection,
-    hasFooter: true,
-    cornerVariant: 'top-left',
-  },
-  {
-    id: 'select-integration',
-    title: t('Select integrations'),
-    Component: IntegrationSelect,
-    hasFooter: true,
-    cornerVariant: 'top-left',
-  },
-  {
-    id: 'setup-docs',
-    title: t('Install the Sentry SDK'),
-    Component: SetupDocs,
-    hasFooter: true,
-    cornerVariant: 'top-left',
-  },
-];
+function getOrganizationOnboardingSteps(org: Organization) {
+  const steps: StepDescriptor[] = [
+    {
+      id: 'welcome',
+      title: t('Welcome'),
+      Component: TargetedOnboardingWelcome,
+      cornerVariant: 'top-right',
+    },
+    {
+      id: 'select-platform',
+      title: t('Select platforms'),
+      Component: PlatformSelection,
+      hasFooter: true,
+      cornerVariant: 'top-left',
+    },
+    {
+      id: 'setup-docs',
+      title: t('Install the Sentry SDK'),
+      Component: SetupDocs,
+      hasFooter: true,
+      cornerVariant: 'top-left',
+    },
+  ];
+  if (org.experiments.TargetedOnboardingIntegrationSelectExperiment) {
+    steps.splice(1, 0, {
+      id: 'select-integration',
+      title: t('Select integrations'),
+      Component: IntegrationSelect,
+      hasFooter: true,
+      cornerVariant: 'top-left',
+    });
+  }
+  return steps;
+}
 
 const MobileRedirectStep: StepDescriptor = {
   id: 'setup-docs',
@@ -88,9 +93,9 @@ function Onboarding(props: Props) {
       window.clearTimeout(cornerVariantTimeoutRed.current);
     };
   }, []);
-
-  let stepObj = ONBOARDING_STEPS.find(({id}) => stepId === id);
-  const stepIndex = ONBOARDING_STEPS.findIndex(({id}) => stepId === id);
+  const onboardingSteps = getOrganizationOnboardingSteps(organization);
+  let stepObj = onboardingSteps.find(({id}) => stepId === id);
+  const stepIndex = onboardingSteps.findIndex(({id}) => stepId === id);
 
   const cornerVariantControl = useAnimation();
   const updateCornerVariant = () => {
@@ -129,8 +134,8 @@ function Onboarding(props: Props) {
   };
 
   const goNextStep = (step: StepDescriptor) => {
-    const currentStepIndex = ONBOARDING_STEPS.findIndex(s => s.id === step.id);
-    const nextStep = ONBOARDING_STEPS[currentStepIndex + 1];
+    const currentStepIndex = onboardingSteps.findIndex(s => s.id === step.id);
+    const nextStep = onboardingSteps[currentStepIndex + 1];
     if (step.cornerVariant !== nextStep.cornerVariant) {
       cornerVariantControl.start('none');
     }
@@ -142,7 +147,7 @@ function Onboarding(props: Props) {
       return;
     }
 
-    const previousStep = ONBOARDING_STEPS[stepIndex - 1];
+    const previousStep = onboardingSteps[stepIndex - 1];
 
     if (stepObj.cornerVariant !== previousStep.cornerVariant) {
       cornerVariantControl.start('none');
@@ -178,7 +183,7 @@ function Onboarding(props: Props) {
       stepObj = MobileRedirectStep;
     } else {
       return (
-        <Redirect to={`/onboarding/${organization.slug}/${ONBOARDING_STEPS[0].id}/`} />
+        <Redirect to={`/onboarding/${organization.slug}/${onboardingSteps[0].id}/`} />
       );
     }
   }
@@ -189,9 +194,9 @@ function Onboarding(props: Props) {
         <LogoSvg />
         {stepIndex !== -1 && (
           <StyledStepper
-            numSteps={ONBOARDING_STEPS.length}
+            numSteps={onboardingSteps.length}
             currentStepIndex={stepIndex}
-            onClick={i => goToStep(ONBOARDING_STEPS[i])}
+            onClick={i => goToStep(onboardingSteps[i])}
           />
         )}
         <UpsellWrapper>
