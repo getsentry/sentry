@@ -39,7 +39,7 @@ def _get_superuser():
 
 def _set_superadmin(user):
     """
-    superadmin role aproximates superuser (model attribue) but leveraging
+    superadmin role approximates superuser (model attribue) but leveraging
     Sentry's role system.
     """
     from sentry.models import UserRole, UserRoleUser
