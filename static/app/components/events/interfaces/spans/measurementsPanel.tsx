@@ -111,12 +111,12 @@ const Label = styled('div')<{
   background: ${p => p.theme.white};
   border: 1px solid;
   border-color: ${p => (p.failedThreshold ? p.theme.red300 : p.theme.gray100)};
-  border-radius: 3px;
+  border-radius: ${p => p.theme.borderRadius};
   height: 75%;
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: ${space(0.5)} ${space(0.25)} ${space(0.25)} ${space(0.25)};
+  padding: ${space(0.25)};
   margin-right: ${space(0.25)};
 `;
 
