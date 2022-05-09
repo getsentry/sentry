@@ -192,7 +192,6 @@ def test_apply_legacy_settings(settings):
     settings.SENTRY_USE_QUEUE = True
     settings.SENTRY_ALLOW_REGISTRATION = True
     settings.SENTRY_ADMIN_EMAIL = "admin-email"
-    settings.SENTRY_URL_PREFIX = "http://url-prefix"
     settings.SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE = 10
     settings.SENTRY_REDIS_OPTIONS = {"foo": "bar"}
     settings.SENTRY_ENABLE_EMAIL_REPLIES = True

@@ -537,7 +537,6 @@ def apply_legacy_settings(settings):
 
     for old, new in (
         ("SENTRY_ADMIN_EMAIL", "system.admin-email"),
-        ("SENTRY_URL_PREFIX", "system.url-prefix"),
         ("SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE", "system.rate-limit"),
         ("SENTRY_ENABLE_EMAIL_REPLIES", "mail.enable-replies"),
         ("SENTRY_SMTP_HOSTNAME", "mail.reply-hostname"),
@@ -572,13 +571,6 @@ def apply_legacy_settings(settings):
         # deprecated. (This also assumes ``FLAG_NOSTORE`` on the configuration
         # option.)
         settings.SENTRY_REDIS_OPTIONS = options.get("redis.clusters")["default"]
-
-    if not hasattr(settings, "SENTRY_URL_PREFIX"):
-        url_prefix = options.get("system.url-prefix", silent=True)
-        if not url_prefix:
-            # HACK: We need to have some value here for backwards compatibility
-            url_prefix = "http://sentry.example.com"
-        settings.SENTRY_URL_PREFIX = url_prefix
 
     if settings.TIME_ZONE != "UTC":
         # non-UTC timezones are not supported
