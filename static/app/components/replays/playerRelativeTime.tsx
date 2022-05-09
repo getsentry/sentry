@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 
+import DateTime from 'sentry/components/dateTime';
 import Tooltip from 'sentry/components/tooltip';
 
-import {getDateFormatted, showPlayerTime} from './utils';
+import {showPlayerTime} from './utils';
 
 type Props = {
   relativeTime: number | undefined;
@@ -17,7 +18,7 @@ const PlayerRelativeTime = ({relativeTime, timestamp}: Props) => {
   return (
     <Wrapper>
       <Tooltip
-        title={getDateFormatted(timestamp)}
+        title={<DateTime date={timestamp} />}
         disabled={!timestamp}
         skipWrapper
         disableForVisualTest
