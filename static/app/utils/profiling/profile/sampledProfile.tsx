@@ -15,6 +15,7 @@ export class SampledProfile extends Profile {
       sampledProfile.startValue,
       sampledProfile.endValue,
       sampledProfile.name,
+      sampledProfile.threadID,
       sampledProfile.unit
     );
 

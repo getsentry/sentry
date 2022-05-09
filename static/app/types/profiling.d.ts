@@ -3,6 +3,7 @@ declare namespace Profiling {
     endValue: number;
     startValue: number;
     name: string;
+    threadID: number;
     unit: string;
     spans?: Span[];
   }

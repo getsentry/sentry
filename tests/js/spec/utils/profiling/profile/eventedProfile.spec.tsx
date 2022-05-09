@@ -7,6 +7,7 @@ describe('EventedProfile', () => {
   it('imports the base properties', () => {
     const trace: Profiling.EventedProfile = {
       name: 'profile',
+      threadID: 0,
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
@@ -18,6 +19,7 @@ describe('EventedProfile', () => {
 
     expect(profile.duration).toBe(1000);
     expect(profile.name).toBe(trace.name);
+    expect(profile.threadId).toBe(trace.threadID);
     expect(profile.startedAt).toBe(0);
     expect(profile.endedAt).toBe(1000);
   });
@@ -25,6 +27,7 @@ describe('EventedProfile', () => {
   it('rebuilds the stack', () => {
     const trace: Profiling.EventedProfile = {
       name: 'profile',
+      threadID: 0,
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
@@ -67,6 +70,7 @@ describe('EventedProfile', () => {
   it('marks direct recursion', () => {
     const trace: Profiling.EventedProfile = {
       name: 'profile',
+      threadID: 0,
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
@@ -87,6 +91,7 @@ describe('EventedProfile', () => {
   it('marks indirect recursion', () => {
     const trace: Profiling.EventedProfile = {
       name: 'profile',
+      threadID: 0,
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
@@ -114,6 +119,7 @@ describe('EventedProfile', () => {
   it('tracks minFrameDuration', () => {
     const trace: Profiling.EventedProfile = {
       name: 'profile',
+      threadID: 0,
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
@@ -137,6 +143,7 @@ describe('EventedProfile', () => {
   it('throws if samples are our of order', () => {
     const trace: Profiling.EventedProfile = {
       name: 'profile',
+      threadID: 0,
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
@@ -161,6 +168,7 @@ describe('EventedProfile', () => {
   it('throws on unbalanced stack', () => {
     const trace: Profiling.EventedProfile = {
       name: 'profile',
+      threadID: 0,
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',

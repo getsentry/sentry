@@ -7,6 +7,7 @@ const makeEmptyEventedTrace = (): EventedProfile => {
   return EventedProfile.FromProfile(
     {
       name: 'profile',
+      threadID: 0,
       startValue: 0,
       endValue: 0,
       unit: 'microseconds',
@@ -32,6 +33,7 @@ describe('flamegraph', () => {
   it('initializes formatter', () => {
     const trace: Profiling.EventedProfile = {
       name: 'profile',
+      threadID: 0,
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
@@ -59,6 +61,7 @@ describe('flamegraph', () => {
   it('stores profile properties', () => {
     const trace: Profiling.EventedProfile = {
       name: 'profile',
+      threadID: 0,
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
@@ -88,6 +91,7 @@ describe('flamegraph', () => {
   it('creates a call order graph', () => {
     const trace: Profiling.EventedProfile = {
       name: 'profile',
+      threadID: 0,
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
@@ -124,6 +128,7 @@ describe('flamegraph', () => {
   it('omits 0 width frames', () => {
     const trace: Profiling.EventedProfile = {
       name: 'profile',
+      threadID: 0,
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
@@ -151,6 +156,7 @@ describe('flamegraph', () => {
   it('tracks max stack depth', () => {
     const trace: Profiling.EventedProfile = {
       name: 'profile',
+      threadID: 0,
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
@@ -180,6 +186,7 @@ describe('flamegraph', () => {
   it('throws on unbalanced stack', () => {
     const trace: Profiling.EventedProfile = {
       name: 'profile',
+      threadID: 0,
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
@@ -210,6 +217,7 @@ describe('flamegraph', () => {
   it('creates leftHeavy graph', () => {
     const trace: Profiling.EventedProfile = {
       name: 'profile',
+      threadID: 0,
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
@@ -245,6 +253,7 @@ describe('flamegraph', () => {
   it('updates startTime and endTime of left heavy children graph', () => {
     const trace: Profiling.EventedProfile = {
       name: 'profile',
+      threadID: 0,
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
@@ -277,6 +286,7 @@ describe('flamegraph', () => {
   it('From', () => {
     const trace: Profiling.EventedProfile = {
       name: 'profile',
+      threadID: 0,
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',

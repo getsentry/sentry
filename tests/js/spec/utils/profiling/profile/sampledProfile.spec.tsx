@@ -7,6 +7,7 @@ describe('SampledProfile', () => {
   it('imports the base properties', () => {
     const trace: Profiling.SampledProfile = {
       name: 'profile',
+      threadID: 0,
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
@@ -19,6 +20,7 @@ describe('SampledProfile', () => {
 
     expect(profile.duration).toBe(1000);
     expect(profile.name).toBe(trace.name);
+    expect(profile.threadId).toBe(trace.threadID);
     expect(profile.startedAt).toBe(0);
     expect(profile.endedAt).toBe(1000);
   });
@@ -26,6 +28,7 @@ describe('SampledProfile', () => {
   it('rebuilds the stack', () => {
     const trace: Profiling.SampledProfile = {
       name: 'profile',
+      threadID: 0,
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
@@ -67,6 +70,7 @@ describe('SampledProfile', () => {
   it('marks direct recursion', () => {
     const trace: Profiling.SampledProfile = {
       name: 'profile',
+      threadID: 0,
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
@@ -86,6 +90,7 @@ describe('SampledProfile', () => {
   it('marks indirect recursion', () => {
     const trace: Profiling.SampledProfile = {
       name: 'profile',
+      threadID: 0,
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
@@ -107,6 +112,7 @@ describe('SampledProfile', () => {
   it('tracks minFrameDuration', () => {
     const trace: Profiling.SampledProfile = {
       name: 'profile',
+      threadID: 0,
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',

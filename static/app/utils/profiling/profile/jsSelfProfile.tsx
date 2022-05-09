@@ -44,6 +44,7 @@ export class JSSelfProfile extends Profile {
       startedAt,
       endedAt,
       'JSSelfProfiling',
+      0,
       'milliseconds'
     );
 

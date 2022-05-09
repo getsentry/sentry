@@ -19,6 +19,8 @@ export class Profile {
   unit = 'microseconds';
   // Name of the profile
   name = 'Unknown';
+  // Id of the thread
+  threadId = 0;
 
   appendOrderTree: CallTreeNode = new CallTreeNode(Frame.Root, null);
   framesInStack: Set<Profiling.Event['frame']> = new Set();
@@ -34,17 +36,19 @@ export class Profile {
     startedAt: number,
     endedAt: number,
     name: string,
+    threadId: number,
     unit: string
   ) {
     this.duration = duration;
     this.startedAt = startedAt;
     this.endedAt = endedAt;
     this.name = name;
+    this.threadId = threadId;
     this.unit = unit;
   }
 
   static Empty() {
-    return new Profile(1000, 0, 1000, '', 'milliseconds').build();
+    return new Profile(1000, 0, 1000, '', 0, 'milliseconds').build();
   }
 
   forEach(

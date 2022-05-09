@@ -11,6 +11,7 @@ import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRen
 
 const base: Profiling.EventedProfile = {
   name: 'profile',
+  threadID: 0,
   startValue: 0,
   endValue: 10,
   unit: 'milliseconds',

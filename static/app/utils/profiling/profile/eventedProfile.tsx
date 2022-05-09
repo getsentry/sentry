@@ -20,6 +20,7 @@ export class EventedProfile extends Profile {
       eventedProfile.startValue,
       eventedProfile.endValue,
       eventedProfile.name,
+      eventedProfile.threadID,
       eventedProfile.unit
     );
 

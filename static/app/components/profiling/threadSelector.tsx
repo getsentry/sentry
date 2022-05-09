@@ -1,12 +1,16 @@
 import {useCallback, useMemo} from 'react';
+import styled from '@emotion/styled';
 
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import {ControlProps, GeneralSelectValue} from 'sentry/components/forms/selectControl';
 import {IconList} from 'sentry/icons';
+import {tn} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {SelectValue} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {Profile} from 'sentry/utils/profiling/profile/profile';
+import {makeFormatter} from 'sentry/utils/profiling/units/units';
 
 interface ThreadSelectorProps {
   activeProfileIndex: ProfileGroup['activeProfileIndex'];
@@ -25,9 +29,21 @@ function ThreadMenuSelector<OptionType extends GeneralSelectValue = GeneralSelec
         name: profile.name,
         duration: profile.duration,
         index: i,
+        formatter: makeFormatter(profile.unit),
+        samples: profile.samples.length,
+        threadId: profile.threadId,
       }))
       .sort(compareProfiles)
-      .map(item => ({label: item.name, value: item.index}));
+      .map(item => ({
+        label: item.name ? item.name : `tid (${item.threadId})`,
+        value: item.index,
+        details: (
+          <ThreadLabelDetails
+            duration={item.formatter(item.duration)}
+            samples={item.samples}
+          />
+        ),
+      }));
   }, [profileGroup]);
 
   const handleChange: NonNullable<ControlProps<OptionType>['onChange']> = useCallback(
@@ -50,6 +66,20 @@ function ThreadMenuSelector<OptionType extends GeneralSelectValue = GeneralSelec
       onChange={handleChange}
       isSearchable
     />
+  );
+}
+
+interface ThreadLabelDetailsProps {
+  duration: string;
+  samples: number;
+}
+
+function ThreadLabelDetails(props: ThreadLabelDetailsProps) {
+  return (
+    <DetailsContainer>
+      <div>{props.duration}</div>
+      <div>{tn('%s sample', '%s samples', props.samples)}</div>
+    </DetailsContainer>
   );
 }
 
@@ -84,5 +114,12 @@ function compareProfiles(a: ProfileLight, b: ProfileLight): number {
   }
   return a.name > b.name ? -1 : 1;
 }
+
+const DetailsContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: ${space(1)};
+`;
 
 export {ThreadMenuSelector};
