@@ -751,4 +751,30 @@ describe('TraceView', () => {
     expect(within(labelContainer!).getByText(/fp/i)).toBeInTheDocument();
     expect(within(labelContainer!).getByText(/lcp/i)).toBeInTheDocument();
   });
+
+  it('should not merge web vitals labels if they are spaced away from each other', async () => {
+    const data = initializeData({});
+
+    const event = generateSampleEvent();
+    generateSampleSpan('browser', 'test1', 'b000000000000000', 'a000000000000000', event);
+
+    event.measurements = {
+      'mark.fcp': {value: 1000},
+      'mark.lcp': {value: 200000000},
+    };
+
+    const waterfallModel = new WaterfallModel(event);
+
+    render(
+      <TraceView organization={data.organization} waterfallModel={waterfallModel} />
+    );
+
+    const fcpLabelContainer = screen.getByText(/fcp/i).parentElement?.parentElement;
+    expect(fcpLabelContainer).toBeInTheDocument();
+    // LCP should not be merged along with FCP. We expect it to be in a separate element
+    expect(within(fcpLabelContainer!).queryByText(/lcp/i)).not.toBeInTheDocument();
+
+    const lcpLabelContainer = screen.getByText(/lcp/i).parentElement?.parentElement;
+    expect(lcpLabelContainer).toBeInTheDocument();
+  });
 });
