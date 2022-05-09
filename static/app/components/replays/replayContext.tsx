@@ -1,7 +1,6 @@
 import React, {useCallback, useContext, useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {Replayer, ReplayerEvents} from 'rrweb';
-import type {eventWithTime} from 'rrweb/typings/types';
 
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -38,11 +37,6 @@ type ReplayPlayerContextProps = {
    * Duration of the video, in miliseconds
    */
   duration: undefined | number;
-
-  /**
-   * Raw RRWeb events
-   */
-  events: ReadonlyArray<eventWithTime>;
 
   /**
    * The calculated speed of the player when fast-forwarding through idle moments in the video
@@ -120,7 +114,6 @@ const ReplayPlayerContext = React.createContext<ReplayPlayerContextProps>({
   currentTime: 0,
   dimensions: {height: 0, width: 0},
   duration: undefined,
-  events: [],
   fastForwardSpeed: 0,
   initRoot: () => {},
   isBuffering: false,
@@ -357,7 +350,6 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
         currentTime,
         dimensions,
         duration,
-        events,
         fastForwardSpeed,
         initRoot,
         isBuffering,
