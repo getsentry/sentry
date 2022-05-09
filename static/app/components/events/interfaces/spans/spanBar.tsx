@@ -288,7 +288,7 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
     const measurements = getMeasurements(event, generateBounds);
 
     return (
-      <React.Fragment>
+      <Fragment>
         {Array.from(measurements.values()).map(verticalMark => {
           const mark = Object.values(verticalMark.marks)[0];
           const {timestamp} = mark;
