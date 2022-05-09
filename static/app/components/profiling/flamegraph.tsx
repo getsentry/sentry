@@ -44,7 +44,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       return FlamegraphModel.Empty();
     }
 
-    // This could happen if activeProfileIndex was initialized from query string, but for some
+    // This could happen if threadId was initialized from query string, but for some
     // reason the profile was removed from the list of profiles.
     const profile = props.profiles.profiles.find(p => p.threadId === threadId);
     if (!profile) {
