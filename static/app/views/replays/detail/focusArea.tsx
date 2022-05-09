@@ -61,16 +61,13 @@ function ActiveTab({active, replay}: Props & {active: ReplayTabs}) {
         </div>
       );
     case 'performance': {
-      if (!spansEntry) {
-        return null;
-      }
-      const nonMemorySpans = {
+      const nonMemorySpansEntry = {
         ...spansEntry,
         data: spansEntry.data.filter(replay.isNotMemorySpan),
       };
       const performanceEvent = {
         ...event,
-        entries: [nonMemorySpans],
+        entries: [nonMemorySpansEntry],
       } as Event;
       return (
         <div id="performance">
@@ -79,7 +76,7 @@ function ActiveTab({active, replay}: Props & {active: ReplayTabs}) {
             // group={group}
             organization={organization}
             event={performanceEvent}
-            entry={nonMemorySpans}
+            entry={nonMemorySpansEntry}
             route={routes[routes.length - 1]}
             router={router}
           />
