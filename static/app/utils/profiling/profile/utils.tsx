@@ -134,14 +134,14 @@ type AnalyzeProfileResults = {
 export function getSlowestProfileCallsFromProfile(
   profile: Profile
 ): AnalyzeProfileResults {
-  const ApplicationCalls: CallTreeNode[] = [];
+  const applicationCalls: CallTreeNode[] = [];
   const systemFrames: CallTreeNode[] = [];
 
   const openFrame = (node: CallTreeNode) => {
     if (isSystemCall(node)) {
       systemFrames.push(node);
     } else {
-      ApplicationCalls.push(node);
+      applicationCalls.push(node);
     }
   };
 
@@ -151,7 +151,7 @@ export function getSlowestProfileCallsFromProfile(
 
   profile.forEach(openFrame, closeFrame);
 
-  const slowestApplicationCalls = ApplicationCalls.sort(
+  const slowestApplicationCalls = applicationCalls.sort(
     (a, b) => b.selfWeight - a.selfWeight
   );
   const slowestSystemCalls = systemFrames.sort((a, b) => b.selfWeight - a.selfWeight);
