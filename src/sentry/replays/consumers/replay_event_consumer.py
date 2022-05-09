@@ -40,4 +40,4 @@ class ReplayEventsConsumer(AbstractBatchWorker):  # type: ignore
 
 
 def process_replay_event(replay_event: Any) -> None:
-    save_replay_event.s(replay_event).apply_async()
+    save_replay_event.apply_async(kwargs={"replay_event": replay_event})
