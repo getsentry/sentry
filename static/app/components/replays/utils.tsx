@@ -1,3 +1,5 @@
+import moment from 'moment';
+
 import {Crumb} from 'sentry/types/breadcrumbs';
 
 function padZero(num: number, len = 2): string {
@@ -14,6 +16,17 @@ function padZero(num: number, len = 2): string {
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;
 const HOUR = 60 * MINUTE;
+const TIME_FORMAT = 'HH:mm:ss';
+
+export function relativeTimeInMs(timestamp: string, relativeTime: number): number {
+  return moment(timestamp)
+    .diff(relativeTime * 1000)
+    .valueOf();
+}
+
+export function showPlayerTime(timestamp: string, relativeTime: number): string {
+  return moment(relativeTimeInMs(timestamp, relativeTime)).format(TIME_FORMAT);
+}
 
 // TODO: move into 'sentry/utils/formatters'
 export function formatTime(ms: number): string {
@@ -124,4 +137,14 @@ export function getCrumbsByColumn(crumbs: Crumb[], totalColumns: number) {
   }, new Map() as Map<number, Crumb[]>);
 
   return crumbsByColumn;
+}
+
+/**
+ * Divide two numbers safely
+ */
+export function divide(numerator: number, denominator: number | undefined) {
+  if (denominator === undefined || isNaN(denominator) || denominator === 0) {
+    return 0;
+  }
+  return numerator / denominator;
 }

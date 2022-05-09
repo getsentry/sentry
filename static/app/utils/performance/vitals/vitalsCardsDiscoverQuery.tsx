@@ -1,4 +1,3 @@
-import * as React from 'react';
 import pick from 'lodash/pick';
 
 import {MetaType} from 'sentry/utils/discover/eventView';

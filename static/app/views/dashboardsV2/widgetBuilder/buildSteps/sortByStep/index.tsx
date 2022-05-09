@@ -1,20 +1,24 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
+import trimStart from 'lodash/trimStart';
 
 import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesForm';
 import Field from 'sentry/components/forms/field';
 import SelectControl from 'sentry/components/forms/selectControl';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, SelectValue} from 'sentry/types';
+import {Organization, SelectValue, TagCollection} from 'sentry/types';
 import {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {generateIssueWidgetOrderOptions} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/utils';
+import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 import {DataSet, getResultsLimit, SortDirection} from '../../utils';
 import {BuildStep} from '../buildStep';
 
 import {SortBySelectors} from './sortBySelectors';
+
+export const CUSTOM_EQUATION_VALUE = 'custom-equation';
 
 interface Props {
   dataSet: DataSet;
@@ -23,6 +27,7 @@ interface Props {
   onSortByChange: (newSortBy: string) => void;
   organization: Organization;
   queries: WidgetQuery[];
+  tags: TagCollection;
   widgetBuilderNewDesign: boolean;
   widgetType: WidgetType;
   error?: string;
@@ -40,6 +45,7 @@ export function SortByStep({
   error,
   limit,
   onLimitChange,
+  tags,
 }: Props) {
   const fields = queries[0].columns;
 
@@ -59,6 +65,7 @@ export function SortByStep({
   }
 
   const orderBy = queries[0].orderby;
+  const strippedOrderBy = trimStart(orderBy, '-');
   const maxLimit = getResultsLimit(queries.length, queries[0].aggregates.length);
 
   const isTimeseriesChart = [
@@ -75,6 +82,8 @@ export function SortByStep({
       onLimitChange(maxLimit);
     }
   }, [limit, maxLimit]);
+
+  const columnSet = new Set(queries[0].columns);
 
   if (widgetBuilderNewDesign) {
     return (
@@ -110,6 +119,7 @@ export function SortByStep({
               />
             )}
           <SortBySelectors
+            displayType={displayType}
             widgetType={widgetType}
             hasGroupBy={isTimeseriesChart && !!queries[0].columns.length}
             disabledReason={disabledReason}
@@ -132,12 +142,26 @@ export function SortByStep({
                 orderBy[0] === '-'
                   ? SortDirection.HIGH_TO_LOW
                   : SortDirection.LOW_TO_HIGH,
-              sortBy: orderBy[0] === '-' ? orderBy.substring(1, orderBy.length) : orderBy,
+              sortBy: strippedOrderBy,
             }}
             onChange={({sortDirection, sortBy}) => {
               const newOrderBy =
                 sortDirection === SortDirection.HIGH_TO_LOW ? `-${sortBy}` : sortBy;
               onSortByChange(newOrderBy);
+            }}
+            tags={tags}
+            filterPrimaryOptions={option => {
+              if (
+                option.value.kind === FieldValueKind.FUNCTION ||
+                option.value.kind === FieldValueKind.EQUATION
+              ) {
+                return true;
+              }
+
+              return (
+                columnSet.has(option.value.meta.name) ||
+                option.value.meta.name === CUSTOM_EQUATION_VALUE
+              );
             }}
           />
         </Field>

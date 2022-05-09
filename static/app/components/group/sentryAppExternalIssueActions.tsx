@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -36,7 +36,7 @@ type State = {
   externalIssue?: PlatformExternalIssue;
 };
 
-class SentryAppExternalIssueActions extends React.Component<Props, State> {
+class SentryAppExternalIssueActions extends Component<Props, State> {
   state: State = {
     action: 'create',
     externalIssue: this.props.externalIssue,

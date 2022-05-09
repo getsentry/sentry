@@ -1,8 +1,8 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {InjectedRouter} from 'react-router';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {LegendComponentOption} from 'echarts';
+import {DataZoomComponentOption, LegendComponentOption} from 'echarts';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
@@ -43,6 +43,16 @@ import {DisplayType, Widget, WidgetType} from '../types';
 
 import WidgetQueries from './widgetQueries';
 
+export const SLIDER_HEIGHT = 60;
+
+export type AugmentedEChartDataZoomHandler = (
+  params: Parameters<EChartDataZoomHandler>[0] & {
+    seriesEnd: string | number;
+    seriesStart: string | number;
+  },
+  instance: Parameters<EChartDataZoomHandler>[1]
+) => void;
+
 type TableResultProps = Pick<
   WidgetQueries['state'],
   'errorMessage' | 'loading' | 'tableResults'
@@ -58,15 +68,18 @@ type WidgetCardChartProps = Pick<
   selection: PageFilters;
   theme: Theme;
   widget: Widget;
+  chartZoomOptions?: DataZoomComponentOption;
   expandNumbers?: boolean;
   isMobile?: boolean;
   legendOptions?: LegendComponentOption;
+  noPadding?: boolean;
   onLegendSelectChanged?: EChartEventHandler<{
     name: string;
     selected: Record<string, boolean>;
     type: 'legendselectchanged';
   }>;
-  onZoom?: EChartDataZoomHandler;
+  onZoom?: AugmentedEChartDataZoomHandler;
+  showSlider?: boolean;
   windowWidth?: number;
 };
 
@@ -76,7 +89,7 @@ type State = {
   containerHeight: number;
 };
 
-class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
+class WidgetCardChart extends Component<WidgetCardChartProps, State> {
   state = {containerHeight: 0};
 
   shouldComponentUpdate(nextProps: WidgetCardChartProps, nextState: State): boolean {
@@ -271,6 +284,9 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
       onZoom,
       legendOptions,
       expandNumbers,
+      showSlider,
+      noPadding,
+      chartZoomOptions,
     } = this.props;
 
     if (widget.displayType === 'table') {
@@ -372,10 +388,10 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
     const chartOptions = {
       autoHeightResize,
       grid: {
-        left: 4,
-        right: 0,
+        left: 0,
+        right: 4,
         top: '40px',
-        bottom: 0,
+        bottom: showSlider ? SLIDER_HEIGHT : 0,
       },
       seriesOptions: {
         showSymbol: false,
@@ -393,7 +409,15 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
     };
 
     return (
-      <ChartZoom router={router} period={period} start={start} end={end} utc={utc}>
+      <ChartZoom
+        router={router}
+        period={period}
+        start={start}
+        end={end}
+        utc={utc}
+        showSlider={showSlider}
+        chartZoomOptions={chartZoomOptions}
+      >
         {zoomRenderProps => {
           if (errorMessage) {
             return (
@@ -434,16 +458,26 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
               })
             : [];
 
+          const seriesStart = series[0]?.data[0]?.name;
+          const seriesEnd = series[0]?.data[series[0].data.length - 1]?.name;
           return (
             <TransitionChart loading={loading} reloading={loading}>
               <LoadingScreen loading={loading} />
-              <ChartWrapper autoHeightResize={autoHeightResize}>
+              <ChartWrapper autoHeightResize={autoHeightResize} noPadding={noPadding}>
                 {getDynamicText({
                   value: this.chartComponent({
                     ...zoomRenderProps,
                     ...chartOptions,
                     // Override default datazoom behaviour for updating Global Selection Header
-                    ...(onZoom ? {onDataZoom: onZoom} : {}),
+                    ...(onZoom
+                      ? {
+                          onDataZoom: (evt, chartProps) =>
+                            // Need to pass seriesStart and seriesEnd to onZoom since slider zooms
+                            // callback with percentage instead of datetime values. Passing seriesStart
+                            // and seriesEnd allows calculating datetime values with percentage.
+                            onZoom({...evt, seriesStart, seriesEnd}, chartProps),
+                        }
+                      : {}),
                     legend,
                     series,
                     onLegendSelectChanged,
@@ -507,9 +541,9 @@ const BigNumber = styled('div')`
   }
 `;
 
-const ChartWrapper = styled('div')<{autoHeightResize: boolean}>`
+const ChartWrapper = styled('div')<{autoHeightResize: boolean; noPadding?: boolean}>`
   ${p => p.autoHeightResize && 'height: 100%;'}
-  padding: 0 ${space(3)} ${space(3)};
+  padding: ${p => (!!p.noPadding ? `0` : `0 ${space(3)} ${space(3)}`)};
 `;
 
 const StyledSimpleTableChart = styled(SimpleTableChart)`

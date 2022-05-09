@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 
 import GenericDiscoverQuery, {
   DiscoverQueryProps,
@@ -39,14 +39,14 @@ function getTraceLiteRequestPayload({
 
 function EmptyTrace({children}: Pick<QueryProps, 'children'>) {
   return (
-    <React.Fragment>
+    <Fragment>
       {children({
         isLoading: false,
         error: null,
         trace: null,
         type: 'partial',
       })}
-    </React.Fragment>
+    </Fragment>
   );
 }
 

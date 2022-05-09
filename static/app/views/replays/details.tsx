@@ -5,20 +5,24 @@ import DetailedError from 'sentry/components/errors/detailedError';
 import NotFound from 'sentry/components/errors/notFound';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Panel, PanelBody, PanelHeader as _PanelHeader} from 'sentry/components/panels';
 import ReplayBreadcrumbOverview from 'sentry/components/replays/breadcrumbs/replayBreadcrumbOverview';
+import HorizontalMouseTracking from 'sentry/components/replays/player/horizontalMouseTracking';
+import {PlayerScrubber} from 'sentry/components/replays/player/scrubber';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayController from 'sentry/components/replays/replayController';
+import ReplayCurrentUrl from 'sentry/components/replays/replayCurrentUrl';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
 import useFullscreen from 'sentry/components/replays/useFullscreen';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
+import useReplayData from 'sentry/utils/replays/useReplayData';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 
 import DetailLayout from './detail/detailLayout';
 import FocusArea from './detail/focusArea';
 import UserActionsNavigator from './detail/userActionsNavigator';
-import useReplayEvent from './utils/useReplayEvent';
 
 function ReplayDetails() {
   const {
@@ -27,17 +31,11 @@ function ReplayDetails() {
   } = useRouteContext();
 
   const {
-    breadcrumbEntry,
-    event,
-    mergedReplayEvent,
-    memorySpans,
-    fetchError,
-    fetching,
-    onRetry,
-    rrwebEvents,
-  } = useReplayEvent({
+    t: initialTimeOffset, // Time, in seconds, where the video should start
+  } = location.query;
+
+  const {fetchError, fetching, onRetry, replay} = useReplayData({
     eventSlug,
-    location,
     orgId,
   });
 
@@ -45,25 +43,25 @@ function ReplayDetails() {
 
   if (fetching) {
     return (
-      <DetailLayout event={event} orgId={orgId}>
+      <DetailLayout orgId={orgId}>
         <LoadingIndicator />
       </DetailLayout>
     );
   }
-  if (!event) {
+  if (!replay) {
     // TODO(replay): Give the user more details when errors happen
     console.log({fetching, fetchError}); // eslint-disable-line no-console
     return (
-      <DetailLayout event={event} orgId={orgId}>
+      <DetailLayout orgId={orgId}>
         <PageContent>
           <NotFound />
         </PageContent>
       </DetailLayout>
     );
   }
-  if (!rrwebEvents || rrwebEvents.length < 2) {
+  if (replay.getRRWebEvents().length < 2) {
     return (
-      <DetailLayout event={event} orgId={orgId}>
+      <DetailLayout event={replay.getEvent()} orgId={orgId}>
         <DetailedError
           onRetry={onRetry}
           hideSupportLinks
@@ -84,35 +82,67 @@ function ReplayDetails() {
   }
 
   return (
-    <ReplayContextProvider events={rrwebEvents}>
+    <ReplayContextProvider replay={replay} initialTimeOffset={initialTimeOffset}>
       <DetailLayout
-        event={event}
+        event={replay.getEvent()}
         orgId={orgId}
-        crumbs={breadcrumbEntry?.data.values || []}
+        crumbs={replay.getRawCrumbs()}
       >
         <Layout.Body>
           <ReplayLayout ref={fullscreenRef}>
-            {/* In fullscreen we need to consider the max-height that the player is able
-            to full up, on a page that scrolls we only consider the max-width. */}
-            <ReplayPlayer fixedHeight={isFullscreen} />
-            <ReplayController toggleFullscreen={toggleFullscreen} />
+            <Panel>
+              <PanelHeader>
+                <ReplayCurrentUrl />
+              </PanelHeader>
+              <PanelHeader disablePadding>
+                <ManualResize isFullscreen={isFullscreen}>
+                  <ReplayPlayer />
+                </ManualResize>
+              </PanelHeader>
+              <HorizontalMouseTracking>
+                <PlayerScrubber />
+              </HorizontalMouseTracking>
+              <PanelBody withPadding>
+                <ReplayController toggleFullscreen={toggleFullscreen} />
+              </PanelBody>
+            </Panel>
           </ReplayLayout>
-          <Layout.Side>
-            <UserActionsNavigator event={event} entry={breadcrumbEntry} />
-          </Layout.Side>
-          <Layout.Main fullWidth>
-            <BreadcrumbTimeline crumbs={breadcrumbEntry?.data.values || []} />
-            <FocusArea
-              event={event}
-              eventWithSpans={mergedReplayEvent}
-              memorySpans={memorySpans}
+          <Side>
+            <UserActionsNavigator
+              crumbs={replay.getRawCrumbs()}
+              event={replay.getEvent()}
             />
+          </Side>
+          <Layout.Main fullWidth>
+            <Panel>
+              <BreadcrumbTimeline />
+            </Panel>
+            <FocusArea replay={replay} />
           </Layout.Main>
         </Layout.Body>
       </DetailLayout>
     </ReplayContextProvider>
   );
 }
+
+const PanelHeader = styled(_PanelHeader)`
+  display: block;
+  padding: 0;
+`;
+
+const ManualResize = styled('div')<{isFullscreen: boolean}>`
+  resize: vertical;
+  overflow: auto;
+  max-width: 100%;
+
+  ${p =>
+    p.isFullscreen
+      ? `resize: none;
+      width: auto !important;
+      height: auto !important;
+      `
+      : ''}
+`;
 
 const ReplayLayout = styled(Layout.Main)`
   :fullscreen {
@@ -122,9 +152,12 @@ const ReplayLayout = styled(Layout.Main)`
   }
 `;
 
+const Side = styled(Layout.Side)`
+  padding-bottom: ${space(2)};
+`;
+
 const BreadcrumbTimeline = styled(ReplayBreadcrumbOverview)`
   max-height: 5em;
-  margin-bottom: ${space(2)};
 `;
 
 export default ReplayDetails;

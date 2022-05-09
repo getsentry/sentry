@@ -104,7 +104,7 @@ def parse_numeric_value(value, suffix=None):
     if not suffix:
         return value
 
-    numeric_multiples = {"k": 10.0 ** 3, "m": 10.0 ** 6, "b": 10.0 ** 9}
+    numeric_multiples = {"k": 10.0**3, "m": 10.0**6, "b": 10.0**9}
     if suffix not in numeric_multiples:
         raise InvalidQuery(f"{suffix} is not a valid number suffix, must be k, m or b")
 
