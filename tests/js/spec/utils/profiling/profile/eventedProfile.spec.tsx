@@ -10,6 +10,7 @@ describe('EventedProfile', () => {
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
+      threadID: 0,
       type: 'evented',
       events: [],
     };
@@ -28,6 +29,7 @@ describe('EventedProfile', () => {
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
+      threadID: 0,
       type: 'evented',
       events: [
         {type: 'O', at: 0, frame: 0},
@@ -70,6 +72,7 @@ describe('EventedProfile', () => {
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
+      threadID: 0,
       type: 'evented',
       events: [
         {type: 'O', at: 0, frame: 0},
@@ -90,6 +93,7 @@ describe('EventedProfile', () => {
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
+      threadID: 0,
       type: 'evented',
       events: [
         {type: 'O', at: 0, frame: 0},
@@ -117,6 +121,7 @@ describe('EventedProfile', () => {
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
+      threadID: 0,
       type: 'evented',
       events: [
         {type: 'O', at: 0, frame: 0},
@@ -140,6 +145,7 @@ describe('EventedProfile', () => {
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
+      threadID: 0,
       type: 'evented',
       events: [
         {type: 'O', at: 5, frame: 0},
@@ -164,6 +170,7 @@ describe('EventedProfile', () => {
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
+      threadID: 0,
       type: 'evented',
       events: [
         {type: 'O', at: 0, frame: 0},

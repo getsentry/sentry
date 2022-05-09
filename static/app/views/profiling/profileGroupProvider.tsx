@@ -1,14 +1,15 @@
-import React, {createContext, useContext, useEffect, useState} from 'react';
+import {createContext, useContext, useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {Client} from 'sentry/api';
+import {FlamegraphHeader} from 'sentry/components/profiling/flamegraphHeader';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {RequestState} from 'sentry/types/core';
-import {Trace} from 'sentry/types/profiling/core';
 import {importProfile, ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 
 function fetchFlamegraphs(
   api: Client,
@@ -29,11 +30,6 @@ function fetchFlamegraphs(
 
 interface FlamegraphViewProps {
   children: React.ReactNode;
-  location: Location;
-  params: {
-    eventId?: Trace['id'];
-    projectId?: Project['id'];
-  };
 }
 
 const ProfileGroupContext = createContext<
@@ -55,19 +51,20 @@ export const useProfileGroup = () => {
 function ProfileGroupProvider(props: FlamegraphViewProps): React.ReactElement {
   const api = useApi();
   const organization = useOrganization();
+  const params = useParams();
 
   const [profileGroupState, setProfileGroupState] = useState<RequestState<ProfileGroup>>({
     type: 'initial',
   });
 
   useEffect(() => {
-    if (!props.params.eventId || !props.params.projectId) {
+    if (!params.eventId || !params.projectId) {
       return undefined;
     }
 
     setProfileGroupState({type: 'loading'});
 
-    fetchFlamegraphs(api, props.params.eventId, props.params.projectId, organization)
+    fetchFlamegraphs(api, params.eventId, params.projectId, organization)
       .then(importedFlamegraphs => {
         setProfileGroupState({type: 'resolved', data: importedFlamegraphs});
       })
@@ -80,10 +77,11 @@ function ProfileGroupProvider(props: FlamegraphViewProps): React.ReactElement {
     return () => {
       api.clear();
     };
-  }, [props.params.eventId, props.params.projectId, api, organization]);
+  }, [params.eventId, params.projectId, api, organization]);
 
   return (
     <ProfileGroupContext.Provider value={[profileGroupState, setProfileGroupState]}>
+      <FlamegraphHeader />
       {props.children}
     </ProfileGroupContext.Provider>
   );

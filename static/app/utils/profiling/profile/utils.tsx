@@ -162,26 +162,20 @@ export function getSlowestProfileCallsFromProfile(
   };
 }
 
-export function getSlowestProfileCallsFromProfileGroup(
-  profileGroup: ProfileGroup
-): AnalyzeProfileResults {
-  let applicationCalls: CallTreeNode[] = [];
-  let systemCalls: CallTreeNode[] = [];
+export function getSlowestProfileCallsFromProfileGroup(profileGroup: ProfileGroup) {
+  const applicationCalls: Record<number, CallTreeNode[]> = {};
+  const systemCalls: Record<number, CallTreeNode[]> = {};
 
   for (const profile of profileGroup.profiles) {
     const {slowestApplicationCalls, slowestSystemCalls} =
       getSlowestProfileCallsFromProfile(profile);
 
-    applicationCalls = applicationCalls.concat(slowestApplicationCalls);
-    systemCalls = systemCalls.concat(slowestSystemCalls);
+    applicationCalls[profile.threadId] = slowestApplicationCalls.splice(0, 10);
+    systemCalls[profile.threadId] = slowestSystemCalls.splice(0, 10);
   }
 
   return {
-    slowestApplicationCalls: applicationCalls
-      .sort((a, b) => b.selfWeight - a.selfWeight)
-      .slice(0, 10),
-    slowestSystemCalls: systemCalls
-      .sort((a, b) => b.selfWeight - a.selfWeight)
-      .slice(0, 10),
+    slowestApplicationCalls: applicationCalls,
+    slowestSystemCalls: systemCalls,
   };
 }
