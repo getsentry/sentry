@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-20.04
     timeout-minutes: 4
     needs: did-migration-change
-    if: ${{ needs.did-migration-change.outputs.modified == 'true' }}
+    if: needs.did-migration-change.outputs.modified == 'true'
 
     steps:
       - name: Failure because of modified migration
@@ -42,10 +42,10 @@ jobs:
     strategy:
       matrix:
         python-version: [3.8.12]
-        pg-version: ['9.6', '14']
+        pg-version: ['9.6']
 
     needs: did-migration-change
-    if: ${{ needs.did-migration-change.outputs.added == 'true' }}
+    if: needs.did-migration-change.outputs.added == 'true'
 
     steps:
       # Checkout master to run all merged migrations.

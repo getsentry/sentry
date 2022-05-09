@@ -31,7 +31,7 @@ describe('LazyLoad', function () {
     // Need to wait for `retryableImport` to resolve
     await tick();
     wrapper.update();
-    expect(wrapper.state('Component')).toEqual('button');
+    expect(wrapper.state('LazyComponent')).toEqual('button');
     expect(wrapper.find('button')).toHaveLength(1);
     expect(wrapper.find('LoadingIndicator')).toHaveLength(0);
   });

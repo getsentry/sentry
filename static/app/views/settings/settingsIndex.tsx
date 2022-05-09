@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -45,7 +45,7 @@ interface SettingsIndexProps extends RouteComponentProps<{}, {}> {
   organization: Organization;
 }
 
-class SettingsIndex extends React.Component<SettingsIndexProps> {
+class SettingsIndex extends Component<SettingsIndexProps> {
   componentDidUpdate(prevProps: SettingsIndexProps) {
     const {organization} = this.props;
     if (prevProps.organization === organization) {

@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import DetailedError from 'sentry/components/errors/detailedError';
 import {t} from 'sentry/locale';
 import {Environment} from 'sentry/types';

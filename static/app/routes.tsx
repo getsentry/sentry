@@ -1890,10 +1890,26 @@ function buildRoutes() {
         component={SafeLazyLoad}
       />
       <Route
+        path="functions/:projectId/"
+        componentPromise={() => import('sentry/views/profiling/functions')}
+        component={SafeLazyLoad}
+      />
+      <Route
         path="flamegraph/:projectId/:eventId"
         component={SafeLazyLoad}
-        componentPromise={() => import('sentry/views/profiling/flamegraph')}
-      />
+        componentPromise={() => import('sentry/views/profiling/profileGroupProvider')}
+      >
+        <Route
+          path="summary/"
+          component={SafeLazyLoad}
+          componentPromise={() => import('sentry/views/profiling/flamegraphSummary')}
+        />
+        <Route
+          path="flamegraph/"
+          component={SafeLazyLoad}
+          componentPromise={() => import('sentry/views/profiling/flamegraph')}
+        />
+      </Route>
     </Route>
   );
 

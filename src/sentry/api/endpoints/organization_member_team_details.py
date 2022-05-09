@@ -4,7 +4,7 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, roles
+from sentry import audit_log, features, roles
 from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -12,7 +12,6 @@ from sentry.api.serializers import Serializer, serialize
 from sentry.api.serializers.models.team import TeamWithProjectsSerializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
-    AuditLogEntryEvent,
     Organization,
     OrganizationAccessRequest,
     OrganizationMember,
@@ -179,24 +178,21 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         except Team.DoesNotExist:
             raise ResourceDoesNotExist
 
-        try:
-            omt = OrganizationMemberTeam.objects.get(team=team, organizationmember=member)
-        except OrganizationMemberTeam.DoesNotExist:
-            if self._can_create_team_member(request, team):
-                omt = OrganizationMemberTeam.objects.create(team=team, organizationmember=member)
-            else:
-                self._create_access_request(request, team, member)
-                return Response(status=202)
-
-        else:
+        if OrganizationMemberTeam.objects.filter(team=team, organizationmember=member).exists():
             return Response(status=204)
+
+        if not self._can_create_team_member(request, team):
+            self._create_access_request(request, team, member)
+            return Response(status=202)
+
+        omt = OrganizationMemberTeam.objects.create(team=team, organizationmember=member)
 
         self.create_audit_entry(
             request=request,
             organization=organization,
             target_object=omt.id,
             target_user=member.user,
-            event=AuditLogEntryEvent.MEMBER_JOIN_TEAM,
+            event=audit_log.get_event_id("MEMBER_JOIN_TEAM"),
             data=omt.get_audit_log_data(),
         )
 
@@ -291,7 +287,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
                 organization=organization,
                 target_object=omt.id,
                 target_user=member.user,
-                event=AuditLogEntryEvent.MEMBER_LEAVE_TEAM,
+                event=audit_log.get_event_id("MEMBER_LEAVE_TEAM"),
                 data=omt.get_audit_log_data(),
             )
             omt.delete()

@@ -64,7 +64,6 @@ const MobileRedirectStep: StepDescriptor = {
   id: 'setup-docs',
   title: t('Install the Sentry SDK'),
   Component: MobileRedirect,
-  hasFooter: true,
   cornerVariant: 'top-left',
 };
 
@@ -127,7 +126,6 @@ function Onboarding(props: Props) {
     if (step.cornerVariant !== nextStep.cornerVariant) {
       cornerVariantControl.start('none');
     }
-
     browserHistory.push(`/onboarding/${props.params.orgId}/${nextStep.id}/`);
   };
 
@@ -202,6 +200,7 @@ function Onboarding(props: Props) {
             {stepObj.Component && (
               <stepObj.Component
                 active
+                data-test-id={`onboarding-step-${stepObj.id}`}
                 stepIndex={stepIndex}
                 onComplete={() => stepObj && goNextStep(stepObj)}
                 orgId={props.params.orgId}

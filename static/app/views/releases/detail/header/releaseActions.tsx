@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -73,7 +73,7 @@ function ReleaseActions({
       releaseMeta.projects.length - visibleProjects.length;
 
     return (
-      <React.Fragment>
+      <Fragment>
         {visibleProjects.map(project => (
           <ProjectBadge key={project.slug} project={project} avatarSize={18} />
         ))}
@@ -89,7 +89,7 @@ function ReleaseActions({
             </Tooltip>
           </span>
         )}
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -103,13 +103,13 @@ function ReleaseActions({
 
   function getModalMessage(message: React.ReactNode) {
     return (
-      <React.Fragment>
+      <Fragment>
         {message}
 
         <ProjectsWrapper>{getProjectList()}</ProjectsWrapper>
 
         {t('Are you sure you want to do this?')}
-      </React.Fragment>
+      </Fragment>
     );
   }
 

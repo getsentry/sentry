@@ -3,8 +3,10 @@ import {useTheme} from '@emotion/react';
 import {Replayer, ReplayerEvents} from 'rrweb';
 import type {eventWithTime} from 'rrweb/typings/types';
 
+import type ReplayReader from 'sentry/utils/replays/replayReader';
 import usePrevious from 'sentry/utils/usePrevious';
 
+import HighlightReplayPlugin from './highlightReplayPlugin';
 import useRAF from './useRAF';
 
 type Dimensions = {height: number; width: number};
@@ -15,7 +17,14 @@ type RootElem = null | HTMLDivElement;
 // Instead only expose methods that wrap `Replayer` and manage state.
 type ReplayPlayerContextProps = {
   /**
-   * The current time of the video, in miliseconds
+   * The time, in milliseconds, where the user focus is.
+   * The user focus can be reported by any collaborating object, usually on
+   * hover.
+   */
+  currentHoverTime: undefined | number;
+
+  /**
+   * The current time of the video, in milliseconds
    * The value is updated on every animation frame, about every 16.6ms
    */
   currentTime: number;
@@ -66,6 +75,17 @@ type ReplayPlayerContextProps = {
   isSkippingInactive: boolean;
 
   /**
+   * The core replay data
+   */
+  replay: ReplayReader | null;
+
+  /**
+   * Set the currentHoverTime so collaborating components can highlight related
+   * information
+   */
+  setCurrentHoverTime: (time: undefined | number) => void;
+
+  /**
    * Jump the video to a specific time
    */
   setCurrentTime: (time: number) => void;
@@ -96,6 +116,7 @@ type ReplayPlayerContextProps = {
 };
 
 const ReplayPlayerContext = React.createContext<ReplayPlayerContextProps>({
+  currentHoverTime: undefined,
   currentTime: 0,
   dimensions: {height: 0, width: 0},
   duration: undefined,
@@ -105,6 +126,8 @@ const ReplayPlayerContext = React.createContext<ReplayPlayerContextProps>({
   isBuffering: false,
   isPlaying: false,
   isSkippingInactive: false,
+  replay: null,
+  setCurrentHoverTime: () => {},
   setCurrentTime: () => {},
   setSpeed: () => {},
   speed: 1,
@@ -114,7 +137,7 @@ const ReplayPlayerContext = React.createContext<ReplayPlayerContextProps>({
 
 type Props = {
   children: React.ReactNode;
-  events: eventWithTime[];
+  replay: ReplayReader;
 
   /**
    * Time, in seconds, when the video should start
@@ -133,11 +156,14 @@ function useCurrentTime(callback: () => number) {
   return currentTime;
 }
 
-export function Provider({children, events, initialTimeOffset = 0, value = {}}: Props) {
+export function Provider({children, replay, initialTimeOffset = 0, value = {}}: Props) {
+  const events = replay.getRRWebEvents();
+
   const theme = useTheme();
   const oldEvents = usePrevious(events);
   const replayerRef = useRef<Replayer>(null);
   const [dimensions, setDimensions] = useState<Dimensions>({height: 0, width: 0});
+  const [currentHoverTime, setCurrentHoverTime] = useState<undefined | number>();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isSkippingInactive, setIsSkippingInactive] = useState(false);
   const [speed, setSpeedState] = useState(1);
@@ -181,10 +207,12 @@ export function Provider({children, events, initialTimeOffset = 0, value = {}}: 
         }
       }
 
+      const highlightReplayPlugin = new HighlightReplayPlugin();
+
       // eslint-disable-next-line no-new
       const inst = new Replayer(events, {
         root,
-        // blockClass: 'rr-block',
+        blockClass: 'sr-block',
         // liveMode: false,
         // triggerFocus: false,
         mouseTail: {
@@ -194,7 +222,7 @@ export function Provider({children, events, initialTimeOffset = 0, value = {}}: 
           strokeStyle: theme.purple200,
         },
         // unpackFn: _ => _,
-        // plugins: [],
+        plugins: [highlightReplayPlugin],
       });
 
       // @ts-expect-error: rrweb types event handlers with `unknown` parameters
@@ -322,6 +350,7 @@ export function Provider({children, events, initialTimeOffset = 0, value = {}}: 
   return (
     <ReplayPlayerContext.Provider
       value={{
+        currentHoverTime,
         currentTime,
         dimensions,
         duration: replayerRef.current?.getMetaData().totalTime,
@@ -331,6 +360,8 @@ export function Provider({children, events, initialTimeOffset = 0, value = {}}: 
         isBuffering,
         isPlaying,
         isSkippingInactive,
+        replay,
+        setCurrentHoverTime,
         setCurrentTime,
         setSpeed,
         speed,
