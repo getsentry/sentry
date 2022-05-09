@@ -43,7 +43,6 @@ export class Profile {
     this.startedAt = startedAt;
     this.endedAt = endedAt;
     this.name = name;
-    this.threadId = threadId;
     this.unit = unit;
   }
 
