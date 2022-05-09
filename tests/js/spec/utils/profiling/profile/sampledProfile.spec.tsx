@@ -20,6 +20,7 @@ describe('SampledProfile', () => {
 
     expect(profile.duration).toBe(1000);
     expect(profile.name).toBe(trace.name);
+    expect(profile.threadId).toBe(trace.threadID);
     expect(profile.startedAt).toBe(0);
     expect(profile.endedAt).toBe(1000);
   });

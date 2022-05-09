@@ -4,22 +4,25 @@ import styled from '@emotion/styled';
 import {transformCrumbs} from 'sentry/components/events/interfaces/breadcrumbs/utils';
 import HorizontalMouseTracking from 'sentry/components/replays/player/horizontalMouseTracking';
 import {TimelineScubber} from 'sentry/components/replays/player/scrubber';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
 import StackedContent from 'sentry/components/replays/stackedContent';
+import TimelinePosition from 'sentry/components/replays/timelinePosition';
 import space from 'sentry/styles/space';
-import {Crumb, RawCrumb} from 'sentry/types/breadcrumbs';
+import {Crumb} from 'sentry/types/breadcrumbs';
 
 import {countColumns, formatTime, getCrumbsByColumn} from '../utils';
 
 const EVENT_STICK_MARKER_WIDTH = 2;
 
 interface Props {
-  crumbs: Array<RawCrumb>;
   className?: string;
 }
 
 type LineStyle = 'dotted' | 'solid' | 'none';
 
-function ReplayBreadcrumbOverview({crumbs, className}: Props) {
+function ReplayBreadcrumbOverview({className}: Props) {
+  const {replay, duration} = useReplayContext();
+  const crumbs = replay?.getRawCrumbs() || [];
   const transformedCrumbs = transformCrumbs(crumbs);
 
   return (
@@ -29,20 +32,20 @@ function ReplayBreadcrumbOverview({crumbs, className}: Props) {
         {({width}) => (
           <React.Fragment>
             <Ticks
-              crumbs={transformedCrumbs}
+              duration={duration || 0}
               width={width}
               minWidth={20}
               lineStyle="dotted"
             />
             <Ticks
-              crumbs={transformedCrumbs}
+              duration={duration || 0}
               width={width}
               showTimestamp
               minWidth={50}
               lineStyle="solid"
             />
-
             <Events crumbs={transformedCrumbs} width={width} />
+            <TimelinePosition />
           </React.Fragment>
         )}
       </StackedContent>
@@ -51,31 +54,19 @@ function ReplayBreadcrumbOverview({crumbs, className}: Props) {
 }
 
 function Ticks({
-  crumbs,
+  duration,
   width,
   minWidth = 50,
   showTimestamp,
   lineStyle = 'solid',
 }: {
-  crumbs: Crumb[];
+  duration: number;
   lineStyle: LineStyle;
   width: number;
   minWidth?: number;
   showTimestamp?: boolean;
 }) {
-  const startTime = crumbs[0]?.timestamp;
-  const endTime = crumbs[crumbs.length - 1]?.timestamp;
-
-  const startMilliSeconds = +new Date(String(startTime));
-  const endMilliSeconds = +new Date(String(endTime));
-
-  const duration = endMilliSeconds - startMilliSeconds;
-
-  const {timespan, cols, remaining} = countColumns(
-    isNaN(duration) ? 0 : duration,
-    width,
-    minWidth
-  );
+  const {timespan, cols, remaining} = countColumns(duration, width, minWidth);
 
   return (
     <TimelineMarkerList totalColumns={cols} remainder={remaining}>
@@ -130,8 +121,8 @@ function Events({crumbs, width}: {crumbs: Crumb[]; width: number}) {
 function EventMarkerList({breadcrumbs}: {breadcrumbs: Crumb[]}) {
   return (
     <React.Fragment>
-      {breadcrumbs.map(breadcrumb => (
-        <EventStickMarker key={breadcrumb.timestamp} color={breadcrumb.color} />
+      {breadcrumbs.map((breadcrumb, i) => (
+        <EventStickMarker key={`${breadcrumb.timestamp}-${i}`} color={breadcrumb.color} />
       ))}
     </React.Fragment>
   );

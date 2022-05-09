@@ -48,7 +48,7 @@ function SelectOption(props: Props) {
           <ContentWrap
             isFocused={isFocused}
             showDividers={showDividers}
-            addRightMargin={!defined(trailingItems)}
+            addRightMargin={defined(trailingItems)}
           >
             <LabelWrap>
               <Label as={typeof label === 'string' ? 'p' : 'div'}>{label}</Label>
@@ -135,6 +135,7 @@ const ContentWrap = styled('div')<{
   gap: ${space(1)};
   justify-content: space-between;
   padding: ${space(1)} 0;
+  min-width: 0;
 
   ${p =>
     p.addRightMargin &&

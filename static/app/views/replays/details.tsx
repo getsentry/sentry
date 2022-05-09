@@ -17,7 +17,6 @@ import useFullscreen from 'sentry/components/replays/useFullscreen';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
-import {EntryType} from 'sentry/types/event';
 import useReplayData from 'sentry/utils/replays/useReplayData';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 
@@ -87,7 +86,7 @@ function ReplayDetails() {
       <DetailLayout
         event={replay.getEvent()}
         orgId={orgId}
-        crumbs={replay.getEntryType(EntryType.BREADCRUMBS)?.data.values || []}
+        crumbs={replay.getRawCrumbs()}
       >
         <Layout.Body>
           <ReplayLayout ref={fullscreenRef}>
@@ -110,15 +109,13 @@ function ReplayDetails() {
           </ReplayLayout>
           <Side>
             <UserActionsNavigator
-              crumbs={replay.getEntryType(EntryType.BREADCRUMBS)?.data.values || []}
+              crumbs={replay.getRawCrumbs()}
               event={replay.getEvent()}
             />
           </Side>
           <Layout.Main fullWidth>
             <Panel>
-              <BreadcrumbTimeline
-                crumbs={replay.getEntryType(EntryType.BREADCRUMBS)?.data.values || []}
-              />
+              <BreadcrumbTimeline />
             </Panel>
             <FocusArea replay={replay} />
           </Layout.Main>
