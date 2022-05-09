@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useMemo} from 'react';
 
 import EventEntry from 'sentry/components/events/eventEntry';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
@@ -50,6 +50,12 @@ function ActiveTab({active, replay}: Props & {active: ReplayTabs}) {
   const event = replay.getEvent();
   const spansEntry = replay.getEntryType(EntryType.SPANS);
 
+  // Memoize this because re-renders will interfere with the mouse state of the
+  // chart (e.g. on mouse over and out)
+  const memorySpans = useMemo(() => {
+    return spansEntry?.data.filter(replay.isMemorySpan);
+  }, [spansEntry, replay]);
+
   switch (active) {
     case 'console':
       const breadcrumbEntry = replay.getEntryType(EntryType.BREADCRUMBS);
@@ -100,9 +106,9 @@ function ActiveTab({active, replay}: Props & {active: ReplayTabs}) {
     case 'memory':
       return (
         <MemoryChart
+          memorySpans={memorySpans}
           setCurrentTime={setCurrentTime}
           setCurrentHoverTime={setCurrentHoverTime}
-          memorySpans={spansEntry?.data.filter(replay.isMemorySpan)}
           startTimestamp={event.startTimestamp}
         />
       );
