@@ -8,7 +8,7 @@ efficient, we only look at the past 24 hours.
 
 __all__ = ("get_metrics", "get_tags", "get_tag_values", "get_series", "get_single_metric_info")
 import logging
-from collections import defaultdict, deque
+from collections import OrderedDict, defaultdict, deque
 from copy import copy
 from dataclasses import dataclass, replace
 from operator import itemgetter
@@ -462,7 +462,10 @@ def _get_group_limit_filters(
         for field in query.groupby
     )
 
-    values = [tuple(row[col] for col in keys) for row in results]
+    # Get an ordered list of tuples containing the values of the group keys.
+    # This needs to be deduplicated since in timeseries queries the same
+    # grouping key will reappear for every time bucket.
+    values = list(OrderedDict((tuple(row[col] for col in keys), None) for row in results).keys())
     conditions = [
         Condition(Function("tuple", [Column(k) for k in keys]), Op.IN, Function("tuple", values))
     ]
