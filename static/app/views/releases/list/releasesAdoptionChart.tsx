@@ -114,7 +114,7 @@ class ReleasesAdoptionChart extends Component<Props> {
     }));
   }
 
-  handleClick = (params: {seriesId: string}) => {
+  handleClick = params => {
     const {organization, router, selection, location} = this.props;
 
     const project = selection.projects[0];
