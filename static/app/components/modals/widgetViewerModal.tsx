@@ -47,6 +47,7 @@ import {
   getFieldsFromEquations,
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
+  getWidgetReleasesUrl,
 } from 'sentry/views/dashboardsV2/utils';
 import WidgetCardChart, {
   AugmentedEChartDataZoomHandler,
@@ -878,6 +879,10 @@ function WidgetViewerModal(props: Props) {
       openLabel = t('Open in Issues');
       path = getWidgetIssueUrl(primaryWidget, modalTableSelection, organization);
       break;
+    case WidgetType.RELEASE:
+      openLabel = t('Open in Releases');
+      path = getWidgetReleasesUrl(primaryWidget, modalTableSelection, organization);
+      break;
     case WidgetType.DISCOVER:
     default:
       openLabel = t('Open in Discover');
@@ -915,26 +920,25 @@ function WidgetViewerModal(props: Props) {
                 {t('Edit Widget')}
               </Button>
             )}
-            {widget.widgetType &&
-              [WidgetType.DISCOVER, WidgetType.ISSUE].includes(widget.widgetType) && (
-                <Button
-                  to={path}
-                  priority="primary"
-                  type="button"
-                  onClick={() => {
-                    trackAdvancedAnalyticsEvent(
-                      'dashboards_views.widget_viewer.open_source',
-                      {
-                        organization,
-                        widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                        display_type: widget.displayType,
-                      }
-                    );
-                  }}
-                >
-                  {openLabel}
-                </Button>
-              )}
+            {widget.widgetType && (
+              <Button
+                to={path}
+                priority="primary"
+                type="button"
+                onClick={() => {
+                  trackAdvancedAnalyticsEvent(
+                    'dashboards_views.widget_viewer.open_source',
+                    {
+                      organization,
+                      widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                      display_type: widget.displayType,
+                    }
+                  );
+                }}
+              >
+                {openLabel}
+              </Button>
+            )}
           </ButtonBar>
         </ResultsContainer>
       </Footer>

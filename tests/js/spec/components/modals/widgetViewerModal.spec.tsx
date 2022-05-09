@@ -6,6 +6,7 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import WidgetViewerModal from 'sentry/components/modals/widgetViewerModal';
 import MemberListStore from 'sentry/stores/memberListStore';
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import space from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
 import {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
@@ -1006,9 +1007,27 @@ describe('Modals -> WidgetViewerModal', function () {
       expect(screen.getByText('Release Widget')).toBeInTheDocument();
     });
 
-    it('renders Edit', async function () {
+    it('renders Edit and Open in Releases buttons', async function () {
       await renderModal({initialData, widget: mockWidget});
       expect(screen.getByText('Edit Widget')).toBeInTheDocument();
+      expect(screen.getByText('Open in Releases')).toBeInTheDocument();
+    });
+
+    it('Open in Releases button redirects browser', async function () {
+      PageFiltersStore.init();
+      PageFiltersStore.onInitializeUrlState(
+        {
+          projects: [],
+          environments: [],
+          datetime: {start: null, end: null, period: '24h', utc: null},
+        },
+        new Set()
+      );
+      await renderModal({initialData, widget: mockWidget});
+      userEvent.click(screen.getByText('Open in Releases'));
+      expect(initialData.router.push).toHaveBeenCalledWith(
+        '/organizations/org-slug/releases/?statsPeriod=24h'
+      );
     });
 
     it('renders table header and body', async function () {

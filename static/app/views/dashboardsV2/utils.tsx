@@ -263,6 +263,22 @@ export function getWidgetIssueUrl(
   return issuesLocation;
 }
 
+export function getWidgetReleasesUrl(
+  _widget: Widget,
+  selection: PageFilters,
+  organization: Organization
+) {
+  const {start, end, utc, period} = selection.datetime;
+  const datetime =
+    start && end
+      ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
+      : {statsPeriod: period};
+  const releasesLocation = `/organizations/${organization.slug}/releases/?${qs.stringify({
+    ...datetime,
+  })}`;
+  return releasesLocation;
+}
+
 export function flattenErrors(
   data: ValidationError | string,
   update: FlatValidationError
