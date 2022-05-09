@@ -189,7 +189,7 @@ export const renderGridBodyCell =
         }
         break;
     }
-    const TopResultsCount = tableData
+    const topResultsCount = tableData
       ? Math.min(tableData?.data.length, DEFAULT_NUM_TOP_EVENTS)
       : DEFAULT_NUM_TOP_EVENTS;
     return (
