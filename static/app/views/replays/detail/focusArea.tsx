@@ -45,7 +45,7 @@ function FocusArea(props: Props) {
 
 function ActiveTab({active, replay}: Props & {active: ReplayTabs}) {
   const {routes, router} = useRouteContext();
-  const {setCurrentTime, setCurrentHoverTime} = useReplayContext();
+  const {currentTime, setCurrentTime, setCurrentHoverTime} = useReplayContext();
   const organization = useOrganization();
 
   const event = replay.getEvent();
@@ -113,6 +113,7 @@ function ActiveTab({active, replay}: Props & {active: ReplayTabs}) {
     case 'memory':
       return (
         <MemoryChart
+          currentTime={currentTime}
           memorySpans={memorySpans}
           setCurrentTime={setCurrentTime}
           setCurrentHoverTime={setCurrentHoverTime}

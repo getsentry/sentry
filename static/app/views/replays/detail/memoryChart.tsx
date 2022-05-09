@@ -15,6 +15,7 @@ import {formatBytesBase2} from 'sentry/utils';
 import {getFormattedDate} from 'sentry/utils/dates';
 
 type Props = {
+  currentTime: number;
   memorySpans: MemorySpanType[];
   setCurrentHoverTime: (time: undefined | number) => void;
   setCurrentTime: (time: number) => void;
@@ -25,6 +26,7 @@ const formatTimestamp = timestamp =>
   getFormattedDate(timestamp * 1000, 'MMM D, YYYY hh:mm:ss A z', {local: false});
 
 function MemoryChart({
+  currentTime,
   memorySpans,
   startTimestamp = 0,
   setCurrentTime,
@@ -130,6 +132,20 @@ function MemoryChart({
       lineStyle: {
         opacity: 0.75,
         width: 1,
+      },
+      markLine: {
+        symbol: ['', ''],
+        data: [
+          {
+            name: 'Current player time',
+            xAxis: currentTime / 1000 + startTimestamp,
+          },
+        ],
+        label: '',
+        lineStyle: {
+          color: theme.purple300,
+          width: 2,
+        },
       },
     },
     {
