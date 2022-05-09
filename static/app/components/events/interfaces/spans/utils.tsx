@@ -10,7 +10,7 @@ import {assert} from 'sentry/types/utils';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {getPerformanceTransaction} from 'sentry/utils/performanceForSentry';
 
-import {POSITION_DELTA_MERGE_THRESHOLD} from './constants';
+import {MERGE_LABELS_THRESHOLD_PERCENT} from './constants';
 import {
   EnhancedSpan,
   GapSpanType,
@@ -570,7 +570,7 @@ export function getMeasurements(
 
     for (const [otherPos] of mergedMeasurements) {
       const positionDelta = Math.abs(otherPos - roundedPos);
-      if (positionDelta <= POSITION_DELTA_MERGE_THRESHOLD) {
+      if (positionDelta <= MERGE_LABELS_THRESHOLD_PERCENT) {
         const verticalMark = mergedMeasurements.get(otherPos)!;
 
         verticalMark.marks = {
