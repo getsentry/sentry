@@ -1,12 +1,14 @@
 import {useEffect, useState} from 'react';
 
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import type {EventTransaction} from 'sentry/types/event';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
-// import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
@@ -114,9 +116,6 @@ export default function Trace({event, organization}: Props) {
           traces: traceDetails.flatMap(([trace]) => trace as TraceFullDetailed[]) || [],
         }));
       } catch (err) {
-        console.error(err);
-
-        // TODO(error): parse error
         setState({
           isLoading: false,
           error: err,
@@ -137,11 +136,11 @@ export default function Trace({event, organization}: Props) {
   }
 
   if (state.error || !state.traceEventView) {
-    return <div>Error</div>;
+    return <LoadingError />;
   }
 
   if (!state.traces?.length) {
-    return <div>No traces to display</div>;
+    return <EmptyStateWarning>{t('No traces found')}</EmptyStateWarning>;
   }
 
   return (
