@@ -48,12 +48,12 @@ export default class ReplayReader {
    * So we need to figure out the real end time, in milliseconds.
    */
   private _getEndTimestampMS() {
-    const breadcrumbs = this.getEntryType(EntryType.BREADCRUMBS);
-    const spans = this.getEntryType(EntryType.SPANS);
+    const crumbs = this.getRawCrumbs();
+    const spans = this.getRawSpans();
 
     const lastRRweb = last(this._rrwebEvents);
-    const lastBreadcrumb = last(breadcrumbs?.data.values as RawCrumb[]);
-    const lastSpan = last(spans?.data as RawSpanType[]);
+    const lastBreadcrumb = last(crumbs);
+    const lastSpan = last(spans);
 
     return Math.max(
       lastRRweb?.timestamp || 0,
@@ -63,22 +63,22 @@ export default class ReplayReader {
   }
 
   getEvent = memoize(() => {
-    const breadcrumbs = this.getEntryType(EntryType.BREADCRUMBS);
-    const spans = this.getEntryType(EntryType.SPANS);
+    const breadcrumbEntry = this.getEntryType(EntryType.BREADCRUMBS);
+    const spansEntry = this.getEntryType(EntryType.SPANS);
     const endTimestampMS = this._getEndTimestampMS();
 
     return {
       ...this._event,
-      entries: [breadcrumbs, spans],
+      entries: [breadcrumbEntry, spansEntry],
       endTimestamp: endTimestampMS / 1000,
     } as EventTransaction;
   });
 
   getRRWebEvents = memoize(() => {
-    const spansEntry = this.getEntryType(EntryType.SPANS);
+    const spans = this.getRawSpans();
 
     // Find LCP spans that have a valid replay node id, this will be used to
-    const highlights = createHighlightEvents(spansEntry.data);
+    const highlights = createHighlightEvents(spans);
 
     // Create a final event so that rrweb has the same internal duration as the
     // root event.
@@ -113,6 +113,14 @@ export default class ReplayReader {
         );
     }
   });
+
+  getRawCrumbs = () => {
+    return this.getEntryType(EntryType.BREADCRUMBS)?.data.values as RawCrumb[];
+  };
+
+  getRawSpans = () => {
+    return this.getEntryType(EntryType.SPANS)?.data as RawSpanType[];
+  };
 
   isMemorySpan = (span: RawSpanType) => {
     return span.op === 'memory';

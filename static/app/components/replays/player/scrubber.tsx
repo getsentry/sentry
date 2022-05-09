@@ -2,28 +2,20 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
+import * as Progress from 'sentry/components/replays/progress';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
+import {divide} from 'sentry/components/replays/utils';
 import space from 'sentry/styles/space';
 
 type Props = {
   className?: string;
 };
 
-/**
- * Calculate the percent complete (0.0 to 1.0) of a given video duration.
- */
-function getPercentComplete(currentTime: number, duration: number | undefined) {
-  if (duration === undefined || isNaN(duration)) {
-    return 0;
-  }
-  return currentTime / duration;
-}
-
 function Scrubber({className}: Props) {
   const {currentHoverTime, currentTime, duration, setCurrentTime} = useReplayContext();
 
-  const percentComplete = getPercentComplete(currentTime, duration);
-  const hoverPlace = getPercentComplete(currentHoverTime || 0, duration);
+  const percentComplete = divide(currentTime, duration);
+  const hoverPlace = divide(currentHoverTime || 0, duration);
 
   return (
     <Wrapper className={className}>
@@ -45,20 +37,8 @@ function Scrubber({className}: Props) {
   );
 }
 
-const Meter = styled('div')`
+const Meter = styled(Progress.Meter)`
   background: ${p => p.theme.gray200};
-  width: 100%;
-  height: 100%;
-  position: relative;
-`;
-
-const Value = styled('span')<{
-  percent: number;
-}>`
-  display: inline-block;
-  position: absolute;
-  width: ${p => p.percent * 100}%;
-  height: 100%;
 `;
 
 const RangeWrapper = styled('div')`
@@ -74,11 +54,11 @@ const Range = styled(RangeSlider)`
   }
 `;
 
-const PlaybackTimeValue = styled(Value)`
+const PlaybackTimeValue = styled(Progress.Value)`
   background: ${p => p.theme.purple300};
 `;
 
-const MouseTrackingValue = styled(Value)`
+const MouseTrackingValue = styled(Progress.Value)`
   background: ${p => p.theme.purple200};
 `;
 
