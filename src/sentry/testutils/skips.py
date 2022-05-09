@@ -13,7 +13,8 @@ def snuba_is_available():
         return _service_status["snuba"]
     try:
         parsed = urlparse(settings.SENTRY_SNUBA)
-        socket.create_connection((parsed.hostname, parsed.port), 1.0)
+        with socket.create_connection((parsed.hostname, parsed.port), 1.0):
+            pass
     except OSError:
         _service_status["snuba"] = False
     else:
