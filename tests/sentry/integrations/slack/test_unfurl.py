@@ -54,6 +54,9 @@ def test_match_link(url, expected):
 class UnfurlTest(TestCase):
     def setUp(self):
         super().setUp()
+        # We're redefining project to ensure that the individual tests have unique project ids.
+        # Sharing project ids across tests could result in some race conditions
+        self.project = self.create_project()
         self.integration = install_slack(self.organization)
 
         self.request = RequestFactory().get("slack/event")
@@ -125,7 +128,6 @@ class UnfurlTest(TestCase):
         self.store_event(
             data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
         )
-
         url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&project={self.project.id}&query=&sort=-timestamp&statsPeriod=24h"
         link_type, args = match_link(url)
 

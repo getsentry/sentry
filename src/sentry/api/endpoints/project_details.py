@@ -11,7 +11,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_relay.processing import validate_sampling_condition, validate_sampling_configuration
 
-from sentry import features
+from sentry import audit_log, features
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
 from sentry.api.fields.empty_integer import EmptyIntegerField
@@ -32,7 +32,6 @@ from sentry.lang.native.symbolicator import (
 )
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_MAX, convert_crashreport_count
 from sentry.models import (
-    AuditLogEntryEvent,
     Group,
     GroupStatus,
     NotificationSetting,
@@ -743,7 +742,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 request=request,
                 organization=project.organization,
                 target_object=project.id,
-                event=AuditLogEntryEvent.PROJECT_EDIT,
+                event=audit_log.get_event_id("PROJECT_EDIT"),
                 data=changed_proj_settings,
             )
 
@@ -783,7 +782,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 request=request,
                 organization=project.organization,
                 target_object=project.id,
-                event=AuditLogEntryEvent.PROJECT_REMOVE,
+                event=audit_log.get_event_id("PROJECT_REMOVE"),
                 data=project.get_audit_log_data(),
                 transaction_id=scheduled.id,
             )

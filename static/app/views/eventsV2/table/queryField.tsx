@@ -1,5 +1,4 @@
-import {CSSProperties} from 'react';
-import * as React from 'react';
+import {Component, createRef} from 'react';
 import {components, OptionProps, SingleValueProps} from 'react-select';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
@@ -108,7 +107,7 @@ type OptionType = {
   value: FieldValue;
 };
 
-class QueryField extends React.Component<Props> {
+class QueryField extends Component<Props> {
   FieldSelectComponents = {
     Option: ({label, data, ...props}: OptionProps<OptionType>) => {
       return (
@@ -133,7 +132,7 @@ class QueryField extends React.Component<Props> {
   };
 
   FieldSelectStyles = {
-    singleValue(provided: CSSProperties) {
+    singleValue(provided: React.CSSProperties) {
       const custom = {
         display: 'flex',
         justifyContent: 'space-between',
@@ -142,7 +141,7 @@ class QueryField extends React.Component<Props> {
       };
       return {...provided, ...custom};
     },
-    option(provided: CSSProperties) {
+    option(provided: React.CSSProperties) {
       const custom = {
         display: 'flex',
         justifyContent: 'space-between',
@@ -191,6 +190,13 @@ class QueryField extends React.Component<Props> {
             function: [value.meta.name as AggregationKey, '', undefined, undefined],
           };
         }
+        break;
+      case FieldValueKind.EQUATION:
+        fieldValue = {
+          kind: 'equation',
+          field: value.meta.name,
+          alias: value.meta.name,
+        };
         break;
       default:
         throw new Error('Invalid field type found in column picker');
@@ -300,6 +306,11 @@ class QueryField extends React.Component<Props> {
     const spanOperationBreakdownName = `span_op_breakdown:${name}`;
     if (fieldOptions[spanOperationBreakdownName]) {
       return fieldOptions[spanOperationBreakdownName].value;
+    }
+
+    const equationName = `equation:${name}`;
+    if (fieldOptions[equationName]) {
+      return fieldOptions[equationName].value;
     }
 
     const tagName =
@@ -721,10 +732,10 @@ type InputState = {value: string};
  * Using a buffered input lets us throttle rendering and enforce data
  * constraints better.
  */
-class BufferedInput extends React.Component<BufferedInputProps, InputState> {
+class BufferedInput extends Component<BufferedInputProps, InputState> {
   constructor(props: BufferedInputProps) {
     super(props);
-    this.input = React.createRef();
+    this.input = createRef();
   }
 
   state: InputState = {

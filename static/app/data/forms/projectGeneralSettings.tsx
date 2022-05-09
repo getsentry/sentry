@@ -39,14 +39,20 @@ const ORG_DISABLED_REASON = t(
 );
 
 export const fields: Record<string, Field> = {
-  slug: {
-    name: 'slug',
+  name: {
+    name: 'name',
     type: 'string',
     required: true,
     label: t('Name'),
-    placeholder: t('my-service-name'),
-    help: t('A unique ID used to identify this project'),
+    placeholder: t('my-awesome-project'),
+    help: t('A name for this project'),
     transformInput: slugify,
+    getData: (data: {name?: string}) => {
+      return {
+        name: data.name,
+        slug: data.name,
+      };
+    },
 
     saveOnBlur: false,
     saveMessageAlertType: 'info',

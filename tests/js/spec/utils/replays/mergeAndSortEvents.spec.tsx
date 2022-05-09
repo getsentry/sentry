@@ -1,4 +1,4 @@
-import mergeAndSortEvents from 'sentry/views/replays/utils/mergeAndSortEvents';
+import mergeAndSortEvents from 'sentry/utils/replays/mergeAndSortEvents';
 
 it('merges and sorts multiple lists of events', function () {
   expect(

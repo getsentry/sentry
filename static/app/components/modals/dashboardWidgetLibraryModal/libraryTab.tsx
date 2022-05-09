@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
@@ -24,7 +24,7 @@ function DashboardWidgetLibraryTab({
   setErrored,
 }: Props) {
   return (
-    <React.Fragment>
+    <Fragment>
       {errored && !!!selectedWidgets.length ? (
         <Alert type="error">
           {t(
@@ -46,7 +46,7 @@ function DashboardWidgetLibraryTab({
           );
         })}
       </WidgetLibraryGrid>
-    </React.Fragment>
+    </Fragment>
   );
 }
 
