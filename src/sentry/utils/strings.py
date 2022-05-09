@@ -45,7 +45,7 @@ INVALID_ESCAPE = re.compile(
 def unescape_string(value: str):
     """Unescapes a backslash escaped string."""
     value = INVALID_ESCAPE.sub(r"\1\\", value)
-    return ast.literal_eval(f'"{value}"')
+    return ast.literal_eval(f'"""{value}"""')
 
 
 def strip_lone_surrogates(string):
