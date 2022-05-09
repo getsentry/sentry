@@ -117,9 +117,7 @@ class SlackLinkTeamView(BaseView):  # type: ignore
         try:
             idp = IdentityProvider.objects.get(type="slack", external_id=integration.external_id)
         except IdentityProvider.DoesNotExist:
-            logger.error(
-                "slack.action.invalid-team-id", extra={"slack_id": integration.external_id}
-            )
+            logger.info("slack.action.invalid-team-id", extra={"slack_id": integration.external_id})
             return render_error_page(request, body_text="HTTP 403: Invalid team ID")
 
         if not Identity.objects.filter(idp=idp, external_id=params["slack_id"]).exists():
