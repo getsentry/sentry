@@ -21,7 +21,10 @@ import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 import usePrevious from 'sentry/utils/usePrevious';
 
 import {BoundTooltip} from './boundTooltip';
-import {FlamegraphOptionsContextMenu} from './flamegraphOptionsContextMenu';
+import {
+  FlamegraphOptionsContextMenu,
+  useContextMenu,
+} from './flamegraphOptionsContextMenu';
 
 interface FlamegraphZoomViewProps {
   canvasPoolManager: CanvasPoolManager;
@@ -643,7 +646,8 @@ function FlamegraphZoomView({
   }, [flamegraphCanvasRef, flamegraphRenderer, zoom, scroll]);
 
   // Context menu coordinates
-  const [mouseCoordinates, setMouseCoordinates] = useState<Rect | null>(null);
+  const contextMenuProps = useContextMenu();
+  const [contextMenuCoordinates, setContextMenuCoordinates] = useState<Rect | null>(null);
   const onContextMenu = useCallback(
     (evt: React.MouseEvent) => {
       evt.preventDefault();
@@ -655,7 +659,7 @@ function FlamegraphZoomView({
 
       const parentPosition = flamegraphCanvasRef.getBoundingClientRect();
 
-      setMouseCoordinates(
+      setContextMenuCoordinates(
         new Rect(
           evt.clientX - parentPosition.left,
           evt.clientY - parentPosition.top,
@@ -663,8 +667,9 @@ function FlamegraphZoomView({
           0
         )
       );
+      contextMenuProps.setOpen(true);
     },
-    [flamegraphCanvasRef]
+    [flamegraphCanvasRef, contextMenuProps]
   );
 
   return (
@@ -684,12 +689,13 @@ function FlamegraphZoomView({
           pointerEvents: 'none',
         }}
       />
-      {
+      {contextMenuProps.open ? (
         <FlamegraphOptionsContextMenu
           container={flamegraphCanvasRef}
-          mouseCoordinates={mouseCoordinates}
+          contextMenuCoordinates={contextMenuCoordinates}
+          contextMenuProps={contextMenuProps}
         />
-      }
+      ) : null}
       {flamegraphRenderer ? (
         <BoundTooltip
           bounds={canvasBounds}

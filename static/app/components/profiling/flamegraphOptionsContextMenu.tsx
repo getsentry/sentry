@@ -1,4 +1,4 @@
-import {forwardRef, Fragment, useEffect, useRef, useState} from 'react';
+import {forwardRef, Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {IconCheckmark} from 'sentry/icons';
@@ -14,18 +14,7 @@ import {
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
 import {Rect} from 'sentry/utils/profiling/gl/utils';
 
-function useLatestRef(val) {
-  const ref = useRef(val);
-  // technically this is not "concurrent mode safe" because we're manipulating
-  // the value during render (so it's not idempotent). However, the places this
-  // hook is used is to support memoizing callbacks which will be called
-  // *during* render, so we need the latest values *during* render.
-  // If not for this, then we'd probably want to use useLayoutEffect instead.
-  ref.current = val;
-  return ref;
-}
-
-function useContextMenu() {
+export function useContextMenu() {
   const [open, setOpen] = useState<boolean>(false);
   const itemProps = useKeyboardNavigation();
 
@@ -77,30 +66,31 @@ function useKeyboardNavigation() {
   const [menuRef, setMenuRef] = useState<HTMLDivElement | null>(null);
   const [tabIndex, setTabIndex] = useState<number | null>(null);
 
-  const items = useLatestRef([]);
-  const latestTabIndex = useLatestRef(tabIndex).current;
+  const items: {id: number; node: HTMLElement | null}[] = [];
 
   useEffect(() => {
     if (menuRef) {
-      menuRef.focus();
+      if (tabIndex === null) {
+        menuRef.focus();
+      }
     }
-  }, [menuRef]);
+  }, [menuRef, tabIndex]);
 
   useEffect(() => {
     if (typeof tabIndex !== 'number') {
       return;
     }
-    if (items.current[tabIndex]?.node) {
-      items.current[tabIndex]?.node.focus();
+    if (items[tabIndex]?.node) {
+      items[tabIndex]?.node?.focus();
     }
-  }, [tabIndex, items]);
+  }, [tabIndex]);
 
   function getMenuKeyboardEventHandlers() {
     return {
       tabIndex: -1,
       ref: setMenuRef,
       onKeyDown: (evt: React.KeyboardEvent) => {
-        if (items.current.length === 0) {
+        if (items.length === 0) {
           return;
         }
 
@@ -111,20 +101,20 @@ function useKeyboardNavigation() {
         if (evt.key === 'ArrowDown' || evt.key === 'Tab') {
           evt.preventDefault();
 
-          if (latestTabIndex === items.current.length - 1 || latestTabIndex === null) {
+          if (tabIndex === items.length - 1 || tabIndex === null) {
             setTabIndex(0);
           } else {
-            setTabIndex((latestTabIndex ?? 0) + 1);
+            setTabIndex((tabIndex ?? 0) + 1);
           }
         }
 
         if (evt.key === 'ArrowUp' || (evt.key === 'Tab' && evt.shiftKey)) {
           evt.preventDefault();
 
-          if (latestTabIndex === 0 || latestTabIndex === null) {
-            setTabIndex(items.current.length - 1);
+          if (tabIndex === 0 || tabIndex === null) {
+            setTabIndex(items.length - 1);
           } else {
-            setTabIndex((latestTabIndex ?? 0) - 1);
+            setTabIndex((tabIndex ?? 0) - 1);
           }
         }
       },
@@ -132,21 +122,21 @@ function useKeyboardNavigation() {
   }
 
   function getMenuItemKeyboardEventHandlers() {
-    const idx = items.current.length;
-    items.current.push({id: idx, node: null});
+    const idx = items.length;
+    items.push({id: idx, node: null});
 
     return {
-      tabIndex: latestTabIndex === idx ? 0 : -1,
+      tabIndex: tabIndex === idx ? 0 : -1,
       ref: (node: HTMLElement | null) => {
-        if (items.current[idx]) {
-          items.current[idx].node = node;
+        if (items[idx]) {
+          items[idx].node = node;
         }
       },
       onMouseEnter: () => {
         setTabIndex(idx);
       },
       onKeyDown: (evt: React.KeyboardEvent) => {
-        if (items.current.length === 0) {
+        if (items.length === 0) {
           return;
         }
 
@@ -155,26 +145,26 @@ function useKeyboardNavigation() {
         }
 
         if (evt.key === 'Enter' || evt.key === ' ') {
-          items?.current?.[idx]?.node?.click?.();
+          items?.[idx]?.node?.click?.();
         }
 
         if (evt.key === 'ArrowDown' || evt.key === 'Tab') {
           evt.preventDefault();
 
-          if (latestTabIndex === items.current.length || latestTabIndex === null) {
+          if (tabIndex === items.length || tabIndex === null) {
             setTabIndex(0);
           } else {
-            setTabIndex((latestTabIndex ?? 0) + 1);
+            setTabIndex((tabIndex ?? 0) + 1);
           }
         }
 
         if (evt.key === 'ArrowUp' || (evt.key === 'Tab' && evt.shiftKey)) {
           evt.preventDefault();
 
-          if (latestTabIndex === 0 || latestTabIndex === null) {
-            setTabIndex(items.current.length);
+          if (tabIndex === 0 || tabIndex === null) {
+            setTabIndex(items.length);
           } else {
-            setTabIndex((latestTabIndex ?? 0) - 1);
+            setTabIndex((tabIndex ?? 0) - 1);
           }
         }
       },
@@ -279,7 +269,7 @@ const MenuItemCheckbox = styled(
         <MenuItem ref={ref} {...rest}>
           <label className={className} style={style}>
             <MenuLeadingItem>
-              <Input type="checkbox" checked={checked} />
+              <Input type="checkbox" checked={checked} onChange={() => void 0} />
               <IconCheckmark />
             </MenuLeadingItem>
             <MenuContent>{children}</MenuContent>
@@ -398,22 +388,16 @@ function computeBestContextMenuPosition(mouse: Rect, container: Rect, target: Re
 
 interface FlameGraphOptionsContextMenuProps {
   container: HTMLElement | null;
-  mouseCoordinates: Rect | null;
+  contextMenuCoordinates: Rect | null;
+  contextMenuProps: ReturnType<typeof useContextMenu>;
 }
 
 export function FlamegraphOptionsContextMenu(props: FlameGraphOptionsContextMenuProps) {
   const [containerCoordinates, setContainerCoordinates] = useState<Rect | null>(null);
   const [menuCoordinates, setMenuCoordinates] = useState<Rect | null>(null);
-
-  const {open, setOpen, menuRef, getMenuProps, getMenuItemProps} = useContextMenu();
+  const {open, setOpen, menuRef, getMenuProps, getMenuItemProps} = props.contextMenuProps;
 
   const [preferences, dispatch] = useFlamegraphPreferences();
-
-  useEffect(() => {
-    if (props.mouseCoordinates) {
-      setOpen(true);
-    }
-  }, [props.mouseCoordinates, setOpen]);
 
   // Observe the menu
   useEffect(() => {
@@ -452,9 +436,9 @@ export function FlamegraphOptionsContextMenu(props: FlameGraphOptionsContextMenu
   }, [props.container]);
 
   const position =
-    props.mouseCoordinates && containerCoordinates && menuCoordinates
+    props.contextMenuCoordinates && containerCoordinates && menuCoordinates
       ? computeBestContextMenuPosition(
-          props.mouseCoordinates,
+          props.contextMenuCoordinates,
           containerCoordinates,
           menuCoordinates
         )
@@ -462,8 +446,14 @@ export function FlamegraphOptionsContextMenu(props: FlameGraphOptionsContextMenu
 
   return (
     <Fragment>
-      {open ? <Layer onClick={() => setOpen(false)} /> : null}
-      {props.mouseCoordinates && open ? (
+      {open ? (
+        <Layer
+          onClick={() => {
+            setOpen(false);
+          }}
+        />
+      ) : null}
+      {props.contextMenuCoordinates ? (
         <Menu
           {...getMenuProps()}
           style={{
