@@ -8,6 +8,7 @@ import Tooltip from 'sentry/components/charts/components/tooltip';
 import XAxis from 'sentry/components/charts/components/xAxis';
 import YAxis from 'sentry/components/charts/components/yAxis';
 import {MemorySpanType} from 'sentry/components/events/interfaces/spans/types';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {formatBytesBase2} from 'sentry/utils';
