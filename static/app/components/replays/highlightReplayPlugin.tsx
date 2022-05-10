@@ -20,7 +20,7 @@ class HighlightReplayPlugin {
   highlightsByNodeId: Map<
     number,
     {added: number; canvas: HTMLCanvasElement; expires: number}
-  > = new Map([]);
+  > = new Map();
 
   constructor({
     defaultHighlightColor = 'rgba(168, 196, 236, 0.75)',
@@ -57,7 +57,6 @@ class HighlightReplayPlugin {
       event.data.removes?.length
     ) {
       // If a highlighted node was removed from DOM we need to remove the highlight canvas
-      // const highlightedNodeIds = Array.from(this.highlightsByNodeId.keys());
       event.data.removes.forEach(removedNode => {
         if ('id' in removedNode && this.highlightsByNodeId.has(removedNode.id)) {
           this.removeHighlight(removedNode.id, replayer);
@@ -106,7 +105,10 @@ class HighlightReplayPlugin {
     const {top, left, width, height} = node.getBoundingClientRect();
     const highlightColor = highlightObj.color ?? this.defaultHighlightColor;
 
-    // Clone canvas
+    // Clone the mouseTail canvas as it has the dimensions and position that we
+    // want on top of the replay. We may need to revisit this strategy as we
+    // create a new canvas for every highlight. See additional notes in
+    // removeHighlight() method.
     const canvas = mouseTail.cloneNode();
 
     const ctx = canvas.getContext('2d');
