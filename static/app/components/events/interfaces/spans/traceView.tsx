@@ -99,16 +99,14 @@ class TraceView extends PureComponent<Props> {
                                       <CustomerProfiler id="SpanTree">
                                         <ScrollPane
                                           onWheel={event => {
-                                            const cursorPosition = event.pageX / 1000;
-
                                             if (
-                                              event.deltaY > Math.abs(event.deltaX) ||
-                                              cursorPosition >
-                                                dividerHandlerChildrenProps.dividerPosition
+                                              Math.abs(event.deltaY) >
+                                              Math.abs(event.deltaX)
                                             ) {
                                               return;
                                             }
 
+                                            event.preventDefault();
                                             event.stopPropagation();
                                             const {onWheel} =
                                               scrollbarManagerChildrenProps;
