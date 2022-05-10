@@ -14,7 +14,7 @@ from sentry.sentry_metrics.indexer.models import StringIndexer
 from sentry.sentry_metrics.multiprocess import get_config, logger
 from sentry.utils import json
 
-MAPPING_SOURCE_FIELD = "mapping_source"
+MAPPING_META = "mapping_meta"
 
 
 class LastSeenUpdaterMessageFilter(StreamMessageFilter[KafkaPayload]):  # type: ignore
@@ -61,9 +61,9 @@ class LastSeenUpdaterCollector(ProcessingStrategy[Set[int]]):  # type: ignore
 
 def retrieve_db_read_keys(message: Message[KafkaPayload]) -> Set[int]:
     parsed_message = json.loads(message.payload.value)
-    if MAPPING_SOURCE_FIELD in parsed_message:
-        if FetchType.DB_READ.value in parsed_message[MAPPING_SOURCE_FIELD]:
-            return set(parsed_message[MAPPING_SOURCE_FIELD][FetchType.DB_READ.value].keys())
+    if MAPPING_META in parsed_message:
+        if FetchType.DB_READ.value in parsed_message[MAPPING_META]:
+            return set(parsed_message[MAPPING_META][FetchType.DB_READ.value].keys())
     return set()
 
 
