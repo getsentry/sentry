@@ -1,18 +1,12 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
 import DetailedError from 'sentry/components/errors/detailedError';
 import NotFound from 'sentry/components/errors/notFound';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Panel, PanelBody, PanelHeader as _PanelHeader} from 'sentry/components/panels';
 import ReplayTimeline from 'sentry/components/replays/breadcrumbs/replayTimeline';
-import HorizontalMouseTracking from 'sentry/components/replays/player/horizontalMouseTracking';
-import {PlayerScrubber} from 'sentry/components/replays/player/scrubber';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
-import ReplayController from 'sentry/components/replays/replayController';
-import ReplayCurrentUrl from 'sentry/components/replays/replayCurrentUrl';
-import ReplayPlayer from 'sentry/components/replays/replayPlayer';
+import ReplayView from 'sentry/components/replays/replayView';
 import useFullscreen from 'sentry/components/replays/useFullscreen';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
@@ -88,24 +82,10 @@ function ReplayDetails() {
         crumbs={replay.getRawCrumbs()}
       >
         <Layout.Body>
-          <ReplayLayout ref={fullscreenRef}>
-            <PanelNoMargin>
-              <PanelHeader>
-                <ReplayCurrentUrl />
-              </PanelHeader>
-              <PanelHeader disablePadding>
-                <ManualResize isFullscreen={isFullscreen}>
-                  <ReplayPlayer />
-                </ManualResize>
-              </PanelHeader>
-              <HorizontalMouseTracking>
-                <PlayerScrubber />
-              </HorizontalMouseTracking>
-              <PanelBody withPadding>
-                <ReplayController toggleFullscreen={toggleFullscreen} />
-              </PanelBody>
-            </PanelNoMargin>
-          </ReplayLayout>
+          <Layout.Main ref={fullscreenRef}>
+            <ReplayView toggleFullscreen={toggleFullscreen} isFullscreen={isFullscreen} />
+          </Layout.Main>
+
           <Layout.Side>
             <UserActionsNavigator
               crumbs={replay.getRawCrumbs()}
@@ -113,9 +93,7 @@ function ReplayDetails() {
             />
           </Layout.Side>
           <Layout.Main fullWidth>
-            <Panel>
-              <ReplayTimeline />
-            </Panel>
+            <ReplayTimeline />
             <FocusArea replay={replay} />
           </Layout.Main>
         </Layout.Body>
@@ -123,36 +101,5 @@ function ReplayDetails() {
     </ReplayContextProvider>
   );
 }
-
-const PanelNoMargin = styled(Panel)`
-  margin-bottom: 0;
-`;
-
-const PanelHeader = styled(_PanelHeader)`
-  display: block;
-  padding: 0;
-`;
-
-const ManualResize = styled('div')<{isFullscreen: boolean}>`
-  resize: vertical;
-  overflow: auto;
-  max-width: 100%;
-
-  ${p =>
-    p.isFullscreen
-      ? `resize: none;
-      width: auto !important;
-      height: auto !important;
-      `
-      : ''}
-`;
-
-const ReplayLayout = styled(Layout.Main)`
-  :fullscreen {
-    display: grid;
-    grid-template-rows: auto max-content;
-    background: ${p => p.theme.gray500};
-  }
-`;
 
 export default ReplayDetails;

@@ -307,7 +307,7 @@ export function GenericDiscoverQuery<T, P>(props: OuterProps<T, P>) {
   const eventView = props.eventView ?? performanceEventView;
 
   if (orgSlug === undefined || eventView === undefined) {
-    throw new Error('GenericDiscoverQuery requires both an orgSlug adn eventView');
+    throw new Error('GenericDiscoverQuery requires both an orgSlug and eventView');
   }
 
   const _props: Props<T, P> = {

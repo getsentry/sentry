@@ -67,12 +67,12 @@ function ProfilingContent({location, selection}: ProfilingContentProps) {
             </Layout.Header>
             <Layout.Body>
               <Layout.Main fullWidth>
-                <StyledPageFilterBar condensed>
-                  <ProjectPageFilter />
-                  <EnvironmentPageFilter />
-                  <DatePageFilter alignDropdown="left" />
-                </StyledPageFilterBar>
-                <SearchContainer>
+                <ActionBar>
+                  <PageFilterBar condensed>
+                    <ProjectPageFilter />
+                    <EnvironmentPageFilter />
+                    <DatePageFilter alignDropdown="left" />
+                  </PageFilterBar>
                   <SmartSearchBar
                     organization={organization}
                     hasRecentSearches
@@ -82,7 +82,7 @@ function ProfilingContent({location, selection}: ProfilingContentProps) {
                     onSearch={handleSearch}
                     maxQueryLength={MAX_QUERY_LENGTH}
                   />
-                </SearchContainer>
+                </ActionBar>
                 {requestState === 'errored' && (
                   <Alert type="error" showIcon>
                     {t('Unable to load profiles')}
@@ -124,12 +124,11 @@ const StyledHeading = styled(PageHeading)`
   line-height: 40px;
 `;
 
-const SearchContainer = styled('div')`
+const ActionBar = styled('div')`
+  display: grid;
+  gap: ${space(2)};
+  grid-template-columns: min-content auto;
   margin-bottom: ${space(2)};
-`;
-
-const StyledPageFilterBar = styled(PageFilterBar)`
-  margin-bottom: ${space(1)};
 `;
 
 export default withPageFilters(ProfilingContent);
