@@ -273,6 +273,7 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
           {...mergeProps(overlayProps, positionProps)}
         >
           <SelectControl
+            components={{Control: CompactSelectControl, ClearIndicator: null}}
             {...props}
             options={options}
             value={valueProp ?? internalValue}
@@ -281,7 +282,6 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
             menuTitle={menuTitle}
             placeholder={placeholder}
             isSearchable={isSearchable}
-            components={{Control: CompactSelectControl, ClearIndicator: null}}
             menuPlacement="bottom"
             menuIsOpen
             isCompact
