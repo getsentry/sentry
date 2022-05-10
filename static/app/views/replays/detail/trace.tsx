@@ -20,7 +20,7 @@ import useApi from 'sentry/utils/useApi';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 import TraceView from 'sentry/views/performance/traceDetails/traceView';
 
-type State<T = null> = {
+type State = {
   /**
    * Error, if not null.
    */
@@ -41,7 +41,7 @@ type State<T = null> = {
   /**
    * Data / result.
    */
-  traces: T | null;
+  traces: TraceFullDetailed[] | null;
 };
 
 interface Props {
@@ -58,7 +58,7 @@ const INITIAL_STATE = Object.freeze({
 });
 
 export default function Trace({event, organization}: Props) {
-  const [state, setState] = useState<State<TraceFullDetailed[]>>(INITIAL_STATE);
+  const [state, setState] = useState<State>(INITIAL_STATE);
   const api = useApi();
 
   const {
