@@ -68,6 +68,7 @@ const RoleItem = styled('div')`
   display: grid;
   grid-template-columns: 80px 1fr;
   gap: ${space(1)};
+  margin-bottom: ${space(1)};
 
   h1,
   div {
