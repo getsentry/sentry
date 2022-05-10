@@ -63,6 +63,7 @@ const teamStoreConfig: TeamStoreDefinition = {
     this.unsubscribeListeners.push(
       this.listenTo(TeamActions.updateSuccess, this.onUpdateSuccess)
     );
+    this.unsubscribeListeners.push(this.listenTo(TeamActions.reset, this.reset));
   },
 
   reset() {

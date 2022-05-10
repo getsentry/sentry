@@ -119,6 +119,7 @@ export async function fetchOrganizationDetails(
   if (!silent) {
     OrganizationActions.reset();
     ProjectActions.reset();
+    TeamActions.reset();
     PageFiltersActions.reset();
   }
 
