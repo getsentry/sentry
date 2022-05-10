@@ -247,6 +247,7 @@ const StyledPanelItem = styled(PanelItem)`
 // Force action button at the end to align to right
 const RightColumn = styled('div')`
   display: flex;
+  justify-content: flex-end;
 `;
 
 const Section = styled('div')`
