@@ -6,6 +6,7 @@ from django.core import mail
 from django.utils import timezone
 from pytz import UTC
 
+from sentry import audit_log
 from sentry.api.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
 from sentry.auth.authenticators import TotpInterface
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS
@@ -269,7 +270,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         # log created
         log = AuditLogEntry.objects.get(organization=org)
-        assert log.get_event_display() == "org.edit"
+        assert audit_log.get(log.event).api_name == "org.edit"
         # org fields & flags
         assert "to {}".format(data["defaultRole"]) in log.data["default_role"]
         assert "to {}".format(data["openMembership"]) in log.data["allow_joinleave"]
