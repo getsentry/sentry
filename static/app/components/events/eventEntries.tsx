@@ -235,7 +235,7 @@ const EventEntries = memo(
 
       if (proGuardImage) {
         Sentry.withScope(function (s) {
-          s.setLevel(Sentry.Severity.Warning);
+          s.setLevel('warning');
           if (event.sdk) {
             s.setTag('offending.event.sdk.name', event.sdk.name);
             s.setTag('offending.event.sdk.version', event.sdk.version);

@@ -328,7 +328,7 @@ class AsyncComponent<
       Sentry.addBreadcrumb({
         message: error.responseText,
         category: 'xhr',
-        level: Sentry.Severity.Error,
+        level: 'error',
       });
     }
     this.setState(prevState => {
