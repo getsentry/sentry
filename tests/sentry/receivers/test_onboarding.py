@@ -305,6 +305,22 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert task is not None
 
+    def test_metric_added(self):
+        alert_rule_created.send(
+            rule=Rule(id=1),
+            project=self.project,
+            user=self.user,
+            rule_type="metric",
+            sender=type(Rule),
+            is_api_token=False,
+        )
+        task = OrganizationOnboardingTask.objects.get(
+            organization=self.organization,
+            task=OnboardingTask.PERFORMANCE_ALERT,
+            status=OnboardingTaskStatus.COMPLETE,
+        )
+        assert task is not None
+
     def test_onboarding_complete(self):
         now = timezone.now()
         user = self.create_user(email="test@example.org")
@@ -381,6 +397,14 @@ class OrganizationOnboardingTaskTest(TestCase):
             project=self.project,
             user=self.user,
             rule_type="issue",
+            sender=type(Rule),
+            is_api_token=False,
+        )
+        alert_rule_created.send(
+            rule=Rule(id=1),
+            project=self.project,
+            user=self.user,
+            rule_type="metric",
             sender=type(Rule),
             is_api_token=False,
         )
