@@ -285,11 +285,13 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
       return null;
     }
 
-    const measurements = getMeasurements(event);
+    const measurements = getMeasurements(event, generateBounds);
 
     return (
       <Fragment>
-        {Array.from(measurements).map(([timestamp, verticalMark]) => {
+        {Array.from(measurements.values()).map(verticalMark => {
+          const mark = Object.values(verticalMark.marks)[0];
+          const {timestamp} = mark;
           const bounds = getMeasurementBounds(timestamp, generateBounds);
 
           const shouldDisplay = defined(bounds.left) && defined(bounds.width);
