@@ -75,7 +75,7 @@ export const fields: Record<string, Field> = {
     help: t('The primary platform for this project'),
     // we need to look at the children to get the text
     filterOption: createFilter({
-      stringify: option => `${option.label?.props?.children[1]} ${option.value}`,
+      stringify: option => `${platforms.find(([id]) => id === option.value)[1]} ${option.value}`,
     }),
   },
 
