@@ -51,7 +51,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             groupBy="environment",
         )
 
-        assert response.status_code == 200, response.data
+        assert response.status_code == 200
 
     def test_groupby_session_status(self):
         for status in ["ok", "crashed"]:
@@ -135,8 +135,8 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
 
     def test_pagination_limit_without_orderby(self):
         """
-        Test that ensures an exception is raised when pagination `per_page` parameter is sent
-        without order by being set
+        Test that ensures a successful response is returned even when sending a per_page
+        without an orderBy
         """
         response = self.get_response(
             self.organization.slug,
@@ -144,26 +144,21 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             groupBy="transaction",
             per_page=2,
         )
-        assert response.status_code == 400
-        assert response.json()["detail"] == (
-            "'per_page' is only supported in combination with 'orderBy'"
-        )
+        assert response.status_code == 200
 
     def test_pagination_offset_without_orderby(self):
         """
-        Test that ensures an exception is raised when pagination `per_page` parameter is sent
-        without order by being set
+        Test that ensures a successful response is returned even when requesting an offset
+        without an orderBy
         """
         response = self.get_response(
             self.organization.slug,
             field=f"count({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             groupBy="transaction",
             cursor=Cursor(0, 1),
+            statsPeriod="1h",
         )
-        assert response.status_code == 400
-        assert response.json()["detail"] == (
-            "'cursor' is only supported in combination with 'orderBy'"
-        )
+        assert response.status_code == 200, response.data
 
     def test_statsperiod_invalid(self):
         response = self.get_response(
@@ -404,7 +399,6 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             groupBy="tag1",
             orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             per_page=1,
-            limit=2,
         )
         groups = response.data["groups"]
         assert len(groups) == 1
@@ -1007,13 +1001,14 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             field="sum(sentry.sessions.session)",
             statsPeriod="24h",
             interval="5m",
+            per_page=50,
             orderBy="-sum(sentry.sessions.session)",
         )
         assert response.status_code == 400
         assert response.json()["detail"] == (
-            "Requested interval of 5m with statsPeriod of 24h is too granular for a per_page of "
-            "51 elements. Increase your interval, decrease your statsPeriod, or decrease your "
-            "per_page parameter."
+            f"Requested interval of 5m with statsPeriod of {timedelta(hours=24)} is too granular "
+            f"for a per_page of 51 elements. Increase your interval, decrease your statsPeriod, "
+            f"or decrease your per_page parameter."
         )
 
     @freeze_time((datetime.now() - timedelta(hours=1)).replace(minute=30))
