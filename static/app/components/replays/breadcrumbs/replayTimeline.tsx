@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {transformCrumbs} from 'sentry/components/events/interfaces/breadcrumbs/utils';
+import {Panel} from 'sentry/components/panels';
 import {
   MajorGridlines,
   MinorGridlines,
@@ -42,39 +43,41 @@ function ReplayTimeline({}: Props) {
   const networkSpans = spans.filter(replay.isNotMemorySpan);
 
   return (
-    <HorizontalMouseTracking>
-      <Resizeable>
-        {({width}) => (
-          <Stacked>
-            <MinorGridlines duration={duration || 0} width={width} />
-            <MajorGridlines duration={duration || 0} width={width} />
-            <StackedUnderTimestamp>
-              <TimelinePosition
-                color={theme.purple300}
-                currentTime={currentTime}
-                duration={duration}
-              />
-              {currentHoverTime ? (
+    <Panel>
+      <HorizontalMouseTracking>
+        <Resizeable>
+          {({width}) => (
+            <Stacked>
+              <MinorGridlines duration={duration || 0} width={width} />
+              <MajorGridlines duration={duration || 0} width={width} />
+              <StackedUnderTimestamp>
                 <TimelinePosition
-                  color={theme.purple200}
-                  currentTime={currentHoverTime}
+                  color={theme.purple300}
+                  currentTime={currentTime}
                   duration={duration}
                 />
-              ) : null}
-              <div>
-                <TimelineScubber />
-                <ReplayTimelineEvents crumbs={userCrumbs} width={width} />
-                <ReplayTimelineSpans
-                  duration={duration || 0}
-                  spans={networkSpans}
-                  startTimestamp={replay.getEvent().startTimestamp}
-                />
-              </div>
-            </StackedUnderTimestamp>
-          </Stacked>
-        )}
-      </Resizeable>
-    </HorizontalMouseTracking>
+                {currentHoverTime ? (
+                  <TimelinePosition
+                    color={theme.purple200}
+                    currentTime={currentHoverTime}
+                    duration={duration}
+                  />
+                ) : null}
+                <div>
+                  <TimelineScubber />
+                  <ReplayTimelineEvents crumbs={userCrumbs} width={width} />
+                  <ReplayTimelineSpans
+                    duration={duration || 0}
+                    spans={networkSpans}
+                    startTimestamp={replay.getEvent().startTimestamp}
+                  />
+                </div>
+              </StackedUnderTimestamp>
+            </Stacked>
+          )}
+        </Resizeable>
+      </HorizontalMouseTracking>
+    </Panel>
   );
 }
 
