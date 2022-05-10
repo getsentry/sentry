@@ -36,7 +36,8 @@ export const KeyMetricData = ({keyName, value}: Props) => {
 
 const Key = styled('dt')`
   color: ${p => p.theme.subText};
-  font-weight: normal;
+  font-size: 14px;
+  font-weight: bold;
 `;
 
 const Value = styled('dt')`
