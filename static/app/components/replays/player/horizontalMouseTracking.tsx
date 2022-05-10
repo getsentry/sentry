@@ -1,4 +1,5 @@
-import React, {useCallback, useRef, useState} from 'react';
+import React, {useCallback, useRef} from 'react';
+import * as Sentry from '@sentry/react';
 
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 
@@ -6,18 +7,30 @@ type Props = {
   children: React.ReactNode;
 };
 
+class AbortError extends Error {}
+
 /**
  * Replace `elem.getBoundingClientRect()` which is too laggy for onMouseMove
  */
-function getBoundingRect(elem: Element): Promise<DOMRectReadOnly> {
-  return new Promise((resolve, _reject) => {
+function getBoundingRect(elem: Element, {signal}): Promise<DOMRectReadOnly> {
+  return new Promise((resolve, reject) => {
+    if (signal.abort) {
+      reject(new AbortError());
+    }
+
+    const abortHandler = () => {
+      reject(new AbortError());
+    };
+
     const observer = new IntersectionObserver(entries => {
       for (const entry of entries) {
         const bounds = entry.boundingClientRect;
         resolve(bounds);
+        signal.removeEventListener('abort', abortHandler);
       }
       observer.disconnect();
     });
+    signal.addEventListener('abort', abortHandler);
     observer.observe(elem);
   });
 }
@@ -25,8 +38,8 @@ function getBoundingRect(elem: Element): Promise<DOMRectReadOnly> {
 // TODO(replay): should this be an HoC?
 function HorizontalMouseTracking({children}: Props) {
   const elem = useRef<HTMLDivElement>(null);
+  const controller = useRef<AbortController>(new AbortController());
   const {duration, setCurrentHoverTime} = useReplayContext();
-  const [isEntered, setIsEntered] = useState(false);
 
   const onMouseMove = useCallback(
     async (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
@@ -35,35 +48,45 @@ function HorizontalMouseTracking({children}: Props) {
         return;
       }
 
-      const rect = await getBoundingRect(elem.current);
+      try {
+        const rect = await getBoundingRect(elem.current, {
+          signal: controller.current?.signal,
+        });
+        const left = e.clientX - rect.left;
+        if (left >= 0) {
+          const percent = left / rect.width;
+          const time = percent * duration;
+          setCurrentHoverTime(time);
+        } else {
+          setCurrentHoverTime(undefined);
+        }
+      } catch (err) {
+        if (err instanceof AbortError) {
+          // Ignore abortions
+          return;
+        }
 
-      if (!isEntered) {
-        return;
-      }
-      const left = e.clientX - rect.left;
-      if (left >= 0) {
-        const percent = left / rect.width;
-        const time = percent * duration;
-        setCurrentHoverTime(time);
-      } else {
-        setCurrentHoverTime(undefined);
+        Sentry.captureException(err);
       }
     },
-    [isEntered, duration, setCurrentHoverTime]
+    [controller, duration, setCurrentHoverTime]
   );
 
   const onMouseEnter = useCallback(
     (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
-      setIsEntered(true);
       onMouseMove(e);
     },
     [onMouseMove]
   );
 
   const onMouseLeave = useCallback(() => {
-    setIsEntered(false);
+    if (controller.current) {
+      controller.current.abort();
+      controller.current = new AbortController();
+    }
+
     setCurrentHoverTime(undefined);
-  }, [setCurrentHoverTime]);
+  }, [controller, setCurrentHoverTime]);
 
   return (
     <div
