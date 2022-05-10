@@ -15,7 +15,6 @@ import * as ScrollbarManager from './scrollbarManager';
 import SpanTree from './spanTree';
 import {getTraceContext} from './utils';
 import WaterfallModel from './waterfallModel';
-// import ScrollPane from './scrollPane';
 
 type Props = {
   organization: Organization;
@@ -100,7 +99,16 @@ class TraceView extends PureComponent<Props> {
                                       <CustomerProfiler id="SpanTree">
                                         <ScrollPane
                                           onWheel={event => {
-                                            event.preventDefault();
+                                            const cursorPosition = event.pageX / 1000;
+
+                                            if (
+                                              event.deltaY > Math.abs(event.deltaX) ||
+                                              cursorPosition >
+                                                dividerHandlerChildrenProps.dividerPosition
+                                            ) {
+                                              return;
+                                            }
+
                                             event.stopPropagation();
                                             const {onWheel} =
                                               scrollbarManagerChildrenProps;
@@ -145,6 +153,8 @@ class TraceView extends PureComponent<Props> {
   }
 }
 
-const ScrollPane = styled('div')``;
+const ScrollPane = styled('div')`
+  overscroll-behavior-x: none;
+`;
 
 export default TraceView;
