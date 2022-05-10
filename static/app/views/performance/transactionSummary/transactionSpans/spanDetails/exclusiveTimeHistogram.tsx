@@ -9,6 +9,7 @@ import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconWarning} from 'sentry/icons';
@@ -94,6 +95,7 @@ export default function ExclusiveTimeHistogram(props: Props) {
                     isErrored={!!error}
                     chartData={histogram}
                     location={location}
+                    spanSlug={spanSlug}
                   />
                 )}
               </BarChartZoom>
@@ -110,13 +112,14 @@ type ChartProps = {
   isErrored: boolean;
   isLoading: boolean;
   location: Location;
+  spanSlug: SpanSlug;
   zoomProps: any;
   disableChartPadding?: boolean;
 };
 
 export function Chart(props: ChartProps) {
   const theme = useTheme();
-  const {chartData, zoomProps} = props;
+  const {chartData, zoomProps, spanSlug} = props;
 
   if (!chartData) {
     return <Placeholder height="200px" />;
@@ -129,7 +132,7 @@ export function Chart(props: ChartProps) {
       top: '40px',
       bottom: '0px',
     },
-    colors: theme.charts.getColorPalette(1),
+    colors: () => pickBarColor(spanSlug.op),
     seriesOptions: {
       showSymbol: false,
     },
