@@ -93,7 +93,7 @@ function ReplayDetails() {
               <PanelHeader>
                 <ReplayCurrentUrl />
               </PanelHeader>
-              <PanelHeader disablePadding>
+              <PanelHeader disablePadding noBorder>
                 <ManualResize isFullscreen={isFullscreen}>
                   <ReplayPlayer />
                 </ManualResize>
@@ -128,9 +128,10 @@ const PanelNoMargin = styled(Panel)`
   margin-bottom: 0;
 `;
 
-const PanelHeader = styled(_PanelHeader)`
+const PanelHeader = styled(_PanelHeader)<{noBorder?: boolean}>`
   display: block;
   padding: 0;
+  ${p => (p.noBorder ? 'border-bottom: none;' : '')}
 `;
 
 const ManualResize = styled('div')<{isFullscreen: boolean}>`

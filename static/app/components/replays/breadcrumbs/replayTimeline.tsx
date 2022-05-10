@@ -1,4 +1,5 @@
 import React from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {transformCrumbs} from 'sentry/components/events/interfaces/breadcrumbs/utils';
@@ -7,13 +8,13 @@ import {
   MinorGridlines,
 } from 'sentry/components/replays/breadcrumbs/gridlines';
 import ReplayTimelineEvents from 'sentry/components/replays/breadcrumbs/replayTimelineEvents';
+import ReplayTimelineSpans from 'sentry/components/replays/breadcrumbs/replayTimelineSpans';
 import Stacked from 'sentry/components/replays/breadcrumbs/stacked';
 import HorizontalMouseTracking from 'sentry/components/replays/player/horizontalMouseTracking';
 import {TimelineScubber} from 'sentry/components/replays/player/scrubber';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {Resizeable} from 'sentry/components/replays/resizeable';
 import TimelinePosition from 'sentry/components/replays/timelinePosition';
-import space from 'sentry/styles/space';
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 
 type Props = {};
@@ -26,21 +27,50 @@ const USER_ACTIONS = [
 ];
 
 function ReplayTimeline({}: Props) {
-  const {currentTime, duration, replay} = useReplayContext();
-  const crumbs = replay?.getRawCrumbs() || [];
+  const theme = useTheme();
+  const {currentHoverTime, currentTime, duration, replay} = useReplayContext();
+
+  if (!replay) {
+    return null;
+  }
+
+  const crumbs = replay.getRawCrumbs() || [];
+  const spans = replay.getRawSpans() || [];
   const transformedCrumbs = transformCrumbs(crumbs);
   const userCrumbs = transformedCrumbs.filter(crumb => USER_ACTIONS.includes(crumb.type));
 
+  const networkSpans = spans.filter(replay.isNotMemorySpan);
+
   return (
     <HorizontalMouseTracking>
-      <TimelineScubber />
       <Resizeable>
         {({width}) => (
           <Stacked>
             <MinorGridlines duration={duration || 0} width={width} />
             <MajorGridlines duration={duration || 0} width={width} />
-            <TimelinePosition currentTime={currentTime} duration={duration} />
-            <OffsetEvents crumbs={userCrumbs} width={width} />
+            <StackedUnderTimestamp>
+              <TimelinePosition
+                color={theme.purple300}
+                currentTime={currentTime}
+                duration={duration}
+              />
+              {currentHoverTime ? (
+                <TimelinePosition
+                  color={theme.purple200}
+                  currentTime={currentHoverTime}
+                  duration={duration}
+                />
+              ) : null}
+              <div>
+                <TimelineScubber />
+                <ReplayTimelineEvents crumbs={userCrumbs} width={width} />
+                <ReplayTimelineSpans
+                  duration={duration || 0}
+                  spans={networkSpans}
+                  startTimestamp={replay.getEvent().startTimestamp}
+                />
+              </div>
+            </StackedUnderTimestamp>
           </Stacked>
         )}
       </Resizeable>
@@ -48,8 +78,9 @@ function ReplayTimeline({}: Props) {
   );
 }
 
-const OffsetEvents = styled(ReplayTimelineEvents)`
-  padding-top: ${space(4)};
+const StackedUnderTimestamp = styled(Stacked)`
+  /* Weird size to put equal space above/below a <small> node that MajorGridlines emits */
+  padding-top: 24px;
 `;
 
 export default ReplayTimeline;
