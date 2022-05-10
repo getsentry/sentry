@@ -53,8 +53,8 @@ function ActiveTab({active, replay}: Props & {active: ReplayTabs}) {
   // Memoize this because re-renders will interfere with the mouse state of the
   // chart (e.g. on mouse over and out)
   const memorySpans = useMemo(() => {
-    return spansEntry?.data.filter(replay.isMemorySpan);
-  }, [spansEntry, replay]);
+    return replay.getRawSpans().filter(replay.isMemorySpan);
+  }, [replay]);
 
   switch (active) {
     case 'console':

@@ -15,7 +15,7 @@ import {getFormattedDate} from 'sentry/utils/dates';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 type Props = {
-  memorySpans: MemorySpanType[] | undefined;
+  memorySpans: MemorySpanType[];
   setCurrentHoverTime: (time: undefined | number) => void;
   setCurrentTime: (time: number) => void;
   startTimestamp: number | undefined;
@@ -25,7 +25,7 @@ const formatTimestamp = timestamp =>
   getFormattedDate(timestamp * 1000, 'MMM D, YYYY hh:mm:ss A z', {local: false});
 
 function MemoryChart({
-  memorySpans = [],
+  memorySpans,
   startTimestamp = 0,
   setCurrentTime,
   setCurrentHoverTime,
