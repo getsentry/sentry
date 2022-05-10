@@ -452,7 +452,7 @@ def process_messages(
             tags = parsed_payload_value.get("tags", {})
             used_tags.add(metric_name)
 
-            new_tags: Mapping[int, int] = {}
+            new_tags: MutableMapping[int, int] = {}
             try:
                 for k, v in tags.items():
                     used_tags.update({k, v})
