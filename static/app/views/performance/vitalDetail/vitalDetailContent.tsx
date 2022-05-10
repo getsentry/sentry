@@ -220,7 +220,7 @@ class VitalDetailContent extends Component<Props, State> {
           <PageFilterBar condensed>
             <ProjectPageFilter />
             <EnvironmentPageFilter />
-            <DatePageFilter />
+            <DatePageFilter alignDropdown="left" />
           </PageFilterBar>
           <SearchBar
             searchSource="performance_vitals"
