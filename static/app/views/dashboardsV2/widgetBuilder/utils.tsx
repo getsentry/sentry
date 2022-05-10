@@ -112,11 +112,11 @@ export function normalizeQueries({
 
   if (widgetBuilderNewDesign) {
     queries = queries.map(query => {
-      const {fields = [], columns} = query;
+      const {fields = [], columns, aggregates} = query;
 
       if (isTabularChart) {
         // If the groupBy field has values, port everything over to the columnEditCollect field.
-        query.fields = [...new Set([...fields, ...columns])];
+        query.fields = [...new Set([...fields, ...columns, ...aggregates])];
       } else {
         // If columnEditCollect has field values , port everything over to the groupBy field.
         query.fields = fields.filter(field => !columns.includes(field));
@@ -172,7 +172,12 @@ export function normalizeQueries({
   }
 
   if (isTabularChart) {
-    return queries;
+    return queries.map(query => ({
+      ...query,
+      fields: query.fields?.length
+        ? query.fields
+        : [...query.columns, ...query.aggregates],
+    }));
   }
 
   // Filter out non-aggregate fields
@@ -193,7 +198,7 @@ export function normalizeQueries({
 
     return {
       ...query,
-      fields: aggregates.length ? aggregates : ['count()'],
+      fields: [],
       columns: widgetBuilderNewDesign && query.columns ? query.columns : [],
       aggregates: aggregates.length ? aggregates : ['count()'],
     };
@@ -229,7 +234,6 @@ export function normalizeQueries({
         ...query,
         columns: widgetBuilderNewDesign && query.columns ? query.columns : [],
         aggregates: referenceAggregates,
-        fields: referenceAggregates,
       };
     });
   }
@@ -239,7 +243,6 @@ export function normalizeQueries({
     queries = queries.map(query => {
       return {
         ...query,
-        fields: query.aggregates.slice(0, 1),
         aggregates: query.aggregates.slice(0, 1),
         orderby: '',
         columns: [],

@@ -267,6 +267,7 @@ function WidgetBuilder({
 
       if (![DisplayType.TABLE, DisplayType.TOP_N].includes(defaultState.displayType)) {
         defaultState.queries[0].orderby = '';
+        defaultState.queries[0].fields = [];
       }
     } else {
       defaultState.queries = [
@@ -618,7 +619,9 @@ function WidgetBuilder({
           ...fieldStrings,
         ];
       } else {
-        newQuery.fields = [...newQuery.columns, ...fieldStrings];
+        if (state.displayType === DisplayType.TABLE) {
+          newQuery.fields = [...newQuery.columns, ...fieldStrings];
+        }
         newQuery.aggregates = fieldStrings;
       }
 
