@@ -72,13 +72,6 @@ function HorizontalMouseTracking({children}: Props) {
     [controller, duration, setCurrentHoverTime]
   );
 
-  const onMouseEnter = useCallback(
-    (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
-      onMouseMove(e);
-    },
-    [onMouseMove]
-  );
-
   const onMouseLeave = useCallback(() => {
     if (controller.current) {
       controller.current.abort();
@@ -91,7 +84,7 @@ function HorizontalMouseTracking({children}: Props) {
   return (
     <div
       ref={elem}
-      onMouseEnter={onMouseEnter}
+      onMouseEnter={onMouseMove}
       onMouseMove={onMouseMove}
       onMouseLeave={onMouseLeave}
     >
