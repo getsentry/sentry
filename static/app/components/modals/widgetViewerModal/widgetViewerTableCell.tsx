@@ -116,6 +116,7 @@ export const renderDiscoverGridHeaderCell =
       };
     }
 
+    debugger;
     const currentSort = eventView.sortForField(field, tableMeta);
     const canSort = isFieldSortable(field, tableMeta);
     const titleText = isEquationAlias(column.name)

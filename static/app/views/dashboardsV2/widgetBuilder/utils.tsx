@@ -172,7 +172,12 @@ export function normalizeQueries({
   }
 
   if (isTabularChart) {
-    return queries;
+    return queries.map(query => ({
+      ...query,
+      fields: query.fields?.length
+        ? query.fields
+        : [...query.columns, ...query.aggregates],
+    }));
   }
 
   // Filter out non-aggregate fields
@@ -193,7 +198,7 @@ export function normalizeQueries({
 
     return {
       ...query,
-      fields: aggregates.length ? aggregates : ['count()'],
+      fields: [],
       columns: widgetBuilderNewDesign && query.columns ? query.columns : [],
       aggregates: aggregates.length ? aggregates : ['count()'],
     };
@@ -229,7 +234,6 @@ export function normalizeQueries({
         ...query,
         columns: widgetBuilderNewDesign && query.columns ? query.columns : [],
         aggregates: referenceAggregates,
-        fields: referenceAggregates,
       };
     });
   }
@@ -239,7 +243,6 @@ export function normalizeQueries({
     queries = queries.map(query => {
       return {
         ...query,
-        fields: query.aggregates.slice(0, 1),
         aggregates: query.aggregates.slice(0, 1),
         orderby: '',
         columns: [],

@@ -154,6 +154,7 @@ const parseSort = (sort: string): Sort => {
 };
 
 export const fromSorts = (sorts: string | string[] | undefined): Array<Sort> => {
+  debugger;
   if (sorts === undefined) {
     return [];
   }
@@ -301,6 +302,7 @@ class EventView {
   }) {
     const fields: Field[] = Array.isArray(props.fields) ? props.fields : [];
     let sorts: Sort[] = Array.isArray(props.sorts) ? props.sorts : [];
+    console.log('constructor sorts', sorts);
     const team = Array.isArray(props.team) ? props.team : [];
     const project = Array.isArray(props.project) ? props.project : [];
     const environment = Array.isArray(props.environment) ? props.environment : [];
@@ -420,6 +422,8 @@ class EventView {
       statsPeriod: saved.range,
       utc: saved.utc,
     });
+
+    console.log('sorts', fromSorts(saved.orderby));
 
     return new EventView({
       id: saved.id,

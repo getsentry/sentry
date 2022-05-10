@@ -618,7 +618,9 @@ function WidgetBuilder({
           ...fieldStrings,
         ];
       } else {
-        newQuery.fields = [...newQuery.columns, ...fieldStrings];
+        if ([DisplayType.TOP_N, DisplayType.TABLE].includes(state.displayType)) {
+          newQuery.fields = [...newQuery.columns, ...fieldStrings];
+        }
         newQuery.aggregates = fieldStrings;
       }
 

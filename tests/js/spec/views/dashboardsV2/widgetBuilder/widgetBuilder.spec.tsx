@@ -536,7 +536,7 @@ describe('WidgetBuilder', function () {
           queries: [
             {
               conditions: '',
-              fields: ['count()', 'count_unique(user)'],
+              fields: [],
               aggregates: ['count()', 'count_unique(user)'],
               fieldAliases: [],
               columns: [],
@@ -579,7 +579,7 @@ describe('WidgetBuilder', function () {
           queries: [
             {
               name: '',
-              fields: ['count()', 'equation|count() + 100'],
+              fields: [],
               aggregates: ['count()', 'equation|count() + 100'],
               columns: [],
               fieldAliases: [],
@@ -705,7 +705,7 @@ describe('WidgetBuilder', function () {
         {
           name: 'errors',
           conditions: 'event.type:error',
-          fields: ['count()', 'count_unique(id)'],
+          fields: [],
           aggregates: ['count()', 'count_unique(id)'],
           columns: [],
           orderby: '',
@@ -713,7 +713,7 @@ describe('WidgetBuilder', function () {
         {
           name: 'csp',
           conditions: 'event.type:csp',
-          fields: ['count()', 'count_unique(id)'],
+          fields: [],
           aggregates: ['count()', 'count_unique(id)'],
           columns: [],
           orderby: '',
@@ -1461,7 +1461,7 @@ describe('WidgetBuilder', function () {
           {
             name: 'errors',
             conditions: 'event.type:error',
-            fields: ['count()', 'count_unique(id)'],
+            fields: [],
             aggregates: ['count()', 'count_unique(id)'],
             columns: [],
             orderby: '',
@@ -1469,7 +1469,7 @@ describe('WidgetBuilder', function () {
           {
             name: 'csp',
             conditions: 'event.type:csp',
-            fields: ['count()', 'count_unique(id)'],
+            fields: [],
             aggregates: ['count()', 'count_unique(id)'],
             columns: [],
             orderby: '',

@@ -36,7 +36,11 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import {getUtcDateString} from 'sentry/utils/dates';
 import {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
-import {getAggregateAlias, isAggregateField} from 'sentry/utils/discover/fields';
+import {
+  getAggregateAlias,
+  isAggregateField,
+  isAggregateFieldOrEquation,
+} from 'sentry/utils/discover/fields';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeInteger, decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
@@ -65,6 +69,7 @@ import {
   renderIssueGridHeaderCell,
   renderReleaseGridHeaderCell,
 } from './widgetViewerModal/widgetViewerTableCell';
+import {trimStart} from 'lodash';
 
 export interface WidgetViewerModalOptions {
   organization: Organization;
@@ -232,6 +237,20 @@ function WidgetViewerModal(props: Props) {
       : widget;
   const api = useApi();
 
+  const tableQuery = cloneDeep(sortedQueries[selectedQueryIndex]);
+  const orderby = trimStart(tableQuery.orderby, '-');
+
+  if (
+    tableQuery.orderby &&
+    ![...tableQuery.columns, ...tableQuery.aggregates].includes(orderby)
+  ) {
+    if (isAggregateFieldOrEquation(orderby)) {
+      tableQuery.aggregates = [...tableQuery.aggregates, orderby];
+    } else {
+      tableQuery.columns = [...tableQuery.columns, orderby];
+    }
+  }
+
   // Create Table widget
   const tableWidget = {
     ...cloneDeep({...widget, queries: [sortedQueries[selectedQueryIndex]]}),
@@ -239,9 +258,10 @@ function WidgetViewerModal(props: Props) {
   };
   const {aggregates, columns} = tableWidget.queries[0];
 
-  const fields = defined(tableWidget.queries[0].fields)
-    ? tableWidget.queries[0].fields
-    : [...columns, ...aggregates];
+  const fields =
+    defined(tableWidget.queries[0].fields) && tableWidget.queries[0].fields.length
+      ? tableWidget.queries[0].fields
+      : [...columns, ...aggregates];
 
   // World Map view should always have geo.country in the table chart
   if (
@@ -307,11 +327,12 @@ function WidgetViewerModal(props: Props) {
   );
 
   let columnOrder = decodeColumnOrder(
-    tableWidget.queries[0].fields?.map(field => ({
+    fields.map(field => ({
       field,
     })) ?? []
   );
   const columnSortBy = eventView.getSorts();
+  console.log(tableWidget, eventView, columnSortBy);
   // Filter out equation terms from columnOrder so we don't clutter the table
   if (shouldReplaceTableColumns && equationFieldsCount) {
     columnOrder = columnOrder.filter(
