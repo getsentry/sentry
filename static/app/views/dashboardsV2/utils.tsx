@@ -99,7 +99,11 @@ export function constructWidgetFromQuery(query?: Query): Widget | undefined {
         queries.push({
           name: queryNames[index],
           conditions: condition,
-          fields: queryFields,
+          fields: [DisplayType.TABLE, DisplayType.TOP_N].includes(
+            query.displayType as DisplayType
+          )
+            ? queryFields
+            : [],
           columns,
           aggregates,
           orderby: query.queryOrderby as string,
