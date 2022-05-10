@@ -91,7 +91,7 @@ const List = ({
                 key={key}
                 style={style}
                 item={items[index]}
-                isActive={items[index].index === highlightedIndex}
+                isHighlighted={items[index].index === highlightedIndex}
                 {...rowProps}
               />
             )}
@@ -109,7 +109,7 @@ const List = ({
           // because the items shift around the list
           key={`${item.value}-${index}`}
           item={item}
-          isActive={item.index === highlightedIndex}
+          isHighlighted={item.index === highlightedIndex}
           {...rowProps}
         />
       ))}
