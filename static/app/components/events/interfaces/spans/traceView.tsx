@@ -1,4 +1,5 @@
 import {createRef, PureComponent} from 'react';
+import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -14,6 +15,7 @@ import * as ScrollbarManager from './scrollbarManager';
 import SpanTree from './spanTree';
 import {getTraceContext} from './utils';
 import WaterfallModel from './waterfallModel';
+// import ScrollPane from './scrollPane';
 
 type Props = {
   organization: Organization;
@@ -93,24 +95,38 @@ class TraceView extends PureComponent<Props> {
                             <Observer>
                               {() => {
                                 return (
-                                  <CustomerProfiler id="SpanTree">
-                                    <SpanTree
-                                      traceViewRef={this.traceViewRef}
-                                      dragProps={dragProps}
-                                      organization={organization}
-                                      waterfallModel={waterfallModel}
-                                      filterSpans={waterfallModel.filterSpans}
-                                      spans={waterfallModel.getWaterfall(
-                                        {
-                                          viewStart: dragProps.viewWindowStart,
-                                          viewEnd: dragProps.viewWindowEnd,
-                                        },
-                                        organization.features.includes(
-                                          'performance-autogroup-sibling-spans'
-                                        )
-                                      )}
-                                    />
-                                  </CustomerProfiler>
+                                  <ScrollbarManager.Consumer>
+                                    {scrollbarManagerChildrenProps => (
+                                      <CustomerProfiler id="SpanTree">
+                                        <ScrollPane
+                                          onWheel={event => {
+                                            event.preventDefault();
+                                            event.stopPropagation();
+                                            const {onWheel} =
+                                              scrollbarManagerChildrenProps;
+                                            onWheel(event.deltaX);
+                                          }}
+                                        >
+                                          <SpanTree
+                                            traceViewRef={this.traceViewRef}
+                                            dragProps={dragProps}
+                                            organization={organization}
+                                            waterfallModel={waterfallModel}
+                                            filterSpans={waterfallModel.filterSpans}
+                                            spans={waterfallModel.getWaterfall(
+                                              {
+                                                viewStart: dragProps.viewWindowStart,
+                                                viewEnd: dragProps.viewWindowEnd,
+                                              },
+                                              organization.features.includes(
+                                                'performance-autogroup-sibling-spans'
+                                              )
+                                            )}
+                                          />
+                                        </ScrollPane>
+                                      </CustomerProfiler>
+                                    )}
+                                  </ScrollbarManager.Consumer>
                                 );
                               }}
                             </Observer>
@@ -128,5 +144,7 @@ class TraceView extends PureComponent<Props> {
     );
   }
 }
+
+const ScrollPane = styled('div')``;
 
 export default TraceView;
