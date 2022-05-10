@@ -16,36 +16,18 @@ const PlayerRelativeTime = ({relativeTime, timestamp}: Props) => {
   }
 
   return (
-    <Wrapper>
-      <Tooltip
-        title={<DateTime date={timestamp} />}
-        disabled={!timestamp}
-        skipWrapper
-        disableForVisualTest
-        underlineColor="gray300"
-        showUnderline
-      >
-        <Value>{showPlayerTime(timestamp, relativeTime)}</Value>
-      </Tooltip>
-    </Wrapper>
+    <Tooltip
+      title={<DateTime date={timestamp} />}
+      disabled={!timestamp}
+      skipWrapper
+      disableForVisualTest
+      underlineColor="gray300"
+      showUnderline
+    >
+      <Value>{showPlayerTime(timestamp, relativeTime)}</Value>
+    </Tooltip>
   );
 };
-
-const Wrapper = styled('div')`
-  display: flex;
-  justify-content: center;
-  position: relative;
-  :before {
-    content: '';
-    display: block;
-    width: 1px;
-    top: 0;
-    bottom: 0;
-    left: 50%;
-    transform: translate(-50%);
-    position: absolute;
-  }
-`;
 
 const Value = styled('p')`
   color: ${p => p.theme.subText};
