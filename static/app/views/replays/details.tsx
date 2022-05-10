@@ -16,7 +16,6 @@ import ReplayPlayer from 'sentry/components/replays/replayPlayer';
 import useFullscreen from 'sentry/components/replays/useFullscreen';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
-import space from 'sentry/styles/space';
 import useReplayData from 'sentry/utils/replays/useReplayData';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 
@@ -90,7 +89,7 @@ function ReplayDetails() {
       >
         <Layout.Body>
           <ReplayLayout ref={fullscreenRef}>
-            <Panel>
+            <PanelNoMargin>
               <PanelHeader>
                 <ReplayCurrentUrl />
               </PanelHeader>
@@ -105,14 +104,14 @@ function ReplayDetails() {
               <PanelBody withPadding>
                 <ReplayController toggleFullscreen={toggleFullscreen} />
               </PanelBody>
-            </Panel>
+            </PanelNoMargin>
           </ReplayLayout>
-          <Side>
+          <Layout.Side>
             <UserActionsNavigator
               crumbs={replay.getRawCrumbs()}
               event={replay.getEvent()}
             />
-          </Side>
+          </Layout.Side>
           <Layout.Main fullWidth>
             <Panel>
               <ReplayTimeline />
@@ -124,6 +123,10 @@ function ReplayDetails() {
     </ReplayContextProvider>
   );
 }
+
+const PanelNoMargin = styled(Panel)`
+  margin-bottom: 0;
+`;
 
 const PanelHeader = styled(_PanelHeader)`
   display: block;
@@ -150,10 +153,6 @@ const ReplayLayout = styled(Layout.Main)`
     grid-template-rows: auto max-content;
     background: ${p => p.theme.gray500};
   }
-`;
-
-const Side = styled(Layout.Side)`
-  padding-bottom: ${space(2)};
 `;
 
 export default ReplayDetails;
