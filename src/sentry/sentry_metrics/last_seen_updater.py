@@ -1,26 +1,46 @@
-from typing import Mapping, Optional, Union
+from datetime import timedelta
+from typing import Any, Mapping, Optional, Set, Union
 
-from arroyo import Topic
+from arroyo import Message, Topic
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
 from arroyo.processing import StreamProcessor
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.processing.strategies.streaming import KafkaConsumerStrategyFactory
 from arroyo.processing.strategies.streaming.factory import StreamMessageFilter
+from django.utils import timezone
 
+from sentry.sentry_metrics.indexer.base import FetchType
+from sentry.sentry_metrics.indexer.models import StringIndexer
 from sentry.sentry_metrics.multiprocess import get_config, logger
+from sentry.utils import json
 
 
 class LastSeenUpdaterMessageFilter(StreamMessageFilter[KafkaPayload]):  # type: ignore
+    # We want to ignore messages where the mapping_sources header is present
+    # and does not contain the DB_READ ('d') character (this should be the vast
+    # majority of messages).
     def should_drop(self, message: KafkaPayload) -> bool:
-        return False
+        header_value: Optional[str] = next(
+            (str(header[1]) for header in message.headers if header[0] == "mapping_sources"), None
+        )
+        if not header_value:
+            return False
+
+        return FetchType.DB_READ.value not in str(header_value)
 
 
-class LastSeenUpdaterCollector(ProcessingStrategy[int]):  # type: ignore
+def _update_stale_last_seen(seen_ints: Set[int]) -> Any:
+    return StringIndexer.objects.filter(
+        id__in=seen_ints, last_seen__time__lt=(timezone.now() - timedelta(hours=12))
+    ).update(last_seen=timezone.now())
+
+
+class LastSeenUpdaterCollector(ProcessingStrategy[Set[int]]):  # type: ignore
     def __init__(self) -> None:
-        self.__counter = 0
+        self.__seen_ints = set()
 
-    def submit(self, message: int) -> None:
-        self.__counter += message
+    def submit(self, message: Message[Set[int]]) -> None:
+        self.__seen_ints.update(message.payload)
 
     def poll(self) -> None:
         pass
@@ -32,8 +52,17 @@ class LastSeenUpdaterCollector(ProcessingStrategy[int]):  # type: ignore
         pass
 
     def join(self, timeout: Optional[float] = None) -> None:
-        logger.info(f"{self.__counter} messages processed")
-        self.__counter = 0
+        logger.info(f"{len(self.__seen_ints)} unique keys seen")
+        _update_stale_last_seen(self.__seen_ints)
+        self.__seen_ints = set()
+
+
+def retrieve_db_read_keys(message: Message[KafkaPayload]) -> Set[str]:
+    parsed_message = json.loads(message.payload.value)
+    if "mapping_source" in parsed_message:
+        if FetchType.DB_READ.value in parsed_message["mapping_source"]:
+            return set(parsed_message["mapping_source"][FetchType.DB_READ.value].keys())
+    return set()
 
 
 def get_last_seen_updater(
@@ -50,7 +79,7 @@ def get_last_seen_updater(
         processes=None,
         input_block_size=None,
         output_block_size=None,
-        process_message=lambda message: 1,
+        process_message=retrieve_db_read_keys,
         prefilter=LastSeenUpdaterMessageFilter(),
         collector=lambda: LastSeenUpdaterCollector(),
     )
