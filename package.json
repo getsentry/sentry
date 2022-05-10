@@ -173,7 +173,7 @@
     "jest-canvas-mock": "^2.3.1",
     "jest-fetch-mock": "^3.0.3",
     "jest-junit": "13.0.0",
-    "jest-sentry-environment": "1.7.0",
+    "jest-sentry-environment": "1.7.1",
     "postcss-jsx": "0.36.4",
     "postcss-syntax": "0.36.2",
     "react-refresh": "0.11.0",
