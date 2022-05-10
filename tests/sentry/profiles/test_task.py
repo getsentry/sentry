@@ -8,7 +8,7 @@ from django.urls import reverse
 from exam import fixture
 
 from sentry.constants import MODULE_ROOT
-from sentry.profiles.task import _deobfuscate, _normalize, _validate_ios_profile
+from sentry.profiles.task import _deobfuscate, _normalize
 from sentry.testutils import TestCase
 from sentry.utils import json
 
@@ -86,22 +86,6 @@ class ProfilesProcessTaskTest(TestCase):
         path = join(PROFILES_FIXTURES_PATH, "valid_android_profile.json")
         with open(path) as f:
             return json.loads(f.read())
-
-    def test_valid_ios_profile(self):
-        profile = {
-            "sampled_profile": {"samples": []},
-        }
-        self.assertEqual(_validate_ios_profile(profile), True)
-
-    def test_invalid_ios_profile(self):
-        profile = {
-            "snmpled_profile": {},
-        }
-        self.assertEqual(_validate_ios_profile(profile), False)
-        profile = {
-            "sampled_profile": {"no_frames": []},
-        }
-        self.assertEqual(_validate_ios_profile(profile), False)
 
     def test_normalize_ios_profile(self):
         profile = _normalize(self.ios_profile)
