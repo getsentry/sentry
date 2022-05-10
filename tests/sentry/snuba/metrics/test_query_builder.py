@@ -78,11 +78,17 @@ def get_entity_of_metric_mocked(_, metric_name):
     [
         (
             'release:""',
-            [Condition(Column(name=resolve_tag_key(ORG_ID, "release")), Op.IN, rhs=[10000])],
+            [
+                Condition(
+                    Column(name=resolve_tag_key(ORG_ID, "release")),
+                    Op.IN,
+                    rhs=[resolve(ORG_ID, "")],
+                )
+            ],
         ),
         (
             "release:myapp@2.0.0",
-            [Condition(Column(name=resolve_tag_key(ORG_ID, "release")), Op.IN, rhs=[10001])],
+            [Condition(Column(name=resolve_tag_key(ORG_ID, "release")), Op.IN, rhs=[10000])],
         ),
         (
             "release:myapp@2.0.0 and environment:production",
@@ -90,7 +96,7 @@ def get_entity_of_metric_mocked(_, metric_name):
                 And(
                     [
                         Condition(
-                            Column(name=resolve_tag_key(ORG_ID, "release")), Op.IN, rhs=[10001]
+                            Column(name=resolve_tag_key(ORG_ID, "release")), Op.IN, rhs=[10000]
                         ),
                         Condition(
                             Column(name=resolve_tag_key(ORG_ID, "environment")),
@@ -104,7 +110,7 @@ def get_entity_of_metric_mocked(_, metric_name):
         (
             "release:myapp@2.0.0 environment:production",
             [
-                Condition(Column(name=resolve_tag_key(ORG_ID, "release")), Op.IN, rhs=[10001]),
+                Condition(Column(name=resolve_tag_key(ORG_ID, "release")), Op.IN, rhs=[10000]),
                 Condition(
                     Column(name=resolve_tag_key(ORG_ID, "environment")),
                     Op.EQ,
@@ -118,7 +124,7 @@ def get_entity_of_metric_mocked(_, metric_name):
                 And(
                     [
                         Condition(
-                            Column(name=resolve_tag_key(ORG_ID, "release")), Op.IN, rhs=[10001]
+                            Column(name=resolve_tag_key(ORG_ID, "release")), Op.IN, rhs=[10000]
                         ),
                         Condition(
                             Column(name=resolve_tag_key(ORG_ID, "environment")),
@@ -131,7 +137,7 @@ def get_entity_of_metric_mocked(_, metric_name):
         ),
         (
             'transaction:"/bar/:orgId/"',
-            [Condition(Column(name=resolve_tag_key(ORG_ID, "transaction")), Op.EQ, rhs=10002)],
+            [Condition(Column(name=resolve_tag_key(ORG_ID, "transaction")), Op.EQ, rhs=10001)],
         ),
         (
             "release:[production,foo]",
@@ -169,7 +175,7 @@ def get_entity_of_metric_mocked(_, metric_name):
                 Or(
                     [
                         Condition(
-                            Column(name=resolve_tag_key(ORG_ID, "release")), Op.IN, rhs=[10001]
+                            Column(name=resolve_tag_key(ORG_ID, "release")), Op.IN, rhs=[10000]
                         ),
                         Condition(
                             Column(name=resolve_tag_key(ORG_ID, "environment")),
@@ -185,8 +191,8 @@ def get_entity_of_metric_mocked(_, metric_name):
 def test_parse_query(monkeypatch, query_string, expected):
     org_id = ORG_ID
     local_indexer = MockIndexer()
-    for s in ("", "myapp@2.0.0", "/bar/:orgId/"):
-        # will be values 10000, 10001, 10002 respectively
+    for s in ("myapp@2.0.0", "/bar/:orgId/"):
+        # will be values 10000, 10001 respectively
         local_indexer.record(org_id, s)
     monkeypatch.setattr("sentry.sentry_metrics.indexer.resolve", local_indexer.resolve)
     parsed = resolve_tags(org_id, parse_query(query_string))
@@ -299,7 +305,6 @@ def test_build_snuba_query(mock_now, mock_now2, monkeypatch):
     def expected_query(match, select, extra_groupby, metric_name):
         function, column, alias = select
         return Query(
-            dataset="metrics",
             match=Entity(match),
             select=[
                 Function(
@@ -418,7 +423,6 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2, monkeypatch):
         groupby = [] if key == "totals" else [Column("bucketed_time")]
         assert snuba_queries["metrics_counters"][key] == (
             Query(
-                dataset="metrics",
                 match=Entity("metrics_counters"),
                 select=[
                     errored_preaggr_sessions(
@@ -484,7 +488,6 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2, monkeypatch):
         )
         assert snuba_queries["metrics_sets"][key] == (
             Query(
-                dataset="metrics",
                 match=Entity("metrics_sets"),
                 select=[
                     uniq_aggregation_on_metric(
@@ -555,7 +558,6 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, monkeypatch):
     )
 
     assert counter_queries["totals"] == Query(
-        dataset="metrics",
         match=Entity("metrics_counters"),
         select=[select],
         groupby=[
@@ -579,7 +581,6 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, monkeypatch):
         granularity=Granularity(query_definition.rollup),
     )
     assert counter_queries["series"] == Query(
-        dataset="metrics",
         match=Entity("metrics_counters"),
         select=[select],
         groupby=[
@@ -654,7 +655,6 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2, monkeypatch):
         alias=f"{op}({SessionMRI.DURATION.value})",
     )
     assert distribution_queries["totals"] == Query(
-        dataset="metrics",
         match=Entity("metrics_distributions"),
         select=[select],
         groupby=[
@@ -677,7 +677,6 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2, monkeypatch):
         granularity=Granularity(query_definition.rollup),
     )
     assert distribution_queries["series"] == Query(
-        dataset="metrics",
         match=Entity("metrics_distributions"),
         select=[select],
         groupby=[

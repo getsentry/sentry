@@ -15,6 +15,7 @@ const base: Profiling.EventedProfile = {
   endValue: 10,
   unit: 'milliseconds',
   type: 'evented',
+  threadID: 0,
   events: [
     {type: 'O', at: 0, frame: 0},
     {type: 'C', at: 10, frame: 0},

@@ -486,7 +486,7 @@ describe('Performance > TransactionSummary', function () {
     // Click the key transaction button
     userEvent.click(screen.getByRole('button', {name: 'Star for Team'}));
 
-    userEvent.click(screen.getByText('team1'));
+    userEvent.click(screen.getByText('team1'), undefined, {skipPointerEventsCheck: true});
 
     // Ensure request was made.
     expect(mockUpdate).toHaveBeenCalled();

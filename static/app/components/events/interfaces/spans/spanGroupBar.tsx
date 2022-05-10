@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 
 import Count from 'sentry/components/count';
 import {
@@ -112,10 +112,10 @@ function renderMeasurements(
   event: Readonly<EventTransaction>,
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType
 ) {
-  const measurements = getMeasurements(event);
+  const measurements = getMeasurements(event, generateBounds);
 
   return (
-    <React.Fragment>
+    <Fragment>
       {Array.from(measurements).map(([timestamp, verticalMark]) => {
         const bounds = getMeasurementBounds(timestamp, generateBounds);
 
@@ -135,7 +135,7 @@ function renderMeasurements(
           />
         );
       })}
-    </React.Fragment>
+    </Fragment>
   );
 }
 

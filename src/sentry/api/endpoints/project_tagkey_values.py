@@ -1,8 +1,7 @@
-import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, tagstore
+from sentry import tagstore
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -40,11 +39,6 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint, EnvironmentMixin):
         except tagstore.TagKeyNotFound:
             raise ResourceDoesNotExist
 
-        sampling = features.has(
-            "organizations:discover-tagstore-sampling", project.organization, actor=request.user
-        )
-        sentry_sdk.set_tag("discover.tagstore_sampling", sampling)
-
         start, end = get_date_range_from_params(request.GET)
 
         paginator = tagstore.get_tag_value_paginator(
@@ -55,7 +49,6 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint, EnvironmentMixin):
             end=end,
             query=request.GET.get("query"),
             order_by="-last_seen",
-            sampling=sampling,
         )
 
         return self.paginate(

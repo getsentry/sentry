@@ -7,9 +7,10 @@ from django.test.utils import override_settings
 from exam import fixture
 from freezegun import freeze_time
 
+from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.incidents.models import AlertRule, AlertRuleTrigger, AlertRuleTriggerAction
-from sentry.models import AuditLogEntry, AuditLogEntryEvent, Integration
+from sentry.models import AuditLogEntry, Integration
 from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
@@ -120,7 +121,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
         assert resp.data == serialize(alert_rule, self.user)
 
         audit_log_entry = AuditLogEntry.objects.filter(
-            event=AuditLogEntryEvent.ALERT_RULE_ADD, target_object=alert_rule.id
+            event=audit_log.get_event_id("ALERT_RULE_ADD"), target_object=alert_rule.id
         )
         assert len(audit_log_entry) == 1
 

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment, memo, useEffect, useRef, useState} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import {components} from 'react-select';
 import {css} from '@emotion/react';
@@ -66,7 +66,7 @@ import {
   renderReleaseGridHeaderCell,
 } from './widgetViewerModal/widgetViewerTableCell';
 
-export type WidgetViewerModalOptions = {
+export interface WidgetViewerModalOptions {
   organization: Organization;
   widget: Widget;
   issuesData?: TableDataRow[];
@@ -75,14 +75,12 @@ export type WidgetViewerModalOptions = {
   seriesData?: Series[];
   tableData?: TableDataWithTitle[];
   totalIssuesCount?: string;
-};
+}
 
-type Props = ModalRenderProps &
-  WithRouterProps &
-  WidgetViewerModalOptions & {
-    organization: Organization;
-    selection: PageFilters;
-  };
+interface Props extends ModalRenderProps, WithRouterProps, WidgetViewerModalOptions {
+  organization: Organization;
+  selection: PageFilters;
+}
 
 const FULL_TABLE_ITEM_LIMIT = 20;
 const HALF_TABLE_ITEM_LIMIT = 10;
@@ -107,11 +105,11 @@ const shouldWidgetCardChartMemo = (prevProps, props) => {
 // WidgetCardChartContainer and WidgetCardChart rerenders if selection was changed.
 // This is required because we want to prevent ECharts interactions from causing
 // unnecessary rerenders which can break legends and zoom functionality.
-const MemoizedWidgetCardChartContainer = React.memo(
+const MemoizedWidgetCardChartContainer = memo(
   WidgetCardChartContainer,
   shouldWidgetCardChartMemo
 );
-const MemoizedWidgetCardChart = React.memo(WidgetCardChart, shouldWidgetCardChartMemo);
+const MemoizedWidgetCardChart = memo(WidgetCardChart, shouldWidgetCardChartMemo);
 
 async function fetchDiscoverTotal(
   api: Client,
@@ -170,22 +168,23 @@ function WidgetViewerModal(props: Props) {
         }
       : selection;
 
-  const [chartUnmodified, setChartUnmodified] = React.useState<boolean>(true);
+  const [chartUnmodified, setChartUnmodified] = useState<boolean>(true);
 
-  const [chartZoomOptions, setChartZoomOptions] = React.useState<DataZoomComponentOption>(
-    {start: 0, end: 100}
-  );
+  const [chartZoomOptions, setChartZoomOptions] = useState<DataZoomComponentOption>({
+    start: 0,
+    end: 100,
+  });
 
   // We wrap the modalChartSelection in a useRef because we do not want to recalculate this value
   // (which would cause an unnecessary rerender on calculation) except for the initial load.
   // We use this for when a user visit a widget viewer url directly.
   const [modalTableSelection, setModalTableSelection] =
-    React.useState<PageFilters>(locationPageFilter);
-  const modalChartSelection = React.useRef(modalTableSelection);
+    useState<PageFilters>(locationPageFilter);
+  const modalChartSelection = useRef(modalTableSelection);
 
   // Detect when a user clicks back and set the PageFilter state to match the location
   // We need to use useEffect to prevent infinite looping rerenders due to the setModalTableSelection call
-  React.useEffect(() => {
+  useEffect(() => {
     if (location.action === 'POP') {
       setModalTableSelection(locationPageFilter);
       if (start && end) {
@@ -201,13 +200,13 @@ function WidgetViewerModal(props: Props) {
 
   // Get legends toggle settings from location
   // We use the legend query params for just the initial state
-  const [disabledLegends, setDisabledLegends] = React.useState<{[key: string]: boolean}>(
+  const [disabledLegends, setDisabledLegends] = useState<{[key: string]: boolean}>(
     decodeList(location.query[WidgetViewerQueryField.LEGEND]).reduce((acc, legend) => {
       acc[legend] = false;
       return acc;
     }, {})
   );
-  const [totalResults, setTotalResults] = React.useState<string | undefined>();
+  const [totalResults, setTotalResults] = useState<string | undefined>();
 
   // Get query selection settings from location
   const selectedQueryIndex =
@@ -361,7 +360,7 @@ function WidgetViewerModal(props: Props) {
   };
 
   // Get discover result totals
-  React.useEffect(() => {
+  useEffect(() => {
     const getDiscoverTotals = async () => {
       if (widget.widgetType === WidgetType.DISCOVER) {
         setTotalResults(await fetchDiscoverTotal(api, organization, location, eventView));
@@ -396,7 +395,7 @@ function WidgetViewerModal(props: Props) {
     const links = parseLinkHeader(pageLinks ?? null);
     const isFirstPage = links.previous?.results === false;
     return (
-      <React.Fragment>
+      <Fragment>
         <GridEditable
           isLoading={loading}
           data={tableResults?.[0]?.data ?? []}
@@ -446,7 +445,7 @@ function WidgetViewerModal(props: Props) {
             }}
           />
         )}
-      </React.Fragment>
+      </Fragment>
     );
   };
 
@@ -461,7 +460,7 @@ function WidgetViewerModal(props: Props) {
     }
     const links = parseLinkHeader(pageLinks ?? null);
     return (
-      <React.Fragment>
+      <Fragment>
         <GridEditable
           isLoading={loading}
           data={transformedResults}
@@ -521,7 +520,7 @@ function WidgetViewerModal(props: Props) {
             }}
           />
         )}
-      </React.Fragment>
+      </Fragment>
     );
   };
 
@@ -533,7 +532,7 @@ function WidgetViewerModal(props: Props) {
     const links = parseLinkHeader(pageLinks ?? null);
     const isFirstPage = links.previous?.results === false;
     return (
-      <React.Fragment>
+      <Fragment>
         <GridEditable
           isLoading={loading}
           data={tableResults?.[0]?.data ?? []}
@@ -578,7 +577,7 @@ function WidgetViewerModal(props: Props) {
             }}
           />
         )}
-      </React.Fragment>
+      </Fragment>
     );
   };
 
@@ -712,7 +711,7 @@ function WidgetViewerModal(props: Props) {
 
   function renderWidgetViewer() {
     return (
-      <React.Fragment>
+      <Fragment>
         {widget.displayType !== DisplayType.TABLE && (
           <Container
             height={
@@ -866,7 +865,7 @@ function WidgetViewerModal(props: Props) {
           </QueryContainer>
         )}
         {renderWidgetViewerTable()}
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -889,7 +888,7 @@ function WidgetViewerModal(props: Props) {
   }
 
   return (
-    <React.Fragment>
+    <Fragment>
       <Header closeButton>
         <h3>{widget.title}</h3>
       </Header>
@@ -937,7 +936,7 @@ function WidgetViewerModal(props: Props) {
           </ButtonBar>
         </ResultsContainer>
       </Footer>
-    </React.Fragment>
+    </Fragment>
   );
 }
 

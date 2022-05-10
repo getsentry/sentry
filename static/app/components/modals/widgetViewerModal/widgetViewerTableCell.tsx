@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject} from 'history';
 
@@ -189,17 +189,19 @@ export const renderGridBodyCell =
         }
         break;
     }
-
+    const topResultsCount = tableData
+      ? Math.min(tableData?.data.length, DEFAULT_NUM_TOP_EVENTS)
+      : DEFAULT_NUM_TOP_EVENTS;
     return (
-      <React.Fragment>
+      <Fragment>
         {isTopEvents &&
         isFirstPage &&
         rowIndex < DEFAULT_NUM_TOP_EVENTS &&
         columnIndex === 0 ? (
-          <TopResultsIndicator count={DEFAULT_NUM_TOP_EVENTS} index={rowIndex} />
+          <TopResultsIndicator count={topResultsCount} index={rowIndex} />
         ) : null}
         {cell}
-      </React.Fragment>
+      </Fragment>
     );
   };
 
