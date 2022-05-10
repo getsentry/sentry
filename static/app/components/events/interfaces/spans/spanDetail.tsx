@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import map from 'lodash/map';
@@ -75,7 +75,7 @@ type State = {
   errorsOpened: boolean;
 };
 
-class SpanDetail extends React.Component<Props, State> {
+class SpanDetail extends Component<Props, State> {
   state: State = {
     errorsOpened: false,
   };
@@ -285,7 +285,7 @@ class SpanDetail extends React.Component<Props, State> {
         </ErrorMessageTitle>
         <ErrorMessageContent>
           {visibleErrors.map(error => (
-            <React.Fragment key={error.event_id}>
+            <Fragment key={error.event_id}>
               <ErrorDot level={error.level} />
               <ErrorLevel>{error.level}</ErrorLevel>
               <ErrorTitle>
@@ -293,7 +293,7 @@ class SpanDetail extends React.Component<Props, State> {
                   {error.title}
                 </Link>
               </ErrorTitle>
-            </React.Fragment>
+            </Fragment>
           ))}
         </ErrorMessageContent>
         {relatedErrors.length > DEFAULT_ERRORS_VISIBLE && (
@@ -354,7 +354,7 @@ class SpanDetail extends React.Component<Props, State> {
     );
 
     return (
-      <React.Fragment>
+      <Fragment>
         {this.renderOrphanSpanMessage()}
         {this.renderSpanErrorMessage()}
         <SpanDetails>
@@ -390,10 +390,10 @@ class SpanDetail extends React.Component<Props, State> {
                 {getDynamicText({
                   fixed: 'Mar 16, 2020 9:10:12 AM UTC',
                   value: (
-                    <React.Fragment>
+                    <Fragment>
                       <DateTime date={startTimestamp * 1000} />
                       {` (${startTimestamp})`}
-                    </React.Fragment>
+                    </Fragment>
                   ),
                 })}
               </Row>
@@ -401,10 +401,10 @@ class SpanDetail extends React.Component<Props, State> {
                 {getDynamicText({
                   fixed: 'Mar 16, 2020 9:10:13 AM UTC',
                   value: (
-                    <React.Fragment>
+                    <Fragment>
                       <DateTime date={endTimestamp * 1000} />
                       {` (${endTimestamp})`}
-                    </React.Fragment>
+                    </Fragment>
                   ),
                 })}
               </Row>
@@ -441,12 +441,12 @@ class SpanDetail extends React.Component<Props, State> {
               )}
               {map(sizeKeys, (value, key) => (
                 <Row title={key} key={key}>
-                  <React.Fragment>
+                  <Fragment>
                     <FileSize bytes={value} />
                     {value >= 1024 && (
                       <span>{` (${JSON.stringify(value, null, 4) || ''} B)`}</span>
                     )}
-                  </React.Fragment>
+                  </Fragment>
                 </Row>
               ))}
               {map(nonSizeKeys, (value, key) => (
@@ -462,7 +462,7 @@ class SpanDetail extends React.Component<Props, State> {
             </tbody>
           </table>
         </SpanDetails>
-      </React.Fragment>
+      </Fragment>
     );
   }
 

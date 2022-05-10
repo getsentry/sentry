@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Checkbox from 'sentry/components/checkbox';
@@ -29,7 +29,7 @@ type Props = DefaultProps & {
   resource: Resource;
 };
 
-export class SubscriptionBox extends React.Component<Props> {
+export class SubscriptionBox extends Component<Props> {
   static defaultProps: DefaultProps = {
     webhookDisabled: false,
   };
@@ -56,7 +56,7 @@ export class SubscriptionBox extends React.Component<Props> {
     }
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Tooltip disabled={!disabled} title={message} key={resource}>
           <SubscriptionGridItem disabled={disabled}>
             <SubscriptionInfo>
@@ -78,7 +78,7 @@ export class SubscriptionBox extends React.Component<Props> {
             />
           </SubscriptionGridItem>
         </Tooltip>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

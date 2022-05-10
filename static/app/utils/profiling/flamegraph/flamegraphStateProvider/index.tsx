@@ -12,6 +12,7 @@ import {
   useUndoableReducer,
 } from 'sentry/utils/useUndoableReducer';
 
+import {useProfileGroup} from '../../../../views/profiling/profileGroupProvider';
 import {useFlamegraphStateValue} from '../useFlamegraphState';
 
 import {
@@ -70,9 +71,9 @@ export function decodeFlamegraphStateFromQueryParams(
 ): DeepPartial<FlamegraphState> {
   return {
     profiles: {
-      activeProfileIndex:
-        typeof query.profileIndex === 'string' && !isNaN(parseInt(query.profileIndex, 10))
-          ? parseInt(query.profileIndex, 10)
+      threadId:
+        typeof query.tid === 'string' && !isNaN(parseInt(query.tid, 10))
+          ? parseInt(query.tid, 10)
           : null,
     },
     position: {view: Rect.decode(query.fov) ?? Rect.Empty()},
@@ -94,7 +95,7 @@ export function decodeFlamegraphStateFromQueryParams(
   };
 }
 
-function encodeFlamegraphStateToQueryParams(state: FlamegraphState) {
+export function encodeFlamegraphStateToQueryParams(state: FlamegraphState) {
   return {
     colorCoding: state.preferences.colorCoding,
     sorting: state.preferences.sorting,
@@ -104,8 +105,8 @@ function encodeFlamegraphStateToQueryParams(state: FlamegraphState) {
     ...(state.position.view.isEmpty()
       ? {fov: undefined}
       : {fov: Rect.encode(state.position.view)}),
-    ...(typeof state.profiles.activeProfileIndex === 'number'
-      ? {profileIndex: state.profiles.activeProfileIndex}
+    ...(typeof state.profiles.threadId === 'number'
+      ? {tid: state.profiles.threadId}
       : {}),
   };
 }
@@ -129,7 +130,7 @@ export function FlamegraphStateQueryParamSync() {
   const state = useFlamegraphStateValue();
 
   useEffect(() => {
-    browserHistory.push({
+    browserHistory.replace({
       ...location,
       query: {
         ...location.query,
@@ -162,7 +163,7 @@ interface FlamegraphStateProviderProps {
 
 const DEFAULT_FLAMEGRAPH_STATE: FlamegraphState = {
   profiles: {
-    activeProfileIndex: null,
+    threadId: null,
     selectedNode: null,
   },
   position: {
@@ -184,12 +185,13 @@ const DEFAULT_FLAMEGRAPH_STATE: FlamegraphState = {
 export function FlamegraphStateProvider(
   props: FlamegraphStateProviderProps
 ): React.ReactElement {
+  const [profileGroup] = useProfileGroup();
   const reducer = useUndoableReducer(combinedReducers, {
     profiles: {
       selectedNode: null,
-      activeProfileIndex:
-        props.initialState?.profiles?.activeProfileIndex ??
-        DEFAULT_FLAMEGRAPH_STATE.profiles.activeProfileIndex,
+      threadId:
+        props.initialState?.profiles?.threadId ??
+        DEFAULT_FLAMEGRAPH_STATE.profiles.threadId,
     },
     position: {
       view: (props.initialState?.position?.view ??
@@ -214,6 +216,24 @@ export function FlamegraphStateProvider(
       query: props.initialState?.search?.query ?? DEFAULT_FLAMEGRAPH_STATE.search.query,
     },
   });
+
+  useEffect(() => {
+    if (
+      reducer[0].profiles.threadId === null &&
+      profileGroup.type === 'resolved' &&
+      typeof profileGroup.data.activeProfileIndex === 'number'
+    ) {
+      const threadID =
+        profileGroup.data.profiles[profileGroup.data.activeProfileIndex].threadId;
+
+      if (threadID) {
+        reducer[1]({
+          type: 'set thread id',
+          payload: threadID,
+        });
+      }
+    }
+  }, [props.initialState?.profiles?.threadId, profileGroup, reducer]);
 
   return (
     <FlamegraphStateContext.Provider value={reducer}>

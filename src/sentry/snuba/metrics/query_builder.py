@@ -104,9 +104,7 @@ FUNCTION_ALLOWLIST = ("and", "or", "equals", "in")
 def resolve_tags(org_id: int, input_: Any) -> Any:
     """Translate tags in snuba condition
 
-    This assumes that all strings are either tag names or tag values, so do not
-    pass Column("metric_id") or Column("project_id") into this function.
-
+    Column("metric_id") is not supported.
     """
     if input_ is None:
         return None
@@ -119,6 +117,14 @@ def resolve_tags(org_id: int, input_: Any) -> Any:
         if input_.function == "ifNull":
             # This was wrapped automatically by QueryBuilder, remove wrapper
             return resolve_tags(org_id, input_.parameters[0])
+        elif input_.function == "isNull":
+            return Function(
+                "equals",
+                [
+                    resolve_tags(org_id, input_.parameters[0]),
+                    resolve_tags(org_id, ""),
+                ],
+            )
         elif input_.function in FUNCTION_ALLOWLIST:
             return Function(
                 function=input_.function,
@@ -138,6 +144,11 @@ def resolve_tags(org_id: int, input_: Any) -> Any:
         return resolve_tags(org_id, input_.conditions[1])
 
     if isinstance(input_, Condition):
+        if input_.op == Op.IS_NULL and input_.rhs is None:
+            return Condition(
+                lhs=resolve_tags(org_id, input_.lhs), op=Op.EQ, rhs=resolve_tags(org_id, "")
+            )
+
         return Condition(
             lhs=resolve_tags(org_id, input_.lhs), op=input_.op, rhs=resolve_tags(org_id, input_.rhs)
         )
@@ -147,6 +158,8 @@ def resolve_tags(org_id: int, input_: Any) -> Any:
             conditions=[resolve_tags(org_id, item) for item in input_.conditions]
         )
     if isinstance(input_, Column):
+        if input_.name == "project_id":
+            return input_
         # HACK: Some tags already take the form "tags[...]" in discover, take that into account:
         if input_.subscriptable == "tags":
             name = input_.key
@@ -418,6 +431,7 @@ class SnubaQueryBuilder:
         op = orderby.field.op
         metric_mri = get_mri(orderby.field.metric_name)
         metric_field_obj = metric_object_factory(op, metric_mri)
+
         return metric_field_obj.generate_orderby_clause(
             projects=self._projects,
             direction=orderby.direction,
@@ -429,7 +443,6 @@ class SnubaQueryBuilder:
     ):
         rv = {}
         totals_query = Query(
-            dataset=Dataset.Metrics.value,
             match=Entity(entity),
             groupby=groupby,
             select=select,

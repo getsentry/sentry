@@ -1196,9 +1196,9 @@ describe('GlobalSelectionHeader', function () {
       // Two projects
       expect(projectSelector.find('AutoCompleteItem')).toHaveLength(2);
       // My projects in the footer
-      expect(
-        projectSelector.find('SelectorFooterControls Button').first().text()
-      ).toEqual('Select My Projects');
+      expect(projectSelector.find('ProjectSelectorFooter Button').first().text()).toEqual(
+        'Select My Projects'
+      );
     });
 
     it('shows "All Projects" button based on features', async function () {
@@ -1221,9 +1221,9 @@ describe('GlobalSelectionHeader', function () {
       // Two projects
       expect(projectSelector.find('AutoCompleteItem')).toHaveLength(2);
       // All projects in the footer
-      expect(
-        projectSelector.find('SelectorFooterControls Button').first().text()
-      ).toEqual('Select All Projects');
+      expect(projectSelector.find('ProjectSelectorFooter Button').first().text()).toEqual(
+        'Select All Projects'
+      );
     });
 
     it('shows "All Projects" button based on role', async function () {
@@ -1246,9 +1246,9 @@ describe('GlobalSelectionHeader', function () {
       // Two projects
       expect(projectSelector.find('AutoCompleteItem')).toHaveLength(2);
       // All projects in the footer
-      expect(
-        projectSelector.find('SelectorFooterControls Button').first().text()
-      ).toEqual('Select All Projects');
+      expect(projectSelector.find('ProjectSelectorFooter Button').first().text()).toEqual(
+        'Select All Projects'
+      );
     });
 
     it('shows "My Projects" when "all projects" is selected', async function () {
@@ -1271,9 +1271,9 @@ describe('GlobalSelectionHeader', function () {
       const projectSelector = wrapper.find('MultipleProjectSelector');
 
       // My projects in the footer
-      expect(
-        projectSelector.find('SelectorFooterControls Button').first().text()
-      ).toEqual('Select My Projects');
+      expect(projectSelector.find('ProjectSelectorFooter Button').first().text()).toEqual(
+        'Select My Projects'
+      );
     });
   });
 

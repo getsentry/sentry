@@ -11,37 +11,13 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
   return [
     {
       guide: 'issue',
-      requiredTargets: ['issue_title', 'exception'],
+      requiredTargets: ['issue_number', 'exception'],
       steps: [
-        {
-          title: t("Let's Get This Over With"),
-          target: 'issue_title',
-          description: t(
-            `No one likes a product tour. But stick with us, and you'll find it a
-              whole lot easier to use Sentry's Issue details page.`
-          ),
-        },
-        {
-          title: t('Resolve Your Issues'),
-          target: 'resolve',
-          description: t(
-            'So you fixed your problem? Congrats. Hit resolve to make it all go away.'
-          ),
-        },
-        {
-          title: t('Deal With It Later, Or Never'),
-          target: 'ignore_delete_discard',
-          description: t(
-            `Just can't deal with this Issue right now? Ignore it. Saving it for later?
-                Star it. Want it gone and out of your life forever?
-                Delete that sh*t.`
-          ),
-        },
         {
           title: t('Identify Your Issues'),
           target: 'issue_number',
           description: tct(
-            `You've got a lot of Issues. That's fine. Use the Issue number in your commit message,
+            `You have Issues. That's fine. Use the Issue number in your commit message,
                 and we'll automatically resolve the Issue when your code is deployed. [link:Learn more]`,
             {link: <ExternalLink href="https://docs.sentry.io/product/releases/" />}
           ),
@@ -58,14 +34,6 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
                 <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/" />
               ),
             }
-          ),
-        },
-        {
-          title: t('Find Information You Can Use'),
-          target: 'tags',
-          description: t(
-            `So many bugs, so little time. When you've got bugs as far as the mouse can scroll,
-                search and filter Events with tags or visualize Issues with a heat map.`
           ),
         },
         {
@@ -137,7 +105,7 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
           title: t('Transactions'),
           target: 'trace_view_guide_row',
           description: t(
-            `Get an overview of every transaction. You can quickly see all the transactions in a trace alongside the project, transaction duration, and any related errors.`
+            `You can quickly see all the transactions in a trace alongside the project, transaction duration, and any related errors.`
           ),
         },
         {
@@ -149,25 +117,13 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
     },
     {
       guide: 'span_op_breakdowns_and_tag_explorer',
-      requiredTargets: ['span_op_breakdowns_filter', 'span_op_relative_breakdowns'],
+      requiredTargets: ['span_op_breakdowns_filter'],
       steps: [
         {
           title: t('Filter by Span Operation'),
           target: 'span_op_breakdowns_filter',
           description: t(
             'You can now filter these transaction events based on http, db, browser or resource operation.'
-          ),
-        },
-        {
-          title: t('Span Operation Breakdown'),
-          target: 'span_op_relative_breakdowns',
-          description: tct(
-            'By default, you can now see how each transaction is broken down by operation. Click the spans to filter. [link:Learn more]',
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/product/performance/event-detail/#operations-breakdown" />
-              ),
-            }
           ),
         },
         {
@@ -181,28 +137,6 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
               ),
             }
           ),
-        },
-      ],
-    },
-    {
-      guide: 'team_key_transactions',
-      requiredTargets: ['team_key_transaction_header'],
-      steps: [
-        {
-          title: t('Key Transactions'),
-          target: 'team_key_transaction_header',
-          description: t(
-            'Software development is a team sport. Key Transactions allow you to mark important transactions and share them with your team.'
-          ),
-          nextText: t('Great'),
-        },
-        {
-          title: t('Migrating Key Transactions'),
-          target: 'team_key_transaction_existing',
-          description: t(
-            'To migrate your previous key transactions, you will have to mark them as a key transaction again for your team. Sorry about that.'
-          ),
-          nextText: t('Fine'),
         },
       ],
     },
@@ -250,27 +184,6 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
             }
           ),
           nextText: t('Leave me alone'),
-        },
-      ],
-    },
-    {
-      guide: 'release_stages',
-      requiredTargets: ['release_stages'],
-      dateThreshold: new Date('2021-05-01'),
-      steps: [
-        {
-          title: t('Adoption Filter'),
-          target: 'release_stages',
-          description: tct(
-            'Select an environment and search for `release.stage:adopted` to filter out releases with low adoption. [br] [link:Learn more]',
-            {
-              br: <br />,
-              link: (
-                <ExternalLink href="https://docs.sentry.io/product/releases/usage/sorting-filtering/#filtering-releases" />
-              ),
-            }
-          ),
-          nextText: t('Got it'),
         },
       ],
     },

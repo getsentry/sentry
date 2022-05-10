@@ -1,4 +1,3 @@
-import * as React from 'react';
 import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
 
@@ -281,6 +280,7 @@ function RuleListRow({
               placement="bottom right"
               triggerProps={{
                 'aria-label': t('Show more'),
+                'data-test-id': 'alert-row-actions',
                 size: 'xsmall',
                 icon: <IconEllipsis size="xs" />,
                 showChevron: false,

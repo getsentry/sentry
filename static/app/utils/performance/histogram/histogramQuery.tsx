@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import omit from 'lodash/omit';
 
 import GenericDiscoverQuery, {
@@ -71,14 +71,14 @@ function HistogramQuery(props: Props) {
 
   if (fields.length === 0) {
     return (
-      <React.Fragment>
+      <Fragment>
         {children({
           isLoading: false,
           error: null,
           pageLinks: null,
           histograms: {},
         })}
-      </React.Fragment>
+      </Fragment>
     );
   }
 

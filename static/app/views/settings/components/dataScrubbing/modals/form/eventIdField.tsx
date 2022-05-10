@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -23,7 +23,7 @@ type State = {
   value: string;
 };
 
-class EventIdField extends React.Component<Props, State> {
+class EventIdField extends Component<Props, State> {
   state: State = {...this.props.eventId};
 
   componentDidUpdate(prevProps: Props) {

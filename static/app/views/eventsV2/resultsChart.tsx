@@ -20,6 +20,7 @@ import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {
   DisplayModes,
   MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES,
+  TOP_EVENT_MODES,
   TOP_N,
 } from 'sentry/utils/discover/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -193,21 +194,14 @@ class ResultsChartContainer extends Component<ContainerProps> {
         // top5 modes are only available with larger packages in saas.
         // We remove instead of disable here as showing tooltips in dropdown
         // menus is clunky.
-        if (
-          [DisplayModes.TOP5, DisplayModes.DAILYTOP5].includes(
-            opt.value as DisplayModes
-          ) &&
-          !hasQueryFeature
-        ) {
+        if (TOP_EVENT_MODES.includes(opt.value) && !hasQueryFeature) {
           return false;
         }
         return true;
       })
       .map(opt => {
         // Can only use default display or total daily with multi y axis
-        if (
-          [DisplayModes.TOP5, DisplayModes.DAILYTOP5].includes(opt.value as DisplayModes)
-        ) {
+        if (TOP_EVENT_MODES.includes(opt.value)) {
           opt.label = DisplayModes.TOP5 === opt.value ? 'Top Period' : 'Top Daily';
         }
         if (
@@ -226,21 +220,6 @@ class ResultsChartContainer extends Component<ContainerProps> {
       });
 
     let yAxisOptions = eventView.getYAxisOptions();
-    // Hide multi y axis checkbox when in an unsupported Display Mode
-    if (
-      !MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES.includes(
-        eventView.getDisplayMode() as DisplayModes
-      )
-    ) {
-      yAxisOptions = yAxisOptions.map(option => {
-        return {
-          ...option,
-          disabled: true,
-          tooltip: t('Multiple Y-Axis cannot be plotted on this Display mode.'),
-          checkboxHidden: true,
-        };
-      });
-    }
     // Equations on World Map isn't supported on the events-geo endpoint
     // Disabling equations as an option to prevent erroring out
     if (eventView.getDisplayMode() === DisplayModes.WORLDMAP) {

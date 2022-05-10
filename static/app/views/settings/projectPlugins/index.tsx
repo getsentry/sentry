@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {disablePlugin, enablePlugin, fetchPlugins} from 'sentry/actionCreators/plugins';
@@ -22,7 +22,7 @@ type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
   project: Project;
 };
 
-class ProjectPluginsContainer extends React.Component<Props> {
+class ProjectPluginsContainer extends Component<Props> {
   componentDidMount() {
     this.fetchData();
   }
@@ -56,7 +56,7 @@ class ProjectPluginsContainer extends React.Component<Props> {
     const title = t('Legacy Integrations');
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SentryDocumentTitle title={title} orgSlug={orgId} />
         <SettingsPageHeader title={title} />
         <PermissionAlert />
@@ -68,7 +68,7 @@ class ProjectPluginsContainer extends React.Component<Props> {
           error={error}
           plugins={plugins}
         />
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

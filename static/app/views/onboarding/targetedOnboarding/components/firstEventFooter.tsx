@@ -1,7 +1,13 @@
 import {Fragment} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {motion, Variants} from 'framer-motion';
 
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Link from 'sentry/components/links/link';
@@ -43,30 +49,6 @@ export default function FirstEventFooter({
   const client = useApi();
 
   const getSecondaryCta = () => {
-    if (
-      isMobile() &&
-      organization.experiments.TargetedOnboardingMobileRedirectExperiment === 'email-cta'
-    ) {
-      return (
-        <Button
-          to={`/onboarding/${organization.slug}/mobile-redirect/`}
-          onClick={() => {
-            clientState &&
-              client.requestPromise(
-                `/organizations/${organization.slug}/onboarding-continuation-email/`,
-                {
-                  method: 'POST',
-                  data: {
-                    platforms: clientState.selectedPlatforms,
-                  },
-                }
-              );
-          }}
-        >
-          {t('Do it Later')}
-        </Button>
-      );
-    }
     // if hasn't sent first event, allow skiping.
     // if last, no secondary cta
     if (!hasFirstEvent && !isLast) {
@@ -76,16 +58,52 @@ export default function FirstEventFooter({
   };
 
   const getPrimaryCta = ({firstIssue}: {firstIssue: null | true | Group}) => {
+    if (
+      isMobile() &&
+      organization.experiments.TargetedOnboardingMobileRedirectExperiment === 'email-cta'
+    ) {
+      return (
+        <Button
+          priority="primary"
+          onClick={async () => {
+            if (!clientState) {
+              // client state not yet loaded.
+              return;
+            }
+            addLoadingMessage(t('Sending you an email to continue onboarding...'));
+            await client
+              .requestPromise(
+                `/organizations/${organization.slug}/onboarding-continuation-email/`,
+                {
+                  method: 'POST',
+                  data: {
+                    platforms: clientState.selectedPlatforms,
+                  },
+                }
+              )
+              .then(() => {
+                addSuccessMessage(t('Onboarding remainder email sent to your inbox!'));
+              })
+              .catch(() => {
+                addErrorMessage(t('Unable to send onboarding email'));
+              });
+            browserHistory.push(`/onboarding/${organization.slug}/mobile-redirect/`);
+          }}
+        >
+          {t('Setup on Computer')}
+        </Button>
+      );
+    }
     // if hasn't sent first event, allow creation of sample error
     if (!hasFirstEvent) {
       return (
-        <StyledCreateSampleEventButton
+        <CreateSampleEventButton
           project={project}
           source="targted-onboarding"
           priority="primary"
         >
           {t('View Sample Error')}
-        </StyledCreateSampleEventButton>
+        </CreateSampleEventButton>
       );
     }
 
@@ -151,14 +169,14 @@ export default function FirstEventFooter({
 const OnboardingButtonBar = styled(ButtonBar)`
   margin: ${space(2)} ${space(4)};
   justify-self: end;
+  margin-left: auto;
 `;
 
 const AnimatedText = styled(motion.div, {
   shouldForwardProp: prop => prop !== 'errorReceived',
 })<{errorReceived: boolean}>`
   margin-left: ${space(1)};
-  color: ${p =>
-    p.errorReceived ? p.theme.successText : p.theme.charts.getColorPalette(5)[4]};
+  color: ${p => (p.errorReceived ? p.theme.successText : p.theme.pink300)};
 `;
 
 const indicatorAnimation: Variants = {
@@ -174,7 +192,7 @@ AnimatedText.defaultProps = {
 
 const WaitingIndicator = styled(motion.div)`
   ${pulsingIndicatorStyles};
-  background-color: ${p => p.theme.charts.getColorPalette(5)[4]};
+  background-color: ${p => p.theme.pink300};
 `;
 
 WaitingIndicator.defaultProps = {
@@ -211,18 +229,17 @@ StatusWrapper.defaultProps = {
 const SkipOnboardingLink = styled(Link)`
   margin: auto ${space(4)};
   white-space: nowrap;
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: none;
+  }
 `;
 
 const GridFooter = styled(GenericFooter)`
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: 1fr 1fr;
-  }
-`;
-
-const StyledCreateSampleEventButton = styled(CreateSampleEventButton)`
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    display: none;
+    display: flex;
+    flex-direction: row;
+    justify-content: end;
   }
 `;
