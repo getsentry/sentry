@@ -129,6 +129,9 @@ const PanelItemCenter = styled(PanelItem)<PanelItemCenterProps>`
   border-left: 4px solid transparent;
   padding: ${space(1)} ${space(1.5)};
   cursor: pointer;
+  &:last-child {
+    border-left: 4px solid transparent;
+  }
   &:hover {
     background: ${p => p.theme.surface400};
     border-color: transparent;
