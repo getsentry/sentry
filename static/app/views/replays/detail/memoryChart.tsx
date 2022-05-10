@@ -1,3 +1,4 @@
+import {memo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -14,15 +15,23 @@ import {formatBytesBase2} from 'sentry/utils';
 import {getFormattedDate} from 'sentry/utils/dates';
 
 type Props = {
-  memorySpans: MemorySpanType[] | undefined;
+  memorySpans: MemorySpanType[];
+  setCurrentHoverTime: (time: undefined | number) => void;
+  setCurrentTime: (time: number) => void;
   startTimestamp: number | undefined;
 };
 
 const formatTimestamp = timestamp =>
   getFormattedDate(timestamp * 1000, 'MMM D, YYYY hh:mm:ss A z', {local: false});
 
-function MemoryChart({memorySpans = [], startTimestamp = 0}: Props) {
+function MemoryChart({
+  memorySpans,
+  startTimestamp = 0,
+  setCurrentTime,
+  setCurrentHoverTime,
+}: Props) {
   const theme = useTheme();
+
   if (memorySpans.length <= 0) {
     return (
       <EmptyStateWarning withIcon={false} small>
@@ -95,6 +104,19 @@ function MemoryChart({memorySpans = [], startTimestamp = 0}: Props) {
         formatter: value => formatBytesBase2(value, 0),
       },
     }),
+
+    // XXX: For area charts, mouse events *only* occurs when interacting with
+    // the "line" of the area chart. Mouse events do not fire when interacting
+    // with the "area" under the line.
+    onMouseOver: ({data}) => {
+      setCurrentHoverTime((data[0] - startTimestamp) * 1000);
+    },
+    onMouseOut: () => {
+      setCurrentHoverTime(undefined);
+    },
+    onClick: ({data}) => {
+      setCurrentTime((data[0] - startTimestamp) * 1000);
+    },
   };
 
   const series = [
@@ -137,4 +159,5 @@ const MemoryChartWrapper = styled('div')`
   border: 1px solid ${p => p.theme.border};
 `;
 
-export default MemoryChart;
+const MemoizedMemoryChart = memo(MemoryChart);
+export default MemoizedMemoryChart;

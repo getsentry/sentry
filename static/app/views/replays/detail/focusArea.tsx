@@ -1,6 +1,7 @@
-import React from 'react';
+import React, {useMemo} from 'react';
 
 import EventEntry from 'sentry/components/events/eventEntry';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
 import TagsTable from 'sentry/components/tagsTable';
 import type {Entry, Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -44,10 +45,17 @@ function FocusArea(props: Props) {
 
 function ActiveTab({active, replay}: Props & {active: ReplayTabs}) {
   const {routes, router} = useRouteContext();
+  const {setCurrentTime, setCurrentHoverTime} = useReplayContext();
   const organization = useOrganization();
 
   const event = replay.getEvent();
   const spansEntry = replay.getEntryType(EntryType.SPANS);
+
+  // Memoize this because re-renders will interfere with the mouse state of the
+  // chart (e.g. on mouse over and out)
+  const memorySpans = useMemo(() => {
+    return replay.getRawSpans().filter(replay.isMemorySpan);
+  }, [replay]);
 
   switch (active) {
     case 'console':
@@ -105,7 +113,9 @@ function ActiveTab({active, replay}: Props & {active: ReplayTabs}) {
     case 'memory':
       return (
         <MemoryChart
-          memorySpans={spansEntry?.data.filter(replay.isMemorySpan)}
+          memorySpans={memorySpans}
+          setCurrentTime={setCurrentTime}
+          setCurrentHoverTime={setCurrentHoverTime}
           startTimestamp={event.startTimestamp}
         />
       );
