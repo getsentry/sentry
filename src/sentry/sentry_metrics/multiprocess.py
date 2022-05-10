@@ -468,6 +468,9 @@ def process_messages(
                     fetch_types_encountered.add(fetch_type)
                     output_message_meta[fetch_type.value][int_id] = tag
 
+            mapping_header_content = bytes(
+                "".join([t.value for t in fetch_types_encountered]), "utf-8"
+            )
             new_payload_value["tags"] = new_tags
             new_payload_value["metric_id"] = mapping[org_id][metric_name]
             new_payload_value["retention_days"] = 90
@@ -478,7 +481,10 @@ def process_messages(
             new_payload = KafkaPayload(
                 key=message.payload.key,
                 value=json.dumps(new_payload_value).encode(),
-                headers=message.payload.headers,
+                headers=[
+                    *message.payload.headers,
+                    ("mapping_sources", mapping_header_content),
+                ],
             )
             new_message = Message(
                 partition=message.partition,
