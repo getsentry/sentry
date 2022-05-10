@@ -15,8 +15,8 @@ import {MinimalProject, Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 
-import ProjectSelectorFooter from './projectSelector/footer';
-import ProjectSelector from './projectSelector';
+import ProjectSelectorFooter from './footer';
+import ProjectSelector from './';
 
 type Props = WithRouterProps & {
   memberProjects: Project[];
