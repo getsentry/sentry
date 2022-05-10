@@ -99,7 +99,7 @@ class HighlightReplayPlugin {
 
     // TODO(replays): There is some sort of race condition here when you "rewind" a replay,
     // mirror will be empty and highlight does not get added because node is null
-    if (!replayer.iframe.contentDocument?.body?.contains(node)) {
+    if (!node || !replayer.iframe.contentDocument?.body?.contains(node)) {
       return;
     }
 
