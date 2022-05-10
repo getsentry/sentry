@@ -645,13 +645,13 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             hasUserReports=attrs["has_user_reports"],
         )
         if not self._collapse(LATEST_DEPLOYS_KEY):
-            context.latestDeploys = attrs["deploys"]
+            context[LATEST_DEPLOYS_KEY] = attrs["deploys"]
         if "stats" in attrs:
-            context.stats = attrs["stats"]
+            context.update(stats=attrs["stats"])
         if "transactionStats" in attrs:
-            context.transactionStats = attrs["transactionStats"]
+            context.update(transactionStats=attrs["transactionStats"])
         if "sessionStats" in attrs:
-            context.sessionStats = attrs["sessionStats"]
+            context.update(sessionStats=attrs["sessionStats"])
 
         return context
 
