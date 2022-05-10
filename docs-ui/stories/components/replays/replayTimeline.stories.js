@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import ReplayBreadcrumbOverview from 'sentry/components/replays/breadcrumbs/replayBreadcrumbOverview';
+import ReplayTimeline from 'sentry/components/replays/breadcrumbs/replayTimeline';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import {EntryType} from 'sentry/types/event';
 
@@ -9,8 +9,8 @@ import breadcrumbs from './example_breadcrumbs.json';
 import rrwebEvents1 from './example_rrweb_events_1.json';
 
 export default {
-  title: 'Components/Replays/ReplayBreadcrumbOverview',
-  component: ReplayBreadcrumbOverview,
+  title: 'Components/Replays/ReplayTimeline',
+  component: ReplayTimeline,
 };
 
 const ManualResize = styled('div')`
@@ -22,21 +22,21 @@ const ManualResize = styled('div')`
 const Template = ({...args}) => (
   <ReplayContextProvider value={{duration: 25710}} events={rrwebEvents1}>
     <ManualResize>
-      <ReplayBreadcrumbOverview {...args} />
+      <ReplayTimeline {...args} />
     </ManualResize>
   </ReplayContextProvider>
 );
 
-export const _ReplayBreadcrumbOverview = Template.bind({});
-_ReplayBreadcrumbOverview.args = {
+export const _ReplayTimeline = Template.bind({});
+_ReplayTimeline.args = {
   data: breadcrumbs,
   type: EntryType.BREADCRUMBS,
 };
-_ReplayBreadcrumbOverview.parameters = {
+_ReplayTimeline.parameters = {
   docs: {
     description: {
       story:
-        'ReplayBreadcrumbOverview is a component that contains play/pause buttons for the replay timeline',
+        'ReplayTimeline is a component that contains play/pause buttons for the replay timeline',
     },
   },
 };

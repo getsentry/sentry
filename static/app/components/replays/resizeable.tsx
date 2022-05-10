@@ -1,5 +1,4 @@
 import React, {useCallback, useRef, useState} from 'react';
-import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 
 type Dimensions = {height: number; width: number};
@@ -10,14 +9,12 @@ type Props = {
 };
 
 /**
- * Overlap rows of content on top of each other using grid.
- * Similar to how `posisition: absolute;` could force content to be on-top of
- * each other, but this does so without taking the content out of the page flow.
+ * Watch and pass element dimensions into child render function.
  *
- * Injest the width/height of the container, so children can adjust and expand
- * to fill the whole area.
+ * WARNING: be careful not to update the dimensions of child elements based on
+ * this parent size as that could cause infinite render loops
  */
-function StackedContent({children, className}: Props) {
+export function Resizeable({children, className}: Props) {
   const el = useRef<HTMLDivElement>(null);
 
   const [dimensions, setDimensions] = useState({height: 0, width: 0});
@@ -32,19 +29,8 @@ function StackedContent({children, className}: Props) {
   useResizeObserver({ref: el, onResize});
 
   return (
-    <Stack className={className} ref={el}>
+    <div className={className} ref={el}>
       {children(dimensions)}
-    </Stack>
+    </div>
   );
 }
-
-const Stack = styled('div')`
-  height: 100%;
-  display: grid;
-  grid-template: 1 / 1;
-  > * {
-    grid-area: 1 /1;
-  }
-`;
-
-export default StackedContent;

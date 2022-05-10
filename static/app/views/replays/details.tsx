@@ -6,7 +6,7 @@ import NotFound from 'sentry/components/errors/notFound';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader as _PanelHeader} from 'sentry/components/panels';
-import ReplayBreadcrumbOverview from 'sentry/components/replays/breadcrumbs/replayBreadcrumbOverview';
+import ReplayTimeline from 'sentry/components/replays/breadcrumbs/replayTimeline';
 import HorizontalMouseTracking from 'sentry/components/replays/player/horizontalMouseTracking';
 import {PlayerScrubber} from 'sentry/components/replays/player/scrubber';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
@@ -115,7 +115,7 @@ function ReplayDetails() {
           </Side>
           <Layout.Main fullWidth>
             <Panel>
-              <BreadcrumbTimeline />
+              <ReplayTimeline />
             </Panel>
             <FocusArea replay={replay} />
           </Layout.Main>
@@ -154,10 +154,6 @@ const ReplayLayout = styled(Layout.Main)`
 
 const Side = styled(Layout.Side)`
   padding-bottom: ${space(2)};
-`;
-
-const BreadcrumbTimeline = styled(ReplayBreadcrumbOverview)`
-  max-height: 5em;
 `;
 
 export default ReplayDetails;
