@@ -1,4 +1,4 @@
-import React, {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 
 import EventEntry from 'sentry/components/events/eventEntry';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
@@ -36,16 +36,17 @@ function FocusArea(props: Props) {
   const tabFromHash = isReplayTab(hash) ? hash : DEFAULT_TAB;
 
   return (
-    <React.Fragment>
+    <Fragment>
       <FocusTabs active={tabFromHash} />
       <ActiveTab active={tabFromHash} {...props} />
-    </React.Fragment>
+    </Fragment>
   );
 }
 
 function ActiveTab({active, replay}: Props & {active: ReplayTabs}) {
   const {routes, router} = useRouteContext();
-  const {currentTime, setCurrentTime, setCurrentHoverTime} = useReplayContext();
+  const {currentTime, currentHoverTime, setCurrentTime, setCurrentHoverTime} =
+    useReplayContext();
   const organization = useOrganization();
 
   const event = replay.getEvent();
@@ -114,6 +115,7 @@ function ActiveTab({active, replay}: Props & {active: ReplayTabs}) {
       return (
         <MemoryChart
           currentTime={currentTime}
+          currentHoverTime={currentHoverTime}
           memorySpans={memorySpans}
           setCurrentTime={setCurrentTime}
           setCurrentHoverTime={setCurrentHoverTime}
