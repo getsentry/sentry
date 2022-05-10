@@ -33,6 +33,7 @@ function FrameStack({flamegraphRenderer}: FrameStackProps) {
         </FrameCallersTableHeader>
         <tbody>
           <FrameRow
+            key={selectedNode?.frame?.key}
             depth={0}
             frame={selectedNode}
             flamegraphRenderer={flamegraphRenderer}
@@ -66,6 +67,7 @@ function FrameRow({
   );
 
   const color = flamegraphRenderer.getColorForFrame(frame.frame);
+
   const colorString =
     color.length === 4
       ? `rgba(${color
@@ -113,7 +115,7 @@ function FrameRow({
       {open
         ? frame.children.map(c => (
             <FrameRow
-              key={c.frame.name}
+              key={c.frame.key}
               initialOpen={forceOpenChildren ? open : undefined}
               frame={c}
               flamegraphRenderer={flamegraphRenderer}
@@ -127,9 +129,8 @@ function FrameRow({
 
 const FrameBar = styled('div')`
   overflow: auto;
-  bottom: 0;
   width: 100%;
-  position: absolute;
+  position: relative;
   background-color: ${p => p.theme.surface100};
   border-top: 1px solid ${p => p.theme.border};
 `;
@@ -168,6 +169,7 @@ const FrameChildrenIndicator = styled('span')<{open: boolean}>`
   display: flex;
   align-items: center;
   justify-content: center;
+  user-select: none;
   transform: ${p => (p.open ? 'rotate(90deg)' : 'rotate(0deg)')};
 `;
 
