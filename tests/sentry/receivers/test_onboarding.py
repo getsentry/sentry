@@ -316,7 +316,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         task = OrganizationOnboardingTask.objects.get(
             organization=self.organization,
-            task=OnboardingTask.PERFORMANCE_ALERT,
+            task=OnboardingTask.METRIC_ALERT,
             status=OnboardingTaskStatus.COMPLETE,
         )
         assert task is not None
