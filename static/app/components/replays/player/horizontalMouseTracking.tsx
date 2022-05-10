@@ -1,4 +1,4 @@
-import React, {useCallback, useRef} from 'react';
+import React, {useCallback, useRef, useState} from 'react';
 
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 
@@ -26,6 +26,7 @@ function getBoundingRect(elem: Element): Promise<DOMRectReadOnly> {
 function HorizontalMouseTracking({children}: Props) {
   const elem = useRef<HTMLDivElement>(null);
   const {duration, setCurrentHoverTime} = useReplayContext();
+  const [isEntered, setIsEntered] = useState(false);
 
   const onMouseMove = useCallback(
     async (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
@@ -35,6 +36,10 @@ function HorizontalMouseTracking({children}: Props) {
       }
 
       const rect = await getBoundingRect(elem.current);
+
+      if (!isEntered) {
+        return;
+      }
       const left = e.clientX - rect.left;
       if (left >= 0) {
         const percent = left / rect.width;
@@ -44,17 +49,26 @@ function HorizontalMouseTracking({children}: Props) {
         setCurrentHoverTime(undefined);
       }
     },
-    [duration, setCurrentHoverTime]
+    [isEntered, duration, setCurrentHoverTime]
+  );
+
+  const onMouseEnter = useCallback(
+    (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+      setIsEntered(true);
+      onMouseMove(e);
+    },
+    [onMouseMove]
   );
 
   const onMouseLeave = useCallback(() => {
+    setIsEntered(false);
     setCurrentHoverTime(undefined);
   }, [setCurrentHoverTime]);
 
   return (
     <div
       ref={elem}
-      onMouseEnter={onMouseMove}
+      onMouseEnter={onMouseEnter}
       onMouseMove={onMouseMove}
       onMouseLeave={onMouseLeave}
     >
