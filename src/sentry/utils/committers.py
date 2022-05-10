@@ -25,6 +25,8 @@ from sentry.api.serializers.models.release import Author
 from sentry.eventstore.models import Event
 from sentry.models import Commit, CommitFileChange, Group, Project, Release, ReleaseCommit
 from sentry.utils import metrics
+from sentry.utils.compat import zip
+from sentry.utils.event_frames import supplement_filename
 from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import PathSearchable, get_path
 
@@ -254,21 +256,7 @@ def get_event_file_committers(
     if not app_frames:
         app_frames = [frame for frame in frames][-frame_limit:]
 
-    # Java stackframes don't have an absolute path in the filename key.
-    # That property is usually just the basename of the file. In the future
-    # the Java SDK might generate better file paths, but for now we use the module
-    # path to approximate the file path so that we can intersect it with commit
-    # file paths.
-    if event_platform == "java":
-        for frame in frames:
-            if frame.get("filename") is None:
-                continue
-            if "/" not in str(frame.get("filename")) and frame.get("module"):
-                # Replace the last module segment with the filename, as the
-                # terminal element in a module path is the class
-                module = frame["module"].split(".")
-                module[-1] = frame["filename"]
-                frame["filename"] = "/".join(module)
+    supplement_filename(event_platform, frames)
 
     # TODO(maxbittker) return this set instead of annotated frames
     # XXX(dcramer): frames may not define a filepath. For example, in Java its common
