@@ -128,7 +128,26 @@ def run_metrics_query(
     return cast(List[SnubaDataType], result["data"])
 
 
+def _get_known_entity_of_metric_mri(metric_mri: str) -> Optional[EntityKey]:
+    for KnownMRI in (SessionMRI, TransactionMRI):
+        try:
+            KnownMRI(metric_mri)
+            entity_prefix = metric_mri.split(":")[0]
+            return {
+                "c": EntityKey.MetricsCounters,
+                "d": EntityKey.MetricsDistributions,
+                "s": EntityKey.MetricsSets,
+            }[entity_prefix]
+        except (ValueError, IndexError, KeyError):
+            pass
+    return None
+
+
 def _get_entity_of_metric_mri(projects: Sequence[Project], metric_mri: str) -> EntityKey:
+    known_entity = _get_known_entity_of_metric_mri(metric_mri)
+    if known_entity is not None:
+        return known_entity
+
     assert projects
     org_id = org_id_from_projects(projects)
     metric_id = indexer.resolve(org_id, metric_mri)
