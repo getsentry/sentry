@@ -599,7 +599,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
         assert mock_raw_snql_query.call_count == 1
 
         # the first call is the get the suspects, and should be using the specified sort
-        assert mock_raw_snql_query.call_args_list[0][0][0].orderby == [
+        assert mock_raw_snql_query.call_args_list[0][0][0].query.orderby == [
             OrderBy(
                 exp=Function(
                     "sum",
@@ -651,7 +651,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
         assert mock_raw_snql_query.call_count == 1
 
         # the first call is the get the suspects, and should be using the specified sort
-        assert mock_raw_snql_query.call_args_list[0][0][0].orderby == [
+        assert mock_raw_snql_query.call_args_list[0][0][0].query.orderby == [
             OrderBy(exp=Function("count", [], "count"), direction=Direction.DESC),
             OrderBy(
                 exp=Function(
@@ -704,7 +704,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
         assert mock_raw_snql_query.call_count == 1
 
         # the first call is the get the suspects, and should be using the specified sort
-        assert mock_raw_snql_query.call_args_list[0][0][0].orderby == [
+        assert mock_raw_snql_query.call_args_list[0][0][0].query.orderby == [
             OrderBy(
                 exp=Function(
                     "divide",
@@ -779,7 +779,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
             assert mock_raw_snql_query.call_count == i + 1
 
             # the first call is the get the suspects, and should be using the specified sort
-            assert mock_raw_snql_query.call_args_list[i][0][0].orderby == [
+            assert mock_raw_snql_query.call_args_list[i][0][0].query.orderby == [
                 OrderBy(
                     exp=Function(
                         f"quantile(0.{percentile.rstrip('0')})",
@@ -827,7 +827,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
                 op=Op.IN,
                 rhs=Function("tuple", ["django.middleware"]),
             )
-            in mock_raw_snql_query.call_args_list[0][0][0].where
+            in mock_raw_snql_query.call_args_list[0][0][0].query.where
         )
 
     def test_bad_group_filter(self):
@@ -884,7 +884,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
                 op=Op.IN,
                 rhs=Function("tuple", ["cd" * 8]),
             )
-            in mock_raw_snql_query.call_args_list[0][0][0].where
+            in mock_raw_snql_query.call_args_list[0][0][0].query.where
         )
 
     def test_min_exclusive_time_filter(self):
@@ -1853,7 +1853,7 @@ class OrganizationEventsSpansStatsEndpointTest(OrganizationEventsSpansEndpointTe
             ]
 
         assert mock_raw_snql_query.call_count == 1
-        query = mock_raw_snql_query.call_args_list[0][0][0]
+        query = mock_raw_snql_query.call_args_list[0][0][0].query
 
         # ensure the specified y axes are in the select
         for percentile in ["75", "95", "99"]:

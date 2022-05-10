@@ -20,7 +20,7 @@ from typing import (
 )
 
 import pytz
-from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderBy, Query
+from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderBy, Query, Request
 from snuba_sdk.expressions import Expression, Granularity, Limit, Offset
 from snuba_sdk.query import SelectableExpression
 
@@ -49,6 +49,7 @@ from sentry.release_health.base import (
     SessionCounts,
     SessionsQueryConfig,
     SessionsQueryResult,
+    SnubaAppID,
     StatsPeriod,
     UserCounts,
 )
@@ -193,7 +194,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         session_status = resolve_tag_key(org_id, "session.status")
 
         count_query = Query(
-            dataset=Dataset.Metrics.value,
             match=Entity(EntityKey.MetricsCounters.value),
             select=[Function("sum", [Column("value")], "value")],
             where=[
@@ -209,9 +209,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             ],
             granularity=Granularity(rollup),
         )
-
+        request = Request(dataset=Dataset.Metrics.value, app_id=SnubaAppID, query=count_query)
         count_data = raw_snql_query(
-            count_query, referrer="release_health.metrics.get_crash_free_data", use_cache=False
+            request, referrer="release_health.metrics.get_crash_free_data", use_cache=False
         )["data"]
 
         for row in count_data:
@@ -303,7 +303,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         def _count_sessions(total: bool, referrer: str) -> Dict[Any, int]:
             query = Query(
-                dataset=Dataset.Metrics.value,
                 match=Entity(EntityKey.MetricsCounters.value),
                 select=[Function("sum", [Column("value")], "value")],
                 where=_get_common_where(total)
@@ -315,10 +314,10 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 groupby=_get_common_groupby(total),
                 granularity=Granularity(LEGACY_SESSIONS_DEFAULT_ROLLUP),
             )
-
+            request = Request(dataset=Dataset.Metrics.value, app_id=SnubaAppID, query=query)
             return _convert_results(
                 raw_snql_query(
-                    query,
+                    request,
                     referrer=referrer,
                     use_cache=False,
                 )["data"],
@@ -327,7 +326,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         def _count_users(total: bool, referrer: str) -> Dict[Any, int]:
             query = Query(
-                dataset=Dataset.Metrics.value,
                 match=Entity(EntityKey.MetricsSets.value),
                 select=[Function("uniq", [Column("value")], "value")],
                 where=_get_common_where(total)
@@ -337,10 +335,10 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 groupby=_get_common_groupby(total),
                 granularity=Granularity(LEGACY_SESSIONS_DEFAULT_ROLLUP),
             )
-
+            request = Request(dataset=Dataset.Metrics.value, app_id=SnubaAppID, query=query)
             return _convert_results(
                 raw_snql_query(
-                    query,
+                    request,
                     referrer=referrer,
                     use_cache=False,
                 )["data"],
@@ -484,7 +482,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             # Take care of initial values for session.started by querying the
             # init counter. This should take care of most cases on its own.
             init_sessions_query = Query(
-                dataset=Dataset.Metrics.value,
                 match=Entity(EntityKey.MetricsCounters.value),
                 select=select,
                 where=where
@@ -500,9 +497,11 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 ],
                 granularity=Granularity(LEGACY_SESSIONS_DEFAULT_ROLLUP),
             )
-
+            request = Request(
+                dataset=Dataset.Metrics.value, app_id=SnubaAppID, query=init_sessions_query
+            )
             rows = raw_snql_query(
-                init_sessions_query,
+                request,
                 referrer="release_health.metrics.get_release_sessions_time_bounds.init_sessions",
                 use_cache=False,
             )["data"]
@@ -517,7 +516,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             # session update that lowers session.started. We don't know if that
             # testcase matters particularly.
             terminal_sessions_query = Query(
-                dataset=Dataset.Metrics.value,
                 match=Entity(EntityKey.MetricsDistributions.value),
                 select=select,
                 where=where
@@ -530,9 +528,12 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 ],
                 granularity=Granularity(LEGACY_SESSIONS_DEFAULT_ROLLUP),
             )
+            request = Request(
+                dataset=Dataset.Metrics.value, app_id=SnubaAppID, query=terminal_sessions_query
+            )
             rows.extend(
                 raw_snql_query(
-                    terminal_sessions_query,
+                    request,
                     referrer="release_health.metrics.get_release_sessions_time_bounds.terminal_sessions",
                     use_cache=False,
                 )["data"]
@@ -629,16 +630,15 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         group_by_clause = query_cols
 
         query = Query(
-            dataset=Dataset.Metrics.value,
             match=Entity(EntityKey.MetricsCounters.value),
             select=query_cols,
             where=where_clause,
             groupby=group_by_clause,
             granularity=Granularity(24 * 60 * 60),  # daily
         )
-
+        request = Request(dataset=Dataset.Metrics.value, app_id=SnubaAppID, query=query)
         result = raw_snql_query(
-            query, referrer="release_health.metrics.check_has_health_data", use_cache=False
+            request, referrer="release_health.metrics.check_has_health_data", use_cache=False
         )
 
         return {extract_row_info(row) for row in result["data"]}
@@ -660,7 +660,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         releases_ids = resolve_many_weak(organization_id, release_versions)
         query = Query(
-            dataset=Dataset.Metrics.value,
             match=Entity(EntityKey.MetricsCounters.value),
             select=[Column(release_column_name)],
             where=[
@@ -673,9 +672,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             ],
             groupby=[Column(release_column_name)],
         )
-
+        request = Request(dataset=Dataset.Metrics.value, app_id=SnubaAppID, query=query)
         result = raw_snql_query(
-            query,
+            request,
             referrer="release_health.metrics.check_releases_have_health_data",
             use_cache=False,
         )
@@ -703,32 +702,35 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         ]
 
         for row in raw_snql_query(
-            Query(
+            Request(
                 dataset=Dataset.Metrics.value,
-                match=Entity(EntityKey.MetricsDistributions.value),
-                select=aggregates
-                + [
-                    Function(
-                        alias="percentiles",
-                        function="quantiles(0.5,0.9)",
-                        parameters=[Column("value")],
-                    )
-                ],
-                where=where
-                + [
-                    Condition(
-                        Column("metric_id"),
-                        Op.EQ,
-                        resolve(org_id, SessionMRI.RAW_DURATION.value),
-                    ),
-                    Condition(
-                        Column(resolve_tag_key(org_id, "session.status")),
-                        Op.EQ,
-                        resolve_weak(org_id, "exited"),
-                    ),
-                ],
-                groupby=aggregates,
-                granularity=Granularity(rollup),
+                app_id=SnubaAppID,
+                query=Query(
+                    match=Entity(EntityKey.MetricsDistributions.value),
+                    select=aggregates
+                    + [
+                        Function(
+                            alias="percentiles",
+                            function="quantiles(0.5,0.9)",
+                            parameters=[Column("value")],
+                        )
+                    ],
+                    where=where
+                    + [
+                        Condition(
+                            Column("metric_id"),
+                            Op.EQ,
+                            resolve(org_id, SessionMRI.RAW_DURATION.value),
+                        ),
+                        Condition(
+                            Column(resolve_tag_key(org_id, "session.status")),
+                            Op.EQ,
+                            resolve_weak(org_id, "exited"),
+                        ),
+                    ],
+                    groupby=aggregates,
+                    granularity=Granularity(rollup),
+                ),
             ),
             referrer="release_health.metrics.get_session_duration_data_for_overview",
         )["data"]:
@@ -760,16 +762,21 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         ]
 
         for row in raw_snql_query(
-            Query(
+            Request(
                 dataset=Dataset.Metrics.value,
-                match=Entity(EntityKey.MetricsSets.value),
-                select=aggregates + [Function("uniq", [Column("value")], "value")],
-                where=where
-                + [
-                    Condition(Column("metric_id"), Op.EQ, resolve(org_id, SessionMRI.ERROR.value)),
-                ],
-                groupby=aggregates,
-                granularity=Granularity(rollup),
+                app_id=SnubaAppID,
+                query=Query(
+                    match=Entity(EntityKey.MetricsSets.value),
+                    select=aggregates + [Function("uniq", [Column("value")], "value")],
+                    where=where
+                    + [
+                        Condition(
+                            Column("metric_id"), Op.EQ, resolve(org_id, SessionMRI.ERROR.value)
+                        ),
+                    ],
+                    groupby=aggregates,
+                    granularity=Granularity(rollup),
+                ),
             ),
             referrer="release_health.metrics.get_errored_sessions_for_overview",
         )["data"]:
@@ -797,25 +804,28 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         rv_sessions: Dict[Tuple[int, str, str], int] = {}
 
         for row in raw_snql_query(
-            Query(
+            Request(
                 dataset=Dataset.Metrics.value,
-                match=Entity(EntityKey.MetricsCounters.value),
-                select=aggregates + [Function("sum", [Column("value")], "value")],
-                where=where
-                + [
-                    Condition(
-                        Column("metric_id"), Op.EQ, resolve(org_id, SessionMRI.SESSION.value)
-                    ),
-                    Condition(
-                        Column(session_status_column_name),
-                        Op.IN,
-                        resolve_many_weak(
-                            org_id, ["abnormal", "crashed", "init", "errored_preaggr"]
+                app_id=SnubaAppID,
+                query=Query(
+                    match=Entity(EntityKey.MetricsCounters.value),
+                    select=aggregates + [Function("sum", [Column("value")], "value")],
+                    where=where
+                    + [
+                        Condition(
+                            Column("metric_id"), Op.EQ, resolve(org_id, SessionMRI.SESSION.value)
                         ),
-                    ),
-                ],
-                groupby=aggregates,
-                granularity=Granularity(rollup),
+                        Condition(
+                            Column(session_status_column_name),
+                            Op.IN,
+                            resolve_many_weak(
+                                org_id, ["abnormal", "crashed", "init", "errored_preaggr"]
+                            ),
+                        ),
+                    ],
+                    groupby=aggregates,
+                    granularity=Granularity(rollup),
+                ),
             ),
             referrer="release_health.metrics.get_abnormal_and_crashed_sessions_for_overview",
         )["data"]:
@@ -856,13 +866,16 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         ]
 
         for row in raw_snql_query(
-            Query(
+            Request(
                 dataset=Dataset.Metrics.value,
-                match=Entity(EntityKey.MetricsSets.value),
-                select=select,
-                where=where,
-                groupby=aggregates,
-                granularity=Granularity(rollup),
+                app_id=SnubaAppID,
+                query=Query(
+                    match=Entity(EntityKey.MetricsSets.value),
+                    select=select,
+                    where=where,
+                    groupby=aggregates,
+                    granularity=Granularity(rollup),
+                ),
             ),
             referrer="release_health.metrics.get_users_and_crashed_users_for_overview",
         )["data"]:
@@ -914,23 +927,26 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         )
 
         for row in raw_snql_query(
-            Query(
+            Request(
                 dataset=Dataset.Metrics.value,
-                match=Entity(entity),
-                select=aggregates + [value_column],
-                where=where
-                + [
-                    Condition(Column("metric_id"), Op.EQ, metric_name),
-                    Condition(Column("timestamp"), Op.GTE, stats_start),
-                    Condition(Column("timestamp"), Op.LT, now),
-                    Condition(
-                        Column(session_status_column_name),
-                        Op.EQ,
-                        session_init_tag_value,
-                    ),
-                ],
-                granularity=Granularity(stats_rollup),
-                groupby=aggregates,
+                app_id=SnubaAppID,
+                query=Query(
+                    match=Entity(entity),
+                    select=aggregates + [value_column],
+                    where=where
+                    + [
+                        Condition(Column("metric_id"), Op.EQ, metric_name),
+                        Condition(Column("timestamp"), Op.GTE, stats_start),
+                        Condition(Column("timestamp"), Op.LT, now),
+                        Condition(
+                            Column(session_status_column_name),
+                            Op.EQ,
+                            session_init_tag_value,
+                        ),
+                    ],
+                    granularity=Granularity(stats_rollup),
+                    groupby=aggregates,
+                ),
             ),
             referrer="release_health.metrics.get_health_stats_for_overview",
         )["data"]:
@@ -1147,13 +1163,16 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                     columns = [Function(aggregation_function, [Column("value")], "value")]
 
                     data = raw_snql_query(
-                        Query(
+                        Request(
                             dataset=Dataset.Metrics.value,
-                            match=Entity(entity_key.value),
-                            select=columns,
-                            where=where,
-                            groupby=[Column(status_key)],
-                            granularity=Granularity(LEGACY_SESSIONS_DEFAULT_ROLLUP),
+                            app_id=SnubaAppID,
+                            query=Query(
+                                match=Entity(entity_key.value),
+                                select=columns,
+                                where=where,
+                                groupby=[Column(status_key)],
+                                granularity=Granularity(LEGACY_SESSIONS_DEFAULT_ROLLUP),
+                            ),
                         ),
                         referrer=referrer,
                     )["data"]
@@ -1261,15 +1280,15 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         ]
 
         query = Query(
-            dataset=Dataset.Metrics.value,
             match=Entity(EntityKey.MetricsCounters.value),
             select=query_cols,
             where=where_clause,
             groupby=query_cols,
             granularity=Granularity(LEGACY_SESSIONS_DEFAULT_ROLLUP),
         )
+        request = Request(dataset=Dataset.Metrics.value, app_id=SnubaAppID, query=query)
         result = raw_snql_query(
-            query,
+            request,
             referrer="release_health.metrics.get_changed_project_release_model_adoptions",
             use_cache=False,
         )
@@ -1317,15 +1336,15 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         ]
 
         query = Query(
-            dataset=Dataset.Metrics.value,
             match=Entity(EntityKey.MetricsCounters.value),
             select=query_cols,
             where=where_clause,
             groupby=group_by,
             granularity=Granularity(LEGACY_SESSIONS_DEFAULT_ROLLUP),
         )
+        request = Request(dataset=Dataset.Metrics.value, app_id=SnubaAppID, query=query)
         rows = raw_snql_query(
-            query,
+            request,
             referrer="release_health.metrics.get_oldest_health_data_for_releases",
             use_cache=False,
         )["data"]
@@ -1395,17 +1414,16 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         ]
 
         query = Query(
-            dataset=Dataset.Metrics.value,
             match=match,
             select=query_columns,
             where=where,
             having=having,
             granularity=Granularity(granularity),
         )
-
-        rows = raw_snql_query(query, referrer="release_health.metrics.get_project_releases_count")[
-            "data"
-        ]
+        request = Request(dataset=Dataset.Metrics.value, app_id=SnubaAppID, query=query)
+        rows = raw_snql_query(
+            request, referrer="release_health.metrics.get_project_releases_count"
+        )["data"]
 
         ret_val: int = rows[0]["count"] if rows else 0
         return ret_val
@@ -1430,23 +1448,26 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         session_status_healthy = indexer.resolve(org_id, "exited")
         if session_status_healthy is not None:
             duration_series_data = raw_snql_query(
-                Query(
+                Request(
                     dataset=Dataset.Metrics.value,
-                    where=where
-                    + [
-                        Condition(
-                            Column("metric_id"),
-                            Op.EQ,
-                            resolve(org_id, SessionMRI.RAW_DURATION.value),
-                        ),
-                        Condition(Column(session_status_key), Op.EQ, session_status_healthy),
-                    ],
-                    granularity=Granularity(rollup),
-                    match=Entity(EntityKey.MetricsDistributions.value),
-                    select=[
-                        Function("quantiles(0.5, 0.90)", [Column("value")], alias="quantiles"),
-                    ],
-                    groupby=[Column("bucketed_time")],
+                    app_id=SnubaAppID,
+                    query=Query(
+                        where=where
+                        + [
+                            Condition(
+                                Column("metric_id"),
+                                Op.EQ,
+                                resolve(org_id, SessionMRI.RAW_DURATION.value),
+                            ),
+                            Condition(Column(session_status_key), Op.EQ, session_status_healthy),
+                        ],
+                        granularity=Granularity(rollup),
+                        match=Entity(EntityKey.MetricsDistributions.value),
+                        select=[
+                            Function("quantiles(0.5, 0.90)", [Column("value")], alias="quantiles"),
+                        ],
+                        groupby=[Column("bucketed_time")],
+                    ),
                 ),
                 referrer="release_health.metrics.get_project_release_stats_durations",
             )["data"]
@@ -1476,18 +1497,23 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         rollup: int,
     ) -> Tuple[Mapping[datetime, SessionCounts], SessionCounts]:
         session_series_data = raw_snql_query(
-            Query(
+            Request(
                 dataset=Dataset.Metrics.value,
-                where=where
-                + [
-                    Condition(Column("metric_id"), Op.EQ, resolve(org_id, SessionMRI.SESSION.value))
-                ],
-                granularity=Granularity(rollup),
-                match=Entity(EntityKey.MetricsCounters.value),
-                select=[
-                    Function("sum", [Column("value")], alias="value"),
-                ],
-                groupby=[Column("bucketed_time"), Column(session_status_key)],
+                app_id=SnubaAppID,
+                query=Query(
+                    where=where
+                    + [
+                        Condition(
+                            Column("metric_id"), Op.EQ, resolve(org_id, SessionMRI.SESSION.value)
+                        )
+                    ],
+                    granularity=Granularity(rollup),
+                    match=Entity(EntityKey.MetricsCounters.value),
+                    select=[
+                        Function("sum", [Column("value")], alias="value"),
+                    ],
+                    groupby=[Column("bucketed_time"), Column(session_status_key)],
+                ),
             ),
             referrer="release_health.metrics.get_project_release_stats_sessions_series",
         )["data"]
@@ -1518,16 +1544,23 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 logger.warning("Unexpected session.status '%s'", status)
 
         session_error_series_data = raw_snql_query(
-            Query(
+            Request(
                 dataset=Dataset.Metrics.value,
-                where=where
-                + [Condition(Column("metric_id"), Op.EQ, resolve(org_id, SessionMRI.ERROR.value))],
-                granularity=Granularity(rollup),
-                match=Entity(EntityKey.MetricsSets.value),
-                select=[
-                    Function("uniq", [Column("value")], alias="value"),
-                ],
-                groupby=[Column("bucketed_time")],
+                app_id=SnubaAppID,
+                query=Query(
+                    where=where
+                    + [
+                        Condition(
+                            Column("metric_id"), Op.EQ, resolve(org_id, SessionMRI.ERROR.value)
+                        )
+                    ],
+                    granularity=Granularity(rollup),
+                    match=Entity(EntityKey.MetricsSets.value),
+                    select=[
+                        Function("uniq", [Column("value")], alias="value"),
+                    ],
+                    groupby=[Column("bucketed_time")],
+                ),
             ),
             referrer="release_health.metrics.get_project_release_stats_sessions_error_series",
         )["data"]
@@ -1571,31 +1604,45 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
     ) -> Tuple[Mapping[datetime, UserCounts], UserCounts]:
 
         user_series_data = raw_snql_query(
-            Query(
+            Request(
                 dataset=Dataset.Metrics.value,
-                where=where
-                + [Condition(Column("metric_id"), Op.EQ, resolve(org_id, SessionMRI.USER.value))],
-                granularity=Granularity(rollup),
-                match=Entity(EntityKey.MetricsSets.value),
-                select=[
-                    Function("uniq", [Column("value")], alias="value"),
-                ],
-                groupby=[Column("bucketed_time"), Column(session_status_key)],
+                app_id=SnubaAppID,
+                query=Query(
+                    where=where
+                    + [
+                        Condition(
+                            Column("metric_id"), Op.EQ, resolve(org_id, SessionMRI.USER.value)
+                        )
+                    ],
+                    granularity=Granularity(rollup),
+                    match=Entity(EntityKey.MetricsSets.value),
+                    select=[
+                        Function("uniq", [Column("value")], alias="value"),
+                    ],
+                    groupby=[Column("bucketed_time"), Column(session_status_key)],
+                ),
             ),
             referrer="release_health.metrics.get_project_release_stats_user_series",
         )["data"]
 
         user_totals_data = raw_snql_query(
-            Query(
+            Request(
                 dataset=Dataset.Metrics.value,
-                where=where
-                + [Condition(Column("metric_id"), Op.EQ, resolve(org_id, SessionMRI.USER.value))],
-                granularity=Granularity(LEGACY_SESSIONS_DEFAULT_ROLLUP),
-                match=Entity(EntityKey.MetricsSets.value),
-                select=[
-                    Function("uniq", [Column("value")], alias="value"),
-                ],
-                groupby=[Column(session_status_key)],
+                app_id=SnubaAppID,
+                query=Query(
+                    where=where
+                    + [
+                        Condition(
+                            Column("metric_id"), Op.EQ, resolve(org_id, SessionMRI.USER.value)
+                        )
+                    ],
+                    granularity=Granularity(LEGACY_SESSIONS_DEFAULT_ROLLUP),
+                    match=Entity(EntityKey.MetricsSets.value),
+                    select=[
+                        Function("uniq", [Column("value")], alias="value"),
+                    ],
+                    groupby=[Column(session_status_key)],
+                ),
             ),
             referrer="release_health.metrics.get_project_release_stats_user_totals",
         )["data"]
@@ -1793,16 +1840,15 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             where_clause.append(Condition(Column(env_id), Op.EQ, snuba_env_id))
 
         query = Query(
-            dataset=Dataset.Metrics.value,
             match=Entity(EntityKey.MetricsCounters.value),
             select=columns,
             where=where_clause,
             granularity=Granularity(rollup),
         )
-
-        rows = raw_snql_query(query, referrer="release_health.metrics.get_project_sessions_count")[
-            "data"
-        ]
+        request = Request(dataset=Dataset.Metrics.value, app_id=SnubaAppID, query=query)
+        rows = raw_snql_query(
+            request, referrer="release_health.metrics.get_project_sessions_count"
+        )["data"]
 
         ret_val: int = int(rows[0]["value"]) if rows else 0
         return ret_val
@@ -1851,7 +1897,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         group_by = [Column("project_id")]
 
         query = Query(
-            dataset=Dataset.Metrics.value,
             match=Entity(EntityKey.MetricsCounters.value),
             select=columns,
             where=where_clause,
@@ -1860,9 +1905,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 rollup if rollup is not None else LEGACY_SESSIONS_DEFAULT_ROLLUP
             ),
         )
-
+        request = Request(dataset=Dataset.Metrics.value, app_id=SnubaAppID, query=query)
         rows = raw_snql_query(
-            query, referrer="release_health.metrics.get_num_sessions_per_project"
+            request, referrer="release_health.metrics.get_num_sessions_per_project"
         )["data"]
 
         return [(row["project_id"], int(row["value"])) for row in rows]
@@ -2020,7 +2065,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         order_by_clause.append(OrderBy(Column("project_id"), Direction.DESC))
 
         query = Query(
-            dataset=Dataset.Metrics.value,
             match=entity,
             select=query_cols,
             where=where_clause,
@@ -2031,9 +2075,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             limit=Limit(limit) if limit is not None else None,
             granularity=Granularity(LEGACY_SESSIONS_DEFAULT_ROLLUP),
         )
-
+        request = Request(dataset=Dataset.Metrics.value, app_id=SnubaAppID, query=query)
         rows = raw_snql_query(
-            query,
+            request,
             referrer="release_health.metrics.get_project_releases_by_stability",
             use_cache=False,
         )

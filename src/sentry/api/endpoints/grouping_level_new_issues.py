@@ -3,6 +3,7 @@ import datetime
 from django.core.cache import cache
 from rest_framework.request import Request
 from rest_framework.response import Response
+from snuba_sdk import Request as SnubaRequest
 from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Column, Entity, Function, Query
@@ -98,13 +99,13 @@ def _get_hash_for_parent_level(group: Group, id: int, levels_overview: LevelsOve
 
     if return_hash is None:
         query = (
-            Query("events", Entity("events"))
+            Query(Entity("events"))
             .set_select([Function("arrayElement", [Column("hierarchical_hashes"), id + 1], "hash")])
             .set_where(_get_group_filters(group))
             .set_limit(1)
         )
-
-        return_hash: str = get_path(snuba.raw_snql_query(query), "data", 0, "hash")  # type: ignore
+        request = SnubaRequest(dataset="events", app_id="grouping", query=query)
+        return_hash: str = get_path(snuba.raw_snql_query(request), "data", 0, "hash")  # type: ignore
         cache.set(cache_key, return_hash)
 
     assert return_hash
@@ -113,7 +114,7 @@ def _get_hash_for_parent_level(group: Group, id: int, levels_overview: LevelsOve
 
 def _query_snuba(group: Group, id: int, offset=None, limit=None):
     query = (
-        Query("events", Entity("events"))
+        Query(Entity("events"))
         .set_select(
             [
                 Function(
@@ -184,7 +185,8 @@ def _query_snuba(group: Group, id: int, offset=None, limit=None):
     if limit is not None:
         query = query.set_limit(limit)
 
-    return snuba.raw_snql_query(query, referrer="api.group_hashes_levels.get_level_new_issues")[
+    request = SnubaRequest(dataset="events", app_id="grouping", query=query)
+    return snuba.raw_snql_query(request, referrer="api.group_hashes_levels.get_level_new_issues")[
         "data"
     ]
 

@@ -4793,7 +4793,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         assert (
             Function("tuple", ["duration", 300], "project_threshold_config")
-            in mock_snql_query.call_args_list[0][0][0].select
+            in mock_snql_query.call_args_list[0][0][0].query.select
         )
 
     @mock.patch("sentry.search.events.builder.raw_snql_query")
@@ -4896,7 +4896,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 ],
                 "project_threshold_config",
             )
-            in mock_snql_query.call_args_list[0][0][0].select
+            in mock_snql_query.call_args_list[0][0][0].query.select
         )
 
     def test_count_web_vitals(self):

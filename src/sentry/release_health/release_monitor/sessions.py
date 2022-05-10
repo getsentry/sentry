@@ -4,7 +4,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Mapping, Sequence
 
-from snuba_sdk import Column, Condition, Direction, Entity, Granularity, Op, OrderBy, Query
+from snuba_sdk import Column, Condition, Direction, Entity, Granularity, Op, OrderBy, Query, Request
 
 from sentry.release_health.release_monitor.base import BaseReleaseMonitorBackend, Totals
 from sentry.utils import metrics
@@ -24,7 +24,6 @@ class SessionReleaseMonitorBackend(BaseReleaseMonitorBackend):
             while (time.time() - start_time) < self.MAX_SECONDS:
                 query = (
                     Query(
-                        dataset="sessions",
                         match=Entity("org_sessions"),
                         select=[
                             Column("org_id"),
@@ -46,7 +45,8 @@ class SessionReleaseMonitorBackend(BaseReleaseMonitorBackend):
                     .set_limit(self.CHUNK_SIZE + 1)
                     .set_offset(offset)
                 )
-                data = raw_snql_query(query, referrer="tasks.monitor_release_adoption")["data"]
+                request = Request(dataset="sessions", app_id="sessions_release_health", query=query)
+                data = raw_snql_query(request, referrer="tasks.monitor_release_adoption")["data"]
                 count = len(data)
                 more_results = count > self.CHUNK_SIZE
                 offset += self.CHUNK_SIZE
@@ -83,7 +83,6 @@ class SessionReleaseMonitorBackend(BaseReleaseMonitorBackend):
                 ):
                     query = (
                         Query(
-                            dataset="sessions",
                             match=Entity("sessions"),
                             select=[
                                 Column("sessions"),
@@ -113,9 +112,11 @@ class SessionReleaseMonitorBackend(BaseReleaseMonitorBackend):
                         .set_limit(self.CHUNK_SIZE + 1)
                         .set_offset(offset)
                     )
-
+                    request = Request(
+                        dataset="sessions", app_id="sessions_release_health", query=query
+                    )
                     data = raw_snql_query(
-                        query, referrer="tasks.process_projects_with_sessions.session_count"
+                        request, referrer="tasks.process_projects_with_sessions.session_count"
                     )["data"]
                     count = len(data)
                     more_results = count > self.CHUNK_SIZE

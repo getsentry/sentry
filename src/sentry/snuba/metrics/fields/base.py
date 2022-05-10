@@ -22,7 +22,7 @@ from typing import (
     cast,
 )
 
-from snuba_sdk import Column, Condition, Entity, Function, Granularity, Op, Query
+from snuba_sdk import Column, Condition, Entity, Function, Granularity, Op, Query, Request
 from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.api.utils import InvalidParams
@@ -111,7 +111,6 @@ def run_metrics_query(
     now = datetime.now().replace(second=0, microsecond=0)
 
     query = Query(
-        dataset=Dataset.Metrics.value,
         match=Entity(entity_key.value),
         select=select,
         groupby=groupby,
@@ -124,7 +123,8 @@ def run_metrics_query(
         + where,
         granularity=Granularity(GRANULARITY),
     )
-    result = raw_snql_query(query, referrer, use_cache=True)
+    request = Request(dataset=Dataset.Metrics.value, app_id="metrics", query=query)
+    result = raw_snql_query(request, referrer, use_cache=True)
     return cast(List[SnubaDataType], result["data"])
 
 

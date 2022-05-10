@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Sequence, Tuple
 
 from django.http import QueryDict
+from snuba_sdk import Request
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.entity import Entity
@@ -280,7 +281,6 @@ class QueryDefinition:
 
 def run_outcomes_query_totals(query: QueryDefinition) -> ResultSet:
     snql_query = Query(
-        dataset=query.dataset.value,
         match=Entity(query.match),
         select=query.select_params,
         groupby=query.group_by,
@@ -289,13 +289,13 @@ def run_outcomes_query_totals(query: QueryDefinition) -> ResultSet:
         offset=Offset(0),
         granularity=Granularity(query.rollup),
     )
-    result = raw_snql_query(snql_query, referrer="outcomes.totals")
+    request = Request(dataset=query.dataset.value, app_id="default", query=snql_query)
+    result = raw_snql_query(request, referrer="outcomes.totals")
     return _format_rows(result["data"], query)
 
 
 def run_outcomes_query_timeseries(query: QueryDefinition) -> ResultSet:
     snql_query = Query(
-        dataset=query.dataset.value,
         match=Entity(query.match),
         select=query.select_params,
         groupby=query.group_by + [Column(TS_COL)],
@@ -304,7 +304,8 @@ def run_outcomes_query_timeseries(query: QueryDefinition) -> ResultSet:
         offset=Offset(0),
         granularity=Granularity(query.rollup),
     )
-    result_timeseries = raw_snql_query(snql_query, referrer="outcomes.timeseries")
+    request = Request(dataset=query.dataset.value, app_id="default", query=snql_query)
+    result_timeseries = raw_snql_query(request, referrer="outcomes.timeseries")
     return _format_rows(result_timeseries["data"], query)
 
 

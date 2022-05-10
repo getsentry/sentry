@@ -515,7 +515,7 @@ def _get_filter_conditions(conditions: Any) -> ConditionGroup:
     dummy_entity = EntityKey.MetricsSets.value
     return json_to_snql(
         {"selected_columns": ["value"], "conditions": conditions}, entity=dummy_entity
-    ).where
+    ).query.where
 
 
 def _extract_status_filter_from_conditions(
