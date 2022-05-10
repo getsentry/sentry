@@ -43,6 +43,8 @@ function Filter({
       ? []
       : [...operationNameFilter.operationNames.keys()];
 
+  // Memoize menuOptions to prevent CompactSelect from re-rendering every time
+  // the value changes
   const menuOptions = useMemo(
     () =>
       [...operationNameCounts].map(([operationName, operationCount]) => ({
@@ -56,13 +58,17 @@ function Filter({
 
   function onChange(selectedOpts) {
     const mappedValues = selectedOpts.map(opt => opt.value);
+
+    // Go through all the available operations, and toggle them on/off if needed
     menuOptions.forEach(opt => {
       const opepationAlreadySelected =
         operationNameFilter.type !== 'no_filter' &&
         operationNameFilter.operationNames.has(opt.value);
       if (
-        (mappedValues.includes(opt.value) && !opepationAlreadySelected) ||
-        (!mappedValues.includes(opt.value) && opepationAlreadySelected)
+        // Operation has just been added to the filter list --> toggle on
+        (!opepationAlreadySelected && mappedValues.includes(opt.value)) ||
+        // Operation has just been removed to the filter list --> toggle off
+        (opepationAlreadySelected && !mappedValues.includes(opt.value))
       ) {
         toggleOperationNameFilter(opt.value);
       }
