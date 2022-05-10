@@ -1,16 +1,17 @@
 import inspect
+from typing import Any, Callable, Optional, Sequence
 
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar, NodeVisitor
 
 from sentry.grouping.utils import get_rule_bool
+from sentry.stacktraces.functions import get_function_name_for_frame
 from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.utils.glob import glob_match
-from sentry.utils.safe import get_path
+from sentry.utils.safe import PathSearchable, get_path
 from sentry.utils.strings import unescape_string
 
 VERSION = 1
-
 
 # Grammar is defined in EBNF syntax.
 fingerprinting_grammar = Grammar(
@@ -121,42 +122,61 @@ class EventAccess:
                 )
         return self._exceptions
 
-    def get_frames(self, with_functions=False):
-        from sentry.stacktraces.functions import get_function_name_for_frame
+    def _push_frame(self, frame):
+        if isinstance(frame, str):
+            raise NotImplementedError("@gilbert fix this")
+        platform = frame.get("platform") or self.event.platform
+        func = get_function_name_for_frame(frame, platform)
+        self._frames.append(
+            {
+                "function": func or "<unknown>",
+                "abs_path": frame.get("abs_path") or frame.get("filename"),
+                "filename": frame.get("filename"),
+                "module": frame.get("module"),
+                "family": get_behavior_family_for_platform(platform),
+                "package": frame.get("package"),
+                "app": frame.get("in_app"),
+            }
+        )
 
+    def stack_frame_waterfall(self, fn_on_each_frame: Callable[[Any], None] = lambda: None):
+        # waterfall
+        def exception_values(evt: PathSearchable) -> Optional[Sequence[Any]]:
+            return get_path(evt, "exception", "values", filter=True)
+
+        def frames_in_exception(exc: PathSearchable):
+            return get_path(exc, "stacktrace", "frames", filter=True)
+
+        def data_stacktrace_frames(data: PathSearchable):
+            return get_path(data, "stacktrace", "frames", filter=True)
+
+        def threads_values(evt: PathSearchable):
+            return get_path(evt, "threads", "values", filter=True)
+
+        def stacktrace_frames_in_thread(_thread: PathSearchable):
+            return get_path(_thread, "stacktrace", "frames")
+
+        have_errors = False
+        for exc in exception_values(self.event) or ():
+            for frame in frames_in_exception(exc) or ():
+                fn_on_each_frame(frame)
+            have_errors = True
+
+        if not have_errors:
+            frames = data_stacktrace_frames(self.event.data)
+            if not frames:
+                threads = threads_values(self.event)
+                thread = get_crashing_thread(threads)
+                if thread is not None:
+                    frames = stacktrace_frames_in_thread(thread)
+            for frame in frames or ():
+                fn_on_each_frame(frame)
+
+    def get_frames(self, with_functions=False):
         if self._frames is None:
             self._frames = []
 
-            def _push_frame(frame):
-                platform = frame.get("platform") or self.event.get("platform")
-                func = get_function_name_for_frame(frame, platform)
-                self._frames.append(
-                    {
-                        "function": func or "<unknown>",
-                        "abs_path": frame.get("abs_path") or frame.get("filename"),
-                        "filename": frame.get("filename"),
-                        "module": frame.get("module"),
-                        "family": get_behavior_family_for_platform(platform),
-                        "package": frame.get("package"),
-                        "app": frame.get("in_app"),
-                    }
-                )
-
-            have_errors = False
-            for exc in get_path(self.event, "exception", "values", filter=True) or ():
-                for frame in get_path(exc, "stacktrace", "frames", filter=True) or ():
-                    _push_frame(frame)
-                have_errors = True
-
-            if not have_errors:
-                frames = get_path(self.event, "stacktrace", "frames", filter=True)
-                if not frames:
-                    threads = get_path(self.event, "threads", "values", filter=True)
-                    thread = get_crashing_thread(threads)
-                    if thread is not None:
-                        frames = get_path(thread, "stacktrace", "frames")
-                for frame in frames or ():
-                    _push_frame(frame)
+        self.stack_frame_waterfall(self._push_frame)
 
         return self._frames
 
