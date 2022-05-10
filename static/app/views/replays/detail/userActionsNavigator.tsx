@@ -36,8 +36,11 @@ function UserActionsNavigator({event, crumbs}: Props) {
   const [currentUserAction, setCurrentUserAction] = useState<Crumb>();
   const [closestUserAction, setClosestUserAction] = useState<Crumb>();
 
+  const {startTimestamp} = event;
+  const userActionCrumbs = onlyUserActions(transformCrumbs(crumbs));
+
   useEffect(() => {
-    if (!currentHoverTime) {
+    if (!currentHoverTime || !userActionCrumbs || !startTimestamp) {
       setClosestUserAction(undefined);
       return;
     }
@@ -53,14 +56,11 @@ function UserActionsNavigator({event, crumbs}: Props) {
         : prev;
     });
     setClosestUserAction(closestUserActionItem);
-  }, [currentHoverTime]);
+  }, [currentHoverTime, startTimestamp, userActionCrumbs]);
 
   if (!event) {
     return null;
   }
-
-  const {startTimestamp} = event;
-  const userActionCrumbs = onlyUserActions(transformCrumbs(crumbs));
 
   return (
     <Panel>
