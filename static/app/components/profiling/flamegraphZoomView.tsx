@@ -2,7 +2,7 @@ import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react
 import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
-import {FrameStack} from 'sentry/components/profiling/frameCallStack';
+import {FrameStack} from 'sentry/components/profiling/frameStack';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
@@ -613,38 +613,43 @@ function FlamegraphZoomView({
 
   return (
     <Fragment>
-      <Canvas
-        ref={c => setFlamegraphCanvasRef(c)}
-        onMouseDown={onCanvasMouseDown}
-        onMouseUp={onCanvasMouseUp}
-        onMouseMove={onCanvasMouseMove}
-        onMouseLeave={onCanvasMouseLeave}
-        onContextMenu={onContextMenu}
-        style={{cursor: lastInteraction === 'pan' ? 'grab' : 'default'}}
-      />
-      <Canvas
-        ref={c => setFlamegraphOverlayCanvasRef(c)}
-        style={{
-          pointerEvents: 'none',
-        }}
-      />
-      {contextMenuProps.open ? (
-        <FlamegraphOptionsContextMenu
-          container={flamegraphCanvasRef}
-          contextMenuCoordinates={contextMenuCoordinates}
-          contextMenuProps={contextMenuProps}
+      <CanvasContainer>
+        <Canvas
+          ref={canvas => setFlamegraphCanvasRef(canvas)}
+          onMouseDown={onCanvasMouseDown}
+          onMouseUp={onCanvasMouseUp}
+          onMouseMove={onCanvasMouseMove}
+          onMouseLeave={onCanvasMouseLeave}
+          onContextMenu={onContextMenu}
+          style={{cursor: lastInteraction === 'pan' ? 'grab' : 'default'}}
         />
-      ) : null}
-      {flamegraphCanvas && flamegraphView && hoveredNode?.frame?.name ? (
-        <BoundTooltip
-          bounds={canvasBounds}
-          cursor={configSpaceCursor}
-          flamegraphCanvas={flamegraphCanvas}
-          flamegraphView={flamegraphView}
-        >
-          {hoveredNode.frame.name}
-        </BoundTooltip>
-      ) : null}
+        <Canvas
+          ref={canvas => setFlamegraphOverlayCanvasRef(canvas)}
+          style={{
+            pointerEvents: 'none',
+          }}
+        />
+        {contextMenuProps.open ? (
+          <FlamegraphOptionsContextMenu
+            container={flamegraphCanvasRef}
+            contextMenuCoordinates={contextMenuCoordinates}
+            contextMenuProps={contextMenuProps}
+          />
+        ) : null}
+        {flamegraphRenderer &&
+        flamegraphView &&
+        flamegraphCanvas &&
+        hoveredNode?.frame?.name ? (
+          <BoundTooltip
+            bounds={canvasBounds}
+            cursor={configSpaceCursor}
+            flamegraphCanvas={flamegraphCanvas}
+            flamegraphView={flamegraphView}
+          >
+            {hoveredNode?.frame?.name}
+          </BoundTooltip>
+        ) : null}
+      </CanvasContainer>
       {flamegraphRenderer ? (
         <FrameStack
           canvasPoolManager={canvasPoolManager}
@@ -654,6 +659,13 @@ function FlamegraphZoomView({
     </Fragment>
   );
 }
+
+const CanvasContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: relative;
+`;
 
 const Canvas = styled('canvas')`
   left: 0;
