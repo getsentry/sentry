@@ -1,3 +1,4 @@
+import {createFilter} from 'react-select';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
@@ -72,6 +73,12 @@ export const fields: Record<string, Field> = {
         </PlatformWrapper>,
       ]),
     help: t('The primary platform for this project'),
+    filterOption: createFilter({
+      stringify: option => {
+        const matchedPlatform = platforms.find(({id}) => id === option.value);
+        return `${matchedPlatform?.name} ${option.value}`;
+      },
+    }),
   },
 
   subjectPrefix: {
