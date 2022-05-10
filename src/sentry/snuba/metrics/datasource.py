@@ -14,13 +14,13 @@ from dataclasses import replace
 from operator import itemgetter
 from typing import Any, Dict, Mapping, Optional, Sequence, Set, Tuple, Union
 
-from snuba_sdk import Column, Condition, Function, Op
+from snuba_sdk import Column, Condition, Function, Op, Request
 
 from sentry.api.utils import InvalidParams
 from sentry.models import Project
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.utils import resolve_tag_key, reverse_resolve
-from sentry.snuba.dataset import EntityKey
+from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.fields import run_metrics_query
 from sentry.snuba.metrics.fields.base import get_derived_metrics, org_id_from_projects
 from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
@@ -467,8 +467,11 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
             # "totals" query
             initial_snuba_query = next(iter(snuba_queries.values()))["totals"]
 
+            request = Request(
+                dataset=Dataset.Metrics.value, app_id="default", query=initial_snuba_query
+            )
             initial_query_results = raw_snql_query(
-                initial_snuba_query, use_cache=False, referrer="api.metrics.totals.initial_query"
+                request, use_cache=False, referrer="api.metrics.totals.initial_query"
             )["data"]
 
         except StopIteration:
@@ -549,9 +552,11 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
 
                     # The initial query already selected the "page", so reset the offset
                     snuba_query = snuba_query.set_offset(0)
-
+                    request = Request(
+                        dataset=Dataset.Metrics.value, app_id="default", query=snuba_query
+                    )
                     snuba_query_res = raw_snql_query(
-                        snuba_query, use_cache=False, referrer=f"api.metrics.{key}.second_query"
+                        request, use_cache=False, referrer=f"api.metrics.{key}.second_query"
                     )
                     # Create a dictionary that has keys representing the ordered by tuples from the
                     # initial query, so that we are able to order it easily in the next code block
@@ -593,8 +598,12 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
             for key, snuba_query in queries.items():
                 if snuba_query is None:
                     continue
+
+                request = Request(
+                    dataset=Dataset.Metrics.value, app_id="default", query=snuba_query
+                )
                 results[entity][key] = raw_snql_query(
-                    snuba_query, use_cache=False, referrer=f"api.metrics.{key}"
+                    request, use_cache=False, referrer=f"api.metrics.{key}"
                 )
 
     assert projects
