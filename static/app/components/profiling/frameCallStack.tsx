@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import space from 'sentry/styles/space';
@@ -20,7 +20,7 @@ function FrameStack({flamegraphRenderer}: FrameStackProps) {
   return selectedNode ? (
     <FrameBar
       style={{
-        height: (theme.SIZES.FLAMEGRAPH_DEPTH_OFFSET - 4) * theme.SIZES.BAR_HEIGHT,
+        height: theme.SIZES.FLAMEGRAPH_DEPTH_OFFSET * theme.SIZES.BAR_HEIGHT,
       }}
     >
       <FrameCallersTable>
@@ -37,6 +37,7 @@ function FrameStack({flamegraphRenderer}: FrameStackProps) {
             frame={selectedNode}
             flamegraphRenderer={flamegraphRenderer}
           />
+          {/* We add a row at the end with rowSpan so that we can have that nice border-right stretched over the entire table */}
           <tr>
             <FrameCallersTableCell rowSpan={100} />
             <FrameCallersTableCell rowSpan={100} />
@@ -52,12 +53,17 @@ function FrameRow({
   depth,
   frame,
   flamegraphRenderer,
+  initialOpen,
 }: {
   depth: number;
   flamegraphRenderer: FlamegraphRenderer;
   frame: FlamegraphFrame;
+  initialOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState<boolean>(initialOpen ?? false);
+  const [forceOpenChildren, setForceOpenChildren] = useState<boolean>(
+    initialOpen ?? false
+  );
 
   const color = flamegraphRenderer.getColorForFrame(frame.frame);
   const colorString =
@@ -68,13 +74,26 @@ function FrameRow({
           .join(',')}, ${color[3]})`
       : `rgba(${color.map(n => n * 255).join(',')}, 1.0)`;
 
+  const handleClick = useCallback(
+    (evt: React.MouseEvent<HTMLTableRowElement>) => {
+      if (evt.metaKey) {
+        setForceOpenChildren(!forceOpenChildren);
+      } else {
+        // Once a user closes the row, we don't want to reopen it on subsequent clicks
+        setForceOpenChildren(false);
+      }
+      setOpen(!open);
+    },
+    [open, forceOpenChildren]
+  );
+
   return (
     <Fragment>
-      <tr onClick={() => setOpen(!open)}>
-        <FrameCallersTableCell>
+      <FrameCallersRow onClick={handleClick}>
+        <FrameCallersTableCell textAlign="right">
           {flamegraphRenderer.flamegraph.formatter(frame.frame.selfWeight)}
         </FrameCallersTableCell>
-        <FrameCallersTableCell>
+        <FrameCallersTableCell textAlign="right">
           {flamegraphRenderer.flamegraph.formatter(frame.frame.totalWeight)}
         </FrameCallersTableCell>
         <FrameCallersTableCell
@@ -90,11 +109,12 @@ function FrameRow({
             <FrameName>{frame.frame.name}</FrameName>
           </FrameNameContainer>
         </FrameCallersTableCell>
-      </tr>
+      </FrameCallersRow>
       {open
         ? frame.children.map(c => (
             <FrameRow
               key={c.frame.name}
+              initialOpen={forceOpenChildren ? open : undefined}
               frame={c}
               flamegraphRenderer={flamegraphRenderer}
               depth={depth + 1}
@@ -106,6 +126,7 @@ function FrameRow({
 }
 
 const FrameBar = styled('div')`
+  overflow: auto;
   bottom: 0;
   width: 100%;
   position: absolute;
@@ -114,14 +135,26 @@ const FrameBar = styled('div')`
 `;
 
 const FrameCallersTable = styled('table')`
-  list-style-type: none;
-  padding: ${space(0.5)} ${space(1)};
+  border-collapse: separate;
   font-size: ${p => p.theme.fontSizeSmall};
   margin: 0;
   overflow: auto;
   max-height: 100%;
   height: 100%;
   width: 100%;
+
+  tbody {
+    height: 100%;
+    overflow: auto;
+  }
+`;
+
+const FrameCallersRow = styled('tr')`
+  height: 1px;
+
+  &:hover {
+    background-color: ${p => p.theme.surface200};
+  }
 `;
 
 const FrameNameContainer = styled('div')`
@@ -139,11 +172,21 @@ const FrameChildrenIndicator = styled('span')<{open: boolean}>`
 `;
 
 const FrameCallersTableHeader = styled('thead')`
-  border-bottom: 1px solid ${p => p.theme.border};
+  top: 0;
+  position: sticky;
+  z-index: 1;
 
   th {
+    position: relative;
+    border-bottom: 1px solid ${p => p.theme.border};
+    background-color: ${p => p.theme.surface100};
     white-space: nowrap;
     padding: 0 ${space(1)};
+
+    &:first-child,
+    &:nth-child(2) {
+      min-width: 100px;
+    }
 
     &:not(:last-child) {
       border-right: 1px solid ${p => p.theme.border};
@@ -151,8 +194,11 @@ const FrameCallersTableHeader = styled('thead')`
   }
 `;
 
-const FrameCallersTableCell = styled('td')`
+const FrameCallersTableCell = styled('td')<{
+  textAlign?: React.CSSProperties['textAlign'];
+}>`
   padding: 0 ${space(1)};
+  text-align: ${p => p.textAlign ?? 'initial'};
 
   &:not(:last-child) {
     border-right: 1px solid ${p => p.theme.border};
