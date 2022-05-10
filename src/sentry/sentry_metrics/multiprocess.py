@@ -21,6 +21,7 @@ from typing import (
     Union,
 )
 
+import rapidjson
 import sentry_sdk
 from arroyo.backends.abstract import Producer as AbstractProducer
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload, KafkaProducer
@@ -385,10 +386,19 @@ def process_messages(
     strings = set()
     skipped_offsets = set()
     with metrics.timer("process_messages.parse_outer_message"):
-        parsed_payloads_by_offset = {
-            msg.offset: json.loads(msg.payload.value.decode("utf-8"), use_rapid_json=True)
-            for msg in outer_message.payload
-        }
+        parsed_payloads_by_offset: MutableMapping[int, json.JSONData] = {}
+        for msg in outer_message.payload:
+            try:
+                parsed_payload = json.loads(msg.payload.value.decode("utf-8"), use_rapid_json=True)
+                parsed_payloads_by_offset[msg.offset] = parsed_payload
+            except rapidjson.JSONDecodeError:
+                skipped_offsets.add(msg.offset)
+                logger.error(
+                    "process_messages.invalid_json",
+                    exc_info=True,
+                )
+                continue
+
         for offset, message in parsed_payloads_by_offset.items():
             metric_name = message["name"]
             org_id = message["org_id"]
