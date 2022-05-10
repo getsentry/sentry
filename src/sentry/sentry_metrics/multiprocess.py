@@ -430,12 +430,17 @@ def process_messages(
     metrics.incr("process_messages.total_strings_indexer_lookup", amount=len(strings))
 
     with metrics.timer("metrics_consumer.bulk_record"):
-        mapping = indexer.bulk_record(org_strings).get_mapped_results()
+        record_result = indexer.bulk_record(org_strings)
+        mapping = record_result.get_mapped_results()
+        bulk_record_meta = record_result.get_fetch_metadata()
 
     new_messages: List[Message[KafkaPayload]] = []
 
     with metrics.timer("process_messages.reconstruct_messages"):
         for message in outer_message.payload:
+            used_tags: Set[str] = set()
+            output_message_meta: Mapping[str, MutableMapping[int, str]] = defaultdict(dict)
+
             if message.offset in skipped_offsets:
                 logger.info("process_message.offset_skipped", extra={"offset": message.offset})
                 continue
@@ -445,18 +450,28 @@ def process_messages(
             metric_name = parsed_payload_value["name"]
             org_id = parsed_payload_value["org_id"]
             tags = parsed_payload_value.get("tags", {})
+            used_tags.add(metric_name)
 
+            new_tags: Mapping[int, int] = {}
             try:
-                new_tags: Mapping[int, int] = {
-                    mapping[org_id][k]: mapping[org_id][v] for k, v in tags.items()
-                }
+                for k, v in tags.items():
+                    used_tags.update({k, v})
+                    new_tags[mapping[org_id][k]] = mapping[org_id][v]
             except KeyError:
                 logger.error("process_messages.key_error", extra={"tags": tags}, exc_info=True)
                 continue
 
+            fetch_types_encountered = set()
+            for tag in used_tags:
+                if tag in bulk_record_meta:
+                    int_id, fetch_type = bulk_record_meta.get(tag)
+                    fetch_types_encountered.add(fetch_type)
+                    output_message_meta[fetch_type.value][int_id] = tag
+
             new_payload_value["tags"] = new_tags
             new_payload_value["metric_id"] = mapping[org_id][metric_name]
             new_payload_value["retention_days"] = 90
+            new_payload_value["mapping_meta"] = output_message_meta
 
             del new_payload_value["name"]
 
