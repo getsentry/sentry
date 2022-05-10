@@ -66,7 +66,7 @@ import {
   renderReleaseGridHeaderCell,
 } from './widgetViewerModal/widgetViewerTableCell';
 
-export type WidgetViewerModalOptions = {
+export interface WidgetViewerModalOptions {
   organization: Organization;
   widget: Widget;
   issuesData?: TableDataRow[];
@@ -75,14 +75,12 @@ export type WidgetViewerModalOptions = {
   seriesData?: Series[];
   tableData?: TableDataWithTitle[];
   totalIssuesCount?: string;
-};
+}
 
-type Props = ModalRenderProps &
-  WithRouterProps &
-  WidgetViewerModalOptions & {
-    organization: Organization;
-    selection: PageFilters;
-  };
+interface Props extends ModalRenderProps, WithRouterProps, WidgetViewerModalOptions {
+  organization: Organization;
+  selection: PageFilters;
+}
 
 const FULL_TABLE_ITEM_LIMIT = 20;
 const HALF_TABLE_ITEM_LIMIT = 10;

@@ -6,7 +6,7 @@ from abc import ABCMeta, abstractmethod
 from dataclasses import replace
 from datetime import datetime, timedelta
 from hashlib import md5
-from typing import Any, List, Mapping, Sequence, Set, Tuple
+from typing import Any, List, Mapping, Sequence, Set, Tuple, cast
 
 import sentry_sdk
 from django.utils import timezone
@@ -88,8 +88,9 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         raise NotImplementedError
 
     @property
-    def empty_result(self) -> CursorResult:
-        return Paginator(Group.objects.none()).get_result()
+    def empty_result(self) -> CursorResult[Group]:
+        # TODO: Add types to paginators and remove this
+        return cast(CursorResult[Group], Paginator(Group.objects.none()).get_result())
 
     @property
     @abstractmethod
@@ -116,14 +117,14 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         environments: Optional[Sequence[Environment]],
         sort_by: str,
         limit: int,
-        cursor: Cursor,
+        cursor: Cursor | None,
         count_hits: bool,
         paginator_options: Optional[Mapping[str, Any]],
         search_filters: Optional[Sequence[SearchFilter]],
         date_from: Optional[datetime],
         date_to: Optional[datetime],
         max_hits: Optional[int] = None,
-    ) -> CursorResult:
+    ) -> CursorResult[Group]:
         """This function runs your actual query and returns the results
         We usually return a paginator object, which contains the results and the number of hits"""
         raise NotImplementedError
@@ -340,14 +341,14 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         environments: Optional[Sequence[Environment]],
         sort_by: str,
         limit: int,
-        cursor: Cursor,
+        cursor: Cursor | None,
         count_hits: bool,
         paginator_options: Optional[Mapping[str, Any]],
         search_filters: Optional[Sequence[SearchFilter]],
         date_from: Optional[datetime],
         date_to: Optional[datetime],
         max_hits: Optional[int] = None,
-    ) -> CursorResult:
+    ) -> CursorResult[Group]:
 
         now = timezone.now()
         end = None
@@ -378,7 +379,12 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 group_queryset = group_queryset.order_by("-last_seen")
                 paginator = DateTimePaginator(group_queryset, "-last_seen", **paginator_options)
                 # When its a simple django-only search, we count_hits like normal
-                return paginator.get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits)
+
+                # TODO: Add types to paginators and remove this
+                return cast(
+                    CursorResult[Group],
+                    paginator.get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits),
+                )
 
         # TODO: Presumably we only want to search back to the project's max
         # retention date, which may be closer than 90 days in the past, but
@@ -583,7 +589,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         environments: Sequence[Environment],
         sort_by: str,
         limit: int,
-        cursor: Cursor,
+        cursor: Cursor | None,
         count_hits: bool,
         paginator_options: Mapping[str, Any],
         search_filters: Sequence[SearchFilter],
@@ -659,8 +665,6 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 hit_ratio = filtered_count / float(snuba_count)
                 hits = int(hit_ratio * snuba_total)
                 return hits
-
-        return None
 
 
 class InvalidQueryForExecutor(Exception):
@@ -782,7 +786,7 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         date_from: Optional[datetime],
         date_to: Optional[datetime],
         max_hits: Optional[int] = None,
-    ) -> CursorResult:
+    ) -> CursorResult[Group]:
 
         if not validate_cdc_search_filters(search_filters):
             raise InvalidQueryForExecutor("Search filters invalid for this query executor")
@@ -878,4 +882,6 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         # probably not be noticeable to the user, so holding off for now to reduce complexity.
         groups = group_queryset.in_bulk(paginator_results.results)
         paginator_results.results = [groups[k] for k in paginator_results.results if k in groups]
-        return paginator_results
+
+        # TODO: Add types to paginators and remove this
+        return cast(CursorResult[Group], paginator_results)

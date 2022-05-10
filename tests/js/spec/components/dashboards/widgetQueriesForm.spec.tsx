@@ -18,7 +18,7 @@ describe('WidgetQueriesForm', function () {
       columns: ['release'],
       aggregates: ['count()'],
       name: '',
-      orderby: '-count',
+      orderby: '-count()',
     },
   ];
 

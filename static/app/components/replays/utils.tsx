@@ -1,5 +1,6 @@
 import moment from 'moment';
 
+import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import {Crumb} from 'sentry/types/breadcrumbs';
 
 function padZero(num: number, len = 2): string {
@@ -102,6 +103,7 @@ export function countColumns(duration: number, width: number, minWidth: number =
  * and the timestamp of the crumb.
  */
 export function getCrumbsByColumn(crumbs: Crumb[], totalColumns: number) {
+  // TODO(replay): we should pass in the startTimestamp and not rely on the first breadcrumb time
   const startTime = crumbs[0]?.timestamp;
   const endTime = crumbs[crumbs.length - 1]?.timestamp;
 
@@ -137,4 +139,89 @@ export function getCrumbsByColumn(crumbs: Crumb[], totalColumns: number) {
   }, new Map() as Map<number, Crumb[]>);
 
   return crumbsByColumn;
+}
+
+type FlattenedSpanRange = {
+  /**
+   * Duration of this range
+   */
+  duration: number;
+  /**
+   * Absolute time in ms when the range ends
+   */
+  endTimestamp: number;
+  /**
+   * Number of spans that got flattened into this range
+   */
+  spanCount: number;
+  /**
+   * ID of the original span that created this range
+   */
+  spanId: string;
+  //
+  /**
+   * Absolute time in ms when the span starts
+   */
+  startTimestamp: number;
+};
+
+function doesOverlap(a: FlattenedSpanRange, b: FlattenedSpanRange) {
+  const bStartsWithinA =
+    a.startTimestamp <= b.startTimestamp && b.startTimestamp <= a.endTimestamp;
+  const bEndsWithinA =
+    a.startTimestamp <= b.endTimestamp && b.endTimestamp <= a.endTimestamp;
+  return bStartsWithinA || bEndsWithinA;
+}
+
+export function flattenSpans(rawSpans: RawSpanType[]): FlattenedSpanRange[] {
+  if (!rawSpans.length) {
+    return [];
+  }
+
+  const spans = rawSpans.map(span => {
+    const startTimestamp = span.start_timestamp * 1000;
+
+    // `endTimestamp` is at least msPerPixel wide, otherwise it disappears
+    const endTimestamp = span.timestamp * 1000;
+    return {
+      spanCount: 1,
+      spanId: span.span_id,
+      startTimestamp,
+      endTimestamp,
+      duration: endTimestamp - startTimestamp,
+    } as FlattenedSpanRange;
+  });
+
+  // might need to make sure we've sorted by startTimestamp
+
+  const [firstSpan, ...restSpans] = spans;
+  const flatSpans = [firstSpan];
+
+  for (const span of restSpans) {
+    let overlap = false;
+    for (const fspan of flatSpans) {
+      if (doesOverlap(fspan, span)) {
+        overlap = true;
+        fspan.spanCount += 1;
+        fspan.startTimestamp = Math.min(fspan.startTimestamp, span.startTimestamp);
+        fspan.endTimestamp = Math.max(fspan.endTimestamp, span.endTimestamp);
+        fspan.duration = fspan.endTimestamp - fspan.startTimestamp;
+        break;
+      }
+    }
+    if (!overlap) {
+      flatSpans.push(span);
+    }
+  }
+  return flatSpans;
+}
+
+/**
+ * Divide two numbers safely
+ */
+export function divide(numerator: number, denominator: number | undefined) {
+  if (denominator === undefined || isNaN(denominator) || denominator === 0) {
+    return 0;
+  }
+  return numerator / denominator;
 }

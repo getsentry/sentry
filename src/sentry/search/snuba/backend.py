@@ -357,7 +357,7 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
         date_from: Optional[datetime] = None,
         date_to: Optional[datetime] = None,
         max_hits: Optional[int] = None,
-    ) -> CursorResult:
+    ) -> CursorResult[Group]:
         search_filters = search_filters if search_filters is not None else []
 
         # ensure projects are from same org
