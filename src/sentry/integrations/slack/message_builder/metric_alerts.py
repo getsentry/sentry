@@ -31,6 +31,7 @@ class SlackMetricAlertMessageBuilder(SlackMessageBuilder):
         incident: Optional[Incident] = None,
         new_status: Optional[IncidentStatus] = None,
         metric_value: Optional[int] = None,
+        chart_url: Optional[str] = None,
     ) -> None:
         """
         Builds a metric alert attachment for slack unfurling.
@@ -46,6 +47,7 @@ class SlackMetricAlertMessageBuilder(SlackMessageBuilder):
         self.incident = incident
         self.metric_value = metric_value
         self.new_status = new_status
+        self.chart_url = chart_url
 
     def build(self) -> SlackBody:
         data = metric_alert_attachment_info(

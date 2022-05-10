@@ -212,15 +212,15 @@ class UnfurlTest(TestCase):
         assert chart_data["timeseriesData"]["data"] == []
         assert chart_data["incidents"][0]["id"] == str(incident.id)
 
-    @patch(
-        "sentry.integrations.slack.unfurl.metric_alerts.generate_chart", return_value="chart-url"
-    )
+    @patch("sentry.charts.metric_alerts.generate_chart", return_value="chart-url")
     def test_unfurl_metric_alerts_chart_crash_free(self, mock_generate_chart):
         alert_rule = self.create_alert_rule(
             query="",
             aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
             dataset=QueryDatasets.SESSIONS,
-            time_window=60,
+            time_window=1,
+            resolve_threshold=10,
+            threshold_period=1,
         )
 
         url = f"https://sentry.io/organizations/{self.organization.slug}/alerts/rules/details/{alert_rule.id}/"
@@ -253,7 +253,7 @@ class UnfurlTest(TestCase):
         chart_data = mock_generate_chart.call_args[0][1]
         assert chart_data["rule"]["id"] == str(alert_rule.id)
         assert chart_data["selectedIncident"] is None
-        assert chart_data["sessionResponse"]["groups"] == []
+        assert len(chart_data["sessionResponse"]["groups"]) == 4
         assert len(chart_data["incidents"]) == 0
 
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
