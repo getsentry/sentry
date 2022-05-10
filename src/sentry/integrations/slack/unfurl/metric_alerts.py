@@ -1,16 +1,18 @@
 import html
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, Mapping, Optional
 from urllib.parse import urlparse
 
 from django.db.models import Q
 from django.http.request import HttpRequest, QueryDict
-from django.utils import make_aware, timezone
+from django.utils import timezone
 
+from sentry import features
 from sentry.api import client
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import AlertRuleSerializer
+from sentry.api.serializers.models.incident import DetailedIncidentSerializer
 from sentry.charts import generate_chart
 from sentry.charts.types import ChartType
 from sentry.incidents.logic import translate_aggregate_field
@@ -27,16 +29,58 @@ map_incident_args = make_type_coercer(
         "org_slug": str,
         "alert_rule_id": int,
         "incident_id": int,
+        "period": str,
+        "start": str,
+        "end": str,
     }
 )
 
 API_INTERVAL_POINTS_LIMIT = 10000
 API_INTERVAL_POINTS_MIN = 150
 
+CRASH_FREE_SESSIONS = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
+CRASH_FREE_USERS = "percentage(users_crashed, users) AS _crash_rate_alert_aggregate"
+SESSION_AGGREGATE_TO_FIELD = {
+    CRASH_FREE_SESSIONS: "sum(session)",
+    CRASH_FREE_USERS: "count_unique(user)",
+}
 
-def fetch_metric_alert_sessions():
-    # TODO
-    pass
+
+def fetch_metric_alert_sessions_data(
+    organization: Organization,
+    alert_rule: AlertRule,
+    time_period: Dict[str, Any],
+    user: Optional["User"] = None,
+):
+    env = alert_rule.snuba_query.environment
+    aggregate = translate_aggregate_field(alert_rule.snuba_query.aggregate, reverse=True)
+    project_id = alert_rule.snuba_query.subscriptions.select_related("project").first().project.id
+
+    if "period" in time_period:
+        time_period = {"statsPeriod": time_period["period"]}
+
+    try:
+        resp = client.get(
+            auth=ApiKey(organization=organization, scope_list=["org:read"]),
+            user=user,
+            path=f"/organizations/{organization.slug}/sessions/",
+            params={
+                "environment": env.name if env else None,
+                "field": SESSION_AGGREGATE_TO_FIELD[aggregate],
+                "interval": f"{alert_rule.snuba_query.time_window}m",
+                "project": project_id,
+                "query": alert_rule.snuba_query.query,
+                "groupBy": "session.status",
+                **time_period,
+            },
+        )
+        return resp.data
+    except Exception as exc:
+        logger.error(
+            f"Failed to load sessions for chart: {exc}",
+            exc_info=True,
+        )
+        return None
 
 
 def fetch_metric_alert_events(
@@ -46,29 +90,59 @@ def fetch_metric_alert_events(
     user: Optional["User"] = None,
 ):
     env = alert_rule.snuba_query.environment
+    aggregate = translate_aggregate_field(alert_rule.snuba_query.aggregate, reverse=True)
     try:
         resp = client.get(
             auth=ApiKey(organization=organization, scope_list=["org:read"]),
             user=user,
-            path=f"/organizations/{organization.slug}/events-stats",
+            path=f"/organizations/{organization.slug}/events-stats/",
             params={
                 "environment": env.name if env else None,
                 "query": alert_rule.snuba_query.query,
-                "interval": alert_rule.snuba_query.time_window,
-                "yAxis": translate_aggregate_field(alert_rule.snuba_query.aggregate, reverse=True),
+                "interval": f"{alert_rule.snuba_query.time_window}m",
+                "yAxis": aggregate,
                 **time_period,
             },
         )
-        return resp
+        return resp.data
     except Exception as exc:
         logger.error(
-            f"Failed to load events-stats for unfurl: {exc}",
+            f"Failed to load events-stats for chart: {exc}",
             exc_info=True,
         )
+        return None
+
+
+def fetch_metric_alert_incidents(
+    organization: Organization,
+    alert_rule: AlertRule,
+    time_period: Dict[str, Any],
+    user: Optional["User"] = None,
+):
+    try:
+        resp = client.get(
+            auth=ApiKey(organization=organization, scope_list=["org:read"]),
+            user=user,
+            path=f"/organizations/{organization.slug}/incidents/",
+            params={
+                "alertRule": alert_rule.id,
+                "expand": "activities",
+                "includeSnapshots": True,
+                "project": -1,
+                **time_period,
+            },
+        )
+        return resp.data
+    except Exception as exc:
+        logger.error(
+            f"Failed to load incidents for chart: {exc}",
+            exc_info=True,
+        )
+        return []
 
 
 def incident_date_range(alert_rule: AlertRule, incident: Incident):
-    """Retrieve the start/end for graphing an incident"""
+    """Retrieve the start/end for graphing an incident."""
     time_window_seconds = alert_rule.snuba_query.time_window
     min_range = time_window_seconds * API_INTERVAL_POINTS_MIN
     max_range = time_window_seconds * API_INTERVAL_POINTS_LIMIT
@@ -77,11 +151,11 @@ def incident_date_range(alert_rule: AlertRule, incident: Incident):
     end_date: datetime = incident.date_closed if incident.date_closed else now
     incident_range = max((end_date - start_date).total_seconds(), 3 * time_window_seconds)
     range = min(max_range, max(min_range, incident_range))
-    half_range = range / 2
+    half_range = timedelta(seconds=range / 2)
 
     return {
-        "start": make_aware(datetime.fromtimestamp(start_date - half_range)),
-        "end": make_aware(datetime.fromtimestamp(end_date + half_range)),
+        "start": (start_date - half_range).strftime("%Y-%m-%dT%H:%M:%S"),
+        "end": (end_date + half_range).strftime("%Y-%m-%dT%H:%M:%S"),
     }
 
 
@@ -104,18 +178,33 @@ def build_metric_alert_chart(
         else ChartType.SLACK_METRIC_ALERT_EVENTS
     )
 
-    if start and end:
-        time_period = {"start": start, "end": end}
-    elif selected_incident:
+    if selected_incident:
         time_period = incident_date_range(alert_rule, selected_incident)
+    elif start and end:
+        time_period = {"start": start, "end": end}
     elif period:
         time_period = {"period": period}
     else:
         time_period = {"period": "10000m"}
 
-    chart_data = {"rule": serialize(alert_rule, user, AlertRuleSerializer())}
+    chart_data = {
+        "rule": serialize(alert_rule, user, AlertRuleSerializer()),
+        "selectedIncident": serialize(selected_incident, user, DetailedIncidentSerializer()),
+        "incidents": fetch_metric_alert_incidents(
+            organization,
+            alert_rule,
+            time_period,
+            user,
+        ),
+    }
+
     if is_crash_free_alert:
-        chart_data["sessionResponse"] = fetch_metric_alert_sessions()
+        chart_data["sessionResponse"] = fetch_metric_alert_sessions_data(
+            organization,
+            alert_rule,
+            time_period,
+            user,
+        )
     else:
         chart_data["timeseriesData"] = fetch_metric_alert_events(
             organization,
@@ -126,13 +215,12 @@ def build_metric_alert_chart(
 
     try:
         url = generate_chart(style, chart_data)
+        return url
     except RuntimeError as exc:
         logger.error(
             f"Failed to generate chart for discover unfurl: {exc}",
             exc_info=True,
         )
-
-    return url
 
 
 def unfurl_metric_alerts(
@@ -195,15 +283,16 @@ def unfurl_metric_alerts(
         selected_incident = incident_map.get(link.args["incident_id"])
 
         # TODO: add feature flag
-        build_metric_alert_chart(
-            organization=org,
-            alert_rule=alert_rule,
-            selected_incident=selected_incident,
-            period=links.args["period"],
-            start=links.args["start"],
-            end=links.args["end"],
-            user=user,
-        )
+        if features.has("organizations:metric-alert-chartcuterie", org):
+            build_metric_alert_chart(
+                organization=org,
+                alert_rule=alert_rule,
+                selected_incident=selected_incident,
+                period=link.args["period"],
+                start=link.args["start"],
+                end=link.args["end"],
+                user=user,
+            )
 
         result[link.url] = SlackMetricAlertMessageBuilder(
             alert_rule=alert_rule,
@@ -214,9 +303,8 @@ def unfurl_metric_alerts(
 
 
 def map_metric_alert_query_args(url: str, args: Mapping[str, str]) -> Mapping[str, Any]:
-    """
-    Extracts selected incident id
-    """
+    """Extracts selected incident id and some query parameters"""
+
     # Slack uses HTML escaped ampersands in its Event Links, when need
     # to be unescaped for QueryDict to split properly.
     url = html.unescape(url)
