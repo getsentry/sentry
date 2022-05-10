@@ -706,5 +706,5 @@ urlpatterns += [
     ),
     # Legacy
     # This triggers a false positive for the urls.W002 Django warning
-    url(r"/$", react_page_view),
+    url(r"^.*/$", react_page_view),
 ]
