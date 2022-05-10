@@ -6,7 +6,7 @@ interface Props extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 function scrollIntoView(element: HTMLDivElement) {
-  element?.scrollIntoView?.(true);
+  element?.scrollIntoView?.({block: 'nearest'});
 }
 
 const SearchResultWrapper = styled(({highlighted, ...props}: Props) => (
