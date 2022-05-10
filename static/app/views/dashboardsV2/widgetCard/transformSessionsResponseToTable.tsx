@@ -1,7 +1,9 @@
-import {SessionApiResponse} from 'sentry/types';
+import {MetricsApiResponse, SessionApiResponse} from 'sentry/types';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {SESSIONS_TAGS} from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
+
+import {derivedMetricsToField} from './releaseWidgetQueries';
 
 function changeObjectValuesToTypes(
   obj: Record<string, number | string | null> | undefined
@@ -12,21 +14,31 @@ function changeObjectValuesToTypes(
   }, {});
 }
 
+function mapDerivedMetricsToFields(results: Record<string, number | null>) {
+  const mappedResults: Record<string, number | null> = {};
+  for (const [key, value] of Object.entries(results)) {
+    mappedResults[derivedMetricsToField(key)] = value;
+  }
+  return mappedResults;
+}
+
 export function transformSessionsResponseToTable(
-  response: SessionApiResponse | null
+  response: SessionApiResponse | MetricsApiResponse | null
 ): TableData {
   const data =
     response?.groups.map((group, index) => ({
       id: String(index),
       ...group.by,
-      ...group.totals,
+      ...mapDerivedMetricsToFields(group.totals),
     })) ?? [];
 
   const singleRow = response?.groups[0];
   // TODO(metrics): these should come from the API in the future
   const meta = {
     ...changeObjectValuesToTypes(singleRow?.by),
-    ...changeObjectValuesToTypes(singleRow?.totals),
+    ...changeObjectValuesToTypes(
+      singleRow?.totals ? mapDerivedMetricsToFields(singleRow?.totals) : undefined
+    ),
   };
 
   return {meta, data};

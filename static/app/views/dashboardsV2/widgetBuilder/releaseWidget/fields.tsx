@@ -18,6 +18,7 @@ export const SESSIONS_FIELDS: Readonly<Partial<Record<SessionField, SessionsMeta
       'crash_free_rate',
       'count_healthy',
       'count_abnormal',
+      'count_all',
       'count_crashed',
       'count_errored',
     ],
@@ -31,6 +32,7 @@ export const SESSIONS_FIELDS: Readonly<Partial<Record<SessionField, SessionsMeta
       'crash_free_rate',
       'count_healthy',
       'count_abnormal',
+      'count_all',
       'count_crashed',
       'count_errored',
     ],
@@ -75,7 +77,7 @@ export const SESSIONS_OPERATIONS: Readonly<
   count_healthy: {
     columnTypes: ['integer', 'string'],
     defaultValue: SessionField.SESSION,
-    outputType: 'percentage',
+    outputType: 'integer',
     parameters: [
       {
         kind: 'column',
@@ -88,7 +90,20 @@ export const SESSIONS_OPERATIONS: Readonly<
   count_abnormal: {
     columnTypes: ['integer', 'string'],
     defaultValue: SessionField.SESSION,
-    outputType: 'percentage',
+    outputType: 'integer',
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['integer', 'string'],
+        defaultValue: SessionField.SESSION,
+        required: true,
+      },
+    ],
+  },
+  count_all: {
+    columnTypes: ['integer', 'string'],
+    defaultValue: SessionField.SESSION,
+    outputType: 'integer',
     parameters: [
       {
         kind: 'column',
@@ -101,7 +116,7 @@ export const SESSIONS_OPERATIONS: Readonly<
   count_crashed: {
     columnTypes: ['integer', 'string'],
     defaultValue: SessionField.SESSION,
-    outputType: 'percentage',
+    outputType: 'integer',
     parameters: [
       {
         kind: 'column',
@@ -114,7 +129,7 @@ export const SESSIONS_OPERATIONS: Readonly<
   count_errored: {
     columnTypes: ['integer', 'string'],
     defaultValue: SessionField.SESSION,
-    outputType: 'percentage',
+    outputType: 'integer',
     parameters: [
       {
         kind: 'column',

@@ -2,6 +2,7 @@ import {Component} from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
+import trimStart from 'lodash/trimStart';
 
 import {doMetricsRequest} from 'sentry/actionCreators/metrics';
 import {doSessionsRequest} from 'sentry/actionCreators/sessions';
@@ -25,12 +26,38 @@ import {getWidgetInterval} from '../utils';
 import {transformSessionsResponseToSeries} from './transformSessionsResponseToSeries';
 import {transformSessionsResponseToTable} from './transformSessionsResponseToTable';
 
-const FIELD_TO_DERIVED_EXPRESSION = {
-  count_healthy: 'sentry.session.healthy',
-  count_abnormal: 'sentry.session.abnormal',
-  count_crashed: 'sentry.session.crashed',
-  count_errored: 'sentry.session.errored',
+export const FIELD_TO_DERIVED_EXPRESSION = {
+  'count_healthy(session)': 'session.healthy',
+  'count_healthy(user)': 'session.healthy_user',
+  'count_abnormal(session)': 'session.abnormal',
+  'count_abnormal(user)': 'session.abnormal_user',
+  'count_all(session)': 'session.all',
+  'count_all(user)': 'session.all_user',
+  'count_crashed(session)': 'session.crashed',
+  'count_crashed(user)': 'session.crashed_user',
+  'count_errored(session)': 'session.errored',
+  'count_errored(user)': 'session.errored_user',
 };
+
+export const DERIVED_EXPRESSION_TO_FIELD = {
+  'session.healthy': 'count_healthy(session)',
+  'session.healthy_user': 'count_healthy(user)',
+  'session.abnormal': 'count_abnormal(session)',
+  'session.abnormal_user': 'count_abnormal(user)',
+  'session.all': 'count_all(session)',
+  'session.all_user': 'count_all(user)',
+  'session.crashed': 'count_crashed(session)',
+  'session.crashed_user': 'count_crashed(user)',
+  'session.errored': 'count_errored(session)',
+  'session.errored_user': 'count_errored(user)',
+};
+
+export const SORT_BY_UNSUPPORTED = [
+  'count_errored(session)',
+  'count_errored(user)',
+  'count_healthy(session)',
+  'count_healthy(user)',
+];
 
 type Props = {
   api: Client;
@@ -57,10 +84,18 @@ type State = {
   errorMessage?: string;
   pageLinks?: string;
   queryFetchID?: symbol;
-  rawResults?: SessionApiResponse[];
+  rawResults?: SessionApiResponse[] | MetricsApiResponse[];
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: Series[];
 };
+
+function fieldsToDerivedMetrics(field: string): string {
+  return FIELD_TO_DERIVED_EXPRESSION[field] ?? field;
+}
+
+export function derivedMetricsToField(field: string): string {
+  return DERIVED_EXPRESSION_TO_FIELD[field] ?? field;
+}
 
 class ReleaseWidgetQueries extends Component<Props, State> {
   state: State = {
@@ -189,7 +224,9 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     const {start, end, period} = datetime;
     const interval = getWidgetInterval(widget, {start, end, period});
 
-    const promises: Promise<SessionApiResponse | MetricsApiResponse>[] = [];
+    const promises: Promise<
+      MetricsApiResponse | [MetricsApiResponse, string, ResponseMeta] | SessionApiResponse
+    >[] = [];
 
     widget.queries.forEach(query => {
       const aggregates = query.aggregates.map(stripDerivedMetricsPrefix);
@@ -197,15 +234,24 @@ class ReleaseWidgetQueries extends Component<Props, State> {
         Object.keys(FIELD_TO_DERIVED_EXPRESSION).includes(agg)
       );
       const sessionFields = aggregates.filter(agg => !!!metricsFields.includes(agg));
+      const isDescending = query.orderby.startsWith('-');
+      const rawOrderby = trimStart(query.orderby, '-');
+      const unsupportedOrderby =
+        SORT_BY_UNSUPPORTED.includes(rawOrderby) ||
+        !Object.keys(FIELD_TO_DERIVED_EXPRESSION).includes(rawOrderby);
       if (metricsFields.length) {
         const metricsRequestData = {
-          field: metricsFields,
+          field: metricsFields.map(fieldsToDerivedMetrics),
           orgSlug: organization.slug,
           end,
           environment: environments,
           groupBy: query.columns,
-          limit: this.limit,
-          orderBy: query.orderby,
+          limit: unsupportedOrderby ? undefined : this.limit,
+          orderBy: unsupportedOrderby
+            ? ''
+            : isDescending
+            ? `-${fieldsToDerivedMetrics(rawOrderby)}`
+            : fieldsToDerivedMetrics(rawOrderby),
           interval,
           project: projects,
           query: query.conditions,
@@ -214,33 +260,38 @@ class ReleaseWidgetQueries extends Component<Props, State> {
           includeAllArgs,
           cursor,
         };
-        doMetricsRequest(api, metricsRequestData);
-        // promises.push(metricsRespone);
+        promises.push(doMetricsRequest(api, metricsRequestData));
       }
-      const requestData = {
-        field: sessionFields,
-        orgSlug: organization.slug,
-        end,
-        environment: environments,
-        groupBy: query.columns,
-        limit: this.limit,
-        orderBy: query.orderby,
-        interval,
-        project: projects,
-        query: query.conditions,
-        start,
-        statsPeriod: period,
-        includeAllArgs,
-        cursor,
-      };
-      promises.push(doSessionsRequest(api, requestData));
+      if (sessionFields.length) {
+        const requestData = {
+          field: sessionFields,
+          orgSlug: organization.slug,
+          end,
+          environment: environments,
+          groupBy: query.columns,
+          limit: Object.keys(FIELD_TO_DERIVED_EXPRESSION).includes(rawOrderby)
+            ? undefined
+            : this.limit,
+          orderBy: Object.keys(FIELD_TO_DERIVED_EXPRESSION).includes(rawOrderby)
+            ? ''
+            : query.orderby,
+          interval,
+          project: projects,
+          query: query.conditions,
+          start,
+          statsPeriod: period,
+          includeAllArgs,
+          cursor,
+        };
+        promises.push(doSessionsRequest(api, requestData));
+      }
     });
 
     let completed = 0;
     promises.forEach(async (promise, requestIndex) => {
       try {
         const res = await promise;
-        let data: SessionApiResponse;
+        let data: SessionApiResponse | MetricsApiResponse;
         let response: ResponseMeta;
         if (Array.isArray(res)) {
           data = res[0];
