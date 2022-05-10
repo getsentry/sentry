@@ -1,6 +1,7 @@
 import {ButtonProps} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
-import {Anchor} from 'sentry/components/links/link';
+
+import Anchor from './anchor';
 
 type Props = {
   message: React.ReactNode;

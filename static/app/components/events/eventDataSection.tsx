@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {DataSection} from 'sentry/components/events/styles';
-import {Anchor} from 'sentry/components/links/link';
+import Anchor from 'sentry/components/links/anchor';
 import {IconAnchor} from 'sentry/icons/iconAnchor';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';

@@ -1,6 +1,6 @@
 import {forwardRef} from 'react';
 
-import {Anchor} from 'sentry/components/links/link';
+import Anchor from './anchor';
 
 export interface ExternalLinkProps
   extends Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, 'target'> {
