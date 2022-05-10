@@ -172,6 +172,8 @@ export function normalizeQueries({
   }
 
   if (isTabularChart) {
+    // If we are switching to a tabular chart and the previous chart did not have
+    // fields, then we need to concatenate columns and aggregates to show the values
     return queries.map(query => ({
       ...query,
       fields: query.fields?.length
