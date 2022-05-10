@@ -13,7 +13,7 @@ class Replay(BaseModel):  # type: ignore
     )
     timestamp = models.DateTimeField()
 
-    data = models.TextField()
+    data = models.BinaryField()
 
     __repr__ = sane_repr("timestamp")
 

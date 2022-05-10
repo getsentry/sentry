@@ -9,7 +9,6 @@ from typing import Any, Dict, List, Tuple, cast
 
 from sentry.utils import json
 from sentry.utils.services import Service
-from sentry.utils.strings import decompress
 
 json_dumps = json.JSONEncoder(
     separators=(",", ":"),
@@ -91,12 +90,12 @@ class ReplayStore(abc.ABC, local, Service):
         init = {}
         for (replay_data_type, row_data) in replay_data:
             if replay_data_type == ReplayDataType.INIT:
-                init.update(self._decode(decompress(row_data)))
+                init.update(self._decode(row_data))
             if replay_data_type == ReplayDataType.EVENT:
-                events.append(self._decode(decompress(row_data)))
+                events.append(self._decode(row_data))
             if replay_data_type == ReplayDataType.PAYLOAD:
                 # don't parse json string of payload
-                payloads.append(decompress(row_data))
+                payloads.append(row_data)
 
         return init, events, payloads
 
@@ -108,7 +107,7 @@ class ReplayStore(abc.ABC, local, Service):
         return cast(bytes, json_dumps(value).encode("utf8"))
 
     def _decode(self, value: bytes) -> Dict[Any, Any]:
-        json_loaded: Dict[Any, Any] = json_loads(value)
+        json_loaded: Dict[Any, Any] = json_loads(value.decode("utf-8"))
         return json_loaded
 
     @abc.abstractmethod

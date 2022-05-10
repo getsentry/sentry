@@ -1,11 +1,11 @@
 from __future__ import annotations
 
+import zlib
 from datetime import datetime
 from typing import List, Tuple
 
 from sentry.replaystore.base import ReplayDataType, ReplayNotFound, ReplayStore
 from sentry.replaystore.django.models import Replay
-from sentry.utils.strings import compress
 
 
 class DjangoReplayStore(ReplayStore):
@@ -13,7 +13,7 @@ class DjangoReplayStore(ReplayStore):
         data = Replay.objects.filter(replay_id=replay_id)
         if len(data) == 0:
             raise ReplayNotFound
-        return [(row.replay_data_type, row.data) for row in data]
+        return [(row.replay_data_type, zlib.decompress(row.data)) for row in data]
 
     def _set_bytes(
         self,
@@ -26,7 +26,7 @@ class DjangoReplayStore(ReplayStore):
             replay_id=replay_id,
             replay_data_type=replay_data_type,
             timestamp=timestamp,
-            data=compress(data),
+            data=zlib.compress(data),
         )
 
     def bootstrap(self) -> None:

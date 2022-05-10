@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import os
+import zlib
 from datetime import datetime, timedelta
 from typing import Any, List, Mapping, Optional, Tuple
 
 from sentry.replaystore.base import ReplayDataType, ReplayNotFound, ReplayStore
 from sentry.replaystore.bigtable.storage import ReplayBigtableStorage
-from sentry.utils.strings import compress
 
 
 class BigTableReplayStore(ReplayStore):
@@ -50,7 +50,7 @@ class BigTableReplayStore(ReplayStore):
         parsed_rows_to_return = []
         for (rowkey, row_value) in rows_data:
             replay_data_type = self._get_row_type(rowkey)
-            parsed_rows_to_return.append((replay_data_type, row_value))
+            parsed_rows_to_return.append((replay_data_type, zlib.decompress(row_value)))
         return parsed_rows_to_return
 
     def _set_bytes(
@@ -61,7 +61,7 @@ class BigTableReplayStore(ReplayStore):
         data: bytes,
     ) -> None:
         key = self._row_key(replay_init_id, replay_data_type, timestamp)
-        self.store.set(key, compress(data))
+        self.store.set(key, zlib.compress(data))
 
     def bootstrap(self) -> None:
         self.store.bootstrap(automatic_expiry=self.automatic_expiry)
