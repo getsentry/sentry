@@ -26,6 +26,11 @@ type Props = {
   event: EventTransaction;
 };
 
+type PanelItemCenterProps = {
+  isHovered?: boolean;
+  isSelected?: boolean;
+};
+
 function UserActionsNavigator({event, crumbs}: Props) {
   const {setCurrentTime, currentHoverTime} = useReplayContext();
   const [currentUserAction, setCurrentUserAction] = useState<Crumb>();
@@ -65,9 +70,8 @@ function UserActionsNavigator({event, crumbs}: Props) {
         {userActionCrumbs.map(item => (
           <PanelItemCenter
             key={item.id}
-            className={`${
-              currentUserAction && currentUserAction.id === item.id ? 'selected' : ''
-            } ${closestUserAction && closestUserAction.id === item.id ? 'onHover' : ''}`}
+            isHovered={closestUserAction && closestUserAction.id === item.id}
+            isSelected={currentUserAction && currentUserAction.id === item.id}
             onClick={() => {
               setCurrentUserAction(item);
               item.timestamp
@@ -118,22 +122,25 @@ const PanelBody = styled(BasePanelBody)`
   overflow-y: auto;
 `;
 
-const PanelItemCenter = styled(PanelItem)`
+const PanelItemCenter = styled(PanelItem)<PanelItemCenterProps>`
   display: flex;
   justify-content: space-between;
   align-items: center;
   border-left: 4px solid transparent;
   padding: ${space(1)} ${space(1.5)};
   cursor: pointer;
-  &:hover,
-  &.onHover {
+  &:hover {
     background: ${p => p.theme.surface400};
     border-color: transparent;
   }
-  &.selected {
-    border-left: 4px solid ${p => p.theme.purple300};
-    background-color: ${p => p.theme.surface400};
-  }
+  ${p =>
+    p.isHovered &&
+    `background: ${p.theme.surface400};
+        border-color: transparent;`}
+  ${p =>
+    p.isSelected &&
+    `border-left: 4px solid ${p.theme.purple300};
+          background-color: ${p.theme.surface400};`}
 `;
 
 const Wrapper = styled('div')`
