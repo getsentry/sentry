@@ -19,6 +19,7 @@ export type Series = {
     opacity: number;
   };
   color?: string;
+  id?: string;
   lineStyle?: AxisPointerComponentOption['lineStyle'];
   // https://echarts.apache.org/en/option.html#series-line.z
   markLine?: LineSeriesOption['markLine'];
