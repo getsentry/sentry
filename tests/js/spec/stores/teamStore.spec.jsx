@@ -3,17 +3,19 @@ import TeamStore from 'sentry/stores/teamStore';
 
 describe('TeamStore', function () {
   const teamFoo = TestStubs.Team({
+    id: '1',
     slug: 'team-foo',
   });
   const teamBar = TestStubs.Team({
+    id: '2',
     slug: 'team-bar',
   });
 
-  describe('setting data', function () {
-    beforeEach(function () {
-      TeamStore.reset();
-    });
+  beforeEach(function () {
+    TeamStore.reset();
+  });
 
+  describe('setting data', function () {
     it('populate teams correctly', async function () {
       expect(TeamStore.getState()).toMatchObject({
         teams: [],

@@ -147,13 +147,17 @@ describe('TeamStatsHealth', () => {
     });
   });
 
+  beforeEach(() => {
+    TeamStore.reset();
+  });
+
   afterEach(() => {
     jest.resetAllMocks();
   });
 
-  function createWrapper() {
-    const teams = [team1, team2, team3];
-    const projects = [project1, project2];
+  function createWrapper({projects, teams} = {}) {
+    teams = teams ?? [team1, team2, team3];
+    projects = projects ?? [project1, project2];
     ProjectsStore.loadInitialData(projects);
     const organization = TestStubs.Organization({
       teams,
@@ -203,9 +207,10 @@ describe('TeamStatsHealth', () => {
   });
 
   it('shows users with no teams the join team button', () => {
-    createWrapper();
-    ProjectsStore.loadInitialData([{...project1, isMember: false}]);
-    TeamStore.loadInitialData([], false, null);
+    createWrapper({
+      projects: [{...project1, isMember: false}],
+      teams: [],
+    });
 
     expect(screen.getByText('Join a Team')).toBeInTheDocument();
   });

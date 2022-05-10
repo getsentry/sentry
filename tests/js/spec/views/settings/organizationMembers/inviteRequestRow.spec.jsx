@@ -158,7 +158,13 @@ describe('InviteRequestRow', function () {
       teams: ['myteam'],
     });
 
-    act(() => void TeamStore.loadInitialData([{slug: 'one'}, {slug: 'two'}]));
+    act(
+      () =>
+        void TeamStore.loadInitialData([
+          {id: '1', slug: 'one'},
+          {id: '2', slug: 'two'},
+        ])
+    );
     const mockUpdate = jest.fn();
 
     const wrapper = mountWithTheme(
