@@ -1,15 +1,18 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
 import DetailedError from 'sentry/components/errors/detailedError';
 import NotFound from 'sentry/components/errors/notFound';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ReplayTimeline from 'sentry/components/replays/breadcrumbs/replayTimeline';
+import OnScreenDetector from 'sentry/components/replays/onScreenDetector';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayView from 'sentry/components/replays/replayView';
 import useFullscreen from 'sentry/components/replays/useFullscreen';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
+import space from 'sentry/styles/space';
 import useReplayData from 'sentry/utils/replays/useReplayData';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 
@@ -83,7 +86,15 @@ function ReplayDetails() {
       >
         <Layout.Body>
           <Layout.Main ref={fullscreenRef}>
-            <ReplayView toggleFullscreen={toggleFullscreen} isFullscreen={isFullscreen} />
+            <OnScreenDetector>
+              {isOnScreen => (
+                <ReplayView
+                  isFloating={!isOnScreen}
+                  isFullscreen={isFullscreen}
+                  toggleFullscreen={toggleFullscreen}
+                />
+              )}
+            </OnScreenDetector>
           </Layout.Main>
 
           <Layout.Side>
@@ -93,7 +104,7 @@ function ReplayDetails() {
             />
           </Layout.Side>
           <Layout.Main fullWidth>
-            <ReplayTimeline />
+            <StickyReplayTimeline />
             <FocusArea replay={replay} />
           </Layout.Main>
         </Layout.Body>
@@ -101,5 +112,13 @@ function ReplayDetails() {
     </ReplayContextProvider>
   );
 }
+
+const StickyReplayTimeline = styled(ReplayTimeline)`
+  position: sticky;
+  top: ${space(1)};
+
+  /* TODO(replay): get our own z-index mapping, above trace */
+  z-index: ${p => p.theme.zIndex.header};
+`;
 
 export default ReplayDetails;

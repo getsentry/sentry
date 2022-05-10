@@ -18,7 +18,9 @@ import {Resizeable} from 'sentry/components/replays/resizeable';
 import TimelinePosition from 'sentry/components/replays/timelinePosition';
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 
-type Props = {};
+type Props = {
+  className?: string;
+};
 
 const USER_ACTIONS = [
   BreadcrumbType.ERROR,
@@ -27,7 +29,7 @@ const USER_ACTIONS = [
   BreadcrumbType.USER,
 ];
 
-function ReplayTimeline({}: Props) {
+function ReplayTimeline({className}: Props) {
   const theme = useTheme();
   const {currentHoverTime, currentTime, duration, replay} = useReplayContext();
 
@@ -43,7 +45,7 @@ function ReplayTimeline({}: Props) {
   const networkSpans = spans.filter(replay.isNotMemorySpan);
 
   return (
-    <Panel>
+    <Panel className={className}>
       <HorizontalMouseTracking>
         <Resizeable>
           {({width}) => (
