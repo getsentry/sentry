@@ -37,7 +37,11 @@ export type EChartChartReadyHandler = (instance: ECharts) => void;
 
 export type EChartHighlightHandler = EChartEventHandler<any>;
 
-// From https://echarts.apache.org/en/api.html#events.Mouse%20events
+/**
+ * XXX: These are incomplete types and can also vary depending on the component type
+ *
+ * Taken from https://echarts.apache.org/en/api.html#events.Mouse%20events
+ */
 interface EChartMouseEventParam {
   // color of component (make sense when componentType is 'series')
   color: string;
