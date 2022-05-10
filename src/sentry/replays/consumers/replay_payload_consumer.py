@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, Sequence
+from typing import Any, Dict, Sequence, cast
 
 import msgpack
 from confluent_kafka import Message
@@ -31,7 +31,7 @@ def get_replay_payloads_consumer(
 
 class ReplaysPayloadConsumer(AbstractBatchWorker):  # type: ignore
     def process_message(self, message: Message) -> Dict[str, Any]:
-        return msgpack.unpackb(message.value(), use_list=False)
+        return cast(Dict[str, Any], msgpack.unpackb(message.value(), use_list=False))
 
     def flush_batch(self, messages: Sequence[Message]) -> None:
         replay_payload_finals: list[Message] = []
