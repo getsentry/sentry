@@ -2499,7 +2499,7 @@ SENTRY_USE_UWSGI = True
 
 # When copying attachments for to-be-reprocessed events into processing store,
 # how large is an individual file chunk? Each chunk is stored as Redis key.
-SENTRY_REPROCESSING_ATTACHMENT_CHUNK_SIZE = 2 ** 20
+SENTRY_REPROCESSING_ATTACHMENT_CHUNK_SIZE = 2**20
 
 # Which cluster is used to store auxiliary data for reprocessing. Note that
 # this cluster is not used to store attachments etc, that still happens on
