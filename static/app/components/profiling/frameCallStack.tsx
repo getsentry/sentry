@@ -153,7 +153,7 @@ const FrameCallersRow = styled('tr')`
   height: 1px;
 
   &:hover {
-    background-color: ${p => p.theme.surface200};
+    background-color: ${p => p.theme.surface400};
   }
 `;
 
