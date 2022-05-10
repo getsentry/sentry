@@ -62,9 +62,10 @@ def _replaystore_save(replay_event: ReplayEventType) -> None:
     # TODO: change once init / update distinguished in schema
     is_init = any([i for i in replay_event["data"]["tags"] if i[0] == "isReplayRoot"])
     data_type = ReplayDataType.INIT if is_init else ReplayDataType.EVENT
+
     replaystore.set_event(
         replay_event["data"]["event_id"],
         replay_event["data"],
         data_type,
-        datetime.now(),
+        datetime.utcfromtimestamp(replay_event["data"]["timestamp"]),
     )
