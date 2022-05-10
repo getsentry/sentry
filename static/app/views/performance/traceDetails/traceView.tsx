@@ -40,13 +40,13 @@ type AccType = {
 };
 
 type Props = Pick<RouteComponentProps<{}, {}>, 'location'> & {
-  filteredTransactionIds: Set<string> | undefined;
   meta: TraceMeta | null;
   organization: Organization;
   traceEventView: EventView;
-  traceInfo: TraceInfo;
   traceSlug: string;
   traces: TraceFullDetailed[] | null;
+  filteredTransactionIds?: Set<string>;
+  traceInfo?: TraceInfo;
 };
 
 function TraceHiddenMessage({
@@ -90,6 +90,7 @@ export default function TraceView({
   traceSlug,
   traceEventView,
   filteredTransactionIds,
+  ...props
 }: Props) {
   const sentryTransaction = Sentry.getCurrentHub().getScope()?.getTransaction();
   const sentrySpan = sentryTransaction?.startChild({
@@ -202,7 +203,7 @@ export default function TraceView({
     );
   }
 
-  const traceInfo = getTraceInfo(traces);
+  const traceInfo = props.traceInfo || getTraceInfo(traces);
 
   const accumulator: {
     index: number;
