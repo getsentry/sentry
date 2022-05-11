@@ -4,11 +4,11 @@ import * as Sentry from '@sentry/react';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
 
 jest.useFakeTimers();
-jest.mock('sentry/utils/analytics');
+jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
 
 describe('CreateSampleEventButton', function () {
   const {org, project, routerContext} = initializeOrg();
@@ -118,11 +118,10 @@ describe('CreateSampleEventButton', function () {
       `/organizations/${org.slug}/issues/${groupID}/?project=${project.id}`
     );
 
-    expect(trackAnalyticsEvent).toHaveBeenCalledWith(
+    expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
+      'sample_event.created',
       expect.objectContaining({
-        eventKey: 'sample_event.created',
-        eventName: 'Sample Event Created',
-        organization_id: org.id,
+        organization: org,
         project_id: project.id,
         interval: 1000,
         retries: 1,
