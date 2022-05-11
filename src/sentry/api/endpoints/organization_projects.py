@@ -10,7 +10,7 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import (
-    OrganizationProjectResponseDict,
+    OrganizationProjectResponse,
     ProjectSummarySerializer,
 )
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOTFOUND, RESPONSE_UNAUTHORIZED
@@ -32,7 +32,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
         request=None,
         responses={
             200: inline_sentry_response_serializer(
-                "OrganizationProjectResponseDict", List[OrganizationProjectResponseDict]
+                "OrganizationProjectResponseDict", List[OrganizationProjectResponse]
             ),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
