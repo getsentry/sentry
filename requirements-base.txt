@@ -43,7 +43,7 @@ python-dateutil==2.8.1
 python-memcached==1.59
 python-u2flib-server==5.0.0
 fido2==0.9.2
-python3-saml==1.10.1
+python3-saml==1.14.0
 PyYAML==5.4
 rb==1.9.0
 redis-py-cluster==2.1.0
