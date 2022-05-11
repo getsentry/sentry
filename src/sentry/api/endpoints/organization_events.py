@@ -72,6 +72,10 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
 
         sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
         allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
+
+        query_modified_by_user = request.GET.get("user_modified")
+        if query_modified_by_user is not None:
+            sentry_sdk.set_tag("query.user_modified", query_modified_by_user)
         referrer = (
             referrer if referrer in ALLOWED_EVENTS_V2_REFERRERS else "api.organization-events-v2"
         )
