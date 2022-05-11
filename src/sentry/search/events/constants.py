@@ -219,6 +219,7 @@ DRY_RUN_COLUMNS = {
     "transaction.status",
 }
 METRIC_PERCENTILES = {
+    0.25,
     0.5,
     0.75,
     0.9,
