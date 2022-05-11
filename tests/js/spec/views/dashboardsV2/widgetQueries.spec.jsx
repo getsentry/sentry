@@ -910,4 +910,54 @@ describe('Dashboards > WidgetQueries', function () {
       expect(setIsMetricsMock).toHaveBeenCalledWith(true);
     });
   });
+
+  it('does not inject the alias form of a selected field into fields', async () => {
+    const testData = initializeOrg({
+      organization: {
+        ...TestStubs.Organization(),
+        features: ['new-widget-builder-experience-design'],
+      },
+    });
+    const eventsStatsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: [],
+    });
+    const widget = {
+      ...singleQueryWidget,
+      limit: 5,
+      queries: [
+        {
+          conditions: 'event.type:error',
+          fields: [],
+          aggregates: ['count()'],
+          columns: ['project'],
+          name: '',
+          orderby: 'count',
+        },
+      ],
+    };
+    const wrapper = mountWithTheme(
+      <WidgetQueries
+        api={api}
+        widget={widget}
+        organization={testData.organization}
+        selection={selection}
+      >
+        {() => <div data-test-id="child" />}
+      </WidgetQueries>,
+      testData.routerContext
+    );
+    await tick();
+    await tick();
+
+    // Child should be rendered and 1 requests should be sent.
+    expect(wrapper.find('[data-test-id="child"]')).toHaveLength(1);
+    expect(eventsStatsMock).toHaveBeenCalledTimes(1);
+    expect(eventsStatsMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({field: ['project', 'count()']}),
+      })
+    );
+  });
 });
