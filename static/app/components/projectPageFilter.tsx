@@ -76,7 +76,7 @@ type Props = WithRouterProps & {
 function ProjectPageFilter({
   router,
   specificProjectSlugs,
-  maxTitleLength = 20,
+  maxTitleLength = 30,
   ...otherProps
 }: Props) {
   const [currentSelectedProjects, setCurrentSelectedProjects] = useState<number[] | null>(
