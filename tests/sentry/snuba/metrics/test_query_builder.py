@@ -305,7 +305,6 @@ def test_build_snuba_query(mock_now, mock_now2, monkeypatch):
     def expected_query(match, select, extra_groupby, metric_name):
         function, column, alias = select
         return Query(
-            dataset="metrics",
             match=Entity(match),
             select=[
                 Function(
@@ -426,7 +425,6 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2, monkeypatch):
         groupby = [] if key == "totals" else [Column("bucketed_time")]
         assert snuba_queries["metrics_counters"][key] == (
             Query(
-                dataset="metrics",
                 match=Entity("metrics_counters"),
                 select=[
                     errored_preaggr_sessions(
@@ -492,7 +490,6 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2, monkeypatch):
         )
         assert snuba_queries["metrics_sets"][key] == (
             Query(
-                dataset="metrics",
                 match=Entity("metrics_sets"),
                 select=[
                     uniq_aggregation_on_metric(
@@ -564,7 +561,6 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, monkeypatch):
     )
 
     assert counter_queries["totals"] == Query(
-        dataset="metrics",
         match=Entity("metrics_counters"),
         select=[select],
         groupby=[
@@ -588,7 +584,6 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, monkeypatch):
         granularity=Granularity(query_definition.rollup),
     )
     assert counter_queries["series"] == Query(
-        dataset="metrics",
         match=Entity("metrics_counters"),
         select=[select],
         groupby=[
@@ -664,7 +659,6 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2, monkeypatch):
         alias=f"{op}({SessionMRI.DURATION.value})",
     )
     assert distribution_queries["totals"] == Query(
-        dataset="metrics",
         match=Entity("metrics_distributions"),
         select=[select],
         groupby=[
@@ -687,7 +681,6 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2, monkeypatch):
         granularity=Granularity(query_definition.rollup),
     )
     assert distribution_queries["series"] == Query(
-        dataset="metrics",
         match=Entity("metrics_distributions"),
         select=[select],
         groupby=[

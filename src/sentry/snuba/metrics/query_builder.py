@@ -428,7 +428,6 @@ class SnubaQueryBuilder:
 
         rv = {}
         totals_query = Query(
-            dataset=Dataset.Metrics.value,
             match=Entity(entity),
             groupby=groupby,
             select=select,

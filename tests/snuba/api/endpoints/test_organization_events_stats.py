@@ -686,7 +686,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         )
         assert mock_query.call_count == 1
         # Should've reset to the default for 24h
-        assert mock_query.mock_calls[0].args[0][0].granularity.granularity == 300
+        assert mock_query.mock_calls[0].args[0][0].query.granularity.granularity == 300
 
         self.do_request(
             data={
@@ -699,7 +699,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         )
         assert mock_query.call_count == 2
         # Should've reset to the default for 24h
-        assert mock_query.mock_calls[1].args[0][0].granularity.granularity == 300
+        assert mock_query.mock_calls[1].args[0][0].query.granularity.granularity == 300
 
     def test_out_of_retention(self):
         with self.options({"system.event-retention-days": 10}):
@@ -1529,7 +1529,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
 
         assert (
             Condition(Function("coalesce", [Column("group_id"), 0], "issue.id"), Op.IN, [1])
-            in mock_query.mock_calls[1].args[0].where
+            in mock_query.mock_calls[1].args[0].query.where
         )
 
     def test_top_events_with_functions(self):
@@ -2222,7 +2222,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert mock_raw_query.call_count == 2
         # Should've reset to the default for between 1 and 24h
-        assert mock_raw_query.mock_calls[1].args[0].granularity.granularity == 300
+        assert mock_raw_query.mock_calls[1].args[0].query.granularity.granularity == 300
 
         with self.feature(self.enabled_features):
             response = self.client.get(
@@ -2242,7 +2242,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert mock_raw_query.call_count == 4
         # Should've left the interval alone since we're just below the limit
-        assert mock_raw_query.mock_calls[3].args[0].granularity.granularity == 1
+        assert mock_raw_query.mock_calls[3].args[0].query.granularity.granularity == 1
 
         with self.feature(self.enabled_features):
             response = self.client.get(
@@ -2261,7 +2261,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert mock_raw_query.call_count == 6
         # Should've default to 24h's default of 5m
-        assert mock_raw_query.mock_calls[5].args[0].granularity.granularity == 300
+        assert mock_raw_query.mock_calls[5].args[0].query.granularity.granularity == 300
 
     def test_top_events_timestamp_fields(self):
         with self.feature(self.enabled_features):

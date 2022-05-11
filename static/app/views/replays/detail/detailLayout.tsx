@@ -5,7 +5,7 @@ import Breadcrumbs from 'sentry/components/breadcrumbs';
 import Duration from 'sentry/components/duration';
 import FeatureBadge from 'sentry/components/featureBadge';
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
-import UserBadge from 'sentry/components/idBadge/userBadge';
+import UserBadge, {StyledName} from 'sentry/components/idBadge/userBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {KeyMetricData, KeyMetrics} from 'sentry/components/replays/keyMetrics';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
@@ -25,6 +25,17 @@ type Props = {
 
 function DetailLayout({children, event, orgId, crumbs}: Props) {
   const title = event ? `${event.id} - Replays - ${orgId}` : `Replays - ${orgId}`;
+
+  const eventRow = event ? (
+    <React.Fragment>
+      <Layout.HeaderContent>
+        <EventHeader event={event} />
+      </Layout.HeaderContent>
+      <MetaDataColumn>
+        <EventMetaData event={event} crumbs={crumbs} />
+      </MetaDataColumn>
+    </React.Fragment>
+  ) : null;
 
   return (
     <SentryDocumentTitle title={title}>
@@ -48,7 +59,7 @@ function DetailLayout({children, event, orgId, crumbs}: Props) {
               ]}
             />
           </Layout.HeaderContent>
-          <ButtonWrapper>
+          <FeedbackButtonWrapper>
             <FeatureFeedback
               featureName="replay"
               feedbackTypes={[
@@ -58,13 +69,8 @@ function DetailLayout({children, event, orgId, crumbs}: Props) {
                 'Other reason',
               ]}
             />
-          </ButtonWrapper>
-          <Layout.HeaderContent>
-            <EventHeader event={event} />
-          </Layout.HeaderContent>
-          <Layout.HeaderActions>
-            <EventMetaData event={event} crumbs={crumbs} />
-          </Layout.HeaderActions>
+          </FeedbackButtonWrapper>
+          {eventRow}
         </Layout.Header>
         {children}
       </React.Fragment>
@@ -81,7 +87,7 @@ function EventHeader({event}: Pick<Props, 'event'>) {
   const pathname = getUrlPathname(urlTag?.value ?? '') ?? '';
 
   return (
-    <UserBadge
+    <BigNameUserBadge
       avatarSize={32}
       user={{
         username: event.user?.username ?? '',
@@ -95,6 +101,10 @@ function EventHeader({event}: Pick<Props, 'event'>) {
     />
   );
 }
+
+const MetaDataColumn = styled(Layout.HeaderActions)`
+  width: 325px;
+`;
 
 function EventMetaData({event, crumbs}: Pick<Props, 'event' | 'crumbs'>) {
   const {duration} = useReplayContext();
@@ -130,8 +140,16 @@ function msToSec(ms: number) {
   return ms / 1000;
 }
 
+const BigNameUserBadge = styled(UserBadge)`
+  align-items: flex-start;
+
+  ${StyledName} {
+    font-size: 26px;
+  }
+`;
+
 // TODO(replay); This could make a lot of sense to put inside HeaderActions by default
-const ButtonWrapper = styled(Layout.HeaderActions)`
+const FeedbackButtonWrapper = styled(Layout.HeaderActions)`
   align-items: end;
 `;
 

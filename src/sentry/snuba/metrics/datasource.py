@@ -14,14 +14,14 @@ from dataclasses import dataclass, replace
 from operator import itemgetter
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, Tuple, Union
 
-from snuba_sdk import Column, Condition, Function, Op, Query
+from snuba_sdk import Column, Condition, Function, Op, Query, Request
 from snuba_sdk.conditions import ConditionGroup
 
 from sentry.api.utils import InvalidParams
 from sentry.models import Project
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.utils import resolve_tag_key, reverse_resolve
-from sentry.snuba.dataset import EntityKey
+from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.fields import run_metrics_query
 from sentry.snuba.metrics.fields.base import get_derived_metrics, org_id_from_projects
 from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
@@ -603,8 +603,11 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
             # "totals" query
             initial_snuba_query = next(iter(snuba_queries.values()))["totals"]
 
+            request = Request(
+                dataset=Dataset.Metrics.value, app_id="default", query=initial_snuba_query
+            )
             initial_query_results = raw_snql_query(
-                initial_snuba_query, use_cache=False, referrer="api.metrics.totals.initial_query"
+                request, use_cache=False, referrer="api.metrics.totals.initial_query"
             )["data"]
 
         except StopIteration:
@@ -635,10 +638,11 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
                     if group_limit_filters:
                         snuba_query = _apply_group_limit_filters(snuba_query, group_limit_filters)
 
+                    request = Request(
+                        dataset=Dataset.Metrics.value, app_id="default", query=snuba_query
+                    )
                     snuba_result = raw_snql_query(
-                        snuba_query,
-                        use_cache=False,
-                        referrer=f"api.metrics.{key}.second_query",
+                        request, use_cache=False, referrer=f"api.metrics.{key}.second_query"
                     )["data"]
 
                     # Since we removed the orderBy from all subsequent queries,
@@ -662,8 +666,11 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
                 if group_limit_filters:
                     snuba_query = _apply_group_limit_filters(snuba_query, group_limit_filters)
 
+                request = Request(
+                    dataset=Dataset.Metrics.value, app_id="default", query=snuba_query
+                )
                 snuba_result = raw_snql_query(
-                    snuba_query,
+                    request,
                     use_cache=False,
                     referrer=f"api.metrics.{key}",
                 )["data"]
