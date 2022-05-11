@@ -20,7 +20,7 @@ jobs:
     steps:
       - name: Diff snapshots
         id: visual-snapshots-diff
-        uses: getsentry/action-visual-snapshot@fdcf3f53d00ac8bc488e2a5ca6130ec250f6c43f
+        uses: getsentry/action-visual-snapshot@92322ca4e23d4e2f8c3d8be08fa6f2a32257d092
         with:
           api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
           gcs-bucket: 'sentry-visual-snapshots'
