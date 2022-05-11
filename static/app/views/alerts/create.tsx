@@ -43,15 +43,6 @@ type State = {
 class Create extends Component<Props, State> {
   state = this.getInitialState();
 
-  get isDuplicateRule(): boolean {
-    const {location, organization} = this.props;
-    const createFromDuplicate = location?.query.createFromDuplicate === 'true';
-    const hasDuplicateAlertRules = organization.features.includes('duplicate-alert-rule');
-    return (
-      hasDuplicateAlertRules && createFromDuplicate && location?.query.duplicateRuleId
-    );
-  }
-
   getInitialState(): State {
     const {organization, location, project, params, router} = this.props;
     const {
@@ -116,6 +107,15 @@ class Create extends Component<Props, State> {
 
   /** Used to track analytics within one visit to the creation page */
   sessionId = uniqueId();
+
+  get isDuplicateRule(): boolean {
+    const {location, organization} = this.props;
+    const createFromDuplicate = location?.query.createFromDuplicate === 'true';
+    const hasDuplicateAlertRules = organization.features.includes('duplicate-alert-rule');
+    return (
+      hasDuplicateAlertRules && createFromDuplicate && location?.query.duplicateRuleId
+    );
+  }
 
   render() {
     const {hasMetricAlerts, organization, project, location, routes} = this.props;
