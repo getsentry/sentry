@@ -1,8 +1,8 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import MultipleProjectSelector from 'sentry/components/organizations/projectSelector/multiple';
+import ProjectSelector from 'sentry/components/organizations/projectSelector';
 
-describe('MultipleProjectSelector', function () {
+describe('ProjectSelector', function () {
   const testProject = TestStubs.Project({
     id: '1',
     slug: 'test-project',
@@ -45,7 +45,7 @@ describe('MultipleProjectSelector', function () {
 
   it('should show empty message with no projects button, when no projects, and has no "project:write" access', function () {
     render(
-      <MultipleProjectSelector
+      <ProjectSelector
         {...props}
         memberProjects={[]}
         organization={{
@@ -69,7 +69,7 @@ describe('MultipleProjectSelector', function () {
 
   it('should show empty message and create project button, when no projects and has "project:write" access', function () {
     render(
-      <MultipleProjectSelector
+      <ProjectSelector
         {...props}
         memberProjects={[]}
         organization={{
@@ -92,7 +92,7 @@ describe('MultipleProjectSelector', function () {
   });
 
   it('lists projects and has filter', function () {
-    render(<MultipleProjectSelector {...props} />, {context: routerContext});
+    render(<ProjectSelector {...props} />, {context: routerContext});
     openMenu();
 
     expect(screen.getByText(testProject.slug)).toBeInTheDocument();
@@ -100,7 +100,7 @@ describe('MultipleProjectSelector', function () {
   });
 
   it('can filter projects by project name', async function () {
-    render(<MultipleProjectSelector {...props} />, {context: routerContext});
+    render(<ProjectSelector {...props} />, {context: routerContext});
     openMenu();
 
     screen.getByRole('textbox').focus();
@@ -112,7 +112,7 @@ describe('MultipleProjectSelector', function () {
   });
 
   it('shows empty filter message when filtering has no results', function () {
-    render(<MultipleProjectSelector {...props} />, {context: routerContext});
+    render(<ProjectSelector {...props} />, {context: routerContext});
     openMenu();
 
     screen.getByRole('textbox').focus();
@@ -123,7 +123,7 @@ describe('MultipleProjectSelector', function () {
   });
 
   it('does not close dropdown when input is clicked', async function () {
-    render(<MultipleProjectSelector {...props} />, {context: routerContext});
+    render(<ProjectSelector {...props} />, {context: routerContext});
     openMenu();
 
     userEvent.click(screen.getByRole('textbox'));
@@ -133,7 +133,7 @@ describe('MultipleProjectSelector', function () {
   });
 
   it('closes dropdown when project is selected', function () {
-    render(<MultipleProjectSelector {...props} />, {context: routerContext});
+    render(<ProjectSelector {...props} />, {context: routerContext});
     openMenu();
 
     userEvent.click(screen.getByText(testProject.slug));
@@ -144,7 +144,7 @@ describe('MultipleProjectSelector', function () {
 
   it('calls callback when project is selected', function () {
     const onUpdateMock = jest.fn();
-    render(<MultipleProjectSelector {...props} onUpdate={onUpdateMock} />, {
+    render(<ProjectSelector {...props} onUpdate={onUpdateMock} />, {
       context: routerContext,
     });
     openMenu();
@@ -159,11 +159,7 @@ describe('MultipleProjectSelector', function () {
     const onChangeMock = jest.fn();
     const onUpdateMock = jest.fn();
     render(
-      <MultipleProjectSelector
-        {...props}
-        onChange={onChangeMock}
-        onUpdate={onUpdateMock}
-      />,
+      <ProjectSelector {...props} onChange={onChangeMock} onUpdate={onUpdateMock} />,
       {context: routerContext}
     );
     openMenu();
@@ -178,10 +174,9 @@ describe('MultipleProjectSelector', function () {
   it('displays multi projects with non member projects', function () {
     const nonMemberProject = TestStubs.Project({id: '2'});
 
-    render(
-      <MultipleProjectSelector {...props} nonMemberProjects={[nonMemberProject]} />,
-      {context: routerContext}
-    );
+    render(<ProjectSelector {...props} nonMemberProjects={[nonMemberProject]} />, {
+      context: routerContext,
+    });
     openMenu();
 
     expect(screen.getByText("Projects I don't belong to")).toBeInTheDocument();
@@ -201,7 +196,7 @@ describe('MultipleProjectSelector', function () {
       value: [],
     };
 
-    render(<MultipleProjectSelector {...multiProjectProps} />, {context: routerContext});
+    render(<ProjectSelector {...multiProjectProps} />, {context: routerContext});
     openMenu();
 
     expect(screen.getByText("Projects I don't belong to")).toBeInTheDocument();
@@ -271,7 +266,7 @@ describe('MultipleProjectSelector', function () {
       ].map(p => parseInt(p, 10)),
     };
 
-    render(<MultipleProjectSelector {...multiProjectProps} />, {context: routerContext});
+    render(<ProjectSelector {...multiProjectProps} />, {context: routerContext});
     openMenu();
 
     const projectLabels = screen.getAllByTestId('badge-display-name');
@@ -312,7 +307,7 @@ describe('MultipleProjectSelector', function () {
       value: [projectDSelected.id].map(p => parseInt(p, 10)),
     };
 
-    const {rerender} = render(<MultipleProjectSelector {...multiProjectProps} />, {
+    const {rerender} = render(<ProjectSelector {...multiProjectProps} />, {
       context: routerContext,
     });
 
@@ -328,7 +323,7 @@ describe('MultipleProjectSelector', function () {
 
     // Unselect project D (re-render with the updated selection value)
     userEvent.click(screen.getByRole('checkbox', {name: projectDSelected.slug}));
-    rerender(<MultipleProjectSelector {...multiProjectProps} value={[]} />, {
+    rerender(<ProjectSelector {...multiProjectProps} value={[]} />, {
       context: routerContext,
     });
 

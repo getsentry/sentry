@@ -12,7 +12,7 @@ import BackToIssues from 'sentry/components/organizations/backToIssues';
 import HeaderItemPosition from 'sentry/components/organizations/headerItemPosition';
 import HeaderSeparator from 'sentry/components/organizations/headerSeparator';
 import MultipleEnvironmentSelector from 'sentry/components/organizations/multipleEnvironmentSelector';
-import MultipleProjectSelector from 'sentry/components/organizations/projectSelector/multiple';
+import ProjectSelector from 'sentry/components/organizations/projectSelector';
 import TimeRangeSelector, {
   ChangeData,
 } from 'sentry/components/organizations/timeRangeSelector';
@@ -331,7 +331,7 @@ class GlobalSelectionHeader extends Component<Props, State> {
                 paginated: true,
               };
               return (
-                <MultipleProjectSelector
+                <ProjectSelector
                   organization={organization}
                   shouldForceProject={shouldForceProject}
                   forceProject={forceProject}
