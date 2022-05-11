@@ -17,7 +17,7 @@ import {
 } from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {TableData, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import {isEquation} from 'sentry/utils/discover/fields';
+import {isEquation, isEquationAlias} from 'sentry/utils/discover/fields';
 import {
   DiscoverQueryRequestParams,
   doDiscoverQuery,
@@ -454,6 +454,7 @@ class WidgetQueries extends Component<Props, State> {
           // the orderby selected
           if (
             query.orderby &&
+            !isEquationAlias(trimStart(query.orderby, '-')) &&
             !requestData.field.includes(trimStart(query.orderby, '-'))
           ) {
             requestData.field.push(trimStart(query.orderby, '-'));
