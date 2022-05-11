@@ -26,37 +26,49 @@ import {getWidgetInterval} from '../utils';
 import {transformSessionsResponseToSeries} from './transformSessionsResponseToSeries';
 import {transformSessionsResponseToTable} from './transformSessionsResponseToTable';
 
-export const FIELD_TO_DERIVED_EXPRESSION = {
+export const FIELD_TO_METRICS_EXPRESSION = {
   'count_healthy(session)': 'session.healthy',
   'count_healthy(user)': 'session.healthy_user',
   'count_abnormal(session)': 'session.abnormal',
   'count_abnormal(user)': 'session.abnormal_user',
-  'count_all(session)': 'session.all',
-  'count_all(user)': 'session.all_user',
   'count_crashed(session)': 'session.crashed',
   'count_crashed(user)': 'session.crashed_user',
   'count_errored(session)': 'session.errored',
   'count_errored(user)': 'session.errored_user',
+  'count_unique(user)': 'count_unique(sentry.sessions.user)',
+  'sum(session)': 'sum(sentry.sessions.session)',
 };
 
-export const DERIVED_EXPRESSION_TO_FIELD = {
+export const METRICS_EXPRESSION_TO_FIELD = {
   'session.healthy': 'count_healthy(session)',
   'session.healthy_user': 'count_healthy(user)',
   'session.abnormal': 'count_abnormal(session)',
   'session.abnormal_user': 'count_abnormal(user)',
-  'session.all': 'count_all(session)',
-  'session.all_user': 'count_all(user)',
   'session.crashed': 'count_crashed(session)',
   'session.crashed_user': 'count_crashed(user)',
   'session.errored': 'count_errored(session)',
   'session.errored_user': 'count_errored(user)',
+  'count_unique(sentry.sessions.user)': 'count_unique(user)',
+  'sum(sentry.sessions.session)': 'sum(session)',
 };
+
+export const DERIVED_FIELDS_UNSUPPORTED = [
+  'count_healthy(session)',
+  'count_healthy(user)',
+  'count_abnormal(session)',
+  'count_abnormal(user)',
+  'count_crashed(session)',
+  'count_crashed(user)',
+  'count_errored(session)',
+  'count_errored(user)',
+];
 
 export const SORT_BY_UNSUPPORTED = [
   'count_errored(session)',
   'count_errored(user)',
   'count_healthy(session)',
   'count_healthy(user)',
+  'session.status',
 ];
 
 type Props = {
@@ -90,11 +102,11 @@ type State = {
 };
 
 function fieldsToDerivedMetrics(field: string): string {
-  return FIELD_TO_DERIVED_EXPRESSION[field] ?? field;
+  return FIELD_TO_METRICS_EXPRESSION[field] ?? field;
 }
 
 export function derivedMetricsToField(field: string): string {
-  return DERIVED_EXPRESSION_TO_FIELD[field] ?? field;
+  return METRICS_EXPRESSION_TO_FIELD[field] ?? field;
 }
 
 class ReleaseWidgetQueries extends Component<Props, State> {
@@ -228,20 +240,42 @@ class ReleaseWidgetQueries extends Component<Props, State> {
       MetricsApiResponse | [MetricsApiResponse, string, ResponseMeta] | SessionApiResponse
     >[] = [];
 
+    const aggregates = widget.queries[0].aggregates.map(stripDerivedMetricsPrefix);
+    const unsupportedAggregates = aggregates.filter(agg =>
+      DERIVED_FIELDS_UNSUPPORTED.includes(agg)
+    );
+    const useSessionAPI = widget.queries[0].columns.includes('session.status');
+    const isDescending = widget.queries[0].orderby.startsWith('-');
+    const rawOrderby = trimStart(widget.queries[0].orderby, '-');
+    const unsupportedOrderby = SORT_BY_UNSUPPORTED.includes(rawOrderby) || useSessionAPI;
+
     widget.queries.forEach(query => {
-      const aggregates = query.aggregates.map(stripDerivedMetricsPrefix);
-      const metricsFields = aggregates.filter(agg =>
-        Object.keys(FIELD_TO_DERIVED_EXPRESSION).includes(agg)
-      );
-      const sessionFields = aggregates.filter(agg => !!!metricsFields.includes(agg));
-      const isDescending = query.orderby.startsWith('-');
-      const rawOrderby = trimStart(query.orderby, '-');
-      const unsupportedOrderby =
-        SORT_BY_UNSUPPORTED.includes(rawOrderby) ||
-        !Object.keys(FIELD_TO_DERIVED_EXPRESSION).includes(rawOrderby);
-      if (metricsFields.length) {
+      if (useSessionAPI) {
+        const sessionAggregates = aggregates.filter(
+          agg => !!!DERIVED_FIELDS_UNSUPPORTED.includes(agg)
+        );
+        const requestData = {
+          field: sessionAggregates,
+          orgSlug: organization.slug,
+          end,
+          environment: environments,
+          groupBy: query.columns,
+          limit: Object.keys(FIELD_TO_METRICS_EXPRESSION).includes(rawOrderby)
+            ? undefined
+            : this.limit,
+          orderBy: '',
+          interval,
+          project: projects,
+          query: query.conditions,
+          start,
+          statsPeriod: period,
+          includeAllArgs,
+          cursor,
+        };
+        promises.push(doSessionsRequest(api, requestData));
+      } else {
         const metricsRequestData = {
-          field: metricsFields.map(fieldsToDerivedMetrics),
+          field: aggregates.map(fieldsToDerivedMetrics),
           orgSlug: organization.slug,
           end,
           environment: environments,
@@ -261,29 +295,6 @@ class ReleaseWidgetQueries extends Component<Props, State> {
           cursor,
         };
         promises.push(doMetricsRequest(api, metricsRequestData));
-      }
-      if (sessionFields.length) {
-        const requestData = {
-          field: sessionFields,
-          orgSlug: organization.slug,
-          end,
-          environment: environments,
-          groupBy: query.columns,
-          limit: Object.keys(FIELD_TO_DERIVED_EXPRESSION).includes(rawOrderby)
-            ? undefined
-            : this.limit,
-          orderBy: Object.keys(FIELD_TO_DERIVED_EXPRESSION).includes(rawOrderby)
-            ? ''
-            : query.orderby,
-          interval,
-          project: projects,
-          query: query.conditions,
-          start,
-          statsPeriod: period,
-          includeAllArgs,
-          cursor,
-        };
-        promises.push(doSessionsRequest(api, requestData));
       }
     });
 
@@ -309,7 +320,10 @@ class ReleaseWidgetQueries extends Component<Props, State> {
           }
 
           // Transform to fit the table format
-          const tableData = transformSessionsResponseToTable(data) as TableDataWithTitle; // Cast so we can add the title.
+          const tableData = transformSessionsResponseToTable(
+            data,
+            unsupportedAggregates
+          ) as TableDataWithTitle; // Cast so we can add the title.
           tableData.title = widget.queries[requestIndex]?.name ?? '';
           const tableResults = [...(prevState.tableResults ?? []), tableData];
 
@@ -317,6 +331,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
           const timeseriesResults = [...(prevState.timeseriesResults ?? [])];
           const transformedResult = transformSessionsResponseToSeries(
             data,
+            unsupportedAggregates,
             widget.queries[requestIndex].name
           );
 

@@ -18,7 +18,6 @@ export const SESSIONS_FIELDS: Readonly<Partial<Record<SessionField, SessionsMeta
       'crash_free_rate',
       'count_healthy',
       'count_abnormal',
-      'count_all',
       'count_crashed',
       'count_errored',
     ],
@@ -27,12 +26,11 @@ export const SESSIONS_FIELDS: Readonly<Partial<Record<SessionField, SessionsMeta
   [SessionField.USER]: {
     name: 'user',
     operations: [
-      'sum',
+      'count_unique',
       'crash_rate',
       'crash_free_rate',
       'count_healthy',
       'count_abnormal',
-      'count_all',
       'count_crashed',
       'count_errored',
     ],
@@ -88,19 +86,6 @@ export const SESSIONS_OPERATIONS: Readonly<
     ],
   },
   count_abnormal: {
-    columnTypes: ['integer', 'string'],
-    defaultValue: SessionField.SESSION,
-    outputType: 'integer',
-    parameters: [
-      {
-        kind: 'column',
-        columnTypes: ['integer', 'string'],
-        defaultValue: SessionField.SESSION,
-        required: true,
-      },
-    ],
-  },
-  count_all: {
     columnTypes: ['integer', 'string'],
     defaultValue: SessionField.SESSION,
     outputType: 'integer',

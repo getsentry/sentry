@@ -1,3 +1,5 @@
+import omit from 'lodash/omit';
+
 import {MetricsApiResponse, SessionApiResponse} from 'sentry/types';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
@@ -22,23 +24,49 @@ function mapDerivedMetricsToFields(results: Record<string, number | null>) {
   return mappedResults;
 }
 
+const PATTERN = /count_(abnormal|errored|crashed|healthy)\((user|session)\)/;
+
+export function getDerivedMetrics(groupBy, totals, requestedStatusMetrics) {
+  const derivedTotals = {};
+  if (!requestedStatusMetrics.length) {
+    return derivedTotals;
+  }
+  if (groupBy['session.status'] === undefined) {
+    return derivedTotals;
+  }
+  requestedStatusMetrics.forEach(status => {
+    const result = status.match(PATTERN);
+    if (result) {
+      if (groupBy['session.status'] === result[1]) {
+        if (result[2] === 'session') {
+          derivedTotals[status] = totals['sum(session)'];
+        } else if (result[2] === 'user') {
+          derivedTotals[status] = totals['count_unique(user)'];
+        }
+      } else {
+        derivedTotals[status] = 0;
+      }
+    }
+  });
+  return derivedTotals;
+}
+
 export function transformSessionsResponseToTable(
-  response: SessionApiResponse | MetricsApiResponse | null
+  response: SessionApiResponse | MetricsApiResponse | null,
+  requestedStatusMetrics: string[]
 ): TableData {
   const data =
     response?.groups.map((group, index) => ({
       id: String(index),
       ...group.by,
       ...mapDerivedMetricsToFields(group.totals),
+      ...getDerivedMetrics(group.by, group.totals, requestedStatusMetrics),
     })) ?? [];
 
-  const singleRow = response?.groups[0];
+  const singleRow = data[0];
   // TODO(metrics): these should come from the API in the future
   const meta = {
-    ...changeObjectValuesToTypes(singleRow?.by),
-    ...changeObjectValuesToTypes(
-      singleRow?.totals ? mapDerivedMetricsToFields(singleRow?.totals) : undefined
-    ),
+    ...changeObjectValuesToTypes(omit(singleRow, 'id')),
   };
 
   return {meta, data};

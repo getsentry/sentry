@@ -28,7 +28,6 @@ export type SessionsOperation =
   | 'crash_rate'
   | 'crash_free_rate'
   | 'count_abnormal'
-  | 'count_all'
   | 'count_errored'
   | 'count_healthy'
   | 'count_crashed';
