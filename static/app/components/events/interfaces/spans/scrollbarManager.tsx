@@ -249,7 +249,10 @@ export class Provider extends Component<Props, State> {
       clearTimeout(this.wheelTimeout);
     }
 
-    this.wheelTimeout = setTimeout(() => (this.isWheeling = false), 200);
+    this.wheelTimeout = setTimeout(() => {
+      this.isWheeling = false;
+      this.wheelTimeout = null;
+    }, 200);
 
     const interactiveLayerRefDOM = this.props.interactiveLayerRef.current!;
 
