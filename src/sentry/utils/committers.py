@@ -137,7 +137,7 @@ class AuthorCommits(TypedDict):
 
 
 class AuthorCommitsSerialized(TypedDict):
-    author: Author
+    author: Union[Author, None]
     commits: Sequence[MutableMapping[str, Any]]
 
 
