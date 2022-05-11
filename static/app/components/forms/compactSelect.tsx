@@ -333,10 +333,12 @@ const Overlay = styled('div')<{minWidth?: number}>`
 `;
 
 const MenuHeader = styled('div')`
+  position: relative;
   display: flex;
   justify-content: space-between;
   padding: ${space(0.25)} ${space(1)} ${space(0.25)} ${space(1.5)};
-  border-bottom: solid 1px ${p => p.theme.innerBorder};
+  box-shadow: 0 1px 0 ${p => p.theme.translucentInnerBorder};
+  z-index: 1;
 `;
 
 const MenuTitle = styled('span')`
