@@ -23,11 +23,10 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.commit import CommitSerializer, get_users_for_commits
 from sentry.api.serializers.models.release import Author
 from sentry.eventstore.models import Event
-from sentry.grouping.fingerprinting import EventAccess
 from sentry.models import Commit, CommitFileChange, Group, Project, Release, ReleaseCommit
 from sentry.utils import metrics
 from sentry.utils.compat import zip
-from sentry.utils.event_frames import supplement_filename
+from sentry.utils.event_frames import find_stack_frames, supplement_filename
 from sentry.utils.hashlib import hash_values
 
 PATH_SEPARATORS = frozenset(["/", "\\"])
@@ -53,14 +52,7 @@ def score_path_match_length(path_a: str, path_b: str) -> int:
 
 
 def get_frame_paths(event: Event) -> Union[Any, Sequence[Any]]:
-    frames_from_access = EventAccess(event).get_frames()
-    # frames = (
-    #     get_path(event.data, "stacktrace", "frames", filter=True)
-    #     or get_path(event.data, "exception", "values", 0, "stacktrace", "frames", filter=True)
-    #     or []
-    # )
-
-    return frames_from_access  # if frames_from_access else frames
+    return find_stack_frames(event.data)
 
 
 def release_cache_key(release: Release) -> str:
