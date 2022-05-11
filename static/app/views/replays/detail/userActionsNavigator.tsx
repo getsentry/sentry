@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Type from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type';
@@ -20,6 +20,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Crumb, RawCrumb} from 'sentry/types/breadcrumbs';
 import {EventTransaction} from 'sentry/types/event';
+import {getCurrentUserAction} from 'sentry/utils/replays/getCurrentUserAction';
 
 type Props = {
   crumbs: Array<RawCrumb>;
@@ -39,24 +40,27 @@ function UserActionsNavigator({event, crumbs}: Props) {
   const {startTimestamp} = event;
   const userActionCrumbs = onlyUserActions(transformCrumbs(crumbs));
 
+  const getClosestUserAction = useCallback(
+    async (hovertime: number) => {
+      const closestUserActionItem = getCurrentUserAction(
+        userActionCrumbs,
+        startTimestamp,
+        hovertime
+      );
+      if (closestUserAction?.timestamp !== closestUserActionItem.timestamp) {
+        setClosestUserAction(closestUserActionItem);
+      }
+    },
+    [closestUserAction?.timestamp, startTimestamp, userActionCrumbs]
+  );
+
   useEffect(() => {
-    if (!currentHoverTime || !userActionCrumbs || !startTimestamp) {
+    if (!currentHoverTime) {
       setClosestUserAction(undefined);
       return;
     }
-    // TODO: Find a better way to find the closest user action without using `reduce` method
-    const closestUserActionItem = userActionCrumbs.reduce((prev, curr) => {
-      return Math.abs(
-        relativeTimeInMs(curr.timestamp ?? '', startTimestamp) - currentHoverTime
-      ) <
-        Math.abs(
-          relativeTimeInMs(prev.timestamp ?? '', startTimestamp) - currentHoverTime
-        )
-        ? curr
-        : prev;
-    });
-    setClosestUserAction(closestUserActionItem);
-  }, [currentHoverTime, startTimestamp, userActionCrumbs]);
+    getClosestUserAction(currentHoverTime);
+  }, [getClosestUserAction, currentHoverTime]);
 
   if (!event) {
     return null;
@@ -70,8 +74,8 @@ function UserActionsNavigator({event, crumbs}: Props) {
         {userActionCrumbs.map(item => (
           <PanelItemCenter
             key={item.id}
-            isHovered={closestUserAction && closestUserAction.id === item.id}
-            isSelected={currentUserAction && currentUserAction.id === item.id}
+            isHovered={closestUserAction?.id === item.id}
+            isSelected={currentUserAction?.id === item.id}
             onClick={() => {
               setCurrentUserAction(item);
               item.timestamp
