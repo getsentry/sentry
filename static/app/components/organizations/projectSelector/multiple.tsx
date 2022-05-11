@@ -2,44 +2,107 @@ import {PureComponent} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
+import sortBy from 'lodash/sortBy';
 
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import Button from 'sentry/components/button';
+import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import {MenuActions} from 'sentry/components/dropdownMenu';
 import Link from 'sentry/components/links/link';
 import HeaderItem from 'sentry/components/organizations/headerItem';
+import PageFilterPinButton from 'sentry/components/organizations/pageFilters/pageFilterPinButton';
 import PlatformList from 'sentry/components/platformList';
 import Tooltip from 'sentry/components/tooltip';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import {IconProject} from 'sentry/icons';
+import {IconAdd, IconProject} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {MinimalProject, Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import theme from 'sentry/utils/theme';
 
 import ProjectSelectorFooter from './footer';
-import ProjectSelector from './';
+import SelectorItem from './selectorItem';
 
 type Props = WithRouterProps & {
+  /**
+   * Projects the member is a part of
+   */
   memberProjects: Project[];
+  /**
+   * Projects the member is _not_ part of
+   */
   nonMemberProjects: Project[];
+  /**
+   * Triggers any time a selection is changed, but the menu has not yet been closed or "applied"
+   */
   onChange: (selected: number[]) => void;
+  /**
+   * Triggered when the selection changes are applied
+   */
   onUpdate: (newProjects?: number[]) => void;
   organization: Organization;
+  /**
+   * The selected projects
+   */
   value: number[];
+  /**
+   * Used to render a custom dropdown button for the DropdownAutoComplete
+   */
   customDropdownButton?: (config: {
     actions: MenuActions;
     isOpen: boolean;
     selectedProjects: Project[];
   }) => React.ReactElement;
+  /**
+   * The loading indicator to render when global selection is not yet ready.
+   */
   customLoadingIndicator?: React.ReactNode;
   detached?: boolean;
+  /**
+   * Only allow a single project to be selected at once
+   */
   disableMultipleProjectSelection?: boolean;
+  /**
+   * Message to show in the footer
+   */
   footerMessage?: React.ReactNode;
+  /**
+   * Forces a specific project to be selected and does _not_ allow editing of the project selection.
+   *
+   * @deprecated This was used in the old Global Selection Header
+   */
   forceProject?: MinimalProject | null;
   isGlobalSelectionReady?: boolean;
+  /**
+   * Used when `forceProject` is set. Indicates what is "locked"
+   *
+   * @deprecated
+   */
   lockedMessageSubject?: React.ReactNode;
+  /**
+   * When we expect forceProject to be set, but the project is still loading, we
+   * can use this to hint that the forceProject will be set.
+   *
+   * @deprecated
+   */
   shouldForceProject?: boolean;
+  /**
+   * Link back to the issues strean
+   *
+   * @deprecated
+   */
   showIssueStreamLink?: boolean;
+  /**
+   * Show the pinning icon in the projects dropdown
+   */
   showPin?: boolean;
+  /**
+   * Show a link to the project settings in th header
+   *
+   * @deprecated
+   */
   showProjectSettingsLink?: boolean;
 };
 
@@ -55,6 +118,11 @@ class MultipleProjectSelector extends PureComponent<Props, State> {
   state: State = {
     hasChanges: false,
   };
+
+  /**
+   * Used to keep selected proects sorted in the same order when opening / closing the project selector
+   */
+  lastSelected = this.props.value;
 
   get multi() {
     const {organization, disableMultipleProjectSelection} = this.props;
@@ -118,6 +186,7 @@ class MultipleProjectSelector extends PureComponent<Props, State> {
     });
 
     this.doUpdate();
+    this.lastSelected = value;
   };
 
   /**
@@ -194,11 +263,12 @@ class MultipleProjectSelector extends PureComponent<Props, State> {
 
   render() {
     const {
+      onChange: _onChange,
       value,
       memberProjects,
       isGlobalSelectionReady,
       disableMultipleProjectSelection,
-      nonMemberProjects,
+      nonMemberProjects = [],
       organization,
       shouldForceProject,
       forceProject,
@@ -206,6 +276,8 @@ class MultipleProjectSelector extends PureComponent<Props, State> {
       footerMessage,
       customDropdownButton,
       customLoadingIndicator,
+      showPin,
+      ...extraProps
     } = this.props;
     const selectedProjectIds = new Set(value);
     const multi = this.multi;
@@ -217,53 +289,146 @@ class MultipleProjectSelector extends PureComponent<Props, State> {
 
     // `forceProject` can be undefined if it is loading the project
     // We are intentionally using an empty string as its "loading" state
-
-    return shouldForceProject ? (
-      <StyledHeaderItem
-        data-test-id="global-header-project-selector"
-        icon={
-          forceProject && (
-            <PlatformList
-              platforms={forceProject.platform ? [forceProject.platform] : []}
-              max={1}
-            />
-          )
-        }
-        locked
-        lockedMessage={this.getLockedMessage()}
-        settingsLink={
-          (forceProject &&
-            showProjectSettingsLink &&
-            `/settings/${organization.slug}/projects/${forceProject.slug}/`) ||
-          undefined
-        }
-      >
-        {this.renderProjectName()}
-      </StyledHeaderItem>
-    ) : !isGlobalSelectionReady ? (
-      customLoadingIndicator ?? (
+    if (shouldForceProject) {
+      return (
         <StyledHeaderItem
-          data-test-id="global-header-project-selector-loading"
-          icon={<IconProject />}
-          loading
+          data-test-id="global-header-project-selector"
+          icon={
+            forceProject && (
+              <PlatformList
+                platforms={forceProject.platform ? [forceProject.platform] : []}
+                max={1}
+              />
+            )
+          }
+          locked
+          lockedMessage={this.getLockedMessage()}
+          settingsLink={
+            (forceProject &&
+              showProjectSettingsLink &&
+              `/settings/${organization.slug}/projects/${forceProject.slug}/`) ||
+            undefined
+          }
         >
-          {t('Loading\u2026')}
+          {this.renderProjectName()}
         </StyledHeaderItem>
-      )
-    ) : (
+      );
+    }
+
+    if (!isGlobalSelectionReady) {
+      return (
+        customLoadingIndicator ?? (
+          <StyledHeaderItem
+            data-test-id="global-header-project-selector-loading"
+            icon={<IconProject />}
+            loading
+          >
+            {t('Loading\u2026')}
+          </StyledHeaderItem>
+        )
+      );
+    }
+
+    const listSort = (project: Project) => [
+      !this.lastSelected.includes(parseInt(project.id, 10)),
+      !project.isBookmarked,
+      project.slug,
+    ];
+
+    const projects = sortBy(memberProjects, listSort);
+    const otherProjects = sortBy(nonMemberProjects, listSort);
+
+    const handleMultiSelect = (project: Project) => {
+      const selectedProjectsMap = new Map(selected.map(p => [p.slug, p]));
+
+      if (selectedProjectsMap.has(project.slug)) {
+        // unselected a project
+        selectedProjectsMap.delete(project.slug);
+        this.handleMultiSelect(Array.from(selectedProjectsMap.values()));
+        return;
+      }
+
+      selectedProjectsMap.set(project.slug, project);
+      this.handleMultiSelect(Array.from(selectedProjectsMap.values()));
+    };
+
+    const getProjectItem = (project: Project) => ({
+      item: project,
+      searchKey: project.slug,
+      label: ({inputValue}: {inputValue: typeof project.slug}) => (
+        <SelectorItem
+          project={project}
+          organization={organization}
+          multi={multi}
+          inputValue={inputValue}
+          isChecked={!!selected.find(({slug}) => slug === project.slug)}
+          onMultiSelect={handleMultiSelect}
+        />
+      ),
+    });
+
+    const hasProjects = !!projects?.length || !!otherProjects?.length;
+    const newProjectUrl = `/organizations/${organization.slug}/projects/new/`;
+    const hasProjectWrite = organization.access.includes('project:write');
+
+    const items = !hasProjects
+      ? []
+      : [
+          {
+            hideGroupLabel: true,
+            items: projects.map(getProjectItem),
+          },
+          {
+            hideGroupLabel: otherProjects.length === 0,
+            itemSize: 'small',
+            id: 'no-membership-header', // needed for tests for non-virtualized lists
+            label: <Label>{t("Projects I don't belong to")}</Label>,
+            items: otherProjects.map(getProjectItem),
+          },
+        ];
+
+    return (
       <ClassNames>
         {({css}) => (
-          <StyledProjectSelector
-            {...this.props}
-            multi={!!multi}
-            selectedProjects={selected}
-            multiProjects={memberProjects}
-            onSelect={this.handleQuickSelect}
+          <StyledDropdownAutocomplete
+            {...extraProps}
+            blendCorner={false}
+            searchPlaceholder={t('Filter projects')}
+            onSelect={i => this.handleQuickSelect(i.item)}
             onClose={this.handleClose}
-            onMultiSelect={this.handleMultiSelect}
+            maxHeight={500}
+            minWidth={350}
+            inputProps={{style: {padding: 8, paddingLeft: 10}}}
             rootClassName={css`
               display: flex;
             `}
+            emptyMessage={t('You have no projects')}
+            noResultsMessage={t('No projects found')}
+            virtualizedHeight={theme.headerSelectorRowHeight}
+            virtualizedLabelHeight={theme.headerSelectorLabelHeight}
+            inputActions={
+              <InputActions>
+                <AddButton
+                  aria-label={t('Add Project')}
+                  disabled={!hasProjectWrite}
+                  to={newProjectUrl}
+                  size="xsmall"
+                  icon={<IconAdd size="xs" isCircled />}
+                  title={
+                    !hasProjectWrite
+                      ? t("You don't have permission to add a project")
+                      : undefined
+                  }
+                >
+                  {showPin ? '' : t('Project')}
+                </AddButton>
+                {showPin && (
+                  <GuideAnchor target="new_page_filter_pin" position="bottom">
+                    <PageFilterPinButton size="xsmall" filter="projects" />
+                  </GuideAnchor>
+                )}
+              </InputActions>
+            }
             menuFooter={({actions}) => (
               <ProjectSelectorFooter
                 selected={selectedProjectIds}
@@ -292,20 +457,27 @@ class MultipleProjectSelector extends PureComponent<Props, State> {
                 message={footerMessage}
               />
             )}
+            items={items}
+            allowActorToggle
+            closeOnSelect
           >
-            {({actions, selectedProjects, isOpen}) => {
+            {({actions, isOpen}) => {
               if (customDropdownButton) {
-                return customDropdownButton({actions, selectedProjects, isOpen});
+                return customDropdownButton({
+                  actions,
+                  selectedProjects: selected,
+                  isOpen,
+                });
               }
-              const hasSelected = !!selectedProjects.length;
+              const hasSelected = !!selected.length;
               const title = hasSelected
-                ? selectedProjects.map(({slug}) => slug).join(', ')
+                ? selected.map(({slug}) => slug).join(', ')
                 : selectedProjectIds.has(ALL_ACCESS_PROJECTS)
                 ? t('All Projects')
                 : t('My Projects');
               const icon = hasSelected ? (
                 <PlatformList
-                  platforms={selectedProjects.map(p => p.platform ?? 'other').reverse()}
+                  platforms={selected.map(p => p.platform ?? 'other').reverse()}
                   max={5}
                 />
               ) : (
@@ -322,7 +494,7 @@ class MultipleProjectSelector extends PureComponent<Props, State> {
                   onClear={this.handleClear}
                   allowClear={multi}
                   settingsLink={
-                    selectedProjects.length === 1
+                    selected.length === 1
                       ? `/settings/${organization.slug}/projects/${selected[0]?.slug}/`
                       : ''
                   }
@@ -331,7 +503,7 @@ class MultipleProjectSelector extends PureComponent<Props, State> {
                 </StyledHeaderItem>
               );
             }}
-          </StyledProjectSelector>
+          </StyledDropdownAutocomplete>
         )}
       </ClassNames>
     );
@@ -340,7 +512,7 @@ class MultipleProjectSelector extends PureComponent<Props, State> {
 
 export default withRouter(MultipleProjectSelector);
 
-const StyledProjectSelector = styled(ProjectSelector)`
+const StyledDropdownAutocomplete = styled(DropdownAutoComplete)`
   background-color: ${p => p.theme.background};
   color: ${p => p.theme.textColor};
 
@@ -365,4 +537,25 @@ const StyledLink = styled(Link)`
   &:hover {
     color: ${p => p.theme.subText};
   }
+`;
+
+const Label = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.gray300};
+`;
+
+const AddButton = styled(Button)`
+  display: block;
+  color: ${p => p.theme.gray300};
+  :hover {
+    color: ${p => p.theme.subText};
+  }
+`;
+
+const InputActions = styled('div')`
+  display: grid;
+  margin: 0 ${space(1)};
+  gap: ${space(1)};
+  grid-auto-flow: column;
+  grid-auto-columns: auto;
 `;
