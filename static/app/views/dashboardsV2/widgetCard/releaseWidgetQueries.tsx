@@ -22,54 +22,15 @@ import {TOP_N} from 'sentry/utils/discover/types';
 
 import {DEFAULT_TABLE_LIMIT, DisplayType, Widget} from '../types';
 import {getWidgetInterval} from '../utils';
+import {
+  DerivedStatusFields,
+  DISABLED_SORT,
+  FIELD_TO_METRICS_EXPRESSION,
+  METRICS_EXPRESSION_TO_FIELD,
+} from '../widgetBuilder/releaseWidget/fields';
 
 import {transformSessionsResponseToSeries} from './transformSessionsResponseToSeries';
 import {transformSessionsResponseToTable} from './transformSessionsResponseToTable';
-
-export const FIELD_TO_METRICS_EXPRESSION = {
-  'count_healthy(session)': 'session.healthy',
-  'count_healthy(user)': 'session.healthy_user',
-  'count_abnormal(session)': 'session.abnormal',
-  'count_abnormal(user)': 'session.abnormal_user',
-  'count_crashed(session)': 'session.crashed',
-  'count_crashed(user)': 'session.crashed_user',
-  'count_errored(session)': 'session.errored',
-  'count_errored(user)': 'session.errored_user',
-  'count_unique(user)': 'count_unique(sentry.sessions.user)',
-  'sum(session)': 'sum(sentry.sessions.session)',
-};
-
-export const METRICS_EXPRESSION_TO_FIELD = {
-  'session.healthy': 'count_healthy(session)',
-  'session.healthy_user': 'count_healthy(user)',
-  'session.abnormal': 'count_abnormal(session)',
-  'session.abnormal_user': 'count_abnormal(user)',
-  'session.crashed': 'count_crashed(session)',
-  'session.crashed_user': 'count_crashed(user)',
-  'session.errored': 'count_errored(session)',
-  'session.errored_user': 'count_errored(user)',
-  'count_unique(sentry.sessions.user)': 'count_unique(user)',
-  'sum(sentry.sessions.session)': 'sum(session)',
-};
-
-export const DERIVED_FIELDS_UNSUPPORTED = [
-  'count_healthy(session)',
-  'count_healthy(user)',
-  'count_abnormal(session)',
-  'count_abnormal(user)',
-  'count_crashed(session)',
-  'count_crashed(user)',
-  'count_errored(session)',
-  'count_errored(user)',
-];
-
-export const SORT_BY_UNSUPPORTED = [
-  'count_errored(session)',
-  'count_errored(user)',
-  'count_healthy(session)',
-  'count_healthy(user)',
-  'session.status',
-];
 
 type Props = {
   api: Client;
@@ -180,12 +141,19 @@ class ReleaseWidgetQueries extends Component<Props, State> {
       !isEqual(widgetQueryNames, prevWidgetQueryNames) &&
       rawResults?.length === widget.queries.length
     ) {
+      const unsupportedAggregates = widget.queries[0].aggregates.filter(agg =>
+        Object.values(DerivedStatusFields).includes(agg as DerivedStatusFields)
+      );
       // eslint-disable-next-line react/no-did-update-set-state
       this.setState(prevState => {
         return {
           ...prevState,
           timeseriesResults: prevState.rawResults?.flatMap((rawResult, index) =>
-            transformSessionsResponseToSeries(rawResult, widget.queries[index].name)
+            transformSessionsResponseToSeries(
+              rawResult,
+              unsupportedAggregates,
+              widget.queries[index].name
+            )
           ),
         };
       });
@@ -242,17 +210,18 @@ class ReleaseWidgetQueries extends Component<Props, State> {
 
     const aggregates = widget.queries[0].aggregates.map(stripDerivedMetricsPrefix);
     const unsupportedAggregates = aggregates.filter(agg =>
-      DERIVED_FIELDS_UNSUPPORTED.includes(agg)
+      Object.values(DerivedStatusFields).includes(agg as DerivedStatusFields)
     );
     const useSessionAPI = widget.queries[0].columns.includes('session.status');
     const isDescending = widget.queries[0].orderby.startsWith('-');
     const rawOrderby = trimStart(widget.queries[0].orderby, '-');
-    const unsupportedOrderby = SORT_BY_UNSUPPORTED.includes(rawOrderby) || useSessionAPI;
+    const unsupportedOrderby = DISABLED_SORT.includes(rawOrderby) || useSessionAPI;
 
     widget.queries.forEach(query => {
       if (useSessionAPI) {
         const sessionAggregates = aggregates.filter(
-          agg => !!!DERIVED_FIELDS_UNSUPPORTED.includes(agg)
+          agg =>
+            !!!Object.values(DerivedStatusFields).includes(agg as DerivedStatusFields)
         );
         const requestData = {
           field: sessionAggregates,
@@ -260,9 +229,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
           end,
           environment: environments,
           groupBy: query.columns,
-          limit: Object.keys(FIELD_TO_METRICS_EXPRESSION).includes(rawOrderby)
-            ? undefined
-            : this.limit,
+          limit: undefined,
           orderBy: '',
           interval,
           project: projects,
@@ -280,7 +247,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
           end,
           environment: environments,
           groupBy: query.columns,
-          limit: unsupportedOrderby ? undefined : this.limit,
+          limit: unsupportedOrderby || rawOrderby === '' ? undefined : this.limit,
           orderBy: unsupportedOrderby
             ? ''
             : isDescending

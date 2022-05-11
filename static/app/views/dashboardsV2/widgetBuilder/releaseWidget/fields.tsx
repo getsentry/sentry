@@ -9,6 +9,51 @@ import {
 import {defined} from 'sentry/utils';
 import {FieldValue, FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
+export enum DerivedStatusFields {
+  HEALTHY_SESSIONS = 'count_healthy(session)',
+  HEALTHY_USERS = 'count_healthy(user)',
+  ABNORMAL_SESSIONS = 'count_abnormal(session)',
+  ABNORMAL_USERS = 'count_abnormal(user)',
+  CRASHED_SESSIONS = 'count_crashed(session)',
+  CRASHED_USERS = 'count_crashed(user)',
+  ERRORED_SESSIONS = 'count_errored(session)',
+  ERRORED_USERS = 'count_errored(user)',
+}
+
+export const FIELD_TO_METRICS_EXPRESSION = {
+  [DerivedStatusFields.HEALTHY_SESSIONS]: 'session.healthy',
+  [DerivedStatusFields.HEALTHY_USERS]: 'session.healthy_user',
+  [DerivedStatusFields.ABNORMAL_SESSIONS]: 'session.abnormal',
+  [DerivedStatusFields.ABNORMAL_USERS]: 'session.abnormal_user',
+  [DerivedStatusFields.CRASHED_SESSIONS]: 'session.crashed',
+  [DerivedStatusFields.CRASHED_USERS]: 'session.crashed_user',
+  [DerivedStatusFields.ERRORED_SESSIONS]: 'session.errored',
+  [DerivedStatusFields.ERRORED_USERS]: 'session.errored_user',
+  'count_unique(user)': 'count_unique(sentry.sessions.user)',
+  'sum(session)': 'sum(sentry.sessions.session)',
+};
+
+export const METRICS_EXPRESSION_TO_FIELD = {
+  'session.healthy': [DerivedStatusFields.HEALTHY_SESSIONS],
+  'session.healthy_user': [DerivedStatusFields.HEALTHY_USERS],
+  'session.abnormal': [DerivedStatusFields.ABNORMAL_SESSIONS],
+  'session.abnormal_user': [DerivedStatusFields.ABNORMAL_USERS],
+  'session.crashed': [DerivedStatusFields.CRASHED_SESSIONS],
+  'session.crashed_user': [DerivedStatusFields.CRASHED_USERS],
+  'session.errored': [DerivedStatusFields.ERRORED_SESSIONS],
+  'session.errored_user': [DerivedStatusFields.ERRORED_USERS],
+  'count_unique(sentry.sessions.user)': 'count_unique(user)',
+  'sum(sentry.sessions.session)': 'sum(session)',
+};
+
+export const DISABLED_SORT = [
+  'count_errored(session)',
+  'count_errored(user)',
+  'count_healthy(session)',
+  'count_healthy(user)',
+  'session.status',
+];
+
 export const SESSIONS_FIELDS: Readonly<Partial<Record<SessionField, SessionsMeta>>> = {
   [SessionField.SESSION]: {
     name: 'session',
