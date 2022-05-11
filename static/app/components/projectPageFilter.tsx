@@ -86,11 +86,17 @@ function ProjectPageFilter({
   const organization = useOrganization();
   const {selection, isReady, desyncedFilters} = useLegacyStore(PageFiltersStore);
 
-  useEffect(() => {
-    if (!isEqual(selection.projects, currentSelectedProjects)) {
-      setCurrentSelectedProjects(selection.projects);
-    }
-  }, [selection.projects]);
+  useEffect(
+    () => {
+      if (!isEqual(selection.projects, currentSelectedProjects)) {
+        setCurrentSelectedProjects(selection.projects);
+      }
+    },
+    // We only care to update the currentSelectedProjects when the project
+    // selection has changed
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [selection.projects]
+  );
 
   const handleChangeProjects = (newProjects: number[]) => {
     setCurrentSelectedProjects(newProjects);
