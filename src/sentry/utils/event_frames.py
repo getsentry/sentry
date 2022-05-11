@@ -6,7 +6,7 @@ from sentry.utils.safe import PathSearchable, get_path
 
 
 def get_crashing_thread(thread_frames: Sequence[Mapping[str, Any]]) -> Mapping[str, Any] | None:
-    if thread_frames is None:
+    if not thread_frames:
         return None
     if len(thread_frames) == 1:
         return thread_frames[0]
