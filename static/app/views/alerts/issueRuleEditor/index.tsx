@@ -625,6 +625,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
           type="text"
           name="name"
           value={name}
+          data-test-id="alert-name"
           placeholder={hasAlertWizardV3 ? t('Enter Alert Name') : t('My Rule Name')}
           onChange={(event: ChangeEvent<HTMLInputElement>) =>
             this.handleChange('name', event.target.value)
