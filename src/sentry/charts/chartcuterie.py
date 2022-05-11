@@ -66,6 +66,7 @@ class Chartcuterie(ChartRenderer):
             description=type(self).__name__,
         ):
 
+            # Using sentry json formatter to handle datetime objects
             resp = requests.post(
                 url=urljoin(self.service_url, "render"),
                 data=json.dumps(data, cls=json._default_encoder),

@@ -345,3 +345,29 @@ class BuildMetricAlertAttachmentTest(TestCase):
                 },
             ],
         }
+
+    def test_metric_alert_chart(self):
+        alert_rule = self.create_alert_rule()
+        title = f"Resolved: {alert_rule.name}"
+        link = absolute_uri(
+            reverse(
+                "sentry-metric-alert-details",
+                kwargs={
+                    "organization_slug": alert_rule.organization.slug,
+                    "alert_rule_id": alert_rule.id,
+                },
+            )
+        )
+        assert SlackMetricAlertMessageBuilder(alert_rule, chart_url="chart_url").build() == {
+            "color": LEVEL_TO_COLOR["_incident_resolved"],
+            "blocks": [
+                {
+                    "text": {
+                        "text": f"<{link}|*{title}*>  \n",
+                        "type": "mrkdwn",
+                    },
+                    "type": "section",
+                },
+                {"alt_text": "Metric Alert Chart", "image_url": "chart_url", "type": "image"},
+            ],
+        }
