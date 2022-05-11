@@ -142,17 +142,21 @@ function renderMeasurements(
 
 export function SpanGroupBar(props: Props) {
   const spanTitleRef: LegacyRef<HTMLDivElement> | null = useRef(null);
+  const {onWheel} = props;
 
-  const handleWheel = useCallback((event: WheelEvent) => {
-    if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
-      return;
-    }
+  const handleWheel = useCallback(
+    (event: WheelEvent) => {
+      if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
+        return;
+      }
 
-    event.preventDefault();
-    event.stopPropagation();
-    const {onWheel} = props;
-    onWheel(event.deltaX);
-  }, []);
+      event.preventDefault();
+      event.stopPropagation();
+
+      onWheel(event.deltaX);
+    },
+    [onWheel]
+  );
 
   useEffect(() => {
     const currentRef = spanTitleRef.current;
