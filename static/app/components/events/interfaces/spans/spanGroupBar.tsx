@@ -1,4 +1,4 @@
-import {Fragment, LegacyRef, useEffect, useRef} from 'react';
+import {Fragment, LegacyRef, useCallback, useEffect, useRef} from 'react';
 
 import Count from 'sentry/components/count';
 import {
@@ -143,7 +143,7 @@ function renderMeasurements(
 export function SpanGroupBar(props: Props) {
   const spanTitleRef: LegacyRef<HTMLDivElement> | null = useRef(null);
 
-  const handleWheel = (event: WheelEvent) => {
+  const handleWheel = useCallback((event: WheelEvent) => {
     if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
       return;
     }
@@ -152,7 +152,7 @@ export function SpanGroupBar(props: Props) {
     event.stopPropagation();
     const {onWheel} = props;
     onWheel(event.deltaX);
-  };
+  }, []);
 
   useEffect(() => {
     const currentRef = spanTitleRef.current;
