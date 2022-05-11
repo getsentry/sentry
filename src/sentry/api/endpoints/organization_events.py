@@ -119,6 +119,8 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
 
 
 class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
+    private = True
+
     def get(self, request: Request, organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
