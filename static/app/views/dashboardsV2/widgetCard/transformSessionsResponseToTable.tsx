@@ -53,13 +53,14 @@ export function getDerivedMetrics(groupBy, totals, requestedStatusMetrics) {
 
 export function transformSessionsResponseToTable(
   response: SessionApiResponse | MetricsApiResponse | null,
-  requestedStatusMetrics: string[]
+  requestedStatusMetrics: string[],
+  injectedFields: string[]
 ): TableData {
   const data =
     response?.groups.map((group, index) => ({
       id: String(index),
-      ...group.by,
-      ...mapDerivedMetricsToFields(group.totals),
+      ...mapDerivedMetricsToFields(group.by),
+      ...omit(mapDerivedMetricsToFields(group.totals), injectedFields),
       ...getDerivedMetrics(group.by, group.totals, requestedStatusMetrics),
     })) ?? [];
 

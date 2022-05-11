@@ -32,6 +32,8 @@ import {
 import {transformSessionsResponseToSeries} from './transformSessionsResponseToSeries';
 import {transformSessionsResponseToTable} from './transformSessionsResponseToTable';
 
+const PATTERN = /count_(abnormal|errored|crashed|healthy)\((user|session)\)/;
+
 type Props = {
   api: Client;
   children: (
@@ -68,6 +70,34 @@ function fieldsToDerivedMetrics(field: string): string {
 
 export function derivedMetricsToField(field: string): string {
   return METRICS_EXPRESSION_TO_FIELD[field] ?? field;
+}
+
+function resolveDerivedStatusFields(fields: string[]): {
+  aggregates: string[];
+  derivedStatusFields: string[];
+  injectedFields: string[];
+} {
+  const aggregates = fields.map(stripDerivedMetricsPrefix);
+  const derivedStatusFields = aggregates.filter(agg =>
+    Object.values(DerivedStatusFields).includes(agg as DerivedStatusFields)
+  );
+
+  const injectedFields: string[] = [];
+  derivedStatusFields.forEach(field => {
+    const result = field.match(PATTERN);
+    if (result) {
+      if (result[2] === 'user' && !!!aggregates.includes('count_unique(user)')) {
+        injectedFields.push('count_unique(user)');
+        aggregates.push('count_unique(user)');
+      }
+      if (result[2] === 'session' && !!!aggregates.includes('sum(session)')) {
+        injectedFields.push('sum(session)');
+        aggregates.push('sum(session)');
+      }
+    }
+  });
+
+  return {aggregates, derivedStatusFields, injectedFields};
 }
 
 class ReleaseWidgetQueries extends Component<Props, State> {
@@ -141,8 +171,8 @@ class ReleaseWidgetQueries extends Component<Props, State> {
       !isEqual(widgetQueryNames, prevWidgetQueryNames) &&
       rawResults?.length === widget.queries.length
     ) {
-      const unsupportedAggregates = widget.queries[0].aggregates.filter(agg =>
-        Object.values(DerivedStatusFields).includes(agg as DerivedStatusFields)
+      const {derivedStatusFields, injectedFields} = resolveDerivedStatusFields(
+        widget.queries[0].aggregates
       );
       // eslint-disable-next-line react/no-did-update-set-state
       this.setState(prevState => {
@@ -151,7 +181,8 @@ class ReleaseWidgetQueries extends Component<Props, State> {
           timeseriesResults: prevState.rawResults?.flatMap((rawResult, index) =>
             transformSessionsResponseToSeries(
               rawResult,
-              unsupportedAggregates,
+              derivedStatusFields,
+              injectedFields,
               widget.queries[index].name
             )
           ),
@@ -208,10 +239,10 @@ class ReleaseWidgetQueries extends Component<Props, State> {
       MetricsApiResponse | [MetricsApiResponse, string, ResponseMeta] | SessionApiResponse
     >[] = [];
 
-    const aggregates = widget.queries[0].aggregates.map(stripDerivedMetricsPrefix);
-    const unsupportedAggregates = aggregates.filter(agg =>
-      Object.values(DerivedStatusFields).includes(agg as DerivedStatusFields)
+    const {aggregates, derivedStatusFields, injectedFields} = resolveDerivedStatusFields(
+      widget.queries[0].aggregates
     );
+
     const useSessionAPI = widget.queries[0].columns.includes('session.status');
     const isDescending = widget.queries[0].orderby.startsWith('-');
     const rawOrderby = trimStart(widget.queries[0].orderby, '-');
@@ -246,7 +277,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
           orgSlug: organization.slug,
           end,
           environment: environments,
-          groupBy: query.columns,
+          groupBy: query.columns.map(fieldsToDerivedMetrics),
           limit: unsupportedOrderby || rawOrderby === '' ? undefined : this.limit,
           orderBy: unsupportedOrderby
             ? ''
@@ -289,7 +320,8 @@ class ReleaseWidgetQueries extends Component<Props, State> {
           // Transform to fit the table format
           const tableData = transformSessionsResponseToTable(
             data,
-            unsupportedAggregates
+            derivedStatusFields,
+            injectedFields
           ) as TableDataWithTitle; // Cast so we can add the title.
           tableData.title = widget.queries[requestIndex]?.name ?? '';
           const tableResults = [...(prevState.tableResults ?? []), tableData];
@@ -298,7 +330,8 @@ class ReleaseWidgetQueries extends Component<Props, State> {
           const timeseriesResults = [...(prevState.timeseriesResults ?? [])];
           const transformedResult = transformSessionsResponseToSeries(
             data,
-            unsupportedAggregates,
+            derivedStatusFields,
+            injectedFields,
             widget.queries[requestIndex].name
           );
 

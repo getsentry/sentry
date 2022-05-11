@@ -31,6 +31,11 @@ export const FIELD_TO_METRICS_EXPRESSION = {
   [DerivedStatusFields.ERRORED_USERS]: 'session.errored_user',
   'count_unique(user)': 'count_unique(sentry.sessions.user)',
   'sum(session)': 'sum(sentry.sessions.session)',
+  'crash_free_rate(session)': 'session.crash_free_rate',
+  'crash_free_rate(user)': 'session.crash_free_user_rate',
+  'crash_rate(session)': 'session.crash_rate',
+  'crash_rate(user)': 'session.crash_user_rate',
+  project: 'project_id',
 };
 
 export const METRICS_EXPRESSION_TO_FIELD = {
@@ -44,6 +49,11 @@ export const METRICS_EXPRESSION_TO_FIELD = {
   'session.errored_user': [DerivedStatusFields.ERRORED_USERS],
   'count_unique(sentry.sessions.user)': 'count_unique(user)',
   'sum(sentry.sessions.session)': 'sum(session)',
+  'session.crash_free_rate': 'crash_free_rate(session)',
+  'session.crash_free_user_rate': 'crash_free_rate(user)',
+  'session.crash_rate': 'crash_rate(session)',
+  'session.crash_user_rate': 'crash_rate(user)',
+  project_id: 'project',
 };
 
 export const DISABLED_SORT = [

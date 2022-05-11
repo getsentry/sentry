@@ -2,6 +2,8 @@ import {MetricsApiResponse, SessionApiResponse} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 
+import {derivedMetricsToField} from './releaseWidgetQueries';
+
 const PATTERN = /count_(abnormal|errored|crashed|healthy)\((user|session)\)/;
 
 function getSeriesName(
@@ -12,13 +14,16 @@ function getSeriesName(
   const groupName = Object.entries(group.by)
     .map(([_, value]) => `${value}`)
     .join(', ');
-  const seriesName = groupName ? `${groupName} : ${field}` : field;
+  const seriesName = groupName
+    ? `${groupName} : ${derivedMetricsToField(field)}`
+    : derivedMetricsToField(field);
   return `${queryAlias ? `${queryAlias} > ` : ''}${seriesName}`;
 }
 
 export function transformSessionsResponseToSeries(
   response: SessionApiResponse | MetricsApiResponse | null,
   requestedStatusMetrics: string[],
+  injectedFields: string[],
   queryAlias?: string
 ): Series[] {
   if (response === null) {
@@ -29,59 +34,39 @@ export function transformSessionsResponseToSeries(
 
   response.groups.forEach(group => {
     Object.keys(group.series).forEach(field => {
-      results.push({
-        seriesName: getSeriesName(field, group, queryAlias),
-        data: response.intervals.map((interval, index) => ({
-          name: interval,
-          value: group.series[field][index] ?? 0,
-        })),
-      });
+      if (!!!injectedFields.includes(field)) {
+        results.push({
+          seriesName: getSeriesName(field, group, queryAlias),
+          data: response.intervals.map((interval, index) => ({
+            name: interval,
+            value: group.series[field][index] ?? 0,
+          })),
+        });
+      }
     });
     if (requestedStatusMetrics.length && defined(group.by['session.status'])) {
       requestedStatusMetrics.forEach(status => {
         const result = status.match(PATTERN);
         if (result) {
+          let metricField: string | undefined = undefined;
           if (group.by['session.status'] === result[1]) {
             if (result[2] === 'session') {
-              results.push({
-                seriesName: getSeriesName(status, group, queryAlias),
-                data: response.intervals.map((interval, index) => ({
-                  name: interval,
-                  value: group.series['sum(session)'][index] ?? 0,
-                })),
-              });
+              metricField = 'sum(session)';
             } else if (result[2] === 'user') {
-              results.push({
-                seriesName: getSeriesName(status, group, queryAlias),
-                data: response.intervals.map((interval, index) => ({
-                  name: interval,
-                  value: group.series['count_unique(user)'][index] ?? 0,
-                })),
-              });
+              metricField = 'count_unique(user)';
             }
-          } else {
-            results.push({
-              seriesName: getSeriesName(status, group, queryAlias),
-              data: response.intervals.map(interval => ({
-                name: interval,
-                value: 0,
-              })),
-            });
           }
+          results.push({
+            seriesName: getSeriesName(status, group, queryAlias),
+            data: response.intervals.map((interval, index) => ({
+              name: interval,
+              value: metricField ? group.series[metricField][index] ?? 0 : 0,
+            })),
+          });
         }
       });
     }
   });
-
-  // results = response.groups.flatMap(group =>
-  //   Object.keys(group.series).map(field => ({
-  //     seriesName: getSeriesName(field, group, queryAlias),
-  //     data: response.intervals.map((interval, index) => ({
-  //       name: interval,
-  //       value: group.series[field][index] ?? 0,
-  //     })),
-  //   }))
-  // );
 
   return results;
 }
